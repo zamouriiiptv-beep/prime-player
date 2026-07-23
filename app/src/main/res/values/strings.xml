@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Castivio TV</string>
+    <string name="welcome_message">لم تقم بتحميل قائمة التشغيل الخاصة بك حتى الآن، يمكنك إضافتها من داخل التطبيق\nأو تحميلها لاحقًا عبر موقع الويب التالي.</string>
+    <string name="portal_url">https://castivio.com</string>
+    <string name="device_mac_label">عنوان ماك</string>
+    <string name="device_key_label">مفتاح الجهاز</string>
+    <string name="copy">نسخ</string>
+    <string name="copied">تم النسخ</string>
+    <string name="qr_caption">امسح رمز QR لإضافة\nقائمة التشغيل</string>
+    <string name="btn_continue">يكمل</string>
+    <string name="btn_xtream">Xtream Codes</string>
+    <string name="btn_m3u">رابط M3U</string>
+    <string name="no_playlist_yet">لا توجد قائمة تشغيل مضافة بعد</string>
+    <string name="xtream_title">إضافة اشتراك Xtream Codes</string>
+    <string name="xtream_server">رابط السيرفر (http://host:port)</string>
+    <string name="xtream_username">اسم المستخدم</string>
+    <string name="xtream_password">كلمة المرور</string>
+    <string name="m3u_title">إضافة قائمة عبر رابط M3U</string>
+    <string name="m3u_url">رابط القائمة (M3U / M3U8)</string>
+    <string name="save">حفظ</string>
+    <string name="cancel">إلغاء</string>
+    <string name="saved">تم حفظ الاشتراك بنجاح</string>
+    <string name="field_required">يرجى تعبئة جميع الحقول</string>
+    <string name="invalid_url">الرابط غير صالح</string>
+</resources>
