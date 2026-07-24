@@ -14,3 +14,5 @@ output-metadata.json
 # Derived logo working files (source kept: art/castivio_logo_full.png)
 art/square_*.png
 art/tvmark_*.png
+art/logo_*.png
+art/mark_tight.png

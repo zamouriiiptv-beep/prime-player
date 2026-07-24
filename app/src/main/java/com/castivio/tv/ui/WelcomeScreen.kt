@@ -106,7 +106,7 @@ private fun InfoColumn(
         Image(
             painter = painterResource(R.drawable.castivio_logo),
             contentDescription = stringResource(R.string.app_name),
-            modifier = Modifier.height(88.dp),
+            modifier = Modifier.height(118.dp),
         )
         Text(
             text = stringResource(R.string.welcome_message),
