@@ -1,10 +1,16 @@
 package com.castivio.tv.ui
 
-import android.widget.Toast
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,29 +19,34 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import com.castivio.tv.R
 import com.castivio.tv.data.DeviceIdentity
 import com.castivio.tv.util.generateQrBitmap
@@ -50,156 +61,176 @@ fun WelcomeScreen(
     val portalUrl = stringResource(R.string.portal_url)
     val qrContent = "$portalUrl/activate?mac=${identity.mac}&key=${identity.key}"
 
-    Row(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 32.dp, vertical = 18.dp),
-        horizontalArrangement = Arrangement.spacedBy(28.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(
-            modifier = Modifier.weight(1.7f),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+    // Force RTL so the QR always sits on the right and the info on the left,
+    // matching the reference regardless of the device locale.
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            contentAlignment = Alignment.Center,
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                CastivioLogo(size = 40.dp)
-                Spacer(Modifier.width(12.dp))
+            Row(
+                modifier = Modifier
+                    .widthIn(max = 1500.dp)
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .padding(horizontal = 40.dp, vertical = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(36.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // QR is the first child => right side under RTL.
+                Entrance(delayMillis = 220, modifier = Modifier.weight(1f)) {
+                    QrCard(qrContent)
+                }
+                // Info column => left side.
+                Entrance(delayMillis = 0, modifier = Modifier.weight(1.55f)) {
+                    InfoColumn(identity, portalUrl, onContinue, onXtream, onM3u)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InfoColumn(
+    identity: DeviceIdentity,
+    portalUrl: String,
+    onContinue: () -> Unit,
+    onXtream: () -> Unit,
+    onM3u: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            CastivioLogo(size = 46.dp)
+            Spacer(Modifier.width(14.dp))
+            Text(
+                text = stringResource(R.string.app_name),
+                color = Color.White,
+                fontSize = 38.sp,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+        Text(
+            text = stringResource(R.string.welcome_message),
+            color = Color(0xFFCBCBDD),
+            fontSize = 15.sp,
+            lineHeight = 24.sp,
+        )
+        LinkCapsule(url = portalUrl)
+
+        InfoGlassCard(
+            label = stringResource(R.string.device_mac_label),
+            value = identity.mac,
+        )
+        InfoGlassCard(
+            label = stringResource(R.string.device_key_label),
+            value = identity.key,
+        )
+
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            PremiumButton(text = stringResource(R.string.btn_continue), primary = true, onClick = onContinue)
+            PremiumButton(text = stringResource(R.string.btn_xtream), primary = false, onClick = onXtream)
+            PremiumButton(text = stringResource(R.string.btn_m3u), primary = false, onClick = onM3u)
+        }
+    }
+}
+
+@Composable
+private fun InfoGlassCard(label: String, value: String) {
+    GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 22) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = label, color = Color(0xFFAEAEC2), fontSize = 13.sp)
+                Spacer(Modifier.height(4.dp))
                 Text(
-                    text = stringResource(R.string.app_name),
+                    text = value,
                     color = Color.White,
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
                 )
             }
+            CopyButton(value = value)
+        }
+    }
+}
+
+@Composable
+private fun QrCard(qrContent: String) {
+    // Subtle continuous floating motion.
+    val transition = rememberInfiniteTransition(label = "qr")
+    val floatDp by transition.animateFloat(
+        initialValue = -6f,
+        targetValue = 6f,
+        animationSpec = infiniteRepeatable(tween(2600, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "float",
+    )
+    val density = LocalDensity.current
+
+    Box(contentAlignment = Alignment.Center) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .graphicsLayer { translationY = with(density) { floatDp.dp.toPx() } }
+                .clip(RoundedCornerShape(26.dp))
+                .background(Color.White)
+                .padding(24.dp),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                val qr = remember(qrContent) { generateQrBitmap(qrContent, 640) }
+                Image(
+                    bitmap = qr.asImageBitmap(),
+                    contentDescription = null,
+                    modifier = Modifier.size(200.dp),
+                )
+                // Small brand mark in the QR centre.
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(Color.White),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CastivioLogo(size = 38.dp)
+                }
+            }
+            Spacer(Modifier.height(14.dp))
             Text(
-                text = stringResource(R.string.welcome_message),
-                color = Color(0xFFCFCFDE),
-                fontSize = 13.sp,
-                lineHeight = 20.sp,
+                text = stringResource(R.string.qr_caption),
+                color = Color(0xFF1C1C28),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                lineHeight = 19.sp,
+                textAlign = TextAlign.Center,
             )
-            Surface(
-                color = GlassFill,
-                border = GlassBorder,
-                shape = RoundedCornerShape(12.dp),
-            ) {
-                Text(
-                    text = portalUrl,
-                    color = AccentBlue,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
-                )
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                InfoCard(
-                    label = stringResource(R.string.device_mac_label),
-                    value = identity.mac,
-                    modifier = Modifier.weight(1f),
-                )
-                InfoCard(
-                    label = stringResource(R.string.device_key_label),
-                    value = identity.key,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(
-                    onClick = onContinue,
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
-                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
-                ) {
-                    Text(stringResource(R.string.btn_continue), fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                }
-                GlassButton(text = stringResource(R.string.btn_xtream), onClick = onXtream)
-                GlassButton(text = stringResource(R.string.btn_m3u), onClick = onM3u)
-            }
-        }
-
-        Column(
-            modifier = Modifier.weight(1f),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            val qr = remember(qrContent) { generateQrBitmap(qrContent, 512) }
-            Surface(
-                color = Color.White,
-                shape = RoundedCornerShape(18.dp),
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(16.dp),
-                ) {
-                    Image(
-                        bitmap = qr.asImageBitmap(),
-                        contentDescription = null,
-                        modifier = Modifier.size(158.dp),
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    Text(
-                        text = stringResource(R.string.qr_caption),
-                        color = Color(0xFF1E1E28),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        lineHeight = 16.sp,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-            }
         }
     }
 }
 
+/** Fade-in + slide-up entrance for a section, with an optional stagger delay. */
 @Composable
-private fun GlassButton(text: String, onClick: () -> Unit) {
-    OutlinedButton(
-        onClick = onClick,
-        shape = RoundedCornerShape(10.dp),
-        border = GlassBorder,
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
-    ) {
-        Text(text, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-    }
-}
-
-@Composable
-private fun InfoCard(label: String, value: String, modifier: Modifier = Modifier) {
-    val clipboard = LocalClipboardManager.current
-    val context = LocalContext.current
-    val copiedMsg = stringResource(R.string.copied)
-
-    Surface(
-        color = GlassFill,
-        border = GlassBorder,
-        shape = RoundedCornerShape(14.dp),
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(vertical = 10.dp, horizontal = 10.dp),
-        ) {
-            Text(text = label, color = Color(0xFFB6B6C6), fontSize = 12.sp)
-            Spacer(Modifier.height(2.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = value,
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-                Spacer(Modifier.width(6.dp))
-                TextButton(
-                    onClick = {
-                        clipboard.setText(AnnotatedString(value))
-                        Toast.makeText(context, copiedMsg, Toast.LENGTH_SHORT).show()
-                    },
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                ) {
-                    Text(stringResource(R.string.copy), color = AccentBlue, fontSize = 13.sp)
-                }
-            }
-        }
-    }
+private fun Entrance(
+    delayMillis: Int,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    var appear by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { appear = true }
+    val progress by animateFloatAsState(
+        targetValue = if (appear) 1f else 0f,
+        animationSpec = tween(durationMillis = 620, delayMillis = delayMillis, easing = FastOutSlowInEasing),
+        label = "entrance",
+    )
+    val density = LocalDensity.current
+    Box(
+        modifier = modifier.graphicsLayer {
+            alpha = progress
+            translationY = with(density) { (1f - progress) * 34.dp.toPx() }
+        },
+    ) { content() }
 }
