@@ -74,11 +74,11 @@ fun WelcomeScreen(
         ) {
             Row(
                 modifier = Modifier
-                    .widthIn(max = 1500.dp)
+                    .widthIn(max = 1360.dp)
                     .fillMaxWidth()
                     .wrapContentHeight()
-                    .padding(horizontal = 40.dp, vertical = 24.dp),
-                horizontalArrangement = Arrangement.spacedBy(36.dp),
+                    .padding(horizontal = 52.dp, vertical = 22.dp),
+                horizontalArrangement = Arrangement.spacedBy(44.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 // QR is the first child => right side under RTL.
@@ -102,30 +102,32 @@ private fun InfoColumn(
     onXtream: () -> Unit,
     onM3u: () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
         Image(
             painter = painterResource(R.drawable.castivio_logo),
             contentDescription = stringResource(R.string.app_name),
-            modifier = Modifier.height(118.dp),
+            modifier = Modifier.height(94.dp),
         )
         Text(
             text = stringResource(R.string.welcome_message),
-            color = Color(0xFFCBCBDD),
-            fontSize = 15.sp,
-            lineHeight = 24.sp,
+            color = Color(0xFFC6C6DA),
+            fontSize = 14.sp,
+            lineHeight = 22.sp,
         )
         LinkCapsule(url = portalUrl)
 
         InfoGlassCard(
             label = stringResource(R.string.device_mac_label),
             value = identity.mac,
+            valueFontSize = 24.sp,
         )
         InfoGlassCard(
             label = stringResource(R.string.device_key_label),
             value = identity.key,
+            valueFontSize = 25.sp,
         )
 
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             PremiumButton(text = stringResource(R.string.btn_continue), primary = true, onClick = onContinue)
             PremiumButton(text = stringResource(R.string.btn_xtream), primary = false, onClick = onXtream)
             PremiumButton(text = stringResource(R.string.btn_m3u), primary = false, onClick = onM3u)
@@ -134,21 +136,21 @@ private fun InfoColumn(
 }
 
 @Composable
-private fun InfoGlassCard(label: String, value: String) {
+private fun InfoGlassCard(label: String, value: String, valueFontSize: androidx.compose.ui.unit.TextUnit) {
     GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 22) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
+                .padding(horizontal = 24.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = label, color = Color(0xFFAEAEC2), fontSize = 13.sp)
-                Spacer(Modifier.height(4.dp))
+                Text(text = label, color = Color(0xFFC9C9DA), fontSize = 12.sp)
+                Spacer(Modifier.height(3.dp))
                 Text(
                     text = value,
                     color = Color.White,
-                    fontSize = 26.sp,
+                    fontSize = valueFontSize,
                     fontWeight = FontWeight.Bold,
                 )
             }
@@ -162,9 +164,9 @@ private fun QrCard(qrContent: String) {
     // Subtle continuous floating motion.
     val transition = rememberInfiniteTransition(label = "qr")
     val floatDp by transition.animateFloat(
-        initialValue = -6f,
-        targetValue = 6f,
-        animationSpec = infiniteRepeatable(tween(2600, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        initialValue = -5f,
+        targetValue = 5f,
+        animationSpec = infiniteRepeatable(tween(3000, easing = FastOutSlowInEasing), RepeatMode.Reverse),
         label = "float",
     )
     val density = LocalDensity.current
@@ -174,35 +176,35 @@ private fun QrCard(qrContent: String) {
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .graphicsLayer { translationY = with(density) { floatDp.dp.toPx() } }
-                .clip(RoundedCornerShape(26.dp))
+                .clip(RoundedCornerShape(30.dp))
                 .background(Color.White)
-                .padding(24.dp),
+                .padding(30.dp),
         ) {
             Box(contentAlignment = Alignment.Center) {
                 val qr = remember(qrContent) { generateQrBitmap(qrContent, 640) }
                 Image(
                     bitmap = qr.asImageBitmap(),
                     contentDescription = null,
-                    modifier = Modifier.size(200.dp),
+                    modifier = Modifier.size(176.dp),
                 )
                 // Small brand mark in the QR centre.
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(40.dp)
                         .clip(CircleShape)
                         .background(Color.White),
                     contentAlignment = Alignment.Center,
                 ) {
-                    CastivioLogo(size = 38.dp)
+                    CastivioLogo(size = 30.dp)
                 }
             }
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(13.dp))
             Text(
                 text = stringResource(R.string.qr_caption),
-                color = Color(0xFF1C1C28),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                lineHeight = 19.sp,
+                color = Color(0xFF23232E),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                lineHeight = 18.sp,
                 textAlign = TextAlign.Center,
             )
         }

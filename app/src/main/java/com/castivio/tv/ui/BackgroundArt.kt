@@ -88,7 +88,7 @@ private fun DrawScope.drawMesh(phase: Float) {
         val t = i / lines.toFloat()
         val y = horizon + (size.height - horizon) * (t * t)
         val amp = 7f + 44f * t
-        val alpha = 0.04f + 0.11f * t
+        val alpha = 0.025f + 0.07f * t
         val path = Path()
         val steps = 64
         for (s in 0..steps) {
@@ -97,13 +97,13 @@ private fun DrawScope.drawMesh(phase: Float) {
             val yy = y + amp * sin(p * 11f + i * 0.6f + phase)
             if (s == 0) path.moveTo(x, yy) else path.lineTo(x, yy)
         }
-        drawPath(path, color = Color(0xFF5AA0FF).copy(alpha = alpha), style = Stroke(width = 1.4f))
+        drawPath(path, color = Color(0xFF5AA0FF).copy(alpha = alpha), style = Stroke(width = 1.2f))
     }
 }
 
-/** ~24 slow-drifting motes that rise and wrap, twinkling gently. */
+/** A few slow-drifting motes that rise and wrap, twinkling gently. */
 private fun DrawScope.drawParticles(drift: Float) {
-    val count = 24
+    val count = 13
     val rng = Random(7)
     for (i in 0 until count) {
         val baseX = rng.nextFloat()
@@ -114,7 +114,7 @@ private fun DrawScope.drawParticles(drift: Float) {
         val y = ((baseY - drift * speed) % 1f + 1f) % 1f
         val twinkle = 0.25f + 0.55f * abs(sin((drift + phase) * 2f * PI.toFloat()))
         drawCircle(
-            color = Color(0xFFBFD8FF).copy(alpha = 0.28f * twinkle),
+            color = Color(0xFFBFD8FF).copy(alpha = 0.20f * twinkle),
             radius = radius,
             center = Offset(size.width * baseX, size.height * y),
         )

@@ -47,11 +47,13 @@ import com.castivio.tv.R
 
 // ---- Shared glass styling ------------------------------------------------
 
+// Lighter, airier glass (reduced fill => reads as less blur, more transparent).
 private val GlassFillBrush = Brush.verticalGradient(
-    listOf(Color(0x24FFFFFF), Color(0x0FFFFFFF)),
+    listOf(Color(0x17FFFFFF), Color(0x08FFFFFF)),
 )
+// More transparent hairline border.
 private val GlassBorderBrush = Brush.verticalGradient(
-    listOf(Color(0x59FFFFFF), Color(0x1AFFFFFF)),
+    listOf(Color(0x3DFFFFFF), Color(0x12FFFFFF)),
 )
 
 /** Lifts and scales an element when it gains D-pad / pointer focus (TV + touch). */
@@ -73,7 +75,7 @@ fun GlassCard(
     val shape = RoundedCornerShape(cornerRadius.dp)
     Box(
         modifier
-            .shadow(18.dp, shape, ambientColor = Color(0x66000000), spotColor = Color(0x66000000))
+            .shadow(9.dp, shape, ambientColor = Color(0x33000000), spotColor = Color(0x33000000))
             .clip(shape)
             .background(GlassFillBrush)
             .border(BorderStroke(1.dp, GlassBorderBrush), shape),
@@ -91,11 +93,11 @@ fun LinkCapsule(url: String) {
             .clip(shape)
             .background(GlassFillBrush)
             .border(BorderStroke(1.dp, GlassBorderBrush), shape)
-            .padding(horizontal = 18.dp, vertical = 11.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
-        Icon(Icons.Rounded.Link, contentDescription = null, tint = AccentBlue, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(10.dp))
-        Text(url, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        Icon(Icons.Rounded.Link, contentDescription = null, tint = AccentBlue, modifier = Modifier.size(15.dp))
+        Spacer(Modifier.width(9.dp))
+        Text(url, color = Color(0xF2FFFFFF), fontSize = 14.sp, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -110,24 +112,27 @@ fun CopyButton(value: String) {
 
     Box(
         modifier = Modifier
-            .focusLift(1.18f)
-            .clip(RoundedCornerShape(10.dp))
-            .background(Color(0x1FFFFFFF))
-            .border(BorderStroke(1.dp, Color(0x33FFFFFF)), RoundedCornerShape(10.dp))
+            .focusLift(1.10f)
+            .clip(RoundedCornerShape(9.dp))
+            .background(Color(0x14FFFFFF))
+            .border(BorderStroke(1.dp, Color(0x24FFFFFF)), RoundedCornerShape(9.dp))
             .clickable(interaction, null) {
                 clipboard.setText(AnnotatedString(value))
                 Toast.makeText(context, copiedMsg, Toast.LENGTH_SHORT).show()
             }
-            .padding(8.dp),
+            .padding(6.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(Icons.Rounded.ContentCopy, contentDescription = copiedMsg, tint = AccentBlue, modifier = Modifier.size(20.dp))
+        Icon(Icons.Rounded.ContentCopy, contentDescription = copiedMsg, tint = Color(0xCC3D8BFF), modifier = Modifier.size(17.dp))
     }
 }
 
 // ---- Premium buttons -----------------------------------------------------
 
-private val PrimaryGradient = Brush.horizontalGradient(listOf(Color(0xFF4C9BFF), Color(0xFF2E6BFF)))
+// Smoother three-stop blue gradient.
+private val PrimaryGradient = Brush.horizontalGradient(
+    listOf(Color(0xFF5AA2FF), Color(0xFF3D82FF), Color(0xFF2C67F0)),
+)
 
 @Composable
 fun PremiumButton(
@@ -137,11 +142,11 @@ fun PremiumButton(
     modifier: Modifier = Modifier,
 ) {
     var focused by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(if (focused) 1.06f else 1f, tween(180), label = "btnScale")
-    val elevation by animateDpAsState(if (focused) 16.dp else 4.dp, tween(180), label = "btnElev")
-    val glow = if (primary) Color(0xAA2E6BFF) else Color(0x55FFFFFF)
+    val scale by animateFloatAsState(if (focused) 1.05f else 1f, tween(180), label = "btnScale")
+    val elevation by animateDpAsState(if (focused) 10.dp else 2.dp, tween(180), label = "btnElev")
+    val glow = if (primary) Color(0x772E6BFF) else Color(0x33FFFFFF)
     val borderColor by animateColorAsState(
-        if (focused) Color(0x99FFFFFF) else Color(0x33FFFFFF), tween(180), label = "btnBorder",
+        if (focused) Color(0x80FFFFFF) else Color(0x24FFFFFF), tween(180), label = "btnBorder",
     )
     val shape = RoundedCornerShape(12.dp)
     val interaction = remember { MutableInteractionSource() }
@@ -154,12 +159,12 @@ fun PremiumButton(
             .clip(shape)
             .then(
                 if (primary) Modifier.background(PrimaryGradient)
-                else Modifier.background(Color(0x1FFFFFFF)).border(BorderStroke(1.dp, borderColor), shape)
+                else Modifier.background(Color(0x14FFFFFF)).border(BorderStroke(1.dp, borderColor), shape)
             )
             .clickable(interaction, null) { onClick() }
-            .padding(horizontal = 26.dp, vertical = 13.dp),
+            .padding(horizontal = 24.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        Text(text, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
     }
 }
