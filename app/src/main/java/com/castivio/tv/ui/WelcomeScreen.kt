@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -102,16 +103,11 @@ private fun InfoColumn(
     onM3u: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            CastivioLogo(size = 46.dp)
-            Spacer(Modifier.width(14.dp))
-            Text(
-                text = stringResource(R.string.app_name),
-                color = Color.White,
-                fontSize = 38.sp,
-                fontWeight = FontWeight.Bold,
-            )
-        }
+        Image(
+            painter = painterResource(R.drawable.castivio_logo),
+            contentDescription = stringResource(R.string.app_name),
+            modifier = Modifier.height(88.dp),
+        )
         Text(
             text = stringResource(R.string.welcome_message),
             color = Color(0xFFCBCBDD),
