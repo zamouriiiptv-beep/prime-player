@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -53,39 +54,45 @@ fun WelcomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 28.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(24.dp),
+            .padding(horizontal = 32.dp, vertical = 18.dp),
+        horizontalArrangement = Arrangement.spacedBy(28.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(
             modifier = Modifier.weight(1.7f),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Text(
-                text = stringResource(R.string.app_name),
-                color = Color.White,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                CastivioLogo(size = 40.dp)
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = stringResource(R.string.app_name),
+                    color = Color.White,
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
             Text(
                 text = stringResource(R.string.welcome_message),
-                color = Color(0xFFD6D6E0),
+                color = Color(0xFFCFCFDE),
                 fontSize = 13.sp,
-                lineHeight = 19.sp,
+                lineHeight = 20.sp,
             )
             Surface(
-                color = CardSurface,
-                shape = RoundedCornerShape(10.dp),
+                color = GlassFill,
+                border = GlassBorder,
+                shape = RoundedCornerShape(12.dp),
             ) {
                 Text(
                     text = portalUrl,
                     color = AccentBlue,
+                    fontWeight = FontWeight.Medium,
                     fontSize = 14.sp,
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
                 )
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 InfoCard(
                     label = stringResource(R.string.device_mac_label),
                     value = identity.mac,
@@ -101,17 +108,14 @@ fun WelcomeScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Button(
                     onClick = onContinue,
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
+                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
                 ) {
-                    Text(stringResource(R.string.btn_continue), fontSize = 14.sp)
+                    Text(stringResource(R.string.btn_continue), fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }
-                OutlinedButton(onClick = onXtream, shape = RoundedCornerShape(8.dp)) {
-                    Text(stringResource(R.string.btn_xtream), color = Color.White, fontSize = 14.sp)
-                }
-                OutlinedButton(onClick = onM3u, shape = RoundedCornerShape(8.dp)) {
-                    Text(stringResource(R.string.btn_m3u), color = Color.White, fontSize = 14.sp)
-                }
+                GlassButton(text = stringResource(R.string.btn_xtream), onClick = onXtream)
+                GlassButton(text = stringResource(R.string.btn_m3u), onClick = onM3u)
             }
         }
 
@@ -122,22 +126,23 @@ fun WelcomeScreen(
             val qr = remember(qrContent) { generateQrBitmap(qrContent, 512) }
             Surface(
                 color = Color.White,
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(18.dp),
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(14.dp),
+                    modifier = Modifier.padding(16.dp),
                 ) {
                     Image(
                         bitmap = qr.asImageBitmap(),
                         contentDescription = null,
-                        modifier = Modifier.size(150.dp),
+                        modifier = Modifier.size(158.dp),
                     )
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(10.dp))
                     Text(
                         text = stringResource(R.string.qr_caption),
-                        color = Color(0xFF222222),
+                        color = Color(0xFF1E1E28),
                         fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
                         lineHeight = 16.sp,
                         textAlign = TextAlign.Center,
                     )
@@ -148,26 +153,40 @@ fun WelcomeScreen(
 }
 
 @Composable
+private fun GlassButton(text: String, onClick: () -> Unit) {
+    OutlinedButton(
+        onClick = onClick,
+        shape = RoundedCornerShape(10.dp),
+        border = GlassBorder,
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+    ) {
+        Text(text, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+    }
+}
+
+@Composable
 private fun InfoCard(label: String, value: String, modifier: Modifier = Modifier) {
     val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
     val copiedMsg = stringResource(R.string.copied)
 
     Surface(
-        color = CardSurface,
-        shape = RoundedCornerShape(10.dp),
+        color = GlassFill,
+        border = GlassBorder,
+        shape = RoundedCornerShape(14.dp),
         modifier = modifier.fillMaxWidth(),
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(vertical = 8.dp, horizontal = 8.dp),
+            modifier = Modifier.padding(vertical = 10.dp, horizontal = 10.dp),
         ) {
-            Text(text = label, color = Color(0xFFBFBFCC), fontSize = 12.sp)
+            Text(text = label, color = Color(0xFFB6B6C6), fontSize = 12.sp)
+            Spacer(Modifier.height(2.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = value,
                     color = Color.White,
-                    fontSize = 19.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                 )
                 Spacer(Modifier.width(6.dp))
@@ -176,7 +195,7 @@ private fun InfoCard(label: String, value: String, modifier: Modifier = Modifier
                         clipboard.setText(AnnotatedString(value))
                         Toast.makeText(context, copiedMsg, Toast.LENGTH_SHORT).show()
                     },
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
                 ) {
                     Text(stringResource(R.string.copy), color = AccentBlue, fontSize = 13.sp)
                 }
