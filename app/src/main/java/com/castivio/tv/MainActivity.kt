@@ -1,5 +1,7 @@
 package com.castivio.tv
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -30,7 +32,7 @@ class MainActivity : ComponentActivity() {
                 when (screen) {
                     Screen.Welcome -> WelcomeScreen(
                         identity = identity,
-                        onContinue = {
+                        onRefresh = {
                             val source = SourceStore.load(this)
                             if (source == null) {
                                 Toast.makeText(
@@ -45,6 +47,17 @@ class MainActivity : ComponentActivity() {
                         },
                         onXtream = { screen = Screen.Xtream },
                         onM3u = { screen = Screen.M3u },
+                        onSupport = {
+                            runCatching {
+                                startActivity(
+                                    Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.portal_url))),
+                                )
+                            }
+                        },
+                        onLanguage = {
+                            Toast.makeText(this, getString(R.string.language_soon), Toast.LENGTH_SHORT).show()
+                        },
+                        onExit = { finish() },
                     )
                     Screen.Xtream -> XtreamScreen(
                         onSaved = { screen = Screen.Welcome },

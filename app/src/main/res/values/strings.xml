@@ -1,17 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Castivio TV</string>
-    <string name="welcome_message">لم تقم بتحميل قائمة التشغيل الخاصة بك حتى الآن، يمكنك إضافتها من داخل التطبيق\nأو تحميلها لاحقًا عبر موقع الويب التالي.</string>
     <string name="portal_url">https://castivio.com</string>
+
+    <!-- Header -->
+    <string name="activate_title">قم بتفعيل اشتراكك لمشاهدة أفضل المحتويات</string>
+    <string name="activate_subtitle">اختر الطريقة التي تناسبك لإضافة قائمتك وتشغيلها على هذا الجهاز</string>
+    <string name="lang_button">العربية</string>
+
+    <!-- MAC hero card -->
+    <string name="recommended">الطريقة الموصى بها</string>
+    <string name="recommended_help">أرسل عنوان MAC إلى الموزع لتفعيل اشتراكك</string>
+    <string name="mac_label_pre">عنوان</string>
+    <string name="mac_label_post">الخاص بجهازك</string>
+    <string name="mac_info">بعد أن يؤكد الموزع إتمام التفعيل، اضغط إعادة التحميل لعرض القنوات.</string>
+    <string name="copy">نسخ</string>
+    <string name="copied">تم نسخ عنوان الماك</string>
+    <string name="all_data_copied">تم نسخ جميع البيانات</string>
+
+    <!-- QR -->
+    <string name="qr_title">رمز QR</string>
+    <string name="qr_caption">امسح الرمز لفتح صفحة التفعيل الخاصة بالجهاز</string>
+
+    <!-- Secondary methods -->
+    <string name="other_methods">أو اختر طريقة أخرى</string>
+    <string name="card_xtream_title">Xtream Codes</string>
+    <string name="card_xtream_desc">أدخل بيانات السيرفر الخاصة بك (URL - اسم المستخدم - كلمة المرور)</string>
+    <string name="card_m3u_title">M3U Playlist</string>
+    <string name="card_m3u_desc">أدخل رابط M3U أو قم برفع ملف M3U الخاص بك</string>
+
+    <!-- Bottom toolbar -->
+    <string name="toolbar_refresh">إعادة التحميل</string>
+    <string name="toolbar_copy_all">نسخ جميع البيانات</string>
+    <string name="toolbar_support">الدعم الفني</string>
+    <string name="toolbar_language">تغيير اللغة</string>
+    <string name="toolbar_exit">خروج</string>
+    <string name="no_playlist_yet">لا توجد قائمة تشغيل مضافة بعد</string>
+    <string name="language_soon">تغيير اللغة قريبًا</string>
+
+    <!-- Add-source screens (unchanged) -->
     <string name="device_mac_label">عنوان ماك</string>
     <string name="device_key_label">مفتاح الجهاز</string>
-    <string name="copy">نسخ</string>
-    <string name="copied">تم النسخ</string>
-    <string name="qr_caption">امسح رمز QR لإضافة\nقائمة التشغيل</string>
-    <string name="btn_continue">يكمل</string>
-    <string name="btn_xtream">Xtream Codes</string>
-    <string name="btn_m3u">رابط M3U</string>
-    <string name="no_playlist_yet">لا توجد قائمة تشغيل مضافة بعد</string>
     <string name="xtream_title">إضافة اشتراك Xtream Codes</string>
     <string name="xtream_server">رابط السيرفر (http://host:port)</string>
     <string name="xtream_username">اسم المستخدم</string>
