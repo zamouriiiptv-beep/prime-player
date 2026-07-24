@@ -27,7 +27,17 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        run: |
+          attempt=0
+          until ./gradlew assembleDebug --no-daemon --stacktrace; do
+            attempt=$((attempt + 1))
+            if [ "$attempt" -ge 3 ]; then
+              echo "Build failed after $attempt attempts."
+              exit 1
+            fi
+            echo "Attempt $attempt failed (possibly a transient network error). Retrying in $((attempt * 20))s..."
+            sleep $((attempt * 20))
+          done
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
