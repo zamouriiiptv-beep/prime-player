@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Castivio TV</string>
+    <string name="app_name">Castivio</string>
     <string name="portal_url">https://castivio.com</string>
 
     <!-- Header -->

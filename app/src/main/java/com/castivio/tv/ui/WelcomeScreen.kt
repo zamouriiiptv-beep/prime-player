@@ -71,15 +71,20 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.castivio.tv.R
+import com.castivio.tv.ui.components.Entrance
+import com.castivio.tv.ui.components.GlassCard
+import com.castivio.tv.ui.components.focusLift
+import com.castivio.tv.ui.theme.CastivioTheme
+import com.castivio.tv.ui.theme.Palette
 import com.castivio.tv.data.DeviceIdentity
 import com.castivio.tv.util.generateQrBitmap
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private val Purple = Color(0xFF9B6BFF)
-private val Teal = Color(0xFF2FBF9F)
-private val Muted = Color(0xFFAFAFC4)
+private val Purple = Palette.Violet50
+private val Teal = Palette.Aqua
+private val Muted = Palette.Muted
 
 @Composable
 fun WelcomeScreen(
@@ -104,9 +109,9 @@ fun WelcomeScreen(
         ) {
             TopBar(onLanguage = onLanguage)
             Header()
-            Entrance(0) { MainRow(identity, qrContent) }
-            Entrance(120) { SecondaryMethods(onXtream, onM3u) }
-            Entrance(200) { BottomToolbar(identity, onRefresh, onSupport, onLanguage, onExit) }
+            Entrance(order = 0) { MainRow(identity, qrContent) }
+            Entrance(order = 1) { SecondaryMethods(onXtream, onM3u) }
+            Entrance(order = 2) { BottomToolbar(identity, onRefresh, onSupport, onLanguage, onExit) }
             Footer(identity)
         }
     }
@@ -193,7 +198,7 @@ private fun MacHeroCard(identity: DeviceIdentity, modifier: Modifier = Modifier)
     val context = LocalContext.current
     val copiedMsg = stringResource(R.string.copied)
 
-    GlassCard(modifier = modifier, cornerRadius = 26) {
+    GlassCard(modifier = modifier, shape = RoundedCornerShape(26.dp)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -206,7 +211,7 @@ private fun MacHeroCard(identity: DeviceIdentity, modifier: Modifier = Modifier)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.mac_label_pre), color = Color(0xFFDDDDEA), fontSize = 17.sp)
                     Spacer(Modifier.width(6.dp))
-                    Text("MAC", color = AccentBlue, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                    Text("MAC", color = CastivioTheme.colors.primary, fontSize = 17.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.width(6.dp))
                     Text(stringResource(R.string.mac_label_post), color = Color(0xFFDDDDEA), fontSize = 17.sp)
                 }
@@ -228,7 +233,7 @@ private fun MacHeroCard(identity: DeviceIdentity, modifier: Modifier = Modifier)
                 }
                 Spacer(Modifier.height(16.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Rounded.Info, null, tint = AccentBlue, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Rounded.Info, null, tint = CastivioTheme.colors.primary, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.mac_info), color = Muted, fontSize = 13.sp, lineHeight = 18.sp)
                 }
@@ -278,7 +283,7 @@ private fun MacHeroCard(identity: DeviceIdentity, modifier: Modifier = Modifier)
                         .width(44.dp)
                         .height(3.dp)
                         .clip(RoundedCornerShape(50))
-                        .background(Brush.horizontalGradient(listOf(Purple, AccentBlue))),
+                        .background(Brush.horizontalGradient(listOf(Purple, CastivioTheme.colors.primary))),
                 )
             }
         }
@@ -318,7 +323,7 @@ private fun QrSideCard(qrContent: String, modifier: Modifier = Modifier) {
     )
     val density = LocalDensity.current
 
-    GlassCard(modifier = modifier, cornerRadius = 24) {
+    GlassCard(modifier = modifier, shape = RoundedCornerShape(24.dp)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -404,7 +409,7 @@ private fun SecondaryCard(
     modifier: Modifier = Modifier,
 ) {
     val interaction = remember { MutableInteractionSource() }
-    GlassCard(modifier = modifier.focusLift(1.03f), cornerRadius = 20) {
+    GlassCard(modifier = modifier.focusLift(1.03f), shape = RoundedCornerShape(20.dp)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -448,7 +453,7 @@ private fun BottomToolbar(
     val context = LocalContext.current
     val allCopied = stringResource(R.string.all_data_copied)
 
-    GlassCard(modifier = Modifier.fillMaxWidth(), cornerRadius = 20) {
+    GlassCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
@@ -462,7 +467,7 @@ private fun BottomToolbar(
                 clipboard.setText(AnnotatedString("MAC: ${identity.mac}\nDevice Key: ${identity.key}"))
                 Toast.makeText(context, allCopied, Toast.LENGTH_SHORT).show()
             }
-            ToolbarItem(Icons.Rounded.Refresh, stringResource(R.string.toolbar_refresh), AccentBlue, onRefresh)
+            ToolbarItem(Icons.Rounded.Refresh, stringResource(R.string.toolbar_refresh), CastivioTheme.colors.primary, onRefresh)
         }
     }
 }
@@ -505,11 +510,11 @@ private fun Footer(identity: DeviceIdentity) {
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        FooterItem("Device Key:", identity.key, AccentBlue)
+        FooterItem("Device Key:", identity.key, CastivioTheme.colors.primary)
         FooterDot()
-        FooterItem("App Version:", version, AccentBlue)
+        FooterItem("App Version:", version, CastivioTheme.colors.primary)
         FooterDot()
-        FooterItem("Date:", date, AccentBlue)
+        FooterItem("Date:", date, CastivioTheme.colors.primary)
     }
 }
 
@@ -531,24 +536,4 @@ private fun FooterDot() {
             .clip(CircleShape)
             .background(Muted),
     )
-}
-
-// -------------------------------------------------------------- Entrance anim
-
-@Composable
-private fun Entrance(delayMillis: Int, content: @Composable () -> Unit) {
-    var appear by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { appear = true }
-    val progress by animateFloatAsState(
-        targetValue = if (appear) 1f else 0f,
-        animationSpec = tween(560, delayMillis = delayMillis, easing = FastOutSlowInEasing),
-        label = "entrance",
-    )
-    val density = LocalDensity.current
-    Box(
-        modifier = Modifier.graphicsLayer {
-            alpha = progress
-            translationY = with(density) { (1f - progress) * 26.dp.toPx() }
-        },
-    ) { content() }
 }

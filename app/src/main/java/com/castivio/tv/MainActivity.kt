@@ -12,7 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.castivio.tv.data.DeviceIdentity
 import com.castivio.tv.data.SourceStore
-import com.castivio.tv.ui.CastivioTheme
+import com.castivio.tv.ui.theme.CastivioTheme
 import com.castivio.tv.ui.M3uScreen
 import com.castivio.tv.ui.WelcomeScreen
 import com.castivio.tv.ui.XtreamScreen

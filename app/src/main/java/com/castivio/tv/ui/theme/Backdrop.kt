@@ -1,4 +1,4 @@
-package com.castivio.tv.ui
+package com.castivio.tv.ui.theme
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -24,54 +24,56 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 /**
- * Premium animated backdrop drawn entirely in code:
- *  - a deep blue/purple diagonal gradient,
- *  - two soft colour glows (magenta bottom-left, blue right),
- *  - an animated mesh of flowing contour waves in the lower half,
- *  - very subtle drifting particles.
+ * The Castivio backdrop — the single most recognisable part of the identity.
  *
- * Everything is redrawn from animation state, so no assets are required and it
- * scales cleanly from a phone in landscape up to a large TV screen.
+ * Four layers, drawn in code so it costs nothing to ship and scales to any
+ * panel size: a deep navy gradient, two soft aurora glows, a slow mesh of
+ * contour waves, and a scattering of drifting motes. Deliberately restrained:
+ * every layer sits below 12% opacity so content always wins.
  */
 @Composable
-fun CastivioBackground(content: @Composable () -> Unit) {
-    val transition = rememberInfiniteTransition(label = "bg")
-    val wavePhase by transition.animateFloat(
+fun CastivioBackdrop(content: @Composable () -> Unit) {
+    val colors = CastivioTheme.colors
+    val transition = rememberInfiniteTransition(label = "backdrop")
+    val wave by transition.animateFloat(
         initialValue = 0f,
         targetValue = (2f * PI).toFloat(),
-        animationSpec = infiniteRepeatable(tween(11000, easing = LinearEasing), RepeatMode.Restart),
+        animationSpec = infiniteRepeatable(
+            tween(Motion.ambientWave, easing = LinearEasing), RepeatMode.Restart,
+        ),
         label = "wave",
     )
     val drift by transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(26000, easing = LinearEasing), RepeatMode.Restart),
+        animationSpec = infiniteRepeatable(
+            tween(Motion.ambientDrift, easing = LinearEasing), RepeatMode.Restart,
+        ),
         label = "drift",
     )
 
     Box(Modifier.fillMaxSize()) {
         Canvas(Modifier.fillMaxSize()) {
             drawRect(
-                brush = Brush.linearGradient(
-                    colors = listOf(Color(0xFF150A2C), Color(0xFF190E3B), Color(0xFF091A36)),
+                Brush.linearGradient(
+                    colors = listOf(Palette.Deep, Palette.Violet10, Palette.Azure10),
                     start = Offset(0f, 0f),
                     end = Offset(size.width, size.height),
                 )
             )
-            glow(Offset(size.width * 0.05f, size.height * 1.0f), size.width * 0.55f, Color(0xFFE0246B), 0.34f)
-            glow(Offset(size.width * 0.95f, size.height * 0.30f), size.width * 0.52f, Color(0xFF2E7BFF), 0.30f)
-            glow(Offset(size.width * 0.55f, size.height * 1.08f), size.width * 0.5f, Color(0xFF1B4DA6), 0.24f)
-            drawMesh(wavePhase)
-            drawParticles(drift)
+            glow(Offset(size.width * 0.05f, size.height), size.width * 0.55f, Palette.Violet40, 0.30f)
+            glow(Offset(size.width * 0.95f, size.height * 0.30f), size.width * 0.52f, Palette.Azure40, 0.26f)
+            mesh(wave, colors.primary)
+            motes(drift)
         }
         content()
     }
 }
 
-private fun DrawScope.glow(center: Offset, radius: Float, color: Color, maxAlpha: Float) {
+private fun DrawScope.glow(center: Offset, radius: Float, color: Color, alpha: Float) {
     drawCircle(
         brush = Brush.radialGradient(
-            colors = listOf(color.copy(alpha = maxAlpha), color.copy(alpha = 0f)),
+            colors = listOf(color.copy(alpha = alpha), color.copy(alpha = 0f)),
             center = center,
             radius = radius,
         ),
@@ -80,8 +82,8 @@ private fun DrawScope.glow(center: Offset, radius: Float, color: Color, maxAlpha
     )
 }
 
-/** Flowing contour waves with perspective spacing; [phase] scrolls them. */
-private fun DrawScope.drawMesh(phase: Float) {
+/** Perspective contour waves across the lower half. */
+private fun DrawScope.mesh(phase: Float, color: Color) {
     val horizon = size.height * 0.40f
     val lines = 16
     for (i in 0..lines) {
@@ -97,15 +99,14 @@ private fun DrawScope.drawMesh(phase: Float) {
             val yy = y + amp * sin(p * 11f + i * 0.6f + phase)
             if (s == 0) path.moveTo(x, yy) else path.lineTo(x, yy)
         }
-        drawPath(path, color = Color(0xFF5AA0FF).copy(alpha = alpha), style = Stroke(width = 1.2f))
+        drawPath(path, color = color.copy(alpha = alpha), style = Stroke(width = 1.2f))
     }
 }
 
-/** A few slow-drifting motes that rise and wrap, twinkling gently. */
-private fun DrawScope.drawParticles(drift: Float) {
-    val count = 13
+/** A handful of slow motes that rise, wrap and twinkle. */
+private fun DrawScope.motes(drift: Float) {
     val rng = Random(7)
-    for (i in 0 until count) {
+    repeat(13) {
         val baseX = rng.nextFloat()
         val baseY = rng.nextFloat()
         val speed = 0.5f + rng.nextFloat()
@@ -114,7 +115,7 @@ private fun DrawScope.drawParticles(drift: Float) {
         val y = ((baseY - drift * speed) % 1f + 1f) % 1f
         val twinkle = 0.25f + 0.55f * abs(sin((drift + phase) * 2f * PI.toFloat()))
         drawCircle(
-            color = Color(0xFFBFD8FF).copy(alpha = 0.20f * twinkle),
+            color = Palette.Azure80.copy(alpha = 0.20f * twinkle),
             radius = radius,
             center = Offset(size.width * baseX, size.height * y),
         )

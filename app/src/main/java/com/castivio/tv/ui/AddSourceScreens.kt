@@ -35,6 +35,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.castivio.tv.R
+import com.castivio.tv.ui.theme.CastivioTheme
 import com.castivio.tv.data.PlaylistSource
 import com.castivio.tv.data.SourceStore
 
@@ -42,11 +43,11 @@ import com.castivio.tv.data.SourceStore
 private fun castivioFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedTextColor = Color.White,
     unfocusedTextColor = Color.White,
-    focusedBorderColor = AccentBlue,
+    focusedBorderColor = CastivioTheme.colors.primary,
     unfocusedBorderColor = Color(0x66FFFFFF),
-    focusedLabelColor = AccentBlue,
+    focusedLabelColor = CastivioTheme.colors.primary,
     unfocusedLabelColor = Color(0xFFBBBBBB),
-    cursorColor = AccentBlue,
+    cursorColor = CastivioTheme.colors.primary,
 )
 
 @Composable
@@ -179,7 +180,7 @@ private fun FormButtons(onSave: () -> Unit, onCancel: () -> Unit) {
         Button(
             onClick = onSave,
             shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
+            colors = ButtonDefaults.buttonColors(containerColor = CastivioTheme.colors.primary),
         ) {
             Text(stringResource(R.string.save), fontSize = 16.sp)
         }
