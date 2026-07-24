@@ -4,11 +4,6 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
     }
-    plugins {
-        id("com.android.application") version "8.7.3"
-        id("org.jetbrains.kotlin.android") version "2.0.21"
-        id("org.jetbrains.kotlin.plugin.compose") version "2.0.21"
-    }
 }
 
 dependencyResolutionManagement {
@@ -19,5 +14,33 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "CastivioTV"
+rootProject.name = "Castivio"
+
 include(":app")
+
+// core — shared foundations, no feature knowledge
+include(":core:common")
+include(":core:navigation")
+include(":core:design")
+include(":core:platform")
+
+// domain — pure Kotlin business rules
+include(":domain")
+
+// data — repositories and sources
+include(":data:networking")
+include(":data:preferences")
+include(":data:activation")
+include(":data:playlist")
+include(":data:epg")
+
+// playback — the engine boundary
+include(":playback:engine-api")
+include(":playback:engine-media3")
+
+// features — independently replaceable
+include(":feature:activation")
+include(":feature:home")
+include(":feature:search")
+include(":feature:player")
+include(":feature:settings")

@@ -5,6 +5,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import dagger.hilt.android.AndroidEntryPoint
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -12,13 +13,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.castivio.tv.data.DeviceIdentity
 import com.castivio.tv.data.SourceStore
-import com.castivio.tv.ui.theme.CastivioTheme
+import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.tv.ui.M3uScreen
 import com.castivio.tv.ui.WelcomeScreen
 import com.castivio.tv.ui.XtreamScreen
 
 private enum class Screen { Welcome, Xtream, M3u }
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {

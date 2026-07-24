@@ -35,7 +35,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.castivio.tv.R
-import com.castivio.tv.ui.theme.CastivioTheme
+import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.tv.data.PlaylistSource
 import com.castivio.tv.data.SourceStore
 

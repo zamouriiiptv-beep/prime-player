@@ -71,11 +71,11 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.castivio.tv.R
-import com.castivio.tv.ui.components.Entrance
-import com.castivio.tv.ui.components.GlassCard
-import com.castivio.tv.ui.components.focusLift
-import com.castivio.tv.ui.theme.CastivioTheme
-import com.castivio.tv.ui.theme.Palette
+import com.castivio.core.design.components.Entrance
+import com.castivio.core.design.components.GlassCard
+import com.castivio.core.design.components.focusLift
+import com.castivio.core.design.theme.CastivioTheme
+import com.castivio.core.design.theme.Palette
 import com.castivio.tv.data.DeviceIdentity
 import com.castivio.tv.util.generateQrBitmap
 import java.text.SimpleDateFormat
