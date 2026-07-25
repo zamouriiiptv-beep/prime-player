@@ -24,7 +24,16 @@ class ParsingBudgetTest {
 
         val measurement = Harness.measure("m3u-parse") {
             var seen = 0L
-            M3uParser.parse(lines.asSequence()) { seen++ }
+            var acc = 0L
+            M3uParser.parse(lines.asSequence()) { entry ->
+                seen++
+                // Touch every parsed field. Without this the JIT proves the
+                // strings are unused and deletes the parsing outright.
+                acc += entry.name.length + entry.url.length +
+                    (entry.groupTitle?.length ?: 0) + (entry.tvgId?.length ?: 0) +
+                    (entry.logoUrl?.length ?: 0) + entry.durationSeconds
+            }
+            Sink.consumed = acc
             seen
         }
         report(measurement)
@@ -53,12 +62,17 @@ class ParsingBudgetTest {
         val count = PerformanceBudgets.MEMORY_PROBE_ENTRIES
         var parsed = 0L
 
-        val retained = Harness.retainedHeapBytes {
+        var acc = 0L
+        val retainedKb = Harness.retainedKb {
             // Generated lazily so the *fixture* is not what occupies the heap.
-            M3uParser.parse(Fixtures.m3uLines(count)) { parsed++ }
+            M3uParser.parse(Fixtures.m3uLines(count)) { entry ->
+                parsed++
+                acc += entry.name.length + entry.url.length
+            }
+            Sink.consumed = acc
         }
-        val retainedMb = retained / (1024 * 1024)
-        println("[budget] m3u-retained-heap: $retainedMb MB after $parsed entries")
+        val retainedMb = retainedKb / 1024
+        println("[budget] m3u-retained-heap: $retainedKb KB after $parsed entries")
 
         assertTrue("expected to parse $count entries, got $parsed", parsed > count * 0.9)
         assertTrue(
@@ -81,7 +95,13 @@ class ParsingBudgetTest {
 
         val measurement = Harness.measure("xmltv-parse") {
             var seen = 0L
-            XmltvParser.parse(StringReader(document)) { seen++ }
+            var acc = 0L
+            XmltvParser.parse(StringReader(document)) { programme ->
+                seen++
+                acc += programme.title.length + programme.channelId.length +
+                    (programme.description?.length ?: 0) + programme.startMs
+            }
+            Sink.consumed = acc
             seen
         }
         report(measurement)
@@ -104,11 +124,16 @@ class ParsingBudgetTest {
         val document = Fixtures.xmltv(channels = 800, programmes = programmes)
         var seen = 0L
 
-        val retained = Harness.retainedHeapBytes {
-            XmltvParser.parse(StringReader(document)) { seen++ }
+        var acc = 0L
+        val retainedKb = Harness.retainedKb {
+            XmltvParser.parse(StringReader(document)) { programme ->
+                seen++
+                acc += programme.title.length
+            }
+            Sink.consumed = acc
         }
-        val retainedMb = retained / (1024 * 1024)
-        println("[budget] xmltv-retained-heap: $retainedMb MB after $seen programmes")
+        val retainedMb = retainedKb / 1024
+        println("[budget] xmltv-retained-heap: $retainedKb KB after $seen programmes")
 
         assertTrue("expected $programmes programmes, got $seen", seen > programmes * 0.9)
         assertTrue(
@@ -131,6 +156,7 @@ class ParsingBudgetTest {
             repeat(200) {
                 for (s in samples) acc += XmltvParser.parseXmltvTime(s)
             }
+            Sink.consumed = acc
             (samples.size * 200).toLong()
         }
         report(measurement)

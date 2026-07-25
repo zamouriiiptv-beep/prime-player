@@ -1,12 +1,31 @@
 package com.castivio.benchmark
 
 /**
+ * Stops the JIT deleting the work being measured.
+ *
+ * This is not optional. A benchmark whose callback only increments a counter
+ * lets the compiler prove the parsed strings are never used and remove the
+ * parsing entirely — which is how the first version of this suite reported
+ * 5.4 million M3U entries/sec, a figure that is arithmetically impossible for
+ * ~400,000 lines of string scanning.
+ *
+ * Accumulate into a local, then write it here **once**. The volatile write
+ * makes the accumulation observable, so it cannot be elided, while costing one
+ * memory barrier per run rather than one per entry.
+ */
+object Sink {
+    @Volatile
+    @JvmField
+    var consumed: Long = 0
+}
+
+/**
  * A deliberately small measurement harness.
  *
  * JMH would give better numbers but needs its own toolchain and takes minutes
- * per run — too slow for a per-commit gate. This does the two things that
- * matter for catching regressions: warm the JIT, then take the *best* of
- * several runs.
+ * per run — too slow for a per-commit gate. This does the three things that
+ * matter for catching regressions: warm the JIT, take the *best* of several
+ * runs, and (via [Sink]) make sure the work cannot be optimised away.
  *
  * Best-of rather than mean is intentional. On a shared runner the mean is
  * dominated by whatever else the machine was doing; the fastest run is the
@@ -64,6 +83,9 @@ object Harness {
 
     private fun usedHeap(): Long =
         Runtime.getRuntime().let { it.totalMemory() - it.freeMemory() }
+
+    /** Kilobytes, so a small-but-real retention isn't rounded away to "0 MB". */
+    fun retainedKb(block: () -> Unit): Long = retainedHeapBytes(block) / 1024
 }
 
 data class Measurement(val name: String, val units: Long, val nanos: Long) {
