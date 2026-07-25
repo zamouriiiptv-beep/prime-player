@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Castivio render</title>
+<style>
+/* ============================================================================
+   Castivio — high-fidelity render surface.
+
+   Every value below is the real design token from :core:design, expressed in dp.
+   The page is rendered at the device's scale factor, so the PNG is pixel-accurate
+   to what Compose will lay out (1080p TV = 960x540dp at 2x).
+   ========================================================================= */
+:root{
+  /* ground */
+  --void:#08071A; --abyss:#0D0B22; --deep:#141031; --slate:#1C1840; --haze:#272253;
+  /* brand */
+  --violet10:#1B1038; --violet40:#6E4BD8; --violet50:#9B6BFF; --violet60:#B694FF; --violet80:#DCCBFF;
+  --azure10:#0A1E3D; --azure40:#2E6BFF; --azure50:#4C9BFF; --azure60:#6FB2FF; --azure80:#B4D6FF;
+  /* status */
+  --ember:#FF3B5C; --aqua:#2FBF9F; --amber:#FFB020; --danger:#FF5A5A; --success:#3DD68C;
+  /* text */
+  --mist:#F2F2F8; --silver:#C9C9DA; --muted:#A6A6BF; --faint:#6E6E8A;
+  /* glass */
+  --glass-high:rgba(255,255,255,.122); --glass-mid:rgba(255,255,255,.078);
+  --glass-low:rgba(255,255,255,.039); --glass-edge:rgba(255,255,255,.239);
+  --glass-edge-soft:rgba(255,255,255,.078);
+  /* radius */
+  --r-xs:8px; --r-sm:12px; --r-md:16px; --r-lg:20px; --r-xl:24px; --r-xxl:30px; --r-pill:999px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#000}
+body{
+  font-family:"Liberation Sans","DejaVu Sans",sans-serif;
+  color:var(--mist);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:geometricPrecision;
+}
+.frame{display:none;position:relative;overflow:hidden;background:var(--void)}
+html[data-frame="tv-home"]      #tv-home,
+html[data-frame="tv-rail"]      #tv-rail,
+html[data-frame="tv-empty"]     #tv-empty,
+html[data-frame="phone-home"]   #phone-home,
+html[data-frame="tablet-section"] #tablet-section{display:block}
+
+/* ---------------------------------------------------------------- backdrop */
+/* Four layers, matching CastivioBackdrop: base gradient, two aurora glows,
+   a contour mesh. Below 12% opacity throughout so content always wins. */
+.backdrop{position:absolute;inset:0;
+  background:
+    radial-gradient(58% 78% at 5% 104%, rgba(110,75,216,.30) 0%, rgba(110,75,216,0) 62%),
+    radial-gradient(54% 66% at 96% 28%, rgba(46,107,255,.26) 0%, rgba(46,107,255,0) 60%),
+    linear-gradient(135deg, var(--deep) 0%, var(--violet10) 48%, var(--azure10) 100%);
+}
+.mesh{position:absolute;inset:0;opacity:.5}
+
+/* ------------------------------------------------------------------- glass */
+.glass{background:var(--glass-mid);border:1px solid var(--glass-edge-soft);backdrop-filter:blur(18px)}
+
+/* -------------------------------------------------------------------- rail */
+.rail{position:absolute;top:0;bottom:0;left:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;z-index:5}
+.rail-inner{display:flex;flex-direction:column;gap:2px;padding:14px 0;border-radius:var(--r-xl)}
+.rail-item{display:flex;align-items:center;gap:9px;border-radius:var(--r-sm);
+  position:relative;color:var(--muted)}
+.rail-item .bar{width:3px;border-radius:var(--r-pill);background:transparent;flex:0 0 auto}
+.rail-item.sel{color:var(--violet50)}
+.rail-item.sel .bar{background:var(--violet50)}
+.rail-item svg{flex:0 0 auto;display:block}
+
+/* ------------------------------------------------------------------ focus */
+/* Focus lift: 4-5% scale, a violet ring and an outer glow. Never colour alone —
+   the ring is a shape change as well as a hue change. */
+.focused{
+  box-shadow:0 0 0 2px var(--violet50), 0 0 24px 2px rgba(155,107,255,.45),
+             0 10px 28px rgba(0,0,0,.5);
+}
+
+/* ------------------------------------------------------------------ shared */
+.eyebrow{letter-spacing:1.2px;text-transform:uppercase;color:var(--faint)}
+.count{color:var(--faint);font-weight:400}
+.pill{display:inline-flex;align-items:center;border-radius:var(--r-pill)}
+.live-dot{border-radius:50%;background:var(--aqua);flex:0 0 auto}
+.progress{background:rgba(255,255,255,.16);border-radius:var(--r-pill);overflow:hidden}
+.progress>i{display:block;height:100%;background:linear-gradient(90deg,var(--violet50),var(--azure50));border-radius:var(--r-pill)}
+.art{position:relative;overflow:hidden;background:var(--slate)}
+.art::after{content:"";position:absolute;inset:0;
+  background:radial-gradient(120% 90% at 20% 0%, rgba(255,255,255,.10), rgba(255,255,255,0) 60%)}
+.logo-tile{display:flex;align-items:center;justify-content:center;font-weight:700;
+  border-radius:var(--r-xs);letter-spacing:.5px}
+.wordmark{font-weight:700;letter-spacing:2.4px;
+  background:linear-gradient(90deg,var(--violet50),var(--azure50));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  border-radius:var(--r-sm);font-weight:600;white-space:nowrap}
+.btn-primary{background:linear-gradient(90deg,var(--violet50),var(--azure50));color:#0B0820}
+.btn-secondary{background:var(--glass-mid);border:1px solid var(--glass-edge);color:var(--mist)}
+.clip{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ============================================================ TV — 960x540dp */
+.tv{width:960px;height:540px}
+.tv .rail{width:88px}
+.tv .rail-inner{padding:14px 10px}
+.tv .rail-item{padding:9px 10px;min-height:44px}
+.tv .rail-item .bar{height:26px}
+.tv-stage{position:absolute;left:88px;right:48px;top:48px;bottom:0}
+.tv-top{display:flex;align-items:center;justify-content:space-between;height:26px}
+.tv-top .wordmark{font-size:17px}
+.tv-top .right{display:flex;align-items:center;gap:14px;color:var(--silver);font-size:12.5px}
+.tv-top .provider{background:var(--glass-mid);border:1px solid var(--glass-edge-soft);
+  padding:4px 12px;font-size:11px;color:var(--silver)}
+
+/* hero */
+.hero{position:relative;margin-top:12px;height:136px;border-radius:var(--r-xxl);
+  overflow:hidden;border:1px solid var(--glass-edge-soft)}
+/* Reads as an out-of-focus broadcast frame: floodlit turf, stand lights
+   thrown out of focus. Never a flat placeholder — artwork is most of what a
+   ten-foot screen is made of, so the mockup has to be honest about it. */
+.hero-art{position:absolute;inset:0;
+  background:
+    radial-gradient(38% 62% at 62% 96%, rgba(61,214,140,.34), rgba(61,214,140,0) 62%),
+    radial-gradient(70% 120% at 82% 24%, rgba(76,155,255,.42), rgba(76,155,255,0) 62%),
+    radial-gradient(52% 96% at 99% 92%, rgba(255,59,92,.34), rgba(255,59,92,0) 58%),
+    linear-gradient(115deg,#141031 0%,#241a4d 38%,#123059 74%,#0c2b46 100%)}
+.bokeh{position:absolute;inset:0;overflow:hidden}
+.bokeh i{position:absolute;border-radius:50%;display:block;
+  background:radial-gradient(circle at 38% 34%, rgba(255,255,255,.42), rgba(255,255,255,.03) 66%)}
+.hero-scrim{position:absolute;inset:0;
+  background:linear-gradient(90deg, rgba(8,7,26,.96) 0%, rgba(8,7,26,.88) 38%, rgba(8,7,26,.12) 74%, rgba(8,7,26,0) 100%)}
+.hero-body{position:absolute;inset:0;padding:18px 20px;display:flex;flex-direction:column;justify-content:center;gap:7px;width:64%}
+.hero-meta{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--silver)}
+.hero-live{gap:5px;padding:3px 9px;background:rgba(47,191,159,.16);border:1px solid rgba(47,191,159,.45);
+  color:var(--aqua);font-weight:700;font-size:10px;letter-spacing:.8px}
+.hero-live .live-dot{width:5px;height:5px}
+.hero h1{font-size:22px;line-height:28px;font-weight:700;letter-spacing:-.2px}
+.hero .now{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--silver)}
+.hero .progress{width:150px;height:4px}
+.hero .next{font-size:11px;color:var(--faint)}
+.hero-actions{display:flex;gap:10px;margin-top:4px}
+.hero .btn{height:34px;padding:0 18px;font-size:13px}
+
+/* rows */
+.row{margin-top:13px}
+.row-head{display:flex;align-items:baseline;gap:7px;font-size:15px;font-weight:600;margin-bottom:8px}
+.row-head .count{font-size:12.5px}
+.row-cards{display:flex;gap:14px;position:relative}
+/* Rows bleed past the safe area so the next card is visibly there — the
+   standard ten-foot cue that the row continues. The fade makes it read as
+   continuation rather than as a clipped layout; focus always scrolls a card
+   back inside the safe area before it can be acted on. */
+.tv .row-cards::after,.tablet .row-cards::after{content:"";position:absolute;top:0;bottom:0;
+  right:-48px;width:72px;pointer-events:none;
+  background:linear-gradient(90deg,rgba(8,7,26,0),rgba(8,7,26,.55) 62%,rgba(8,7,26,.8))}
+.card{flex:0 0 auto}
+.card .art{border-radius:var(--r-sm);border:1px solid var(--glass-edge-soft)}
+.card .title{margin-top:6px;font-size:12.5px;color:var(--silver);font-weight:500}
+.card .sub{font-size:11px;color:var(--faint);margin-top:1px}
+.cw .art{width:176px;height:94px;position:relative}
+.cw .art .progress{position:absolute;left:8px;right:8px;bottom:8px;height:3px}
+.cw .badge{position:absolute;left:8px;top:8px;font-size:9.5px;padding:2px 7px;
+  background:rgba(8,7,26,.72);border:1px solid var(--glass-edge-soft);color:var(--silver)}
+.ch{width:172px}
+.ch-inner{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--r-sm);
+  background:var(--glass-low);border:1px solid var(--glass-edge-soft)}
+.ch .logo-tile{width:34px;height:34px;font-size:11.5px}
+.ch .name{font-size:12.5px;font-weight:600}
+.ch .prog{font-size:10.5px;color:var(--faint);margin-top:2px}
+.ch .num{font-size:10px;color:var(--faint);font-variant-numeric:tabular-nums}
+.row-fade{margin-top:15px;opacity:.42}
+
+/* ======================================================== TV rail, expanded */
+.rail-open .rail{width:236px;align-items:flex-start;padding-left:24px}
+/* An overlay, not a panel that pushes content: opening the rail must not move
+   what is behind it, or the item under the cursor shifts as you look at it. */
+.rail-open .rail-inner{background:#0E0B24;border:1px solid var(--glass-edge);
+  box-shadow:0 28px 72px rgba(0,0,0,.72);padding:12px;width:196px}
+.rail-open .rail-item{padding:8px 12px;width:100%;min-height:40px}
+.rail-open .rail-label{font-size:15px;font-weight:600}
+.rail-open .rail-item .rail-count{margin-left:auto;font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
+.rail-open .dim{position:absolute;inset:0;background:rgba(8,7,26,.55);z-index:3}
+
+/* =========================================================== TV empty state */
+.empty-wrap{position:absolute;left:88px;right:48px;top:48px;bottom:48px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px}
+.empty-icon{width:60px;height:60px;border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center;
+  background:var(--glass-low);border:1px solid var(--glass-edge-soft)}
+.empty-wrap h2{font-size:22px;font-weight:700}
+.empty-wrap p{font-size:14px;line-height:22px;color:var(--silver);max-width:420px}
+.empty-actions{display:flex;gap:12px;margin-top:6px}
+.empty-wrap .btn{height:36px;padding:0 20px;font-size:13px}
+
+/* ==================================================== PHONE — 412x892dp @3x */
+.phone{width:412px;height:892px}
+.phone-top{position:absolute;top:0;left:0;right:0;height:92px;padding:44px 20px 0;
+  display:flex;align-items:center;justify-content:space-between;z-index:4}
+.phone-top .wordmark{font-size:18px}
+.phone-top .avatar{width:32px;height:32px;border-radius:50%;
+  background:linear-gradient(135deg,var(--violet40),var(--azure40));display:flex;
+  align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff}
+.phone-scroll{position:absolute;top:92px;left:0;right:0;bottom:0;padding:0 20px}
+.phone-hero{height:186px;border-radius:var(--r-xl);overflow:hidden;position:relative;
+  border:1px solid var(--glass-edge-soft)}
+.phone-hero .hero-scrim{background:linear-gradient(180deg, rgba(8,7,26,.05) 0%, rgba(8,7,26,.55) 52%, rgba(8,7,26,.96) 100%)}
+.phone-hero .body{position:absolute;left:0;right:0;bottom:0;padding:14px;display:flex;flex-direction:column;gap:6px}
+.phone-hero h1{font-size:18px;line-height:24px;font-weight:700}
+.phone-hero .btn{height:40px;padding:0 18px;font-size:14px;margin-top:4px;align-self:flex-start}
+.phone .row{margin-top:22px}
+.phone .row-head{font-size:16px}
+.phone .cw .art{width:190px;height:107px}
+.phone .ch{width:168px}
+.phone-bar{position:absolute;left:0;right:0;bottom:0;height:78px;padding-bottom:14px;
+  background:rgba(13,11,34,.94);border-top:1px solid var(--glass-edge-soft);
+  display:flex;align-items:center;z-index:6;backdrop-filter:blur(20px)}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);
+  font-size:10.5px;font-weight:500;position:relative;min-height:48px;justify-content:center}
+.tab .ind{display:flex;align-items:center;justify-content:center;width:56px;height:30px;
+  border-radius:var(--r-pill)}
+.tab.sel{color:var(--violet50)}
+/* Material's active indicator rather than a top rule: the pill is the touch
+   target's own shape, so the selected tab reads at a glance and at arm's length. */
+.tab.sel .ind{background:rgba(155,107,255,.20)}
+/* Content scrolls under the bar, so it fades into it instead of being sliced. */
+.bar-scrim{position:absolute;left:0;right:0;bottom:78px;height:40px;z-index:5;pointer-events:none;
+  background:linear-gradient(180deg,rgba(8,7,26,0),rgba(13,11,34,.92))}
+.status{position:absolute;top:0;left:0;right:0;height:44px;padding:0 22px;display:flex;
+  align-items:center;justify-content:space-between;font-size:12px;color:var(--mist);z-index:7;
+  font-variant-numeric:tabular-nums}
+
+/* ================================================= TABLET — 1280x800dp @1.5 */
+.tablet{width:1280px;height:800px}
+.tablet .rail{width:80px}
+.tablet .rail-inner{padding:12px 8px}
+.tablet .rail-item{padding:10px;min-height:48px}
+.tablet .rail-item .bar{height:26px}
+.tablet-stage{position:absolute;left:80px;right:24px;top:24px;bottom:24px;display:flex;flex-direction:column}
+.tablet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.tablet-head h1{font-size:28px;font-weight:700;letter-spacing:-.2px}
+.tablet-head .count{font-size:15px;margin-left:10px;font-weight:400}
+.chips{display:flex;gap:8px}
+.chip{padding:7px 14px;border-radius:var(--r-pill);font-size:13px;background:var(--glass-low);
+  border:1px solid var(--glass-edge-soft);color:var(--silver)}
+.chip.sel{background:var(--glass-high);border-color:var(--glass-edge);color:var(--mist);font-weight:600}
+.panes{flex:1;display:flex;gap:20px;min-height:0}
+.cats{width:246px;flex:0 0 auto;border-radius:var(--r-lg);padding:10px;
+  background:var(--glass-low);border:1px solid var(--glass-edge-soft);display:flex;flex-direction:column;gap:2px}
+.cat{display:flex;align-items:center;justify-content:space-between;padding:11px 12px;
+  border-radius:var(--r-sm);font-size:14px;color:var(--silver);min-height:44px}
+.cat .n{font-size:12px;color:var(--faint);font-variant-numeric:tabular-nums}
+.cat.sel{background:var(--glass-high);color:var(--mist);font-weight:600}
+.cat.sel .n{color:var(--silver)}
+.grid-wrap{flex:1;display:flex;gap:10px;min-width:0}
+.grid{flex:1;display:grid;grid-template-columns:repeat(5,1fr);gap:20px;align-content:start;min-width:0;
+  overflow:hidden}
+/* Specified for any list over 500 items: on 24,318 titles, scrolling is not a
+   navigation method. Shown here because the sort is A-Z — under provider order
+   the bar is hidden, since the letters would point nowhere. */
+.jump{width:26px;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;
+  justify-content:space-between;font-size:11px;color:var(--faint);border-radius:var(--r-pill);
+  background:var(--glass-low);border:1px solid var(--glass-edge-soft);padding:14px 0}
+.jump span{color:var(--muted)}
+.jump b{color:var(--violet50);font-weight:700}
+.poster{border-radius:var(--r-sm);overflow:hidden;position:relative;aspect-ratio:2/3;
+  border:1px solid var(--glass-edge-soft)}
+.poster .label{position:absolute;left:0;right:0;bottom:0;padding:26px 10px 10px;font-size:13px;font-weight:600;
+  background:linear-gradient(180deg,rgba(8,7,26,0),rgba(8,7,26,.92))}
+.poster .yr{font-size:11px;color:var(--muted);font-weight:400;margin-top:2px}
+.tile{display:flex;flex-direction:column}
+.tile .meta{margin-top:8px;font-size:12px;color:var(--faint)}
+
+</style>
+</head>
+<body>
+
+<!-- =======================================================================
+     1 — TV Home, 960x540dp (1080p at 2x). Initial focus on the hero action.
+     ==================================================================== -->
+<section class="frame tv" id="tv-home">
+  <div class="backdrop"></div>
+  <svg class="mesh" viewBox="0 0 960 540" preserveAspectRatio="none">
+    <g fill="none" stroke="#9B6BFF" stroke-opacity=".07" stroke-width="1">
+      <path d="M0,392 C160,352 320,432 480,392 C640,352 800,432 960,392"/>
+      <path d="M0,428 C160,388 320,468 480,428 C640,388 800,468 960,428"/>
+      <path d="M0,464 C160,424 320,504 480,464 C640,424 800,504 960,464"/>
+      <path d="M0,500 C160,460 320,540 480,500 C640,460 800,540 960,500"/>
+    </g>
+  </svg>
+
+  <nav class="rail">
+    <div class="rail-inner">
+      <div class="rail-item sel"><i class="bar"></i><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 3 10v11h6v-6h6v6h6V10z"/></svg></div>
+      <div class="rail-item"><i class="bar"></i><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M21 6H10.4l3.3-3.3-1-1L8.6 6h-.2L4.3 1.7l-1 1L6.6 6H3a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2m0 13H3V8h18z"/></svg></div>
+      <div class="rail-item"><i class="bar"></i><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M18 4v1h-2V4a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v1H6V4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2v-1h2v1a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-1h2v1a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2M8 17H6v-2h2zm0-4H6v-2h2zm0-4H6V7h2zm10 8h-2v-2h2zm0-4h-2v-2h2zm0-4h-2V7h2z"/></svg></div>
+      <div class="rail-item"><i class="bar"></i><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6H2v14a2 2 0 0 0 2 2h14v-2H4zm16-4H8a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2m-9 12V6l7 4z"/></svg></div>
+      <div class="rail-item"><i class="bar"></i><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M20 6H10.7l4.9-2-.7-1.9L8.5 4.7 6 5.7V5a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v1.3A2 2 0 0 0 2 8v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2M7 18a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7m13-7h-2V9h2zm0 4h-2v-2h2z"/></svg></div>
+      <div class="rail-item"><i class="bar"></i><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="m12 21-1.5-1.3C5.4 15.1 2 12.1 2 8.5 2 5.4 4.4 3 7.5 3c1.7 0 3.4.8 4.5 2.1C13.1 3.8 14.8 3 16.5 3 19.6 3 22 5.4 22 8.5c0 3.6-3.4 6.6-8.5 11.2z"/></svg></div>
+      <div class="rail-item"><i class="bar"></i><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 5 1.5-1.5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9"/></svg></div>
+      <div class="rail-item"><i class="bar"></i><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M19.1 12.9a7 7 0 0 0 0-1.8l2-1.6a.5.5 0 0 0 .1-.6l-1.9-3.2a.5.5 0 0 0-.6-.2l-2.4 1a7 7 0 0 0-1.6-.9l-.3-2.5a.5.5 0 0 0-.5-.4h-3.8a.5.5 0 0 0-.5.4l-.3 2.5a7 7 0 0 0-1.6.9l-2.4-1a.5.5 0 0 0-.6.2L2.8 8.9a.5.5 0 0 0 .1.6l2 1.6a7 7 0 0 0 0 1.8l-2 1.6a.5.5 0 0 0-.1.6l1.9 3.2a.5.5 0 0 0 .6.2l2.4-1a7 7 0 0 0 1.6.9l.3 2.5a.5.5 0 0 0 .5.4h3.8a.5.5 0 0 0 .5-.4l.3-2.5a7 7 0 0 0 1.6-.9l2.4 1a.5.5 0 0 0 .6-.2l1.9-3.2a.5.5 0 0 0-.1-.6zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7"/></svg></div>
+    </div>
+  </nav>
+
+  <div class="tv-stage">
+    <div class="tv-top">
+      <div class="wordmark">CASTIVIO</div>
+      <div class="right">
+        <span class="pill provider">Nova IPTV</span>
+        <span style="font-variant-numeric:tabular-nums">21:04</span>
+      </div>
+    </div>
+
+    <!-- Spotlight: live-first — what is on now on a favourite channel -->
+    <div class="hero">
+      <div class="hero-art"></div><div class="bokeh"><i style="right:4%;top:-24%;width:150px;height:150px"></i><i style="right:26%;top:16%;width:52px;height:52px;opacity:.55"></i><i style="right:14%;top:58%;width:78px;height:78px;opacity:.42"></i><i style="right:34%;top:70%;width:34px;height:34px;opacity:.5"></i><i style="right:2%;top:44%;width:40px;height:40px;opacity:.35"></i></div>
+      <div class="hero-scrim"></div>
+      <div class="hero-body">
+        <div class="hero-meta">
+          <span class="pill hero-live"><i class="live-dot"></i>LIVE</span>
+          <span>Nova Sports 1</span><span style="color:var(--faint)">·</span>
+          <span style="font-variant-numeric:tabular-nums;color:var(--faint)">101</span>
+        </div>
+        <h1>UEFA Cup Final — Real Madrid v Inter</h1>
+        <div class="now">
+          <span style="font-variant-numeric:tabular-nums">20:45</span>
+          <span class="progress"><i style="width:44%"></i></span>
+          <span style="font-variant-numeric:tabular-nums">22:30</span>
+          <span class="next">· Next: Post-match analysis</span>
+        </div>
+        <div class="hero-actions">
+          <span class="btn btn-primary focused" style="transform:scale(1.05)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Watch
+          </span>
+          <span class="btn btn-secondary">Guide</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="row-head">Continue watching <span class="count">· 7</span></div>
+      <div class="row-cards">
+        <div class="card cw"><div class="art" style="background:linear-gradient(140deg,#2a1c53,#4a2b7a 55%,#7a3f6d)">
+          <span class="pill badge">42 min left</span><span class="progress"><i style="width:58%"></i></span></div>
+          <div class="title clip" style="width:176px">Dune: Part Two</div><div class="sub">Movie · 2024</div></div>
+        <div class="card cw"><div class="art" style="background:linear-gradient(140deg,#12294f,#1d4a7a 55%,#2f7f8c)">
+          <span class="pill badge">S2 E4</span><span class="progress"><i style="width:31%"></i></span></div>
+          <div class="title clip" style="width:176px">The Last Frontier</div><div class="sub">Series · Season 2</div></div>
+        <div class="card cw"><div class="art" style="background:linear-gradient(140deg,#3d1630,#6b1f3a 55%,#a33b2e)">
+          <span class="pill badge">1 h 06 left</span><span class="progress"><i style="width:22%"></i></span></div>
+          <div class="title clip" style="width:176px">Sicario</div><div class="sub">Movie · 2015</div></div>
+        <div class="card cw"><div class="art" style="background:linear-gradient(140deg,#17304a,#265c66 55%,#3f8a5f)">
+          <span class="pill badge">S1 E9</span><span class="progress"><i style="width:73%"></i></span></div>
+          <div class="title clip" style="width:176px">Blue Planet II</div><div class="sub">Series · Season 1</div></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="row-head">Live TV <span class="count">· 12,480</span></div>
+      <div class="row-cards">
+        <div class="card ch"><div class="ch-inner">
+          <div class="logo-tile" style="background:linear-gradient(135deg,#2E6BFF,#4C9BFF)">NS</div>
+          <div style="min-width:0"><div class="name clip">Nova Sports 1</div><div class="prog clip">UEFA Cup Final</div></div></div></div>
+        <div class="card ch"><div class="ch-inner">
+          <div class="logo-tile" style="background:linear-gradient(135deg,#6E4BD8,#9B6BFF)">BB</div>
+          <div style="min-width:0"><div class="name clip">BBC One HD</div><div class="prog clip">Ten O'Clock News</div></div></div></div>
+        <div class="card ch"><div class="ch-inner">
+          <div class="logo-tile" style="background:linear-gradient(135deg,#B33A2E,#FF5A5A)">AJ</div>
+          <div style="min-width:0"><div class="name clip">Al Jazeera</div><div class="prog clip">الحصاد</div></div></div></div>
+        <div class="card ch"><div class="ch-inner">
+          <div class="logo-tile" style="background:linear-gradient(135deg,#1E6B57,#2FBF9F)">CN</div>
+          <div style="min-width:0"><div class="name clip">CNN International</div><div class="prog clip">Quest Means Business</div></div></div></div>
+        <div class="card ch"><div class="ch-inner">
+          <div class="logo-tile" style="background:linear-gradient(135deg,#8A6A16,#FFB020)">MB</div>
+          <div style="min-width:0"><div class="name clip">MBC 2</div><div class="prog clip">فيلم السهرة</div></div></div></div>
+      </div>
+    </div>
+
+    <div class="row row-fade">
+      <div class="row-head">Movies <span class="count">· 24,318</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- =======================================================================
+     2 — TV Home with the rail focused. The rail expands over content; the
+     content never reflows, so nothing moves under the cursor.
+     ==================================================================== -->
+<section class="frame tv rail-open" id="tv-rail">
+  <div class="backdrop"></div>
+
+  <div class="tv-stage" style="filter:saturate(.9)">
+    <div class="tv-top">
+      <div class="wordmark">CASTIVIO</div>
+      <div class="right"><span class="pill provider">Nova IPTV</span>
+        <span style="font-variant-numeric:tabular-nums">21:04</span></div>
+    </div>
+    <div class="hero">
+      <div class="hero-art"></div><div class="bokeh"><i style="right:4%;top:-24%;width:150px;height:150px"></i><i style="right:26%;top:16%;width:52px;height:52px;opacity:.55"></i><i style="right:14%;top:58%;width:78px;height:78px;opacity:.42"></i><i style="right:34%;top:70%;width:34px;height:34px;opacity:.5"></i><i style="right:2%;top:44%;width:40px;height:40px;opacity:.35"></i></div><div class="hero-scrim"></div>
+      <div class="hero-body">
+        <div class="hero-meta"><span class="pill hero-live"><i class="live-dot"></i>LIVE</span>
+          <span>Nova Sports 1</span><span style="color:var(--faint)">·</span>
+          <span style="font-variant-numeric:tabular-nums;color:var(--faint)">101</span></div>
+        <h1>UEFA Cup Final — Real Madrid v Inter</h1>
+        <div class="now"><span style="font-variant-numeric:tabular-nums">20:45</span>
+          <span class="progress"><i style="width:44%"></i></span>
+          <span style="font-variant-numeric:tabular-nums">22:30</span></div>
+        <div class="hero-actions"><span class="btn btn-primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Watch</span>
+          <span class="btn btn-secondary">Guide</span></div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="row-head">Continue watching <span class="count">· 7</span></div>
+      <div class="row-cards">
+        <div class="card cw"><div class="art" style="background:linear-gradient(140deg,#2a1c53,#4a2b7a 55%,#7a3f6d)">
+          <span class="progress"><i style="width:58%"></i></span></div>
+          <div class="title clip" style="width:176px">Dune: Part Two</div></div>
+        <div class="card cw"><div class="art" style="background:linear-gradient(140deg,#12294f,#1d4a7a 55%,#2f7f8c)">
+          <span class="progress"><i style="width:31%"></i></span></div>
+          <div class="title clip" style="width:176px">The Last Frontier</div></div>
+        <div class="card cw"><div class="art" style="background:linear-gradient(140deg,#3d1630,#6b1f3a 55%,#a33b2e)">
+          <span class="progress"><i style="width:22%"></i></span></div>
+          <div class="title clip" style="width:176px">Sicario</div></div>
+        <div class="card cw"><div class="art" style="background:linear-gradient(140deg,#17304a,#265c66 55%,#3f8a5f)">
+          <span class="progress"><i style="width:73%"></i></span></div>
+          <div class="title clip" style="width:176px">Blue Planet II</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dim"></div>
+
+  <nav class="rail">
+    <div class="rail-inner">
+      <div class="rail-item sel"><i class="bar"></i><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 3 10v11h6v-6h6v6h6V10z"/></svg><span class="rail-label">Home</span></div>
+      <div class="rail-item focused" style="background:var(--glass-high);transform:scale(1.02)"><i class="bar"></i><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M21 6H10.4l3.3-3.3-1-1L8.6 6h-.2L4.3 1.7l-1 1L6.6 6H3a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2m0 13H3V8h18z"/></svg><span class="rail-label" style="color:var(--mist)">Live TV</span><span class="rail-count">12,480</span></div>
+      <div class="rail-item"><i class="bar"></i><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M18 4v1h-2V4a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v1H6V4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2v-1h2v1a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-1h2v1a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2M8 17H6v-2h2zm0-4H6v-2h2zm0-4H6V7h2zm10 8h-2v-2h2zm0-4h-2v-2h2zm0-4h-2V7h2z"/></svg><span class="rail-label">Movies</span><span class="rail-count">24,318</span></div>
+      <div class="rail-item"><i class="bar"></i><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6H2v14a2 2 0 0 0 2 2h14v-2H4zm16-4H8a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2m-9 12V6l7 4z"/></svg><span class="rail-label">Series</span><span class="rail-count">3,904</span></div>
+      <div class="rail-item"><i class="bar"></i><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M20 6H10.7l4.9-2-.7-1.9L8.5 4.7 6 5.7V5a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v1.3A2 2 0 0 0 2 8v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2M7 18a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7m13-7h-2V9h2zm0 4h-2v-2h2z"/></svg><span class="rail-label">Radio</span><span class="rail-count">420</span></div>
+      <div class="rail-item"><i class="bar"></i><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="m12 21-1.5-1.3C5.4 15.1 2 12.1 2 8.5 2 5.4 4.4 3 7.5 3c1.7 0 3.4.8 4.5 2.1C13.1 3.8 14.8 3 16.5 3 19.6 3 22 5.4 22 8.5c0 3.6-3.4 6.6-8.5 11.2z"/></svg><span class="rail-label">Favourites</span><span class="rail-count">38</span></div>
+      <div class="rail-item"><i class="bar"></i><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 5 1.5-1.5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9"/></svg><span class="rail-label">Search</span></div>
+      <div class="rail-item"><i class="bar"></i><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M19.1 12.9a7 7 0 0 0 0-1.8l2-1.6a.5.5 0 0 0 .1-.6l-1.9-3.2a.5.5 0 0 0-.6-.2l-2.4 1a7 7 0 0 0-1.6-.9l-.3-2.5a.5.5 0 0 0-.5-.4h-3.8a.5.5 0 0 0-.5.4l-.3 2.5a7 7 0 0 0-1.6.9l-2.4-1a.5.5 0 0 0-.6.2L2.8 8.9a.5.5 0 0 0 .1.6l2 1.6a7 7 0 0 0 0 1.8l-2 1.6a.5.5 0 0 0-.1.6l1.9 3.2a.5.5 0 0 0 .6.2l2.4-1a7 7 0 0 0 1.6.9l.3 2.5a.5.5 0 0 0 .5.4h3.8a.5.5 0 0 0 .5-.4l.3-2.5a7 7 0 0 0 1.6-.9l2.4 1a.5.5 0 0 0 .6-.2l1.9-3.2a.5.5 0 0 0-.1-.6zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7"/></svg><span class="rail-label">Settings</span></div>
+    </div>
+  </nav>
+</section>
+
+<!-- =======================================================================
+     3 — A section the provider does not carry. The destination still exists;
+     it explains itself and offers the two moves that help.
+     ==================================================================== -->
+<section class="frame tv" id="tv-empty">
+  <div class="backdrop"></div>
+  <nav class="rail">
+    <div class="rail-inner">
+      <div class="rail-item"><i class="bar"></i><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 3 10v11h6v-6h6v6h6V10z"/></svg></div>
+      <div class="rail-item"><i class="bar"></i><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M21 6H10.4l3.3-3.3-1-1L8.6 6h-.2L4.3 1.7l-1 1L6.6 6H3a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2m0 13H3V8h18z"/></svg></div>
+      <div class="rail-item sel"><i class="bar"></i><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M18 4v1h-2V4a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v1H6V4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2v-1h2v1a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-1h2v1a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2M8 17H6v-2h2zm0-4H6v-2h2zm0-4H6V7h2zm10 8h-2v-2h2zm0-4h-2v-2h2zm0-4h-2V7h2z"/></svg></div>
+      <div class="rail-item"><i class="bar"></i><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6H2v14a2 2 0 0 0 2 2h14v-2H4zm16-4H8a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2m-9 12V6l7 4z"/></svg></div>
+      <div class="rail-item"><i class="bar"></i><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M20 6H10.7l4.9-2-.7-1.9L8.5 4.7 6 5.7V5a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v1.3A2 2 0 0 0 2 8v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2M7 18a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7m13-7h-2V9h2zm0 4h-2v-2h2z"/></svg></div>
+      <div class="rail-item"><i class="bar"></i><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="m12 21-1.5-1.3C5.4 15.1 2 12.1 2 8.5 2 5.4 4.4 3 7.5 3c1.7 0 3.4.8 4.5 2.1C13.1 3.8 14.8 3 16.5 3 19.6 3 22 5.4 22 8.5c0 3.6-3.4 6.6-8.5 11.2z"/></svg></div>
+      <div class="rail-item"><i class="bar"></i><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 5 1.5-1.5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9"/></svg></div>
+      <div class="rail-item"><i class="bar"></i><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M19.1 12.9a7 7 0 0 0 0-1.8l2-1.6a.5.5 0 0 0 .1-.6l-1.9-3.2a.5.5 0 0 0-.6-.2l-2.4 1a7 7 0 0 0-1.6-.9l-.3-2.5a.5.5 0 0 0-.5-.4h-3.8a.5.5 0 0 0-.5.4l-.3 2.5a7 7 0 0 0-1.6.9l-2.4-1a.5.5 0 0 0-.6.2L2.8 8.9a.5.5 0 0 0 .1.6l2 1.6a7 7 0 0 0 0 1.8l-2 1.6a.5.5 0 0 0-.1.6l1.9 3.2a.5.5 0 0 0 .6.2l2.4-1a7 7 0 0 0 1.6.9l.3 2.5a.5.5 0 0 0 .5.4h3.8a.5.5 0 0 0 .5-.4l.3-2.5a7 7 0 0 0 1.6-.9l2.4 1a.5.5 0 0 0 .6-.2l1.9-3.2a.5.5 0 0 0-.1-.6zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7"/></svg></div>
+    </div>
+  </nav>
+  <div style="position:absolute;left:88px;top:48px;display:flex;align-items:baseline;gap:7px">
+    <span style="font-size:22px;font-weight:700">Movies</span>
+    <span class="count" style="font-size:12.5px">· 0 titles</span>
+  </div>
+  <div class="empty-wrap">
+    <div class="empty-icon">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#A6A6BF" stroke-width="1.6" stroke-linecap="round">
+        <rect x="3" y="5" width="18" height="14" rx="2"/><path d="M8 5v14M16 5v14M3 9.5h5M3 14.5h5M16 9.5h5M16 14.5h5"/>
+      </svg>
+    </div>
+    <h2>Nova IPTV doesn't include movies</h2>
+    <p>This provider carries live channels and radio only. Your other sections are unaffected — and adding a second provider brings its movies here.</p>
+    <div class="empty-actions">
+      <span class="btn btn-primary focused" style="transform:scale(1.05)">Browse Live TV</span>
+      <span class="btn btn-secondary">Add a provider</span>
+    </div>
+  </div>
+</section>
+
+<!-- =======================================================================
+     4 — Phone Home, 412x892dp. Bottom navigation as specified:
+     Home · Live · Library · Search · Settings.
+     ==================================================================== -->
+<section class="frame phone" id="phone-home">
+  <div class="backdrop"></div>
+  <div class="status">
+    <span>21:04</span>
+    <span style="display:flex;align-items:center;gap:6px">
+      <svg width="15" height="11" viewBox="0 0 18 13" fill="currentColor"><rect x="0" y="9" width="3" height="4" rx="1"/><rect x="5" y="6" width="3" height="7" rx="1"/><rect x="10" y="3" width="3" height="10" rx="1"/><rect x="15" y="0" width="3" height="13" rx="1" opacity=".4"/></svg>
+      <svg width="16" height="11" viewBox="0 0 22 13" fill="none" stroke="currentColor" stroke-width="1.4"><rect x=".7" y=".7" width="17" height="11.6" rx="3"/><rect x="2.6" y="2.6" width="11" height="7.8" rx="1.6" fill="currentColor" stroke="none"/><path d="M20 4.6v3.8" stroke-linecap="round"/></svg>
+    </span>
+  </div>
+  <div class="phone-top">
+    <div class="wordmark">CASTIVIO</div>
+    <div class="avatar">N</div>
+  </div>
+  <div class="phone-scroll">
+    <div class="phone-hero">
+      <div class="hero-art"></div><div class="bokeh"><i style="right:4%;top:-24%;width:150px;height:150px"></i><i style="right:26%;top:16%;width:52px;height:52px;opacity:.55"></i><i style="right:14%;top:58%;width:78px;height:78px;opacity:.42"></i><i style="right:34%;top:70%;width:34px;height:34px;opacity:.5"></i><i style="right:2%;top:44%;width:40px;height:40px;opacity:.35"></i></div><div class="hero-scrim"></div>
+      <div class="body">
+        <div class="hero-meta"><span class="pill hero-live"><i class="live-dot"></i>LIVE</span>
+          <span>Nova Sports 1</span><span style="color:var(--faint)">·</span>
+          <span style="font-variant-numeric:tabular-nums;color:var(--faint)">101</span></div>
+        <h1>UEFA Cup Final<br>Real Madrid v Inter</h1>
+        <div class="now" style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--silver)">
+          <span style="font-variant-numeric:tabular-nums">20:45</span>
+          <span class="progress" style="width:120px;height:4px"><i style="width:44%"></i></span>
+          <span style="font-variant-numeric:tabular-nums">22:30</span>
+        </div>
+        <span class="btn btn-primary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Watch</span>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="row-head">Continue watching <span class="count">· 7</span></div>
+      <div class="row-cards">
+        <div class="card cw"><div class="art" style="background:linear-gradient(140deg,#2a1c53,#4a2b7a 55%,#7a3f6d)">
+          <span class="pill badge">42 min left</span><span class="progress"><i style="width:58%"></i></span></div>
+          <div class="title clip" style="width:190px">Dune: Part Two</div><div class="sub">Movie · 2024</div></div>
+        <div class="card cw"><div class="art" style="background:linear-gradient(140deg,#12294f,#1d4a7a 55%,#2f7f8c)">
+          <span class="pill badge">S2 E4</span><span class="progress"><i style="width:31%"></i></span></div>
+          <div class="title clip" style="width:190px">The Last Frontier</div><div class="sub">Series · Season 2</div></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="row-head">Live TV <span class="count">· 12,480</span></div>
+      <div class="row-cards">
+        <div class="card ch"><div class="ch-inner">
+          <div class="logo-tile" style="background:linear-gradient(135deg,#2E6BFF,#4C9BFF)">NS</div>
+          <div style="min-width:0"><div class="name clip">Nova Sports 1</div><div class="prog clip">UEFA Cup Final</div></div></div></div>
+        <div class="card ch"><div class="ch-inner">
+          <div class="logo-tile" style="background:linear-gradient(135deg,#6E4BD8,#9B6BFF)">BB</div>
+          <div style="min-width:0"><div class="name clip">BBC One HD</div><div class="prog clip">Ten O'Clock News</div></div></div></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="row-head">Movies <span class="count">· 24,318</span></div>
+      <div class="row-cards">
+        <div class="card"><div class="art" style="width:112px;height:168px;border-radius:var(--r-sm);background:linear-gradient(140deg,#241a4d,#4a2b7a 60%,#8a3f6d)"></div>
+          <div class="title clip" style="width:112px">Oppenheimer</div><div class="sub">2023</div></div>
+        <div class="card"><div class="art" style="width:112px;height:168px;border-radius:var(--r-sm);background:linear-gradient(140deg,#0f2a4a,#1d4a7a 60%,#2f8c8c)"></div>
+          <div class="title clip" style="width:112px">Interstellar</div><div class="sub">2014</div></div>
+        <div class="card"><div class="art" style="width:112px;height:168px;border-radius:var(--r-sm);background:linear-gradient(140deg,#3a1430,#7a1f3a 60%,#a3452e)"></div>
+          <div class="title clip" style="width:112px">Heat</div><div class="sub">1995</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bar-scrim"></div>
+  <nav class="phone-bar">
+    <div class="tab sel"><span class="ind"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 3 10v11h6v-6h6v6h6V10z"/></svg></span>Home</div>
+    <div class="tab"><span class="ind"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M21 6H10.4l3.3-3.3-1-1L8.6 6h-.2L4.3 1.7l-1 1L6.6 6H3a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2m0 13H3V8h18z"/></svg></span>Live</div>
+    <div class="tab"><span class="ind"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6H2v14a2 2 0 0 0 2 2h14v-2H4zm16-4H8a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2m-9 12V6l7 4z"/></svg></span>Library</div>
+    <div class="tab"><span class="ind"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 5 1.5-1.5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9"/></svg></span>Search</div>
+    <div class="tab"><span class="ind"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19.1 12.9a7 7 0 0 0 0-1.8l2-1.6a.5.5 0 0 0 .1-.6l-1.9-3.2a.5.5 0 0 0-.6-.2l-2.4 1a7 7 0 0 0-1.6-.9l-.3-2.5a.5.5 0 0 0-.5-.4h-3.8a.5.5 0 0 0-.5.4l-.3 2.5a7 7 0 0 0-1.6.9l-2.4-1a.5.5 0 0 0-.6.2L2.8 8.9a.5.5 0 0 0 .1.6l2 1.6a7 7 0 0 0 0 1.8l-2 1.6a.5.5 0 0 0-.1.6l1.9 3.2a.5.5 0 0 0 .6.2l2.4-1a7 7 0 0 0 1.6.9l.3 2.5a.5.5 0 0 0 .5.4h3.8a.5.5 0 0 0 .5-.4l.3-2.5a7 7 0 0 0 1.6-.9l2.4 1a.5.5 0 0 0 .6-.2l1.9-3.2a.5.5 0 0 0-.1-.6zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7"/></svg></span>Settings</div>
+  </nav>
+</section>
+
+<!-- =======================================================================
+     5 — Tablet, Movies section, 1280x800dp. Two panes in landscape:
+     categories beside the grid, each with its cached item_count.
+     ==================================================================== -->
+<section class="frame tablet" id="tablet-section">
+  <div class="backdrop"></div>
+  <nav class="rail">
+    <div class="rail-inner">
+      <div class="rail-item"><i class="bar"></i><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 3 10v11h6v-6h6v6h6V10z"/></svg></div>
+      <div class="rail-item"><i class="bar"></i><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M21 6H10.4l3.3-3.3-1-1L8.6 6h-.2L4.3 1.7l-1 1L6.6 6H3a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2m0 13H3V8h18z"/></svg></div>
+      <div class="rail-item sel"><i class="bar"></i><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18 4v1h-2V4a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v1H6V4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2v-1h2v1a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-1h2v1a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2M8 17H6v-2h2zm0-4H6v-2h2zm0-4H6V7h2zm10 8h-2v-2h2zm0-4h-2v-2h2zm0-4h-2V7h2z"/></svg></div>
+      <div class="rail-item"><i class="bar"></i><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6H2v14a2 2 0 0 0 2 2h14v-2H4zm16-4H8a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2m-9 12V6l7 4z"/></svg></div>
+      <div class="rail-item"><i class="bar"></i><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M20 6H10.7l4.9-2-.7-1.9L8.5 4.7 6 5.7V5a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v1.3A2 2 0 0 0 2 8v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2M7 18a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7m13-7h-2V9h2zm0 4h-2v-2h2z"/></svg></div>
+      <div class="rail-item"><i class="bar"></i><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="m12 21-1.5-1.3C5.4 15.1 2 12.1 2 8.5 2 5.4 4.4 3 7.5 3c1.7 0 3.4.8 4.5 2.1C13.1 3.8 14.8 3 16.5 3 19.6 3 22 5.4 22 8.5c0 3.6-3.4 6.6-8.5 11.2z"/></svg></div>
+      <div class="rail-item"><i class="bar"></i><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 5 1.5-1.5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9"/></svg></div>
+      <div class="rail-item"><i class="bar"></i><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M19.1 12.9a7 7 0 0 0 0-1.8l2-1.6a.5.5 0 0 0 .1-.6l-1.9-3.2a.5.5 0 0 0-.6-.2l-2.4 1a7 7 0 0 0-1.6-.9l-.3-2.5a.5.5 0 0 0-.5-.4h-3.8a.5.5 0 0 0-.5.4l-.3 2.5a7 7 0 0 0-1.6.9l-2.4-1a.5.5 0 0 0-.6.2L2.8 8.9a.5.5 0 0 0 .1.6l2 1.6a7 7 0 0 0 0 1.8l-2 1.6a.5.5 0 0 0-.1.6l1.9 3.2a.5.5 0 0 0 .6.2l2.4-1a7 7 0 0 0 1.6.9l.3 2.5a.5.5 0 0 0 .5.4h3.8a.5.5 0 0 0 .5-.4l.3-2.5a7 7 0 0 0 1.6-.9l2.4 1a.5.5 0 0 0 .6-.2l1.9-3.2a.5.5 0 0 0-.1-.6zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7"/></svg></div>
+    </div>
+  </nav>
+
+  <div class="tablet-stage">
+    <div class="tablet-head">
+      <div><span style="font-size:28px;font-weight:700">Movies</span><span class="count">24,318 titles</span></div>
+      <div class="chips">
+        <span class="chip">Provider order</span><span class="chip sel">A–Z</span>
+        <span class="chip">Recently added</span>
+      </div>
+    </div>
+    <div class="panes">
+      <div class="cats">
+        <div class="cat sel">All movies <span class="n">24,318</span></div>
+        <div class="cat">Action <span class="n">4,182</span></div>
+        <div class="cat">Arabic <span class="n">2,940</span></div>
+        <div class="cat">Comedy <span class="n">3,106</span></div>
+        <div class="cat">Documentary <span class="n">918</span></div>
+        <div class="cat">Drama <span class="n">5,477</span></div>
+        <div class="cat">Family <span class="n">1,264</span></div>
+        <div class="cat">Horror <span class="n">1,803</span></div>
+        <div class="cat">Sci-Fi <span class="n">1,392</span></div>
+        <div class="cat">Thriller <span class="n">2,236</span></div>
+      </div>
+      <div class="grid-wrap">
+      <div class="grid">
+        <div class="tile"><div class="poster" style="background:linear-gradient(150deg,#12233f,#274a6b 58%,#3f7f6b)"><div class="label">Arrival<div class="yr">2016 · 1 h 56</div></div></div></div>
+        <div class="tile"><div class="poster focused" style="transform:scale(1.04);background:linear-gradient(150deg,#2a1230,#54204f 58%,#8a3352)"><div class="label">Blade Runner 2049<div class="yr">2017 · 2 h 44</div></div></div></div>
+        <div class="tile"><div class="poster" style="background:linear-gradient(150deg,#3f2418,#7a4a1f 58%,#a3862e)"><div class="label">Dune<div class="yr">2021 · 2 h 35</div></div></div></div>
+        <div class="tile"><div class="poster" style="background:linear-gradient(150deg,#3a1430,#7a1f3a 58%,#a3452e)"><div class="label">Heat<div class="yr">1995 · 2 h 50</div></div></div></div>
+        <div class="tile"><div class="poster" style="background:linear-gradient(150deg,#0f2a4a,#1d4a7a 58%,#2f8c8c)"><div class="label">Interstellar<div class="yr">2014 · 2 h 49</div></div></div></div>
+        <div class="tile"><div class="poster" style="background:linear-gradient(150deg,#1a2a2a,#2b5c4f 58%,#5f8c3f)"><div class="label">No Country for Old Men<div class="yr">2007 · 2 h 02</div></div></div></div>
+        <div class="tile"><div class="poster" style="background:linear-gradient(150deg,#241a4d,#4a2b7a 58%,#8a3f6d)"><div class="label">Oppenheimer<div class="yr">2023 · 3 h 00</div></div></div></div>
+        <div class="tile"><div class="poster" style="background:linear-gradient(150deg,#1b2540,#2f4a6b 58%,#4a7f8c)"><div class="label">Sicario<div class="yr">2015 · 2 h 01</div></div></div></div>
+        <div class="tile"><div class="poster" style="background:linear-gradient(150deg,#241a3f,#3f2b7a 58%,#6d3f8a)"><div class="label">Tenet<div class="yr">2020 · 2 h 30</div></div></div></div>
+        <div class="tile"><div class="poster" style="background:linear-gradient(150deg,#331a20,#6b2b2b 58%,#a35a2e)"><div class="label">The Prestige<div class="yr">2006 · 2 h 10</div></div></div></div>
+        <div class="tile"><div class="poster" style="background:linear-gradient(150deg,#3f2030,#6b2b4f 58%,#a35a6e)"><div class="label">Thelma & Louise<div class="yr">1991 · 2 h 10</div></div></div></div>
+        <div class="tile"><div class="poster" style="background:linear-gradient(150deg,#1f2a1a,#3f5c2b 58%,#7f8c3f)"><div class="label">Tinker Tailor Soldier Spy<div class="yr">2011 · 2 h 07</div></div></div></div>
+        <div class="tile"><div class="poster" style="background:linear-gradient(150deg,#122a3f,#27567a 58%,#3f8c9e)"><div class="label">Top Gun: Maverick<div class="yr">2022 · 2 h 11</div></div></div></div>
+        <div class="tile"><div class="poster" style="background:linear-gradient(150deg,#3a2418,#6b442b 58%,#a3763f)"><div class="label">Training Day<div class="yr">2001 · 2 h 02</div></div></div></div>
+        <div class="tile"><div class="poster" style="background:linear-gradient(150deg,#2a2418,#54462b 58%,#8a763f)"><div class="label">True Grit<div class="yr">2010 · 1 h 50</div></div></div></div>
+      </div>
+      <div class="jump"><b>A</b><span>C</span><span>E</span><span>G</span><span>I</span><span>K</span><span>M</span><span>O</span><span>Q</span><span>S</span><span>U</span><span>W</span><span>Y</span><span>#</span></div>
+      </div>
+        </div>
+  </div>
+</section>
+
+<script>
+  // The frame to render is chosen by ?frame= so one file is one source of truth.
+  document.documentElement.dataset.frame =
+    new URLSearchParams(location.search).get("frame") || "tv-home";
+</script>
+</body>
+</html>

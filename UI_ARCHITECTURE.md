@@ -180,10 +180,19 @@ Two panes on TV and tablet: categories on the leading side, content on the trail
 side. One pane on phone, with categories as a horizontal chip row.
 
 - Sort: provider order (default), A–Z, Z–A, recently added.
-- The alphabet jump-bar appears when a list exceeds 500 items — on 40,000 movies,
-  scrolling is not a navigation method.
+- The alphabet jump-bar appears when a list exceeds 500 items **and the sort is
+  alphabetical** — on 40,000 movies scrolling is not a navigation method, but under
+  provider order the letters would point nowhere, so the bar is hidden.
 - Live rows show now/next from the guide when available, and the channel number
   when the provider supplies one.
+
+**A section the provider does not carry still exists.** Live, Movies, Series and
+Radio are permanent destinations. They are never hidden when a provider has none of
+that kind: a rail that changes shape between providers teaches the user nothing, and
+an entry that disappears reads as a bug rather than as information. The screen says
+whose gap it is — naming the provider — and offers the two moves that help: a
+section that does have content, and adding a provider that carries this one. The
+header count reads `0`, from the same cached value every other section uses.
 
 ### 3.5 Guide (EPG grid)
 
@@ -439,6 +448,12 @@ An empty state names the reason and offers the fix: no favourites yet (with "bro
 Live TV"), no results for a search (with the query echoed), a category the provider
 left empty (say so — it is their doing, not a bug).
 
+A whole section the provider does not carry is the same pattern with a stronger
+claim, and it is the one empty state the user will actually meet: **"Nova IPTV
+doesn't include movies"**, with *Browse Live TV* and *Add a provider*. Naming the
+provider is the point — it tells the user the app is working and the subscription is
+the limit.
+
 ---
 
 ## 11. Component library
@@ -536,6 +551,8 @@ black, on desktops it is not.
 ### Phone
 
 - Bottom navigation with five destinations: Home, Live, Library, Search, Settings.
+  Fixed — the five do not vary with what the provider carries, for the reason in
+  §3.4. Material's active indicator marks the selection, not a top rule.
 - Grids of 2 posters portrait, 3 landscape.
 - The player is fullscreen with a swipe-down dismiss; picture-in-picture where the
   platform supports it.
