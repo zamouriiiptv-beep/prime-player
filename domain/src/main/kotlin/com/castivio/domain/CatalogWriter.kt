@@ -24,8 +24,12 @@ interface CatalogWriter {
     /**
      * Starts an import for [sourceId]. Implementations typically open a
      * transaction and switch to fast-import pragmas here.
+     *
+     * The [mode] is not a hint. An [ImportMode.APPEND] write that was treated as
+     * a replacement would prune every row that is not in it — which, for a lazily
+     * loaded season of one series, means deleting the entire library.
      */
-    fun begin(sourceId: String)
+    fun begin(sourceId: String, mode: ImportMode = ImportMode.REPLACE)
 
     /**
      * Groups discovered so far, first-seen order preserved. Called before the
@@ -47,6 +51,23 @@ interface CatalogWriter {
 
     /** Import failed or was cancelled; roll back to the last [commit]. */
     fun abort(cause: Throwable?)
+}
+
+/** How a write relates to what is already stored. */
+enum class ImportMode {
+    /**
+     * The source's catalogue as a whole. Rows are written under a new generation
+     * and the previous one is dropped at the end, so a refresh removes what the
+     * provider no longer lists without the library ever being empty.
+     */
+    REPLACE,
+
+    /**
+     * An addition to what is already there: a lazily loaded season, one category.
+     * Nothing is pruned, and the search index is updated per row instead of
+     * rebuilt — a full rebuild would be seconds of work to add twelve episodes.
+     */
+    APPEND,
 }
 
 /**

@@ -97,6 +97,19 @@ object PerformanceBudgets {
      */
     const val EPG_RETAINED_HEAP_MB_MAX = 24
 
+    /**
+     * Xtream stream rows parsed per second.
+     *
+     * JSON is more work per row than M3U — quoted strings, escapes, per-field
+     * dispatch — so the floor is lower. What it guards is the shape: a
+     * `JSONArray` or `JSONObject` here would parse the response into memory
+     * first, and `get_vod_streams` for a large provider is tens of megabytes.
+     */
+    const val XTREAM_STREAMS_PER_SECOND_MIN = 20_000
+
+    /** Retained heap while importing an Xtream category. Same rule as everywhere. */
+    const val XTREAM_RETAINED_HEAP_MB_MAX = 24
+
     // ------------------------------------------------------- on-device budgets
     // Declared here so the numbers live in one place, asserted by the
     // macrobenchmark tier on real hardware rather than by CI.

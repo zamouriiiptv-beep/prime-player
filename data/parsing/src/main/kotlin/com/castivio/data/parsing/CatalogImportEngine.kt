@@ -225,6 +225,16 @@ internal object StableIds {
     fun series(sourceId: String, title: String): String =
         hex(mix(mix(seed(sourceId), "s"), normalise(title)))
 
+    /**
+     * A show keyed by the provider's own series id.
+     *
+     * Used for Xtream, where the id is authoritative and stable while the title is
+     * not — a panel renaming `Breaking Bad` to `Breaking Bad (2008)` must not split
+     * the show in two or orphan the episodes already stored under it.
+     */
+    fun seriesByProviderId(sourceId: String, providerSeriesId: String): String =
+        hex(mix(mix(seed(sourceId), "sp"), providerSeriesId))
+
     private fun seed(sourceId: String): Long = mix(OFFSET_BASIS, sourceId)
 
     private fun mix(hash: Long, value: String): Long {

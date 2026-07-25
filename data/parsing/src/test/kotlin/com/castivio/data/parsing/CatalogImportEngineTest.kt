@@ -2,6 +2,7 @@ package com.castivio.data.parsing
 
 import com.castivio.domain.CatalogItem
 import com.castivio.domain.CatalogWriter
+import com.castivio.domain.ImportMode
 import com.castivio.domain.ImportProgress
 import com.castivio.domain.ImportSummary
 import com.castivio.domain.MediaGroup
@@ -312,12 +313,14 @@ class CatalogImportEngineTest {
         var lastBatchRef: List<CatalogItem>? = null
         var commits = 0
         var began: String? = null
+        var mode: ImportMode? = null
         var finished: ImportSummary? = null
         var aborted = false
         var abortCause: Throwable? = null
 
-        override fun begin(sourceId: String) {
+        override fun begin(sourceId: String, mode: ImportMode) {
             began = sourceId
+            this.mode = mode
         }
 
         override fun writeGroups(groups: List<MediaGroup>) {

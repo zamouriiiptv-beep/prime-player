@@ -164,6 +164,10 @@ interface MediaDao {
     /**
      * Shows, aggregated from episodes.
      *
+     * `COUNT(episode_number)` rather than `COUNT(*)`: an Xtream import writes one
+     * shell row per show before any episode is fetched, and that shell must read
+     * as "no episodes loaded yet" rather than as a one-episode series.
+     *
      * `artwork_url` and `series_title` are bare columns beside `min(...)`, which
      * in SQLite means "the value from the row that produced the minimum" — so the
      * poster is the first episode's, not an arbitrary one. Documented SQLite
@@ -174,7 +178,7 @@ interface MediaDao {
         SELECT series_id AS seriesId,
                series_title AS title,
                artwork_url AS artworkUrl,
-               COUNT(*) AS episodeCount,
+               COUNT(episode_number) AS episodeCount,
                COUNT(DISTINCT season_number) AS seasonCount,
                min(provider_order) AS providerOrder
         FROM media
@@ -190,7 +194,7 @@ interface MediaDao {
         SELECT series_id AS seriesId,
                series_title AS title,
                artwork_url AS artworkUrl,
-               COUNT(*) AS episodeCount,
+               COUNT(episode_number) AS episodeCount,
                COUNT(DISTINCT season_number) AS seasonCount,
                min(provider_order) AS providerOrder
         FROM media
@@ -203,7 +207,7 @@ interface MediaDao {
 
     @Query(
         """
-        SELECT * FROM media WHERE series_id = :seriesId
+        SELECT * FROM media WHERE series_id = :seriesId AND episode_number IS NOT NULL
         ORDER BY season_number, episode_number, id
         """,
     )

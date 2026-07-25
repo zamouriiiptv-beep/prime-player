@@ -4,6 +4,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteStatement
 import com.castivio.domain.CatalogItem
 import com.castivio.domain.CatalogWriter
+import com.castivio.domain.ImportMode
 import com.castivio.domain.ImportSummary
 import com.castivio.domain.MediaGroup
 
@@ -35,25 +36,41 @@ class RoomCatalogWriter(
 ) : CatalogWriter {
 
     private var sourceId: String? = null
+    private var mode = ImportMode.REPLACE
     private var generation = 1L
     private var now = 0L
     private var groupOrder = 0
     private var inTransaction = false
     private var itemStatement: SupportSQLiteStatement? = null
     private var groupStatement: SupportSQLiteStatement? = null
+    private var ftsStatement: SupportSQLiteStatement? = null
 
-    override fun begin(sourceId: String) {
+    override fun begin(sourceId: String, mode: ImportMode) {
         val db = database.openHelper.writableDatabase
         this.sourceId = sourceId
+        this.mode = mode
         now = clock()
         groupOrder = 0
-        generation = db.longOf(
-            "SELECT IFNULL(MAX(generation), 0) + 1 FROM media WHERE source_id = ?",
-            sourceId,
-        )
+        generation = when (mode) {
+            // A new generation, so the old one can be dropped at the end.
+            ImportMode.REPLACE -> db.longOf(
+                "SELECT IFNULL(MAX(generation), 0) + 1 FROM media WHERE source_id = ?",
+                sourceId,
+            )
+            // The generation already in use: appended rows belong to the catalogue
+            // that is there, and must not be pruned as leftovers by the next
+            // refresh's swap.
+            ImportMode.APPEND -> db.longOf(
+                "SELECT IFNULL(MAX(generation), 1) FROM media WHERE source_id = ?",
+                sourceId,
+            )
+        }
         db.applyImportPragmas()
         itemStatement = db.compileStatement(INSERT_ITEM)
         groupStatement = db.compileStatement(INSERT_GROUP)
+        // Only APPEND maintains the index per row; REPLACE rebuilds it in two
+        // statements at the end, which is far cheaper across 400,000 rows.
+        ftsStatement = if (mode == ImportMode.APPEND) db.compileStatement(INSERT_FTS) else null
         db.begin()
     }
 
@@ -98,7 +115,18 @@ class RoomCatalogWriter(
             // nightly refresh does not make the whole library "recently added".
             statement.bindString(18, item.id)
             statement.bindLong(19, now)
-            statement.executeInsert()
+            val rowId = statement.executeInsert()
+
+            // The FTS row is keyed by the media row's own rowid, so an append that
+            // touches a row already indexed replaces its entry rather than adding a
+            // second one and returning the item twice from search.
+            ftsStatement?.let { fts ->
+                fts.clearBindings()
+                fts.bindLong(1, rowId)
+                fts.bindString(2, item.id)
+                fts.bindString(3, searchText(item.title, item.seriesTitle))
+                fts.executeInsert()
+            }
         }
     }
 
@@ -122,11 +150,13 @@ class RoomCatalogWriter(
         db.endTransactionQuietly()
 
         db.transaction {
-            // The generation swap. Everything the provider no longer lists
-            // disappears here, in one statement, after the new catalogue is
-            // already visible.
-            execSQL("DELETE FROM media WHERE source_id = ? AND generation != ?", arrayOf(source, generation))
-            execSQL("DELETE FROM media_group WHERE source_id = ? AND generation != ?", arrayOf(source, generation))
+            if (mode == ImportMode.REPLACE) {
+                // The generation swap. Everything the provider no longer lists
+                // disappears here, in one statement, after the new catalogue is
+                // already visible.
+                execSQL("DELETE FROM media WHERE source_id = ? AND generation != ?", arrayOf(source, generation))
+                execSQL("DELETE FROM media_group WHERE source_id = ? AND generation != ?", arrayOf(source, generation))
+            }
             execSQL(
                 """
                 UPDATE media_group SET item_count =
@@ -135,7 +165,9 @@ class RoomCatalogWriter(
                 """,
                 arrayOf(source),
             )
-            rebuildSearchIndex()
+            // An append has already indexed its own rows; rebuilding here would be
+            // seconds of work to add a season.
+            if (mode == ImportMode.REPLACE) rebuildSearchIndex()
         }
 
         db.restoreNormalPragmas()
@@ -181,8 +213,10 @@ class RoomCatalogWriter(
     private fun release() {
         runCatching { itemStatement?.close() }
         runCatching { groupStatement?.close() }
+        runCatching { ftsStatement?.close() }
         itemStatement = null
         groupStatement = null
+        ftsStatement = null
         sourceId = null
     }
 
@@ -261,6 +295,15 @@ class RoomCatalogWriter(
          * It has to be listed: a Kotlin default does not become a SQL default, so
          * omitting the NOT NULL column would fail every insert.
          */
+        /**
+         * `docid` is FTS4's name for the row's rowid, bound to the media row's
+         * rowid so an append can replace an item's index entry instead of adding a
+         * duplicate one.
+         */
+        const val INSERT_FTS = """
+            INSERT OR REPLACE INTO media_fts (docid, media_id, search_text) VALUES (?, ?, ?)
+        """
+
         const val INSERT_GROUP = """
             INSERT OR REPLACE INTO media_group (
                 id, source_id, name, kind, provider_order, item_count, generation

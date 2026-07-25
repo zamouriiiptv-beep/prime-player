@@ -76,6 +76,14 @@ object MediaClassifier {
         )
     }
 
+    /**
+     * Whether a label names radio rather than television.
+     *
+     * Public because Xtream has no radio endpoint: stations arrive in live
+     * categories, and the category name is the only signal there is.
+     */
+    fun isRadioLabel(label: String): Boolean = label.mentionsRadio()
+
     private fun isRadio(entry: M3uEntry, group: String?): Boolean =
         group?.mentionsRadio() == true || hasAudioExtension(entry.url)
 

@@ -3,6 +3,7 @@ package com.castivio.benchmark
 import com.castivio.data.parsing.CatalogImportEngine
 import com.castivio.domain.CatalogItem
 import com.castivio.domain.CatalogWriter
+import com.castivio.domain.ImportMode
 import com.castivio.domain.ImportSummary
 import com.castivio.domain.MediaGroup
 import org.junit.Assert.assertTrue
@@ -89,7 +90,7 @@ class ImportBudgetTest {
         var titleChars = 0L
             private set
 
-        override fun begin(sourceId: String) = Unit
+        override fun begin(sourceId: String, mode: ImportMode) = Unit
 
         override fun writeGroups(groups: List<MediaGroup>) {
             for (group in groups) titleChars += group.name.length

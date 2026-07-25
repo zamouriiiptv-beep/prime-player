@@ -156,6 +156,29 @@ object Fixtures {
         return sb.toString()
     }
 
+    /**
+     * An Xtream `get_live_streams` response with [count] entries.
+     *
+     * Shaped like a real panel's output, including the parts that are technically
+     * wrong: ids as strings, `"0"` for false, empty strings for absent values.
+     */
+    fun xtreamStreams(count: Int): String {
+        val sb = StringBuilder(count * 220)
+        sb.append('[')
+        for (i in 0 until count) {
+            if (i > 0) sb.append(',')
+            sb.append("""{"num":""").append(i).append(',')
+                .append(""""name":"Channel """).append(i).append(""" HD","stream_type":"live",""")
+                .append(""""stream_id":"""").append(i).append("""","stream_icon":"http://cdn.example.com/""")
+                .append(i).append(""".png","epg_channel_id":"ch""").append(i).append("""","added":"1700000000",""")
+                .append(""""category_id":"""").append(i % 40).append("""","custom_sid":"","tv_archive":""")
+                .append(if (i % 5 == 0) 1 else 0)
+                .append(""","direct_source":"","tv_archive_duration":"7"}""")
+        }
+        sb.append(']')
+        return sb.toString()
+    }
+
     /** 2026-07-25 06:00:00 UTC — where every generated guide starts. */
     const val XMLTV_START_MS = 1_784_959_200_000L
 
