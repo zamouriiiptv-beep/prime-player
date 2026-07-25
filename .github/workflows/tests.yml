@@ -15,6 +15,20 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Grep over the tree, no Gradle, no SDK -- so the rules that can be mechanised
+  # are answered in seconds rather than after a seven-minute build.
+  invariants:
+    name: Design invariants
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check design invariants
+        run: |
+          chmod +x ./scripts/check-invariants.sh
+          ./scripts/check-invariants.sh
+
   jvm:
     name: JVM unit tests
     runs-on: ubuntu-latest

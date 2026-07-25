@@ -541,7 +541,49 @@ loading), the tokens it consumes, and its behaviour under RTL and reduced motion
 
 The palette, typography, spacing, radius, elevation and motion already exist in
 `:core:design` and are unchanged by this document. What follows is how they extend
-across form factors.
+across form factors — and, first, what may never change at all.
+
+### Design invariants
+
+Everything else in this document describes how Castivio is built today. This section
+describes what may not be broken tomorrow.
+
+An invariant is not a preference and not a guideline. It is a property the product
+holds in every screen, on every platform, in every future feature — and a change
+request that violates one is answered by changing the invariant deliberately, in a
+commit of its own, or not at all. Products decay one reasonable exception at a time;
+this list exists so that each exception has to be argued in public.
+
+Each invariant names how it is held. **Where a rule can be enforced by the compiler
+or by CI, it is — a rule that depends on someone remembering it is a rule that is
+already broken.**
+
+| # | Invariant | How it is held |
+|---|---|---|
+| 1 | **One visual language across the whole application.** Every surface uses the same focus, selection, playing, loading, progress and history marks defined in §5.1. | CI: no colour, type or shape literal outside `:core:design`. Review: a new mark must be added to §5.1 first. |
+| 2 | **One meaning for each colour, everywhere.** Violet is navigation, aqua is now, amber is working, neutral is the past, danger is failure. A colour never means two things. | CI: literals blocked; semantic token names only. Review: a new meaning requires a new token, not a reused hue. |
+| 3 | **One primary action per screen.** Exactly one — the thing the user came to do. Everything else is secondary or in a menu. | Review, and the component API: `ErrorState` and `EmptyState` take one required action and at most one secondary. |
+| 4 | **No duplicate navigation patterns.** One rail, one bottom bar, one back rule. A feature does not invent its own way to move between screens. | Compiler: `Route` is a sealed type in `:core:navigation`; a feature cannot declare a destination the shell does not know. |
+| 5 | **Three navigation levels from Home to playback, at most.** Live is two, movies is three, and detail is skippable. | Test: a route-graph test asserts the depth budget for every leaf that ends in `Route.Player`. |
+| 6 | **No component exists in two inconsistent variants.** One `MediaCard` with variants as parameters, never a second card that is nearly the same. | CI: shared component names may be declared exactly once in the repository. |
+| 7 | **Reuse before addition.** A new feature composes existing components; a new component is added to `:core:design` only when no combination of the existing ones expresses it — and then it is added *there*, not in the feature. | CI: `@Composable` public UI primitives outside `:core:design` are flagged. Review: the burden is on the addition. |
+| 8 | **Performance is a feature.** No unnecessary recomposition, no allocation in a scroll, no animation that competes with a list, no work in composition. | CI: the existing performance budgets stay blocking. Review: every screen is profiled before it is called done. |
+| 9 | **Accessibility and RTL are not optional.** Every component ships with a content description, a 3:1 contrast minimum on UI and 4.5:1 on text, a focus state that is not colour alone, and correct behaviour under `rtl`. | CI: direction-absolute APIs (`absolutePadding`, `Arrangement.Absolute`, `Alignment.Absolute`) are blocked outright. Review: the component is checked in both directions. |
+| 10 | **Four states before implementation.** Every screen defines loading, empty, error and success *before* a line of it is written — in the mockup, then in the state holder's sealed type. | Compiler: a screen renders a sealed `ScreenState`, so the `when` is exhaustive and a missing state does not compile. |
+
+Two of these are worth stating plainly, because they are the ones that get quietly
+traded away under deadline:
+
+**Invariant 7 is what keeps the design system a system.** The moment a feature adds
+its own button "just for this screen", the system stops describing the product and
+starts describing part of it. The cost of reuse is paid once, in the awkward
+conversation about whether a component should take another parameter; the cost of
+duplication is paid forever, in every future change that has to be made twice.
+
+**Invariant 10 is what makes the other nine cheap.** Deciding the four states while
+the screen is still a picture costs an hour. Discovering the empty state after the
+screen is built costs a rewrite of its state holder, and usually produces the
+spinner-over-a-list that §10 exists to prevent.
 
 ### Tokens
 
