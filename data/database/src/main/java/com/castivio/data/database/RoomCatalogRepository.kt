@@ -45,15 +45,18 @@ class RoomCatalogRepository(
 
     override suspend fun page(request: PageRequest): Page<MediaItem> {
         val kind = request.kind.name
-        val rows = if (request.groupId == null) {
+        // Held in a local: a property from another module cannot be smart cast,
+        // and `:domain` is a separate module.
+        val group = request.groupId
+        val rows = if (group == null) {
             mediaDao.window(kind, request.offset, request.limit)
         } else {
-            mediaDao.windowInGroup(kind, request.groupId, request.offset, request.limit)
+            mediaDao.windowInGroup(kind, group, request.offset, request.limit)
         }
-        val total = if (request.groupId == null) {
+        val total = if (group == null) {
             mediaDao.countNow(kind)
         } else {
-            mediaDao.countNowInGroup(kind, request.groupId)
+            mediaDao.countNowInGroup(kind, group)
         }
         return Page(items = rows.map { it.toDomain() }, offset = request.offset, totalCount = total)
     }

@@ -4,8 +4,11 @@ import android.content.Context
 import com.castivio.data.database.CastivioDatabase
 import com.castivio.data.database.RoomCatalogRepository
 import com.castivio.data.database.RoomCatalogWriter
+import com.castivio.data.database.RoomEpgRepository
+import com.castivio.data.database.RoomEpgWriter
 import com.castivio.data.database.RoomFavoritesRepository
 import com.castivio.data.database.RoomProgressRepository
+import com.castivio.data.database.dao.EpgDao
 import com.castivio.data.database.dao.FavoriteDao
 import com.castivio.data.database.dao.GroupDao
 import com.castivio.data.database.dao.MediaDao
@@ -13,6 +16,8 @@ import com.castivio.data.database.dao.ProgressDao
 import com.castivio.domain.CatalogPager
 import com.castivio.domain.CatalogRepository
 import com.castivio.domain.CatalogWriter
+import com.castivio.domain.EpgRepository
+import com.castivio.domain.EpgWriter
 import com.castivio.domain.FavoritesRepository
 import com.castivio.domain.ProgressRepository
 import dagger.Module
@@ -42,6 +47,7 @@ object DatabaseModule {
     @Provides fun groupDao(database: CastivioDatabase): GroupDao = database.groupDao()
     @Provides fun favoriteDao(database: CastivioDatabase): FavoriteDao = database.favoriteDao()
     @Provides fun progressDao(database: CastivioDatabase): ProgressDao = database.progressDao()
+    @Provides fun epgDao(database: CastivioDatabase): EpgDao = database.epgDao()
 
     @Provides
     @Singleton
@@ -65,6 +71,14 @@ object DatabaseModule {
      */
     @Provides
     fun catalogWriter(database: CastivioDatabase): CatalogWriter = RoomCatalogWriter(database)
+
+    @Provides
+    @Singleton
+    fun epg(dao: EpgDao): EpgRepository = RoomEpgRepository(dao)
+
+    /** Not a singleton, for the same reason as the catalogue writer. */
+    @Provides
+    fun epgWriter(database: CastivioDatabase): EpgWriter = RoomEpgWriter(database)
 
     @Provides
     @Singleton

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.castivio.data.database.dao.EpgDao
 import com.castivio.data.database.dao.FavoriteDao
 import com.castivio.data.database.dao.GroupDao
 import com.castivio.data.database.dao.MediaDao
@@ -12,6 +13,7 @@ import com.castivio.data.database.entity.FavoriteEntity
 import com.castivio.data.database.entity.GroupEntity
 import com.castivio.data.database.entity.MediaEntity
 import com.castivio.data.database.entity.MediaFtsEntity
+import com.castivio.data.database.entity.ProgrammeEntity
 import com.castivio.data.database.entity.ProgressEntity
 
 @Database(
@@ -21,6 +23,7 @@ import com.castivio.data.database.entity.ProgressEntity
         GroupEntity::class,
         FavoriteEntity::class,
         ProgressEntity::class,
+        ProgrammeEntity::class,
     ],
     version = 1,
     exportSchema = true,
@@ -30,6 +33,7 @@ abstract class CastivioDatabase : RoomDatabase() {
     abstract fun groupDao(): GroupDao
     abstract fun favoriteDao(): FavoriteDao
     abstract fun progressDao(): ProgressDao
+    abstract fun epgDao(): EpgDao
 
     companion object {
         const val NAME = "castivio.db"

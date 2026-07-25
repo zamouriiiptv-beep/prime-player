@@ -26,10 +26,13 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
+      # No --stacktrace: a Kotlin compile error buries its own `e: file:…` lines
+      # under 200 lines of Gradle internals, which makes the log useless for the
+      # one thing it is needed for.
       - name: Build debug APK
         run: |
           attempt=0
-          until ./gradlew assembleDebug --no-daemon --stacktrace; do
+          until ./gradlew assembleDebug --no-daemon --console=plain; do
             attempt=$((attempt + 1))
             if [ "$attempt" -ge 3 ]; then
               echo "Build failed after $attempt attempts."

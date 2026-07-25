@@ -82,6 +82,21 @@ object PerformanceBudgets {
      */
     const val IMPORT_RETAINED_HEAP_MB_MAX = 24
 
+    /**
+     * Programmes per second through the guide pipeline — XMLTV scan, stop-time
+     * resolution, retention filtering, batching — with the database stubbed.
+     */
+    const val EPG_PROGRAMMES_PER_SECOND_MIN = 20_000
+
+    /**
+     * Retained heap while importing a guide.
+     *
+     * Guide import memory must be O(channels), never O(programmes). "Group the
+     * programmes by channel first" is a natural-looking change that turns this
+     * from a few hundred kilobytes into several hundred megabytes.
+     */
+    const val EPG_RETAINED_HEAP_MB_MAX = 24
+
     // ------------------------------------------------------- on-device budgets
     // Declared here so the numbers live in one place, asserted by the
     // macrobenchmark tier on real hardware rather than by CI.

@@ -124,7 +124,18 @@ object Fixtures {
         }
     }
 
-    /** An XMLTV document with [programmes] entries spread over [channels]. */
+    /**
+     * An XMLTV document with [programmes] entries spread over [channels].
+     *
+     * Timestamps are real dates computed from [XMLTV_START_MS], not decimal
+     * arithmetic on the `YYYYMMDDHHMMSS` digits. An earlier version incremented
+     * the digits directly and drifted into month 19 and day 75 after a day's
+     * worth of slots — invalid dates that a retention window then silently
+     * dropped, quietly measuring 27% fewer programmes than the fixture claimed.
+     *
+     * Each channel gets consecutive [SLOT_MS] slots, which is the shape a real
+     * guide has and keeps a large fixture inside a normal retention window.
+     */
     fun xmltv(channels: Int, programmes: Int): String {
         val sb = StringBuilder(programmes * 180)
         sb.append("""<?xml version="1.0" encoding="UTF-8"?>""").append('\n').append("<tv>\n")
@@ -132,16 +143,48 @@ object Fixtures {
             sb.append("""  <channel id="ch$c"><display-name>Channel $c</display-name>""")
                 .append("""<icon src="http://cdn.example.com/$c.png"/></channel>""").append('\n')
         }
-        var start = 20_260_725_060_000L
         for (p in 0 until programmes) {
             val channel = p % channels
-            sb.append("""  <programme start="${start} +0000" stop="${start + 3000} +0000" channel="ch$channel">""")
+            val start = XMLTV_START_MS + (p / channels) * SLOT_MS
+            sb.append("""  <programme start="${xmltvTime(start)}" """)
+                .append("""stop="${xmltvTime(start + SLOT_MS)}" channel="ch$channel">""")
                 .append("<title lang=\"en\">Programme $p &amp; more</title>")
                 .append("<desc>Description for programme $p with &lt;markup&gt; inside.</desc>")
                 .append("</programme>\n")
-            if (p % 48 == 47) start += 1_000_000L
         }
         sb.append("</tv>\n")
         return sb.toString()
     }
+
+    /** 2026-07-25 06:00:00 UTC — where every generated guide starts. */
+    const val XMLTV_START_MS = 1_784_959_200_000L
+
+    /** Half-hour slots, the most common programme length. */
+    const val SLOT_MS = 30 * 60 * 1000L
+
+    /** Epoch millis → `20260725060000 +0000`, without a date library. */
+    fun xmltvTime(ms: Long): String {
+        val totalSeconds = ms / 1000
+        var remainingDays = totalSeconds / 86_400
+        val secondOfDay = (totalSeconds % 86_400).toInt()
+        var year = 1970
+        while (true) {
+            val length = if (isLeap(year)) 366 else 365
+            if (remainingDays < length) break
+            remainingDays -= length
+            year++
+        }
+        val monthLengths = intArrayOf(31, if (isLeap(year)) 29 else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
+        var month = 0
+        while (remainingDays >= monthLengths[month]) {
+            remainingDays -= monthLengths[month]
+            month++
+        }
+        return "%04d%02d%02d%02d%02d%02d +0000".format(
+            year, month + 1, remainingDays.toInt() + 1,
+            secondOfDay / 3600, (secondOfDay % 3600) / 60, secondOfDay % 60,
+        )
+    }
+
+    private fun isLeap(year: Int) = (year % 4 == 0 && year % 100 != 0) || year % 400 == 0
 }
