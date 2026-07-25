@@ -66,6 +66,12 @@ val LocalDeviceClass: ProvidableCompositionLocal<DeviceClass> =
 @Composable
 fun CastivioTheme(
     withBackground: Boolean = true,
+    /**
+     * How much visual richness this device can afford. `:app` derives it from
+     * `DeviceCapabilities`; the default is deliberately the leanest profile, so
+     * an unmeasured device gets frame rate rather than effects.
+     */
+    performance: PerformanceProfile = PerformanceProfile.LEAN,
     content: @Composable () -> Unit,
 ) {
     val colors = castivioDarkColors()
@@ -89,6 +95,7 @@ fun CastivioTheme(
     CompositionLocalProvider(
         LocalCastivioColors provides colors,
         LocalDeviceClass provides device,
+        LocalPerformanceProfile provides performance,
     ) {
         MaterialTheme(
             colorScheme = material,

@@ -34,23 +34,37 @@ import kotlin.random.Random
 @Composable
 fun CastivioBackdrop(content: @Composable () -> Unit) {
     val colors = CastivioTheme.colors
-    val transition = rememberInfiniteTransition(label = "backdrop")
-    val wave by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = (2f * PI).toFloat(),
-        animationSpec = infiniteRepeatable(
-            tween(Motion.ambientWave, easing = LinearEasing), RepeatMode.Restart,
-        ),
-        label = "wave",
-    )
-    val drift by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            tween(Motion.ambientDrift, easing = LinearEasing), RepeatMode.Restart,
-        ),
-        label = "drift",
-    )
+    val profile = LocalPerformanceProfile.current
+
+    // On a weak GPU this canvas competes with the scroll for fill rate, so the
+    // animation is a capability decision, not a taste one. The static fallback
+    // still reads as Castivio — it just costs one draw instead of sixty a second.
+    val wave: Float
+    val drift: Float
+    if (profile.animatedBackdrop) {
+        val transition = rememberInfiniteTransition(label = "backdrop")
+        val w by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = (2f * PI).toFloat(),
+            animationSpec = infiniteRepeatable(
+                tween(Motion.ambientWave, easing = LinearEasing), RepeatMode.Restart,
+            ),
+            label = "wave",
+        )
+        val d by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                tween(Motion.ambientDrift, easing = LinearEasing), RepeatMode.Restart,
+            ),
+            label = "drift",
+        )
+        wave = w
+        drift = d
+    } else {
+        wave = 0f
+        drift = 0.2f
+    }
 
     Box(Modifier.fillMaxSize()) {
         Canvas(Modifier.fillMaxSize()) {
@@ -64,7 +78,7 @@ fun CastivioBackdrop(content: @Composable () -> Unit) {
             glow(Offset(size.width * 0.05f, size.height), size.width * 0.55f, Palette.Violet40, 0.30f)
             glow(Offset(size.width * 0.95f, size.height * 0.30f), size.width * 0.52f, Palette.Azure40, 0.26f)
             mesh(wave, colors.primary)
-            motes(drift)
+            if (profile.backdropParticles) motes(drift)
         }
         content()
     }

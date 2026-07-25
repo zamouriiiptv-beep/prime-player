@@ -1,8 +1,8 @@
 plugins {
     id("castivio.android.library")
     id("castivio.android.compose")
-    alias(libs.plugins.ksp)
-    alias(libs.plugins.hilt)
+    id("com.google.devtools.ksp")
+    id("com.google.dagger.hilt.android")
 }
 
 android {

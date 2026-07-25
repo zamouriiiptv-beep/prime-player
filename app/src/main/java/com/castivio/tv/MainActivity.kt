@@ -14,6 +14,7 @@ import androidx.compose.runtime.setValue
 import com.castivio.tv.data.DeviceIdentity
 import com.castivio.tv.data.SourceStore
 import com.castivio.core.design.theme.CastivioTheme
+import com.castivio.core.platform.AndroidDeviceCapabilities
 import com.castivio.tv.ui.M3uScreen
 import com.castivio.tv.ui.WelcomeScreen
 import com.castivio.tv.ui.XtreamScreen
@@ -26,9 +27,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val identity = DeviceIdentity.get(this)
+        // Measure once, then let the design system do less on a weak box.
+        val performance = AndroidDeviceCapabilities(this).toPerformanceProfile()
 
         setContent {
-            CastivioTheme {
+            CastivioTheme(performance = performance) {
                 var screen by remember { mutableStateOf(Screen.Welcome) }
 
                 when (screen) {

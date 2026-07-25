@@ -1,9 +1,3 @@
-plugins {
-    alias(libs.plugins.android.application) apply false
-    alias(libs.plugins.android.library) apply false
-    alias(libs.plugins.kotlin.android) apply false
-    alias(libs.plugins.kotlin.jvm) apply false
-    alias(libs.plugins.kotlin.compose) apply false
-    alias(libs.plugins.ksp) apply false
-    alias(libs.plugins.hilt) apply false
-}
+// Plugin versions live in buildSrc/build.gradle.kts, which places them on the
+// build classpath. Modules apply them by bare id; declaring versions here too
+// would fail with "plugin is already on the classpath".
