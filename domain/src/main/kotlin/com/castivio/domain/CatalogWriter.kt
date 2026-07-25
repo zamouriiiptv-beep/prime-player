@@ -93,6 +93,15 @@ data class CatalogItem(
     val groupId: String? = null,
     /** `tvg-id`, used to join the EPG. Null when the provider omits it. */
     val epgChannelId: String? = null,
+    /**
+     * The provider's own id for this row — an Xtream stream, series or episode id.
+     *
+     * Kept because some provider APIs are addressed by it and nothing else:
+     * `get_short_epg` needs a stream id, and so does a catch-up URL. The row id is a
+     * hash and deliberately not reversible, so without this column those calls are
+     * impossible. Null for M3U, which has no such id.
+     */
+    val providerRef: String? = null,
     /** Position in the provider's own ordering — the default sort users expect. */
     val providerOrder: Int = 0,
     /** Null for live and radio; set for VOD. */

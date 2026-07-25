@@ -7,6 +7,7 @@ import androidx.paging.map
 import com.castivio.data.database.dao.GroupDao
 import com.castivio.data.database.dao.MediaDao
 import com.castivio.domain.CatalogPager
+import com.castivio.domain.ChannelRef
 import com.castivio.domain.CatalogQuery
 import com.castivio.domain.CatalogRepository
 import com.castivio.domain.Episode
@@ -78,6 +79,20 @@ class RoomCatalogRepository(
     suspend fun search(query: String, kind: MediaKind, limit: Int): List<MediaItem> {
         val match = FtsQuery.build(query) ?: return emptyList()
         return mediaDao.searchKind(match, kind.name, limit).map { it.toDomain() }
+    }
+
+    override suspend fun channelRefs(mediaIds: List<String>): List<ChannelRef> {
+        if (mediaIds.isEmpty()) return emptyList()
+        // Chunked below SQLite's variable limit, like every other IN query here.
+        return mediaIds.chunked(MAX_IDS_PER_QUERY).flatMap { chunk ->
+            mediaDao.refsFor(chunk).map { row ->
+                ChannelRef(
+                    mediaId = row.mediaId,
+                    providerRef = row.providerRef,
+                    epgChannelId = row.epgChannelId,
+                )
+            }
+        }
     }
 
     override fun count(kind: MediaKind, groupId: String?): Flow<Int> =
@@ -172,5 +187,8 @@ class RoomCatalogRepository(
          * objects, and never grows with library size.
          */
         const val MAX_IN_MEMORY = 300
+
+        /** SQLite's bind-variable limit is 999 on older Android; stay clear of it. */
+        const val MAX_IDS_PER_QUERY = 400
     }
 }

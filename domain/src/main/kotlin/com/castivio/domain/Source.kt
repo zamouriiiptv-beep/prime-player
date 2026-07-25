@@ -63,6 +63,18 @@ data class SyncState(
 }
 
 interface SourceRepository {
+
+    /**
+     * Stores a provider the user just entered and returns it with its id.
+     *
+     * Takes a [PlaylistSource] rather than a [ProviderSource] because the id is
+     * derived from what the provider *is*, and that derivation belongs to the data
+     * layer — a login screen must not be able to invent one, or the ids that every
+     * catalogue row and favourite hang off would depend on which screen created
+     * them.
+     */
+    suspend fun register(source: PlaylistSource, label: String? = null): ProviderSource
+
     fun sources(): Flow<List<ProviderSource>>
 
     /** The source the app is currently showing. Null before activation. */
@@ -131,4 +143,33 @@ object RefreshPolicy {
     /** True when the catalogue has never been imported and the app has nothing to show. */
     fun needsFirstImport(source: ProviderSource): Boolean =
         source.sync.lastImportAtMs == null || source.sync.itemCount == 0
+}
+
+/**
+ * Whether a provider will actually work, asked before importing anything.
+ *
+ * A login screen has to distinguish four outcomes that all look like "no
+ * channels" if you only try to import: wrong credentials, an expired
+ * subscription, every connection already in use, and a host that cannot be
+ * reached. Importing first and inferring the reason afterwards produces the
+ * generic failure every mediocre IPTV player shows.
+ */
+interface ProviderValidator {
+    suspend fun validate(source: PlaylistSource): com.castivio.core.common.Outcome<ProviderStatus>
+}
+
+data class ProviderStatus(
+    val usable: Boolean,
+    /** Non-null when the provider states one. */
+    val expiresAtMs: Long? = null,
+    val isTrial: Boolean = false,
+    val activeConnections: Int = 0,
+    val maxConnections: Int = 0,
+    /** What the panel called it: "Active", "Expired", "Banned". */
+    val statusLabel: String? = null,
+) {
+    val atConnectionLimit: Boolean get() = maxConnections in 1..activeConnections
+
+    fun expiresWithin(nowMs: Long, windowMs: Long): Boolean =
+        expiresAtMs?.let { it in nowMs..(nowMs + windowMs) } == true
 }

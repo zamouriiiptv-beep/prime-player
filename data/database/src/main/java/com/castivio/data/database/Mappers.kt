@@ -77,6 +77,7 @@ internal fun CatalogItem.toEntity(generation: Long, now: Long): MediaEntity = Me
     artworkUrl = artworkUrl,
     groupId = groupId,
     epgChannelId = epgChannelId,
+    providerRef = providerRef,
     providerOrder = providerOrder,
     durationSeconds = durationSeconds,
     seriesId = seriesId,

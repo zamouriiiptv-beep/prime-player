@@ -147,3 +147,28 @@ sealed interface EpgSource {
 interface EpgImporter {
     fun import(source: EpgSource): Flow<EpgProgress>
 }
+
+/**
+ * What a channel needs for a per-channel guide request.
+ *
+ * [providerRef] is the provider's own stream id; [epgChannelId] is the guide id.
+ * Both are needed and they are not the same thing: the request is addressed by the
+ * former, and the response is stored under the latter.
+ */
+data class ChannelRef(
+    val mediaId: String,
+    val providerRef: String?,
+    val epgChannelId: String?,
+)
+
+/**
+ * Fills now/next for the channels on screen, cheaply.
+ *
+ * Xtream's `get_short_epg` is a couple of kilobytes per channel against a full
+ * guide's hundred megabytes, so for a user who only ever looks at what is on, this
+ * replaces the guide download entirely.
+ */
+interface NowNextRefresher {
+    /** @return how many programmes were stored. */
+    suspend fun refresh(channels: List<ChannelRef>): Int
+}

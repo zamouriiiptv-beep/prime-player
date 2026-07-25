@@ -104,17 +104,18 @@ class RoomCatalogWriter(
             statement.bindNullable(8, item.artworkUrl)
             statement.bindNullable(9, item.groupId)
             statement.bindNullable(10, item.epgChannelId)
-            statement.bindLong(11, item.providerOrder.toLong())
-            statement.bindNullable(12, item.durationSeconds)
-            statement.bindNullable(13, item.seriesId)
-            statement.bindNullable(14, item.seriesTitle)
-            statement.bindNullable(15, item.seasonNumber)
-            statement.bindNullable(16, item.episodeNumber)
-            statement.bindLong(17, generation)
+            statement.bindNullable(11, item.providerRef)
+            statement.bindLong(12, item.providerOrder.toLong())
+            statement.bindNullable(13, item.durationSeconds)
+            statement.bindNullable(14, item.seriesId)
+            statement.bindNullable(15, item.seriesTitle)
+            statement.bindNullable(16, item.seasonNumber)
+            statement.bindNullable(17, item.episodeNumber)
+            statement.bindLong(18, generation)
             // Bound twice: the statement keeps an existing row's added_at so a
             // nightly refresh does not make the whole library "recently added".
-            statement.bindString(18, item.id)
-            statement.bindLong(19, now)
+            statement.bindString(19, item.id)
+            statement.bindLong(20, now)
             val rowId = statement.executeInsert()
 
             // The FTS row is keyed by the media row's own rowid, so an append that
@@ -281,11 +282,11 @@ class RoomCatalogWriter(
         const val INSERT_ITEM = """
             INSERT OR REPLACE INTO media (
                 id, source_id, kind, title, sort_title, search_text, stream_url,
-                artwork_url, group_id, epg_channel_id, provider_order,
+                artwork_url, group_id, epg_channel_id, provider_ref, provider_order,
                 duration_seconds, series_id, series_title, season_number,
                 episode_number, generation, added_at
             ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                 COALESCE((SELECT added_at FROM media WHERE id = ?), ?)
             )
         """

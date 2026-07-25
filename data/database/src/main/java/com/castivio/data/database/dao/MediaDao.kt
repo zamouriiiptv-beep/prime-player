@@ -113,6 +113,20 @@ interface MediaDao {
     @Query("SELECT * FROM media WHERE id IN (:ids)")
     suspend fun byIds(ids: List<String>): List<MediaEntity>
 
+    /**
+     * Provider and guide ids for specific rows.
+     *
+     * A projection rather than whole rows: its caller issues one network request per
+     * result, so it wants three columns for twenty channels, not twenty full rows.
+     */
+    @Query(
+        """
+        SELECT id AS mediaId, provider_ref AS providerRef, epg_channel_id AS epgChannelId
+        FROM media WHERE id IN (:ids)
+        """,
+    )
+    suspend fun refsFor(ids: List<String>): List<ChannelRefRow>
+
     // -------------------------------------------------------------------- counts
 
     @Query("SELECT COUNT(*) FROM media WHERE kind = :kind")
@@ -232,6 +246,13 @@ interface MediaDao {
     @Query("SELECT MAX(generation) FROM media WHERE source_id = :sourceId")
     suspend fun currentGeneration(sourceId: String): Long?
 }
+
+/** Projection for a per-channel guide request. */
+data class ChannelRefRow(
+    val mediaId: String,
+    val providerRef: String?,
+    val epgChannelId: String?,
+)
 
 /** Projection for the series aggregation. Not an entity — there is no series table. */
 data class SeriesRow(

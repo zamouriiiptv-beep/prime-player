@@ -53,6 +53,19 @@ jobs:
             :data:networking:testDebugUnitTest \
             :data:playlist:testDebugUnitTest
 
+      # The schema is what any future migration is written against, so its export
+      # is verified rather than assumed. See the script for what it catches.
+      - name: Verify the exported Room schema
+        run: ./scripts/verify-room-schema.sh
+
+      - name: Upload exported schema
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: room-schema
+          path: data/database/schemas/**/*.json
+          if-no-files-found: error
+
       - name: Upload Android test reports
         if: always()
         uses: actions/upload-artifact@v4

@@ -302,6 +302,17 @@ class DefaultCatalogImporterTest {
     private class FakeSourceRepository : SourceRepository {
         private val state = MutableStateFlow<Map<String, ProviderSource>>(emptyMap())
 
+        override suspend fun register(source: PlaylistSource, label: String?): ProviderSource {
+            val registered = ProviderSource(
+                id = SourceIds.of(source),
+                kind = SourceIds.kindOf(source),
+                label = label ?: SourceIds.labelOf(source),
+                url = null,
+            )
+            save(registered)
+            return registered
+        }
+
         override fun sources(): Flow<List<ProviderSource>> = state.map { it.values.toList() }
         override fun active(): Flow<ProviderSource?> = state.map { it.values.firstOrNull { s -> s.isActive } }
         override suspend fun activeNow(): ProviderSource? = state.value.values.firstOrNull { it.isActive }

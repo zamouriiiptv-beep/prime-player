@@ -25,6 +25,15 @@ interface CatalogRepository {
 
     /** Row counts for headers, answered by SQL COUNT rather than by loading. */
     fun count(kind: MediaKind, groupId: String? = null): Flow<Int>
+
+    /**
+     * Provider and guide ids for specific rows.
+     *
+     * Bounded by the ids passed in — the visible window — because its caller is a
+     * per-channel guide request, and asking for more channels than are on screen
+     * would mean issuing requests nobody is waiting for.
+     */
+    suspend fun channelRefs(mediaIds: List<String>): List<ChannelRef>
 }
 
 data class PageRequest(

@@ -2,6 +2,8 @@ package com.castivio.data.database
 
 import com.castivio.data.database.dao.SourceDao
 import com.castivio.data.database.entity.SourceEntity
+import com.castivio.data.parsing.SourceIds
+import com.castivio.domain.PlaylistSource
 import com.castivio.domain.ProviderSource
 import com.castivio.domain.SourceKind
 import com.castivio.domain.SourceRepository
@@ -13,6 +15,38 @@ class RoomSourceRepository(
     private val dao: SourceDao,
     private val clock: () -> Long = System::currentTimeMillis,
 ) : SourceRepository {
+
+    /**
+     * Registers a provider and makes it the active one.
+     *
+     * The id and label come from [SourceIds], so the same credentials entered twice
+     * — or re-entered after a reinstall — resolve to the same source, and every
+     * catalogue id built on top of it stays valid.
+     */
+    override suspend fun register(source: PlaylistSource, label: String?): ProviderSource {
+        val id = SourceIds.of(source)
+        val existing = dao.byId(id)
+        val registered = ProviderSource(
+            id = id,
+            kind = SourceIds.kindOf(source),
+            label = label ?: SourceIds.labelOf(source),
+            url = when (source) {
+                is PlaylistSource.M3u -> source.url
+                is PlaylistSource.LocalFile -> source.uri
+                is PlaylistSource.Xtream -> source.host
+                is PlaylistSource.Portal -> null
+            },
+            username = (source as? PlaylistSource.Xtream)?.username,
+            password = (source as? PlaylistSource.Xtream)?.password,
+            userAgent = (source as? PlaylistSource.M3u)?.userAgent ?: existing?.userAgent,
+            // Credentials may have changed; what the last import learned has not.
+            sync = existing?.syncState() ?: SyncState(),
+            createdAtMs = existing?.createdAt ?: clock(),
+            isActive = true,
+        )
+        save(registered)
+        return registered
+    }
 
     override fun sources(): Flow<List<ProviderSource>> =
         dao.all().map { rows -> rows.map { it.toDomain() } }

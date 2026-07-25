@@ -180,6 +180,32 @@ class XtreamImportEngineTest {
         )
     }
 
+    /**
+     * `get_short_epg` and catch-up URLs are addressed by the provider's stream id,
+     * and the row id is a hash that cannot be reversed — so the id has to be kept.
+     */
+    @Test
+    fun `the provider's own ids are kept on every row`() {
+        val writer = RecordingWriter()
+        val api = FakeApi(
+            liveCategories = listOf("1" to "Sports"),
+            liveStreams = mapOf("1" to listOf(stream("11", "Nova"))),
+            seriesCategories = listOf("9" to "Drama"),
+            series = mapOf("9" to listOf("551" to "Chernobyl")),
+            seriesInfo = mapOf("551" to listOf(Episode("9001", "Pilot", 1, 1))),
+        )
+
+        XtreamImportEngine(writer).importCatalogue(
+            "src", api, kinds = setOf(MediaKind.LIVE, MediaKind.SERIES),
+        )
+        assertEquals("11", writer.items.first { it.title == "Nova" }.providerRef)
+        assertEquals("551", writer.items.first { it.title == "Chernobyl" }.providerRef)
+
+        val episodes = RecordingWriter()
+        XtreamImportEngine(episodes).importEpisodes("src", api, "551", "Chernobyl", null)
+        assertEquals("9001", episodes.items.single().providerRef)
+    }
+
     @Test
     fun `ids come from provider stream ids, so credentials can change`() {
         val first = RecordingWriter()

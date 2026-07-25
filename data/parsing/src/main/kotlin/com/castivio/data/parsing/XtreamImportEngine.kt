@@ -197,6 +197,7 @@ class XtreamImportEngine(
                             ),
                             artworkUrl = episode.coverUrl,
                             groupId = groupId,
+                            providerRef = episode.episodeId,
                             providerOrder = order++,
                             durationSeconds = episode.durationSeconds,
                             seriesId = seriesId,
@@ -245,6 +246,8 @@ class XtreamImportEngine(
         artworkUrl = stream.iconUrl,
         groupId = groupId,
         epgChannelId = stream.epgChannelId,
+        // What `get_short_epg` and catch-up are addressed by.
+        providerRef = stream.streamId,
         providerOrder = stream.number ?: order,
         durationSeconds = null,
     )
@@ -270,6 +273,7 @@ class XtreamImportEngine(
         streamUrl = "",
         artworkUrl = series.coverUrl,
         groupId = groupId,
+        providerRef = series.seriesId,
         providerOrder = order,
         seriesId = StableIds.seriesByProviderId(sourceId, series.seriesId),
         seriesTitle = series.name,

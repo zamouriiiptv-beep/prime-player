@@ -84,6 +84,15 @@ data class MediaEntity(
     @ColumnInfo(name = "epg_channel_id")
     val epgChannelId: String?,
 
+    /**
+     * The provider's own id for this row.
+     *
+     * `get_short_epg` and catch-up URLs are addressed by it and by nothing else,
+     * and [id] is a hash that cannot be reversed. Null for M3U rows.
+     */
+    @ColumnInfo(name = "provider_ref")
+    val providerRef: String?,
+
     @ColumnInfo(name = "provider_order")
     val providerOrder: Int,
 
