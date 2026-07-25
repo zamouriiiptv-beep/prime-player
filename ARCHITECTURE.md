@@ -133,9 +133,67 @@ microphone rather than showing a button that does nothing.
 - **Settings** are a repository in `:data:preferences` exposing `Flow`s, so a
   change (language, theme, aspect ratio) propagates without restarting anything.
 
+## The data layer
+
+Complete as of this branch, and shaped by one rule: **nothing may hold the
+catalogue**. Every contract below is written so that the memory-safe path is the
+only path a caller can take.
+
+```
+:domain            contracts only — CatalogRepository (no getAll), CatalogPager,
+                   CatalogWriter, EpgRepository, EpgWriter, FavoritesRepository,
+                   ProgressRepository, SourceRepository, RefreshPolicy
+:data:parsing      pure Kotlin, benchmarked on every commit — M3U, XMLTV and JSON
+                   scanners, the classifier, and the three import engines
+:data:database     Room: entities, DAOs, FTS4 search, paging queries, the bulk
+                   writers, migrations
+:data:networking   OkHttp: conditional fetching, gzip sniffing, stream hashing,
+                   the Xtream API client
+:data:playlist     CatalogImporter — playlist URL, local file, Xtream
+:data:epg          EpgImporter — XMLTV over HTTP
+```
+
+### Why the engines are pure Kotlin
+
+The import engines take a `CatalogWriter`/`EpgWriter` and a `Reader`, never a
+database or an HTTP client. That is what lets the hottest code in the app be
+unit-tested against string fixtures and gated by a per-commit benchmark, on a
+runner with no emulator. HTTP and SQLite sit on either side of that boundary and
+are tested against a real local server and real SQLite respectively.
+
+### Reads
+
+| Screen needs | Contract | Shape |
+|---|---|---|
+| A browsable list | `CatalogPager.items` | `Flow<PagingData<MediaItem>>` |
+| A show list | `CatalogPager.series` | aggregated by SQL, not in memory |
+| Search results | `CatalogRepository.search` | FTS4, bounded by `limit` |
+| Now / next | `EpgRepository.nowNext` | visible channel ids only |
+| The guide grid | `EpgRepository.window` | visible channels × visible time |
+
+Paging configuration lives in one place next to the budgets — page 60, prefetch
+30, at most 300 rows materialised — because those are performance decisions, not
+per-screen preferences.
+
+### Writes
+
+`CatalogWriter` takes bounded batches and commits each one, so content appears
+while an import is still running. `ImportMode` distinguishes the two kinds of
+write, and the distinction is not cosmetic: a `REPLACE` swaps generations and
+prunes what the provider no longer lists, while an `APPEND` (a lazily loaded
+season) prunes nothing. Treating one as the other would delete the library.
+
+### What a refresh costs
+
+1. `ETag` / `Last-Modified` → a `304` and nothing else happens.
+2. No validators → the stream is hashed while parsed; unchanged bytes skip the
+   import even though the download could not be skipped.
+3. Xtream → nothing is downloaded wholesale in the first place: categories, then
+   only what the user opens.
+
 ## Testing posture
 
-`:domain` and the parsers in `:data:playlist` are pure Kotlin and unit-tested on
+`:domain` and the parsers in `:data:parsing` are pure Kotlin and unit-tested on
 the JVM — the parts most likely to break on a provider's malformed playlist are
 also the fastest to test. Capability interfaces are trivially faked, so screens
 can be tested against a "cheap box" profile and a "Shield" profile without

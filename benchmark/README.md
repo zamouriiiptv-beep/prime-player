@@ -2,7 +2,7 @@
 
 Performance is measured, not asserted. This directory holds the machinery.
 
-## Two tiers, and why there are two
+## Three tiers, and why there are three
 
 The metrics you asked to track do not all have the same measurability. Pretending
 they do would produce a wall of green checkmarks that catches nothing — so they
@@ -15,7 +15,12 @@ are split by where a number can honestly be trusted.
 | Parse memory retention | JVM, every commit | **Yes — fails the build** |
 | Import throughput (parse → classify → row) | JVM, every commit | **Yes — fails the build** |
 | Import memory retention | JVM, every commit | **Yes — fails the build** |
-| Search latency (query cost) | JVM, every commit | **Yes** — once FTS lands |
+| Guide import throughput | JVM, every commit | **Yes — fails the build** |
+| Guide import retention | JVM, every commit | **Yes — fails the build** |
+| Xtream JSON throughput | JVM, every commit | **Yes — fails the build** |
+| Xtream JSON retention | JVM, every commit | **Yes — fails the build** |
+| Search query correctness | Robolectric, every commit | **Yes — fails the build** |
+| Search latency (query cost) | Device / Robolectric | Tracked, gate pending — needs real SQLite, so it cannot live in the JVM tier |
 | Database indexing time | Device / Robolectric | Tracked, gate pending |
 | Cold startup time | Device | Gate on fixed hardware only |
 | Warm startup time | Device | Gate on fixed hardware only |
@@ -48,6 +53,10 @@ Baselines as measured on a GitHub-hosted runner when the gates were written:
 | XMLTV timestamps | 20,171,675 conversions/sec | 1,000,000 |
 | Parse retention, 300,000 entries | 0 KB | 24 MB |
 | Import retention, 299,400 items | 175 KB | 24 MB |
+| Guide import | 127,665 programmes/sec | 20,000 |
+| Guide retention, 200,000 programmes | 1 KB | 24 MB |
+| Xtream stream rows | 395,430 rows/sec | 20,000 |
+| Xtream retention, 200,000 rows | 0 KB | 24 MB |
 
 The retention rows are the architecture working: memory after streaming 300,000
 items is a rounding error, because the engine holds one batch and a group index
@@ -109,7 +118,9 @@ build at 2am should say what to look at, not just that a number moved.
 ## Running locally
 
 ```bash
-./gradlew :benchmark:jvm:test          # Tier 1 — seconds, no device
+./gradlew :benchmark:jvm:test           # Tier 1 — seconds, no device
+./gradlew :data:database:testDebugUnitTest   # Room queries against real SQLite
+./gradlew :data:networking:testDebugUnitTest # HTTP against a local server
 ```
 
 Measurements are printed as `[budget] name: value` and collected into the CI job
