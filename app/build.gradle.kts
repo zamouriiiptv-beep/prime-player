@@ -45,6 +45,13 @@ dependencies {
     implementation(project(":core:common"))
     implementation(project(":domain"))
 
+    // The data layer is wired here so that its Hilt bindings are on the graph;
+    // features depend on the domain contracts, never on these implementations.
+    implementation(project(":data:database"))
+    implementation(project(":data:networking"))
+    implementation(project(":data:playlist"))
+    implementation(project(":data:epg"))
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)

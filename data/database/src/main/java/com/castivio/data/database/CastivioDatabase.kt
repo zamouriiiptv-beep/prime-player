@@ -9,12 +9,14 @@ import com.castivio.data.database.dao.FavoriteDao
 import com.castivio.data.database.dao.GroupDao
 import com.castivio.data.database.dao.MediaDao
 import com.castivio.data.database.dao.ProgressDao
+import com.castivio.data.database.dao.SourceDao
 import com.castivio.data.database.entity.FavoriteEntity
 import com.castivio.data.database.entity.GroupEntity
 import com.castivio.data.database.entity.MediaEntity
 import com.castivio.data.database.entity.MediaFtsEntity
 import com.castivio.data.database.entity.ProgrammeEntity
 import com.castivio.data.database.entity.ProgressEntity
+import com.castivio.data.database.entity.SourceEntity
 
 @Database(
     entities = [
@@ -24,6 +26,7 @@ import com.castivio.data.database.entity.ProgressEntity
         FavoriteEntity::class,
         ProgressEntity::class,
         ProgrammeEntity::class,
+        SourceEntity::class,
     ],
     version = 1,
     exportSchema = true,
@@ -34,6 +37,7 @@ abstract class CastivioDatabase : RoomDatabase() {
     abstract fun favoriteDao(): FavoriteDao
     abstract fun progressDao(): ProgressDao
     abstract fun epgDao(): EpgDao
+    abstract fun sourceDao(): SourceDao
 
     companion object {
         const val NAME = "castivio.db"
@@ -45,15 +49,15 @@ abstract class CastivioDatabase : RoomDatabase() {
          * open: startup must be an `open()` and nothing else, because the first
          * frame is waiting on it.
          *
-         * The catalogue is rebuildable from the provider, so a schema change takes
-         * [fallbackToDestructiveMigration] rather than a hand-written migration —
-         * with one exception that is *not* destructible: favourites and watch
-         * progress. Those tables get real migrations when they change, which is
-         * why they are separate tables rather than columns on `media`.
+         * Migrations are explicit — see [CastivioMigrations] for why
+         * `fallbackToDestructiveMigration()` is not used on upgrades. Downgrades
+         * are destructive, because a sideloaded older APK cannot know a newer
+         * schema, and that happens on TV boxes.
          */
         fun open(context: Context): CastivioDatabase =
             Room.databaseBuilder(context, CastivioDatabase::class.java, NAME)
-                .fallbackToDestructiveMigration()
+                .addMigrations(*CastivioMigrations.ALL)
+                .fallbackToDestructiveMigrationOnDowngrade()
                 .build()
 
         /** In-memory instance for tests. */

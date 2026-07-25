@@ -8,11 +8,13 @@ import com.castivio.data.database.RoomEpgRepository
 import com.castivio.data.database.RoomEpgWriter
 import com.castivio.data.database.RoomFavoritesRepository
 import com.castivio.data.database.RoomProgressRepository
+import com.castivio.data.database.RoomSourceRepository
 import com.castivio.data.database.dao.EpgDao
 import com.castivio.data.database.dao.FavoriteDao
 import com.castivio.data.database.dao.GroupDao
 import com.castivio.data.database.dao.MediaDao
 import com.castivio.data.database.dao.ProgressDao
+import com.castivio.data.database.dao.SourceDao
 import com.castivio.domain.CatalogPager
 import com.castivio.domain.CatalogRepository
 import com.castivio.domain.CatalogWriter
@@ -20,6 +22,7 @@ import com.castivio.domain.EpgRepository
 import com.castivio.domain.EpgWriter
 import com.castivio.domain.FavoritesRepository
 import com.castivio.domain.ProgressRepository
+import com.castivio.domain.SourceRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -48,6 +51,7 @@ object DatabaseModule {
     @Provides fun favoriteDao(database: CastivioDatabase): FavoriteDao = database.favoriteDao()
     @Provides fun progressDao(database: CastivioDatabase): ProgressDao = database.progressDao()
     @Provides fun epgDao(database: CastivioDatabase): EpgDao = database.epgDao()
+    @Provides fun sourceDao(database: CastivioDatabase): SourceDao = database.sourceDao()
 
     @Provides
     @Singleton
@@ -87,4 +91,8 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun progress(dao: ProgressDao): ProgressRepository = RoomProgressRepository(dao)
+
+    @Provides
+    @Singleton
+    fun sources(dao: SourceDao): SourceRepository = RoomSourceRepository(dao)
 }

@@ -47,7 +47,11 @@ jobs:
       # against real SQLite through Robolectric — a Room query that only gets
       # exercised by launching the app on a TV is a query nobody verifies.
       - name: Run Android unit tests
-        run: ./gradlew :data:database:testDebugUnitTest --no-daemon --console=plain
+        run: |
+          ./gradlew --no-daemon --console=plain \
+            :data:database:testDebugUnitTest \
+            :data:networking:testDebugUnitTest \
+            :data:playlist:testDebugUnitTest
 
       - name: Upload Android test reports
         if: always()

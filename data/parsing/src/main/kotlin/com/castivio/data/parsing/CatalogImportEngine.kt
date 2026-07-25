@@ -235,6 +235,10 @@ internal object StableIds {
     fun seriesByProviderId(sourceId: String, providerSeriesId: String): String =
         hex(mix(mix(seed(sourceId), "sp"), providerSeriesId))
 
+    /** A provider's own id, hashed from what identifies the provider. */
+    fun source(kind: String, key: String): String =
+        hex(mix(mix(mix(OFFSET_BASIS, kind), SEPARATOR), key))
+
     private fun seed(sourceId: String): Long = mix(OFFSET_BASIS, sourceId)
 
     private fun mix(hash: Long, value: String): Long {

@@ -67,7 +67,17 @@ interface CatalogImporter {
 
 sealed interface PlaylistSource {
     data class M3u(val url: String, val userAgent: String? = null) : PlaylistSource
+
+    /**
+     * A playlist the user picked from storage.
+     *
+     * Held as a URI string rather than a path: on modern Android the picker
+     * returns a content URI that a path cannot be derived from.
+     */
+    data class LocalFile(val uri: String, val label: String? = null) : PlaylistSource
+
     data class Xtream(val host: String, val username: String, val password: String) : PlaylistSource
+
     /** Resolved from the activation portal by device MAC. */
     data class Portal(val mac: String, val deviceKey: String) : PlaylistSource
 }
