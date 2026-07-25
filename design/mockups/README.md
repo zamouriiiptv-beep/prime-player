@@ -8,7 +8,7 @@ re-rendered when a token changes.
 
 | File | Screens |
 |---|---|
-| `shell-home.html` | Shell (rail, top bar), Home, the rail focused, a section the provider does not carry, phone Home, tablet section |
+| `shell-home.html` | Shell (rail, top bar), Home, the rail focused, a section the provider does not carry, phone Home, tablet section, and the state-language reference sheet |
 
 ## Rendering
 
@@ -30,6 +30,7 @@ render tv-rail         960  540 2    tv-rail.png
 render tv-empty        960  540 2    tv-empty-section.png
 render phone-home      412  892 3    phone-home.png
 render tablet-section 1280  800 1.5  tablet-movies.png
+render states          960 1000 2    state-language.png   # a reference sheet, not a device
 ```
 
 The PNGs are deliberately **not** committed: they are five megabytes that can be

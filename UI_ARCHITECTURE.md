@@ -171,6 +171,13 @@ Each section header carries its **cached count** ("Live TV · 12,480"), read fro
 the counts the data layer already maintains — an indexed `COUNT` and a
 denormalised per-category `item_count`, never a scan.
 
+**Counts do not animate on arrival.** Opening a screen renders the cached number
+directly: no count-up, no flicker, no query. A count only animates when a refresh
+genuinely changes it, ticking to the new value with a delta chip ("+128 new") that
+fades after four seconds. A number that animates every time you arrive is noise
+pretending to be life, and on a screen visited twenty times a day it is the first
+thing that starts to feel cheap.
+
 Empty state (no provider yet) is not an empty Home: it is the activation call to
 action.
 
@@ -303,6 +310,41 @@ than as a widget property.
 **Loading and focus:** a list that has not loaded yet still accepts focus, so the
 user's first keypress is never dropped. Placeholders are focusable; they simply
 have no action until they resolve.
+
+### 5.1 The state vocabulary
+
+Six readings the user must never confuse. They are specified together because the
+confusions only happen at the boundaries — "is this playing, or did I just watch
+it?" is the question a sloppy state design leaves open.
+
+Colour carries a fixed meaning throughout the product, and **no state is ever colour
+alone**: each one also changes shape, position or opacity, so it survives colour
+blindness, a miscalibrated panel, and a screen reader.
+
+| Reading | Mark | Colour meaning |
+|---|---|---|
+| **Focused** | lift 4%, ring, glow — transient, follows the cursor | violet · navigation |
+| **Selected** | indicator on the leading edge + coloured label — persistent | violet · navigation |
+| **Loading** | hairline under the surface + a word ("refreshing") | amber · working |
+| **In progress** | partial bar under the artwork, width = resume point | violet · navigation |
+| **Recently watched** | full-width bar, artwork dimmed a third, "Watched" tag | neutral · the past |
+| **Playing now** | full-width bar, inner edge, animated meter, "Playing" | aqua · now |
+
+**One grammar, one location.** Everything the app knows about an item's history is
+said with a 3 dp bar along the bottom edge of its artwork — nothing, partial, full
+neutral, full aqua. A row with no bottom edge to spare (a channel line) runs the
+same bar down its leading side: same four readings, rotated ninety degrees. One
+place to look, no badges competing for the same corner.
+
+**Recently watched takes no colour**, deliberately. History is not a status, and
+making it neutral while "playing" is aqua and animated is what guarantees the two
+can never be read as each other — the distinction survives a glance from three
+metres.
+
+**Playing is not selection.** A destination that is playing carries the aqua meter
+at its *trailing* edge and borrows none of selection's marks, so "where I am" and
+"what is on" are never the same mark. All six can be true at once — as they are when
+the rail is opened while a channel runs — and each is still legible.
 
 ---
 
@@ -450,9 +492,21 @@ left empty (say so — it is their doing, not a bug).
 
 A whole section the provider does not carry is the same pattern with a stronger
 claim, and it is the one empty state the user will actually meet: **"Nova IPTV
-doesn't include movies"**, with *Browse Live TV* and *Add a provider*. Naming the
-provider is the point — it tells the user the app is working and the subscription is
-the limit.
+doesn't include movies"**. Naming the provider is the point — it tells the user the
+app is working and the subscription is the limit.
+
+**The primary action is chosen from what the provider does carry**, so it is never a
+dead end and never a lie:
+
+| The provider has | Primary action | Secondary |
+|---|---|---|
+| Live channels | Browse Live TV | Add another provider |
+| Series but no movies | Open Series | Add another provider |
+| Several sections, this one empty | Open Library | Add another provider |
+| Nothing imported yet | Add a provider | — |
+
+Two actions, never three. A productive next step is the requirement; a menu of them
+is the noise that requirement exists to prevent.
 
 ---
 
@@ -526,8 +580,30 @@ Screen margins are 48 dp on TV (overscan-safe), 24 dp on tablet, 16 dp on phone.
 | Player OSD | 180 ms | ease-out |
 
 Motion is functional: it shows where focus went and where a screen came from. Any
-animation that competes with scrolling is capability-gated, and all of it is
-disabled under reduced motion.
+animation that competes with scrolling is capability-gated.
+
+#### Three levels
+
+Every animation in the product belongs to a level, and every level is a complete,
+shippable experience — not a degraded one.
+
+| | Full | Reduced | Disabled |
+|---|---|---|---|
+| Aurora backdrop | animates | static gradient | static gradient |
+| Focus change | lift + cross-fade | instant ring and colour, no scale | instant |
+| Playing meter | animates | static bars | static bars |
+| Row scroll | 240 ms eased | instant | instant |
+| Screen transition | 280 ms emphasised | cross-fade 120 ms | instant |
+| Counts | tick on change | swap on change | swap on change |
+
+The level is **chosen automatically** from device capability and the platform's
+reduce-motion setting, then **overridden by the user** in Settings → Appearance. The
+automatic choice is a starting point, never a ceiling: a user on a capable box who
+wants stillness gets it, and a user on a weak stick who wants the full identity can
+have it and live with the frame rate.
+
+At *Disabled*, every one of the six states in §5.1 still reads. That is the test: if
+a state needs motion to be legible, the state is designed wrong.
 
 ### Theme
 
