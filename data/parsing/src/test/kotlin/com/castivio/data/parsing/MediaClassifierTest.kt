@@ -164,6 +164,15 @@ class MediaClassifierTest {
     }
 
     @Test
+    fun `radio is matched as a word, not a substring`() {
+        // "Radiohead" is a band; its concert films are not radio stations.
+        val film = classify(name = "Radiohead In Rainbows Live", group = "Radiohead Concerts", duration = 5_400)
+        assertEquals(MediaKind.MOVIE, film.kind)
+        // A plural still counts as radio.
+        assertEquals(MediaKind.RADIO, classify(group = "Radios MA").kind)
+    }
+
+    @Test
     fun `a video stream is not radio just because of a dot in the path`() {
         val result = classify(url = "http://host/live/u/p/12.34.ts")
         assertEquals(MediaKind.LIVE, result.kind)

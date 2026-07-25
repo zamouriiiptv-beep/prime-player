@@ -110,7 +110,32 @@ object MediaClassifier {
 
     private fun String.mentionsSeries(): Boolean = containsAnyOf(SERIES_WORDS)
     private fun String.mentionsMovies(): Boolean = containsAnyOf(MOVIE_WORDS)
-    private fun String.mentionsRadio(): Boolean = containsAnyOf(RADIO_WORDS)
+
+    /**
+     * Radio is matched as a *word*, unlike the other hints.
+     *
+     * Substring matching is right for movies and series — providers write
+     * "Filmes", "Séries", "مسلسلات", and clipping those would lose whole
+     * catalogues. It is wrong for radio, because "Radiohead" is a music group
+     * and its concert films are not radio stations. A plural `s` is still
+     * allowed, so "Radios" matches.
+     */
+    private fun String.mentionsRadio(): Boolean {
+        for (word in RADIO_WORDS) {
+            var from = 0
+            while (true) {
+                val at = indexOf(word, from, ignoreCase = true)
+                if (at < 0) break
+                val before = at == 0 || !this[at - 1].isLetter()
+                var after = at + word.length
+                if (after < length && (this[after] == 's' || this[after] == 'S')) after++
+                val ended = after >= length || !this[after].isLetter()
+                if (before && ended) return true
+                from = at + 1
+            }
+        }
+        return false
+    }
 
     private fun String.containsAnyOf(words: Array<String>): Boolean {
         for (word in words) if (contains(word, ignoreCase = true)) return true

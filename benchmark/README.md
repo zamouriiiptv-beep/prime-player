@@ -38,17 +38,16 @@ every commit.
 a `SimpleDateFormat` per programme, or a parser that starts accumulating a list
 — all move the numbers by an order of magnitude and trip the gate immediately.
 
-Baselines actually measured when the gates were written (dev container; a shared
-CI runner is typically 2–3x slower):
+Baselines as measured on a GitHub-hosted runner when the gates were written:
 
 | Gate | Baseline | Budget |
 |---|---|---|
-| M3U parse | ~3,000,000 entries/sec | 40,000 |
-| Full import — parse → classify → row → batch | ~500,000 entries/sec | 50,000 |
-| XMLTV parse | ~130,000 programmes/sec | 25,000 |
-| XMLTV timestamps | ~17,000,000 conversions/sec | 1,000,000 |
-| Parse retention, 300,000 entries | < 1 MB | 24 MB |
-| Import retention, 300,000 entries | ~0.2 MB | 24 MB |
+| M3U parse | 2,445,614 entries/sec | 40,000 |
+| Full import — parse → classify → row → batch | 492,282 entries/sec | 50,000 |
+| XMLTV parse | 175,759 programmes/sec | 25,000 |
+| XMLTV timestamps | 20,171,675 conversions/sec | 1,000,000 |
+| Parse retention, 300,000 entries | 0 KB | 24 MB |
+| Import retention, 299,400 items | 175 KB | 24 MB |
 
 The retention rows are the architecture working: memory after streaming 300,000
 items is a rounding error, because the engine holds one batch and a group index

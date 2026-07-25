@@ -149,7 +149,7 @@ class CatalogImportEngine(
         val kind = classification.kind
         val seriesTitle = classification.seriesTitle
         return CatalogItem(
-            id = StableIds.item(sourceId, kind, entry.url),
+            id = StableIds.item(sourceId, entry.url),
             sourceId = sourceId,
             kind = kind,
             // For an episode this is the episode's own title; the show name
@@ -209,8 +209,14 @@ class CatalogImportEngine(
  */
 internal object StableIds {
 
-    fun item(sourceId: String, kind: MediaKind, key: String): String =
-        hex(mix(mix(mix(seed(sourceId), kind.name), SEPARATOR), key))
+    /**
+     * Note what is *not* in here: the media kind. The classifier will keep
+     * improving, and an entry that gets reclassified — a station finally
+     * recognised as radio rather than live — must keep its id. Folding kind in
+     * would silently drop that row's favourite and watch position the first time
+     * a classification rule improved.
+     */
+    fun item(sourceId: String, key: String): String = hex(mix(seed(sourceId), key))
 
     fun group(sourceId: String, kind: MediaKind, name: String): String =
         hex(mix(mix(mix(mix(seed(sourceId), "g"), kind.name), SEPARATOR), name.lowercase()))
