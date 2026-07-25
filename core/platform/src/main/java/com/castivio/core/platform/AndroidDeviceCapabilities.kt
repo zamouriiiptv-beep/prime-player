@@ -34,27 +34,33 @@ class AndroidDeviceCapabilities(private val context: Context) : DeviceCapabiliti
     override val hdrFormats: Set<HdrFormat> by lazy {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return@lazy emptySet()
         val display = runCatching { context.mainDisplayCompat() }.getOrNull() ?: return@lazy emptySet()
-        val types = runCatching { display.hdrCapabilities?.supportedHdrTypes }.getOrNull().orEmpty()
-        buildSet {
-            for (t in types) when (t) {
-                Display.HdrCapabilities.HDR_TYPE_HDR10 -> add(HdrFormat.HDR10)
-                Display.HdrCapabilities.HDR_TYPE_HLG -> add(HdrFormat.HLG)
-                Display.HdrCapabilities.HDR_TYPE_DOLBY_VISION -> add(HdrFormat.DOLBY_VISION)
-                else -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
-                    t == Display.HdrCapabilities.HDR_TYPE_HDR10_PLUS) add(HdrFormat.HDR10_PLUS)
+        // supportedHdrTypes is an IntArray, so there is no orEmpty() for it.
+        val types: IntArray =
+            runCatching { display.hdrCapabilities?.supportedHdrTypes }.getOrNull() ?: IntArray(0)
+        val formats = mutableSetOf<HdrFormat>()
+        for (type in types) {
+            when (type) {
+                Display.HdrCapabilities.HDR_TYPE_HDR10 -> formats.add(HdrFormat.HDR10)
+                Display.HdrCapabilities.HDR_TYPE_HLG -> formats.add(HdrFormat.HLG)
+                Display.HdrCapabilities.HDR_TYPE_DOLBY_VISION -> formats.add(HdrFormat.DOLBY_VISION)
+                HDR_TYPE_HDR10_PLUS -> formats.add(HdrFormat.HDR10_PLUS)
             }
         }
+        formats.toSet()
     }
 
     override val audioPassthrough: Set<AudioFormat> = emptySet() // filled by the engine at open time
 
     override val maxResolution: Resolution by lazy {
         val d = runCatching { context.mainDisplayCompat() }.getOrNull() ?: return@lazy Resolution.FHD
+        // Display.getMode() is API 23. minSdk is 21 — old boxes are exactly the
+        // devices this class exists for, so the legacy path is not optional.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val mode = runCatching { d.mode }.getOrNull()
+            if (mode != null) return@lazy Resolution(mode.physicalWidth, mode.physicalHeight)
+        }
         @Suppress("DEPRECATION")
-        val w = d.mode?.physicalWidth ?: d.width
-        @Suppress("DEPRECATION")
-        val h = d.mode?.physicalHeight ?: d.height
-        Resolution(w, h)
+        Resolution(d.width, d.height)
     }
 
     override val memoryClass: MemoryClass by lazy {
@@ -71,6 +77,9 @@ class AndroidDeviceCapabilities(private val context: Context) : DeviceCapabiliti
             (runCatching { context.mainDisplayCompat()?.supportedModes?.size ?: 0 }.getOrDefault(0) > 1)
     }
 }
+
+/** Display.HdrCapabilities.HDR_TYPE_HDR10_PLUS, inlined: it only exists from API 29. */
+private const val HDR_TYPE_HDR10_PLUS = 4
 
 private fun Context.mainDisplayCompat(): Display? =
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
