@@ -57,6 +57,31 @@ object PerformanceBudgets {
      */
     const val XMLTV_TIMESTAMPS_PER_SECOND_MIN = 1_000_000
 
+    // ---------------------------------------------------------------- importing
+
+    /**
+     * Entries per second through the whole import pipeline — parse, classify,
+     * build the row, batch it — with the database stubbed out.
+     *
+     * It is the number that answers "how long until the catalogue is on disk",
+     * minus the part SQLite owns.
+     *
+     * Baseline when written: ~500,000 entries/sec, so a 400,000 item provider
+     * costs under a second of *our* work. The floor sits an order of magnitude
+     * below that, which is where a structural regression lands and normal runner
+     * noise does not.
+     */
+    const val IMPORT_ENTRIES_PER_SECOND_MIN = 50_000
+
+    /**
+     * Retained heap while importing [MEMORY_PROBE_ENTRIES] entries.
+     *
+     * The same guard as [M3U_RETAINED_HEAP_MB_MAX], one layer up. The engine may
+     * hold a batch and a group index; it may never hold the catalogue. Anyone who
+     * "helpfully" collects rows to insert them once at the end trips this.
+     */
+    const val IMPORT_RETAINED_HEAP_MB_MAX = 24
+
     // ------------------------------------------------------- on-device budgets
     // Declared here so the numbers live in one place, asserted by the
     // macrobenchmark tier on real hardware rather than by CI.

@@ -13,6 +13,8 @@ are split by where a number can honestly be trusted.
 | Playlist parsing time | JVM, every commit | **Yes — fails the build** |
 | XMLTV parsing time | JVM, every commit | **Yes — fails the build** |
 | Parse memory retention | JVM, every commit | **Yes — fails the build** |
+| Import throughput (parse → classify → row) | JVM, every commit | **Yes — fails the build** |
+| Import memory retention | JVM, every commit | **Yes — fails the build** |
 | Search latency (query cost) | JVM, every commit | **Yes** — once FTS lands |
 | Database indexing time | Device / Robolectric | Tracked, gate pending |
 | Cold startup time | Device | Gate on fixed hardware only |
@@ -35,6 +37,28 @@ every commit.
 **What it catches:** algorithmic regressions. A `Regex` added per playlist line,
 a `SimpleDateFormat` per programme, or a parser that starts accumulating a list
 — all move the numbers by an order of magnitude and trip the gate immediately.
+
+Baselines actually measured when the gates were written (dev container; a shared
+CI runner is typically 2–3x slower):
+
+| Gate | Baseline | Budget |
+|---|---|---|
+| M3U parse | ~3,000,000 entries/sec | 40,000 |
+| Full import — parse → classify → row → batch | ~500,000 entries/sec | 50,000 |
+| XMLTV parse | ~130,000 programmes/sec | 25,000 |
+| XMLTV timestamps | ~17,000,000 conversions/sec | 1,000,000 |
+| Parse retention, 300,000 entries | < 1 MB | 24 MB |
+| Import retention, 300,000 entries | ~0.2 MB | 24 MB |
+
+The retention rows are the architecture working: memory after streaming 300,000
+items is a rounding error, because the engine holds one batch and a group index
+and nothing else.
+
+One caveat on the throughput rows, stated rather than hidden: the JIT can still
+compute a parsed field's length without materialising the string, so the
+absolute figures flatter the parser somewhat even with [Sink] consuming every
+field. That does not affect what the gate is for — a `Regex` per line or a list
+being accumulated changes these numbers by an order of magnitude either way.
 
 **What it does not catch:** a genuine 15% slowdown. Shared CI runners vary 2–3x
 between runs, so a tight budget would flake daily and be disabled within a week.

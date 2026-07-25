@@ -58,7 +58,14 @@ data class Episode(
 /** A group as the provider defined it (a "category" in Xtream, a group-title in M3U). */
 data class MediaGroup(val id: String, val name: String, val kind: MediaKind)
 
-enum class MediaKind { LIVE, MOVIE, SERIES }
+/**
+ * What a row is, decided at import time.
+ *
+ * [RADIO] is a separate kind rather than a flag on [Channel] because it changes
+ * how a row is *queried*: radio has its own screen and must never appear in a
+ * live-TV page. A boolean would have every live query remember to exclude it.
+ */
+enum class MediaKind { LIVE, MOVIE, SERIES, RADIO }
 
 /** Drives Continue Watching and History. Position is authoritative; percent is derived. */
 data class PlaybackProgress(

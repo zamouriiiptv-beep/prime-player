@@ -50,6 +50,22 @@ than the ORM path, inside transactions of ~1,000 rows.
 During import only: `PRAGMA synchronous = OFF`, `journal_mode = MEMORY`,
 restored afterwards. That alone is a 3–5× speedup on cheap flash storage.
 
+### One pass, one batch
+
+Parsing, classification and row construction all happen in the same pass
+(`CatalogImportEngine`). An M3U file does not say what its entries *are* —
+providers mix live channels, films, series episodes and radio into one flat list
+— so each entry is classified as it goes, from the URL path, a season/episode
+marker, the group title and the duration, in that order of authority. No second
+pass over the file, and no intermediate list between the two.
+
+Series are stored as their episodes with a shared `seriesId`; the Series screen
+is a `GROUP BY` over that column. Building a `Map<String, List<Episode>>` during
+import would put the entire series catalogue on the heap for no gain.
+
+Classification adds real work per entry, so it is gated like everything else:
+`IMPORT_ENTRIES_PER_SECOND_MIN`, measured end-to-end with the database stubbed.
+
 ### Progressive availability beats total speed
 
 400k rows takes 10–25s to insert on a weak box, and no trick removes that.
