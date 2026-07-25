@@ -166,7 +166,22 @@ to frame rate.
 
 ## Keeping it honest
 
-Budgets that aren't measured are decoration:
+Budgets that aren't measured are decoration, so they are enforced in CI. See
+`benchmark/README.md` for the full picture; the short version is three tiers,
+split by where a number can honestly be trusted:
+
+- **Every commit, blocking** — parsing throughput and, most importantly, parse
+  *memory retention*. `:benchmark:jvm` runs in seconds with no emulator because
+  the parsers are pure Kotlin, and it fails the build on breach.
+- **On real hardware** — startup, frame timing, jank, memory. These need a
+  device; a hard gate on a shared CI emulator would measure runner noise rather
+  than the app, so they gate on a fixed low-end box and are tracked until one
+  is attached.
+- **From real use** — channel-switch latency (provider-dependent) and ANRs.
+  Reported through Diagnostics and Play vitals, with the app splitting our
+  overhead from provider time so a slow provider is visibly the provider.
+
+All numbers live in `PerformanceBudgets.kt`. Additionally:
 
 - Macrobenchmark for cold start and scroll jank, run on the lowest-end device
   in the matrix, not the fastest.

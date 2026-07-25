@@ -45,3 +45,6 @@ include(":feature:home")
 include(":feature:search")
 include(":feature:player")
 include(":feature:settings")
+
+// performance gates — run on every commit
+include(":benchmark:jvm")
