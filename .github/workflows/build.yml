@@ -39,6 +39,21 @@ jobs:
             sleep $((attempt * 20))
           done
 
+      # Android-module unit tests need the SDK, so they run here rather than in
+      # the pure-JVM "Unit tests" job. The database module's queries are verified
+      # against real SQLite through Robolectric — a Room query that only gets
+      # exercised by launching the app on a TV is a query nobody verifies.
+      - name: Run Android unit tests
+        run: ./gradlew :data:database:testDebugUnitTest --no-daemon --console=plain
+
+      - name: Upload Android test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-test-reports
+          path: "**/build/reports/tests/**"
+          if-no-files-found: warn
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:

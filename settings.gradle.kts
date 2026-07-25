@@ -32,6 +32,7 @@ include(":data:networking")
 include(":data:preferences")
 include(":data:activation")
 include(":data:parsing")
+include(":data:database")
 include(":data:playlist")
 include(":data:epg")
 
