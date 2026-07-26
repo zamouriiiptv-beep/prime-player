@@ -27,6 +27,16 @@ data class PerformanceProfile(
     /** Width to request for poster artwork; decoding oversized JPEGs kills frames. */
     val posterWidthPx: Int,
 ) {
+    /**
+     * The motion level this device can afford, before the user's preference is applied.
+     *
+     * Capability answers one question — can this box animate the backdrop without
+     * costing frames in a scroll — and the answer is the same one [animatedBackdrop]
+     * already encodes. It is a suggestion: [resolveMotionLevel] decides.
+     */
+    val suggestedMotion: MotionLevel
+        get() = if (animatedBackdrop) MotionLevel.FULL else MotionLevel.REDUCED
+
     companion object {
         /** Shield, modern Google TV: everything on. */
         val FULL = PerformanceProfile(

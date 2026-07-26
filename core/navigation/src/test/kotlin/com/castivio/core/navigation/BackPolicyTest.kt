@@ -1,0 +1,123 @@
+package com.castivio.core.navigation
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class BackPolicyTest {
+
+    @Test
+    fun `back from home asks before leaving`() {
+        assertEquals(BackTarget.ConfirmExit, BackPolicy.from(Route.Home))
+    }
+
+    @Test
+    fun `back from a section goes to home`() {
+        for (kind in SectionKind.entries) {
+            assertEquals(BackTarget.To(Route.Home), BackPolicy.from(Route.Section(kind)))
+        }
+    }
+
+    @Test
+    fun `back from a category goes to its own section, not to home`() {
+        assertEquals(
+            BackTarget.To(Route.Section(SectionKind.MOVIES)),
+            BackPolicy.from(Route.Category(SectionKind.MOVIES, "action")),
+        )
+    }
+
+    /**
+     * The reason the policy is fixed rather than a stack pop: the same keypress on the
+     * same screen must go to the same place, whether the user arrived from the rail,
+     * from search, or from a deep link.
+     */
+    @Test
+    fun `a section answers the same way however it was reached`() {
+        val fromRail = BackPolicy.from(Route.Section(SectionKind.MOVIES), canPop = true)
+        val fromDeepLink = BackPolicy.from(Route.Section(SectionKind.MOVIES), canPop = false)
+
+        assertEquals(fromRail, fromDeepLink)
+        assertEquals(BackTarget.To(Route.Home), fromRail)
+    }
+
+    @Test
+    fun `every other top-level destination goes to home`() {
+        assertEquals(BackTarget.To(Route.Home), BackPolicy.from(Route.Favorites))
+        assertEquals(BackTarget.To(Route.Home), BackPolicy.from(Route.ContinueWatching))
+        assertEquals(BackTarget.To(Route.Home), BackPolicy.from(Route.History))
+        assertEquals(BackTarget.To(Route.Home), BackPolicy.from(Route.Search()))
+        assertEquals(BackTarget.To(Route.Home), BackPolicy.from(Route.Settings()))
+    }
+
+    // ------------------------------------------------------------------ detours
+
+    @Test
+    fun `a detail page returns to wherever it was opened from`() {
+        assertEquals(BackTarget.Pop, BackPolicy.from(Route.Detail("m1")))
+        assertEquals(BackTarget.Pop, BackPolicy.from(Route.Series("s1")))
+        assertEquals(BackTarget.Pop, BackPolicy.from(Route.Player("m1")))
+        assertEquals(BackTarget.Pop, BackPolicy.from(Route.Guide()))
+    }
+
+    /**
+     * A detour opened by deep link has nothing underneath it, and popping would strand
+     * the user on a blank stack.
+     */
+    @Test
+    fun `a detour with nothing underneath falls back to home`() {
+        assertEquals(BackTarget.To(Route.Home), BackPolicy.from(Route.Detail("m1"), canPop = false))
+        assertEquals(BackTarget.To(Route.Home), BackPolicy.from(Route.Player("m1"), canPop = false))
+    }
+
+    // ----------------------------------------------------------------- settings
+
+    @Test
+    fun `a settings page returns to the settings root, and the root to home`() {
+        assertEquals(
+            BackTarget.To(Route.Settings()),
+            BackPolicy.from(Route.Settings(SettingsSection.PLAYBACK)),
+        )
+        assertEquals(BackTarget.To(Route.Home), BackPolicy.from(Route.Settings()))
+    }
+
+    // --------------------------------------------------------------- activation
+
+    @Test
+    fun `choosing an activation method can be undone without leaving the app`() {
+        assertEquals(
+            BackTarget.To(Route.Activation()),
+            BackPolicy.from(Route.Activation(ActivationMethod.XTREAM)),
+        )
+    }
+
+    @Test
+    fun `the activation chooser is the bottom of the stack on first run`() {
+        assertEquals(BackTarget.ConfirmExit, BackPolicy.from(Route.Activation()))
+        assertEquals(BackTarget.ConfirmExit, BackPolicy.from(Route.Splash))
+    }
+
+    // ---------------------------------------------------------------- interception
+
+    @Test
+    fun `the shell intercepts back everywhere except an ordinary pop`() {
+        assertTrue(BackPolicy.handles(Route.Home))
+        assertTrue(BackPolicy.handles(Route.Section(SectionKind.LIVE)))
+        assertTrue(BackPolicy.handles(Route.Settings(SettingsSection.ABOUT)))
+        assertFalse(BackPolicy.handles(Route.Detail("m1")))
+        assertTrue(BackPolicy.handles(Route.Detail("m1"), canPop = false))
+    }
+
+    /** Every destination answers. A screen with no rule is a screen that traps focus. */
+    @Test
+    fun `every top-level destination has an answer`() {
+        for (route in TOP_LEVEL_ROUTES) {
+            val target = BackPolicy.from(route)
+            if (route == Route.Home) {
+                assertEquals(BackTarget.ConfirmExit, target)
+            } else {
+                assertEquals("back from ${route.key}", BackTarget.To(Route.Home), target)
+            }
+        }
+    }
+}
