@@ -31,6 +31,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import com.castivio.core.common.AppError
 import com.castivio.core.common.EmptyReason
 import com.castivio.core.common.ScreenState
