@@ -132,6 +132,121 @@ Route.Settings(section?)
 Route.Activation(method?)
 ```
 
+### The Activation ↔ Shell boundary
+
+The contract for what must be true before the app shows content, what happens on
+every restart afterwards, and what a failing provider is and is not allowed to do.
+Approved as source of truth; implementation follows it rather than reinterpreting it.
+
+#### The gate
+
+Home opens when, and only when, **all three** hold:
+
+| Condition | Source of truth |
+|---|---|
+| An active provider exists | `SourceRepository.activeNow() != null` |
+| Its first import completed | `sync.lastImportAtMs != null` |
+| It committed real content | `sync.itemCount > 0` |
+
+Together that is exactly `!RefreshPolicy.needsFirstImport(source)` — pure, already
+written, and answerable from two local rows with **no scan and no network**.
+
+The third row carries more weight than it appears to. `lastImportAtMs` is written by
+`recordCatalogueImport` only after `CatalogWriter.finish()` succeeds, and `finish()`
+is what swaps the generation and prunes. A half-written import is therefore invisible
+by construction: there is no state in which Home opens onto a partial catalogue.
+
+**Not required:** the guide (Live opens without now/next), artwork, network
+reachability, or a fresh `ProviderStatus`. Validation belongs to the activation form,
+not to opening Home.
+
+**Zero items is not success.** An import that commits nothing returns to Activation
+with its own message. An empty app reads as broken, and this is the one case where
+"the import worked" and "the user has something" disagree.
+
+#### One rule decides where the app starts
+
+> **No usable local catalogue → Activation. A usable, completed local catalogue →
+> Home.** Provider and network state then affect banners, refresh and playback — never
+> whether an existing catalogue is allowed to open.
+
+An expired subscription does not make a committed catalogue disappear, so it does not
+change where the app starts. A user whose provider lapsed can still browse what they
+have and renew when they choose; routing them back to setup would take away something
+that still works in order to tell them about something that does not. This also keeps
+the entry rule free of exceptions — and every exception in an entry rule becomes a
+branch in the code forever.
+
+There is consequently no *Browse anyway* action at startup: **Home is the browse path.**
+
+#### Startup
+
+Splash resolves the gate from local storage only and branches three ways:
+
+| Found | Goes to |
+|---|---|
+| Gate satisfied | **Home** — the root of the back stack. Activation is not on it, so Back from Home is the exit confirmation |
+| Source exists, `needsFirstImport` | Activation, pre-filled — never retype |
+| No source | Activation |
+
+- **Splash never waits on the network.** It reads two rows and hands over; this is what
+  keeps a warm start under 400 ms.
+- **Never re-import before Home.** When `RefreshPolicy.catalogueIsStale` (12 h), the
+  refresh runs *behind* Home as `ScreenState.Content(refreshing = true)` — the quiet
+  indicator, never a spinner over a populated list.
+- If startup exceeds 1.5 s (a cold database open on a weak stick) Splash shows a
+  determinate step, and still never blocks on the network.
+
+#### Three kinds of provider failure
+
+The separating question is whether the local catalogue is still usable, and whether
+the condition is permanent.
+
+| Kind | Signal | Local catalogue | Treatment |
+|---|---|---|---|
+| **Unreachable** — transient | `NETWORK_UNAVAILABLE`, `TIMEOUT`, `SERVER_ERROR` | valid | amber, quiet, retries with backoff behind the app |
+| **Expired / rejected** — definitive | `UNAUTHORIZED`, `ProviderStatus.usable == false`, `expiresAtMs` past | valid; playback will fail | persistent red banner on Home with an action to update the provider |
+| **Removed** — definitive | `NOT_FOUND` | valid | as expired, different words |
+
+None of the three changes where the app starts. A play attempt under an expired
+subscription explains the expiry rather than failing silently, and the banner persists
+until the provider is updated — it is not a dismissible toast.
+
+#### The non-destructive guarantee
+
+> **A failed refresh never deletes anything.** `ImportMode.REPLACE` prunes only after
+> `finish()` commits the new generation.
+
+Unreachable, expired, rejected, cancelled mid-import, or a zero-item response: in every
+case the last successfully committed catalogue survives untouched. A user's library must
+never disappear because their network did.
+
+#### Edge cases at the seam
+
+- **Cancel during import** — a previous catalogue exists → return to Home; none → return
+  to Activation. The abandoned generation is never committed.
+- **A second provider** — never gates Home. It is added from Settings, and only
+  `setActive` changes what Home shows. This is what `Playlist Name` distinguishes.
+- **Killed mid-import** — `lastImportAtMs` was never written, so the gate reads correctly
+  on restart: Activation if it was the first import, Home on the old catalogue if not.
+- **MAC with no binding yet** — stays on Activation, waiting. It advances only when the
+  portal actually returns a playlist.
+- **Clock moved backwards** — already guarded inside `RefreshPolicy`.
+
+#### The boundary, compact
+
+```
+Splash  (local reads only, never the network)
+ ├─ no source ───────────────────→ Activation
+ ├─ source, needsFirstImport ────→ Activation (pre-filled)
+ └─ gate satisfied ──────────────→ Home
+                                     ├─ stale?   → refresh behind Content(refreshing = true)
+                                     └─ expired? → persistent banner, never a redirect
+
+Activation ─(validated → import commits → itemCount > 0)─→ Home
+           └─(fails / zero items)─→ stays, with the message matching the kind
+```
+
 ---
 
 ## 3. Screens
