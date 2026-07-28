@@ -1,78 +1,46 @@
 package com.castivio.tv
 
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
-import dagger.hilt.android.AndroidEntryPoint
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.castivio.tv.data.DeviceIdentity
-import com.castivio.tv.data.SourceStore
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.platform.AndroidDeviceCapabilities
-import com.castivio.tv.ui.M3uScreen
-import com.castivio.tv.ui.WelcomeScreen
-import com.castivio.tv.ui.XtreamScreen
+import com.castivio.tv.shell.ShellScreen
+import dagger.hilt.android.AndroidEntryPoint
 
-private enum class Screen { Welcome, Xtream, M3u }
-
+/**
+ * Hosts the shell.
+ *
+ * For this build the shell runs on mock data so the experience can be judged on a
+ * real phone before a provider is wired in. The activation flow and the real Home,
+ * both of which need a ViewModel and the repository, land in later slices; the
+ * pre-modular activation screens stay in the tree until then, unreferenced.
+ */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val identity = DeviceIdentity.get(this)
+        enableEdgeToEdge()
+
         // Measure once, then let the design system do less on a weak box.
         val performance = AndroidDeviceCapabilities(this).toPerformanceProfile()
 
         setContent {
-            CastivioTheme(performance = performance) {
-                var screen by remember { mutableStateOf(Screen.Welcome) }
+            // The level the device can afford is the starting point; the user changes
+            // it live in Settings, which is exactly what this build is here to validate.
+            var motionLevel by remember { mutableStateOf(performance.suggestedMotion) }
 
-                when (screen) {
-                    Screen.Welcome -> WelcomeScreen(
-                        identity = identity,
-                        onRefresh = {
-                            val source = SourceStore.load(this)
-                            if (source == null) {
-                                Toast.makeText(
-                                    this,
-                                    getString(R.string.no_playlist_yet),
-                                    Toast.LENGTH_SHORT,
-                                ).show()
-                            } else {
-                                // TODO: next phase — load the playlist and open the channel list.
-                                Toast.makeText(this, getString(R.string.saved), Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        onXtream = { screen = Screen.Xtream },
-                        onM3u = { screen = Screen.M3u },
-                        onSupport = {
-                            runCatching {
-                                startActivity(
-                                    Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.portal_url))),
-                                )
-                            }
-                        },
-                        onLanguage = {
-                            Toast.makeText(this, getString(R.string.language_soon), Toast.LENGTH_SHORT).show()
-                        },
-                        onExit = { finish() },
-                    )
-                    Screen.Xtream -> XtreamScreen(
-                        onSaved = { screen = Screen.Welcome },
-                        onCancel = { screen = Screen.Welcome },
-                    )
-                    Screen.M3u -> M3uScreen(
-                        onSaved = { screen = Screen.Welcome },
-                        onCancel = { screen = Screen.Welcome },
-                    )
-                }
+            CastivioTheme(performance = performance, motionLevel = motionLevel) {
+                ShellScreen(
+                    motionLevel = motionLevel,
+                    onMotionLevel = { motionLevel = it },
+                )
             }
         }
     }

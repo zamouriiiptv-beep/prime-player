@@ -237,6 +237,8 @@ fun EmptyState(
     onAction: () -> Unit,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
+    secondaryActionLabel: String? = null,
+    onSecondaryAction: (() -> Unit)? = null,
 ) {
     StateBlock(
         title = title,
@@ -245,7 +247,16 @@ fun EmptyState(
         tint = CastivioTheme.colors.onBackgroundVariant,
         modifier = modifier,
     ) {
-        CastivioButton(text = actionLabel, onClick = onAction, weight = ButtonWeight.Primary)
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            CastivioButton(text = actionLabel, onClick = onAction, weight = ButtonWeight.Primary)
+            if (secondaryActionLabel != null && onSecondaryAction != null) {
+                CastivioButton(
+                    text = secondaryActionLabel,
+                    onClick = onSecondaryAction,
+                    weight = ButtonWeight.Secondary,
+                )
+            }
+        }
     }
 }
 

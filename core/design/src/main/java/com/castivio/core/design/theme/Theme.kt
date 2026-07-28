@@ -46,6 +46,10 @@ object CastivioTheme {
     val motion: Motion
         @Composable @ReadOnlyComposable get() = Motion
 
+    /** How much of the interface is allowed to move, right now. */
+    val motionLevel: MotionLevel
+        @Composable @ReadOnlyComposable get() = LocalMotionLevel.current
+
     /** The screen class this composition is running on. */
     val device: DeviceClass
         @Composable @ReadOnlyComposable get() = LocalDeviceClass.current
@@ -56,6 +60,14 @@ val LocalCastivioColors: ProvidableCompositionLocal<CastivioColors> =
 
 val LocalDeviceClass: ProvidableCompositionLocal<DeviceClass> =
     staticCompositionLocalOf { DeviceClass.Medium }
+
+/**
+ * The motion level in force. Defaults to [MotionLevel.REDUCED] — an unmeasured
+ * composition gets calm rather than either extreme, matching the leanest default
+ * for [LocalPerformanceProfile].
+ */
+val LocalMotionLevel: ProvidableCompositionLocal<MotionLevel> =
+    staticCompositionLocalOf { MotionLevel.REDUCED }
 
 /**
  * Applies the Castivio design system.
@@ -72,6 +84,12 @@ fun CastivioTheme(
      * an unmeasured device gets frame rate rather than effects.
      */
     performance: PerformanceProfile = PerformanceProfile.LEAN,
+    /**
+     * How much of the interface may move. Defaults to the level the device can
+     * afford; `:app` resolves the user's preference and the platform's settings
+     * against it with [resolveMotionLevel] and passes the result here.
+     */
+    motionLevel: MotionLevel = performance.suggestedMotion,
     content: @Composable () -> Unit,
 ) {
     val colors = castivioDarkColors()
@@ -96,6 +114,7 @@ fun CastivioTheme(
         LocalCastivioColors provides colors,
         LocalDeviceClass provides device,
         LocalPerformanceProfile provides performance,
+        LocalMotionLevel provides motionLevel,
     ) {
         MaterialTheme(
             colorScheme = material,

@@ -69,8 +69,11 @@ fi
 # ------------------------------------------------------------------- invariant 6
 # One component, variants as parameters. A second declaration of a shared name is
 # the beginning of two subtly different buttons.
-SHARED='CastivioButton GlassCard GlassPanel EmptyState ErrorState Skeleton SkeletonRow
-DelayedSpinner CastivioNavRail CastivioActionBar CastivioTopBar SectionLabel'
+SHARED='CastivioButton CastivioIconButton CastivioChip GlassCard GlassHeroCard
+InteractiveGlassCard EmptyState ErrorState Skeleton SkeletonRow DelayedSpinner
+CastivioNavRail CastivioActionBar CastivioTopBar SectionLabel
+MediaCard ChannelCard MediaRow SectionHeader CastivioShell CastivioBottomBar
+ScreenScaffold ScreenTopBar NowPlayingBadge WatchedTag LogoTile MetaChip'
 for name in $SHARED; do
   count=$(grep -rn --include='*.kt' -E "^(internal |private )?fun $name\(" \
             app core feature playback data domain 2>/dev/null | wc -l)

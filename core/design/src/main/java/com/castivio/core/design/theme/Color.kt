@@ -98,10 +98,24 @@ class CastivioColors(
     val focusGlow: Color,
     val divider: Color,
 
+    /**
+     * "Now". The one meaning aqua has anywhere in the product: a live programme,
+     * a playing stream, the moving meter. Never used for navigation or status.
+     */
+    val live: Color,
+
     // Status
     val success: Color,
     val warning: Color,
     val danger: Color,
+
+    /**
+     * Deterministic tints for a logo or avatar placeholder when a provider ships
+     * no artwork. A screen picks one by a stable index (a channel's id), so the
+     * same channel is always the same colour — and the literals stay in here
+     * rather than leaking a `Color(0x…)` into a feature.
+     */
+    val logoTints: List<Color>,
 ) {
     /** The Castivio signature gradient — background washes and hero fills. */
     val auroraBrush: Brush
@@ -152,8 +166,42 @@ fun castivioDarkColors() = CastivioColors(
     focusRing = Palette.Azure60,
     focusGlow = Palette.Azure40.copy(alpha = 0.45f),
     divider = Color(0x1FFFFFFF),
+    live = Palette.Aqua,
 
     success = Palette.Success,
     warning = Palette.Warning,
     danger = Palette.Danger,
+
+    logoTints = listOf(
+        Palette.Azure40,
+        Palette.Violet40,
+        Palette.Aqua,
+        Palette.Amber,
+        Palette.Ember,
+        Palette.Azure50,
+        Palette.Violet50,
+    ),
 )
+
+/**
+ * A placeholder poster fill, chosen deterministically from [index].
+ *
+ * Real artwork replaces this the moment it loads; until then a card should read
+ * as the surface it will become rather than as a grey hole. Kept here so the
+ * gradient stops are palette values, not literals in a feature.
+ */
+fun posterPlaceholderBrush(index: Int): Brush {
+    val pairs = listOf(
+        Palette.Violet10 to Palette.Violet40,
+        Palette.Azure10 to Palette.Azure40,
+        Palette.Slate to Palette.Aqua,
+        Palette.Deep to Palette.Ember,
+        Palette.Haze to Palette.Amber,
+        Palette.Abyss to Palette.Violet50,
+    )
+    val (top, bottom) = pairs[(index % pairs.size + pairs.size) % pairs.size]
+    return Brush.linearGradient(listOf(top, bottom))
+}
+
+/** The soft edge-fade a scrollable row bleeds into, so it reads as "continues". */
+val rowEdgeFadeColor: Color get() = Palette.Void
