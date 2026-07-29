@@ -38,7 +38,8 @@ Android, which keeps the business rules testable on the JVM.
 :domain                 models + use cases — pure Kotlin, no Android imports
 
 :data:playlist          M3U + Xtream parsing, channel/VOD repositories
-:data:activation        device identity, provider portal
+:data:activation        device identity, trusted-time signals, provider portal
+:data:entitlement       the app licence: sealed storage, the clock, the trial
 :data:preferences       settings, language, persisted state
 
 :core:design            design system — tokens + reusable components
@@ -292,6 +293,66 @@ the clock would recover and the record would not.
 on change, so every awkward case — reboot, process death, dead coin cell, a
 `Date` header from a broken proxy — is a unit test rather than something one
 hopes about a television.
+
+### Who may say what
+
+Castivio's own licence has three roles, and they are kept apart by their return types
+rather than by a comment:
+
+| | establish a purchase | revoke | grant a trial |
+|---|---|---|---|
+| `EntitlementSource` — the licence server | yes | yes | yes |
+| `TrialGrantor` | no | no | yes |
+| `EntitlementStore` | no | no | no |
+
+`TrialGrantor.grant` returns a `TrialGrant`, which has no plan, no price and no
+revocation field — so an implementation of it *cannot express* a lifetime purchase
+however much it might want to. Only `EntitlementSource` returns an `Attestation`, and
+only a server signs one.
+
+That matters because the implementation shipping today is local.
+`LocalEntitlementSource` is a **development trial and nothing else**: it cannot
+remember that a device has already had its free week (clearing app data removes the
+record and it would grant another), and it cannot refuse. So it is compiled off in a
+release build — `BuildConfig.LOCAL_TRIAL` is false there. A shipped APK with no licence
+server has nothing that can honestly hand out a free week, and one that did would be a
+licensing system with no licences in it.
+
+Adding the server is one `@Provides` in `data/entitlement/di/EntitlementModule.kt`.
+Nothing in `:domain` changes: the repository already asks for an `EntitlementSource`,
+already reports `AppError.NOT_CONFIGURED` when there is none, and already treats an
+attestation as replacing whatever was cached.
+
+Three rules the repository enforces on top of the pure policy:
+
+1. **Silence revokes nothing.** A failed refresh leaves the stored record byte for byte
+   as it was. Only an attestation changes a plan; only one carrying `revokedAtMs` takes
+   one away.
+2. **The server replaces, it does not merge** — except the identity, which is ours to
+   state. Trusting the server's echo of the address would let one bad answer rebind the
+   device's licence to somebody else's.
+3. **A read is a write.** Every evaluation goes through the `TimeReading` overload, so
+   the mark advances with an honest clock, is repaired by a trusted one, and the
+   correction is stored rather than recomputed next launch.
+
+### What is sealed, and what that is worth
+
+The record and the clock state live in one preferences file, `castivio.entitlement`,
+each sealed with AES-256-GCM. Its own file, not the app's, so a future "reset settings"
+cannot take a paid licence with it.
+
+The key comes from `AndroidKeyStore` on Android 6 and later, where the material never
+enters the app's address space. On Android 5 — still Castivio's floor — the keystore
+cannot hold an AES key, so one is generated and stored beside the ciphertext. That is
+obfuscation, not protection, and it is written down here rather than implied.
+
+Nothing in the record is a secret; the customer knows all of it. GCM is there because
+the trial expiry and the high-water mark are exactly what someone wanting a second free
+week would edit, and an authenticated cipher turns that from a one-line change into a
+blob that will not open. An unopenable blob is discarded and read as "nothing stored",
+which routes to the licence screen — and with a server bound, is one round trip from
+being right again. **The defence is that the server is the authority; this raises the
+cost of casual tampering.**
 
 ## Testing posture
 

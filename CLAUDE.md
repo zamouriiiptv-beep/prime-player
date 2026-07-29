@@ -86,7 +86,7 @@ directions, at every animation level down to none.
 ```
 core/       common · navigation · design · platform
 domain/     contracts, models, policies — pure Kotlin
-data/       networking · preferences · activation · parsing · database · playlist · epg
+data/       networking · preferences · activation · entitlement · parsing · database · playlist · epg
 playback/   engine-api (contract) · engine-media3 (implementation)
 feature/    activation · home · search · player · settings
 design/     mockups, rendered from HTML at real device geometry

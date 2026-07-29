@@ -21,6 +21,17 @@ enum class AppError {
     NOT_FOUND,
     MALFORMED_PLAYLIST,
     SERVER_ERROR,
+
+    /**
+     * The operation is real but this build has nothing to perform it against — a
+     * licence check in a build with no licence server bound.
+     *
+     * Distinct from [SERVER_ERROR] because it is not a failure of anything: nothing was
+     * asked, because there was nobody to ask. It should not occur in a release build,
+     * and reporting it as a server error would hide that.
+     */
+    NOT_CONFIGURED,
+
     UNKNOWN,
 }
 

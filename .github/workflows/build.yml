@@ -53,7 +53,8 @@ jobs:
             :data:database:testDebugUnitTest \
             :data:networking:testDebugUnitTest \
             :data:playlist:testDebugUnitTest \
-            :data:activation:testDebugUnitTest
+            :data:activation:testDebugUnitTest \
+            :data:entitlement:testDebugUnitTest
 
       # The schema is what any future migration is written against, so its export
       # is verified rather than assumed. See the script for what it catches.

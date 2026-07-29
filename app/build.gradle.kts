@@ -51,6 +51,8 @@ dependencies {
     implementation(project(":data:networking"))
     implementation(project(":data:playlist"))
     implementation(project(":data:epg"))
+    implementation(project(":data:activation"))
+    implementation(project(":data:entitlement"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
