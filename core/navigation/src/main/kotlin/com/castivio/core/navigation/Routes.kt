@@ -22,6 +22,18 @@ sealed interface Route {
         override val key: String get() = "splash"
     }
 
+    /**
+     * The app's own licence, which is not the provider's subscription.
+     *
+     * It sits beside [Activation] rather than inside it because the two gates are
+     * independent: this one decides whether Castivio may be used at all, and it is
+     * answered before a provider is ever consulted. [reason] chooses the wording; it
+     * never changes where the screen sits.
+     */
+    data class Licence(val reason: LicenceDenial) : Route {
+        override val key: String get() = "licence"
+    }
+
     data class Activation(val method: ActivationMethod? = null) : Route {
         override val key: String get() = "activation/${method?.name ?: "choose"}"
     }
@@ -99,6 +111,15 @@ sealed interface Route {
 enum class SectionKind { LIVE, MOVIES, SERIES, RADIO }
 
 enum class ActivationMethod { CODE, XTREAM, PLAYLIST_URL, LOCAL_FILE }
+
+/**
+ * Why the licence screen is showing, named here rather than reused from `:domain`.
+ *
+ * Same reasoning as [SectionKind]: a destination is not a business state. Navigation
+ * needs four wordings, not the entitlement model, and keeping the dependency out is
+ * what lets this module stay a plain description of where the app can be.
+ */
+enum class LicenceDenial { NOT_ESTABLISHED, TRIAL_EXPIRED, SUBSCRIPTION_EXPIRED, VERIFICATION_REQUIRED }
 
 enum class SettingsSection {
     PLAYBACK,

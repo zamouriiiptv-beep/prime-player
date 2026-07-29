@@ -49,6 +49,11 @@ object BackPolicy {
         Route.Home -> BackTarget.ConfirmExit
         Route.Splash -> BackTarget.ConfirmExit
 
+        // The licence gate is answered before anything else exists, so it is the
+        // bottom of the stack whenever it is shown. Back leaves the app rather than
+        // slipping past a gate that has not been satisfied.
+        is Route.Licence -> BackTarget.ConfirmExit
+
         // Picking a method is one level below choosing one, so Back re-opens the
         // chooser rather than leaving the app mid-activation.
         is Route.Activation ->

@@ -91,6 +91,29 @@ class BackPolicyTest {
         )
     }
 
+    /**
+     * The licence gate is answered before anything else exists, so Back must leave the
+     * app rather than slip past a gate that has not been satisfied.
+     */
+    @Test
+    fun `back from the licence gate leaves the app rather than bypassing it`() {
+        for (reason in LicenceDenial.entries) {
+            assertEquals(
+                "back from licence/${reason.name}",
+                BackTarget.ConfirmExit,
+                BackPolicy.from(Route.Licence(reason)),
+            )
+        }
+        assertTrue(BackPolicy.handles(Route.Licence(LicenceDenial.TRIAL_EXPIRED)))
+    }
+
+    @Test
+    fun `every licence denial is the same destination`() {
+        val keys = LicenceDenial.entries.map { Route.Licence(it).key }.toSet()
+
+        assertEquals("the reason is wording, not routing", 1, keys.size)
+    }
+
     @Test
     fun `the activation chooser is the bottom of the stack on first run`() {
         assertEquals(BackTarget.ConfirmExit, BackPolicy.from(Route.Activation()))
