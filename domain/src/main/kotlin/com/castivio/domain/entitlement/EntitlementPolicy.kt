@@ -1,6 +1,7 @@
 package com.castivio.domain.entitlement
 
 import com.castivio.domain.time.TimeReading
+import com.castivio.domain.time.daysRemaining
 import kotlin.math.max
 
 /**
@@ -43,8 +44,6 @@ data class EntitlementDecision(
  *     is reported as unverified rather than as expired.
  */
 object EntitlementPolicy {
-
-    private const val DAY_MS = 24L * 60 * 60 * 1000
 
     /**
      * @param record what is stored for this device, or null on a genuine first launch.
@@ -165,17 +164,4 @@ object EntitlementPolicy {
 
             Plan.LIFETIME -> EntitlementState.Lifetime
         }
-
-    /**
-     * Whole days left, rounded up.
-     *
-     * Rounded up because a subscription with thirty hours left has two days on it in
-     * the only sense the user cares about: it will still be working tomorrow. Rounding
-     * down would show "1 day" and then keep working, which reads as a bug.
-     */
-    private fun daysRemaining(now: Long, expiresAtMs: Long): Int {
-        val remaining = expiresAtMs - now
-        if (remaining <= 0) return 0
-        return ((remaining + DAY_MS - 1) / DAY_MS).toInt()
-    }
 }

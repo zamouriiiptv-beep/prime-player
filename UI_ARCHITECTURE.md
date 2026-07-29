@@ -241,6 +241,17 @@ None of the three changes where the app starts. A play attempt under an expired
 subscription explains the expiry rather than failing silently, and the banner persists
 until the provider is updated — it is not a dismissible toast.
 
+This table is `ProviderHealth` in `:domain`, and it resolves to **one** state rather
+than a list. Three of these conditions can be true at once — a subscription that ended
+last night, on a plan whose connections are all in use, on a host that is timing out —
+and a banner stacking all three is a banner nobody reads. The precedence is "what stops
+the user watching something right now" before "what stops them next week": refused,
+then expired, then every connection in use, then expiring soon.
+
+`ProviderHealth` is deliberately not an input to `startDestination`. The rule that a
+lapsed provider still opens Home is held by the signature: the function cannot see the
+value, so the exception cannot be written.
+
 #### The non-destructive guarantee
 
 > **A failed refresh never deletes anything.** `ImportMode.REPLACE` prunes only after
