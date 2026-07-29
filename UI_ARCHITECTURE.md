@@ -138,7 +138,50 @@ The contract for what must be true before the app shows content, what happens on
 every restart afterwards, and what a failing provider is and is not allowed to do.
 Approved as source of truth; implementation follows it rather than reinterpreting it.
 
-#### The gate
+#### Gate one: the app licence
+
+Castivio's own licence is answered **before** a provider is ever consulted, and it is
+strict. Three states permit use and three deny it; there is no middle ground and no
+*browse anyway*.
+
+| State | Outcome |
+|---|---|
+| `TrialActive` · `AnnualActive` · `Lifetime` | continue to gate two |
+| `TrialExpired` · `AnnualExpired` · `Revoked` | **Licence screen, and nothing else** |
+
+A denied licence locks the app: no Home, no section, no player. If the licence lapses
+while the user is inside the app, they are moved to the licence screen and playback
+stops — this is the one redirect the product performs, and it is ours to perform
+because it is our own gate.
+
+**Nothing is deleted.** The provider, the playlist, the catalogue, favourites and
+watch history all survive a lapsed licence untouched. Entitlement decides whether the
+app may be used; it never decides who owns the data. On activation the app unlocks
+straight back into an existing catalogue with no re-import.
+
+`Revoked` is the only state that outranks `Lifetime`, because it is the licence server
+speaking rather than the licence server being silent. The client never infers it.
+
+**Confirmed expiry is not the same as failed verification.** A date that has passed is
+a fact and locks the app; an unreachable server is not, and is forgiven for the
+configured offline grace — otherwise our outage becomes a paying customer's problem.
+
+#### Gate two: the provider catalogue
+
+> **No usable local catalogue → Activation. A usable, completed local catalogue →
+> Home.** Provider and network state then affect banners, refresh and playback — never
+> whether an existing catalogue is allowed to open.
+
+An expired subscription does not make a committed catalogue disappear, so it does not
+change where the app starts. A user whose provider lapsed can still browse what they
+have and renew when they choose; routing them back to setup would take away something
+that still works in order to tell them about something that does not. This also keeps
+the entry rule free of exceptions — and every exception in an entry rule becomes a
+branch in the code forever.
+
+There is consequently no *Browse anyway* action at startup: **Home is the browse path.**
+
+#### What a usable catalogue means
 
 Home opens when, and only when, **all three** hold:
 
@@ -164,28 +207,14 @@ not to opening Home.
 with its own message. An empty app reads as broken, and this is the one case where
 "the import worked" and "the user has something" disagree.
 
-#### One rule decides where the app starts
-
-> **No usable local catalogue → Activation. A usable, completed local catalogue →
-> Home.** Provider and network state then affect banners, refresh and playback — never
-> whether an existing catalogue is allowed to open.
-
-An expired subscription does not make a committed catalogue disappear, so it does not
-change where the app starts. A user whose provider lapsed can still browse what they
-have and renew when they choose; routing them back to setup would take away something
-that still works in order to tell them about something that does not. This also keeps
-the entry rule free of exceptions — and every exception in an entry rule becomes a
-branch in the code forever.
-
-There is consequently no *Browse anyway* action at startup: **Home is the browse path.**
-
 #### Startup
 
-Splash resolves the gate from local storage only and branches three ways:
+Splash resolves both gates from local storage only and branches four ways:
 
 | Found | Goes to |
 |---|---|
-| Gate satisfied | **Home** — the root of the back stack. Activation is not on it, so Back from Home is the exit confirmation |
+| Licence denied | **Licence** — the root of the back stack, and the only way past it is activation |
+| Both gates satisfied | **Home** — the root of the back stack. Activation is not on it, so Back from Home is the exit confirmation |
 | Source exists, `needsFirstImport` | Activation, pre-filled — never retype |
 | No source | Activation |
 
@@ -237,9 +266,13 @@ never disappear because their network did.
 
 ```
 Splash  (local reads only, never the network)
- ├─ no source ───────────────────→ Activation
- ├─ source, needsFirstImport ────→ Activation (pre-filled)
- └─ gate satisfied ──────────────→ Home
+ │
+ ├─ Gate 1 · licence denied ─────→ Licence   (expired · revoked · unverified)
+ │
+ └─ Gate 1 · licence permits
+     ├─ no source ───────────────→ Activation
+     ├─ source, needsFirstImport →  Activation (pre-filled)
+     └─ gate two satisfied ──────→ Home
                                      ├─ stale?   → refresh behind Content(refreshing = true)
                                      └─ expired? → persistent banner, never a redirect
 

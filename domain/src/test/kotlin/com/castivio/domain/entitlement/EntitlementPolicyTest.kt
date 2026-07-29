@@ -274,6 +274,70 @@ class EntitlementPolicyTest {
         assertEquals(t0 + 9 * day, EntitlementPolicy.effectiveNow(r, t0 + 9 * day))
     }
 
+    // -------------------------------------------------------------- revocation
+
+    /**
+     * The one thing that outranks a lifetime purchase. The rule elsewhere is that our
+     * *silence* must never take away something bought outright — a revocation is not
+     * silence, it is the server saying so.
+     */
+    @Test
+    fun `a revoked lifetime is revoked`() {
+        val revoked = record(
+            plan = Plan.LIFETIME,
+            trialExpiresAtMs = null,
+        ).copy(revokedAtMs = t0 + day)
+
+        val state = EntitlementPolicy.evaluate(revoked, nowMs = t0 + 2 * day, config = config)
+
+        assertEquals(EntitlementState.Revoked(t0 + day), state)
+        assertFalse(state.allowsUse)
+    }
+
+    @Test
+    fun `revocation beats an otherwise valid trial or subscription`() {
+        val trial = record().copy(revokedAtMs = t0)
+        val annual = record(
+            plan = Plan.ANNUAL,
+            trialExpiresAtMs = null,
+            subscriptionExpiresAtMs = t0 + 365 * day,
+        ).copy(revokedAtMs = t0)
+
+        assertFalse(EntitlementPolicy.evaluate(trial, t0 + day, config).allowsUse)
+        assertFalse(EntitlementPolicy.evaluate(annual, t0 + day, config).allowsUse)
+    }
+
+    /**
+     * Revocation is only ever written from a server response, so an ordinary record —
+     * however stale — must never drift into it on its own.
+     */
+    @Test
+    fun `nothing local ever produces a revocation`() {
+        val neverVerified = record(
+            trialExpiresAtMs = t0 + 400 * day,
+            lastVerifiedAtMs = null,
+        )
+
+        val state = EntitlementPolicy.evaluate(neverVerified, t0 + 400 * day, config)
+
+        assertTrue("$state", state !is EntitlementState.Revoked)
+    }
+
+    // ------------------------------------------------ confirmed versus unconfirmed
+
+    /**
+     * The distinction the licence policy turns on: a date that has passed is a fact and
+     * locks the app; an unreachable server is not, and is forgiven for the grace period.
+     */
+    @Test
+    fun `a known expiry locks while an unreachable server does not`() {
+        val expired = record(trialExpiresAtMs = t0 + day, lastVerifiedAtMs = t0)
+        val unreachableButValid = record(trialExpiresAtMs = t0 + 7 * day, lastVerifiedAtMs = t0)
+
+        assertFalse(EntitlementPolicy.evaluate(expired, t0 + 2 * day, config).allowsUse)
+        assertTrue(EntitlementPolicy.evaluate(unreachableButValid, t0 + 2 * day, config).allowsUse)
+    }
+
     // ----------------------------------------------------------- broken records
 
     /**

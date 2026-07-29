@@ -156,6 +156,102 @@ class StartGateTest {
         )
     }
 
+    // ------------------------------------------------ the six mappings, explicitly
+
+    /**
+     * The licence policy as a table, stated once so a future change has to argue with
+     * a test rather than with a paragraph.
+     *
+     * The three permissive states reach the provider gate; the three denying states do
+     * not, no matter what is on the device. There is no "browse anyway": an expired
+     * app licence locks the app, and the only way past it is activation.
+     */
+    @Test
+    fun `every entitlement state maps to exactly one gate outcome`() {
+        val full = source()
+
+        // Allowed → the provider gate decides.
+        assertEquals(StartDestination.Home, startDestination(entitled, full))
+        assertEquals(
+            StartDestination.Home,
+            startDestination(EntitlementState.AnnualActive(t0 + 365 * day, 365), full),
+        )
+        assertEquals(StartDestination.Home, startDestination(EntitlementState.Lifetime, full))
+
+        // Denied → the licence screen, and nothing else.
+        assertEquals(
+            StartDestination.Licence(LicenceReason.TRIAL_EXPIRED),
+            startDestination(EntitlementState.TrialExpired, full),
+        )
+        assertEquals(
+            StartDestination.Licence(LicenceReason.SUBSCRIPTION_EXPIRED),
+            startDestination(EntitlementState.AnnualExpired, full),
+        )
+        assertEquals(
+            StartDestination.Licence(LicenceReason.REVOKED),
+            startDestination(EntitlementState.Revoked(t0), full),
+        )
+    }
+
+    /**
+     * The same three permissive states with nothing imported yet reach the *provider*
+     * gate rather than Home — proving gate one hands over rather than deciding.
+     */
+    @Test
+    fun `a permitted licence with no catalogue reaches the provider gate`() {
+        val permissive = listOf(
+            entitled,
+            EntitlementState.AnnualActive(t0 + 365 * day, 365),
+            EntitlementState.Lifetime,
+        )
+
+        for (state in permissive) {
+            assertEquals("$state", StartDestination.Activation, startDestination(state, source = null))
+        }
+    }
+
+    /** A revoked entitlement is locked out even though it was bought outright. */
+    @Test
+    fun `revocation locks the app regardless of what was purchased`() {
+        assertEquals(
+            StartDestination.Licence(LicenceReason.REVOKED),
+            startDestination(EntitlementState.Revoked(t0), source()),
+        )
+        assertEquals(
+            StartDestination.Licence(LicenceReason.REVOKED),
+            startDestination(EntitlementState.Revoked(null), source = null),
+        )
+    }
+
+    // ------------------------------------------------------------ after unlocking
+
+    /**
+     * What happens the moment activation succeeds: the entitlement turns permissive and
+     * the catalogue that was on the device the whole time opens straight away.
+     *
+     * The lock never touched the data, so there is nothing to import again — which is
+     * the difference between unlocking an app and setting it up twice.
+     */
+    @Test
+    fun `activating with a catalogue already on the device opens home without importing`() {
+        val locked = EntitlementState.TrialExpired
+        val unlocked = EntitlementState.AnnualActive(t0 + 365 * day, 365)
+        val untouched = source()
+
+        assertEquals(
+            StartDestination.Licence(LicenceReason.TRIAL_EXPIRED),
+            startDestination(locked, untouched),
+        )
+        assertEquals(StartDestination.Home, startDestination(unlocked, untouched))
+    }
+
+    @Test
+    fun `activating without a catalogue continues to provider activation`() {
+        val unlocked = EntitlementState.Lifetime
+
+        assertEquals(StartDestination.Activation, startDestination(unlocked, source = null))
+    }
+
     // ----------------------------------------------------------------- wording
 
     @Test
@@ -169,5 +265,6 @@ class StartGateTest {
                 EntitlementState.VerificationUnavailable(Plan.TRIAL, null, t0),
             ),
         )
+        assertEquals(LicenceReason.REVOKED, licenceReason(EntitlementState.Revoked(t0)))
     }
 }

@@ -16,13 +16,15 @@ import kotlin.math.max
  *     instant this device has ever seen, so moving the clock back cannot extend a
  *     trial. Moving it forward ends the trial sooner, which is a self-inflicted wound
  *     rather than an exploit.
- *  2. **Lifetime is never revoked here.** It was bought outright, so an outage of our
- *     licence server must not take it away. The server can still correct a lifetime
- *     record when it is reachable; what it cannot do is punish silence.
- *  3. **A known expiry beats an unknown one.** If the cached dates already say the
+ *  2. **A revocation outranks everything.** It is the server speaking, and the server
+ *     is the source of truth — so it takes precedence even over lifetime.
+ *  3. **Lifetime is never revoked *by silence*.** It was bought outright, so an outage
+ *     of our licence server must not take it away. The server can still correct a
+ *     lifetime record when it is reachable; what it cannot do is punish silence.
+ *  4. **A known expiry beats an unknown one.** If the cached dates already say the
  *     trial or subscription ended, that is reported as expired — it is the more
  *     specific and more useful truth than "couldn't verify".
- *  4. **Silence is forgiven for a while.** Only after the grace period in
+ *  5. **Silence is forgiven for a while.** Only after the grace period in
  *     [PricingConfig] does an unconfirmed entitlement stop counting, and even then it
  *     is reported as unverified rather than as expired.
  */
@@ -45,14 +47,19 @@ object EntitlementPolicy {
         // Rule 1. A clock that moved backwards must not rewind an expiry.
         val now = effectiveNow(record, nowMs)
 
-        // Rule 2. Bought outright; our silence is not their problem.
+        // Rule 2. A revocation is the server speaking, so it outranks everything —
+        // including lifetime. Rule 3 protects the customer from our *silence*; this is
+        // not silence, and the client never sets it on its own authority.
+        record.revokedAtMs?.let { return EntitlementState.Revoked(it) }
+
+        // Rule 3. Bought outright; our silence is not their problem.
         if (record.plan == Plan.LIFETIME) return EntitlementState.Lifetime
 
-        // Rule 3. A cached expiry we already know about is the better answer.
+        // Rule 4. A cached expiry we already know about is the better answer.
         val settled = settled(record, now)
         if (!settled.allowsUse) return settled
 
-        // Rule 4. Otherwise the entitlement stands until the grace runs out.
+        // Rule 5. Otherwise the entitlement stands until the grace runs out.
         val graceEndsAt = graceEndsAt(record, config)
         if (now >= graceEndsAt) {
             return EntitlementState.VerificationUnavailable(

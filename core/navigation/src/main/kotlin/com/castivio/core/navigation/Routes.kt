@@ -119,7 +119,13 @@ enum class ActivationMethod { CODE, XTREAM, PLAYLIST_URL, LOCAL_FILE }
  * needs four wordings, not the entitlement model, and keeping the dependency out is
  * what lets this module stay a plain description of where the app can be.
  */
-enum class LicenceDenial { NOT_ESTABLISHED, TRIAL_EXPIRED, SUBSCRIPTION_EXPIRED, VERIFICATION_REQUIRED }
+enum class LicenceDenial {
+    NOT_ESTABLISHED,
+    TRIAL_EXPIRED,
+    SUBSCRIPTION_EXPIRED,
+    REVOKED,
+    VERIFICATION_REQUIRED,
+}
 
 enum class SettingsSection {
     PLAYBACK,

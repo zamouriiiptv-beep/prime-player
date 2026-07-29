@@ -61,6 +61,19 @@ sealed interface EntitlementState {
     }
 
     /**
+     * The licence server has withdrawn this entitlement — a refund, a chargeback, a
+     * duplicate, an abuse finding.
+     *
+     * This is the one thing that outranks [Lifetime]. The rule elsewhere is that our
+     * *silence* must never take away something bought outright; a revocation is not
+     * silence, it is the server saying so, and the server is the source of truth.
+     * Nothing is inferred locally: this state exists only because a response set it.
+     */
+    data class Revoked(val revokedAtMs: Long?) : EntitlementState {
+        override val allowsUse: Boolean get() = false
+    }
+
+    /**
      * Nothing has been established for this device yet — the state on a genuine
      * first launch, before a trial has been granted.
      *
@@ -126,6 +139,14 @@ data class EntitlementRecord(
 
     /** Last time the licence server confirmed this record. Null before it ever has. */
     val lastVerifiedAtMs: Long? = null,
+
+    /**
+     * When the licence server withdrew this entitlement, if it has.
+     *
+     * Only ever written from a server response. The client never revokes on its own
+     * authority — an unreachable server is silence, and silence revokes nothing.
+     */
+    val revokedAtMs: Long? = null,
 
     /**
      * The furthest point in time this device has ever observed, from the device

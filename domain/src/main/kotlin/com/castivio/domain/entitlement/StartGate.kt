@@ -52,6 +52,9 @@ enum class LicenceReason {
 
     SUBSCRIPTION_EXPIRED,
 
+    /** The licence server withdrew this entitlement. */
+    REVOKED,
+
     /** A cached entitlement outlived its offline grace. Not an accusation. */
     VERIFICATION_REQUIRED,
 }
@@ -89,6 +92,7 @@ fun startDestination(
 fun licenceReason(state: EntitlementState): LicenceReason = when (state) {
     is EntitlementState.TrialExpired -> LicenceReason.TRIAL_EXPIRED
     is EntitlementState.AnnualExpired -> LicenceReason.SUBSCRIPTION_EXPIRED
+    is EntitlementState.Revoked -> LicenceReason.REVOKED
     is EntitlementState.VerificationUnavailable -> LicenceReason.VERIFICATION_REQUIRED
     is EntitlementState.Unknown -> LicenceReason.NOT_ESTABLISHED
     is EntitlementState.TrialActive,
