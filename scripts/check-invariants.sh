@@ -169,6 +169,36 @@ if [ -n "$offenders" ]; then
     Dispatchers.Unconfined            -- what the rest of this repository uses"
 fi
 
+# ------------------------------------------- test dependencies are per module
+# Gradle scopes test dependencies to the module that declares them. A local classpath
+# -- an IDE's, or a hand-rolled one -- is usually one flat bag of jars, so a test that
+# imports a library its own module never declared compiles perfectly well until the
+# build runs it. The failure is always the same shape: green locally, red on CI,
+# minutes later.
+#
+# Only the two libraries this has actually happened with are checked. A list that
+# guesses at every dependency would be a list nobody trusts.
+declare -A NEEDS=(
+  ["kotlinx.coroutines.test"]="libs.coroutines.test"
+  ["org.robolectric"]="libs.robolectric"
+)
+for module in $(find app core data domain feature playback benchmark -name build.gradle.kts 2>/dev/null); do
+  dir=$(dirname "$module")
+  [ -d "$dir/src/test" ] || continue
+  for import in "${!NEEDS[@]}"; do
+    alias="${NEEDS[$import]}"
+    if grep -rq --include='*.kt' "^import ${import}" "$dir/src/test" 2>/dev/null; then
+      if ! grep -q -- "$alias" "$module"; then
+        fail "$dir tests import $import without declaring $alias" \
+             "$module
+
+  Add: testImplementation($alias)
+  It compiles on a wider local classpath and fails the moment Gradle builds it."
+      fi
+    fi
+  done
+done
+
 # ------------------------------------------------------------------------ report
 if [ "$failures" -eq 0 ]; then
   echo "Design invariants: all mechanical checks pass."
