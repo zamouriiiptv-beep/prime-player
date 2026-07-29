@@ -41,8 +41,21 @@ None of these are client work, and none of them can be faked locally.
 ## 2. The one test that needs a real device
 
 `VaultKeys` is the only part of `:data:entitlement` no JVM can exercise: Robolectric
-has no `AndroidKeyStore`, and neither has a plain JVM. The cipher around it is behind
-a lambda and fully unit-tested; the twenty lines that fetch a key are not.
+has no `AndroidKeyStore`, and neither has a plain JVM.
+
+This section used to say the cipher around it was behind a lambda and fully unit-tested,
+and leave it there. That was true and it was not enough. A key held in `AndroidKeyStore`
+is created with randomised encryption required, so it **refuses an initialisation vector
+supplied by the caller** — and the JVM's own provider accepts one happily. `seal`
+generated its own nonce, passed every unit test, and threw
+`InvalidAlgorithmParameterException: Caller-provided IV not permitted` on the first
+launch of every real device. "The collaborator is behind an interface" is not the same
+claim as "the contract that collaborator imposes is held somewhere".
+
+So the contract is now modelled: `KeystoreLikeCipher` is a JCE provider that enforces
+what a keystore key enforces — an opaque key, no caller nonce when encrypting, a
+required nonce when decrypting — and `FirstLaunchTest` runs the whole startup path
+behind it. That is what a JVM can hold. What follows is what it cannot.
 
 - [ ] **Instrumented test on a real device and on an emulator**, covering:
   1. create the key on a device that has never had one

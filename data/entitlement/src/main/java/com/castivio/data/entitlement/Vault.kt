@@ -1,7 +1,6 @@
 package com.castivio.data.entitlement
 
 import java.security.GeneralSecurityException
-import java.security.SecureRandom
 import javax.crypto.Cipher
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
@@ -46,13 +45,37 @@ internal interface Vault {
 internal class AesGcmVault(key: () -> SecretKey) : Vault {
 
     private val secret: SecretKey by lazy(key)
-    private val random = SecureRandom()
 
+    /**
+     * Encrypts with an initialisation vector **the key's own provider chooses**.
+     *
+     * This is not a style preference. A key generated in `AndroidKeyStore` is created
+     * with randomized encryption required — the default, and one worth keeping — and
+     * such a key refuses an IV supplied by the caller:
+     *
+     * ```
+     * java.security.InvalidAlgorithmParameterException:
+     *     Caller-provided IV not permitted
+     * ```
+     *
+     * The JVM's own provider is happy to accept one, which is exactly why generating
+     * the IV here passed every test and failed on every real device. So the provider
+     * generates it and hands it back through [Cipher.getIV]; the envelope is byte for
+     * byte what it was, because the IV still travels in front of the ciphertext.
+     */
     override fun seal(plain: ByteArray): ByteArray {
-        val iv = ByteArray(IV_BYTES).also(random::nextBytes)
         val cipher = Cipher.getInstance(TRANSFORMATION).apply {
-            init(Cipher.ENCRYPT_MODE, secret, GCMParameterSpec(TAG_BITS, iv))
+            init(Cipher.ENCRYPT_MODE, secret)
         }
+
+        val iv = cipher.iv
+        // Twelve is GCM's standard nonce and what both AndroidKeyStore and the JVM
+        // produce. The envelope has no length field, so a provider that chose another
+        // size must fail loudly here rather than write a blob nothing can parse.
+        require(iv != null && iv.size == IV_BYTES) {
+            "AES-GCM needs a $IV_BYTES byte nonce; this provider produced ${iv?.size}"
+        }
+
         val body = cipher.doFinal(plain)
 
         return ByteArray(1 + IV_BYTES + body.size).also { out ->
