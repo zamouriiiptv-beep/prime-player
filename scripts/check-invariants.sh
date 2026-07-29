@@ -136,20 +136,37 @@ if [ -f "$module" ]; then
 fi
 
 # ------------------------------------------------------ a trap worth failing on
-# A TestDispatcher built as a field is constructed outside `runTest`, so it carries
-# its own scheduler and every suspending test in the class dies with "detected use of
-# different schedulers" -- on CI, minutes after the commit looked fine. Either share
-# the scheduler (`StandardTestDispatcher(testScheduler)`) or use Dispatchers.Unconfined,
-# which is what the rest of this repository does.
-hits=$(grep -rn --include='*.kt' -E '(Standard|Unconfined)TestDispatcher\(\)' \
-        app core feature playback data domain benchmark 2>/dev/null)
-if [ -n "$hits" ]; then
-  fail "A TestDispatcher is built without a scheduler" \
-       "$hits
+# A no-argument TestDispatcher brings its own TestCoroutineScheduler unless something
+# has installed one as Main. Built as a field and handed to production code, every
+# suspending test in the class then dies with "detected use of different schedulers"
+# -- on CI, minutes after the commit looked fine locally.
+#
+# Two spellings are perfectly correct and must keep working, so neither is flagged:
+#
+#   Dispatchers.setMain(StandardTestDispatcher())   -- the ViewModel test pattern;
+#                                                      runTest adopts Main's scheduler
+#   StandardTestDispatcher(testScheduler)           -- sharing one explicitly
+#
+# So the check is file-scoped: a no-argument TestDispatcher is only a defect in a file
+# that never calls setMain. Both spellings were verified against the real library
+# before this rule was written, not assumed.
+offenders=""
+for file in $(grep -rl --include='*.kt' -E '(Standard|Unconfined)TestDispatcher\(\)' \
+                app core feature playback data domain benchmark 2>/dev/null); do
+  if ! grep -q 'setMain(' "$file"; then
+    offenders="$offenders
+$(grep -n -E '(Standard|Unconfined)TestDispatcher\(\)' "$file" | sed "s|^|$file:|")"
+  fi
+done
+if [ -n "$offenders" ]; then
+  fail "A TestDispatcher is built with no scheduler and never installed as Main" \
+       "$offenders
 
-  Constructed outside runTest, this brings its own scheduler and every
-  suspending test in the class fails. Use Dispatchers.Unconfined, or pass
-  runTest's own scheduler: StandardTestDispatcher(testScheduler)."
+  Constructed this way it brings its own scheduler, and every suspending test
+  in the class fails. Any of these is fine:
+    Dispatchers.setMain(StandardTestDispatcher())
+    StandardTestDispatcher(testScheduler)
+    Dispatchers.Unconfined            -- what the rest of this repository uses"
 fi
 
 # ------------------------------------------------------------------------ report
