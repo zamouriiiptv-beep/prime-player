@@ -23,4 +23,5 @@ dependencies {
     implementation(libs.zxing.core)
     implementation(libs.coroutines.android)
     testImplementation(libs.junit)
+    testImplementation(libs.coroutines.test)
 }

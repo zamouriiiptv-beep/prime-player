@@ -3,7 +3,9 @@ package com.castivio.data.networking.di
 import android.content.Context
 import com.castivio.core.platform.DeviceCapabilities
 import com.castivio.data.networking.HttpClientProvider
+import com.castivio.data.networking.HttpProviderValidator
 import com.castivio.data.networking.HttpStreamSource
+import com.castivio.domain.ProviderValidator
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -38,6 +40,18 @@ object NetworkingModule {
     @Provides
     @Singleton
     fun streamSource(client: OkHttpClient): HttpStreamSource = HttpStreamSource(client)
+
+    /**
+     * Asked before anything is imported, so that a wrong password, an expired
+     * subscription, every connection in use and an unreachable host arrive as four
+     * different answers instead of as "no channels".
+     */
+    @Provides
+    @Singleton
+    fun providerValidator(
+        client: OkHttpClient,
+        streams: HttpStreamSource,
+    ): ProviderValidator = HttpProviderValidator(client, streams, USER_AGENT)
 
     /**
      * Providers do gate on the user agent, and some reject OkHttp's default
