@@ -24,16 +24,16 @@ fail() {
   failures=$((failures + 1))
 }
 
-# The pre-modular screens, written before the design system existed. They are
-# replaced by the shell and are to be deleted as each is migrated -- never
-# extended. Nothing may be added to this list; that is the whole point of it.
-LEGACY='app/src/main/java/com/castivio/tv/ui/WelcomeScreen.kt
-app/src/main/java/com/castivio/tv/ui/AddSourceScreens.kt
-app/src/main/java/com/castivio/tv/ui/Logo.kt'
+# The pre-modular screens are gone: the activation flow they were a draft of now
+# lives in :feature:activation, over tested logic and out of the design system's
+# components. This list is empty and must stay that way -- it only ever shrank, and
+# there is nothing left to grandfather.
+LEGACY=''
 
 not_legacy() {
-  # Reads paths on stdin, drops the grandfathered ones.
-  grep -v -F -f <(printf '%s\n' "$LEGACY") || true
+  # Reads paths on stdin. Nothing is exempt any more; kept as a seam so a future
+  # migration has somewhere to put a temporary exemption, deliberately empty.
+  cat
 }
 
 # ---------------------------------------------------------------- invariants 1, 2
@@ -73,7 +73,8 @@ SHARED='CastivioButton CastivioIconButton CastivioChip GlassCard GlassHeroCard
 InteractiveGlassCard EmptyState ErrorState Skeleton SkeletonRow DelayedSpinner
 CastivioNavRail CastivioActionBar CastivioTopBar SectionLabel
 MediaCard ChannelCard MediaRow SectionHeader CastivioShell CastivioBottomBar
-ScreenScaffold ScreenTopBar NowPlayingBadge WatchedTag LogoTile MetaChip'
+ScreenScaffold ScreenTopBar NowPlayingBadge WatchedTag LogoTile MetaChip
+CastivioTextField'
 for name in $SHARED; do
   count=$(grep -rn --include='*.kt' -E "^(internal |private )?fun $name\(" \
             app core feature playback data domain 2>/dev/null | wc -l)

@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  مسار التفعيل بالعربية.
+
+  ليست ترجمة حرفية للإنجليزية: الجُمل مكتوبة كما يقولها متحدث بالعربية، لأن ترجمة
+  حرفية لرسالة خطأ تنتج جملة صحيحة لغويًا لا يفهم منها المستخدم ما عليه فعله.
+-->
+<resources>
+
+    <string name="activation_title">فعّل اشتراكك</string>
+    <string name="activation_subtitle">أرسل هذا العنوان إلى مزوّدك، وسيضيف اشتراكك إلى هذا الجهاز.</string>
+
+    <string name="mac_heading">عنوان MAC الخاص بجهازك</string>
+    <string name="mac_recommended">الطريقة الموصى بها</string>
+    <string name="mac_explainer">معظم المزوّدين يفعّلون الجهاز من هذا العنوان. أرسله إلى مزوّدك كما هو تمامًا.</string>
+    <string name="mac_copy">نسخ العنوان</string>
+    <string name="mac_copied">تم نسخ العنوان</string>
+    <string name="mac_qr_caption">أو امسح هذا الرمز لفتح صفحة التفعيل.</string>
+    <string name="mac_content_description">عنوان جهازك، %1$s</string>
+
+    <string name="mac_portal_unavailable_title">التفعيل عبر العنوان غير متاح بعد</string>
+    <string name="mac_portal_unavailable_detail">خدمة التفعيل الخاصة بـCastivio لا تعمل بعد، فالاشتراك المرسَل إلى هذا العنوان لن يصل إلى الجهاز الآن. عنوانك ظاهر أعلاه ولن يتغيّر — أضف مزوّدك يدويًا في هذه الأثناء.</string>
+
+    <string name="add_manually">إضافة يدويًا</string>
+    <string name="source_choice_title">ماذا أعطاك مزوّدك؟</string>
+    <string name="source_choice_subtitle">اختر ما أُرسل إليك. كلاهما يصل إلى النتيجة نفسها.</string>
+    <string name="source_xtream_title">Xtream Codes</string>
+    <string name="source_xtream_detail">عنوان سيرفر واسم مستخدم وكلمة مرور.</string>
+    <string name="source_m3u_title">قائمة M3U</string>
+    <string name="source_m3u_detail">رابط واحد طويل، يُرسَل عادةً بالبريد.</string>
+
+    <string name="field_playlist_name">اسم القائمة</string>
+    <string name="field_optional">اختياري</string>
+    <string name="field_playlist_name_placeholder">المنزل</string>
+    <string name="field_server_url">رابط السيرفر</string>
+    <string name="field_server_url_placeholder">http://example.com:8080</string>
+    <string name="field_username">اسم المستخدم</string>
+    <string name="field_password">كلمة المرور</string>
+    <string name="field_playlist_url">رابط قائمة M3U</string>
+    <string name="field_playlist_url_placeholder">http://example.com/get.php?…</string>
+    <string name="action_connect">اتصال</string>
+    <string name="action_back">رجوع</string>
+
+    <string name="problem_required">هذا الحقل مطلوب.</string>
+    <string name="problem_too_long">هذا أطول مما ينبغي.</string>
+    <string name="problem_contains_spaces">هناك مسافة في الرابط، والروابط لا تحتوي مسافات.</string>
+    <string name="problem_unsupported_scheme">Castivio يفتح روابط http و https فقط.</string>
+    <string name="problem_incomplete_host">هذا لا يبدو عنوانًا كاملًا.</string>
+    <string name="problem_invalid_port">رقم المنفذ غير صالح.</string>
+
+    <string name="detected_xtream_title">يبدو أن هذا رابط Xtream</string>
+    <string name="detected_xtream_detail">قراءته كـXtream تجلب أيضًا التصنيفات والمسلسلات وحالة اشتراكك. وهو يعمل بالطريقتين.</string>
+    <string name="detected_xtream_accept">استخدم Xtream بدلًا منه</string>
+
+    <string name="importing_checking">جارٍ التحقق من بياناتك…</string>
+    <string name="importing_reading">جارٍ قراءة قائمتك</string>
+    <string name="importing_items">تم العثور على %1$s عنصرًا</string>
+    <string name="importing_groups">%1$d مجموعة جاهزة</string>
+    <string name="importing_cancel">إلغاء</string>
+    <string name="importing_takes_a_while">القائمة الكبيرة قد تستغرق دقيقة. يمكنك ترك العملية تعمل.</string>
+
+    <string name="activation_done_title">جاهز</string>
+    <string name="activation_done_detail">%1$s عنصرًا على هذا الجهاز.</string>
+    <string name="activation_done_action">ابدأ المشاهدة</string>
+
+    <string name="failure_unreachable_title">تعذّر الوصول إلى مزوّدك</string>
+    <string name="failure_unreachable_detail">لم يردّ أحد على هذا العنوان. تحقّق من اتصالك ومن عنوان السيرفر.</string>
+    <string name="failure_timed_out_title">استغرق مزوّدك وقتًا طويلًا</string>
+    <string name="failure_timed_out_detail">ردّ السيرفر ببطء شديد فلم تكتمل العملية. غالبًا يكون مشغولًا لا معطّلًا.</string>
+    <string name="failure_rejected_title">رُفضت هذه البيانات</string>
+    <string name="failure_rejected_detail">لم يقبل مزوّدك اسم المستخدم وكلمة المرور. تحقّق منهما كما أُرسلا إليك تمامًا.</string>
+    <string name="failure_subscription_ended_title">انتهى هذا الاشتراك</string>
+    <string name="failure_subscription_ended_detail">مزوّدك يقول إنه انتهى. تجديده أمر يخصّه هو، ولا يستطيع Castivio فعله عنك.</string>
+    <string name="failure_provider_refused_title">رفض مزوّدك هذا الخط</string>
+    <string name="failure_provider_refused_detail">ردّ، وقال لا. مزوّدك وحده يستطيع إخبارك بالسبب.</string>
+    <string name="failure_not_found_title">لا شيء على هذا العنوان</string>
+    <string name="failure_not_found_detail">الرابط لم يؤدِّ إلى شيء. غالبًا خطأ إملائي — راجعه مرة أخرى.</string>
+    <string name="failure_unreadable_title">هذه ليست قائمة تشغيل</string>
+    <string name="failure_unreadable_detail">وصل شيء ما، لكن Castivio لم يستطع قراءته كقائمة.</string>
+    <string name="failure_provider_error_title">حدث خلل عند مزوّدك</string>
+    <string name="failure_provider_error_detail">أبلغ سيرفره عن عطل. المحاولة بعد قليل تنجح عادةً.</string>
+    <string name="failure_empty_title">لم يرسل مزوّدك شيئًا</string>
+    <string name="failure_empty_detail">فُتحت القائمة ولم تحتوِ أي قناة. مزوّدك يستطيع إخبارك إن كان الخط جاهزًا.</string>
+    <string name="failure_unsupported_title">غير مدعوم في هذه النسخة</string>
+    <string name="failure_unsupported_detail">لا يستطيع Castivio تفعيل هذا النوع من المصادر بعد.</string>
+    <string name="failure_unknown_title">لم تنجح العملية</string>
+    <string name="failure_unknown_detail">حدث خطأ لم يستطع Castivio تسميته. تستحق المحاولة مرة أخرى.</string>
+    <string name="failure_stopped_after">توقّفت بعد %1$s عنصرًا.</string>
+    <string name="failure_retry">حاول مرة أخرى</string>
+    <string name="failure_edit">تعديل البيانات</string>
+
+    <string name="licence_blocked_title">Castivio غير مُرخَّص على هذا الجهاز</string>
+    <string name="licence_blocked_detail">لا توجد في هذه النسخة خدمة ترخيص ليسألها، فلا يستطيع السماح بالدخول. شاشة الترخيص تأتي في نسخة لاحقة.</string>
+    <string name="licence_blocked_action">إغلاق</string>
+</resources>

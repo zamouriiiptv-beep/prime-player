@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The activation flow, in English.
+
+  Default locale, so this file is what ships when a device asks for a language nobody
+  has translated yet. values-ar/ carries the Arabic.
+
+  Nothing user-visible in this feature is written in Kotlin. A literal in a composable
+  is a string that never gets translated and that nobody finds when they go looking.
+-->
+<resources>
+
+    <!-- Activation, the first screen -->
+    <string name="activation_title">Activate your subscription</string>
+    <string name="activation_subtitle">Send this address to your provider, and they will add your subscription to this device.</string>
+
+    <!-- The MAC address: the route that matters most -->
+    <string name="mac_heading">Your MAC address</string>
+    <string name="mac_recommended">Recommended</string>
+    <string name="mac_explainer">Most providers activate a device from this address. Send it to yours exactly as it appears.</string>
+    <string name="mac_copy">Copy address</string>
+    <string name="mac_copied">Address copied</string>
+    <string name="mac_qr_caption">Or scan this code to open the activation page.</string>
+    <string name="mac_content_description">Your device address, %1$s</string>
+
+    <!-- The honest state of the portal. Not a placeholder: this is what is true today. -->
+    <string name="mac_portal_unavailable_title">Activation by address is not live yet</string>
+    <string name="mac_portal_unavailable_detail">Castivio\'s activation service is not running, so a subscription sent to this address cannot arrive here yet. Your address is shown above and will not change — add your provider manually in the meantime.</string>
+
+    <!-- Add manually -->
+    <string name="add_manually">Add manually</string>
+    <string name="source_choice_title">What did your provider give you?</string>
+    <string name="source_choice_subtitle">Pick whichever you were sent. Both end up in the same place.</string>
+    <string name="source_xtream_title">Xtream Codes</string>
+    <string name="source_xtream_detail">A server address, a username and a password.</string>
+    <string name="source_m3u_title">M3U playlist</string>
+    <string name="source_m3u_detail">A single long link, usually sent by e-mail.</string>
+
+    <!-- The forms -->
+    <string name="field_playlist_name">Playlist name</string>
+    <string name="field_optional">Optional</string>
+    <string name="field_playlist_name_placeholder">Home</string>
+    <string name="field_server_url">Server URL</string>
+    <string name="field_server_url_placeholder">http://example.com:8080</string>
+    <string name="field_username">Username</string>
+    <string name="field_password">Password</string>
+    <string name="field_playlist_url">M3U playlist URL</string>
+    <string name="field_playlist_url_placeholder">http://example.com/get.php?…</string>
+    <string name="action_connect">Connect</string>
+    <string name="action_back">Back</string>
+
+    <!-- What is wrong with a field -->
+    <string name="problem_required">This one is needed.</string>
+    <string name="problem_too_long">That is longer than it should be.</string>
+    <string name="problem_contains_spaces">There is a space in there. A link cannot contain one.</string>
+    <string name="problem_unsupported_scheme">Castivio can only open http and https links.</string>
+    <string name="problem_incomplete_host">That does not look like a complete address.</string>
+    <string name="problem_invalid_port">That port number is not valid.</string>
+
+    <!-- The Xtream link hiding in a playlist URL -->
+    <string name="detected_xtream_title">This looks like an Xtream link</string>
+    <string name="detected_xtream_detail">Read as Xtream it also brings categories, series and your subscription status. It works either way.</string>
+    <string name="detected_xtream_accept">Use Xtream instead</string>
+
+    <!-- Importing -->
+    <string name="importing_checking">Checking your details…</string>
+    <string name="importing_reading">Reading your playlist</string>
+    <string name="importing_items">%1$s items found</string>
+    <string name="importing_groups">%1$d groups ready</string>
+    <string name="importing_cancel">Cancel</string>
+    <string name="importing_takes_a_while">A large playlist can take a minute. You can leave this running.</string>
+
+    <!-- Done -->
+    <string name="activation_done_title">Ready</string>
+    <string name="activation_done_detail">%1$s items are on this device.</string>
+    <string name="activation_done_action">Start watching</string>
+
+    <!-- Failures -->
+    <string name="failure_unreachable_title">Could not reach your provider</string>
+    <string name="failure_unreachable_detail">Nothing answered at that address. Check your connection and the server address.</string>
+    <string name="failure_timed_out_title">Your provider took too long</string>
+    <string name="failure_timed_out_detail">The server answered too slowly to finish. It is often busy rather than broken.</string>
+    <string name="failure_rejected_title">Those details were refused</string>
+    <string name="failure_rejected_detail">Your provider did not accept this username and password. Check them exactly as they were sent to you.</string>
+    <string name="failure_subscription_ended_title">This subscription has ended</string>
+    <string name="failure_subscription_ended_detail">Your provider says it expired. Renewing it is something they do, not something Castivio can do for you.</string>
+    <string name="failure_provider_refused_title">Your provider refused this line</string>
+    <string name="failure_provider_refused_detail">It answered, and said no. Your provider can tell you why.</string>
+    <string name="failure_not_found_title">Nothing at that address</string>
+    <string name="failure_not_found_detail">The link led nowhere. It is almost always a typo — check it once more.</string>
+    <string name="failure_unreadable_title">That is not a playlist</string>
+    <string name="failure_unreadable_detail">Something answered, but Castivio could not read it as a playlist.</string>
+    <string name="failure_provider_error_title">Your provider had a problem</string>
+    <string name="failure_provider_error_detail">Their server reported a fault. Trying again shortly usually works.</string>
+    <string name="failure_empty_title">Your provider sent nothing</string>
+    <string name="failure_empty_detail">The playlist opened and contained no channels. Your provider can tell you whether the line is ready.</string>
+    <string name="failure_unsupported_title">Not supported in this build</string>
+    <string name="failure_unsupported_detail">Castivio cannot activate that kind of source yet.</string>
+    <string name="failure_unknown_title">That did not work</string>
+    <string name="failure_unknown_detail">Something went wrong that Castivio could not name. Trying again is worth a go.</string>
+    <string name="failure_stopped_after">Stopped after %1$s items.</string>
+    <string name="failure_retry">Try again</string>
+    <string name="failure_edit">Edit details</string>
+
+    <!-- The licence gate, which has no screen of its own yet -->
+    <string name="licence_blocked_title">Castivio is not licensed on this device</string>
+    <string name="licence_blocked_detail">This build has no licence service to ask, so it cannot let you in. The licence screen arrives in a later version.</string>
+    <string name="licence_blocked_action">Close</string>
+</resources>

@@ -10,16 +10,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.platform.AndroidDeviceCapabilities
+import com.castivio.tv.gate.SplashGate
 import com.castivio.tv.shell.ShellScreen
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
- * Hosts the shell.
+ * Hosts the gate, which decides everything else.
  *
- * For this build the shell runs on mock data so the experience can be judged on a
- * real phone before a provider is wired in. The activation flow and the real Home,
- * both of which need a ViewModel and the repository, land in later slices; the
- * pre-modular activation screens stay in the tree until then, unreferenced.
+ * The activity itself makes one decision — how much this box can afford to animate —
+ * and hands the rest to [SplashGate]: licence, then catalogue, then either activation
+ * or the shell. Which of those the user sees is a domain question, answered in nine
+ * lines of pure code and merely rendered here.
+ *
+ * The shell still runs on mock data. Activation now commits a real catalogue, but
+ * reading it back onto Home is the next slice, so what a user sees after activating is
+ * the same demo content as before — deliberately unchanged rather than half-rewired.
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -37,9 +42,14 @@ class MainActivity : ComponentActivity() {
             var motionLevel by remember { mutableStateOf(performance.suggestedMotion) }
 
             CastivioTheme(performance = performance, motionLevel = motionLevel) {
-                ShellScreen(
-                    motionLevel = motionLevel,
-                    onMotionLevel = { motionLevel = it },
+                SplashGate(
+                    onExit = { finish() },
+                    home = {
+                        ShellScreen(
+                            motionLevel = motionLevel,
+                            onMotionLevel = { motionLevel = it },
+                        )
+                    },
                 )
             }
         }

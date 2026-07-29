@@ -24,8 +24,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -45,6 +47,8 @@ import com.castivio.core.design.theme.Spacing
  * hierarchy is carried by *fill*, not by size — every button on a row shares
  * the same height so the row reads as a single band.
  */
+private const val DISABLED_ALPHA = 0.45f
+
 enum class ButtonWeight {
     /** One per screen: the action we want taken. Gradient fill. */
     Primary,
@@ -62,6 +66,12 @@ fun CastivioButton(
     weight: ButtonWeight = ButtonWeight.Secondary,
     icon: ImageVector? = null,
     tint: Color? = null,
+    /**
+     * A disabled button is dimmed, unfocusable and unclickable — all three, because any
+     * one of them alone is a control that still looks or behaves live. A D-pad that can
+     * land on a button which does nothing is the television version of the same bug.
+     */
+    enabled: Boolean = true,
 ) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
@@ -70,6 +80,7 @@ fun CastivioButton(
 
     val elevation by animateDpAsState(
         when {
+            !enabled -> Elevation.level0
             weight == ButtonWeight.Ghost -> Elevation.level0
             focused -> Elevation.level3
             else -> Elevation.level1
@@ -84,11 +95,16 @@ fun CastivioButton(
         focused -> colors.focusGlow
         else -> Elevation.spot
     }
-    val contentColor = tint ?: colors.onBackground
+    val contentColor = when {
+        !enabled -> colors.onBackgroundMuted
+        else -> tint ?: colors.onBackground
+    }
 
     Box(
         modifier = modifier
+            .alpha(if (enabled) 1f else DISABLED_ALPHA)
             .castivioFocusScale(Motion.focusScaleButton, interaction)
+            .focusProperties { canFocus = enabled }
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
             .defaultMinSize(minHeight = Sizing.minTouchTarget)
             .shadow(elevation, shape, ambientColor = Elevation.ambient, spotColor = glow)
@@ -106,7 +122,7 @@ fun CastivioButton(
                     }
                 }
             )
-            .clickable(interaction, indication = null, onClick = onClick)
+            .clickable(interaction, indication = null, enabled = enabled, onClick = onClick)
             .padding(horizontal = Spacing.xl, vertical = Spacing.md),
         contentAlignment = Alignment.Center,
     ) {
