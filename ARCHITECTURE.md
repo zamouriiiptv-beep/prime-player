@@ -191,6 +191,71 @@ season) prunes nothing. Treating one as the other would delete the library.
 3. Xtream → nothing is downloaded wholesale in the first place: categories, then
    only what the user opens.
 
+## Device identity and time
+
+Castivio's own licence is bound to a device, not to an account, so two facts have
+to be produced before anything else can be decided: which device this is, and
+what time it is. Both are contracts in `:domain` with adapters in
+`:data:activation`; neither is allowed to be a guess made at a call site.
+
+### The address
+
+`DeviceIdentity` returns six octets written like a set-top box MAC —
+`2F:19:EB:20:44:7C` — because that is the string a user reads off a television
+and sends to a provider by hand. It is **derived, never generated**:
+
+```
+material  := "castivio/device-identity/v1" ‖ "\n" ‖ seed.material
+digest    := SHA-256(UTF-8(material))
+octets    := digest[0..5], with octet 0 forced locally-administered and unicast
+```
+
+The seed is `Settings.Secure.ANDROID_ID`, normalised and left-padded to sixteen
+digits, prefixed `os:`. When that value is missing or is one of the known
+degenerate constants whole production runs shipped with, a random UUID is minted
+and prefixed `install:` instead — and the resulting `IdentityProvenance` is
+carried to the licence server, because an address that dies with the app's data
+deserves different treatment from one that does not.
+
+No hardware address is read and no permission is declared. Android has not
+allowed the former since Marshmallow, and it would be the wrong input anyway:
+Wi-Fi addresses are randomised per network and a device on Ethernet has none.
+`Build.MANUFACTURER` and `Build.MODEL` are deliberately *not* mixed in — they are
+not secret, they are less stable than they look, and using them would paper over
+the shared-`ANDROID_ID` collision instead of detecting it.
+
+**The version is the contract.** `DeviceIdentityV1` is frozen; a new derivation is
+a new object beside it with its own label and its own entry in
+`DeviceIdentityAlgorithm`. The seed is stored verbatim on first use so every
+future version derives from the same material, the address is stored per version
+(`mac.v1`, `mac.v2`, …), and `DeviceIdentity.legacy()` hands the older addresses
+to the licence server so an entitlement can be moved rather than stranded. An
+edit that changes a byte of v1's output is not a refactor; it is a mass
+revocation, and the pinned test vectors are there to make that impossible by
+accident.
+
+### The clock
+
+The device clock is user-settable, which makes it unfit to decide when a trial
+ends. `TrustedTime` answers with both a number and the reason to believe it, and
+`MonotonicClock` assembles that from three signals: the wall clock, elapsed
+realtime since boot, and the kernel's boot identifier.
+
+- An **anchor** from Castivio's own licence host, projected forward with elapsed
+  realtime, ignores the wall clock entirely — nothing on the device can set
+  elapsed realtime. Anchors are never harvested from a provider's server: a
+  provider URL is typed in by the user, and an anchor may move time backwards.
+- Otherwise the wall clock is reported, **floored at the furthest instant this
+  device has ever observed**. Winding the date back buys nothing; winding it
+  forward is a self-inflicted wound.
+- A trusted anchor is the only thing allowed to lower that mark, which is what
+  repairs a device whose fast clock ended its own trial.
+
+`MonotonicClock` holds no state: it loads, computes purely, and writes back only
+on change, so every awkward case — reboot, process death, dead coin cell, a
+`Date` header from a broken proxy — is a unit test rather than something one
+hopes about a television.
+
 ## Testing posture
 
 `:domain` and the parsers in `:data:parsing` are pure Kotlin and unit-tested on
