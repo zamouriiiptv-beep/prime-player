@@ -5,10 +5,10 @@ import com.castivio.domain.entitlement.EntitlementRecord
 import com.castivio.domain.entitlement.EntitlementState
 import com.castivio.domain.entitlement.Plan
 import com.castivio.domain.entitlement.PricingDefaults
+import com.castivio.domain.identity.MacAddress
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -395,7 +395,7 @@ class MonotonicClockTest {
         val clock = MonotonicClock(signals, store)
 
         val record = EntitlementRecord(
-            macAddress = "2F:19:EB:20:44:7C",
+            macAddress = MacAddress.parse("2F:19:EB:20:44:7C")!!,
             identityVersion = 1,
             plan = Plan.TRIAL,
             trialStartedAtMs = t0,
@@ -422,36 +422,26 @@ class MonotonicClockTest {
 
     /**
      * The other direction, which is the one a support ticket arrives about: a device
-     * whose clock was wrong, corrected by our own server, gets its trial back.
+     * whose clock ran fast, corrected by our own server.
+     *
+     * This is only half the repair — the clock recovers here, and the *record* still
+     * carries a poisoned mark of its own. `TrustedTimeRepairTest` follows the whole
+     * journey through to a usable entitlement; what is proved here is that the clock
+     * hands back a corrected instant at all, which nothing downstream could do for
+     * itself.
      */
     @Test
-    fun `a trusted anchor restores a trial a fast clock had ended`() {
+    fun `a trusted anchor undoes an instant a fast clock had already recorded`() {
         val store = RecordingStore()
         val signals = Signals(wallClockMs = t0 + 2 * year)
         val clock = MonotonicClock(signals, store)
 
-        val record = EntitlementRecord(
-            macAddress = "2F:19:EB:20:44:7C",
-            identityVersion = 1,
-            plan = Plan.TRIAL,
-            trialStartedAtMs = t0,
-            trialExpiresAtMs = t0 + 7 * day,
-            establishedAtMs = t0,
-            lastVerifiedAtMs = t0,
-            maxObservedTimeMs = t0,
-        )
-
-        assertEquals(
-            EntitlementState.TrialExpired,
-            EntitlementPolicy.evaluate(record, clock.nowMs(), PricingDefaults.config),
-        )
+        assertEquals(t0 + 2 * year, clock.nowMs())
 
         signals.setDateTo(t0 + day)
         clock.anchor(t0 + day, TimeAnchorSource.LICENCE_SERVER)
 
-        val repaired = EntitlementPolicy.evaluate(record, clock.nowMs(), PricingDefaults.config)
-
-        assertTrue("$repaired", repaired.allowsUse)
-        assertEquals(EntitlementState.TrialActive(t0 + 7 * day, 6), repaired)
+        assertEquals(TimeReading(t0 + day, TimeTrust.NETWORK), clock.now())
+        assertEquals(t0 + day, store.state.highWaterMarkMs)
     }
 }

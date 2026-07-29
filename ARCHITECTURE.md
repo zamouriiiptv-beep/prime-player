@@ -234,6 +234,34 @@ edit that changes a byte of v1's output is not a refactor; it is a mass
 revocation, and the pinned test vectors are there to make that impossible by
 accident.
 
+### Two addresses, never one
+
+Castivio's identity and a protocol's identity are different things, and the moment
+they are allowed to be the same value one of them starts dictating the other.
+
+- **Device / Licence MAC** — what `DeviceIdentity` returns. Locally administered,
+  derived by `DeviceIdentityV1`, and the only identity that Castivio's own trial,
+  annual licence, lifetime licence, app entitlement and recovery path are bound to.
+  It answers to nothing outside this codebase.
+- **Provider / Portal MAC** — *not built, and not to be built until a slice needs
+  it.* Some Stalker and Ministra panels validate that the address they are given
+  begins with a set-top-box prefix such as `00:1A:79` and reject anything else.
+  Where that turns out to matter, the answer is a **second, separate** address
+  derived deterministically from the *same* stored seed under its own label — never
+  a change to the licence address, and never a `DeviceIdentity` v2.
+
+The rule, stated so it cannot be argued away later:
+
+> Castivio's licence identity does not take requirements from Stalker, Ministra or
+> any other provider protocol. A protocol that needs a particular shape of address
+> gets its own address.
+
+A v2 of `DeviceIdentity` means "we changed how this device's licence identity is
+derived, and every entitlement in the field has to be migrated". Adding a
+provider-facing address means nothing of the sort, and calling it a version bump
+would drag a migration through the licence server for a problem the licence server
+does not have.
+
 ### The clock
 
 The device clock is user-settable, which makes it unfit to decide when a trial
@@ -250,6 +278,15 @@ realtime since boot, and the kernel's boot identifier.
   forward is a self-inflicted wound.
 - A trusted anchor is the only thing allowed to lower that mark, which is what
   repairs a device whose fast clock ended its own trial.
+
+The mark lives in two places and both obey the same asymmetry:
+`ClockState.highWaterMarkMs` for the clock, `EntitlementRecord.maxObservedTimeMs`
+for the licence. `EntitlementRecord.observing(reading)` is what keeps them in
+step — a device reading raises it, a `NETWORK` reading replaces it — and
+`EntitlementPolicy.evaluate(record, reading, config)` returns the repaired record
+alongside the state so the caller stores the correction rather than re-deriving it.
+Without that second half, a fast clock would end a paid subscription permanently:
+the clock would recover and the record would not.
 
 `MonotonicClock` holds no state: it loads, computes purely, and writes back only
 on change, so every awkward case — reboot, process death, dead coin cell, a

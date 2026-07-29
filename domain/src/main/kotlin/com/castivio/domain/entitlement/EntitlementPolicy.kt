@@ -1,6 +1,20 @@
 package com.castivio.domain.entitlement
 
+import com.castivio.domain.time.TimeReading
 import kotlin.math.max
+
+/**
+ * What the app should do, and what it should remember for having asked.
+ *
+ * Two values rather than one because reading the time is a write: the reading either
+ * advances this device's high-water mark or, when it came from Castivio's own
+ * infrastructure, corrects it. [record] is that correction, ready to be stored — null
+ * only when there was no record to correct.
+ */
+data class EntitlementDecision(
+    val state: EntitlementState,
+    val record: EntitlementRecord?,
+)
 
 /**
  * Turns what is stored into what the app is allowed to do.
@@ -69,6 +83,32 @@ object EntitlementPolicy {
             )
         }
         return settled
+    }
+
+    /**
+     * The same decision, given a reading that knows whether it can be trusted.
+     *
+     * This is the overload the app uses; the [Long] one above is the primitive it is
+     * built from. The difference matters in exactly one situation, and it is the one
+     * that generates support tickets: a device whose clock ran fast has poisoned its
+     * own [EntitlementRecord.maxObservedTimeMs], so evaluating against the corrected
+     * instant alone would still report an expiry — the mark has to be repaired first,
+     * which is what [EntitlementRecord.observing] does.
+     *
+     * The repaired record is what the caller should persist. It is returned rather
+     * than written here because the policy is a query: it reports, it never grants,
+     * and it never stores.
+     */
+    fun evaluate(
+        record: EntitlementRecord?,
+        reading: TimeReading,
+        config: PricingConfig,
+    ): EntitlementDecision {
+        val reconciled = record?.observing(reading)
+        return EntitlementDecision(
+            state = evaluate(reconciled, reading.epochMs, config),
+            record = reconciled,
+        )
     }
 
     /**

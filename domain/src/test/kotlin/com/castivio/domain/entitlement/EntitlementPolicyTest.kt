@@ -1,5 +1,6 @@
 package com.castivio.domain.entitlement
 
+import com.castivio.domain.identity.MacAddress
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -28,7 +29,7 @@ class EntitlementPolicyTest {
         lastVerifiedAtMs: Long? = t0,
         maxObservedTimeMs: Long = t0,
     ) = EntitlementRecord(
-        macAddress = "2F:19:EB:20:44:7C",
+        macAddress = MacAddress.parse("2F:19:EB:20:44:7C")!!,
         identityVersion = 1,
         plan = plan,
         trialStartedAtMs = if (plan == Plan.TRIAL) establishedAtMs else null,

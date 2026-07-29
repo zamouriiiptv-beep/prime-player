@@ -1,5 +1,10 @@
 package com.castivio.domain.entitlement
 
+import com.castivio.domain.identity.MacAddress
+import com.castivio.domain.time.TimeReading
+import com.castivio.domain.time.TimeTrust
+import kotlin.math.max
+
 /**
  * Whether this device is allowed to use Castivio, which has nothing to do with
  * whether a provider is willing to serve it channels.
@@ -116,8 +121,15 @@ sealed interface EntitlementState {
  * grace from.
  */
 data class EntitlementRecord(
-    /** The device identity this entitlement is bound to, in MAC form. */
-    val macAddress: String,
+    /**
+     * The device identity this entitlement is bound to.
+     *
+     * The typed value rather than its text, because "the string that identifies this
+     * device" and "the string a provider's panel wants" are different questions with
+     * different answers — [MacAddress] carries the canonical form and the spellings,
+     * and nothing downstream has to remember which one it is holding.
+     */
+    val macAddress: MacAddress,
 
     /**
      * Which derivation produced [macAddress]. Stored so a future algorithm can look
@@ -150,8 +162,12 @@ data class EntitlementRecord(
 
     /**
      * The furthest point in time this device has ever observed, from the device
-     * clock or from a network response. Never decreases, which is what stops a
-     * rolled-back clock from extending a trial.
+     * clock or from a network response.
+     *
+     * Never decreases on the strength of the device clock, which is what stops a
+     * rolled-back clock from extending a trial. It *does* come down when a trusted
+     * source says so — see [observing] — because the alternative is a device whose
+     * fast clock ended its own subscription and can never take it back.
      */
     val maxObservedTimeMs: Long,
 
@@ -168,4 +184,26 @@ data class EntitlementRecord(
             Plan.ANNUAL -> subscriptionExpiresAtMs
             Plan.LIFETIME -> null
         }
+
+    /**
+     * The record after seeing [reading], for the caller to store.
+     *
+     * The asymmetry is the point, and it is the same asymmetry the clock itself makes:
+     *
+     *  - A reading the device produced only ever raises the mark. Winding the date
+     *    back buys nothing, which is the whole defence against a second free trial.
+     *  - A reading from Castivio's own licence infrastructure **replaces** it. A device
+     *    whose clock ran two years fast has already recorded those two years, and
+     *    without this the subscription it just paid for would read as expired forever —
+     *    a permanent injury caused by a wrong clock and nothing else.
+     *
+     * Only [TimeTrust.NETWORK] can lower the mark, and only Castivio's host can produce
+     * a `NETWORK` reading (see [com.castivio.domain.time.TimeAnchorSource]), so the
+     * repair path is not reachable from a provider's server.
+     */
+    fun observing(reading: TimeReading): EntitlementRecord = when (reading.trust) {
+        TimeTrust.NETWORK -> copy(maxObservedTimeMs = reading.epochMs)
+        TimeTrust.DEVICE, TimeTrust.FLOORED ->
+            copy(maxObservedTimeMs = max(maxObservedTimeMs, reading.epochMs))
+    }
 }
