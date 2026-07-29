@@ -57,6 +57,16 @@ enum class LicenceReason {
 
     /** A cached entitlement outlived its offline grace. Not an accusation. */
     VERIFICATION_REQUIRED,
+
+    /**
+     * Castivio could not work out what this device is entitled to, and the reason is
+     * ours: no licence server in this build, or a stored licence that will not open.
+     *
+     * A separate sentence from [NOT_ESTABLISHED] on purpose. "You have no licence" and
+     * "we cannot read your licence" are different claims, and telling a paying customer
+     * the first when the second is true is how a support queue fills up.
+     */
+    SERVICE_UNAVAILABLE,
 }
 
 /**
@@ -94,6 +104,7 @@ fun licenceReason(state: EntitlementState): LicenceReason = when (state) {
     is EntitlementState.AnnualExpired -> LicenceReason.SUBSCRIPTION_EXPIRED
     is EntitlementState.Revoked -> LicenceReason.REVOKED
     is EntitlementState.VerificationUnavailable -> LicenceReason.VERIFICATION_REQUIRED
+    is EntitlementState.ServiceUnavailable -> LicenceReason.SERVICE_UNAVAILABLE
     is EntitlementState.Unknown -> LicenceReason.NOT_ESTABLISHED
     is EntitlementState.TrialActive,
     is EntitlementState.AnnualActive,

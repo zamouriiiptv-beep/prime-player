@@ -21,6 +21,108 @@ class EntitlementPolicyTest {
     /** A fixed, readable instant to build cases around. */
     private val t0 = 1_800_000_000_000L
 
+    // -------------------------------------------------- grace never moves an expiry
+
+    /**
+     * The rule this section exists to nail down: **`expiresAtMs` outranks grace, always.**
+     *
+     * The two mechanisms answer different questions — "has the thing you bought ended?"
+     * and "have we been unable to check for a worrying length of time?" — and the first
+     * is the more specific truth whenever it is available. A grace period that could
+     * push a known expiry into the future would be a free extension for anyone who
+     * turned off their wifi on the last day.
+     */
+    @Test
+    fun `offline grace does not extend a trial past its expiry`() {
+        // Grace has not run out: verified an hour ago, so there is a fortnight of it
+        // left. The trial ended anyway.
+        val expired = record(
+            plan = Plan.TRIAL,
+            trialExpiresAtMs = t0 + 7 * day,
+            lastVerifiedAtMs = t0 + 7 * day - 1,
+        )
+
+        assertFalse(EntitlementPolicy.verificationIsStale(expired, t0 + 7 * day, config))
+        assertEquals(
+            EntitlementState.TrialExpired,
+            EntitlementPolicy.evaluate(expired, t0 + 7 * day, config),
+        )
+    }
+
+    @Test
+    fun `offline grace does not extend a subscription past its expiry`() {
+        val expired = record(
+            plan = Plan.ANNUAL,
+            trialExpiresAtMs = null,
+            subscriptionExpiresAtMs = t0 + 365 * day,
+            lastVerifiedAtMs = t0 + 365 * day - 1,
+        )
+
+        assertFalse(EntitlementPolicy.verificationIsStale(expired, t0 + 365 * day, config))
+        assertEquals(
+            EntitlementState.AnnualExpired,
+            EntitlementPolicy.evaluate(expired, t0 + 365 * day, config),
+        )
+    }
+
+    /**
+     * And the reverse ordering, which is the one that protects the customer: when the
+     * dates still say the entitlement is live, a long silence reports "couldn't verify"
+     * rather than "expired". The two never swap places.
+     */
+    @Test
+    fun `a live entitlement past its grace is unverified, not expired`() {
+        val unverified = record(
+            plan = Plan.ANNUAL,
+            trialExpiresAtMs = null,
+            subscriptionExpiresAtMs = t0 + 365 * day,
+            lastVerifiedAtMs = t0,
+        )
+        val wellPastGrace = t0 + 60 * day
+
+        assertTrue(EntitlementPolicy.verificationIsStale(unverified, wellPastGrace, config))
+        assertEquals(
+            EntitlementState.VerificationUnavailable(
+                lastKnownPlan = Plan.ANNUAL,
+                lastKnownExpiresAtMs = t0 + 365 * day,
+                graceEndedAtMs = EntitlementPolicy.graceEndsAt(unverified, config),
+            ),
+            EntitlementPolicy.evaluate(unverified, wellPastGrace, config),
+        )
+    }
+
+    /**
+     * Both true at once — expired *and* long unverified. The expiry wins, because it is
+     * the more specific and more actionable statement: "renew" is something the user can
+     * do, "we couldn't check" is not.
+     */
+    @Test
+    fun `a known expiry outranks a grace that has also run out`() {
+        val both = record(
+            plan = Plan.TRIAL,
+            trialExpiresAtMs = t0 + 7 * day,
+            lastVerifiedAtMs = t0,
+        )
+        val longAfter = t0 + 90 * day
+
+        assertTrue(EntitlementPolicy.verificationIsStale(both, longAfter, config))
+        assertEquals(
+            EntitlementState.TrialExpired,
+            EntitlementPolicy.evaluate(both, longAfter, config),
+        )
+    }
+
+    /** Grace is measured from the last check; it is not a second expiry date. */
+    @Test
+    fun `grace is measured from the last verification, never from the expiry`() {
+        val verified = record(plan = Plan.ANNUAL, trialExpiresAtMs = null, subscriptionExpiresAtMs = t0 + 365 * day, lastVerifiedAtMs = t0)
+
+        assertEquals(
+            t0 + config.verifyIntervalMs + config.offlineGraceMs,
+            EntitlementPolicy.graceEndsAt(verified, config),
+        )
+    }
+
     private fun record(
         plan: Plan = Plan.TRIAL,
         trialExpiresAtMs: Long? = t0 + 7 * day,

@@ -14,9 +14,9 @@ import com.castivio.data.entitlement.VaultKeys
 import com.castivio.domain.entitlement.EntitlementRepository
 import com.castivio.domain.entitlement.EntitlementSource
 import com.castivio.domain.entitlement.EntitlementStore
+import com.castivio.domain.entitlement.Licensing
 import com.castivio.domain.entitlement.PricingConfig
 import com.castivio.domain.entitlement.PricingDefaults
-import com.castivio.domain.entitlement.TrialGrantor
 import com.castivio.domain.identity.DeviceIdentity
 import com.castivio.domain.time.ClockSignalSource
 import com.castivio.domain.time.ClockStore
@@ -76,10 +76,28 @@ object EntitlementModule {
     fun trustedTime(signals: ClockSignalSource, store: ClockStore): TrustedTime =
         MonotonicClock(signals, store)
 
+    /**
+     * The one decision in this file that must never be got wrong.
+     *
+     * A debug build gets [Licensing.Development] and with it a local trial, so the app
+     * can be installed on a phone and a television and used before the licence server
+     * exists. A release build gets [Licensing.Production], which has **nowhere to put a
+     * trial grantor** — the mistake is not guarded against, it is unrepresentable.
+     *
+     * `source` is null in both today. In production that means the build fails closed:
+     * every device reads as
+     * [com.castivio.domain.entitlement.EntitlementState.ServiceUnavailable] and the app
+     * says so. That is why a release APK is not fit to publish until the server exists —
+     * see `RELEASE_CHECKLIST.md`.
+     */
     @Provides
     @Singleton
-    fun trialGrantor(config: PricingConfig): TrialGrantor =
-        LocalEntitlementSource(config, enabled = BuildConfig.LOCAL_TRIAL)
+    fun licensing(config: PricingConfig): Licensing =
+        if (BuildConfig.DEBUG) {
+            Licensing.Development(trials = LocalEntitlementSource(config), source = null)
+        } else {
+            Licensing.Production(source = null)
+        }
 
     @Provides
     @Singleton
@@ -87,15 +105,14 @@ object EntitlementModule {
         store: EntitlementStore,
         identity: DeviceIdentity,
         clock: TrustedTime,
-        trials: TrialGrantor,
         config: PricingConfig,
+        licensing: Licensing,
     ): EntitlementRepository = DefaultEntitlementRepository(
         store = store,
         identity = identity,
         clock = clock,
-        trials = trials,
         config = config,
-        source = null,
+        licensing = licensing,
     )
 
     /**

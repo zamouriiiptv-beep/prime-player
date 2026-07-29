@@ -1,6 +1,5 @@
 package com.castivio.data.entitlement
 
-import com.castivio.core.common.AppError
 import com.castivio.core.common.Outcome
 import com.castivio.domain.entitlement.PricingConfig
 import com.castivio.domain.entitlement.TrialGrant
@@ -26,30 +25,30 @@ import com.castivio.domain.identity.DeviceIdentityRecord
  *  - **Refuse.** It has no view of abuse, of refunds, or of a device that has been seen
  *    a thousand times.
  *
- * So it is off in a release build. A shipped APK with no licence server has nothing
- * that can honestly hand out a free week, and one that did would be a licensing system
- * with no licences in it — every install entitled, forever, by its own say-so.
+ * So it is unreachable in a release build — and unreachable by *construction*, not by a
+ * flag. It can only be held by [com.castivio.domain.entitlement.Licensing.Development],
+ * and `Licensing.Production` has nowhere to put one. A shipped APK with no licence
+ * server therefore has nothing that can hand out a free week, which is the point: a
+ * release that granted its own licences would be a licensing system with no licences in
+ * it, every install entitled forever by its own say-so.
  *
- * @param enabled `BuildConfig.LOCAL_TRIAL`: true in debug, false in release.
+ * There is no `enabled` boolean here on purpose. A boolean is one wrong `!` away from
+ * shipping exactly that.
  */
 internal class LocalEntitlementSource(
     private val config: PricingConfig,
-    private val enabled: Boolean,
 ) : TrialGrantor {
 
     override suspend fun grant(
         identity: DeviceIdentityRecord,
         nowMs: Long,
-    ): Outcome<TrialGrant> {
-        if (!enabled) return Outcome.Failure(AppError.NOT_CONFIGURED)
-
+    ): Outcome<TrialGrant> =
         // The duration comes from the configuration, never from a constant here: seven
         // days is a business decision and belongs where the prices are.
-        return Outcome.Success(
+        Outcome.Success(
             TrialGrant(
                 startedAtMs = nowMs,
                 expiresAtMs = nowMs + config.trialDurationMs,
             ),
         )
-    }
 }

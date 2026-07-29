@@ -7,10 +7,14 @@ import com.castivio.domain.entitlement.EntitlementRecord
 import com.castivio.domain.entitlement.EntitlementSource
 import com.castivio.domain.entitlement.EntitlementState
 import com.castivio.domain.entitlement.EntitlementStore
+import com.castivio.domain.entitlement.Licensing
 import com.castivio.domain.entitlement.Plan
 import com.castivio.domain.entitlement.PricingDefaults
 import com.castivio.domain.entitlement.RedemptionCredential
 import com.castivio.domain.entitlement.RedemptionRequest
+import com.castivio.domain.entitlement.ServiceFault
+import com.castivio.domain.entitlement.StorageFault
+import com.castivio.domain.entitlement.StoredEntitlement
 import com.castivio.domain.entitlement.VerificationRequest
 import com.castivio.domain.identity.DeviceIdentity
 import com.castivio.domain.identity.DeviceIdentityRecord
@@ -50,16 +54,30 @@ class DefaultEntitlementRepositoryTest {
 
     // --------------------------------------------------------------- the harness
 
-    private class MemoryStore(var record: EntitlementRecord? = null) : EntitlementStore {
+    private class MemoryStore(
+        var record: EntitlementRecord? = null,
+        /** Set to simulate a blob that will not open. Outranks [record]. */
+        var fault: StorageFault? = null,
+    ) : EntitlementStore {
         var writes = 0
-        override suspend fun read(): EntitlementRecord? = record
+        var clears = 0
+
+        override suspend fun read(): StoredEntitlement = when {
+            fault != null -> StoredEntitlement.Unreadable(fault!!)
+            record != null -> StoredEntitlement.Present(record!!)
+            else -> StoredEntitlement.None
+        }
+
         override suspend fun write(record: EntitlementRecord) {
             this.record = record
+            fault = null
             writes++
         }
 
         override suspend fun clear() {
             record = null
+            fault = null
+            clears++
         }
     }
 
@@ -113,20 +131,21 @@ class DefaultEntitlementRepositoryTest {
         }
     }
 
+    private fun development(source: EntitlementSource? = null) =
+        Licensing.Development(trials = LocalEntitlementSource(config), source = source)
+
     private fun repository(
         store: MemoryStore = MemoryStore(),
         signals: Signals = Signals(wallClockMs = t0),
         clockStore: MemoryClockStore = MemoryClockStore(),
         identity: DeviceIdentity = identity(),
-        trialsEnabled: Boolean = true,
-        source: EntitlementSource? = null,
+        licensing: Licensing = development(),
     ) = DefaultEntitlementRepository(
         store = store,
         identity = identity,
         clock = MonotonicClock(signals, clockStore),
-        trials = LocalEntitlementSource(config, enabled = trialsEnabled),
         config = config,
-        source = source,
+        licensing = licensing,
     )
 
     // ------------------------------------------------------------- the first launch
@@ -194,19 +213,138 @@ class DefaultEntitlementRepositoryTest {
         assertEquals(t0 + config.trialDurationMs, store.record?.trialExpiresAtMs)
     }
 
+    // ------------------------------------------------------- development vs production
+
     /**
      * A release build has no licence server, so it has nothing that can honestly grant a
-     * free week. The result is an unentitled device that says so — not a silent free
-     * pass, which is what a locally granted trial in a shipped APK would be.
+     * free week — and, unlike a flag, no way to be talked into it: `Licensing.Production`
+     * has nowhere to put a trial grantor.
+     *
+     * It fails closed and says which kind of closed. Not [EntitlementState.Unknown],
+     * which would read as "you have no licence" when the truth is "this build has no
+     * licence service".
      */
     @Test
-    fun `a build with no trial grantor establishes nothing`() = runTest {
+    fun `production with no licence server fails closed`() = runTest {
         val store = MemoryStore()
 
-        val state = repository(store, trialsEnabled = false).establish()
+        val state = repository(store, licensing = Licensing.Production(source = null)).establish()
 
-        assertEquals(EntitlementState.Unknown, state)
+        assertEquals(EntitlementState.ServiceUnavailable(ServiceFault.NOT_CONFIGURED), state)
+        assertFalse(state.allowsUse)
         assertNull(store.record)
+        assertEquals(0, store.writes)
+    }
+
+    @Test
+    fun `production never grants itself a trial, however many times it is asked`() = runTest {
+        val store = MemoryStore()
+        val repository = repository(store, licensing = Licensing.Production(source = null))
+
+        repeat(10) { repository.establish() }
+        repeat(10) { repository.current() }
+
+        assertNull(store.record)
+        assertEquals(0, store.writes)
+    }
+
+    /**
+     * The structural half of the same rule, and the reason it cannot regress: a
+     * production configuration is a type with **no field** for a trial grantor. The
+     * compiler enforces that; this only pins it, so that adding one later has to argue
+     * with a failing test rather than slip through review.
+     */
+    @Test
+    fun `a production configuration has nowhere to put a trial grantor`() {
+        val production = Licensing.Production::class.java.declaredFields.map { it.name }
+        val development = Licensing.Development::class.java.declaredFields.map { it.name }
+
+        assertEquals(listOf("source"), production)
+        assertTrue("$development", development.contains("trials"))
+    }
+
+    /** And the debug build keeps working, which is the point of the split. */
+    @Test
+    fun `development grants the trial so the app can be tested before the server exists`() = runTest {
+        val store = MemoryStore()
+
+        val state = repository(store, licensing = development()).establish()
+
+        assertTrue("$state", state.allowsUse)
+        assertEquals(Plan.TRIAL, store.record?.plan)
+    }
+
+    // ------------------------------------------------------- an unreadable licence
+
+    /**
+     * A record that will not open means this device *had* a licence. Treating that as
+     * "no licence" would tell a paying customer they never bought anything, and would
+     * hand whoever edited the file a fresh trial for the price of one corrupted byte.
+     */
+    @Test
+    fun `production does not mistake an unreadable licence for an absent one`() = runTest {
+        val store = MemoryStore(fault = StorageFault.UNSEALABLE)
+
+        val state = repository(store, licensing = Licensing.Production(source = null)).establish()
+
+        assertEquals(EntitlementState.ServiceUnavailable(ServiceFault.STORAGE_UNREADABLE), state)
+        assertNull(store.record)
+        assertEquals(0, store.writes)
+    }
+
+    @Test
+    fun `an unreadable licence reads as unavailable rather than unknown on every launch`() = runTest {
+        val store = MemoryStore(fault = StorageFault.UNDECODABLE)
+        val repository = repository(store, licensing = Licensing.Production(source = null))
+
+        assertEquals(
+            EntitlementState.ServiceUnavailable(ServiceFault.STORAGE_UNREADABLE),
+            repository.current(),
+        )
+    }
+
+    /**
+     * With a server bound, an unreadable record is a recoverable one: the device
+     * identity has not changed, so asking again is all it takes. No trial is granted and
+     * nothing is invented.
+     */
+    @Test
+    fun `production recovers an unreadable licence from the server`() = runTest {
+        val store = MemoryStore(fault = StorageFault.UNSEALABLE)
+        val server = FakeServer(verification = Outcome.Success(attestation()))
+
+        val state = repository(store, licensing = Licensing.Production(source = server)).establish()
+
+        assertEquals(EntitlementState.AnnualActive(t0 + year, 365), state)
+        assertEquals(Plan.ANNUAL, store.record?.plan)
+        assertEquals(address, server.lastVerification?.macAddress)
+    }
+
+    /** And when the server cannot be reached, it still does not guess. */
+    @Test
+    fun `an unreachable server does not turn an unreadable licence into a new trial`() = runTest {
+        val store = MemoryStore(fault = StorageFault.UNSEALABLE)
+        val server = FakeServer(verification = Outcome.Failure(AppError.NETWORK_UNAVAILABLE))
+
+        val state = repository(store, licensing = Licensing.Production(source = server)).establish()
+
+        assertEquals(EntitlementState.ServiceUnavailable(ServiceFault.STORAGE_UNREADABLE), state)
+        assertNull(store.record)
+    }
+
+    /**
+     * Development is allowed to move on. There is no server to recover from, and a
+     * developer with a corrupted file wants a working app rather than a lecture.
+     */
+    @Test
+    fun `development replaces an unreadable licence and carries on`() = runTest {
+        val store = MemoryStore(fault = StorageFault.UNSEALABLE)
+
+        val state = repository(store, licensing = development()).establish()
+
+        assertTrue("$state", state.allowsUse)
+        assertEquals(Plan.TRIAL, store.record?.plan)
+        assertEquals(1, store.clears)
     }
 
     // ------------------------------------------------------- what the local source is
@@ -311,7 +449,7 @@ class DefaultEntitlementRepositoryTest {
     fun `a verified subscription replaces the trial`() = runTest {
         val store = MemoryStore()
         val server = FakeServer(verification = Outcome.Success(attestation()))
-        val repository = repository(store, source = server)
+        val repository = repository(store, licensing = development(server))
         repository.establish()
 
         val state = repository.refresh()
@@ -326,7 +464,7 @@ class DefaultEntitlementRepositoryTest {
     fun `verification sends this device's identity and whatever is cached`() = runTest {
         val store = MemoryStore()
         val server = FakeServer(verification = Outcome.Success(attestation()))
-        val repository = repository(store, identity = identity(IdentityProvenance.INSTALLATION), source = server)
+        val repository = repository(store, identity = identity(IdentityProvenance.INSTALLATION), licensing = development(server))
         repository.establish()
 
         repository.refresh()
@@ -348,7 +486,7 @@ class DefaultEntitlementRepositoryTest {
         val elsewhere = attestation().let {
             it.copy(record = it.record.copy(macAddress = MacAddress.parse("AA:BB:CC:DD:EE:FF")!!, identityVersion = 9))
         }
-        val repository = repository(store, source = FakeServer(verification = Outcome.Success(elsewhere)))
+        val repository = repository(store, licensing = development(FakeServer(verification = Outcome.Success(elsewhere))))
         repository.establish()
 
         repository.refresh()
@@ -362,7 +500,7 @@ class DefaultEntitlementRepositoryTest {
     fun `a failed refresh leaves the record exactly as it was`() = runTest {
         val store = MemoryStore()
         val server = FakeServer(verification = Outcome.Failure(AppError.NETWORK_UNAVAILABLE))
-        val repository = repository(store, source = server)
+        val repository = repository(store, licensing = development(server))
         repository.establish()
         val before = store.record
 
@@ -376,7 +514,7 @@ class DefaultEntitlementRepositoryTest {
     fun `a revocation from the server locks the app`() = runTest {
         val store = MemoryStore()
         val revoked = attestation(plan = Plan.LIFETIME, expiresAtMs = null, revokedAtMs = t0 - day)
-        val repository = repository(store, source = FakeServer(verification = Outcome.Success(revoked)))
+        val repository = repository(store, licensing = development(FakeServer(verification = Outcome.Success(revoked))))
         repository.establish()
 
         val state = (repository.refresh() as Outcome.Success).value
@@ -389,7 +527,7 @@ class DefaultEntitlementRepositoryTest {
     fun `redeeming a recovery code carries the credential through untouched`() = runTest {
         val store = MemoryStore()
         val server = FakeServer(redemption = Outcome.Success(attestation(plan = Plan.LIFETIME, expiresAtMs = null)))
-        val repository = repository(store, source = server)
+        val repository = repository(store, licensing = development(server))
         repository.establish()
 
         val state = repository.redeem(RedemptionCredential.RecoveryCode("CASTIVIO-1234-5678"))
@@ -405,7 +543,7 @@ class DefaultEntitlementRepositoryTest {
     @Test
     fun `redeeming a store receipt carries the credential through untouched`() = runTest {
         val server = FakeServer(redemption = Outcome.Success(attestation()))
-        val repository = repository(source = server)
+        val repository = repository(licensing = development(server))
 
         repository.redeem(RedemptionCredential.PurchaseReceipt("token-abc", "castivio.annual"))
 
@@ -428,7 +566,7 @@ class DefaultEntitlementRepositoryTest {
         val signals = Signals(wallClockMs = t0)
         val clockStore = MemoryClockStore()
         val server = FakeServer(verification = Outcome.Success(attestation(serverTimeMs = t0 + hour)))
-        val repository = repository(store, signals, clockStore, source = server)
+        val repository = repository(store, signals, clockStore, licensing = development(server))
         repository.establish()
 
         // The real-time clock fails and the device wakes up in 2028.
@@ -452,7 +590,7 @@ class DefaultEntitlementRepositoryTest {
     fun `a verified answer anchors the clock to the server`() = runTest {
         val clockStore = MemoryClockStore()
         val server = FakeServer(verification = Outcome.Success(attestation(serverTimeMs = t0 + hour)))
-        val repository = repository(clockStore = clockStore, source = server)
+        val repository = repository(clockStore = clockStore, licensing = development(server))
         repository.establish()
 
         repository.refresh()

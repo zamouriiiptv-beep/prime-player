@@ -125,6 +125,7 @@ enum class LicenceDenial {
     SUBSCRIPTION_EXPIRED,
     REVOKED,
     VERIFICATION_REQUIRED,
+    SERVICE_UNAVAILABLE,
 }
 
 enum class SettingsSection {

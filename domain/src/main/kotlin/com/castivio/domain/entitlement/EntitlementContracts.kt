@@ -150,12 +150,83 @@ data class TrialGrant(
  */
 interface EntitlementStore {
 
-    /** Null when nothing has ever been stored, and also when what was stored is unreadable. */
-    suspend fun read(): EntitlementRecord?
+    suspend fun read(): StoredEntitlement
 
     suspend fun write(record: EntitlementRecord)
 
     suspend fun clear()
+}
+
+/**
+ * What was found on disk — and the distinction that matters most is between the last
+ * two cases.
+ *
+ * "Nothing is stored" and "something is stored and will not open" look identical to a
+ * naive reader and are opposite facts. The first is a device that has never been
+ * licensed. The second is a device that *was*, whose record was made unreadable by a
+ * keystore reset, a restore onto another handset, or somebody editing the file — and
+ * treating it as the first would tell a paying customer they have no licence, and hand
+ * a tamperer a fresh trial for the price of one corrupted byte.
+ */
+sealed interface StoredEntitlement {
+
+    /** The record, or null when there is not one to be had. */
+    val record: EntitlementRecord? get() = (this as? Present)?.record
+
+    /** Genuinely nothing: a device that has never been licensed. */
+    data object None : StoredEntitlement
+
+    data class Present(override val record: EntitlementRecord) : StoredEntitlement
+
+    /** Something is there. It cannot be read, and it will not become readable. */
+    data class Unreadable(val fault: StorageFault) : StoredEntitlement
+}
+
+enum class StorageFault {
+    /** The sealed blob would not open: edited, or sealed with a key that is gone. */
+    UNSEALABLE,
+
+    /** It opened, and what came out is not a record this build can read. */
+    UNDECODABLE,
+}
+
+// ------------------------------------------------------------------- the build
+
+/**
+ * Which licensing world this build lives in.
+ *
+ * A sealed type rather than a boolean, because a boolean is one wrong `!` away from
+ * shipping a release that licenses itself. [Production] has **nowhere to put a
+ * [TrialGrantor]** — it is not that it refuses one, it is that the shape does not admit
+ * one — so a shipped build cannot grant itself anything however the wiring is edited.
+ *
+ * The trial still exists in production. It is granted by the licence server through
+ * [EntitlementSource], which is the only party that can remember a device has already
+ * had its free week and the only one that can refuse.
+ */
+sealed interface Licensing {
+
+    /** Castivio's licence server, when this build has one bound. */
+    val source: EntitlementSource?
+
+    /**
+     * Debug and test builds. A local trial may be granted so that the app can be used,
+     * and an APK tested on a real television, before the licence server exists.
+     */
+    data class Development(
+        val trials: TrialGrantor,
+        override val source: EntitlementSource? = null,
+    ) : Licensing
+
+    /**
+     * Shipped builds. Only the server establishes anything, including the trial.
+     *
+     * A null [source] is a build with no authority behind it, and it **fails closed**:
+     * every device reads as [EntitlementState.ServiceUnavailable] and the app says so.
+     * That is the intended behaviour, not a gap — a release APK that quietly granted
+     * itself a licence would be a licensing system with no licences in it.
+     */
+    data class Production(override val source: EntitlementSource?) : Licensing
 }
 
 // --------------------------------------------------------------- what apps ask

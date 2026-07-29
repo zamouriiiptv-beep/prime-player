@@ -29,11 +29,15 @@ internal class SealedClockStore(
     override fun load(): ClockState {
         cached?.let { return it }
 
-        // A blob that will not decode has already been dropped by SealedStore, so this
-        // is a device with no history rather than one whose history is being ignored.
-        // The consequence is bounded: the mark starts again from the device clock, and
-        // the first trusted anchor corrects it.
-        val loaded = store.read(SealedStore.KEY_CLOCK)?.let(EntitlementCodec::decodeClock) ?: ClockState()
+        // An unreadable blob is a fresh clock rather than a refusal to start. The
+        // consequence is bounded and self-healing: the mark begins again from the device
+        // clock and the first trusted anchor corrects it, whereas an app that would not
+        // open because its clock file was edited would be a much larger problem than the
+        // one being defended against.
+        val loaded = when (val raw = store.read(SealedStore.KEY_CLOCK)) {
+            is SealedRead.Opened -> EntitlementCodec.decodeClock(raw.bytes) ?: ClockState()
+            is SealedRead.Absent, is SealedRead.Unsealable -> ClockState()
+        }
         cached = loaded
         return loaded
     }

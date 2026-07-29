@@ -102,6 +102,39 @@ if [ -n "$hits" ]; then
   detail behind an interface and implement it in an adapter module."
 fi
 
+# ------------------------------------------------- the licence cannot license itself
+# Not one of the ten, and the most expensive one to get wrong. A local trial grantor
+# belongs to a development build and nowhere else; the type system already says so
+# (Licensing.Production has no field for one), and this catches the other half -- a
+# reference that smuggles it somewhere the type never travels.
+hits=$(grep -rn --include='*.kt' 'LocalEntitlementSource' \
+        app core feature playback data domain 2>/dev/null \
+        | grep -v '^data/entitlement/src/main/java/com/castivio/data/entitlement/LocalEntitlementSource.kt:' \
+        | grep -v '^data/entitlement/src/main/java/com/castivio/data/entitlement/di/EntitlementModule.kt:' \
+        | grep -v '^data/entitlement/src/test/')
+if [ -n "$hits" ]; then
+  fail "The local trial grantor is referenced outside its own module wiring" \
+       "$hits
+
+  LocalEntitlementSource may only be constructed inside Licensing.Development,
+  in EntitlementModule. A release build must have nothing that can grant it a
+  licence -- see RELEASE_CHECKLIST.md."
+fi
+
+# And the wiring itself must gate on the build type. A Development licensing chosen
+# unconditionally is a release APK that licenses itself, which is the one bug in this
+# repository that would not show up in any test.
+module='data/entitlement/src/main/java/com/castivio/data/entitlement/di/EntitlementModule.kt'
+if [ -f "$module" ]; then
+  if grep -q 'Licensing.Development' "$module" && ! grep -q 'BuildConfig.DEBUG' "$module"; then
+    fail "Licensing.Development is chosen without checking the build type" \
+         "$module
+
+  Development licensing must be selected behind BuildConfig.DEBUG. Without it a
+  release build grants its own trials."
+  fi
+fi
+
 # ------------------------------------------------------------------------ report
 if [ "$failures" -eq 0 ]; then
   echo "Design invariants: all mechanical checks pass."

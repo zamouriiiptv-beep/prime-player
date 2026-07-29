@@ -310,20 +310,40 @@ revocation field — so an implementation of it *cannot express* a lifetime purc
 however much it might want to. Only `EntitlementSource` returns an `Attestation`, and
 only a server signs one.
 
-That matters because the implementation shipping today is local.
-`LocalEntitlementSource` is a **development trial and nothing else**: it cannot
-remember that a device has already had its free week (clearing app data removes the
-record and it would grant another), and it cannot refuse. So it is compiled off in a
-release build — `BuildConfig.LOCAL_TRIAL` is false there. A shipped APK with no licence
-server has nothing that can honestly hand out a free week, and one that did would be a
-licensing system with no licences in it.
+### Which world a build lives in
+
+`Licensing` is a sealed type, not a flag:
+
+```
+Licensing.Development(trials: TrialGrantor, source: EntitlementSource?)
+Licensing.Production(source: EntitlementSource?)
+```
+
+**`Production` has nowhere to put a `TrialGrantor`.** It does not refuse one; the
+shape does not admit one. That is the whole mechanism, and it exists because the bug
+being prevented — a release APK that licenses itself, every install entitled forever
+on its own say-so — is one wrong `!` away if it is a boolean. The choice is made once,
+behind `BuildConfig.DEBUG`, and `scripts/check-invariants.sh` fails the build if that
+check disappears or if `LocalEntitlementSource` is named anywhere but its own file,
+that one wiring method, and tests.
+
+- **Debug** gets `Development` and a working seven-day local trial, so a real APK can
+  be judged on a phone and a television long before the server exists.
+- **Release** gets `Production`. With no server bound it **fails closed**: every device
+  reads `ServiceUnavailable(NOT_CONFIGURED)` and the licence screen says so. See
+  `RELEASE_CHECKLIST.md` for what has to exist before a release APK is fit to publish.
+
+`LocalEntitlementSource` is a development trial and nothing else. It cannot remember
+that a device has already had its free week — clearing app data removes the record and
+it would grant another — and it cannot refuse. Only a server that keeps the address can
+do either, which is why the production trial is server-granted.
 
 Adding the server is one `@Provides` in `data/entitlement/di/EntitlementModule.kt`.
 Nothing in `:domain` changes: the repository already asks for an `EntitlementSource`,
 already reports `AppError.NOT_CONFIGURED` when there is none, and already treats an
 attestation as replacing whatever was cached.
 
-Three rules the repository enforces on top of the pure policy:
+Four rules the repository enforces on top of the pure policy:
 
 1. **Silence revokes nothing.** A failed refresh leaves the stored record byte for byte
    as it was. Only an attestation changes a plan; only one carrying `revokedAtMs` takes
@@ -334,6 +354,12 @@ Three rules the repository enforces on top of the pure policy:
 3. **A read is a write.** Every evaluation goes through the `TimeReading` overload, so
    the mark advances with an honest clock, is repaired by a trusted one, and the
    correction is stored rather than recomputed next launch.
+4. **An unreadable licence is not an absent one.** `EntitlementStore.read()` returns
+   `None`, `Present` or `Unreadable`, because "nothing is stored" and "something is
+   stored that will not open" are opposite facts about the device. A production build
+   answers the second by asking the server again with the same unchanged identity —
+   never by granting a trial, and never by telling a paying customer they have no
+   licence. Development is allowed to replace the file and move on.
 
 ### What is sealed, and what that is worth
 
@@ -349,10 +375,18 @@ obfuscation, not protection, and it is written down here rather than implied.
 Nothing in the record is a secret; the customer knows all of it. GCM is there because
 the trial expiry and the high-water mark are exactly what someone wanting a second free
 week would edit, and an authenticated cipher turns that from a one-line change into a
-blob that will not open. An unopenable blob is discarded and read as "nothing stored",
-which routes to the licence screen — and with a server bound, is one round trip from
-being right again. **The defence is that the server is the authority; this raises the
-cost of casual tampering.**
+blob that will not open. **The defence is that the server is the authority; this raises
+the cost of casual tampering.**
+
+An unopenable blob is *kept*, not deleted, and reported as `Unreadable`. Deleting it
+would erase the only evidence that this device was ever licensed — the next launch
+would find nothing, tell the customer they have no licence, and hand whoever edited the
+file a fresh trial for the price of one corrupted byte. Keeping it costs one failed GCM
+open per read.
+
+`VaultKeys` is the one part no JVM can exercise, and it is a documented release gate:
+an instrumented test on a real device covering create, seal, process restart, open and
+tamper-rejection, on API 21–22 as well as a modern level. See `RELEASE_CHECKLIST.md`.
 
 ## Testing posture
 

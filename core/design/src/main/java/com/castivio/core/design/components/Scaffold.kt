@@ -168,6 +168,14 @@ private fun errorCopy(error: AppError): StateCopy = when (error) {
         "Retry",
     )
     AppError.SERVER_ERROR -> StateCopy("Provider error", "The provider had a problem.", "Retry")
+    // Ours, not theirs, and not the user's. It reaches a content screen only if something
+    // upstream let it through, so the wording admits the fault rather than blaming the
+    // provider — and offers no retry, because retrying is not what fixes it.
+    AppError.NOT_CONFIGURED -> StateCopy(
+        "Not available yet",
+        "This part of Castivio isn't ready in this build.",
+        "Back",
+    )
     AppError.UNKNOWN -> StateCopy("Something went wrong", "That didn't work.", "Retry")
 }
 

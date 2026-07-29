@@ -38,6 +38,10 @@ state afterwards costs a rewrite of its state holder.
 **Vertical slices, not layers.** Each step runs on a device. A layer that waits for
 another layer is a step that cannot be tested.
 
+**A release APK is not a debug APK.** `RELEASE_CHECKLIST.md` lists what has to exist
+before one is fit to publish — a licensing backend above all. A release build today
+fails closed on purpose; do not "fix" that by giving it a development licensing mode.
+
 **Green before commit.** Build, fix every compiler error, run the tests, and commit
 only when they pass. Never commit a red tree "to fix in the next one".
 

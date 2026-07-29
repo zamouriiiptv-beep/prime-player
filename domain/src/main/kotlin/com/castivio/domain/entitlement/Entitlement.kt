@@ -90,6 +90,25 @@ sealed interface EntitlementState {
     }
 
     /**
+     * The app could not work out what this device is entitled to, and the reason is on
+     * our side rather than the user's.
+     *
+     * Separate from [Unknown], which means "nothing has been established yet and that is
+     * a true statement about this device". This one means "we cannot tell", and the two
+     * deserve different sentences: telling somebody who paid last week that they have no
+     * licence, because a keystore reset made their record unreadable, is a support call
+     * and a bad review.
+     *
+     * It is also the state a production build reaches when it has no licence server to
+     * ask. **Failing closed is the point.** A shipped build with no authority behind it
+     * must say so rather than quietly granting itself a free week, which is what a local
+     * trial in a release APK would be.
+     */
+    data class ServiceUnavailable(val fault: ServiceFault) : EntitlementState {
+        override val allowsUse: Boolean get() = false
+    }
+
+    /**
      * There is a cached entitlement, but it has gone too long without confirmation
      * from the licence server.
      *
@@ -109,6 +128,30 @@ sealed interface EntitlementState {
     ) : EntitlementState {
         override val allowsUse: Boolean get() = false
     }
+}
+
+/**
+ * Why the app cannot say what this device is entitled to.
+ *
+ * Both are ours to fix, and neither is the user's doing — which is why they are one
+ * state on screen and two values in a diagnostic.
+ */
+enum class ServiceFault {
+    /**
+     * This build has no licence server bound. It cannot establish anything, and it must
+     * not pretend to.
+     */
+    NOT_CONFIGURED,
+
+    /**
+     * Something is stored and will not open — an edited blob, or a key that no longer
+     * exists after a keystore reset or a restore onto another device.
+     *
+     * Deliberately *not* reported as "no licence". A device in this state had one, and
+     * with a licence server bound the way out is to ask again with the same unchanged
+     * device identity, not to hand out a fresh trial.
+     */
+    STORAGE_UNREADABLE,
 }
 
 /**

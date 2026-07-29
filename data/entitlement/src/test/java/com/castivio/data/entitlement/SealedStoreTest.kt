@@ -4,6 +4,8 @@ import android.content.Context
 import com.castivio.core.common.AppDispatchers
 import com.castivio.domain.entitlement.EntitlementRecord
 import com.castivio.domain.entitlement.Plan
+import com.castivio.domain.entitlement.StorageFault
+import com.castivio.domain.entitlement.StoredEntitlement
 import com.castivio.domain.identity.MacAddress
 import com.castivio.domain.time.ClockState
 import com.castivio.domain.time.TimeAnchor
@@ -74,19 +76,19 @@ class SealedStoreTest {
 
         store.write(record)
 
-        assertEquals(record, store.read())
+        assertEquals(StoredEntitlement.Present(record), store.read())
     }
 
     @Test
     fun `a record survives the object being rebuilt`() = runTest {
         SealedEntitlementStore(store(), dispatchers).write(record)
 
-        assertEquals(record, SealedEntitlementStore(store(), dispatchers).read())
+        assertEquals(record, SealedEntitlementStore(store(), dispatchers).read().record)
     }
 
     @Test
     fun `nothing stored reads as nothing`() = runTest {
-        assertNull(SealedEntitlementStore(store(), dispatchers).read())
+        assertEquals(StoredEntitlement.None, SealedEntitlementStore(store(), dispatchers).read())
     }
 
     @Test
@@ -96,7 +98,7 @@ class SealedStoreTest {
 
         store.clear()
 
-        assertNull(store.read())
+        assertEquals(StoredEntitlement.None, store.read())
     }
 
     // ---------------------------------------------------------------- the sealing
@@ -115,11 +117,11 @@ class SealedStoreTest {
 
     /**
      * The attack this file is for: edit the blob to move the end of the trial. GCM makes
-     * the edit fail to open, and an unopenable record is no record — which sends the
-     * device to the licence screen rather than giving it a longer week.
+     * the edit fail to open — and the result is reported as *unreadable*, not as absent,
+     * so a production build asks the server again instead of handing out a fresh trial.
      */
     @Test
-    fun `an edited blob reads as nothing`() = runTest {
+    fun `an edited blob reads as unreadable, not as absent`() = runTest {
         SealedEntitlementStore(store(), dispatchers).write(record)
 
         val edited = prefs().getString(SealedStore.KEY_ENTITLEMENT, "")!!.let { encoded ->
@@ -129,35 +131,78 @@ class SealedStoreTest {
         }
         prefs().edit().putString(SealedStore.KEY_ENTITLEMENT, edited).commit()
 
-        assertNull(SealedEntitlementStore(store(), dispatchers).read())
+        assertEquals(
+            StoredEntitlement.Unreadable(StorageFault.UNSEALABLE),
+            SealedEntitlementStore(store(), dispatchers).read(),
+        )
     }
 
     /** A key that no longer exists — a keystore reset, a restore onto another device. */
     @Test
-    fun `a blob sealed with a lost key reads as nothing`() = runTest {
+    fun `a blob sealed with a lost key reads as unreadable`() = runTest {
         SealedEntitlementStore(store(keySeed = 1), dispatchers).write(record)
 
-        assertNull(SealedEntitlementStore(store(keySeed = 2), dispatchers).read())
+        assertEquals(
+            StoredEntitlement.Unreadable(StorageFault.UNSEALABLE),
+            SealedEntitlementStore(store(keySeed = 2), dispatchers).read(),
+        )
     }
 
     /**
-     * And it is dropped rather than retried forever. Every launch paying to fail at the
-     * same byte is a slow startup nobody can explain.
+     * And it is **kept**, not deleted.
+     *
+     * Deleting it would erase the only evidence that this device was ever licensed, and
+     * the next launch would find nothing and conclude the user never had anything —
+     * which is the wrong sentence for them and a free trial for whoever edited the file.
+     * A failed GCM open costs microseconds; a wrongly granted licence costs a customer.
      */
     @Test
-    fun `an unreadable blob is discarded on the first attempt`() = runTest {
+    fun `an unreadable blob is kept so the next launch still knows something was there`() = runTest {
         SealedEntitlementStore(store(keySeed = 1), dispatchers).write(record)
 
-        SealedEntitlementStore(store(keySeed = 2), dispatchers).read()
+        repeat(3) { SealedEntitlementStore(store(keySeed = 2), dispatchers).read() }
 
-        assertNull(prefs().getString(SealedStore.KEY_ENTITLEMENT, null))
+        assertNotEquals(null, prefs().getString(SealedStore.KEY_ENTITLEMENT, null))
+        assertEquals(
+            StoredEntitlement.Unreadable(StorageFault.UNSEALABLE),
+            SealedEntitlementStore(store(keySeed = 2), dispatchers).read(),
+        )
+    }
+
+    /** Writing over it clears the fault: the recovery path leaves no residue. */
+    @Test
+    fun `writing a good record replaces an unreadable one`() = runTest {
+        SealedEntitlementStore(store(keySeed = 1), dispatchers).write(record)
+        val recovered = SealedEntitlementStore(store(keySeed = 2), dispatchers)
+
+        recovered.write(record)
+
+        assertEquals(StoredEntitlement.Present(record), recovered.read())
     }
 
     @Test
-    fun `rubbish in the file reads as nothing`() = runTest {
+    fun `rubbish in the file reads as unreadable`() = runTest {
         prefs().edit().putString(SealedStore.KEY_ENTITLEMENT, "!!! not base64 !!!").commit()
 
-        assertNull(SealedEntitlementStore(store(), dispatchers).read())
+        assertEquals(
+            StoredEntitlement.Unreadable(StorageFault.UNSEALABLE),
+            SealedEntitlementStore(store(), dispatchers).read(),
+        )
+    }
+
+    /**
+     * The other fault: it opened, so the key is right and nobody edited it — what came
+     * out simply is not a record this build understands. Worth telling apart, because
+     * the causes are different and a diagnostic that conflates them helps nobody.
+     */
+    @Test
+    fun `a blob that opens but does not decode is a different fault`() = runTest {
+        store().write(SealedStore.KEY_ENTITLEMENT, "format=v1\nplan=TRIAL\n".encodeToByteArray())
+
+        assertEquals(
+            StoredEntitlement.Unreadable(StorageFault.UNDECODABLE),
+            SealedEntitlementStore(store(), dispatchers).read(),
+        )
     }
 
     // -------------------------------------------------------------------- the clock
@@ -227,7 +272,7 @@ class SealedStoreTest {
         SealedEntitlementStore(store, dispatchers).write(record)
         SealedClockStore(store).save(ClockState(highWaterMarkMs = t0 + day))
 
-        assertEquals(record, SealedEntitlementStore(store, dispatchers).read())
+        assertEquals(record, SealedEntitlementStore(store, dispatchers).read().record)
         assertEquals(t0 + day, SealedClockStore(store).load().highWaterMarkMs)
     }
 }

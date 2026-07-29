@@ -7,21 +7,10 @@ plugins {
 android {
     namespace = "com.castivio.data.entitlement"
 
-    defaultConfig {
-        // Whether the local trial may be granted at all. False in a release build:
-        // without a licence server there is nothing that can honestly hand out a free
-        // week, and a release APK that grants one would be a licence system with no
-        // licences in it.
-        buildConfigField("boolean", "LOCAL_TRIAL", "true")
-    }
-
+    // Only for BuildConfig.DEBUG, which is the single input to the Development vs
+    // Production choice in EntitlementModule. There is deliberately no LOCAL_TRIAL flag
+    // to get wrong: which licensing world a build lives in is a type, not a boolean.
     buildFeatures.buildConfig = true
-
-    buildTypes {
-        release {
-            buildConfigField("boolean", "LOCAL_TRIAL", "false")
-        }
-    }
 }
 
 dependencies {
