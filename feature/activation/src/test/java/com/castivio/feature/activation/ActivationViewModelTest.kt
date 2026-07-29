@@ -259,6 +259,12 @@ class ActivationViewModelTest {
 
     // -------------------------------------------------------------- cancellation
 
+    /**
+     * Leaving the screen is not tested here, and deliberately has no code behind it:
+     * the import runs in `viewModelScope`, which the framework cancels when the view
+     * model is cleared. Clearing one is `internal` to the library, so a test that
+     * reached for it would be testing a stub rather than the guarantee.
+     */
     @Test
     fun `cancelling stops the import and returns to the form`() = runTest {
         val importer = StallingImporter()
@@ -277,26 +283,6 @@ class ActivationViewModelTest {
         assertNull(sources.activeId)
         // The text the user typed is still there for them to try again.
         assertEquals("bob", (model.state.value.form as ActivationForm.Xtream).username)
-    }
-
-    /**
-     * Leaving the screen ends the import. An orphaned one keeps writing to a database
-     * nobody is reading, on a box that needs its CPU for playback.
-     */
-    @Test
-    fun `clearing the view model stops a running import`() = runTest {
-        val importer = StallingImporter()
-        val sources = Sources()
-        val model = viewModel(importer, sources = sources)
-        model.fillXtream()
-
-        model.submit()
-        importer.reachedMiddle.await()
-        model.clear()
-        advanceUntilIdle()
-
-        assertNull(sources.activeId)
-        assertEquals(emptyMap<String, ProviderSource>(), sources.stored)
     }
 
     // ------------------------------------------------------------------ retrying

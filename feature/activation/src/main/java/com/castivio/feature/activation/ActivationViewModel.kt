@@ -30,6 +30,11 @@ import javax.inject.Inject
  * Holding the split this way is the difference between a hundred activation cases
  * proven in a second on a laptop and a handful of them poked at by hand on a
  * television.
+ *
+ * Leaving the screen needs no code here. The import runs in [viewModelScope], which the
+ * framework cancels when this view model is cleared, and an `onCleared` that cancelled
+ * the same job again would be a line of ceremony that can only be tested by reaching
+ * for API the library keeps internal.
  */
 @HiltViewModel
 class ActivationViewModel @Inject constructor(
@@ -125,13 +130,6 @@ class ActivationViewModel @Inject constructor(
     fun dismissFailure() {
         if (_state.value.phase !is ActivationPhase.Failed) return
         _state.update { it.copy(phase = ActivationPhase.Editing) }
-    }
-
-    override fun onCleared() {
-        // Leaving the screen ends the import. An orphaned one would keep writing to a
-        // database nobody is reading, on a box that needs its CPU for playback.
-        running?.cancel()
-        super.onCleared()
     }
 
     // -------------------------------------------------------------------- plumbing
