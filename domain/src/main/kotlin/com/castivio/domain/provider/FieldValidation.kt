@@ -42,7 +42,14 @@ enum class FieldProblem {
     /** Something other than `http` or `https` — `rtmp`, `ftp`, or a typo like `htp`. */
     UNSUPPORTED_SCHEME,
 
-    /** No host, or a host with no dot in it: `http://`, `myserver`, `8080`. */
+    /**
+     * No host at all, or one that is not a hostname: `http://`, `http://.com`, `8080`.
+     *
+     * A single-label name is *not* a problem. `myserver`, `localhost` and an internal
+     * DNS name are all valid hosts, and refusing them would break setups that work
+     * today for no benefit — a dot is a convention of public domains, not a rule of
+     * hostnames.
+     */
     INCOMPLETE_HOST,
 
     /** A port outside 1–65535, or one that is not a number. */
@@ -231,7 +238,7 @@ private class Url(
     fun problem(): FieldProblem? = when {
         scheme != "http" && scheme != "https" -> FieldProblem.UNSUPPORTED_SCHEME
         portText != null && port == null -> FieldProblem.INVALID_PORT
-        !hostLooksReal() -> FieldProblem.INCOMPLETE_HOST
+        !hostIsWellFormed() -> FieldProblem.INCOMPLETE_HOST
         else -> null
     }
 
@@ -244,19 +251,37 @@ private class Url(
         ?.let(::decode)
 
     /**
-     * A host with no dot is a mistake often enough to reject: `localhost` is not what a
-     * provider hands out, and `myserver` or a bare `8080` is someone who has pasted half
-     * of something. An IPv6 literal is exempt — it has colons instead.
+     * Hostname syntax, and nothing beyond it.
+     *
+     * A dot is deliberately not required. `myserver`, `localhost` and an internal DNS
+     * name are valid hosts, and plenty of people run a panel on one — refusing them
+     * would break working setups to catch a typo.
+     *
+     * The one single-label form that is refused is an all-digit one, because `8080` is
+     * never a hostname anyone types on purpose; it is a port that arrived without its
+     * host. An IPv4 address is unaffected: it has dots, so it is not a single label.
      */
-    private fun hostLooksReal(): Boolean = when {
-        host.isEmpty() -> false
-        host.startsWith("[") -> host.endsWith("]") && host.length > 2
-        host.startsWith(".") || host.endsWith(".") -> false
-        else -> host.contains('.') && host.none { it in ILLEGAL_IN_HOST }
+    private fun hostIsWellFormed(): Boolean {
+        if (host.isEmpty()) return false
+        if (host.startsWith("[")) return host.endsWith("]") && host.length > 2
+
+        val labels = host.split('.')
+        if (labels.any { !isLabel(it) }) return false
+        if (labels.size == 1 && labels[0].all { it.isDigit() }) return false
+        return host.length <= MAX_HOST
     }
 
+    private fun isLabel(label: String): Boolean =
+        label.isNotEmpty() &&
+            label.length <= MAX_LABEL &&
+            !label.startsWith('-') &&
+            !label.endsWith('-') &&
+            label.all { it.isLetterOrDigit() || it == '-' || it == '_' }
+
     companion object {
-        private const val ILLEGAL_IN_HOST = "/\\?#@:[]"
+        /** RFC 1035: a label is at most 63 octets, a name at most 253. */
+        private const val MAX_LABEL = 63
+        private const val MAX_HOST = 253
 
         fun parse(raw: String): Url? {
             val text = raw.trim()

@@ -12,6 +12,7 @@ import com.castivio.domain.entitlement.StartDestination
 import com.castivio.domain.time.DAY_MS
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -102,7 +103,7 @@ class ProviderHealthTest {
     fun `a stated expiry that has passed is expired`() {
         val health = ProviderHealth.of(status(expiresAtMs = t0 - 1), t0)
 
-        assertEquals(ProviderHealth.Expired(t0 - 1), health)
+        assertEquals(ProviderHealth.Expired(t0 - 1, "Active"), health)
         assertEquals(HealthSeverity.PROBLEM, health.severity)
         assertTrue(health.playbackLikelyFails)
     }
@@ -116,7 +117,7 @@ class ProviderHealthTest {
     @Test
     fun `a date in the past outranks a panel that still says active`() {
         assertEquals(
-            ProviderHealth.Expired(t0 - DAY_MS),
+            ProviderHealth.Expired(t0 - DAY_MS, "Active"),
             ProviderHealth.of(status(usable = true, expiresAtMs = t0 - DAY_MS), t0),
         )
     }
@@ -130,10 +131,55 @@ class ProviderHealthTest {
     }
 
     @Test
-    fun `a refusal carries the provider's own word for it`() {
+    fun `a refusal carries the provider's own word for it as a detail`() {
+        val health = ProviderHealth.of(status(usable = false, statusLabel = "Disabled"), t0)
+
+        assertEquals(ProviderHealth.Rejected("Disabled"), health)
+        assertEquals("Disabled", health.providerResponse)
+    }
+
+    /**
+     * The panel's word is a diagnostic line under Castivio's own sentence, never the
+     * sentence itself — it arrives untranslated, in a language nobody chose, written by
+     * a stranger. Every state that does not have one says so.
+     */
+    @Test
+    fun `most states have nothing to quote`() {
+        assertNull(ProviderHealth.Healthy.providerResponse)
+        assertNull(ProviderHealth.Unknown.providerResponse)
+        assertNull(ProviderHealth.of(status(expiresAtMs = t0 + 2 * DAY_MS), t0).providerResponse)
+        assertNull(ProviderHealth.of(status(activeConnections = 2, maxConnections = 2), t0).providerResponse)
+        assertNull(ProviderHealth.of(Outcome.Failure(AppError.TIMEOUT), t0).providerResponse)
+    }
+
+    /**
+     * The rule that matters most in this file: **no decision is taken from the text.**
+     *
+     * A panel that spells it "Banned", "BANNED", "محظور" or leaves it blank is the same
+     * situation, and a business rule that greps for a word breaks the first time a
+     * provider spells it differently — silently, in the field, on someone's television.
+     * The state comes from `usable`, `expiresAtMs` and the connection counts alone.
+     */
+    @Test
+    fun `the provider's own words never change the decision`() {
+        val words = listOf(null, "", "Banned", "BANNED", "Expired", "Active", "محظور", "已封禁", "42")
+
+        // Refused, with no date: the same state every time, differing only in the detail.
+        for (word in words) {
+            assertEquals(word, ProviderHealth.Rejected(word), ProviderHealth.of(status(usable = false, statusLabel = word), t0))
+        }
+
+        // And a panel that says "Expired" while the line is usable and in date is still
+        // healthy, because the word is not evidence of anything.
         assertEquals(
-            ProviderHealth.Rejected("Disabled"),
-            ProviderHealth.of(status(usable = false, statusLabel = "Disabled"), t0),
+            ProviderHealth.Healthy,
+            ProviderHealth.of(status(usable = true, expiresAtMs = t0 + 90 * DAY_MS, statusLabel = "Expired"), t0),
+        )
+
+        // The mirror image: a panel that says "Active" past its own date is expired.
+        assertTrue(
+            ProviderHealth.of(status(usable = true, expiresAtMs = t0 - 1, statusLabel = "Active"), t0)
+                is ProviderHealth.Expired,
         )
     }
 
@@ -188,7 +234,7 @@ class ProviderHealthTest {
             maxConnections = 3,
         )
 
-        assertEquals(ProviderHealth.Expired(t0 - DAY_MS), ProviderHealth.of(expiredAndBusy, t0))
+        assertEquals(ProviderHealth.Expired(t0 - DAY_MS, "Active"), ProviderHealth.of(expiredAndBusy, t0))
     }
 
     @Test
@@ -265,7 +311,7 @@ class ProviderHealthTest {
         )
 
         val everyProblem = listOf(
-            ProviderHealth.of(status(usable = false), t0),
+            ProviderHealth.of(status(usable = false, statusLabel = null), t0),
             ProviderHealth.of(status(expiresAtMs = t0 - DAY_MS), t0),
             ProviderHealth.of(status(activeConnections = 2, maxConnections = 2), t0),
             ProviderHealth.of(Outcome.Failure(AppError.NETWORK_UNAVAILABLE), t0),

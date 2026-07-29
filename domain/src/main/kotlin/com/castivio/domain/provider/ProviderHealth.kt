@@ -36,6 +36,22 @@ sealed interface ProviderHealth {
     /** True when a stream started now is likely to fail. Lets the player warn first. */
     val playbackLikelyFails: Boolean
 
+    /**
+     * Whatever the provider's panel called it — "Banned", "Expired", "Активный", or
+     * nothing at all. Untranslated, unparsed, and **never** an input to a decision.
+     *
+     * It exists for one job: a secondary line under Castivio's own sentence, so that a
+     * user reading out their screen to their provider's support desk can quote the word
+     * that desk uses. The primary message is always ours and always translated, because
+     * this string is written by a stranger in a language we did not choose.
+     *
+     * Nothing here reads it. Every branch in [of] is taken from structured data —
+     * `usable`, `expiresAtMs`, the connection counts, or an [AppError] — because a
+     * business rule that greps for the word "Banned" breaks the first time a panel
+     * spells it differently, and breaks silently.
+     */
+    val providerResponse: String? get() = null
+
     /** Nothing to say. The overwhelmingly common case, and it renders nothing. */
     data object Healthy : ProviderHealth {
         override val severity: HealthSeverity get() = HealthSeverity.NONE
@@ -64,7 +80,10 @@ sealed interface ProviderHealth {
      * destroy the user's favourites and history over a renewal they may make an hour
      * later, and it is not ours to delete.
      */
-    data class Expired(val expiresAtMs: Long?) : ProviderHealth {
+    data class Expired(
+        val expiresAtMs: Long?,
+        override val providerResponse: String? = null,
+    ) : ProviderHealth {
         override val severity: HealthSeverity get() = HealthSeverity.PROBLEM
         override val playbackLikelyFails: Boolean get() = true
     }
@@ -83,10 +102,16 @@ sealed interface ProviderHealth {
 
     /**
      * The provider answered and refused: wrong credentials, a banned line, a disabled
-     * account. [label] is whatever the panel called it, for the screen to show verbatim
-     * — a provider's own word for it is more useful to the user than ours.
+     * account.
+     *
+     * One state for all of those, because the app cannot tell them apart from structured
+     * data and guessing from [providerResponse] would be exactly the string-matching
+     * this type refuses to do. The screen says so in Castivio's words — "your provider
+     * rejected these credentials" — and shows the panel's own word underneath.
      */
-    data class Rejected(val label: String?) : ProviderHealth {
+    data class Rejected(
+        override val providerResponse: String? = null,
+    ) : ProviderHealth {
         override val severity: HealthSeverity get() = HealthSeverity.PROBLEM
         override val playbackLikelyFails: Boolean get() = true
     }
@@ -133,14 +158,19 @@ sealed interface ProviderHealth {
             val expiry = status.expiresAtMs
 
             // 1. Refusals first, because nothing will play and no other notice matters.
+            //    Which of the two it is comes from the date, never from the label.
             if (!status.usable) {
-                return if (expiry != null && nowMs >= expiry) Expired(expiry) else Rejected(status.statusLabel)
+                return if (expiry != null && nowMs >= expiry) {
+                    Expired(expiry, status.statusLabel)
+                } else {
+                    Rejected(status.statusLabel)
+                }
             }
 
             // 2. A stated expiry that has passed outranks the panel's own optimism: a
             //    line marked active with yesterday's date is a panel that has not caught
             //    up, and the date is the more specific fact.
-            if (expiry != null && nowMs >= expiry) return Expired(expiry)
+            if (expiry != null && nowMs >= expiry) return Expired(expiry, status.statusLabel)
 
             // 3. Happening now beats happening later.
             if (status.atConnectionLimit) return ConnectionLimit(status.activeConnections, status.maxConnections)

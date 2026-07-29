@@ -94,11 +94,69 @@ class FieldValidationTest {
 
     @Test
     fun `half a url is an incomplete host`() {
-        val halves = listOf("http://", "https://", "myserver", "8080", "http://.com", "http://example.")
+        val halves = listOf(
+            "http://",
+            "https://",
+            // A port that arrived without its host. Never typed on purpose.
+            "8080",
+            "http://:8080",
+            // Empty labels.
+            "http://.com",
+            "http://example.",
+            "http://a..b",
+            // A label cannot start or end with a hyphen.
+            "http://-example.com",
+            "http://example-.com",
+        )
 
         for (text in halves) {
             assertEquals(text, FieldProblem.INCOMPLETE_HOST, FieldValidation.serverUrl(text).problem)
         }
+    }
+
+    /**
+     * A dot is a convention of public domains, not a rule of hostnames. Someone running
+     * a panel on their own network reaches it by a single-label name, and refusing that
+     * would break a setup that works to catch a typo that mostly does not happen.
+     */
+    @Test
+    fun `a hostname without a dot is a hostname`() {
+        val internal = listOf("myserver", "localhost", "iptv-box", "nas_01", "MyServer")
+
+        for (host in internal) {
+            val checked = FieldValidation.serverUrl(host)
+
+            assertTrue("$host -> ${checked.problem}", checked.isValid)
+            assertEquals("http://$host", checked.value)
+        }
+    }
+
+    @Test
+    fun `a single label host keeps its port and its scheme`() {
+        assertEquals("http://myserver:8080", FieldValidation.serverUrl("myserver:8080").value)
+        assertEquals("https://localhost:443", FieldValidation.serverUrl("https://localhost:443").value)
+    }
+
+    @Test
+    fun `a single label host works as a playlist url too`() {
+        assertEquals(
+            "http://myserver:8080/playlist.m3u",
+            FieldValidation.playlistUrl("myserver:8080/playlist.m3u").value,
+        )
+    }
+
+    @Test
+    fun `a label longer than dns allows is refused`() {
+        val tooLong = "a".repeat(64)
+
+        assertEquals(FieldProblem.INCOMPLETE_HOST, FieldValidation.serverUrl("http://$tooLong.com").problem)
+        assertTrue(FieldValidation.serverUrl("http://${"a".repeat(63)}.com").isValid)
+    }
+
+    @Test
+    fun `an ipv6 literal is a host`() {
+        assertTrue(FieldValidation.serverUrl("http://[2001:db8::1]:8080").isValid)
+        assertEquals("http://[2001:db8::1]:8080", FieldValidation.serverUrl("http://[2001:db8::1]:8080").value)
     }
 
     @Test
