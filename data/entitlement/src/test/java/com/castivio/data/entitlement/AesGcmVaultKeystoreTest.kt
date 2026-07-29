@@ -5,9 +5,11 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.security.GeneralSecurityException
+import java.security.Security
 import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
 
@@ -122,22 +124,31 @@ class AesGcmVaultKeystoreTest {
     }
 
     /**
-     * And nothing else in the JVM will serve the key, which is what stops the framework
+     * And nothing else installed will serve the key, which is what stops the framework
      * from silently trying another provider when this one refuses — the reason the key is
      * opaque rather than an ordinary array of bytes.
+     *
+     * What is asserted is that no other provider *succeeds*, not which exception it
+     * chooses. Which providers are installed depends on the JDK, and a test that pinned
+     * the exception type would go red on a machine where one of them was merely rude
+     * about a key it could not use.
      */
     @Test
     fun `no other provider will touch a keystore held key`() {
-        for (provider in java.security.Security.getProviders()) {
-            if (provider.name == "CastivioKeystoreLike") continue
+        for (provider in Security.getProviders()) {
+            if (provider.name == KEYSTORE_LIKE) continue
 
             val cipher = runCatching {
                 Cipher.getInstance("AES/GCM/NoPadding", provider)
             }.getOrNull() ?: continue
 
-            assertThrows(provider.name, GeneralSecurityException::class.java) {
-                cipher.init(Cipher.ENCRYPT_MODE, keystore.key)
-            }
+            val accepted = runCatching { cipher.init(Cipher.ENCRYPT_MODE, keystore.key) }
+
+            assertTrue("${provider.name} accepted an opaque key", accepted.isFailure)
         }
+    }
+
+    private companion object {
+        const val KEYSTORE_LIKE = "CastivioKeystoreLike"
     }
 }

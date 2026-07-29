@@ -94,9 +94,16 @@ private fun realCipher(): Cipher = Cipher.getInstance(
     checkNotNull(realProvider) { "KeystoreLikeCipher is not installed; use it as a @Rule" },
 )
 
+/**
+ * The version is a `Double` and not a `String` on purpose. `Provider(String, String, String)`
+ * arrived in Java 9 and is not in `android.jar`, so an Android module's test sources cannot
+ * see it however modern the JDK compiling them is. The `Double` overload is deprecated on
+ * the JVM and is the only one that exists here.
+ */
+@Suppress("DEPRECATION")
 private class KeystoreLikeProvider : Provider(
     PROVIDER_NAME,
-    "1",
+    1.0,
     "Models the AndroidKeyStore contract for AES/GCM so it can be tested off a device",
 ) {
     init {
