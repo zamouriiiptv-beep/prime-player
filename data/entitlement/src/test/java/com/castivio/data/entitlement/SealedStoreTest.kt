@@ -11,7 +11,7 @@ import com.castivio.domain.time.ClockState
 import com.castivio.domain.time.TimeAnchor
 import com.castivio.domain.time.TimeAnchorSource
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -40,11 +40,16 @@ class SealedStoreTest {
 
     private lateinit var context: Context
 
+    /**
+     * Unconfined, not a `TestDispatcher`: one built outside `runTest` carries its own
+     * scheduler and every suspending test fails with "detected use of different
+     * schedulers". Nothing here depends on scheduling anyway — it is a file, read and
+     * written inline.
+     */
     private val dispatchers = object : AppDispatchers {
-        private val test: CoroutineDispatcher = StandardTestDispatcher()
-        override val main: CoroutineDispatcher get() = test
-        override val io: CoroutineDispatcher get() = test
-        override val default: CoroutineDispatcher get() = test
+        override val main: CoroutineDispatcher = Dispatchers.Unconfined
+        override val io: CoroutineDispatcher = Dispatchers.Unconfined
+        override val default: CoroutineDispatcher = Dispatchers.Unconfined
     }
 
     @Before

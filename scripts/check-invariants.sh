@@ -135,6 +135,23 @@ if [ -f "$module" ]; then
   fi
 fi
 
+# ------------------------------------------------------ a trap worth failing on
+# A TestDispatcher built as a field is constructed outside `runTest`, so it carries
+# its own scheduler and every suspending test in the class dies with "detected use of
+# different schedulers" -- on CI, minutes after the commit looked fine. Either share
+# the scheduler (`StandardTestDispatcher(testScheduler)`) or use Dispatchers.Unconfined,
+# which is what the rest of this repository does.
+hits=$(grep -rn --include='*.kt' -E '(Standard|Unconfined)TestDispatcher\(\)' \
+        app core feature playback data domain benchmark 2>/dev/null)
+if [ -n "$hits" ]; then
+  fail "A TestDispatcher is built without a scheduler" \
+       "$hits
+
+  Constructed outside runTest, this brings its own scheduler and every
+  suspending test in the class fails. Use Dispatchers.Unconfined, or pass
+  runTest's own scheduler: StandardTestDispatcher(testScheduler)."
+fi
+
 # ------------------------------------------------------------------------ report
 if [ "$failures" -eq 0 ]; then
   echo "Design invariants: all mechanical checks pass."
