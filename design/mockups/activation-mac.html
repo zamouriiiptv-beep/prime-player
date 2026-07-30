@@ -41,6 +41,7 @@
   /* glass */
   --glass-mid:rgba(255,255,255,.078); --glass-low:rgba(255,255,255,.039);
   --glass-edge:rgba(255,255,255,.239); --glass-edge-soft:rgba(255,255,255,.078);
+  --divider:rgba(255,255,255,.122);   /* CastivioColors.divider, 0x1FFFFFFF */
   /* radius */
   --r-xs:8px; --r-sm:12px; --r-md:16px; --r-lg:20px; --r-xl:24px; --r-xxl:30px; --r-pill:999px;
 }
@@ -93,11 +94,16 @@ html[dir="rtl"] .glass::after{
 }
 
 /* -------------------------------------------------------------------- type */
-/* Type.kt. 1sp = 1dp at fontScale 1.0. */
-.t-headline-m{font-size:22px;line-height:30px;font-weight:700}
-.t-headline-l{font-size:28px;line-height:36px;font-weight:700;letter-spacing:-.2px}
+/* Type.kt. 1sp = 1dp at fontScale 1.0.
+   headlineMedium, headlineLarge and bodySmall carry the approved line-height
+   rise -- 32, 40 and 20 rather than 30, 36 and 18. The old values were set
+   against Latin and sat within a millimetre of other scripts' ink: Thai's
+   bodySmall had 1dp of headroom, Arabic's headlineLarge had 0.5dp. Measured
+   again at these values the headroom is 3dp and 4.5dp. */
+.t-headline-m{font-size:22px;line-height:32px;font-weight:700}
+.t-headline-l{font-size:28px;line-height:40px;font-weight:700;letter-spacing:-.2px}
 .t-body-m    {font-size:14px;line-height:22px}
-.t-body-s    {font-size:12.5px;line-height:18px}
+.t-body-s    {font-size:12.5px;line-height:20px}
 .t-label-l   {font-size:14px;line-height:20px;font-weight:600}
 .t-overline  {font-size:11px;line-height:16px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase}
 
@@ -143,8 +149,11 @@ html[dir="rtl"] .glass::after{
 .pill-lang{height:28px;padding:0 10px;font-size:12px;font-weight:600;
   background:var(--glass-mid);border:1px solid var(--glass-edge);color:var(--mist)}
 .pill-lang svg{flex:0 0 auto;opacity:.75}
+/* Refresh is the one action whose meaning a glyph carries better than a word
+   in thirty-seven languages, so it gets one. */
+.btn svg{flex:0 0 auto;opacity:.9}
 
-.btn{display:inline-flex;align-items:center;justify-content:center;
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
   border-radius:var(--r-sm);font-weight:600;white-space:nowrap;flex:0 0 auto}
 .btn-touch{height:48px;padding:0 20px;font-size:14px}   /* Sizing.minTouchTarget */
 .btn-tv   {height:56px;padding:0 24px;font-size:15px}   /* Sizing.minTvTarget   */
@@ -174,6 +183,26 @@ html[dir="rtl"] .glass::after{
 .qr-block{display:flex;align-items:center;flex:0 0 auto}
 .qr-block .cap{color:var(--silver)}
 
+/* A seam, not a rule.
+   The card stays one object -- the two functions inside it are not two cards --
+   so the eye needs only enough of a boundary to know that the address and its
+   actions are one job and the code is another. A hairline at the divider
+   token's own alpha, faded to nothing at both ends the way glassBorderBrush
+   fades. At full strength across the full height it would read as two panels
+   butted together, which is the thing this is not.
+   In RTL the flex row reverses and the seam travels with it, so the order
+   becomes QR | seam | MAC without a single direction-specific rule. */
+.seam{flex:0 0 auto;align-self:stretch;width:1px;border-radius:1px;
+  background:linear-gradient(180deg,transparent 0%,var(--divider) 16%,
+             var(--divider) 84%,transparent 100%)}
+/* Should a breakpoint ever stack the sections, the seam turns with them. None
+   of the three frames does -- all three measure as side by side -- but the rule
+   exists so the orientation is a property of the layout rather than a redraw. */
+.split.stacked{flex-direction:column;align-items:stretch}
+.split.stacked > .seam{width:auto;height:1px;
+  background:linear-gradient(90deg,transparent 0%,var(--divider) 16%,
+             var(--divider) 84%,transparent 100%)}
+
 /* ------------------------------------------------------------------ layout */
 .shell{position:absolute;inset:0;display:flex;flex-direction:column}
 .sysbar{height:24px;flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;
@@ -199,7 +228,7 @@ html[dir="rtl"] .glass::after{
 .card{flex:0 0 auto;margin-top:auto;margin-bottom:auto}
 #phone-873 .card{padding:20px}
 #phone-800 .card{padding:16px}
-#tv .card{padding:28px}
+#tv .card{padding:24px}
 
 /* The address, its label and its copy control on one row. A grid rather than a
    flex row because the device key becomes a second row of the same three
@@ -216,7 +245,7 @@ html[dir="rtl"] .glass::after{
 .values .val{justify-self:end}
 #phone-873 .values{column-gap:16px}
 #phone-800 .values{column-gap:14px}
-#tv .values{column-gap:20px}
+#tv .values{column-gap:16px}
 .values .label{white-space:nowrap}
 .values .val{min-width:0;display:flex;align-items:center;justify-content:flex-end}
 
@@ -226,8 +255,8 @@ html[dir="rtl"] .glass::after{
 
 /* Phone: the code block and the QR abreast inside one card. */
 .split{display:flex;align-items:center}
-#phone-873 .split{gap:28px}
-#phone-800 .split{gap:22px}
+#phone-873 .split{gap:22px}
+#phone-800 .split{gap:18px}
 .split .main{flex:1 1 auto;min-width:0}
 
 #phone-873 .qr{width:130px;height:130px}
@@ -250,9 +279,9 @@ html[dir="rtl"] .glass::after{
    is the approved television size and whitespace is the cheaper thing to spend. */
 #tv .split{gap:32px;align-items:center}
 #tv .actions{gap:16px;margin-top:24px}
-#tv .qr{width:176px;height:176px}
+#tv .qr{width:168px;height:168px}
 #tv .qr-block{flex-direction:column;gap:10px;align-items:center}
-#tv .qr-block .cap{width:176px;text-align:center}
+#tv .qr-block .cap{width:168px;text-align:center}
 
 /* A standing statement of what Castivio is, and the one line on this screen
    that is here for the reader's protection rather than their task. Small,
@@ -270,6 +299,14 @@ html[data-spec="1"] .spec{display:block}
   padding:1px 4px;border-radius:3px;direction:ltr;
   background:rgba(8,7,26,.86);border:1px solid var(--azure50);color:var(--azure60)}
 .spec-safe{position:absolute;z-index:8;pointer-events:none;border:1px dashed rgba(255,176,32,.55)}
+/* Focus order, numbered on the render so a remote's path is reviewed by eye
+   rather than asserted in prose. The QR carries no focusable of its own -- it
+   is read by a camera, not pressed -- so the whole path lives in the MAC
+   section and mirrors with it in RTL. */
+.spec-focus{position:absolute;z-index:10;width:15px;height:15px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;direction:ltr;
+  font-family:"Liberation Mono",monospace;font-size:9px;font-weight:700;
+  background:#9B6BFF;color:#0B0820;transform:translate(-50%,-50%)}
 .spec-note{position:absolute;z-index:9;right:6px;bottom:6px;direction:ltr;
   font-family:"Liberation Mono",monospace;font-size:9px;line-height:13px;text-align:right;
   color:#FFB020;background:rgba(8,7,26,.86);padding:3px 6px;border-radius:4px}
@@ -310,9 +347,10 @@ html[data-spec="1"] .spec{display:block}
             </div>
             <div class="actions">
               <span class="btn btn-touch btn-primary focused" data-s="add"></span>
-              <span class="btn btn-touch btn-secondary" data-s="check"></span>
+              <span class="btn btn-touch btn-secondary" data-refresh data-s="refresh"></span>
             </div>
           </div>
+          <i class="seam"></i>
           <div class="qr-block">
             <span class="qr" data-qr></span>
             <span class="cap t-body-s" data-s="qr"></span>
@@ -365,9 +403,10 @@ html[data-spec="1"] .spec{display:block}
             </div>
             <div class="actions">
               <span class="btn btn-touch btn-primary focused" data-s="add"></span>
-              <span class="btn btn-touch btn-secondary" data-s="check"></span>
+              <span class="btn btn-touch btn-secondary" data-refresh data-s="refresh"></span>
             </div>
           </div>
+          <i class="seam"></i>
           <div class="qr-block">
             <span class="qr" data-qr></span>
             <span class="cap t-body-s" data-s="qr"></span>
@@ -417,9 +456,10 @@ html[data-spec="1"] .spec{display:block}
           </div>
           <div class="actions">
             <span class="btn btn-tv btn-primary focused" data-s="add"></span>
-            <span class="btn btn-tv btn-secondary" data-s="check"></span>
+            <span class="btn btn-tv btn-secondary" data-refresh data-s="refresh"></span>
           </div>
         </div>
+        <i class="seam"></i>
         <div class="qr-block">
           <span class="qr" data-qr></span>
           <span class="cap t-body-m" data-s="qr"></span>
@@ -432,7 +472,7 @@ html[data-spec="1"] .spec{display:block}
 
   <div class="spec">
     <div class="spec-safe" style="inset:48px"></div>
-    <div class="spec-note">safe 864x444 &middot; code 42/52 &middot; QR 176 &middot; targets 56</div>
+    <div class="spec-note">safe 864x444 &middot; code 42/52 &middot; QR 168 &middot; targets 56</div>
   </div>
 </section>
 
@@ -450,50 +490,51 @@ html[data-spec="1"] .spec{display:block}
    this screen means the provider's; the seven days are the player's licence,
    and a screen that used one word for both would contradict itself.
    ------------------------------------------------------------------------ */
+/* Every screen string, in the nine languages that stress the layout. */
 var S = {
   en: { dir:"ltr", lang:"English", title:"Add your subscription",
         trialName:"Castivio trial", trialDays:"7 days", qr:"Scan to copy the address",
-        add:"Add playlist", check:"Check now", copy:"Copy address",
+        add:"Add playlist", refresh:"Refresh", copy:"Copy address",
         footer:"Castivio is only a player and does not provide subscriptions or content." },
 
   ar: { dir:"rtl", lang:"العربية", title:"أضف اشتراكك",
         trialName:"تجربة Castivio", trialDays:"٧ أيام", qr:"امسح لنسخ العنوان",
-        add:"إضافة قائمة تشغيل", check:"تحقّق الآن", copy:"نسخ العنوان",
+        add:"إضافة قائمة تشغيل", refresh:"تحديث", copy:"نسخ العنوان",
         footer:"Castivio مشغّل فقط ولا يوفّر اشتراكات أو محتوى." },
 
   de: { dir:"ltr", lang:"Deutsch", title:"Abonnement hinzufügen",
         trialName:"Castivio-Testphase", trialDays:"7 Tage", qr:"Scannen, um die Adresse zu kopieren",
-        add:"Wiedergabeliste hinzufügen", check:"Jetzt prüfen", copy:"Adresse kopieren",
+        add:"Wiedergabeliste hinzufügen", refresh:"Aktualisieren", copy:"Adresse kopieren",
         footer:"Castivio ist nur ein Player und bietet keine Abonnements oder Inhalte an." },
 
   fi: { dir:"ltr", lang:"Suomi", title:"Lisää tilauksesi",
         trialName:"Castivio-kokeilu", trialDays:"7 päivää", qr:"Skannaa kopioidaksesi osoitteen",
-        add:"Lisää soittolista", check:"Tarkista nyt", copy:"Kopioi osoite",
+        add:"Lisää soittolista", refresh:"Päivitä", copy:"Kopioi osoite",
         footer:"Castivio on vain soitin eikä tarjoa tilauksia tai sisältöä." },
 
   th: { dir:"ltr", lang:"ไทย", title:"เพิ่มการสมัครสมาชิกของคุณ",
         trialName:"ทดลองใช้ Castivio", trialDays:"7 วัน", qr:"สแกนเพื่อคัดลอกที่อยู่",
-        add:"เพิ่มเพลย์ลิสต์", check:"ตรวจสอบทันที", copy:"คัดลอกที่อยู่",
+        add:"เพิ่มเพลย์ลิสต์", refresh:"รีเฟรช", copy:"คัดลอกที่อยู่",
         footer:"Castivio เป็นเพียงโปรแกรมเล่นเท่านั้น ไม่ได้ให้บริการสมัครสมาชิกหรือเนื้อหา" },
 
   hi: { dir:"ltr", lang:"हिन्दी", title:"अपनी सदस्यता जोड़ें",
         trialName:"Castivio परीक्षण", trialDays:"7 दिन", qr:"पता कॉपी करने के लिए स्कैन करें",
-        add:"प्लेलिस्ट जोड़ें", check:"अभी जाँचें", copy:"पता कॉपी करें",
+        add:"प्लेलिस्ट जोड़ें", refresh:"रिफ़्रेश करें", copy:"पता कॉपी करें",
         footer:"Castivio केवल एक प्लेयर है और सदस्यता या सामग्री प्रदान नहीं करता।" },
 
   ja: { dir:"ltr", lang:"日本語", title:"サブスクリプションを追加",
         trialName:"Castivio 体験版", trialDays:"7日", qr:"スキャンしてアドレスをコピー",
-        add:"プレイリストを追加", check:"今すぐ確認", copy:"アドレスをコピー",
+        add:"プレイリストを追加", refresh:"更新", copy:"アドレスをコピー",
         footer:"Castivio はプレーヤーのみを提供し、サブスクリプションやコンテンツは提供しません。" },
 
   bn: { dir:"ltr", lang:"বাংলা", title:"আপনার সাবস্ক্রিপশন যোগ করুন",
         trialName:"Castivio ট্রায়াল", trialDays:"৭ দিন", qr:"ঠিকানা কপি করতে স্ক্যান করুন",
-        add:"প্লেলিস্ট যোগ করুন", check:"এখনই দেখুন", copy:"ঠিকানা কপি করুন",
+        add:"প্লেলিস্ট যোগ করুন", refresh:"রিফ্রেশ", copy:"ঠিকানা কপি করুন",
         footer:"Castivio শুধুমাত্র একটি প্লেয়ার এবং কোনো সাবস্ক্রিপশন বা কনটেন্ট সরবরাহ করে না।" },
 
   zh: { dir:"ltr", lang:"简体中文", title:"添加您的订阅",
         trialName:"Castivio 试用", trialDays:"7 天", qr:"扫码复制地址",
-        add:"添加播放列表", check:"立即检查", copy:"复制地址",
+        add:"添加播放列表", refresh:"刷新", copy:"复制地址",
         footer:"Castivio 仅为播放器，不提供订阅或内容。" }
 };
 
@@ -546,6 +587,12 @@ var COPY_ICON =
   '<rect x="9" y="9" width="11" height="11" rx="2.5"/>' +
   '<path d="M15 5.5A2.5 2.5 0 0 0 12.5 3H6.5A2.5 2.5 0 0 0 4 5.5v6A2.5 2.5 0 0 0 6.5 14"/></svg>';
 
+var REFRESH_ICON =
+  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+  'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+  '<path d="M20.5 12a8.5 8.5 0 0 1-14.4 6.1"/><path d="M6 22v-4h4"/>' +
+  '<path d="M3.5 12a8.5 8.5 0 0 1 14.4-6.1"/><path d="M18 2v4h-4"/></svg>';
+
 var GLOBE_ICON =
   '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
   'stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/>' +
@@ -562,6 +609,26 @@ var GLOBE_ICON =
   document.documentElement.dir = s.dir;
   if (q.get("spec") === "1") document.documentElement.dataset.spec = "1";
 
+  // Focus badges are positioned from the elements' measured boxes, so they
+  // cannot drift out of step with a layout change the way hand-placed ones do.
+  if (q.get("spec") === "1") {
+    requestAnimationFrame(function () {
+      var frameEl = document.getElementById(frame);
+      var host = frameEl.querySelector(".spec");
+      var rect = frameEl.getBoundingClientRect();
+      var order = frameEl.querySelectorAll(".icon-btn, .btn, .pill-lang");
+      order.forEach(function (el, i) {
+        var b = el.getBoundingClientRect();
+        var badge = document.createElement("span");
+        badge.className = "spec-focus";
+        badge.textContent = String(i + 1);
+        badge.style.left = (b.left - rect.left + b.width / 2) + "px";
+        badge.style.top = (b.top - rect.top) + "px";
+        host.appendChild(badge);
+      });
+    });
+  }
+
   var svg = qrSvg();
   document.querySelectorAll("[data-qr]").forEach(function (n) { n.innerHTML = svg; });
   document.querySelectorAll("[data-copy]").forEach(function (n) {
@@ -571,8 +638,13 @@ var GLOBE_ICON =
   });
   document.querySelectorAll("[data-s]").forEach(function (n) {
     var key = n.getAttribute("data-s");
-    var text = s[key] || S.en[key];
+    // No silent fallback. `s[key] || S.en[key]` returns undefined for a key
+    // neither table has, and assigning that to textContent writes the literal
+    // word "undefined" -- text, so nothing downstream notices. A missing string
+    // is now conspicuous on screen and detectable by the measuring script.
+    var text = key in s ? s[key] : (key in S.en ? S.en[key] : "\u27e8" + key + "\u27e9");
     if (n.hasAttribute("data-globe")) n.innerHTML = GLOBE_ICON + "<span>" + text + "</span>";
+    else if (n.hasAttribute("data-refresh")) n.innerHTML = REFRESH_ICON + "<span>" + text + "</span>";
     else n.textContent = text;
   });
 })();

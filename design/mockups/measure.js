@@ -133,6 +133,20 @@ function probe({ frame, isTv }) {
   }).map((e) => `${String(e.className || e.tagName).slice(0, 28)}(${e.scrollWidth}>${e.clientWidth})`);
   if (clipped.length) fails.push(`clipped: ${clipped.slice(0, 4).join(", ")}`);
 
+  // --- strings: a key that resolves to nothing renders an empty control ----
+  // This exists because it happened. The refresh button was pointed at a key
+  // the table did not have, rendered with no text at all, and every other check
+  // still passed -- an empty 48dp button is exactly 48dp tall, an empty caption
+  // overflows nothing, and a blank layout fits beautifully. A harness that
+  // certifies an empty screen is worse than no harness.
+  const bad = [...root.querySelectorAll("[data-s]")]
+    .filter((e) => {
+      const t = e.textContent.trim();
+      return !t || t.includes("\u27e8") || t === "undefined";
+    })
+    .map((e) => e.getAttribute("data-s"));
+  if (bad.length) fails.push(`missing or empty string key(s): ${[...new Set(bad)].join(", ")}`);
+
   // --- the address --------------------------------------------------------
   // Measured on the glyph run, and the room measured on the column that
   // constrains it. Comparing the run against its own box says "fits" for a

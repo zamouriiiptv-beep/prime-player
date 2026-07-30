@@ -50,10 +50,11 @@ render tv         960 540 2   mac-tv.png           # 1920x1080 at 2.0
 A layout that has to fit is not a layout to eyeball, so `measure.js` reads the
 element boxes out of the DOM and checks eight things on every frame **in every
 stress language**: the document is no bigger than its frame, nothing paints
-outside it, no text overflows its box, the address fits the row that holds it,
-the standing notice is still on screen, the header is still one row, every
-control still meets its touch or D-pad minimum, and the QR still has the module
-pitch a camera needs.
+outside it, no text overflows its box, every string key actually resolves, the
+address fits the row that holds it, no script's glyphs are taller than the line
+box holding them, the standing notice is still on screen, the header is still
+one row, every control still meets its touch or D-pad minimum, and the QR still
+has the module pitch a camera needs.
 
 ```sh
 npm i -g playwright          # the browser is already here; only the driver is missing
@@ -95,6 +96,12 @@ knowing because it recurs:
   *recommended* spacing, and Noto Sans Arabic recommends 46dp for a 22sp string,
   so every Arabic line "failed" while rendering perfectly. The yardstick is the
   glyphs' ink, from Canvas TextMetrics.
+- **A missing string rendered as the word "undefined".** `s[key] || S.en[key]`
+  returns undefined for a key neither table has, and assigning that to
+  textContent writes text — so an entire button rendered blank and every check
+  passed, because an empty 48dp button is exactly 48dp tall. A harness that
+  certifies an empty screen is worse than no harness. Missing keys are now
+  conspicuous on screen and fail the run.
 - **The worst-case summary filtered on a value that could never match.** The
   probe returned a key called `frame` holding the viewport box, and the caller
   spread it over the `frame` naming the device. The summary was dead for three
