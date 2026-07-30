@@ -9,7 +9,7 @@ re-rendered when a token changes.
 | File | Screens |
 |---|---|
 | `shell-home.html` | Shell (rail, top bar), Home, the rail focused, a section the provider does not carry, phone Home, tablet section, and the state-language reference sheet |
-| `activation-mac.html` | MAC activation — the screen a first launch opens on — at phone landscape 873x393 and 800x360, and television 960x540 |
+| `activation-mac.html` | The first screen, where a subscription is added — phone landscape 873x393 and 800x360, television 960x540, in nine stress languages |
 
 ## Rendering
 
@@ -34,8 +34,8 @@ render tablet-section 1280  800 1.5  tablet-movies.png
 render states          960 1000 2    state-language.png   # a reference sheet, not a device
 ```
 
-`activation-mac.html` takes the same `?frame=`, and `&spec=1` overlays the measures
-and the safe area on any of its frames:
+`activation-mac.html` takes the same `?frame=`, plus `?lang=` for the stress
+languages, and `&spec=1` overlays the measures and the safe area:
 
 ```sh
 render() { ... "file://$PWD/activation-mac.html?frame=$1"; }   # same helper
@@ -48,17 +48,34 @@ render tv         960 540 2   mac-tv.png           # 1920x1080 at 2.0
 ## Measuring
 
 A layout that has to fit is not a layout to eyeball, so `measure.js` reads the
-element boxes out of the DOM and answers four questions per frame: is the
-document taller than its frame, does anything paint outside it, does the address
-fit its column, and do the columns resolve to the widths the stylesheet asks for.
+element boxes out of the DOM and checks eight things on every frame **in every
+stress language**: the document is no bigger than its frame, nothing paints
+outside it, no text overflows its box, the address fits the row that holds it,
+the standing notice is still on screen, the header is still one row, every
+control still meets its touch or D-pad minimum, and the QR still has the module
+pitch a camera needs.
 
 ```sh
 npm i -g playwright          # the browser is already here; only the driver is missing
-node measure.js              # every frame of activation-mac.html
+node measure.js              # every frame x every language
+node measure.js --lang en,de --frame tv
 node measure.js --shots ./out
 ```
 
-Exit code is non-zero when a frame does not fit, so it works as a gate.
+Exit code is non-zero when any frame in any language fails, so it works as a gate.
+
+### The stress languages
+
+English alone cannot check a claim about fitting. Nine languages are measured,
+each for a different reason: `en` baseline, `ar` right-to-left and bidi, `de`
+and `fi` expansion, `th` and `hi` and `bn` line boxes taller than Latin's, `ja`
+and `zh` line breaking without spaces.
+
+This needs the Noto faces Android ships — Noto Sans, and the Arabic, Thai and
+Devanagari families — or Thai and Devanagari fall back to whatever the machine
+has and their line boxes, the thing being measured, stop being the device's.
+`measure.js` says so if they are missing. CJK falls back to WenQuanYi here,
+which is adequate because a CJK glyph is one em wide by definition.
 
 Three of those four checks caught a real defect while `activation-mac.html` was
 being drawn. The worst was `flex:1 1 auto` on the note column: a flex basis taken
@@ -66,13 +83,26 @@ from a paragraph's max-content width wins the space and shrinks its neighbours,
 which left the MAC card at 238dp when the address needed 323 — plausible in the
 stylesheet, clipped on screen.
 
-Two of the checks were wrong before they were right, both in the same way: they
-compared the address against the box it sits in rather than against the width
-that constrains it. A block-level box is as wide as its parent, so it always
-"fits"; a content-sized box is exactly as wide as its text, so it always reports
-zero slack. Clipping is now the browser's own answer and slack is measured
-against the card's inner width. A check that fails a healthy layout is worse than
-no check.
+Four of the checks were wrong before they were right, and the pattern is worth
+knowing because it recurs:
+
+- **The address was measured against the box it sits in.** A block-level box is
+  as wide as its parent, so it always "fits" however badly it overflows; a
+  content-sized box is exactly as wide as its text, so it always reports zero
+  slack. Room is now the row's content width less the label, the copy control
+  and the gaps — what the address could actually grow into.
+- **Line height was measured against `line-height:normal`.** That is the font's
+  *recommended* spacing, and Noto Sans Arabic recommends 46dp for a 22sp string,
+  so every Arabic line "failed" while rendering perfectly. The yardstick is the
+  glyphs' ink, from Canvas TextMetrics.
+- **The worst-case summary filtered on a value that could never match.** The
+  probe returned a key called `frame` holding the viewport box, and the caller
+  spread it over the `frame` naming the device. The summary was dead for three
+  runs and said nothing rather than saying something wrong, which is why it took
+  three runs to notice.
+
+A check that fails a healthy layout is worse than no check, and a check that
+silently measures nothing is worse than both.
 
 The PNGs are deliberately **not** committed: they are five megabytes that can be
 regenerated in a second, and a stale image in the repository is worse than none.
