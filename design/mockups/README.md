@@ -45,11 +45,34 @@ render phone-800  800 360 2   mac-phone-800.png    # 720x1600 at 2.0, the shorte
 render tv         960 540 2   mac-tv.png           # 1920x1080 at 2.0
 ```
 
-A layout that has to fit is not a layout to eyeball. These frames were measured
-rather than judged — element boxes read out of the DOM, checked for a document
-taller than its frame, for anything painting outside it, and for the address
-being clipped by its column. Three of those four caught a real defect while this
-file was being written.
+## Measuring
+
+A layout that has to fit is not a layout to eyeball, so `measure.js` reads the
+element boxes out of the DOM and answers four questions per frame: is the
+document taller than its frame, does anything paint outside it, does the address
+fit its column, and do the columns resolve to the widths the stylesheet asks for.
+
+```sh
+npm i -g playwright          # the browser is already here; only the driver is missing
+node measure.js              # every frame of activation-mac.html
+node measure.js --shots ./out
+```
+
+Exit code is non-zero when a frame does not fit, so it works as a gate.
+
+Three of those four checks caught a real defect while `activation-mac.html` was
+being drawn. The worst was `flex:1 1 auto` on the note column: a flex basis taken
+from a paragraph's max-content width wins the space and shrinks its neighbours,
+which left the MAC card at 238dp when the address needed 323 — plausible in the
+stylesheet, clipped on screen.
+
+Two of the checks were wrong before they were right, both in the same way: they
+compared the address against the box it sits in rather than against the width
+that constrains it. A block-level box is as wide as its parent, so it always
+"fits"; a content-sized box is exactly as wide as its text, so it always reports
+zero slack. Clipping is now the browser's own answer and slack is measured
+against the card's inner width. A check that fails a healthy layout is worse than
+no check.
 
 The PNGs are deliberately **not** committed: they are five megabytes that can be
 regenerated in a second, and a stale image in the repository is worse than none.
