@@ -32,7 +32,7 @@
 
      ?frame=   phone-873 | phone-800 | tv
      ?lang=    en ar de fi th hi bn ja zh
-     &state=   copied | focus-copy
+     &state=   copied-mac | copied-key | checking | found | none | error | focus-copy
      &spec=1   measures, safe area, focus order
    ========================================================================= */
 :root{
@@ -112,6 +112,12 @@ html[dir="rtl"] .backdrop{
             font-size:42px;line-height:52px;font-weight:700;letter-spacing:1px}
 .code-phone{font-family:"Liberation Mono","DejaVu Sans Mono",monospace;
             font-size:28px;line-height:36px;font-weight:700;letter-spacing:1px}
+/* The device key is a credential, not the identity, and the hierarchy has to say
+   so: same face, four steps down, so the address stays the anchor. */
+.code-key   {font-family:"Liberation Mono","DejaVu Sans Mono",monospace;
+            font-size:24px;line-height:32px;font-weight:700;letter-spacing:1px}
+.code-key-tv{font-family:"Liberation Mono","DejaVu Sans Mono",monospace;
+            font-size:32px;line-height:42px;font-weight:700;letter-spacing:1px}
 
 /* The address is Latin-and-digits inside a paragraph that may run right to
    left. Left to inherit the paragraph, the bidi algorithm may reorder its runs
@@ -193,6 +199,11 @@ html[dir="rtl"] .backdrop{
    label the eye skips because it looks switched off is not secondary, it is
    broken. */
 .identity .label{color:var(--silver)}
+/* Each label is grouped with its own value by the space around the pair, which
+   is what keeps "device key" from reading as a caption on the address above it. */
+.idrow{display:flex;flex-direction:column;align-items:flex-start}
+#phone-873 .idrow+.idrow,#phone-800 .idrow+.idrow{margin-top:13px}
+#tv .idrow+.idrow{margin-top:17px}
 #phone-873 .identity .label,#phone-800 .identity .label{margin-bottom:3px}
 #tv .identity .label{margin-bottom:7px}
 
@@ -212,11 +223,23 @@ html[dir="rtl"] .backdrop{
 #tv .copy{width:56px;height:56px}
 /* Confirmation in the design system's success token. The word appears only in
    this state, which is what lets the control be an icon the rest of the time. */
-.copy.done{width:auto;gap:8px;color:var(--success);
-  border-color:rgba(61,214,140,.42);background:rgba(61,214,140,.12);
-  font-weight:600;white-space:nowrap}
-#phone-873 .copy.done,#phone-800 .copy.done{padding:0 15px;font-size:13px}
-#tv .copy.done{padding:0 20px;font-size:15px}
+/* Confirmed by swapping the glyph and the colour inside the same box. Growing
+   the control to fit the word would shove the address sideways every time
+   somebody pressed it, and the word belongs on the status line anyway. */
+.copy.done{color:var(--success);border-color:rgba(61,214,140,.42);
+  background:rgba(61,214,140,.12)}
+
+/* One line, always present whether or not it has anything to say. Reserved
+   rather than inserted, so a copy confirmation or a refresh result never moves
+   the buttons under the user's thumb -- or out from under a television's focus
+   ring, which is worse. */
+.status{display:flex;align-items:center;gap:9px;flex:0 0 auto;color:var(--silver)}
+.status .mark{width:6px;height:6px;border-radius:50%;flex:0 0 auto;background:currentColor}
+.status.ok{color:var(--success)} .status.bad{color:#FF5A5A}
+.status .spin{width:13px;height:13px;flex:0 0 auto;border-radius:50%;
+  border:2px solid rgba(255,255,255,.20);border-top-color:var(--violet50)}
+#phone-873 .status,#phone-800 .status{min-height:20px;margin-top:12px;font-size:12.5px}
+#tv .status{min-height:24px;margin-top:16px;font-size:15px}
 
 .actions{display:flex;align-items:center;flex:0 0 auto}
 #phone-873 .actions{gap:14px;margin-top:22px}
@@ -300,15 +323,25 @@ html[data-spec="1"] .spec{display:block}
 
       <div class="field">
         <div class="identity">
-          <span class="label t-overline" data-s="macLabel"></span>
-          <span class="macline">
-            <span class="code code-phone">2F:19:EB:20:44:7C</span>
-            <span class="copy" data-copy></span>
+          <span class="idrow">
+            <span class="label t-overline" data-s="macLabel"></span>
+            <span class="macline">
+              <span class="code code-phone">2F:19:EB:20:44:7C</span>
+              <span class="copy" data-copy="mac"></span>
+            </span>
+          </span>
+          <span class="idrow">
+            <span class="label t-overline" data-s="keyLabel"></span>
+            <span class="macline">
+              <span class="code code-key">K7QM-4XB2</span>
+              <span class="copy" data-copy="key"></span>
+            </span>
           </span>
           <span class="actions">
             <span class="btn btn-primary focused" data-s="add"></span>
             <span class="btn btn-secondary" data-refresh data-s="refresh"></span>
           </span>
+          <span class="status" data-status></span>
         </div>
         <div class="codezone">
           <span class="plate" data-qr></span>
@@ -355,15 +388,25 @@ html[data-spec="1"] .spec{display:block}
 
       <div class="field">
         <div class="identity">
-          <span class="label t-overline" data-s="macLabel"></span>
-          <span class="macline">
-            <span class="code code-phone">2F:19:EB:20:44:7C</span>
-            <span class="copy" data-copy></span>
+          <span class="idrow">
+            <span class="label t-overline" data-s="macLabel"></span>
+            <span class="macline">
+              <span class="code code-phone">2F:19:EB:20:44:7C</span>
+              <span class="copy" data-copy="mac"></span>
+            </span>
+          </span>
+          <span class="idrow">
+            <span class="label t-overline" data-s="keyLabel"></span>
+            <span class="macline">
+              <span class="code code-key">K7QM-4XB2</span>
+              <span class="copy" data-copy="key"></span>
+            </span>
           </span>
           <span class="actions">
             <span class="btn btn-primary focused" data-s="add"></span>
             <span class="btn btn-secondary" data-refresh data-s="refresh"></span>
           </span>
+          <span class="status" data-status></span>
         </div>
         <div class="codezone">
           <span class="plate" data-qr></span>
@@ -407,15 +450,25 @@ html[data-spec="1"] .spec{display:block}
 
     <div class="field">
       <div class="identity">
-        <span class="label t-overline" data-s="macLabel"></span>
-        <span class="macline">
-          <span class="code code-tv">2F:19:EB:20:44:7C</span>
-          <span class="copy" data-copy></span>
+        <span class="idrow">
+          <span class="label t-overline" data-s="macLabel"></span>
+          <span class="macline">
+            <span class="code code-tv">2F:19:EB:20:44:7C</span>
+            <span class="copy" data-copy="mac"></span>
+          </span>
+        </span>
+        <span class="idrow">
+          <span class="label t-overline" data-s="keyLabel"></span>
+          <span class="macline">
+            <span class="code code-key-tv">K7QM-4XB2</span>
+            <span class="copy" data-copy="key"></span>
+          </span>
         </span>
         <span class="actions">
           <span class="btn btn-primary focused" data-s="add"></span>
           <span class="btn btn-secondary" data-refresh data-s="refresh"></span>
         </span>
+        <span class="status" data-status></span>
       </div>
       <div class="codezone">
         <span class="plate" data-qr></span>
@@ -445,57 +498,84 @@ html[data-spec="1"] .spec{display:block}
 var S = {
   en: { dir:"ltr", lang:"English", title:"Add your subscription",
         trialName:"Castivio trial", trialDays:"7 days", macLabel:"MAC address",
-        qr:"Scan to get this address on your phone",
         add:"Add playlist", refresh:"Refresh", copy:"Copy", copied:"Copied",
+        keyLabel:"Device key", qr:"Scan to activate on your phone",
+        checking:"Checking…", found:"Playlist found", none:"No playlist found yet",
+        error:"Couldn’t refresh — try again",
+        copiedMac:"MAC address copied", copiedKey:"Device key copied",
         footer:"Castivio is only a player and does not provide subscriptions or content." },
 
   ar: { dir:"rtl", lang:"العربية", title:"أضف اشتراكك",
         trialName:"تجربة Castivio", trialDays:"٧ أيام", macLabel:"عنوان MAC",
-        qr:"امسح لنقل هذا العنوان إلى هاتفك",
         add:"إضافة قائمة تشغيل", refresh:"تحديث", copy:"نسخ", copied:"تم النسخ",
+        keyLabel:"مفتاح الجهاز", qr:"امسح للتفعيل من هاتفك",
+        checking:"جارٍ التحقّق…", found:"تم العثور على قائمة التشغيل", none:"لا توجد قائمة تشغيل بعد",
+        error:"تعذّر التحديث — أعد المحاولة",
+        copiedMac:"تم نسخ عنوان MAC", copiedKey:"تم نسخ مفتاح الجهاز",
         footer:"Castivio مشغّل فقط ولا يوفّر اشتراكات أو محتوى." },
 
   de: { dir:"ltr", lang:"Deutsch", title:"Abonnement hinzufügen",
         trialName:"Castivio-Testphase", trialDays:"7 Tage", macLabel:"MAC-Adresse",
-        qr:"Scannen, um diese Adresse aufs Telefon zu holen",
         add:"Wiedergabeliste hinzufügen", refresh:"Aktualisieren",
         copy:"Kopieren", copied:"Kopiert",
+        keyLabel:"Geräteschlüssel", qr:"Zum Aktivieren mit dem Telefon scannen",
+        checking:"Wird geprüft…", found:"Wiedergabeliste gefunden", none:"Noch keine Wiedergabeliste gefunden",
+        error:"Aktualisierung fehlgeschlagen — erneut versuchen",
+        copiedMac:"MAC-Adresse kopiert", copiedKey:"Geräteschlüssel kopiert",
         footer:"Castivio ist nur ein Player und bietet keine Abonnements oder Inhalte an." },
 
   fi: { dir:"ltr", lang:"Suomi", title:"Lisää tilauksesi",
         trialName:"Castivio-kokeilu", trialDays:"7 päivää", macLabel:"MAC-osoite",
-        qr:"Skannaa saadaksesi osoitteen puhelimeesi",
         add:"Lisää soittolista", refresh:"Päivitä", copy:"Kopioi", copied:"Kopioitu",
+        keyLabel:"Laiteavain", qr:"Skannaa aktivoidaksesi puhelimella",
+        checking:"Tarkistetaan…", found:"Soittolista löytyi", none:"Soittolistaa ei vielä löytynyt",
+        error:"Päivitys epäonnistui — yritä uudelleen",
+        copiedMac:"MAC-osoite kopioitu", copiedKey:"Laiteavain kopioitu",
         footer:"Castivio on vain soitin eikä tarjoa tilauksia tai sisältöä." },
 
   th: { dir:"ltr", lang:"ไทย", title:"เพิ่มการสมัครสมาชิกของคุณ",
         trialName:"ทดลองใช้ Castivio", trialDays:"7 วัน", macLabel:"ที่อยู่ MAC",
-        qr:"สแกนเพื่อรับที่อยู่นี้บนโทรศัพท์ของคุณ",
         add:"เพิ่มเพลย์ลิสต์", refresh:"รีเฟรช", copy:"คัดลอก", copied:"คัดลอกแล้ว",
+        keyLabel:"คีย์อุปกรณ์", qr:"สแกนเพื่อเปิดใช้งานบนโทรศัพท์",
+        checking:"กำลังตรวจสอบ…", found:"พบเพลย์ลิสต์แล้ว", none:"ยังไม่พบเพลย์ลิสต์",
+        error:"รีเฟรชไม่สำเร็จ — ลองอีกครั้ง",
+        copiedMac:"คัดลอกที่อยู่ MAC แล้ว", copiedKey:"คัดลอกคีย์อุปกรณ์แล้ว",
         footer:"Castivio เป็นเพียงโปรแกรมเล่นเท่านั้น ไม่ได้ให้บริการสมัครสมาชิกหรือเนื้อหา" },
 
   hi: { dir:"ltr", lang:"हिन्दी", title:"अपनी सदस्यता जोड़ें",
         trialName:"Castivio परीक्षण", trialDays:"7 दिन", macLabel:"MAC पता",
-        qr:"यह पता अपने फ़ोन पर लेने के लिए स्कैन करें",
         add:"प्लेलिस्ट जोड़ें", refresh:"रिफ़्रेश करें", copy:"कॉपी", copied:"कॉपी हो गया",
+        keyLabel:"डिवाइस कुंजी", qr:"फ़ोन पर सक्रिय करने के लिए स्कैन करें",
+        checking:"जाँच हो रही है…", found:"प्लेलिस्ट मिल गई", none:"अभी तक कोई प्लेलिस्ट नहीं मिली",
+        error:"रिफ़्रेश नहीं हो सका — फिर कोशिश करें",
+        copiedMac:"MAC पता कॉपी हुआ", copiedKey:"डिवाइस कुंजी कॉपी हुई",
         footer:"Castivio केवल एक प्लेयर है और सदस्यता या सामग्री प्रदान नहीं करता।" },
 
   bn: { dir:"ltr", lang:"বাংলা", title:"আপনার সাবস্ক্রিপশন যোগ করুন",
         trialName:"Castivio ট্রায়াল", trialDays:"৭ দিন", macLabel:"MAC ঠিকানা",
-        qr:"এই ঠিকানা আপনার ফোনে নিতে স্ক্যান করুন",
         add:"প্লেলিস্ট যোগ করুন", refresh:"রিফ্রেশ", copy:"কপি", copied:"কপি হয়েছে",
+        keyLabel:"ডিভাইস কী", qr:"ফোনে সক্রিয় করতে স্ক্যান করুন",
+        checking:"পরীক্ষা করা হচ্ছে…", found:"প্লেলিস্ট পাওয়া গেছে", none:"এখনো কোনো প্লেলিস্ট পাওয়া যায়নি",
+        error:"রিফ্রেশ করা যায়নি — আবার চেষ্টা করুন",
+        copiedMac:"MAC ঠিকানা কপি হয়েছে", copiedKey:"ডিভাইস কী কপি হয়েছে",
         footer:"Castivio শুধুমাত্র একটি প্লেয়ার এবং কোনো সাবস্ক্রিপশন বা কনটেন্ট সরবরাহ করে না।" },
 
   ja: { dir:"ltr", lang:"日本語", title:"サブスクリプションを追加",
         trialName:"Castivio 体験版", trialDays:"7日", macLabel:"MAC アドレス",
-        qr:"スキャンしてこのアドレスをスマートフォンに取り込む",
         add:"プレイリストを追加", refresh:"更新", copy:"コピー", copied:"コピーしました",
+        keyLabel:"デバイスキー", qr:"スキャンしてスマートフォンで有効化",
+        checking:"確認中…", found:"プレイリストが見つかりました", none:"プレイリストはまだ見つかりません",
+        error:"更新できませんでした — 再試行してください",
+        copiedMac:"MAC アドレスをコピーしました", copiedKey:"デバイスキーをコピーしました",
         footer:"Castivio はプレーヤーのみを提供し、サブスクリプションやコンテンツは提供しません。" },
 
   zh: { dir:"ltr", lang:"简体中文", title:"添加您的订阅",
         trialName:"Castivio 试用", trialDays:"7 天", macLabel:"MAC 地址",
-        qr:"扫码将此地址发送到手机",
         add:"添加播放列表", refresh:"刷新", copy:"复制", copied:"已复制",
+        keyLabel:"设备密钥", qr:"扫码在手机上激活",
+        checking:"正在检查…", found:"已找到播放列表", none:"尚未找到播放列表",
+        error:"刷新失败 — 请重试",
+        copiedMac:"已复制 MAC 地址", copiedKey:"已复制设备密钥",
         footer:"Castivio 仅为播放器，不提供订阅或内容。" }
 };
 
@@ -572,11 +652,15 @@ var ICON = {
   var svg = qrSvg();
   document.querySelectorAll("[data-qr]").forEach(function (n) { n.innerHTML = svg; });
 
+  // Which of the two values was copied, if either. The confirmation is a glyph
+  // swap inside an unchanged box, and the sentence goes on the status line.
+  var copiedWhich = state === "copied-mac" ? "mac" : state === "copied-key" ? "key" : null;
   document.querySelectorAll("[data-copy]").forEach(function (n) {
-    if (state === "copied") {
+    var mine = n.getAttribute("data-copy");
+    if (copiedWhich === mine) {
       n.classList.add("done");
-      n.innerHTML = ICON.done + "<span>" + s.copied + "</span>";
-      n.setAttribute("aria-label", s.copied);
+      n.innerHTML = ICON.done;
+      n.setAttribute("aria-label", mine === "mac" ? s.copiedMac : s.copiedKey);
     } else {
       n.innerHTML = ICON.copy;
       n.setAttribute("aria-label", s.copy);
@@ -584,9 +668,32 @@ var ICON = {
     }
   });
 
+  /* Refresh is never a dead button. It says what it is doing while it does it,
+     and what it found when it stops -- and "nothing yet" is a sentence on a
+     status line, not a dialogue box somebody has to dismiss with a remote. */
+  var STATUS = {
+    "copied-mac": { kind: "ok",  text: s.copiedMac },
+    "copied-key": { kind: "ok",  text: s.copiedKey },
+    found:        { kind: "ok",  text: s.found },
+    none:         { kind: "",    text: s.none },
+    error:        { kind: "bad", text: s.error }
+  };
+  var line = STATUS[state];
+  document.querySelectorAll("[data-status]").forEach(function (n) {
+    if (!line) return;
+    if (line.kind) n.classList.add(line.kind);
+    n.innerHTML = '<i class="mark"></i><span>' + line.text + "</span>";
+  });
+
+  if (state === "checking") {
+    document.querySelectorAll("[data-refresh]").forEach(function (n) {
+      n.innerHTML = '<i class="spin"></i><span>' + s.checking + "</span>";
+    });
+  }
+
   if (state === "focus-copy") {
     document.querySelectorAll(".btn-primary").forEach(function (n) { n.classList.remove("focused"); });
-    document.querySelectorAll("[data-copy]").forEach(function (n) { n.classList.add("focused"); });
+    document.querySelectorAll('[data-copy="mac"]').forEach(function (n) { n.classList.add("focused"); });
   }
 
   document.querySelectorAll("[data-s]").forEach(function (n) {
@@ -597,7 +704,9 @@ var ICON = {
     // whole button rendered blank and every check still passed.
     var text = key in s ? s[key] : (key in S.en ? S.en[key] : "⟨" + key + "⟩");
     if (n.hasAttribute("data-globe")) n.innerHTML = ICON.globe + "<span>" + text + "</span>";
-    else if (n.hasAttribute("data-refresh")) n.innerHTML = ICON.refresh + "<span>" + text + "</span>";
+    else if (n.hasAttribute("data-refresh")) {
+      if (state !== "checking") n.innerHTML = ICON.refresh + "<span>" + text + "</span>";
+    }
     else n.textContent = text;
   });
 
