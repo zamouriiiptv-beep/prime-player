@@ -159,23 +159,25 @@ function probe({ frame, isTv }) {
     range.selectNodeContents(code);
     const text = r1(range.getBoundingClientRect().width);
 
-    // "Room" is how much wider the address could get before its row overflows,
-    // which is the container's content width less the label, the copy control
-    // and the gaps between them. Measuring against the value's own cell was
-    // wrong twice: as a stretching `1fr` it reported hundreds of dp of slack
-    // that belonged to the layout, and as a content-sized `auto` it reported
-    // zero because the cell hugs the glyphs. Neither is a fit.
-    const row = code.closest(".macline");
-    const label = row.closest(".identity").querySelector(".label");
-    const copyBtn = row.querySelector(".copy");
-    const holder = row.closest(".identity");
-    const hs = getComputedStyle(holder);
-    const avail = holder.clientWidth -
-      (parseFloat(hs.paddingLeft) || 0) - (parseFloat(hs.paddingRight) || 0);
-    // The label now sits above the address rather than beside it, so only the
-    // copy control and one gap are taken out of the identity column's width.
-    const gap = parseFloat(getComputedStyle(row).gap) || 0;
-    const room = r1(avail - copyBtn.getBoundingClientRect().width - gap);
+    // How much wider the address could get before the composition breaks.
+    //
+    // This has now been wrong three times, always the same way: measured
+    // against a box that is defined by the text it holds. As a stretching `1fr`
+    // the cell reported hundreds of dp that belonged to the layout; as a
+    // content-sized `auto` cell it reported zero; and with the identity column
+    // itself content-sized it reported zero again one level up. A box that hugs
+    // its text can never say how much room there is.
+    //
+    // The band is the only thing with a fixed width, so the answer is the slack
+    // left in it once both zones and the gap between them are paid for. The
+    // address may grow into all of it.
+    const field = root.querySelector(".field");
+    const identity = root.querySelector(".identity");
+    const zone = root.querySelector(".codezone");
+    const gap = parseFloat(getComputedStyle(field).columnGap) || 0;
+    const pair = identity.getBoundingClientRect().width + gap + zone.getBoundingClientRect().width;
+    const slack = field.clientWidth - pair;
+    const room = r1(text + slack);
 
     const cs = getComputedStyle(code);
     mac = {

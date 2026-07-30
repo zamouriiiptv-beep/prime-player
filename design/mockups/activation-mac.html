@@ -153,7 +153,7 @@ html[dir="rtl"] .backdrop{
    neutral the bidi algorithm may place on the far side of the digit, which it
    did. A shape in a flex gap has no direction to resolve. */
 .trial{display:flex;align-items:center;gap:9px;white-space:nowrap;flex:0 0 auto;
-  color:var(--silver)}
+  color:var(--silver);font-weight:500}
 .trial .dot{width:5px;height:5px;border-radius:50%;background:var(--violet50);flex:0 0 auto;
   box-shadow:0 0 10px rgba(155,107,255,.85)}
 .trial .days{color:var(--violet60);font-weight:600}
@@ -175,13 +175,24 @@ html[dir="rtl"] .backdrop{
 /* The field between the rules. Two zones held apart by space rather than by a
    line: the identity starts on the leading margin, the code ends on the
    trailing one, and the distance between them is the separation. */
-.field{flex:1 1 auto;min-height:0;display:flex;align-items:center}
+/* The two zones size to their content and the pair is centred, rather than the
+   identity stretching to fill and pushing the code to the far margin. That
+   stretch was the whole cause of the gulf down the middle: nothing was pulling
+   them apart on purpose, one of them was simply greedy.
+   The 60/40 relationship then falls out of the content instead of being imposed
+   -- on English the identity measures 367dp against the code zone's 236, which
+   is 61/39, and it stays in that region as translations grow. */
+.field{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center}
+.identity{flex:0 1 auto}
 #phone-873 .field{gap:40px}
-#phone-800 .field{gap:32px}
-#tv .field{gap:56px}
+#phone-800 .field{gap:34px}
+#tv .field{gap:52px}
 
-.identity{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;align-items:flex-start}
-.identity .label{color:var(--muted)}
+.identity{min-width:0;display:flex;flex-direction:column;align-items:flex-start}
+/* Silver rather than muted. As information it sits below the address, but a
+   label the eye skips because it looks switched off is not secondary, it is
+   broken. */
+.identity .label{color:var(--silver)}
 #phone-873 .identity .label,#phone-800 .identity .label{margin-bottom:3px}
 #tv .identity .label{margin-bottom:7px}
 
@@ -233,11 +244,11 @@ html[dir="rtl"] .backdrop{
 .plate svg{display:block;shape-rendering:crispEdges;width:100%;height:100%}
 .codezone .cap{text-align:center;color:var(--silver)}
 #phone-873 .plate{width:148px;height:148px;padding:9px}
-#phone-873 .codezone .cap{margin-top:11px;width:196px}
+#phone-873 .codezone .cap{margin-top:11px;width:180px}
 #phone-800 .plate{width:130px;height:130px;padding:8px}
-#phone-800 .codezone .cap{margin-top:9px;width:176px}
+#phone-800 .codezone .cap{margin-top:9px;width:162px}
 #tv .plate{width:196px;height:196px;padding:12px}
-#tv .codezone .cap{margin-top:15px;width:252px}
+#tv .codezone .cap{margin-top:15px;width:236px}
 
 /* The standing statement of what Castivio is: quiet, but muted rather than
    faint. It is here for the reader's protection and has to be readable. */
@@ -282,7 +293,7 @@ html[data-spec="1"] .spec{display:block}
       <div class="head">
         <h1 class="t-headline-m" data-s="title"></h1>
         <span class="spacer"></span>
-        <span class="trial t-body-s"><i class="dot"></i><span data-s="trialName"></span><span class="days" data-s="trialDays"></span></span>
+        <span class="trial t-body-m"><i class="dot"></i><span data-s="trialName"></span><span class="days" data-s="trialDays"></span></span>
         <span class="lang" data-globe data-target="48" data-s="lang"></span>
       </div>
       <div class="rule"></div>
@@ -337,7 +348,7 @@ html[data-spec="1"] .spec{display:block}
       <div class="head">
         <h1 class="t-headline-m" data-s="title"></h1>
         <span class="spacer"></span>
-        <span class="trial t-body-s"><i class="dot"></i><span data-s="trialName"></span><span class="days" data-s="trialDays"></span></span>
+        <span class="trial t-body-m"><i class="dot"></i><span data-s="trialName"></span><span class="days" data-s="trialDays"></span></span>
         <span class="lang" data-globe data-target="48" data-s="lang"></span>
       </div>
       <div class="rule"></div>
