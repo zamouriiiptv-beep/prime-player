@@ -165,16 +165,17 @@ function probe({ frame, isTv }) {
     // wrong twice: as a stretching `1fr` it reported hundreds of dp of slack
     // that belonged to the layout, and as a content-sized `auto` it reported
     // zero because the cell hugs the glyphs. Neither is a fit.
-    const row = code.closest(".values");
-    const label = row.querySelector(".label");
-    const copyBtn = row.querySelector(".icon-btn");
-    const holder = row.parentElement;
+    const row = code.closest(".macline");
+    const label = row.closest(".identity").querySelector(".label");
+    const copyBtn = row.querySelector(".copy");
+    const holder = row.closest(".identity");
     const hs = getComputedStyle(holder);
     const avail = holder.clientWidth -
       (parseFloat(hs.paddingLeft) || 0) - (parseFloat(hs.paddingRight) || 0);
-    const gap = parseFloat(getComputedStyle(row).columnGap) || 0;
-    const room = r1(avail - label.getBoundingClientRect().width -
-      copyBtn.getBoundingClientRect().width - 2 * gap);
+    // The label now sits above the address rather than beside it, so only the
+    // copy control and one gap are taken out of the identity column's width.
+    const gap = parseFloat(getComputedStyle(row).gap) || 0;
+    const room = r1(avail - copyBtn.getBoundingClientRect().width - gap);
 
     const cs = getComputedStyle(code);
     mac = {
@@ -214,7 +215,7 @@ function probe({ frame, isTv }) {
     };
   }
   const lines = [];
-  for (const e of root.querySelectorAll(".footer, .cap, h1, .pill-trial, .pill-lang span")) {
+  for (const e of root.querySelectorAll(".foot, .cap, h1, .trial span, .lang span, .label")) {
     if (!e.textContent.trim()) continue;
     const fixed = parseFloat(getComputedStyle(e).lineHeight);
     if (!isFinite(fixed)) continue;
@@ -227,7 +228,7 @@ function probe({ frame, isTv }) {
   }
 
   // --- the standing notice ------------------------------------------------
-  const footer = root.querySelector(".footer");
+  const footer = root.querySelector(".foot");
   let foot = null;
   if (footer) {
     const b = footer.getBoundingClientRect();
@@ -241,29 +242,48 @@ function probe({ frame, isTv }) {
   let header = null;
   if (head) {
     const kids = [...head.children].filter((e) => e.getBoundingClientRect().height > 0);
-    const tops = new Set(kids.map((e) => Math.round(e.getBoundingClientRect().top)));
-    header = { ...box(head), items: kids.length, rows: tops.size };
     const tallest = Math.max(...kids.map((e) => e.getBoundingClientRect().height));
-    if (header.h > tallest + 2) fails.push(`header wrapped to ${r1(header.h)}dp (tallest item ${r1(tallest)}dp)`);
+    const hs = getComputedStyle(head);
+    // The content box, not the padded one, and not a count of distinct tops:
+    // children centred on one line have different tops by definition, so
+    // counting tops called every language a wrap. A header taller than its
+    // tallest child once padding is removed is the thing that means wrapped.
+    const contentH = head.clientHeight -
+      (parseFloat(hs.paddingTop) || 0) - (parseFloat(hs.paddingBottom) || 0);
+    header = { ...box(head), items: kids.length, content: r1(contentH), tallest: r1(tallest) };
+    if (contentH > tallest + 2) {
+      fails.push(`header wrapped: ${r1(contentH)}dp of content, tallest item ${r1(tallest)}dp`);
+    }
   } else fails.push("no header");
 
   // --- targets and QR ----------------------------------------------------
   const floor = isTv ? 56 : 48;
-  const targets = [...root.querySelectorAll(".btn, .icon-btn")].map((e) => {
+  // A control may be drawn smaller than the area that responds to it -- a
+  // header chip at 48dp looks like a button. Where that is intended the element
+  // declares `data-target`, and the check holds it to the declared number
+  // instead of the drawn one. Undeclared, the drawn size is the target.
+  const targets = [...root.querySelectorAll(".btn, .copy, .lang")].map((e) => {
     const b = box(e);
-    if (b.h < floor - 0.5) fails.push(`target too small: ${e.className.slice(0, 24)} ${b.h}dp < ${floor}`);
-    return { name: (e.textContent.trim() || "copy").slice(0, 18), ...b };
+    const declared = parseFloat(e.getAttribute("data-target") || "0");
+    const effective = Math.max(b.h, declared);
+    if (effective < floor - 0.5) {
+      fails.push(`target too small: ${String(e.className).slice(0, 20)} ${effective}dp < ${floor}`);
+    }
+    return { name: (e.textContent.trim() || "copy").slice(0, 18), ...b, target: effective };
   });
 
-  const qrEl = root.querySelector(".qr");
+  const qrEl = root.querySelector(".plate");
   let qr = null;
   if (qrEl) {
     const b = box(qrEl);
-    qr = { ...b, pitch: r1(b.w / 25) };   // 21 modules + a 2-module quiet zone
+    // The plate carries padding around the symbol, so pitch is measured on the
+    // code itself: 21 modules plus a two-module quiet zone.
+    const pad = parseFloat(getComputedStyle(qrEl).padding) || 0;
+    qr = { ...b, code: r1(b.w - 2 * pad), pitch: r1((b.w - 2 * pad) / 25) };
     if (qr.pitch < 3.0) fails.push(`QR pitch ${qr.pitch}dp/module below 3.0 floor`);
   }
 
-  const card = root.querySelector(".card");
+  const card = root.querySelector(".field");
 
   return {
     // Deliberately not called `frame`: the caller merges this into a row that
@@ -343,7 +363,7 @@ async function main() {
     const tallestHead = mine.reduce((a, b) => (a.header.h >= b.header.h ? a : b));
     const tallestFoot = mine.reduce((a, b) => (a.footer.h >= b.footer.h ? a : b));
     console.log(`  ${frame}`);
-    console.log(`    tallest card    ${tallestCard.card.h}dp  (${tallestCard.lang})`);
+    console.log(`    tallest field   ${tallestCard.card.h}dp  (${tallestCard.lang})`);
     console.log(`    tallest header  ${tallestHead.header.h}dp  (${tallestHead.lang})`);
     console.log(`    tallest footer  ${tallestFoot.footer.h}dp  (${tallestFoot.lang})`);
     console.log(`    least MAC spare ${tightestMac.mac.spare}dp  (${tightestMac.lang})`);
