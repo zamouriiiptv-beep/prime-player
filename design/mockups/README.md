@@ -9,6 +9,7 @@ re-rendered when a token changes.
 | File | Screens |
 |---|---|
 | `shell-home.html` | Shell (rail, top bar), Home, the rail focused, a section the provider does not carry, phone Home, tablet section, and the state-language reference sheet |
+| `activation-mac.html` | MAC activation — the screen a first launch opens on — at phone landscape 873x393 and 800x360, and television 960x540 |
 
 ## Rendering
 
@@ -32,6 +33,23 @@ render phone-home      412  892 3    phone-home.png
 render tablet-section 1280  800 1.5  tablet-movies.png
 render states          960 1000 2    state-language.png   # a reference sheet, not a device
 ```
+
+`activation-mac.html` takes the same `?frame=`, and `&spec=1` overlays the measures
+and the safe area on any of its frames:
+
+```sh
+render() { ... "file://$PWD/activation-mac.html?frame=$1"; }   # same helper
+
+render phone-873  873 393 2   mac-phone-873.png    # 1080x2400 at 2.75, landscape
+render phone-800  800 360 2   mac-phone-800.png    # 720x1600 at 2.0, the shortest
+render tv         960 540 2   mac-tv.png           # 1920x1080 at 2.0
+```
+
+A layout that has to fit is not a layout to eyeball. These frames were measured
+rather than judged — element boxes read out of the DOM, checked for a document
+taller than its frame, for anything painting outside it, and for the address
+being clipped by its column. Three of those four caught a real defect while this
+file was being written.
 
 The PNGs are deliberately **not** committed: they are five megabytes that can be
 regenerated in a second, and a stale image in the repository is worse than none.

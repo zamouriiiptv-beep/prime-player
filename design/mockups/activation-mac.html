@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Castivio — MAC activation</title>
+<style>
+/* ============================================================================
+   Castivio — MAC activation, the screen a first launch opens on.
+
+   Every value below is a real token from :core:design, expressed in dp. The page
+   renders at the device's scale factor, so the PNG is what Compose will lay out.
+
+   Three frames, and they are deliberately three *layouts* rather than one layout
+   at three sizes:
+
+     phone-873   873x393dp   1080x2400 @2.75 — three columns
+     phone-800   800x360dp    720x1600 @2.00 — three columns, tighter measure
+     tv          960x540dp   1920x1080 @2.00 — hero band over two cards
+
+   Landscape hands you width and takes away height, so the primary content runs
+   across rather than down. A television has half again as much height and three
+   times the viewing distance, so its address earns a band of its own.
+
+   Add &spec=1 to any frame for the dimensions and the safe area.
+   ========================================================================= */
+:root{
+  /* ground */
+  --void:#08071A; --abyss:#0D0B22; --deep:#141031; --slate:#1C1840; --haze:#272253;
+  /* brand */
+  --violet10:#1B1038; --violet40:#6E4BD8; --violet50:#9B6BFF; --violet60:#B694FF;
+  --azure10:#0A1E3D; --azure40:#2E6BFF; --azure50:#4C9BFF; --azure60:#6FB2FF; --azure80:#B4D6FF;
+  /* status */
+  --amber:#FFB020; --aqua:#2FBF9F;
+  /* text */
+  --mist:#F2F2F8; --silver:#C9C9DA; --muted:#A6A6BF; --faint:#6E6E8A;
+  /* glass */
+  --glass-mid:rgba(255,255,255,.078); --glass-low:rgba(255,255,255,.039);
+  --glass-edge:rgba(255,255,255,.239); --glass-edge-soft:rgba(255,255,255,.078);
+  /* radius */
+  --r-xs:8px; --r-sm:12px; --r-md:16px; --r-lg:20px; --r-xl:24px; --r-xxl:30px; --r-pill:999px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#000}
+body{
+  font-family:"Liberation Sans","DejaVu Sans",sans-serif;
+  color:var(--mist);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:geometricPrecision;
+}
+.frame{display:none;position:relative;overflow:hidden;background:var(--void)}
+html[data-frame="phone-873"] #phone-873,
+html[data-frame="phone-800"] #phone-800,
+html[data-frame="tv"]        #tv{display:block}
+
+#phone-873{width:873px;height:393px}
+#phone-800{width:800px;height:360px}
+#tv{width:960px;height:540px}
+
+/* ---------------------------------------------------------------- backdrop */
+/* CastivioBackdrop: base gradient, two aurora glows, a contour mesh. Nothing
+   above 30% so content always wins. */
+.backdrop{position:absolute;inset:0;
+  background:
+    radial-gradient(58% 78% at 4% 108%, rgba(110,75,216,.30) 0%, rgba(110,75,216,0) 62%),
+    radial-gradient(54% 70% at 97% 22%, rgba(46,107,255,.26) 0%, rgba(46,107,255,0) 60%),
+    linear-gradient(135deg, var(--deep) 0%, var(--violet10) 48%, var(--azure10) 100%);
+}
+.mesh{position:absolute;inset:0;opacity:.5}
+
+/* ------------------------------------------------------------------- glass */
+/* Glass.kt: a translucent fill that is lighter at the top, a hairline border,
+   and a lit top edge. The inset highlight is that fading border. */
+.glass{
+  position:relative;
+  background:linear-gradient(180deg,var(--glass-mid),var(--glass-low));
+  border:1px solid var(--glass-edge-soft);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 8px 28px rgba(0,0,0,.28);
+  border-radius:var(--r-lg);
+}
+.glass-hero{
+  border-radius:var(--r-xxl);
+  border-color:var(--glass-edge);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16), 0 14px 40px rgba(0,0,0,.34);
+}
+/* The one card that is the screen's job carries a breath of brand in its fill. */
+.glass-hero::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(120% 140% at 0% 0%, rgba(111,178,255,.10) 0%, rgba(111,178,255,0) 58%);
+}
+
+/* -------------------------------------------------------------------- type */
+/* Type.kt. 1sp = 1dp at fontScale 1.0. */
+.t-headline-m{font-size:22px;line-height:30px;font-weight:700;letter-spacing:0}
+.t-headline-l{font-size:28px;line-height:36px;font-weight:700;letter-spacing:-.2px}
+.t-title-m   {font-size:15px;line-height:22px;font-weight:500}
+.t-body-m    {font-size:14px;line-height:22px}
+.t-body-s    {font-size:12.5px;line-height:18px}
+.t-label-l   {font-size:14px;line-height:20px;font-weight:600}
+.t-overline  {font-size:11px;line-height:16px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase}
+
+/* Code. codeHero is 42/52 and is a television size: seventeen monospace
+   characters need 445dp of measure, which no phone column has.
+
+   The compact token is 28/36 and both phone frames use it. The size was chosen
+   by measuring rather than by eye: at 28sp the address is 334dp in this
+   renderer's Liberation Mono and 302dp in the platform mono Compose will use,
+   so a 360dp column keeps 26dp of slack in the worse case. 30sp filled the
+   column exactly, which is not a fit — it is a clip waiting for a font scale. */
+.code-hero   {font-family:"Liberation Mono","DejaVu Sans Mono",monospace;
+              font-size:42px;line-height:52px;font-weight:700;letter-spacing:1px}
+.code-compact{font-family:"Liberation Mono","DejaVu Sans Mono",monospace;
+              font-size:28px;line-height:36px;font-weight:700;letter-spacing:1px}
+.address{color:var(--mist);text-shadow:0 0 26px rgba(111,178,255,.22);white-space:nowrap}
+
+.dim {color:var(--silver)}
+.faint{color:var(--faint)}
+
+/* ------------------------------------------------------------------ pieces */
+.badge{display:inline-flex;align-items:center;height:18px;padding:0 8px;
+  border-radius:var(--r-xs);font-size:11px;line-height:1;font-weight:600;letter-spacing:.4px;
+  background:linear-gradient(90deg,var(--violet50),var(--azure50));color:#0B0820;
+  flex:0 0 auto}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  border-radius:var(--r-sm);font-weight:600;white-space:nowrap}
+/* Sizing.minTouchTarget 48, Sizing.minTvTarget 56 */
+.btn-touch{height:48px;padding:0 24px;font-size:14px}
+.btn-tv   {height:56px;padding:0 28px;font-size:15px}
+.btn-primary{background:linear-gradient(90deg,var(--violet50),var(--azure50));color:#0B0820}
+.btn-secondary{background:var(--glass-mid);border:1px solid var(--glass-edge);color:var(--mist)}
+/* The remote's landing place. Focus.kt: a violet ring and a soft glow. */
+.focused{box-shadow:0 0 0 2px var(--violet50), 0 0 24px 2px rgba(155,107,255,.45)}
+
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--amber);flex:0 0 auto}
+
+/* ---------------------------------------------------------------------- QR */
+/* Qr.kt draws black modules on white and the Box clips it to Radius.sm.
+   Scannability is a module-size question, not a card-size one: a 17-character
+   payload is a version 1 symbol, 21 modules plus quiet zone. At 140dp that is
+   5.6dp a module — 15 physical pixels at 2.75x — which another phone's camera
+   reads from 20cm. The 96dp code on the short frame is 3.8dp a module, still
+   inside the 2dp floor scanners need. */
+.qr{background:#fff;border-radius:var(--r-sm);flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center}
+.qr svg{display:block;shape-rendering:crispEdges}
+
+/* ------------------------------------------------------- phone: three columns */
+.phone-shell{position:absolute;inset:0;display:flex;flex-direction:column}
+/* Edge to edge, so the bars are drawn and the content lives inside them. */
+.sysbar{height:24px;flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;
+  padding:0 14px;color:var(--silver);font-size:11px}
+.gesture{height:20px;flex:0 0 auto;display:flex;align-items:center;justify-content:center}
+.gesture i{display:block;width:96px;height:3px;border-radius:var(--r-pill);background:rgba(255,255,255,.32)}
+
+.stage{flex:1 1 auto;display:flex;flex-direction:column;min-height:0}
+#phone-873 .stage{padding:20px 24px 16px}
+#phone-800 .stage{padding:16px 20px 12px}
+
+.head{display:flex;align-items:baseline;justify-content:space-between;flex:0 0 auto}
+/* Free height goes above and below the band in equal parts. Poured into the
+   cards instead it would push their contents apart into a void; left at the
+   foot it would read as a screen that ran out. */
+.cols{margin-top:auto;margin-bottom:auto}
+.head .step{color:var(--faint);font-size:11px;letter-spacing:1.2px;text-transform:uppercase}
+
+/* flex:0 0 auto, so the band is as tall as its tallest card and the surplus
+   height stays at the foot of the screen. Stretched to fill instead, the cards
+   would grow and their contents would drift apart into a void. */
+.cols{flex:0 0 auto;display:flex;align-items:stretch;min-height:0}
+#phone-873 .cols{gap:16px}
+#phone-873 .head{margin-bottom:18px}
+#phone-800 .cols{gap:14px}
+#phone-800 .head{margin-bottom:14px}
+
+/* The measures, and every one of them is `0 0` on purpose.
+   `flex:1 1 auto` on the note column takes its basis from a paragraph's
+   max-content width, which is enormous — it then wins the space and shrinks
+   the MAC card below the 323dp its seventeen characters need. Fixed columns
+   do not shrink; the note takes the remainder from a zero basis. */
+#phone-873 .c-mac{flex:0 0 400px}  #phone-873 .c-qr{flex:0 0 172px}
+#phone-800 .c-mac{flex:0 0 392px}  #phone-800 .c-qr{flex:0 0 120px}
+.c-note{flex:1 1 0;min-width:0}
+
+/* Text packs from the top; the call to action is pushed to the floor. Because
+   the cards are equal height, that puts both buttons on one baseline — which is
+   what makes three cards read as one screen rather than three panels. */
+.card{display:flex;flex-direction:column;min-width:0}
+#phone-873 .card{padding:20px;gap:14px}
+#phone-800 .card{padding:16px;gap:12px}
+.card > *{flex:0 0 auto}
+.card > .btn{margin-top:auto}
+
+.mac-label{display:flex;align-items:center;gap:10px;min-width:0}
+.mac-label span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.qr-card{align-items:center;justify-content:center}
+#phone-873 .qr-card{gap:12px}
+#phone-873 .qr-card .qr{width:148px;height:148px}
+#phone-800 .qr-card{gap:10px}
+#phone-800 .qr-card .qr{width:88px;height:88px}
+.qr-card .cap{text-align:center;color:var(--silver)}
+
+.note-head{display:flex;align-items:center;gap:8px}
+.note-body{display:flex;flex-direction:column;gap:8px}
+
+/* ------------------------------------------------------------ television */
+/* Spacing.tvOverscan. Nothing may sit closer to the panel edge than this. */
+#tv .stage{position:absolute;inset:48px;display:flex;flex-direction:column}
+#tv .head{margin-bottom:18px}
+
+#tv .band{display:flex;align-items:center;gap:32px;padding:24px;flex:0 0 auto}
+#tv .band .left{flex:0 0 auto}
+#tv .band .right{flex:1 1 auto;display:flex;flex-direction:column;align-items:flex-start;gap:14px}
+
+#tv .row{display:flex;gap:24px;margin-top:24px;flex:1 1 auto;align-items:stretch;min-height:0}
+#tv .c-qr{width:336px;flex:0 0 auto;display:flex;flex-direction:row;align-items:center;gap:16px;padding:20px}
+#tv .c-qr .qr{width:160px;height:160px}
+#tv .c-note{flex:1 1 auto;display:flex;flex-direction:column;justify-content:center;gap:14px;padding:20px}
+
+/* ------------------------------------------------------------------- spec */
+/* Off unless ?spec=1. Dimensions and the safe area, so proportions can be
+   argued about in numbers rather than adjectives. */
+.spec{display:none}
+html[data-spec="1"] .spec{display:block}
+.spec-chip{position:absolute;z-index:9;
+  font-family:"Liberation Mono",monospace;font-size:9px;line-height:12px;
+  padding:1px 4px;border-radius:3px;
+  background:rgba(8,7,26,.86);border:1px solid var(--azure50);color:var(--azure60)}
+.spec-safe{position:absolute;z-index:8;pointer-events:none;
+  border:1px dashed rgba(255,176,32,.55)}
+.spec-note{position:absolute;z-index:9;right:6px;bottom:6px;
+  font-family:"Liberation Mono",monospace;font-size:9px;line-height:13px;text-align:right;
+  color:var(--amber);background:rgba(8,7,26,.86);padding:3px 6px;border-radius:4px}
+</style>
+</head>
+<body>
+
+<!-- ==================================================================== -->
+<!-- 873 x 393 dp — 1080x2400 at 2.75. The reference phone, landscape.     -->
+<!-- ==================================================================== -->
+<section class="frame" id="phone-873">
+  <div class="backdrop"></div>
+  <svg class="mesh" viewBox="0 0 873 393" preserveAspectRatio="none">
+    <g fill="none" stroke="#9B6BFF" stroke-opacity=".07" stroke-width="1">
+      <path d="M0,286 C146,254 291,318 437,286 C582,254 728,318 873,286"/>
+      <path d="M0,316 C146,284 291,348 437,316 C582,284 728,348 873,316"/>
+      <path d="M0,346 C146,314 291,378 437,346 C582,314 728,378 873,346"/>
+      <path d="M0,376 C146,344 291,408 437,376 C582,344 728,408 873,376"/>
+    </g>
+  </svg>
+
+  <div class="phone-shell">
+    <div class="sysbar"><span>21:04</span><span>&#9679;&#9679;&#9679;&nbsp;&nbsp;84%</span></div>
+
+    <div class="stage">
+      <div class="head">
+        <h1 class="t-headline-m">Activate your subscription</h1>
+        <span class="step">Castivio</span>
+      </div>
+
+      <div class="cols">
+
+        <!-- The screen's one job. Widest measure, hero radius, lit fill. -->
+        <div class="glass glass-hero card c-mac">
+          <div class="mac-label">
+            <span class="t-overline faint">Your MAC address</span>
+            <span class="badge">Recommended</span>
+          </div>
+          <div class="code-compact address">2F:19:EB:20:44:7C</div>
+          <p class="t-body-s dim">Send this address to your provider exactly as it
+             appears. They will add your subscription to this device.</p>
+          <div class="btn btn-touch btn-primary focused">Copy address</div>
+        </div>
+
+        <!-- Same address, carried by a camera rather than by typing. -->
+        <div class="glass card qr-card c-qr">
+          <div class="qr" data-qr></div>
+          <p class="t-body-s cap">Scan to copy it to a phone</p>
+        </div>
+
+        <!-- What is true today, next to the route that works. Not an error. -->
+        <div class="glass card c-note">
+          <div class="note-body">
+            <div class="note-head">
+              <i class="status-dot"></i>
+              <span class="t-overline" style="color:var(--amber)">Not live yet</span>
+            </div>
+            <p class="t-body-s dim">A subscription sent to this
+               address cannot arrive here yet. Your address will not change &mdash; add
+               your provider manually meanwhile.</p>
+          </div>
+          <div class="btn btn-touch btn-secondary">Add manually</div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="gesture"><i></i></div>
+  </div>
+
+  <div class="spec">
+    <div class="spec-safe" style="left:0;top:24px;right:0;bottom:20px"></div>
+    <div class="spec-chip" style="left:24px;top:30px">stage 825 x 341</div>
+    <div class="spec-chip" style="left:24px;bottom:26px">MAC 400</div>
+    <div class="spec-chip" style="left:440px;bottom:26px">QR 172</div>
+    <div class="spec-chip" style="left:628px;bottom:26px">note 221</div>
+    <div class="spec-chip" style="right:24px;top:30px">code 28/36 &middot; QR 148</div>
+    <div class="spec-note">safe area 873 x 349 &middot; no scroll<br>insets: status 24, gesture 20</div>
+  </div>
+</section>
+
+<!-- ==================================================================== -->
+<!-- 800 x 360 dp — 720x1600 at 2.0. The shortest landscape we ship to.    -->
+<!-- ==================================================================== -->
+<section class="frame" id="phone-800">
+  <div class="backdrop"></div>
+  <svg class="mesh" viewBox="0 0 800 360" preserveAspectRatio="none">
+    <g fill="none" stroke="#9B6BFF" stroke-opacity=".07" stroke-width="1">
+      <path d="M0,262 C133,232 267,292 400,262 C533,232 667,292 800,262"/>
+      <path d="M0,290 C133,260 267,320 400,290 C533,260 667,320 800,290"/>
+      <path d="M0,318 C133,288 267,348 400,318 C533,288 667,348 800,318"/>
+      <path d="M0,346 C133,316 267,376 400,346 C533,316 667,376 800,346"/>
+    </g>
+  </svg>
+
+  <div class="phone-shell">
+    <div class="sysbar"><span>21:04</span><span>&#9679;&#9679;&#9679;&nbsp;&nbsp;84%</span></div>
+
+    <div class="stage">
+      <div class="head">
+        <h1 class="t-headline-m">Activate your subscription</h1>
+        <span class="step">Castivio</span>
+      </div>
+
+      <div class="cols">
+        <div class="glass glass-hero card c-mac">
+          <div class="mac-label">
+            <span class="t-overline faint">Your MAC address</span>
+            <span class="badge">Recommended</span>
+          </div>
+          <div class="code-compact address">2F:19:EB:20:44:7C</div>
+          <p class="t-body-s dim">Send this address to your provider exactly as it
+             appears. They will add your subscription to this device.</p>
+          <div class="btn btn-touch btn-primary focused">Copy address</div>
+        </div>
+
+        <div class="glass card qr-card c-qr">
+          <div class="qr" data-qr></div>
+          <p class="t-body-s cap">Scan to copy it</p>
+        </div>
+
+        <div class="glass card c-note">
+          <div class="note-body">
+            <div class="note-head">
+              <i class="status-dot"></i>
+              <span class="t-overline" style="color:var(--amber)">Not live yet</span>
+            </div>
+            <p class="t-body-s dim">A subscription sent to this
+               address cannot arrive here yet. Your address will not change &mdash; add
+               your provider manually meanwhile.</p>
+          </div>
+          <div class="btn btn-touch btn-secondary">Add manually</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="gesture"><i></i></div>
+  </div>
+
+  <div class="spec">
+    <div class="spec-safe" style="left:0;top:24px;right:0;bottom:20px"></div>
+    <div class="spec-chip" style="left:20px;top:30px">stage 760 x 316</div>
+    <div class="spec-chip" style="left:20px;bottom:26px">MAC 392</div>
+    <div class="spec-chip" style="left:426px;bottom:26px">QR 120</div>
+    <div class="spec-chip" style="left:560px;bottom:26px">note 220</div>
+    <div class="spec-chip" style="right:20px;top:30px">code 28/36 &middot; QR 88</div>
+    <div class="spec-note">safe area 800 x 316 &middot; no scroll<br>same tokens, tighter measure</div>
+  </div>
+</section>
+
+<!-- ==================================================================== -->
+<!-- 960 x 540 dp — 1920x1080 at 2.0. Ten feet away, driven by a D-pad.    -->
+<!-- ==================================================================== -->
+<section class="frame" id="tv">
+  <div class="backdrop"></div>
+  <svg class="mesh" viewBox="0 0 960 540" preserveAspectRatio="none">
+    <g fill="none" stroke="#9B6BFF" stroke-opacity=".07" stroke-width="1">
+      <path d="M0,392 C160,352 320,432 480,392 C640,352 800,432 960,392"/>
+      <path d="M0,428 C160,388 320,468 480,428 C640,388 800,468 960,428"/>
+      <path d="M0,464 C160,424 320,504 480,464 C640,424 800,504 960,464"/>
+      <path d="M0,500 C160,460 320,540 480,500 C640,460 800,540 960,500"/>
+    </g>
+  </svg>
+
+  <div class="stage">
+    <div class="head">
+      <h1 class="t-headline-l">Activate your subscription</h1>
+    </div>
+
+    <!-- A band, not a column. The address is read from across a room, so it gets
+         the full measure and the copy sits beside it rather than under it. -->
+    <div class="glass glass-hero band">
+      <div class="left">
+        <div class="mac-label" style="margin-bottom:12px">
+          <span class="t-overline faint">Your MAC address</span>
+          <span class="badge">Recommended</span>
+        </div>
+        <div class="code-hero address">2F:19:EB:20:44:7C</div>
+      </div>
+      <div class="right">
+        <p class="t-body-m dim">Send this address to your provider exactly as it appears.
+           They will add your subscription to this device.</p>
+        <div class="btn btn-tv btn-primary focused">Copy address</div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="glass c-qr">
+        <div class="qr" data-qr></div>
+        <p class="t-body-m" style="color:var(--silver)">Scan to copy this address to a phone</p>
+      </div>
+
+      <div class="glass c-note">
+        <div class="note-head">
+          <i class="status-dot"></i>
+          <span class="t-overline" style="color:var(--amber)">Activation by address is not live yet</span>
+        </div>
+        <p class="t-body-m dim">Castivio&rsquo;s activation service is not running, so a
+           subscription sent to this address cannot arrive here yet. Your address is shown
+           above and will not change &mdash; add your provider manually in the meantime.</p>
+        <div class="btn btn-tv btn-secondary" style="align-self:flex-start">Add manually</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="spec">
+    <div class="spec-safe" style="inset:48px"></div>
+    <div class="spec-chip" style="left:48px;top:54px">safe 864 x 444</div>
+    <div class="spec-chip" style="right:48px;top:54px">code 42/52 &middot; QR 160</div>
+    <div class="spec-chip" style="left:48px;bottom:54px">QR card 336</div>
+    <div class="spec-note">overscan 48 &middot; targets 56 &middot; no scroll<br>hero band, then two cards</div>
+  </div>
+</section>
+
+<script>
+/* ---------------------------------------------------------------------------
+   A QR code, drawn rather than encoded.
+
+   The real one comes from ZXing over the address; what matters in a mockup is
+   the module count, because that is what decides whether the printed size is
+   scannable. Seventeen characters is a version 1 symbol — 21 modules — so the
+   grid below is 21 with proper finder and timing patterns and a deterministic
+   fill. Sizing arguments made against this are sound; the payload is not real.
+   ------------------------------------------------------------------------ */
+(function () {
+  var N = 21, QUIET = 2;          // Qr.kt asks ZXing for a one-module margin;
+  var span = N + QUIET * 2;       // two reads better at these sizes.
+
+  function finder(grid, r, c) {   // 7x7: ring, gap, 3x3 core
+    for (var y = 0; y < 7; y++)
+      for (var x = 0; x < 7; x++) {
+        var edge = y === 0 || y === 6 || x === 0 || x === 6;
+        var core = y >= 2 && y <= 4 && x >= 2 && x <= 4;
+        grid[r + y][c + x] = edge || core;
+      }
+  }
+
+  var grid = [];
+  for (var y = 0; y < N; y++) grid.push(new Array(N).fill(false));
+
+  finder(grid, 0, 0); finder(grid, 0, N - 7); finder(grid, N - 7, 0);
+  for (var i = 8; i < N - 8; i++) {           // timing
+    grid[6][i] = i % 2 === 0;
+    grid[i][6] = i % 2 === 0;
+  }
+  grid[N - 8][8] = true;                       // dark module
+
+  var seed = 0x5EED;                           // stable across renders
+  function next() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
+  function reserved(y, x) {
+    return (y < 9 && x < 9) || (y < 9 && x > N - 9) || (y > N - 9 && x < 9) || y === 6 || x === 6;
+  }
+  for (y = 0; y < N; y++)
+    for (var x = 0; x < N; x++)
+      if (!reserved(y, x)) grid[y][x] = next() > 0.48;
+
+  var rects = "";
+  for (y = 0; y < N; y++)
+    for (x = 0; x < N; x++)
+      if (grid[y][x]) rects += '<rect x="' + (x + QUIET) + '" y="' + (y + QUIET) + '" width="1" height="1"/>';
+
+  var svg = '<svg viewBox="0 0 ' + span + ' ' + span + '" width="100%" height="100%">' +
+            '<g fill="#08071A">' + rects + "</g></svg>";
+
+  document.querySelectorAll("[data-qr]").forEach(function (n) { n.innerHTML = svg; });
+})();
+
+/* One file, one source of truth; ?frame= chooses which device it is today. */
+(function () {
+  var q = new URLSearchParams(location.search);
+  document.documentElement.dataset.frame = q.get("frame") || "phone-873";
+  if (q.get("spec") === "1") document.documentElement.dataset.spec = "1";
+})();
+</script>
+</body>
+</html>
