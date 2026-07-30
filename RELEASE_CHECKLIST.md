@@ -38,6 +38,26 @@ None of these are client work, and none of them can be faked locally.
       device after a factory reset, or after an installation-scoped identity loses its
       app data.
 
+## 1b. The contract that has to change before any of section 1 is built
+
+`VerificationRequest` — what the client sends the licence server to ask what this
+device is entitled to — carries `macAddress`, `identityVersion`, `provenance`,
+the legacy addresses and the cached record. Every one of those identifies the
+device. **Not one of them authenticates it.**
+
+- [ ] **A device secret in the verification contract.** Until there is one, any
+      party who learns an address can impersonate that device to the licence
+      server: read its entitlement, and depending on the endpoint, move it.
+
+This is harmless today only because there is no server to lie to. It stops being
+harmless the day one exists, which is the day the rest of section 1 gets built —
+so it is a blocker on that work rather than a hardening task after it. The same
+gap governs the device key and the QR pairing protocol; see
+`design/activation-spec.md` §11.
+
+Recorded during activation UI work and deliberately **not** fixed there: the UI
+task has no business inventing an authentication protocol.
+
 ## 2. The one test that needs a real device
 
 `VaultKeys` is the only part of `:data:entitlement` no JVM can exercise: Robolectric
