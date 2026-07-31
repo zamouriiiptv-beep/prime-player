@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Castivio — choosing a language</title>
+<style>
+/* ============================================================================
+   Castivio — the language picker.
+
+   Thirty-seven languages, opened from the header control on the activation
+   screen. It is an overlay and nothing behind it moves: the activation
+   composition is approved and this is drawn on top of it, dimmed.
+
+   ---------------------------------------------------------------------------
+   Why a grid and not a list.
+
+   The phone frame is landscape at 393dp tall. Measured: three columns show 15
+   of the 37 at once, so the whole list is 2.5 screens. A single column of the
+   same rows would show 5 and take 7.4 screens. Height is the scarce dimension
+   on this device, and a list spends all of it on one column of names that are
+   at most sixteen characters long.
+
+   ---------------------------------------------------------------------------
+   Why there is no search field.
+
+   Two reasons, and the first is the stronger one.
+
+   The list is already indexed, by the requirement that each language appears
+   under its own name. العربية among Latin names is not something anyone has to
+   read to find -- the script is the index, and a reader looking for their own
+   language is looking for their own letters. An alphabetical list of English
+   exonyms would need search. This one does not.
+
+   The second is what search costs, against what it saves. The television shows
+   24 of the 37 at once -- 1.5 screens, and at most two presses of a directional
+   pad to reach anything on the second one. Buying that with an on-screen
+   keyboard, the worst input surface a remote has, on a panel 540dp tall, is a
+   bad trade in both directions. On a phone in landscape the IME takes the same
+   screen the list is on, and the list is 2.5 screens long.
+
+   ---------------------------------------------------------------------------
+   Focus is not selection.
+
+   On a television these are two different facts about a row and both have to be
+   legible at once: which language Castivio is in, and where the remote is. So
+   they are carried by different channels. Selection is a filled surface, a
+   brighter name, and a check -- three cues, none of them hue alone. Focus is
+   the ring the rest of Castivio uses. A row can have both, and when it does
+   neither becomes ambiguous.
+
+     ?frame=   phone-873 | tv
+     ?lang=    en ar de fi th hi bn ja zh fa ur ko ru
+     &spec=1   safe area and measurements
+   ========================================================================= */
+:root{
+  --void:#08071A; --abyss:#0D0B22; --deep:#141031; --slate:#1C1840; --haze:#272253;
+  --violet10:#1B1038; --violet40:#6E4BD8; --violet50:#9B6BFF; --violet60:#B694FF;
+  --azure10:#0A1E3D; --azure40:#2E6BFF; --azure50:#4C9BFF; --azure60:#6FB2FF;
+  --mist:#F2F2F8; --silver:#C9C9DA; --muted:#A6A6BF; --faint:#6E6E8A;
+  --glass-mid:rgba(255,255,255,.078); --glass-low:rgba(255,255,255,.039);
+  --glass-edge:rgba(255,255,255,.239); --glass-edge-soft:rgba(255,255,255,.078);
+  --divider:rgba(255,255,255,.122);
+  --success:#3DD68C;
+  --r-xs:8px; --r-sm:12px; --r-md:16px; --r-lg:20px; --r-xl:24px; --r-xxl:30px; --r-pill:999px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#000}
+body{
+  font-family:"Noto Sans","Noto Sans Arabic","Noto Sans Thai","Noto Sans Devanagari",
+              "Noto Sans Bengali","Noto Sans CJK SC","Noto Sans CJK TC","Noto Sans CJK JP",
+              "Noto Sans CJK KR","Liberation Sans",sans-serif;
+  color:var(--mist);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:geometricPrecision;
+}
+.frame{display:none;position:relative;overflow:hidden;background:var(--void)}
+html[data-frame="phone-873"] #phone-873,
+html[data-frame="tv"]        #tv{display:block}
+#phone-873{width:873px;height:393px}
+#tv{width:960px;height:540px}
+
+/* ---------------------------------------------------------------- type */
+/* The same tokens as the activation screen, including the overline at 11/18.
+   A picker is not an excuse for a second type scale. */
+.t-headline-m{font-size:22px;line-height:32px;font-weight:700}
+.t-body-m    {font-size:14px;line-height:22px}
+.t-body-s    {font-size:12.5px;line-height:20px}
+.t-overline  {font-size:11px;line-height:18px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase}
+/* The name is the content, so it carries the weight the content deserves:
+   15sp on a phone and 17sp across a room. Line boxes are generous because a
+   name may be Thai or Devanagari and neither fits a Latin line. */
+.t-name   {font-size:15px;line-height:26px;font-weight:500}
+.t-name-tv{font-size:17px;line-height:28px;font-weight:500}
+
+/* ------------------------------------------------------------ the ground */
+/* The activation screen, dimmed. Drawn rather than described because an
+   overlay that is judged without what it covers is judged on the wrong
+   question -- how much of the screen it takes, and whether what is left still
+   reads as Castivio. */
+.backdrop{position:absolute;inset:0;
+  background:
+    radial-gradient(44% 118% at 21% 54%, rgba(111,178,255,.14) 0%, rgba(111,178,255,0) 66%),
+    radial-gradient(58% 78% at 4% 108%, rgba(110,75,216,.30) 0%, rgba(110,75,216,0) 62%),
+    radial-gradient(54% 70% at 97% 20%, rgba(46,107,255,.26) 0%, rgba(46,107,255,0) 60%),
+    linear-gradient(135deg, var(--deep) 0%, var(--violet10) 48%, var(--azure10) 100%);
+}
+html[dir="rtl"] .backdrop{
+  background:
+    radial-gradient(44% 118% at 79% 54%, rgba(111,178,255,.14) 0%, rgba(111,178,255,0) 66%),
+    radial-gradient(58% 78% at 96% 108%, rgba(110,75,216,.30) 0%, rgba(110,75,216,0) 62%),
+    radial-gradient(54% 70% at 3% 20%, rgba(46,107,255,.26) 0%, rgba(46,107,255,0) 60%),
+    linear-gradient(225deg, var(--deep) 0%, var(--violet10) 48%, var(--azure10) 100%);
+}
+.behind{position:absolute;inset:0;display:flex;flex-direction:column;padding:24px 30px 14px}
+#tv .behind{padding:34px 48px 20px}
+.behind .row1{display:flex;align-items:center;gap:14px}
+.behind .spacer{flex:1 1 auto}
+.behind .addr{font-family:"Liberation Mono","DejaVu Sans Mono",monospace;
+  font-weight:700;letter-spacing:1px;direction:ltr;unicode-bidi:isolate;margin-top:34px}
+#phone-873 .behind .addr{font-size:28px;line-height:36px}
+#tv .behind .addr{font-size:42px;line-height:52px;margin-top:52px}
+.behind .rule{height:1px;margin-top:12px;
+  background:linear-gradient(90deg,transparent 0%,var(--divider) 6%,var(--divider) 94%,transparent 100%)}
+
+/* The scrim. Dark enough that the panel is unambiguously in front, light
+   enough that the aurora is still visible and the overlay still feels like
+   part of the same product rather than a system dialogue. */
+.scrim{position:absolute;inset:0;background:rgba(6,5,18,.72);backdrop-filter:blur(3px)}
+
+/* ------------------------------------------------------------- the panel */
+.panel{position:absolute;display:flex;flex-direction:column;
+  background:linear-gradient(180deg, rgba(32,27,66,.96) 0%, rgba(18,15,42,.97) 100%);
+  border:1px solid var(--glass-edge-soft);
+  box-shadow:0 30px 80px rgba(0,0,0,.62), 0 0 0 1px rgba(255,255,255,.04);
+  overflow:hidden}
+#phone-873 .panel{inset:12px 92px;border-radius:var(--r-xl)}
+#tv .panel{inset:34px 64px;border-radius:var(--r-xxl)}
+
+.phead{flex:0 0 auto;display:flex;align-items:center;gap:12px}
+#phone-873 .phead{padding:12px 18px 10px}
+#tv .phead{padding:18px 28px 14px}
+.phead .title{color:var(--mist)}
+.phead .count{color:var(--muted)}
+.phead .spacer{flex:1 1 auto}
+/* Dismissal is stated, not guessed at. On a phone it is a control; on a
+   television the remote already has a Back button and a second way to leave
+   is a target the D-pad has to walk past on the way to the list. */
+.close{display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+  border-radius:var(--r-pill);border:1px solid var(--glass-edge);color:var(--silver)}
+#phone-873 .close{width:34px;height:34px}
+#tv .close{display:none}
+.backhint{display:none;align-items:center;gap:8px;color:var(--muted)}
+#tv .backhint{display:flex}
+.backhint i{display:inline-flex;width:24px;height:24px;align-items:center;justify-content:center;
+  border-radius:var(--r-xs);border:1px solid var(--glass-edge);font-size:11px;font-weight:700}
+
+.phead-rule{flex:0 0 auto;height:1px;background:var(--divider)}
+
+/* The list. A grid because height is what a landscape phone has least of, and
+   a name is short. `overflow-y` is the only scroll on the screen -- the
+   document itself never moves, which is what keeps the header and the ground
+   still while the names go past. */
+.list{flex:1 1 auto;min-height:0;overflow-y:auto;display:grid;align-content:start}
+#phone-873 .list{grid-template-columns:repeat(3,1fr);gap:6px 10px;padding:12px 18px 14px}
+#tv .list{grid-template-columns:repeat(4,1fr);gap:8px 14px;padding:16px 28px 20px}
+
+/* A row is a target before it is a label, so it is sized as one: 48dp under a
+   thumb, 56dp from a sofa. */
+.opt{display:flex;align-items:center;border-radius:var(--r-sm);
+  border:1px solid transparent;color:var(--silver);cursor:default}
+#phone-873 .opt{min-height:48px;padding:0 12px;gap:10px}
+#tv .opt{min-height:56px;padding:0 16px;gap:12px}
+
+/* The name keeps its own direction whatever the interface is doing, and the
+   cell keeps the interface's. Both facts are needed and they are carried by
+   different elements: the cell is laid out and aligned by the interface, and a
+   <bdi> inside it isolates the name so an Arabic name in an English list cannot
+   reorder the row around it, nor an English name in an Arabic one.
+
+   Putting the direction on the cell instead was tried and was wrong twice over
+   -- it aligned Arabic names to the far end of their column, which is the one
+   alignment a scannable list depends on, and it would have done the same to
+   every Latin name the moment the interface turned around. */
+.opt .name{flex:1 1 auto;min-width:0;text-align:start;overflow:hidden;white-space:nowrap}
+.opt .name bdi{unicode-bidi:isolate}
+
+/* Selection: a filled surface, a brighter name, and a check. Three cues, so
+   the state survives a viewer who cannot separate the hue from the ground, and
+   survives a photograph of a television taken at an angle. */
+.opt .tick{flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  width:20px;height:20px;opacity:0}
+.opt.sel{background:rgba(155,107,255,.16);border-color:rgba(155,107,255,.34);color:var(--mist)}
+.opt.sel .name{font-weight:700}
+.opt.sel .tick{opacity:1;color:var(--violet60)}
+
+/* Focus: the ring the rest of Castivio uses, drawn outside the row's own
+   surface so it reads on a selected row as well as an unselected one. */
+.opt.foc{box-shadow:0 0 0 2px var(--violet50), 0 0 26px 3px rgba(155,107,255,.42)}
+#tv .opt.foc{box-shadow:0 0 0 3px var(--violet50), 0 0 34px 5px rgba(155,107,255,.46)}
+
+/* Where the list is, without a scrollbar's furniture. Two facts: how far down
+   the list the visible window sits, and that there is more of it. */
+.rail{position:absolute;border-radius:var(--r-pill);background:rgba(255,255,255,.07)}
+.rail i{position:absolute;left:0;right:0;border-radius:var(--r-pill);
+  background:linear-gradient(180deg,var(--violet50),var(--azure50))}
+#phone-873 .rail{width:3px;top:56px;bottom:14px;inset-inline-end:8px}
+#tv .rail{width:4px;top:74px;bottom:20px;inset-inline-end:14px}
+
+/* --------------------------------------------------------------- spec mode */
+.spec{display:none;position:absolute;inset:0;pointer-events:none}
+html[data-spec="1"] .spec{display:block}
+.spec-safe{position:absolute;border:1px dashed rgba(111,178,255,.5)}
+.spec-note{position:absolute;left:8px;bottom:6px;font-size:10px;color:#6FB2FF;
+  background:rgba(0,0,0,.55);padding:2px 6px;border-radius:4px}
+</style>
+</head>
+<body>
+
+<!-- =================================================================== -->
+<section class="frame" id="phone-873">
+  <div class="backdrop"></div>
+  <div class="behind">
+    <div class="row1">
+      <span class="t-headline-m" data-s="activationTitle"></span>
+      <span class="spacer"></span>
+      <span class="t-body-m" style="color:var(--silver)" data-s="trial"></span>
+    </div>
+    <span class="addr">2F:19:EB:20:44:7C</span>
+    <span class="spacer" style="flex:1 1 auto"></span>
+    <div class="rule"></div>
+  </div>
+  <div class="scrim"></div>
+
+  <div class="panel">
+    <div class="phead">
+      <span class="title t-body-m" style="font-weight:600" data-s="pickerTitle"></span>
+      <span class="count t-body-s" data-s="pickerCount"></span>
+      <span class="spacer"></span>
+      <span class="backhint t-body-s"><i data-s="backKey"></i><span data-s="backHint"></span></span>
+      <span class="close" data-target="48" data-close></span>
+    </div>
+    <div class="phead-rule"></div>
+    <div class="list" data-scroller data-list></div>
+    <div class="rail"><i></i></div>
+  </div>
+
+  <div class="spec">
+    <div class="spec-safe" style="left:92px;top:12px;right:92px;bottom:12px"></div>
+    <div class="spec-note">panel 689x369 &middot; 3 columns &middot; row 48 &middot; 15 of 37 visible &middot; 2.5 screens</div>
+  </div>
+</section>
+
+<!-- =================================================================== -->
+<section class="frame" id="tv">
+  <div class="backdrop"></div>
+  <div class="behind">
+    <div class="row1">
+      <span class="t-headline-m" style="font-size:28px;line-height:40px" data-s="activationTitle"></span>
+      <span class="spacer"></span>
+      <span class="t-body-m" style="color:var(--silver)" data-s="trial"></span>
+    </div>
+    <span class="addr">2F:19:EB:20:44:7C</span>
+    <span class="spacer" style="flex:1 1 auto"></span>
+    <div class="rule"></div>
+  </div>
+  <div class="scrim"></div>
+
+  <div class="panel">
+    <div class="phead">
+      <span class="title t-body-m" style="font-size:17px;font-weight:600" data-s="pickerTitle"></span>
+      <span class="count t-body-s" style="font-size:14px" data-s="pickerCount"></span>
+      <span class="spacer"></span>
+      <span class="backhint t-body-s" style="font-size:14px"><i data-s="backKey"></i><span data-s="backHint"></span></span>
+      <span class="close" data-target="56" data-close></span>
+    </div>
+    <div class="phead-rule"></div>
+    <div class="list" data-scroller data-list></div>
+    <div class="rail"><i></i></div>
+  </div>
+
+  <div class="spec">
+    <div class="spec-safe" style="left:64px;top:34px;right:64px;bottom:34px"></div>
+    <div class="spec-note">panel 832x472 &middot; 4 columns &middot; row 56 &middot; 24 of 37 visible &middot; 1.5 screens</div>
+  </div>
+</section>
+
+<script>
+/* The 37, in the order they are shown.
+
+   The order is the approved one and it is not alphabetical. Sorting 37 native
+   names alphabetically means sorting Ελληνικά, Русский and 한국어 against each
+   other, which is a sort by code point wearing a dictionary's clothes -- and it
+   would put Castivio's two largest markets in the middle of a list on the
+   strength of what letter their name happens to start with.
+
+   This order groups by script and by region, which is what makes the grid
+   scannable without a search field: a reader looking for Cyrillic finds four
+   Cyrillic names together. It is also stable, so a returning user's language is
+   where it was last time. */
+var LANGS = [
+  ["English","ltr"],   ["العربية","rtl"],    ["Français","ltr"],  ["Español","ltr"],
+  ["Deutsch","ltr"],   ["Italiano","ltr"],   ["Português","ltr"], ["Nederlands","ltr"],
+  ["Türkçe","ltr"],    ["Русский","ltr"],    ["Українська","ltr"],["Polski","ltr"],
+  ["Română","ltr"],    ["Magyar","ltr"],     ["Čeština","ltr"],   ["Slovenčina","ltr"],
+  ["Ελληνικά","ltr"],  ["Svenska","ltr"],    ["Dansk","ltr"],     ["Norsk","ltr"],
+  ["Suomi","ltr"],     ["Български","ltr"],  ["Hrvatski","ltr"],  ["Српски","ltr"],
+  ["Shqip","ltr"],     ["فارسی","rtl"],      ["اردو","rtl"],      ["हिन्दी","ltr"],
+  ["বাংলা","ltr"],      ["Bahasa Indonesia","ltr"], ["Bahasa Melayu","ltr"], ["ไทย","ltr"],
+  ["Tiếng Việt","ltr"],["中文","ltr"],        ["日本語","ltr"],     ["한국어","ltr"],
+  ["Filipino","ltr"]
+];
+
+/* The interface's own strings. Nine of the shipping languages plus the four the
+   picker adds to the stress set -- a second RTL, Hangul, and Cyrillic. */
+var S = {
+  en:{dir:"ltr",activationTitle:"Add your subscription",trial:"Castivio trial · 7 days",
+      pickerTitle:"Language",pickerCount:"37 available",backHint:"Back to close",backKey:"↩",close:"Close"},
+  ar:{dir:"rtl",activationTitle:"أضف اشتراكك",trial:"تجربة Castivio · ٧ أيام",
+      pickerTitle:"اللغة",pickerCount:"٣٧ لغة متاحة",backHint:"رجوع للإغلاق",backKey:"↩",close:"إغلاق"},
+  de:{dir:"ltr",activationTitle:"Abonnement hinzufügen",trial:"Castivio-Test · 7 Tage",
+      pickerTitle:"Sprache",pickerCount:"37 verfügbar",backHint:"Zurück zum Schließen",backKey:"↩",close:"Schließen"},
+  fi:{dir:"ltr",activationTitle:"Lisää tilauksesi",trial:"Castivio-kokeilu · 7 päivää",
+      pickerTitle:"Kieli",pickerCount:"37 saatavilla",backHint:"Sulje painamalla takaisin",backKey:"↩",close:"Sulje"},
+  th:{dir:"ltr",activationTitle:"เพิ่มการสมัครสมาชิกของคุณ",trial:"ทดลองใช้ Castivio · 7 วัน",
+      pickerTitle:"ภาษา",pickerCount:"มี 37 ภาษา",backHint:"กดย้อนกลับเพื่อปิด",backKey:"↩",close:"ปิด"},
+  hi:{dir:"ltr",activationTitle:"अपनी सदस्यता जोड़ें",trial:"Castivio परीक्षण · 7 दिन",
+      pickerTitle:"भाषा",pickerCount:"37 उपलब्ध",backHint:"बंद करने के लिए वापस",backKey:"↩",close:"बंद करें"},
+  bn:{dir:"ltr",activationTitle:"আপনার সাবস্ক্রিপশন যোগ করুন",trial:"Castivio ট্রায়াল · ৭ দিন",
+      pickerTitle:"ভাষা",pickerCount:"৩৭টি উপলব্ধ",backHint:"বন্ধ করতে ফিরে যান",backKey:"↩",close:"বন্ধ"},
+  ja:{dir:"ltr",activationTitle:"サブスクリプションを追加",trial:"Castivio 体験版 · 7日間",
+      pickerTitle:"言語",pickerCount:"37言語",backHint:"戻るで閉じる",backKey:"↩",close:"閉じる"},
+  zh:{dir:"ltr",activationTitle:"添加您的订阅",trial:"Castivio 试用 · 7 天",
+      pickerTitle:"语言",pickerCount:"37 种可选",backHint:"按返回关闭",backKey:"↩",close:"关闭"},
+  ko:{dir:"ltr",activationTitle:"구독 추가",trial:"Castivio 체험 · 7일",
+      pickerTitle:"언어",pickerCount:"37개 사용 가능",backHint:"뒤로 눌러 닫기",backKey:"↩",close:"닫기"},
+  ru:{dir:"ltr",activationTitle:"Добавьте подписку",trial:"Пробный период Castivio · 7 дней",
+      pickerTitle:"Язык",pickerCount:"Доступно 37",backHint:"Назад, чтобы закрыть",backKey:"↩",close:"Закрыть"},
+  fa:{dir:"rtl",activationTitle:"اشتراک خود را اضافه کنید",trial:"نسخهٔ آزمایشی Castivio · ۷ روز",
+      pickerTitle:"زبان",pickerCount:"۳۷ زبان",backHint:"بازگشت برای بستن",backKey:"↩",close:"بستن"},
+  ur:{dir:"rtl",activationTitle:"اپنی سبسکرپشن شامل کریں",trial:"Castivio آزمائش · ۷ دن",
+      pickerTitle:"زبان",pickerCount:"۳۷ دستیاب",backHint:"بند کرنے کے لیے واپس",backKey:"↩",close:"بند کریں"}
+};
+
+var ICON = {
+  tick:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+       'stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">' +
+       '<path d="M20 6 9 17l-5-5"/></svg>',
+  close:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+       'stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>'
+};
+
+/* The interface language's own name, which is the row that must read as
+   selected. Kept beside the string table rather than inside it: it is the same
+   fact as `LANGS`, spelled the same way, and two spellings of one fact drift. */
+var PICK = {
+  en:"English", ar:"العربية", de:"Deutsch", fi:"Suomi", th:"ไทย", hi:"हिन्दी",
+  bn:"বাংলা", ja:"日本語", zh:"中文", ko:"한국어", ru:"Русский", fa:"فارسی", ur:"اردو"
+};
+
+(function () {
+  var q = new URLSearchParams(location.search);
+  var frame = q.get("frame") || "phone-873";
+  var lang = q.get("lang") || "en";
+  var s = S[lang] || S.en;
+
+  document.documentElement.dataset.frame = frame;
+  document.documentElement.lang = lang;
+  document.documentElement.dir = s.dir;
+  if (q.get("spec") === "1") document.documentElement.dataset.spec = "1";
+
+  /* Which language Castivio is in -- so the selected row is the interface's own
+     language, which is the only value that is ever true here. */
+  var selected = LANGS.findIndex(function (l) { return l[0] === (PICK[lang] || "English"); });
+  if (selected < 0) selected = 0;
+
+  /* Focus starts somewhere other than the selection on purpose: the two states
+     have to be told apart, and a mockup where they coincide cannot show that. */
+  var focused = Number(q.get("focus") !== null ? q.get("focus") : (selected === 9 ? 12 : 9));
+
+  document.querySelectorAll("[data-list]").forEach(function (list) {
+    LANGS.forEach(function (entry, i) {
+      var row = document.createElement("span");
+      row.className = "opt" + (i === selected ? " sel" : "") + (i === focused ? " foc" : "");
+      var tick = document.createElement("span");
+      tick.className = "tick";
+      tick.innerHTML = ICON.tick;
+      var name = document.createElement("span");
+      name.className = "name " + (frame === "tv" ? "t-name-tv" : "t-name");
+      // <bdi>, not dir on the cell. Setting the direction on the box that fills
+      // the cell also sets where its text sits, so an Arabic name drifted to the
+      // far end of its column and broke the one alignment a scannable list has.
+      // The cell keeps the interface's direction; the isolate carries only the
+      // glyph order, which is the part that belongs to the language.
+      var bdi = document.createElement("bdi");
+      bdi.setAttribute("dir", entry[1]);
+      bdi.textContent = entry[0];
+      name.appendChild(bdi);
+      row.appendChild(tick);
+      row.appendChild(name);
+      list.appendChild(row);
+    });
+  });
+
+  document.querySelectorAll("[data-close]").forEach(function (n) {
+    n.innerHTML = ICON.close;
+    n.setAttribute("aria-label", s.close);
+  });
+
+  // No silent fallback. A key neither table has renders visibly wrong rather
+  // than invisibly empty, and the measuring script fails on the marker.
+  document.querySelectorAll("[data-s]").forEach(function (n) {
+    var key = n.getAttribute("data-s");
+    var text = key in s ? s[key] : (key in S.en ? S.en[key] : "⟨" + key + "⟩");
+    n.textContent = text;
+  });
+
+  /* The rail reports the window's real position in the list rather than a
+     drawn guess, so a change to the row height cannot leave it lying. */
+  document.querySelectorAll("[data-scroller]").forEach(function (list) {
+    var rail = list.parentNode.querySelector(".rail i");
+    if (!rail) return;
+    var frac = Math.min(1, list.clientHeight / list.scrollHeight);
+    rail.style.top = (100 * list.scrollTop / list.scrollHeight) + "%";
+    rail.style.height = (100 * frac) + "%";
+  });
+})();
+</script>
+</body>
+</html>

@@ -403,46 +403,106 @@ Each language appears in the selector **once**, under its own native name, never
 as a locale code. Portuguese is one entry. Chinese is one entry. A resource
 directory is not a language.
 
-### 10.2 Resource mapping — 41 directories for 37 languages
+### 10.2 Resource mapping — 39 directories, and how that number is settled
 
 A user-facing language is a choice a person makes. A resource directory is how
-Android finds a string. They are not the same count, and the four places they
-diverge each have a reason.
+Android finds a string. They are not the same count.
 
-**One entry, two directories — genuinely necessary.**
+**Thirty-one languages need nothing said about them.** One directory each,
+`values-<code>`, with the ISO 639-1 code: `ar fr es de it nl tr ru uk pl ro hu cs
+sk el sv da nb fi bg hr sr sq fa ur hi bn ms th vi ja ko`. English is the default
+and lives in `values/`.
 
-- **中文 → `values-b+zh+Hans`, `values-b+zh+Hant`.** Simplified and Traditional
-  are different writing systems, not regional wording: the glyphs differ and so
-  does the vocabulary. One `values-zh` would be wrong for Taiwan and Hong Kong.
-  The script is taken from the system locale (`zh-Hans-*` or `zh-Hant-*`) and
-  defaults to Simplified when the system says only `zh`. **Stated limitation:**
-  with one selector entry, a user on a Simplified system cannot choose
-  Traditional. Ranked below the rule that the selector shows one Chinese.
-- **Português → `values-pt`, `values-pt-rPT`.** `values-pt` carries **Brazilian**
-  Portuguese and `values-pt-rPT` European, because Android falls back from any
-  Portuguese region to `values-pt` and the larger audience should be the one that
-  never falls back. One selector entry; the region comes from the system.
+**Six need a decision, and here they are with the reasoning:**
 
-**Legacy code aliases — required by `minSdk 21`, not extra languages.** Android
-resolves some ISO codes by their obsolete form, and a device that reports the old
-code does not match a directory named with the new one:
+| Language | Canonical | Qualifier(s) | Alias | Why |
+|---|---|---|---|---|
+| 中文 | `zh-Hans`, `zh-Hant` | `values-b+zh+Hans`, `values-b+zh+Hant` | — | different writing systems, not regional wording |
+| Português | `pt-BR`, `pt-PT` | `values-pt` (Brazilian), `values-pt-rPT` | — | every `pt-*` region falls back to `values-pt`, so the larger audience goes there |
+| Bahasa Indonesia | `id` | `values-in` | — | the platform reports the obsolete code; see below |
+| Filipino | `fil` | `values-b+fil` | — | old-style qualifiers take two letters, `fil` has three |
+| Norsk | `nb` | `values-nb` | — | `nb` is a valid ISO 639-1 code and what Android reports |
+| Српски | `sr` | `values-sr` (Cyrillic) | — | Castivio ships one Serbian |
 
-| Language | Directory | Alias | Why |
-|---|---|---|---|
-| Bahasa Indonesia | `values-in` | — | Java rewrites `id` to `in`; `values-id` never matches |
-| Norsk | `values-nb` | `values-no` | devices below API 24 report `no` |
-| Filipino | `values-fil` | `values-tl` | same, for the pre-`fil` code |
+Chinese and Portuguese are the only two that need a second directory. **31 + 1
+(`values/`) + 8 for those six = 39.**
 
-`values-no` and `values-tl` hold the same strings as the directories they alias.
+**Why not 41.** The previous revision added `values-no` and `values-tl` as
+compatibility aliases. They are removed. Neither is justified by anything
+verified: `nb` is a current ISO 639-1 code that Android's own locale lists use,
+and an alias added "because the old code existed" is a directory somebody has to
+keep in step with 37 others forever.
 
-**Српски → `values-sr`, Cyrillic.** Revised from the earlier `b+sr+Cyrl` note:
-Castivio ships one Serbian, so the unqualified directory is correct and matches
-every Serbian device, where the script-qualified one would leave a `sr-Latn`
-device on English.
+**Српски** is also revised, from `b+sr+Cyrl` to `values-sr`. Castivio ships one
+Serbian, so the unqualified directory matches every Serbian device, where the
+script-qualified one would leave a `sr-Latn` device reading English.
 
-Arithmetic: 36 directories for the languages other than English, minus one for
-Chinese and plus two for its scripts, plus `pt-rPT`, plus the two aliases, plus
-`values/` for English — **41 directories, 37 languages.**
+#### What was verified, what was not
+
+Locally verifiable, and verified: **the JVM on this machine is not an oracle for
+Android's locale handling.** JDK 21 normalises Indonesian to the *modern* code —
+`new Locale("in").getLanguage()` returns `id` — which is the opposite of Android,
+where the obsolete code is what the platform reports. The old behaviour is
+reachable with `-Djava.locale.useOldISOCodes=true`, and that flag flipped the
+result. A test written on this machine's default would have "confirmed"
+`values-id` and been wrong on every device.
+
+Not verifiable here, and therefore **not asserted**: whether AAPT2 canonicalises
+a locale qualifier when it writes the resource table, and how the runtime matches
+it on API 21 against API 34. `dl.google.com` is unreachable from this sandbox, so
+there is no `aapt2`, no emulator, and no way to run the only experiment that
+answers it.
+
+So the number above is a **proposal with an argument behind it, not a verified
+fact**, and it is not frozen by being written down. What freezes it is a test.
+
+#### The test that settles it, instead of the argument
+
+Each of the 39 directories carries one extra string, `locale_sentinel`, whose
+value is that directory's own tag. An instrumented test walks all 37 canonical
+locales, sets each one, resolves `locale_sentinel`, and asserts it came from the
+directory that locale is supposed to reach. Run on **API 21 and on a current API
+level**, because those are two different resolvers.
+
+That turns "does Android match this directory?" from a question three people
+answer differently into one that fails the build. If the answer is 38, or 40, the
+mapping changes and this section is corrected — **correct resolution is the
+requirement; 39 is only today's best answer to it.**
+
+### 10.2.1 What one entry does for Chinese and Portuguese
+
+Both single entries resolve to a variant, and the rule is the same for each:
+**take the variant from the system when the system has an opinion, fall back to
+the larger audience when it does not, and persist what was resolved — never the
+bare language.**
+
+Persisting `zh-Hans` rather than `zh` matters: a user who picks 中文 on an English
+phone and later switches the phone to Traditional should not silently have
+Castivio change script underneath them. The choice was made once and is kept.
+
+**中文**
+
+| System locale when 中文 is chosen | Resolves to |
+|---|---|
+| `zh-Hant-*`, or region `TW`, `HK`, `MO` | `zh-Hant` |
+| `zh-Hans-*`, or region `CN`, `SG`, `MY` | `zh-Hans` |
+| any `zh` with nothing else to go on | `zh-Hans` |
+| not Chinese at all | `zh-Hans` |
+
+**Português**
+
+| System locale when Português is chosen | Resolves to |
+|---|---|
+| `pt-PT` | `pt-PT` |
+| any other `pt-*`, including `pt-BR` | `pt-BR` |
+| not Portuguese at all | `pt-BR` |
+
+**The limitation, stated rather than buried.** A Traditional-script reader on a
+non-Chinese phone gets Simplified and has no way to change it, because that would
+need a second visible entry. The same is true of a European Portuguese speaker on
+an English phone. This is the price of one entry per language and it is being
+paid deliberately. If it ever needs solving, the way that does not break the rule
+is a script or region choice **inside** the row — not a second row.
 
 ### 10.3 Translation quality
 
@@ -481,30 +541,112 @@ English. The user can change it from this screen without going anywhere else.
 The list shows native names — `Français`, not `FR`. A compact form is permitted
 only in the header control, where the approved composition has room for one word.
 
-**37 options are not a list to pour onto a screen.** The picker is an overlay —
-a sheet, dialogue or menu — and it must work on a phone, on a television, under a
-thumb and under a D-pad, which means it needs scrolling with a stable focus model
-and, at this length, a way to narrow the list. It is designed as a mockup and
-approved before it is written, like every other screen.
-
 **The picker does not touch the activation composition.** Its length is a fact
-about the overlay, not a reason to move anything behind it.
+about the overlay, not a reason to move anything behind it. It is drawn in
+`design/mockups/language-picker.html` and measured with the same harness.
 
-### 10.6 Per-app locales — pending, and deliberately not resolved here
+**A grid, not a list.** The phone frame is landscape at 393dp, where height is
+the scarce dimension and a name is at most sixteen characters. Measured: three
+columns show **15 of 37 at once — 2.5 screens**; one column would show 5 and take
+7.4. The television takes four columns and shows **24 — 1.5 screens**.
 
-`AppCompatDelegate.setApplicationLocales` is the correct mechanism for a *durable*
-per-app language, but `:app` uses `ComponentActivity` and adopting it means taking
-an `appcompat` dependency and changing the activity base class.
+| | Panel | Columns | Row | Visible | Screens | Dismissal |
+|---|---|---|---|---|---|---|
+| Phone 873×393 | 689×369 | 3 | 48dp | 15 | 2.5 | close control |
+| TV 960×540 | 832×472 | 4 | 56dp | 24 | 1.5 | Back, and it says so |
 
-That is an architectural decision about the whole application, not a detail of one
-screen, so it is **held as its own decision and deferred**, and it will be
-explained before it is made. The activation work adds no `appcompat` dependency
-and does not change the activity base class.
+**Ordering: the approved order, unchanged and unsorted.** Sorting 37 native names
+alphabetically means sorting Ελληνικά against Русский against 한국어, which is a
+sort by code point wearing a dictionary's clothes. The given order groups by
+script and region — four Cyrillic names together, the Arabic-script languages
+together — which is what makes the grid scannable. It is also stable, so a
+returning user's language is where it was last time. One entry each; the selected
+language is highlighted **in place** and never copied to the top.
 
-This gates persistence, not localisation: all 37 languages are resourced now, the
-system language is honoured on first launch, and the selector is laid out,
-measured and focusable. What survives a process death is the subject of that
-decision.
+**No search field, on either device.** Two reasons, and the first is the stronger:
+the list is already indexed by the requirement that each language appears under
+its own name. العربية among Latin names is not something anyone has to read to
+find — the script is the index, and a reader is looking for their own letters. An
+alphabetical list of English exonyms would need search; this one does not. The
+second is the trade: on a television, an on-screen keyboard — the worst input
+surface a remote has — to save at most two directional presses on a list 1.5
+screens long; on a phone in landscape, the IME covers the list it is searching.
+Both are worse than the scroll they replace. If a later measurement contradicts
+this, the measurement wins.
+
+**Focus is not selection**, and on a television both must be legible at once.
+They use different channels, and selection never rests on hue alone:
+
+- **Selected** — a filled surface, the name at full weight, and a check. Three
+  cues, so the state survives a viewer who cannot separate the fill from the
+  ground, and survives a photograph of a television taken at an angle.
+- **Focused** — the ring the rest of Castivio uses, drawn outside the row's own
+  surface so it reads on a selected row as well as an unselected one.
+- A row may be both, and when it is, neither becomes ambiguous.
+
+Focus opens on the selected language and returns to the header control when the
+picker closes.
+
+**Direction is carried by two different elements, on purpose.** The cell is laid
+out and aligned by the interface; the name sits in a `<bdi>` that isolates it and
+gives it its own direction. Putting the direction on the cell was tried and was
+wrong twice over — it pushed Arabic names to the far end of their column, losing
+the one alignment a scannable list depends on, and it would have done the same to
+every Latin name the moment the interface turned around.
+
+### 10.6 Language persistence — the behaviour is locked
+
+Not a preference and not an open question:
+
+1. **First launch** — read the system language. If Castivio has it, open in it.
+   Otherwise open in English.
+2. **After a manual choice** — that choice is Castivio's language and it
+   **survives closing and reopening the app**.
+3. The system language **never overrides** an explicit choice, on any later
+   launch.
+
+> Device in Deutsch → first launch is Deutsch. User picks English → every launch
+> after that is English, whatever the device says.
+
+Only the mechanism is open, and §10.6.1 compares the candidates.
+
+### 10.6.1 How to implement it — four options
+
+| | **A** `AppCompatDelegate` | **B** framework `LocaleManager` | **C** persisted tag + `ContextWrapper` | **D** Compose-only |
+|---|---|---|---|---|
+| First-launch detection | library reads system, no stored value | framework, API 33+ only | we read `Locale.getDefault()` and match the 37 | same |
+| Applying a choice | `setApplicationLocales` | `setApplicationLocales` | write the tag, recreate the activity | swap a provided `Context` |
+| Persistence | library store, or the framework on 33+ | framework, 33+ only | our own store — the one thing fully in our hands | needs C underneath anyway |
+| Visible in Android Settings | **yes**, on 33+ | **yes**, on 33+ | yes on 33+ if we also call `LocaleManager` | no |
+| Activity recreation | yes | yes | yes | **no** |
+| `minSdk 21` | yes, backported | **no** — dead below 33 | yes | yes |
+| Compose | fine, but drags `Theme.AppCompat` in | fine | fine | fine, and nothing else |
+| Dependencies | `appcompat` **+ `AppCompatActivity`** | none | none | none |
+| Architectural cost | **base-class change**; an AppCompat theme parent; a view toolkit Castivio uses nothing else from | none, and no behaviour below 33 | ~80 lines in `:app` and `:data:preferences`, all ours to test | leaks: only Compose sees it |
+| Long-term | Google maintains it | the platform's own direction | we own a small, boring, testable thing | breaks the day the first notification is posted |
+
+Three of the four are eliminated by facts rather than taste. **B** does nothing on
+the great majority of devices Castivio targets. **D** localises the composition
+and nothing else, so the first notification, `Toast` or accessibility
+announcement is in the wrong language — and it needs C's storage regardless.
+**A** works, and its price is `AppCompatActivity` plus an AppCompat theme parent
+in an application whose entire UI is Compose and Material 3; that is a view
+toolkit and a theming system adopted to hold one string.
+
+**Recommendation: C, with the framework alongside it on API 33+.**
+
+- The tag lives in `:data:preferences`, next to every other preference.
+- `:app` wraps `attachBaseContext` with a configuration carrying the resolved
+  locale, so the whole app — not only the composition — is in that language.
+- On API 33+ the same choice is also written through `LocaleManager`, so Android
+  Settings shows and controls it, and `android:localeConfig` lists the 37 tags so
+  Castivio appears in the system's per-app language screen at all.
+- `ComponentActivity` stays. No `appcompat`.
+- Resolution is a pure function — system locale plus stored tag in, canonical tag
+  out — which is where the Chinese and Portuguese rules of §10.2.1 live, and it
+  is unit-tested with no emulator.
+
+This is a recommendation, not a decision. It is not implemented until approved.
 
 ---
 
@@ -550,9 +692,20 @@ credential.
 Run from `design/mockups/` — non-zero exit on any failure.
 
 ```sh
-node measure.js               # 27  frame × language
-node measure.js --state all   # 96  frame × language × state
+node measure.js                              # 27  activation, frame × language
+node measure.js --state all                  # 96  × state
+node measure.js --file language-picker.html  # 24  picker, 2 frames × 12 languages
 ```
+
+The harness refuses to run without one Noto face per script in the shipping set.
+That is not politeness: `bn`, `ja` and `zh` were measured for weeks through a
+fallback face that has none of their glyphs, and reported comfortable headroom
+every time. A measurement taken through the wrong font is not a weaker
+measurement, it is a different one — so a run that cannot measure what it claims
+to now exits instead of warning. With the right faces installed, the activation
+numbers moved: `headlineLarge`'s worst case is Thai at 36.3dp, not Arabic at
+35.5, and the phone-800 address has 133.3dp of spare rather than 153.6. Still
+27/27, but they are the device's numbers now.
 
 Per combination: no scroll, nothing painting outside, no clipped text, every
 string key resolves, the address has room, no script's ink exceeds its line box,
@@ -590,9 +743,10 @@ about which languages exist, and it is never reported as though it did.
 The matrix grows when measurement finds a class none of these produces; it does
 not shrink to make a run faster.
 
-Current, against the nine languages configured today: **27/27** and **96/96**.
-The set above is the target for the Kotlin work, at which point the resting
-matrix is 3 frames × 12 languages and the state matrix runs the four worst.
+Current: activation **27/27** and **96/96** against the nine configured today;
+picker **24/24** against twelve, which is the full set above bar `ur` and `sr`,
+each covered by its script partner. Activation moves to the same twelve in the
+Kotlin work.
 
 ### 12.2 Resource completeness, separately
 
@@ -604,13 +758,15 @@ is allowed to stand in for the other.
 
 ## 13. Open decisions
 
-1. **`appcompat` for per-app locales** — dependency and base-class change
-   (§10.6). Held as an application-wide architectural decision, to be explained
-   before it is made. It gates whether a chosen language *persists*, not whether
-   the languages exist; the activation work does not touch it.
-2. **The language picker's presentation** — an overlay for 37 entries that works
-   under a thumb and under a D-pad (§10.5). Mockup and approval first, as with
-   every screen. It does not alter the activation composition.
+1. **The language-persistence mechanism** (§10.6.1) — behaviour is locked,
+   mechanism is not. Recommendation on the table: a persisted tag and a
+   `ContextWrapper`, with `LocaleManager` alongside it on API 33+, no `appcompat`
+   and no base-class change. Awaiting approval.
+2. **The picker's visual design** (§10.5) — drawn and measured, awaiting
+   approval.
+3. **The resource mapping's arithmetic** (§10.2) — 39 is a proposal with an
+   argument behind it, not a verified fact, and the sentinel test settles it on a
+   device. Correct resolution is the requirement; the number is an output.
 
 Closed since the previous revision: the 37-language set, one entry per language,
 and the 41-directory mapping (§10); the device key format, the prohibition on

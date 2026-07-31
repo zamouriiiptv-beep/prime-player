@@ -34,10 +34,10 @@
  * CI renders a mockup, and this is a tool for whoever is drawing one.
  * `npm i -g playwright` is enough; the browser is already present.
  *
- * It also needs the Noto faces Android ships, or Thai and Devanagari fall back
- * to whatever the machine has and their line boxes -- the thing being measured
- * -- stop being the device's. Noto Sans, Noto Sans Arabic, Noto Sans Thai and
- * Noto Sans Devanagari; the script says so if they are missing.
+ * It also needs one Noto face per script in the shipping set, or that script is
+ * measured through a fallback that has none of its glyphs -- and the line box,
+ * the thing being measured, stops being the device's. The script exits rather
+ * than run: apt-get install fonts-noto-core fonts-noto-cjk.
  */
 "use strict";
 
@@ -63,6 +63,7 @@ const FILES = {
       ["tv", 960, 540, 2, "1920x1080 @2.00"],
     ],
     langs: ["en", "ar", "de", "fi", "th", "hi", "bn", "ja", "zh"],
+    requires: ["header", "footer", "mac", "qr"],
     // Every transient state the screen can be in. They are measured too because
     // each one changes the layout: a spinner and a longer verb widen the refresh
     // button, a status sentence appears under the actions and can wrap, and a
@@ -73,6 +74,21 @@ const FILES = {
     // that says nothing the worst four do not.
     stateLangs: ["en", "ar", "de", "th"],
   },
+  "language-picker.html": {
+    frames: [
+      ["phone-873", 873, 393, 2, "1080x2400 @2.75, landscape"],
+      ["tv", 960, 540, 2, "1920x1080 @2.00"],
+    ],
+    // The activation nine, plus the three the picker adds: a second RTL, which
+    // the picker is the first screen to contain more than one of; Hangul, whose
+    // metrics no other language in the set stands for; and Cyrillic.
+    langs: ["en", "ar", "de", "fi", "th", "hi", "bn", "ja", "zh", "fa", "ko", "ru"],
+    // A picker has no address, no code and no standing notice. Declaring what a
+    // file has stops the probe inventing a failure out of a structure that was
+    // never meant to be there -- and, more usefully, stops it staying silent
+    // about one that was.
+    requires: ["header", "scroller"],
+  },
   "shell-home.html": {
     frames: [
       ["tv-home", 960, 540, 2, "1920x1080 @2.00"],
@@ -82,6 +98,7 @@ const FILES = {
       ["tablet-section", 1280, 800, 1.5, "1920x1200 @1.5"],
     ],
     langs: ["en"],
+    requires: [],
   },
 };
 
@@ -91,25 +108,61 @@ const WHY = {
   th: "line height", hi: "Devanagari line height", bn: "Bengali conjuncts",
   ja: "CJK line breaking",
   zh: "CJK line breaking",
+  fa: "second RTL, Perso-Arabic", ko: "Hangul metrics", ru: "Cyrillic",
 };
 
 const MIN = { touch: 48, tv: 56, qrPitchDp: 3.0, qrModules: 21 };
 
+/**
+ * One face per script in the shipping set, and a hard stop when one is absent.
+ *
+ * This used to be a warning over four families, and Bengali and the CJK faces
+ * were not among them. Both were measured anyway: `bn`, `ja` and `zh` all
+ * reported comfortable headroom, against a fallback face that does not contain
+ * their glyphs. A measurement taken through the wrong font is not a weaker
+ * measurement, it is a different one, and it passed while saying nothing.
+ *
+ * So it exits instead of warning. A run that cannot measure what it claims to
+ * measure has no result to report.
+ */
 function warnFonts() {
-  const need = ["Noto Sans", "Noto Sans Arabic", "Noto Sans Thai", "Noto Sans Devanagari"];
+  const need = {
+    "Noto Sans": "Latin, Cyrillic, Greek",
+    "Noto Sans Arabic": "Arabic, Persian, Urdu",
+    "Noto Sans Thai": "Thai",
+    "Noto Sans Devanagari": "Hindi",
+    "Noto Sans Bengali": "Bengali",
+    "Noto Sans CJK SC": "Simplified Chinese",
+    "Noto Sans CJK TC": "Traditional Chinese",
+    "Noto Sans CJK JP": "Japanese",
+    "Noto Sans CJK KR": "Korean",
+  };
   let have = "";
-  try { have = execSync("fc-list : family", { encoding: "utf8" }); } catch (_) { return; }
-  const missing = need.filter((f) => !have.includes(f));
+  try { have = execSync("fc-list : family", { encoding: "utf8" }); } catch (_) {
+    console.error("  ! fontconfig unavailable; cannot confirm the faces being measured.");
+    process.exit(2);
+  }
+  const missing = Object.keys(need).filter((f) => !have.includes(f));
   if (missing.length) {
-    console.log(`\n  ! missing font(s): ${missing.join(", ")}`);
-    console.log("    Thai and Devanagari line heights will not be the device's.\n");
+    console.error("\n  ! missing font(s), so these scripts would be measured through a");
+    console.error("    fallback face and the numbers would not be the device's:\n");
+    for (const f of missing) console.error(`      ${f.padEnd(24)} ${need[f]}`);
+    console.error("\n    apt-get install fonts-noto-core fonts-noto-cjk\n");
+    process.exit(2);
   }
 }
 
 /** Runs inside the page. Everything measured, nothing assumed. */
-function probe({ frame, isTv }) {
+function probe({ frame, isTv, requires }) {
   const root = document.getElementById(frame);
   if (!root) return { missing: true };
+
+  // What this file is claiming to contain. A screen with no address is not a
+  // screen with a broken address, and a probe that cannot tell the difference
+  // either invents failures on one file or -- far worse -- goes quiet on
+  // another. Declared per file, so an element that vanishes from a file that
+  // requires it is still a failure.
+  const needs = (name) => requires.includes(name);
 
   const r1 = (n) => Math.round(n * 10) / 10;
   const box = (e) => {
@@ -125,13 +178,52 @@ function probe({ frame, isTv }) {
   if (doc.w > bounds.width + 0.5) fails.push(`scrolls horizontally (${doc.w} > ${r1(bounds.width)})`);
 
   // --- outside: content pushed past the frame ------------------------------
+  // Rows below the fold of a scrolling list are outside the frame by design,
+  // so they are measured against their scroller instead, below. Everything
+  // else, including the scroller itself, is measured against the frame.
   const outside = [...root.querySelectorAll("*")].filter((e) => {
     const b = e.getBoundingClientRect();
     if (b.height <= 0 || b.width <= 0) return false;
+    if (e.closest("[data-scroller]") && !e.hasAttribute("data-scroller")) return false;
     return b.bottom > bounds.bottom + 0.5 || b.top < bounds.top - 0.5 ||
            b.right > bounds.right + 0.5 || b.left < bounds.left - 0.5;
   }).map((e) => String(e.className || e.tagName).slice(0, 40));
   if (outside.length) fails.push(`paints outside: ${[...new Set(outside)].slice(0, 5).join(", ")}`);
+
+  // --- scrollers: vertical overflow is the feature, horizontal is the bug ---
+  // A list that scrolls sideways as well has a column too wide for it, which on
+  // a D-pad means a row the remote can reach and cannot read.
+  const scrollers = [...root.querySelectorAll("[data-scroller]")].map((list) => {
+    const lb = list.getBoundingClientRect();
+    const rows = [...list.children];
+    const wide = rows.filter((e) => {
+      const b = e.getBoundingClientRect();
+      return b.left < lb.left - 0.5 || b.right > lb.right + 0.5;
+    });
+    if (wide.length) fails.push(`${wide.length} row(s) wider than the list they are in`);
+    if (list.scrollWidth > list.clientWidth + 1) {
+      fails.push(`list scrolls horizontally (${list.scrollWidth} > ${list.clientWidth})`);
+    }
+    // How much of the list a viewer can see at once -- the number the argument
+    // about whether this needs a search field rests on, so it is counted rather
+    // than divided. Dividing the list's height by a row's height was tried and
+    // overstated a television by four rows, because it spends the gaps and the
+    // padding as though they were list.
+    const inside = rows.filter((e) => {
+      const b = e.getBoundingClientRect();
+      return b.top >= lb.top - 0.5 && b.bottom <= lb.bottom + 0.5;
+    });
+    const first = rows.length ? rows[0].getBoundingClientRect() : null;
+    const perRow = first
+      ? rows.filter((e) => Math.abs(e.getBoundingClientRect().top - first.top) < 1).length
+      : 0;
+    return {
+      rows: rows.length, cols: perRow, rowH: r1(first ? first.height : 0),
+      visible: inside.length,
+      screens: inside.length ? r1(rows.length / inside.length) : 0,
+    };
+  });
+  if (needs("scroller") && !scrollers.length) fails.push("no scrolling list");
 
   // --- clipped: text wider or taller than the box holding it --------------
   // The browser's own answer, which is the only one that survives a font swap.
@@ -162,8 +254,9 @@ function probe({ frame, isTv }) {
   // constrains it. Comparing the run against its own box says "fits" for a
   // block-level element however badly it overflows, and says "zero slack" for a
   // content-sized one however much room is left.
-  const code = root.querySelector(".code");
+  const code = needs("mac") ? root.querySelector(".code") : null;
   let mac = null;
+  if (needs("mac") && !code) fails.push("no address");
   if (code) {
     const range = document.createRange();
     range.selectNodeContents(code);
@@ -227,7 +320,7 @@ function probe({ frame, isTv }) {
     };
   }
   const lines = [];
-  for (const e of root.querySelectorAll(".foot, .cap, h1, .trial span, .lang span, .label")) {
+  for (const e of root.querySelectorAll(".foot, .cap, h1, .trial span, .lang span, .label, .name, .title, .count")) {
     if (!e.textContent.trim()) continue;
     const fixed = parseFloat(getComputedStyle(e).lineHeight);
     if (!isFinite(fixed)) continue;
@@ -247,10 +340,10 @@ function probe({ frame, isTv }) {
     foot = { ...box(footer), lines: Math.round(b.height / 18) };
     if (b.bottom > bounds.bottom + 0.5 || b.height < 1) fails.push("footer off screen");
     if (!footer.textContent.trim()) fails.push("footer empty");
-  } else fails.push("no footer");
+  } else if (needs("footer")) fails.push("no footer");
 
   // --- the header, which must stay one row --------------------------------
-  const head = root.querySelector(".head");
+  const head = root.querySelector(".head, .phead");
   let header = null;
   if (head) {
     const kids = [...head.children].filter((e) => e.getBoundingClientRect().height > 0);
@@ -266,7 +359,7 @@ function probe({ frame, isTv }) {
     if (contentH > tallest + 2) {
       fails.push(`header wrapped: ${r1(contentH)}dp of content, tallest item ${r1(tallest)}dp`);
     }
-  } else fails.push("no header");
+  } else if (needs("header")) fails.push("no header");
 
   // --- targets and QR ----------------------------------------------------
   const floor = isTv ? 56 : 48;
@@ -274,7 +367,7 @@ function probe({ frame, isTv }) {
   // header chip at 48dp looks like a button. Where that is intended the element
   // declares `data-target`, and the check holds it to the declared number
   // instead of the drawn one. Undeclared, the drawn size is the target.
-  const targets = [...root.querySelectorAll(".btn, .copy, .lang")].map((e) => {
+  const targets = [...root.querySelectorAll(".btn, .copy, .lang, .opt, .close")].map((e) => {
     const b = box(e);
     const declared = parseFloat(e.getAttribute("data-target") || "0");
     const effective = Math.max(b.h, declared);
@@ -284,8 +377,9 @@ function probe({ frame, isTv }) {
     return { name: (e.textContent.trim() || "copy").slice(0, 18), ...b, target: effective };
   });
 
-  const qrEl = root.querySelector(".plate");
+  const qrEl = needs("qr") ? root.querySelector(".plate") : null;
   let qr = null;
+  if (needs("qr") && !qrEl) fails.push("no QR plate");
   if (qrEl) {
     const b = box(qrEl);
     // The plate carries padding around the symbol, so pitch is measured on the
@@ -295,7 +389,7 @@ function probe({ frame, isTv }) {
     if (qr.pitch < 3.0) fails.push(`QR pitch ${qr.pitch}dp/module below 3.0 floor`);
   }
 
-  const card = root.querySelector(".field");
+  const card = root.querySelector(".field, .panel");
 
   return {
     // Deliberately not called `frame`: the caller merges this into a row that
@@ -305,7 +399,7 @@ function probe({ frame, isTv }) {
     viewport: { w: r1(bounds.width), h: r1(bounds.height) },
     doc,
     card: card ? box(card) : null,
-    header, mac, qr, footer: foot, targets, lines,
+    header, mac, qr, footer: foot, targets, lines, scrollers,
     dir: document.documentElement.dir,
     fails,
   };
@@ -351,7 +445,9 @@ async function main() {
         const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: scale });
         await page.goto(`${url}?frame=${frame}&lang=${lang}&state=${state}`);
         await page.waitForTimeout(220);
-        const seen = await page.evaluate(probe, { frame, isTv: frame === "tv" });
+        const seen = await page.evaluate(probe, {
+          frame, isTv: frame === "tv" || frame.startsWith("tv-"), requires: conf.requires || [],
+        });
 
         if (seen.missing) { console.log(`  ${lang}: MISSING frame`); failed++; }
         else {
@@ -383,15 +479,34 @@ async function main() {
   for (const [frame] of frames) {
     const mine = rows.filter((r) => r.frame === frame);
     if (!mine.length) continue;
-    const tallestCard = mine.reduce((a, b) => (a.card.h >= b.card.h ? a : b));
-    const tightestMac = mine.reduce((a, b) => (a.mac.spare <= b.mac.spare ? a : b));
-    const tallestHead = mine.reduce((a, b) => (a.header.h >= b.header.h ? a : b));
-    const tallestFoot = mine.reduce((a, b) => (a.footer.h >= b.footer.h ? a : b));
+    // Only over the rows that have the thing. A file that has no address has no
+    // worst address, and reporting one would mean the summary had invented it.
+    const worstOf = (pick, cmp) => {
+      const have = mine.filter((r) => pick(r) != null);
+      return have.length ? have.reduce((a, b) => (cmp(pick(a), pick(b)) ? a : b)) : null;
+    };
+    const bigger = (a, b) => a >= b;
+    const smaller = (a, b) => a <= b;
+    const tallestCard = worstOf((r) => r.card && r.card.h, bigger);
+    const tightestMac = worstOf((r) => r.mac && r.mac.spare, smaller);
+    const tallestHead = worstOf((r) => r.header && r.header.h, bigger);
+    const tallestFoot = worstOf((r) => r.footer && r.footer.h, bigger);
+
     console.log(`  ${frame}`);
-    console.log(`    tallest field   ${tallestCard.card.h}dp  (${tallestCard.lang})`);
-    console.log(`    tallest header  ${tallestHead.header.h}dp  (${tallestHead.lang})`);
-    console.log(`    tallest footer  ${tallestFoot.footer.h}dp  (${tallestFoot.lang})`);
-    console.log(`    least MAC spare ${tightestMac.mac.spare}dp  (${tightestMac.lang})`);
+    if (tallestCard) console.log(`    tallest surface ${tallestCard.card.h}dp  (${tallestCard.lang})`);
+    if (tallestHead) console.log(`    tallest header  ${tallestHead.header.h}dp  (${tallestHead.lang})`);
+    if (tallestFoot) console.log(`    tallest footer  ${tallestFoot.footer.h}dp  (${tallestFoot.lang})`);
+    if (tightestMac) console.log(`    least MAC spare ${tightestMac.mac.spare}dp  (${tightestMac.lang})`);
+
+    // What a scrolling list costs the reader, which is the number the argument
+    // about whether it needs a search field has to be made against.
+    const anyList = mine.find((r) => r.scrollers && r.scrollers.length);
+    if (anyList) {
+      for (const l of anyList.scrollers) {
+        console.log(`    list            ${l.rows} rows in ${l.cols} columns at ${l.rowH}dp ` +
+                    `-> ${l.visible} visible, ${l.screens} screens`);
+      }
+    }
     // The tightest line box on the frame: how much of the token's line-height
     // is left once the script's glyphs have taken theirs.
     const allLines = mine.flatMap((r) => r.lines.map((l) => ({ ...l, lang: r.lang })));
