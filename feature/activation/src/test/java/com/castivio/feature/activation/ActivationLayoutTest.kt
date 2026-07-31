@@ -196,10 +196,15 @@ private fun ComposeContentTestRule.assertActivationIsWhole() {
         onNodeWithContentDescription(description, substring = true).assertIsDisplayed()
     }
 
-    fun byTag(what: String, tag: String, minHeight: Dp = 1.dp) =
+    // Height is the contract; width is asked for only where the contract asks
+    // for it. The status region is a *reserved height* and is empty at rest, so
+    // it is legitimately zero wide -- demanding a width of every tagged node
+    // failed all three size tests on the one element that is supposed to be
+    // empty.
+    fun byTag(what: String, tag: String, minHeight: Dp = 1.dp, minWidth: Dp = 0.dp) =
         check(what) {
             val bounds = onNodeWithTag(tag).getUnclippedBoundsInRoot()
-            if (bounds.height < minHeight || bounds.width < 1.dp) {
+            if (bounds.height < minHeight || bounds.width < minWidth) {
                 error("placed at ${bounds.width} x ${bounds.height}")
             }
         }
@@ -207,9 +212,9 @@ private fun ComposeContentTestRule.assertActivationIsWhole() {
     // The three bands, before anything inside them. A band with no height is the
     // failure this file exists for, and naming it first makes the report read
     // the way the screen broke.
-    byTag("the field band", ActivationTags.FIELD, minHeight = 150.dp)
-    byTag("the identity zone", ActivationTags.IDENTITY)
-    byTag("the code zone", ActivationTags.CODE_ZONE)
+    byTag("the field band", ActivationTags.FIELD, minHeight = 150.dp, minWidth = 300.dp)
+    byTag("the identity zone", ActivationTags.IDENTITY, minHeight = 100.dp, minWidth = 200.dp)
+    byTag("the code zone", ActivationTags.CODE_ZONE, minHeight = 100.dp, minWidth = 100.dp)
 
     byText("the title", "Add your subscription")
     byText("the trial name", "Castivio trial")
@@ -230,9 +235,12 @@ private fun ComposeContentTestRule.assertActivationIsWhole() {
 
     byText("Add playlist", "Add playlist")
     byText("Refresh", "Refresh")
-    byTag("the reserved status line", ActivationTags.STATUS)
+    // Reserved height, empty at rest, and no width of its own. Asserting the
+    // height is asserting the whole of what it promises: that nothing moves when
+    // it fills.
+    byTag("the reserved status line", ActivationTags.STATUS, minHeight = 16.dp)
 
-    byTag("the QR fixture", ActivationTags.QR, minHeight = 100.dp)
+    byTag("the QR fixture", ActivationTags.QR, minHeight = 100.dp, minWidth = 100.dp)
     byText("the QR caption", "Scan to set up on your phone")
 
     byText("the legal line", "Castivio is only a player")
