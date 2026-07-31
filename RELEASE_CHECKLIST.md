@@ -86,6 +86,35 @@ behind it. That is what a JVM can hold. What follows is what it cannot.
 - [ ] Run on **API 21 or 22** as well as a modern API level — the two paths through
       `VaultKeys` are different code, and the older one is the untested one.
 
+## 2b. The other test that needs a real device: locale resolution
+
+Castivio ships 37 languages out of 39 resource directories, and six of those
+directories are named something other than `values-<code>` — `values-in` for
+Indonesian, `values-b+fil` for Filipino, two for Chinese, two for Portuguese.
+Each one is a place where a plausible-looking directory can silently never match.
+
+The failure is invisible from the inside. A locale that fails to resolve does not
+crash; it falls back to English, and the screen *looks* translated to anyone who
+does not read the language it was supposed to be in.
+
+`LocaleResolutionTest` asks for every locale and checks which directory answered,
+and it runs on every commit — but under Robolectric, which is a faithful
+reimplementation of the resolver rather than the resolver. The number 39 is
+therefore a proposal with an argument behind it, not a verified fact.
+
+- [ ] **Sentinel resolution on a real device, at both ends of the range.** Every
+      one of the 37 canonical tags asked for, and `locale_sentinel` confirming
+      which directory answered. Run on **API 21 or 22** and on a current API
+      level: those are different resolvers and the older one is the untested one.
+- [ ] **The result decides the mapping.** If verification shows a compatibility
+      alias is genuinely required — `values-no`, `values-tl` — it is added, and
+      if one is shown unnecessary it stays out. Correct resolution is the
+      requirement. **The product invariant is 37 user-visible languages, never a
+      number of resource directories.**
+
+Also on a device, and cheap once one is in hand: choose a language, force-stop,
+reopen, and confirm it is still in that language with the device set to another.
+
 ## 3. Before every release, not just the first
 
 - [ ] `./scripts/check-invariants.sh` passes, including the licensing invariant that

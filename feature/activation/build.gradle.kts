@@ -15,6 +15,12 @@ android {
     buildFeatures {
         buildConfig = true
     }
+
+    // The sentinel test resolves real strings out of the real resource table, so
+    // it needs the compiled resources on the JVM classpath.
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
 }
 
 dependencies {
@@ -39,5 +45,6 @@ dependencies {
     ksp(libs.hilt.compiler)
     implementation(libs.coroutines.android)
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
     testImplementation(libs.coroutines.test)
 }

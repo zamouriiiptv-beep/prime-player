@@ -141,6 +141,31 @@ want=$(grep -oE '<(string|plurals) name="[a-z_0-9]+"( translatable="false")?' "$
         | grep -v 'translatable="false"' \
         | sed -E 's/.*name="([a-z_0-9]+)".*/\1/' | sort -u)
 
+# Well-formed XML, checked here rather than left to the build.
+#
+# AAPT rejects these too, but four minutes later and only when someone builds
+# the Android modules. It has already cost one red CI run: a generator wrote a
+# corrected set of files into the wrong directory and the check standing next to
+# it validated the files it had just written rather than the ones in the tree.
+# Both were green and the build was not, which is the whole argument for the
+# check living where the tree lives.
+if command -v python3 >/dev/null 2>&1; then
+  bad=$(python3 - "$RES" <<'PYXML'
+import glob, sys, xml.etree.ElementTree as ET
+for f in sorted(glob.glob(sys.argv[1] + "/values*/*.xml")):
+    try:
+        ET.parse(f)
+    except Exception as e:
+        # "--" inside a comment is the one that keeps happening: legal in prose,
+        # illegal in XML, and invisible until a build says so.
+        print("  %s: %s" % (f, e))
+PYXML
+)
+  if [ -n "$bad" ]; then
+    fail "A string resource is not well-formed XML" "$bad"
+  fi
+fi
+
 problems=''
 for file in "$RES"/values*/strings_activation.xml; do
   dir=$(basename "$(dirname "$file")")

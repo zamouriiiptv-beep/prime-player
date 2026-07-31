@@ -2,12 +2,15 @@
 <!--
   The activation screen and the language picker.
 
-  Every key here exists in all 39 locale directories; check-invariants.sh fails
-  the build if one does not. "subscription" belongs to the provider -- Castivio's
-  seven days are a trial and always carry Castivio's name.
+  Every key here exists in every locale directory; check-invariants.sh fails the
+  build if one does not.
+
+  "subscription" belongs to the provider. Castivio's seven days are a trial and
+  always carry Castivio's name; a wording that lets the two be read as one is a
+  defect, not a nuance.
 
   The overline labels are stored in the case they are displayed in. Nothing calls
-  uppercase() on them: that is locale-sensitive, strips accents in Greek and
+  uppercase() on them: that is locale sensitive, strips accents in Greek and
   produces the wrong I in Turkish.
 -->
 <resources>
