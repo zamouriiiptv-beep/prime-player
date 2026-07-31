@@ -726,7 +726,8 @@ them ships.
 | `measure.js` | the **design** fits, in every language and state | that the implementation places anything |
 | `check-invariants.sh` | the files and the model agree | that the screen renders |
 | `LocaleResolutionTest` | Android reaches the right resources | how they are laid out |
-| **`ActivationLayoutTest`** | **Compose places every mandatory element, with a size** | how it looks |
+| **`ActivationFrameTest`** | **which container each activation state is given** | what the container does to the screen |
+| **`ActivationLayoutTest`** | **Compose places every mandatory element, at a pressable size** | how it looks |
 | a device | how it looks, and everything above, for real | — |
 
 Nothing here replaces the row below it. The lesson worth keeping is the narrow
@@ -744,11 +745,53 @@ laid out, and zero pixels tall.
 The band that vanished is asserted on its own, by tag, against a minimum height —
 a band between two hairlines that is 0dp tall is a band that is not there.
 
-**The gate is itself checked against the bug.** One test reconstructs the defect,
-composing the screen back inside a scrolling column, and requires the assertion
-helper to fail. A regression test that has only ever passed is exactly the
-position the mockup measurements were in, and that position is what this section
-exists to stop anyone occupying again.
+**The gate is itself checked against the bug.** One test reconstructs the defect —
+not by hand, but by asking `ActivationSurface` for the frame the *forms* use,
+which is the frame the address screen was wrongly given — and requires the
+assertion helper to fail. A regression test that has only ever passed is exactly
+the position the mockup measurements were in, and that position is what this
+section exists to stop anyone occupying again.
+
+**The container is under test, not just the screen.** `MacActivationScreen` was
+never the broken part; the surface around it was, and the choice between the two
+surfaces was three clauses inline in a composable. That choice is
+`isFixedViewport` now — pure, taking a domain state, checked in
+`ActivationFrameTest` with no device and no Compose runtime. The layout gate says
+what each frame does to the screen; the frame gate says which frame each state
+gets. Neither claim is worth much alone.
+
+#### 12.0.2 What the gate had to correct about itself
+
+The first version of the gate was wrong in three ways, and every one of them is
+the same mistake as the bug — measuring something adjacent to the claim.
+
+| It measured | It claimed to measure | Consequence |
+|---|---|---|
+| a window 48dp shorter than the display | the phone Castivio ships to | the design was held to a device that does not exist |
+| a constant 35dp for every `Text` | the declared line heights | an 18dp overline and a 32dp headline came back identical |
+| the label inside a button | the button | a control crushed to 26dp reported as "placed" |
+
+The 48dp is Robolectric's stock activity keeping a navigation bar. `:app` calls
+`enableEdgeToEdge`, so activation is given the whole display and never loses
+them. The frame is now a value in the test — 873×393, 800×360, television
+960×540 — imposed with `requiredSize`; the resource qualifiers configure the
+resource table only, and are deliberately larger than any frame so that no
+composition can be clipped by the harness.
+
+The 35dp is legacy graphics having no font to lay out. `GraphicsMode.NATIVE` runs
+real Skia with real fonts, and a declared `lineHeight` is what gets measured.
+This is the same failure as the mockup harness measuring Bengali and CJK through
+a fallback face (§12.0, and the `warnFonts` note below): **a measurement taken
+through the wrong font is not a weaker measurement, it is a different one.**
+
+The third is why the two action buttons are asserted through a tag on their row
+against `Sizing.minTouchTarget`, and not through their labels against 1dp.
+
+**Still a device question, and recorded here rather than assumed away:** the
+screen takes the full viewport, so on a device whose landscape navigation bar
+sits at the side, that bar overlaps the 26–30dp edge padding. Nothing in this
+round changes the composition for it; it belongs to the inset pass, with the
+API 21 and current-API resolver checks in `RELEASE_CHECKLIST.md`.
 
 
 Run from `design/mockups/` — non-zero exit on any failure.

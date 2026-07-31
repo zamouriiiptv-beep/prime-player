@@ -1,9 +1,9 @@
 package com.castivio.feature.activation
 
+import com.castivio.domain.ProviderStatus
 import com.castivio.domain.activation.ActivationFailure
 import com.castivio.domain.activation.ActivationPhase
 import com.castivio.domain.activation.ActivationUiState
-import com.castivio.domain.ProviderStatus
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
