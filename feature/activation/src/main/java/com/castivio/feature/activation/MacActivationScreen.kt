@@ -56,6 +56,7 @@ import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Motion
 import com.castivio.core.design.theme.Radius
+import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.Spacing
 
 /**
@@ -233,7 +234,7 @@ private fun LanguageChip(onClick: () -> Unit) {
 
     Row(
         Modifier
-            .heightIn(min = Spacing.minTouchTarget)
+            .heightIn(min = Sizing.minTouchTarget)
             .castivioFocusScale(Motion.focusScaleIcon, interaction)
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
             .clip(shape)
@@ -248,7 +249,7 @@ private fun LanguageChip(onClick: () -> Unit) {
             imageVector = Icons.Rounded.Language,
             contentDescription = null,
             tint = colors.onBackgroundVariant,
-            modifier = Modifier.size(Spacing.iconSm),
+            modifier = Modifier.size(Sizing.iconSm),
         )
         Text(
             text = label,
@@ -442,7 +443,7 @@ private fun CopyControl(label: String, isCopied: Boolean, onClick: () -> Unit) {
 
     Box(
         Modifier
-            .size(Spacing.minTouchTarget)
+            .size(Sizing.minTouchTarget)
             .castivioFocusScale(Motion.focusScaleIcon, interaction)
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
             .clip(shape)
@@ -456,7 +457,7 @@ private fun CopyControl(label: String, isCopied: Boolean, onClick: () -> Unit) {
             imageVector = if (isCopied) Icons.Rounded.Check else Icons.Rounded.ContentCopy,
             contentDescription = null,
             tint = if (isCopied) colors.success else colors.onBackgroundVariant,
-            modifier = Modifier.size(Spacing.iconSm),
+            modifier = Modifier.size(Sizing.iconSm),
         )
     }
 }
