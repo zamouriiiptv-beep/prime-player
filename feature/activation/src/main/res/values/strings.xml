@@ -11,24 +11,12 @@
 <resources>
 
     <!-- Activation, the first screen -->
-    <string name="activation_title">Activate your subscription</string>
-    <string name="activation_subtitle">Send this address to your provider, and they will add your subscription to this device.</string>
 
     <!-- The MAC address: the route that matters most -->
-    <string name="mac_heading">Your MAC address</string>
-    <string name="mac_recommended">Recommended</string>
-    <string name="mac_explainer">Most providers activate a device from this address. Send it to yours exactly as it appears.</string>
-    <string name="mac_copy">Copy address</string>
-    <string name="mac_copied">Address copied</string>
-    <string name="mac_qr_caption">Or scan this code to open the activation page.</string>
-    <string name="mac_content_description">Your device address, %1$s</string>
 
     <!-- The honest state of the portal. Not a placeholder: this is what is true today. -->
-    <string name="mac_portal_unavailable_title">Activation by address is not live yet</string>
-    <string name="mac_portal_unavailable_detail">Castivio\'s activation service is not running, so a subscription sent to this address cannot arrive here yet. Your address is shown above and will not change — add your provider manually in the meantime.</string>
 
     <!-- Add manually -->
-    <string name="add_manually">Add manually</string>
     <string name="source_choice_title">What did your provider give you?</string>
     <string name="source_choice_subtitle">Pick whichever you were sent. Both end up in the same place.</string>
     <string name="source_xtream_title">Xtream Codes</string>

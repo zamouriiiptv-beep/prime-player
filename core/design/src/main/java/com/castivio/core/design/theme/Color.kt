@@ -99,6 +99,22 @@ class CastivioColors(
     val divider: Color,
 
     /**
+     * A choice that is currently in force: the language Castivio is in, the
+     * quality that is playing, the sort that is applied.
+     *
+     * Deliberately not the same channel as focus. On a television both are true
+     * of a row at once -- which option is active, and where the remote is -- and
+     * a design that carries them on one channel makes a focused row look chosen.
+     * Focus is a ring drawn outside the surface; selection is the surface.
+     *
+     * Never the only cue either. Whatever this fills is also expected to carry a
+     * mark and a heavier weight, so the state survives a viewer who cannot
+     * separate the fill from the ground.
+     */
+    val selectedFill: Color,
+    val selectedBorder: Color,
+
+    /**
      * "Now". The one meaning aqua has anywhere in the product: a live programme,
      * a playing stream, the moving meter. Never used for navigation or status.
      */
@@ -166,6 +182,8 @@ fun castivioDarkColors() = CastivioColors(
     focusRing = Palette.Azure60,
     focusGlow = Palette.Azure40.copy(alpha = 0.45f),
     divider = Color(0x1FFFFFFF),
+    selectedFill = Palette.Violet50.copy(alpha = 0.16f),
+    selectedBorder = Palette.Violet50.copy(alpha = 0.34f),
     live = Palette.Aqua,
 
     success = Palette.Success,

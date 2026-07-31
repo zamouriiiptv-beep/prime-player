@@ -5,8 +5,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -15,6 +17,8 @@ import com.castivio.core.design.components.ErrorState
 import com.castivio.core.design.theme.Spacing
 import com.castivio.domain.entitlement.StartDestination
 import com.castivio.feature.activation.ActivationRoute
+import com.castivio.tv.locale.AppLocale
+import com.castivio.tv.locale.findActivity
 import com.castivio.feature.activation.R as ActivationStrings
 
 /**
@@ -45,11 +49,25 @@ internal fun SplashGate(
 
         is StartDestination.Home -> home()
 
-        is StartDestination.Activation -> ActivationRoute(
-            onActivated = model::refresh,
-            onExit = onExit,
-            modifier = modifier,
-        )
+        is StartDestination.Activation -> {
+            // The application owns the locale, because applying one means wrapping
+            // the Context the activity was built on. The feature draws the picker
+            // and reports the choice; this is where that choice becomes real.
+            val context = LocalContext.current
+            val activity = remember(context) { context.findActivity() }
+            ActivationRoute(
+                onActivated = model::refresh,
+                onExit = onExit,
+                language = remember(context) { AppLocale.current(context).language },
+                onLanguage = { language ->
+                    AppLocale.choose(context, language)
+                    // Every resource read before now was read in the old language,
+                    // so the activity is rebuilt rather than recomposed.
+                    activity?.recreate()
+                },
+                modifier = modifier,
+            )
+        }
 
         // The licence screen is a later slice. Until it exists this states the fact and
         // offers the only honest action, rather than inventing a purchase flow — and it

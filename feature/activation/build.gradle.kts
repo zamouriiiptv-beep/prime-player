@@ -7,6 +7,14 @@ plugins {
 
 android {
     namespace = "com.castivio.feature.activation"
+
+    // The debug fixtures -- the six-digit key and the QR that encodes nothing --
+    // are gated on BuildConfig.DEBUG, which is the one gate a release build
+    // cannot be talked past. That needs the class generated here rather than
+    // only in :app.
+    buildFeatures {
+        buildConfig = true
+    }
 }
 
 dependencies {
@@ -24,11 +32,11 @@ dependencies {
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.graphics)
     implementation(libs.compose.material3)
+    implementation(libs.compose.material.icons.extended)
 
     implementation(libs.hilt.navigation.compose)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
-    implementation(libs.zxing.core)
     implementation(libs.coroutines.android)
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)

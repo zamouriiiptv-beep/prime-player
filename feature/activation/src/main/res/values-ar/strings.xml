@@ -7,21 +7,9 @@
 -->
 <resources>
 
-    <string name="activation_title">فعّل اشتراكك</string>
-    <string name="activation_subtitle">أرسل هذا العنوان إلى مزوّدك، وسيضيف اشتراكك إلى هذا الجهاز.</string>
 
-    <string name="mac_heading">عنوان MAC الخاص بجهازك</string>
-    <string name="mac_recommended">الطريقة الموصى بها</string>
-    <string name="mac_explainer">معظم المزوّدين يفعّلون الجهاز من هذا العنوان. أرسله إلى مزوّدك كما هو تمامًا.</string>
-    <string name="mac_copy">نسخ العنوان</string>
-    <string name="mac_copied">تم نسخ العنوان</string>
-    <string name="mac_qr_caption">أو امسح هذا الرمز لفتح صفحة التفعيل.</string>
-    <string name="mac_content_description">عنوان جهازك، %1$s</string>
 
-    <string name="mac_portal_unavailable_title">التفعيل عبر العنوان غير متاح بعد</string>
-    <string name="mac_portal_unavailable_detail">خدمة التفعيل الخاصة بـCastivio لا تعمل بعد، فالاشتراك المرسَل إلى هذا العنوان لن يصل إلى الجهاز الآن. عنوانك ظاهر أعلاه ولن يتغيّر — أضف مزوّدك يدويًا في هذه الأثناء.</string>
 
-    <string name="add_manually">إضافة يدويًا</string>
     <string name="source_choice_title">ماذا أعطاك مزوّدك؟</string>
     <string name="source_choice_subtitle">اختر ما أُرسل إليك. كلاهما يصل إلى النتيجة نفسها.</string>
     <string name="source_xtream_title">Xtream Codes</string>

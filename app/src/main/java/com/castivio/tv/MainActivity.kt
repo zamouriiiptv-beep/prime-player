@@ -1,5 +1,6 @@
 package com.castivio.tv
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -11,6 +12,7 @@ import androidx.compose.runtime.setValue
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.platform.AndroidDeviceCapabilities
 import com.castivio.tv.gate.SplashGate
+import com.castivio.tv.locale.AppLocale
 import com.castivio.tv.shell.ShellScreen
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -28,6 +30,22 @@ import dagger.hilt.android.AndroidEntryPoint
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    /**
+     * The language is applied to the `Context` the activity is built on, before it
+     * is built.
+     *
+     * This is the whole of mechanism C at the point of use, and it is here rather
+     * than around the composition on purpose: a `CompositionLocalProvider` would
+     * translate the screen and leave every notification, `Toast` and
+     * accessibility announcement in the device's language instead of the user's.
+     *
+     * `ComponentActivity`, and no AppCompat. See `design/activation-spec.md`
+     * §10.6.1.
+     */
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLocale.wrap(newBase))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

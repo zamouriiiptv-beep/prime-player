@@ -30,6 +30,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.castivio.core.common.locale.CastivioLanguage
 import com.castivio.core.design.components.ButtonWeight
 import com.castivio.core.design.components.CastivioButton
 import com.castivio.core.design.theme.CastivioTheme
@@ -79,13 +80,29 @@ private enum class ActivationStep {
 fun ActivationRoute(
     onActivated: () -> Unit,
     onExit: () -> Unit,
+    /**
+     * Which of the 37 Castivio is in, and what to do when the user picks another.
+     *
+     * Passed in rather than reached for. Applying a language means wrapping the
+     * `Context` an activity is built on, which is `:app`'s business; this module
+     * draws the picker and reports the choice. A feature that reached into the
+     * application to change a locale would be a feature that cannot be rendered
+     * in isolation, and this one is tested exactly that way.
+     */
+    language: CastivioLanguage,
+    onLanguage: (CastivioLanguage) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val activation: ActivationViewModel = hiltViewModel()
-    val identityModel: MacIdentityViewModel = hiltViewModel()
+    val identityModel: ActivationIdentityViewModel = hiltViewModel()
 
     val state by activation.state.collectAsStateWithLifecycle()
     val identity by identityModel.state.collectAsStateWithLifecycle()
+
+    // The picker is an overlay over this screen, so it is a piece of state here
+    // rather than a step: nothing behind it moves, and back closes it without
+    // touching where the user was in the flow.
+    var pickingLanguage by rememberSaveable { mutableStateOf(false) }
 
     // Survives rotation and process death; the form text does too, because it lives in
     // the view model. Coming back to a half-typed server URL and finding it gone is the
@@ -100,6 +117,9 @@ fun ActivationRoute(
 
     BackHandler {
         when {
+            // The overlay is the innermost thing on screen, so it is the first
+            // thing back closes. On a television this is the only way out of it.
+            pickingLanguage -> pickingLanguage = false
             // A running attempt is the thing back cancels, whatever step started it.
             state.busy -> activation.cancel()
             phase is ActivationPhase.Failed -> activation.dismissFailure()
@@ -125,8 +145,22 @@ fun ActivationRoute(
                 identity = identity,
                 activation = activation,
                 onStep = { step = it },
+                onRefresh = identityModel::refresh,
+                onCopied = identityModel::copied,
+                onOpenLanguage = { pickingLanguage = true },
             )
         }
+    }
+
+    if (pickingLanguage) {
+        LanguagePicker(
+            selected = language,
+            onPick = {
+                pickingLanguage = false
+                onLanguage(it)
+            },
+            onDismiss = { pickingLanguage = false },
+        )
     }
 }
 
@@ -134,9 +168,12 @@ fun ActivationRoute(
 private fun Steps(
     step: ActivationStep,
     state: ActivationUiState,
-    identity: MacIdentityState,
+    identity: ActivationIdentityState,
     activation: ActivationViewModel,
     onStep: (ActivationStep) -> Unit,
+    onRefresh: () -> Unit,
+    onCopied: (Copied) -> Unit,
+    onOpenLanguage: () -> Unit,
 ) {
     // Read outside the transition: transitionSpec is not a composable lambda, so a
     // token fetched inside it would not compile -- and reading it once is what makes
@@ -159,7 +196,10 @@ private fun Steps(
         when (current) {
             ActivationStep.Mac -> MacActivationScreen(
                 identity = identity,
-                onAddManually = { onStep(ActivationStep.Choose) },
+                onAddPlaylist = { onStep(ActivationStep.Choose) },
+                onRefresh = onRefresh,
+                onCopied = onCopied,
+                onOpenLanguage = onOpenLanguage,
             )
 
             ActivationStep.Choose -> Column(

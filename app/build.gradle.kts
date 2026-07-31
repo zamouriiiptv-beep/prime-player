@@ -52,6 +52,7 @@ dependencies {
     implementation(project(":data:playlist"))
     implementation(project(":data:epg"))
     implementation(project(":data:activation"))
+    implementation(project(":data:preferences"))
     implementation(project(":data:entitlement"))
 
     // Features are wired here too, so their view models are on the Hilt graph and are
@@ -72,7 +73,6 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
 
-    implementation(libs.zxing.core)
     implementation(libs.coroutines.android)
     testImplementation(libs.junit)
 }

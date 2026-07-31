@@ -9,7 +9,9 @@ android {
 }
 
 dependencies {
-    implementation(project(":core:common"))
+    // `api`, not `implementation`: SystemLocales returns LocaleQuery, so every
+    // caller needs the type.
+    api(project(":core:common"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)

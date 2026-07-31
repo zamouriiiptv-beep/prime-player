@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Every locale Castivio has resources for, which is what Android 13 and later
+  read to decide whether to offer this app in its own per-app language screen at
+  all. Without this file that screen does not list Castivio.
+
+  Thirty-nine entries for thirty-seven languages, and the difference is not a
+  contradiction: this file describes resource sets to the platform's resolver,
+  not choices to a person. Collapsing Chinese to a bare `zh` here would leave the
+  resolver unable to tell Simplified from Traditional. Castivio's own picker
+  shows one entry each, which is the invariant that matters; Android's screen is
+  a surface we do not draw.
+-->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+        <locale android:name="en"/>
+        <locale android:name="ar"/>
+        <locale android:name="fr"/>
+        <locale android:name="es"/>
+        <locale android:name="de"/>
+        <locale android:name="it"/>
+        <locale android:name="pt-BR"/>
+        <locale android:name="pt-PT"/>
+        <locale android:name="nl"/>
+        <locale android:name="tr"/>
+        <locale android:name="ru"/>
+        <locale android:name="uk"/>
+        <locale android:name="pl"/>
+        <locale android:name="ro"/>
+        <locale android:name="hu"/>
+        <locale android:name="cs"/>
+        <locale android:name="sk"/>
+        <locale android:name="el"/>
+        <locale android:name="sv"/>
+        <locale android:name="da"/>
+        <locale android:name="nb"/>
+        <locale android:name="fi"/>
+        <locale android:name="bg"/>
+        <locale android:name="hr"/>
+        <locale android:name="sr"/>
+        <locale android:name="sq"/>
+        <locale android:name="fa"/>
+        <locale android:name="ur"/>
+        <locale android:name="hi"/>
+        <locale android:name="bn"/>
+        <locale android:name="id"/>
+        <locale android:name="ms"/>
+        <locale android:name="th"/>
+        <locale android:name="vi"/>
+        <locale android:name="zh-Hans"/>
+        <locale android:name="zh-Hant"/>
+        <locale android:name="ja"/>
+        <locale android:name="ko"/>
+        <locale android:name="fil"/>
+</locale-config>
