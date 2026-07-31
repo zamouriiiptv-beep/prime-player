@@ -60,10 +60,19 @@ has the module pitch a camera needs.
 npm i -g playwright          # the browser is already here; only the driver is missing
 node measure.js              # every frame x every language
 node measure.js --lang en,de --frame tv
+node measure.js --state all  # x every transient state, in the four worst languages
 node measure.js --shots ./out
 ```
 
 Exit code is non-zero when any frame in any language fails, so it works as a gate.
+
+A resting screen is not the whole claim. `--state all` measures the transient
+ones too, because each changes the layout: a spinner and a longer verb widen the
+refresh button, a status sentence appears under the actions and can wrap, and a
+focus ring is drawn outside the control it belongs to. It runs in `en`, `ar`,
+`de` and `th` — the baseline, the mirror, the widest and the tallest — because
+nine languages times eight states is a slow run that says nothing the worst four
+do not.
 
 ### The stress languages
 

@@ -96,13 +96,16 @@ html[dir="rtl"] .backdrop{
 
 /* -------------------------------------------------------------------- type */
 /* Type.kt, carrying the approved line-height rise: headlineMedium 22/32,
-   headlineLarge 28/40, bodySmall 12.5/20. The old values were set against Latin
-   and sat within a millimetre of other scripts' ink. */
+   headlineLarge 28/40, bodySmall 12.5/20, labelSmall 11/18. The old values were
+   set against Latin and sat within a millimetre of other scripts' ink.
+   The overline was the last of them: Thai ink measures 15dp at 11sp, so 16dp of
+   line box left 1dp for a script that hangs marks above and below the letter.
+   18dp gives it 3dp, the same headroom the other four tokens now carry. */
 .t-headline-m{font-size:22px;line-height:32px;font-weight:700}
 .t-headline-l{font-size:28px;line-height:40px;font-weight:700;letter-spacing:-.2px}
 .t-body-m    {font-size:14px;line-height:22px}
 .t-body-s    {font-size:12.5px;line-height:20px}
-.t-overline  {font-size:11px;line-height:16px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase}
+.t-overline  {font-size:11px;line-height:18px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase}
 
 /* codeHero 42/52 is a television size: seventeen monospace characters need
    445dp, which no phone can spare beside a code. The compact token is 28/36 --

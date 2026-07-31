@@ -63,6 +63,10 @@ stretches: a stretching identity column was what produced the gulf down the
 middle that the earlier composition was rejected for. The 60/40 relationship
 follows from the content, measuring 67/33 in English.
 
+This is the whole screen and there is no reduced variant of it. The QR and the
+device key are drawn as shown even though what sits behind them is still to be
+built; see §5.3.
+
 ---
 
 ## 3. Content, and the role of each element
@@ -111,13 +115,23 @@ that reads differently in Arabic is a support case in every RTL market.
 Numeric only. No dash, no space, no letters. Chosen to be read off a television,
 typed into a phone, and said aloud.
 
+`482731` is a **design fixture**. It exists so the mockup can be measured and so
+this document can show the format. It is not a value the product ever produces,
+and no build may treat it as one.
+
 Rendered at 24sp mono on a phone and 32sp on a television — four steps below the
 address, so the address stays the anchor — with wider tracking than the address
 because these digits get transcribed and spoken.
 
-**The UI must not generate it.** Not from the MAC, not from anything. Issuance,
-validation, rotation, expiry and attempt limits are the backend's contract (§11).
-Until that contract exists the key is display-only.
+**The UI must not generate it.** Not from the MAC, not from a random source, not
+from anything. Issuance, validation, rotation, expiry and attempt limits are the
+backend's contract (§11), and a key the client invented is a credential no server
+can honour — worse than no key, because the user would read it out and be told it
+is wrong.
+
+The row itself is part of the approved screen and stays in it (§5.3). What the
+prohibition binds is the **value**: no client-side derivation, and no fixture on
+a device — `482731` belongs to the mockup and to this document, nowhere else.
 
 **Recorded objection, overruled and closed.** Six digits is 10⁶ values. Its
 safety therefore rests entirely on server-side rate limiting and lockout, and
@@ -150,21 +164,34 @@ pretends the portal exists.
 The QR is implemented **once**, correctly, when the portal and the pairing
 protocol exist.
 
-### 5.3 Consequence for the current build — needs a decision
+### 5.3 The QR stays visible — decided
 
-The mockup shows the final caption, *"Scan to set up on your phone"*, because
-this is the final interface being designed.
+**There is one design, and it is visually complete.** The QR zone is part of the
+approved composition and is not hidden, reduced, or made conditional. The caption
+stays as approved: *"Scan to set up on your phone"*.
 
-That string is **not true today**, and the "no interim behaviour" rule forbids
-making it true cheaply. Any build shipped before the portal exists therefore has
-exactly two honest options:
+What is pending is the **payload and the behaviour behind it**, not the element.
+An earlier revision of this section proposed hiding the zone until the portal
+existed; that proposal is withdrawn. It solved a problem the product does not
+have — a design is allowed to describe the finished screen — and it created two
+compositions where one was approved, which is how a screenshot, a focus order and
+a set of measurements all start to drift.
 
-- **A.** Hide the QR zone entirely until the portal is live.
-- **B.** Show the QR with a caption describing what the payload actually is.
+So the two rules stand together and neither weakens the other:
 
-B contradicts §5.2 unless the payload is also changed, so **A is the only option
-consistent with the locked decisions.** Flagged rather than chosen: it changes
-what a pre-portal debug APK looks like.
+- The screen is drawn complete, here and in the mockup.
+- Nothing temporary is ever put behind the QR (§5.2). It is implemented once,
+  with the real payload, when the portal and the pairing protocol exist.
+
+The same reading governs the device key: the row is part of the approved screen,
+and `482731` is the fixture that lets it be drawn and measured (§4.2). What must
+not be improvised is the value a device would show — that waits for the issuing
+contract.
+
+The one thing this defers is what the **first Kotlin build** renders in those two
+places before either contract lands. That is an implementation question, not a
+design one, and it is answered in the implementation plan rather than by quietly
+inventing a payload here.
 
 ### 5.4 Sizing
 
@@ -242,6 +269,9 @@ rather than position:
 4  Add playlist  5  Refresh
 ```
 
+All five exist on every build. A control that is drawn is in the focus order —
+never present-but-skipped, which strands a remote on an invisible stop.
+
 The QR is **not focusable**. It is read by a camera, not pressed. It gains focus
 only if it ever acquires a real action.
 
@@ -269,11 +299,11 @@ has height to spend and a phone in landscape does not.
 
 ## 9. Typography and contrast
 
-Approved line-height rise, already applied: `bodySmall` 12.5/20,
-`headlineMedium` 22/32, `headlineLarge` 28/40. Measured against glyph ink from
-Canvas metrics — not against `line-height: normal`, which reports the font's
-recommended spacing and called every Arabic line a failure while it rendered
-perfectly.
+Approved line-height rise, applied in full: `bodySmall` 12.5/20,
+`headlineMedium` 22/32, `headlineLarge` 28/40, `labelSmall` (overline) 11/18.
+Measured against glyph ink from Canvas metrics — not against `line-height:
+normal`, which reports the font's recommended spacing and called every Arabic
+line a failure while it rendered perfectly.
 
 | Token | Worst ink | Line | Headroom |
 |---|---|---|---|
@@ -281,11 +311,15 @@ perfectly.
 | `bodyMedium` @22 | 19.4dp (Arabic) | 22 | 2.6dp |
 | `headlineMedium` @32 | 28.7dp (Thai) | 32 | 3.3dp |
 | `headlineLarge` @40 | 35.5dp (Arabic) | 40 | 4.5dp |
-| **`overline` @16** | **15.0dp (Thai)** | **16** | **1.0dp** ⚠ |
+| `overline` @18 | 15.0dp (Thai) | 18 | 3.0dp |
 
-**Open item.** `overline` (11/16) carries the MAC and device-key labels and has
-1dp of headroom against Thai. 11/18 measures 3dp. Same defect class as the three
-already raised; not applied, awaiting a decision.
+The overline was the last of them and is now **closed at 11/18**: it carries the
+MAC and device-key labels, 11/16 left 1dp against Thai, and 11/18 gives it the
+same 3dp the other four carry.
+
+One measurement sits below 3dp and stays there: `.days`, the trial counter, at
+2.2dp against Arabic. It is a bounded string — a numeral and a unit — not a
+translated sentence, so it has no room to grow into the way a label does.
 
 Contrast: secondary information must read as chosen, not disabled. Labels are
 silver, the trial is 14sp at weight 500 with the count in violet, the legal line
@@ -313,10 +347,16 @@ because it happened: a button rendered blank and all 27 combinations passed, an
 empty 48dp button being exactly 48dp tall. **A geometrically valid empty screen
 is not a passing test.**
 
-**Per-app locales.** `AppCompatDelegate.setApplicationLocales` is the correct
-mechanism, but `:app` uses `ComponentActivity` and adopting it means taking an
-`appcompat` dependency and changing the activity base class. Not to be done
-silently — the trade-off gets its own decision before any code moves.
+**Per-app locales — pending, and deliberately not resolved here.**
+`AppCompatDelegate.setApplicationLocales` is the correct mechanism, but `:app`
+uses `ComponentActivity` and adopting it means taking an `appcompat` dependency
+and changing the activity base class.
+
+That is an architectural decision about the whole application, not a detail of
+one screen, so it is **held as its own decision and deferred**. The activation
+work adds no `appcompat` dependency and does not change the activity base class.
+The language control on this screen is specified, laid out, measured and
+focusable; what it does when pressed is the subject of that decision.
 
 ---
 
@@ -359,22 +399,37 @@ credential.
 
 ## 12. Verification gates
 
-`node design/mockups/measure.js` — non-zero exit on any failure.
+Run from `design/mockups/` — non-zero exit on any failure.
 
-Per frame, per language: no scroll, nothing painting outside, no clipped text,
-every string key resolves, the address has room, no script's ink exceeds its line
-box, the legal line is on screen, the header is one row, every control meets its
+```sh
+node measure.js               # 27  frame × language
+node measure.js --state all   # 96  frame × language × state
+```
+
+Per combination: no scroll, nothing painting outside, no clipped text, every
+string key resolves, the address has room, no script's ink exceeds its line box,
+the legal line is on screen, the header is one row, every control meets its
 target, the QR meets its module pitch.
 
-**Current: 27/27 languages × frames, and 84/84 frame × language × state.**
+**Current: 27/27 and 96/96.**
 
-State coverage: idle, checking, found, empty, error, copied-mac, copied-key.
+State coverage: resting, checking, found, none, error, copied-mac, copied-key,
+focus-copy — in `en`, `ar`, `de` and `th`, the baseline, the mirror, the widest
+and the tallest. Every one of them changes the layout, which is why they are
+measured rather than looked at: a spinner and a longer verb widen the refresh
+button, a status sentence appears under the actions and can wrap, and a focus
+ring is drawn outside the control it belongs to.
 
 ---
 
 ## 13. Open decisions
 
-1. **`overline` 11/16 → 11/18** — 1dp of Thai headroom today, 3dp after (§9).
-2. **Pre-portal QR** — hide the zone, per §5.3, being the only option consistent
-   with "no interim QR".
-3. **`appcompat` for per-app locales** — dependency and base-class change (§10).
+1. **`appcompat` for per-app locales** — dependency and base-class change (§10).
+   Held as an application-wide architectural decision; the activation work does
+   not touch it.
+
+Closed since the previous revision: the device key format and the prohibition on
+generating one (§4.2), the QR's purpose and its remaining visible (§5.3),
+`overline` at 11/18 (§9). `VerificationRequest` is not an open decision — it is a
+production blocker recorded in §11.1 and in `RELEASE_CHECKLIST.md` §1b, owned by
+the licensing backend and out of scope for this screen.

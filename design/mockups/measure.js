@@ -24,6 +24,7 @@
  *   node measure.js                       # every frame x every language
  *   node measure.js --lang en,de          # a subset
  *   node measure.js --frame tv
+ *   node measure.js --state all           # x every transient state as well
  *   node measure.js --shots ./out         # PNGs while measuring
  *   node measure.js --file shell-home.html
  *
@@ -62,6 +63,15 @@ const FILES = {
       ["tv", 960, 540, 2, "1920x1080 @2.00"],
     ],
     langs: ["en", "ar", "de", "fi", "th", "hi", "bn", "ja", "zh"],
+    // Every transient state the screen can be in. They are measured too because
+    // each one changes the layout: a spinner and a longer verb widen the refresh
+    // button, a status sentence appears under the actions and can wrap, and a
+    // focus ring is drawn outside the control it belongs to.
+    states: ["copied-mac", "copied-key", "checking", "found", "none", "error", "focus-copy"],
+    // The languages the state matrix runs in: the baseline, the mirror, the
+    // widest and the tallest. Nine languages times eight states is a slow run
+    // that says nothing the worst four do not.
+    stateLangs: ["en", "ar", "de", "th"],
   },
   "shell-home.html": {
     frames: [
@@ -314,8 +324,17 @@ async function main() {
   if (!conf) { console.error(`No frame list for ${file}.`); process.exit(2); }
 
   const frames = opt("frame") ? conf.frames.filter((f) => f[0] === opt("frame")) : conf.frames;
-  const langs = opt("lang") ? opt("lang").split(",") : conf.langs;
   const shots = opt("shots");
+
+  // Resting state in every language, or every state in the languages that can
+  // break one. Both are matrices; `""` is the resting state and is always in it.
+  const wantStates = opt("state");
+  const states = !wantStates ? [""]
+    : wantStates === "all" ? ["", ...(conf.states || [])]
+    : wantStates.split(",");
+  const langs = opt("lang") ? opt("lang").split(",")
+    : wantStates ? (conf.stateLangs || conf.langs)
+    : conf.langs;
 
   warnFonts();
 
@@ -328,28 +347,32 @@ async function main() {
     console.log(`\n${"=".repeat(78)}\n${frame}   ${width}x${height}dp   (${note})\n${"=".repeat(78)}`);
 
     for (const lang of langs) {
-      const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: scale });
-      await page.goto(`${url}?frame=${frame}&lang=${lang}`);
-      await page.waitForTimeout(220);
-      const seen = await page.evaluate(probe, { frame, isTv: frame === "tv" });
+      for (const state of states) {
+        const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: scale });
+        await page.goto(`${url}?frame=${frame}&lang=${lang}&state=${state}`);
+        await page.waitForTimeout(220);
+        const seen = await page.evaluate(probe, { frame, isTv: frame === "tv" });
 
-      if (seen.missing) { console.log(`  ${lang}: MISSING frame`); failed++; }
-      else {
-        const tag = `${lang} (${WHY[lang] || "?"})`.padEnd(30);
-        const ok = seen.fails.length === 0;
-        console.log(`  ${tag} ${ok ? "ok " : "FAIL"}  card ${seen.card ? seen.card.w + "x" + seen.card.h : "-"}` +
-          `  head ${seen.header ? seen.header.w + "x" + seen.header.h : "-"}` +
-          `  foot ${seen.footer ? seen.footer.w + "x" + seen.footer.h : "-"}` +
-          `  MAC ${seen.mac ? seen.mac.text + "/" + seen.mac.room + " spare " + seen.mac.spare : "-"}` +
-          `  QR ${seen.qr ? seen.qr.w + " @" + seen.qr.pitch + "dp" : "-"}` +
-          `  dir ${seen.dir}`);
-        for (const f of seen.fails) console.log(`      -> ${f}`);
-        if (!ok) failed++;
-        rows.push({ frame, lang, ...seen });
+        if (seen.missing) { console.log(`  ${lang}: MISSING frame`); failed++; }
+        else {
+          const tag = `${lang} (${WHY[lang] || "?"})${state ? " · " + state : ""}`.padEnd(30);
+          const ok = seen.fails.length === 0;
+          console.log(`  ${tag} ${ok ? "ok " : "FAIL"}  card ${seen.card ? seen.card.w + "x" + seen.card.h : "-"}` +
+            `  head ${seen.header ? seen.header.w + "x" + seen.header.h : "-"}` +
+            `  foot ${seen.footer ? seen.footer.w + "x" + seen.footer.h : "-"}` +
+            `  MAC ${seen.mac ? seen.mac.text + "/" + seen.mac.room + " spare " + seen.mac.spare : "-"}` +
+            `  QR ${seen.qr ? seen.qr.w + " @" + seen.qr.pitch + "dp" : "-"}` +
+            `  dir ${seen.dir}`);
+          for (const f of seen.fails) console.log(`      -> ${f}`);
+          if (!ok) failed++;
+          rows.push({ frame, lang, state, ...seen });
+        }
+
+        if (shots) {
+          await page.screenshot({ path: path.join(shots, `${frame}-${lang}${state ? "-" + state : ""}.png`) });
+        }
+        await page.close();
       }
-
-      if (shots) await page.screenshot({ path: path.join(shots, `${frame}-${lang}.png`) });
-      await page.close();
     }
   }
 
@@ -388,9 +411,10 @@ async function main() {
     }
   }
 
+  // `rows` holds every combination that was measured, passing or failing.
   console.log(failed === 0
     ? `\nAll ${rows.length} frame/language combinations fit. scroll = NONE, overflow = 0.\n`
-    : `\n${failed} of ${rows.length + failed} combinations failed.\n`);
+    : `\n${failed} of ${rows.length} combinations failed.\n`);
   process.exit(failed === 0 ? 0 : 1);
 }
 
