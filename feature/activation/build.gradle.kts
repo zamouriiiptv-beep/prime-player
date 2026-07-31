@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+
 plugins {
     id("castivio.android.library")
     id("castivio.android.compose")
@@ -20,6 +22,19 @@ android {
     // it needs the compiled resources on the JVM classpath.
     testOptions {
         unitTests.isIncludeAndroidResources = true
+
+        // Gradle's default console prints "java.lang.AssertionError at Foo.kt:75"
+        // and puts the message in an HTML report, which nobody on a CI runner can
+        // open. A layout assertion whose whole value is the list of what is
+        // missing is useless under that default, and it has already cost two
+        // round trips of guessing. Failures print in full, with stdout.
+        unitTests.all {
+            it.testLogging {
+                events("failed")
+                showStandardStreams = true
+                exceptionFormat = TestExceptionFormat.FULL
+            }
+        }
     }
 }
 
