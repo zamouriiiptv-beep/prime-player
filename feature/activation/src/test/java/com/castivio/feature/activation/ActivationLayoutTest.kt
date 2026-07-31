@@ -11,7 +11,6 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.SemanticsNodeInteraction
-import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -20,11 +19,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-// DpRect carries its width and height as extension properties in this package,
-// not as members. Without these two imports the bounds have no size to read --
-// which is a small irony in a file whose whole subject is elements with no size.
+// DpRect carries its height as an extension property in this package, not as a
+// member, so without this import the bounds have no size to read -- a small
+// irony in a file whose whole subject is elements with no size.
 import androidx.compose.ui.unit.height
-import androidx.compose.ui.unit.width
 import com.castivio.core.design.theme.CastivioTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
