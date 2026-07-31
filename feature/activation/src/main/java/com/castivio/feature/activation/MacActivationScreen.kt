@@ -189,6 +189,7 @@ internal fun MacActivationScreen(
         Column(
             Modifier
                 .fillMaxSize()
+                .testTag(ActivationTags.STAGE)
                 .padding(start = m.edge, end = m.edge, top = m.stageTop, bottom = m.stageBottom),
         ) {
             Header(m = m, tv = tv, onOpenLanguage = onOpenLanguage)
@@ -229,6 +230,7 @@ internal fun MacActivationScreen(
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .testTag(ActivationTags.FOOTER)
                     .padding(top = m.footTop, bottom = m.footBottom),
             )
         }
@@ -266,6 +268,7 @@ private fun Header(m: Metrics, tv: Boolean, onOpenLanguage: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
+            .testTag(ActivationTags.HEADER)
             .padding(bottom = m.headBottom),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         verticalAlignment = Alignment.CenterVertically,

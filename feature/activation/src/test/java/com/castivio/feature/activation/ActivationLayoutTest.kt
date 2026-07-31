@@ -264,11 +264,29 @@ private fun ComposeContentTestRule.assertActivationIsWhole() {
     fun size(tag: String) = runCatching {
         onNodeWithTag(tag).getUnclippedBoundsInRoot().let { "${it.width} x ${it.height}" }
     }.getOrElse { "absent" }
+    fun textSize(text: String) = runCatching {
+        onNodeWithText(text, substring = true).getUnclippedBoundsInRoot()
+            .let { "${it.width} x ${it.height}" }
+    }.getOrElse { "absent" }
     println(
-        "activation boxes — field ${size(ActivationTags.FIELD)} | " +
-            "identity ${size(ActivationTags.IDENTITY)} | " +
+        "activation bands — stage ${size(ActivationTags.STAGE)} | " +
+            "header ${size(ActivationTags.HEADER)} | " +
+            "field ${size(ActivationTags.FIELD)} | " +
+            "footer ${size(ActivationTags.FOOTER)}",
+    )
+    println(
+        "activation inside — identity ${size(ActivationTags.IDENTITY)} | " +
             "code ${size(ActivationTags.CODE_ZONE)} | " +
-            "status ${size(ActivationTags.STATUS)}",
+            "status ${size(ActivationTags.STATUS)} | " +
+            "qr ${size(ActivationTags.QR)}",
+    )
+    // The two strings that can wrap, and the tall control in the header. A band
+    // that measures more than its parts is a band with a wrapped line in it, and
+    // these are the only three candidates.
+    println(
+        "activation text — title ${textSize("Add your subscription")} | " +
+            "legal ${textSize("Castivio is only a player")} | " +
+            "caption ${textSize("Scan to set up on your phone")}",
     )
 
     // The three bands first. A band with no height is the failure this file
