@@ -727,7 +727,8 @@ them ships.
 | `check-invariants.sh` | the files and the model agree | that the screen renders |
 | `LocaleResolutionTest` | Android reaches the right resources | how they are laid out |
 | **`ActivationFrameTest`** | **which container each activation state is given** | what the container does to the screen |
-| **`ActivationLayoutTest`** | **Compose places every mandatory element, at a pressable size** | how it looks |
+| **`ActivationBudgetTest`** | **the band, the column and the targets add up on each frame** | that Compose lays it out that way |
+| **`ActivationLayoutTest`** | **Compose places every mandatory element, none of them zero** | anything that depends on the size of text |
 | a device | how it looks, and everything above, for real | — |
 
 Nothing here replaces the row below it. The lesson worth keeping is the narrow
@@ -778,14 +779,51 @@ them. The frame is now a value in the test — 873×393, 800×360, television
 resource table only, and are deliberately larger than any frame so that no
 composition can be clipped by the harness.
 
-The 35dp is legacy graphics having no font to lay out. `GraphicsMode.NATIVE` runs
-real Skia with real fonts, and a declared `lineHeight` is what gets measured.
-This is the same failure as the mockup harness measuring Bengali and CJK through
-a fallback face (§12.0, and the `warnFonts` note below): **a measurement taken
-through the wrong font is not a weaker measurement, it is a different one.**
+The third is why the fixed-size copy controls are asserted through their own tags
+against `Sizing.minTouchTarget` rather than through their labels against 1dp.
 
-The third is why the two action buttons are asserted through a tag on their row
-against `Sizing.minTouchTarget`, and not through their labels against 1dp.
+#### 12.0.3 The 35dp, and why it splits the gate in two
+
+The second row of that table has no fix. Robolectric does not lay text out — the
+32dp headline, the 20dp legal line and the 18dp overline all measure 35.0dp, and
+the title comes back 21dp *wide*. `GraphicsMode.NATIVE` was tried and changes
+none of it.
+
+That is not a rounding error at this screen's scale: it inflates the identity
+column by about 40dp, and the shortest frame's whole margin is nine. So in that
+harness the column overruns, the two buttons are crushed to 41dp, and **any
+assertion about fit or about touch targets would be an assertion about the
+harness**. Weakening the gate to accommodate it would have hidden a real defect;
+holding the design to it would have shrunk a screen that is correct.
+
+So the claim is split, and each half is made where it can be made honestly:
+
+| | Runs in | Answers |
+|---|---|---|
+| `ActivationLayoutTest` | Robolectric + Compose | did Compose **place** every mandatory element, with a non-zero size |
+| `ActivationBudgetTest` | plain JVM | do the placements **add up** — band, column, and touch targets at full size |
+
+`ActivationBudgetTest` computes both sides from the values the screen itself is
+built from: the per-frame `Metrics`, and the line heights `CastivioType`
+declares. `bandHeight` and `identityHeight` live beside the composable and are
+used by nothing else, so the budget cannot drift from the drawing without the
+drawing changing. The margins it asserts:
+
+| frame | band | identity column | spare |
+|---|---|---|---|
+| 873×393 | 284dp | 254dp | 30dp |
+| 800×360 | 259dp | 250dp | **9dp** |
+| TV 960×540 | 337dp | 298dp | 39dp |
+
+Neither half is sufficient alone. A column that fits on paper but is composed
+into an unbounded height still vanishes — that is the bug that shipped. A screen
+that is placed correctly on a frame with 40dp of phantom text says nothing about
+the real one.
+
+This is the same lesson §12.0 already carries about the mockup harness measuring
+Bengali and CJK through a fallback face: **a measurement taken through the wrong
+font is not a weaker measurement, it is a different one.** The difference here is
+that the wrong font cannot be replaced, so the measurement is not taken.
 
 **Still a device question, and recorded here rather than assumed away:** the
 screen takes the full viewport, so on a device whose landscape navigation bar

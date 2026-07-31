@@ -87,14 +87,16 @@ import com.castivio.core.design.theme.Spacing
  *
  * | frame | band | identity column | spare |
  * |---|---|---|---|
- * | 873×393 | 284dp | 253dp | 31dp |
- * | 800×360 | 259dp | 249dp | 10dp |
- * | TV 960×540 | 337dp | 309dp | 28dp |
+ * | 873×393 | 284dp | 254dp | 30dp |
+ * | 800×360 | 259dp | 250dp | 9dp |
+ * | TV 960×540 | 337dp | 298dp | 39dp |
  *
- * Ten millimetres on the short phone is thin, and it is the frame to check first
- * whenever anything on this screen grows.
+ * Nine millimetres on the short phone is thin, and it is the frame to check first
+ * whenever anything on this screen grows. Those three rows are not a comment:
+ * [bandHeight] and [identityHeight] compute them, and `ActivationBudgetTest`
+ * fails if any of them goes negative.
  */
-private data class Metrics(
+internal data class Metrics(
     val edge: Dp,
     val stageTop: Dp,
     val stageBottom: Dp,
@@ -123,9 +125,9 @@ private data class Metrics(
  * that ran out. `DeviceClass` would call 800dp "Medium" and 873dp "Expanded",
  * which is a fact about width and says nothing about whether the band fits.
  */
-private val SHORT_PHONE = 380.dp
+internal val SHORT_PHONE = 380.dp
 
-private fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
+internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
     tv -> Metrics(
         edge = 48.dp, stageTop = 48.dp, stageBottom = 48.dp, headBottom = 16.dp,
         zoneGap = 52.dp, rowGap = 17.dp, labelGap = 7.dp, copyGap = 22.dp,
@@ -154,6 +156,57 @@ private fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
         target = 48.dp,
     )
 }
+
+/**
+ * How much of the frame is left for the middle band.
+ *
+ * ## Why this is arithmetic and not a measurement
+ *
+ * It should be a measurement. It cannot be one here, because the only harness
+ * that can run Compose without a device does not lay text out: under Robolectric
+ * every `Text` measures 35dp tall whatever its style — the 32dp headline, the
+ * 20dp legal line and the 18dp overline all identical — and native graphics does
+ * not change it. That inflates this column by about 40dp, which is more than the
+ * margin the design has, so a runtime assertion about fit would be an assertion
+ * about the harness.
+ *
+ * So the fit is checked where the numbers are real: from the [Metrics] the screen
+ * is built from and the line heights `CastivioType` declares. `ActivationLayoutTest`
+ * still asserts that Compose *places* all of it — that is the bug that shipped —
+ * and this says the places it puts them add up. Two claims, each measured where it
+ * can be measured honestly.
+ *
+ * @param frame the whole display. `:app` is edge-to-edge; nothing is subtracted.
+ * @param title the title's declared line height, which the language chip usually
+ *   exceeds — the header is the taller of the two, not the sum.
+ * @param legal the legal line's declared line height, at one line.
+ */
+internal fun Metrics.bandHeight(frame: Dp, title: Dp, legal: Dp): Dp =
+    frame - stageTop - stageBottom -
+        (maxOf(title, target) + headBottom) - // header
+        HAIRLINES -
+        (footTop + legal + footBottom) // footer
+
+/**
+ * What the identity column needs, from the same numbers that build it.
+ *
+ * Mirrors `IdentityZone` child for child: two label-and-value rows, the actions,
+ * the reserved status line, and the `rowGap` the Column puts between each pair.
+ * The value rows are as tall as the copy control beside them, and the buttons are
+ * a touch target — neither is text-driven, which is why this arithmetic is
+ * trustworthy where a Robolectric measurement is not.
+ *
+ * @param overline the declared line height of the MAC ADDRESS / DEVICE KEY labels.
+ */
+internal fun Metrics.identityHeight(overline: Dp): Dp {
+    val valueRow = overline + labelGap + target
+    val actions = (actionsTop - rowGap).coerceAtLeast(0.dp) + Sizing.minTouchTarget
+    val status = (statusTop - rowGap).coerceAtLeast(0.dp) + statusHeight
+    return valueRow + rowGap + valueRow + rowGap + actions + rowGap + status
+}
+
+/** The two full-bleed rules that bracket the field band, at a pixel each. */
+private val HAIRLINES = 2.dp
 
 /**
  * The first screen, where a subscription is added.

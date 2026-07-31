@@ -31,7 +31,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import org.robolectric.annotation.GraphicsMode
 
 /**
  * Every mandatory element of the activation screen is on screen, at a real size.
@@ -60,9 +59,9 @@ import org.robolectric.annotation.GraphicsMode
  *
  * ## What this file had to fix about itself first
  *
- * The first version of this gate was wrong in three ways, and each one is the
- * same mistake as the bug it was written to catch — measuring something adjacent
- * to the thing being claimed.
+ * The first version of this gate was wrong in two ways, and both are the same
+ * mistake as the bug it was written to catch — measuring something adjacent to
+ * the thing being claimed.
  *
  * 1. **It measured the wrong window.** It let Robolectric's default activity
  *    decide the height, and that activity keeps a 48dp navigation bar. Castivio
@@ -70,24 +69,33 @@ import org.robolectric.annotation.GraphicsMode
  *    testing a phone 48dp shorter than any Castivio ships to. The frame is now
  *    stated in [Frame] and applied with `requiredSize`, so the size under test is
  *    a decision in this file rather than a property of the harness.
- * 2. **It measured the wrong text.** Robolectric's legacy graphics has no font, so
- *    every `Text` measured exactly 35dp tall whatever its style — an overline
- *    declared at 18dp and a headline declared at 32dp came back identical.
- *    [GraphicsMode.Mode.NATIVE] turns on real Skia with real fonts, and heights
- *    become the heights a device produces.
- * 3. **It measured the wrong node.** `Add playlist` finds the label inside the
- *    button. A label keeps its line height while the control around it is crushed
- *    to 26dp, so "placed, 1dp or more" passed a button too small to press. The
+ * 2. **It measured the wrong node.** `Add playlist` finds the label inside the
+ *    button. A label keeps its line height while the control around it is crushed,
+ *    so "placed, 1dp or more" passed a button too small to press. The fixed-size
  *    controls are asserted against [MIN_TARGET] through their own tags now.
  *
- * ## What it still does not claim
+ * ## What it does not claim, and cannot
  *
- * Widths and appearance. Native graphics makes the numbers real, but a font
- * substitution, a clipped glyph or a wrong colour is a device question, and
- * `design/activation-spec.md` §12.0 keeps this as one gate among several.
+ * **Anything that depends on the size of text.** Robolectric does not lay text
+ * out: every `Text` here measures 35.0dp tall whatever its declared style — the
+ * 32dp headline, the 20dp legal line and the 18dp overline all identical — and
+ * `GraphicsMode.NATIVE` was tried, changes nothing, and is not left switched on
+ * to imply otherwise. Widths are worse still; the title comes back 21dp wide.
+ *
+ * That inflates the identity column by about 40dp, which is more than the margin
+ * the shortest frame has, so **fit is not assertable here** and the two action
+ * buttons cannot be held to a touch target in this file — they are what a squeezed
+ * column crushes first, and the squeeze would be the harness's. That claim lives
+ * in `ActivationBudgetTest`, which computes the same column from the same
+ * [Metrics] and the line heights `CastivioType` declares, on the JVM, where the
+ * numbers are the device's.
+ *
+ * What is left here is the claim worth having and the one that failed on a real
+ * phone: **Compose places every mandatory element, and none of them is zero.**
+ * Appearance stays a device question — `design/activation-spec.md` §12.0 keeps
+ * this as one gate among several.
  */
 @RunWith(RobolectricTestRunner::class)
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
 // Deliberately larger than every frame in [Frame], and deliberately not equal to
 // any of them. The qualifiers configure the *resource table* -- orientation, and
 // `television` for the set the TV draws from -- and nothing else. The size under
@@ -274,11 +282,13 @@ private fun restingIdentity() = ActivationIdentityState(
 )
 
 /**
- * Small enough to press, which is the only size a control is allowed to be.
+ * Large enough to press, which is the only size a control is allowed to be.
  *
  * `Sizing.minTouchTarget` is 48dp and the television draws bigger, so one floor
- * serves every frame. It exists as a number here because "greater than zero" is
- * what let a 26dp button through.
+ * serves every frame. It applies to the controls whose size is fixed by a
+ * modifier -- the two copy boxes -- and deliberately not to anything a squeezed
+ * column can crush, because in this harness the squeeze is the harness. See the
+ * note on the actions row.
  */
 private val MIN_TARGET = 48.dp
 
@@ -378,10 +388,18 @@ private fun ComposeContentTestRule.assertActivationIsWhole() {
     byDescription("the device key", "482731")
     byDescription("the copy-key control", "Copy device key", min = MIN_TARGET)
 
-    // The row, at a pressable height, and then the labels. The row is the
-    // assertion that matters: a label keeps its line height inside a button that
-    // has been crushed to nothing.
-    byTag("the actions row", ActivationTags.ACTIONS, min = MIN_TARGET)
+    // The row, and then the labels inside it. The row is the assertion that
+    // matters, because a label keeps its line height inside a button that has
+    // been crushed to nothing -- but it is asserted at "not zero" and not at
+    // [MIN_TARGET], and the difference is not a compromise.
+    //
+    // The buttons are the last children of the identity column, so they are what
+    // a short band takes the space from. This harness gives every Text 35dp
+    // instead of its declared 18 or 20, which spends about 40dp of a column whose
+    // whole margin is nine -- so the row measures 41dp here and 48 on a device,
+    // and a touch-target assertion in this file would be reporting the harness.
+    // `ActivationBudgetTest` makes that claim on the real numbers.
+    byTag("the actions row", ActivationTags.ACTIONS)
     byText("Add playlist", "Add playlist")
     byText("Refresh", "Refresh")
 
