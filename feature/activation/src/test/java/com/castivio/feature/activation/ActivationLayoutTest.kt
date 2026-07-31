@@ -75,7 +75,7 @@ class ActivationLayoutTest {
         compose.assertActivationIsWhole()
     }
 
-    @Config(qualifiers = "w960dp-h540dp-television-land")
+    @Config(qualifiers = "w960dp-h540dp-land-television")
     @Test
     fun `every mandatory element is placed on a television`() {
         compose.setContent { Screen() }
@@ -214,14 +214,18 @@ private fun ComposeContentTestRule.assertActivationIsWhole() {
     byText("the title", "Add your subscription")
     byText("the trial name", "Castivio trial")
     byText("the trial days", "7 days")
-    byText("the language control", "Language")
+    // The chip and the two code values carry `clearAndSetSemantics`, which
+    // replaces their text with a single description -- deliberately, so a screen
+    // reader says "MAC address 2F 19 EB" rather than spelling the punctuation.
+    // A text finder cannot see them, which this test learned the hard way.
+    byDescription("the language control", "Language")
 
     byText("the MAC label", "MAC ADDRESS")
     byDescription("the MAC address", "MAC address 2F 19 EB 20 44 7C")
     byDescription("the copy-MAC control", "Copy MAC address")
 
     byText("the device key label", "DEVICE KEY")
-    byText("the device key", "482731")
+    byDescription("the device key", "482731")
     byDescription("the copy-key control", "Copy device key")
 
     byText("Add playlist", "Add playlist")
@@ -234,10 +238,13 @@ private fun ComposeContentTestRule.assertActivationIsWhole() {
     byText("the legal line", "Castivio is only a player")
 
     if (missing.isNotEmpty()) {
-        fail(
-            "The approved activation composition is incomplete. " +
-                "${missing.size} mandatory element(s) missing or not placed:\n  " +
-                missing.joinToString("\n  "),
-        )
+        val report = "The approved activation composition is incomplete. " +
+            "${missing.size} mandatory element(s) missing or not placed:\n  " +
+            missing.joinToString("\n  ")
+        // Printed as well as thrown. Gradle's console shows the exception type
+        // and a line number; the detail lives in an HTML report nobody on a CI
+        // runner can open, which turns one diagnosis into two round trips.
+        println(report)
+        fail(report)
     }
 }
