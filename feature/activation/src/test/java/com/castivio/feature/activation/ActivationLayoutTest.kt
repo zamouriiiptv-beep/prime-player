@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 // member, so without this import the bounds have no size to read -- a small
 // irony in a file whose whole subject is elements with no size.
 import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import com.castivio.core.design.theme.CastivioTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -238,7 +239,13 @@ private fun ComposeContentTestRule.assertActivationIsWhole() {
      */
     fun placed(what: String, min: Dp = 1.dp, node: () -> SemanticsNodeInteraction) = check(what) {
         val bounds = node().getUnclippedBoundsInRoot()
-        if (bounds.height < min) error("placed ${bounds.height} tall, wanted $min")
+        // Both dimensions in the message even though only height is asserted: a
+        // node with zero *width* reports a degenerate rectangle, whose height
+        // reads zero too, and telling those two cases apart from a CI log is the
+        // difference between one round trip and four.
+        if (bounds.height < min) {
+            error("placed ${bounds.width} x ${bounds.height}, wanted height >= $min")
+        }
     }
 
     fun byText(what: String, text: String, min: Dp = 1.dp) =
@@ -249,6 +256,20 @@ private fun ComposeContentTestRule.assertActivationIsWhole() {
 
     fun byTag(what: String, tag: String, min: Dp = 1.dp) =
         placed(what, min) { onNodeWithTag(tag) }
+
+    // The sizes that decide everything else, printed whether or not anything
+    // fails. Working out why an element measured zero without knowing what the
+    // band and the columns measured is guesswork, and guesswork here costs a
+    // seven-minute round trip each time.
+    fun size(tag: String) = runCatching {
+        onNodeWithTag(tag).getUnclippedBoundsInRoot().let { "${it.width} x ${it.height}" }
+    }.getOrElse { "absent" }
+    println(
+        "activation boxes — field ${size(ActivationTags.FIELD)} | " +
+            "identity ${size(ActivationTags.IDENTITY)} | " +
+            "code ${size(ActivationTags.CODE_ZONE)} | " +
+            "status ${size(ActivationTags.STATUS)}",
+    )
 
     // The three bands first. A band with no height is the failure this file
     // exists for, and naming it first makes the report read the way the screen
