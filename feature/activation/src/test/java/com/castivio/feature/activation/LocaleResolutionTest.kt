@@ -105,10 +105,29 @@ class LocaleResolutionTest {
         assertEquals("zh-Hans", sentinelFor("zh-CN"))
 
         assertEquals("pt-PT", sentinelFor("pt-PT"))
-        // Brazilian lives in the unqualified directory, so every other Portuguese
-        // region lands there too -- which is the point of putting it there.
         assertEquals("pt-BR", sentinelFor("pt-BR"))
-        assertEquals("pt-BR", sentinelFor("pt-AO"))
+    }
+
+    /**
+     * Portuguese regions that are neither Brazil nor Portugal.
+     *
+     * This assertion used to read `pt-BR`, on the reasoning that Android falls
+     * back from any `pt-*` region to the unqualified `values-pt`. It failed, and
+     * it was the reasoning that was wrong: resolution follows CLDR's parent-locale
+     * chain, and the African Portuguese locales have `pt-PT` as their parent
+     * because they follow European conventions. `pt-AO` therefore reaches
+     * `values-pt-rPT` before it can reach `values-pt`.
+     *
+     * That is the better outcome and it was arrived at by accident, so it is
+     * pinned here rather than left to be rediscovered. It also means the
+     * unqualified directory is reached by a bare `pt` and by Brazil, not by
+     * "everything else" -- see `design/activation-spec.md` §10.2, which said
+     * otherwise until this test disagreed.
+     */
+    @Test
+    fun `African Portuguese follows European, by CLDR parentage`() {
+        assertEquals("pt-PT", sentinelFor("pt-AO"))
+        assertEquals("pt-PT", sentinelFor("pt-MZ"))
     }
 
     /**

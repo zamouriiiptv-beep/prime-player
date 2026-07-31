@@ -418,7 +418,7 @@ and lives in `values/`.
 | Language | Canonical | Qualifier(s) | Alias | Why |
 |---|---|---|---|---|
 | 中文 | `zh-Hans`, `zh-Hant` | `values-b+zh+Hans`, `values-b+zh+Hant` | — | different writing systems, not regional wording |
-| Português | `pt-BR`, `pt-PT` | `values-pt` (Brazilian), `values-pt-rPT` | — | every `pt-*` region falls back to `values-pt`, so the larger audience goes there |
+| Português | `pt-BR`, `pt-PT` | `values-pt` (Brazilian), `values-pt-rPT` | — | a bare `pt` and Brazil reach the unqualified directory, so the largest audience never falls back |
 | Bahasa Indonesia | `id` | `values-in` | — | the platform reports the obsolete code; see below |
 | Filipino | `fil` | `values-b+fil` | — | old-style qualifiers take two letters, `fil` has three |
 | Norsk | `nb` | `values-nb` | — | `nb` is a valid ISO 639-1 code and what Android reports |
@@ -455,6 +455,23 @@ answers it.
 
 So the number above is a **proposal with an argument behind it, not a verified
 fact**, and it is not frozen by being written down. What freezes it is a test.
+
+#### The first thing the test corrected
+
+This section used to justify Portuguese by saying that *every* `pt-*` region
+falls back to `values-pt`. The sentinel test failed on `pt-AO` and the reasoning
+was the part that was wrong.
+
+Resolution follows CLDR's parent-locale chain, and the African Portuguese
+locales have `pt-PT` as their parent, because they follow European conventions.
+`pt-AO` and `pt-MZ` therefore reach `values-pt-rPT` before they can reach
+`values-pt`.
+
+The arrangement survives — it is now right for a reason that has met the
+platform. A bare `pt` and Brazil reach the unqualified directory, which is where
+the largest audience belongs, and the regions that read European Portuguese get
+European Portuguese. What changed is that it is pinned by an assertion instead of
+by this paragraph, which is the entire point of having built the thing.
 
 #### The test that settles it, instead of the argument
 
