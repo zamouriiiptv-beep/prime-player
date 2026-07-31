@@ -1,11 +1,8 @@
 package com.castivio.feature.activation
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
@@ -25,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import com.castivio.core.design.theme.CastivioTheme
+import com.castivio.domain.activation.ActivationUiState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
@@ -33,9 +31,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /**
- * Every mandatory element of the activation screen is on screen, with a size.
+ * Every mandatory element of the activation screen is on screen, at a real size.
  *
  * ## Why this exists
  *
@@ -59,14 +58,43 @@ import org.robolectric.annotation.Config
  * the design, never a claim about the implementation.** Only Compose can be asked
  * what Compose placed.
  *
- * ## Why placement and not presence
+ * ## What this file had to fix about itself first
  *
- * `assertExists` would have passed throughout. Every one of those nodes was in
- * the semantics tree the whole time — composed, laid out, and zero pixels tall.
- * So this asserts bounds, and the band that vanished is asserted explicitly.
+ * The first version of this gate was wrong in three ways, and each one is the
+ * same mistake as the bug it was written to catch — measuring something adjacent
+ * to the thing being claimed.
+ *
+ * 1. **It measured the wrong window.** It let Robolectric's default activity
+ *    decide the height, and that activity keeps a 48dp navigation bar. Castivio
+ *    calls `enableEdgeToEdge`, so the real screen has no such bar and the gate was
+ *    testing a phone 48dp shorter than any Castivio ships to. The frame is now
+ *    stated in [Frame] and applied with `requiredSize`, so the size under test is
+ *    a decision in this file rather than a property of the harness.
+ * 2. **It measured the wrong text.** Robolectric's legacy graphics has no font, so
+ *    every `Text` measured exactly 35dp tall whatever its style — an overline
+ *    declared at 18dp and a headline declared at 32dp came back identical.
+ *    [GraphicsMode.Mode.NATIVE] turns on real Skia with real fonts, and heights
+ *    become the heights a device produces.
+ * 3. **It measured the wrong node.** `Add playlist` finds the label inside the
+ *    button. A label keeps its line height while the control around it is crushed
+ *    to 26dp, so "placed, 1dp or more" passed a button too small to press. The
+ *    controls are asserted against [MIN_TARGET] through their own tags now.
+ *
+ * ## What it still does not claim
+ *
+ * Widths and appearance. Native graphics makes the numbers real, but a font
+ * substitution, a clipped glyph or a wrong colour is a device question, and
+ * `design/activation-spec.md` §12.0 keeps this as one gate among several.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(qualifiers = "w873dp-h393dp-land")
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+// Deliberately larger than every frame in [Frame], and deliberately not equal to
+// any of them. The qualifiers configure the *resource table* -- orientation, and
+// `television` for the set the TV draws from -- and nothing else. The size under
+// test comes from `requiredSize`, so a window big enough to contain any frame
+// means no composition is ever clipped by the harness, and nobody reading this
+// can mistake a qualifier for the device being tested.
+@Config(qualifiers = "w1280dp-h800dp-land")
 class ActivationLayoutTest {
 
     @get:Rule
@@ -74,22 +102,21 @@ class ActivationLayoutTest {
 
     @Test
     fun `every mandatory element is placed on a landscape phone`() {
-        compose.setContent { Screen() }
+        compose.setContent { Screen(Frame.Phone) }
         compose.assertActivationIsWhole()
     }
 
-    @Config(qualifiers = "w960dp-h540dp-land-television")
+    @Config(qualifiers = "w1280dp-h800dp-land-television")
     @Test
     fun `every mandatory element is placed on a television`() {
-        compose.setContent { Screen() }
+        compose.setContent { Screen(Frame.Television) }
         compose.assertActivationIsWhole()
     }
 
     /** The shortest phone Castivio ships to, where the band has least to spare. */
-    @Config(qualifiers = "w800dp-h360dp-land")
     @Test
     fun `every mandatory element is placed on the shortest phone`() {
-        compose.setContent { Screen() }
+        compose.setContent { Screen(Frame.ShortPhone) }
         compose.assertActivationIsWhole()
     }
 
@@ -101,7 +128,7 @@ class ActivationLayoutTest {
      */
     @Test
     fun `the field band takes the height the header and footer leave`() {
-        compose.setContent { Screen() }
+        compose.setContent { Screen(Frame.Phone) }
         val field = compose.onNodeWithTag(ActivationTags.FIELD).getUnclippedBoundsInRoot()
         assertTrue(
             "the field band is ${field.height}, which is not a band",
@@ -121,7 +148,7 @@ class ActivationLayoutTest {
     @Test
     fun `the status region reserves its height, so nothing moves when it fills`() {
         val identity = mutableStateOf(restingIdentity())
-        compose.setContent { Screen(identity) }
+        compose.setContent { Screen(Frame.Phone, identity) }
 
         val quiet = compose.onNodeWithTag(ActivationTags.IDENTITY)
             .getUnclippedBoundsInRoot().height
@@ -142,44 +169,84 @@ class ActivationLayoutTest {
      *
      * A regression test that has only ever passed is not evidence of anything —
      * that is precisely the position the HTML measurements were in. So the
-     * original defect is reconstructed here, by composing the same screen inside
-     * the same kind of scrolling column it was in, and the assertion helper is
-     * required to **fail**.
+     * original defect is reconstructed here, through the real container, by asking
+     * [ActivationSurface] for the frame the **forms** use. That is not a
+     * hypothetical: it is the frame the address screen was wrongly given, and the
+     * assertion helper is required to **fail** in it.
      *
      * If someone makes this test pass, the helper has stopped detecting a missing
      * band and needs fixing before it is trusted again.
      */
     @Test
-    fun `the gate fails when the screen is put back in a scrolling column`() {
+    fun `the gate fails when the screen is given the scrolling form frame`() {
         compose.setContent {
             CastivioTheme {
-                Box(Modifier.fillMaxSize()) {
-                    ScrollingColumn { ActivationScreenUnderTest() }
+                Stage(Frame.Phone) {
+                    ActivationSurface(fixedViewport = false) { ActivationScreenUnderTest() }
                 }
             }
         }
         val failed = runCatching { compose.assertActivationIsWhole() }.isFailure
         if (!failed) {
             fail(
-                "The screen was composed inside a vertically scrolling column -- the " +
-                    "exact arrangement that made the middle band measure 0dp on a real " +
-                    "device -- and the gate reported it whole. The gate is broken.",
+                "The screen was composed in the scrolling form frame -- the exact " +
+                    "arrangement that made the middle band measure 0dp on a real device " +
+                    "-- and the gate reported it whole. The gate is broken.",
             )
         }
     }
 }
 
-/** The arrangement the screen was in when it broke, kept so the gate can be tested. */
-@Composable
-private fun ScrollingColumn(content: @Composable () -> Unit) {
-    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) { content() }
+/**
+ * The three sizes the design was drawn at, in dp of usable screen.
+ *
+ * **Usable, meaning all of it.** `:app` calls `enableEdgeToEdge`, so activation
+ * gets the whole display; these are not "screen minus the system bars". Reading
+ * the size off Robolectric's default activity instead is what had this file
+ * testing a 312dp-tall phone against a design drawn for 360.
+ */
+private enum class Frame(val width: Dp, val height: Dp) {
+    /** The reference frame the mockup is measured at, and the reviewed device. */
+    Phone(873.dp, 393.dp),
+
+    /** The shortest Castivio ships to. The band has about 9dp to spare here. */
+    ShortPhone(800.dp, 360.dp),
+
+    Television(960.dp, 540.dp),
 }
 
+/**
+ * The screen in the container the device actually builds around it.
+ *
+ * Composing `MacActivationScreen` into a bare `Box` is what the first version of
+ * this file did, and it would have passed on the day the bug shipped: the screen
+ * was never the broken part. [ActivationSurface] was, and the frame it hands out
+ * is decided by [isFixedViewport], so both are in the path under test here rather
+ * than assumed correct around it.
+ */
 @Composable
-private fun Screen(identity: MutableState<ActivationIdentityState>? = null) {
+private fun Screen(frame: Frame, identity: MutableState<ActivationIdentityState>? = null) {
     CastivioTheme {
-        Box(Modifier.fillMaxSize()) { ActivationScreenUnderTest(identity) }
+        Stage(frame) {
+            ActivationSurface(
+                fixedViewport = isFixedViewport(ActivationUiState(), atAddressStep = true),
+            ) {
+                ActivationScreenUnderTest(identity)
+            }
+        }
     }
+}
+
+/**
+ * A window of a stated size.
+ *
+ * `requiredSize` rather than `size`: the point is to impose the frame on the
+ * composition whatever the harness would otherwise have offered, which is the
+ * whole correction being made here.
+ */
+@Composable
+private fun Stage(frame: Frame, content: @Composable () -> Unit) {
+    Box(Modifier.requiredSize(frame.width, frame.height)) { content() }
 }
 
 /**
@@ -207,7 +274,16 @@ private fun restingIdentity() = ActivationIdentityState(
 )
 
 /**
- * Everything §14 of the approved contract requires, present and with a size.
+ * Small enough to press, which is the only size a control is allowed to be.
+ *
+ * `Sizing.minTouchTarget` is 48dp and the television draws bigger, so one floor
+ * serves every frame. It exists as a number here because "greater than zero" is
+ * what let a 26dp button through.
+ */
+private val MIN_TARGET = 48.dp
+
+/**
+ * Everything §14 of the approved contract requires, present and at a real size.
  *
  * Collected rather than asserted one at a time, so a failure names every missing
  * element instead of the first one — when a whole band goes, that is the
@@ -222,21 +298,6 @@ private fun ComposeContentTestRule.assertActivationIsWhole() {
         }
     }
 
-    /**
-     * Present, and taller than nothing.
-     *
-     * Height rather than `assertIsDisplayed`, and height rather than width, for a
-     * reason worth stating: **Robolectric does not lay text out.** It has no real
-     * font, so a string's measured width is a fiction — the identity column came
-     * back 151dp wide here for content that needs 367 on a device. Heights are
-     * trustworthy, because they come from the line heights the type system
-     * specifies rather than from glyph advances.
-     *
-     * That is exactly enough for the defect this gate exists for. A band that
-     * collapsed to 0dp is a height failure, and every element inside it fails
-     * with it. Widths, clipping and appearance remain a claim only a device can
-     * settle, which is what §12.0 says and why this is not the last gate.
-     */
     fun placed(what: String, min: Dp = 1.dp, node: () -> SemanticsNodeInteraction) = check(what) {
         val bounds = node().getUnclippedBoundsInRoot()
         // Both dimensions in the message even though only height is asserted: a
@@ -277,12 +338,10 @@ private fun ComposeContentTestRule.assertActivationIsWhole() {
     println(
         "activation inside — identity ${size(ActivationTags.IDENTITY)} | " +
             "code ${size(ActivationTags.CODE_ZONE)} | " +
+            "actions ${size(ActivationTags.ACTIONS)} | " +
             "status ${size(ActivationTags.STATUS)} | " +
             "qr ${size(ActivationTags.QR)}",
     )
-    // The two strings that can wrap, and the tall control in the header. A band
-    // that measures more than its parts is a band with a wrapped line in it, and
-    // these are the only three candidates.
     println(
         "activation text — title ${textSize("Add your subscription")} | " +
             "legal ${textSize("Castivio is only a player")} | " +
@@ -304,16 +363,25 @@ private fun ComposeContentTestRule.assertActivationIsWhole() {
     // replaces their text with one description -- deliberately, so a reader says
     // "MAC address 2F 19 EB" rather than spelling the punctuation. A text finder
     // cannot see them.
+    // Presence only, and not [MIN_TARGET]: `clearAndSetSemantics` puts the
+    // description on the chip's *label*, so this finder reaches a line of type
+    // inside the control rather than the 48dp control around it. Asserting a
+    // touch target against a text node would be the same category error as
+    // asserting one against the Add playlist label.
     byDescription("the language control", "Language")
 
     byText("the MAC label", "MAC ADDRESS")
     byDescription("the MAC address", "MAC address 2F 19 EB 20 44 7C")
-    byDescription("the copy-MAC control", "Copy MAC address")
+    byDescription("the copy-MAC control", "Copy MAC address", min = MIN_TARGET)
 
     byText("the device key label", "DEVICE KEY")
     byDescription("the device key", "482731")
-    byDescription("the copy-key control", "Copy device key")
+    byDescription("the copy-key control", "Copy device key", min = MIN_TARGET)
 
+    // The row, at a pressable height, and then the labels. The row is the
+    // assertion that matters: a label keeps its line height inside a button that
+    // has been crushed to nothing.
+    byTag("the actions row", ActivationTags.ACTIONS, min = MIN_TARGET)
     byText("Add playlist", "Add playlist")
     byText("Refresh", "Refresh")
 

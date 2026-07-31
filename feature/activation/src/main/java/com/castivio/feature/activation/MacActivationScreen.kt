@@ -68,14 +68,22 @@ import com.castivio.core.design.theme.Spacing
  * `design/mockups/activation-mac.html` does not use one spacing scale for all
  * three frames — it states a different value for nearly every gap on each — and
  * the first Compose pass approximated all three with generic tokens. On the
- * 873dp frame that was close enough to look right. On the 800×360 frame it was
- * not: the identity column came out taller than the band, and a Column whose
- * children exceed the height it is given hands **zero** to the ones measured
- * last, so Add playlist and Refresh were laid out 0dp tall. The gate caught it;
- * a glance would not have.
+ * 873dp frame that was close enough to look right; on the shortest frame it was
+ * not. So the mockup's values are transcribed rather than approximated.
  *
- * So the mockup's values are transcribed rather than approximated. The margins
- * that result, with the type and target sizes this screen actually uses:
+ * The margins are thin, and thin means the arithmetic has to be right. A `Column`
+ * whose children exceed the height it is given hands **zero** to the ones measured
+ * last — not a scrollbar, not a clip, zero — so eight dp of overrun is not eight
+ * dp of crowding, it is Add playlist and Refresh disappearing. That is the failure
+ * mode `ActivationLayoutTest` exists to catch.
+ *
+ * The heights below are the **whole display**: `:app` calls `enableEdgeToEdge`, so
+ * activation is given every dp of it. Worth stating, because the gate spent a
+ * round of measurements believing a 393dp phone gives this screen 345 — it was
+ * reading the height off a stock test activity that still keeps a navigation bar.
+ *
+ * The margins that result, with the type and target sizes this screen actually
+ * uses:
  *
  * | frame | band | identity column | spare |
  * |---|---|---|---|
@@ -413,7 +421,9 @@ private fun IdentityZone(
         Row(
             // `actionsTop` is measured from the row above, and the Column already
             // adds `rowGap`, so the padding carries only the difference.
-            Modifier.padding(top = (m.actionsTop - m.rowGap).coerceAtLeast(0.dp)),
+            Modifier
+                .padding(top = (m.actionsTop - m.rowGap).coerceAtLeast(0.dp))
+                .testTag(ActivationTags.ACTIONS),
             horizontalArrangement = Arrangement.spacedBy(m.actionsGap),
             verticalAlignment = Alignment.CenterVertically,
         ) {

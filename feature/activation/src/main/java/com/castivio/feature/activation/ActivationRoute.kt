@@ -129,16 +129,7 @@ fun ActivationRoute(
         }
     }
 
-    // The approved activation screen is a fixed-viewport composition: three bands
-    // filling the screen, full-bleed hairlines, and no scroll. The forms are the
-    // opposite -- they overflow, they want a comfortable measure, and they want
-    // padding. One container cannot be both, and treating them as the same thing
-    // is what put the address, the key, the actions and the QR inside a
-    // vertically scrolling column, where the middle band's `weight(1f)` had no
-    // bounded height to take a share of and measured 0dp.
-    val fixedViewport = !state.busy &&
-        phase !is ActivationPhase.Failed &&
-        step == ActivationStep.Mac
+    val fixedViewport = isFixedViewport(state, atAddressStep = step == ActivationStep.Mac)
 
     ActivationSurface(modifier, fixedViewport = fixedViewport) {
         when {
@@ -178,6 +169,26 @@ fun ActivationRoute(
         )
     }
 }
+
+/**
+ * Which of the two frames this state belongs in.
+ *
+ * The approved activation screen is a fixed-viewport composition: three bands
+ * filling the screen, full-bleed hairlines, and no scroll. The forms are the
+ * opposite — they overflow, they want a comfortable measure, and they want
+ * padding. One container cannot be both, and treating them as the same thing is
+ * what put the address, the key, the actions and the QR inside a vertically
+ * scrolling column, where the middle band's `weight(1f)` had no bounded height
+ * to take a share of and measured 0dp.
+ *
+ * A named function rather than three clauses inline, for one reason: this
+ * predicate is the whole bug. Inline it was a boolean nothing could assert; here
+ * it is pure, takes a domain value, and is checked in `ActivationFrameTest`
+ * without a device. Getting it wrong again should cost a red JVM test, not a
+ * user's screen.
+ */
+internal fun isFixedViewport(state: ActivationUiState, atAddressStep: Boolean): Boolean =
+    !state.busy && state.phase !is ActivationPhase.Failed && atAddressStep
 
 @Composable
 private fun Steps(
@@ -292,7 +303,7 @@ private fun BackButton(onClick: () -> Unit) {
  * it the first press of a D-pad does nothing and the user presses it again harder.
  */
 @Composable
-private fun ActivationSurface(
+internal fun ActivationSurface(
     modifier: Modifier = Modifier,
     /**
      * True for a screen that owns the viewport and must not scroll.

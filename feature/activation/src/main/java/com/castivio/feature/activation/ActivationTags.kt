@@ -18,6 +18,16 @@ internal object ActivationTags {
     const val CODE_ZONE = "activation.codeZone"
     const val QR = "activation.qr"
 
+    /**
+     * The two buttons, as a row.
+     *
+     * Tagged because the text finders reach the label inside a button, not the
+     * button. A label is a line of type and stays its own height while the
+     * control around it is crushed to 26dp — which is what a short band does
+     * first, and what "Add playlist is placed" fails to notice.
+     */
+    const val ACTIONS = "activation.actions"
+
     /** Reserved height whether or not it has anything to say, so it is tagged. */
     const val STATUS = "activation.status"
 
