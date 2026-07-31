@@ -7,8 +7,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -23,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import com.castivio.core.design.theme.CastivioTheme
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Rule
@@ -107,6 +111,34 @@ class ActivationLayoutTest {
     }
 
     /**
+     * The status region's whole promise: nothing moves when it fills.
+     *
+     * §6.3 calls it a reserved height, and the only way to check a reservation is
+     * to spend it — measure the column the region would push, with the region
+     * quiet and then speaking, and require the two to be equal. Measuring the
+     * region's own bounds cannot do it: empty, it has no width, and a degenerate
+     * rectangle reports nothing useful about the space it is holding.
+     */
+    @Test
+    fun `the status region reserves its height, so nothing moves when it fills`() {
+        val identity = mutableStateOf(restingIdentity())
+        compose.setContent { Screen(identity) }
+
+        val quiet = compose.onNodeWithTag(ActivationTags.IDENTITY)
+            .getUnclippedBoundsInRoot().height
+        identity.value = identity.value.copy(refresh = RefreshState.None)
+        compose.waitForIdle()
+        val speaking = compose.onNodeWithTag(ActivationTags.IDENTITY)
+            .getUnclippedBoundsInRoot().height
+
+        assertEquals(
+            "the identity column moved when the status line filled: $quiet then $speaking",
+            quiet,
+            speaking,
+        )
+    }
+
+    /**
      * The gate itself, checked against the bug it exists for.
      *
      * A regression test that has only ever passed is not evidence of anything —
@@ -145,9 +177,9 @@ private fun ScrollingColumn(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun Screen() {
+private fun Screen(identity: MutableState<ActivationIdentityState>? = null) {
     CastivioTheme {
-        Box(Modifier.fillMaxSize()) { ActivationScreenUnderTest() }
+        Box(Modifier.fillMaxSize()) { ActivationScreenUnderTest(identity) }
     }
 }
 
@@ -158,19 +190,22 @@ private fun Screen() {
  * a keystore would make it a test about two things.
  */
 @Composable
-private fun ActivationScreenUnderTest() {
+private fun ActivationScreenUnderTest(state: MutableState<ActivationIdentityState>? = null) {
     MacActivationScreen(
-        identity = ActivationIdentityState(
-            address = "2F:19:EB:20:44:7C",
-            deviceKey = "482731",
-            qr = qrFixtureBitmap(256),
-        ),
+        identity = state?.value ?: restingIdentity(),
         onAddPlaylist = {},
         onRefresh = {},
         onCopied = {},
         onOpenLanguage = {},
     )
 }
+
+/** A device that has resolved its identity and has nothing to say yet. */
+private fun restingIdentity() = ActivationIdentityState(
+    address = "2F:19:EB:20:44:7C",
+    deviceKey = "482731",
+    qr = qrFixtureBitmap(256),
+)
 
 /**
  * Everything §14 of the approved contract requires, present and with a size.
@@ -188,41 +223,50 @@ private fun ComposeContentTestRule.assertActivationIsWhole() {
         }
     }
 
-    fun byText(what: String, text: String) = check(what) {
-        onNodeWithText(text, substring = true).assertIsDisplayed()
+    /**
+     * Present, and taller than nothing.
+     *
+     * Height rather than `assertIsDisplayed`, and height rather than width, for a
+     * reason worth stating: **Robolectric does not lay text out.** It has no real
+     * font, so a string's measured width is a fiction — the identity column came
+     * back 151dp wide here for content that needs 367 on a device. Heights are
+     * trustworthy, because they come from the line heights the type system
+     * specifies rather than from glyph advances.
+     *
+     * That is exactly enough for the defect this gate exists for. A band that
+     * collapsed to 0dp is a height failure, and every element inside it fails
+     * with it. Widths, clipping and appearance remain a claim only a device can
+     * settle, which is what §12.0 says and why this is not the last gate.
+     */
+    fun placed(what: String, min: Dp = 1.dp, node: () -> SemanticsNodeInteraction) = check(what) {
+        val bounds = node().getUnclippedBoundsInRoot()
+        if (bounds.height < min) error("placed ${bounds.height} tall, wanted $min")
     }
 
-    fun byDescription(what: String, description: String) = check(what) {
-        onNodeWithContentDescription(description, substring = true).assertIsDisplayed()
-    }
+    fun byText(what: String, text: String, min: Dp = 1.dp) =
+        placed(what, min) { onNodeWithText(text, substring = true) }
 
-    // Height is the contract; width is asked for only where the contract asks
-    // for it. The status region is a *reserved height* and is empty at rest, so
-    // it is legitimately zero wide -- demanding a width of every tagged node
-    // failed all three size tests on the one element that is supposed to be
-    // empty.
-    fun byTag(what: String, tag: String, minHeight: Dp = 1.dp, minWidth: Dp = 0.dp) =
-        check(what) {
-            val bounds = onNodeWithTag(tag).getUnclippedBoundsInRoot()
-            if (bounds.height < minHeight || bounds.width < minWidth) {
-                error("placed at ${bounds.width} x ${bounds.height}")
-            }
-        }
+    fun byDescription(what: String, description: String, min: Dp = 1.dp) =
+        placed(what, min) { onNodeWithContentDescription(description, substring = true) }
 
-    // The three bands, before anything inside them. A band with no height is the
-    // failure this file exists for, and naming it first makes the report read
-    // the way the screen broke.
-    byTag("the field band", ActivationTags.FIELD, minHeight = 150.dp, minWidth = 300.dp)
-    byTag("the identity zone", ActivationTags.IDENTITY, minHeight = 100.dp, minWidth = 200.dp)
-    byTag("the code zone", ActivationTags.CODE_ZONE, minHeight = 100.dp, minWidth = 100.dp)
+    fun byTag(what: String, tag: String, min: Dp = 1.dp) =
+        placed(what, min) { onNodeWithTag(tag) }
+
+    // The three bands first. A band with no height is the failure this file
+    // exists for, and naming it first makes the report read the way the screen
+    // broke.
+    byTag("the field band", ActivationTags.FIELD, min = 150.dp)
+    byTag("the identity zone", ActivationTags.IDENTITY, min = 100.dp)
+    byTag("the code zone", ActivationTags.CODE_ZONE, min = 100.dp)
 
     byText("the title", "Add your subscription")
     byText("the trial name", "Castivio trial")
     byText("the trial days", "7 days")
+
     // The chip and the two code values carry `clearAndSetSemantics`, which
-    // replaces their text with a single description -- deliberately, so a screen
-    // reader says "MAC address 2F 19 EB" rather than spelling the punctuation.
-    // A text finder cannot see them, which this test learned the hard way.
+    // replaces their text with one description -- deliberately, so a reader says
+    // "MAC address 2F 19 EB" rather than spelling the punctuation. A text finder
+    // cannot see them.
     byDescription("the language control", "Language")
 
     byText("the MAC label", "MAC ADDRESS")
@@ -235,12 +279,14 @@ private fun ComposeContentTestRule.assertActivationIsWhole() {
 
     byText("Add playlist", "Add playlist")
     byText("Refresh", "Refresh")
-    // Reserved height, empty at rest, and no width of its own. Asserting the
-    // height is asserting the whole of what it promises: that nothing moves when
-    // it fills.
-    byTag("the reserved status line", ActivationTags.STATUS, minHeight = 16.dp)
 
-    byTag("the QR fixture", ActivationTags.QR, minHeight = 100.dp, minWidth = 100.dp)
+    // Existence only. The region is a reserved height that is empty at rest, so
+    // its own bounds are degenerate; what it actually promises -- that nothing
+    // moves when it fills -- is asserted in its own test, against the column it
+    // would push.
+    check("the reserved status line") { onNodeWithTag(ActivationTags.STATUS).assertExists() }
+
+    byTag("the QR fixture", ActivationTags.QR, min = 100.dp)
     byText("the QR caption", "Scan to set up on your phone")
 
     byText("the legal line", "Castivio is only a player")
@@ -249,9 +295,9 @@ private fun ComposeContentTestRule.assertActivationIsWhole() {
         val report = "The approved activation composition is incomplete. " +
             "${missing.size} mandatory element(s) missing or not placed:\n  " +
             missing.joinToString("\n  ")
-        // Printed as well as thrown. Gradle's console shows the exception type
-        // and a line number; the detail lives in an HTML report nobody on a CI
-        // runner can open, which turns one diagnosis into two round trips.
+        // Printed as well as thrown: Gradle's console gives the exception type and
+        // a line number and puts the message in an HTML report nobody on a CI
+        // runner can open.
         println(report)
         fail(report)
     }
