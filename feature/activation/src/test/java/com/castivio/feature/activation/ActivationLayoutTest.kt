@@ -17,6 +17,11 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+// DpRect carries its width and height as extension properties in this package,
+// not as members. Without these two imports the bounds have no size to read --
+// which is a small irony in a file whose whole subject is elements with no size.
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import com.castivio.core.design.theme.CastivioTheme
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
