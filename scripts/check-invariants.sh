@@ -103,6 +103,24 @@ if [ -n "$hits" ]; then
   detail behind an interface and implement it in an adapter module."
 fi
 
+# ------------------------------------------------------- 37 user-visible languages
+# The product invariant is the number of languages a person can choose, and it is
+# 37. It is deliberately NOT a number of Android resource directories: how many of
+# those correct locale resolution needs is a question for a device, and the
+# sentinel test answers it. Conflating the two is how "one Chinese entry" quietly
+# becomes two.
+LANGS=core/common/src/main/kotlin/com/castivio/core/common/locale/CastivioLanguage.kt
+count=$(grep -cE '^    [A-Z][A-Za-z]*\(' "$LANGS" 2>/dev/null || echo 0)
+if [ "$count" -ne 37 ]; then
+  fail "The language set is $count entries, and the product invariant is 37" \
+       "$LANGS
+
+  A language is one visible choice. A script or regional variant is not a
+  language -- add it to that language's \`variants\`, which is what the list is
+  for. If 37 is genuinely changing, change it here and in the specification
+  deliberately, in its own commit."
+fi
+
 # ------------------------------------------------- the licence cannot license itself
 # Not one of the ten, and the most expensive one to get wrong. A local trial grantor
 # belongs to a development build and nowhere else; the type system already says so

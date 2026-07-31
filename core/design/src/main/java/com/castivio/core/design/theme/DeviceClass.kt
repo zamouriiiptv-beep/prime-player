@@ -14,7 +14,14 @@ import androidx.compose.ui.unit.Dp
  *
  * Castivio must feel native on a 55" television driven by a D-pad *and* on a
  * phone held sideways. Rather than sprinkling `if (isTv)` through the screens,
- * layouts read a single [DeviceClass] and the scale factors below.
+ * layouts read a single [DeviceClass].
+ *
+ * There used to be a `scale` multiplier here, and it is gone. A television is
+ * not a phone with everything 1.15 times bigger: the address grows from 28sp to
+ * 42sp, a fifty per cent rise, while the standing notice barely moves and the
+ * targets step 48 to 56. Those are three different decisions about three
+ * different things, and one multiplier can only be wrong about all of them. What
+ * changes between devices is decided per element, against measured space.
  */
 enum class DeviceClass {
     /** Phone, typically landscape for playback. */
@@ -27,18 +34,6 @@ enum class DeviceClass {
     Television;
 
     val isTv: Boolean get() = this == Television
-
-    /**
-     * Multiplier for type and control sizes. A television is viewed from ~3m,
-     * so everything grows; a compact phone shrinks slightly to fit.
-     */
-    val scale: Float
-        get() = when (this) {
-            Compact -> 0.92f
-            Medium -> 1.0f
-            Expanded -> 1.05f
-            Television -> 1.15f
-        }
 
     /** Screen edge inset, accounting for TV overscan. */
     val screenPadding: Dp
