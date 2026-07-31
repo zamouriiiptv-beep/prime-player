@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -100,10 +101,18 @@ internal fun MacActivationScreen(
         Header(tv = tv, onOpenLanguage = onOpenLanguage)
         Hairline()
 
+        // `weight(1f)`, and the reason it is safe here is stated rather than
+        // assumed: this screen is composed into a parent with a bounded height.
+        // It was not, once -- it was inside a vertically scrolling column, where
+        // the height constraint is infinite, there is no remaining space for a
+        // weight to claim, and this entire band measured 0dp. The screen looked
+        // like a header sitting on a legal line. See ActivationRoute, which now
+        // gives this screen the viewport rather than a scroller.
         Row(
             Modifier
                 .fillMaxWidth()
                 .weight(1f)
+                .testTag(ActivationTags.FIELD)
                 .padding(horizontal = if (tv) Spacing.xxl else Spacing.xl),
             horizontalArrangement = Arrangement.spacedBy(
                 if (tv) Spacing.xxxl else Spacing.xxl,
@@ -112,6 +121,7 @@ internal fun MacActivationScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IdentityZone(
+                modifier = Modifier.testTag(ActivationTags.IDENTITY),
                 identity = identity,
                 tv = tv,
                 onAddPlaylist = onAddPlaylist,
@@ -267,11 +277,15 @@ private fun IdentityZone(
     onAddPlaylist: () -> Unit,
     onRefresh: () -> Unit,
     onCopied: (Copied) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val clipboard = LocalClipboardManager.current
     val address = identity.address
 
-    Column(verticalArrangement = Arrangement.spacedBy(if (tv) Spacing.md else Spacing.sm)) {
+    Column(
+        modifier,
+        verticalArrangement = Arrangement.spacedBy(if (tv) Spacing.md else Spacing.sm),
+    ) {
         IdentityRow(
             label = stringResource(R.string.mac_label),
             value = address ?: ADDRESS_PLACEHOLDER,
@@ -345,6 +359,7 @@ private fun StatusLine(identity: ActivationIdentityState) {
     Box(
         Modifier
             .heightIn(min = if (tv) STATUS_TV else STATUS_PHONE)
+            .testTag(ActivationTags.STATUS)
             .semantics { liveRegion = LiveRegionMode.Polite },
         contentAlignment = Alignment.CenterStart,
     ) {
@@ -468,12 +483,14 @@ private fun CodeZone(identity: ActivationIdentityState, tv: Boolean) {
     val bitmap = remember(identity.qr) { identity.qr?.asImageBitmap() } ?: return
 
     Column(
+        Modifier.testTag(ActivationTags.CODE_ZONE),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         Box(
             Modifier
                 .size(if (tv) PLATE_TV else PLATE_PHONE)
+                .testTag(ActivationTags.QR)
                 .clip(RoundedCornerShape(Radius.md))
                 .background(Color.White)
                 .padding(if (tv) Spacing.sm else Spacing.xs),

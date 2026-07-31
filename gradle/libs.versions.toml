@@ -33,6 +33,11 @@ androidx-datastore-preferences = { module = "androidx.datastore:datastore-prefer
 
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 compose-ui = { module = "androidx.compose.ui:ui" }
+# Placement, not just presence. A node can exist in the tree with zero size --
+# that is exactly how an entire band of the activation screen went missing on a
+# real device while every other gate stayed green.
+compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
+compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
 compose-ui-graphics = { module = "androidx.compose.ui:ui-graphics" }
 compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
 compose-material3 = { module = "androidx.compose.material3:material3" }

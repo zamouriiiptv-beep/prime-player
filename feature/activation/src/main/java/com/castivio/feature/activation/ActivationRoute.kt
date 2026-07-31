@@ -129,7 +129,18 @@ fun ActivationRoute(
         }
     }
 
-    ActivationSurface(modifier) {
+    // The approved activation screen is a fixed-viewport composition: three bands
+    // filling the screen, full-bleed hairlines, and no scroll. The forms are the
+    // opposite -- they overflow, they want a comfortable measure, and they want
+    // padding. One container cannot be both, and treating them as the same thing
+    // is what put the address, the key, the actions and the QR inside a
+    // vertically scrolling column, where the middle band's `weight(1f)` had no
+    // bounded height to take a share of and measured 0dp.
+    val fixedViewport = !state.busy &&
+        phase !is ActivationPhase.Failed &&
+        step == ActivationStep.Mac
+
+    ActivationSurface(modifier, fixedViewport = fixedViewport) {
         when {
             state.busy -> ImportingScreen(phase = phase, onCancel = activation::cancel)
 
@@ -140,6 +151,10 @@ fun ActivationRoute(
             )
 
             else -> Steps(
+                // Explicit rather than inherited. AnimatedContent sizes itself to
+                // its content by default, and the whole of this bug was a
+                // constraint that was reasoned about instead of stated.
+                modifier = if (fixedViewport) Modifier.fillMaxSize() else Modifier,
                 step = step,
                 state = state,
                 identity = identity,
@@ -166,6 +181,7 @@ fun ActivationRoute(
 
 @Composable
 private fun Steps(
+    modifier: Modifier,
     step: ActivationStep,
     state: ActivationUiState,
     identity: ActivationIdentityState,
@@ -181,6 +197,7 @@ private fun Steps(
     val animated = CastivioTheme.motionLevel != MotionLevel.DISABLED
 
     AnimatedContent(
+        modifier = modifier,
         targetState = step,
         transitionSpec = {
             // Every animation is optional. At DISABLED the step simply changes, with no
@@ -277,12 +294,33 @@ private fun BackButton(onClick: () -> Unit) {
 @Composable
 private fun ActivationSurface(
     modifier: Modifier = Modifier,
+    /**
+     * True for a screen that owns the viewport and must not scroll.
+     *
+     * The activation screen is measured against a fixed 873x393, its hairlines
+     * run edge to edge, and its middle band claims the height the header and
+     * footer leave. All three of those need a parent with a bounded height and
+     * no padding of its own, and none of them survive a scrolling column: an
+     * infinite height constraint leaves a `weight` nothing to divide, so the
+     * band measures zero and the screen renders as a header above a legal line.
+     *
+     * The forms want precisely the opposite -- they overflow, so they scroll,
+     * and a text field is unreadable at 873dp so they are capped to a measure.
+     * Two requirements, two layouts, chosen here rather than compromised into
+     * one that serves neither.
+     */
+    fixedViewport: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val device = CastivioTheme.device
     val focus = remember { FocusRequester() }
 
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+
+    if (fixedViewport) {
+        Box(modifier.fillMaxSize().focusRequester(focus)) { content() }
+        return
+    }
 
     Box(
         modifier
