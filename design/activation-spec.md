@@ -706,6 +706,51 @@ credential.
 
 ## 12. Verification gates
 
+### 12.0 What each gate is a claim about
+
+This section once listed the mockup measurements as though they verified the
+screen. They do not, and the distinction cost a real-device failure: the entire
+middle band of the activation screen — address, device key, both copy controls,
+Add playlist, Refresh, the status line, the QR and its caption — measured **zero**
+on a phone and shipped, while the measurements read 27/27 and 96/96.
+
+They could not have caught it. `measure.js` measures HTML, where `flex: 1 1 auto`
+works because the flex container has a definite height. The Compose equivalent,
+`weight(1f)`, divides *remaining* space, and the screen had been composed inside
+a vertically scrolling column, where the height constraint is infinite and there
+is no remaining space to divide. Two layout engines, two answers, and only one of
+them ships.
+
+| Gate | Claim it supports | Claim it does **not** support |
+|---|---|---|
+| `measure.js` | the **design** fits, in every language and state | that the implementation places anything |
+| `check-invariants.sh` | the files and the model agree | that the screen renders |
+| `LocaleResolutionTest` | Android reaches the right resources | how they are laid out |
+| **`ActivationLayoutTest`** | **Compose places every mandatory element, with a size** | how it looks |
+| a device | how it looks, and everything above, for real | — |
+
+Nothing here replaces the row below it. The lesson worth keeping is the narrow
+one: **a mockup measurement is a claim about the design, never about the
+implementation.** Only Compose can be asked what Compose placed.
+
+### 12.0.1 The placement gate
+
+`ActivationLayoutTest` renders the real screen at 873×393, 800×360 and a
+television, and asserts every element §14 of this document requires is
+**displayed with a size**. Placement, not presence: `assertExists` would have
+passed throughout the failure, because every node was in the semantics tree,
+laid out, and zero pixels tall.
+
+The band that vanished is asserted on its own, by tag, against a minimum height —
+a band between two hairlines that is 0dp tall is a band that is not there.
+
+**The gate is itself checked against the bug.** One test reconstructs the defect,
+composing the screen back inside a scrolling column, and requires the assertion
+helper to fail. A regression test that has only ever passed is exactly the
+position the mockup measurements were in, and that position is what this section
+exists to stop anyone occupying again.
+
+
 Run from `design/mockups/` — non-zero exit on any failure.
 
 ```sh
