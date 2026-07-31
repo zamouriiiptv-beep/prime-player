@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -49,6 +50,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.castivio.core.design.components.ButtonWeight
 import com.castivio.core.design.components.CastivioButton
@@ -59,6 +61,91 @@ import com.castivio.core.design.theme.Motion
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.Spacing
+
+/**
+ * The approved screen's numbers, per frame.
+ *
+ * `design/mockups/activation-mac.html` does not use one spacing scale for all
+ * three frames — it states a different value for nearly every gap on each — and
+ * the first Compose pass approximated all three with generic tokens. On the
+ * 873dp frame that was close enough to look right. On the 800×360 frame it was
+ * not: the identity column came out taller than the band, and a Column whose
+ * children exceed the height it is given hands **zero** to the ones measured
+ * last, so Add playlist and Refresh were laid out 0dp tall. The gate caught it;
+ * a glance would not have.
+ *
+ * So the mockup's values are transcribed rather than approximated. The margins
+ * that result, with the type and target sizes this screen actually uses:
+ *
+ * | frame | band | identity column | spare |
+ * |---|---|---|---|
+ * | 873×393 | 284dp | 253dp | 31dp |
+ * | 800×360 | 259dp | 249dp | 10dp |
+ * | TV 960×540 | 337dp | 309dp | 28dp |
+ *
+ * Ten millimetres on the short phone is thin, and it is the frame to check first
+ * whenever anything on this screen grows.
+ */
+private data class Metrics(
+    val edge: Dp,
+    val stageTop: Dp,
+    val stageBottom: Dp,
+    val headBottom: Dp,
+    val zoneGap: Dp,
+    val rowGap: Dp,
+    val labelGap: Dp,
+    val copyGap: Dp,
+    val actionsGap: Dp,
+    val actionsTop: Dp,
+    val statusHeight: Dp,
+    val statusTop: Dp,
+    val footTop: Dp,
+    val footBottom: Dp,
+    val plate: Dp,
+    val platePadding: Dp,
+    val captionTop: Dp,
+    val captionWidth: Dp,
+    val target: Dp,
+)
+
+/**
+ * Which frame this is, decided by the height the screen actually has.
+ *
+ * Height rather than width or a device class, because height is the dimension
+ * that ran out. `DeviceClass` would call 800dp "Medium" and 873dp "Expanded",
+ * which is a fact about width and says nothing about whether the band fits.
+ */
+private val SHORT_PHONE = 380.dp
+
+private fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
+    tv -> Metrics(
+        edge = 48.dp, stageTop = 48.dp, stageBottom = 48.dp, headBottom = 16.dp,
+        zoneGap = 52.dp, rowGap = 17.dp, labelGap = 7.dp, copyGap = 22.dp,
+        actionsGap = 20.dp, actionsTop = 30.dp,
+        statusHeight = 24.dp, statusTop = 16.dp,
+        footTop = 13.dp, footBottom = 0.dp,
+        plate = 196.dp, platePadding = 12.dp, captionTop = 15.dp, captionWidth = 236.dp,
+        target = 56.dp,
+    )
+    available < SHORT_PHONE -> Metrics(
+        edge = 26.dp, stageTop = 10.dp, stageBottom = 4.dp, headBottom = 9.dp,
+        zoneGap = 34.dp, rowGap = 13.dp, labelGap = 3.dp, copyGap = 14.dp,
+        actionsGap = 12.dp, actionsTop = 18.dp,
+        statusHeight = 20.dp, statusTop = 12.dp,
+        footTop = 7.dp, footBottom = 1.dp,
+        plate = 130.dp, platePadding = 8.dp, captionTop = 9.dp, captionWidth = 162.dp,
+        target = 48.dp,
+    )
+    else -> Metrics(
+        edge = 30.dp, stageTop = 12.dp, stageBottom = 6.dp, headBottom = 11.dp,
+        zoneGap = 40.dp, rowGap = 13.dp, labelGap = 3.dp, copyGap = 16.dp,
+        actionsGap = 14.dp, actionsTop = 22.dp,
+        statusHeight = 20.dp, statusTop = 12.dp,
+        footTop = 8.dp, footBottom = 2.dp,
+        plate = 148.dp, platePadding = 9.dp, captionTop = 11.dp, captionWidth = 180.dp,
+        target = 48.dp,
+    )
+}
 
 /**
  * The first screen, where a subscription is added.
@@ -97,50 +184,54 @@ internal fun MacActivationScreen(
     val colors = CastivioTheme.colors
     val tv = CastivioTheme.device.isTv
 
-    Column(modifier.fillMaxSize()) {
-        Header(tv = tv, onOpenLanguage = onOpenLanguage)
-        Hairline()
-
-        // `weight(1f)`, and the reason it is safe here is stated rather than
-        // assumed: this screen is composed into a parent with a bounded height.
-        // It was not, once -- it was inside a vertically scrolling column, where
-        // the height constraint is infinite, there is no remaining space for a
-        // weight to claim, and this entire band measured 0dp. The screen looked
-        // like a header sitting on a legal line. See ActivationRoute, which now
-        // gives this screen the viewport rather than a scroller.
-        Row(
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val m = metricsFor(tv, maxHeight)
+        Column(
             Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .testTag(ActivationTags.FIELD)
-                .padding(horizontal = if (tv) Spacing.xxl else Spacing.xl),
-            horizontalArrangement = Arrangement.spacedBy(
-                if (tv) Spacing.xxxl else Spacing.xxl,
-                Alignment.CenterHorizontally,
-            ),
-            verticalAlignment = Alignment.CenterVertically,
+                .fillMaxSize()
+                .padding(start = m.edge, end = m.edge, top = m.stageTop, bottom = m.stageBottom),
         ) {
-            IdentityZone(
-                modifier = Modifier.testTag(ActivationTags.IDENTITY),
-                identity = identity,
-                tv = tv,
-                onAddPlaylist = onAddPlaylist,
-                onRefresh = onRefresh,
-                onCopied = onCopied,
-            )
-            CodeZone(identity = identity, tv = tv)
-        }
+            Header(m = m, tv = tv, onOpenLanguage = onOpenLanguage)
+            Hairline()
 
-        Hairline()
-        Text(
-            text = stringResource(R.string.legal_player_only),
-            style = CastivioType.bodySmall,
-            color = colors.onBackgroundMuted,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Spacing.xl, vertical = Spacing.sm),
-        )
+            // `weight(1f)`, and the reason it is safe here is stated rather than
+            // assumed: this screen is composed into a parent with a bounded height.
+            // It was not, once -- it was inside a vertically scrolling column, where
+            // the height constraint is infinite, there is no remaining space for a
+            // weight to claim, and this entire band measured 0dp. The screen looked
+            // like a header sitting on a legal line. See ActivationRoute, which now
+            // gives this screen the viewport rather than a scroller.
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .testTag(ActivationTags.FIELD),
+                horizontalArrangement = Arrangement.spacedBy(m.zoneGap, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IdentityZone(
+                    modifier = Modifier.testTag(ActivationTags.IDENTITY),
+                    identity = identity,
+                    m = m,
+                    tv = tv,
+                    onAddPlaylist = onAddPlaylist,
+                    onRefresh = onRefresh,
+                    onCopied = onCopied,
+                )
+                CodeZone(identity = identity, m = m)
+            }
+
+            Hairline()
+            Text(
+                text = stringResource(R.string.legal_player_only),
+                style = CastivioType.bodySmall,
+                color = colors.onBackgroundMuted,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = m.footTop, bottom = m.footBottom),
+            )
+        }
     }
 }
 
@@ -170,15 +261,12 @@ private fun Hairline() {
 }
 
 @Composable
-private fun Header(tv: Boolean, onOpenLanguage: () -> Unit) {
+private fun Header(m: Metrics, tv: Boolean, onOpenLanguage: () -> Unit) {
     val colors = CastivioTheme.colors
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(
-                horizontal = if (tv) Spacing.xxl else Spacing.xl,
-                vertical = Spacing.md,
-            ),
+            .padding(bottom = m.headBottom),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -218,7 +306,7 @@ private fun Header(tv: Boolean, onOpenLanguage: () -> Unit) {
             )
         }
 
-        LanguageChip(onOpenLanguage)
+        LanguageChip(m, onOpenLanguage)
     }
 }
 
@@ -230,7 +318,7 @@ private fun Header(tv: Boolean, onOpenLanguage: () -> Unit) {
  * the drawn size.
  */
 @Composable
-private fun LanguageChip(onClick: () -> Unit) {
+private fun LanguageChip(m: Metrics, onClick: () -> Unit) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
     var focused by remember { mutableStateOf(false) }
@@ -244,7 +332,7 @@ private fun LanguageChip(onClick: () -> Unit) {
 
     Row(
         Modifier
-            .heightIn(min = Sizing.minTouchTarget)
+            .heightIn(min = m.target)
             .castivioFocusScale(Motion.focusScaleIcon, interaction)
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
             .clip(shape)
@@ -273,6 +361,7 @@ private fun LanguageChip(onClick: () -> Unit) {
 @Composable
 private fun IdentityZone(
     identity: ActivationIdentityState,
+    m: Metrics,
     tv: Boolean,
     onAddPlaylist: () -> Unit,
     onRefresh: () -> Unit,
@@ -282,11 +371,9 @@ private fun IdentityZone(
     val clipboard = LocalClipboardManager.current
     val address = identity.address
 
-    Column(
-        modifier,
-        verticalArrangement = Arrangement.spacedBy(if (tv) Spacing.md else Spacing.sm),
-    ) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(m.rowGap)) {
         IdentityRow(
+            m = m,
             label = stringResource(R.string.mac_label),
             value = address ?: ADDRESS_PLACEHOLDER,
             spoken = address?.let { stringResource(R.string.mac_spoken, spaced(it)) },
@@ -305,6 +392,7 @@ private fun IdentityZone(
         // not composed at all rather than composed empty.
         identity.deviceKey?.let { key ->
             IdentityRow(
+                m = m,
                 label = stringResource(R.string.key_label),
                 value = key,
                 spoken = null,
@@ -320,8 +408,10 @@ private fun IdentityZone(
         }
 
         Row(
-            Modifier.padding(top = Spacing.xs),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            // `actionsTop` is measured from the row above, and the Column already
+            // adds `rowGap`, so the padding carries only the difference.
+            Modifier.padding(top = (m.actionsTop - m.rowGap).coerceAtLeast(0.dp)),
+            horizontalArrangement = Arrangement.spacedBy(m.actionsGap),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             CastivioButton(
@@ -338,7 +428,7 @@ private fun IdentityZone(
             )
         }
 
-        StatusLine(identity)
+        StatusLine(identity, m)
     }
 }
 
@@ -351,14 +441,14 @@ private fun IdentityZone(
  * under the thumb that pressed it is a control that gets pressed twice.
  */
 @Composable
-private fun StatusLine(identity: ActivationIdentityState) {
+private fun StatusLine(identity: ActivationIdentityState, m: Metrics) {
     val colors = CastivioTheme.colors
-    val tv = CastivioTheme.device.isTv
     val message = statusMessage(identity)
 
     Box(
         Modifier
-            .heightIn(min = if (tv) STATUS_TV else STATUS_PHONE)
+            .padding(top = (m.statusTop - m.rowGap).coerceAtLeast(0.dp))
+            .heightIn(min = m.statusHeight)
             .testTag(ActivationTags.STATUS)
             .semantics { liveRegion = LiveRegionMode.Polite },
         contentAlignment = Alignment.CenterStart,
@@ -392,6 +482,7 @@ private fun StatusLine(identity: ActivationIdentityState) {
 
 @Composable
 private fun IdentityRow(
+    m: Metrics,
     label: String,
     value: String,
     spoken: String?,
@@ -402,14 +493,14 @@ private fun IdentityRow(
     onCopy: () -> Unit,
 ) {
     val colors = CastivioTheme.colors
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+    Column(verticalArrangement = Arrangement.spacedBy(m.labelGap)) {
         Text(
             text = label,
             style = CastivioType.overline,
             color = colors.onBackgroundVariant,
         )
         Row(
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            horizontalArrangement = Arrangement.spacedBy(m.copyGap),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // The address is Latin and digits inside a paragraph that may run
@@ -427,7 +518,7 @@ private fun IdentityRow(
                 },
             )
             if (enabled) {
-                CopyControl(label = copyLabel, isCopied = isCopied, onClick = onCopy)
+                CopyControl(m = m, label = copyLabel, isCopied = isCopied, onClick = onCopy)
             }
         }
     }
@@ -441,7 +532,7 @@ private fun IdentityRow(
  * copying the address must not clear the tick on the key.
  */
 @Composable
-private fun CopyControl(label: String, isCopied: Boolean, onClick: () -> Unit) {
+private fun CopyControl(m: Metrics, label: String, isCopied: Boolean, onClick: () -> Unit) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
     var focused by remember { mutableStateOf(false) }
@@ -458,7 +549,7 @@ private fun CopyControl(label: String, isCopied: Boolean, onClick: () -> Unit) {
 
     Box(
         Modifier
-            .size(Sizing.minTouchTarget)
+            .size(m.target)
             .castivioFocusScale(Motion.focusScaleIcon, interaction)
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
             .clip(shape)
@@ -478,22 +569,22 @@ private fun CopyControl(label: String, isCopied: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun CodeZone(identity: ActivationIdentityState, tv: Boolean) {
+private fun CodeZone(identity: ActivationIdentityState, m: Metrics) {
     val colors = CastivioTheme.colors
     val bitmap = remember(identity.qr) { identity.qr?.asImageBitmap() } ?: return
 
     Column(
         Modifier.testTag(ActivationTags.CODE_ZONE),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(m.captionTop),
     ) {
         Box(
             Modifier
-                .size(if (tv) PLATE_TV else PLATE_PHONE)
+                .size(m.plate)
                 .testTag(ActivationTags.QR)
                 .clip(RoundedCornerShape(Radius.md))
                 .background(Color.White)
-                .padding(if (tv) Spacing.sm else Spacing.xs),
+                .padding(m.platePadding),
         ) {
             Image(
                 bitmap = bitmap,
@@ -508,7 +599,7 @@ private fun CodeZone(identity: ActivationIdentityState, tv: Boolean) {
             style = CastivioType.bodySmall,
             color = colors.onBackgroundVariant,
             textAlign = TextAlign.Center,
-            modifier = Modifier.width(if (tv) CAPTION_TV else CAPTION_PHONE),
+            modifier = Modifier.width(m.captionWidth),
         )
     }
 }
@@ -542,9 +633,3 @@ private const val ADDRESS_PLACEHOLDER = "··:··:··:··:··:··"
 private const val TRIAL_DAYS = 7
 private val TRIAL_DOT = 6.dp
 private val STATUS_DOT = 6.dp
-private val STATUS_PHONE = 20.dp
-private val STATUS_TV = 24.dp
-private val PLATE_PHONE = 148.dp
-private val PLATE_TV = 196.dp
-private val CAPTION_PHONE = 180.dp
-private val CAPTION_TV = 236.dp
