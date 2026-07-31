@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The activation screen and the language picker.
+
+  Every key here exists in all 39 locale directories; check-invariants.sh fails
+  the build if one does not. "subscription" belongs to the provider -- Castivio's
+  seven days are a trial and always carry Castivio's name.
+
+  The overline labels are stored in the case they are displayed in. Nothing calls
+  uppercase() on them: that is locale-sensitive, strips accents in Greek and
+  produces the wrong I in Turkish.
+-->
+<resources>
+    <string name="activation_title">Lisää tilauksesi</string>
+    <string name="trial_name">Castivio-kokeilujakso</string>
+    <string name="mac_label">MAC-OSOITE</string>
+    <string name="key_label">LAITEAVAIN</string>
+    <string name="copy_mac">Kopioi MAC-osoite</string>
+    <string name="copy_key">Kopioi laiteavain</string>
+    <string name="copied_mac">MAC-osoite kopioitu</string>
+    <string name="copied_key">Laiteavain kopioitu</string>
+    <string name="add_playlist">Lisää soittolista</string>
+    <string name="refresh">Päivitä</string>
+    <string name="refresh_checking">Tarkistetaan…</string>
+    <string name="refresh_found">Tilaus löytyi</string>
+    <string name="refresh_none">Ei vielä tilausta</string>
+    <string name="refresh_error">Päivitys epäonnistui — yritä uudelleen</string>
+    <string name="qr_caption">Skannaa ja määritä puhelimessa</string>
+    <string name="legal_player_only">Castivio on vain soitin eikä tarjoa tilauksia tai sisältöä.</string>
+    <string name="mac_spoken">MAC-osoite %s</string>
+    <string name="language">Kieli</string>
+    <string name="language_count">%d saatavilla</string>
+    <string name="language_close">Sulje</string>
+    <string name="language_back_hint">Sulje takaisin-painikkeella</string>
+    <string name="language_selected">Valittu</string>
+    <string name="activation_screen">Lisää tilauksesi</string>
+
+    <plurals name="trial_days">
+        <item quantity="one">%d päivä</item>
+        <item quantity="other">%d päivää</item>
+    </plurals>
+
+    <string name="locale_sentinel" translatable="false">fi</string>
+</resources>

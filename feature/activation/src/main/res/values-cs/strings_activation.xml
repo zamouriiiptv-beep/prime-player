@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The activation screen and the language picker.
+
+  Every key here exists in all 39 locale directories; check-invariants.sh fails
+  the build if one does not. "subscription" belongs to the provider -- Castivio's
+  seven days are a trial and always carry Castivio's name.
+
+  The overline labels are stored in the case they are displayed in. Nothing calls
+  uppercase() on them: that is locale-sensitive, strips accents in Greek and
+  produces the wrong I in Turkish.
+-->
+<resources>
+    <string name="activation_title">Přidejte své předplatné</string>
+    <string name="trial_name">Zkušební verze Castivio</string>
+    <string name="mac_label">MAC ADRESA</string>
+    <string name="key_label">KLÍČ ZAŘÍZENÍ</string>
+    <string name="copy_mac">Kopírovat MAC adresu</string>
+    <string name="copy_key">Kopírovat klíč zařízení</string>
+    <string name="copied_mac">MAC adresa zkopírována</string>
+    <string name="copied_key">Klíč zařízení zkopírován</string>
+    <string name="add_playlist">Přidat playlist</string>
+    <string name="refresh">Obnovit</string>
+    <string name="refresh_checking">Ověřování…</string>
+    <string name="refresh_found">Předplatné nalezeno</string>
+    <string name="refresh_none">Zatím žádné předplatné</string>
+    <string name="refresh_error">Obnovení se nezdařilo — zkuste to znovu</string>
+    <string name="qr_caption">Naskenujte pro nastavení v telefonu</string>
+    <string name="legal_player_only">Castivio je pouze přehrávač a neposkytuje předplatné ani obsah.</string>
+    <string name="mac_spoken">MAC adresa %s</string>
+    <string name="language">Jazyk</string>
+    <string name="language_count">K dispozici: %d</string>
+    <string name="language_close">Zavřít</string>
+    <string name="language_back_hint">Zpět pro zavření</string>
+    <string name="language_selected">Vybráno</string>
+    <string name="activation_screen">Přidejte své předplatné</string>
+
+    <plurals name="trial_days">
+        <item quantity="one">%d den</item>
+        <item quantity="few">%d dny</item>
+        <item quantity="many">%d dne</item>
+        <item quantity="other">%d dní</item>
+    </plurals>
+
+    <string name="locale_sentinel" translatable="false">cs</string>
+</resources>

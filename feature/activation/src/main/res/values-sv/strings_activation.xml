@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The activation screen and the language picker.
+
+  Every key here exists in all 39 locale directories; check-invariants.sh fails
+  the build if one does not. "subscription" belongs to the provider -- Castivio's
+  seven days are a trial and always carry Castivio's name.
+
+  The overline labels are stored in the case they are displayed in. Nothing calls
+  uppercase() on them: that is locale-sensitive, strips accents in Greek and
+  produces the wrong I in Turkish.
+-->
+<resources>
+    <string name="activation_title">Lägg till din prenumeration</string>
+    <string name="trial_name">Castivio-testperiod</string>
+    <string name="mac_label">MAC-ADRESS</string>
+    <string name="key_label">ENHETSNYCKEL</string>
+    <string name="copy_mac">Kopiera MAC-adressen</string>
+    <string name="copy_key">Kopiera enhetsnyckeln</string>
+    <string name="copied_mac">MAC-adressen kopierad</string>
+    <string name="copied_key">Enhetsnyckeln kopierad</string>
+    <string name="add_playlist">Lägg till spellista</string>
+    <string name="refresh">Uppdatera</string>
+    <string name="refresh_checking">Kontrollerar…</string>
+    <string name="refresh_found">Prenumeration hittad</string>
+    <string name="refresh_none">Ingen prenumeration ännu</string>
+    <string name="refresh_error">Kunde inte uppdatera — försök igen</string>
+    <string name="qr_caption">Skanna för att konfigurera i mobilen</string>
+    <string name="legal_player_only">Castivio är endast en spelare och tillhandahåller inga prenumerationer eller innehåll.</string>
+    <string name="mac_spoken">MAC-adress %s</string>
+    <string name="language">Språk</string>
+    <string name="language_count">%d tillgängliga</string>
+    <string name="language_close">Stäng</string>
+    <string name="language_back_hint">Bakåt för att stänga</string>
+    <string name="language_selected">Vald</string>
+    <string name="activation_screen">Lägg till din prenumeration</string>
+
+    <plurals name="trial_days">
+        <item quantity="one">%d dag</item>
+        <item quantity="other">%d dagar</item>
+    </plurals>
+
+    <string name="locale_sentinel" translatable="false">sv</string>
+</resources>

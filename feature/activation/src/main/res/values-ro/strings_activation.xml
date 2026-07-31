@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The activation screen and the language picker.
+
+  Every key here exists in all 39 locale directories; check-invariants.sh fails
+  the build if one does not. "subscription" belongs to the provider -- Castivio's
+  seven days are a trial and always carry Castivio's name.
+
+  The overline labels are stored in the case they are displayed in. Nothing calls
+  uppercase() on them: that is locale-sensitive, strips accents in Greek and
+  produces the wrong I in Turkish.
+-->
+<resources>
+    <string name="activation_title">Adaugă-ți abonamentul</string>
+    <string name="trial_name">Perioadă de probă Castivio</string>
+    <string name="mac_label">ADRESĂ MAC</string>
+    <string name="key_label">CHEIA DISPOZITIVULUI</string>
+    <string name="copy_mac">Copiază adresa MAC</string>
+    <string name="copy_key">Copiază cheia dispozitivului</string>
+    <string name="copied_mac">Adresă MAC copiată</string>
+    <string name="copied_key">Cheia dispozitivului a fost copiată</string>
+    <string name="add_playlist">Adaugă o playlistă</string>
+    <string name="refresh">Actualizează</string>
+    <string name="refresh_checking">Se verifică…</string>
+    <string name="refresh_found">Abonament găsit</string>
+    <string name="refresh_none">Încă niciun abonament</string>
+    <string name="refresh_error">Actualizarea a eșuat — încearcă din nou</string>
+    <string name="qr_caption">Scanează pentru configurare pe telefon</string>
+    <string name="legal_player_only">Castivio este doar un player și nu oferă abonamente sau conținut.</string>
+    <string name="mac_spoken">Adresă MAC %s</string>
+    <string name="language">Limbă</string>
+    <string name="language_count">%d disponibile</string>
+    <string name="language_close">Închide</string>
+    <string name="language_back_hint">Înapoi pentru a închide</string>
+    <string name="language_selected">Selectată</string>
+    <string name="activation_screen">Adaugă-ți abonamentul</string>
+
+    <plurals name="trial_days">
+        <item quantity="one">%d zi</item>
+        <item quantity="few">%d zile</item>
+        <item quantity="other">%d de zile</item>
+    </plurals>
+
+    <string name="locale_sentinel" translatable="false">ro</string>
+</resources>

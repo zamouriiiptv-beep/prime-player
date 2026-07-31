@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The activation screen and the language picker.
+
+  Every key here exists in all 39 locale directories; check-invariants.sh fails
+  the build if one does not. "subscription" belongs to the provider -- Castivio's
+  seven days are a trial and always carry Castivio's name.
+
+  The overline labels are stored in the case they are displayed in. Nothing calls
+  uppercase() on them: that is locale-sensitive, strips accents in Greek and
+  produces the wrong I in Turkish.
+-->
+<resources>
+    <string name="activation_title">Thêm gói đăng ký của bạn</string>
+    <string name="trial_name">Bản dùng thử Castivio</string>
+    <string name="mac_label">ĐỊA CHỈ MAC</string>
+    <string name="key_label">KHÓA THIẾT BỊ</string>
+    <string name="copy_mac">Sao chép địa chỉ MAC</string>
+    <string name="copy_key">Sao chép khóa thiết bị</string>
+    <string name="copied_mac">Đã sao chép địa chỉ MAC</string>
+    <string name="copied_key">Đã sao chép khóa thiết bị</string>
+    <string name="add_playlist">Thêm danh sách phát</string>
+    <string name="refresh">Làm mới</string>
+    <string name="refresh_checking">Đang kiểm tra…</string>
+    <string name="refresh_found">Đã tìm thấy gói đăng ký</string>
+    <string name="refresh_none">Chưa có gói đăng ký</string>
+    <string name="refresh_error">Không làm mới được — thử lại</string>
+    <string name="qr_caption">Quét để thiết lập trên điện thoại</string>
+    <string name="legal_player_only">Castivio chỉ là trình phát và không cung cấp gói đăng ký hay nội dung.</string>
+    <string name="mac_spoken">Địa chỉ MAC %s</string>
+    <string name="language">Ngôn ngữ</string>
+    <string name="language_count">%d ngôn ngữ</string>
+    <string name="language_close">Đóng</string>
+    <string name="language_back_hint">Quay lại để đóng</string>
+    <string name="language_selected">Đang chọn</string>
+    <string name="activation_screen">Thêm gói đăng ký của bạn</string>
+
+    <plurals name="trial_days">
+        <item quantity="other">%d ngày</item>
+    </plurals>
+
+    <string name="locale_sentinel" translatable="false">vi</string>
+</resources>

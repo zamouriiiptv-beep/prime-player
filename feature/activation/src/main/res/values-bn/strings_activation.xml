@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The activation screen and the language picker.
+
+  Every key here exists in all 39 locale directories; check-invariants.sh fails
+  the build if one does not. "subscription" belongs to the provider -- Castivio's
+  seven days are a trial and always carry Castivio's name.
+
+  The overline labels are stored in the case they are displayed in. Nothing calls
+  uppercase() on them: that is locale-sensitive, strips accents in Greek and
+  produces the wrong I in Turkish.
+-->
+<resources>
+    <string name="activation_title">আপনার সাবস্ক্রিপশন যোগ করুন</string>
+    <string name="trial_name">Castivio ট্রায়াল</string>
+    <string name="mac_label">MAC ঠিকানা</string>
+    <string name="key_label">ডিভাইস কী</string>
+    <string name="copy_mac">MAC ঠিকানা কপি করুন</string>
+    <string name="copy_key">ডিভাইস কী কপি করুন</string>
+    <string name="copied_mac">MAC ঠিকানা কপি হয়েছে</string>
+    <string name="copied_key">ডিভাইস কী কপি হয়েছে</string>
+    <string name="add_playlist">প্লেলিস্ট যোগ করুন</string>
+    <string name="refresh">রিফ্রেশ</string>
+    <string name="refresh_checking">পরীক্ষা করা হচ্ছে…</string>
+    <string name="refresh_found">সাবস্ক্রিপশন পাওয়া গেছে</string>
+    <string name="refresh_none">এখনও কোনও সাবস্ক্রিপশন নেই</string>
+    <string name="refresh_error">রিফ্রেশ করা যায়নি — আবার চেষ্টা করুন</string>
+    <string name="qr_caption">ফোনে সেট আপ করতে স্ক্যান করুন</string>
+    <string name="legal_player_only">Castivio শুধুমাত্র একটি প্লেয়ার এবং সাবস্ক্রিপশন বা কনটেন্ট সরবরাহ করে না।</string>
+    <string name="mac_spoken">MAC ঠিকানা %s</string>
+    <string name="language">ভাষা</string>
+    <string name="language_count">%dটি উপলব্ধ</string>
+    <string name="language_close">বন্ধ</string>
+    <string name="language_back_hint">বন্ধ করতে ফিরে যান</string>
+    <string name="language_selected">নির্বাচিত</string>
+    <string name="activation_screen">আপনার সাবস্ক্রিপশন যোগ করুন</string>
+
+    <plurals name="trial_days">
+        <item quantity="one">%d দিন</item>
+        <item quantity="other">%d দিন</item>
+    </plurals>
+
+    <string name="locale_sentinel" translatable="false">bn</string>
+</resources>

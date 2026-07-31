@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The activation screen and the language picker.
+
+  Every key here exists in all 39 locale directories; check-invariants.sh fails
+  the build if one does not. "subscription" belongs to the provider -- Castivio's
+  seven days are a trial and always carry Castivio's name.
+
+  The overline labels are stored in the case they are displayed in. Nothing calls
+  uppercase() on them: that is locale-sensitive, strips accents in Greek and
+  produces the wrong I in Turkish.
+-->
+<resources>
+    <string name="activation_title">أضف اشتراكك</string>
+    <string name="trial_name">تجربة Castivio</string>
+    <string name="mac_label">عنوان MAC</string>
+    <string name="key_label">مفتاح الجهاز</string>
+    <string name="copy_mac">نسخ عنوان MAC</string>
+    <string name="copy_key">نسخ مفتاح الجهاز</string>
+    <string name="copied_mac">تم نسخ عنوان MAC</string>
+    <string name="copied_key">تم نسخ مفتاح الجهاز</string>
+    <string name="add_playlist">إضافة قائمة تشغيل</string>
+    <string name="refresh">تحديث</string>
+    <string name="refresh_checking">جارٍ التحقق…</string>
+    <string name="refresh_found">تم العثور على اشتراك</string>
+    <string name="refresh_none">لا يوجد اشتراك بعد</string>
+    <string name="refresh_error">تعذر التحديث — أعد المحاولة</string>
+    <string name="qr_caption">امسح الرمز للإعداد على هاتفك</string>
+    <string name="legal_player_only">Castivio مشغّل فقط ولا يوفّر اشتراكات أو محتوى.</string>
+    <string name="mac_spoken">عنوان MAC %s</string>
+    <string name="language">اللغة</string>
+    <string name="language_count">%d متاحة</string>
+    <string name="language_close">إغلاق</string>
+    <string name="language_back_hint">رجوع للإغلاق</string>
+    <string name="language_selected">مختارة</string>
+    <string name="activation_screen">أضف اشتراكك</string>
+
+    <plurals name="trial_days">
+        <item quantity="zero">%d يوم</item>
+        <item quantity="one">يوم واحد</item>
+        <item quantity="two">يومان</item>
+        <item quantity="few">%d أيام</item>
+        <item quantity="many">%d يومًا</item>
+        <item quantity="other">%d يوم</item>
+    </plurals>
+
+    <string name="locale_sentinel" translatable="false">ar</string>
+</resources>

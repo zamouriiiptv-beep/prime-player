@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The activation screen and the language picker.
+
+  Every key here exists in all 39 locale directories; check-invariants.sh fails
+  the build if one does not. "subscription" belongs to the provider -- Castivio's
+  seven days are a trial and always carry Castivio's name.
+
+  The overline labels are stored in the case they are displayed in. Nothing calls
+  uppercase() on them: that is locale-sensitive, strips accents in Greek and
+  produces the wrong I in Turkish.
+-->
+<resources>
+    <string name="activation_title">新增您的訂閱</string>
+    <string name="trial_name">Castivio 試用</string>
+    <string name="mac_label">MAC 位址</string>
+    <string name="key_label">裝置金鑰</string>
+    <string name="copy_mac">複製 MAC 位址</string>
+    <string name="copy_key">複製裝置金鑰</string>
+    <string name="copied_mac">已複製 MAC 位址</string>
+    <string name="copied_key">已複製裝置金鑰</string>
+    <string name="add_playlist">新增播放清單</string>
+    <string name="refresh">重新整理</string>
+    <string name="refresh_checking">正在檢查…</string>
+    <string name="refresh_found">已找到訂閱</string>
+    <string name="refresh_none">尚無訂閱</string>
+    <string name="refresh_error">無法重新整理 — 請再試一次</string>
+    <string name="qr_caption">掃描以在手機上設定</string>
+    <string name="legal_player_only">Castivio 僅為播放器，不提供訂閱或內容。</string>
+    <string name="mac_spoken">MAC 位址 %s</string>
+    <string name="language">語言</string>
+    <string name="language_count">%d 種可選</string>
+    <string name="language_close">關閉</string>
+    <string name="language_back_hint">按返回鍵關閉</string>
+    <string name="language_selected">已選取</string>
+    <string name="activation_screen">新增您的訂閱</string>
+
+    <plurals name="trial_days">
+        <item quantity="other">%d 天</item>
+    </plurals>
+
+    <string name="locale_sentinel" translatable="false">zh-Hant</string>
+</resources>

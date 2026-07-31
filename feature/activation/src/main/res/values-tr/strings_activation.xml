@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The activation screen and the language picker.
+
+  Every key here exists in all 39 locale directories; check-invariants.sh fails
+  the build if one does not. "subscription" belongs to the provider -- Castivio's
+  seven days are a trial and always carry Castivio's name.
+
+  The overline labels are stored in the case they are displayed in. Nothing calls
+  uppercase() on them: that is locale-sensitive, strips accents in Greek and
+  produces the wrong I in Turkish.
+-->
+<resources>
+    <string name="activation_title">Aboneliğinizi ekleyin</string>
+    <string name="trial_name">Castivio deneme sürümü</string>
+    <string name="mac_label">MAC ADRESİ</string>
+    <string name="key_label">CİHAZ ANAHTARI</string>
+    <string name="copy_mac">MAC adresini kopyala</string>
+    <string name="copy_key">Cihaz anahtarını kopyala</string>
+    <string name="copied_mac">MAC adresi kopyalandı</string>
+    <string name="copied_key">Cihaz anahtarı kopyalandı</string>
+    <string name="add_playlist">Oynatma listesi ekle</string>
+    <string name="refresh">Yenile</string>
+    <string name="refresh_checking">Kontrol ediliyor…</string>
+    <string name="refresh_found">Abonelik bulundu</string>
+    <string name="refresh_none">Henüz abonelik yok</string>
+    <string name="refresh_error">Yenilenemedi — tekrar deneyin</string>
+    <string name="qr_caption">Telefonunuzda kurmak için tarayın</string>
+    <string name="legal_player_only">Castivio yalnızca bir oynatıcıdır; abonelik veya içerik sağlamaz.</string>
+    <string name="mac_spoken">MAC adresi %s</string>
+    <string name="language">Dil</string>
+    <string name="language_count">%d dil mevcut</string>
+    <string name="language_close">Kapat</string>
+    <string name="language_back_hint">Kapatmak için geri</string>
+    <string name="language_selected">Seçili</string>
+    <string name="activation_screen">Aboneliğinizi ekleyin</string>
+
+    <plurals name="trial_days">
+        <item quantity="one">%d gün</item>
+        <item quantity="other">%d gün</item>
+    </plurals>
+
+    <string name="locale_sentinel" translatable="false">tr</string>
+</resources>

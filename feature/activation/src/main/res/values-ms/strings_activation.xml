@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The activation screen and the language picker.
+
+  Every key here exists in all 39 locale directories; check-invariants.sh fails
+  the build if one does not. "subscription" belongs to the provider -- Castivio's
+  seven days are a trial and always carry Castivio's name.
+
+  The overline labels are stored in the case they are displayed in. Nothing calls
+  uppercase() on them: that is locale-sensitive, strips accents in Greek and
+  produces the wrong I in Turkish.
+-->
+<resources>
+    <string name="activation_title">Tambah langganan anda</string>
+    <string name="trial_name">Percubaan Castivio</string>
+    <string name="mac_label">ALAMAT MAC</string>
+    <string name="key_label">KUNCI PERANTI</string>
+    <string name="copy_mac">Salin alamat MAC</string>
+    <string name="copy_key">Salin kunci peranti</string>
+    <string name="copied_mac">Alamat MAC disalin</string>
+    <string name="copied_key">Kunci peranti disalin</string>
+    <string name="add_playlist">Tambah senarai main</string>
+    <string name="refresh">Muat semula</string>
+    <string name="refresh_checking">Menyemak…</string>
+    <string name="refresh_found">Langganan dijumpai</string>
+    <string name="refresh_none">Belum ada langganan</string>
+    <string name="refresh_error">Gagal memuat semula — cuba lagi</string>
+    <string name="qr_caption">Imbas untuk sediakan pada telefon</string>
+    <string name="legal_player_only">Castivio hanyalah pemain dan tidak menyediakan langganan atau kandungan.</string>
+    <string name="mac_spoken">Alamat MAC %s</string>
+    <string name="language">Bahasa</string>
+    <string name="language_count">%d tersedia</string>
+    <string name="language_close">Tutup</string>
+    <string name="language_back_hint">Kembali untuk menutup</string>
+    <string name="language_selected">Dipilih</string>
+    <string name="activation_screen">Tambah langganan anda</string>
+
+    <plurals name="trial_days">
+        <item quantity="other">%d hari</item>
+    </plurals>
+
+    <string name="locale_sentinel" translatable="false">ms</string>
+</resources>

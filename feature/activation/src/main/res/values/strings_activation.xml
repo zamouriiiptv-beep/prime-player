@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The activation screen and the language picker.
+
+  Every key here exists in all 39 locale directories; check-invariants.sh fails
+  the build if one does not. "subscription" belongs to the provider -- Castivio's
+  seven days are a trial and always carry Castivio's name.
+
+  The overline labels are stored in the case they are displayed in. Nothing calls
+  uppercase() on them: that is locale-sensitive, strips accents in Greek and
+  produces the wrong I in Turkish.
+-->
+<resources>
+    <string name="activation_title">Add your subscription</string>
+    <string name="trial_name">Castivio trial</string>
+    <string name="mac_label">MAC ADDRESS</string>
+    <string name="key_label">DEVICE KEY</string>
+    <string name="copy_mac">Copy MAC address</string>
+    <string name="copy_key">Copy device key</string>
+    <string name="copied_mac">MAC address copied</string>
+    <string name="copied_key">Device key copied</string>
+    <string name="add_playlist">Add playlist</string>
+    <string name="refresh">Refresh</string>
+    <string name="refresh_checking">Checking…</string>
+    <string name="refresh_found">Subscription found</string>
+    <string name="refresh_none">No subscription yet</string>
+    <string name="refresh_error">Couldn’t refresh — try again</string>
+    <string name="qr_caption">Scan to set up on your phone</string>
+    <string name="legal_player_only">Castivio is only a player and does not provide subscriptions or content.</string>
+    <string name="mac_spoken">MAC address %s</string>
+    <string name="language">Language</string>
+    <string name="language_count">%d available</string>
+    <string name="language_close">Close</string>
+    <string name="language_back_hint">Back to close</string>
+    <string name="language_selected">Selected</string>
+    <string name="activation_screen">Add your subscription</string>
+
+    <plurals name="trial_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+
+    <string name="locale_sentinel" translatable="false">en</string>
+</resources>

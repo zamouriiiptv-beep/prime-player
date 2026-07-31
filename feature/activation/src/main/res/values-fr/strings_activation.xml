@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The activation screen and the language picker.
+
+  Every key here exists in all 39 locale directories; check-invariants.sh fails
+  the build if one does not. "subscription" belongs to the provider -- Castivio's
+  seven days are a trial and always carry Castivio's name.
+
+  The overline labels are stored in the case they are displayed in. Nothing calls
+  uppercase() on them: that is locale-sensitive, strips accents in Greek and
+  produces the wrong I in Turkish.
+-->
+<resources>
+    <string name="activation_title">Ajoutez votre abonnement</string>
+    <string name="trial_name">Essai Castivio</string>
+    <string name="mac_label">ADRESSE MAC</string>
+    <string name="key_label">CLÉ D’APPAREIL</string>
+    <string name="copy_mac">Copier l’adresse MAC</string>
+    <string name="copy_key">Copier la clé d’appareil</string>
+    <string name="copied_mac">Adresse MAC copiée</string>
+    <string name="copied_key">Clé d’appareil copiée</string>
+    <string name="add_playlist">Ajouter une playlist</string>
+    <string name="refresh">Actualiser</string>
+    <string name="refresh_checking">Vérification…</string>
+    <string name="refresh_found">Abonnement trouvé</string>
+    <string name="refresh_none">Aucun abonnement pour l’instant</string>
+    <string name="refresh_error">Échec de l’actualisation — réessayez</string>
+    <string name="qr_caption">Scannez pour configurer sur votre téléphone</string>
+    <string name="legal_player_only">Castivio est uniquement un lecteur et ne fournit ni abonnements ni contenus.</string>
+    <string name="mac_spoken">Adresse MAC %s</string>
+    <string name="language">Langue</string>
+    <string name="language_count">%d disponibles</string>
+    <string name="language_close">Fermer</string>
+    <string name="language_back_hint">Retour pour fermer</string>
+    <string name="language_selected">Sélectionnée</string>
+    <string name="activation_screen">Ajoutez votre abonnement</string>
+
+    <plurals name="trial_days">
+        <item quantity="one">%d jour</item>
+        <item quantity="other">%d jours</item>
+    </plurals>
+
+    <string name="locale_sentinel" translatable="false">fr</string>
+</resources>

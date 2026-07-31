@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The activation screen and the language picker.
+
+  Every key here exists in all 39 locale directories; check-invariants.sh fails
+  the build if one does not. "subscription" belongs to the provider -- Castivio's
+  seven days are a trial and always carry Castivio's name.
+
+  The overline labels are stored in the case they are displayed in. Nothing calls
+  uppercase() on them: that is locale-sensitive, strips accents in Greek and
+  produces the wrong I in Turkish.
+-->
+<resources>
+    <string name="activation_title">Додајте своју претплату</string>
+    <string name="trial_name">Castivio пробни период</string>
+    <string name="mac_label">MAC АДРЕСА</string>
+    <string name="key_label">КЉУЧ УРЕЂАЈА</string>
+    <string name="copy_mac">Копирај MAC адресу</string>
+    <string name="copy_key">Копирај кључ уређаја</string>
+    <string name="copied_mac">MAC адреса је копирана</string>
+    <string name="copied_key">Кључ уређаја је копиран</string>
+    <string name="add_playlist">Додај плејлисту</string>
+    <string name="refresh">Освежи</string>
+    <string name="refresh_checking">Провера…</string>
+    <string name="refresh_found">Претплата је пронађена</string>
+    <string name="refresh_none">Још нема претплате</string>
+    <string name="refresh_error">Освежавање није успело — покушајте поново</string>
+    <string name="qr_caption">Скенирајте да подесите на телефону</string>
+    <string name="legal_player_only">Castivio је само плејер и не пружа претплате ни садржај.</string>
+    <string name="mac_spoken">MAC адреса %s</string>
+    <string name="language">Језик</string>
+    <string name="language_count">Доступно: %d</string>
+    <string name="language_close">Затвори</string>
+    <string name="language_back_hint">Назад за затварање</string>
+    <string name="language_selected">Изабрано</string>
+    <string name="activation_screen">Додајте своју претплату</string>
+
+    <plurals name="trial_days">
+        <item quantity="one">%d дан</item>
+        <item quantity="few">%d дана</item>
+        <item quantity="other">%d дана</item>
+    </plurals>
+
+    <string name="locale_sentinel" translatable="false">sr</string>
+</resources>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The activation screen and the language picker.
+
+  Every key here exists in all 39 locale directories; check-invariants.sh fails
+  the build if one does not. "subscription" belongs to the provider -- Castivio's
+  seven days are a trial and always carry Castivio's name.
+
+  The overline labels are stored in the case they are displayed in. Nothing calls
+  uppercase() on them: that is locale-sensitive, strips accents in Greek and
+  produces the wrong I in Turkish.
+-->
+<resources>
+    <string name="activation_title">Додайте підписку</string>
+    <string name="trial_name">Пробний період Castivio</string>
+    <string name="mac_label">MAC-АДРЕСА</string>
+    <string name="key_label">КЛЮЧ ПРИСТРОЮ</string>
+    <string name="copy_mac">Копіювати MAC-адресу</string>
+    <string name="copy_key">Копіювати ключ пристрою</string>
+    <string name="copied_mac">MAC-адресу скопійовано</string>
+    <string name="copied_key">Ключ пристрою скопійовано</string>
+    <string name="add_playlist">Додати плейлист</string>
+    <string name="refresh">Оновити</string>
+    <string name="refresh_checking">Перевірка…</string>
+    <string name="refresh_found">Підписку знайдено</string>
+    <string name="refresh_none">Підписки ще немає</string>
+    <string name="refresh_error">Не вдалося оновити — спробуйте ще раз</string>
+    <string name="qr_caption">Скануйте, щоб налаштувати на телефоні</string>
+    <string name="legal_player_only">Castivio — лише програвач; він не надає підписок або контенту.</string>
+    <string name="mac_spoken">MAC-адреса %s</string>
+    <string name="language">Мова</string>
+    <string name="language_count">Доступно %d</string>
+    <string name="language_close">Закрити</string>
+    <string name="language_back_hint">Назад, щоб закрити</string>
+    <string name="language_selected">Вибрано</string>
+    <string name="activation_screen">Додайте підписку</string>
+
+    <plurals name="trial_days">
+        <item quantity="one">%d день</item>
+        <item quantity="few">%d дні</item>
+        <item quantity="many">%d днів</item>
+        <item quantity="other">%d дня</item>
+    </plurals>
+
+    <string name="locale_sentinel" translatable="false">uk</string>
+</resources>

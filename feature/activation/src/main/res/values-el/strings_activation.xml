@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The activation screen and the language picker.
+
+  Every key here exists in all 39 locale directories; check-invariants.sh fails
+  the build if one does not. "subscription" belongs to the provider -- Castivio's
+  seven days are a trial and always carry Castivio's name.
+
+  The overline labels are stored in the case they are displayed in. Nothing calls
+  uppercase() on them: that is locale-sensitive, strips accents in Greek and
+  produces the wrong I in Turkish.
+-->
+<resources>
+    <string name="activation_title">Προσθέστε τη συνδρομή σας</string>
+    <string name="trial_name">Δοκιμή Castivio</string>
+    <string name="mac_label">ΔΙΕΥΘΥΝΣΗ MAC</string>
+    <string name="key_label">ΚΛΕΙΔΙ ΣΥΣΚΕΥΗΣ</string>
+    <string name="copy_mac">Αντιγραφή διεύθυνσης MAC</string>
+    <string name="copy_key">Αντιγραφή κλειδιού συσκευής</string>
+    <string name="copied_mac">Η διεύθυνση MAC αντιγράφηκε</string>
+    <string name="copied_key">Το κλειδί συσκευής αντιγράφηκε</string>
+    <string name="add_playlist">Προσθήκη λίστας</string>
+    <string name="refresh">Ανανέωση</string>
+    <string name="refresh_checking">Έλεγχος…</string>
+    <string name="refresh_found">Βρέθηκε συνδρομή</string>
+    <string name="refresh_none">Δεν υπάρχει ακόμη συνδρομή</string>
+    <string name="refresh_error">Η ανανέωση απέτυχε — δοκιμάστε ξανά</string>
+    <string name="qr_caption">Σαρώστε για ρύθμιση στο κινητό</string>
+    <string name="legal_player_only">Το Castivio είναι μόνο πρόγραμμα αναπαραγωγής και δεν παρέχει συνδρομές ή περιεχόμενο.</string>
+    <string name="mac_spoken">Διεύθυνση MAC %s</string>
+    <string name="language">Γλώσσα</string>
+    <string name="language_count">%d διαθέσιμες</string>
+    <string name="language_close">Κλείσιμο</string>
+    <string name="language_back_hint">Πίσω για κλείσιμο</string>
+    <string name="language_selected">Επιλεγμένη</string>
+    <string name="activation_screen">Προσθέστε τη συνδρομή σας</string>
+
+    <plurals name="trial_days">
+        <item quantity="one">%d ημέρα</item>
+        <item quantity="other">%d ημέρες</item>
+    </plurals>
+
+    <string name="locale_sentinel" translatable="false">el</string>
+</resources>

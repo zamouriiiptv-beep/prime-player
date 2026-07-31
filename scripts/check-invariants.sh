@@ -121,6 +121,87 @@ if [ "$count" -ne 37 ]; then
   deliberately, in its own commit."
 fi
 
+# ------------------------------------------------- localisation is complete or it is not
+# Thirty-seven languages is a promise, and "we added the language" is not the
+# same claim as "every string exists in it". This checks the second one, over
+# every locale directory, independently of any geometry measurement.
+#
+# It exists because the failure it catches is invisible: a missing key does not
+# crash, it silently renders English inside an otherwise translated screen, and
+# nobody testing in their own language will ever see it.
+RES=feature/activation/src/main/res
+BASE=$RES/values/strings_activation.xml
+if [ ! -f "$BASE" ]; then
+  fail "The activation strings are missing" "$BASE"
+fi
+
+# Every <string> and <plurals> name the default locale declares, minus the ones
+# marked untranslatable.
+want=$(grep -oE '<(string|plurals) name="[a-z_0-9]+"( translatable="false")?' "$BASE" \
+        | grep -v 'translatable="false"' \
+        | sed -E 's/.*name="([a-z_0-9]+)".*/\1/' | sort -u)
+
+problems=''
+for file in "$RES"/values*/strings_activation.xml; do
+  dir=$(basename "$(dirname "$file")")
+  for key in $want; do
+    # Present, and with something between the tags. An empty translation is the
+    # one a hurried pass leaves behind, and it renders as a blank control.
+    line=$(grep -oE "<(string|plurals) name=\"$key\">.*" "$file" | head -1)
+    if [ -z "$line" ]; then
+      problems="$problems
+  $dir  missing   $key"
+    elif echo "$line" | grep -qE "<string name=\"$key\"></string>|<string name=\"$key\">[[:space:]]*</string>"; then
+      problems="$problems
+  $dir  empty     $key"
+    fi
+  done
+  # A plural with no <item> is present, non-empty and useless.
+  if grep -q '<plurals' "$file" && ! grep -q '<item quantity=' "$file"; then
+    problems="$problems
+  $dir  no plural forms"
+  fi
+  # Markers from the mockup harness and from unfinished work. Any of these
+  # reaching a resource file means a string was shipped before it was written.
+  if grep -qE 'TODO|FIXME|⟨|XXX|%s%s' "$file"; then
+    problems="$problems
+  $dir  placeholder left in the file"
+  fi
+done
+
+if [ -n "$problems" ]; then
+  fail "Activation strings are not complete in every locale" \
+       "$problems
+
+  Every key in values/ must exist, non-empty, in every locale directory.
+  Passing the stress-language subset says nothing about the others."
+fi
+
+# Every language the model declares must have somewhere to read its strings
+# from. This is the join between the Kotlin list and the resource tree, and
+# without it the two drift silently -- a language in the picker whose
+# directory nobody created falls back to English and looks translated.
+# Two ways a qualifier is spelled in the model. Both are collected, because
+# checking only the explicit ones would leave 32 of the 37 unchecked -- and
+# those are exactly the languages nobody thinks about.
+#
+#   explicit   one("id", "values-in")   or   LanguageVariant("pt-BR", "values-pt")
+#   implicit   one("de")                ->   values-de
+#
+# `grep -v '\$'` drops the "values-$code" template in the helper itself; it is a
+# pattern, not a directory.
+explicit=$(grep -oE '"values(-[^"]*)?"' "$LANGS" | tr -d '"' | grep -v '\$')
+implicit=$(grep -oE 'one\("[a-z]+"\)' "$LANGS" | sed -E 's/one\("(.*)"\)/values-\1/')
+for qualifier in $(printf '%s\n%s\n' "$explicit" "$implicit" | sort -u); do
+  if [ ! -f "$RES/$qualifier/strings_activation.xml" ]; then
+    fail "A declared language has no strings" \
+         "$RES/$qualifier/strings_activation.xml
+
+  CastivioLanguage names this directory, and it does not exist. A language
+  in the picker with no resources falls back to English and looks translated."
+  fi
+done
+
 # ------------------------------------------------- the licence cannot license itself
 # Not one of the ten, and the most expensive one to get wrong. A local trial grantor
 # belongs to a development build and nowhere else; the type system already says so

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The activation screen and the language picker.
+
+  Every key here exists in all 39 locale directories; check-invariants.sh fails
+  the build if one does not. "subscription" belongs to the provider -- Castivio's
+  seven days are a trial and always carry Castivio's name.
+
+  The overline labels are stored in the case they are displayed in. Nothing calls
+  uppercase() on them: that is locale-sensitive, strips accents in Greek and
+  produces the wrong I in Turkish.
+-->
+<resources>
+    <string name="activation_title">サブスクリプションを追加</string>
+    <string name="trial_name">Castivio 体験版</string>
+    <string name="mac_label">MAC アドレス</string>
+    <string name="key_label">デバイスキー</string>
+    <string name="copy_mac">MAC アドレスをコピー</string>
+    <string name="copy_key">デバイスキーをコピー</string>
+    <string name="copied_mac">MAC アドレスをコピーしました</string>
+    <string name="copied_key">デバイスキーをコピーしました</string>
+    <string name="add_playlist">プレイリストを追加</string>
+    <string name="refresh">更新</string>
+    <string name="refresh_checking">確認中…</string>
+    <string name="refresh_found">サブスクリプションが見つかりました</string>
+    <string name="refresh_none">サブスクリプションはまだありません</string>
+    <string name="refresh_error">更新できませんでした — もう一度お試しください</string>
+    <string name="qr_caption">スキャンしてスマートフォンで設定</string>
+    <string name="legal_player_only">Castivio はプレーヤーのみを提供し、サブスクリプションやコンテンツは提供しません。</string>
+    <string name="mac_spoken">MAC アドレス %s</string>
+    <string name="language">言語</string>
+    <string name="language_count">%d 言語</string>
+    <string name="language_close">閉じる</string>
+    <string name="language_back_hint">戻るで閉じる</string>
+    <string name="language_selected">選択中</string>
+    <string name="activation_screen">サブスクリプションを追加</string>
+
+    <plurals name="trial_days">
+        <item quantity="other">%d日間</item>
+    </plurals>
+
+    <string name="locale_sentinel" translatable="false">ja</string>
+</resources>

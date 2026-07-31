@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The activation screen and the language picker.
+
+  Every key here exists in all 39 locale directories; check-invariants.sh fails
+  the build if one does not. "subscription" belongs to the provider -- Castivio's
+  seven days are a trial and always carry Castivio's name.
+
+  The overline labels are stored in the case they are displayed in. Nothing calls
+  uppercase() on them: that is locale-sensitive, strips accents in Greek and
+  produces the wrong I in Turkish.
+-->
+<resources>
+    <string name="activation_title">구독 추가</string>
+    <string name="trial_name">Castivio 체험판</string>
+    <string name="mac_label">MAC 주소</string>
+    <string name="key_label">기기 키</string>
+    <string name="copy_mac">MAC 주소 복사</string>
+    <string name="copy_key">기기 키 복사</string>
+    <string name="copied_mac">MAC 주소를 복사했습니다</string>
+    <string name="copied_key">기기 키를 복사했습니다</string>
+    <string name="add_playlist">재생목록 추가</string>
+    <string name="refresh">새로고침</string>
+    <string name="refresh_checking">확인 중…</string>
+    <string name="refresh_found">구독을 찾았습니다</string>
+    <string name="refresh_none">아직 구독이 없습니다</string>
+    <string name="refresh_error">새로고침하지 못했습니다 — 다시 시도하세요</string>
+    <string name="qr_caption">스캔하여 휴대전화에서 설정</string>
+    <string name="legal_player_only">Castivio는 플레이어일 뿐이며 구독이나 콘텐츠를 제공하지 않습니다.</string>
+    <string name="mac_spoken">MAC 주소 %s</string>
+    <string name="language">언어</string>
+    <string name="language_count">%d개 사용 가능</string>
+    <string name="language_close">닫기</string>
+    <string name="language_back_hint">뒤로 눌러 닫기</string>
+    <string name="language_selected">선택됨</string>
+    <string name="activation_screen">구독 추가</string>
+
+    <plurals name="trial_days">
+        <item quantity="other">%d일</item>
+    </plurals>
+
+    <string name="locale_sentinel" translatable="false">ko</string>
+</resources>

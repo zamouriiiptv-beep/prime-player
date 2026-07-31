@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The activation screen and the language picker.
+
+  Every key here exists in all 39 locale directories; check-invariants.sh fails
+  the build if one does not. "subscription" belongs to the provider -- Castivio's
+  seven days are a trial and always carry Castivio's name.
+
+  The overline labels are stored in the case they are displayed in. Nothing calls
+  uppercase() on them: that is locale-sensitive, strips accents in Greek and
+  produces the wrong I in Turkish.
+-->
+<resources>
+    <string name="activation_title">เพิ่มการสมัครสมาชิกของคุณ</string>
+    <string name="trial_name">ทดลองใช้ Castivio</string>
+    <string name="mac_label">ที่อยู่ MAC</string>
+    <string name="key_label">คีย์อุปกรณ์</string>
+    <string name="copy_mac">คัดลอกที่อยู่ MAC</string>
+    <string name="copy_key">คัดลอกคีย์อุปกรณ์</string>
+    <string name="copied_mac">คัดลอกที่อยู่ MAC แล้ว</string>
+    <string name="copied_key">คัดลอกคีย์อุปกรณ์แล้ว</string>
+    <string name="add_playlist">เพิ่มเพลย์ลิสต์</string>
+    <string name="refresh">รีเฟรช</string>
+    <string name="refresh_checking">กำลังตรวจสอบ…</string>
+    <string name="refresh_found">พบการสมัครสมาชิก</string>
+    <string name="refresh_none">ยังไม่มีการสมัครสมาชิก</string>
+    <string name="refresh_error">รีเฟรชไม่สำเร็จ — ลองอีกครั้ง</string>
+    <string name="qr_caption">สแกนเพื่อตั้งค่าบนโทรศัพท์ของคุณ</string>
+    <string name="legal_player_only">Castivio เป็นเพียงโปรแกรมเล่นเท่านั้น ไม่ได้ให้บริการสมัครสมาชิกหรือเนื้อหา</string>
+    <string name="mac_spoken">ที่อยู่ MAC %s</string>
+    <string name="language">ภาษา</string>
+    <string name="language_count">มี %d ภาษา</string>
+    <string name="language_close">ปิด</string>
+    <string name="language_back_hint">กดย้อนกลับเพื่อปิด</string>
+    <string name="language_selected">เลือกอยู่</string>
+    <string name="activation_screen">เพิ่มการสมัครสมาชิกของคุณ</string>
+
+    <plurals name="trial_days">
+        <item quantity="other">%d วัน</item>
+    </plurals>
+
+    <string name="locale_sentinel" translatable="false">th</string>
+</resources>

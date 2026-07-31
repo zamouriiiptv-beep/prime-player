@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The activation screen and the language picker.
+
+  Every key here exists in all 39 locale directories; check-invariants.sh fails
+  the build if one does not. "subscription" belongs to the provider -- Castivio's
+  seven days are a trial and always carry Castivio's name.
+
+  The overline labels are stored in the case they are displayed in. Nothing calls
+  uppercase() on them: that is locale-sensitive, strips accents in Greek and
+  produces the wrong I in Turkish.
+-->
+<resources>
+    <string name="activation_title">Add hozzá az előfizetésed</string>
+    <string name="trial_name">Castivio próbaidőszak</string>
+    <string name="mac_label">MAC-CÍM</string>
+    <string name="key_label">ESZKÖZKULCS</string>
+    <string name="copy_mac">MAC-cím másolása</string>
+    <string name="copy_key">Eszközkulcs másolása</string>
+    <string name="copied_mac">MAC-cím másolva</string>
+    <string name="copied_key">Eszközkulcs másolva</string>
+    <string name="add_playlist">Lejátszási lista hozzáadása</string>
+    <string name="refresh">Frissítés</string>
+    <string name="refresh_checking">Ellenőrzés…</string>
+    <string name="refresh_found">Előfizetés megtalálva</string>
+    <string name="refresh_none">Még nincs előfizetés</string>
+    <string name="refresh_error">A frissítés nem sikerült — próbáld újra</string>
+    <string name="qr_caption">Olvasd be a telefonodon történő beállításhoz</string>
+    <string name="legal_player_only">A Castivio csak egy lejátszó, nem nyújt előfizetést vagy tartalmat.</string>
+    <string name="mac_spoken">MAC-cím %s</string>
+    <string name="language">Nyelv</string>
+    <string name="language_count">%d elérhető</string>
+    <string name="language_close">Bezárás</string>
+    <string name="language_back_hint">Vissza a bezáráshoz</string>
+    <string name="language_selected">Kiválasztva</string>
+    <string name="activation_screen">Add hozzá az előfizetésed</string>
+
+    <plurals name="trial_days">
+        <item quantity="one">%d nap</item>
+        <item quantity="other">%d nap</item>
+    </plurals>
+
+    <string name="locale_sentinel" translatable="false">hu</string>
+</resources>

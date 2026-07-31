@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The activation screen and the language picker.
+
+  Every key here exists in all 39 locale directories; check-invariants.sh fails
+  the build if one does not. "subscription" belongs to the provider -- Castivio's
+  seven days are a trial and always carry Castivio's name.
+
+  The overline labels are stored in the case they are displayed in. Nothing calls
+  uppercase() on them: that is locale-sensitive, strips accents in Greek and
+  produces the wrong I in Turkish.
+-->
+<resources>
+    <string name="activation_title">Добавьте подписку</string>
+    <string name="trial_name">Пробный период Castivio</string>
+    <string name="mac_label">MAC-АДРЕС</string>
+    <string name="key_label">КЛЮЧ УСТРОЙСТВА</string>
+    <string name="copy_mac">Копировать MAC-адрес</string>
+    <string name="copy_key">Копировать ключ устройства</string>
+    <string name="copied_mac">MAC-адрес скопирован</string>
+    <string name="copied_key">Ключ устройства скопирован</string>
+    <string name="add_playlist">Добавить плейлист</string>
+    <string name="refresh">Обновить</string>
+    <string name="refresh_checking">Проверка…</string>
+    <string name="refresh_found">Подписка найдена</string>
+    <string name="refresh_none">Подписки пока нет</string>
+    <string name="refresh_error">Не удалось обновить — попробуйте снова</string>
+    <string name="qr_caption">Отсканируйте, чтобы настроить на телефоне</string>
+    <string name="legal_player_only">Castivio — только плеер; он не предоставляет подписки или контент.</string>
+    <string name="mac_spoken">MAC-адрес %s</string>
+    <string name="language">Язык</string>
+    <string name="language_count">Доступно %d</string>
+    <string name="language_close">Закрыть</string>
+    <string name="language_back_hint">Назад, чтобы закрыть</string>
+    <string name="language_selected">Выбран</string>
+    <string name="activation_screen">Добавьте подписку</string>
+
+    <plurals name="trial_days">
+        <item quantity="one">%d день</item>
+        <item quantity="few">%d дня</item>
+        <item quantity="many">%d дней</item>
+        <item quantity="other">%d дня</item>
+    </plurals>
+
+    <string name="locale_sentinel" translatable="false">ru</string>
+</resources>
