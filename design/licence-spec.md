@@ -621,3 +621,114 @@ older drawing rather than of the shipped screen. The authority for what ships is
 the Kotlin and `ActivationBudgetTest`; this mockup is where the *design* is
 argued, and it will be redrawn when the capsules are folded back into it.
 
+
+---
+
+## 18. What the implementation phase found
+
+Three things, all of the same shape: **a check that measured something adjacent
+to what it claimed to measure.** That is now the fourth, fifth and sixth
+instances in this project, which is enough of a pattern to state as a rule —
+*before trusting a green check, ask what it would have to be pointed at to be
+wrong.*
+
+### 18.1 The mockup harness never measured the band
+
+`measure.js` asked whether anything painted outside the **frame**. It never asked
+whether a zone fitted the **band** that holds it — and a fixed-viewport screen
+centres its zones with `align-items: center`, so a column taller than its band
+overruns it symmetrically, half above and half below, and still paints well
+inside the frame.
+
+Both mockups reported "all combinations fit" while the identity column stood
+**16dp proud of its band** on the shortest phone and 9dp on the television.
+
+On a device that overrun is not a clipped edge. A Compose `Column` whose children
+exceed its height hands **zero** to the ones measured last — which is the bug
+that reached a real device on the sibling screen.
+
+**Fixed and mechanised.** `measure.js` gained a band check, verified by breaking
+it: a 40dp increase to one gap turns the tight frame red with
+`.identity overruns its band (267dp in 259dp)`.
+
+### 18.2 Both mockups modelled a frame the product does not have
+
+Two errors that partly cancelled, which is why neither was noticed:
+
+- **The phone chrome was drawn as flex children**, spending 44dp of stage on a
+  status bar and a gesture bar that an immersive, edge-to-edge screen never
+  loses. They are drawn on the television too, which has neither.
+- **The language chip was drawn at 32dp** with `data-target="48"` beside it — the
+  shorthand for "drawn small, answers big". `LanguageChip` does not do that: it
+  is a `Row` with `heightIn(min = target)` carrying the fill and border on the
+  same modifier chain, so the pill really is 48dp of drawn, laid-out control.
+
+Both corrected **towards the implementation**, because the screen is frozen and
+the drawing was what was wrong. The bands now measure **284 / 259 / 337** — the
+numbers the Kotlin has been computing all along.
+
+### 18.3 The sibling mockup was 23dp out of date
+
+`activation-mac.html` still drew the 69dp label-above-value stack that
+`IdentityCapsule` replaced in the final polish pass. Re-cut to the shipped pill,
+its column measures **230 / 226 / 284** against the app's own table of
+230 / 226 / 284.
+
+### 18.4 Every button in Castivio was under the D-pad floor
+
+Not a mockup problem, and the most serious of the four. `CastivioButton` pinned
+`Sizing.minTouchTarget` on every frame, so on a television every button in the
+application was 48dp where `minTvTarget` is 56 — **the same defect §17.1 called
+blocking, in a shared component, on every screen.** `CastivioIconButton` and
+`CastivioChip` were worse at 36dp, under both floors.
+
+`ActivationBudgetTest` could not have caught it: it asserts the floor for the
+screen's own `Metrics`, and a button's height comes from the design system, which
+knew nothing about televisions.
+
+**Fixed.** `Sizing.minTarget(isTv)` exists so the question can be asked rather
+than remembered, all three components take it, and `check-invariants.sh` fails
+if an interactive component in `:core:design` does not. The activation column
+grows 8dp on television as a result — 284dp against a 337dp band, still the
+largest margin of the three frames.
+
+---
+
+## 19. The shipped budget
+
+Computed by `LicenceBudgetTest` from the same `LicenceMetrics` the screen is
+built from, and measured independently by `measure.js` on the corrected mockup.
+
+| frame | band | column | spare | with a 24dp bar |
+|---|---|---|---|---|
+| 873×393 | 284dp | 249dp | 35dp | 43dp¹ |
+| 800×360 | 259dp | 225dp | 34dp | 10dp |
+| TV 960×540 | 337dp | 302dp | 35dp | — ² |
+
+¹ A navigation bar takes the 873dp frame below the 380dp threshold, so it adopts
+the tighter metric set and gains margin rather than losing it. That is the
+per-frame table doing its job.
+
+² A television has no system bars; `safeDrawing` is zero there.
+
+**The price steps to `headlineMedium` on the 800×360 frame and only there.** The
+column stood 16dp proud of its band before the retune and eight of the sixteen
+were that line's leading. It is the same per-frame step the title, the address
+and the device key already make, and the alternatives were a D-pad target below
+its floor, a capsule too short to hold one, or a screen that drops a control.
+
+### 19.1 The two claims, and where each is made
+
+Robolectric does not lay text out — every `Text` measures 35dp whatever its
+declared style — so a claim about fit made there would be a claim about the
+harness. The split:
+
+| claim | where | why there |
+|---|---|---|
+| Compose **places** every element and none is zero | `LicenceLayoutTest` | only Compose can be asked what Compose placed |
+| the places it puts them **add up** | `LicenceBudgetTest` | on the JVM the numbers are the device's |
+| the design fits in nine languages and thirteen states | `measure.js` | it measures the drawing, never the implementation |
+
+`LicenceLayoutTest` is required to **fail** when the screen is handed an
+unbounded height, so the gate is checked against the bug it exists for rather
+than only ever having passed.
