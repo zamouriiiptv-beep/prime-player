@@ -126,6 +126,11 @@ reopen, and confirm it is still in that language with the device set to another.
       that check disappears.
 - [ ] The legal disclaimer is present and comes from localisation resources, not from
       a string literal.
+- [ ] **The bundled typefaces' licences ship with the app.** Castivio embeds Inter and
+      IBM Plex Sans Arabic, both SIL OFL 1.1, which permits commercial bundling only
+      if the licence text travels with the software. Both files are in
+      `core/design/licenses/`; the About screen has to surface them. Shipping without
+      it is a licence breach, not a missing polish item.
 
 ## Why it is a type and not a flag
 

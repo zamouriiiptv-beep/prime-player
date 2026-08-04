@@ -1,6 +1,8 @@
 package com.castivio.core.design.theme
 
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.core.os.ConfigurationCompat
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
@@ -121,8 +123,28 @@ fun CastivioTheme(
             typography = CastivioType.material,
             shapes = CastivioShapes.material,
         ) {
+            // The brand face, chosen once, for the whole tree.
+            //
+            // Every Castivio style leaves `fontFamily` unset, and `Text` merges
+            // the style it is handed onto `LocalTextStyle` -- so setting the
+            // family here reaches every screen without a single call site naming
+            // a font. Which face depends on the script the interface is in, and
+            // that is the one place in the app where the question is asked.
+            //
+            // Read from the configuration rather than from stored state: `:app`
+            // applies the chosen language by wrapping the activity's `Context`
+            // and recreating it, so the configuration *is* the user's choice by
+            // the time this runs, and a screenshot in Arabic cannot be rendered
+            // in a Latin face.
+            // `ConfigurationCompat` and not `configuration.locales`, which is API
+            // 24 and this app's minSdk is 21.
+            val language = ConfigurationCompat.getLocales(LocalConfiguration.current)
+                .get(0)?.language.orEmpty()
             CompositionLocalProvider(
-                LocalTextStyle provides CastivioType.bodyMedium.copy(color = colors.onBackground),
+                LocalTextStyle provides CastivioType.bodyMedium.copy(
+                    color = colors.onBackground,
+                    fontFamily = CastivioType.brandFor(language),
+                ),
             ) {
                 if (withBackground) {
                     CastivioBackdrop { content() }

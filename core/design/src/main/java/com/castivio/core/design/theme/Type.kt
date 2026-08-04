@@ -1,7 +1,9 @@
 package com.castivio.core.design.theme
 
 import androidx.compose.material3.Typography
+import com.castivio.core.design.R
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
@@ -30,74 +32,140 @@ import androidx.compose.ui.unit.sp
  */
 object CastivioType {
 
-    /** Swap this for a bundled brand face (e.g. Inter / Outfit) when available. */
-    val Brand: FontFamily = FontFamily.SansSerif
+    /**
+     * The Latin face: Inter, at the four weights this product uses.
+     *
+     * Chosen for a screen read at two distances. Inter's tall x-height and open
+     * apertures keep a MAC address legible on a television across a room, and its
+     * 400 is markedly less spindly than the platform sans it replaces -- the "too
+     * thin" the review reported was as much the face as the weights.
+     *
+     * Four static faces rather than the variable font: variable weight axes are
+     * honoured from API 26 and Castivio's minSdk is 21. A file per weight is
+     * bigger on disk and correct on every device.
+     */
+    val Inter: FontFamily = FontFamily(
+        Font(R.font.inter_regular, FontWeight.Normal),
+        Font(R.font.inter_medium, FontWeight.Medium),
+        Font(R.font.inter_semibold, FontWeight.SemiBold),
+        Font(R.font.inter_bold, FontWeight.Bold),
+    )
+
+    /**
+     * The Arabic face: IBM Plex Sans Arabic, at the same four weights.
+     *
+     * Inter has no Arabic coverage, and leaving Arabic to the platform fallback is
+     * how an interface ends up with two typefaces that were never drawn together
+     * -- different weight, different colour on the page, a heading that reads bold
+     * in English and light in Arabic. Plex Sans Arabic is designed as a companion
+     * to a neo-grotesque, it shapes correctly, and it carries the same four
+     * weights, so a weight means the same thing in both scripts.
+     */
+    val PlexArabic: FontFamily = FontFamily(
+        Font(R.font.plex_arabic_regular, FontWeight.Normal),
+        Font(R.font.plex_arabic_medium, FontWeight.Medium),
+        Font(R.font.plex_arabic_semibold, FontWeight.SemiBold),
+        Font(R.font.plex_arabic_bold, FontWeight.Bold),
+    )
+
+    /**
+     * The face for a language, which is the only place this choice is made.
+     *
+     * Android matches a `FontFamily` by weight and style, never by script, so one
+     * family cannot serve both -- the selection has to happen somewhere, and it
+     * happens here, once, driven by the language the user picked.
+     *
+     * Every style below leaves `fontFamily` unset on purpose. `Text` merges the
+     * style it is handed onto `LocalTextStyle`, so a null family inherits the one
+     * `CastivioTheme` provides and no screen has to know which script it is
+     * rendering. That is what "applied globally through CastivioType" means here:
+     * eight files, two families, one decision.
+     */
+    fun brandFor(language: String): FontFamily =
+        if (language in ARABIC_SCRIPT) PlexArabic else Inter
+
+    /**
+     * The languages Castivio ships that are written in Arabic script.
+     *
+     * Language codes rather than `Locale.getScript()`: the script subtag is absent
+     * from a plain `ar` or `fa`, and a lookup that depends on it returns Latin for
+     * exactly the locales this exists to catch.
+     */
+    private val ARABIC_SCRIPT = setOf("ar", "fa", "ur", "ps", "sd", "ug")
+
+    /**
+     * Codes stay monospace in every language.
+     *
+     * A MAC address and a six-digit key are Latin digits whatever the interface
+     * language, and what makes them readable is that the columns line up. Neither
+     * brand face is monospaced, so neither is used here.
+     */
     val Mono: FontFamily = FontFamily.Monospace
 
     // -- Display: hero moments only (one per screen, at most) --------------
     val displayLarge = TextStyle(
-        fontFamily = Brand, fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.Bold,
         fontSize = 44.sp, lineHeight = 52.sp, letterSpacing = (-0.5).sp,
     )
     val displayMedium = TextStyle(
-        fontFamily = Brand, fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.Bold,
         fontSize = 36.sp, lineHeight = 44.sp, letterSpacing = (-0.4).sp,
     )
 
     // -- Headline: screen and section titles -------------------------------
     val headlineLarge = TextStyle(
-        fontFamily = Brand, fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.Bold,
         fontSize = 28.sp, lineHeight = 40.sp, letterSpacing = (-0.2).sp,
     )
     val headlineMedium = TextStyle(
-        fontFamily = Brand, fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.Bold,
         fontSize = 22.sp, lineHeight = 32.sp,
     )
     val headlineSmall = TextStyle(
-        fontFamily = Brand, fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 18.sp, lineHeight = 26.sp,
     )
 
     // -- Title: card and list-row titles -----------------------------------
     val titleLarge = TextStyle(
-        fontFamily = Brand, fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 17.sp, lineHeight = 24.sp,
     )
     val titleMedium = TextStyle(
-        fontFamily = Brand, fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.Medium,
         fontSize = 15.sp, lineHeight = 22.sp,
     )
 
     // -- Body ---------------------------------------------------------------
     val bodyLarge = TextStyle(
-        fontFamily = Brand, fontWeight = FontWeight.Normal,
+        fontWeight = FontWeight.Normal,
         fontSize = 15.sp, lineHeight = 24.sp,
     )
     val bodyMedium = TextStyle(
-        fontFamily = Brand, fontWeight = FontWeight.Normal,
+        fontWeight = FontWeight.Medium,
         fontSize = 14.sp, lineHeight = 22.sp,
     )
     val bodySmall = TextStyle(
-        fontFamily = Brand, fontWeight = FontWeight.Normal,
+        fontWeight = FontWeight.Medium,
         fontSize = 12.5.sp, lineHeight = 20.sp,
     )
 
     // -- Label: buttons, chips, captions, overlines -------------------------
     val labelLarge = TextStyle(
-        fontFamily = Brand, fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 14.sp, lineHeight = 20.sp,
     )
     val labelMedium = TextStyle(
-        fontFamily = Brand, fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.Medium,
         fontSize = 12.sp, lineHeight = 16.sp,
     )
     val labelSmall = TextStyle(
-        fontFamily = Brand, fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.Medium,
         fontSize = 11.sp, lineHeight = 18.sp, letterSpacing = 0.4.sp,
     )
     /** ALL-CAPS section marker. Use with `text.uppercase()`. */
     val overline = TextStyle(
-        fontFamily = Brand, fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 11.sp, lineHeight = 18.sp, letterSpacing = 1.2.sp,
     )
 
