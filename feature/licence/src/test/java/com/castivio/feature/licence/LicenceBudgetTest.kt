@@ -85,6 +85,11 @@ class LicenceBudgetTest {
      * The identity column is the taller of the two on every frame today. That is
      * a fact about the current numbers and not a law, and a gate that measured
      * only the column would go on passing while the QR quietly overran.
+     *
+     * The caption is budgeted at three lines, which is what the mockup measures
+     * as the worst case across the nine stress languages — German on the
+     * reference frame, English on the tight one. It was two, on reasoning rather
+     * than measurement, until somebody looked.
      */
     @Test
     fun `the code zone fits its band on every frame`() {

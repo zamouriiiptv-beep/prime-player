@@ -217,11 +217,14 @@ internal fun LicenceMetrics.columnHeight(name: Dp): Dp =
  * fact about the current numbers and not a law, and a gate that measured only
  * the column would go on passing while the code zone quietly overran.
  *
- * @param captionLines budgeted at two. The caption is a sentence at a fixed
- *   width, it wraps in most of the 37 languages, and budgeting one line would be
- *   budgeting for English.
+ * @param captionLines **three**, and measured rather than reasoned. This was two,
+ *   on the argument that the caption wraps in most of the 37 languages and one
+ *   line would be budgeting for English — right as far as it went, and still a
+ *   guess. The mockup was asked: the caption takes three lines on both phone
+ *   frames, German on the reference one and English on the tight one. Two was
+ *   the same class of mistake in a smaller size.
  */
-internal fun LicenceMetrics.codeHeight(caption: Dp, captionLines: Int = 2): Dp =
+internal fun LicenceMetrics.codeHeight(caption: Dp, captionLines: Int = 3): Dp =
     plate + captionTop + caption * captionLines
 
 /** The two full-bleed rules that bracket the field band, at a pixel each. */
