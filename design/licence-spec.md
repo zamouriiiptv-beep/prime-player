@@ -8,7 +8,8 @@ before a line of Compose is written, in the same way `activation-spec.md` was.
 
 - Sibling contract: `design/activation-spec.md` (approved, frozen at `12127d0`)
 - Domain contract this renders: `domain/entitlement/` — already written and tested
-- Mockup: **not yet drawn.** See §16 for why that is deliberate.
+- Mockup: `design/mockups/licence.html` — **measured, 168/168**
+- Verification: `node measure.js --file licence.html [--state all]`
 
 ---
 
@@ -18,8 +19,9 @@ before a line of Compose is written, in the same way `activation-spec.md` was.
 entitlement does not allow use, and Settings will link here when it does. Those
 are the only two ways in.
 
-**It is not a shop.** It does not take money. §7 explains what it does instead,
-and that is the single largest open decision in this document.
+**It is not a shop.** It does not take money, on any platform, in phase 1. It
+presents the plans and hands the user to the Castivio portal, which owns
+authentication, payment, licence creation and MAC binding. §7 is the whole of it.
 
 **It is not the Add Subscription screen.** Castivio's licence is what the user
 buys from us, per device, and it is answered by our licence server. A provider
@@ -120,14 +122,13 @@ footer**, in a fixed viewport, immersive, full-bleed, with no scroll.
 │ Castivio licence            · Trial · 3 days left     ⊕ Language  │
 ├───────────────────────────────────────────────────────────────────┤
 │                                                                   │
-│   ┌──────────────────────────┐   ┌──────────────────────────┐     │
-│   │  ANNUAL                  │   │  LIFETIME     ·recommended│    │
-│   │  €6                      │   │  €15                     │     │
-│   │  per year                │   │  once, for this device   │     │
-│   │  ─────────────────────── │   │  ─────────────────────── │     │
-│   │  Renews every year       │   │  Never expires           │     │
-│   └──────────────────────────┘   └──────────────────────────┘     │
-│                                                                   │
+│   ⬭ MAC ADDRESS  2F:19:EB:20:44:7C  ⧉      ┌───────────┐          │
+│   ⬭ DEVICE KEY   482731  ⧉                 │    QR     │          │
+│                                            └───────────┘          │
+│   ┌───────────────┐  ┌───────────────┐   Scan the QR code to …    │
+│   │ ANNUAL        │  │ LIFETIME      │                            │
+│   │ €6  per year  │  │ €15  once…    │                            │
+│   └───────────────┘  └───────────────┘                            │
 │   · status line (reserved height)                                 │
 ├───────────────────────────────────────────────────────────────────┤
 │         Castivio is only a player and does not provide …          │
@@ -160,17 +161,22 @@ hairline, no shadow. The identity capsules are pills because they hold one line;
 these hold four, so they are rounded rectangles rather than pills — the same
 material and the same border, at the shape the content needs.
 
-**The recommended plan** is marked with `selectedFill` and `selectedBorder`,
-which already exist as tokens and are already what "this one, out of a set" means
-elsewhere in Castivio. Not a brighter colour, not a badge with a drop shadow.
+**Neither plan is marked as recommended.** Locked by product decision: both are
+presented at equal weight and the user decides. `selectedFill` and
+`selectedBorder` therefore carry only *focus*, which removes an entire class of
+confusion between "the one we suggest" and "the one the remote is on" — the two
+would have been the same two tokens.
 
 ### 3.3 What is deliberately absent
 
 - **No large glass card wrapping the pair.** Same rule as the sibling screen: the
   screen is the surface. The plan cards are containers because a priced choice is
   an object; nothing wraps them.
-- **No QR by default.** See §7.3 — it is an option, not a default, and it is
-  argued rather than assumed.
+- **The QR is present, in the sibling's position and at the sibling's size.**
+  Castivio is portal-first: the app never takes money and every platform sends
+  the user to the portal, so the QR is the fastest route there from a
+  television. Putting it anywhere else — or leaving it out — would teach a user
+  that the code means something different on this screen.
 - **No comparison table.** Two plans differing on one axis do not need a matrix.
 - **No countdown timer, no urgency animation, no strikethrough "was €12".** The
   price is the price.
@@ -289,80 +295,46 @@ across the 37 languages, measured in the mockup, not guessed.
 
 ---
 
-## 7. How a licence is actually bought — **the open decision**
+## 7. How a licence is bought — **decided: portal-first**
 
-Everything above is design. This is product, and it is not mine to settle.
+**Phase 1, every platform.** Android TV, Google TV, Fire TV, phones, tablets and
+sideloads all use the Castivio Activation Portal. The application never processes
+a payment. The Licence screen presents the plans and opens the portal; the portal
+owns authentication, payment, licence creation, MAC binding and the return.
 
-`EntitlementRepository.redeem(RedemptionCredential)` takes one of two things, and
-the contract already spells both out:
+**Phase 2, if Castivio is listed on Google Play.** Play Billing is added *for Play
+builds only*, and `RedemptionCredential` stays the single integration point — the
+sealed type already distinguishes `PurchaseReceipt` from `RecoveryCode` precisely
+so the source of the proof can vary while the server stays the authority. Nothing
+above `redeem()` learns that a second route exists.
 
-- `PurchaseReceipt(token, productId)` — "deliberately opaque and store-agnostic.
-  Play Billing is one possible producer of this string and must not become the
-  shape of it."
-- `RecoveryCode(code)` — a high-entropy code the server issued, for moving an
-  entitlement to a device that lost its identity.
+### 7.1 What pressing a plan card does
 
-There is a standing decision that the app does **not** implement payment
-processing. So the screen cannot take money today, and what "choose a plan"
-*does* depends entirely on which of these three routes is chosen.
+1. The card is pressed. No selection, no confirmation step.
+2. The portal opens at `ActivationDestination.URL`, carrying the chosen plan.
+3. The screen enters **Working** and says so.
+4. The user pays on the portal, which binds the licence to this device's MAC.
+5. They return. `EntitlementRepository.refresh()` picks the licence up.
 
-### 7.1 Route A — the web portal, mirroring Add Subscription
+**Steps 2 and 3 are where the design is thin and the implementation must be
+careful.** On a phone the portal opens in a browser and the app is backgrounded;
+on a television there may be no browser worth using, which is exactly why the QR
+is on this screen. The Working state must therefore survive being backgrounded
+and must not strand a user who never completes the purchase — a Verify control
+appears after a short delay so returning is always possible.
 
-Choosing a plan shows the device's identity and sends the user to
-`ActivationDestination.URL` to pay there; they return and press a Verify control.
+### 7.2 What the plan card must carry to the portal
 
-- **For:** one purchase mechanism for the whole product; no store dependency, no
-  store commission; identical to the flow the sibling screen already teaches, so
-  the user learns it once. The `ActivationDestination` constant, the QR encoder
-  and the identity capsules all already exist and would be reused, not rebuilt.
-- **Against:** paying on a phone browser to unlock a television is friction, and
-  on **Google Play** shipping a digital purchase outside Play Billing is a policy
-  violation that can remove the app. If Castivio is ever listed on Play, this
-  route alone is not survivable.
+The plan identifier only. Not the price — the portal is the authority on what
+something costs, and a client that posted an amount would be a client that could
+be edited to post a different one.
 
-### 7.2 Route B — Play Billing
+### 7.3 Recovery code — **not in version 1**
 
-Choosing a plan opens the Play purchase sheet; the resulting token goes to
-`redeem(PurchaseReceipt(...))`.
-
-- **For:** compliant, one tap, trusted payment sheet, works on Google TV.
-- **Against:** a real dependency and a real commission; does not exist on Fire TV
-  or on sideloaded installs, which are named target platforms; and it puts a
-  store SDK in a codebase that has kept every platform dependency behind an
-  interface so far.
-
-### 7.3 Route C — both, chosen by build
-
-Play Billing where the app came from Play; the portal everywhere else. The domain
-contract already anticipates exactly this: `redeem` takes a sealed credential
-precisely so the *source* of the proof can vary while the server stays the
-authority.
-
-- **For:** the only route that is both compliant and viable on Fire TV and
-  sideloads. The `Licensing` sealed type is already the seam for it.
-- **Against:** two flows to design, write, translate and test.
-
-**My recommendation: C, with A designed and built first.** A is the one that
-works on every platform Castivio targets, it reuses components that already
-exist, and it is the one that can be built before a Play listing exists. B is
-added behind the same `redeem` call when a listing is real. Designing A first
-costs nothing if B follows, because the sealed credential means neither knows
-about the other.
-
-**This blocks the mockup**, because it changes what happens after a plan card is
-pressed, and therefore what the second state of the field band contains.
-
-### 7.4 "I already paid"
-
-Whichever route wins, the screen needs a restore path — `RecoveryCode` exists in
-the contract for exactly this, and a user who factory-resets a stick and loses a
-lifetime licence with no way to get it back is a refund and a bad review.
-
-Proposal: a low-emphasis text action in the footer band, *"Already have a
-licence?"*, opening a code entry. Low emphasis because it is the rare path; not
-absent, because it is the expensive one to get wrong.
-
----
+Locked. `RedemptionCredential.RecoveryCode` remains in the domain contract
+unused. Recorded as a known gap: a user who factory-resets a device today has no
+in-app route back to a lifetime licence, and the portal must handle that case
+until the screen does.
 
 ## 8. Copy, per state
 
@@ -483,8 +455,9 @@ Same standards as the frozen sibling; nothing relaxed.
   available to a screen reader and is the first thing lost to colour blindness.
 - **Status changes announce** via a polite live region, as the sibling's status
   line does.
-- **Targets:** 48dp minimum on touch, 56dp on TV. A plan card is far larger; the
-  recovery text action is the one to watch.
+- **Targets:** 48dp minimum on touch, **56dp on TV** — `minTvTarget`, not
+  `minTouchTarget`, and §17.1 is what happens when the two are confused. The
+  measurer checks every focusable against the frame's own floor.
 - **Structural RTL**, no positional special-casing. Prices and dates are
   locale-formatted and therefore already correct; the card order mirrors, which
   means the recommended card moves side — correct, and worth stating because it
@@ -529,43 +502,107 @@ by a test.
 
 ---
 
-## 15. Open decisions
+## 15. Decisions, resolved
 
-Nothing below is mine to choose. The mockup waits on the first.
+| | Decision | Locked as |
+|---|---|---|
+| 1 | Purchase route | **Option C** — portal-first everywhere in phase 1, Play Billing for Play builds later, `RedemptionCredential` the only integration point |
+| 2 | Reachable from Settings | **Yes** — Settings → Licence, so a user can review a licence after activating |
+| 3 | Device identity on screen | **Both**, in the approved capsules; the MAC stays visually dominant |
+| 4 | Recommended plan | **No** — equal weight, no commercial bias |
+| 5 | Legal line | **Kept, rewritten** for a licence screen; the wording is not invented here and the mockup carries a bracketed placeholder |
+| 6 | Recovery code | **Not in version 1** |
+| 7 | Plan card is the button | **Approved** — no radio, no selected state, no Continue |
 
-1. **Purchase route — A, B or C (§7).** Blocks the mockup. My recommendation is
-   C with A first.
-2. **Is the licence screen reachable from Settings?** The Trial and Activated
-   states only exist if yes. If no, three of the eleven states are dead and the
-   spec shrinks.
-3. **Does this screen show the device key?** Route A needs the user to identify
-   the device on the portal, which argues yes. It also duplicates the sibling
-   screen, which argues for showing it only in the second step after a plan is
-   chosen.
-4. **Is lifetime "recommended"?** §3.2 marks one plan and the marker is a real
-   nudge. €15 once against €6 a year pays back in under three years, so lifetime
-   is the honest recommendation for a device kept that long — but this is a
-   commercial call, and "no recommendation at all" is a legitimate answer.
-5. **Does the legal line change?** The sibling's *"Castivio is only a player…"*
-   is about content, not money. A screen that sells something may need a
-   different or additional line — VAT inclusivity, refund terms, who the seller
-   is. This is a legal question, not a design one, and I will not invent an
-   answer.
-6. **Recovery code, or not, in the first version (§7.4).**
+### 15.1 The one thing still outstanding
+
+**The legal copy itself.** The mockup renders
+`[legal copy for the licence screen — to be written]` in all nine measured
+languages, at the same size and position as the sibling's notice, so the layout
+is measured against a real line box. Replacing that placeholder is a legal task,
+not a design one, and the sentence that lands must be no taller than two lines on
+the 800×360 frame or the budget is re-derived.
+
+## 16. The mockup, and what it measured
+
+`design/mockups/licence.html` exists and is measured by the same harness that
+gates the sibling.
+
+```
+node measure.js --file licence.html              # 27 frame x language
+node measure.js --file licence.html --state all  # 168, x every state
+```
+
+**168 of 168 combinations fit. No scroll, no overflow, no clipped text, no
+undersized target.**
+
+### 16.1 The measured numbers
+
+| Frame | Field band | Header | Footer | QR plate |
+|---|---|---|---|---|
+| 873×393 | 813 × 256 | 43 | 30 | 157 |
+| 800×360 | 748 × 231 | 41 | 28 | 138 |
+| TV 960×540 | 864 × 309 | 56 | 33 | 208 |
+
+Tightest line box across all nine languages: `bodySmall` at 20dp holding 17dp of
+Arabic ink — 3dp of headroom, the same margin the sibling runs at. The plate
+sizes are the sibling's, unchanged, and the QR carries the same payload, so the
+module pitch already gated by `ActivationQrTest` applies unchanged.
+
+### 16.2 What the harness found
+
+Two things, and the second is the reason this step exists.
+
+**The TV capsule cannot be 52dp.** `Sizing.minTvTarget` is 56dp, a D-pad target
+may not be smaller, and a 56dp control does not fit inside a 52dp pill. The
+capsule is **52dp on a phone and 64dp on a television**, and the copy control is
+48/56 to match. Two approved instructions — "56dp, consistent on phone and TV"
+and "reduce it by 4–6dp" — could not both hold on a television, and the measurer
+found the contradiction before any Kotlin was written. That is what a mockup is
+for.
+
+**The same fault already exists on the frozen sibling.** See §17.
+
+### 16.3 The font correction
+
+`activation-mac.html` measures through Noto, which is what Android used to
+supply. Castivio now bundles Inter and IBM Plex Sans Arabic, so this mockup loads
+those from `core/design/src/main/res/font/` instead.
+
+**That makes the sibling's measurements stale.** They are not wrong by much —
+Inter and Noto Sans are both neo-grotesques at similar metrics — but they are
+measurements of a face the app no longer uses, and this project has twice been
+bitten by exactly that. Re-running the sibling against the shipped faces is a
+small, separate task and it is listed in §17.
 
 ---
 
-## 16. Why there is no mockup in this document
+## 17. Two defects this phase discovered in already-frozen work
 
-Because `design/mockups/` is measured, not sketched. `measure.js` renders every
-frame in every language and fails on overflow, clipping and short touch targets,
-and that harness is the reason the sibling screen's numbers are trustworthy.
+Recorded here rather than fixed silently, because the Add Subscription screen is
+frozen and the standing rule is that it changes only for a real production bug.
 
-Building that for a field band whose second state depends on decision 1 would
-mean measuring a layout that may not survive the answer. The mockup is the next
-step of this same phase, not a later one — and it will take an afternoon once
-§15.1 is settled.
+### 17.1 The TV copy control is below the D-pad minimum — **a real bug**
 
-**Order from here:** decisions → mockup at three frames → `measure.js` green in
-all 37 languages → this document updated with the measured numbers → then, and
-only then, Kotlin.
+`Sizing.minTvTarget` is 56dp. In the final polish pass the copy control was
+changed from `m.target` — which is 56dp on the television metric set — to a fixed
+`Sizing.minTouchTarget`, which is 48dp on every frame. So on a television the
+control a remote must land on is 8dp under the project's own minimum.
+
+It is a regression, it was introduced by the polish pass, and no gate caught it:
+`ActivationBudgetTest` asserts `m.target >= Sizing.minTouchTarget`, which is the
+phone floor, and never checks the television against the television floor.
+
+The fix is small — the copy control takes `m.target` again, and the TV capsule
+grows to 64dp to hold it — but it is a change to a frozen screen and it also
+moves the TV budget, so it wants its own commit and its own re-measurement. **Not
+done. Awaiting the word.**
+
+The gate to add alongside it: `ActivationBudgetTest` should assert the television
+frame against `minTvTarget`, not `minTouchTarget`.
+
+### 17.2 The sibling mockup measures the wrong font
+
+Cosmetic by comparison, and worth doing before anyone trusts those numbers again.
+`activation-mac.html` should load the same `@font-face` block this file uses.
+

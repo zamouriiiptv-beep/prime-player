@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Castivio — licence</title>
+<style>
+/* ============================================================================
+   Castivio — the licence screen.
+
+   The sibling of `activation-mac.html`, and deliberately not a new design. Same
+   three bands, same hairlines, same aurora, same capsules, same QR plate in the
+   same place. A user moving between the two should not be able to say what
+   changed apart from the content.
+
+   ---------------------------------------------------------------------------
+   What the field band holds, and why it is arranged this way.
+
+   The leading zone carries the device's identity and the decision: two capsules,
+   then the plans, then the reserved status line. The trailing zone carries the
+   QR, in the same position and at the same size it occupies on the sibling.
+
+   That is not symmetry for its own sake. Castivio is portal-first: the app never
+   takes money, and every platform sends the user to the Castivio portal to pay.
+   The QR *is* the fastest route to that portal from a television, so it belongs
+   on this screen for the same reason it belongs on the other one -- and putting
+   it anywhere else would teach a user that the code means something different
+   here.
+
+   The plan card is the button. There is no selection state, no radio, no
+   Continue. Pressing a card opens the portal for that plan.
+
+   ---------------------------------------------------------------------------
+   The fonts are the shipped fonts.
+
+   `activation-mac.html` measures through Noto, which is what Android used to
+   supply. Castivio now bundles Inter and IBM Plex Sans Arabic, so this file
+   loads those from the repository instead. A mockup measured through a face the
+   app does not use is a measurement of the wrong thing -- the same mistake this
+   project has already made twice, once with a missing Noto and once with
+   Robolectric's absent font.
+
+     ?frame=   phone-873 | phone-800 | tv
+     ?lang=    en ar de fi th hi bn ja zh
+     &state=   trial | activated-annual | activated-lifetime | expired-trial
+               | expired-annual | none | verify | unavailable | revoked
+               | working | error | loading | focus-plan
+     &spec=1   measures and focus order
+   ========================================================================= */
+
+/* The shipped Latin face. Four weights, from :core:design. */
+@font-face{font-family:"Castivio Sans";font-weight:400;font-style:normal;
+  src:url("../../core/design/src/main/res/font/inter_regular.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:500;font-style:normal;
+  src:url("../../core/design/src/main/res/font/inter_medium.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:600;font-style:normal;
+  src:url("../../core/design/src/main/res/font/inter_semibold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:700;font-style:normal;
+  src:url("../../core/design/src/main/res/font/inter_bold.ttf") format("truetype")}
+/* The shipped Arabic face, at the same four weights. */
+@font-face{font-family:"Castivio Arabic";font-weight:400;font-style:normal;
+  src:url("../../core/design/src/main/res/font/plex_arabic_regular.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:500;font-style:normal;
+  src:url("../../core/design/src/main/res/font/plex_arabic_medium.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:600;font-style:normal;
+  src:url("../../core/design/src/main/res/font/plex_arabic_semibold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:700;font-style:normal;
+  src:url("../../core/design/src/main/res/font/plex_arabic_bold.ttf") format("truetype")}
+
+:root{
+  --void:#08071A; --abyss:#0D0B22; --deep:#141031; --slate:#1C1840; --haze:#272253;
+  --violet10:#1B1038; --violet40:#6E4BD8; --violet50:#9B6BFF; --violet60:#B694FF;
+  --azure10:#0A1E3D; --azure40:#2E6BFF; --azure50:#4C9BFF; --azure60:#6FB2FF;
+  --mist:#F2F2F8; --silver:#C9C9DA; --muted:#A6A6BF; --faint:#6E6E8A;
+  --glass-mid:rgba(255,255,255,.078); --glass-low:rgba(255,255,255,.039);
+  --glass-edge:rgba(255,255,255,.239); --glass-edge-soft:rgba(255,255,255,.078);
+  --divider:rgba(255,255,255,.122);
+  --success:#3DD68C; --warning:#F5A524; --danger:#FF5A5F;
+  --selected-fill:rgba(76,155,255,.14); --selected-edge:rgba(76,155,255,.42);
+  --r-xs:8px; --r-sm:12px; --r-md:16px; --r-lg:20px; --r-xl:24px; --r-xxl:30px; --r-pill:999px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#000}
+body{
+  /* Inter first, Plex Arabic for Arabic, then Noto for the scripts neither
+     covers. Chromium walks this list per character, so Thai and Devanagari land
+     on their own face and the measurement carries to the device. */
+  font-family:"Castivio Sans","Castivio Arabic","Noto Sans Thai","Noto Sans Devanagari",
+              "Noto Sans Bengali","Noto Sans CJK JP","Noto Sans CJK SC","Noto Sans",sans-serif;
+  color:var(--mist);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:geometricPrecision;
+}
+.frame{display:none;position:relative;overflow:hidden;background:var(--void)}
+html[data-frame="phone-873"] #phone-873,
+html[data-frame="phone-800"] #phone-800,
+html[data-frame="tv"]        #tv{display:block}
+#phone-873{width:873px;height:393px}
+#phone-800{width:800px;height:360px}
+#tv{width:960px;height:540px}
+
+.backdrop{position:absolute;inset:0;
+  background:
+    radial-gradient(44% 118% at 21% 54%, rgba(111,178,255,.14) 0%, rgba(111,178,255,0) 66%),
+    radial-gradient(58% 78% at 4% 108%, rgba(110,75,216,.30) 0%, rgba(110,75,216,0) 62%),
+    radial-gradient(54% 70% at 97% 20%, rgba(46,107,255,.26) 0%, rgba(46,107,255,0) 60%),
+    linear-gradient(135deg, var(--deep) 0%, var(--violet10) 48%, var(--azure10) 100%);
+}
+html[dir="rtl"] .backdrop{
+  background:
+    radial-gradient(44% 118% at 79% 54%, rgba(111,178,255,.14) 0%, rgba(111,178,255,0) 66%),
+    radial-gradient(58% 78% at 96% 108%, rgba(110,75,216,.30) 0%, rgba(110,75,216,0) 62%),
+    radial-gradient(54% 70% at 3% 20%, rgba(46,107,255,.26) 0%, rgba(46,107,255,0) 60%),
+    linear-gradient(225deg, var(--deep) 0%, var(--violet10) 48%, var(--azure10) 100%);
+}
+.mesh{position:absolute;inset:0;opacity:.45}
+
+/* -------------------------------------------------------------------- type */
+.t-headline-m{font-size:22px;line-height:32px;font-weight:700}
+.t-headline-l{font-size:28px;line-height:40px;font-weight:700;letter-spacing:-.2px}
+.t-display-m {font-size:36px;line-height:44px;font-weight:700;letter-spacing:-.4px}
+.t-body-m    {font-size:14px;line-height:22px;font-weight:500}
+.t-body-s    {font-size:12.5px;line-height:20px;font-weight:500}
+.t-label-m   {font-size:12px;line-height:16px;font-weight:500}
+.t-overline  {font-size:11px;line-height:18px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase}
+
+.code-phone{font-family:"Liberation Mono","DejaVu Sans Mono",monospace;
+            font-size:28px;line-height:36px;font-weight:700;letter-spacing:1px}
+.code-tv   {font-family:"Liberation Mono","DejaVu Sans Mono",monospace;
+            font-size:42px;line-height:52px;font-weight:700;letter-spacing:1px}
+.code-key   {font-family:"Liberation Mono","DejaVu Sans Mono",monospace;
+            font-size:24px;line-height:32px;font-weight:700;letter-spacing:2.5px}
+.code-key-tv{font-family:"Liberation Mono","DejaVu Sans Mono",monospace;
+            font-size:32px;line-height:42px;font-weight:700;letter-spacing:3.5px}
+.code{color:var(--mist);white-space:nowrap;direction:ltr;unicode-bidi:isolate;
+      text-shadow:0 0 30px rgba(111,178,255,.30)}
+
+/* --------------------------------------------------------------- structure */
+.shell{position:absolute;inset:0;display:flex;flex-direction:column}
+.sysbar{height:24px;flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;color:var(--silver);font-size:11px}
+.gesture{height:20px;flex:0 0 auto;display:flex;align-items:center;justify-content:center}
+.gesture i{display:block;width:96px;height:3px;border-radius:var(--r-pill);background:rgba(255,255,255,.32)}
+
+.stage{flex:1 1 auto;display:flex;flex-direction:column;min-height:0}
+#phone-873 .stage{padding:12px 30px 6px}
+#phone-800 .stage{padding:10px 26px 4px}
+#tv .stage{padding:48px 48px 48px}
+
+.head{display:flex;align-items:center;gap:12px}
+#phone-873 .head{padding-bottom:11px}
+#phone-800 .head{padding-bottom:9px}
+#tv .head{padding-bottom:16px}
+.spacer{flex:1 1 auto}
+
+/* The status chip, in the position and at the weight the trial chip occupies on
+   the sibling screen. Same corner, same size, different sentence. */
+.chip{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.chip i.dot{width:6px;height:6px;border-radius:var(--r-pill);
+  background:linear-gradient(135deg,var(--azure40),var(--azure50))}
+.chip.ok    i.dot{background:var(--success)}
+.chip.warn  i.dot{background:var(--warning)}
+.chip.bad   i.dot{background:var(--danger)}
+.chip .val{font-weight:600}
+.chip.ok   .val{color:var(--success)}
+.chip.warn .val{color:var(--warning)}
+.chip.bad  .val{color:var(--danger)}
+.chip .name{color:var(--silver)}
+
+.lang{display:inline-flex;align-items:center;gap:4px;border-radius:var(--r-pill);
+  background:var(--glass-mid);border:1px solid var(--glass-edge-soft);color:var(--mist)}
+#phone-873 .lang,#phone-800 .lang{height:32px;padding:0 13px;font-size:12.5px}
+#tv .lang{height:56px;padding:0 20px;font-size:15px}
+.lang svg{width:16px;height:16px;flex:0 0 auto}
+
+.rule{height:1px;flex:0 0 auto;
+  background:linear-gradient(90deg,transparent 0%,var(--divider) 6%,var(--divider) 94%,transparent 100%)}
+
+.field{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center}
+#phone-873 .field{gap:40px}
+#phone-800 .field{gap:34px}
+#tv .field{gap:52px}
+
+/* ----------------------------------------------------------------- capsule */
+/* 52dp pill, glass fill, soft border, copy control inside. The approved
+   component, unchanged -- same height on phone and television. */
+.identity{display:flex;flex-direction:column;flex:0 0 auto}
+/* 52dp on a phone. On a television it is 64, and that is not a style choice:
+   Sizing.minTvTarget is 56dp, a D-pad target may not be smaller, and a 56dp
+   control cannot sit inside a 52dp pill. The measurer found this -- and found
+   the same fault on the frozen sibling, where the copy control had been pinned
+   to 48dp on every frame during a polish pass. */
+.cap-pill{display:inline-flex;align-items:center;height:52px;border-radius:var(--r-pill);
+  background:var(--glass-mid);border:1px solid var(--glass-edge-soft);padding-inline-end:2px}
+#phone-873 .cap-pill{padding-inline-start:20px;gap:16px}
+#phone-800 .cap-pill{padding-inline-start:18px;gap:14px}
+#tv .cap-pill{height:64px;padding-inline-start:24px;gap:22px}
+.cap-pill+.cap-pill{margin-top:13px}
+#tv .cap-pill+.cap-pill{margin-top:14px}
+.cap-pill .label{color:var(--silver);flex:0 0 auto}
+.copy{width:48px;height:48px;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+  border-radius:var(--r-pill);background:var(--glass-low);border:1px solid transparent;color:var(--silver)}
+.copy.focused{border-color:var(--azure50);box-shadow:0 0 0 3px rgba(76,155,255,.25)}
+.copy svg{width:16px;height:16px}
+
+/* -------------------------------------------------------------- plan cards */
+/* The card is the button. No radio, no selected state, no Continue -- pressing
+   a card opens the portal for that plan. Both plans carry equal weight: there
+   is no recommendation marker, by product decision. */
+.plans{display:flex;gap:14px}
+#phone-800 .plans{gap:12px}
+#tv .plans{gap:20px}
+#phone-873 .plans{margin-top:22px}
+#phone-800 .plans{margin-top:18px}
+#tv .plans{margin-top:24px}
+
+.plan{display:flex;flex-direction:column;justify-content:center;border-radius:var(--r-xl);
+  background:var(--glass-mid);border:1px solid var(--glass-edge-soft);text-align:start}
+#phone-873 .plan{min-height:76px;padding:10px 18px}
+#phone-800 .plan{min-height:76px;padding:10px 16px}
+#tv .plan{min-height:96px;padding:12px 24px}
+.plan .name{color:var(--silver)}
+.plan .row{display:flex;align-items:baseline;gap:8px;white-space:nowrap}
+.plan .price{color:var(--mist);font-weight:700}
+#phone-873 .plan .price,#phone-800 .plan .price{font-size:28px;line-height:40px;letter-spacing:-.2px}
+#tv .plan .price{font-size:36px;line-height:44px;letter-spacing:-.4px}
+.plan .per{color:var(--muted)}
+.plan.focused{background:var(--selected-fill);border-color:var(--selected-edge);
+  box-shadow:0 0 0 3px rgba(76,155,255,.25)}
+
+/* ------------------------------------------------------------ status line */
+.status{display:flex;align-items:center;gap:4px;color:var(--muted)}
+#phone-873 .status,#phone-800 .status{min-height:20px;margin-top:12px;font-size:12px;line-height:16px}
+#tv .status{min-height:24px;margin-top:16px;font-size:14px;line-height:18px}
+.status i.mark{width:6px;height:6px;border-radius:var(--r-pill);background:var(--muted);flex:0 0 auto}
+.status.ok   i.mark{background:var(--success)} .status.ok{color:var(--success)}
+.status.warn i.mark{background:var(--warning)} .status.warn{color:var(--warning)}
+.status.bad  i.mark{background:var(--danger)}  .status.bad{color:var(--danger)}
+
+/* ------------------------------------------------------------------ the QR */
+/* Same plate, same position, same soft lift as the sibling. The payload is the
+   portal URL and nothing else -- never the address, never the key. */
+.codezone{display:flex;flex-direction:column;align-items:center;flex:0 0 auto}
+.plate{background:#fff;border-radius:var(--r-md);box-shadow:0 10px 24px rgba(0,0,0,.35)}
+#phone-873 .plate{width:157px;height:157px;padding:9px}
+#phone-800 .plate{width:138px;height:138px;padding:8px}
+#tv .plate{width:208px;height:208px;padding:12px}
+.plate svg{display:block;width:100%;height:100%}
+.cap{color:var(--silver);text-align:center}
+#phone-873 .codezone .cap{margin-top:11px;width:180px}
+#phone-800 .codezone .cap{margin-top:9px;width:162px}
+#tv .codezone .cap{margin-top:15px;width:236px}
+
+/* --------------------------------------------------------------- the foot */
+.foot{flex:0 0 auto;text-align:center;color:var(--muted)}
+#phone-873 .foot{padding:8px 0 2px}
+#phone-800 .foot{padding:7px 0 1px}
+#tv .foot{padding:13px 0 0}
+
+/* ------------------------------------------------------ blocked and busy */
+/* Revoked and Unavailable offer no plan, because there is nothing to buy that
+   would help. They offer the one honest action instead. */
+.notice{display:flex;flex-direction:column;align-items:flex-start;gap:12px;max-width:520px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;
+  padding:0 22px;border-radius:var(--r-sm);font-size:14px;font-weight:600;
+  background:var(--glass-mid);border:1px solid var(--glass-edge-soft);color:var(--mist)}
+#tv .btn{height:56px;font-size:15px}
+#tv .copy{width:56px;height:56px}
+.btn.focused{border-color:var(--azure50);box-shadow:0 0 0 3px rgba(76,155,255,.25)}
+.spin{width:16px;height:16px;border-radius:var(--r-pill);border:2px solid rgba(255,255,255,.25);
+  border-top-color:var(--mist);display:inline-block}
+
+/* Loading is a skeleton, not a spinner: the shape the content will take, so
+   nothing jumps when it arrives. */
+.skel{border-radius:var(--r-pill);background:var(--glass-low)}
+.skel.pill{height:52px}
+.skel.card{height:76px;border-radius:var(--r-xl)}
+.skel.plate{border-radius:var(--r-md)}
+
+.hidden{display:none !important}
+</style>
+</head>
+<body>
+
+<section class="frame" id="phone-873">
+  <div class="backdrop"></div>
+  <svg class="mesh" viewBox="0 0 873 393" preserveAspectRatio="none">
+    <g fill="none" stroke="#9B6BFF" stroke-opacity=".07" stroke-width="1">
+      <path d="M0,286 C146,258 291,314 437,286 C582,258 728,314 873,286"/>
+      <path d="M0,314 C146,286 291,342 437,314 C582,286 728,342 873,314"/>
+      <path d="M0,342 C146,314 291,370 437,342 C582,314 728,370 873,342"/>
+      <path d="M0,370 C146,342 291,392 437,370 C582,342 728,392 873,370"/>
+    </g>
+  </svg>
+  <div class="shell" data-shell></div>
+</section>
+
+<section class="frame" id="phone-800">
+  <div class="backdrop"></div>
+  <svg class="mesh" viewBox="0 0 800 360" preserveAspectRatio="none">
+    <g fill="none" stroke="#9B6BFF" stroke-opacity=".07" stroke-width="1">
+      <path d="M0,262 C133,236 267,288 400,262 C533,236 667,288 800,262"/>
+      <path d="M0,288 C133,262 267,314 400,288 C533,262 667,314 800,288"/>
+      <path d="M0,314 C133,288 267,340 400,314 C533,288 667,340 800,314"/>
+    </g>
+  </svg>
+  <div class="shell" data-shell></div>
+</section>
+
+<section class="frame" id="tv">
+  <div class="backdrop"></div>
+  <svg class="mesh" viewBox="0 0 960 540" preserveAspectRatio="none">
+    <g fill="none" stroke="#9B6BFF" stroke-opacity=".07" stroke-width="1">
+      <path d="M0,392 C160,356 320,428 480,392 C640,356 800,428 960,392"/>
+      <path d="M0,428 C160,392 320,464 480,428 C640,392 800,464 960,428"/>
+      <path d="M0,464 C160,428 320,500 480,464 C640,428 800,500 960,464"/>
+    </g>
+  </svg>
+  <div class="shell" data-shell></div>
+</section>
+
+<script>
+/* ---------------------------------------------------------------- strings */
+/* Nine languages, chosen because each stands for a failure class no other one
+   produces: German and Finnish expand, Thai and Devanagari have tall line
+   boxes, Bengali is taller still, Japanese and Chinese break without spaces,
+   Arabic runs the other way.
+
+   No string here contains a price, a currency or a period. Those are formatted
+   from PlanOffer at runtime, and this file formats them the same way -- see
+   `money()`. A translation with "€6" inside it is the defect the licence spec
+   §14 proposes a test for. */
+var S = {
+  en:{title:"Castivio licence", lang:"Language",
+      trial:"Trial", active:"Licence active", ended:"Trial ended", lapsed:"Licence expired",
+      nolic:"No licence", verify:"Verification needed", unavail:"Unavailable", withdrawn:"Licence withdrawn",
+      daysLeft:"{n} days left",
+      annual:"Annual", lifetime:"Lifetime", perYear:"per year", once:"once, for this device",
+      macLabel:"MAC address", keyLabel:"Device key",
+      cap:"Scan the QR code to open your device activation page",
+      sTrial:"Choose a licence any time before your trial ends.",
+      sEnded:"Your trial has ended. Choose a licence to continue.",
+      sLapsed:"Your licence has expired. Choose a licence to continue.",
+      sNone:"This device has no Castivio licence yet.",
+      sVerify:"Castivio hasn't been able to check this licence recently.",
+      sUnavail:"Castivio can't check licences right now. This is our problem, not yours.",
+      sRevoked:"This licence was withdrawn. Contact support with your device key.",
+      sWorking:"Opening the Castivio portal…", sError:"That didn't work. Try again.",
+      sActive:"Your licence is active.",
+      retry:"Try again", support:"Contact support",
+      legal:"[legal copy for the licence screen — to be written]"},
+  ar:{title:"ترخيص Castivio", lang:"اللغة",
+      trial:"تجربة", active:"الترخيص مُفعَّل", ended:"انتهت التجربة", lapsed:"انتهى الترخيص",
+      nolic:"لا يوجد ترخيص", verify:"يلزم التحقق", unavail:"غير متاح", withdrawn:"سُحب الترخيص",
+      daysLeft:"بقي {n} يوم",
+      annual:"سنوي", lifetime:"مدى الحياة", perYear:"في السنة", once:"مرة واحدة لهذا الجهاز",
+      macLabel:"عنوان MAC", keyLabel:"مفتاح الجهاز",
+      cap:"امسح رمز QR لفتح صفحة تفعيل جهازك",
+      sTrial:"اختر ترخيصًا في أي وقت قبل انتهاء التجربة.",
+      sEnded:"انتهت تجربتك. اختر ترخيصًا للمتابعة.",
+      sLapsed:"انتهى ترخيصك. اختر ترخيصًا للمتابعة.",
+      sNone:"لا يوجد ترخيص Castivio على هذا الجهاز بعد.",
+      sVerify:"لم يتمكن Castivio من التحقق من هذا الترخيص مؤخرًا.",
+      sUnavail:"لا يستطيع Castivio التحقق من التراخيص الآن. المشكلة لدينا وليست لديك.",
+      sRevoked:"سُحب هذا الترخيص. تواصل مع الدعم مع ذكر مفتاح الجهاز.",
+      sWorking:"جارٍ فتح بوابة Castivio…", sError:"لم ينجح ذلك. حاول مرة أخرى.",
+      sActive:"ترخيصك مُفعَّل.",
+      retry:"حاول مرة أخرى", support:"تواصل مع الدعم",
+      legal:"[نص قانوني لشاشة الترخيص — قيد الصياغة]"},
+  de:{title:"Castivio-Lizenz", lang:"Sprache",
+      trial:"Testphase", active:"Lizenz aktiv", ended:"Testphase beendet", lapsed:"Lizenz abgelaufen",
+      nolic:"Keine Lizenz", verify:"Überprüfung nötig", unavail:"Nicht verfügbar", withdrawn:"Lizenz entzogen",
+      daysLeft:"noch {n} Tage",
+      annual:"Jährlich", lifetime:"Dauerhaft", perYear:"pro Jahr", once:"einmalig, für dieses Gerät",
+      macLabel:"MAC-Adresse", keyLabel:"Geräteschlüssel",
+      cap:"QR-Code scannen, um die Aktivierungsseite des Geräts zu öffnen",
+      sTrial:"Wählen Sie jederzeit vor Ende der Testphase eine Lizenz.",
+      sEnded:"Ihre Testphase ist beendet. Wählen Sie eine Lizenz, um fortzufahren.",
+      sLapsed:"Ihre Lizenz ist abgelaufen. Wählen Sie eine Lizenz, um fortzufahren.",
+      sNone:"Dieses Gerät hat noch keine Castivio-Lizenz.",
+      sVerify:"Castivio konnte diese Lizenz zuletzt nicht überprüfen.",
+      sUnavail:"Castivio kann Lizenzen derzeit nicht prüfen. Das liegt an uns, nicht an Ihnen.",
+      sRevoked:"Diese Lizenz wurde entzogen. Wenden Sie sich mit Ihrem Geräteschlüssel an den Support.",
+      sWorking:"Castivio-Portal wird geöffnet…", sError:"Das hat nicht geklappt. Bitte erneut versuchen.",
+      sActive:"Ihre Lizenz ist aktiv.",
+      retry:"Erneut versuchen", support:"Support kontaktieren",
+      legal:"[Rechtstext für die Lizenzseite — wird noch verfasst]"},
+  fi:{title:"Castivio-lisenssi", lang:"Kieli",
+      trial:"Kokeilu", active:"Lisenssi voimassa", ended:"Kokeilu päättyi", lapsed:"Lisenssi vanhentui",
+      nolic:"Ei lisenssiä", verify:"Vahvistus tarvitaan", unavail:"Ei käytettävissä", withdrawn:"Lisenssi peruttu",
+      daysLeft:"{n} päivää jäljellä",
+      annual:"Vuosittain", lifetime:"Kertaostos", perYear:"vuodessa", once:"kerran, tälle laitteelle",
+      macLabel:"MAC-osoite", keyLabel:"Laiteavain",
+      cap:"Skannaa QR-koodi avataksesi laitteen aktivointisivun",
+      sTrial:"Valitse lisenssi milloin tahansa ennen kokeilun päättymistä.",
+      sEnded:"Kokeilusi on päättynyt. Valitse lisenssi jatkaaksesi.",
+      sLapsed:"Lisenssisi on vanhentunut. Valitse lisenssi jatkaaksesi.",
+      sNone:"Tällä laitteella ei ole vielä Castivio-lisenssiä.",
+      sVerify:"Castivio ei ole voinut tarkistaa tätä lisenssiä viime aikoina.",
+      sUnavail:"Castivio ei voi tarkistaa lisenssejä juuri nyt. Vika on meissä, ei sinussa.",
+      sRevoked:"Tämä lisenssi on peruttu. Ota yhteyttä tukeen laiteavaimesi kanssa.",
+      sWorking:"Avataan Castivio-portaalia…", sError:"Se ei onnistunut. Yritä uudelleen.",
+      sActive:"Lisenssisi on voimassa.",
+      retry:"Yritä uudelleen", support:"Ota yhteyttä tukeen",
+      legal:"[lisenssinäytön oikeudellinen teksti — kirjoitetaan myöhemmin]"},
+  th:{title:"ใบอนุญาต Castivio", lang:"ภาษา",
+      trial:"ทดลองใช้", active:"ใบอนุญาตใช้งานอยู่", ended:"สิ้นสุดการทดลองใช้", lapsed:"ใบอนุญาตหมดอายุ",
+      nolic:"ไม่มีใบอนุญาต", verify:"ต้องยืนยัน", unavail:"ไม่พร้อมใช้งาน", withdrawn:"ใบอนุญาตถูกเพิกถอน",
+      daysLeft:"เหลืออีก {n} วัน",
+      annual:"รายปี", lifetime:"ตลอดชีพ", perYear:"ต่อปี", once:"ครั้งเดียว สำหรับอุปกรณ์นี้",
+      macLabel:"ที่อยู่ MAC", keyLabel:"คีย์อุปกรณ์",
+      cap:"สแกนคิวอาร์โค้ดเพื่อเปิดหน้าเปิดใช้งานอุปกรณ์",
+      sTrial:"เลือกใบอนุญาตได้ทุกเมื่อก่อนสิ้นสุดการทดลองใช้",
+      sEnded:"การทดลองใช้สิ้นสุดแล้ว เลือกใบอนุญาตเพื่อใช้งานต่อ",
+      sLapsed:"ใบอนุญาตหมดอายุแล้ว เลือกใบอนุญาตเพื่อใช้งานต่อ",
+      sNone:"อุปกรณ์นี้ยังไม่มีใบอนุญาต Castivio",
+      sVerify:"Castivio ยังไม่สามารถตรวจสอบใบอนุญาตนี้ได้เมื่อเร็ว ๆ นี้",
+      sUnavail:"Castivio ตรวจสอบใบอนุญาตไม่ได้ในขณะนี้ เป็นปัญหาของเรา ไม่ใช่ของคุณ",
+      sRevoked:"ใบอนุญาตนี้ถูกเพิกถอน ติดต่อฝ่ายสนับสนุนพร้อมคีย์อุปกรณ์",
+      sWorking:"กำลังเปิดพอร์ทัล Castivio…", sError:"ไม่สำเร็จ ลองอีกครั้ง",
+      sActive:"ใบอนุญาตของคุณใช้งานอยู่",
+      retry:"ลองอีกครั้ง", support:"ติดต่อฝ่ายสนับสนุน",
+      legal:"[ข้อความทางกฎหมายสำหรับหน้าใบอนุญาต — รอการเขียน]"},
+  hi:{title:"Castivio लाइसेंस", lang:"भाषा",
+      trial:"परीक्षण", active:"लाइसेंस सक्रिय", ended:"परीक्षण समाप्त", lapsed:"लाइसेंस समाप्त",
+      nolic:"कोई लाइसेंस नहीं", verify:"सत्यापन आवश्यक", unavail:"अनुपलब्ध", withdrawn:"लाइसेंस वापस लिया गया",
+      daysLeft:"{n} दिन शेष",
+      annual:"वार्षिक", lifetime:"आजीवन", perYear:"प्रति वर्ष", once:"एक बार, इस डिवाइस के लिए",
+      macLabel:"MAC पता", keyLabel:"डिवाइस कुंजी",
+      cap:"डिवाइस ऐक्टिवेशन पेज खोलने के लिए QR कोड स्कैन करें",
+      sTrial:"परीक्षण समाप्त होने से पहले कभी भी लाइसेंस चुनें।",
+      sEnded:"आपका परीक्षण समाप्त हो गया। जारी रखने के लिए लाइसेंस चुनें।",
+      sLapsed:"आपका लाइसेंस समाप्त हो गया। जारी रखने के लिए लाइसेंस चुनें।",
+      sNone:"इस डिवाइस पर अभी कोई Castivio लाइसेंस नहीं है।",
+      sVerify:"Castivio हाल ही में इस लाइसेंस की जाँच नहीं कर सका।",
+      sUnavail:"Castivio अभी लाइसेंस जाँच नहीं सकता। यह हमारी समस्या है, आपकी नहीं।",
+      sRevoked:"यह लाइसेंस वापस ले लिया गया। अपनी डिवाइस कुंजी के साथ सहायता से संपर्क करें।",
+      sWorking:"Castivio पोर्टल खोला जा रहा है…", sError:"यह काम नहीं आया। फिर कोशिश करें।",
+      sActive:"आपका लाइसेंस सक्रिय है।",
+      retry:"फिर कोशिश करें", support:"सहायता से संपर्क करें",
+      legal:"[लाइसेंस स्क्रीन के लिए कानूनी पाठ — लिखा जाना बाकी]"},
+  bn:{title:"Castivio লাইসেন্স", lang:"ভাষা",
+      trial:"ট্রায়াল", active:"লাইসেন্স সক্রিয়", ended:"ট্রায়াল শেষ", lapsed:"লাইসেন্সের মেয়াদ শেষ",
+      nolic:"লাইসেন্স নেই", verify:"যাচাই প্রয়োজন", unavail:"অনুপলব্ধ", withdrawn:"লাইসেন্স প্রত্যাহৃত",
+      daysLeft:"{n} দিন বাকি",
+      annual:"বার্ষিক", lifetime:"আজীবন", perYear:"প্রতি বছর", once:"একবার, এই ডিভাইসের জন্য",
+      macLabel:"MAC ঠিকানা", keyLabel:"ডিভাইস কী",
+      cap:"ডিভাইস অ্যাক্টিভেশন পেজ খুলতে QR কোড স্ক্যান করুন",
+      sTrial:"ট্রায়াল শেষ হওয়ার আগে যেকোনো সময় লাইসেন্স বেছে নিন।",
+      sEnded:"আপনার ট্রায়াল শেষ হয়েছে। চালিয়ে যেতে লাইসেন্স বেছে নিন।",
+      sLapsed:"আপনার লাইসেন্সের মেয়াদ শেষ। চালিয়ে যেতে লাইসেন্স বেছে নিন।",
+      sNone:"এই ডিভাইসে এখনও কোনও Castivio লাইসেন্স নেই।",
+      sVerify:"Castivio সম্প্রতি এই লাইসেন্স যাচাই করতে পারেনি।",
+      sUnavail:"Castivio এখন লাইসেন্স যাচাই করতে পারছে না। এটি আমাদের সমস্যা, আপনার নয়।",
+      sRevoked:"এই লাইসেন্স প্রত্যাহার করা হয়েছে। আপনার ডিভাইস কী নিয়ে সহায়তায় যোগাযোগ করুন।",
+      sWorking:"Castivio পোর্টাল খোলা হচ্ছে…", sError:"কাজ হয়নি। আবার চেষ্টা করুন।",
+      sActive:"আপনার লাইসেন্স সক্রিয়।",
+      retry:"আবার চেষ্টা করুন", support:"সহায়তায় যোগাযোগ করুন",
+      legal:"[লাইসেন্স স্ক্রিনের আইনি লেখা — লেখা বাকি]"},
+  ja:{title:"Castivio ライセンス", lang:"言語",
+      trial:"体験版", active:"ライセンス有効", ended:"体験版終了", lapsed:"ライセンス期限切れ",
+      nolic:"ライセンスなし", verify:"確認が必要", unavail:"利用できません", withdrawn:"ライセンス取り消し",
+      daysLeft:"残り {n} 日",
+      annual:"年額", lifetime:"買い切り", perYear:"1 年あたり", once:"この端末に一度だけ",
+      macLabel:"MAC アドレス", keyLabel:"デバイスキー",
+      cap:"QR コードをスキャンして、この端末のアクティベーションページを開きます",
+      sTrial:"体験版が終了する前に、いつでもライセンスを選べます。",
+      sEnded:"体験版が終了しました。続けるにはライセンスを選んでください。",
+      sLapsed:"ライセンスの期限が切れました。続けるにはライセンスを選んでください。",
+      sNone:"この端末にはまだ Castivio ライセンスがありません。",
+      sVerify:"Castivio は最近このライセンスを確認できていません。",
+      sUnavail:"現在ライセンスを確認できません。これは当社側の問題です。",
+      sRevoked:"このライセンスは取り消されました。デバイスキーを添えてサポートにご連絡ください。",
+      sWorking:"Castivio ポータルを開いています…", sError:"うまくいきませんでした。もう一度お試しください。",
+      sActive:"ライセンスは有効です。",
+      retry:"もう一度試す", support:"サポートに連絡",
+      legal:"［ライセンス画面の法的表記 — 作成予定］"},
+  zh:{title:"Castivio 许可证", lang:"语言",
+      trial:"试用", active:"许可证有效", ended:"试用已结束", lapsed:"许可证已过期",
+      nolic:"无许可证", verify:"需要验证", unavail:"不可用", withdrawn:"许可证已撤销",
+      daysLeft:"剩余 {n} 天",
+      annual:"年付", lifetime:"永久", perYear:"每年", once:"一次性，仅限本设备",
+      macLabel:"MAC 地址", keyLabel:"设备密钥",
+      cap:"扫描二维码，打开本设备的激活页面",
+      sTrial:"可在试用结束前随时选择许可证。",
+      sEnded:"试用已结束。请选择许可证以继续。",
+      sLapsed:"许可证已过期。请选择许可证以继续。",
+      sNone:"本设备尚无 Castivio 许可证。",
+      sVerify:"Castivio 最近无法验证此许可证。",
+      sUnavail:"目前无法验证许可证。这是我们的问题，不是您的。",
+      sRevoked:"此许可证已被撤销。请携带设备密钥联系支持。",
+      sWorking:"正在打开 Castivio 门户…", sError:"操作失败，请重试。",
+      sActive:"您的许可证有效。",
+      retry:"重试", support:"联系支持",
+      legal:"［许可证页面的法律文本 — 待撰写］"}
+};
+
+var LOCALE = {en:"en-GB", ar:"ar-EG", de:"de-DE", fi:"fi-FI", th:"th-TH",
+              hi:"hi-IN", bn:"bn-BD", ja:"ja-JP", zh:"zh-CN"};
+
+/* PricingDefaults, mirrored. The minor unit and the ISO code, exactly as
+   PlanOffer carries them -- never a formatted string. */
+var PLANS = [
+  {id:"annual",   priceMinor:600,  currency:"EUR"},
+  {id:"lifetime", priceMinor:1500, currency:"EUR"}
+];
+
+function money(minor, currency, lang){
+  return new Intl.NumberFormat(LOCALE[lang] || "en-GB", {
+    style:"currency", currency:currency, minimumFractionDigits:0, maximumFractionDigits:0
+  }).format(minor / 100);
+}
+
+var ICON = {
+  globe:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18"/></svg>',
+  copy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
+  done:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12.5l5 5L20 7"/></svg>'
+};
+
+/* A drawn stand-in for the symbol. The real one encodes ActivationDestination
+   and nothing else; this is here so the plate has the right visual density at
+   the right module pitch. */
+function qrSvg(){
+  var n = 35, cells = "", seed = 0x5EED;
+  function rnd(){ seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
+  function finder(r,c){
+    for (var y=0;y<7;y++) for (var x=0;x<7;x++){
+      var edge = y===0||y===6||x===0||x===6, core = y>=2&&y<=4&&x>=2&&x<=4;
+      if (edge||core) cells += '<rect x="'+(c+x)+'" y="'+(r+y)+'" width="1" height="1"/>';
+    }
+  }
+  for (var y=0;y<n;y++) for (var x=0;x<n;x++){
+    var res = (y<9&&x<9)||(y<9&&x>n-9)||(y>n-9&&x<9)||y===6||x===6;
+    if (!res && rnd()>0.48) cells += '<rect x="'+x+'" y="'+y+'" width="1" height="1"/>';
+  }
+  finder(0,0); finder(0,n-7); finder(n-7,0);
+  return '<svg viewBox="0 0 '+n+' '+n+'" shape-rendering="crispEdges"><g fill="#000">'+cells+'</g></svg>';
+}
+
+/* ------------------------------------------------------------------ render */
+var q = new URLSearchParams(location.search);
+var lang = q.get("lang") || "en";
+var frame = q.get("frame") || "phone-873";
+var state = q.get("state") || "trial";
+var s = S[lang] || S.en;
+var tv = frame === "tv";
+var rtl = lang === "ar";
+
+document.documentElement.setAttribute("data-frame", frame);
+document.documentElement.setAttribute("lang", lang);
+document.documentElement.setAttribute("dir", rtl ? "rtl" : "ltr");
+
+/* Which chip, which sentence, and whether plans are offered at all. Revoked and
+   Unavailable offer none: there is nothing to buy that would fix either, and a
+   plan card there would take money for a problem it cannot solve. */
+var VIEW = {
+  loading:            {chip:null,            tone:"",     line:null,      plans:true,  skeleton:true},
+  trial:              {chip:"trial",         tone:"",     line:"sTrial",  plans:true},
+  "activated-annual": {chip:"active",        tone:"ok",   line:"sActive", plans:true},
+  "activated-lifetime":{chip:"active",       tone:"ok",   line:"sActive", plans:false, lifetime:true},
+  "expired-trial":    {chip:"ended",         tone:"warn", line:"sEnded",  plans:true},
+  "expired-annual":   {chip:"lapsed",        tone:"warn", line:"sLapsed", plans:true},
+  none:               {chip:"nolic",         tone:"warn", line:"sNone",   plans:true},
+  verify:             {chip:"verify",        tone:"warn", line:"sVerify", plans:true},
+  unavailable:        {chip:"unavail",       tone:"warn", line:"sUnavail",plans:false, action:"retry"},
+  revoked:            {chip:"withdrawn",     tone:"bad",  line:"sRevoked",plans:false, action:"support"},
+  working:            {chip:"trial",         tone:"",     line:"sWorking",plans:true,  busy:true},
+  error:              {chip:"ended",         tone:"warn", line:"sError",  plans:true,  bad:true},
+  "focus-plan":       {chip:"trial",         tone:"",     line:"sTrial",  plans:true,  focus:"plan"}
+};
+var v = VIEW[state] || VIEW.trial;
+var DAYS = 3;
+
+function esc(t){ return String(t).replace(/[&<>]/g, function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c]; }); }
+
+function chipHtml(){
+  if (!v.chip) return "";
+  var label = esc(s[v.chip]);
+  var count = "";
+  if (v.chip === "trial") {
+    // Only the numeral is heavier, exactly as on the sibling screen, and the
+    // numeral is found in the locale's own digits rather than assumed.
+    var n = new Intl.NumberFormat(LOCALE[lang] || "en-GB").format(DAYS);
+    var text = s.daysLeft.replace("{n}", n);
+    var at = text.indexOf(n);
+    count = ' <span class="val">' + (at < 0 ? esc(text)
+      : esc(text.slice(0, at)) + "<b>" + esc(n) + "</b>" + esc(text.slice(at + n.length))) + "</span>";
+  }
+  return '<span class="chip t-body-m ' + v.tone + '" data-s="chip">' +
+         '<i class="dot"></i><span class="name">' + label + "</span>" + count + "</span>";
+}
+
+function pill(labelKey, value, codeClass, which){
+  return '<span class="cap-pill">' +
+    '<span class="label t-overline" data-s="' + labelKey + '">' + esc(s[labelKey]) + "</span>" +
+    '<span class="code ' + codeClass + '">' + value + "</span>" +
+    '<span class="copy" data-copy="' + which + '" data-target="' + (tv ? 56 : 48) + '">' + ICON.copy + "</span>" +
+    "</span>";
+}
+
+function planCard(p, focused){
+  var name = p.id === "annual" ? s.annual : s.lifetime;
+  var per  = p.id === "annual" ? s.perYear : s.once;
+  return '<span class="plan opt' + (focused ? " focused" : "") + '" data-target="' + (tv ? 56 : 48) + '" data-plan="' + p.id + '">' +
+    '<span class="name t-overline">' + esc(name) + "</span>" +
+    '<span class="row"><span class="price">' + esc(money(p.priceMinor, p.currency, lang)) + "</span>" +
+    '<span class="per t-body-s">' + esc(per) + "</span></span>" +
+    "</span>";
+}
+
+function shellHtml(){
+  var codeCls = tv ? "code-tv" : "code-phone";
+  var keyCls  = tv ? "code-key-tv" : "code-key";
+
+  var identity =
+    pill("macLabel", "2F:19:EB:20:44:7C", codeCls, "mac") +
+    pill("keyLabel", "482731", keyCls, "key");
+
+  var middle;
+  if (v.skeleton) {
+    middle = '<div class="plans"><span class="skel card" style="width:210px"></span>' +
+             '<span class="skel card" style="width:210px"></span></div>';
+  } else if (v.plans) {
+    middle = '<div class="plans">' +
+      PLANS.map(function (p, i) { return planCard(p, v.focus === "plan" && i === 0); }).join("") +
+      "</div>";
+  } else if (v.lifetime) {
+    middle = "";
+  } else {
+    var label = v.action === "retry" ? s.retry : s.support;
+    middle = '<div class="plans"><span class="btn" data-target="' + (tv ? 56 : 48) + '">' + esc(label) + "</span></div>";
+  }
+
+  var busy = v.busy
+    ? '<div class="plans"><span class="btn" data-target="' + (tv ? 56 : 48) + '"><i class="spin"></i>' +
+      '<span>' + esc(s.sWorking) + "</span></span></div>"
+    : middle;
+
+  var statusCls = v.bad ? "bad" : (v.tone || "");
+  var status = v.line
+    ? '<div class="status ' + statusCls + '" data-status><i class="mark"></i><span>' +
+      esc(s[v.line]) + "</span></div>"
+    : '<div class="status" data-status></div>';
+
+  var code = v.skeleton
+    ? '<div class="codezone"><span class="skel plate" style="width:138px;height:138px"></span></div>'
+    : '<div class="codezone">' +
+        '<div class="plate">' + qrSvg() + "</div>" +
+        '<div class="cap t-body-s" data-s="cap">' + esc(s.cap) + "</div>" +
+      "</div>";
+
+  return '<div class="sysbar"><span>21:04</span><span dir="ltr">&#9679;&#9679;&#9679;&nbsp;&nbsp;84%</span></div>' +
+    '<div class="stage">' +
+      '<div class="head">' +
+        '<h1 class="' + (tv ? "t-headline-l" : "t-headline-m") + '" data-s="title">' + esc(s.title) + "</h1>" +
+        '<span class="spacer"></span>' + chipHtml() +
+        '<span class="lang" data-target="' + (tv ? 56 : 48) + '">' + ICON.globe + "<span>" + esc(s.lang) + "</span></span>" +
+      "</div>" +
+      '<div class="rule"></div>' +
+      '<div class="field">' +
+        '<div class="identity">' + identity + busy + status + "</div>" +
+        code +
+      "</div>" +
+      '<div class="rule"></div>' +
+      '<div class="foot t-body-s" data-s="legal">' + esc(s.legal) + "</div>" +
+    "</div>" +
+    '<div class="gesture"><i></i></div>';
+}
+
+document.querySelectorAll("[data-shell]").forEach(function (n) { n.innerHTML = shellHtml(); });
+
+if (q.get("spec") === "1") {
+  var order = ["Language", "Annual", "Lifetime"];
+  var tag = document.createElement("div");
+  tag.style.cssText = "position:fixed;inset-inline-start:8px;bottom:8px;z-index:9;" +
+    "font:11px/1.5 monospace;color:#9B6BFF;background:rgba(0,0,0,.6);padding:6px 8px;border-radius:6px";
+  tag.textContent = frame + " · " + lang + " · " + state + " · focus: " + order.join(" → ");
+  document.body.appendChild(tag);
+}
+</script>
+</body>
+</html>

@@ -74,6 +74,29 @@ const FILES = {
     // that says nothing the worst four do not.
     stateLangs: ["en", "ar", "de", "th"],
   },
+  "licence.html": {
+    frames: [
+      ["phone-873", 873, 393, 2, "1080x2400 @2.75, landscape"],
+      ["phone-800", 800, 360, 2, "720x1600 @2.00, the shortest we ship to"],
+      ["tv", 960, 540, 2, "1920x1080 @2.00"],
+    ],
+    langs: ["en", "ar", "de", "fi", "th", "hi", "bn", "ja", "zh"],
+    // No `mac` requirement: this screen shows the address, but the check named
+    // `mac` measures the address against the identity *column* on the sibling
+    // layout, and here the column also carries the plans. The capsule is
+    // measured as an element like any other.
+    requires: ["header", "footer", "qr"],
+    // Every state the licence gate can be in. Each changes the field band:
+    // Revoked and Unavailable drop the plans entirely, lifetime drops them and
+    // the status line, working replaces them with a spinner, and loading
+    // replaces the whole thing with skeletons.
+    states: [
+      "trial", "activated-annual", "activated-lifetime", "expired-trial",
+      "expired-annual", "none", "verify", "unavailable", "revoked",
+      "working", "error", "loading", "focus-plan",
+    ],
+    stateLangs: ["en", "ar", "de", "th"],
+  },
   "language-picker.html": {
     frames: [
       ["phone-873", 873, 393, 2, "1080x2400 @2.75, landscape"],
@@ -433,7 +456,14 @@ async function main() {
   warnFonts();
 
   const url = "file://" + path.resolve(file);
-  const browser = await chromium.launch({ args: ["--no-sandbox", "--font-render-hinting=none"] });
+  // Some environments ship a browser Playwright did not install -- a CI image,
+  // a sandbox with a preinstalled Chromium. Point at it rather than downloading
+  // a second copy of the same thing.
+  const executablePath = process.env.CASTIVIO_CHROME || undefined;
+  const browser = await chromium.launch({
+    executablePath,
+    args: ["--no-sandbox", "--font-render-hinting=none"],
+  });
   const rows = [];
   let failed = 0;
 
