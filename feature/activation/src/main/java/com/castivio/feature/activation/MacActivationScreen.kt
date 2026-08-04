@@ -35,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -87,9 +88,9 @@ import com.castivio.core.design.theme.Spacing
  *
  * | frame | band | identity column | spare |
  * |---|---|---|---|
- * | 873×393 | 284dp | 228dp | 56dp |
- * | 800×360 | 259dp | 224dp | 35dp |
- * | TV 960×540 | 337dp | 248dp | 89dp |
+ * | 873×393 | 284dp | 230dp | 54dp |
+ * | 800×360 | 259dp | 226dp | 33dp |
+ * | TV 960×540 | 337dp | 252dp | 85dp |
  *
  * The shortest frame had nine millimetres before the capsules and has thirty-five
  * after: a 56dp pill replaced a 69dp label-above-value stack, twice. That is not
@@ -135,7 +136,7 @@ internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
     tv -> Metrics(
         edge = 48.dp, stageTop = 48.dp, stageBottom = 48.dp, headBottom = 16.dp,
         zoneGap = 52.dp, rowGap = 17.dp, capsuleStart = 24.dp, copyGap = 22.dp,
-        actionsGap = 20.dp, actionsTop = 30.dp,
+        actionsGap = 20.dp, actionsTop = 42.dp,
         statusHeight = 24.dp, statusTop = 16.dp,
         footTop = 13.dp, footBottom = 0.dp,
         plate = 196.dp, platePadding = 12.dp, captionTop = 15.dp, captionWidth = 236.dp,
@@ -144,7 +145,7 @@ internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
     available < SHORT_PHONE -> Metrics(
         edge = 26.dp, stageTop = 10.dp, stageBottom = 4.dp, headBottom = 9.dp,
         zoneGap = 34.dp, rowGap = 13.dp, capsuleStart = 18.dp, copyGap = 14.dp,
-        actionsGap = 12.dp, actionsTop = 18.dp,
+        actionsGap = 12.dp, actionsTop = 28.dp,
         statusHeight = 20.dp, statusTop = 12.dp,
         footTop = 7.dp, footBottom = 1.dp,
         plate = 130.dp, platePadding = 8.dp, captionTop = 9.dp, captionWidth = 162.dp,
@@ -153,7 +154,7 @@ internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
     else -> Metrics(
         edge = 30.dp, stageTop = 12.dp, stageBottom = 6.dp, headBottom = 11.dp,
         zoneGap = 40.dp, rowGap = 13.dp, capsuleStart = 20.dp, copyGap = 16.dp,
-        actionsGap = 14.dp, actionsTop = 22.dp,
+        actionsGap = 14.dp, actionsTop = 32.dp,
         statusHeight = 20.dp, statusTop = 12.dp,
         footTop = 8.dp, footBottom = 2.dp,
         plate = 148.dp, platePadding = 9.dp, captionTop = 11.dp, captionWidth = 180.dp,
@@ -364,7 +365,12 @@ private fun Header(m: Metrics, tv: Boolean, trialDays: Int?, onOpenLanguage: () 
                     Modifier
                         .size(TRIAL_DOT)
                         .clip(RoundedCornerShape(Radius.pill))
-                        .background(colors.primary),
+                        // The same brush the primary button is filled with, not a
+                        // flat token that happens to be near it. Two blues that
+                        // are almost the same is worse than one, and this dot and
+                        // Add playlist are the only two primary-coloured things
+                        // on the screen.
+                        .background(colors.primaryBrush),
                 )
                 Text(
                     text = stringResource(R.string.trial_name),
@@ -667,7 +673,10 @@ private fun CopyControl(label: String, isCopied: Boolean, onClick: () -> Unit) {
         when {
             focused -> colors.focusRing
             isCopied -> colors.success
-            else -> colors.glassBorder
+            // Transparent, not a hairline: inside a bordered pill a second
+            // outline four dp away from the first is the thing that made the
+            // control look bolted on rather than built in.
+            else -> Color.Transparent
         },
         Motion.focusSpec(),
         label = "copyBorder",
@@ -679,7 +688,12 @@ private fun CopyControl(label: String, isCopied: Boolean, onClick: () -> Unit) {
             .castivioFocusScale(Motion.focusScaleIcon, interaction)
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
             .clip(shape)
-            .background(colors.glassFill)
+            // Quieter than the pill it sits in, deliberately. A control drawn at
+            // the same weight as its container reads as a second container; this
+            // one is a utility inside one, so it takes the softer fill and shows
+            // no border at all until it has something to say -- focus, or a
+            // confirmation. At rest the icon and the shape carry it.
+            .background(colors.glassFillStrong)
             .border(BorderStroke(1.dp, border), shape)
             .clickable(interaction, indication = null, onClick = onClick)
             .semantics { contentDescription = label },
@@ -708,6 +722,12 @@ private fun CodeZone(identity: ActivationIdentityState, m: Metrics) {
             Modifier
                 .size(m.plate)
                 .testTag(ActivationTags.QR)
+                // A soft lift, not a card. The plate is white on a dark gradient
+                // and reads as a hole punched in the background without it; a few
+                // dp of shadow is enough to make it sit *on* the screen. No
+                // border, no second surface -- the size and position are
+                // unchanged and the plate is still the only container here.
+                .shadow(QR_LIFT, RoundedCornerShape(Radius.md))
                 .clip(RoundedCornerShape(Radius.md))
                 .background(Color.White)
                 .padding(m.platePadding),
@@ -754,31 +774,42 @@ private fun refreshLabel(state: RefreshState): Int =
  * and the tone travels with the message rather than being re-derived from the
  * refresh state at the point of drawing.
  */
-private fun statusMessage(identity: ActivationIdentityState): Status? = when {
-    identity.refresh == RefreshState.Found -> Status(R.string.refresh_found, Tone.Good)
-
-    // Asked, and the answer was no. Same sentence and same tone as the resting
-    // state below: the user's situation is identical either way, and a colour
-    // that changed because a button had been pressed would be describing the
-    // button rather than the subscription.
-    identity.refresh == RefreshState.None -> Status(R.string.refresh_none, Tone.Missing)
-
-    identity.refresh == RefreshState.Error -> Status(R.string.refresh_error, Tone.Broken)
-
+internal fun statusMessage(identity: ActivationIdentityState): Status? = when {
+    // **The transient answers come first, and that ordering is the fix for a
+    // real defect.** Copying used to be listed below the refresh outcomes, so a
+    // user who had pressed Refresh once -- leaving a permanent "no subscription
+    // yet" -- could copy the address and see no acknowledgement at all. The tick
+    // on the capsule lit, the line underneath went on describing the
+    // subscription, and the only visible confirmation was the one the operating
+    // system draws, in the system's language rather than Castivio's.
+    //
+    // A copy confirmation lasts 1.5 seconds and then yields the line back. A
+    // subscription status is true until it changes. When both have something to
+    // say, the one that is about to disappear is the one the user just caused.
     identity.lastCopied == Copied.Address -> Status(R.string.copied_mac, Tone.Neutral)
     identity.lastCopied == Copied.Key -> Status(R.string.copied_key, Tone.Neutral)
 
-    // At rest, and this is the state a first launch is in. The screen is only
-    // reached when there is no usable provider -- `startDestination` sends a
-    // device that has one to Home -- so "nothing added yet" is not a guess, it is
-    // the precondition for being here at all.
+    // Checking is its own sentence on the button, not here; the line keeps
+    // describing the subscription while the check runs.
+    identity.refresh == RefreshState.Found -> Status(R.string.refresh_found, Tone.Good)
+
+    identity.refresh == RefreshState.Error -> Status(R.string.refresh_error, Tone.Broken)
+
+    // Asked and told no, or never asked at all: the user's situation is the same
+    // either way, so it is the same sentence in the same tone. A colour that
+    // changed because a button had been pressed would be describing the button
+    // rather than the subscription.
+    //
+    // The resting case is not a guess. This screen is only reached when no
+    // provider is usable -- `startDestination` sends a device that has one to
+    // Home -- so "nothing added yet" is the precondition for being here.
     else -> Status(R.string.refresh_none, Tone.Missing)
 }
 
-private data class Status(val message: Int, val tone: Tone)
+internal data class Status(val message: Int, val tone: Tone)
 
 /** The four registers the one status line speaks in. */
-private enum class Tone { Neutral, Good, Missing, Broken }
+internal enum class Tone { Neutral, Good, Missing, Broken }
 
 /** `2F:19:EB:20:44:7C` read as separated pairs rather than one long number. */
 private fun spaced(address: String): String = address.replace(":", " ")
@@ -798,14 +829,21 @@ private const val ADDRESS_PLACEHOLDER = "··:··:··:··:··:··"
  * The capsule's height, and the one number [IdentityCapsule] does not take from
  * [Metrics].
  *
- * 56dp on a phone and on a television alike. A pill that changed height between
- * the two would be a different component wearing the same name, and the 48dp
- * copy control inside it needs 56 to sit in with room to breathe on either.
+ * 52dp on a phone and on a television alike. A pill that changed height between
+ * the two would be a different component wearing the same name.
+ *
+ * Four dp lighter than the 56 it shipped at, which is as far as it goes: the copy
+ * control inside is a 48dp touch target and it is not negotiable, so 52 leaves it
+ * two dp of breathing room top and bottom. 50 would look lighter still and would
+ * be a control jammed against the edge of its own container.
  */
-internal val CAPSULE = 56.dp
+internal val CAPSULE = 52.dp
 
-/** 4dp, so the 48dp control inside is centred against the 56dp pill's end. */
-private val CAPSULE_END = 4.dp
+/** 2dp, so the 48dp control inside is centred against the 52dp pill's end. */
+private val CAPSULE_END = 2.dp
 
 private val TRIAL_DOT = 6.dp
 private val STATUS_DOT = 6.dp
+
+/** Enough to separate white from the aurora, not enough to read as a card. */
+private val QR_LIFT = 10.dp

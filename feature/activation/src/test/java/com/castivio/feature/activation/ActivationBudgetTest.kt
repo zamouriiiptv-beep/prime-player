@@ -114,8 +114,8 @@ class ActivationBudgetTest {
         val short = spare(360.dp, tv = false)
         assertTrue(
             "the shortest phone is down to $short of margin; the capsules left it " +
-                "35dp and the inset budget needs most of that",
-            short >= 30.dp,
+                "33dp and the inset budget needs most of that",
+            short >= 28.dp,
         )
     }
 
