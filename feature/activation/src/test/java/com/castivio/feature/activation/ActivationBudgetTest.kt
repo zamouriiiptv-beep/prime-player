@@ -73,7 +73,7 @@ class ActivationBudgetTest {
             title = if (tv) tvTitle else phoneTitle,
             legal = legal,
         )
-        return band - m.identityHeight(CAPSULE)
+        return band - m.identityHeight()
     }
 
     /**
@@ -193,13 +193,20 @@ class ActivationBudgetTest {
             Triple("television", true, 540.dp),
         )) {
             val m = metricsFor(tv = tv, available = frame)
+
+            // The frame's own floor, not one floor for all frames. A television
+            // is driven by a D-pad and `Sizing.minTvTarget` is 56dp; asserting
+            // the 48dp phone minimum here is what let the TV copy control ship
+            // 8dp short. The one number that was wrong was the one number
+            // nothing checked.
+            val floor = if (tv) Sizing.minTvTarget else Sizing.minTouchTarget
             assertTrue(
-                "$name: the copy control is ${m.target}",
-                m.target >= Sizing.minTouchTarget,
+                "$name: the copy control is ${m.target}, below the $floor floor",
+                m.target >= floor,
             )
             assertTrue(
-                "$name: the capsule is $CAPSULE and cannot hold a touch target",
-                CAPSULE >= Sizing.minTouchTarget,
+                "$name: the capsule is ${m.capsule} and cannot hold a $floor target",
+                m.capsule >= floor,
             )
             // The column is measured with full-size targets in it, so a positive
             // margin is the statement that nothing had to be crushed to fit.

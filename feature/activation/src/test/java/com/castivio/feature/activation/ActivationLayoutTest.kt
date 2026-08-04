@@ -118,7 +118,7 @@ class ActivationLayoutTest {
     @Test
     fun `every mandatory element is placed on a television`() {
         compose.setContent { Screen(Frame.Television) }
-        compose.assertActivationIsWhole()
+        compose.assertActivationIsWhole(television = true)
     }
 
     /** The shortest phone Castivio ships to, where the band has least to spare. */
@@ -303,7 +303,7 @@ private val MIN_TARGET = 48.dp
  * element instead of the first one — when a whole band goes, that is the
  * difference between "the QR is missing" and "the band is missing".
  */
-private fun ComposeContentTestRule.assertActivationIsWhole() {
+private fun ComposeContentTestRule.assertActivationIsWhole(television: Boolean = false) {
     val missing = mutableListOf<String>()
 
     fun check(what: String, finder: () -> Unit) {
@@ -372,11 +372,14 @@ private fun ComposeContentTestRule.assertActivationIsWhole() {
     byTag("the code zone", ActivationTags.CODE_ZONE, min = 100.dp)
 
     // The two pills, at their declared height. This is one of the few sizes this
-    // harness can be trusted on: a capsule is `Modifier.height(CAPSULE)`, not a
+    // harness can be trusted on: a capsule is `Modifier.height(m.capsule)`, not a
     // line of text, so 56 here means 56 on a device. A pill that came back short
     // would mean the band squeezed it, which is the failure this file is for.
-    byTag("the MAC capsule", ActivationTags.MAC_CAPSULE, min = CAPSULE)
-    byTag("the device key capsule", ActivationTags.KEY_CAPSULE, min = CAPSULE)
+    // The frame's own pill height, not a constant: 52dp on a phone and 64 on a
+    // television, because a 56dp D-pad target does not fit in a 52dp pill.
+    val pill = metricsFor(tv = television, available = 0.dp).capsule
+    byTag("the MAC capsule", ActivationTags.MAC_CAPSULE, min = pill)
+    byTag("the device key capsule", ActivationTags.KEY_CAPSULE, min = pill)
 
     byText("the title", "Add your subscription")
     byText("the trial name", "Castivio trial")

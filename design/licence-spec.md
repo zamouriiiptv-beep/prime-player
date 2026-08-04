@@ -593,13 +593,20 @@ It is a regression, it was introduced by the polish pass, and no gate caught it:
 `ActivationBudgetTest` asserts `m.target >= Sizing.minTouchTarget`, which is the
 phone floor, and never checks the television against the television floor.
 
-The fix is small — the copy control takes `m.target` again, and the TV capsule
-grows to 64dp to hold it — but it is a change to a frozen screen and it also
-moves the TV budget, so it wants its own commit and its own re-measurement. **Not
-done. Awaiting the word.**
+**Fixed.** The copy control takes `m.target` again — 48dp on a phone, 56 on a
+television — and the capsule became a per-frame metric so it can hold it: 52dp on
+a phone, 64 on a television. `CAPSULE` as a single constant is gone, because a
+single constant is what made the mistake expressible.
 
-The gate to add alongside it: `ActivationBudgetTest` should assert the television
-frame against `minTvTarget`, not `minTouchTarget`.
+And the gate that should have caught it now does: `ActivationBudgetTest` asserts
+each frame against **its own** floor, `minTvTarget` on the television and
+`minTouchTarget` on a phone. The re-derived budget:
+
+| frame | band | column | spare | with a 24dp bar |
+|---|---|---|---|---|
+| 873×393 | 284dp | 230dp | 54dp | 42dp |
+| 800×360 | 259dp | 226dp | 33dp | 9dp |
+| TV 960×540 | 337dp | 276dp | 61dp | 37dp |
 
 ### 17.2 The sibling mockup measures the wrong font
 

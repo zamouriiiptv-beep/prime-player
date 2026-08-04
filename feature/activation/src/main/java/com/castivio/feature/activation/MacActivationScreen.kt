@@ -94,7 +94,7 @@ import java.util.Locale
  * |---|---|---|---|
  * | 873×393 | 284dp | 230dp | 54dp |
  * | 800×360 | 259dp | 226dp | 33dp |
- * | TV 960×540 | 337dp | 252dp | 85dp |
+ * | TV 960×540 | 337dp | 276dp | 61dp |
  *
  * The shortest frame had nine millimetres before the capsules and has thirty-five
  * after: a 56dp pill replaced a 69dp label-above-value stack, twice. That is not
@@ -113,6 +113,8 @@ internal data class Metrics(
     val rowGap: Dp,
     /** Inset from the pill's leading edge to its label. */
     val capsuleStart: Dp,
+    /** The pill's height. Not one number: see the note on [Metrics.target]. */
+    val capsule: Dp,
     val copyGap: Dp,
     val actionsGap: Dp,
     val actionsTop: Dp,
@@ -139,7 +141,7 @@ internal val SHORT_PHONE = 380.dp
 internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
     tv -> Metrics(
         edge = 48.dp, stageTop = 48.dp, stageBottom = 48.dp, headBottom = 16.dp,
-        zoneGap = 52.dp, rowGap = 17.dp, capsuleStart = 24.dp, copyGap = 22.dp,
+        zoneGap = 52.dp, rowGap = 17.dp, capsuleStart = 24.dp, capsule = 64.dp, copyGap = 22.dp,
         actionsGap = 20.dp, actionsTop = 42.dp,
         statusHeight = 24.dp, statusTop = 16.dp,
         footTop = 13.dp, footBottom = 0.dp,
@@ -148,7 +150,7 @@ internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
     )
     available < SHORT_PHONE -> Metrics(
         edge = 26.dp, stageTop = 10.dp, stageBottom = 4.dp, headBottom = 9.dp,
-        zoneGap = 34.dp, rowGap = 13.dp, capsuleStart = 18.dp, copyGap = 14.dp,
+        zoneGap = 34.dp, rowGap = 13.dp, capsuleStart = 18.dp, capsule = 52.dp, copyGap = 14.dp,
         actionsGap = 12.dp, actionsTop = 28.dp,
         statusHeight = 20.dp, statusTop = 12.dp,
         footTop = 7.dp, footBottom = 1.dp,
@@ -157,7 +159,7 @@ internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
     )
     else -> Metrics(
         edge = 30.dp, stageTop = 12.dp, stageBottom = 6.dp, headBottom = 11.dp,
-        zoneGap = 40.dp, rowGap = 13.dp, capsuleStart = 20.dp, copyGap = 16.dp,
+        zoneGap = 40.dp, rowGap = 13.dp, capsuleStart = 20.dp, capsule = 52.dp, copyGap = 16.dp,
         actionsGap = 14.dp, actionsTop = 32.dp,
         statusHeight = 20.dp, statusTop = 12.dp,
         footTop = 8.dp, footBottom = 2.dp,
@@ -207,7 +209,7 @@ internal fun Metrics.bandHeight(frame: Dp, title: Dp, legal: Dp): Dp =
  *
  * @param overline the declared line height of the MAC ADDRESS / DEVICE KEY labels.
  */
-internal fun Metrics.identityHeight(capsule: Dp): Dp {
+internal fun Metrics.identityHeight(): Dp {
     val actions = (actionsTop - rowGap).coerceAtLeast(0.dp) + Sizing.minTouchTarget
     val status = (statusTop - rowGap).coerceAtLeast(0.dp) + statusHeight
     return capsule + rowGap + capsule + rowGap + actions + rowGap + status
@@ -623,10 +625,10 @@ private fun StatusLine(identity: ActivationIdentityState, m: Metrics) {
  *
  * ## The shape
  *
- * `RoundedCornerShape(50)` -- a percentage, not a dp. At [CAPSULE] tall that is a
- * true pill, and it stays a true pill if the height ever changes, which a 28dp
- * corner would not. A capsule whose corners are nearly-but-not-quite its
- * half-height is the detail that reads as cheap.
+ * `RoundedCornerShape(50)` -- a percentage, not a dp. It is a true pill at 52dp
+ * and still a true pill at the television's 64, which a fixed 26dp corner would
+ * not be. A capsule whose corners are nearly-but-not-quite its half-height is
+ * the detail that reads as cheap, and the height is not one number.
  *
  * Horizontal rather than the label-above-value it replaces, and that is also what
  * makes the vertical budget work: 56dp instead of 69, twice, which is the 26dp
@@ -651,7 +653,7 @@ private fun IdentityCapsule(
 
     Row(
         modifier
-            .height(CAPSULE)
+            .height(m.capsule)
             .clip(shape)
             // Semi-transparent over the aurora, so the gradient shows through and
             // the pill belongs to the background rather than sitting on it. The
@@ -686,7 +688,7 @@ private fun IdentityCapsule(
         )
 
         if (enabled) {
-            CopyControl(label = copyLabel, isCopied = isCopied, onClick = onCopy)
+            CopyControl(m = m, label = copyLabel, isCopied = isCopied, onClick = onCopy)
         }
     }
 }
@@ -699,7 +701,7 @@ private fun IdentityCapsule(
  * copying the address must not clear the tick on the key.
  */
 @Composable
-private fun CopyControl(label: String, isCopied: Boolean, onClick: () -> Unit) {
+private fun CopyControl(m: Metrics, label: String, isCopied: Boolean, onClick: () -> Unit) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
     var focused by remember { mutableStateOf(false) }
@@ -719,7 +721,15 @@ private fun CopyControl(label: String, isCopied: Boolean, onClick: () -> Unit) {
 
     Box(
         Modifier
-            .size(Sizing.minTouchTarget)
+            // `m.target`, which is 48dp on a phone and 56 on a television --
+            // `Sizing.minTvTarget`, and a D-pad target may not be smaller.
+            //
+            // This was pinned to the phone constant during a polish pass, which
+            // shrank the television's control by 8dp and shipped. No gate caught
+            // it: the budget test asserted the *phone* floor on every frame
+            // including the TV, so the one number that was wrong was the one
+            // number nothing checked. It does now.
+            .size(m.target)
             .castivioFocusScale(Motion.focusScaleIcon, interaction)
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
             .clip(shape)
@@ -914,20 +924,13 @@ private fun ltrIsolate(value: String): String = "⁦$value⁩"
 private const val ADDRESS_PLACEHOLDER = "··:··:··:··:··:··"
 
 /**
- * The capsule's height, and the one number [IdentityCapsule] does not take from
- * [Metrics].
+ * The gap between the copy control and the pill's trailing edge.
  *
- * 52dp on a phone and on a television alike. A pill that changed height between
- * the two would be a different component wearing the same name.
- *
- * Four dp lighter than the 56 it shipped at, which is as far as it goes: the copy
- * control inside is a 48dp touch target and it is not negotiable, so 52 leaves it
- * two dp of breathing room top and bottom. 50 would look lighter still and would
- * be a control jammed against the edge of its own container.
+ * Two dp, which is what a 48dp control leaves inside a 52dp pill and what a 56dp
+ * control leaves inside a 64dp one -- four on the television, because a remote
+ * needs the bigger target and the pill grew to hold it rather than the target
+ * shrinking to fit the pill. That was the bug.
  */
-internal val CAPSULE = 52.dp
-
-/** 2dp, so the 48dp control inside is centred against the 52dp pill's end. */
 private val CAPSULE_END = 2.dp
 
 private val TRIAL_DOT = 6.dp
