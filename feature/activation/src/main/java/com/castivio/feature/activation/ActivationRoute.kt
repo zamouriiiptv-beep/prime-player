@@ -9,11 +9,16 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -329,13 +334,45 @@ internal fun ActivationSurface(
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
 
     if (fixedViewport) {
-        Box(modifier.fillMaxSize().focusRequester(focus)) { content() }
+        Box(
+            modifier
+                .fillMaxSize()
+                // The gradient runs under the system bars; the content does not.
+                //
+                // `:app` goes edge to edge, which is what lets the aurora reach
+                // the corners instead of stopping at a grey rectangle. It also
+                // means the navigation bar sits on top of whatever is drawn
+                // there, and in landscape that bar is at the side -- so a screen
+                // that ignores insets loses its edge padding on one side only,
+                // and which side depends on the handset and the text direction.
+                //
+                // `safeDrawing` rather than a hand-picked side: it is the union
+                // of the system bars and the display cutout, it is already
+                // mirrored for RTL because it is resolved per edge rather than
+                // per direction, and it is 0 on a television, which has neither.
+                // An RTL-specific padding would be the same bug with a second
+                // way to be wrong.
+                //
+                // **Horizontal only, and that is a limitation, not a preference.**
+                // The side inset is the one the device review found and it costs
+                // this composition nothing: the band's budget is vertical. A
+                // bottom inset is a different matter -- a 24dp gesture bar takes
+                // the shortest frame from 9dp of margin to -15, and a band that
+                // does not fit is how Add playlist disappeared the first time.
+                // The vertical inset lands with the capsule work that frees the
+                // height for it; until then the top and bottom behave as they did
+                // when the composition was reviewed. `ActivationBudgetTest`
+                // records the arithmetic.
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
+                .focusRequester(focus),
+        ) { content() }
         return
     }
 
     Box(
         modifier
             .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.safeDrawing)
             .padding(
                 horizontal = if (device.isTv) Spacing.tvOverscan else device.screenPadding,
                 vertical = if (device.isTv) Spacing.tvOverscan else Spacing.xl,

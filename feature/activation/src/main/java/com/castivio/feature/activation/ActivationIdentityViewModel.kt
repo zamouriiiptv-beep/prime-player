@@ -7,6 +7,7 @@ import com.castivio.core.common.AppDispatchers
 import com.castivio.domain.identity.DeviceIdentity
 import com.castivio.domain.identity.IdentityProvenance
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,12 +33,18 @@ internal sealed interface RefreshState {
 }
 
 /**
- * Which identifier was last copied, if either.
+ * Which identifier was copied most recently, for the one status line to describe.
  *
- * Two independent instances, not one shared flag: copying the address must not
- * clear the confirmation on the key, and the two controls are never in the same
- * state by accident. Confirmation is a glyph swap inside an unchanged box, so
- * nothing moves.
+ * This is *not* what drives the two ticks. It cannot be: one field can only ever
+ * name one control, and the contract is that the two confirmations are
+ * independent — copying the address must not cut short the tick on the key. The
+ * ticks are [ActivationIdentityState.addressCopied] and
+ * [ActivationIdentityState.keyCopied], one boolean each, with their own timers.
+ *
+ * The file used to claim independence in this comment while modelling a shared
+ * flag underneath it. The comment was right about the intent and the code was
+ * not, which is the kind of disagreement that survives review because both halves
+ * read fine on their own.
  */
 internal enum class Copied { None, Address, Key }
 
@@ -53,7 +60,19 @@ internal data class ActivationIdentityState(
     /** Encodes the central activation URL and nothing else. See [activationQrBitmap]. */
     val qr: Bitmap? = null,
     val refresh: RefreshState = RefreshState.Idle,
-    val copied: Copied = Copied.None,
+
+    /**
+     * Whether each control is showing its confirmation, independently.
+     *
+     * Two fields rather than one, so both can be true at once — a user who copies
+     * the address and then the key within a second should see both ticks, and
+     * with a shared flag the first would vanish as the second appeared.
+     */
+    val addressCopied: Boolean = false,
+    val keyCopied: Boolean = false,
+
+    /** Which one the status line is currently describing. */
+    val lastCopied: Copied = Copied.None,
 )
 
 /**
@@ -113,13 +132,62 @@ internal class ActivationIdentityViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Confirm a copy, and take the confirmation back again a moment later.
+     *
+     * A tick that never clears stops being feedback: it becomes part of the
+     * control's appearance, and the next copy says nothing at all. It reverts
+     * after [COPY_FEEDBACK_MS].
+     *
+     * One timer per identifier, keyed and cancelled individually, because the two
+     * confirmations are independent — a second copy of the same identifier
+     * restarts that one's clock and leaves the other's running.
+     */
     fun copied(what: Copied) {
-        _state.update { it.copy(copied = what) }
+        _state.update {
+            when (what) {
+                Copied.Address -> it.copy(addressCopied = true, lastCopied = what)
+                Copied.Key -> it.copy(keyCopied = true, lastCopied = what)
+                Copied.None -> it
+            }
+        }
+        if (what == Copied.None) return
+
+        copyTimers.remove(what)?.cancel()
+        copyTimers[what] = viewModelScope.launch {
+            delay(COPY_FEEDBACK_MS)
+            _state.update {
+                val cleared = when (what) {
+                    Copied.Address -> it.copy(addressCopied = false)
+                    Copied.Key -> it.copy(keyCopied = false)
+                    Copied.None -> it
+                }
+                // The status line follows whichever tick is still lit, so that
+                // clearing the older of two copies does not blank a sentence that
+                // still has something to say.
+                cleared.copy(
+                    lastCopied = when {
+                        cleared.addressCopied -> Copied.Address
+                        cleared.keyCopied -> Copied.Key
+                        else -> Copied.None
+                    },
+                )
+            }
+            copyTimers.remove(what)
+        }
     }
+
+    private val copyTimers = mutableMapOf<Copied, Job>()
 
     private companion object {
         /** Generous enough for a phone camera to read across a room. */
         const val QR_PIXELS = 512
         const val CHECK_FLOOR_MS = 900L
+
+        /**
+         * Long enough to be read, short enough that the control is ready again
+         * before a user who mistrusts it presses a second time.
+         */
+        const val COPY_FEEDBACK_MS = 1_500L
     }
 }

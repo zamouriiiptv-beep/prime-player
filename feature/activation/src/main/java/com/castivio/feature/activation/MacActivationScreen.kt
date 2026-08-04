@@ -443,7 +443,7 @@ private fun IdentityZone(
             spoken = address?.let { stringResource(R.string.mac_spoken, spaced(it)) },
             style = if (tv) CastivioType.codeHero else CastivioType.codeCompact,
             copyLabel = stringResource(R.string.copy_mac),
-            isCopied = identity.copied == Copied.Address,
+            isCopied = identity.addressCopied,
             enabled = address != null,
             onCopy = {
                 clipboard.setText(AnnotatedString(address.orEmpty()))
@@ -462,7 +462,7 @@ private fun IdentityZone(
                 spoken = null,
                 style = if (tv) CastivioType.codeKeyTv else CastivioType.codeKey,
                 copyLabel = stringResource(R.string.copy_key),
-                isCopied = identity.copied == Copied.Key,
+                isCopied = identity.keyCopied,
                 enabled = true,
                 onCopy = {
                     clipboard.setText(AnnotatedString(key))
@@ -677,8 +677,8 @@ private fun statusMessage(identity: ActivationIdentityState): Int? = when {
     identity.refresh == RefreshState.Found -> R.string.refresh_found
     identity.refresh == RefreshState.None -> R.string.refresh_none
     identity.refresh == RefreshState.Error -> R.string.refresh_error
-    identity.copied == Copied.Address -> R.string.copied_mac
-    identity.copied == Copied.Key -> R.string.copied_key
+    identity.lastCopied == Copied.Address -> R.string.copied_mac
+    identity.lastCopied == Copied.Key -> R.string.copied_key
     else -> null
 }
 

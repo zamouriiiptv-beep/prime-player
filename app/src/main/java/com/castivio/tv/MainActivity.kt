@@ -1,8 +1,10 @@
 package com.castivio.tv
 
 import android.content.Context
+import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
@@ -49,7 +51,29 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+
+        // Dark on both bars, explicitly, with no scrim.
+        //
+        // The bare `enableEdgeToEdge()` this replaced uses `SystemBarStyle.auto`,
+        // which follows the *system* theme: on a phone in light mode it paints a
+        // light scrim behind the navigation bar, and a real-device review found
+        // exactly that -- a white strip down the side of a landscape screen that
+        // is otherwise Castivio's dark gradient. Castivio has one theme, so the
+        // bars are told which one rather than left to guess.
+        //
+        // `Color.TRANSPARENT` for both scrims: on API 29 and up the bars are
+        // genuinely transparent and the gradient runs under them, which is the
+        // point of going edge to edge. Below 29 the platform substitutes its own
+        // translucent scrim, and there is no API that prevents it.
+        //
+        // Drawing under the bars is only half of it. Content must not sit under
+        // them, and that is `safeDrawing` on the screens themselves -- see
+        // `ActivationSurface`. Hiding system UI and letting content be obscured
+        // by it are different things, and only one of them is wanted here.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+        )
 
         // Measure once, then let the design system do less on a weak box.
         val performance = AndroidDeviceCapabilities(this).toPerformanceProfile()
