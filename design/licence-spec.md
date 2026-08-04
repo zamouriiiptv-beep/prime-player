@@ -608,8 +608,16 @@ each frame against **its own** floor, `minTvTarget` on the television and
 | 800×360 | 259dp | 226dp | 33dp | 9dp |
 | TV 960×540 | 337dp | 276dp | 61dp | 37dp |
 
-### 17.2 The sibling mockup measures the wrong font
+### 17.2 The sibling mockup measured the wrong font — **fixed**
 
-Cosmetic by comparison, and worth doing before anyone trusts those numbers again.
-`activation-mac.html` should load the same `@font-face` block this file uses.
+`activation-mac.html` now loads the same `@font-face` block this file does, from
+`core/design/src/main/res/font/`, and re-measures **27 of 27** with no scroll and
+no overflow. Inter and Noto Sans are close enough in metrics that nothing moved,
+which is luck rather than design: the numbers were being taken through a face the
+app had stopped rendering, and that is true whether or not it happens to matter.
+
+The composition it draws is still the pre-capsule one, so it is a record of an
+older drawing rather than of the shipped screen. The authority for what ships is
+the Kotlin and `ActivationBudgetTest`; this mockup is where the *design* is
+argued, and it will be redrawn when the capsules are folded back into it.
 

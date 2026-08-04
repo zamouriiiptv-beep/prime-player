@@ -35,6 +35,28 @@
      &state=   copied-mac | copied-key | checking | found | none | error | focus-copy
      &spec=1   measures, safe area, focus order
    ========================================================================= */
+
+/* The shipped faces, loaded from :core:design.
+   This file used to measure through Noto, which is what Android supplied before
+   Castivio bundled its own. A mockup measured through a face the app does not
+   render is a measurement of the wrong thing, and this project has made that
+   mistake twice already. */
+@font-face{font-family:"Castivio Sans";font-weight:400;font-style:normal;
+  src:url("../../core/design/src/main/res/font/inter_regular.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:500;font-style:normal;
+  src:url("../../core/design/src/main/res/font/inter_medium.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:600;font-style:normal;
+  src:url("../../core/design/src/main/res/font/inter_semibold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:700;font-style:normal;
+  src:url("../../core/design/src/main/res/font/inter_bold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:400;font-style:normal;
+  src:url("../../core/design/src/main/res/font/plex_arabic_regular.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:500;font-style:normal;
+  src:url("../../core/design/src/main/res/font/plex_arabic_medium.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:600;font-style:normal;
+  src:url("../../core/design/src/main/res/font/plex_arabic_semibold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:700;font-style:normal;
+  src:url("../../core/design/src/main/res/font/plex_arabic_bold.ttf") format("truetype")}
 :root{
   /* ground */
   --void:#08071A; --abyss:#0D0B22; --deep:#141031; --slate:#1C1840; --haze:#272253;
@@ -57,8 +79,8 @@ body{
   /* Noto, because that is what Android ships. Chromium walks this list per
      character, so Arabic, Thai and Devanagari each land on their own Noto face
      and the measurements carry over to the device. */
-  font-family:"Noto Sans","Noto Sans Arabic","Noto Sans Thai","Noto Sans Devanagari",
-              "WenQuanYi Zen Hei","Liberation Sans",sans-serif;
+  font-family:"Castivio Sans","Castivio Arabic","Noto Sans Thai","Noto Sans Devanagari",
+              "Noto Sans Bengali","Noto Sans CJK JP","Noto Sans CJK SC","Noto Sans",sans-serif;
   color:var(--mist);
   -webkit-font-smoothing:antialiased;
   text-rendering:geometricPrecision;
