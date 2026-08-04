@@ -3,15 +3,13 @@ package com.castivio.tv.licence
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import com.castivio.feature.activation.LanguagePicker
+import com.castivio.domain.entitlement.EntitlementState
 import com.castivio.feature.licence.LicenceRoute
-import com.castivio.tv.locale.AppLocale
-import com.castivio.tv.locale.findActivity
+import com.castivio.tv.locale.LocalLocaleController
 
 /**
  * The one way into the licence screen, wherever it is reached from.
@@ -47,9 +45,13 @@ import com.castivio.tv.locale.findActivity
  * the splash screen is one it will re-implement instead.
  */
 @Composable
-internal fun LicenceWithLanguage(onLeave: () -> Unit, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    val activity = remember(context) { context.findActivity() }
+internal fun LicenceWithLanguage(
+    onLeave: () -> Unit,
+    modifier: Modifier = Modifier,
+    /** Debug only; see `LicenceRoute`, which ignores it in a release build. */
+    forcedState: EntitlementState? = null,
+) {
+    val locale = LocalLocaleController.current
     var picking by rememberSaveable { mutableStateOf(false) }
 
     LicenceRoute(
@@ -58,17 +60,18 @@ internal fun LicenceWithLanguage(onLeave: () -> Unit, modifier: Modifier = Modif
         onLeave = { if (picking) picking = false else onLeave() },
         onOpenLanguage = { picking = true },
         modifier = modifier,
+        forcedState = forcedState,
     )
 
     if (picking) {
         LanguagePicker(
-            selected = remember(context) { AppLocale.current(context).language },
+            selected = locale.current.language,
             onPick = { language ->
                 picking = false
-                AppLocale.choose(context, language)
-                // Every resource read before now was read in the old language,
-                // so the activity is rebuilt rather than recomposed.
-                activity?.recreate()
+                // No `recreate()`. The controller records the choice and the
+                // composition re-reads its strings in place -- see its own note
+                // for what the two teardowns this replaced were costing.
+                locale.choose(language)
             },
             onDismiss = { picking = false },
         )

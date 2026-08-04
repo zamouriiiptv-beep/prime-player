@@ -43,6 +43,7 @@ dependencies {
     implementation(project(":core:design"))
     implementation(project(":core:platform"))
     implementation(project(":core:common"))
+    implementation(project(":core:navigation"))
     implementation(project(":domain"))
 
     // The data layer is wired here so that its Hilt bindings are on the graph;

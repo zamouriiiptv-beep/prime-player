@@ -86,4 +86,47 @@ object BackPolicy {
      */
     fun handles(route: Route, canPop: Boolean = true): Boolean =
         from(route, canPop) != BackTarget.Pop
+
+    /**
+     * What a Back press does on a shell that has things layered over it.
+     *
+     * [from] answers for a *route*. A running shell also has a dialog and an
+     * overlay that can be on top of one, and the order those come off is a
+     * product rule rather than an implementation detail — so it is here, pure and
+     * testable, instead of inside a `when` in a composable where nothing can
+     * assert it. `isFixedViewport` on the activation screen is the precedent, and
+     * the reason for it was a bug that reached a device.
+     *
+     * The ladder is innermost-first, and the exit question is asked at exactly one
+     * rung: the root, with nothing over it. Asking anywhere else confirms a
+     * *navigation*, which on a remote — where Back is the most-pressed key —
+     * teaches the user to dismiss the dialog without reading it, and by the time
+     * it guards something real they no longer see it.
+     *
+     * @param dialogOpen a confirmation is already on screen. It closes first, and
+     *   closes *only* itself: Back must never both dismiss the question and act
+     *   on the thing it was asking about.
+     * @param overlayOpen a detail, the player or a modal is over the shell.
+     * @param atRoot the shell is showing its root destination.
+     */
+    fun fromShell(dialogOpen: Boolean, overlayOpen: Boolean, atRoot: Boolean): ShellBack = when {
+        dialogOpen -> ShellBack.CloseDialog
+        overlayOpen -> ShellBack.CloseOverlay
+        !atRoot -> ShellBack.GoToRoot
+        else -> ShellBack.ConfirmExit
+    }
+}
+
+/** The four things Back can do on the shell, in the order they are taken. */
+enum class ShellBack {
+    /** Dismiss the confirmation, and nothing else. */
+    CloseDialog,
+
+    CloseOverlay,
+
+    /** From a section back to the root, per [BackPolicy.from]. */
+    GoToRoot,
+
+    /** The only rung that asks. Nothing is left to go back to. */
+    ConfirmExit,
 }

@@ -161,7 +161,8 @@ fi
 # aimed at. Every bundle a feature ships is named here, and the check below
 # walks all of them.
 BUNDLES='feature/activation/src/main/res:strings_activation.xml
-feature/licence/src/main/res:strings_licence.xml'
+feature/licence/src/main/res:strings_licence.xml
+app/src/main/res:strings_exit.xml'
 
 # Well-formed XML, checked here rather than left to the build.
 #
@@ -181,8 +182,14 @@ feature/licence/src/main/res:strings_licence.xml'
 if command -v python3 >/dev/null 2>&1; then
   bad=$(python3 <<'PYXML'
 import glob, xml.etree.ElementTree as ET
+# Resource values *and* manifests. The manifests were outside this glob until a
+# comment went inside an element's attribute list -- legal-looking, and not XML
+# at all -- and this check reported all clear. Fourth time in this file that a
+# checker outlived the subset it was pointed at; the lesson is cheaper to apply
+# than to keep relearning.
 seen = sorted(set(
-    glob.glob("*/src/*/res/values*/*.xml") + glob.glob("*/*/src/*/res/values*/*.xml")
+    glob.glob("*/src/*/res/values*/*.xml") + glob.glob("*/*/src/*/res/values*/*.xml") +
+    glob.glob("*/src/*/AndroidManifest.xml") + glob.glob("*/*/src/*/AndroidManifest.xml")
 ))
 if not seen:
     print("  no resource files were found at all, which means this glob is wrong")
@@ -315,6 +322,7 @@ BUNDLES = {
     "feature/licence/src/main/res": (
         "strings_licence.xml", ("licence_qr_caption", "licence_legal",
                                 "licence_status_none", "licence_status_revoked")),
+    "app/src/main/res": ("strings_exit.xml", ("exit_message",)),
 }
 
 def values(path):

@@ -24,6 +24,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.castivio.domain.entitlement.EntitlementState
 
 /**
  * The licence screen, wired.
@@ -47,9 +48,31 @@ fun LicenceRoute(
     onLeave: () -> Unit,
     onOpenLanguage: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * An entitlement to render instead of the device's own. **Debug only.**
+     *
+     * The reason this exists is a real gap found on a device: a debug build
+     * grants itself a local trial, so gate one always passes and the licence
+     * screen is unreachable — every entitlement state that matters was
+     * untestable by anyone holding a phone. This is the smallest thing that
+     * closes that, and it deliberately overrides *only* the entitlement: the
+     * view model, the address, the QR, the copy controls and the portal handoff
+     * are all the real ones, so what is being tested is the screen and not a
+     * preview of it.
+     *
+     * Ignored outside a debug build, checked here rather than trusted to the
+     * caller — a debug affordance whose safety depends on who calls it is a
+     * debug affordance that ships.
+     */
+    forcedState: EntitlementState? = null,
 ) {
     val model: LicenceViewModel = hiltViewModel()
-    val state by model.state.collectAsStateWithLifecycle()
+    val real by model.state.collectAsStateWithLifecycle()
+    val state = if (BuildConfig.DEBUG && forcedState != null) {
+        real.copy(licence = forcedState)
+    } else {
+        real
+    }
     val context = LocalContext.current
 
     ImmersiveWhileVisible()

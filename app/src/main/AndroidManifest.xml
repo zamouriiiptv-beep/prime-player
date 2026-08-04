@@ -21,11 +21,27 @@
         android:localeConfig="@xml/locales_config"
         android:theme="@style/Theme.CastivioTV">
 
+        <!--
+            `locale|layoutDirection` in configChanges is the pair that stops the
+            flicker.
+
+            Changing the language used to tear the window down twice: once
+            because the app called `recreate()`, and once more on API 33+ because
+            `LocaleManager.applicationLocales` makes the platform do it as well.
+            Two teardowns, two flashes of the window background through the
+            aurora, and every screen rebuilt from nothing.
+
+            Neither is needed. `attachBaseContext` already forces Castivio's
+            locale onto the context the activity is built on, so a locale
+            configuration change carries no information the app does not already
+            have. It is delivered to `onConfigurationChanged` instead, and the
+            composition re-reads its strings in place.
+        -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:screenOrientation="sensorLandscape"
-            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden">
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|locale|layoutDirection">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

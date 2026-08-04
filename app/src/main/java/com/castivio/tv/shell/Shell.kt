@@ -60,10 +60,14 @@ import androidx.compose.ui.res.stringResource
 import com.castivio.core.common.EmptyReason
 import com.castivio.core.common.ScreenState
 import com.castivio.core.design.components.ButtonWeight
+import com.castivio.core.navigation.BackPolicy
+import com.castivio.core.navigation.ShellBack
+import com.castivio.tv.R
 import com.castivio.tv.licence.LicenceWithLanguage
 import com.castivio.feature.licence.R as LicenceStrings
 import com.castivio.core.design.components.CardShape
 import com.castivio.core.design.components.CastivioButton
+import com.castivio.core.design.components.CastivioDialog
 import com.castivio.core.design.components.ChannelCard
 import com.castivio.core.design.components.EmptyState
 import com.castivio.core.design.components.IconLabel
@@ -123,16 +127,37 @@ private sealed interface Overlay {
 fun ShellScreen(
     motionLevel: MotionLevel,
     onMotionLevel: (MotionLevel) -> Unit,
+    onExit: () -> Unit,
 ) {
     var dest by remember { mutableStateOf(Dest.Home) }
     var overlay by remember { mutableStateOf<Overlay?>(null) }
+    var confirmingExit by remember { mutableStateOf(false) }
     val device = CastivioTheme.device
     val phone = device == DeviceClass.Compact || device == DeviceClass.Medium
 
-    BackHandler(enabled = overlay != null || dest != Dest.Home) {
-        when {
-            overlay != null -> overlay = null
-            else -> dest = Dest.Home
+    // ## Back, and the one place it asks before it acts
+    //
+    // Always enabled now, where it used to stand aside at the root and let the
+    // system close the app. The ladder is: an open dialog, then an overlay, then
+    // a section, then the root — and only at the root is there nothing left to
+    // go back *to*, which is the whole condition for asking.
+    //
+    // Asking anywhere else would be the familiar mistake of confirming a
+    // navigation, and on a remote — where back is the most-pressed key on the
+    // device — a dialog between the user and Home is a dialog they learn to
+    // dismiss without reading.
+    BackHandler(enabled = true) {
+        when (
+            BackPolicy.fromShell(
+                dialogOpen = confirmingExit,
+                overlayOpen = overlay != null,
+                atRoot = dest == Dest.Home,
+            )
+        ) {
+            ShellBack.CloseDialog -> confirmingExit = false
+            ShellBack.CloseOverlay -> overlay = null
+            ShellBack.GoToRoot -> dest = Dest.Home
+            ShellBack.ConfirmExit -> confirmingExit = true
         }
     }
 
@@ -214,6 +239,20 @@ fun ShellScreen(
             // opinion about where back goes.
             is Overlay.Licence -> LicenceWithLanguage(onLeave = { overlay = null })
             null -> {}
+        }
+
+        // Drawn last, so it is over the rail, the bar and any overlay. Back is
+        // handled by the ladder above rather than by the dialog, because only
+        // this screen knows what else back might have meant here.
+        if (confirmingExit) {
+            CastivioDialog(
+                title = stringResource(R.string.exit_title),
+                message = stringResource(R.string.exit_message),
+                confirmLabel = stringResource(R.string.exit_confirm),
+                dismissLabel = stringResource(R.string.exit_cancel),
+                onConfirm = onExit,
+                onDismiss = { confirmingExit = false },
+            )
         }
     }
 }

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The exit confirmation.
+
+  Shown only on Back from the application's root, never while navigating inside
+  it. Every name is prefixed `exit_`, because Android merges every module's
+  resources into one table and a collision picks a winner silently.
+
+  "Cancel" is the safe answer and the one that takes focus, so it is written to
+  read as the default rather than as a refusal.
+-->
+<resources>
+    <string name="exit_title">Выйти из Castivio?</string>
+    <string name="exit_message">Закрыть приложение?</string>
+    <string name="exit_cancel">Отмена</string>
+    <string name="exit_confirm">Выйти</string>
+
+    <string name="exit_sentinel" translatable="false">ru</string>
+</resources>

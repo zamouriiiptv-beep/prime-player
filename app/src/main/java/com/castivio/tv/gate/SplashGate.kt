@@ -4,18 +4,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.castivio.core.design.components.DelayedSpinner
 import com.castivio.domain.entitlement.StartDestination
 import com.castivio.feature.activation.ActivationRoute
+import com.castivio.tv.locale.LocalLocaleController
 import com.castivio.tv.licence.LicenceWithLanguage
-import com.castivio.tv.locale.AppLocale
-import com.castivio.tv.locale.findActivity
 
 /**
  * The first decision the app makes, and the only screen that is allowed to make it.
@@ -49,18 +46,17 @@ internal fun SplashGate(
             // The application owns the locale, because applying one means wrapping
             // the Context the activity was built on. The feature draws the picker
             // and reports the choice; this is where that choice becomes real.
-            val context = LocalContext.current
-            val activity = remember(context) { context.findActivity() }
+            //
+            // It used to become real by recreating the activity. It does not any
+            // more: the controller writes the choice to storage and moves the
+            // composition to it, so the screen changes language without the
+            // window being destroyed. See `LocaleController`.
+            val locale = LocalLocaleController.current
             ActivationRoute(
                 onActivated = model::refresh,
                 onExit = onExit,
-                language = remember(context) { AppLocale.current(context).language },
-                onLanguage = { language ->
-                    AppLocale.choose(context, language)
-                    // Every resource read before now was read in the old language,
-                    // so the activity is rebuilt rather than recomposed.
-                    activity?.recreate()
-                },
+                language = locale.current.language,
+                onLanguage = locale::choose,
                 modifier = modifier,
             )
         }

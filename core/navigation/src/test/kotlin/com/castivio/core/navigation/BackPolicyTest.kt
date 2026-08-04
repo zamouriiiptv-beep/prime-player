@@ -143,4 +143,62 @@ class BackPolicyTest {
             }
         }
     }
+
+    /**
+     * The exit question is asked at exactly one rung, and Back never does two
+     * things at once.
+     *
+     * Both halves matter. "Ask at the root" is the requirement; "ask *only* at
+     * the root" is the part that decays, because every new overlay is a chance
+     * for somebody to forget that a confirmation is not a navigation.
+     */
+    @Test
+    fun `only the root with nothing over it asks before leaving`() {
+        for (dialog in listOf(true, false)) {
+            for (overlay in listOf(true, false)) {
+                for (root in listOf(true, false)) {
+                    val asks = BackPolicy.fromShell(dialog, overlay, root) == ShellBack.ConfirmExit
+                    assertEquals(
+                        "dialog=$dialog overlay=$overlay root=$root should " +
+                            (if (!dialog && !overlay && root) "ask" else "not ask"),
+                        !dialog && !overlay && root,
+                        asks,
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * An open confirmation closes and takes nothing with it.
+     *
+     * The requirement is that Back on an open dialog closes *only* the dialog —
+     * so it must win over every other rung, including the one it was asking
+     * about.
+     */
+    @Test
+    fun `back on an open confirmation closes only the confirmation`() {
+        for (overlay in listOf(true, false)) {
+            for (root in listOf(true, false)) {
+                assertEquals(
+                    "an open dialog did not win over overlay=$overlay root=$root",
+                    ShellBack.CloseDialog,
+                    BackPolicy.fromShell(dialogOpen = true, overlayOpen = overlay, atRoot = root),
+                )
+            }
+        }
+    }
+
+    /** Navigating inside the app is never confirmed. */
+    @Test
+    fun `moving back through the app does not ask`() {
+        assertEquals(
+            ShellBack.CloseOverlay,
+            BackPolicy.fromShell(dialogOpen = false, overlayOpen = true, atRoot = true),
+        )
+        assertEquals(
+            ShellBack.GoToRoot,
+            BackPolicy.fromShell(dialogOpen = false, overlayOpen = false, atRoot = false),
+        )
+    }
 }
