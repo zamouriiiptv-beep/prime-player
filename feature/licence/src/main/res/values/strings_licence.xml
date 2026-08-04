@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The licence screen.
+
+  Every name is prefixed `licence_`, and that is structural rather than tidy.
+  Android merges the resources of every module into one table, so two library
+  modules declaring `mac_label` would collide and one would silently win. That
+  is exactly the class of bug the English QR caption had, and the prefix makes
+  it unexpressible. `check-invariants.sh` fails the build on any collision
+  between modules.
+
+  No string here contains a price, a currency symbol, a period or a number of
+  days. Those come from `PlanOffer` and `EntitlementState`, formatted in the
+  interface's locale at the point of use. A translation with a price inside it
+  is a price nobody can change without a release.
+
+  "Subscription" belongs to the provider. Castivio sells a **licence**, and the
+  two must never be readable as one thing.
+-->
+<resources>
+    <string name="licence_title">Castivio licence</string>
+    <string name="licence_language">Language</string>
+
+    <string name="licence_mac_label">MAC ADDRESS</string>
+    <string name="licence_key_label">DEVICE KEY</string>
+    <string name="licence_copy_mac">Copy MAC address</string>
+    <string name="licence_copy_key">Copy device key</string>
+    <string name="licence_copied_mac">MAC address copied</string>
+    <string name="licence_copied_key">Device key copied</string>
+    <string name="licence_mac_spoken">MAC address %s</string>
+
+    <string name="licence_plan_annual">Annual</string>
+    <string name="licence_plan_lifetime">Lifetime</string>
+    <string name="licence_per_year">per year</string>
+    <string name="licence_once">once, for this device</string>
+
+    <string name="licence_chip_trial">Trial</string>
+    <string name="licence_chip_active">Licence active</string>
+    <string name="licence_chip_trial_ended">Trial ended</string>
+    <string name="licence_chip_expired">Licence expired</string>
+    <string name="licence_chip_none">No licence</string>
+    <string name="licence_chip_verify">Verification needed</string>
+    <string name="licence_chip_unavailable">Unavailable</string>
+    <string name="licence_chip_unreadable">Licence unreadable</string>
+    <string name="licence_chip_revoked">Licence withdrawn</string>
+
+    <string name="licence_status_trial">Choose a licence any time before your trial ends.</string>
+    <string name="licence_status_active">Your licence is active.</string>
+    <string name="licence_status_lifetime">You own Castivio on this device.</string>
+    <string name="licence_status_trial_ended">Your trial has ended. Choose a licence to continue.</string>
+    <string name="licence_status_expired">Your licence has expired. Choose a licence to continue.</string>
+    <string name="licence_status_none">This device has no Castivio licence yet.</string>
+    <string name="licence_status_verify">Castivio hasn’t been able to check this licence recently.</string>
+    <string name="licence_status_unavailable">Castivio can’t check licences right now. This is our problem, not yours.</string>
+    <string name="licence_status_unreadable">This device’s licence can’t be read. Contact support with your device key.</string>
+    <string name="licence_status_revoked">This licence was withdrawn. Contact support with your device key.</string>
+    <string name="licence_status_opening">Opening the Castivio portal…</string>
+    <string name="licence_status_failed">That didn’t work. Try again.</string>
+
+    <string name="licence_retry">Try again</string>
+    <string name="licence_support">Contact support</string>
+
+    <string name="licence_qr_caption">Scan the QR code to open your device activation page</string>
+
+    <!--
+      Placeholder, and deliberately visible as one. The final wording is a legal
+      question, not a design one, and inventing it would be worse than showing a
+      bracket. It is measured at this length so the band's budget holds when the
+      real sentence arrives; two lines on the 800x360 frame is the ceiling.
+    -->
+    <string name="licence_legal">[legal copy for the licence screen — to be written]</string>
+
+    <plurals name="licence_trial_days">
+        <item quantity="one">%d day left</item>
+        <item quantity="other">%d days left</item>
+    </plurals>
+
+    <string name="licence_sentinel" translatable="false">en</string>
+</resources>

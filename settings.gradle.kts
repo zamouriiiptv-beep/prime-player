@@ -43,6 +43,7 @@ include(":playback:engine-media3")
 
 // features — independently replaceable
 include(":feature:activation")
+include(":feature:licence")
 include(":feature:home")
 include(":feature:search")
 include(":feature:player")

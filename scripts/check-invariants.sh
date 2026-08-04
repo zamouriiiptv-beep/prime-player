@@ -311,6 +311,40 @@ PYSCRIPT
   fi
 fi
 
+# ------------------------------------ no two modules may declare the same string
+#
+# Android merges every module's resources into one table. Two modules declaring
+# the same name is not an error and not a warning -- one silently wins, and
+# which one depends on the merge order. That is exactly how the English QR
+# caption came to render in Arabic.
+#
+# The :app case below is the one that shipped; this is the general rule, and it
+# is what makes a new feature module safe to add. `:feature:licence` prefixes
+# every one of its names for this reason.
+if command -v python3 >/dev/null 2>&1; then
+  collisions=$(python3 <<'PYDUP'
+import collections, glob, io, os, re
+owners = collections.defaultdict(set)
+for f in glob.glob("*/src/main/res/values/*.xml") + glob.glob("*/*/src/main/res/values/*.xml"):
+    module = f.split("/src/")[0]
+    text = io.open(f, encoding="utf-8").read()
+    for m in re.finditer(r'<(?:string|plurals) name="([A-Za-z_0-9]+)"', text):
+        owners[m.group(1)].add(module)
+for name, mods in sorted(owners.items()):
+    if len(mods) > 1:
+        print("  %s is declared by %s" % (name, ", ".join(sorted(mods))))
+PYDUP
+)
+  if [ -n "$collisions" ]; then
+    fail "Two modules declare the same string resource" \
+         "$collisions
+
+  The merged table keeps one of them and the choice is not yours. Prefix the
+  name with the feature that owns it, or move the string to a module both
+  depend on."
+  fi
+fi
+
 # --------------------------------- :app must not shadow a module's user-visible string
 #
 # Resource merging lets the application module override a library module's value
