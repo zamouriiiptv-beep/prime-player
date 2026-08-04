@@ -188,11 +188,28 @@ class LicenceViewModelTest {
 
         // The address was copied first, so its tick clears first, and the line
         // follows whichever is still lit rather than going blank.
+        //
+        // `advanceTimeBy` and **not** `advanceUntilIdle`. The second runs every
+        // pending task whatever it is scheduled for, so it fires the key's timer
+        // as well and the test then asserts that a tick which has legitimately
+        // expired is still lit. That is the whole failure this test had on its
+        // first run: the harness was asked to skip to the end and then asked
+        // about the middle.
         advanceTimeBy(1_200)
-        advanceUntilIdle()
-        assertFalse(model.state.value.addressCopied)
-        assertTrue(model.state.value.keyCopied)
-        assertEquals(Copied.Key, model.state.value.lastCopied)
+        assertFalse(
+            "the address tick is still lit 1700ms after it was set, and it lasts 1500",
+            model.state.value.addressCopied,
+        )
+        assertTrue(
+            "the key tick went out with the address tick -- the two timers are " +
+                "sharing state again",
+            model.state.value.keyCopied,
+        )
+        assertEquals(
+            "the status line went blank instead of following the tick still lit",
+            Copied.Key,
+            model.state.value.lastCopied,
+        )
     }
 
     /** And both go out in the end. A tick that never clears stops being feedback. */
@@ -202,10 +219,13 @@ class LicenceViewModelTest {
         advanceUntilIdle()
         model.copied(Copied.Address)
         advanceTimeBy(3_000)
-        advanceUntilIdle()
 
-        assertFalse(model.state.value.addressCopied)
-        assertEquals(Copied.None, model.state.value.lastCopied)
+        assertFalse("the tick never cleared", model.state.value.addressCopied)
+        assertEquals(
+            "the status line still names a copy that is over",
+            Copied.None,
+            model.state.value.lastCopied,
+        )
     }
 
     /** Support is told which device is asking, so the call does not start with hex. */
