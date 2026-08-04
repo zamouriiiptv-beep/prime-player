@@ -211,7 +211,14 @@ html[dir="rtl"] .backdrop{
 /* ----------------------------------------------------------------- capsule */
 /* 52dp pill, glass fill, soft border, copy control inside. The approved
    component, unchanged -- same height on phone and television. */
-.identity{display:flex;flex-direction:column;flex:0 0 auto}
+/* `flex-start`, so each pill hugs its own content.
+   ------------------------------------------------------------------------
+   Left to stretch, the device-key pill grows to the width of the MAC pill
+   beside it and six digits float in the middle of a very large capsule --
+   which is not what the sibling screen does and not what Compose does: a
+   `Column` aligns its children to the start and an `IdentityCapsule` is a
+   content-sized `Row`. The drawing was the one that was wrong. */
+.identity{display:flex;flex-direction:column;align-items:flex-start;flex:0 0 auto}
 /* 52dp on a phone. On a television it is 64, and that is not a style choice:
    Sizing.minTvTarget is 56dp, a D-pad target may not be smaller, and a 56dp
    control cannot sit inside a 52dp pill. The measurer found this -- and found

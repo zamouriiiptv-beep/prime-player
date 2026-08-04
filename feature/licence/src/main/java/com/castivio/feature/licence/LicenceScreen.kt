@@ -551,9 +551,13 @@ private fun LicenceStatusLine(state: LicenceUiState, m: LicenceMetrics, modifier
 
         // Null while the record is being read: the line keeps its height and
         // says nothing, rather than guessing at a condition.
-        resting?.status != null -> stringResource(resting.status) to toneColor(resting.tone)
-
-        else -> null
+        //
+        // Nested `let` rather than `resting?.status != null ->` and two smart
+        // casts. The compiler would probably grant both; "probably" is not a
+        // thing to find out from a seven-minute CI round trip.
+        else -> resting?.let { view ->
+            view.status?.let { stringResource(it) to toneColor(view.tone) }
+        }
     }
 
     StatusLine(
