@@ -157,9 +157,23 @@ html[dir="rtl"] .backdrop{
 
 /* --------------------------------------------------------------- structure */
 .shell{position:absolute;inset:0;display:flex;flex-direction:column}
-.sysbar{height:24px;flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;
+
+/* The phone's own furniture, drawn *over* the screen and not inside it.
+   ------------------------------------------------------------------------
+   These were two flex children and they cost the stage 44dp the device never
+   takes. This screen runs immersive and edge-to-edge -- the bars are hidden and
+   the composition is given the whole display -- which is why the app's own
+   arithmetic states the band as 284/259/337 while this file was measuring
+   256/231. A drawing that models a frame the product does not have is a drawing
+   whose every number is 44dp pessimistic, and the numbers are the point of it.
+
+   They stay drawn, because they are what the bars look like on the swipe that
+   brings them back and the layout has to survive that -- but they overlay the
+   composition there too. */
+.sysbar,.gesture{position:absolute;inset-inline:0;z-index:2;pointer-events:none}
+.sysbar{top:0;height:24px;display:flex;align-items:center;justify-content:space-between;
   padding:0 16px;color:var(--silver);font-size:11px}
-.gesture{height:20px;flex:0 0 auto;display:flex;align-items:center;justify-content:center}
+.gesture{bottom:0;height:20px;display:flex;align-items:center;justify-content:center}
 .gesture i{display:block;width:96px;height:3px;border-radius:var(--r-pill);background:rgba(255,255,255,.32)}
 
 .stage{flex:1 1 auto;display:flex;flex-direction:column;min-height:0}
@@ -199,12 +213,16 @@ html[dir="rtl"] .backdrop{
   white-space:nowrap;flex:0 0 auto;font-weight:600;
   background:var(--glass-mid);border:1px solid var(--glass-edge);color:var(--mist)}
 .lang svg{flex:0 0 auto;opacity:.8}
-/* A header chip reads wrong at 48dp, so it is 32 and declares the target its
-   implementation must expand to. In Compose that is a touch target larger than
-   the drawn shape, which is ordinary; what is not ordinary is leaving it
-   undeclared, so the measuring script reads `data-target` and holds it to it. */
-#phone-873 .lang,#phone-800 .lang{height:32px;padding:0 13px;font-size:12.5px}
-#tv .lang{height:40px;padding:0 18px;font-size:15px}
+/* The height the control occupies, which is also the height it is drawn at.
+   This said 32px with `data-target="48"` beside it -- the shorthand for "drawn
+   small, answers big". That is a real pattern and it is not the one `LanguageChip`
+   implements: it is a `Row` with `heightIn(min = m.target)` carrying the glass
+   fill and the border on the same modifier chain, so the pill really is 48dp of
+   drawn, laid-out control, 56 on a television. The header is 16dp taller than
+   this file was measuring. Corrected towards the implementation, because the
+   screen is frozen and the drawing is what was wrong. */
+#phone-873 .lang,#phone-800 .lang{height:48px;padding:0 14px;font-size:12.5px}
+#tv .lang{height:56px;padding:0 20px;font-size:15px}
 
 /* The field between the rules. Two zones held apart by space rather than by a
    line: the identity starts on the leading margin, the code ends on the
@@ -227,26 +245,41 @@ html[dir="rtl"] .backdrop{
    label the eye skips because it looks switched off is not secondary, it is
    broken. */
 .identity .label{color:var(--silver)}
-/* Each label is grouped with its own value by the space around the pair, which
-   is what keeps "device key" from reading as a caption on the address above it. */
-.idrow{display:flex;flex-direction:column;align-items:flex-start}
+/* The glass pill, which is what the label and its value have been drawn inside
+   since the final polish pass.
+   ------------------------------------------------------------------------
+   This file drew them as a 69dp label-above-value stack for a long time after
+   the application stopped: the shipped `IdentityCapsule` is a 52dp horizontal
+   pill (64 on a television), and the 26dp that grouping saved twice over is
+   what let the screen take the system-bar insets it had been ignoring. A
+   drawing 23dp out of step with the screen it draws certifies a layout nobody
+   ships, so the pill is transcribed here from `Metrics` rather than left as the
+   composition it replaced.
+
+   The markup does not change: `.macline` becomes `display:contents`, so the
+   value and the copy control join the pill's own flex row. */
+.idrow{display:inline-flex;align-items:center;border-radius:var(--r-pill);
+  background:var(--glass-mid);border:1px solid var(--glass-edge-soft);
+  padding-inline-end:2px}
+#phone-873 .idrow{height:52px;padding-inline-start:20px;gap:16px}
+#phone-800 .idrow{height:52px;padding-inline-start:18px;gap:14px}
+/* 64, not 52. `Sizing.minTvTarget` is 56dp, a D-pad target may not be smaller,
+   and a 56dp control does not fit inside a 52dp pill. */
+#tv .idrow{height:64px;padding-inline-start:24px;gap:22px}
 #phone-873 .idrow+.idrow,#phone-800 .idrow+.idrow{margin-top:13px}
 #tv .idrow+.idrow{margin-top:17px}
-#phone-873 .identity .label,#phone-800 .identity .label{margin-bottom:3px}
-#tv .identity .label{margin-bottom:7px}
+.identity .label{flex:0 0 auto}
 
-/* The address and its copy control. A row, not a container -- the value is bare
-   type on the ground, so nothing about it suggests a field to be filled in. */
-.macline{display:flex;align-items:center;min-width:0}
-#phone-873 .macline{gap:16px}
-#phone-800 .macline{gap:14px}
-#tv .macline{gap:22px}
+/* The value and the copy control are the pill's own children now. */
+.macline{display:contents}
 
-/* Ghost, so it never competes with the value beside it, and a full target
-   whatever it looks like. */
+/* No border at rest. Inside a bordered pill a second outline a few dp from the
+   first is what makes the control look bolted on rather than built in; the
+   border appears for focus and for the confirmation, which are the two moments
+   it means something. */
 .copy{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;
-  border-radius:var(--r-sm);color:var(--silver);
-  background:transparent;border:1px solid var(--glass-edge-soft)}
+  border-radius:var(--r-pill);color:var(--silver);
+  background:var(--glass-low);border:1px solid transparent}
 #phone-873 .copy,#phone-800 .copy{width:48px;height:48px}
 #tv .copy{width:56px;height:56px}
 /* Confirmation in the design system's success token. The word appears only in
@@ -266,13 +299,15 @@ html[dir="rtl"] .backdrop{
 .status.ok{color:var(--success)} .status.bad{color:#FF5A5A}
 .status .spin{width:13px;height:13px;flex:0 0 auto;border-radius:50%;
   border:2px solid rgba(255,255,255,.20);border-top-color:var(--violet50)}
-#phone-873 .status,#phone-800 .status{min-height:20px;margin-top:12px;font-size:12.5px}
-#tv .status{min-height:24px;margin-top:16px;font-size:15px}
+/* `statusTop` is 12 and the Column's own `rowGap` is 13, and the screen takes
+   the larger of the two rather than their sum -- so the drawn gap is 13. */
+#phone-873 .status,#phone-800 .status{min-height:20px;margin-top:13px;font-size:12px}
+#tv .status{min-height:24px;margin-top:17px;font-size:12px}
 
 .actions{display:flex;align-items:center;flex:0 0 auto}
-#phone-873 .actions{gap:14px;margin-top:22px}
-#phone-800 .actions{gap:12px;margin-top:18px}
-#tv .actions{gap:20px;margin-top:30px}
+#phone-873 .actions{gap:14px;margin-top:32px}
+#phone-800 .actions{gap:12px;margin-top:28px}
+#tv .actions{gap:20px;margin-top:42px}
 
 /* One button system. Filled for the primary, outlined for the secondary: a
    difference in kind rather than in shade, so the hierarchy survives being
@@ -281,7 +316,9 @@ html[dir="rtl"] .backdrop{
   border-radius:var(--r-sm);font-weight:600;white-space:nowrap;flex:0 0 auto}
 .btn svg{flex:0 0 auto}
 #phone-873 .btn,#phone-800 .btn{height:48px;padding:0 22px;font-size:14px}
-#tv .btn{height:60px;padding:0 32px;font-size:16px}
+/* 56, from `Sizing.minTarget(isTv)`. It was 48 in the application on every
+   frame, which put every button in Castivio 8dp under the D-pad floor. */
+#tv .btn{height:56px;padding:0 32px;font-size:14px}
 .btn-primary{background:linear-gradient(90deg,var(--violet50),var(--azure50));color:#0B0820;
   box-shadow:0 8px 26px rgba(124,116,255,.30)}
 .btn-secondary{background:transparent;border:1px solid var(--glass-edge);color:var(--mist)}
@@ -505,7 +542,7 @@ html[data-spec="1"] .spec{display:block}
     </div>
 
     <div class="rule"></div>
-    <p class="foot t-body-m" data-s="footer"></p>
+    <p class="foot t-body-s" data-s="footer"></p>
   </div>
 
   <div class="spec">

@@ -10,6 +10,13 @@ plugins {
 android {
     namespace = "com.castivio.feature.licence"
 
+    // The debug device-key fixture is gated on BuildConfig.DEBUG, which is
+    // the one gate a release build cannot be talked past. That needs the
+    // class generated here rather than only in :app.
+    buildFeatures {
+        buildConfig = true
+    }
+
     testOptions {
         // The sentinel and completeness checks resolve real strings out of the
         // real resource table, so they need the compiled resources on the JVM.

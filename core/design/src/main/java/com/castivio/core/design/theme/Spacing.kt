@@ -39,6 +39,21 @@ object Spacing {
 object Sizing {
     val minTouchTarget: Dp = 48.dp
     val minTvTarget: Dp = 56.dp
+
+    /**
+     * The floor that applies on *this* device, which is the only one worth
+     * asserting against.
+     *
+     * Two constants and no way to ask which one applies is how both of them get
+     * ignored. Every control in this package that used to pin
+     * [minTouchTarget] was 8dp under the D-pad floor on a television, and the
+     * two occasions it was caught were both by eye on a photograph — once for
+     * the copy control on the activation screen, once here for every button in
+     * the application. A named function is what lets a test iterate the frames
+     * and ask.
+     */
+    fun minTarget(isTv: Boolean): Dp = if (isTv) minTvTarget else minTouchTarget
+
     val iconSm: Dp = 16.dp
     val iconMd: Dp = 20.dp
     val iconLg: Dp = 26.dp

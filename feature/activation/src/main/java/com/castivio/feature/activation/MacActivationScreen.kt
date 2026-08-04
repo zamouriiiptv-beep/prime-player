@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.Icon
@@ -43,13 +42,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -57,6 +50,9 @@ import com.castivio.core.design.components.ButtonWeight
 import com.castivio.core.design.components.CapsuleMetrics
 import com.castivio.core.design.components.IdentityCapsule
 import com.castivio.core.design.components.QrPlate
+import com.castivio.core.design.components.StatusChip
+import com.castivio.core.design.components.StatusLine
+import com.castivio.core.design.components.emphasiseNumber
 import com.castivio.core.design.components.CastivioButton
 import com.castivio.core.design.components.castivioFocusScale
 import com.castivio.core.design.theme.CastivioTheme
@@ -65,7 +61,6 @@ import com.castivio.core.design.theme.Motion
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.Spacing
-import java.util.Locale
 
 /**
  * The approved screen's numbers, per frame.
@@ -94,7 +89,11 @@ import java.util.Locale
  * |---|---|---|---|
  * | 873×393 | 284dp | 230dp | 54dp |
  * | 800×360 | 259dp | 226dp | 33dp |
- * | TV 960×540 | 337dp | 276dp | 61dp |
+ * | TV 960×540 | 337dp | 284dp | 53dp |
+ *
+ * The television row moved by 8dp when `CastivioButton` was given the D-pad
+ * floor it had never had. The column grew; the margin is still the largest of
+ * the three.
  *
  * The shortest frame had nine millimetres before the capsules and has thirty-five
  * after: a 56dp pill replaced a 69dp label-above-value stack, twice. That is not
@@ -210,7 +209,11 @@ internal fun Metrics.bandHeight(frame: Dp, title: Dp, legal: Dp): Dp =
  * @param overline the declared line height of the MAC ADDRESS / DEVICE KEY labels.
  */
 internal fun Metrics.identityHeight(): Dp {
-    val actions = (actionsTop - rowGap).coerceAtLeast(0.dp) + Sizing.minTouchTarget
+    // [target], not `Sizing.minTouchTarget`. `CastivioButton` floors at the
+    // frame's own minimum, so on a television the actions row is 56dp and this
+    // used to budget 48 for it -- understating the column by 8dp on the one
+    // frame whose controls are driven by a remote.
+    val actions = (actionsTop - rowGap).coerceAtLeast(0.dp) + target
     val status = (statusTop - rowGap).coerceAtLeast(0.dp) + statusHeight
     return capsule + rowGap + capsule + rowGap + actions + rowGap + status
 }
@@ -379,39 +382,22 @@ private fun Header(m: Metrics, tv: Boolean, trialDays: Int?, onOpenLanguage: () 
         // a hardcoded 7 until this commit, which is a number that would have been
         // wrong on every launch after the first.
         if (trialDays != null) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    Modifier
-                        .size(TRIAL_DOT)
-                        .clip(RoundedCornerShape(Radius.pill))
-                        // The same brush the primary button is filled with, not a
-                        // flat token that happens to be near it. Two blues that
-                        // are almost the same is worse than one, and this dot and
-                        // Add playlist are the only two primary-coloured things
-                        // on the screen.
-                        .background(colors.primaryBrush),
-                )
-                Text(
-                    text = stringResource(R.string.trial_name),
-                    style = CastivioType.bodyMedium,
-                    color = colors.onBackgroundVariant,
-                )
-                // Quantity and argument are the same number, which is what a
-                // plural resource needs: Arabic and Polish choose different forms
-                // for 1, 2, a few and many, and a string built here would get all
-                // of that wrong.
-                val days = androidx.compose.ui.res.pluralStringResource(
-                    R.plurals.trial_days, trialDays, trialDays,
-                )
-                Text(
-                    text = emphasiseCount(days, trialDays),
-                    style = CastivioType.bodyMedium,
-                    color = colors.primary,
-                )
-            }
+            // Quantity and argument are the same number, which is what a plural
+            // resource needs: Arabic and Polish choose different forms for 1, 2,
+            // a few and many, and a string built here would get all of that
+            // wrong.
+            val days = androidx.compose.ui.res.pluralStringResource(
+                R.plurals.trial_days, trialDays, trialDays,
+            )
+            StatusChip(
+                label = stringResource(R.string.trial_name),
+                // The same brush the primary button is filled with, not a flat
+                // token that happens to be near it. Two blues that are almost
+                // the same is worse than one, and this dot and Add playlist are
+                // the only two primary-coloured things on the screen.
+                dot = colors.primaryBrush,
+                value = emphasiseNumber(days, trialDays),
+            )
         }
 
         LanguageChip(m, onOpenLanguage)
@@ -540,7 +526,7 @@ private fun IdentityZone(
             )
         }
 
-        StatusLine(identity, m)
+        ActivationStatusLine(identity, m)
     }
 }
 
@@ -553,60 +539,37 @@ private fun IdentityZone(
  * under the thumb that pressed it is a control that gets pressed twice.
  */
 @Composable
-private fun StatusLine(identity: ActivationIdentityState, m: Metrics) {
+private fun ActivationStatusLine(identity: ActivationIdentityState, m: Metrics) {
     val colors = CastivioTheme.colors
     val status = statusMessage(identity)
-
-    Box(
-        Modifier
-            .padding(top = (m.statusTop - m.rowGap).coerceAtLeast(0.dp))
-            .heightIn(min = m.statusHeight)
-            .testTag(ActivationTags.STATUS)
-            .semantics { liveRegion = LiveRegionMode.Polite },
-        contentAlignment = Alignment.CenterStart,
-    ) {
-        if (status != null) {
-            val tone = when (status.tone) {
-                Tone.Good -> colors.success
-                Tone.Missing -> colors.warning
-                Tone.Broken -> colors.danger
-                Tone.Copied -> colors.success
-                Tone.Neutral -> colors.onBackgroundMuted
-            }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    Modifier
-                        .size(STATUS_DOT)
-                        .clip(RoundedCornerShape(Radius.pill))
-                        .background(tone),
-                )
-                Text(
-                    text = stringResource(status.message),
-                    // A step down from bodySmall. The line is a caption under two
-                    // buttons, not a paragraph, and 12sp in Inter's Medium is
-                    // still comfortably readable at arm's length.
-                    style = CastivioType.labelMedium,
-                    // The sentence carries the tone too, not just the dot. A
-                    // six-dp circle is the whole signal otherwise, and it is the
-                    // part a colour-blind reader is least likely to get.
-                    //
-                    // A copy confirmation is drawn at full strength rather than
-                    // the muted variant, deliberately: the operating system draws
-                    // its own clipboard toast a moment later, in the system's
-                    // language, and Castivio's answer is the one the user should
-                    // be reading. Size went down; presence went up.
-                    color = when (status.tone) {
-                        Tone.Copied -> colors.onBackground
-                        Tone.Neutral -> colors.onBackgroundVariant
-                        else -> tone
-                    },
-                )
-            }
-        }
+    val tone = when (status?.tone) {
+        Tone.Good, Tone.Copied -> colors.success
+        Tone.Missing -> colors.warning
+        Tone.Broken -> colors.danger
+        Tone.Neutral, null -> colors.onBackgroundMuted
     }
+
+    StatusLine(
+        modifier = Modifier
+            .padding(top = (m.statusTop - m.rowGap).coerceAtLeast(0.dp))
+            .testTag(ActivationTags.STATUS),
+        height = m.statusHeight,
+        text = status?.let { stringResource(it.message) },
+        tone = tone,
+        // The sentence carries the tone too, not just the dot. A six-dp circle
+        // is the whole signal otherwise, and it is the part a colour-blind
+        // reader is least likely to get.
+        //
+        // A copy confirmation is drawn at full strength rather than in the
+        // success green, deliberately: the operating system draws its own
+        // clipboard toast a moment later, in the *system's* language, and
+        // Castivio's answer is the one the user should be reading.
+        textColor = when (status?.tone) {
+            Tone.Copied -> colors.onBackground
+            Tone.Neutral -> colors.onBackgroundVariant
+            else -> tone
+        },
+    )
 }
 
 /**
@@ -754,42 +717,6 @@ internal enum class Tone {
     Broken,
 }
 
-/**
- * The count inside "Castivio trial 7 days", one weight heavier than the words.
- *
- * The number is the only part anybody reads twice, so it carries the emphasis and
- * the sentence around it stays quiet. One `Text`, one span — not two composables
- * with a gap between them, which would break the moment a language puts the
- * numeral in the middle or at the end.
- *
- * **Found rather than assumed.** The plural has already been formatted by the
- * resource system in the interface's locale, and that locale may not use Western
- * digits — Arabic renders 7 as ٧. So the same number is formatted the same way
- * and looked up in the result, with the ASCII spelling as a fallback. If neither
- * is present the sentence is drawn unemphasised, which is the right failure: a
- * missing bold is invisible, a bold applied at the wrong offset is a typo.
- */
-private fun emphasiseCount(text: String, count: Int): AnnotatedString {
-    val spellings = listOf(
-        String.format(Locale.getDefault(), "%d", count),
-        count.toString(),
-    )
-    return buildAnnotatedString {
-        append(text)
-        for (spelling in spellings) {
-            val at = text.indexOf(spelling)
-            if (spelling.isNotEmpty() && at >= 0) {
-                addStyle(
-                    SpanStyle(fontWeight = FontWeight.SemiBold),
-                    at,
-                    at + spelling.length,
-                )
-                return@buildAnnotatedString
-            }
-        }
-    }
-}
-
 /** `2F:19:EB:20:44:7C` read as separated pairs rather than one long number. */
 private fun spaced(address: String): String = address.replace(":", " ")
 
@@ -806,6 +733,4 @@ private const val ADDRESS_PLACEHOLDER = "··:··:··:··:··:··"
  */
 private val CAPSULE_END = 2.dp
 
-private val TRIAL_DOT = 6.dp
-private val STATUS_DOT = 6.dp
 

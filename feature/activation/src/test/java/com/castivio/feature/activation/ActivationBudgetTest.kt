@@ -199,7 +199,7 @@ class ActivationBudgetTest {
             // the 48dp phone minimum here is what let the TV copy control ship
             // 8dp short. The one number that was wrong was the one number
             // nothing checked.
-            val floor = if (tv) Sizing.minTvTarget else Sizing.minTouchTarget
+            val floor = Sizing.minTarget(tv)
             assertTrue(
                 "$name: the copy control is ${m.target}, below the $floor floor",
                 m.target >= floor,

@@ -12,6 +12,7 @@
  *
  *   scroll         document no taller or wider than its frame
  *   outside        nothing painting past the frame's edge
+ *   band           no zone taller than the field band that holds it
  *   clipped        no element whose text overflows its own box
  *   mac            the address fits its column, measured on the glyph run
  *   footer         the standing notice still on screen and not empty
@@ -212,6 +213,36 @@ function probe({ frame, isTv, requires }) {
            b.right > bounds.right + 0.5 || b.left < bounds.left - 0.5;
   }).map((e) => String(e.className || e.tagName).slice(0, 40));
   if (outside.length) fails.push(`paints outside: ${[...new Set(outside)].slice(0, 5).join(", ")}`);
+
+  // --- band: inside the band, not merely inside the frame ------------------
+  // The check this harness did not have, and its absence certified two mockups
+  // that overran. A fixed-viewport screen centres its zones in the band between
+  // the hairlines with `align-items:center`; a zone taller than the band
+  // therefore overruns it *symmetrically*, half above and half below, and still
+  // paints well inside the frame -- which is all `outside` above was asking.
+  // Both mockups reported "168 of 168 fit" while the identity column stood 16dp
+  // proud of its band on the shortest frame.
+  //
+  // On a device the same overrun is not a clipped edge. A Compose `Column`
+  // whose children exceed the height it was given hands **zero** to the ones
+  // measured last, so eight dp of overrun is not eight dp of crowding, it is a
+  // button that does not exist. That is the bug that reached a device once.
+  const band = [...root.querySelectorAll(".field")]
+    .find((e) => e.getBoundingClientRect().height > 0);
+  let slack = null;
+  if (band) {
+    const bb = band.getBoundingClientRect();
+    for (const zone of band.children) {
+      const zb = zone.getBoundingClientRect();
+      if (zb.height <= 0) continue;
+      const room = r1(bb.height - zb.height);
+      if (slack === null || room < slack) slack = room;
+      if (room < -0.5) {
+        fails.push(`.${String(zone.className).slice(0, 22)} overruns its band ` +
+          `(${r1(zb.height)}dp in ${r1(bb.height)}dp)`);
+      }
+    }
+  }
 
   // --- scrollers: vertical overflow is the feature, horizontal is the bug ---
   // A list that scrolls sideways as well has a column too wide for it, which on
@@ -422,6 +453,8 @@ function probe({ frame, isTv, requires }) {
     viewport: { w: r1(bounds.width), h: r1(bounds.height) },
     doc,
     card: card ? box(card) : null,
+    /** Room left in the band by its tallest zone. Negative is the failure. */
+    slack,
     header, mac, qr, footer: foot, targets, lines, scrollers,
     dir: document.documentElement.dir,
     fails,
@@ -488,6 +521,7 @@ async function main() {
             `  foot ${seen.footer ? seen.footer.w + "x" + seen.footer.h : "-"}` +
             `  MAC ${seen.mac ? seen.mac.text + "/" + seen.mac.room + " spare " + seen.mac.spare : "-"}` +
             `  QR ${seen.qr ? seen.qr.w + " @" + seen.qr.pitch + "dp" : "-"}` +
+            `  band ${seen.slack === null ? "-" : seen.slack + " spare"}` +
             `  dir ${seen.dir}`);
           for (const f of seen.fails) console.log(`      -> ${f}`);
           if (!ok) failed++;
@@ -527,6 +561,14 @@ async function main() {
     if (tallestHead) console.log(`    tallest header  ${tallestHead.header.h}dp  (${tallestHead.lang})`);
     if (tallestFoot) console.log(`    tallest footer  ${tallestFoot.footer.h}dp  (${tallestFoot.lang})`);
     if (tightestMac) console.log(`    least MAC spare ${tightestMac.mac.spare}dp  (${tightestMac.lang})`);
+
+    // The number the vertical budget is actually decided by, and the one that
+    // used to be absent from this summary entirely.
+    const tightestBand = worstOf((r) => r.slack, smaller);
+    if (tightestBand) {
+      console.log(`    least band room ${tightestBand.slack}dp  ` +
+                  `(${tightestBand.lang}${tightestBand.state ? " · " + tightestBand.state : ""})`);
+    }
 
     // What a scrolling list costs the reader, which is the number the argument
     // about whether it needs a search field has to be made against.

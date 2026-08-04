@@ -50,4 +50,61 @@ object ActivationDestination {
      * written out a second time, so it cannot fall out of step with [URL].
      */
     val display: String = URL.removePrefix("https://").removePrefix("http://").trimEnd('/')
+
+    /**
+     * The address the app *opens*, which is not the address the QR *encodes*.
+     *
+     * ## The distinction, because it looks like a contradiction
+     *
+     * [URL] is the whole payload of the QR and always will be: a symbol is a
+     * public object, photographed and pasted into support tickets, and
+     * `ActivationQrTest` fails if a device identifier ever appears in one.
+     *
+     * This is the other direction. When the user presses a plan, the app hands
+     * the portal a link on that user's own device — not published, not
+     * photographable — and the portal needs to know which device it is binding a
+     * licence to. Sending them to a bare page and asking them to retype a MAC
+     * address they can see two centimetres away would be a worse product for no
+     * security gain: `design/activation-spec.md` §4.1 states plainly that the
+     * address is a **public identifier and not a secret**, and that possession
+     * of it must never by itself grant control.
+     *
+     * Both come from the same constant, which is the rule that mattered: replace
+     * [URL] and the QR, the printed address and this link all move together.
+     *
+     * The price is deliberately absent. The portal is the authority on what
+     * something costs, and a client that posted an amount would be a client
+     * somebody could edit to post a different one.
+     *
+     * @param plan the plan identifier, lower-case, or null to open the page with
+     *   nothing chosen.
+     * @param macAddress the device this licence would bind to, or null when it
+     *   has not resolved yet — in which case the portal asks for it.
+     */
+    fun portalUrl(plan: String? = null, macAddress: String? = null): String {
+        val query = buildList {
+            if (!plan.isNullOrBlank()) add("plan=" + plan.encoded())
+            if (!macAddress.isNullOrBlank()) add("mac=" + macAddress.encoded())
+        }
+        return if (query.isEmpty()) URL else URL + "?" + query.joinToString("&")
+    }
+
+    /**
+     * Percent-encoding, by hand and for one reason.
+     *
+     * `java.net.URLEncoder` lives in the JDK, and this file is in a module that
+     * must compile for every future platform — the invariant script rejects a
+     * platform import here, and a JDK class is the same mistake wearing a
+     * different name. The two values this ever sees are a lower-case plan
+     * identifier and a MAC address, so the alphabet is small and known.
+     */
+    private fun String.encoded(): String = buildString {
+        for (c in this@encoded) {
+            when {
+                c.isLetterOrDigit() && c.code < 128 -> append(c)
+                c == '-' || c == '_' || c == '.' || c == '~' -> append(c)
+                else -> append('%').append(c.code.toString(16).uppercase().padStart(2, '0'))
+            }
+        }
+    }
 }

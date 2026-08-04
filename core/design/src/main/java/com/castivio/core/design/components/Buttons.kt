@@ -106,7 +106,12 @@ fun CastivioButton(
             .castivioFocusScale(Motion.focusScaleButton, interaction)
             .focusProperties { canFocus = enabled }
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
-            .defaultMinSize(minHeight = Sizing.minTouchTarget)
+            // The frame's floor, not the touch floor. This was `minTouchTarget`
+            // on every device, which made every button in Castivio 48dp on a
+            // television -- 8dp under `minTvTarget` and the same defect that was
+            // called blocking when the activation screen's copy control had it.
+            // A remote is not a thumb, and the constant that says so exists.
+            .defaultMinSize(minHeight = Sizing.minTarget(CastivioTheme.device.isTv))
             .shadow(elevation, shape, ambientColor = Elevation.ambient, spotColor = glow)
             .clip(shape)
             .then(
@@ -162,6 +167,13 @@ fun CastivioIconButton(
         modifier = modifier
             .castivioFocusScale(Motion.focusScaleIcon, interaction)
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
+            // Square, and at the frame's floor in both directions: an icon-only
+            // control has no label to grow it, so it was the smallest target in
+            // the application at 36dp.
+            .defaultMinSize(
+                minWidth = Sizing.minTarget(CastivioTheme.device.isTv),
+                minHeight = Sizing.minTarget(CastivioTheme.device.isTv),
+            )
             .clip(shape)
             .background(colors.glassFill)
             .border(BorderStroke(1.dp, border), shape)
@@ -200,6 +212,10 @@ fun CastivioChip(
         modifier = modifier
             .castivioFocusScale(Motion.focusScaleButton, interaction)
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
+            // Sixteen dp of padding around a 20dp line is a 36dp control, which
+            // is under the floor on a thumb and well under it on a remote. The
+            // padding still decides the *width*; the floor decides the height.
+            .defaultMinSize(minHeight = Sizing.minTarget(CastivioTheme.device.isTv))
             .clip(shape)
             .background(colors.glassFillBrush)
             .border(BorderStroke(1.dp, border), shape)

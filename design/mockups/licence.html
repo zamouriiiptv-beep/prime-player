@@ -136,10 +136,27 @@ html[dir="rtl"] .backdrop{
 
 /* --------------------------------------------------------------- structure */
 .shell{position:absolute;inset:0;display:flex;flex-direction:column}
-.sysbar{height:24px;flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;
+
+/* The phone's own furniture, drawn *over* the screen and not inside it.
+   ------------------------------------------------------------------------
+   This used to be two flex children, and it cost the stage 44dp the device
+   never takes. Castivio runs this screen immersive and edge-to-edge: the bars
+   are hidden, the gradient reaches the corners, and the composition is given
+   the whole display -- which is exactly why the app's own budget arithmetic
+   states the band as 284/259/337 while this file was measuring 256/231/293.
+   A drawing that models a frame the product does not have is a drawing whose
+   every number is 44dp pessimistic, and the numbers are the point of it.
+
+   They stay drawn, because they are what the bars look like on the swipe that
+   brings them back, and the layout has to survive that -- but they overlay the
+   composition there too, so they belong on top of it rather than beside it. */
+.sysbar,.gesture{position:absolute;inset-inline:0;z-index:2;pointer-events:none}
+.sysbar{top:0;height:24px;display:flex;align-items:center;justify-content:space-between;
   padding:0 16px;color:var(--silver);font-size:11px}
-.gesture{height:20px;flex:0 0 auto;display:flex;align-items:center;justify-content:center}
+.gesture{bottom:0;height:20px;display:flex;align-items:center;justify-content:center}
 .gesture i{display:block;width:96px;height:3px;border-radius:var(--r-pill);background:rgba(255,255,255,.32)}
+/* A television has neither. Drawing them there measured a phone. */
+#tv .sysbar,#tv .gesture{display:none}
 
 .stage{flex:1 1 auto;display:flex;flex-direction:column;min-height:0}
 #phone-873 .stage{padding:12px 30px 6px}
@@ -168,7 +185,18 @@ html[dir="rtl"] .backdrop{
 
 .lang{display:inline-flex;align-items:center;gap:4px;border-radius:var(--r-pill);
   background:var(--glass-mid);border:1px solid var(--glass-edge-soft);color:var(--mist)}
-#phone-873 .lang,#phone-800 .lang{height:32px;padding:0 13px;font-size:12.5px}
+/* The height the control occupies, which is also the height it is drawn at.
+   ------------------------------------------------------------------------
+   This said 32px, with `data-target="48"` beside it -- the shorthand for "drawn
+   small, answers big". That is a real pattern and it is not the one the app
+   implements: `LanguageChip` is a `Row` with `heightIn(min = m.target)` and the
+   glass fill and border on the same modifier chain, so the pill really is 48dp
+   of drawn, laid-out control. The header is therefore 16dp taller than this
+   file was measuring, on both phone frames.
+
+   Corrected towards the implementation rather than the other way round: the
+   screen is frozen, so the drawing is what was wrong. */
+#phone-873 .lang,#phone-800 .lang{height:48px;padding:0 14px;font-size:12.5px}
 #tv .lang{height:56px;padding:0 20px;font-size:15px}
 .lang svg{width:16px;height:16px;flex:0 0 auto}
 
@@ -195,6 +223,7 @@ html[dir="rtl"] .backdrop{
 #phone-800 .cap-pill{padding-inline-start:18px;gap:14px}
 #tv .cap-pill{height:64px;padding-inline-start:24px;gap:22px}
 .cap-pill+.cap-pill{margin-top:13px}
+#phone-800 .cap-pill+.cap-pill{margin-top:11px}
 #tv .cap-pill+.cap-pill{margin-top:14px}
 .cap-pill .label{color:var(--silver);flex:0 0 auto}
 .copy{width:48px;height:48px;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
@@ -210,18 +239,26 @@ html[dir="rtl"] .backdrop{
 #phone-800 .plans{gap:12px}
 #tv .plans{gap:20px}
 #phone-873 .plans{margin-top:22px}
-#phone-800 .plans{margin-top:18px}
+#phone-800 .plans{margin-top:12px}
 #tv .plans{margin-top:24px}
 
 .plan{display:flex;flex-direction:column;justify-content:center;border-radius:var(--r-xl);
   background:var(--glass-mid);border:1px solid var(--glass-edge-soft);text-align:start}
 #phone-873 .plan{min-height:76px;padding:10px 18px}
-#phone-800 .plan{min-height:76px;padding:10px 16px}
+#phone-800 .plan{min-height:70px;padding:10px 16px}
 #tv .plan{min-height:96px;padding:12px 24px}
 .plan .name{color:var(--silver)}
 .plan .row{display:flex;align-items:baseline;gap:8px;white-space:nowrap}
 .plan .price{color:var(--mist);font-weight:700}
-#phone-873 .plan .price,#phone-800 .plan .price{font-size:28px;line-height:40px;letter-spacing:-.2px}
+#phone-873 .plan .price{font-size:28px;line-height:40px;letter-spacing:-.2px}
+/* The price steps down one token on the shortest frame, and it is the same
+   step the title, the address and the device key already make between frames
+   -- headlineLarge on 873 and on the television, headlineMedium at 800x360.
+   Not a saving for its own sake: at 800x360 the identity column stood 16dp
+   proud of its band, and eight of the sixteen are this line's leading. The
+   alternatives were a smaller D-pad target, a capsule that cannot hold one, or
+   a screen that hands zero height to whatever it measures last. */
+#phone-800 .plan .price{font-size:22px;line-height:32px}
 #tv .plan .price{font-size:36px;line-height:44px;letter-spacing:-.4px}
 .plan .per{color:var(--muted)}
 .plan.focused{background:var(--selected-fill);border-color:var(--selected-edge);
@@ -229,7 +266,8 @@ html[dir="rtl"] .backdrop{
 
 /* ------------------------------------------------------------ status line */
 .status{display:flex;align-items:center;gap:4px;color:var(--muted)}
-#phone-873 .status,#phone-800 .status{min-height:20px;margin-top:12px;font-size:12px;line-height:16px}
+#phone-873 .status{min-height:20px;margin-top:12px;font-size:12px;line-height:16px}
+#phone-800 .status{min-height:20px;margin-top:8px;font-size:12px;line-height:16px}
 #tv .status{min-height:24px;margin-top:16px;font-size:14px;line-height:18px}
 .status i.mark{width:6px;height:6px;border-radius:var(--r-pill);background:var(--muted);flex:0 0 auto}
 .status.ok   i.mark{background:var(--success)} .status.ok{color:var(--success)}
@@ -273,7 +311,13 @@ html[dir="rtl"] .backdrop{
    nothing jumps when it arrives. */
 .skel{border-radius:var(--r-pill);background:var(--glass-low)}
 .skel.pill{height:52px}
-.skel.card{height:76px;border-radius:var(--r-xl)}
+/* The shape the content will take, so nothing jumps when it arrives -- which
+   means the skeleton card is the frame's card height, not one number for all
+   three. A skeleton that is not the size of what replaces it is a jump with an
+   extra step in front of it. */
+.skel.card{height:78px;border-radius:var(--r-xl)}
+#phone-800 .skel.card{height:70px}
+#tv .skel.card{height:96px}
 .skel.plate{border-radius:var(--r-md)}
 
 .hidden{display:none !important}
