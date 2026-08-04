@@ -42,7 +42,7 @@ class StatusLineTest {
         val thenCopiedKey = afterRefresh.copy(keyCopied = true, lastCopied = Copied.Key)
         assertEquals(
             "the refresh result masked the copy confirmation, which is the bug",
-            Status(R.string.copied_key, Tone.Neutral),
+            Status(R.string.copied_key, Tone.Copied),
             status(thenCopiedKey),
         )
     }
@@ -57,6 +57,13 @@ class StatusLineTest {
         assertEquals(R.string.copied_mac, mac?.message)
         assertEquals(R.string.copied_key, key?.message)
         assertEquals("the two confirmations are drawn in different tones", mac?.tone, key?.tone)
+        assertEquals(
+            "a copy confirmation must be its own register, louder than a murmur -- " +
+                "the platform draws a clipboard toast a moment later in the system " +
+                "language, and Castivio's answer is the one to be believed",
+            Tone.Copied,
+            mac?.tone,
+        )
     }
 
     /**
@@ -83,6 +90,24 @@ class StatusLineTest {
             Status(R.string.refresh_none, Tone.Missing),
             status(ActivationIdentityState()),
         )
+    }
+
+    /**
+     * And it hands the line straight back.
+     *
+     * The confirmation is transient by design: 1.5 seconds, then whatever was
+     * true before is true again. Clearing `lastCopied` is what the view model's
+     * timer does, so this is the state it leaves behind — and the line must
+     * return to the standing status rather than going blank.
+     */
+    @Test
+    fun `when the confirmation expires the line returns to what it was saying`() {
+        val afterRefresh = ActivationIdentityState(refresh = RefreshState.None)
+        val during = afterRefresh.copy(addressCopied = true, lastCopied = Copied.Address)
+        val after = during.copy(addressCopied = false, lastCopied = Copied.None)
+
+        assertEquals(Status(R.string.copied_mac, Tone.Copied), status(during))
+        assertEquals(status(afterRefresh), status(after))
     }
 
     /** Found is the one good outcome, and it is the one green tone on the screen. */

@@ -239,6 +239,42 @@ for qualifier in $(printf '%s\n%s\n' "$explicit" "$implicit" | sort -u); do
   fi
 done
 
+# ---------------------------------------- a translation that is not a translation
+#
+# A key can be present, non-empty, well-formed and still be the English string
+# copied across. The completeness check cannot see it and neither can a reader
+# who does not speak the language.
+#
+# Checked on the two sentences a user reads rather than on every key: the QR
+# caption and the legal line. Short strings legitimately match across languages
+# -- "Castivio", "QR", "MAC" -- and a blanket rule on those produces noise that
+# gets switched off, which is worse than not having the rule.
+if command -v python3 >/dev/null 2>&1; then
+  untranslated=$(python3 <<'PYCOPY'
+import glob, io, os, re
+BASE = "feature/activation/src/main/res/values/strings_activation.xml"
+WATCH = ("qr_caption", "legal_player_only")
+
+def values(path):
+    text = io.open(path, encoding="utf-8").read()
+    return {
+        m.group(1): re.sub(r"\s+", " ", m.group(2)).strip()
+        for m in re.finditer(r'<string name="([a-z_0-9]+)"[^>]*>(.*?)</string>', text, re.S)
+    }
+
+english = values(BASE)
+for f in sorted(glob.glob("feature/activation/src/main/res/values-*/strings_activation.xml")):
+    for key, value in values(f).items():
+        if key in WATCH and value == english.get(key):
+            print("  %s: %s is still the English text" % (os.path.basename(os.path.dirname(f)), key))
+PYCOPY
+)
+  if [ -n "$untranslated" ]; then
+    fail "A locale carries the English string where a translation belongs" \
+         "$untranslated"
+  fi
+fi
+
 # ------------------------------------------- a translation in the wrong script
 #
 # The English screen rendered an Arabic sentence for a whole review cycle. That

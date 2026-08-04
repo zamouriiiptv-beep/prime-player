@@ -146,6 +146,38 @@ class ActivationBudgetTest {
     }
 
     /**
+     * The QR side fits too, which stopped being obvious when the plate grew.
+     *
+     * The identity column is the taller of the two zones on every frame at
+     * today's numbers, so the band has always been sized by it — and a gate that
+     * measured only the column would keep passing while a 6% larger plate pushed
+     * the QR past the hairline. Measured rather than assumed.
+     */
+    @Test
+    fun `the QR zone fits its band on every frame, bars back or not`() {
+        for ((name, tv, frame) in listOf(
+            Triple("shortest phone", false, 360.dp),
+            Triple("reference phone", false, 393.dp),
+            Triple("television", true, 540.dp),
+        )) {
+            for (inset in listOf(0.dp, INSET_ALLOWANCE)) {
+                val usable = frame - inset
+                val m = metricsFor(tv = tv, available = usable)
+                val band = m.bandHeight(
+                    frame = usable,
+                    title = if (tv) tvTitle else phoneTitle,
+                    legal = legal,
+                )
+                val code = m.codeHeight(caption = legal)
+                assertTrue(
+                    "$name with a $inset bar: the QR zone is $code in a $band band",
+                    band - code > 0.dp,
+                )
+            }
+        }
+    }
+
+    /**
      * A control that cannot be pressed is a control that is not there.
      *
      * The layout gate asserts this for the copy controls, which are a fixed size

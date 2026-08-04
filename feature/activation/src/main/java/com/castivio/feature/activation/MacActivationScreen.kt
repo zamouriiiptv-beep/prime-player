@@ -50,6 +50,9 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -62,6 +65,7 @@ import com.castivio.core.design.theme.Motion
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.Spacing
+import java.util.Locale
 
 /**
  * The approved screen's numbers, per frame.
@@ -139,7 +143,7 @@ internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
         actionsGap = 20.dp, actionsTop = 42.dp,
         statusHeight = 24.dp, statusTop = 16.dp,
         footTop = 13.dp, footBottom = 0.dp,
-        plate = 196.dp, platePadding = 12.dp, captionTop = 15.dp, captionWidth = 236.dp,
+        plate = 208.dp, platePadding = 12.dp, captionTop = 15.dp, captionWidth = 236.dp,
         target = 56.dp,
     )
     available < SHORT_PHONE -> Metrics(
@@ -148,7 +152,7 @@ internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
         actionsGap = 12.dp, actionsTop = 28.dp,
         statusHeight = 20.dp, statusTop = 12.dp,
         footTop = 7.dp, footBottom = 1.dp,
-        plate = 130.dp, platePadding = 8.dp, captionTop = 9.dp, captionWidth = 162.dp,
+        plate = 138.dp, platePadding = 8.dp, captionTop = 9.dp, captionWidth = 162.dp,
         target = 48.dp,
     )
     else -> Metrics(
@@ -157,7 +161,7 @@ internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
         actionsGap = 14.dp, actionsTop = 32.dp,
         statusHeight = 20.dp, statusTop = 12.dp,
         footTop = 8.dp, footBottom = 2.dp,
-        plate = 148.dp, platePadding = 9.dp, captionTop = 11.dp, captionWidth = 180.dp,
+        plate = 157.dp, platePadding = 9.dp, captionTop = 11.dp, captionWidth = 180.dp,
         target = 48.dp,
     )
 }
@@ -208,6 +212,22 @@ internal fun Metrics.identityHeight(capsule: Dp): Dp {
     val status = (statusTop - rowGap).coerceAtLeast(0.dp) + statusHeight
     return capsule + rowGap + capsule + rowGap + actions + rowGap + status
 }
+
+/**
+ * What the QR side of the band needs: the plate, the gap, and the caption.
+ *
+ * The plate grew 6% in the final polish pass and the caption did not move, so
+ * this exists to say out loud that the taller zone still fits between the
+ * hairlines. The identity column is the tall one on every frame today; that is a
+ * fact about the current numbers, not a law, and a gate that only measured the
+ * column would go on passing while the QR quietly overran.
+ *
+ * @param captionLines budgeted at two. The caption is a sentence at a fixed
+ *   width, it wraps in most of the 37 languages, and budgeting for one line would
+ *   be budgeting for English.
+ */
+internal fun Metrics.codeHeight(caption: Dp, captionLines: Int = 2): Dp =
+    plate + captionTop + caption * captionLines
 
 /** The two full-bleed rules that bracket the field band, at a pixel each. */
 private val HAIRLINES = 2.dp
@@ -377,14 +397,15 @@ private fun Header(m: Metrics, tv: Boolean, trialDays: Int?, onOpenLanguage: () 
                     style = CastivioType.bodyMedium,
                     color = colors.onBackgroundVariant,
                 )
+                // Quantity and argument are the same number, which is what a
+                // plural resource needs: Arabic and Polish choose different forms
+                // for 1, 2, a few and many, and a string built here would get all
+                // of that wrong.
+                val days = androidx.compose.ui.res.pluralStringResource(
+                    R.plurals.trial_days, trialDays, trialDays,
+                )
                 Text(
-                    // Quantity and argument are the same number, which is what a
-                    // plural resource needs: Arabic and Polish choose different
-                    // forms for 1, 2, a few and many, and a formatted string
-                    // built here would get all of that wrong.
-                    text = androidx.compose.ui.res.pluralStringResource(
-                        R.plurals.trial_days, trialDays, trialDays,
-                    ),
+                    text = emphasiseCount(days, trialDays),
                     style = CastivioType.bodyMedium,
                     color = colors.primary,
                 )
@@ -547,6 +568,7 @@ private fun StatusLine(identity: ActivationIdentityState, m: Metrics) {
                 Tone.Good -> colors.success
                 Tone.Missing -> colors.warning
                 Tone.Broken -> colors.danger
+                Tone.Copied -> colors.success
                 Tone.Neutral -> colors.onBackgroundMuted
             }
             Row(
@@ -561,11 +583,24 @@ private fun StatusLine(identity: ActivationIdentityState, m: Metrics) {
                 )
                 Text(
                     text = stringResource(status.message),
-                    style = CastivioType.bodySmall,
+                    // A step down from bodySmall. The line is a caption under two
+                    // buttons, not a paragraph, and 12sp in Inter's Medium is
+                    // still comfortably readable at arm's length.
+                    style = CastivioType.labelMedium,
                     // The sentence carries the tone too, not just the dot. A
                     // six-dp circle is the whole signal otherwise, and it is the
                     // part a colour-blind reader is least likely to get.
-                    color = if (status.tone == Tone.Neutral) colors.onBackgroundVariant else tone,
+                    //
+                    // A copy confirmation is drawn at full strength rather than
+                    // the muted variant, deliberately: the operating system draws
+                    // its own clipboard toast a moment later, in the system's
+                    // language, and Castivio's answer is the one the user should
+                    // be reading. Size went down; presence went up.
+                    color = when (status.tone) {
+                        Tone.Copied -> colors.onBackground
+                        Tone.Neutral -> colors.onBackgroundVariant
+                        else -> tone
+                    },
                 )
             }
         }
@@ -786,8 +821,8 @@ internal fun statusMessage(identity: ActivationIdentityState): Status? = when {
     // A copy confirmation lasts 1.5 seconds and then yields the line back. A
     // subscription status is true until it changes. When both have something to
     // say, the one that is about to disappear is the one the user just caused.
-    identity.lastCopied == Copied.Address -> Status(R.string.copied_mac, Tone.Neutral)
-    identity.lastCopied == Copied.Key -> Status(R.string.copied_key, Tone.Neutral)
+    identity.lastCopied == Copied.Address -> Status(R.string.copied_mac, Tone.Copied)
+    identity.lastCopied == Copied.Key -> Status(R.string.copied_key, Tone.Copied)
 
     // Checking is its own sentence on the button, not here; the line keeps
     // describing the subscription while the check runs.
@@ -809,7 +844,60 @@ internal fun statusMessage(identity: ActivationIdentityState): Status? = when {
 internal data class Status(val message: Int, val tone: Tone)
 
 /** The four registers the one status line speaks in. */
-internal enum class Tone { Neutral, Good, Missing, Broken }
+internal enum class Tone {
+    Neutral,
+    Good,
+
+    /**
+     * A copy just happened.
+     *
+     * Its own register rather than [Neutral], because this is the one message on
+     * the screen that competes with something the operating system draws. The
+     * platform's clipboard toast arrives a moment later in the *system* language,
+     * which may not be the app's, so Castivio's confirmation is the one that has
+     * to be believed -- full-strength text and a green dot, not a murmur.
+     */
+    Copied,
+
+    Missing,
+    Broken,
+}
+
+/**
+ * The count inside "Castivio trial 7 days", one weight heavier than the words.
+ *
+ * The number is the only part anybody reads twice, so it carries the emphasis and
+ * the sentence around it stays quiet. One `Text`, one span — not two composables
+ * with a gap between them, which would break the moment a language puts the
+ * numeral in the middle or at the end.
+ *
+ * **Found rather than assumed.** The plural has already been formatted by the
+ * resource system in the interface's locale, and that locale may not use Western
+ * digits — Arabic renders 7 as ٧. So the same number is formatted the same way
+ * and looked up in the result, with the ASCII spelling as a fallback. If neither
+ * is present the sentence is drawn unemphasised, which is the right failure: a
+ * missing bold is invisible, a bold applied at the wrong offset is a typo.
+ */
+private fun emphasiseCount(text: String, count: Int): AnnotatedString {
+    val spellings = listOf(
+        String.format(Locale.getDefault(), "%d", count),
+        count.toString(),
+    )
+    return buildAnnotatedString {
+        append(text)
+        for (spelling in spellings) {
+            val at = text.indexOf(spelling)
+            if (spelling.isNotEmpty() && at >= 0) {
+                addStyle(
+                    SpanStyle(fontWeight = FontWeight.SemiBold),
+                    at,
+                    at + spelling.length,
+                )
+                return@buildAnnotatedString
+            }
+        }
+    }
+}
 
 /** `2F:19:EB:20:44:7C` read as separated pairs rather than one long number. */
 private fun spaced(address: String): String = address.replace(":", " ")

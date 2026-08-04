@@ -236,18 +236,28 @@ once, driven by a real payload, and the fixture is deleted in the same commit.
 
 ### 5.4 Sizing
 
-Driven by module pitch, never by composition. A 17-character payload is a
-version 1 symbol — 21 modules plus a two-module quiet zone.
+Driven by module pitch, never by composition.
+
+**This table has been re-derived once, exactly as the note below it said it would
+have to be.** It used to describe a 17-character MAC address: a version 1 symbol,
+21 modules. The payload is now the activation URL — 29 bytes at error correction
+H, which is a **version 4 symbol at 33 modules**, plus a one-module quiet zone
+each side. Every plate grew 6% in the same pass, which is why the pitch survived.
 
 | Frame | Plate | Code | Pitch |
 |---|---|---|---|
-| 873×393 | 148dp | 130dp | 5.2dp/module |
-| 800×360 | 130dp | 114dp | 4.6dp/module |
-| TV 960×540 | 196dp | 172dp | 6.9dp/module |
+| 873×393 | 157dp | 139dp | 4.0dp/module |
+| 800×360 | 138dp | 122dp | 3.5dp/module |
+| TV 960×540 | 208dp | 184dp | 5.3dp/module |
 
-Floor: **3.0dp per module.** A real portal URL is longer than an address and will
-push the symbol to version 2 or 3 (25 or 29 modules); the plate sizes above must
-be re-derived at that point, not assumed.
+Floor: **3.0dp per module.** The shortest frame now runs at 3.5, which is the
+tightest this screen has ever been and the reason the plate may not shrink again
+without the symbol shrinking first.
+
+`ActivationQrTest` measures the module count from the encoder rather than reading
+it here, and fails if any plate falls under the floor. A longer URL — a path, a
+query string, a staging host — pushes the symbol to version 5 and turns the
+warning in this paragraph into a red build.
 
 ---
 
