@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The licence screen, in Turkish.
+
+  Not a literal rendering of the English: the sentences are written the way a
+  speaker of this language would say them. A literal translation of a status
+  message produces a grammatical sentence that leaves the reader unsure what to
+  do, which is the one thing this screen cannot afford.
+
+  No string here contains a price, a currency symbol, a period or a number of
+  days. Those come from PlanOffer and EntitlementState, formatted in this
+  locale's own conventions at the point of use.
+
+  "Subscription" belongs to the provider. Castivio sells a licence.
+-->
+<resources>
+    <string name="licence_title">Castivio lisansı</string>
+    <string name="licence_language">Dil</string>
+    <string name="licence_mac_label">MAC ADRESİ</string>
+    <string name="licence_key_label">CİHAZ ANAHTARI</string>
+    <string name="licence_copy_mac">MAC adresini kopyala</string>
+    <string name="licence_copy_key">Cihaz anahtarını kopyala</string>
+    <string name="licence_copied_mac">MAC adresi kopyalandı</string>
+    <string name="licence_copied_key">Cihaz anahtarı kopyalandı</string>
+    <string name="licence_mac_spoken">MAC adresi %s</string>
+    <string name="licence_plan_annual">Yıllık</string>
+    <string name="licence_plan_lifetime">Ömür boyu</string>
+    <string name="licence_per_year">yılda</string>
+    <string name="licence_once">bir kez, bu cihaz için</string>
+    <string name="licence_chip_trial">Deneme</string>
+    <string name="licence_chip_active">Lisans etkin</string>
+    <string name="licence_chip_trial_ended">Deneme bitti</string>
+    <string name="licence_chip_expired">Lisansın süresi doldu</string>
+    <string name="licence_chip_none">Lisans yok</string>
+    <string name="licence_chip_verify">Doğrulama gerekli</string>
+    <string name="licence_chip_unavailable">Kullanılamıyor</string>
+    <string name="licence_chip_unreadable">Lisans okunamıyor</string>
+    <string name="licence_chip_revoked">Lisans geri alındı</string>
+    <string name="licence_status_trial">Deneme bitmeden istediğiniz zaman bir lisans seçin.</string>
+    <string name="licence_status_active">Lisansınız etkin.</string>
+    <string name="licence_status_lifetime">Bu cihazda Castivio sizin.</string>
+    <string name="licence_status_trial_ended">Denemeniz bitti. Devam etmek için bir lisans seçin.</string>
+    <string name="licence_status_expired">Lisansınızın süresi doldu. Devam etmek için bir lisans seçin.</string>
+    <string name="licence_status_none">Bu cihazın henüz Castivio lisansı yok.</string>
+    <string name="licence_status_verify">Castivio son zamanlarda bu lisansı denetleyemedi.</string>
+    <string name="licence_status_unavailable">Castivio şu anda lisansları denetleyemiyor. Sorun bizde, sizde değil.</string>
+    <string name="licence_status_unreadable">Bu cihazın lisansı okunamıyor. Cihaz anahtarınızla destek ekibine ulaşın.</string>
+    <string name="licence_status_revoked">Bu lisans geri alındı. Cihaz anahtarınızla destek ekibine ulaşın.</string>
+    <string name="licence_status_opening">Castivio portalı açılıyor…</string>
+    <string name="licence_status_failed">Olmadı. Tekrar deneyin.</string>
+    <string name="licence_retry">Tekrar deneyin</string>
+    <string name="licence_support">Destek ekibine ulaşın</string>
+    <string name="licence_qr_caption">Cihazınızın etkinleştirme sayfasını açmak için QR kodu okutun</string>
+    <string name="licence_legal">[lisans ekranı için hukuki metin — yazılacak]</string>
+
+    <plurals name="licence_trial_days">
+        <item quantity="one">%d gün kaldı</item>
+        <item quantity="other">%d gün kaldı</item>
+    </plurals>
+
+    <string name="licence_sentinel" translatable="false">tr</string>
+</resources>

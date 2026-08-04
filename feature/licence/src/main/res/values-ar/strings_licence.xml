@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The licence screen, in Arabic.
+
+  Not a literal rendering of the English: the sentences are written the way a
+  speaker of this language would say them. A literal translation of a status
+  message produces a grammatical sentence that leaves the reader unsure what to
+  do, which is the one thing this screen cannot afford.
+
+  No string here contains a price, a currency symbol, a period or a number of
+  days. Those come from PlanOffer and EntitlementState, formatted in this
+  locale's own conventions at the point of use.
+
+  "Subscription" belongs to the provider. Castivio sells a licence.
+-->
+<resources>
+    <string name="licence_title">ترخيص Castivio</string>
+    <string name="licence_language">اللغة</string>
+    <string name="licence_mac_label">عنوان MAC</string>
+    <string name="licence_key_label">مفتاح الجهاز</string>
+    <string name="licence_copy_mac">نسخ عنوان MAC</string>
+    <string name="licence_copy_key">نسخ مفتاح الجهاز</string>
+    <string name="licence_copied_mac">تم نسخ عنوان MAC</string>
+    <string name="licence_copied_key">تم نسخ مفتاح الجهاز</string>
+    <string name="licence_mac_spoken">عنوان MAC ‏%s</string>
+    <string name="licence_plan_annual">سنوي</string>
+    <string name="licence_plan_lifetime">مدى الحياة</string>
+    <string name="licence_per_year">في السنة</string>
+    <string name="licence_once">مرة واحدة لهذا الجهاز</string>
+    <string name="licence_chip_trial">تجربة</string>
+    <string name="licence_chip_active">الترخيص مُفعَّل</string>
+    <string name="licence_chip_trial_ended">انتهت التجربة</string>
+    <string name="licence_chip_expired">انتهى الترخيص</string>
+    <string name="licence_chip_none">لا يوجد ترخيص</string>
+    <string name="licence_chip_verify">يلزم التحقق</string>
+    <string name="licence_chip_unavailable">غير متاح</string>
+    <string name="licence_chip_unreadable">تعذّرت قراءة الترخيص</string>
+    <string name="licence_chip_revoked">سُحب الترخيص</string>
+    <string name="licence_status_trial">اختر ترخيصًا في أي وقت قبل انتهاء التجربة.</string>
+    <string name="licence_status_active">ترخيصك مُفعَّل.</string>
+    <string name="licence_status_lifetime">أنت تملك Castivio على هذا الجهاز.</string>
+    <string name="licence_status_trial_ended">انتهت تجربتك. اختر ترخيصًا للمتابعة.</string>
+    <string name="licence_status_expired">انتهى ترخيصك. اختر ترخيصًا للمتابعة.</string>
+    <string name="licence_status_none">لا يوجد ترخيص Castivio على هذا الجهاز بعد.</string>
+    <string name="licence_status_verify">لم يتمكن Castivio من التحقق من هذا الترخيص مؤخرًا.</string>
+    <string name="licence_status_unavailable">لا يستطيع Castivio التحقق من التراخيص الآن. المشكلة لدينا وليست لديك.</string>
+    <string name="licence_status_unreadable">تعذّرت قراءة ترخيص هذا الجهاز. تواصل مع الدعم مع ذكر مفتاح الجهاز.</string>
+    <string name="licence_status_revoked">سُحب هذا الترخيص. تواصل مع الدعم مع ذكر مفتاح الجهاز.</string>
+    <string name="licence_status_opening">جارٍ فتح بوابة Castivio…</string>
+    <string name="licence_status_failed">لم ينجح ذلك. حاول مرة أخرى.</string>
+    <string name="licence_retry">حاول مرة أخرى</string>
+    <string name="licence_support">تواصل مع الدعم</string>
+    <string name="licence_qr_caption">امسح رمز QR لفتح صفحة تفعيل جهازك</string>
+    <string name="licence_legal">[نص قانوني لشاشة الترخيص — قيد الصياغة]</string>
+
+    <plurals name="licence_trial_days">
+        <item quantity="zero">بقي %d يوم</item>
+        <item quantity="one">بقي يوم واحد</item>
+        <item quantity="two">بقي يومان</item>
+        <item quantity="few">بقيت %d أيام</item>
+        <item quantity="many">بقي %d يومًا</item>
+        <item quantity="other">بقي %d يوم</item>
+    </plurals>
+
+    <string name="licence_sentinel" translatable="false">ar</string>
+</resources>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The licence screen, in Dutch.
+
+  Not a literal rendering of the English: the sentences are written the way a
+  speaker of this language would say them. A literal translation of a status
+  message produces a grammatical sentence that leaves the reader unsure what to
+  do, which is the one thing this screen cannot afford.
+
+  No string here contains a price, a currency symbol, a period or a number of
+  days. Those come from PlanOffer and EntitlementState, formatted in this
+  locale's own conventions at the point of use.
+
+  "Subscription" belongs to the provider. Castivio sells a licence.
+-->
+<resources>
+    <string name="licence_title">Castivio-licentie</string>
+    <string name="licence_language">Taal</string>
+    <string name="licence_mac_label">MAC-ADRES</string>
+    <string name="licence_key_label">APPARAATSLEUTEL</string>
+    <string name="licence_copy_mac">MAC-adres kopiëren</string>
+    <string name="licence_copy_key">Apparaatsleutel kopiëren</string>
+    <string name="licence_copied_mac">MAC-adres gekopieerd</string>
+    <string name="licence_copied_key">Apparaatsleutel gekopieerd</string>
+    <string name="licence_mac_spoken">MAC-adres %s</string>
+    <string name="licence_plan_annual">Jaarlijks</string>
+    <string name="licence_plan_lifetime">Levenslang</string>
+    <string name="licence_per_year">per jaar</string>
+    <string name="licence_once">eenmalig, voor dit apparaat</string>
+    <string name="licence_chip_trial">Proefperiode</string>
+    <string name="licence_chip_active">Licentie actief</string>
+    <string name="licence_chip_trial_ended">Proefperiode afgelopen</string>
+    <string name="licence_chip_expired">Licentie verlopen</string>
+    <string name="licence_chip_none">Geen licentie</string>
+    <string name="licence_chip_verify">Verificatie nodig</string>
+    <string name="licence_chip_unavailable">Niet beschikbaar</string>
+    <string name="licence_chip_unreadable">Licentie onleesbaar</string>
+    <string name="licence_chip_revoked">Licentie ingetrokken</string>
+    <string name="licence_status_trial">Kies wanneer u wilt een licentie voordat de proefperiode afloopt.</string>
+    <string name="licence_status_active">Uw licentie is actief.</string>
+    <string name="licence_status_lifetime">Castivio is van u op dit apparaat.</string>
+    <string name="licence_status_trial_ended">Uw proefperiode is afgelopen. Kies een licentie om verder te gaan.</string>
+    <string name="licence_status_expired">Uw licentie is verlopen. Kies een licentie om verder te gaan.</string>
+    <string name="licence_status_none">Dit apparaat heeft nog geen Castivio-licentie.</string>
+    <string name="licence_status_verify">Castivio heeft deze licentie de laatste tijd niet kunnen controleren.</string>
+    <string name="licence_status_unavailable">Castivio kan op dit moment geen licenties controleren. Dat ligt aan ons, niet aan u.</string>
+    <string name="licence_status_unreadable">De licentie van dit apparaat kan niet worden gelezen. Neem contact op met support met uw apparaatsleutel.</string>
+    <string name="licence_status_revoked">Deze licentie is ingetrokken. Neem contact op met support met uw apparaatsleutel.</string>
+    <string name="licence_status_opening">Castivio-portaal wordt geopend…</string>
+    <string name="licence_status_failed">Dat werkte niet. Probeer het opnieuw.</string>
+    <string name="licence_retry">Opnieuw proberen</string>
+    <string name="licence_support">Contact opnemen met support</string>
+    <string name="licence_qr_caption">Scan de QR-code om de activeringspagina van uw apparaat te openen</string>
+    <string name="licence_legal">[juridische tekst voor het licentiescherm — moet nog worden geschreven]</string>
+
+    <plurals name="licence_trial_days">
+        <item quantity="one">nog %d dag</item>
+        <item quantity="other">nog %d dagen</item>
+    </plurals>
+
+    <string name="licence_sentinel" translatable="false">nl</string>
+</resources>

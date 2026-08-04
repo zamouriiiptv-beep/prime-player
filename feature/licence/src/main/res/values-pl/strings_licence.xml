@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The licence screen, in Polish.
+
+  Not a literal rendering of the English: the sentences are written the way a
+  speaker of this language would say them. A literal translation of a status
+  message produces a grammatical sentence that leaves the reader unsure what to
+  do, which is the one thing this screen cannot afford.
+
+  No string here contains a price, a currency symbol, a period or a number of
+  days. Those come from PlanOffer and EntitlementState, formatted in this
+  locale's own conventions at the point of use.
+
+  "Subscription" belongs to the provider. Castivio sells a licence.
+-->
+<resources>
+    <string name="licence_title">Licencja Castivio</string>
+    <string name="licence_language">Język</string>
+    <string name="licence_mac_label">ADRES MAC</string>
+    <string name="licence_key_label">KLUCZ URZĄDZENIA</string>
+    <string name="licence_copy_mac">Kopiuj adres MAC</string>
+    <string name="licence_copy_key">Kopiuj klucz urządzenia</string>
+    <string name="licence_copied_mac">Skopiowano adres MAC</string>
+    <string name="licence_copied_key">Skopiowano klucz urządzenia</string>
+    <string name="licence_mac_spoken">Adres MAC %s</string>
+    <string name="licence_plan_annual">Roczna</string>
+    <string name="licence_plan_lifetime">Dożywotnia</string>
+    <string name="licence_per_year">rocznie</string>
+    <string name="licence_once">jednorazowo, dla tego urządzenia</string>
+    <string name="licence_chip_trial">Okres próbny</string>
+    <string name="licence_chip_active">Licencja aktywna</string>
+    <string name="licence_chip_trial_ended">Okres próbny zakończony</string>
+    <string name="licence_chip_expired">Licencja wygasła</string>
+    <string name="licence_chip_none">Brak licencji</string>
+    <string name="licence_chip_verify">Wymagana weryfikacja</string>
+    <string name="licence_chip_unavailable">Niedostępne</string>
+    <string name="licence_chip_unreadable">Nie można odczytać licencji</string>
+    <string name="licence_chip_revoked">Licencja cofnięta</string>
+    <string name="licence_status_trial">Licencję możesz wybrać w dowolnej chwili przed końcem okresu próbnego.</string>
+    <string name="licence_status_active">Twoja licencja jest aktywna.</string>
+    <string name="licence_status_lifetime">Castivio należy do Ciebie na tym urządzeniu.</string>
+    <string name="licence_status_trial_ended">Okres próbny się skończył. Wybierz licencję, aby kontynuować.</string>
+    <string name="licence_status_expired">Twoja licencja wygasła. Wybierz licencję, aby kontynuować.</string>
+    <string name="licence_status_none">To urządzenie nie ma jeszcze licencji Castivio.</string>
+    <string name="licence_status_verify">Castivio nie mogło ostatnio sprawdzić tej licencji.</string>
+    <string name="licence_status_unavailable">Castivio nie może teraz sprawdzać licencji. To nasz problem, nie Twój.</string>
+    <string name="licence_status_unreadable">Nie można odczytać licencji tego urządzenia. Skontaktuj się z pomocą, podając klucz urządzenia.</string>
+    <string name="licence_status_revoked">Ta licencja została cofnięta. Skontaktuj się z pomocą, podając klucz urządzenia.</string>
+    <string name="licence_status_opening">Otwieranie portalu Castivio…</string>
+    <string name="licence_status_failed">Nie udało się. Spróbuj ponownie.</string>
+    <string name="licence_retry">Spróbuj ponownie</string>
+    <string name="licence_support">Skontaktuj się z pomocą</string>
+    <string name="licence_qr_caption">Zeskanuj kod QR, aby otworzyć stronę aktywacji urządzenia</string>
+    <string name="licence_legal">[tekst prawny ekranu licencji — do napisania]</string>
+
+    <plurals name="licence_trial_days">
+        <item quantity="one">został %d dzień</item>
+        <item quantity="few">zostały %d dni</item>
+        <item quantity="many">zostało %d dni</item>
+        <item quantity="other">zostało %d dnia</item>
+    </plurals>
+
+    <string name="licence_sentinel" translatable="false">pl</string>
+</resources>

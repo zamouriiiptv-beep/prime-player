@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The licence screen, in Greek.
+
+  Not a literal rendering of the English: the sentences are written the way a
+  speaker of this language would say them. A literal translation of a status
+  message produces a grammatical sentence that leaves the reader unsure what to
+  do, which is the one thing this screen cannot afford.
+
+  No string here contains a price, a currency symbol, a period or a number of
+  days. Those come from PlanOffer and EntitlementState, formatted in this
+  locale's own conventions at the point of use.
+
+  "Subscription" belongs to the provider. Castivio sells a licence.
+-->
+<resources>
+    <string name="licence_title">Άδεια Castivio</string>
+    <string name="licence_language">Γλώσσα</string>
+    <string name="licence_mac_label">ΔΙΕΥΘΥΝΣΗ MAC</string>
+    <string name="licence_key_label">ΚΛΕΙΔΙ ΣΥΣΚΕΥΗΣ</string>
+    <string name="licence_copy_mac">Αντιγραφή διεύθυνσης MAC</string>
+    <string name="licence_copy_key">Αντιγραφή κλειδιού συσκευής</string>
+    <string name="licence_copied_mac">Η διεύθυνση MAC αντιγράφηκε</string>
+    <string name="licence_copied_key">Το κλειδί συσκευής αντιγράφηκε</string>
+    <string name="licence_mac_spoken">Διεύθυνση MAC %s</string>
+    <string name="licence_plan_annual">Ετήσια</string>
+    <string name="licence_plan_lifetime">Εφ’ όρου ζωής</string>
+    <string name="licence_per_year">τον χρόνο</string>
+    <string name="licence_once">μία φορά, για αυτή τη συσκευή</string>
+    <string name="licence_chip_trial">Δοκιμή</string>
+    <string name="licence_chip_active">Η άδεια είναι ενεργή</string>
+    <string name="licence_chip_trial_ended">Η δοκιμή έληξε</string>
+    <string name="licence_chip_expired">Η άδεια έληξε</string>
+    <string name="licence_chip_none">Καμία άδεια</string>
+    <string name="licence_chip_verify">Απαιτείται επαλήθευση</string>
+    <string name="licence_chip_unavailable">Μη διαθέσιμο</string>
+    <string name="licence_chip_unreadable">Η άδεια δεν διαβάζεται</string>
+    <string name="licence_chip_revoked">Η άδεια ανακλήθηκε</string>
+    <string name="licence_status_trial">Επιλέξτε άδεια οποιαδήποτε στιγμή πριν λήξει η δοκιμή.</string>
+    <string name="licence_status_active">Η άδειά σας είναι ενεργή.</string>
+    <string name="licence_status_lifetime">Το Castivio σας ανήκει σε αυτή τη συσκευή.</string>
+    <string name="licence_status_trial_ended">Η δοκιμή σας έληξε. Επιλέξτε άδεια για να συνεχίσετε.</string>
+    <string name="licence_status_expired">Η άδειά σας έληξε. Επιλέξτε άδεια για να συνεχίσετε.</string>
+    <string name="licence_status_none">Αυτή η συσκευή δεν έχει ακόμη άδεια Castivio.</string>
+    <string name="licence_status_verify">Το Castivio δεν μπόρεσε να ελέγξει πρόσφατα αυτή την άδεια.</string>
+    <string name="licence_status_unavailable">Το Castivio δεν μπορεί να ελέγξει άδειες αυτή τη στιγμή. Το πρόβλημα είναι δικό μας, όχι δικό σας.</string>
+    <string name="licence_status_unreadable">Η άδεια αυτής της συσκευής δεν διαβάζεται. Επικοινωνήστε με την υποστήριξη με το κλειδί συσκευής σας.</string>
+    <string name="licence_status_revoked">Αυτή η άδεια ανακλήθηκε. Επικοινωνήστε με την υποστήριξη με το κλειδί συσκευής σας.</string>
+    <string name="licence_status_opening">Άνοιγμα της πύλης Castivio…</string>
+    <string name="licence_status_failed">Δεν λειτούργησε. Δοκιμάστε ξανά.</string>
+    <string name="licence_retry">Δοκιμάστε ξανά</string>
+    <string name="licence_support">Επικοινωνία με υποστήριξη</string>
+    <string name="licence_qr_caption">Σαρώστε τον κωδικό QR για να ανοίξετε τη σελίδα ενεργοποίησης της συσκευής</string>
+    <string name="licence_legal">[νομικό κείμενο για την οθόνη άδειας — θα γραφτεί]</string>
+
+    <plurals name="licence_trial_days">
+        <item quantity="one">απομένει %d ημέρα</item>
+        <item quantity="other">απομένουν %d ημέρες</item>
+    </plurals>
+
+    <string name="licence_sentinel" translatable="false">el</string>
+</resources>

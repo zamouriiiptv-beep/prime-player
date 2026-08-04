@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The licence screen, in German.
+
+  Not a literal rendering of the English: the sentences are written the way a
+  speaker of this language would say them. A literal translation of a status
+  message produces a grammatical sentence that leaves the reader unsure what to
+  do, which is the one thing this screen cannot afford.
+
+  No string here contains a price, a currency symbol, a period or a number of
+  days. Those come from PlanOffer and EntitlementState, formatted in this
+  locale's own conventions at the point of use.
+
+  "Subscription" belongs to the provider. Castivio sells a licence.
+-->
+<resources>
+    <string name="licence_title">Castivio-Lizenz</string>
+    <string name="licence_language">Sprache</string>
+    <string name="licence_mac_label">MAC-ADRESSE</string>
+    <string name="licence_key_label">GERÄTESCHLÜSSEL</string>
+    <string name="licence_copy_mac">MAC-Adresse kopieren</string>
+    <string name="licence_copy_key">Geräteschlüssel kopieren</string>
+    <string name="licence_copied_mac">MAC-Adresse kopiert</string>
+    <string name="licence_copied_key">Geräteschlüssel kopiert</string>
+    <string name="licence_mac_spoken">MAC-Adresse %s</string>
+    <string name="licence_plan_annual">Jährlich</string>
+    <string name="licence_plan_lifetime">Dauerhaft</string>
+    <string name="licence_per_year">pro Jahr</string>
+    <string name="licence_once">einmalig, für dieses Gerät</string>
+    <string name="licence_chip_trial">Testphase</string>
+    <string name="licence_chip_active">Lizenz aktiv</string>
+    <string name="licence_chip_trial_ended">Testphase beendet</string>
+    <string name="licence_chip_expired">Lizenz abgelaufen</string>
+    <string name="licence_chip_none">Keine Lizenz</string>
+    <string name="licence_chip_verify">Überprüfung nötig</string>
+    <string name="licence_chip_unavailable">Nicht verfügbar</string>
+    <string name="licence_chip_unreadable">Lizenz nicht lesbar</string>
+    <string name="licence_chip_revoked">Lizenz entzogen</string>
+    <string name="licence_status_trial">Wählen Sie jederzeit vor Ende der Testphase eine Lizenz.</string>
+    <string name="licence_status_active">Ihre Lizenz ist aktiv.</string>
+    <string name="licence_status_lifetime">Sie besitzen Castivio auf diesem Gerät.</string>
+    <string name="licence_status_trial_ended">Ihre Testphase ist beendet. Wählen Sie eine Lizenz, um fortzufahren.</string>
+    <string name="licence_status_expired">Ihre Lizenz ist abgelaufen. Wählen Sie eine Lizenz, um fortzufahren.</string>
+    <string name="licence_status_none">Dieses Gerät hat noch keine Castivio-Lizenz.</string>
+    <string name="licence_status_verify">Castivio konnte diese Lizenz zuletzt nicht überprüfen.</string>
+    <string name="licence_status_unavailable">Castivio kann Lizenzen derzeit nicht prüfen. Das liegt an uns, nicht an Ihnen.</string>
+    <string name="licence_status_unreadable">Die Lizenz dieses Geräts kann nicht gelesen werden. Wenden Sie sich mit Ihrem Geräteschlüssel an den Support.</string>
+    <string name="licence_status_revoked">Diese Lizenz wurde entzogen. Wenden Sie sich mit Ihrem Geräteschlüssel an den Support.</string>
+    <string name="licence_status_opening">Castivio-Portal wird geöffnet…</string>
+    <string name="licence_status_failed">Das hat nicht geklappt. Bitte erneut versuchen.</string>
+    <string name="licence_retry">Erneut versuchen</string>
+    <string name="licence_support">Support kontaktieren</string>
+    <string name="licence_qr_caption">QR-Code scannen, um die Aktivierungsseite des Geräts zu öffnen</string>
+    <string name="licence_legal">[Rechtstext für die Lizenzseite — wird noch verfasst]</string>
+
+    <plurals name="licence_trial_days">
+        <item quantity="one">noch %d Tag</item>
+        <item quantity="other">noch %d Tage</item>
+    </plurals>
+
+    <string name="licence_sentinel" translatable="false">de</string>
+</resources>

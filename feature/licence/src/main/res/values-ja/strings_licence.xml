@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The licence screen, in Japanese.
+
+  Not a literal rendering of the English: the sentences are written the way a
+  speaker of this language would say them. A literal translation of a status
+  message produces a grammatical sentence that leaves the reader unsure what to
+  do, which is the one thing this screen cannot afford.
+
+  No string here contains a price, a currency symbol, a period or a number of
+  days. Those come from PlanOffer and EntitlementState, formatted in this
+  locale's own conventions at the point of use.
+
+  "Subscription" belongs to the provider. Castivio sells a licence.
+-->
+<resources>
+    <string name="licence_title">Castivio ライセンス</string>
+    <string name="licence_language">言語</string>
+    <string name="licence_mac_label">MAC アドレス</string>
+    <string name="licence_key_label">デバイスキー</string>
+    <string name="licence_copy_mac">MAC アドレスをコピー</string>
+    <string name="licence_copy_key">デバイスキーをコピー</string>
+    <string name="licence_copied_mac">MAC アドレスをコピーしました</string>
+    <string name="licence_copied_key">デバイスキーをコピーしました</string>
+    <string name="licence_mac_spoken">MAC アドレス %s</string>
+    <string name="licence_plan_annual">年額</string>
+    <string name="licence_plan_lifetime">買い切り</string>
+    <string name="licence_per_year">1 年あたり</string>
+    <string name="licence_once">この端末に一度だけ</string>
+    <string name="licence_chip_trial">体験版</string>
+    <string name="licence_chip_active">ライセンス有効</string>
+    <string name="licence_chip_trial_ended">体験版終了</string>
+    <string name="licence_chip_expired">ライセンス期限切れ</string>
+    <string name="licence_chip_none">ライセンスなし</string>
+    <string name="licence_chip_verify">確認が必要</string>
+    <string name="licence_chip_unavailable">利用できません</string>
+    <string name="licence_chip_unreadable">ライセンスを読み取れません</string>
+    <string name="licence_chip_revoked">ライセンス取り消し</string>
+    <string name="licence_status_trial">体験版が終了する前に、いつでもライセンスを選べます。</string>
+    <string name="licence_status_active">ライセンスは有効です。</string>
+    <string name="licence_status_lifetime">この端末の Castivio はお客様のものです。</string>
+    <string name="licence_status_trial_ended">体験版が終了しました。続けるにはライセンスを選んでください。</string>
+    <string name="licence_status_expired">ライセンスの期限が切れました。続けるにはライセンスを選んでください。</string>
+    <string name="licence_status_none">この端末にはまだ Castivio ライセンスがありません。</string>
+    <string name="licence_status_verify">Castivio は最近このライセンスを確認できていません。</string>
+    <string name="licence_status_unavailable">現在ライセンスを確認できません。これは当社側の問題です。</string>
+    <string name="licence_status_unreadable">この端末のライセンスを読み取れません。デバイスキーを添えてサポートにご連絡ください。</string>
+    <string name="licence_status_revoked">このライセンスは取り消されました。デバイスキーを添えてサポートにご連絡ください。</string>
+    <string name="licence_status_opening">Castivio ポータルを開いています…</string>
+    <string name="licence_status_failed">うまくいきませんでした。もう一度お試しください。</string>
+    <string name="licence_retry">もう一度試す</string>
+    <string name="licence_support">サポートに連絡</string>
+    <string name="licence_qr_caption">QR コードをスキャンして、この端末のアクティベーションページを開きます</string>
+    <string name="licence_legal">［ライセンス画面の法的表記 — 作成予定］</string>
+
+    <plurals name="licence_trial_days">
+        <item quantity="other">残り %d 日</item>
+    </plurals>
+
+    <string name="licence_sentinel" translatable="false">ja</string>
+</resources>

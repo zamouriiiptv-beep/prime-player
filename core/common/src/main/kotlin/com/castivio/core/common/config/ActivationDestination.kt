@@ -43,6 +43,34 @@ object ActivationDestination {
     const val URL: String = "https://castivio.com/activate"
 
     /**
+     * Where a user goes when the app cannot help them.
+     *
+     * Two states offer this and only two: a licence that was withdrawn, and a
+     * stored record that will not open. Both are questions about one specific
+     * device that only Castivio can answer, and neither is fixed by buying
+     * anything — which is why those states show this instead of the plans.
+     *
+     * A page rather than a `mailto:`. A television has no mail client, and
+     * asking a remote to type an address into one it does not have is not an
+     * escape hatch, it is a dead end with a label on it.
+     *
+     * Placeholder, on the same terms as [URL]: when the page exists, this line
+     * changes and nothing else does.
+     */
+    const val SUPPORT_URL: String = "https://castivio.com/support"
+
+    /**
+     * The support page for *this* device.
+     *
+     * The address travels so the user does not have to read six pairs of hex off
+     * a television and type them into a phone. Same reasoning as [portalUrl],
+     * and the same limit: this is a link opened on the user's own device, never
+     * a QR and never anything published.
+     */
+    fun supportUrl(macAddress: String? = null): String =
+        if (macAddress.isNullOrBlank()) SUPPORT_URL else SUPPORT_URL + "?mac=" + macAddress.encoded()
+
+    /**
      * The same address, without the scheme, for showing to a person.
      *
      * `https://` is noise on a screen somebody is reading off a television from

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The licence screen, in Bengali.
+
+  Not a literal rendering of the English: the sentences are written the way a
+  speaker of this language would say them. A literal translation of a status
+  message produces a grammatical sentence that leaves the reader unsure what to
+  do, which is the one thing this screen cannot afford.
+
+  No string here contains a price, a currency symbol, a period or a number of
+  days. Those come from PlanOffer and EntitlementState, formatted in this
+  locale's own conventions at the point of use.
+
+  "Subscription" belongs to the provider. Castivio sells a licence.
+-->
+<resources>
+    <string name="licence_title">Castivio লাইসেন্স</string>
+    <string name="licence_language">ভাষা</string>
+    <string name="licence_mac_label">MAC ঠিকানা</string>
+    <string name="licence_key_label">ডিভাইস কী</string>
+    <string name="licence_copy_mac">MAC ঠিকানা কপি করুন</string>
+    <string name="licence_copy_key">ডিভাইস কী কপি করুন</string>
+    <string name="licence_copied_mac">MAC ঠিকানা কপি হয়েছে</string>
+    <string name="licence_copied_key">ডিভাইস কী কপি হয়েছে</string>
+    <string name="licence_mac_spoken">MAC ঠিকানা %s</string>
+    <string name="licence_plan_annual">বার্ষিক</string>
+    <string name="licence_plan_lifetime">আজীবন</string>
+    <string name="licence_per_year">প্রতি বছর</string>
+    <string name="licence_once">একবার, এই ডিভাইসের জন্য</string>
+    <string name="licence_chip_trial">ট্রায়াল</string>
+    <string name="licence_chip_active">লাইসেন্স সক্রিয়</string>
+    <string name="licence_chip_trial_ended">ট্রায়াল শেষ</string>
+    <string name="licence_chip_expired">লাইসেন্সের মেয়াদ শেষ</string>
+    <string name="licence_chip_none">লাইসেন্স নেই</string>
+    <string name="licence_chip_verify">যাচাই প্রয়োজন</string>
+    <string name="licence_chip_unavailable">অনুপলব্ধ</string>
+    <string name="licence_chip_unreadable">লাইসেন্স পড়া যাচ্ছে না</string>
+    <string name="licence_chip_revoked">লাইসেন্স প্রত্যাহৃত</string>
+    <string name="licence_status_trial">ট্রায়াল শেষ হওয়ার আগে যেকোনো সময় লাইসেন্স বেছে নিন।</string>
+    <string name="licence_status_active">আপনার লাইসেন্স সক্রিয়।</string>
+    <string name="licence_status_lifetime">এই ডিভাইসে Castivio আপনার নিজের।</string>
+    <string name="licence_status_trial_ended">আপনার ট্রায়াল শেষ হয়েছে। চালিয়ে যেতে লাইসেন্স বেছে নিন।</string>
+    <string name="licence_status_expired">আপনার লাইসেন্সের মেয়াদ শেষ। চালিয়ে যেতে লাইসেন্স বেছে নিন।</string>
+    <string name="licence_status_none">এই ডিভাইসে এখনও কোনও Castivio লাইসেন্স নেই।</string>
+    <string name="licence_status_verify">Castivio সম্প্রতি এই লাইসেন্স যাচাই করতে পারেনি।</string>
+    <string name="licence_status_unavailable">Castivio এখন লাইসেন্স যাচাই করতে পারছে না। এটি আমাদের সমস্যা, আপনার নয়।</string>
+    <string name="licence_status_unreadable">এই ডিভাইসের লাইসেন্স পড়া যাচ্ছে না। আপনার ডিভাইস কী নিয়ে সহায়তায় যোগাযোগ করুন।</string>
+    <string name="licence_status_revoked">এই লাইসেন্স প্রত্যাহার করা হয়েছে। আপনার ডিভাইস কী নিয়ে সহায়তায় যোগাযোগ করুন।</string>
+    <string name="licence_status_opening">Castivio পোর্টাল খোলা হচ্ছে…</string>
+    <string name="licence_status_failed">কাজ হয়নি। আবার চেষ্টা করুন।</string>
+    <string name="licence_retry">আবার চেষ্টা করুন</string>
+    <string name="licence_support">সহায়তায় যোগাযোগ করুন</string>
+    <string name="licence_qr_caption">ডিভাইস অ্যাক্টিভেশন পেজ খুলতে QR কোড স্ক্যান করুন</string>
+    <string name="licence_legal">[লাইসেন্স স্ক্রিনের আইনি লেখা — লেখা বাকি]</string>
+
+    <plurals name="licence_trial_days">
+        <item quantity="one">%d দিন বাকি</item>
+        <item quantity="other">%d দিন বাকি</item>
+    </plurals>
+
+    <string name="licence_sentinel" translatable="false">bn</string>
+</resources>

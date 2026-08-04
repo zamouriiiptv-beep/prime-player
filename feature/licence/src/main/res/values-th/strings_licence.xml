@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The licence screen, in Thai.
+
+  Not a literal rendering of the English: the sentences are written the way a
+  speaker of this language would say them. A literal translation of a status
+  message produces a grammatical sentence that leaves the reader unsure what to
+  do, which is the one thing this screen cannot afford.
+
+  No string here contains a price, a currency symbol, a period or a number of
+  days. Those come from PlanOffer and EntitlementState, formatted in this
+  locale's own conventions at the point of use.
+
+  "Subscription" belongs to the provider. Castivio sells a licence.
+-->
+<resources>
+    <string name="licence_title">ใบอนุญาต Castivio</string>
+    <string name="licence_language">ภาษา</string>
+    <string name="licence_mac_label">ที่อยู่ MAC</string>
+    <string name="licence_key_label">คีย์อุปกรณ์</string>
+    <string name="licence_copy_mac">คัดลอกที่อยู่ MAC</string>
+    <string name="licence_copy_key">คัดลอกคีย์อุปกรณ์</string>
+    <string name="licence_copied_mac">คัดลอกที่อยู่ MAC แล้ว</string>
+    <string name="licence_copied_key">คัดลอกคีย์อุปกรณ์แล้ว</string>
+    <string name="licence_mac_spoken">ที่อยู่ MAC %s</string>
+    <string name="licence_plan_annual">รายปี</string>
+    <string name="licence_plan_lifetime">ตลอดชีพ</string>
+    <string name="licence_per_year">ต่อปี</string>
+    <string name="licence_once">ครั้งเดียว สำหรับอุปกรณ์นี้</string>
+    <string name="licence_chip_trial">ทดลองใช้</string>
+    <string name="licence_chip_active">ใบอนุญาตใช้งานอยู่</string>
+    <string name="licence_chip_trial_ended">สิ้นสุดการทดลองใช้</string>
+    <string name="licence_chip_expired">ใบอนุญาตหมดอายุ</string>
+    <string name="licence_chip_none">ไม่มีใบอนุญาต</string>
+    <string name="licence_chip_verify">ต้องยืนยัน</string>
+    <string name="licence_chip_unavailable">ไม่พร้อมใช้งาน</string>
+    <string name="licence_chip_unreadable">อ่านใบอนุญาตไม่ได้</string>
+    <string name="licence_chip_revoked">ใบอนุญาตถูกเพิกถอน</string>
+    <string name="licence_status_trial">เลือกใบอนุญาตได้ทุกเมื่อก่อนสิ้นสุดการทดลองใช้</string>
+    <string name="licence_status_active">ใบอนุญาตของคุณใช้งานอยู่</string>
+    <string name="licence_status_lifetime">Castivio เป็นของคุณบนอุปกรณ์นี้</string>
+    <string name="licence_status_trial_ended">การทดลองใช้สิ้นสุดแล้ว เลือกใบอนุญาตเพื่อใช้งานต่อ</string>
+    <string name="licence_status_expired">ใบอนุญาตหมดอายุแล้ว เลือกใบอนุญาตเพื่อใช้งานต่อ</string>
+    <string name="licence_status_none">อุปกรณ์นี้ยังไม่มีใบอนุญาต Castivio</string>
+    <string name="licence_status_verify">Castivio ยังไม่สามารถตรวจสอบใบอนุญาตนี้ได้เมื่อเร็ว ๆ นี้</string>
+    <string name="licence_status_unavailable">Castivio ตรวจสอบใบอนุญาตไม่ได้ในขณะนี้ เป็นปัญหาของเรา ไม่ใช่ของคุณ</string>
+    <string name="licence_status_unreadable">อ่านใบอนุญาตของอุปกรณ์นี้ไม่ได้ ติดต่อฝ่ายสนับสนุนพร้อมคีย์อุปกรณ์</string>
+    <string name="licence_status_revoked">ใบอนุญาตนี้ถูกเพิกถอน ติดต่อฝ่ายสนับสนุนพร้อมคีย์อุปกรณ์</string>
+    <string name="licence_status_opening">กำลังเปิดพอร์ทัล Castivio…</string>
+    <string name="licence_status_failed">ไม่สำเร็จ ลองอีกครั้ง</string>
+    <string name="licence_retry">ลองอีกครั้ง</string>
+    <string name="licence_support">ติดต่อฝ่ายสนับสนุน</string>
+    <string name="licence_qr_caption">สแกนคิวอาร์โค้ดเพื่อเปิดหน้าเปิดใช้งานอุปกรณ์</string>
+    <string name="licence_legal">[ข้อความทางกฎหมายสำหรับหน้าใบอนุญาต — รอการเขียน]</string>
+
+    <plurals name="licence_trial_days">
+        <item quantity="other">เหลืออีก %d วัน</item>
+    </plurals>
+
+    <string name="licence_sentinel" translatable="false">th</string>
+</resources>

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The licence screen, in Croatian.
+
+  Not a literal rendering of the English: the sentences are written the way a
+  speaker of this language would say them. A literal translation of a status
+  message produces a grammatical sentence that leaves the reader unsure what to
+  do, which is the one thing this screen cannot afford.
+
+  No string here contains a price, a currency symbol, a period or a number of
+  days. Those come from PlanOffer and EntitlementState, formatted in this
+  locale's own conventions at the point of use.
+
+  "Subscription" belongs to the provider. Castivio sells a licence.
+-->
+<resources>
+    <string name="licence_title">Castivio licenca</string>
+    <string name="licence_language">Jezik</string>
+    <string name="licence_mac_label">MAC ADRESA</string>
+    <string name="licence_key_label">KLJUČ UREĐAJA</string>
+    <string name="licence_copy_mac">Kopiraj MAC adresu</string>
+    <string name="licence_copy_key">Kopiraj ključ uređaja</string>
+    <string name="licence_copied_mac">MAC adresa kopirana</string>
+    <string name="licence_copied_key">Ključ uređaja kopiran</string>
+    <string name="licence_mac_spoken">MAC adresa %s</string>
+    <string name="licence_plan_annual">Godišnje</string>
+    <string name="licence_plan_lifetime">Trajno</string>
+    <string name="licence_per_year">godišnje</string>
+    <string name="licence_once">jednokratno, za ovaj uređaj</string>
+    <string name="licence_chip_trial">Probno razdoblje</string>
+    <string name="licence_chip_active">Licenca je aktivna</string>
+    <string name="licence_chip_trial_ended">Probno razdoblje je završilo</string>
+    <string name="licence_chip_expired">Licenca je istekla</string>
+    <string name="licence_chip_none">Nema licence</string>
+    <string name="licence_chip_verify">Potrebna je provjera</string>
+    <string name="licence_chip_unavailable">Nedostupno</string>
+    <string name="licence_chip_unreadable">Licencu nije moguće pročitati</string>
+    <string name="licence_chip_revoked">Licenca je povučena</string>
+    <string name="licence_status_trial">Licencu možete odabrati bilo kada prije kraja probnog razdoblja.</string>
+    <string name="licence_status_active">Vaša je licenca aktivna.</string>
+    <string name="licence_status_lifetime">Castivio je vaš na ovom uređaju.</string>
+    <string name="licence_status_trial_ended">Probno razdoblje je završilo. Odaberite licencu za nastavak.</string>
+    <string name="licence_status_expired">Licenca vam je istekla. Odaberite licencu za nastavak.</string>
+    <string name="licence_status_none">Ovaj uređaj još nema Castivio licencu.</string>
+    <string name="licence_status_verify">Castivio u posljednje vrijeme nije mogao provjeriti ovu licencu.</string>
+    <string name="licence_status_unavailable">Castivio trenutačno ne može provjeravati licence. To je naš problem, ne vaš.</string>
+    <string name="licence_status_unreadable">Licencu ovog uređaja nije moguće pročitati. Obratite se podršci s ključem uređaja.</string>
+    <string name="licence_status_revoked">Ova je licenca povučena. Obratite se podršci s ključem uređaja.</string>
+    <string name="licence_status_opening">Otvaranje Castivio portala…</string>
+    <string name="licence_status_failed">Nije uspjelo. Pokušajte ponovno.</string>
+    <string name="licence_retry">Pokušajte ponovno</string>
+    <string name="licence_support">Obratite se podršci</string>
+    <string name="licence_qr_caption">Skenirajte QR kod da otvorite stranicu za aktivaciju uređaja</string>
+    <string name="licence_legal">[pravni tekst za zaslon licence — tek treba napisati]</string>
+
+    <plurals name="licence_trial_days">
+        <item quantity="one">još %d dan</item>
+        <item quantity="few">još %d dana</item>
+        <item quantity="other">još %d dana</item>
+    </plurals>
+
+    <string name="licence_sentinel" translatable="false">hr</string>
+</resources>

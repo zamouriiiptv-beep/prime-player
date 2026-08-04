@@ -58,6 +58,7 @@ dependencies {
     // Features are wired here too, so their view models are on the Hilt graph and are
     // built by assembleDebug rather than only by whoever remembers to name them.
     implementation(project(":feature:activation"))
+    implementation(project(":feature:licence"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

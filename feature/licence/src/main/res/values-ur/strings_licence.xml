@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The licence screen, in Urdu.
+
+  Not a literal rendering of the English: the sentences are written the way a
+  speaker of this language would say them. A literal translation of a status
+  message produces a grammatical sentence that leaves the reader unsure what to
+  do, which is the one thing this screen cannot afford.
+
+  No string here contains a price, a currency symbol, a period or a number of
+  days. Those come from PlanOffer and EntitlementState, formatted in this
+  locale's own conventions at the point of use.
+
+  "Subscription" belongs to the provider. Castivio sells a licence.
+-->
+<resources>
+    <string name="licence_title">Castivio لائسنس</string>
+    <string name="licence_language">زبان</string>
+    <string name="licence_mac_label">MAC پتہ</string>
+    <string name="licence_key_label">ڈیوائس کلید</string>
+    <string name="licence_copy_mac">MAC پتہ کاپی کریں</string>
+    <string name="licence_copy_key">ڈیوائس کلید کاپی کریں</string>
+    <string name="licence_copied_mac">MAC پتہ کاپی ہو گیا</string>
+    <string name="licence_copied_key">ڈیوائس کلید کاپی ہو گئی</string>
+    <string name="licence_mac_spoken">MAC پتہ ‏%s</string>
+    <string name="licence_plan_annual">سالانہ</string>
+    <string name="licence_plan_lifetime">تاحیات</string>
+    <string name="licence_per_year">فی سال</string>
+    <string name="licence_once">ایک بار، اس ڈیوائس کے لیے</string>
+    <string name="licence_chip_trial">آزمائش</string>
+    <string name="licence_chip_active">لائسنس فعال ہے</string>
+    <string name="licence_chip_trial_ended">آزمائش ختم ہو گئی</string>
+    <string name="licence_chip_expired">لائسنس ختم ہو گیا</string>
+    <string name="licence_chip_none">کوئی لائسنس نہیں</string>
+    <string name="licence_chip_verify">تصدیق درکار ہے</string>
+    <string name="licence_chip_unavailable">دستیاب نہیں</string>
+    <string name="licence_chip_unreadable">لائسنس پڑھا نہیں جا سکتا</string>
+    <string name="licence_chip_revoked">لائسنس واپس لے لیا گیا</string>
+    <string name="licence_status_trial">آزمائش ختم ہونے سے پہلے کسی بھی وقت لائسنس منتخب کریں۔</string>
+    <string name="licence_status_active">آپ کا لائسنس فعال ہے۔</string>
+    <string name="licence_status_lifetime">اس ڈیوائس پر Castivio آپ کا ہے۔</string>
+    <string name="licence_status_trial_ended">آپ کی آزمائش ختم ہو گئی۔ جاری رکھنے کے لیے لائسنس منتخب کریں۔</string>
+    <string name="licence_status_expired">آپ کا لائسنس ختم ہو گیا۔ جاری رکھنے کے لیے لائسنس منتخب کریں۔</string>
+    <string name="licence_status_none">اس ڈیوائس پر ابھی Castivio لائسنس نہیں ہے۔</string>
+    <string name="licence_status_verify">Castivio حال ہی میں اس لائسنس کی جانچ نہیں کر سکا۔</string>
+    <string name="licence_status_unavailable">Castivio ابھی لائسنس جانچ نہیں سکتا۔ یہ ہمارا مسئلہ ہے، آپ کا نہیں۔</string>
+    <string name="licence_status_unreadable">اس ڈیوائس کا لائسنس پڑھا نہیں جا سکتا۔ اپنی ڈیوائس کلید کے ساتھ سپورٹ سے رابطہ کریں۔</string>
+    <string name="licence_status_revoked">یہ لائسنس واپس لے لیا گیا۔ اپنی ڈیوائس کلید کے ساتھ سپورٹ سے رابطہ کریں۔</string>
+    <string name="licence_status_opening">Castivio پورٹل کھولا جا رہا ہے…</string>
+    <string name="licence_status_failed">یہ کام نہیں آیا۔ دوبارہ کوشش کریں۔</string>
+    <string name="licence_retry">دوبارہ کوشش کریں</string>
+    <string name="licence_support">سپورٹ سے رابطہ کریں</string>
+    <string name="licence_qr_caption">اپنے ڈیوائس کا ایکٹیویشن صفحہ کھولنے کے لیے QR کوڈ اسکین کریں</string>
+    <string name="licence_legal">[لائسنس اسکرین کے لیے قانونی متن — لکھا جانا باقی ہے]</string>
+
+    <plurals name="licence_trial_days">
+        <item quantity="one">%d دن باقی</item>
+        <item quantity="other">%d دن باقی</item>
+    </plurals>
+
+    <string name="licence_sentinel" translatable="false">ur</string>
+</resources>

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The licence screen, in Romanian.
+
+  Not a literal rendering of the English: the sentences are written the way a
+  speaker of this language would say them. A literal translation of a status
+  message produces a grammatical sentence that leaves the reader unsure what to
+  do, which is the one thing this screen cannot afford.
+
+  No string here contains a price, a currency symbol, a period or a number of
+  days. Those come from PlanOffer and EntitlementState, formatted in this
+  locale's own conventions at the point of use.
+
+  "Subscription" belongs to the provider. Castivio sells a licence.
+-->
+<resources>
+    <string name="licence_title">Licență Castivio</string>
+    <string name="licence_language">Limbă</string>
+    <string name="licence_mac_label">ADRESĂ MAC</string>
+    <string name="licence_key_label">CHEIA DISPOZITIVULUI</string>
+    <string name="licence_copy_mac">Copiază adresa MAC</string>
+    <string name="licence_copy_key">Copiază cheia dispozitivului</string>
+    <string name="licence_copied_mac">Adresa MAC a fost copiată</string>
+    <string name="licence_copied_key">Cheia dispozitivului a fost copiată</string>
+    <string name="licence_mac_spoken">Adresa MAC %s</string>
+    <string name="licence_plan_annual">Anual</string>
+    <string name="licence_plan_lifetime">Pe viață</string>
+    <string name="licence_per_year">pe an</string>
+    <string name="licence_once">o singură dată, pentru acest dispozitiv</string>
+    <string name="licence_chip_trial">Perioadă de probă</string>
+    <string name="licence_chip_active">Licență activă</string>
+    <string name="licence_chip_trial_ended">Perioada de probă s-a încheiat</string>
+    <string name="licence_chip_expired">Licență expirată</string>
+    <string name="licence_chip_none">Fără licență</string>
+    <string name="licence_chip_verify">Este necesară verificarea</string>
+    <string name="licence_chip_unavailable">Indisponibil</string>
+    <string name="licence_chip_unreadable">Licența nu poate fi citită</string>
+    <string name="licence_chip_revoked">Licență retrasă</string>
+    <string name="licence_status_trial">Alegeți o licență oricând înainte de sfârșitul perioadei de probă.</string>
+    <string name="licence_status_active">Licența dumneavoastră este activă.</string>
+    <string name="licence_status_lifetime">Castivio vă aparține pe acest dispozitiv.</string>
+    <string name="licence_status_trial_ended">Perioada de probă s-a încheiat. Alegeți o licență pentru a continua.</string>
+    <string name="licence_status_expired">Licența a expirat. Alegeți o licență pentru a continua.</string>
+    <string name="licence_status_none">Acest dispozitiv nu are încă licență Castivio.</string>
+    <string name="licence_status_verify">Castivio nu a putut verifica recent această licență.</string>
+    <string name="licence_status_unavailable">Castivio nu poate verifica licențele acum. Este problema noastră, nu a dumneavoastră.</string>
+    <string name="licence_status_unreadable">Licența acestui dispozitiv nu poate fi citită. Contactați asistența cu cheia dispozitivului.</string>
+    <string name="licence_status_revoked">Această licență a fost retrasă. Contactați asistența cu cheia dispozitivului.</string>
+    <string name="licence_status_opening">Se deschide portalul Castivio…</string>
+    <string name="licence_status_failed">Nu a funcționat. Încercați din nou.</string>
+    <string name="licence_retry">Încercați din nou</string>
+    <string name="licence_support">Contactați asistența</string>
+    <string name="licence_qr_caption">Scanați codul QR pentru a deschide pagina de activare a dispozitivului</string>
+    <string name="licence_legal">[text juridic pentru ecranul de licență — urmează să fie scris]</string>
+
+    <plurals name="licence_trial_days">
+        <item quantity="one">a mai rămas %d zi</item>
+        <item quantity="few">au mai rămas %d zile</item>
+        <item quantity="other">au mai rămas %d de zile</item>
+    </plurals>
+
+    <string name="licence_sentinel" translatable="false">ro</string>
+</resources>

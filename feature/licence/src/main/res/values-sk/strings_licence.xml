@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The licence screen, in Slovak.
+
+  Not a literal rendering of the English: the sentences are written the way a
+  speaker of this language would say them. A literal translation of a status
+  message produces a grammatical sentence that leaves the reader unsure what to
+  do, which is the one thing this screen cannot afford.
+
+  No string here contains a price, a currency symbol, a period or a number of
+  days. Those come from PlanOffer and EntitlementState, formatted in this
+  locale's own conventions at the point of use.
+
+  "Subscription" belongs to the provider. Castivio sells a licence.
+-->
+<resources>
+    <string name="licence_title">Licencia Castivio</string>
+    <string name="licence_language">Jazyk</string>
+    <string name="licence_mac_label">MAC ADRESA</string>
+    <string name="licence_key_label">KĽÚČ ZARIADENIA</string>
+    <string name="licence_copy_mac">Kopírovať MAC adresu</string>
+    <string name="licence_copy_key">Kopírovať kľúč zariadenia</string>
+    <string name="licence_copied_mac">MAC adresa skopírovaná</string>
+    <string name="licence_copied_key">Kľúč zariadenia skopírovaný</string>
+    <string name="licence_mac_spoken">MAC adresa %s</string>
+    <string name="licence_plan_annual">Ročná</string>
+    <string name="licence_plan_lifetime">Trvalá</string>
+    <string name="licence_per_year">ročne</string>
+    <string name="licence_once">jednorazovo, pre toto zariadenie</string>
+    <string name="licence_chip_trial">Skúšobná verzia</string>
+    <string name="licence_chip_active">Licencia je aktívna</string>
+    <string name="licence_chip_trial_ended">Skúšobná verzia skončila</string>
+    <string name="licence_chip_expired">Licencia vypršala</string>
+    <string name="licence_chip_none">Žiadna licencia</string>
+    <string name="licence_chip_verify">Je potrebné overenie</string>
+    <string name="licence_chip_unavailable">Nedostupné</string>
+    <string name="licence_chip_unreadable">Licenciu sa nedá prečítať</string>
+    <string name="licence_chip_revoked">Licencia bola odobratá</string>
+    <string name="licence_status_trial">Licenciu si môžete vybrať kedykoľvek pred koncom skúšobnej verzie.</string>
+    <string name="licence_status_active">Vaša licencia je aktívna.</string>
+    <string name="licence_status_lifetime">Castivio na tomto zariadení vlastníte.</string>
+    <string name="licence_status_trial_ended">Skúšobná verzia skončila. Pokračujte výberom licencie.</string>
+    <string name="licence_status_expired">Vaša licencia vypršala. Pokračujte výberom licencie.</string>
+    <string name="licence_status_none">Toto zariadenie zatiaľ nemá licenciu Castivio.</string>
+    <string name="licence_status_verify">Castivio nedokázalo túto licenciu v poslednom čase overiť.</string>
+    <string name="licence_status_unavailable">Castivio teraz nemôže overovať licencie. Je to náš problém, nie váš.</string>
+    <string name="licence_status_unreadable">Licenciu tohto zariadenia sa nedá prečítať. Kontaktujte podporu a uveďte kľúč zariadenia.</string>
+    <string name="licence_status_revoked">Táto licencia bola odobratá. Kontaktujte podporu a uveďte kľúč zariadenia.</string>
+    <string name="licence_status_opening">Otvára sa portál Castivio…</string>
+    <string name="licence_status_failed">Nepodarilo sa. Skúste to znova.</string>
+    <string name="licence_retry">Skúsiť znova</string>
+    <string name="licence_support">Kontaktovať podporu</string>
+    <string name="licence_qr_caption">Naskenujte QR kód a otvorte stránku aktivácie zariadenia</string>
+    <string name="licence_legal">[právny text pre obrazovku licencie — bude doplnený]</string>
+
+    <plurals name="licence_trial_days">
+        <item quantity="one">zostáva %d deň</item>
+        <item quantity="few">zostávajú %d dni</item>
+        <item quantity="many">zostáva %d dňa</item>
+        <item quantity="other">zostáva %d dní</item>
+    </plurals>
+
+    <string name="licence_sentinel" translatable="false">sk</string>
+</resources>

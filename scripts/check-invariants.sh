@@ -88,6 +88,29 @@ for name in $SHARED; do
   fi
 done
 
+# --------------------------------------------- a control smaller than its target
+# Two constants -- minTouchTarget 48, minTvTarget 56 -- and for a long time every
+# interactive component in the design system pinned the first one on every frame.
+# On a television that made every button in Castivio 8dp under the D-pad floor,
+# and `CastivioIconButton` and `CastivioChip` were 36dp, under both.
+#
+# It was found twice by eye on a photograph and never by a check, because the
+# check that existed asserted the floor for one screen's own metrics rather than
+# for the components the screens are built from. Every interactive component here
+# must ask which floor applies.
+TARGETED='CastivioButton CastivioIconButton CastivioChip'
+for name in $TARGETED; do
+  body=$(awk "/^fun $name\(/,/^}/" core/design/src/main/java/com/castivio/core/design/components/Buttons.kt)
+  if ! printf '%s' "$body" | grep -q 'Sizing.minTarget'; then
+    fail "'$name' does not declare a minimum target" \
+         "core/design/src/main/java/com/castivio/core/design/components/Buttons.kt
+
+  An interactive component must floor its size at Sizing.minTarget(isTv). A
+  control drawn smaller than the frame's floor is a control a remote cannot
+  reliably land on, and 48dp is the *thumb* floor, not the D-pad one."
+  fi
+done
+
 # -------------------------------------------------- cross-platform independence
 # Not one of the ten, but the reason the ten are affordable: the layers below the
 # presentation layer must stay portable, so a platform import in them is a defect
@@ -130,17 +153,15 @@ fi
 # It exists because the failure it catches is invisible: a missing key does not
 # crash, it silently renders English inside an otherwise translated screen, and
 # nobody testing in their own language will ever see it.
-RES=feature/activation/src/main/res
-BASE=$RES/values/strings_activation.xml
-if [ ! -f "$BASE" ]; then
-  fail "The activation strings are missing" "$BASE"
-fi
-
-# Every <string> and <plurals> name the default locale declares, minus the ones
-# marked untranslatable.
-want=$(grep -oE '<(string|plurals) name="[a-z_0-9]+"( translatable="false")?' "$BASE" \
-        | grep -v 'translatable="false"' \
-        | sed -E 's/.*name="([a-z_0-9]+)".*/\1/' | sort -u)
+# Every user-facing bundle, not one of them.
+#
+# This checked `strings_activation.xml` alone for as long as that was the only
+# bundle there was, and it stayed pointed there after a second one appeared --
+# which is the third time in this file that a checker outlived the subset it was
+# aimed at. Every bundle a feature ships is named here, and the check below
+# walks all of them.
+BUNDLES='feature/activation/src/main/res:strings_activation.xml
+feature/licence/src/main/res:strings_licence.xml'
 
 # Well-formed XML, checked here rather than left to the build.
 #
@@ -180,7 +201,21 @@ PYXML
 fi
 
 problems=''
-for file in "$RES"/values*/strings_activation.xml; do
+for bundle in $BUNDLES; do
+ RES=${bundle%%:*}
+ NAME=${bundle#*:}
+ BASE=$RES/values/$NAME
+ if [ ! -f "$BASE" ]; then
+   fail "A declared string bundle is missing" "$BASE"
+ fi
+
+ # Every <string> and <plurals> name the default locale declares, minus the
+ # ones marked untranslatable.
+ want=$(grep -oE '<(string|plurals) name="[a-z_0-9]+"( translatable="false")?' "$BASE" \
+         | grep -v 'translatable="false"' \
+         | sed -E 's/.*name="([a-z_0-9]+)".*/\1/' | sort -u)
+
+ for file in "$RES"/values*/$NAME; do
   dir=$(basename "$(dirname "$file")")
   for key in $want; do
     # Present, and with something between the tags. An empty translation is the
@@ -205,10 +240,21 @@ for file in "$RES"/values*/strings_activation.xml; do
     problems="$problems
   $dir  placeholder left in the file"
   fi
+ done
+
+ # A bundle present in the default locale and absent from a locale directory
+ # the sibling bundle has. A whole missing file renders the whole screen in
+ # English, and the per-key loop above cannot see a file that is not there.
+ for peer in "$RES"/values-*; do
+   if [ ! -f "$peer/$NAME" ]; then
+     problems="$problems
+  $(basename "$peer")  missing the whole $NAME"
+   fi
+ done
 done
 
 if [ -n "$problems" ]; then
-  fail "Activation strings are not complete in every locale" \
+  fail "A string bundle is not complete in every locale" \
        "$problems
 
   Every key in values/ must exist, non-empty, in every locale directory.
@@ -231,13 +277,20 @@ fi
 explicit=$(grep -oE '"values(-[^"]*)?"' "$LANGS" | tr -d '"' | grep -v '\$')
 implicit=$(grep -oE 'one\("[a-z]+"\)' "$LANGS" | sed -E 's/one\("(.*)"\)/values-\1/')
 for qualifier in $(printf '%s\n%s\n' "$explicit" "$implicit" | sort -u); do
-  if [ ! -f "$RES/$qualifier/strings_activation.xml" ]; then
+ # Every bundle, not whichever one the previous loop happened to leave in $RES.
+ # It read a leftover variable for exactly one commit, which was long enough to
+ # report thirty-nine failures against files that were never meant to exist.
+ for bundle in $BUNDLES; do
+  RES=${bundle%%:*}
+  NAME=${bundle#*:}
+  if [ ! -f "$RES/$qualifier/$NAME" ]; then
     fail "A declared language has no strings" \
-         "$RES/$qualifier/strings_activation.xml
+         "$RES/$qualifier/$NAME
 
   CastivioLanguage names this directory, and it does not exist. A language
   in the picker with no resources falls back to English and looks translated."
   fi
+ done
 done
 
 # ---------------------------------------- a translation that is not a translation
@@ -253,8 +306,16 @@ done
 if command -v python3 >/dev/null 2>&1; then
   untranslated=$(python3 <<'PYCOPY'
 import glob, io, os, re
-BASE = "feature/activation/src/main/res/values/strings_activation.xml"
-WATCH = ("qr_caption", "legal_player_only")
+# The sentences a user actually reads, per bundle. Not every key: short
+# strings legitimately match across languages -- "Castivio", "QR", "MAC" --
+# and a blanket rule produces noise that gets switched off.
+BUNDLES = {
+    "feature/activation/src/main/res": (
+        "strings_activation.xml", ("qr_caption", "legal_player_only")),
+    "feature/licence/src/main/res": (
+        "strings_licence.xml", ("licence_qr_caption", "licence_legal",
+                                "licence_status_none", "licence_status_revoked")),
+}
 
 def values(path):
     text = io.open(path, encoding="utf-8").read()
@@ -263,11 +324,13 @@ def values(path):
         for m in re.finditer(r'<string name="([a-z_0-9]+)"[^>]*>(.*?)</string>', text, re.S)
     }
 
-english = values(BASE)
-for f in sorted(glob.glob("feature/activation/src/main/res/values-*/strings_activation.xml")):
-    for key, value in values(f).items():
-        if key in WATCH and value == english.get(key):
-            print("  %s: %s is still the English text" % (os.path.basename(os.path.dirname(f)), key))
+for res, (name, watch) in sorted(BUNDLES.items()):
+    english = values(os.path.join(res, "values", name))
+    for f in sorted(glob.glob(os.path.join(res, "values-*", name))):
+        for key, value in values(f).items():
+            if key in watch and value == english.get(key):
+                print("  %s/%s: %s is still the English text"
+                      % (os.path.basename(os.path.dirname(f)), name, key))
 PYCOPY
 )
   if [ -n "$untranslated" ]; then

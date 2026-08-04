@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The licence screen, in Norwegian Bokmal.
+
+  Not a literal rendering of the English: the sentences are written the way a
+  speaker of this language would say them. A literal translation of a status
+  message produces a grammatical sentence that leaves the reader unsure what to
+  do, which is the one thing this screen cannot afford.
+
+  No string here contains a price, a currency symbol, a period or a number of
+  days. Those come from PlanOffer and EntitlementState, formatted in this
+  locale's own conventions at the point of use.
+
+  "Subscription" belongs to the provider. Castivio sells a licence.
+-->
+<resources>
+    <string name="licence_title">Castivio-lisens</string>
+    <string name="licence_language">Språk</string>
+    <string name="licence_mac_label">MAC-ADRESSE</string>
+    <string name="licence_key_label">ENHETSNØKKEL</string>
+    <string name="licence_copy_mac">Kopier MAC-adressen</string>
+    <string name="licence_copy_key">Kopier enhetsnøkkelen</string>
+    <string name="licence_copied_mac">MAC-adressen er kopiert</string>
+    <string name="licence_copied_key">Enhetsnøkkelen er kopiert</string>
+    <string name="licence_mac_spoken">MAC-adresse %s</string>
+    <string name="licence_plan_annual">Årlig</string>
+    <string name="licence_plan_lifetime">Livstid</string>
+    <string name="licence_per_year">per år</string>
+    <string name="licence_once">én gang, for denne enheten</string>
+    <string name="licence_chip_trial">Prøveperiode</string>
+    <string name="licence_chip_active">Lisensen er aktiv</string>
+    <string name="licence_chip_trial_ended">Prøveperioden er over</string>
+    <string name="licence_chip_expired">Lisensen er utløpt</string>
+    <string name="licence_chip_none">Ingen lisens</string>
+    <string name="licence_chip_verify">Bekreftelse kreves</string>
+    <string name="licence_chip_unavailable">Utilgjengelig</string>
+    <string name="licence_chip_unreadable">Lisensen kan ikke leses</string>
+    <string name="licence_chip_revoked">Lisensen er trukket tilbake</string>
+    <string name="licence_status_trial">Velg en lisens når som helst før prøveperioden er over.</string>
+    <string name="licence_status_active">Lisensen din er aktiv.</string>
+    <string name="licence_status_lifetime">Du eier Castivio på denne enheten.</string>
+    <string name="licence_status_trial_ended">Prøveperioden din er over. Velg en lisens for å fortsette.</string>
+    <string name="licence_status_expired">Lisensen din er utløpt. Velg en lisens for å fortsette.</string>
+    <string name="licence_status_none">Denne enheten har ennå ingen Castivio-lisens.</string>
+    <string name="licence_status_verify">Castivio har ikke kunnet kontrollere denne lisensen i det siste.</string>
+    <string name="licence_status_unavailable">Castivio kan ikke kontrollere lisenser akkurat nå. Det er vårt problem, ikke ditt.</string>
+    <string name="licence_status_unreadable">Lisensen til denne enheten kan ikke leses. Kontakt kundestøtte med enhetsnøkkelen din.</string>
+    <string name="licence_status_revoked">Denne lisensen ble trukket tilbake. Kontakt kundestøtte med enhetsnøkkelen din.</string>
+    <string name="licence_status_opening">Åpner Castivio-portalen…</string>
+    <string name="licence_status_failed">Det gikk ikke. Prøv igjen.</string>
+    <string name="licence_retry">Prøv igjen</string>
+    <string name="licence_support">Kontakt kundestøtte</string>
+    <string name="licence_qr_caption">Skann QR-koden for å åpne aktiveringssiden for enheten</string>
+    <string name="licence_legal">[juridisk tekst for lisensskjermen — skal skrives]</string>
+
+    <plurals name="licence_trial_days">
+        <item quantity="one">%d dag igjen</item>
+        <item quantity="other">%d dager igjen</item>
+    </plurals>
+
+    <string name="licence_sentinel" translatable="false">nb</string>
+</resources>

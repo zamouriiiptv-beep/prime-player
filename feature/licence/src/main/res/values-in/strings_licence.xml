@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The licence screen, in Indonesian.
+
+  Not a literal rendering of the English: the sentences are written the way a
+  speaker of this language would say them. A literal translation of a status
+  message produces a grammatical sentence that leaves the reader unsure what to
+  do, which is the one thing this screen cannot afford.
+
+  No string here contains a price, a currency symbol, a period or a number of
+  days. Those come from PlanOffer and EntitlementState, formatted in this
+  locale's own conventions at the point of use.
+
+  "Subscription" belongs to the provider. Castivio sells a licence.
+-->
+<resources>
+    <string name="licence_title">Lisensi Castivio</string>
+    <string name="licence_language">Bahasa</string>
+    <string name="licence_mac_label">ALAMAT MAC</string>
+    <string name="licence_key_label">KUNCI PERANGKAT</string>
+    <string name="licence_copy_mac">Salin alamat MAC</string>
+    <string name="licence_copy_key">Salin kunci perangkat</string>
+    <string name="licence_copied_mac">Alamat MAC disalin</string>
+    <string name="licence_copied_key">Kunci perangkat disalin</string>
+    <string name="licence_mac_spoken">Alamat MAC %s</string>
+    <string name="licence_plan_annual">Tahunan</string>
+    <string name="licence_plan_lifetime">Seumur hidup</string>
+    <string name="licence_per_year">per tahun</string>
+    <string name="licence_once">sekali, untuk perangkat ini</string>
+    <string name="licence_chip_trial">Uji coba</string>
+    <string name="licence_chip_active">Lisensi aktif</string>
+    <string name="licence_chip_trial_ended">Uji coba berakhir</string>
+    <string name="licence_chip_expired">Lisensi kedaluwarsa</string>
+    <string name="licence_chip_none">Tidak ada lisensi</string>
+    <string name="licence_chip_verify">Perlu verifikasi</string>
+    <string name="licence_chip_unavailable">Tidak tersedia</string>
+    <string name="licence_chip_unreadable">Lisensi tidak terbaca</string>
+    <string name="licence_chip_revoked">Lisensi dicabut</string>
+    <string name="licence_status_trial">Pilih lisensi kapan saja sebelum uji coba berakhir.</string>
+    <string name="licence_status_active">Lisensi Anda aktif.</string>
+    <string name="licence_status_lifetime">Castivio menjadi milik Anda di perangkat ini.</string>
+    <string name="licence_status_trial_ended">Uji coba Anda telah berakhir. Pilih lisensi untuk melanjutkan.</string>
+    <string name="licence_status_expired">Lisensi Anda telah kedaluwarsa. Pilih lisensi untuk melanjutkan.</string>
+    <string name="licence_status_none">Perangkat ini belum memiliki lisensi Castivio.</string>
+    <string name="licence_status_verify">Castivio belum dapat memeriksa lisensi ini belakangan ini.</string>
+    <string name="licence_status_unavailable">Castivio tidak dapat memeriksa lisensi saat ini. Ini masalah kami, bukan Anda.</string>
+    <string name="licence_status_unreadable">Lisensi perangkat ini tidak dapat dibaca. Hubungi dukungan dengan kunci perangkat Anda.</string>
+    <string name="licence_status_revoked">Lisensi ini dicabut. Hubungi dukungan dengan kunci perangkat Anda.</string>
+    <string name="licence_status_opening">Membuka portal Castivio…</string>
+    <string name="licence_status_failed">Tidak berhasil. Coba lagi.</string>
+    <string name="licence_retry">Coba lagi</string>
+    <string name="licence_support">Hubungi dukungan</string>
+    <string name="licence_qr_caption">Pindai kode QR untuk membuka halaman aktivasi perangkat Anda</string>
+    <string name="licence_legal">[teks hukum untuk layar lisensi — belum ditulis]</string>
+
+    <plurals name="licence_trial_days">
+        <item quantity="other">%d hari lagi</item>
+    </plurals>
+
+    <string name="licence_sentinel" translatable="false">id</string>
+</resources>

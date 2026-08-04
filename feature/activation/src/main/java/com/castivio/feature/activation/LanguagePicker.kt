@@ -81,9 +81,18 @@ import com.castivio.core.design.theme.Spacing
  * Selection is a filled surface, a heavier name and a check — three cues, none of
  * them hue alone. Focus is the ring the rest of Castivio uses, drawn outside the
  * row's own surface so it still reads on a selected row.
+ *
+ * **Public, because the licence screen offers the same control.** Two screens
+ * now carry a language chip and there must be one picker behind both — invariant
+ * 6, and a second one would drift the moment somebody preferred four columns.
+ * It stays in this module rather than moving to `:core:design` because it owns
+ * five string resources in 38 languages and a shared component may not own copy;
+ * the day a third screen needs it, a `:feature:language` module is the answer
+ * and the strings move with it. Applying the choice remains `:app`'s, since it
+ * means wrapping the `Context` an activity was built on.
  */
 @Composable
-internal fun LanguagePicker(
+fun LanguagePicker(
     selected: CastivioLanguage,
     onPick: (CastivioLanguage) -> Unit,
     onDismiss: () -> Unit,

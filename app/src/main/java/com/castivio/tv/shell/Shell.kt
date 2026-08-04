@@ -56,9 +56,12 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import com.castivio.core.common.EmptyReason
 import com.castivio.core.common.ScreenState
 import com.castivio.core.design.components.ButtonWeight
+import com.castivio.tv.gate.LicenceWithLanguage
+import com.castivio.feature.licence.R as LicenceStrings
 import com.castivio.core.design.components.CardShape
 import com.castivio.core.design.components.CastivioButton
 import com.castivio.core.design.components.ChannelCard
@@ -93,6 +96,18 @@ private sealed interface Overlay {
     data class Detail(val poster: DemoPoster) : Overlay
     data class Player(val title: String) : Overlay
     data object StateBoard : Overlay
+
+    /**
+     * Castivio's own licence, reached from Settings.
+     *
+     * An overlay rather than a rail destination, and that is the design decision
+     * rather than an implementation shortcut: the licence screen owns the whole
+     * viewport -- immersive, full-bleed, no scroll, hairlines edge to edge -- and
+     * a screen drawn inside the rail and the bottom bar would be a different
+     * composition from the one that was approved and measured. Back returns to
+     * Settings, which is where it was opened from.
+     */
+    data object Licence : Overlay
 }
 
 /**
@@ -180,6 +195,7 @@ fun ShellScreen(
                     motionLevel = motionLevel,
                     onMotionLevel = onMotionLevel,
                     onShowStateBoard = { overlay = Overlay.StateBoard },
+                    onShowLicence = { overlay = Overlay.Licence },
                 )
             }
         }
@@ -192,6 +208,11 @@ fun ShellScreen(
             )
             is Overlay.Player -> PlayerOverlay(title = o.title, onBack = { overlay = null })
             is Overlay.StateBoard -> StateBoardOverlay(onBack = { overlay = null })
+            // Reached from a working app, so leaving means returning to
+            // Settings. Reached from the gate it means leaving Castivio, and
+            // that difference is the caller's -- the screen itself has no
+            // opinion about where back goes.
+            is Overlay.Licence -> LicenceWithLanguage(onLeave = { overlay = null })
             null -> {}
         }
     }
@@ -666,6 +687,7 @@ private fun SettingsScreen(
     motionLevel: MotionLevel,
     onMotionLevel: (MotionLevel) -> Unit,
     onShowStateBoard: () -> Unit,
+    onShowLicence: () -> Unit,
 ) {
     val colors = CastivioTheme.colors
     Column(
@@ -704,6 +726,16 @@ private fun SettingsScreen(
             label = "Show the state language",
             onClick = onShowStateBoard,
         )
+        // Castivio's licence, which is not the provider's subscription. The two
+        // are separate systems and this row says so by living under its own
+        // heading rather than beside the playlist.
+        Text("Licence", style = CastivioType.titleMedium, color = colors.onBackground)
+        SettingRow(
+            icon = Icons.Filled.Settings,
+            label = stringResource(LicenceStrings.string.licence_title),
+            onClick = onShowLicence,
+        )
+
         SettingRow(icon = Icons.Filled.Settings, label = "Device class", value = CastivioTheme.device.name)
         SettingRow(icon = Icons.Filled.Settings, label = "Version", value = "0.1 · shell preview")
     }

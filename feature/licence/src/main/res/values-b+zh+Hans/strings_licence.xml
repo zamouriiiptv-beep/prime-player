@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The licence screen, in Simplified Chinese.
+
+  Not a literal rendering of the English: the sentences are written the way a
+  speaker of this language would say them. A literal translation of a status
+  message produces a grammatical sentence that leaves the reader unsure what to
+  do, which is the one thing this screen cannot afford.
+
+  No string here contains a price, a currency symbol, a period or a number of
+  days. Those come from PlanOffer and EntitlementState, formatted in this
+  locale's own conventions at the point of use.
+
+  "Subscription" belongs to the provider. Castivio sells a licence.
+-->
+<resources>
+    <string name="licence_title">Castivio 许可证</string>
+    <string name="licence_language">语言</string>
+    <string name="licence_mac_label">MAC 地址</string>
+    <string name="licence_key_label">设备密钥</string>
+    <string name="licence_copy_mac">复制 MAC 地址</string>
+    <string name="licence_copy_key">复制设备密钥</string>
+    <string name="licence_copied_mac">已复制 MAC 地址</string>
+    <string name="licence_copied_key">已复制设备密钥</string>
+    <string name="licence_mac_spoken">MAC 地址 %s</string>
+    <string name="licence_plan_annual">年付</string>
+    <string name="licence_plan_lifetime">永久</string>
+    <string name="licence_per_year">每年</string>
+    <string name="licence_once">一次性，仅限本设备</string>
+    <string name="licence_chip_trial">试用</string>
+    <string name="licence_chip_active">许可证有效</string>
+    <string name="licence_chip_trial_ended">试用已结束</string>
+    <string name="licence_chip_expired">许可证已过期</string>
+    <string name="licence_chip_none">无许可证</string>
+    <string name="licence_chip_verify">需要验证</string>
+    <string name="licence_chip_unavailable">不可用</string>
+    <string name="licence_chip_unreadable">无法读取许可证</string>
+    <string name="licence_chip_revoked">许可证已撤销</string>
+    <string name="licence_status_trial">可在试用结束前随时选择许可证。</string>
+    <string name="licence_status_active">您的许可证有效。</string>
+    <string name="licence_status_lifetime">您已拥有本设备上的 Castivio。</string>
+    <string name="licence_status_trial_ended">试用已结束。请选择许可证以继续。</string>
+    <string name="licence_status_expired">许可证已过期。请选择许可证以继续。</string>
+    <string name="licence_status_none">本设备尚无 Castivio 许可证。</string>
+    <string name="licence_status_verify">Castivio 最近无法验证此许可证。</string>
+    <string name="licence_status_unavailable">目前无法验证许可证。这是我们的问题，不是您的。</string>
+    <string name="licence_status_unreadable">无法读取本设备的许可证。请携带设备密钥联系支持。</string>
+    <string name="licence_status_revoked">此许可证已被撤销。请携带设备密钥联系支持。</string>
+    <string name="licence_status_opening">正在打开 Castivio 门户…</string>
+    <string name="licence_status_failed">操作失败，请重试。</string>
+    <string name="licence_retry">重试</string>
+    <string name="licence_support">联系支持</string>
+    <string name="licence_qr_caption">扫描二维码，打开本设备的激活页面</string>
+    <string name="licence_legal">［许可证页面的法律文本 — 待撰写］</string>
+
+    <plurals name="licence_trial_days">
+        <item quantity="other">还剩 %d 天</item>
+    </plurals>
+
+    <string name="licence_sentinel" translatable="false">zh-Hans</string>
+</resources>

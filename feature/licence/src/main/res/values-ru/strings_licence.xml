@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The licence screen, in Russian.
+
+  Not a literal rendering of the English: the sentences are written the way a
+  speaker of this language would say them. A literal translation of a status
+  message produces a grammatical sentence that leaves the reader unsure what to
+  do, which is the one thing this screen cannot afford.
+
+  No string here contains a price, a currency symbol, a period or a number of
+  days. Those come from PlanOffer and EntitlementState, formatted in this
+  locale's own conventions at the point of use.
+
+  "Subscription" belongs to the provider. Castivio sells a licence.
+-->
+<resources>
+    <string name="licence_title">Лицензия Castivio</string>
+    <string name="licence_language">Язык</string>
+    <string name="licence_mac_label">MAC-АДРЕС</string>
+    <string name="licence_key_label">КЛЮЧ УСТРОЙСТВА</string>
+    <string name="licence_copy_mac">Скопировать MAC-адрес</string>
+    <string name="licence_copy_key">Скопировать ключ устройства</string>
+    <string name="licence_copied_mac">MAC-адрес скопирован</string>
+    <string name="licence_copied_key">Ключ устройства скопирован</string>
+    <string name="licence_mac_spoken">MAC-адрес %s</string>
+    <string name="licence_plan_annual">Годовая</string>
+    <string name="licence_plan_lifetime">Бессрочная</string>
+    <string name="licence_per_year">в год</string>
+    <string name="licence_once">один раз, для этого устройства</string>
+    <string name="licence_chip_trial">Пробный период</string>
+    <string name="licence_chip_active">Лицензия активна</string>
+    <string name="licence_chip_trial_ended">Пробный период закончился</string>
+    <string name="licence_chip_expired">Лицензия истекла</string>
+    <string name="licence_chip_none">Нет лицензии</string>
+    <string name="licence_chip_verify">Нужна проверка</string>
+    <string name="licence_chip_unavailable">Недоступно</string>
+    <string name="licence_chip_unreadable">Лицензия не читается</string>
+    <string name="licence_chip_revoked">Лицензия отозвана</string>
+    <string name="licence_status_trial">Выберите лицензию в любой момент до конца пробного периода.</string>
+    <string name="licence_status_active">Ваша лицензия активна.</string>
+    <string name="licence_status_lifetime">Castivio принадлежит вам на этом устройстве.</string>
+    <string name="licence_status_trial_ended">Пробный период закончился. Выберите лицензию, чтобы продолжить.</string>
+    <string name="licence_status_expired">Ваша лицензия истекла. Выберите лицензию, чтобы продолжить.</string>
+    <string name="licence_status_none">На этом устройстве ещё нет лицензии Castivio.</string>
+    <string name="licence_status_verify">Castivio давно не удавалось проверить эту лицензию.</string>
+    <string name="licence_status_unavailable">Castivio сейчас не может проверять лицензии. Это наша проблема, не ваша.</string>
+    <string name="licence_status_unreadable">Лицензию этого устройства не удаётся прочитать. Обратитесь в поддержку с ключом устройства.</string>
+    <string name="licence_status_revoked">Эта лицензия была отозвана. Обратитесь в поддержку с ключом устройства.</string>
+    <string name="licence_status_opening">Открывается портал Castivio…</string>
+    <string name="licence_status_failed">Не получилось. Попробуйте ещё раз.</string>
+    <string name="licence_retry">Попробовать ещё раз</string>
+    <string name="licence_support">Обратиться в поддержку</string>
+    <string name="licence_qr_caption">Отсканируйте QR-код, чтобы открыть страницу активации устройства</string>
+    <string name="licence_legal">[юридический текст экрана лицензии — будет написан]</string>
+
+    <plurals name="licence_trial_days">
+        <item quantity="one">остался %d день</item>
+        <item quantity="few">осталось %d дня</item>
+        <item quantity="many">осталось %d дней</item>
+        <item quantity="other">осталось %d дня</item>
+    </plurals>
+
+    <string name="licence_sentinel" translatable="false">ru</string>
+</resources>

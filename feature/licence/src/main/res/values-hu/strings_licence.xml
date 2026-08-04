@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The licence screen, in Hungarian.
+
+  Not a literal rendering of the English: the sentences are written the way a
+  speaker of this language would say them. A literal translation of a status
+  message produces a grammatical sentence that leaves the reader unsure what to
+  do, which is the one thing this screen cannot afford.
+
+  No string here contains a price, a currency symbol, a period or a number of
+  days. Those come from PlanOffer and EntitlementState, formatted in this
+  locale's own conventions at the point of use.
+
+  "Subscription" belongs to the provider. Castivio sells a licence.
+-->
+<resources>
+    <string name="licence_title">Castivio-licenc</string>
+    <string name="licence_language">Nyelv</string>
+    <string name="licence_mac_label">MAC-CÍM</string>
+    <string name="licence_key_label">ESZKÖZKULCS</string>
+    <string name="licence_copy_mac">MAC-cím másolása</string>
+    <string name="licence_copy_key">Eszközkulcs másolása</string>
+    <string name="licence_copied_mac">MAC-cím másolva</string>
+    <string name="licence_copied_key">Eszközkulcs másolva</string>
+    <string name="licence_mac_spoken">MAC-cím %s</string>
+    <string name="licence_plan_annual">Éves</string>
+    <string name="licence_plan_lifetime">Örökös</string>
+    <string name="licence_per_year">évente</string>
+    <string name="licence_once">egyszer, erre az eszközre</string>
+    <string name="licence_chip_trial">Próbaidőszak</string>
+    <string name="licence_chip_active">A licenc aktív</string>
+    <string name="licence_chip_trial_ended">A próbaidőszak véget ért</string>
+    <string name="licence_chip_expired">A licenc lejárt</string>
+    <string name="licence_chip_none">Nincs licenc</string>
+    <string name="licence_chip_verify">Ellenőrzés szükséges</string>
+    <string name="licence_chip_unavailable">Nem érhető el</string>
+    <string name="licence_chip_unreadable">A licenc nem olvasható</string>
+    <string name="licence_chip_revoked">A licencet visszavonták</string>
+    <string name="licence_status_trial">A próbaidőszak vége előtt bármikor választhat licencet.</string>
+    <string name="licence_status_active">A licence aktív.</string>
+    <string name="licence_status_lifetime">A Castivio az Öné ezen az eszközön.</string>
+    <string name="licence_status_trial_ended">A próbaidőszaka véget ért. Válasszon licencet a folytatáshoz.</string>
+    <string name="licence_status_expired">A licence lejárt. Válasszon licencet a folytatáshoz.</string>
+    <string name="licence_status_none">Ezen az eszközön még nincs Castivio-licenc.</string>
+    <string name="licence_status_verify">A Castivio mostanában nem tudta ellenőrizni ezt a licencet.</string>
+    <string name="licence_status_unavailable">A Castivio jelenleg nem tud licenceket ellenőrizni. Ez a mi hibánk, nem az Öné.</string>
+    <string name="licence_status_unreadable">Ennek az eszköznek a licence nem olvasható. Forduljon a támogatáshoz az eszközkulcsával.</string>
+    <string name="licence_status_revoked">Ezt a licencet visszavonták. Forduljon a támogatáshoz az eszközkulcsával.</string>
+    <string name="licence_status_opening">A Castivio portál megnyitása…</string>
+    <string name="licence_status_failed">Nem sikerült. Próbálja újra.</string>
+    <string name="licence_retry">Próbálja újra</string>
+    <string name="licence_support">Kapcsolat a támogatással</string>
+    <string name="licence_qr_caption">Olvassa be a QR-kódot az eszköz aktiválási oldalának megnyitásához</string>
+    <string name="licence_legal">[jogi szöveg a licencképernyőhöz — még megírandó]</string>
+
+    <plurals name="licence_trial_days">
+        <item quantity="one">%d nap van hátra</item>
+        <item quantity="other">%d nap van hátra</item>
+    </plurals>
+
+    <string name="licence_sentinel" translatable="false">hu</string>
+</resources>

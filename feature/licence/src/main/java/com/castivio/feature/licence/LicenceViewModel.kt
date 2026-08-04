@@ -134,16 +134,44 @@ internal class LicenceViewModel @Inject constructor(
         return ActivationDestination.portalUrl(plan = id, macAddress = _state.value.address)
     }
 
+    /**
+     * Where a user goes when nothing on this screen can help them.
+     *
+     * Carries the address so support does not begin by asking somebody to read
+     * six pairs of hex off a television. The two states that offer this are the
+     * two whose message already says "contact support with your device key".
+     */
+    fun supportUrl(): String = ActivationDestination.supportUrl(_state.value.address)
+
     /** No browser, no portal, nothing happened. Say so rather than spinning. */
     fun handoffFailed() {
         openTimer?.cancel()
         _state.update { it.copy(opening = null, failed = true) }
     }
 
+    /**
+     * Back, while a handoff or a refresh is in flight: stop waiting for it.
+     *
+     * Not an error — nothing failed, the user changed their mind — so [failed]
+     * stays false and the screen returns to exactly the state it left.
+     */
+    fun cancelHandoff() {
+        openTimer?.cancel()
+        _state.update { it.copy(opening = null) }
+    }
+
+    /** Back, on a failure notice: dismiss it and give the plans back. */
+    fun dismissFailure() {
+        _state.update { it.copy(failed = false) }
+    }
+
     /** Ask the licence server again. The only action the blocked states offer. */
     fun refresh() {
         if (_state.value.opening != null) return
-        viewModelScope.launch {
+        // Held in the same slot the handoff uses, so that `cancelHandoff` stops
+        // whichever one is running. Two jobs and one busy flag would let back
+        // clear the flag while the work carried on and set it again.
+        openTimer = viewModelScope.launch {
             _state.update { it.copy(opening = REFRESHING, failed = false) }
             val outcome = entitlement.refresh()
             _state.update {

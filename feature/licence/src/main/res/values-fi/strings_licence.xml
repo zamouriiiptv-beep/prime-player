@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The licence screen, in Finnish.
+
+  Not a literal rendering of the English: the sentences are written the way a
+  speaker of this language would say them. A literal translation of a status
+  message produces a grammatical sentence that leaves the reader unsure what to
+  do, which is the one thing this screen cannot afford.
+
+  No string here contains a price, a currency symbol, a period or a number of
+  days. Those come from PlanOffer and EntitlementState, formatted in this
+  locale's own conventions at the point of use.
+
+  "Subscription" belongs to the provider. Castivio sells a licence.
+-->
+<resources>
+    <string name="licence_title">Castivio-lisenssi</string>
+    <string name="licence_language">Kieli</string>
+    <string name="licence_mac_label">MAC-OSOITE</string>
+    <string name="licence_key_label">LAITEAVAIN</string>
+    <string name="licence_copy_mac">Kopioi MAC-osoite</string>
+    <string name="licence_copy_key">Kopioi laiteavain</string>
+    <string name="licence_copied_mac">MAC-osoite kopioitu</string>
+    <string name="licence_copied_key">Laiteavain kopioitu</string>
+    <string name="licence_mac_spoken">MAC-osoite %s</string>
+    <string name="licence_plan_annual">Vuosittain</string>
+    <string name="licence_plan_lifetime">Kertaostos</string>
+    <string name="licence_per_year">vuodessa</string>
+    <string name="licence_once">kerran, tälle laitteelle</string>
+    <string name="licence_chip_trial">Kokeilu</string>
+    <string name="licence_chip_active">Lisenssi voimassa</string>
+    <string name="licence_chip_trial_ended">Kokeilu päättyi</string>
+    <string name="licence_chip_expired">Lisenssi vanhentui</string>
+    <string name="licence_chip_none">Ei lisenssiä</string>
+    <string name="licence_chip_verify">Vahvistus tarvitaan</string>
+    <string name="licence_chip_unavailable">Ei käytettävissä</string>
+    <string name="licence_chip_unreadable">Lisenssiä ei voi lukea</string>
+    <string name="licence_chip_revoked">Lisenssi peruttu</string>
+    <string name="licence_status_trial">Valitse lisenssi milloin tahansa ennen kokeilun päättymistä.</string>
+    <string name="licence_status_active">Lisenssisi on voimassa.</string>
+    <string name="licence_status_lifetime">Castivio on omasi tällä laitteella.</string>
+    <string name="licence_status_trial_ended">Kokeilusi on päättynyt. Valitse lisenssi jatkaaksesi.</string>
+    <string name="licence_status_expired">Lisenssisi on vanhentunut. Valitse lisenssi jatkaaksesi.</string>
+    <string name="licence_status_none">Tällä laitteella ei ole vielä Castivio-lisenssiä.</string>
+    <string name="licence_status_verify">Castivio ei ole voinut tarkistaa tätä lisenssiä viime aikoina.</string>
+    <string name="licence_status_unavailable">Castivio ei voi tarkistaa lisenssejä juuri nyt. Vika on meissä, ei sinussa.</string>
+    <string name="licence_status_unreadable">Tämän laitteen lisenssiä ei voi lukea. Ota yhteyttä tukeen laiteavaimesi kanssa.</string>
+    <string name="licence_status_revoked">Tämä lisenssi on peruttu. Ota yhteyttä tukeen laiteavaimesi kanssa.</string>
+    <string name="licence_status_opening">Avataan Castivio-portaalia…</string>
+    <string name="licence_status_failed">Se ei onnistunut. Yritä uudelleen.</string>
+    <string name="licence_retry">Yritä uudelleen</string>
+    <string name="licence_support">Ota yhteyttä tukeen</string>
+    <string name="licence_qr_caption">Skannaa QR-koodi avataksesi laitteen aktivointisivun</string>
+    <string name="licence_legal">[lisenssinäytön oikeudellinen teksti — kirjoitetaan myöhemmin]</string>
+
+    <plurals name="licence_trial_days">
+        <item quantity="one">%d päivä jäljellä</item>
+        <item quantity="other">%d päivää jäljellä</item>
+    </plurals>
+
+    <string name="licence_sentinel" translatable="false">fi</string>
+</resources>

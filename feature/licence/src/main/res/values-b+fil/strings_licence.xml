@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The licence screen, in Filipino.
+
+  Not a literal rendering of the English: the sentences are written the way a
+  speaker of this language would say them. A literal translation of a status
+  message produces a grammatical sentence that leaves the reader unsure what to
+  do, which is the one thing this screen cannot afford.
+
+  No string here contains a price, a currency symbol, a period or a number of
+  days. Those come from PlanOffer and EntitlementState, formatted in this
+  locale's own conventions at the point of use.
+
+  "Subscription" belongs to the provider. Castivio sells a licence.
+-->
+<resources>
+    <string name="licence_title">Lisensya ng Castivio</string>
+    <string name="licence_language">Wika</string>
+    <string name="licence_mac_label">MAC ADDRESS</string>
+    <string name="licence_key_label">DEVICE KEY</string>
+    <string name="licence_copy_mac">Kopyahin ang MAC address</string>
+    <string name="licence_copy_key">Kopyahin ang device key</string>
+    <string name="licence_copied_mac">Nakopya ang MAC address</string>
+    <string name="licence_copied_key">Nakopya ang device key</string>
+    <string name="licence_mac_spoken">MAC address %s</string>
+    <string name="licence_plan_annual">Taunan</string>
+    <string name="licence_plan_lifetime">Habambuhay</string>
+    <string name="licence_per_year">kada taon</string>
+    <string name="licence_once">isang beses, para sa device na ito</string>
+    <string name="licence_chip_trial">Pagsubok</string>
+    <string name="licence_chip_active">Aktibo ang lisensya</string>
+    <string name="licence_chip_trial_ended">Tapos na ang pagsubok</string>
+    <string name="licence_chip_expired">Expired na ang lisensya</string>
+    <string name="licence_chip_none">Walang lisensya</string>
+    <string name="licence_chip_verify">Kailangan ng pagpapatunay</string>
+    <string name="licence_chip_unavailable">Hindi available</string>
+    <string name="licence_chip_unreadable">Hindi mabasa ang lisensya</string>
+    <string name="licence_chip_revoked">Binawi ang lisensya</string>
+    <string name="licence_status_trial">Pumili ng lisensya anumang oras bago matapos ang pagsubok.</string>
+    <string name="licence_status_active">Aktibo ang iyong lisensya.</string>
+    <string name="licence_status_lifetime">Pagmamay-ari mo ang Castivio sa device na ito.</string>
+    <string name="licence_status_trial_ended">Tapos na ang pagsubok mo. Pumili ng lisensya para magpatuloy.</string>
+    <string name="licence_status_expired">Expired na ang lisensya mo. Pumili ng lisensya para magpatuloy.</string>
+    <string name="licence_status_none">Wala pang lisensya ng Castivio ang device na ito.</string>
+    <string name="licence_status_verify">Hindi nasuri ng Castivio ang lisensyang ito kamakailan.</string>
+    <string name="licence_status_unavailable">Hindi masuri ng Castivio ang mga lisensya ngayon. Problema namin ito, hindi sa inyo.</string>
+    <string name="licence_status_unreadable">Hindi mabasa ang lisensya ng device na ito. Makipag-ugnayan sa suporta gamit ang device key mo.</string>
+    <string name="licence_status_revoked">Binawi ang lisensyang ito. Makipag-ugnayan sa suporta gamit ang device key mo.</string>
+    <string name="licence_status_opening">Binubuksan ang portal ng Castivio…</string>
+    <string name="licence_status_failed">Hindi umubra. Subukan ulit.</string>
+    <string name="licence_retry">Subukan ulit</string>
+    <string name="licence_support">Makipag-ugnayan sa suporta</string>
+    <string name="licence_qr_caption">I-scan ang QR code para buksan ang activation page ng device mo</string>
+    <string name="licence_legal">[legal na teksto para sa lisensya — isusulat pa]</string>
+
+    <plurals name="licence_trial_days">
+        <item quantity="one">%d araw na lang</item>
+        <item quantity="other">%d na araw na lang</item>
+    </plurals>
+
+    <string name="licence_sentinel" translatable="false">fil</string>
+</resources>

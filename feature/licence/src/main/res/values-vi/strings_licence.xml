@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The licence screen, in Vietnamese.
+
+  Not a literal rendering of the English: the sentences are written the way a
+  speaker of this language would say them. A literal translation of a status
+  message produces a grammatical sentence that leaves the reader unsure what to
+  do, which is the one thing this screen cannot afford.
+
+  No string here contains a price, a currency symbol, a period or a number of
+  days. Those come from PlanOffer and EntitlementState, formatted in this
+  locale's own conventions at the point of use.
+
+  "Subscription" belongs to the provider. Castivio sells a licence.
+-->
+<resources>
+    <string name="licence_title">Giấy phép Castivio</string>
+    <string name="licence_language">Ngôn ngữ</string>
+    <string name="licence_mac_label">ĐỊA CHỈ MAC</string>
+    <string name="licence_key_label">KHÓA THIẾT BỊ</string>
+    <string name="licence_copy_mac">Sao chép địa chỉ MAC</string>
+    <string name="licence_copy_key">Sao chép khóa thiết bị</string>
+    <string name="licence_copied_mac">Đã sao chép địa chỉ MAC</string>
+    <string name="licence_copied_key">Đã sao chép khóa thiết bị</string>
+    <string name="licence_mac_spoken">Địa chỉ MAC %s</string>
+    <string name="licence_plan_annual">Hằng năm</string>
+    <string name="licence_plan_lifetime">Trọn đời</string>
+    <string name="licence_per_year">mỗi năm</string>
+    <string name="licence_once">một lần, cho thiết bị này</string>
+    <string name="licence_chip_trial">Dùng thử</string>
+    <string name="licence_chip_active">Giấy phép đang hoạt động</string>
+    <string name="licence_chip_trial_ended">Đã hết thời gian dùng thử</string>
+    <string name="licence_chip_expired">Giấy phép đã hết hạn</string>
+    <string name="licence_chip_none">Chưa có giấy phép</string>
+    <string name="licence_chip_verify">Cần xác minh</string>
+    <string name="licence_chip_unavailable">Không khả dụng</string>
+    <string name="licence_chip_unreadable">Không đọc được giấy phép</string>
+    <string name="licence_chip_revoked">Giấy phép đã bị thu hồi</string>
+    <string name="licence_status_trial">Chọn giấy phép bất cứ lúc nào trước khi hết thời gian dùng thử.</string>
+    <string name="licence_status_active">Giấy phép của bạn đang hoạt động.</string>
+    <string name="licence_status_lifetime">Castivio là của bạn trên thiết bị này.</string>
+    <string name="licence_status_trial_ended">Thời gian dùng thử đã hết. Chọn giấy phép để tiếp tục.</string>
+    <string name="licence_status_expired">Giấy phép của bạn đã hết hạn. Chọn giấy phép để tiếp tục.</string>
+    <string name="licence_status_none">Thiết bị này chưa có giấy phép Castivio.</string>
+    <string name="licence_status_verify">Gần đây Castivio chưa thể kiểm tra giấy phép này.</string>
+    <string name="licence_status_unavailable">Castivio hiện không thể kiểm tra giấy phép. Đây là vấn đề của chúng tôi, không phải của bạn.</string>
+    <string name="licence_status_unreadable">Không đọc được giấy phép của thiết bị này. Hãy liên hệ hỗ trợ kèm khóa thiết bị của bạn.</string>
+    <string name="licence_status_revoked">Giấy phép này đã bị thu hồi. Hãy liên hệ hỗ trợ kèm khóa thiết bị của bạn.</string>
+    <string name="licence_status_opening">Đang mở cổng Castivio…</string>
+    <string name="licence_status_failed">Không thành công. Hãy thử lại.</string>
+    <string name="licence_retry">Thử lại</string>
+    <string name="licence_support">Liên hệ hỗ trợ</string>
+    <string name="licence_qr_caption">Quét mã QR để mở trang kích hoạt thiết bị của bạn</string>
+    <string name="licence_legal">[văn bản pháp lý cho màn hình giấy phép — sẽ được viết]</string>
+
+    <plurals name="licence_trial_days">
+        <item quantity="other">còn %d ngày</item>
+    </plurals>
+
+    <string name="licence_sentinel" translatable="false">vi</string>
+</resources>

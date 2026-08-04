@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The licence screen, in Persian.
+
+  Not a literal rendering of the English: the sentences are written the way a
+  speaker of this language would say them. A literal translation of a status
+  message produces a grammatical sentence that leaves the reader unsure what to
+  do, which is the one thing this screen cannot afford.
+
+  No string here contains a price, a currency symbol, a period or a number of
+  days. Those come from PlanOffer and EntitlementState, formatted in this
+  locale's own conventions at the point of use.
+
+  "Subscription" belongs to the provider. Castivio sells a licence.
+-->
+<resources>
+    <string name="licence_title">مجوز Castivio</string>
+    <string name="licence_language">زبان</string>
+    <string name="licence_mac_label">نشانی MAC</string>
+    <string name="licence_key_label">کلید دستگاه</string>
+    <string name="licence_copy_mac">کپی نشانی MAC</string>
+    <string name="licence_copy_key">کپی کلید دستگاه</string>
+    <string name="licence_copied_mac">نشانی MAC کپی شد</string>
+    <string name="licence_copied_key">کلید دستگاه کپی شد</string>
+    <string name="licence_mac_spoken">نشانی MAC ‏%s</string>
+    <string name="licence_plan_annual">سالانه</string>
+    <string name="licence_plan_lifetime">مادام‌العمر</string>
+    <string name="licence_per_year">در سال</string>
+    <string name="licence_once">یک‌بار، برای این دستگاه</string>
+    <string name="licence_chip_trial">آزمایشی</string>
+    <string name="licence_chip_active">مجوز فعال است</string>
+    <string name="licence_chip_trial_ended">دورهٔ آزمایشی تمام شد</string>
+    <string name="licence_chip_expired">مجوز منقضی شد</string>
+    <string name="licence_chip_none">بدون مجوز</string>
+    <string name="licence_chip_verify">نیاز به بررسی</string>
+    <string name="licence_chip_unavailable">در دسترس نیست</string>
+    <string name="licence_chip_unreadable">مجوز خوانده نمی‌شود</string>
+    <string name="licence_chip_revoked">مجوز لغو شد</string>
+    <string name="licence_status_trial">هر زمان پیش از پایان دورهٔ آزمایشی می‌توانید مجوزی انتخاب کنید.</string>
+    <string name="licence_status_active">مجوز شما فعال است.</string>
+    <string name="licence_status_lifetime">Castivio روی این دستگاه متعلق به شماست.</string>
+    <string name="licence_status_trial_ended">دورهٔ آزمایشی شما تمام شد. برای ادامه مجوزی انتخاب کنید.</string>
+    <string name="licence_status_expired">مجوز شما منقضی شده است. برای ادامه مجوزی انتخاب کنید.</string>
+    <string name="licence_status_none">این دستگاه هنوز مجوز Castivio ندارد.</string>
+    <string name="licence_status_verify">Castivio اخیراً نتوانسته این مجوز را بررسی کند.</string>
+    <string name="licence_status_unavailable">Castivio هم‌اکنون نمی‌تواند مجوزها را بررسی کند. مشکل از ماست، نه از شما.</string>
+    <string name="licence_status_unreadable">مجوز این دستگاه خوانده نمی‌شود. با کلید دستگاه خود با پشتیبانی تماس بگیرید.</string>
+    <string name="licence_status_revoked">این مجوز لغو شد. با کلید دستگاه خود با پشتیبانی تماس بگیرید.</string>
+    <string name="licence_status_opening">در حال باز کردن درگاه Castivio…</string>
+    <string name="licence_status_failed">انجام نشد. دوباره تلاش کنید.</string>
+    <string name="licence_retry">دوباره تلاش کنید</string>
+    <string name="licence_support">تماس با پشتیبانی</string>
+    <string name="licence_qr_caption">کد QR را اسکن کنید تا صفحهٔ فعال‌سازی دستگاه باز شود</string>
+    <string name="licence_legal">[متن حقوقی صفحهٔ مجوز — در دست نگارش]</string>
+
+    <plurals name="licence_trial_days">
+        <item quantity="one">%d روز مانده</item>
+        <item quantity="other">%d روز مانده</item>
+    </plurals>
+
+    <string name="licence_sentinel" translatable="false">fa</string>
+</resources>
