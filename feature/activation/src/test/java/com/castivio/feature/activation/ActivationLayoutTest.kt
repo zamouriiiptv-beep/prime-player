@@ -279,6 +279,10 @@ private fun restingIdentity() = ActivationIdentityState(
     address = "2F:19:EB:20:44:7C",
     deviceKey = "482731",
     qr = activationQrBitmap(256),
+    // A trial with days on it, because the chip is only composed when there is
+    // one -- and this file's job is to check that everything §14 requires is
+    // placed, which means handing it a state where all of it exists.
+    trialDaysRemaining = 7,
 )
 
 /**

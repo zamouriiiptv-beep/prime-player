@@ -4,6 +4,8 @@ import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.castivio.core.common.AppDispatchers
+import com.castivio.domain.entitlement.EntitlementRepository
+import com.castivio.domain.entitlement.EntitlementState
 import com.castivio.domain.identity.DeviceIdentity
 import com.castivio.domain.identity.IdentityProvenance
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -73,6 +75,18 @@ internal data class ActivationIdentityState(
 
     /** Which one the status line is currently describing. */
     val lastCopied: Copied = Copied.None,
+
+    /**
+     * Days left on Castivio's trial, or null while the entitlement is still being
+     * read and on any state that is not a running trial.
+     *
+     * A number rather than a formatted string: "7 days" is a plural in 37
+     * languages and four of them have more than two forms, so the count travels
+     * and the screen resolves it. Null renders no chip at all, which is right for
+     * the instant before the read completes and for a lifetime licence, and is
+     * why the field is nullable rather than zero.
+     */
+    val trialDaysRemaining: Int? = null,
 )
 
 /**
@@ -85,6 +99,17 @@ internal data class ActivationIdentityState(
 @HiltViewModel
 internal class ActivationIdentityViewModel @Inject constructor(
     private val identity: DeviceIdentity,
+    /**
+     * Castivio's licence, read and never written here.
+     *
+     * The trial is not this screen's to own. `EntitlementRepository` is the single
+     * source of truth -- it holds the sealed record, the high-water clock mark
+     * that stops a rolled-back device buying a second free week, and the policy
+     * that turns those into a state. This subscribes and renders. A screen that
+     * counted its own days would be a second answer to a question that already
+     * has one, and the two would disagree the first time a user changed the date.
+     */
+    private val entitlement: EntitlementRepository,
     private val dispatchers: AppDispatchers,
 ) : ViewModel() {
 
@@ -92,6 +117,15 @@ internal class ActivationIdentityViewModel @Inject constructor(
     val state: StateFlow<ActivationIdentityState> = _state.asStateFlow()
 
     init {
+        // Republished rather than read once: the repository re-evaluates against
+        // the clock, so a device left on this screen past midnight sees the count
+        // fall instead of showing yesterday's number until it is restarted.
+        viewModelScope.launch {
+            entitlement.state.collect { licence ->
+                _state.update { it.copy(trialDaysRemaining = licence.trialDaysRemaining()) }
+            }
+        }
+
         viewModelScope.launch {
             val resolved = withContext(dispatchers.io) {
                 val record = identity.current()
@@ -191,3 +225,18 @@ internal class ActivationIdentityViewModel @Inject constructor(
         const val COPY_FEEDBACK_MS = 1_500L
     }
 }
+
+/**
+ * The number the trial chip shows, or null when there is no trial to describe.
+ *
+ * Only [EntitlementState.TrialActive] produces one. An annual subscription has
+ * days remaining too and they are not a trial; a lifetime licence has none; and
+ * every blocked state is somebody else's screen, because `startDestination` sends
+ * a device that may not be used to the licence destination rather than here.
+ *
+ * Never negative. A trial whose clock has just crossed the line is expired, not
+ * "minus one days", and the gate will move the user off this screen at the next
+ * decision — but it must not render nonsense in the meantime.
+ */
+private fun EntitlementState.trialDaysRemaining(): Int? =
+    (this as? EntitlementState.TrialActive)?.daysRemaining?.coerceAtLeast(0)

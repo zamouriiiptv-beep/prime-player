@@ -256,7 +256,7 @@ internal fun MacActivationScreen(
                 .testTag(ActivationTags.STAGE)
                 .padding(start = m.edge, end = m.edge, top = m.stageTop, bottom = m.stageBottom),
         ) {
-            Header(m = m, tv = tv, onOpenLanguage = onOpenLanguage)
+            Header(m = m, tv = tv, trialDays = identity.trialDaysRemaining, onOpenLanguage = onOpenLanguage)
             Hairline()
 
             // `weight(1f)`, and the reason it is safe here is stated rather than
@@ -327,7 +327,7 @@ private fun Hairline() {
 }
 
 @Composable
-private fun Header(m: Metrics, tv: Boolean, onOpenLanguage: () -> Unit) {
+private fun Header(m: Metrics, tv: Boolean, trialDays: Int?, onOpenLanguage: () -> Unit) {
     val colors = CastivioTheme.colors
     Row(
         Modifier
@@ -345,32 +345,44 @@ private fun Header(m: Metrics, tv: Boolean, onOpenLanguage: () -> Unit) {
         )
         Box(Modifier.weight(1f))
 
-        // Castivio's seven days, carrying Castivio's name. The word
-        // "subscription" belongs to the provider and is never used here: a screen
-        // that said "Add your subscription" beside "Your subscription: 7 days"
-        // would contradict itself.
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                Modifier
-                    .size(TRIAL_DOT)
-                    .clip(RoundedCornerShape(Radius.pill))
-                    .background(colors.primary),
-            )
-            Text(
-                text = stringResource(R.string.trial_name),
-                style = CastivioType.bodyMedium,
-                color = colors.onBackgroundVariant,
-            )
-            Text(
-                text = androidx.compose.ui.res.pluralStringResource(
-                    R.plurals.trial_days, TRIAL_DAYS, TRIAL_DAYS,
-                ),
-                style = CastivioType.bodyMedium,
-                color = colors.primary,
-            )
+        // Castivio's trial, carrying Castivio's name. The word "subscription"
+        // belongs to the provider and is never used here: a screen that said
+        // "Add your subscription" beside "Your subscription: 7 days" would
+        // contradict itself.
+        //
+        // The count comes from `EntitlementRepository` and is null until the
+        // sealed record has been read -- so the chip is absent for an instant
+        // rather than announcing a seven that might turn out to be a two. It was
+        // a hardcoded 7 until this commit, which is a number that would have been
+        // wrong on every launch after the first.
+        if (trialDays != null) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    Modifier
+                        .size(TRIAL_DOT)
+                        .clip(RoundedCornerShape(Radius.pill))
+                        .background(colors.primary),
+                )
+                Text(
+                    text = stringResource(R.string.trial_name),
+                    style = CastivioType.bodyMedium,
+                    color = colors.onBackgroundVariant,
+                )
+                Text(
+                    // Quantity and argument are the same number, which is what a
+                    // plural resource needs: Arabic and Polish choose different
+                    // forms for 1, 2, a few and many, and a formatted string
+                    // built here would get all of that wrong.
+                    text = androidx.compose.ui.res.pluralStringResource(
+                        R.plurals.trial_days, trialDays, trialDays,
+                    ),
+                    style = CastivioType.bodyMedium,
+                    color = colors.primary,
+                )
+            }
         }
 
         LanguageChip(m, onOpenLanguage)
@@ -795,6 +807,5 @@ internal val CAPSULE = 56.dp
 /** 4dp, so the 48dp control inside is centred against the 56dp pill's end. */
 private val CAPSULE_END = 4.dp
 
-private const val TRIAL_DAYS = 7
 private val TRIAL_DOT = 6.dp
 private val STATUS_DOT = 6.dp
