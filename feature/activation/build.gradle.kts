@@ -59,6 +59,11 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.coroutines.android)
+
+    // The activation QR encodes one thing: the central activation URL. The
+    // decoder side is a test dependency only -- ActivationQrTest reads the
+    // symbol back and fails if a MAC address or device key is anywhere in it.
+    implementation(libs.zxing.core)
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
     testImplementation(libs.coroutines.test)

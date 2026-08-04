@@ -24,12 +24,12 @@ class PricingConfigTest {
 
         val annual = config.offer(Plan.ANNUAL)!!
         assertEquals(600L, annual.priceMinor)
-        assertEquals("USD", annual.currency)
+        assertEquals("EUR", annual.currency)
         assertEquals(365 * day, annual.periodMs)
 
         val lifetime = config.offer(Plan.LIFETIME)!!
         assertEquals(1_500L, lifetime.priceMinor)
-        assertEquals("USD", lifetime.currency)
+        assertEquals("EUR", lifetime.currency)
         assertNull("lifetime has no period", lifetime.periodMs)
     }
 

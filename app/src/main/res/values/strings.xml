@@ -1,55 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  `:app` owns the launcher label and nothing else.
+
+  It used to own forty strings, all of them Arabic, left over from the
+  pre-modular prototype. Thirty-nine were dead. The fortieth was `qr_caption`,
+  and it was a live bug: resource merging lets an application module override a
+  library module's value for the same name and qualifier, so this file's Arabic
+  string replaced `feature:activation`'s English one in the **default** bucket.
+  `values-ar` and `values-ko` were served by the feature module and were right,
+  so the screen was correct in every language except English -- which is exactly
+  what the real-device review found.
+
+  The rule that stops it happening again is mechanical: `check-invariants.sh`
+  fails the build if a string declared here is also declared by a feature or
+  core module. A user-visible string belongs to the module that draws it.
+
+  The activation address is not here either. A URL is configuration, not copy:
+  it lives in `ActivationDestination` so that the QR and the on-screen button
+  cannot drift apart, and so replacing the placeholder is one edit.
+-->
 <resources>
     <string name="app_name">Castivio</string>
-    <string name="portal_url">https://castivio.com</string>
-
-    <!-- Header -->
-    <string name="activate_title">قم بتفعيل اشتراكك لمشاهدة أفضل المحتويات</string>
-    <string name="activate_subtitle">اختر الطريقة التي تناسبك لإضافة قائمتك وتشغيلها على هذا الجهاز</string>
-    <string name="lang_button">العربية</string>
-
-    <!-- MAC hero card -->
-    <string name="recommended">الطريقة الموصى بها</string>
-    <string name="recommended_help">أرسل عنوان MAC إلى الموزع لتفعيل اشتراكك</string>
-    <string name="mac_label_pre">عنوان</string>
-    <string name="mac_label_post">الخاص بجهازك</string>
-    <string name="mac_info">بعد أن يؤكد الموزع إتمام التفعيل، اضغط إعادة التحميل لعرض القنوات.</string>
-    <string name="copy">نسخ</string>
-    <string name="copied">تم نسخ عنوان الماك</string>
-    <string name="all_data_copied">تم نسخ جميع البيانات</string>
-
-    <!-- QR -->
-    <string name="qr_title">رمز QR</string>
-    <string name="qr_caption">امسح الرمز لفتح صفحة التفعيل الخاصة بالجهاز</string>
-
-    <!-- Secondary methods -->
-    <string name="other_methods">أو اختر طريقة أخرى</string>
-    <string name="card_xtream_title">Xtream Codes</string>
-    <string name="card_xtream_desc">أدخل بيانات السيرفر الخاصة بك (URL - اسم المستخدم - كلمة المرور)</string>
-    <string name="card_m3u_title">M3U Playlist</string>
-    <string name="card_m3u_desc">أدخل رابط M3U أو قم برفع ملف M3U الخاص بك</string>
-
-    <!-- Bottom toolbar -->
-    <string name="toolbar_refresh">إعادة التحميل</string>
-    <string name="toolbar_copy_all">نسخ جميع البيانات</string>
-    <string name="toolbar_support">الدعم الفني</string>
-    <string name="toolbar_language">تغيير اللغة</string>
-    <string name="toolbar_exit">خروج</string>
-    <string name="no_playlist_yet">لا توجد قائمة تشغيل مضافة بعد</string>
-    <string name="language_soon">تغيير اللغة قريبًا</string>
-
-    <!-- Add-source screens (unchanged) -->
-    <string name="device_mac_label">عنوان ماك</string>
-    <string name="device_key_label">مفتاح الجهاز</string>
-    <string name="xtream_title">إضافة اشتراك Xtream Codes</string>
-    <string name="xtream_server">رابط السيرفر (http://host:port)</string>
-    <string name="xtream_username">اسم المستخدم</string>
-    <string name="xtream_password">كلمة المرور</string>
-    <string name="m3u_title">إضافة قائمة عبر رابط M3U</string>
-    <string name="m3u_url">رابط القائمة (M3U / M3U8)</string>
-    <string name="save">حفظ</string>
-    <string name="cancel">إلغاء</string>
-    <string name="saved">تم حفظ الاشتراك بنجاح</string>
-    <string name="field_required">يرجى تعبئة جميع الحقول</string>
-    <string name="invalid_url">الرابط غير صالح</string>
 </resources>

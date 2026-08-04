@@ -227,6 +227,35 @@ for qualifier in $(printf '%s\n%s\n' "$explicit" "$implicit" | sort -u); do
   fi
 done
 
+# --------------------------------- :app must not shadow a module's user-visible string
+#
+# Resource merging lets the application module override a library module's value
+# for the same name and qualifier. That is not a warning; it is silent, and it
+# shipped: `:app` held a leftover Arabic `qr_caption` in the default bucket, so
+# the activation screen read English from the Arabic string and every other
+# language read correctly from the feature module. It survived 39 locale files,
+# a completeness check and a placement gate, because none of them look at two
+# modules at once.
+#
+# A user-visible string belongs to the module that draws it.
+app_defaults='app/src/main/res/values'
+if [ -d "$app_defaults" ]; then
+  shadowed=$(
+    comm -12 \
+      <(grep -ho 'name="[A-Za-z_0-9]*"' "$app_defaults"/*.xml 2>/dev/null |
+          sed 's/name="//;s/"//' | sort -u) \
+      <(cat feature/*/src/main/res/values/*.xml core/*/src/main/res/values/*.xml 2>/dev/null |
+          grep -o 'name="[A-Za-z_0-9]*"' | sed 's/name="//;s/"//' | sort -u)
+  )
+  if [ -n "$shadowed" ]; then
+    fail ":app declares a string a feature or core module already owns" \
+         "$(echo "$shadowed" | sed 's/^/  /')
+
+  The application module's value wins at merge time, in that bucket only, so the
+  string is wrong in one language and right in the rest. Delete it from :app."
+  fi
+fi
+
 # ------------------------------------------------- the licence cannot license itself
 # Not one of the ten, and the most expensive one to get wrong. A local trial grantor
 # belongs to a development build and nowhere else; the type system already says so

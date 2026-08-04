@@ -278,7 +278,7 @@ private fun ActivationScreenUnderTest(state: MutableState<ActivationIdentityStat
 private fun restingIdentity() = ActivationIdentityState(
     address = "2F:19:EB:20:44:7C",
     deviceKey = "482731",
-    qr = qrFixtureBitmap(256),
+    qr = activationQrBitmap(256),
 )
 
 /**

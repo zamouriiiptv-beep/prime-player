@@ -40,14 +40,14 @@ data class PricingConfig(
 /**
  * One purchasable plan.
  *
- * [priceMinor] is an integer in the currency's minor unit — 600 is $6.00 — because
+ * [priceMinor] is an integer in the currency's minor unit — 600 is €6.00 — because
  * money in a floating-point type is a defect waiting for a rounding error. Formatting
  * it for a locale is the presentation layer's job; the domain only carries the fact.
  */
 data class PlanOffer(
     val plan: Plan,
     val priceMinor: Long,
-    /** ISO 4217, e.g. "USD". */
+    /** ISO 4217, e.g. "EUR". */
     val currency: String,
     /** How long a purchase lasts. Null for a perpetual plan. */
     val periodMs: Long? = null,
@@ -76,13 +76,20 @@ object PricingDefaults {
     /** Try to re-confirm daily; failing to is not an error until the grace runs out. */
     const val VERIFY_INTERVAL_HOURS = 24
 
-    /** $6.00 per year. */
+    /** €6.00 per year. */
     const val ANNUAL_PRICE_MINOR = 600L
 
-    /** $15.00, once. */
+    /** €15.00, once. */
     const val LIFETIME_PRICE_MINOR = 1_500L
 
-    const val CURRENCY = "USD"
+    /**
+     * The euro, for every plan.
+     *
+     * One currency for the whole model rather than one per offer: a catalogue
+     * with mixed currencies in it is a catalogue where "cheaper" stops being a
+     * comparison, and nothing in Castivio converts between them.
+     */
+    const val CURRENCY = "EUR"
 
     val config: PricingConfig = PricingConfig(
         trialDurationMs = TRIAL_DAYS * DAY_MS,

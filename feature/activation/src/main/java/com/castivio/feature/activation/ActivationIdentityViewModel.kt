@@ -50,7 +50,7 @@ internal data class ActivationIdentityState(
      * business showing one — nothing here derives a key from anything.
      */
     val deviceKey: String? = null,
-    /** Drawn, never encoded. See [qrFixtureBitmap]. */
+    /** Encodes the central activation URL and nothing else. See [activationQrBitmap]. */
     val qr: Bitmap? = null,
     val refresh: RefreshState = RefreshState.Idle,
     val copied: Copied = Copied.None,
@@ -79,7 +79,7 @@ internal class ActivationIdentityViewModel @Inject constructor(
                 Triple(
                     record.macAddress.value,
                     record.provenance,
-                    runCatching { qrFixtureBitmap(QR_PIXELS) }.getOrNull(),
+                    runCatching { activationQrBitmap(QR_PIXELS) }.getOrNull(),
                 )
             }
             _state.update {
