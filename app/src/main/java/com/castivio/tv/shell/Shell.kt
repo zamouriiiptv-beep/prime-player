@@ -60,7 +60,7 @@ import androidx.compose.ui.res.stringResource
 import com.castivio.core.common.EmptyReason
 import com.castivio.core.common.ScreenState
 import com.castivio.core.design.components.ButtonWeight
-import com.castivio.tv.gate.LicenceWithLanguage
+import com.castivio.tv.licence.LicenceWithLanguage
 import com.castivio.feature.licence.R as LicenceStrings
 import com.castivio.core.design.components.CardShape
 import com.castivio.core.design.components.CastivioButton

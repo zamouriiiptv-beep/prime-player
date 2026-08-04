@@ -126,6 +126,22 @@ reopen, and confirm it is still in that language with the device set to another.
       that check disappears.
 - [ ] The legal disclaimer is present and comes from localisation resources, not from
       a string literal.
+- [ ] **`licence_legal` is real wording and not the bracketed placeholder.** The
+      licence screen's footer currently reads `[legal copy for the licence screen —
+      to be written]` in all 38 locale bundles, on purpose: the wording is a legal
+      question, not a design one, and inventing it would put an invented contract
+      in front of every user in 37 languages. Replacing it is a copy change and
+      nothing else — the string exists in every bundle, the space is budgeted, and
+      `LicenceBudgetTest` already proves the footer has room for **two** lines on
+      every frame, so a sentence that wraps in German lands somewhere it fits.
+
+      One constraint on whoever writes it: at 800×360 a two-line footer fits with
+      room to spare, and fits with 9dp *less* than it wants during the two or three
+      seconds a swiped navigation bar is on screen. In those seconds the reserved
+      status sentence shortens and every control keeps its size — see
+      `LicenceBudgetTest.the one case that does not fit is the one that degrades
+      safely`. A **three**-line footer is not budgeted anywhere and would need the
+      band re-measured.
 - [ ] **The bundled typefaces' licences ship with the app.** Castivio embeds Inter and
       IBM Plex Sans Arabic, both SIL OFL 1.1, which permits commercial bundling only
       if the licence text travels with the software. Both files are in

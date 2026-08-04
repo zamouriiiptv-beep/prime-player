@@ -25,22 +25,37 @@ import com.castivio.core.design.theme.CastivioType
  * | frame | band | column | spare | with a 24dp bar |
  * |---|---|---|---|---|
  * | 873×393 | 284dp | 249dp | 35dp | 11dp |
- * | 800×360 | 259dp | 225dp | 34dp | 10dp |
- * | TV 960×540 | 337dp | 302dp | 35dp | — |
+ * | 800×360 | 264dp | 229dp | 35dp | 11dp |
+ * | TV 960×540 | 337dp | 302dp | 35dp | — ¹ |
+ *
+ * ¹ A television has no system bars; `safeDrawing` is zero there.
  *
  * The last column is the one that matters. This screen runs immersive, but
  * `BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE` means a swipe brings the navigation
  * bar back for a few seconds, `safeDrawing` padding appears, and the band loses
  * 24dp. A `Column` that no longer fits does not clip or scroll — it hands
- * **zero** height to whatever it measured last, which here is the status line
- * and, one dp further, the plans. So the budget is written against the bar being
- * there, and `LicenceBudgetTest` asserts it.
+ * **zero** height to whatever it measured last. So the budget is written against
+ * the bar being there, and `LicenceBudgetTest` asserts it.
  *
- * At 800×360 that cost eight dp of leading, which is why [priceStyle] steps down
- * a token on that frame alone. It is the same per-frame step the title, the
- * address and the device key already make; the alternatives were a D-pad target
- * below its floor, a capsule too short to hold one, or a screen that drops a
- * control.
+ * ## The typography exception that is no longer here
+ *
+ * For one commit [priceStyle] stepped down a token on the 800×360 frame, because
+ * the column stood 16dp proud of its band and eight of the sixteen were that
+ * line's leading. It was defensible — the title, the address and the device key
+ * all step per frame — and it was still an exception, and the arithmetic did not
+ * require it.
+ *
+ * Four dp of card padding and six of outer margin pay for the same eight, and
+ * they are the thing §10 of the specification already sanctions for this frame:
+ * *tighter card padding, same structure*. The price is now `headlineLarge` on
+ * both phones, `displayMedium` on the television, and the three frames have the
+ * **same** 35dp of margin — which is a better answer than the one that worked,
+ * because a uniform number is one somebody can check at a glance.
+ *
+ * The ordering of the column is load-bearing and is the last line of defence.
+ * Children are measured capsules → plans → status line, so if a frame is ever
+ * squeezed past its budget the thing that loses height is the reserved sentence
+ * and not a control. That is a designed property, not a happy accident.
  */
 internal data class LicenceMetrics(
     val edge: Dp,
@@ -104,14 +119,15 @@ internal fun licenceMetricsFor(tv: Boolean, available: Dp): LicenceMetrics = whe
         target = 56.dp,
     )
     available < SHORT_FRAME -> LicenceMetrics(
-        edge = 26.dp, stageTop = 10.dp, stageBottom = 4.dp, headBottom = 9.dp,
+        edge = 26.dp, stageTop = 8.dp, stageBottom = 2.dp, headBottom = 9.dp,
         zoneGap = 34.dp, rowGap = 11.dp, capsuleStart = 18.dp, capsule = 52.dp, copyGap = 14.dp,
         plansTop = 12.dp, plansGap = 12.dp,
-        planMinHeight = 70.dp, planPaddingH = 16.dp, planPaddingV = 10.dp,
-        // One token down, and only here. See the note on the class.
-        priceStyle = CastivioType.headlineMedium,
+        planMinHeight = 74.dp, planPaddingH = 16.dp, planPaddingV = 8.dp,
+        // The same token as the reference phone. See the note on the class for
+        // why this was a step down for one commit and is not any more.
+        priceStyle = CastivioType.headlineLarge,
         statusTop = 8.dp, statusHeight = 20.dp,
-        footTop = 7.dp, footBottom = 1.dp,
+        footTop = 6.dp, footBottom = 1.dp,
         plate = 138.dp, platePadding = 8.dp, captionTop = 9.dp, captionWidth = 162.dp,
         target = 48.dp,
     )
@@ -148,13 +164,23 @@ internal fun licenceMetricsFor(tv: Boolean, available: Dp): LicenceMetrics = whe
  * @param frame the whole display, minus whatever insets are actually applied.
  * @param title the title's declared line height. The header is the taller of the
  *   title and the language control, not their sum.
- * @param legal the legal line's declared line height, at one line.
+ * @param legal the legal line's declared line height, for one line.
+ * @param legalLines how many lines the footer takes. **Not always one.** The
+ *   final legal sentence does not exist yet, and the placeholder standing in for
+ *   it is one line in English and would not be in German — so the footer is a
+ *   parameter rather than an assumption, and `LicenceBudgetTest` spends it. See
+ *   the note below on which combination does not fit.
  */
-internal fun LicenceMetrics.bandHeight(frame: Dp, title: Dp, legal: Dp): Dp =
+internal fun LicenceMetrics.bandHeight(
+    frame: Dp,
+    title: Dp,
+    legal: Dp,
+    legalLines: Int = 1,
+): Dp =
     frame - stageTop - stageBottom -
         (maxOf(title, target) + headBottom) - // header
         HAIRLINES -
-        (footTop + legal + footBottom) // footer
+        (footTop + legal * legalLines + footBottom) // footer
 
 /**
  * What a plan card needs, from the same numbers that build it.

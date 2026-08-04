@@ -4,10 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -16,8 +13,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.castivio.core.design.components.DelayedSpinner
 import com.castivio.domain.entitlement.StartDestination
 import com.castivio.feature.activation.ActivationRoute
-import com.castivio.feature.activation.LanguagePicker
-import com.castivio.feature.licence.LicenceRoute
+import com.castivio.tv.licence.LicenceWithLanguage
 import com.castivio.tv.locale.AppLocale
 import com.castivio.tv.locale.findActivity
 
@@ -75,47 +71,6 @@ internal fun SplashGate(
         is StartDestination.Licence -> LicenceWithLanguage(
             onLeave = onExit,
             modifier = modifier,
-        )
-    }
-}
-
-/**
- * The licence screen, plus the language overlay it can open.
- *
- * The picker lives here rather than inside the feature for the reason the
- * activation route gives: applying a language means wrapping the `Context` an
- * activity was built on, which is the application's business. The feature draws
- * a chip and reports a press; this is where the press becomes a locale.
- *
- * Reused by the shell's Settings entry, so that reaching the licence screen from
- * a working app and reaching it from a blocked one differ in exactly one thing —
- * where back goes.
- */
-@Composable
-internal fun LicenceWithLanguage(onLeave: () -> Unit, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    val activity = remember(context) { context.findActivity() }
-    var picking by rememberSaveable { mutableStateOf(false) }
-
-    LicenceRoute(
-        // The overlay is the innermost thing on screen, so it is the first thing
-        // back closes; the route handles the rest.
-        onLeave = { if (picking) picking = false else onLeave() },
-        onOpenLanguage = { picking = true },
-        modifier = modifier,
-    )
-
-    if (picking) {
-        LanguagePicker(
-            selected = remember(context) { AppLocale.current(context).language },
-            onPick = { language ->
-                picking = false
-                AppLocale.choose(context, language)
-                // Every resource read before now was read in the old language,
-                // so the activity is rebuilt rather than recomposed.
-                activity?.recreate()
-            },
-            onDismiss = { picking = false },
         )
     }
 }

@@ -160,7 +160,7 @@ html[dir="rtl"] .backdrop{
 
 .stage{flex:1 1 auto;display:flex;flex-direction:column;min-height:0}
 #phone-873 .stage{padding:12px 30px 6px}
-#phone-800 .stage{padding:10px 26px 4px}
+#phone-800 .stage{padding:8px 26px 2px}
 #tv .stage{padding:48px 48px 48px}
 
 .head{display:flex;align-items:center;gap:12px}
@@ -252,20 +252,20 @@ html[dir="rtl"] .backdrop{
 .plan{display:flex;flex-direction:column;justify-content:center;border-radius:var(--r-xl);
   background:var(--glass-mid);border:1px solid var(--glass-edge-soft);text-align:start}
 #phone-873 .plan{min-height:76px;padding:10px 18px}
-#phone-800 .plan{min-height:70px;padding:10px 16px}
+#phone-800 .plan{min-height:74px;padding:8px 16px}
 #tv .plan{min-height:96px;padding:12px 24px}
 .plan .name{color:var(--silver)}
 .plan .row{display:flex;align-items:baseline;gap:8px;white-space:nowrap}
 .plan .price{color:var(--mist);font-weight:700}
-#phone-873 .plan .price{font-size:28px;line-height:40px;letter-spacing:-.2px}
-/* The price steps down one token on the shortest frame, and it is the same
-   step the title, the address and the device key already make between frames
-   -- headlineLarge on 873 and on the television, headlineMedium at 800x360.
-   Not a saving for its own sake: at 800x360 the identity column stood 16dp
-   proud of its band, and eight of the sixteen are this line's leading. The
-   alternatives were a smaller D-pad target, a capsule that cannot hold one, or
-   a screen that hands zero height to whatever it measures last. */
-#phone-800 .plan .price{font-size:22px;line-height:32px}
+/* One token on both phones, and the exception that used to be here is gone.
+   ------------------------------------------------------------------------
+   The price stepped down to 22/32 at 800x360 for one commit, because the column
+   stood 16dp proud of its band and eight of the sixteen were this line's
+   leading. Four dp of card padding and six of outer margin pay for the same
+   eight -- and tighter card padding on this frame is what the specification
+   already sanctions -- so the three frames now carry the same hierarchy and the
+   same 35dp of margin. */
+#phone-873 .plan .price,#phone-800 .plan .price{font-size:28px;line-height:40px;letter-spacing:-.2px}
 #tv .plan .price{font-size:36px;line-height:44px;letter-spacing:-.4px}
 .plan .per{color:var(--muted)}
 .plan.focused{background:var(--selected-fill);border-color:var(--selected-edge);
@@ -298,7 +298,7 @@ html[dir="rtl"] .backdrop{
 /* --------------------------------------------------------------- the foot */
 .foot{flex:0 0 auto;text-align:center;color:var(--muted)}
 #phone-873 .foot{padding:8px 0 2px}
-#phone-800 .foot{padding:7px 0 1px}
+#phone-800 .foot{padding:6px 0 1px}
 #tv .foot{padding:13px 0 0}
 
 /* ------------------------------------------------------ blocked and busy */
@@ -323,7 +323,7 @@ html[dir="rtl"] .backdrop{
    three. A skeleton that is not the size of what replaces it is a jump with an
    extra step in front of it. */
 .skel.card{height:78px;border-radius:var(--r-xl)}
-#phone-800 .skel.card{height:70px}
+#phone-800 .skel.card{height:74px}
 #tv .skel.card{height:96px}
 .skel.plate{border-radius:var(--r-md)}
 

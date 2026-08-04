@@ -56,9 +56,10 @@ class LicenceBudgetTest {
     private val overline: Dp get() = CastivioType.overline.lineHeight.value.dp
     private val caption: Dp get() = CastivioType.bodySmall.lineHeight.value.dp
 
-    private fun spare(frame: Dp, tv: Boolean, insets: Dp = 0.dp): Dp {
+    private fun spare(frame: Dp, tv: Boolean, insets: Dp = 0.dp, legalLines: Int = 1): Dp {
         val m = licenceMetricsFor(tv, frame - insets)
-        return m.bandHeight(frame - insets, title(tv), legal) - m.columnHeight(overline)
+        return m.bandHeight(frame - insets, title(tv), legal, legalLines) -
+            m.columnHeight(overline)
     }
 
     private fun codeSpare(frame: Dp, tv: Boolean, insets: Dp = 0.dp): Dp {
@@ -164,11 +165,18 @@ class LicenceBudgetTest {
         assertEquals("the 873x393 frame is not on the reference set", 30.dp, phone.edge)
         assertEquals("the television is not on the TV set", 48.dp, tv.edge)
 
-        // The price steps down one token on the shortest frame and only there.
-        // Stated here because it is the one deliberate typographic difference
-        // between the frames, and a silent revert would cost 8dp of a margin
-        // that is 10dp wide with the navigation bar showing.
-        assertEquals(CastivioType.headlineMedium, short.priceStyle)
+        // One price token for both phones, and no per-frame exception.
+        //
+        // Asserted rather than left to review, because it was an exception for
+        // one commit -- headlineMedium at 800x360 -- and the way that comes back
+        // is somebody needing eight dp in a hurry and remembering that it used
+        // to be allowed. It is not allowed: four dp of card padding and six of
+        // outer margin buy the same eight without touching the hierarchy.
+        assertEquals(
+            "the shortest frame has grown a price exception again",
+            CastivioType.headlineLarge,
+            short.priceStyle,
+        )
         assertEquals(CastivioType.headlineLarge, phone.priceStyle)
         assertEquals(CastivioType.displayMedium, tv.priceStyle)
     }
@@ -187,7 +195,7 @@ class LicenceBudgetTest {
     fun `the bands are the measured ones`() {
         val expected = mapOf(
             Triple("reference phone 873x393", false, 393.dp) to 284.dp,
-            Triple("shortest phone 800x360", false, 360.dp) to 259.dp,
+            Triple("shortest phone 800x360", false, 360.dp) to 264.dp,
             Triple("television 960x540", true, 540.dp) to 337.dp,
         )
         for ((frame, band) in expected) {
@@ -199,6 +207,75 @@ class LicenceBudgetTest {
                 m.bandHeight(height, title(tv), legal),
             )
         }
+    }
+
+    /**
+     * The legal footer gets room for two lines, and that is gated rather than
+     * hoped for.
+     *
+     * ## Why this test exists before the sentence does
+     *
+     * The final legal wording has not been written — it is a legal question and
+     * not a design one, and inventing it would be worse than showing a bracket.
+     * But the *space* it lands in is a design question, and answering it now is
+     * the difference between a wording change and a layout renegotiation.
+     *
+     * The placeholder is one line in English and a real sentence will not be one
+     * line in German, so one line was never a safe assumption. It was an
+     * assumption anyway until this test.
+     *
+     * ## What fits
+     *
+     * | frame | 1 line | 1 + bar | 2 lines | 2 + bar |
+     * |---|---|---|---|---|
+     * | 873×393 | 35dp | 44dp ¹ | 15dp | 24dp ¹ |
+     * | 800×360 | 35dp | 11dp | 15dp | **−9dp** |
+     * | TV | 35dp | — | 15dp | — |
+     *
+     * ¹ A bar takes the 873dp frame under the 380dp threshold, so it adopts the
+     * tighter metric set and gains margin rather than losing it.
+     *
+     * Every case fits but one, and [the compound case] below states exactly what
+     * that one does instead of failing silently.
+     */
+    @Test
+    fun `the legal footer has room for two lines on every frame`() {
+        for ((name, tv, frame) in frames) {
+            val room = spare(frame, tv, legalLines = 2)
+            assertTrue(
+                "$name: a two-line legal footer overruns the band by ${-room}. The " +
+                    "wording is not written yet, so the room for it is the part that " +
+                    "has to be settled in advance.",
+                room >= 0.dp,
+            )
+        }
+    }
+
+    /**
+     * The compound case, stated as an assertion so it cannot drift unnoticed.
+     *
+     * Two-line footer **and** a navigation bar transiently on screen **and** the
+     * shortest phone. This is the one combination that does not fit, by 9dp, and
+     * pinning the number means a change that makes it worse shows up here rather
+     * than on somebody's handset.
+     *
+     * What happens in those two or three seconds is not a lost control. The
+     * column measures capsules → plans → status line and gives what is left to
+     * the child measured last, so the **status sentence** is what loses height;
+     * every capsule, card and target keeps its size, and the sentence returns
+     * when the bar does. `LicenceLayoutTest` proves that ordering.
+     */
+    @Test
+    fun `the one case that does not fit is the one that degrades safely`() {
+        val room = spare(360.dp, tv = false, insets = NAV_BAR, legalLines = 2)
+        assertEquals(
+            "the shortest phone with a two-line footer and the navigation bar " +
+                "showing is no longer 9dp short. If it got better, say so here and " +
+                "in LicenceMetrics; if it got worse, the status line is losing more " +
+                "than a sentence.",
+            (-9).dp,
+            room,
+        )
     }
 
     /** A gesture bar, and the widest a navigation bar gets in landscape. */

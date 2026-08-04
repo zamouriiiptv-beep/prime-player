@@ -699,11 +699,11 @@ largest margin of the three frames.
 Computed by `LicenceBudgetTest` from the same `LicenceMetrics` the screen is
 built from, and measured independently by `measure.js` on the corrected mockup.
 
-| frame | band | column | spare | with a 24dp bar |
-|---|---|---|---|---|
-| 873×393 | 284dp | 249dp | 35dp | 43dp¹ |
-| 800×360 | 259dp | 225dp | 34dp | 10dp |
-| TV 960×540 | 337dp | 302dp | 35dp | — ² |
+| frame | band | column | spare | with a 24dp bar | two-line footer |
+|---|---|---|---|---|---|
+| 873×393 | 284dp | 249dp | 35dp | 44dp¹ | 15dp |
+| 800×360 | 264dp | 229dp | 35dp | 11dp | 15dp |
+| TV 960×540 | 337dp | 302dp | 35dp | — ² | 15dp |
 
 ¹ A navigation bar takes the 873dp frame below the 380dp threshold, so it adopts
 the tighter metric set and gains margin rather than losing it. That is the
@@ -711,11 +711,34 @@ per-frame table doing its job.
 
 ² A television has no system bars; `safeDrawing` is zero there.
 
-**The price steps to `headlineMedium` on the 800×360 frame and only there.** The
-column stood 16dp proud of its band before the retune and eight of the sixteen
-were that line's leading. It is the same per-frame step the title, the address
-and the device key already make, and the alternatives were a D-pad target below
-its floor, a capsule too short to hold one, or a screen that drops a control.
+**No typography exception on any frame.** For one commit the price stepped down
+to `headlineMedium` at 800×360, because the column stood 16dp proud of its band
+and eight of the sixteen were that line's leading. It was defensible — the title,
+the address and the device key all step per frame — and the arithmetic did not
+require it. Four dp of card padding and six of outer margin buy the same eight,
+and tighter card padding on this frame is what §10 already sanctions. The price
+is now `headlineLarge` on both phones and `displayMedium` on the television, and
+all three frames carry the **same** 35dp of margin, which is a number somebody
+can check at a glance.
+
+### 19.2 The legal footer, budgeted before it is written
+
+The wording does not exist and will not be invented here. The **room** for it is
+a design question and is settled: two lines fit on every frame, so a sentence
+that wraps in German lands somewhere it fits.
+
+One combination does not fit — a two-line footer at 800×360 *while* a swiped
+navigation bar is transiently on screen, 9dp short. What happens then is not a
+lost control. The column measures capsules → plans → status line and a `Column`
+gives what is left to the child measured last, so the reserved **status
+sentence** shortens for those two or three seconds and every capsule, card and
+target keeps its size. That ordering is the design and not an accident:
+`LicenceBudgetTest` pins the shortfall at exactly −9dp so a change that worsens
+it shows up, and `LicenceLayoutTest` squeezes the band for real and proves the
+sentence is what yields.
+
+A **three**-line footer is budgeted nowhere. `RELEASE_CHECKLIST.md` carries that
+constraint for whoever writes the copy.
 
 ### 19.1 The two claims, and where each is made
 
