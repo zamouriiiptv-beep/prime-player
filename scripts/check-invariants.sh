@@ -74,7 +74,8 @@ InteractiveGlassCard EmptyState ErrorState Skeleton SkeletonRow DelayedSpinner
 CastivioNavRail CastivioActionBar CastivioTopBar SectionLabel
 MediaCard ChannelCard MediaRow SectionHeader CastivioShell CastivioBottomBar
 ScreenScaffold ScreenTopBar NowPlayingBadge WatchedTag LogoTile MetaChip
-CastivioTextField'
+CastivioTextField
+IdentityCapsule CopyButton QrPlate'
 for name in $SHARED; do
   count=$(grep -rn --include='*.kt' -E "^(internal |private )?fun $name\(" \
             app core feature playback data domain 2>/dev/null | wc -l)

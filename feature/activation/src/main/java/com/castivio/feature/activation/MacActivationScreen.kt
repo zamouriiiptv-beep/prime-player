@@ -2,7 +2,6 @@ package com.castivio.feature.activation
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,7 +21,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.Icon
@@ -35,7 +33,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -57,6 +54,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.castivio.core.design.components.ButtonWeight
+import com.castivio.core.design.components.CapsuleMetrics
+import com.castivio.core.design.components.IdentityCapsule
+import com.castivio.core.design.components.QrPlate
 import com.castivio.core.design.components.CastivioButton
 import com.castivio.core.design.components.castivioFocusScale
 import com.castivio.core.design.theme.CastivioTheme
@@ -480,7 +480,7 @@ private fun IdentityZone(
     val address = identity.address
 
     Column(modifier, verticalArrangement = Arrangement.spacedBy(m.rowGap)) {
-        IdentityCapsule(
+        ActivationCapsule(
             modifier = Modifier.testTag(ActivationTags.MAC_CAPSULE),
             m = m,
             label = stringResource(R.string.mac_label),
@@ -500,7 +500,7 @@ private fun IdentityZone(
         // empty slot where a credential belongs reads as a fault, so the row is
         // not composed at all rather than composed empty.
         identity.deviceKey?.let { key ->
-            IdentityCapsule(
+            ActivationCapsule(
                 modifier = Modifier.testTag(ActivationTags.KEY_CAPSULE),
                 m = m,
                 label = stringResource(R.string.key_label),
@@ -610,33 +610,16 @@ private fun StatusLine(identity: ActivationIdentityState, m: Metrics) {
 }
 
 /**
- * One identifier, in a glass pill.
+ * The screen's capsule: the shared component, told this frame's numbers.
  *
- * ## Why a capsule and not the loose text it replaces
- *
- * The address used to sit directly on the aurora as typography, on the argument
- * that information must never be mistaken for a control. That argument was right
- * about the address and wrong about the group: with a copy button floating beside
- * it and nothing tying the two together, the eye had to work out that the square
- * belonged to the digits above it rather than to the label below.
- *
- * The pill states the grouping. It is a container for one fact and its one
- * action, and it earns its keep the way the QR plate does.
- *
- * ## The shape
- *
- * `RoundedCornerShape(50)` -- a percentage, not a dp. It is a true pill at 52dp
- * and still a true pill at the television's 64, which a fixed 26dp corner would
- * not be. A capsule whose corners are nearly-but-not-quite its half-height is
- * the detail that reads as cheap, and the height is not one number.
- *
- * Horizontal rather than the label-above-value it replaces, and that is also what
- * makes the vertical budget work: 56dp instead of 69, twice, which is the 26dp
- * the system-bar insets need. The composition did not change to make room; the
- * grouping did, and the room came with it.
+ * The pill, the copy control and the bidi isolation all moved to `:core:design`
+ * when the licence screen needed the same three. Nothing about the drawing
+ * changed -- the same values that used to be read off [Metrics] inside the
+ * component are now handed to it -- and the layout and budget gates are what
+ * prove it.
  */
 @Composable
-private fun IdentityCapsule(
+private fun ActivationCapsule(
     m: Metrics,
     label: String,
     value: String,
@@ -648,109 +631,23 @@ private fun IdentityCapsule(
     onCopy: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = CastivioTheme.colors
-    val shape = RoundedCornerShape(percent = 50)
-
-    Row(
-        modifier
-            .height(m.capsule)
-            .clip(shape)
-            // Semi-transparent over the aurora, so the gradient shows through and
-            // the pill belongs to the background rather than sitting on it. The
-            // border is the soft token, not the loud one: at this size a strong
-            // outline turns a container into a button.
-            .background(colors.glassFill)
-            .border(BorderStroke(1.dp, colors.glassBorderSoft), shape)
-            .padding(start = m.capsuleStart, end = CAPSULE_END),
-        horizontalArrangement = Arrangement.spacedBy(m.copyGap),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = label,
-            style = CastivioType.overline,
-            color = colors.onBackgroundVariant,
-        )
-
-        // The address is Latin and digits inside a paragraph that may run right
-        // to left. Left to inherit the paragraph, the bidi algorithm reorders its
-        // runs -- and the all-neutral placeholder is reordered outright. A licence
-        // address that reads differently in Arabic is a support case in every RTL
-        // market. The pill is laid out with start/end, so the capsule mirrors and
-        // the value inside it does not.
-        Text(
-            text = ltrIsolate(value),
-            style = style,
-            color = colors.onBackground,
-            maxLines = 1,
-            modifier = Modifier.clearAndSetSemantics {
-                contentDescription = spoken ?: value
-            },
-        )
-
-        if (enabled) {
-            CopyControl(m = m, label = copyLabel, isCopied = isCopied, onClick = onCopy)
-        }
-    }
-}
-
-/**
- * Copy, and its confirmation.
- *
- * The confirmation is a glyph swap inside a box of unchanged size, so nothing on
- * the screen moves when it happens. Two of these exist and they are independent:
- * copying the address must not clear the tick on the key.
- */
-@Composable
-private fun CopyControl(m: Metrics, label: String, isCopied: Boolean, onClick: () -> Unit) {
-    val colors = CastivioTheme.colors
-    val interaction = remember { MutableInteractionSource() }
-    var focused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(percent = 50)
-    val border by animateColorAsState(
-        when {
-            focused -> colors.focusRing
-            isCopied -> colors.success
-            // Transparent, not a hairline: inside a bordered pill a second
-            // outline four dp away from the first is the thing that made the
-            // control look bolted on rather than built in.
-            else -> Color.Transparent
-        },
-        Motion.focusSpec(),
-        label = "copyBorder",
+    IdentityCapsule(
+        metrics = CapsuleMetrics(
+            height = m.capsule,
+            startPadding = m.capsuleStart,
+            gap = m.copyGap,
+            target = m.target,
+        ),
+        label = label,
+        value = value,
+        valueStyle = style,
+        copyLabel = copyLabel,
+        isCopied = isCopied,
+        onCopy = onCopy,
+        modifier = modifier,
+        spoken = spoken,
+        copyEnabled = enabled,
     )
-
-    Box(
-        Modifier
-            // `m.target`, which is 48dp on a phone and 56 on a television --
-            // `Sizing.minTvTarget`, and a D-pad target may not be smaller.
-            //
-            // This was pinned to the phone constant during a polish pass, which
-            // shrank the television's control by 8dp and shipped. No gate caught
-            // it: the budget test asserted the *phone* floor on every frame
-            // including the TV, so the one number that was wrong was the one
-            // number nothing checked. It does now.
-            .size(m.target)
-            .castivioFocusScale(Motion.focusScaleIcon, interaction)
-            .onFocusChanged { focused = it.isFocused || it.hasFocus }
-            .clip(shape)
-            // Quieter than the pill it sits in, deliberately. A control drawn at
-            // the same weight as its container reads as a second container; this
-            // one is a utility inside one, so it takes the softer fill and shows
-            // no border at all until it has something to say -- focus, or a
-            // confirmation. At rest the icon and the shape carry it.
-            .background(colors.glassFillStrong)
-            .border(BorderStroke(1.dp, border), shape)
-            .clickable(interaction, indication = null, onClick = onClick)
-            .semantics { contentDescription = label },
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = if (isCopied) Icons.Rounded.Check else Icons.Rounded.ContentCopy,
-            contentDescription = null,
-            tint = if (isCopied) colors.success else colors.onBackgroundVariant,
-            modifier = Modifier.size(Sizing.iconSm),
-        )
-    }
 }
 
 @Composable
@@ -763,28 +660,12 @@ private fun CodeZone(identity: ActivationIdentityState, m: Metrics) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(m.captionTop),
     ) {
-        Box(
-            Modifier
-                .size(m.plate)
-                .testTag(ActivationTags.QR)
-                // A soft lift, not a card. The plate is white on a dark gradient
-                // and reads as a hole punched in the background without it; a few
-                // dp of shadow is enough to make it sit *on* the screen. No
-                // border, no second surface -- the size and position are
-                // unchanged and the plate is still the only container here.
-                .shadow(QR_LIFT, RoundedCornerShape(Radius.md))
-                .clip(RoundedCornerShape(Radius.md))
-                .background(Color.White)
-                .padding(m.platePadding),
-        ) {
-            Image(
-                bitmap = bitmap,
-                // The caption below says what the code is for; a reader that
-                // announces the image as well says the same thing twice.
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize().clearAndSetSemantics { },
-            )
-        }
+        QrPlate(
+            code = bitmap,
+            plate = m.plate,
+            padding = m.platePadding,
+            modifier = Modifier.testTag(ActivationTags.QR),
+        )
         Text(
             text = stringResource(R.string.qr_caption),
             style = CastivioType.bodySmall,
@@ -912,14 +793,6 @@ private fun emphasiseCount(text: String, count: Int): AnnotatedString {
 /** `2F:19:EB:20:44:7C` read as separated pairs rather than one long number. */
 private fun spaced(address: String): String = address.replace(":", " ")
 
-/**
- * Left-to-right, isolated from whatever paragraph it lands in.
- *
- * `LEFT-TO-RIGHT ISOLATE` … `POP DIRECTIONAL ISOLATE`. The address keeps its own
- * order in an Arabic interface, and cannot reorder the row around it either.
- */
-private fun ltrIsolate(value: String): String = "⁦$value⁩"
-
 /** Shown for the instant before the identity resolves. Never a real address. */
 private const val ADDRESS_PLACEHOLDER = "··:··:··:··:··:··"
 
@@ -936,5 +809,3 @@ private val CAPSULE_END = 2.dp
 private val TRIAL_DOT = 6.dp
 private val STATUS_DOT = 6.dp
 
-/** Enough to separate white from the aurora, not enough to read as a card. */
-private val QR_LIFT = 10.dp
