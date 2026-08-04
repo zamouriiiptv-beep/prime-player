@@ -144,15 +144,27 @@ want=$(grep -oE '<(string|plurals) name="[a-z_0-9]+"( translatable="false")?' "$
 # Well-formed XML, checked here rather than left to the build.
 #
 # AAPT rejects these too, but four minutes later and only when someone builds
-# the Android modules. It has already cost one red CI run: a generator wrote a
-# corrected set of files into the wrong directory and the check standing next to
-# it validated the files it had just written rather than the ones in the tree.
-# Both were green and the build was not, which is the whole argument for the
-# check living where the tree lives.
+# the Android modules. It has already cost two red CI runs, and the second one
+# is the reason this now walks the whole tree.
+#
+# The first: a generator wrote a corrected set of files into the wrong directory
+# and the check standing next to it validated the files it had just written
+# rather than the ones in the tree.
+#
+# The second: this check was pointed at one module's res directory -- the
+# activation feature's -- and a bad comment went into :app's. Green here, red in
+# mergeDebugResources. Same mistake in a different costume, and the same lesson:
+# a checker aimed at a subset is not a checker for the thing it is named after.
+# It looks at every values* directory in every module now.
 if command -v python3 >/dev/null 2>&1; then
-  bad=$(python3 - "$RES" <<'PYXML'
-import glob, sys, xml.etree.ElementTree as ET
-for f in sorted(glob.glob(sys.argv[1] + "/values*/*.xml")):
+  bad=$(python3 <<'PYXML'
+import glob, xml.etree.ElementTree as ET
+seen = sorted(set(
+    glob.glob("*/src/*/res/values*/*.xml") + glob.glob("*/*/src/*/res/values*/*.xml")
+))
+if not seen:
+    print("  no resource files were found at all, which means this glob is wrong")
+for f in seen:
     try:
         ET.parse(f)
     except Exception as e:
