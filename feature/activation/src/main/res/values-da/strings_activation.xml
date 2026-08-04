@@ -28,7 +28,7 @@
     <string name="refresh_found">Abonnement fundet</string>
     <string name="refresh_none">Endnu intet abonnement</string>
     <string name="refresh_error">Kunne ikke opdatere — prøv igen</string>
-    <string name="qr_caption">Scan for at sætte op på telefonen</string>
+    <string name="qr_caption">Scan QR-koden for at åbne enhedens aktiveringsside</string>
     <string name="legal_player_only">Castivio er kun en afspiller og leverer ikke abonnementer eller indhold.</string>
     <string name="mac_spoken">MAC-adresse %s</string>
     <string name="language">Sprog</string>

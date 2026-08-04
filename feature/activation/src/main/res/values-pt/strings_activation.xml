@@ -28,7 +28,7 @@
     <string name="refresh_found">Assinatura encontrada</string>
     <string name="refresh_none">Ainda sem assinatura</string>
     <string name="refresh_error">Não foi possível atualizar — tente de novo</string>
-    <string name="qr_caption">Escaneie para configurar no seu celular</string>
+    <string name="qr_caption">Leia o código QR para abrir a página de ativação do dispositivo</string>
     <string name="legal_player_only">O Castivio é apenas um reprodutor e não fornece assinaturas nem conteúdo.</string>
     <string name="mac_spoken">Endereço MAC %s</string>
     <string name="language">Idioma</string>

@@ -49,19 +49,31 @@ class ActivationBudgetTest {
      * scale of one, which is what the frames in `design/mockups/` are drawn at;
      * a user-raised scale is the accessibility pass, not this one.
      */
-    private val overline = CastivioType.overline.lineHeight.value.dp
     private val legal = CastivioType.bodySmall.lineHeight.value.dp
     private val phoneTitle = CastivioType.headlineMedium.lineHeight.value.dp
     private val tvTitle = CastivioType.headlineLarge.lineHeight.value.dp
 
-    private fun spare(frame: Dp, tv: Boolean): Dp {
-        val m = metricsFor(tv = tv, available = frame)
+    /**
+     * What a swiped-back navigation bar costs the tallest thing on screen.
+     *
+     * Activation runs immersive, so on a settled screen the insets are zero and
+     * this is spent on nothing. It is budgeted anyway: transient bars are one
+     * swipe away, a device may refuse to hide them, and a layout that only fits
+     * while the system is cooperating is a layout that breaks in a photograph
+     * somebody sends us. 24dp is a landscape gesture bar; a landscape
+     * three-button bar goes to the side and costs height nothing.
+     */
+    private val INSET_ALLOWANCE = 24.dp
+
+    private fun spare(frame: Dp, tv: Boolean, inset: Dp = 0.dp): Dp {
+        val usable = frame - inset
+        val m = metricsFor(tv = tv, available = usable)
         val band = m.bandHeight(
-            frame = frame,
+            frame = usable,
             title = if (tv) tvTitle else phoneTitle,
             legal = legal,
         )
-        return band - m.identityHeight(overline)
+        return band - m.identityHeight(CAPSULE)
     }
 
     /**
@@ -79,7 +91,10 @@ class ActivationBudgetTest {
 
         // Unconditional, because "it fits" is worth reading in a green log too --
         // the interesting number is how close the shortest frame is running.
-        println("activation budget — 800x360 $short | 873x393 $phone | TV 960x540 $tv")
+        println(
+            "activation budget — 800x360 $short | 873x393 $phone | TV 960x540 $tv | " +
+                "with a $INSET_ALLOWANCE bar: ${spare(360.dp, false, INSET_ALLOWANCE)}",
+        )
 
         assertTrue("the shortest phone overruns its band by ${-short}", short > 0.dp)
         assertTrue("the reference phone overruns its band by ${-phone}", phone > 0.dp)
@@ -95,13 +110,39 @@ class ActivationBudgetTest {
      * takes Add playlist off the screen.
      */
     @Test
-    fun `the shortest phone keeps the margin the design was approved with`() {
+    fun `the shortest phone keeps the margin the capsules bought it`() {
         val short = spare(360.dp, tv = false)
         assertTrue(
-            "the shortest phone is down to $short of margin; the design was " +
-                "approved with 9dp and there is nowhere left to take it from",
-            short >= 9.dp,
+            "the shortest phone is down to $short of margin; the capsules left it " +
+                "35dp and the inset budget needs most of that",
+            short >= 30.dp,
         )
+    }
+
+    /**
+     * The frame still fits with the system bars back.
+     *
+     * This is the assertion the capsules were for. Before them the shortest frame
+     * had 9dp of margin, so any vertical inset at all pushed the column past the
+     * band -- and a column past its band does not clip or scroll, it hands zero
+     * height to Add playlist and Refresh. That is the defect a real-device review
+     * found, and taking the insets without first making room would have been the
+     * same defect committed knowingly.
+     */
+    @Test
+    fun `every frame still fits when the navigation bar comes back`() {
+        for ((name, tv, frame) in listOf(
+            Triple("shortest phone", false, 360.dp),
+            Triple("reference phone", false, 393.dp),
+            Triple("television", true, 540.dp),
+        )) {
+            val margin = spare(frame, tv, inset = INSET_ALLOWANCE)
+            assertTrue(
+                "$name overruns by ${-margin} once a $INSET_ALLOWANCE navigation " +
+                    "bar is on screen",
+                margin > 0.dp,
+            )
+        }
     }
 
     /**
@@ -123,6 +164,10 @@ class ActivationBudgetTest {
             assertTrue(
                 "$name: the copy control is ${m.target}",
                 m.target >= Sizing.minTouchTarget,
+            )
+            assertTrue(
+                "$name: the capsule is $CAPSULE and cannot hold a touch target",
+                CAPSULE >= Sizing.minTouchTarget,
             )
             // The column is measured with full-size targets in it, so a positive
             // margin is the statement that nothing had to be crushed to fit.

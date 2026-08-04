@@ -44,7 +44,7 @@ glass card and one is not to be reintroduced: the screen itself is the surface.
 │   MAC ADDRESS                              ┌───────────┐          │
 │   2F:19:EB:20:44:7C   ⧉                    │    QR     │          │
 │                                            └───────────┘          │
-│   DEVICE KEY                             Scan to set up …         │
+│   DEVICE KEY                             Scan the QR code to …  │
 │   482731              ⧉                                           │
 │                                                                   │
 │   [ Add playlist ]  [ ↻ Refresh ]                                 │
@@ -181,7 +181,10 @@ protocol exist.
 
 **There is one design, and it is visually complete.** The QR zone is part of the
 approved composition and is not hidden, reduced, or made conditional. The caption
-stays as approved: *"Scan to set up on your phone"*.
+is *"Scan the QR code to open your device activation page"* — the wording the
+QR now earns, because it encodes that page and nothing else. It replaced
+*"Scan to set up on your phone"*, which described a pairing flow that was never
+built, in all 39 locale files at once.
 
 What is pending is the **payload and the behaviour behind it**, not the element.
 An earlier revision of this section proposed hiding the zone until the portal
@@ -526,8 +529,9 @@ is a script or region choice **inside** the row — not a second row.
 Strings are translated for meaning, not word for word, and the terminology is
 part of the meaning: *Add your subscription*, *Castivio trial · 7 days*, *MAC
 Address*, *Device Key*, *Add playlist*, *Refresh*, *Checking…*, *Playlist found*,
-*No playlist found yet*, *Couldn't refresh — try again*, *Scan to set up on your
-phone*, *Copy*, *Copied*, the legal line, and every accessibility description.
+*No playlist found yet*, *Couldn't refresh — try again*, *Scan the QR code to
+open your device activation page*, *Copy*, *Copied*, the legal line, and every
+accessibility description.
 
 The distinction in §3 survives translation or the translation is wrong: the seven
 days are **Castivio's trial**, never the provider's subscription. A language whose

@@ -28,7 +28,7 @@
     <string name="refresh_found">सदस्यता मिल गई</string>
     <string name="refresh_none">अभी कोई सदस्यता नहीं</string>
     <string name="refresh_error">ताज़ा नहीं हो सका — फिर कोशिश करें</string>
-    <string name="qr_caption">फ़ोन पर सेट अप करने के लिए स्कैन करें</string>
+    <string name="qr_caption">डिवाइस ऐक्टिवेशन पेज खोलने के लिए QR कोड स्कैन करें</string>
     <string name="legal_player_only">Castivio केवल एक प्लेयर है और सदस्यता या सामग्री प्रदान नहीं करता।</string>
     <string name="mac_spoken">MAC पता %s</string>
     <string name="language">भाषा</string>

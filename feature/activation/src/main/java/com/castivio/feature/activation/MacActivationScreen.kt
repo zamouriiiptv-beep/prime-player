@@ -87,14 +87,17 @@ import com.castivio.core.design.theme.Spacing
  *
  * | frame | band | identity column | spare |
  * |---|---|---|---|
- * | 873×393 | 284dp | 254dp | 30dp |
- * | 800×360 | 259dp | 250dp | 9dp |
- * | TV 960×540 | 337dp | 298dp | 39dp |
+ * | 873×393 | 284dp | 228dp | 56dp |
+ * | 800×360 | 259dp | 224dp | 35dp |
+ * | TV 960×540 | 337dp | 248dp | 89dp |
  *
- * Nine millimetres on the short phone is thin, and it is the frame to check first
- * whenever anything on this screen grows. Those three rows are not a comment:
- * [bandHeight] and [identityHeight] compute them, and `ActivationBudgetTest`
- * fails if any of them goes negative.
+ * The shortest frame had nine millimetres before the capsules and has thirty-five
+ * after: a 56dp pill replaced a 69dp label-above-value stack, twice. That is not
+ * a saving for its own sake -- it is what lets the screen take the system-bar
+ * insets it was ignoring, with a swiped-back navigation bar still leaving eleven.
+ *
+ * Those rows are not a comment: [bandHeight] and [identityHeight] compute them,
+ * and `ActivationBudgetTest` fails if any of them goes negative.
  */
 internal data class Metrics(
     val edge: Dp,
@@ -103,7 +106,8 @@ internal data class Metrics(
     val headBottom: Dp,
     val zoneGap: Dp,
     val rowGap: Dp,
-    val labelGap: Dp,
+    /** Inset from the pill's leading edge to its label. */
+    val capsuleStart: Dp,
     val copyGap: Dp,
     val actionsGap: Dp,
     val actionsTop: Dp,
@@ -130,7 +134,7 @@ internal val SHORT_PHONE = 380.dp
 internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
     tv -> Metrics(
         edge = 48.dp, stageTop = 48.dp, stageBottom = 48.dp, headBottom = 16.dp,
-        zoneGap = 52.dp, rowGap = 17.dp, labelGap = 7.dp, copyGap = 22.dp,
+        zoneGap = 52.dp, rowGap = 17.dp, capsuleStart = 24.dp, copyGap = 22.dp,
         actionsGap = 20.dp, actionsTop = 30.dp,
         statusHeight = 24.dp, statusTop = 16.dp,
         footTop = 13.dp, footBottom = 0.dp,
@@ -139,7 +143,7 @@ internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
     )
     available < SHORT_PHONE -> Metrics(
         edge = 26.dp, stageTop = 10.dp, stageBottom = 4.dp, headBottom = 9.dp,
-        zoneGap = 34.dp, rowGap = 13.dp, labelGap = 3.dp, copyGap = 14.dp,
+        zoneGap = 34.dp, rowGap = 13.dp, capsuleStart = 18.dp, copyGap = 14.dp,
         actionsGap = 12.dp, actionsTop = 18.dp,
         statusHeight = 20.dp, statusTop = 12.dp,
         footTop = 7.dp, footBottom = 1.dp,
@@ -148,7 +152,7 @@ internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
     )
     else -> Metrics(
         edge = 30.dp, stageTop = 12.dp, stageBottom = 6.dp, headBottom = 11.dp,
-        zoneGap = 40.dp, rowGap = 13.dp, labelGap = 3.dp, copyGap = 16.dp,
+        zoneGap = 40.dp, rowGap = 13.dp, capsuleStart = 20.dp, copyGap = 16.dp,
         actionsGap = 14.dp, actionsTop = 22.dp,
         statusHeight = 20.dp, statusTop = 12.dp,
         footTop = 8.dp, footBottom = 2.dp,
@@ -198,11 +202,10 @@ internal fun Metrics.bandHeight(frame: Dp, title: Dp, legal: Dp): Dp =
  *
  * @param overline the declared line height of the MAC ADDRESS / DEVICE KEY labels.
  */
-internal fun Metrics.identityHeight(overline: Dp): Dp {
-    val valueRow = overline + labelGap + target
+internal fun Metrics.identityHeight(capsule: Dp): Dp {
     val actions = (actionsTop - rowGap).coerceAtLeast(0.dp) + Sizing.minTouchTarget
     val status = (statusTop - rowGap).coerceAtLeast(0.dp) + statusHeight
-    return valueRow + rowGap + valueRow + rowGap + actions + rowGap + status
+    return capsule + rowGap + capsule + rowGap + actions + rowGap + status
 }
 
 /** The two full-bleed rules that bracket the field band, at a pixel each. */
@@ -436,7 +439,8 @@ private fun IdentityZone(
     val address = identity.address
 
     Column(modifier, verticalArrangement = Arrangement.spacedBy(m.rowGap)) {
-        IdentityRow(
+        IdentityCapsule(
+            modifier = Modifier.testTag(ActivationTags.MAC_CAPSULE),
             m = m,
             label = stringResource(R.string.mac_label),
             value = address ?: ADDRESS_PLACEHOLDER,
@@ -455,7 +459,8 @@ private fun IdentityZone(
         // empty slot where a credential belongs reads as a fault, so the row is
         // not composed at all rather than composed empty.
         identity.deviceKey?.let { key ->
-            IdentityRow(
+            IdentityCapsule(
+                modifier = Modifier.testTag(ActivationTags.KEY_CAPSULE),
                 m = m,
                 label = stringResource(R.string.key_label),
                 value = key,
@@ -509,7 +514,7 @@ private fun IdentityZone(
 @Composable
 private fun StatusLine(identity: ActivationIdentityState, m: Metrics) {
     val colors = CastivioTheme.colors
-    val message = statusMessage(identity)
+    val status = statusMessage(identity)
 
     Box(
         Modifier
@@ -519,7 +524,13 @@ private fun StatusLine(identity: ActivationIdentityState, m: Metrics) {
             .semantics { liveRegion = LiveRegionMode.Polite },
         contentAlignment = Alignment.CenterStart,
     ) {
-        if (message != null) {
+        if (status != null) {
+            val tone = when (status.tone) {
+                Tone.Good -> colors.success
+                Tone.Missing -> colors.warning
+                Tone.Broken -> colors.danger
+                Tone.Neutral -> colors.onBackgroundMuted
+            }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                 verticalAlignment = Alignment.CenterVertically,
@@ -528,26 +539,49 @@ private fun StatusLine(identity: ActivationIdentityState, m: Metrics) {
                     Modifier
                         .size(STATUS_DOT)
                         .clip(RoundedCornerShape(Radius.pill))
-                        .background(
-                            when (identity.refresh) {
-                                RefreshState.Error -> colors.danger
-                                RefreshState.Found -> colors.success
-                                else -> colors.onBackgroundMuted
-                            },
-                        ),
+                        .background(tone),
                 )
                 Text(
-                    text = stringResource(message),
+                    text = stringResource(status.message),
                     style = CastivioType.bodySmall,
-                    color = colors.onBackgroundVariant,
+                    // The sentence carries the tone too, not just the dot. A
+                    // six-dp circle is the whole signal otherwise, and it is the
+                    // part a colour-blind reader is least likely to get.
+                    color = if (status.tone == Tone.Neutral) colors.onBackgroundVariant else tone,
                 )
             }
         }
     }
 }
 
+/**
+ * One identifier, in a glass pill.
+ *
+ * ## Why a capsule and not the loose text it replaces
+ *
+ * The address used to sit directly on the aurora as typography, on the argument
+ * that information must never be mistaken for a control. That argument was right
+ * about the address and wrong about the group: with a copy button floating beside
+ * it and nothing tying the two together, the eye had to work out that the square
+ * belonged to the digits above it rather than to the label below.
+ *
+ * The pill states the grouping. It is a container for one fact and its one
+ * action, and it earns its keep the way the QR plate does.
+ *
+ * ## The shape
+ *
+ * `RoundedCornerShape(50)` -- a percentage, not a dp. At [CAPSULE] tall that is a
+ * true pill, and it stays a true pill if the height ever changes, which a 28dp
+ * corner would not. A capsule whose corners are nearly-but-not-quite its
+ * half-height is the detail that reads as cheap.
+ *
+ * Horizontal rather than the label-above-value it replaces, and that is also what
+ * makes the vertical budget work: 56dp instead of 69, twice, which is the 26dp
+ * the system-bar insets need. The composition did not change to make room; the
+ * grouping did, and the room came with it.
+ */
 @Composable
-private fun IdentityRow(
+private fun IdentityCapsule(
     m: Metrics,
     label: String,
     value: String,
@@ -557,35 +591,49 @@ private fun IdentityRow(
     isCopied: Boolean,
     enabled: Boolean,
     onCopy: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
-    Column(verticalArrangement = Arrangement.spacedBy(m.labelGap)) {
+    val shape = RoundedCornerShape(percent = 50)
+
+    Row(
+        modifier
+            .height(CAPSULE)
+            .clip(shape)
+            // Semi-transparent over the aurora, so the gradient shows through and
+            // the pill belongs to the background rather than sitting on it. The
+            // border is the soft token, not the loud one: at this size a strong
+            // outline turns a container into a button.
+            .background(colors.glassFill)
+            .border(BorderStroke(1.dp, colors.glassBorderSoft), shape)
+            .padding(start = m.capsuleStart, end = CAPSULE_END),
+        horizontalArrangement = Arrangement.spacedBy(m.copyGap),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Text(
             text = label,
             style = CastivioType.overline,
             color = colors.onBackgroundVariant,
         )
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(m.copyGap),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // The address is Latin and digits inside a paragraph that may run
-            // right to left. Left to inherit the paragraph, the bidi algorithm
-            // reorders its runs -- and the all-neutral placeholder is reordered
-            // outright. A licence address that reads differently in Arabic is a
-            // support case in every RTL market.
-            Text(
-                text = ltrIsolate(value),
-                style = style,
-                color = colors.onBackground,
-                maxLines = 1,
-                modifier = Modifier.clearAndSetSemantics {
-                    contentDescription = spoken ?: value
-                },
-            )
-            if (enabled) {
-                CopyControl(m = m, label = copyLabel, isCopied = isCopied, onClick = onCopy)
-            }
+
+        // The address is Latin and digits inside a paragraph that may run right
+        // to left. Left to inherit the paragraph, the bidi algorithm reorders its
+        // runs -- and the all-neutral placeholder is reordered outright. A licence
+        // address that reads differently in Arabic is a support case in every RTL
+        // market. The pill is laid out with start/end, so the capsule mirrors and
+        // the value inside it does not.
+        Text(
+            text = ltrIsolate(value),
+            style = style,
+            color = colors.onBackground,
+            maxLines = 1,
+            modifier = Modifier.clearAndSetSemantics {
+                contentDescription = spoken ?: value
+            },
+        )
+
+        if (enabled) {
+            CopyControl(label = copyLabel, isCopied = isCopied, onClick = onCopy)
         }
     }
 }
@@ -598,11 +646,11 @@ private fun IdentityRow(
  * copying the address must not clear the tick on the key.
  */
 @Composable
-private fun CopyControl(m: Metrics, label: String, isCopied: Boolean, onClick: () -> Unit) {
+private fun CopyControl(label: String, isCopied: Boolean, onClick: () -> Unit) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
     var focused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(Radius.xs)
+    val shape = RoundedCornerShape(percent = 50)
     val border by animateColorAsState(
         when {
             focused -> colors.focusRing
@@ -615,7 +663,7 @@ private fun CopyControl(m: Metrics, label: String, isCopied: Boolean, onClick: (
 
     Box(
         Modifier
-            .size(m.target)
+            .size(Sizing.minTouchTarget)
             .castivioFocusScale(Motion.focusScaleIcon, interaction)
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
             .clip(shape)
@@ -673,14 +721,52 @@ private fun CodeZone(identity: ActivationIdentityState, m: Metrics) {
 private fun refreshLabel(state: RefreshState): Int =
     if (state == RefreshState.Checking) R.string.refresh_checking else R.string.refresh
 
-private fun statusMessage(identity: ActivationIdentityState): Int? = when {
-    identity.refresh == RefreshState.Found -> R.string.refresh_found
-    identity.refresh == RefreshState.None -> R.string.refresh_none
-    identity.refresh == RefreshState.Error -> R.string.refresh_error
-    identity.lastCopied == Copied.Address -> R.string.copied_mac
-    identity.lastCopied == Copied.Key -> R.string.copied_key
-    else -> null
+/**
+ * What the reserved line says, and in which register.
+ *
+ * ## Why "nothing yet" is a warning and not an error
+ *
+ * The design system has three semantic colours and they answer different
+ * questions. `danger` means *something failed* — a refresh that could not reach
+ * anywhere is a fault, and it is red because the user needs to know the app tried
+ * and could not. `warning` means *something is missing and you can supply it*,
+ * which is exactly the state of a device with no subscription on it: nothing has
+ * broken, the screen is simply not finished being set up.
+ *
+ * Painting that red would be telling a new user their brand-new install is
+ * faulty on first launch. Painting it muted, which is what it used to be, says
+ * nothing at all — and §8 of the contract is precisely that this screen must not
+ * be ambiguous about it.
+ *
+ * So the two are kept apart, `danger` stays reserved for [RefreshState.Error],
+ * and the tone travels with the message rather than being re-derived from the
+ * refresh state at the point of drawing.
+ */
+private fun statusMessage(identity: ActivationIdentityState): Status? = when {
+    identity.refresh == RefreshState.Found -> Status(R.string.refresh_found, Tone.Good)
+
+    // Asked, and the answer was no. Same sentence and same tone as the resting
+    // state below: the user's situation is identical either way, and a colour
+    // that changed because a button had been pressed would be describing the
+    // button rather than the subscription.
+    identity.refresh == RefreshState.None -> Status(R.string.refresh_none, Tone.Missing)
+
+    identity.refresh == RefreshState.Error -> Status(R.string.refresh_error, Tone.Broken)
+
+    identity.lastCopied == Copied.Address -> Status(R.string.copied_mac, Tone.Neutral)
+    identity.lastCopied == Copied.Key -> Status(R.string.copied_key, Tone.Neutral)
+
+    // At rest, and this is the state a first launch is in. The screen is only
+    // reached when there is no usable provider -- `startDestination` sends a
+    // device that has one to Home -- so "nothing added yet" is not a guess, it is
+    // the precondition for being here at all.
+    else -> Status(R.string.refresh_none, Tone.Missing)
 }
+
+private data class Status(val message: Int, val tone: Tone)
+
+/** The four registers the one status line speaks in. */
+private enum class Tone { Neutral, Good, Missing, Broken }
 
 /** `2F:19:EB:20:44:7C` read as separated pairs rather than one long number. */
 private fun spaced(address: String): String = address.replace(":", " ")
@@ -695,6 +781,19 @@ private fun ltrIsolate(value: String): String = "⁦$value⁩"
 
 /** Shown for the instant before the identity resolves. Never a real address. */
 private const val ADDRESS_PLACEHOLDER = "··:··:··:··:··:··"
+
+/**
+ * The capsule's height, and the one number [IdentityCapsule] does not take from
+ * [Metrics].
+ *
+ * 56dp on a phone and on a television alike. A pill that changed height between
+ * the two would be a different component wearing the same name, and the 48dp
+ * copy control inside it needs 56 to sit in with room to breathe on either.
+ */
+internal val CAPSULE = 56.dp
+
+/** 4dp, so the 48dp control inside is centred against the 56dp pill's end. */
+private val CAPSULE_END = 4.dp
 
 private const val TRIAL_DAYS = 7
 private val TRIAL_DOT = 6.dp

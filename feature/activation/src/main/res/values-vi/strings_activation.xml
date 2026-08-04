@@ -28,7 +28,7 @@
     <string name="refresh_found">Đã tìm thấy gói đăng ký</string>
     <string name="refresh_none">Chưa có gói đăng ký</string>
     <string name="refresh_error">Không làm mới được — thử lại</string>
-    <string name="qr_caption">Quét để thiết lập trên điện thoại</string>
+    <string name="qr_caption">Quét mã QR để mở trang kích hoạt thiết bị</string>
     <string name="legal_player_only">Castivio chỉ là trình phát và không cung cấp gói đăng ký hay nội dung.</string>
     <string name="mac_spoken">Địa chỉ MAC %s</string>
     <string name="language">Ngôn ngữ</string>

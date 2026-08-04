@@ -1,5 +1,9 @@
 package com.castivio.feature.activation
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.view.Window
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.EnterTransition
@@ -22,6 +26,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,7 +37,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.castivio.core.common.locale.CastivioLanguage
@@ -134,6 +143,8 @@ fun ActivationRoute(
         }
     }
 
+    ImmersiveWhileVisible()
+
     val fixedViewport = isFixedViewport(state, atAddressStep = step == ActivationStep.Mac)
 
     ActivationSurface(modifier, fixedViewport = fixedViewport) {
@@ -173,6 +184,47 @@ fun ActivationRoute(
             onDismiss = { pickingLanguage = false },
         )
     }
+}
+
+/**
+ * Nothing on screen but Castivio, for as long as this screen is on it.
+ *
+ * Activation is the first thing a user sees and it is a full-frame composition:
+ * a status bar's clock and battery sitting on top of the title, and a navigation
+ * bar cutting into the QR, are somebody else's interface drawn over ours. The
+ * device review photographed both.
+ *
+ * `BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE` rather than a sticky hide: the bars
+ * come back on a swipe and go away again on their own. Hiding system UI that a
+ * user cannot retrieve is a different thing from hiding it, and the wrong one.
+ *
+ * **Restored on the way out.** `onDispose` puts the bars back, so leaving
+ * activation for the shell does not leave the rest of the app immersive. A
+ * one-way call in `onCreate` would have done half the job and been invisible
+ * until somebody wondered where the clock went.
+ *
+ * A television has no bars to hide and the controller call is a no-op there.
+ */
+@Composable
+private fun ImmersiveWhileVisible() {
+    val view = LocalView.current
+    if (view.isInEditMode) return
+    val window = (view.context.findWindow()) ?: return
+
+    DisposableEffect(window) {
+        val controller = WindowCompat.getInsetsController(window, view)
+        controller.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        controller.hide(WindowInsetsCompat.Type.systemBars())
+        onDispose { controller.show(WindowInsetsCompat.Type.systemBars()) }
+    }
+}
+
+/** The activity's window, through however many `ContextWrapper`s are in the way. */
+private tailrec fun Context.findWindow(): Window? = when (this) {
+    is Activity -> window
+    is ContextWrapper -> baseContext.findWindow()
+    else -> null
 }
 
 /**
@@ -353,17 +405,20 @@ internal fun ActivationSurface(
                 // An RTL-specific padding would be the same bug with a second
                 // way to be wrong.
                 //
-                // **Horizontal only, and that is a limitation, not a preference.**
-                // The side inset is the one the device review found and it costs
-                // this composition nothing: the band's budget is vertical. A
-                // bottom inset is a different matter -- a 24dp gesture bar takes
-                // the shortest frame from 9dp of margin to -15, and a band that
-                // does not fit is how Add playlist disappeared the first time.
-                // The vertical inset lands with the capsule work that frees the
-                // height for it; until then the top and bottom behave as they did
-                // when the composition was reviewed. `ActivationBudgetTest`
-                // records the arithmetic.
-                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
+                // Every side now, where it used to be horizontal only.
+                //
+                // The restriction was real: the shortest frame had 9dp of margin,
+                // and a 24dp gesture bar would have pushed the identity column
+                // past its band -- which does not clip or scroll, it hands zero
+                // height to Add playlist and Refresh. The capsules bought 26dp
+                // back, the budget is 35dp with the bars hidden and 11dp with one
+                // swiped back, and `ActivationBudgetTest` asserts both.
+                //
+                // The screen also runs immersive (see [ImmersiveWhileVisible]), so
+                // on a settled device these are zero. Applying them anyway is the
+                // difference between a layout that is correct and one that is
+                // correct while the system cooperates.
+                .windowInsetsPadding(WindowInsets.safeDrawing)
                 .focusRequester(focus),
         ) { content() }
         return

@@ -28,7 +28,7 @@
     <string name="refresh_found">Abonelik bulundu</string>
     <string name="refresh_none">Henüz abonelik yok</string>
     <string name="refresh_error">Yenilenemedi — tekrar deneyin</string>
-    <string name="qr_caption">Telefonunuzda kurmak için tarayın</string>
+    <string name="qr_caption">Cihaz etkinleştirme sayfasını açmak için QR kodu tarayın</string>
     <string name="legal_player_only">Castivio yalnızca bir oynatıcıdır; abonelik veya içerik sağlamaz.</string>
     <string name="mac_spoken">MAC adresi %s</string>
     <string name="language">Dil</string>

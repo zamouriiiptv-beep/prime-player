@@ -28,7 +28,7 @@
     <string name="refresh_found">Намерен е абонамент</string>
     <string name="refresh_none">Все още няма абонамент</string>
     <string name="refresh_error">Обновяването не бе успешно — опитайте отново</string>
-    <string name="qr_caption">Сканирайте, за да настроите на телефона</string>
+    <string name="qr_caption">Сканирайте QR кода, за да отворите страницата за активиране на устройството</string>
     <string name="legal_player_only">Castivio е само плейър и не предоставя абонаменти или съдържание.</string>
     <string name="mac_spoken">MAC адрес %s</string>
     <string name="language">Език</string>

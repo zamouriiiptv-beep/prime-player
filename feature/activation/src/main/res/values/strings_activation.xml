@@ -28,7 +28,7 @@
     <string name="refresh_found">Subscription found</string>
     <string name="refresh_none">No subscription yet</string>
     <string name="refresh_error">Couldn’t refresh — try again</string>
-    <string name="qr_caption">Scan to set up on your phone</string>
+    <string name="qr_caption">Scan the QR code to open your device activation page</string>
     <string name="legal_player_only">Castivio is only a player and does not provide subscriptions or content.</string>
     <string name="mac_spoken">MAC address %s</string>
     <string name="language">Language</string>

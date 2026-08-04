@@ -28,7 +28,7 @@
     <string name="refresh_found">U gjet abonim</string>
     <string name="refresh_none">Ende asnjë abonim</string>
     <string name="refresh_error">Rifreskimi dështoi — provoni sërish</string>
-    <string name="qr_caption">Skanoni për ta konfiguruar në telefon</string>
+    <string name="qr_caption">Skanoni kodin QR për të hapur faqen e aktivizimit të pajisjes</string>
     <string name="legal_player_only">Castivio është vetëm një luajtës dhe nuk ofron abonime apo përmbajtje.</string>
     <string name="mac_spoken">Adresa MAC %s</string>
     <string name="language">Gjuha</string>

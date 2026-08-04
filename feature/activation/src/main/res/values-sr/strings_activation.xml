@@ -28,7 +28,7 @@
     <string name="refresh_found">Претплата је пронађена</string>
     <string name="refresh_none">Још нема претплате</string>
     <string name="refresh_error">Освежавање није успело — покушајте поново</string>
-    <string name="qr_caption">Скенирајте да подесите на телефону</string>
+    <string name="qr_caption">Скенирајте QR кôд да отворите страницу за активацију уређаја</string>
     <string name="legal_player_only">Castivio је само плејер и не пружа претплате ни садржај.</string>
     <string name="mac_spoken">MAC адреса %s</string>
     <string name="language">Језик</string>

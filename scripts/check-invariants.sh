@@ -239,6 +239,42 @@ for qualifier in $(printf '%s\n%s\n' "$explicit" "$implicit" | sort -u); do
   fi
 done
 
+# ------------------------------------------- a translation in the wrong script
+#
+# The English screen rendered an Arabic sentence for a whole review cycle. That
+# particular cause -- :app shadowing a library string -- is checked below, but
+# the *symptom* is worth catching on its own, because there are other ways to
+# reach it: a copy-paste into the wrong file, a merge that takes the wrong side,
+# a translator handed the wrong bundle.
+#
+# Arabic script outside an Arabic-script locale is never right, and it is the one
+# leak this product has actually shipped. Cheap to check, so it is checked.
+if command -v python3 >/dev/null 2>&1; then
+  leaked=$(python3 <<'PYSCRIPT'
+import glob, io, os, re, unicodedata
+ARABIC_LOCALES = {"values-ar", "values-fa", "values-ur", "values-ps", "values-sd", "values-ug"}
+for f in sorted(glob.glob("*/*/src/main/res/values*/*.xml")):
+    d = os.path.basename(os.path.dirname(f))
+    if d in ARABIC_LOCALES:
+        continue
+    text = io.open(f, encoding="utf-8").read()
+    for m in re.finditer(r'<(string|plurals) name="([a-z_0-9]+)"[^>]*>(.*?)</\1>', text, re.S):
+        value = re.sub(r"<[^>]+>", "", m.group(3))
+        for ch in value:
+            if ch.isalpha() and unicodedata.name(ch, "").startswith("ARABIC"):
+                print("  %s: %s carries Arabic script -- %s" % (f, m.group(2), value[:48]))
+                break
+PYSCRIPT
+)
+  if [ -n "$leaked" ]; then
+    fail "A non-Arabic locale contains Arabic text" \
+         "$leaked
+
+  This is the shape of the bug the English QR caption had. Check which module
+  the string is resolving from before editing the translation."
+  fi
+fi
+
 # --------------------------------- :app must not shadow a module's user-visible string
 #
 # Resource merging lets the application module override a library module's value

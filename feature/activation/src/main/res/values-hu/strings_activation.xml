@@ -28,7 +28,7 @@
     <string name="refresh_found">Előfizetés megtalálva</string>
     <string name="refresh_none">Még nincs előfizetés</string>
     <string name="refresh_error">A frissítés nem sikerült — próbáld újra</string>
-    <string name="qr_caption">Olvasd be a telefonodon történő beállításhoz</string>
+    <string name="qr_caption">Olvassa be a QR-kódot az eszköz aktiválási oldalának megnyitásához</string>
     <string name="legal_player_only">A Castivio csak egy lejátszó, nem nyújt előfizetést vagy tartalmat.</string>
     <string name="mac_spoken">MAC-cím %s</string>
     <string name="language">Nyelv</string>

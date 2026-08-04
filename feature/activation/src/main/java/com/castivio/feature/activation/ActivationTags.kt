@@ -15,6 +15,16 @@ internal object ActivationTags {
     /** The middle band. The one that vanished. */
     const val FIELD = "activation.field"
     const val IDENTITY = "activation.identity"
+
+    /**
+     * The two glass pills.
+     *
+     * Tagged so the placement gate can require each to be present and measurable
+     * -- a capsule is a declared height, so unlike the text inside it this is a
+     * claim Robolectric can actually answer.
+     */
+    const val MAC_CAPSULE = "activation.macCapsule"
+    const val KEY_CAPSULE = "activation.keyCapsule"
     const val CODE_ZONE = "activation.codeZone"
     const val QR = "activation.qr"
 

@@ -28,7 +28,7 @@
     <string name="refresh_found">سبسکرپشن مل گئی</string>
     <string name="refresh_none">ابھی کوئی سبسکرپشن نہیں</string>
     <string name="refresh_error">تازہ نہیں ہو سکا — دوبارہ کوشش کریں</string>
-    <string name="qr_caption">فون پر سیٹ اپ کے لیے اسکین کریں</string>
+    <string name="qr_caption">ڈیوائس ایکٹیویشن پیج کھولنے کے لیے QR کوڈ اسکین کریں</string>
     <string name="legal_player_only">Castivio صرف ایک پلیئر ہے اور سبسکرپشن یا مواد فراہم نہیں کرتا۔</string>
     <string name="mac_spoken">MAC پتہ %s</string>
     <string name="language">زبان</string>

@@ -28,7 +28,7 @@
     <string name="refresh_found">Znaleziono subskrypcję</string>
     <string name="refresh_none">Nie ma jeszcze subskrypcji</string>
     <string name="refresh_error">Nie udało się odświeżyć — spróbuj ponownie</string>
-    <string name="qr_caption">Zeskanuj, aby skonfigurować na telefonie</string>
+    <string name="qr_caption">Zeskanuj kod QR, aby otworzyć stronę aktywacji urządzenia</string>
     <string name="legal_player_only">Castivio jest wyłącznie odtwarzaczem i nie zapewnia subskrypcji ani treści.</string>
     <string name="mac_spoken">Adres MAC %s</string>
     <string name="language">Język</string>

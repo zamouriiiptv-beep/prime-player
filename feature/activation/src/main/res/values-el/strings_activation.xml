@@ -28,7 +28,7 @@
     <string name="refresh_found">Βρέθηκε συνδρομή</string>
     <string name="refresh_none">Δεν υπάρχει ακόμη συνδρομή</string>
     <string name="refresh_error">Η ανανέωση απέτυχε — δοκιμάστε ξανά</string>
-    <string name="qr_caption">Σαρώστε για ρύθμιση στο κινητό</string>
+    <string name="qr_caption">Σαρώστε τον κωδικό QR για να ανοίξετε τη σελίδα ενεργοποίησης της συσκευής</string>
     <string name="legal_player_only">Το Castivio είναι μόνο πρόγραμμα αναπαραγωγής και δεν παρέχει συνδρομές ή περιεχόμενο.</string>
     <string name="mac_spoken">Διεύθυνση MAC %s</string>
     <string name="language">Γλώσσα</string>

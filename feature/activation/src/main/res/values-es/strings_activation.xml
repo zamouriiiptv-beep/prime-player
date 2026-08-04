@@ -28,7 +28,7 @@
     <string name="refresh_found">Suscripción encontrada</string>
     <string name="refresh_none">Todavía no hay suscripción</string>
     <string name="refresh_error">No se pudo actualizar — inténtalo de nuevo</string>
-    <string name="qr_caption">Escanea para configurarlo en tu móvil</string>
+    <string name="qr_caption">Escanea el código QR para abrir la página de activación del dispositivo</string>
     <string name="legal_player_only">Castivio es solo un reproductor y no proporciona suscripciones ni contenidos.</string>
     <string name="mac_spoken">Dirección MAC %s</string>
     <string name="language">Idioma</string>

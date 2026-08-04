@@ -28,7 +28,7 @@
     <string name="refresh_found">Abonnement trouvé</string>
     <string name="refresh_none">Aucun abonnement pour l’instant</string>
     <string name="refresh_error">Échec de l’actualisation — réessayez</string>
-    <string name="qr_caption">Scannez pour configurer sur votre téléphone</string>
+    <string name="qr_caption">Scannez le QR code pour ouvrir la page d’activation de l’appareil</string>
     <string name="legal_player_only">Castivio est uniquement un lecteur et ne fournit ni abonnements ni contenus.</string>
     <string name="mac_spoken">Adresse MAC %s</string>
     <string name="language">Langue</string>

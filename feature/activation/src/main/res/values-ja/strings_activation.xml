@@ -28,7 +28,7 @@
     <string name="refresh_found">サブスクリプションが見つかりました</string>
     <string name="refresh_none">サブスクリプションはまだありません</string>
     <string name="refresh_error">更新できませんでした — もう一度お試しください</string>
-    <string name="qr_caption">スキャンしてスマートフォンで設定</string>
+    <string name="qr_caption">QR コードをスキャンして、この端末のアクティベーションページを開きます</string>
     <string name="legal_player_only">Castivio はプレーヤーのみを提供し、サブスクリプションやコンテンツは提供しません。</string>
     <string name="mac_spoken">MAC アドレス %s</string>
     <string name="language">言語</string>

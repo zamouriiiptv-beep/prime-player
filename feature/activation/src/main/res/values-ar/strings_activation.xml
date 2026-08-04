@@ -28,7 +28,7 @@
     <string name="refresh_found">تم العثور على اشتراك</string>
     <string name="refresh_none">لا يوجد اشتراك بعد</string>
     <string name="refresh_error">تعذر التحديث — أعد المحاولة</string>
-    <string name="qr_caption">امسح الرمز للإعداد على هاتفك</string>
+    <string name="qr_caption">امسح رمز QR لفتح صفحة تفعيل جهازك</string>
     <string name="legal_player_only">Castivio مشغّل فقط ولا يوفّر اشتراكات أو محتوى.</string>
     <string name="mac_spoken">عنوان MAC %s</string>
     <string name="language">اللغة</string>

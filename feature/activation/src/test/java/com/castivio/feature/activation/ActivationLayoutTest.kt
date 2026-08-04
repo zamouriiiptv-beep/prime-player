@@ -348,6 +348,8 @@ private fun ComposeContentTestRule.assertActivationIsWhole() {
     println(
         "activation inside — identity ${size(ActivationTags.IDENTITY)} | " +
             "code ${size(ActivationTags.CODE_ZONE)} | " +
+            "mac ${size(ActivationTags.MAC_CAPSULE)} | " +
+            "key ${size(ActivationTags.KEY_CAPSULE)} | " +
             "actions ${size(ActivationTags.ACTIONS)} | " +
             "status ${size(ActivationTags.STATUS)} | " +
             "qr ${size(ActivationTags.QR)}",
@@ -355,7 +357,7 @@ private fun ComposeContentTestRule.assertActivationIsWhole() {
     println(
         "activation text — title ${textSize("Add your subscription")} | " +
             "legal ${textSize("Castivio is only a player")} | " +
-            "caption ${textSize("Scan to set up on your phone")}",
+            "caption ${textSize("Scan the QR code to open your device activation page")}",
     )
 
     // The three bands first. A band with no height is the failure this file
@@ -364,6 +366,13 @@ private fun ComposeContentTestRule.assertActivationIsWhole() {
     byTag("the field band", ActivationTags.FIELD, min = 150.dp)
     byTag("the identity zone", ActivationTags.IDENTITY, min = 100.dp)
     byTag("the code zone", ActivationTags.CODE_ZONE, min = 100.dp)
+
+    // The two pills, at their declared height. This is one of the few sizes this
+    // harness can be trusted on: a capsule is `Modifier.height(CAPSULE)`, not a
+    // line of text, so 56 here means 56 on a device. A pill that came back short
+    // would mean the band squeezed it, which is the failure this file is for.
+    byTag("the MAC capsule", ActivationTags.MAC_CAPSULE, min = CAPSULE)
+    byTag("the device key capsule", ActivationTags.KEY_CAPSULE, min = CAPSULE)
 
     byText("the title", "Add your subscription")
     byText("the trial name", "Castivio trial")
@@ -410,7 +419,7 @@ private fun ComposeContentTestRule.assertActivationIsWhole() {
     check("the reserved status line") { onNodeWithTag(ActivationTags.STATUS).assertExists() }
 
     byTag("the QR fixture", ActivationTags.QR, min = 100.dp)
-    byText("the QR caption", "Scan to set up on your phone")
+    byText("the QR caption", "Scan the QR code to open your device activation page")
 
     byText("the legal line", "Castivio is only a player")
 

@@ -28,7 +28,7 @@
     <string name="refresh_found">Abonnement gevonden</string>
     <string name="refresh_none">Nog geen abonnement</string>
     <string name="refresh_error">Vernieuwen mislukt — probeer opnieuw</string>
-    <string name="qr_caption">Scan om in te stellen op je telefoon</string>
+    <string name="qr_caption">Scan de QR-code om de activeringspagina van het apparaat te openen</string>
     <string name="legal_player_only">Castivio is alleen een speler en levert geen abonnementen of content.</string>
     <string name="mac_spoken">MAC-adres %s</string>
     <string name="language">Taal</string>

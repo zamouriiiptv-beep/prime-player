@@ -28,7 +28,7 @@
     <string name="refresh_found">Predplatné nájdené</string>
     <string name="refresh_none">Zatiaľ žiadne predplatné</string>
     <string name="refresh_error">Obnovenie zlyhalo — skúste to znova</string>
-    <string name="qr_caption">Naskenujte a nastavte v telefóne</string>
+    <string name="qr_caption">Naskenujte QR kód a otvorte aktivačnú stránku zariadenia</string>
     <string name="legal_player_only">Castivio je len prehrávač a neposkytuje predplatné ani obsah.</string>
     <string name="mac_spoken">MAC adresa %s</string>
     <string name="language">Jazyk</string>
