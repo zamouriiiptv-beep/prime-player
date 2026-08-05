@@ -165,7 +165,22 @@ private fun everyEntitlement(): List<Pair<String, EntitlementState>> = listOf(
     "Trial · 3 days left" to EntitlementState.TrialActive(expiresAtMs = 0, daysRemaining = 3),
     "Trial · 1 day left" to EntitlementState.TrialActive(expiresAtMs = 0, daysRemaining = 1),
     "Trial ended" to EntitlementState.TrialExpired,
-    "Annual · active" to EntitlementState.AnnualActive(expiresAtMs = 0, daysRemaining = 200),
+    // A real instant, and one that agrees with the day count beside it.
+    //
+    // This was `expiresAtMs = 0` and it hid a feature. The screen draws the
+    // expiry date only for an active annual licence and only when the timestamp
+    // is a real one -- zero is the epoch, and "Valid until 1 Jan 1970" is worse
+    // than no line at all. So the guard was right and the fixture was wrong, and
+    // the effect was that the one state with a date was the one state on the
+    // board that could never show it.
+    //
+    // The other fixtures keep their zeros because nothing renders their
+    // timestamps: a trial shows a day count, and the expired, revoked and
+    // unavailable states show no date by design.
+    "Annual · active" to EntitlementState.AnnualActive(
+        expiresAtMs = System.currentTimeMillis() + ANNUAL_FIXTURE_DAYS * DAY_MS,
+        daysRemaining = ANNUAL_FIXTURE_DAYS.toInt(),
+    ),
     "Annual · expired" to EntitlementState.AnnualExpired,
     "Lifetime" to EntitlementState.Lifetime,
     "No licence yet" to EntitlementState.Unknown,
@@ -180,5 +195,9 @@ private fun everyEntitlement(): List<Pair<String, EntitlementState>> = listOf(
         EntitlementState.ServiceUnavailable(ServiceFault.STORAGE_UNREADABLE),
     "Revoked" to EntitlementState.Revoked(revokedAtMs = 0),
 )
+
+/** Two hundred days out, so the date on screen is always plausibly in future. */
+private const val ANNUAL_FIXTURE_DAYS = 200L
+private const val DAY_MS = 86_400_000L
 
 internal const val DEBUG_TAG = "debug.entry"

@@ -63,7 +63,7 @@ class LicencePolishTest {
      */
     @Test
     fun `an active annual licence is shown no prices`() {
-        show(EntitlementState.AnnualActive(expiresAtMs = 0, daysRemaining = 200))
+        show(EntitlementState.AnnualActive(expiresAtMs = EXPIRY_MS, daysRemaining = 200))
 
         for (offer in PricingDefaults.config.purchasable) {
             assertEquals(
@@ -99,6 +99,22 @@ class LicencePolishTest {
     }
 
     // -- The expiry date ----------------------------------------------------
+
+    /**
+     * A zero timestamp draws no date, and that guard is deliberate.
+     *
+     * Zero is the epoch, and "Valid until 1 Jan 1970" in front of a paying
+     * customer is worse than a missing line. The guard was right; what was wrong
+     * was the debug state board's own fixture, which used zero and so made the
+     * one state with a date the one state on the board that could never show
+     * it. Pinned here because a fixture is exactly the kind of thing that gets
+     * quietly reset.
+     */
+    @Test
+    fun `an epoch timestamp is not drawn as a date`() {
+        show(EntitlementState.AnnualActive(expiresAtMs = 0, daysRemaining = 200))
+        assertEquals("1 Jan 1970 is on screen", 0, nodes(LicenceTags.EXPIRY))
+    }
 
     /**
      * An active annual licence says when it runs out; nothing else does.
