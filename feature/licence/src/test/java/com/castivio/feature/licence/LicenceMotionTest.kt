@@ -154,10 +154,17 @@ class LicenceMotionTest {
             null,
             fadeKey(base.copy(licence = EntitlementState.Lifetime))?.expiresAtMs,
         )
+        // Boxed on both sides, explicitly. `assertEquals(String, long, long)`
+        // and `assertEquals(String, Object, Object)` both look applicable when
+        // one argument is a `Long?`, and which one Kotlin picks is not worth
+        // finding out from a seven-minute CI round trip.
+        val expiry: Long? = fadeKey(
+            base.copy(licence = EntitlementState.AnnualActive(EXPIRES, 200)),
+        )?.expiresAtMs
         assertEquals(
             "an active annual licence lost its expiry on the way into the key",
-            EXPIRES,
-            fadeKey(base.copy(licence = EntitlementState.AnnualActive(EXPIRES, 200)))?.expiresAtMs,
+            EXPIRES as Long?,
+            expiry,
         )
     }
 
