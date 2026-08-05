@@ -55,6 +55,55 @@ object AppLocale {
         return ContextWrapper(base.createConfigurationContext(configuration))
     }
 
+    /**
+     * The same language, applied to a context that is still *this activity*.
+     *
+     * ## The bug this exists to prevent, which shipped once
+     *
+     * [wrap] ends in `createConfigurationContext`, and that returns a **fresh
+     * `ContextImpl`** — not a wrapper around what it was called on. Everything
+     * about resources is right and everything about identity is gone: the
+     * activity is no longer anywhere in the resulting chain.
+     *
+     * That is correct in `attachBaseContext`, where there is no activity yet and
+     * a `ContextImpl` is precisely what is wanted. It is fatal as a value for
+     * `LocalContext`. `hiltViewModel()` reads `LocalContext.current` and walks
+     * `baseContext` looking for an `Activity`; finding a bare `ContextImpl` it
+     * throws `IllegalStateException: Expected an activity context for creating a
+     * HiltViewModelFactory`. Every `hiltViewModel()` call in the tree throws, the
+     * first composition never completes, and the process dies before its first
+     * frame — which on a device looks like the splash appearing for a second and
+     * the launcher coming back.
+     *
+     * ## So the wrapping goes the other way round
+     *
+     * The activity is the base, so the chain still ends at it and anything
+     * looking for one finds one. Only [getResources] and [getAssets] are
+     * answered from the localised context, which is the entire reason the
+     * composition wanted a different context in the first place —
+     * `stringResource` reads `LocalContext.current.resources`.
+     *
+     * The theme is deliberately not overridden: it comes from the activity, as
+     * it did before, so nothing about how the window is styled depends on which
+     * language is showing.
+     */
+    fun localise(activity: android.app.Activity, resolved: ResolvedLocale): Context =
+        ActivityLocale(activity, wrap(activity, resolved))
+
+    /**
+     * An activity, seen through another language's resources.
+     *
+     * Small on purpose. Every call that is not about reading a string or an asset
+     * falls through to the activity untouched.
+     */
+    private class ActivityLocale(
+        activity: android.app.Activity,
+        private val localised: Context,
+    ) : ContextWrapper(activity) {
+        override fun getResources(): android.content.res.Resources = localised.resources
+        override fun getAssets(): android.content.res.AssetManager = localised.assets
+    }
+
     /** The rule in §10.6, with the device read through the platform adapter. */
     fun resolve(stored: String?, context: Context): ResolvedLocale =
         LanguagePolicy.resolve(stored, SystemLocales.of(context))

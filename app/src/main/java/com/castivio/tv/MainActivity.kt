@@ -124,8 +124,11 @@ class MainActivity : ComponentActivity() {
             // and `stringResource` re-reads. `LocalConfiguration` is what makes
             // that happen -- Compose's resource readers observe it, so providing a
             // new context without it would leave the old strings cached.
+            // `localise`, not `wrap`. The difference is which end of the chain the
+            // activity is on, and it is the difference between an app that starts
+            // and one that does not -- see `AppLocale.localise`.
             val resolved = locale.current
-            val localised = remember(resolved.tag) { AppLocale.wrap(this, resolved) }
+            val localised = remember(resolved.tag) { AppLocale.localise(this, resolved) }
             val configuration = remember(resolved.tag) { localised.resources.configuration }
 
             CompositionLocalProvider(
