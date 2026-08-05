@@ -8,6 +8,21 @@ plugins {
 
 android {
     namespace = "com.castivio.tv"
+
+    testOptions {
+        // The startup gate resolves real strings from the real table and builds
+        // the real Hilt graph, so it needs the compiled resources on the JVM.
+        unitTests.isIncludeAndroidResources = true
+        unitTests.all {
+            // A stack trace in an HTML report nobody on a CI runner can open is
+            // a stack trace nobody reads. This one matters more than most.
+            it.testLogging {
+                events("failed")
+                showStandardStreams = true
+                exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+            }
+        }
+    }
     compileSdk = 34
 
     defaultConfig {
@@ -76,5 +91,15 @@ dependencies {
     ksp(libs.hilt.compiler)
 
     implementation(libs.coroutines.android)
+
+    // The startup gate needs the real activity, the real Hilt graph and real
+    // resources. Nothing in this repository has ever composed MainActivity, and
+    // a regression that killed the app before its first frame reached a device
+    // with every other gate green -- because every other gate tests a screen in
+    // isolation, and no screen is the thing that starts.
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(platform(libs.compose.bom))
+    testImplementation(libs.compose.ui.test.junit4)
+    debugImplementation(libs.compose.ui.test.manifest)
 }
