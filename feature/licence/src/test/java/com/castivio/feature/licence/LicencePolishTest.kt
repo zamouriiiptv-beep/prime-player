@@ -138,15 +138,24 @@ class LicencePolishTest {
      * The clock is driven by hand: with `autoAdvance` on, every frame of the
      * animation is skipped and the test would pass against an instant swap,
      * which is the thing it exists to tell apart.
+     *
+     * The order below is the whole trick and the first version of it was wrong.
+     * The composition is settled *before* the clock is frozen; the state is then
+     * written on the UI thread, and one frame is pumped to compose the new
+     * target and start the animation. Freezing first and writing from the test
+     * thread produced a tree that had never recomposed, and three tests that
+     * failed saying the incoming chip was missing when nothing had asked for it
+     * yet.
      */
     @Test
     fun `the condition fades when the licence changes`() {
         val ui = mutableStateOf(uiFor(EntitlementState.TrialActive(0, 3)))
-        compose.mainClock.autoAdvance = false
         compose.setContent { Harness(ui, MotionLevel.FULL) }
-        compose.mainClock.advanceTimeBy(1_000)
+        compose.waitForIdle()
+        compose.mainClock.autoAdvance = false
 
-        ui.value = uiFor(EntitlementState.Lifetime)
+        compose.runOnUiThread { ui.value = uiFor(EntitlementState.Lifetime) }
+        compose.mainClock.advanceTimeByFrame()
         compose.mainClock.advanceTimeBy(FADE_MIDWAY)
 
         assertEquals(
@@ -173,12 +182,12 @@ class LicencePolishTest {
     @Test
     fun `the condition is swapped instantly when motion is off`() {
         val ui = mutableStateOf(uiFor(EntitlementState.TrialActive(0, 3)))
-        compose.mainClock.autoAdvance = false
         compose.setContent { Harness(ui, MotionLevel.DISABLED) }
-        compose.mainClock.advanceTimeBy(1_000)
+        compose.waitForIdle()
+        compose.mainClock.autoAdvance = false
 
-        ui.value = uiFor(EntitlementState.Lifetime)
-        compose.mainClock.advanceTimeBy(FRAME)
+        compose.runOnUiThread { ui.value = uiFor(EntitlementState.Lifetime) }
+        compose.mainClock.advanceTimeByFrame()
 
         assertEquals(
             "motion is disabled and the old condition is still being drawn",
@@ -199,12 +208,12 @@ class LicencePolishTest {
     @Test
     fun `a copy confirmation is not faded`() {
         val ui = mutableStateOf(uiFor(EntitlementState.Unknown))
-        compose.mainClock.autoAdvance = false
         compose.setContent { Harness(ui, MotionLevel.FULL) }
-        compose.mainClock.advanceTimeBy(1_000)
+        compose.waitForIdle()
+        compose.mainClock.autoAdvance = false
 
-        ui.value = ui.value.copy(lastCopied = Copied.Address)
-        compose.mainClock.advanceTimeBy(FRAME)
+        compose.runOnUiThread { ui.value = ui.value.copy(lastCopied = Copied.Address) }
+        compose.mainClock.advanceTimeByFrame()
 
         assertEquals(
             "the copy confirmation was animated in rather than answering the press",
@@ -276,6 +285,3 @@ private const val FADE_MIDWAY = 110L
 
 /** Comfortably past the end of it. */
 private const val FADE_OVER = 400L
-
-/** One frame at 60Hz, which is "immediately" as far as a test can see. */
-private const val FRAME = 17L

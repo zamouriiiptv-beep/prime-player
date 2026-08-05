@@ -224,11 +224,33 @@ private fun LegalFooter(m: LicenceMetrics, onOpen: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     val open = stringResource(R.string.licence_legal_open)
 
+    // Fill and ink together, because neither is enough on its own.
+    //
+    // A focus *ring* is out: a hairline rectangle across the full width of the
+    // screen reads as a border on the design rather than a state of a control.
+    // A change of ink alone was the first attempt and is too quiet at three
+    // metres, which is exactly where it matters. So the strip takes the same
+    // glass fill every other focusable surface in Castivio uses, at the same
+    // pill radius, and the sentence brightens inside it. Both animate on the
+    // shared focus spec, so this control agrees with the language chip beside it.
+    val fill by animateColorAsState(
+        if (focused) colors.glassFill else Color.Transparent,
+        Motion.focusSpec(),
+        label = "licenceLegalFill",
+    )
+    val ink by animateColorAsState(
+        if (focused) colors.onBackground else colors.onBackgroundMuted,
+        Motion.focusSpec(),
+        label = "licenceLegalInk",
+    )
+
     Box(
         Modifier
             .fillMaxWidth()
             .testTag(LicenceTags.FOOTER)
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
+            .clip(RoundedCornerShape(Radius.pill))
+            .background(fill)
             .clickable(interaction, indication = null, onClick = onOpen)
             .semantics { contentDescription = open; role = Role.Button }
             .padding(top = m.footTop, bottom = m.footBottom),
@@ -237,10 +259,7 @@ private fun LegalFooter(m: LicenceMetrics, onOpen: () -> Unit) {
         Text(
             text = stringResource(R.string.licence_legal),
             style = CastivioType.bodySmall,
-            // Brighter when the remote is on it. A focus ring around a full-width
-            // line would draw a box across the bottom of the screen; a change of
-            // ink says the same thing without adding a shape to the design.
-            color = if (focused) colors.onBackgroundVariant else colors.onBackgroundMuted,
+            color = ink,
             textAlign = TextAlign.Center,
         )
     }
