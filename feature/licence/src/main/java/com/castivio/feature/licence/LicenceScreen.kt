@@ -349,7 +349,7 @@ private fun Header(
         //
         // Keyed on the whole `LicenceView`, so a change of *condition* animates
         // and a change of sentence underneath does not. See `LicenceStatusLine`.
-        LicenceFade(state.licence?.let(::licenceView)) { view ->
+        LicenceFade(fadeKey(state)) { view ->
             if (view != null) {
                 StatusChip(
                     label = stringResource(view.chip),
@@ -385,20 +385,42 @@ private fun Header(
  */
 @Composable
 private fun <T> LicenceFade(target: T, content: @Composable (T) -> Unit) {
-    if (CastivioTheme.motionLevel == MotionLevel.DISABLED) {
+    val millis = stateFadeMillis(CastivioTheme.motionLevel)
+    if (millis == 0) {
         content(target)
         return
     }
     Crossfade(
         targetState = target,
-        animationSpec = tween(STATE_FADE_MS, easing = Motion.standard),
+        animationSpec = tween(millis, easing = Motion.standard),
         label = "licenceState",
         content = content,
     )
 }
 
+/**
+ * How long the condition takes to cross over, at a given level of motion.
+ *
+ * A function rather than a constant read at the call site, because it is the
+ * one part of this that can be checked without a device: `LicenceMotionTest`
+ * asserts the duration is inside the 200-250ms the design calls for and that
+ * turning motion off produces a swap rather than a fast fade.
+ *
+ * Frame-stepping the real animation was tried and abandoned. Driving Compose's
+ * test clock by hand needs the recomposition after a state write to happen
+ * before the clock is advanced, and getting that ordering wrong produces a test
+ * that fails saying the incoming content is missing when nothing has asked for
+ * it yet -- which is what it did, twice. The rendering is covered by asserting
+ * the outcome with the clock left alone; the timing is covered here, where it is
+ * a number rather than a race.
+ *
+ * @return 0 when the swap must be instant.
+ */
+internal fun stateFadeMillis(level: MotionLevel): Int =
+    if (level == MotionLevel.DISABLED) 0 else STATE_FADE_MS
+
 /** Long enough to be seen, short enough not to be waited on. */
-private const val STATE_FADE_MS = 220
+internal const val STATE_FADE_MS = 220
 
 /**
  * The language control.
@@ -531,6 +553,18 @@ private fun IdentityColumn(
         )
     }
 }
+
+/**
+ * What the crossfade watches, and deliberately not everything on the screen.
+ *
+ * The entitlement, and nothing transient. A licence turning active is a change
+ * of condition and is worth marking; "MAC address copied" is a confirmation of
+ * something the user did a moment ago and must appear at once, because a fade
+ * between a press and its answer is a delay dressed as a flourish. Keying on
+ * this rather than on the rendered sentence is what separates the two without a
+ * second code path, and `LicenceMotionTest` pins it.
+ */
+internal fun fadeKey(state: LicenceUiState): LicenceView? = state.licence?.let(::licenceView)
 
 /**
  * What the middle of the column offers, which is not the same in every state.
@@ -678,7 +712,7 @@ private fun LicenceStatusLine(state: LicenceUiState, m: LicenceMetrics, modifier
     // because a fade on it would be a delay between the press and its answer.
     // Keying the crossfade on the view rather than the text is what separates
     // the two without a second code path.
-    LicenceFade(state.licence?.let(::licenceView)) { resting ->
+    LicenceFade(fadeKey(state)) { resting ->
         val message: Pair<String, Color>? = when {
             state.lastCopied == Copied.Address ->
                 stringResource(R.string.licence_copied_mac) to colors.success

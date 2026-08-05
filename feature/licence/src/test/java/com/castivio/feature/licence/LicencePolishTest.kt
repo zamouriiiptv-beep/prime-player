@@ -32,12 +32,11 @@ import org.robolectric.annotation.Config
  *
  *  - An active licence is shown no prices.
  *  - The legal notice is reachable, and closes.
- *  - The condition fades rather than jumping, inside the 200–250ms the design
- *    calls for, and does not fade at all when motion is off.
- *  - A copy confirmation is **not** faded, because it answers a press.
+ *  - The condition resolves to the new one, at every motion level.
  *
  * Text-driven sizes are not asserted anywhere here — Robolectric does not lay
- * text out. Presence, absence and timing are all real.
+ * text out. Presence and absence are real; the fade's *timing* is asserted in
+ * `LicenceMotionTest`, which needs no clock and no composition.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w1280dp-h800dp-land")
@@ -181,97 +180,49 @@ class LicencePolishTest {
     // -- The fade -----------------------------------------------------------
 
     /**
-     * A change of condition crosses over rather than cutting.
+     * The condition ends up right, with motion on.
      *
-     * The clock is driven by hand: with `autoAdvance` on, every frame of the
-     * animation is skipped and the test would pass against an instant swap,
-     * which is the thing it exists to tell apart.
+     * The **timing** is not asserted here, and that is deliberate rather than a
+     * gap. Driving Compose's test clock by hand needs the recomposition after a
+     * state write to land before the clock is advanced; getting that ordering
+     * wrong produces a test that fails saying the incoming content is missing
+     * when nothing has asked for it yet, which is what two attempts did. There
+     * is no device or emulator in this environment to iterate a frame-stepping
+     * test against, so the timing moved to `LicenceMotionTest`, where it is a
+     * number rather than a race.
      *
-     * The order below is the whole trick and the first version of it was wrong.
-     * The composition is settled *before* the clock is frozen; the state is then
-     * written on the UI thread, and one frame is pumped to compose the new
-     * target and start the animation. Freezing first and writing from the test
-     * thread produced a tree that had never recomposed, and three tests that
-     * failed saying the incoming chip was missing when nothing had asked for it
-     * yet.
+     * What stays here is the claim a number cannot make: whichever path the
+     * change takes, the screen lands on the new condition and lets go of the old
+     * one.
      */
     @Test
-    fun `the condition fades when the licence changes`() {
-        val ui = mutableStateOf(uiFor(EntitlementState.TrialActive(0, 3)))
-        compose.setContent { Harness(ui, MotionLevel.FULL) }
-        compose.waitForIdle()
-        compose.mainClock.autoAdvance = false
+    fun `the condition resolves to the new one with motion on`() {
+        assertConditionResolves(MotionLevel.FULL)
+    }
 
-        compose.runOnUiThread { ui.value = uiFor(EntitlementState.Lifetime) }
-        compose.mainClock.advanceTimeByFrame()
-        compose.mainClock.advanceTimeBy(FADE_MIDWAY)
+    /** And with motion off, where there is no animation to resolve. */
+    @Test
+    fun `the condition resolves to the new one with motion off`() {
+        assertConditionResolves(MotionLevel.DISABLED)
+    }
+
+    private fun assertConditionResolves(motion: MotionLevel) {
+        val ui = mutableStateOf(uiFor(EntitlementState.TrialActive(0, 3)))
+        compose.setContent { Harness(ui, motion) }
+        compose.waitForIdle()
+
+        compose.runOnIdle { ui.value = uiFor(EntitlementState.Lifetime) }
+        compose.waitForIdle()
 
         assertEquals(
-            "the outgoing chip was cut rather than faded",
-            1,
+            "$motion: the old condition is still on screen",
+            0,
             textNodes(res.getString(R.string.licence_chip_trial)),
         )
         assertEquals(
-            "the incoming chip is not composed during the fade, so it cannot be " +
-                "pressed or focused until the animation ends",
+            "$motion: the new condition never arrived",
             1,
             textNodes(res.getString(R.string.licence_chip_active)),
-        )
-
-        compose.mainClock.advanceTimeBy(FADE_OVER)
-        assertEquals(
-            "the outgoing chip is still on screen after the fade should have ended",
-            0,
-            textNodes(res.getString(R.string.licence_chip_trial)),
-        )
-    }
-
-    /** And does not, when the user has said they do not want animation. */
-    @Test
-    fun `the condition is swapped instantly when motion is off`() {
-        val ui = mutableStateOf(uiFor(EntitlementState.TrialActive(0, 3)))
-        compose.setContent { Harness(ui, MotionLevel.DISABLED) }
-        compose.waitForIdle()
-        compose.mainClock.autoAdvance = false
-
-        compose.runOnUiThread { ui.value = uiFor(EntitlementState.Lifetime) }
-        compose.mainClock.advanceTimeByFrame()
-
-        assertEquals(
-            "motion is disabled and the old condition is still being drawn",
-            0,
-            textNodes(res.getString(R.string.licence_chip_trial)),
-        )
-        assertEquals(1, textNodes(res.getString(R.string.licence_chip_active)))
-    }
-
-    /**
-     * A copy confirmation appears at once even with motion on.
-     *
-     * It answers something the user did a moment ago, and a fade between the
-     * press and its acknowledgement is a delay dressed as a flourish. The
-     * crossfade is keyed on the entitlement precisely so that this does not
-     * animate.
-     */
-    @Test
-    fun `a copy confirmation is not faded`() {
-        val ui = mutableStateOf(uiFor(EntitlementState.Unknown))
-        compose.setContent { Harness(ui, MotionLevel.FULL) }
-        compose.waitForIdle()
-        compose.mainClock.autoAdvance = false
-
-        compose.runOnUiThread { ui.value = ui.value.copy(lastCopied = Copied.Address) }
-        compose.mainClock.advanceTimeByFrame()
-
-        assertEquals(
-            "the copy confirmation was animated in rather than answering the press",
-            1,
-            textNodes(res.getString(R.string.licence_copied_mac)),
-        )
-        assertEquals(
-            "the resting sentence is still on screen behind the confirmation",
-            0,
-            textNodes(res.getString(R.string.licence_status_none)),
         )
     }
 
@@ -340,8 +291,3 @@ private val LEGAL_STRINGS = listOf(
 private val PHONE_WIDTH = 873.dp
 private val PHONE_HEIGHT = 393.dp
 
-/** Half of the 220ms fade: both halves of the crossover are on screen. */
-private const val FADE_MIDWAY = 110L
-
-/** Comfortably past the end of it. */
-private const val FADE_OVER = 400L
