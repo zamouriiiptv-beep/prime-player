@@ -35,27 +35,30 @@
     <string name="licence_chip_verify">যাচাই প্রয়োজন</string>
     <string name="licence_chip_unavailable">অনুপলব্ধ</string>
     <string name="licence_chip_unreadable">লাইসেন্স পড়া যাচ্ছে না</string>
-    <string name="licence_chip_revoked">লাইসেন্স প্রত্যাহৃত</string>
-    <string name="licence_status_trial">ট্রায়াল শেষ হওয়ার আগে যেকোনো সময় লাইসেন্স বেছে নিন।</string>
-    <string name="licence_status_active">আপনার লাইসেন্স সক্রিয়।</string>
+    <string name="licence_chip_revoked">লাইসেন্স বাতিল</string>
+    <string name="licence_status_active">আপনার Castivio লাইসেন্স সক্রিয়।</string>
     <string name="licence_status_lifetime">এই ডিভাইসে Castivio আপনার নিজের।</string>
     <string name="licence_status_trial_ended">আপনার ট্রায়াল শেষ হয়েছে। চালিয়ে যেতে লাইসেন্স বেছে নিন।</string>
     <string name="licence_status_expired">আপনার লাইসেন্সের মেয়াদ শেষ। চালিয়ে যেতে লাইসেন্স বেছে নিন।</string>
-    <string name="licence_status_none">এই ডিভাইসে এখনও কোনও Castivio লাইসেন্স নেই।</string>
-    <string name="licence_status_verify">Castivio সম্প্রতি এই লাইসেন্স যাচাই করতে পারেনি।</string>
-    <string name="licence_status_unavailable">Castivio এখন লাইসেন্স যাচাই করতে পারছে না। এটি আমাদের সমস্যা, আপনার নয়।</string>
-    <string name="licence_status_unreadable">এই ডিভাইসের লাইসেন্স পড়া যাচ্ছে না। আপনার ডিভাইস কী নিয়ে সহায়তায় যোগাযোগ করুন।</string>
-    <string name="licence_status_revoked">এই লাইসেন্স প্রত্যাহার করা হয়েছে। আপনার ডিভাইস কী নিয়ে সহায়তায় যোগাযোগ করুন।</string>
+    <string name="licence_status_none">এই ডিভাইসের জন্য কোনো লাইসেন্স পাওয়া যায়নি।</string>
+    <string name="licence_status_verify">অ্যাক্টিভেশন চালিয়ে যাওয়ার আগে লাইসেন্স যাচাই করা প্রয়োজন।</string>
+    <string name="licence_status_unavailable">লাইসেন্স পরিষেবা সাময়িকভাবে অনুপলব্ধ। অনুগ্রহ করে পরে আবার চেষ্টা করুন।</string>
+    <string name="licence_status_unreadable">এই ডিভাইসে সংরক্ষিত লাইসেন্স Castivio পড়তে পারেনি।</string>
+    <string name="licence_status_revoked">এই লাইসেন্স বাতিল করা হয়েছে।</string>
     <string name="licence_status_opening">Castivio পোর্টাল খোলা হচ্ছে…</string>
     <string name="licence_status_failed">কাজ হয়নি। আবার চেষ্টা করুন।</string>
-    <string name="licence_retry">আবার চেষ্টা করুন</string>
-    <string name="licence_support">সহায়তায় যোগাযোগ করুন</string>
+    <string name="licence_retry">আবার চেষ্টা</string>
+    <string name="licence_support">সহায়তায় যোগাযোগ</string>
     <string name="licence_qr_caption">ডিভাইস অ্যাক্টিভেশন পেজ খুলতে QR কোড স্ক্যান করুন</string>
-    <string name="licence_legal">[লাইসেন্স স্ক্রিনের আইনি লেখা — লেখা বাকি]</string>
+    <string name="licence_legal">Castivio শুধুমাত্র একটি মিডিয়া প্লেয়ার। এটি কোনো কনটেন্ট সরবরাহ বা হোস্ট করে না।</string>
+    <string name="licence_legal_title">আইনি বিজ্ঞপ্তি</string>
+    <string name="licence_legal_open">সম্পূর্ণ আইনি বিজ্ঞপ্তি পড়ুন</string>
+    <string name="licence_legal_close">বন্ধ করুন</string>
+    <string name="licence_legal_full">Castivio কেবলমাত্র একটি মিডিয়া প্লেয়ার অ্যাপ্লিকেশন। এটি কোনো চ্যানেল, চলচ্চিত্র, সিরিজ, লাইভ স্ট্রিম বা মিডিয়া কনটেন্ট সরবরাহ, হোস্ট, সম্প্রচার, বিক্রি বা বিতরণ করে না। সমস্ত কনটেন্ট সরবরাহ করেন কেবল ব্যবহারকারী নিজে অথবা ব্যবহারকারীর বেছে নেওয়া পরিষেবা প্রদানকারী। নিজের কনটেন্ট দেখা ও ব্যবহারের আইনি অধিকার আছে কি না তা নিশ্চিত করার দায়িত্ব সম্পূর্ণভাবে ব্যবহারকারীর। কোনো তৃতীয় পক্ষের কনটেন্ট বা পরিষেবার প্রাপ্যতা, বৈধতা, লাইসেন্সিং বা মানের জন্য Castivio কোনো দায় নেয় না।</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="one">%d দিন বাকি</item>
-        <item quantity="other">%d দিন বাকি</item>
+        <item quantity="one">আপনার ট্রায়ালে %d দিন বাকি আছে।</item>
+        <item quantity="other">আপনার ট্রায়ালে %d দিন বাকি আছে।</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">bn</string>

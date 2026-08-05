@@ -30,23 +30,40 @@ internal data class LicenceView(
     /** The header chip's sentence. */
     val chip: Int,
     val tone: LicenceTone,
-    /** The reserved status line, or null when the state has nothing to add. */
+    /**
+     * The reserved status line, or null when the state has nothing to add.
+     *
+     * Null for a running trial, whose line is a plural with a day count in it
+     * rather than a fixed sentence — see [countsDays].
+     */
     val status: Int?,
     /**
      * Whether the plans are offered.
      *
-     * False for the two states a purchase cannot fix. Selling a licence to
-     * somebody whose licence was withdrawn, or whose licence server we cannot
-     * reach, takes money for a problem the money does not solve.
+     * False wherever a price is the wrong thing to show, which is two different
+     * situations rather than one:
+     *
+     *  - **A purchase would not fix it.** Withdrawn, unreadable, or a licence
+     *    server we cannot reach. Selling a licence for a problem money does not
+     *    solve is taking money for nothing.
+     *  - **There is nothing to sell.** A lifetime licence, an active annual one,
+     *    or a device whose licence merely has not been confirmed. Showing a
+     *    price to somebody who has already paid reads as a bill.
      */
     val offersPlans: Boolean,
     /** The one action offered when the plans are not. */
     val action: LicenceAction? = null,
     /**
-     * Whether the trial chip carries a day count.
+     * Whether the status line is the trial countdown.
      *
-     * Only a running trial has one. An annual subscription has days remaining
-     * too and they are not a trial.
+     * Only a running trial counts down. An annual subscription has days
+     * remaining too and they are not a trial — a licence somebody paid for
+     * should not display a countdown to its own expiry every time it is opened.
+     *
+     * It used to be the chip that carried the number, which read as
+     * "Trial · 3 days left" across two elements neither of which was a sentence.
+     * The chip now names the condition and the line says what it means, which is
+     * what each of them is for.
      */
     val countsDays: Boolean = false,
 )
@@ -97,7 +114,8 @@ internal fun licenceView(state: EntitlementState): LicenceView = when (state) {
     is EntitlementState.TrialActive -> LicenceView(
         chip = R.string.licence_chip_trial,
         tone = LicenceTone.Neutral,
-        status = R.string.licence_status_trial,
+        // The line is the plural, composed with the day count.
+        status = null,
         offersPlans = true,
         countsDays = true,
     )
@@ -106,10 +124,16 @@ internal fun licenceView(state: EntitlementState): LicenceView = when (state) {
         chip = R.string.licence_chip_active,
         tone = LicenceTone.Good,
         status = R.string.licence_status_active,
-        // Still offered: an annual holder may want to move to lifetime, and
-        // hiding the plans from the one person already paying would be an odd
-        // way to run a shop.
-        offersPlans = true,
+        // Nothing offered. This was the one state that still showed prices to a
+        // paying customer, on the argument that an annual holder might move to
+        // lifetime — which is a real thing they might want and the wrong place
+        // to ask for it. A screen whose job is "are you licensed" answering
+        // "yes, and here is what else you could buy" reads as a bill, and a user
+        // who has just paid reads it as one that did not go through.
+        //
+        // Upgrading is the portal's, reached from Settings, where a price is
+        // something the user went looking for.
+        offersPlans = false,
     )
 
     EntitlementState.Lifetime -> LicenceView(
@@ -144,14 +168,21 @@ internal fun licenceView(state: EntitlementState): LicenceView = when (state) {
 
     // "We could not check", never "it expired". Reached only after the offline
     // grace in PricingConfig has run out, so the device has been away a fortnight
-    // -- a holiday, a broken router, an outage of ours. The plans stay on offer
-    // because buying is one of the ways back.
+    // -- a holiday, a broken router, an outage of ours.
+    //
+    // Support, not the plans and not Retry. The plans were on offer here on the
+    // argument that buying is one of the ways back; they are not, because this
+    // device may well hold a valid licence that simply has not been confirmed,
+    // and selling a second one to somebody who already paid is the worst outcome
+    // this screen can produce. Retry is not it either: the device has been
+    // failing to verify for a fortnight, so another attempt is a button that has
+    // already been pressed by the clock.
     is EntitlementState.VerificationUnavailable -> LicenceView(
         chip = R.string.licence_chip_verify,
         tone = LicenceTone.Warning,
         status = R.string.licence_status_verify,
-        offersPlans = true,
-        action = LicenceAction.Retry,
+        offersPlans = false,
+        action = LicenceAction.Support,
     )
 
     is EntitlementState.ServiceUnavailable -> when (state.fault) {

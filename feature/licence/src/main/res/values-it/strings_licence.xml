@@ -36,26 +36,29 @@
     <string name="licence_chip_unavailable">Non disponibile</string>
     <string name="licence_chip_unreadable">Licenza illeggibile</string>
     <string name="licence_chip_revoked">Licenza revocata</string>
-    <string name="licence_status_trial">Scegli una licenza quando vuoi prima che finisca la prova.</string>
-    <string name="licence_status_active">La tua licenza è attiva.</string>
+    <string name="licence_status_active">La tua licenza Castivio è attiva.</string>
     <string name="licence_status_lifetime">Castivio è tuo su questo dispositivo.</string>
     <string name="licence_status_trial_ended">La prova è terminata. Scegli una licenza per continuare.</string>
     <string name="licence_status_expired">La licenza è scaduta. Scegli una licenza per continuare.</string>
-    <string name="licence_status_none">Questo dispositivo non ha ancora una licenza Castivio.</string>
-    <string name="licence_status_verify">Castivio non è riuscito a verificare questa licenza di recente.</string>
-    <string name="licence_status_unavailable">Castivio non riesce a verificare le licenze in questo momento. È un problema nostro, non tuo.</string>
-    <string name="licence_status_unreadable">La licenza di questo dispositivo non è leggibile. Contatta l’assistenza con la tua chiave dispositivo.</string>
-    <string name="licence_status_revoked">Questa licenza è stata revocata. Contatta l’assistenza con la tua chiave dispositivo.</string>
+    <string name="licence_status_none">Nessuna licenza trovata per questo dispositivo.</string>
+    <string name="licence_status_verify">È necessaria la verifica della licenza prima di proseguire con l’attivazione.</string>
+    <string name="licence_status_unavailable">Il servizio licenze è temporaneamente non disponibile. Riprova più tardi.</string>
+    <string name="licence_status_unreadable">Castivio non è riuscito a leggere la licenza salvata su questo dispositivo.</string>
+    <string name="licence_status_revoked">Questa licenza è stata revocata.</string>
     <string name="licence_status_opening">Apertura del portale Castivio…</string>
     <string name="licence_status_failed">Non ha funzionato. Riprova.</string>
     <string name="licence_retry">Riprova</string>
     <string name="licence_support">Contatta l’assistenza</string>
     <string name="licence_qr_caption">Inquadra il codice QR per aprire la pagina di attivazione del dispositivo</string>
-    <string name="licence_legal">[testo legale per la schermata della licenza — da scrivere]</string>
+    <string name="licence_legal">Castivio è solo un lettore multimediale. Non fornisce né ospita alcun contenuto.</string>
+    <string name="licence_legal_title">Note legali</string>
+    <string name="licence_legal_open">Leggi le note legali complete</string>
+    <string name="licence_legal_close">Chiudi</string>
+    <string name="licence_legal_full">Castivio è esclusivamente un’applicazione di riproduzione multimediale. Non fornisce, non ospita, non trasmette, non vende e non distribuisce canali, film, serie, dirette streaming o contenuti multimediali. Tutti i contenuti sono forniti esclusivamente dall’utente o dal fornitore di servizi scelto dall’utente. Gli utenti sono gli unici responsabili di accertarsi di avere i diritti legali per accedere ai propri contenuti e utilizzarli. Castivio non si assume alcuna responsabilità per la disponibilità, la legalità, le licenze o la qualità di contenuti o servizi di terze parti.</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="one">%d giorno rimasto</item>
-        <item quantity="other">%d giorni rimasti</item>
+        <item quantity="one">Manca %d giorno alla fine della prova.</item>
+        <item quantity="other">Mancano %d giorni alla fine della prova.</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">it</string>

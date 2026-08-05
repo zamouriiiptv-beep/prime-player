@@ -26,7 +26,7 @@
     <string name="refresh">새로고침</string>
     <string name="refresh_checking">확인 중…</string>
     <string name="refresh_found">구독을 찾았습니다</string>
-    <string name="refresh_none">아직 구독이 없습니다</string>
+    <string name="refresh_none">이제 첫 재생목록을 추가할 수 있습니다.</string>
     <string name="refresh_error">새로고침하지 못했습니다 — 다시 시도하세요</string>
     <string name="qr_caption">QR 코드를 스캔하여 기기 활성화 페이지를 여세요</string>
     <string name="legal_player_only">Castivio는 플레이어일 뿐이며 구독이나 콘텐츠를 제공하지 않습니다.</string>

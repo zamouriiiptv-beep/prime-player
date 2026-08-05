@@ -35,27 +35,30 @@
     <string name="licence_chip_verify">Ellenőrzés szükséges</string>
     <string name="licence_chip_unavailable">Nem érhető el</string>
     <string name="licence_chip_unreadable">A licenc nem olvasható</string>
-    <string name="licence_chip_revoked">A licencet visszavonták</string>
-    <string name="licence_status_trial">A próbaidőszak vége előtt bármikor választhat licencet.</string>
-    <string name="licence_status_active">A licence aktív.</string>
+    <string name="licence_chip_revoked">Licenc visszavonva</string>
+    <string name="licence_status_active">A Castivio licenced aktív.</string>
     <string name="licence_status_lifetime">A Castivio az Öné ezen az eszközön.</string>
     <string name="licence_status_trial_ended">A próbaidőszaka véget ért. Válasszon licencet a folytatáshoz.</string>
     <string name="licence_status_expired">A licence lejárt. Válasszon licencet a folytatáshoz.</string>
-    <string name="licence_status_none">Ezen az eszközön még nincs Castivio-licenc.</string>
-    <string name="licence_status_verify">A Castivio mostanában nem tudta ellenőrizni ezt a licencet.</string>
-    <string name="licence_status_unavailable">A Castivio jelenleg nem tud licenceket ellenőrizni. Ez a mi hibánk, nem az Öné.</string>
-    <string name="licence_status_unreadable">Ennek az eszköznek a licence nem olvasható. Forduljon a támogatáshoz az eszközkulcsával.</string>
-    <string name="licence_status_revoked">Ezt a licencet visszavonták. Forduljon a támogatáshoz az eszközkulcsával.</string>
+    <string name="licence_status_none">Nem található licenc ehhez az eszközhöz.</string>
+    <string name="licence_status_verify">Az aktiválás folytatásához a licenc ellenőrzése szükséges.</string>
+    <string name="licence_status_unavailable">A licencszolgáltatás átmenetileg nem érhető el. Próbáld újra később.</string>
+    <string name="licence_status_unreadable">A Castivio nem tudta beolvasni az eszközön tárolt licencet.</string>
+    <string name="licence_status_revoked">Ezt a licencet visszavonták.</string>
     <string name="licence_status_opening">A Castivio portál megnyitása…</string>
     <string name="licence_status_failed">Nem sikerült. Próbálja újra.</string>
-    <string name="licence_retry">Próbálja újra</string>
-    <string name="licence_support">Kapcsolat a támogatással</string>
+    <string name="licence_retry">Újra</string>
+    <string name="licence_support">Ügyfélszolgálat megkeresése</string>
     <string name="licence_qr_caption">Olvassa be a QR-kódot az eszköz aktiválási oldalának megnyitásához</string>
-    <string name="licence_legal">[jogi szöveg a licencképernyőhöz — még megírandó]</string>
+    <string name="licence_legal">A Castivio csak médialejátszó. Nem szolgáltat és nem tárol tartalmat.</string>
+    <string name="licence_legal_title">Jogi nyilatkozat</string>
+    <string name="licence_legal_open">A teljes jogi nyilatkozat elolvasása</string>
+    <string name="licence_legal_close">Bezárás</string>
+    <string name="licence_legal_full">A Castivio kizárólag médialejátszó alkalmazás. Nem szolgáltat, nem tárol, nem sugároz, nem értékesít és nem terjeszt csatornákat, filmeket, sorozatokat, élő adásokat vagy médiatartalmat. Minden tartalmat kizárólag a felhasználó vagy az általa választott szolgáltató biztosít. Kizárólag a felhasználók felelősek azért, hogy rendelkezzenek a tartalmuk eléréséhez és használatához szükséges jogokkal. A Castivio semmilyen felelősséget nem vállal harmadik felek tartalmának vagy szolgáltatásainak elérhetőségéért, jogszerűségéért, licenceléséért vagy minőségéért.</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="one">%d nap van hátra</item>
-        <item quantity="other">%d nap van hátra</item>
+        <item quantity="one">%d nap van hátra a próbaidőszakodból.</item>
+        <item quantity="other">%d nap van hátra a próbaidőszakodból.</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">hu</string>

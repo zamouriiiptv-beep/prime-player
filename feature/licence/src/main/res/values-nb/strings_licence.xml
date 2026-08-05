@@ -35,27 +35,30 @@
     <string name="licence_chip_verify">Bekreftelse kreves</string>
     <string name="licence_chip_unavailable">Utilgjengelig</string>
     <string name="licence_chip_unreadable">Lisensen kan ikke leses</string>
-    <string name="licence_chip_revoked">Lisensen er trukket tilbake</string>
-    <string name="licence_status_trial">Velg en lisens når som helst før prøveperioden er over.</string>
-    <string name="licence_status_active">Lisensen din er aktiv.</string>
+    <string name="licence_chip_revoked">Lisens tilbakekalt</string>
+    <string name="licence_status_active">Castivio-lisensen din er aktiv.</string>
     <string name="licence_status_lifetime">Du eier Castivio på denne enheten.</string>
     <string name="licence_status_trial_ended">Prøveperioden din er over. Velg en lisens for å fortsette.</string>
     <string name="licence_status_expired">Lisensen din er utløpt. Velg en lisens for å fortsette.</string>
-    <string name="licence_status_none">Denne enheten har ennå ingen Castivio-lisens.</string>
-    <string name="licence_status_verify">Castivio har ikke kunnet kontrollere denne lisensen i det siste.</string>
-    <string name="licence_status_unavailable">Castivio kan ikke kontrollere lisenser akkurat nå. Det er vårt problem, ikke ditt.</string>
-    <string name="licence_status_unreadable">Lisensen til denne enheten kan ikke leses. Kontakt kundestøtte med enhetsnøkkelen din.</string>
-    <string name="licence_status_revoked">Denne lisensen ble trukket tilbake. Kontakt kundestøtte med enhetsnøkkelen din.</string>
+    <string name="licence_status_none">Det ble ikke funnet noen lisens for denne enheten.</string>
+    <string name="licence_status_verify">Lisensen må verifiseres før aktiveringen kan fortsette.</string>
+    <string name="licence_status_unavailable">Lisenstjenesten er midlertidig utilgjengelig. Prøv igjen senere.</string>
+    <string name="licence_status_unreadable">Castivio kunne ikke lese lisensen som er lagret på denne enheten.</string>
+    <string name="licence_status_revoked">Denne lisensen er tilbakekalt.</string>
     <string name="licence_status_opening">Åpner Castivio-portalen…</string>
     <string name="licence_status_failed">Det gikk ikke. Prøv igjen.</string>
     <string name="licence_retry">Prøv igjen</string>
     <string name="licence_support">Kontakt kundestøtte</string>
     <string name="licence_qr_caption">Skann QR-koden for å åpne aktiveringssiden for enheten</string>
-    <string name="licence_legal">[juridisk tekst for lisensskjermen — skal skrives]</string>
+    <string name="licence_legal">Castivio er bare en mediespiller. Den leverer og er ikke vert for innhold.</string>
+    <string name="licence_legal_title">Juridisk merknad</string>
+    <string name="licence_legal_open">Les hele den juridiske merknaden</string>
+    <string name="licence_legal_close">Lukk</string>
+    <string name="licence_legal_full">Castivio er utelukkende en mediespiller-app. Den leverer ikke, er ikke vert for, kringkaster ikke, selger ikke og distribuerer ikke kanaler, filmer, serier, direktestrømmer eller medieinnhold. Alt innhold leveres utelukkende av brukeren eller av tjenesteleverandøren brukeren har valgt. Brukerne har alene ansvaret for å sikre at de har de juridiske rettighetene til å få tilgang til og bruke innholdet sitt. Castivio påtar seg ikke noe ansvar for tilgjengeligheten, lovligheten, lisensieringen eller kvaliteten på innhold eller tjenester fra tredjeparter.</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="one">%d dag igjen</item>
-        <item quantity="other">%d dager igjen</item>
+        <item quantity="one">Det er %d dag igjen av prøveperioden.</item>
+        <item quantity="other">Det er %d dager igjen av prøveperioden.</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">nb</string>

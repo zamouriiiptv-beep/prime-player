@@ -36,28 +36,31 @@
     <string name="licence_chip_unavailable">Недоступно</string>
     <string name="licence_chip_unreadable">Лицензия не читается</string>
     <string name="licence_chip_revoked">Лицензия отозвана</string>
-    <string name="licence_status_trial">Выберите лицензию в любой момент до конца пробного периода.</string>
-    <string name="licence_status_active">Ваша лицензия активна.</string>
+    <string name="licence_status_active">Ваша лицензия Castivio активна.</string>
     <string name="licence_status_lifetime">Castivio принадлежит вам на этом устройстве.</string>
     <string name="licence_status_trial_ended">Пробный период закончился. Выберите лицензию, чтобы продолжить.</string>
     <string name="licence_status_expired">Ваша лицензия истекла. Выберите лицензию, чтобы продолжить.</string>
-    <string name="licence_status_none">На этом устройстве ещё нет лицензии Castivio.</string>
-    <string name="licence_status_verify">Castivio давно не удавалось проверить эту лицензию.</string>
-    <string name="licence_status_unavailable">Castivio сейчас не может проверять лицензии. Это наша проблема, не ваша.</string>
-    <string name="licence_status_unreadable">Лицензию этого устройства не удаётся прочитать. Обратитесь в поддержку с ключом устройства.</string>
-    <string name="licence_status_revoked">Эта лицензия была отозвана. Обратитесь в поддержку с ключом устройства.</string>
+    <string name="licence_status_none">Для этого устройства лицензия не найдена.</string>
+    <string name="licence_status_verify">Прежде чем продолжить активацию, нужно проверить лицензию.</string>
+    <string name="licence_status_unavailable">Служба лицензий временно недоступна. Попробуйте позже.</string>
+    <string name="licence_status_unreadable">Castivio не смог прочитать лицензию, сохранённую на этом устройстве.</string>
+    <string name="licence_status_revoked">Эта лицензия отозвана.</string>
     <string name="licence_status_opening">Открывается портал Castivio…</string>
     <string name="licence_status_failed">Не получилось. Попробуйте ещё раз.</string>
-    <string name="licence_retry">Попробовать ещё раз</string>
+    <string name="licence_retry">Повторить</string>
     <string name="licence_support">Обратиться в поддержку</string>
     <string name="licence_qr_caption">Отсканируйте QR-код, чтобы открыть страницу активации устройства</string>
-    <string name="licence_legal">[юридический текст экрана лицензии — будет написан]</string>
+    <string name="licence_legal">Castivio — только медиаплеер. Он не предоставляет и не размещает контент.</string>
+    <string name="licence_legal_title">Правовая информация</string>
+    <string name="licence_legal_open">Прочитать правовую информацию полностью</string>
+    <string name="licence_legal_close">Закрыть</string>
+    <string name="licence_legal_full">Castivio — это только приложение-медиаплеер. Оно не предоставляет, не размещает, не транслирует, не продаёт и не распространяет каналы, фильмы, сериалы, прямые трансляции или иной медиаконтент. Весь контент поставляется исключительно пользователем или выбранным им поставщиком услуг. Пользователи несут единоличную ответственность за наличие законных прав на доступ к своему контенту и его использование. Castivio не несёт ответственности за доступность, законность, лицензирование или качество любого стороннего контента или услуг.</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="one">остался %d день</item>
-        <item quantity="few">осталось %d дня</item>
-        <item quantity="many">осталось %d дней</item>
-        <item quantity="other">осталось %d дня</item>
+        <item quantity="one">В пробном периоде остался %d день.</item>
+        <item quantity="few">В пробном периоде осталось %d дня.</item>
+        <item quantity="many">В пробном периоде осталось %d дней.</item>
+        <item quantity="other">В пробном периоде осталось %d дня.</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">ru</string>

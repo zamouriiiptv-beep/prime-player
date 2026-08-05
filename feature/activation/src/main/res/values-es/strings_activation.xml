@@ -26,7 +26,7 @@
     <string name="refresh">Actualizar</string>
     <string name="refresh_checking">Comprobando…</string>
     <string name="refresh_found">Suscripción encontrada</string>
-    <string name="refresh_none">Todavía no hay suscripción</string>
+    <string name="refresh_none">Ya puedes añadir tu primera lista de reproducción.</string>
     <string name="refresh_error">No se pudo actualizar — inténtalo de nuevo</string>
     <string name="qr_caption">Escanea el código QR para abrir la página de activación del dispositivo</string>
     <string name="legal_player_only">Castivio es solo un reproductor y no proporciona suscripciones ni contenidos.</string>

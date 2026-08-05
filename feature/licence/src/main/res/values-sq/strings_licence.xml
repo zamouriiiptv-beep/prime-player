@@ -35,27 +35,30 @@
     <string name="licence_chip_verify">Nevojitet verifikim</string>
     <string name="licence_chip_unavailable">E padisponueshme</string>
     <string name="licence_chip_unreadable">Licenca nuk lexohet</string>
-    <string name="licence_chip_revoked">Licenca u tërhoq</string>
-    <string name="licence_status_trial">Zgjidhni një licencë kurdo para se të mbarojë prova.</string>
-    <string name="licence_status_active">Licenca juaj është aktive.</string>
+    <string name="licence_chip_revoked">Licenca u revokua</string>
+    <string name="licence_status_active">Licenca juaj Castivio është aktive.</string>
     <string name="licence_status_lifetime">Castivio është i juaji në këtë pajisje.</string>
     <string name="licence_status_trial_ended">Prova juaj mbaroi. Zgjidhni një licencë për të vazhduar.</string>
     <string name="licence_status_expired">Licenca juaj skadoi. Zgjidhni një licencë për të vazhduar.</string>
-    <string name="licence_status_none">Kjo pajisje ende nuk ka licencë Castivio.</string>
-    <string name="licence_status_verify">Castivio nuk ka mundur ta kontrollojë këtë licencë së fundmi.</string>
-    <string name="licence_status_unavailable">Castivio nuk mund të kontrollojë licencat tani. Është problemi ynë, jo i juaji.</string>
-    <string name="licence_status_unreadable">Licenca e kësaj pajisjeje nuk lexohet. Kontaktoni mbështetjen me çelësin e pajisjes.</string>
-    <string name="licence_status_revoked">Kjo licencë u tërhoq. Kontaktoni mbështetjen me çelësin e pajisjes.</string>
+    <string name="licence_status_none">Nuk u gjet asnjë licencë për këtë pajisje.</string>
+    <string name="licence_status_verify">Nevojitet verifikimi i licencës përpara se aktivizimi të vazhdojë.</string>
+    <string name="licence_status_unavailable">Shërbimi i licencave është përkohësisht i padisponueshëm. Provoni sërish më vonë.</string>
+    <string name="licence_status_unreadable">Castivio nuk mundi ta lexojë licencën e ruajtur në këtë pajisje.</string>
+    <string name="licence_status_revoked">Kjo licencë është revokuar.</string>
     <string name="licence_status_opening">Po hapet portali Castivio…</string>
     <string name="licence_status_failed">Nuk funksionoi. Provoni sërish.</string>
-    <string name="licence_retry">Provoni sërish</string>
+    <string name="licence_retry">Riprovo</string>
     <string name="licence_support">Kontaktoni mbështetjen</string>
     <string name="licence_qr_caption">Skanoni kodin QR për të hapur faqen e aktivizimit të pajisjes</string>
-    <string name="licence_legal">[teksti ligjor për ekranin e licencës — do të shkruhet]</string>
+    <string name="licence_legal">Castivio është vetëm një luajtës mediash. Nuk ofron dhe nuk pret asnjë përmbajtje.</string>
+    <string name="licence_legal_title">Njoftim ligjor</string>
+    <string name="licence_legal_open">Lexoni njoftimin e plotë ligjor</string>
+    <string name="licence_legal_close">Mbyll</string>
+    <string name="licence_legal_full">Castivio është vetëm një aplikacion luajtësi mediash. Ai nuk ofron, nuk pret, nuk transmeton, nuk shet dhe nuk shpërndan asnjë kanal, film, serial, transmetim të drejtpërdrejtë apo përmbajtje mediatike. E gjithë përmbajtja sigurohet vetëm nga përdoruesi ose nga ofruesi i shërbimit që përdoruesi ka zgjedhur. Përdoruesit janë të vetmit përgjegjës për të siguruar se kanë të drejtat ligjore për të hyrë dhe për të përdorur përmbajtjen e tyre. Castivio nuk merr asnjë përgjegjësi për disponueshmërinë, ligjshmërinë, licencimin apo cilësinë e çdo përmbajtjeje ose shërbimi të palëve të treta.</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="one">%d ditë e mbetur</item>
-        <item quantity="other">%d ditë të mbetura</item>
+        <item quantity="one">Ka mbetur %d ditë nga prova juaj.</item>
+        <item quantity="other">Kanë mbetur %d ditë nga prova juaj.</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">sq</string>

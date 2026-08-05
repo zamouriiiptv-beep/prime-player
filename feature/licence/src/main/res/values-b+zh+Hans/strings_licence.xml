@@ -35,26 +35,29 @@
     <string name="licence_chip_verify">需要验证</string>
     <string name="licence_chip_unavailable">不可用</string>
     <string name="licence_chip_unreadable">无法读取许可证</string>
-    <string name="licence_chip_revoked">许可证已撤销</string>
-    <string name="licence_status_trial">可在试用结束前随时选择许可证。</string>
-    <string name="licence_status_active">您的许可证有效。</string>
+    <string name="licence_chip_revoked">许可证已吊销</string>
+    <string name="licence_status_active">你的 Castivio 许可证已激活。</string>
     <string name="licence_status_lifetime">您已拥有本设备上的 Castivio。</string>
     <string name="licence_status_trial_ended">试用已结束。请选择许可证以继续。</string>
     <string name="licence_status_expired">许可证已过期。请选择许可证以继续。</string>
-    <string name="licence_status_none">本设备尚无 Castivio 许可证。</string>
-    <string name="licence_status_verify">Castivio 最近无法验证此许可证。</string>
-    <string name="licence_status_unavailable">目前无法验证许可证。这是我们的问题，不是您的。</string>
-    <string name="licence_status_unreadable">无法读取本设备的许可证。请携带设备密钥联系支持。</string>
-    <string name="licence_status_revoked">此许可证已被撤销。请携带设备密钥联系支持。</string>
+    <string name="licence_status_none">未找到此设备的许可证。</string>
+    <string name="licence_status_verify">需要先验证许可证，激活才能继续。</string>
+    <string name="licence_status_unavailable">许可证服务暂时不可用，请稍后再试。</string>
+    <string name="licence_status_unreadable">Castivio 无法读取此设备上存储的许可证。</string>
+    <string name="licence_status_revoked">此许可证已被吊销。</string>
     <string name="licence_status_opening">正在打开 Castivio 门户…</string>
     <string name="licence_status_failed">操作失败，请重试。</string>
     <string name="licence_retry">重试</string>
     <string name="licence_support">联系支持</string>
     <string name="licence_qr_caption">扫描二维码，打开本设备的激活页面</string>
-    <string name="licence_legal">［许可证页面的法律文本 — 待撰写］</string>
+    <string name="licence_legal">Castivio 只是一个媒体播放器，不提供也不托管任何内容。</string>
+    <string name="licence_legal_title">法律声明</string>
+    <string name="licence_legal_open">阅读完整法律声明</string>
+    <string name="licence_legal_close">关闭</string>
+    <string name="licence_legal_full">Castivio 仅仅是一款媒体播放器应用。它不提供、不托管、不播出、不销售也不分发任何频道、电影、剧集、直播流或媒体内容。所有内容均完全由用户本人或用户自行选择的服务提供商提供。用户须自行负责确保拥有访问和使用其内容的合法权利。对于任何第三方内容或服务的可用性、合法性、授权或质量，Castivio 概不负责。</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="other">还剩 %d 天</item>
+        <item quantity="other">试用还剩 %d 天。</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">zh-Hans</string>

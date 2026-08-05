@@ -36,25 +36,28 @@
     <string name="licence_chip_unavailable">Không khả dụng</string>
     <string name="licence_chip_unreadable">Không đọc được giấy phép</string>
     <string name="licence_chip_revoked">Giấy phép đã bị thu hồi</string>
-    <string name="licence_status_trial">Chọn giấy phép bất cứ lúc nào trước khi hết thời gian dùng thử.</string>
-    <string name="licence_status_active">Giấy phép của bạn đang hoạt động.</string>
+    <string name="licence_status_active">Giấy phép Castivio của bạn đang hoạt động.</string>
     <string name="licence_status_lifetime">Castivio là của bạn trên thiết bị này.</string>
     <string name="licence_status_trial_ended">Thời gian dùng thử đã hết. Chọn giấy phép để tiếp tục.</string>
     <string name="licence_status_expired">Giấy phép của bạn đã hết hạn. Chọn giấy phép để tiếp tục.</string>
-    <string name="licence_status_none">Thiết bị này chưa có giấy phép Castivio.</string>
-    <string name="licence_status_verify">Gần đây Castivio chưa thể kiểm tra giấy phép này.</string>
-    <string name="licence_status_unavailable">Castivio hiện không thể kiểm tra giấy phép. Đây là vấn đề của chúng tôi, không phải của bạn.</string>
-    <string name="licence_status_unreadable">Không đọc được giấy phép của thiết bị này. Hãy liên hệ hỗ trợ kèm khóa thiết bị của bạn.</string>
-    <string name="licence_status_revoked">Giấy phép này đã bị thu hồi. Hãy liên hệ hỗ trợ kèm khóa thiết bị của bạn.</string>
+    <string name="licence_status_none">Không tìm thấy giấy phép nào cho thiết bị này.</string>
+    <string name="licence_status_verify">Cần xác minh giấy phép trước khi tiếp tục kích hoạt.</string>
+    <string name="licence_status_unavailable">Dịch vụ giấy phép tạm thời không khả dụng. Vui lòng thử lại sau.</string>
+    <string name="licence_status_unreadable">Castivio không đọc được giấy phép lưu trên thiết bị này.</string>
+    <string name="licence_status_revoked">Giấy phép này đã bị thu hồi.</string>
     <string name="licence_status_opening">Đang mở cổng Castivio…</string>
     <string name="licence_status_failed">Không thành công. Hãy thử lại.</string>
     <string name="licence_retry">Thử lại</string>
     <string name="licence_support">Liên hệ hỗ trợ</string>
     <string name="licence_qr_caption">Quét mã QR để mở trang kích hoạt thiết bị của bạn</string>
-    <string name="licence_legal">[văn bản pháp lý cho màn hình giấy phép — sẽ được viết]</string>
+    <string name="licence_legal">Castivio chỉ là một trình phát media. Ứng dụng không cung cấp hay lưu trữ nội dung.</string>
+    <string name="licence_legal_title">Thông báo pháp lý</string>
+    <string name="licence_legal_open">Đọc toàn văn thông báo pháp lý</string>
+    <string name="licence_legal_close">Đóng</string>
+    <string name="licence_legal_full">Castivio chỉ là một ứng dụng trình phát media. Ứng dụng không cung cấp, lưu trữ, phát sóng, bán hay phân phối bất kỳ kênh, phim, loạt phim, luồng trực tiếp hoặc nội dung media nào. Toàn bộ nội dung do người dùng hoặc nhà cung cấp dịch vụ mà người dùng lựa chọn cung cấp. Người dùng hoàn toàn chịu trách nhiệm bảo đảm mình có quyền hợp pháp để truy cập và sử dụng nội dung của mình. Castivio không chịu bất kỳ trách nhiệm nào về tính khả dụng, tính hợp pháp, việc cấp phép hay chất lượng của bất kỳ nội dung hoặc dịch vụ nào của bên thứ ba.</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="other">còn %d ngày</item>
+        <item quantity="other">Bản dùng thử còn %d ngày.</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">vi</string>

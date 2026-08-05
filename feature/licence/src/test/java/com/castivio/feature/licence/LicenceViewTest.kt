@@ -64,14 +64,20 @@ class LicenceViewTest {
         for (state in everyState) {
             val view = licenceView(state)
             assertTrue("$state produced no chip", view.chip != 0)
-            assertNotNull("$state produced no status line", view.status)
+            // A running trial is the one state whose line is a plural composed
+            // with the day count rather than a fixed sentence, so it says so by
+            // carrying no resource and setting `countsDays`.
+            assertTrue(
+                "$state produced neither a status line nor a countdown",
+                view.status != null || view.countsDays,
+            )
         }
     }
 
     /** No two distinct states may be indistinguishable on screen. */
     @Test
     fun `states that mean different things do not share a sentence`() {
-        val sentences = everyState.map { licenceView(it).status }
+        val sentences = everyState.mapNotNull { licenceView(it).status }
         val duplicates = sentences.groupBy { it }.filterValues { it.size > 1 }.keys
         assertTrue(
             "two states render the same status line: $duplicates",
@@ -102,8 +108,12 @@ class LicenceViewTest {
             view.chip != R.string.licence_chip_expired &&
                 view.status != R.string.licence_status_expired,
         )
-        // A way back, not a dead end: the licence may well be fine.
-        assertEquals(LicenceAction.Retry, view.action)
+        // Support, not Retry and not the plans. This device has been failing to
+        // verify for a fortnight, so "try again" is a button the clock has
+        // already pressed; and it may well hold a valid licence, so selling it
+        // a second one is the worst answer this screen can give.
+        assertEquals(LicenceAction.Support, view.action)
+        assertFalse("an unverified licence was offered a second one", view.offersPlans)
     }
 
     /**
@@ -132,25 +142,47 @@ class LicenceViewTest {
     /**
      * Rule 3. Only offer a plan when buying one would help.
      *
-     * A withdrawn licence and an unreachable licence server are not fixed by a
-     * purchase, and a plan card in either place takes money for a problem the
-     * money does not solve. Lifetime is the fourth: there is nothing left to
-     * sell, and asking again would be asking twice.
+     * Two different reasons, and both of them end here. A withdrawn licence and
+     * an unreachable licence server are not fixed by a purchase, so a plan card
+     * takes money for a problem the money does not solve. Lifetime, an active
+     * annual licence and one that merely has not been verified are the other
+     * kind: the user has already paid, and a price in front of somebody who has
+     * just paid reads as a bill that did not go through.
      */
     @Test
     fun `no plan is offered where a purchase would not help`() {
-        val noPlans = listOf(
-            EntitlementState.Lifetime,
-            EntitlementState.ServiceUnavailable(ServiceFault.NOT_CONFIGURED),
-            EntitlementState.ServiceUnavailable(ServiceFault.STORAGE_UNREADABLE),
-            EntitlementState.Revoked(revokedAtMs = null),
-        )
-        for (state in noPlans) {
-            assertFalse("$state offered a plan", licenceView(state).offersPlans)
+        for (state in everyState) {
+            val offered = licenceView(state).offersPlans
+            if (sellsNothing(state)) {
+                assertFalse("$state offered a plan", offered)
+            } else {
+                assertTrue("$state offered no plan", offered)
+            }
         }
-        for (state in everyState - noPlans.toSet()) {
-            assertTrue("$state offered no plan", licenceView(state).offersPlans)
-        }
+    }
+
+    /**
+     * The states with no price on them, by what they are rather than by value.
+     *
+     * Membership is decided on the type because these cases carry data — an
+     * expiry, a grace end — and a list of reconstructed instances would answer
+     * "is this state in the list" with "does it have the same expiry timestamp
+     * as the one I wrote in the test", which is a different question that
+     * happens to give the right answer until somebody changes a fixture.
+     */
+    private fun sellsNothing(state: EntitlementState): Boolean = when (state) {
+        is EntitlementState.Lifetime,
+        is EntitlementState.AnnualActive,
+        is EntitlementState.ServiceUnavailable,
+        is EntitlementState.Revoked,
+        is EntitlementState.VerificationUnavailable,
+        -> true
+
+        is EntitlementState.TrialActive,
+        is EntitlementState.TrialExpired,
+        is EntitlementState.AnnualExpired,
+        is EntitlementState.Unknown,
+        -> false
     }
 
     /**
@@ -164,11 +196,24 @@ class LicenceViewTest {
     fun `a state without plans always offers an action`() {
         for (state in everyState) {
             val view = licenceView(state)
-            if (!view.offersPlans && state != EntitlementState.Lifetime) {
+            if (!view.offersPlans && state !in HOLDS_A_LICENCE) {
                 assertNotNull("$state offers neither a plan nor an action", view.action)
             }
         }
     }
+
+    /**
+     * The states that need no way out, because nothing is blocked.
+     *
+     * A user holding a licence is not stuck on this screen: they are being told
+     * they are fine and can leave. Everyone else without a plan card needs an
+     * action, or the screen is a dead end and on a television a dead end is a
+     * user pressing back until the app closes.
+     */
+    private val HOLDS_A_LICENCE = setOf(
+        EntitlementState.Lifetime,
+        EntitlementState.AnnualActive(expiresAtMs = 0L, daysRemaining = 340),
+    )
 
     /** Only a running trial counts days. An annual holder is not on a trial. */
     @Test

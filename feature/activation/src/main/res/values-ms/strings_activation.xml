@@ -26,7 +26,7 @@
     <string name="refresh">Muat semula</string>
     <string name="refresh_checking">Menyemak…</string>
     <string name="refresh_found">Langganan dijumpai</string>
-    <string name="refresh_none">Belum ada langganan</string>
+    <string name="refresh_none">Kini anda boleh menambah senarai main pertama anda.</string>
     <string name="refresh_error">Gagal memuat semula — cuba lagi</string>
     <string name="qr_caption">Imbas kod QR untuk membuka halaman pengaktifan peranti</string>
     <string name="legal_player_only">Castivio hanyalah pemain dan tidak menyediakan langganan atau kandungan.</string>

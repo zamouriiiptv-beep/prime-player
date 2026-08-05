@@ -36,26 +36,29 @@
     <string name="licence_chip_unavailable">Niet beschikbaar</string>
     <string name="licence_chip_unreadable">Licentie onleesbaar</string>
     <string name="licence_chip_revoked">Licentie ingetrokken</string>
-    <string name="licence_status_trial">Kies wanneer u wilt een licentie voordat de proefperiode afloopt.</string>
-    <string name="licence_status_active">Uw licentie is actief.</string>
+    <string name="licence_status_active">Je Castivio-licentie is actief.</string>
     <string name="licence_status_lifetime">Castivio is van u op dit apparaat.</string>
     <string name="licence_status_trial_ended">Uw proefperiode is afgelopen. Kies een licentie om verder te gaan.</string>
     <string name="licence_status_expired">Uw licentie is verlopen. Kies een licentie om verder te gaan.</string>
-    <string name="licence_status_none">Dit apparaat heeft nog geen Castivio-licentie.</string>
-    <string name="licence_status_verify">Castivio heeft deze licentie de laatste tijd niet kunnen controleren.</string>
-    <string name="licence_status_unavailable">Castivio kan op dit moment geen licenties controleren. Dat ligt aan ons, niet aan u.</string>
-    <string name="licence_status_unreadable">De licentie van dit apparaat kan niet worden gelezen. Neem contact op met support met uw apparaatsleutel.</string>
-    <string name="licence_status_revoked">Deze licentie is ingetrokken. Neem contact op met support met uw apparaatsleutel.</string>
+    <string name="licence_status_none">Er is geen licentie gevonden voor dit apparaat.</string>
+    <string name="licence_status_verify">Voordat de activering verder kan, is verificatie van de licentie nodig.</string>
+    <string name="licence_status_unavailable">De licentiedienst is tijdelijk niet beschikbaar. Probeer het later opnieuw.</string>
+    <string name="licence_status_unreadable">Castivio kon de op dit apparaat opgeslagen licentie niet lezen.</string>
+    <string name="licence_status_revoked">Deze licentie is ingetrokken.</string>
     <string name="licence_status_opening">Castivio-portaal wordt geopend…</string>
     <string name="licence_status_failed">Dat werkte niet. Probeer het opnieuw.</string>
-    <string name="licence_retry">Opnieuw proberen</string>
-    <string name="licence_support">Contact opnemen met support</string>
+    <string name="licence_retry">Opnieuw</string>
+    <string name="licence_support">Neem contact op met support</string>
     <string name="licence_qr_caption">Scan de QR-code om de activeringspagina van uw apparaat te openen</string>
-    <string name="licence_legal">[juridische tekst voor het licentiescherm — moet nog worden geschreven]</string>
+    <string name="licence_legal">Castivio is alleen een mediaspeler. Het levert en host geen inhoud.</string>
+    <string name="licence_legal_title">Juridische kennisgeving</string>
+    <string name="licence_legal_open">Lees de volledige juridische kennisgeving</string>
+    <string name="licence_legal_close">Sluiten</string>
+    <string name="licence_legal_full">Castivio is uitsluitend een mediaspeler-app. Het levert, host, zendt, verkoopt of verspreidt geen kanalen, films, series, livestreams of media-inhoud. Alle inhoud wordt uitsluitend geleverd door de gebruiker of door de door de gebruiker gekozen dienstverlener. Gebruikers zijn zelf volledig verantwoordelijk om zich ervan te vergewissen dat zij het wettelijke recht hebben om hun inhoud te openen en te gebruiken. Castivio aanvaardt geen enkele verantwoordelijkheid voor de beschikbaarheid, rechtmatigheid, licenties of kwaliteit van inhoud of diensten van derden.</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="one">nog %d dag</item>
-        <item quantity="other">nog %d dagen</item>
+        <item quantity="one">Nog %d dag in je proefperiode.</item>
+        <item quantity="other">Nog %d dagen in je proefperiode.</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">nl</string>

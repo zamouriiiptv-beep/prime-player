@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import com.castivio.core.design.theme.CastivioTheme
+import com.castivio.core.design.theme.MotionLevel
 import com.castivio.core.design.theme.Sizing
 import com.castivio.domain.entitlement.EntitlementState
 import com.castivio.domain.entitlement.PricingDefaults
@@ -332,7 +333,14 @@ private enum class Frame(val width: Dp, val height: Dp) {
 
 @Composable
 private fun Screen(frame: Frame, state: MutableState<LicenceUiState>? = null) {
-    CastivioTheme {
+    // Motion off, because this file measures layout.
+    //
+    // The chip and the status line crossfade when the entitlement changes, and a
+    // test that drives one composition through ten states would otherwise be
+    // asserting against whichever frame of a 220ms fade it happened to catch --
+    // with both the outgoing and incoming node briefly present under the same
+    // tag. `LicenceMotionTest` is where the fade itself is checked.
+    CastivioTheme(motionLevel = MotionLevel.DISABLED) {
         Box(Modifier.requiredSize(frame.width, frame.height)) {
             LicenceScreenUnderTest(state)
         }

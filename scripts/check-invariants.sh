@@ -479,6 +479,45 @@ if [ -f "$module" ]; then
   fi
 fi
 
+# ------------------------------------------------- copy that says it is not finished
+# A bracketed stand-in is how the licence screen's legal line lived for three
+# commits, and it was correct to ship it that way while the wording was a legal
+# question rather than a design one. It is not correct to ship it by accident, and
+# the difference between the two is entirely whether anybody remembers.
+#
+# So the tree is asked instead. A string that opens with a bracket, or that
+# announces itself as unwritten, fails the build in every language.
+hits=$(grep -rn --include='strings*.xml' -E \
+        '<(string|item)[^>]*>[[:space:]]*[\[［]|to be written|TO BE WRITTEN|PLACEHOLDER|placeholder text' \
+        app core feature 2>/dev/null)
+if [ -n "$hits" ]; then
+  fail "A user-visible string is still a placeholder" \
+       "$hits
+
+  Ship the wording or do not ship the screen. If the copy genuinely cannot be
+  written yet, the screen is not finished -- see CLAUDE.md, 'Production code only'."
+fi
+
+# ---------------------------------------------- a debug affordance that is not gated
+# The state board and the forced entitlement exist so that every licence state can be
+# reached on a real device. Both are compiled out of a release build by a constant
+# that is false -- and only because each file checks it. A file that grows a second
+# entry point without the check would ship a debug menu in a store build, which is the
+# kind of thing nobody finds until a screenshot of it turns up.
+for gated in \
+  'app/src/main/java/com/castivio/tv/debug/LicenceStateBoard.kt' \
+  'feature/licence/src/main/java/com/castivio/feature/licence/LicenceRoute.kt'
+do
+  [ -f "$gated" ] || continue
+  if ! grep -q 'BuildConfig.DEBUG' "$gated"; then
+    fail "A debug-only entry point is no longer gated on the build type" \
+         "$gated
+
+  Anything that exposes a state the product does not reach on its own must be
+  behind BuildConfig.DEBUG, in the file that draws it."
+  fi
+done
+
 # ------------------------------------------------------ a trap worth failing on
 # A no-argument TestDispatcher brings its own TestCoroutineScheduler unless something
 # has installed one as Main. Built as a field and handed to production code, every

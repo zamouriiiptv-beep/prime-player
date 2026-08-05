@@ -166,10 +166,18 @@ internal fun licenceMetricsFor(tv: Boolean, available: Dp): LicenceMetrics = whe
  *   title and the language control, not their sum.
  * @param legal the legal line's declared line height, for one line.
  * @param legalLines how many lines the footer takes. **Not always one.** The
- *   final legal sentence does not exist yet, and the placeholder standing in for
- *   it is one line in English and would not be in German — so the footer is a
- *   parameter rather than an assumption, and `LicenceBudgetTest` spends it. See
- *   the note below on which combination does not fit.
+ *   footer's sentence is short enough for one line in English and is not
+ *   guaranteed to be in German or Finnish, so the footer is a parameter rather
+ *   than an assumption and `LicenceBudgetTest` spends it on two.
+ *
+ *   This is also the number that decided the footer's design. The complete legal
+ *   notice measures four lines at `bodySmall` on every frame Castivio ships to —
+ *   90dp on 873×393, 87dp on 800×360, 93dp on the television, measured by
+ *   `measure.js` against `design/mockups/licence.html`. Against a 20dp slot and
+ *   35dp of whole-band margin that is 27dp more than the screen has, before the
+ *   transient navigation bar takes another 24. So the footer carries the
+ *   notice's operative first clause and the notice itself opens over the screen.
+ *   See `LegalFooter`.
  */
 internal fun LicenceMetrics.bandHeight(
     frame: Dp,

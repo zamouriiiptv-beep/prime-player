@@ -26,7 +26,7 @@
     <string name="refresh">Uppdatera</string>
     <string name="refresh_checking">Kontrollerar…</string>
     <string name="refresh_found">Prenumeration hittad</string>
-    <string name="refresh_none">Ingen prenumeration ännu</string>
+    <string name="refresh_none">Nu kan du lägga till din första spellista.</string>
     <string name="refresh_error">Kunde inte uppdatera — försök igen</string>
     <string name="qr_caption">Skanna QR-koden för att öppna enhetens aktiveringssida</string>
     <string name="legal_player_only">Castivio är endast en spelare och tillhandahåller inga prenumerationer eller innehåll.</string>

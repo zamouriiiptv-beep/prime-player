@@ -26,7 +26,7 @@
     <string name="refresh">Opdatér</string>
     <string name="refresh_checking">Kontrollerer…</string>
     <string name="refresh_found">Abonnement fundet</string>
-    <string name="refresh_none">Endnu intet abonnement</string>
+    <string name="refresh_none">Du kan nu tilføje din første playliste.</string>
     <string name="refresh_error">Kunne ikke opdatere — prøv igen</string>
     <string name="qr_caption">Scan QR-koden for at åbne enhedens aktiveringsside</string>
     <string name="legal_player_only">Castivio er kun en afspiller og leverer ikke abonnementer eller indhold.</string>

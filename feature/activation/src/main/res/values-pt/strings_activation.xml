@@ -26,7 +26,7 @@
     <string name="refresh">Atualizar</string>
     <string name="refresh_checking">Verificando…</string>
     <string name="refresh_found">Assinatura encontrada</string>
-    <string name="refresh_none">Ainda sem assinatura</string>
+    <string name="refresh_none">Agora você pode adicionar sua primeira playlist.</string>
     <string name="refresh_error">Não foi possível atualizar — tente de novo</string>
     <string name="qr_caption">Leia o código QR para abrir a página de ativação do dispositivo</string>
     <string name="legal_player_only">O Castivio é apenas um reprodutor e não fornece assinaturas nem conteúdo.</string>

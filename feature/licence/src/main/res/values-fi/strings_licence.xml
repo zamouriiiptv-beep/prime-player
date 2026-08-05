@@ -36,26 +36,29 @@
     <string name="licence_chip_unavailable">Ei käytettävissä</string>
     <string name="licence_chip_unreadable">Lisenssiä ei voi lukea</string>
     <string name="licence_chip_revoked">Lisenssi peruttu</string>
-    <string name="licence_status_trial">Valitse lisenssi milloin tahansa ennen kokeilun päättymistä.</string>
-    <string name="licence_status_active">Lisenssisi on voimassa.</string>
+    <string name="licence_status_active">Castivio-lisenssisi on voimassa.</string>
     <string name="licence_status_lifetime">Castivio on omasi tällä laitteella.</string>
     <string name="licence_status_trial_ended">Kokeilusi on päättynyt. Valitse lisenssi jatkaaksesi.</string>
     <string name="licence_status_expired">Lisenssisi on vanhentunut. Valitse lisenssi jatkaaksesi.</string>
-    <string name="licence_status_none">Tällä laitteella ei ole vielä Castivio-lisenssiä.</string>
-    <string name="licence_status_verify">Castivio ei ole voinut tarkistaa tätä lisenssiä viime aikoina.</string>
-    <string name="licence_status_unavailable">Castivio ei voi tarkistaa lisenssejä juuri nyt. Vika on meissä, ei sinussa.</string>
-    <string name="licence_status_unreadable">Tämän laitteen lisenssiä ei voi lukea. Ota yhteyttä tukeen laiteavaimesi kanssa.</string>
-    <string name="licence_status_revoked">Tämä lisenssi on peruttu. Ota yhteyttä tukeen laiteavaimesi kanssa.</string>
+    <string name="licence_status_none">Tälle laitteelle ei löytynyt lisenssiä.</string>
+    <string name="licence_status_verify">Lisenssi on vahvistettava, ennen kuin aktivointi voi jatkua.</string>
+    <string name="licence_status_unavailable">Lisenssipalvelu ei ole juuri nyt käytettävissä. Yritä myöhemmin uudelleen.</string>
+    <string name="licence_status_unreadable">Castivio ei pystynyt lukemaan tälle laitteelle tallennettua lisenssiä.</string>
+    <string name="licence_status_revoked">Tämä lisenssi on peruttu.</string>
     <string name="licence_status_opening">Avataan Castivio-portaalia…</string>
     <string name="licence_status_failed">Se ei onnistunut. Yritä uudelleen.</string>
     <string name="licence_retry">Yritä uudelleen</string>
     <string name="licence_support">Ota yhteyttä tukeen</string>
     <string name="licence_qr_caption">Skannaa QR-koodi avataksesi laitteen aktivointisivun</string>
-    <string name="licence_legal">[lisenssinäytön oikeudellinen teksti — kirjoitetaan myöhemmin]</string>
+    <string name="licence_legal">Castivio on pelkkä mediasoitin. Se ei tarjoa eikä isännöi sisältöä.</string>
+    <string name="licence_legal_title">Oikeudellinen ilmoitus</string>
+    <string name="licence_legal_open">Lue koko oikeudellinen ilmoitus</string>
+    <string name="licence_legal_close">Sulje</string>
+    <string name="licence_legal_full">Castivio on pelkkä mediasoitinsovellus. Se ei tarjoa, isännöi, lähetä, myy eikä jakele mitään kanavia, elokuvia, sarjoja, suoria lähetyksiä tai mediasisältöä. Kaiken sisällön toimittaa yksinomaan käyttäjä tai käyttäjän valitsema palveluntarjoaja. Käyttäjät vastaavat yksin siitä, että heillä on lailliset oikeudet käyttää sisältöään. Castivio ei vastaa millään tavalla kolmansien osapuolten sisällön tai palvelujen saatavuudesta, laillisuudesta, lisensoinnista tai laadusta.</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="one">%d päivä jäljellä</item>
-        <item quantity="other">%d päivää jäljellä</item>
+        <item quantity="one">Kokeilujaksoa on jäljellä %d päivä.</item>
+        <item quantity="other">Kokeilujaksoa on jäljellä %d päivää.</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">fi</string>

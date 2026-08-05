@@ -35,28 +35,31 @@
     <string name="licence_chip_verify">Este necesară verificarea</string>
     <string name="licence_chip_unavailable">Indisponibil</string>
     <string name="licence_chip_unreadable">Licența nu poate fi citită</string>
-    <string name="licence_chip_revoked">Licență retrasă</string>
-    <string name="licence_status_trial">Alegeți o licență oricând înainte de sfârșitul perioadei de probă.</string>
-    <string name="licence_status_active">Licența dumneavoastră este activă.</string>
+    <string name="licence_chip_revoked">Licență revocată</string>
+    <string name="licence_status_active">Licența ta Castivio este activă.</string>
     <string name="licence_status_lifetime">Castivio vă aparține pe acest dispozitiv.</string>
     <string name="licence_status_trial_ended">Perioada de probă s-a încheiat. Alegeți o licență pentru a continua.</string>
     <string name="licence_status_expired">Licența a expirat. Alegeți o licență pentru a continua.</string>
-    <string name="licence_status_none">Acest dispozitiv nu are încă licență Castivio.</string>
-    <string name="licence_status_verify">Castivio nu a putut verifica recent această licență.</string>
-    <string name="licence_status_unavailable">Castivio nu poate verifica licențele acum. Este problema noastră, nu a dumneavoastră.</string>
-    <string name="licence_status_unreadable">Licența acestui dispozitiv nu poate fi citită. Contactați asistența cu cheia dispozitivului.</string>
-    <string name="licence_status_revoked">Această licență a fost retrasă. Contactați asistența cu cheia dispozitivului.</string>
+    <string name="licence_status_none">Nu a fost găsită nicio licență pentru acest dispozitiv.</string>
+    <string name="licence_status_verify">Este necesară verificarea licenței înainte ca activarea să poată continua.</string>
+    <string name="licence_status_unavailable">Serviciul de licențe este temporar indisponibil. Încearcă din nou mai târziu.</string>
+    <string name="licence_status_unreadable">Castivio nu a putut citi licența stocată pe acest dispozitiv.</string>
+    <string name="licence_status_revoked">Această licență a fost revocată.</string>
     <string name="licence_status_opening">Se deschide portalul Castivio…</string>
     <string name="licence_status_failed">Nu a funcționat. Încercați din nou.</string>
-    <string name="licence_retry">Încercați din nou</string>
-    <string name="licence_support">Contactați asistența</string>
+    <string name="licence_retry">Reîncearcă</string>
+    <string name="licence_support">Contactează asistența</string>
     <string name="licence_qr_caption">Scanați codul QR pentru a deschide pagina de activare a dispozitivului</string>
-    <string name="licence_legal">[text juridic pentru ecranul de licență — urmează să fie scris]</string>
+    <string name="licence_legal">Castivio este doar un player media. Nu furnizează și nu găzduiește conținut.</string>
+    <string name="licence_legal_title">Notă juridică</string>
+    <string name="licence_legal_open">Citește nota juridică completă</string>
+    <string name="licence_legal_close">Închide</string>
+    <string name="licence_legal_full">Castivio este exclusiv o aplicație de tip player media. Nu furnizează, nu găzduiește, nu difuzează, nu vinde și nu distribuie canale, filme, seriale, transmisiuni live sau conținut media. Tot conținutul este furnizat exclusiv de utilizator sau de furnizorul de servicii ales de acesta. Utilizatorii sunt singurii responsabili să se asigure că dețin drepturile legale de a accesa și de a folosi conținutul lor. Castivio nu își asumă nicio responsabilitate pentru disponibilitatea, legalitatea, licențierea sau calitatea niciunui conținut sau serviciu al terților.</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="one">a mai rămas %d zi</item>
-        <item quantity="few">au mai rămas %d zile</item>
-        <item quantity="other">au mai rămas %d de zile</item>
+        <item quantity="one">A mai rămas %d zi din perioada de probă.</item>
+        <item quantity="few">Au mai rămas %d zile din perioada de probă.</item>
+        <item quantity="other">Au mai rămas %d de zile din perioada de probă.</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">ro</string>

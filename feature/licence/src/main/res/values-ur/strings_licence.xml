@@ -35,27 +35,30 @@
     <string name="licence_chip_verify">تصدیق درکار ہے</string>
     <string name="licence_chip_unavailable">دستیاب نہیں</string>
     <string name="licence_chip_unreadable">لائسنس پڑھا نہیں جا سکتا</string>
-    <string name="licence_chip_revoked">لائسنس واپس لے لیا گیا</string>
-    <string name="licence_status_trial">آزمائش ختم ہونے سے پہلے کسی بھی وقت لائسنس منتخب کریں۔</string>
-    <string name="licence_status_active">آپ کا لائسنس فعال ہے۔</string>
+    <string name="licence_chip_revoked">لائسنس منسوخ</string>
+    <string name="licence_status_active">آپ کا Castivio لائسنس فعال ہے۔</string>
     <string name="licence_status_lifetime">اس ڈیوائس پر Castivio آپ کا ہے۔</string>
     <string name="licence_status_trial_ended">آپ کی آزمائش ختم ہو گئی۔ جاری رکھنے کے لیے لائسنس منتخب کریں۔</string>
     <string name="licence_status_expired">آپ کا لائسنس ختم ہو گیا۔ جاری رکھنے کے لیے لائسنس منتخب کریں۔</string>
-    <string name="licence_status_none">اس ڈیوائس پر ابھی Castivio لائسنس نہیں ہے۔</string>
-    <string name="licence_status_verify">Castivio حال ہی میں اس لائسنس کی جانچ نہیں کر سکا۔</string>
-    <string name="licence_status_unavailable">Castivio ابھی لائسنس جانچ نہیں سکتا۔ یہ ہمارا مسئلہ ہے، آپ کا نہیں۔</string>
-    <string name="licence_status_unreadable">اس ڈیوائس کا لائسنس پڑھا نہیں جا سکتا۔ اپنی ڈیوائس کلید کے ساتھ سپورٹ سے رابطہ کریں۔</string>
-    <string name="licence_status_revoked">یہ لائسنس واپس لے لیا گیا۔ اپنی ڈیوائس کلید کے ساتھ سپورٹ سے رابطہ کریں۔</string>
+    <string name="licence_status_none">اس ڈیوائس کے لیے کوئی لائسنس نہیں ملا۔</string>
+    <string name="licence_status_verify">ایکٹیویشن جاری رکھنے سے پہلے لائسنس کی تصدیق ضروری ہے۔</string>
+    <string name="licence_status_unavailable">لائسنس سروس عارضی طور پر دستیاب نہیں۔ براہِ کرم بعد میں دوبارہ کوشش کریں۔</string>
+    <string name="licence_status_unreadable">Castivio اس ڈیوائس پر محفوظ لائسنس نہیں پڑھ سکا۔</string>
+    <string name="licence_status_revoked">یہ لائسنس منسوخ کر دیا گیا ہے۔</string>
     <string name="licence_status_opening">Castivio پورٹل کھولا جا رہا ہے…</string>
     <string name="licence_status_failed">یہ کام نہیں آیا۔ دوبارہ کوشش کریں۔</string>
-    <string name="licence_retry">دوبارہ کوشش کریں</string>
-    <string name="licence_support">سپورٹ سے رابطہ کریں</string>
+    <string name="licence_retry">دوبارہ کوشش</string>
+    <string name="licence_support">سپورٹ سے رابطہ</string>
     <string name="licence_qr_caption">اپنے ڈیوائس کا ایکٹیویشن صفحہ کھولنے کے لیے QR کوڈ اسکین کریں</string>
-    <string name="licence_legal">[لائسنس اسکرین کے لیے قانونی متن — لکھا جانا باقی ہے]</string>
+    <string name="licence_legal">Castivio صرف ایک میڈیا پلیئر ہے۔ یہ کوئی مواد فراہم یا میزبان نہیں کرتا۔</string>
+    <string name="licence_legal_title">قانونی نوٹس</string>
+    <string name="licence_legal_open">مکمل قانونی نوٹس پڑھیں</string>
+    <string name="licence_legal_close">بند کریں</string>
+    <string name="licence_legal_full">Castivio صرف ایک میڈیا پلیئر ایپلی کیشن ہے۔ یہ کوئی چینل، فلم، سیریز، لائیو اسٹریم یا میڈیا مواد فراہم، میزبان، نشر، فروخت یا تقسیم نہیں کرتا۔ تمام مواد صرف صارف یا صارف کے منتخب کردہ سروس فراہم کنندہ کی جانب سے فراہم کیا جاتا ہے۔ اپنے مواد تک رسائی اور اس کے استعمال کے قانونی حقوق کو یقینی بنانا مکمل طور پر صارفین کی ذمہ داری ہے۔ Castivio کسی بھی فریقِ ثالث کے مواد یا خدمات کی دستیابی، قانونی حیثیت، لائسنسنگ یا معیار کی کوئی ذمہ داری قبول نہیں کرتا۔</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="one">%d دن باقی</item>
-        <item quantity="other">%d دن باقی</item>
+        <item quantity="one">آپ کی آزمائش میں %d دن باقی ہے۔</item>
+        <item quantity="other">آپ کی آزمائش میں %d دن باقی ہیں۔</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">ur</string>

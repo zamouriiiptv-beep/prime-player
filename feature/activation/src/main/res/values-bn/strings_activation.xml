@@ -26,7 +26,7 @@
     <string name="refresh">রিফ্রেশ</string>
     <string name="refresh_checking">পরীক্ষা করা হচ্ছে…</string>
     <string name="refresh_found">সাবস্ক্রিপশন পাওয়া গেছে</string>
-    <string name="refresh_none">এখনও কোনও সাবস্ক্রিপশন নেই</string>
+    <string name="refresh_none">এখন আপনি আপনার প্রথম প্লেলিস্ট যোগ করতে পারেন।</string>
     <string name="refresh_error">রিফ্রেশ করা যায়নি — আবার চেষ্টা করুন</string>
     <string name="qr_caption">ডিভাইস অ্যাক্টিভেশন পেজ খুলতে QR কোড স্ক্যান করুন</string>
     <string name="legal_player_only">Castivio শুধুমাত্র একটি প্লেয়ার এবং সাবস্ক্রিপশন বা কনটেন্ট সরবরাহ করে না।</string>

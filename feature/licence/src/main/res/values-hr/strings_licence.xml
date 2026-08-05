@@ -35,28 +35,31 @@
     <string name="licence_chip_verify">Potrebna je provjera</string>
     <string name="licence_chip_unavailable">Nedostupno</string>
     <string name="licence_chip_unreadable">Licencu nije moguće pročitati</string>
-    <string name="licence_chip_revoked">Licenca je povučena</string>
-    <string name="licence_status_trial">Licencu možete odabrati bilo kada prije kraja probnog razdoblja.</string>
-    <string name="licence_status_active">Vaša je licenca aktivna.</string>
+    <string name="licence_chip_revoked">Licenca opozvana</string>
+    <string name="licence_status_active">Vaša Castivio licenca je aktivna.</string>
     <string name="licence_status_lifetime">Castivio je vaš na ovom uređaju.</string>
     <string name="licence_status_trial_ended">Probno razdoblje je završilo. Odaberite licencu za nastavak.</string>
     <string name="licence_status_expired">Licenca vam je istekla. Odaberite licencu za nastavak.</string>
-    <string name="licence_status_none">Ovaj uređaj još nema Castivio licencu.</string>
-    <string name="licence_status_verify">Castivio u posljednje vrijeme nije mogao provjeriti ovu licencu.</string>
-    <string name="licence_status_unavailable">Castivio trenutačno ne može provjeravati licence. To je naš problem, ne vaš.</string>
-    <string name="licence_status_unreadable">Licencu ovog uređaja nije moguće pročitati. Obratite se podršci s ključem uređaja.</string>
-    <string name="licence_status_revoked">Ova je licenca povučena. Obratite se podršci s ključem uređaja.</string>
+    <string name="licence_status_none">Za ovaj uređaj nije pronađena licenca.</string>
+    <string name="licence_status_verify">Potrebna je provjera licence prije nego što se aktivacija nastavi.</string>
+    <string name="licence_status_unavailable">Usluga licenciranja privremeno je nedostupna. Pokušajte ponovno kasnije.</string>
+    <string name="licence_status_unreadable">Castivio nije mogao pročitati licencu spremljenu na ovom uređaju.</string>
+    <string name="licence_status_revoked">Ova licenca je opozvana.</string>
     <string name="licence_status_opening">Otvaranje Castivio portala…</string>
     <string name="licence_status_failed">Nije uspjelo. Pokušajte ponovno.</string>
-    <string name="licence_retry">Pokušajte ponovno</string>
-    <string name="licence_support">Obratite se podršci</string>
+    <string name="licence_retry">Pokušaj ponovno</string>
+    <string name="licence_support">Kontaktirajte podršku</string>
     <string name="licence_qr_caption">Skenirajte QR kod da otvorite stranicu za aktivaciju uređaja</string>
-    <string name="licence_legal">[pravni tekst za zaslon licence — tek treba napisati]</string>
+    <string name="licence_legal">Castivio je samo medijski reproduktor. Ne pruža niti hostira sadržaj.</string>
+    <string name="licence_legal_title">Pravna obavijest</string>
+    <string name="licence_legal_open">Pročitajte cijelu pravnu obavijest</string>
+    <string name="licence_legal_close">Zatvori</string>
+    <string name="licence_legal_full">Castivio je isključivo aplikacija za reprodukciju medija. Ne pruža, ne hostira, ne emitira, ne prodaje i ne distribuira nikakve kanale, filmove, serije, prijenose uživo ni medijski sadržaj. Sav sadržaj isključivo osigurava korisnik ili pružatelj usluge koji je korisnik odabrao. Korisnici su jedini odgovorni za to da imaju zakonska prava za pristup svojem sadržaju i njegovo korištenje. Castivio ne preuzima nikakvu odgovornost za dostupnost, zakonitost, licenciranje ili kvalitetu bilo kojeg sadržaja ili usluga trećih strana.</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="one">još %d dan</item>
-        <item quantity="few">još %d dana</item>
-        <item quantity="other">još %d dana</item>
+        <item quantity="one">Preostao je %d dan probnog razdoblja.</item>
+        <item quantity="few">Preostala su %d dana probnog razdoblja.</item>
+        <item quantity="other">Preostalo je %d dana probnog razdoblja.</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">hr</string>

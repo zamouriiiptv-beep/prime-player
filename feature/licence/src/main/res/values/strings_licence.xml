@@ -42,37 +42,52 @@
     <string name="licence_chip_verify">Verification needed</string>
     <string name="licence_chip_unavailable">Unavailable</string>
     <string name="licence_chip_unreadable">Licence unreadable</string>
-    <string name="licence_chip_revoked">Licence withdrawn</string>
+    <string name="licence_chip_revoked">Licence revoked</string>
 
-    <string name="licence_status_trial">Choose a licence any time before your trial ends.</string>
-    <string name="licence_status_active">Your licence is active.</string>
+    <string name="licence_status_active">Your Castivio licence is active.</string>
     <string name="licence_status_lifetime">You own Castivio on this device.</string>
     <string name="licence_status_trial_ended">Your trial has ended. Choose a licence to continue.</string>
     <string name="licence_status_expired">Your licence has expired. Choose a licence to continue.</string>
-    <string name="licence_status_none">This device has no Castivio licence yet.</string>
-    <string name="licence_status_verify">Castivio hasn’t been able to check this licence recently.</string>
-    <string name="licence_status_unavailable">Castivio can’t check licences right now. This is our problem, not yours.</string>
-    <string name="licence_status_unreadable">This device’s licence can’t be read. Contact support with your device key.</string>
-    <string name="licence_status_revoked">This licence was withdrawn. Contact support with your device key.</string>
+    <string name="licence_status_none">No licence was found for this device.</string>
+    <string name="licence_status_verify">Licence verification is required before activation can continue.</string>
+    <string name="licence_status_unavailable">The licence service is temporarily unavailable. Please try again later.</string>
+    <string name="licence_status_unreadable">Castivio could not read the licence stored on this device.</string>
+    <string name="licence_status_revoked">This licence has been revoked.</string>
     <string name="licence_status_opening">Opening the Castivio portal…</string>
     <string name="licence_status_failed">That didn’t work. Try again.</string>
 
-    <string name="licence_retry">Try again</string>
-    <string name="licence_support">Contact support</string>
+    <string name="licence_retry">Retry</string>
+    <string name="licence_support">Contact Support</string>
 
     <string name="licence_qr_caption">Scan the QR code to open your device activation page</string>
 
     <!--
-      Placeholder, and deliberately visible as one. The final wording is a legal
-      question, not a design one, and inventing it would be worse than showing a
-      bracket. It is measured at this length so the band's budget holds when the
-      real sentence arrives; two lines on the 800x360 frame is the ceiling.
-    -->
-    <string name="licence_legal">[legal copy for the licence screen — to be written]</string>
+      The standing notice, and the full one behind it.
 
+      `licence_legal` is what the footer draws on every frame. One line is what
+      the footer has: the complete notice measures four lines at `bodySmall`
+      across the widest phone, which is 90dp in a 20dp slot and 27dp more than
+      the whole band's margin. So the footer carries the operative sentence and
+      `licence_legal_full` — the notice in full, unabridged, in every language —
+      is one press behind it. Neither is a placeholder and neither is a summary
+      that changes the meaning: the footer sentence is the notice's own first
+      clause.
+    -->
+    <string name="licence_legal">Castivio is a media player only. It does not provide or host any content.</string>
+    <string name="licence_legal_title">Legal notice</string>
+    <string name="licence_legal_open">Read the full legal notice</string>
+    <string name="licence_legal_close">Close</string>
+    <string name="licence_legal_full">Castivio is a media player application only. It does not provide, host, broadcast, sell or distribute any channels, movies, series, live streams or media content. All content is supplied exclusively by the user or the user’s chosen service provider. Users are solely responsible for ensuring they have the legal rights to access and use their content. Castivio assumes no responsibility for the availability, legality, licensing or quality of any third-party content or services.</string>
+
+    <!--
+      The trial countdown is a sentence, and a sentence belongs on the status
+      line rather than in a chip. The chip says which condition this is; the line
+      under the plans says what it means today. "Trial · 3 days left" said both
+      in the one place that had no room for either.
+    -->
     <plurals name="licence_trial_days">
-        <item quantity="one">%d day left</item>
-        <item quantity="other">%d days left</item>
+        <item quantity="one">%d day remaining in your trial.</item>
+        <item quantity="other">%d days remaining in your trial.</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">en</string>

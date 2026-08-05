@@ -35,31 +35,34 @@
     <string name="licence_chip_verify">يلزم التحقق</string>
     <string name="licence_chip_unavailable">غير متاح</string>
     <string name="licence_chip_unreadable">تعذّرت قراءة الترخيص</string>
-    <string name="licence_chip_revoked">سُحب الترخيص</string>
-    <string name="licence_status_trial">اختر ترخيصًا في أي وقت قبل انتهاء التجربة.</string>
-    <string name="licence_status_active">ترخيصك مُفعَّل.</string>
+    <string name="licence_chip_revoked">ترخيص مسحوب</string>
+    <string name="licence_status_active">ترخيص Castivio الخاص بك مُفعَّل.</string>
     <string name="licence_status_lifetime">أنت تملك Castivio على هذا الجهاز.</string>
     <string name="licence_status_trial_ended">انتهت تجربتك. اختر ترخيصًا للمتابعة.</string>
     <string name="licence_status_expired">انتهى ترخيصك. اختر ترخيصًا للمتابعة.</string>
-    <string name="licence_status_none">لا يوجد ترخيص Castivio على هذا الجهاز بعد.</string>
-    <string name="licence_status_verify">لم يتمكن Castivio من التحقق من هذا الترخيص مؤخرًا.</string>
-    <string name="licence_status_unavailable">لا يستطيع Castivio التحقق من التراخيص الآن. المشكلة لدينا وليست لديك.</string>
-    <string name="licence_status_unreadable">تعذّرت قراءة ترخيص هذا الجهاز. تواصل مع الدعم مع ذكر مفتاح الجهاز.</string>
-    <string name="licence_status_revoked">سُحب هذا الترخيص. تواصل مع الدعم مع ذكر مفتاح الجهاز.</string>
+    <string name="licence_status_none">لم يُعثر على ترخيص لهذا الجهاز.</string>
+    <string name="licence_status_verify">يلزم التحقق من الترخيص قبل متابعة التفعيل.</string>
+    <string name="licence_status_unavailable">خدمة التراخيص غير متاحة مؤقتًا. يُرجى المحاولة لاحقًا.</string>
+    <string name="licence_status_unreadable">تعذّر على Castivio قراءة الترخيص المخزَّن على هذا الجهاز.</string>
+    <string name="licence_status_revoked">تم سحب هذا الترخيص.</string>
     <string name="licence_status_opening">جارٍ فتح بوابة Castivio…</string>
     <string name="licence_status_failed">لم ينجح ذلك. حاول مرة أخرى.</string>
-    <string name="licence_retry">حاول مرة أخرى</string>
+    <string name="licence_retry">إعادة المحاولة</string>
     <string name="licence_support">تواصل مع الدعم</string>
     <string name="licence_qr_caption">امسح رمز QR لفتح صفحة تفعيل جهازك</string>
-    <string name="licence_legal">[نص قانوني لشاشة الترخيص — قيد الصياغة]</string>
+    <string name="licence_legal">Castivio مشغّل وسائط فقط. لا يوفّر أي محتوى ولا يستضيفه.</string>
+    <string name="licence_legal_title">إشعار قانوني</string>
+    <string name="licence_legal_open">اقرأ الإشعار القانوني كاملًا</string>
+    <string name="licence_legal_close">إغلاق</string>
+    <string name="licence_legal_full">Castivio هو تطبيق مشغّل وسائط فقط. وهو لا يوفّر ولا يستضيف ولا يبثّ ولا يبيع ولا يوزّع أي قنوات أو أفلام أو مسلسلات أو بثوث مباشرة أو محتوى وسائط. يُقدَّم كل المحتوى حصريًا من المستخدم أو من مزوّد الخدمة الذي يختاره. يتحمّل المستخدمون وحدهم مسؤولية التأكد من امتلاكهم الحقوق القانونية للوصول إلى محتواهم واستخدامه. ولا يتحمّل Castivio أي مسؤولية عن توفّر أو قانونية أو ترخيص أو جودة أي محتوى أو خدمات تابعة لجهات خارجية.</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="zero">بقي %d يوم</item>
-        <item quantity="one">بقي يوم واحد</item>
-        <item quantity="two">بقي يومان</item>
-        <item quantity="few">بقيت %d أيام</item>
-        <item quantity="many">بقي %d يومًا</item>
-        <item quantity="other">بقي %d يوم</item>
+        <item quantity="zero">بقي %d يوم في تجربتك.</item>
+        <item quantity="one">بقي يوم واحد في تجربتك.</item>
+        <item quantity="two">بقي يومان في تجربتك.</item>
+        <item quantity="few">بقيت %d أيام في تجربتك.</item>
+        <item quantity="many">بقي %d يومًا في تجربتك.</item>
+        <item quantity="other">بقي %d يوم في تجربتك.</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">ar</string>

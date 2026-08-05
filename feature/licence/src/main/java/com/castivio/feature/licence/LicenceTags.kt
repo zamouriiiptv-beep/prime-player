@@ -43,5 +43,10 @@ internal object LicenceTags {
     /** For diagnosis rather than assertion: which band took the space. */
     const val STAGE = "licence.stage"
     const val HEADER = "licence.header"
+
+    /** The standing notice, which is also the control that opens the full one. */
     const val FOOTER = "licence.footer"
+
+    /** The full legal notice, when it is open. */
+    const val NOTICE = "licence.notice"
 }

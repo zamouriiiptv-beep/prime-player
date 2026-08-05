@@ -35,27 +35,30 @@
     <string name="licence_chip_verify">Doğrulama gerekli</string>
     <string name="licence_chip_unavailable">Kullanılamıyor</string>
     <string name="licence_chip_unreadable">Lisans okunamıyor</string>
-    <string name="licence_chip_revoked">Lisans geri alındı</string>
-    <string name="licence_status_trial">Deneme bitmeden istediğiniz zaman bir lisans seçin.</string>
-    <string name="licence_status_active">Lisansınız etkin.</string>
+    <string name="licence_chip_revoked">Lisans iptal edildi</string>
+    <string name="licence_status_active">Castivio lisansınız etkin.</string>
     <string name="licence_status_lifetime">Bu cihazda Castivio sizin.</string>
     <string name="licence_status_trial_ended">Denemeniz bitti. Devam etmek için bir lisans seçin.</string>
     <string name="licence_status_expired">Lisansınızın süresi doldu. Devam etmek için bir lisans seçin.</string>
-    <string name="licence_status_none">Bu cihazın henüz Castivio lisansı yok.</string>
-    <string name="licence_status_verify">Castivio son zamanlarda bu lisansı denetleyemedi.</string>
-    <string name="licence_status_unavailable">Castivio şu anda lisansları denetleyemiyor. Sorun bizde, sizde değil.</string>
-    <string name="licence_status_unreadable">Bu cihazın lisansı okunamıyor. Cihaz anahtarınızla destek ekibine ulaşın.</string>
-    <string name="licence_status_revoked">Bu lisans geri alındı. Cihaz anahtarınızla destek ekibine ulaşın.</string>
+    <string name="licence_status_none">Bu cihaz için lisans bulunamadı.</string>
+    <string name="licence_status_verify">Etkinleştirmeye devam edebilmek için lisans doğrulaması gerekiyor.</string>
+    <string name="licence_status_unavailable">Lisans hizmeti geçici olarak kullanılamıyor. Lütfen daha sonra tekrar deneyin.</string>
+    <string name="licence_status_unreadable">Castivio bu cihazda kayıtlı lisansı okuyamadı.</string>
+    <string name="licence_status_revoked">Bu lisans iptal edildi.</string>
     <string name="licence_status_opening">Castivio portalı açılıyor…</string>
     <string name="licence_status_failed">Olmadı. Tekrar deneyin.</string>
-    <string name="licence_retry">Tekrar deneyin</string>
-    <string name="licence_support">Destek ekibine ulaşın</string>
+    <string name="licence_retry">Yeniden dene</string>
+    <string name="licence_support">Destek ile iletişime geç</string>
     <string name="licence_qr_caption">Cihazınızın etkinleştirme sayfasını açmak için QR kodu okutun</string>
-    <string name="licence_legal">[lisans ekranı için hukuki metin — yazılacak]</string>
+    <string name="licence_legal">Castivio yalnızca bir medya oynatıcıdır. İçerik sağlamaz ve barındırmaz.</string>
+    <string name="licence_legal_title">Yasal bildirim</string>
+    <string name="licence_legal_open">Yasal bildirimin tamamını oku</string>
+    <string name="licence_legal_close">Kapat</string>
+    <string name="licence_legal_full">Castivio yalnızca bir medya oynatıcı uygulamasıdır. Hiçbir kanalı, filmi, diziyi, canlı yayını veya medya içeriğini sağlamaz, barındırmaz, yayınlamaz, satmaz veya dağıtmaz. Tüm içerik yalnızca kullanıcı ya da kullanıcının seçtiği hizmet sağlayıcı tarafından sunulur. İçeriklerine erişmek ve onu kullanmak için yasal haklara sahip olduklarından emin olmak tümüyle kullanıcıların sorumluluğundadır. Castivio, üçüncü taraf içerik veya hizmetlerin kullanılabilirliği, yasallığı, lisansı ya da kalitesi konusunda hiçbir sorumluluk kabul etmez.</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="one">%d gün kaldı</item>
-        <item quantity="other">%d gün kaldı</item>
+        <item quantity="one">Deneme sürenizde %d gün kaldı.</item>
+        <item quantity="other">Deneme sürenizde %d gün kaldı.</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">tr</string>

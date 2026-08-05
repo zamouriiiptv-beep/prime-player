@@ -1,6 +1,9 @@
 package com.castivio.feature.licence
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -44,9 +47,11 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
@@ -55,6 +60,7 @@ import androidx.core.os.ConfigurationCompat
 import com.castivio.core.design.components.ButtonWeight
 import com.castivio.core.design.components.CapsuleMetrics
 import com.castivio.core.design.components.CastivioButton
+import com.castivio.core.design.components.CastivioNoticeDialog
 import com.castivio.core.design.components.IdentityCapsule
 import com.castivio.core.design.components.PlanCard
 import com.castivio.core.design.components.PlanCardMetrics
@@ -63,10 +69,10 @@ import com.castivio.core.design.components.Skeleton
 import com.castivio.core.design.components.StatusChip
 import com.castivio.core.design.components.StatusLine
 import com.castivio.core.design.components.castivioFocusScale
-import com.castivio.core.design.components.emphasiseNumber
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Motion
+import com.castivio.core.design.theme.MotionLevel
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.Spacing
@@ -112,8 +118,19 @@ internal fun LicenceScreen(
     onOpenLanguage: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = CastivioTheme.colors
     val tv = CastivioTheme.device.isTv
+
+    // The legal notice, open or not. Screen state rather than view-model state:
+    // nothing outside this composition needs to know, and a modal that survived
+    // a process death would reopen itself over a screen the user had moved on
+    // from.
+    var notice by remember { mutableStateOf(false) }
+
+    // Back closes the notice and nothing else, and only while it is open.
+    // Registered here rather than in the route because the route cannot see a
+    // flag the screen owns, and adding a parameter so that it could would be
+    // hoisting state for the benefit of one `if`.
+    BackHandler(enabled = notice) { notice = false }
 
     BoxWithConstraints(modifier.fillMaxSize()) {
         val m = licenceMetricsFor(tv, maxHeight)
@@ -153,17 +170,79 @@ internal fun LicenceScreen(
             }
 
             Hairline()
-            Text(
-                text = stringResource(R.string.licence_legal),
-                style = CastivioType.bodySmall,
-                color = colors.onBackgroundMuted,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(LicenceTags.FOOTER)
-                    .padding(top = m.footTop, bottom = m.footBottom),
+            LegalFooter(m = m, onOpen = { notice = true })
+        }
+
+        if (notice) {
+            CastivioNoticeDialog(
+                title = stringResource(R.string.licence_legal_title),
+                body = stringResource(R.string.licence_legal_full),
+                closeLabel = stringResource(R.string.licence_legal_close),
+                onClose = { notice = false },
+                modifier = Modifier.testTag(LicenceTags.NOTICE),
             )
         }
+    }
+}
+
+/**
+ * The standing notice, and the way to the rest of it.
+ *
+ * ## Why the footer is one line and the notice is not
+ *
+ * The complete legal notice measures **four lines** of `bodySmall` across the
+ * widest phone this ships to — 90dp on 873×393, 87dp on 800×360, 93dp on the
+ * television — against a footer slot of 20dp and a whole-band margin of 35dp.
+ * Drawing it permanently costs 27dp more than the screen has, before the
+ * transient navigation bar takes another 24. That is measured, in
+ * `design/mockups/licence.html`, by `measure.js`, and it is not a number that
+ * tighter padding pays for.
+ *
+ * So the footer carries the notice's operative first clause, always visible on
+ * every frame in every language, and the notice itself — unabridged — is one
+ * press behind it. Neither is a summary that changes the meaning and neither is
+ * a placeholder.
+ *
+ * ## And why it is a control
+ *
+ * A notice nobody can reach is not a notice. The line is focusable, so a remote
+ * finds it in the ordinary D-pad order after the plans, and it announces itself
+ * as "Read the full legal notice" rather than by reading the sentence twice.
+ *
+ * It is the one control in Castivio **below** the 48dp touch floor, at the 27dp
+ * the footer's budget allows, and that is a deliberate exception rather than an
+ * oversight: it is full-bleed, so the hit area is 748×27dp on the tightest
+ * frame, which is twelve times the area of a compliant 48dp square. The floor
+ * exists to stop 24dp icons, and the alternative here is not a taller strip —
+ * the arithmetic above shows there is no dp to give it — but no way to read the
+ * notice at all.
+ */
+@Composable
+private fun LegalFooter(m: LicenceMetrics, onOpen: () -> Unit) {
+    val colors = CastivioTheme.colors
+    val interaction = remember { MutableInteractionSource() }
+    var focused by remember { mutableStateOf(false) }
+    val open = stringResource(R.string.licence_legal_open)
+
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .testTag(LicenceTags.FOOTER)
+            .onFocusChanged { focused = it.isFocused || it.hasFocus }
+            .clickable(interaction, indication = null, onClick = onOpen)
+            .semantics { contentDescription = open; role = Role.Button }
+            .padding(top = m.footTop, bottom = m.footBottom),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = stringResource(R.string.licence_legal),
+            style = CastivioType.bodySmall,
+            // Brighter when the remote is on it. A focus ring around a full-width
+            // line would draw a box across the bottom of the screen; a change of
+            // ink says the same thing without adding a shape to the design.
+            color = if (focused) colors.onBackgroundVariant else colors.onBackgroundMuted,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
@@ -223,23 +302,38 @@ private fun Header(
         )
         Box(Modifier.weight(1f))
 
-        val licence = state.licence
-        if (licence != null) {
-            val view = licenceView(licence)
-            StatusChip(
-                label = stringResource(view.chip),
-                dot = when (view.tone) {
-                    // The same brush the primary button is filled with. A trial
-                    // is the one condition on this screen that is neither good
-                    // news nor bad, and the primary gradient is what the sibling
-                    // screen already uses to say so.
-                    LicenceTone.Neutral -> colors.primaryBrush
-                    LicenceTone.Good -> SolidColor(colors.success)
-                    LicenceTone.Warning -> SolidColor(colors.warning)
-                    LicenceTone.Bad -> SolidColor(colors.danger)
-                },
-                value = trialCount(licence, view),
-            )
+        // The condition, faded rather than swapped.
+        //
+        // A licence becoming active is the one moment on this screen worth
+        // marking, and the whole of the mark is 220ms of opacity on the chip and
+        // on the sentence beneath it. Nothing scales, nothing travels, and
+        // navigation is not waiting on any of it -- the incoming chip is
+        // composed and hittable from the first frame of the fade.
+        //
+        // The one thing that is not fixed is the chip's own width, because a
+        // crossfade measures both children and takes the larger: a chip becoming
+        // a longer one grows to its final width immediately and fades within it.
+        // That is the cheap end of the trade -- the alternative is animating a
+        // width, which is the kind of motion this design does not use.
+        //
+        // Keyed on the whole `LicenceView`, so a change of *condition* animates
+        // and a change of sentence underneath does not. See `LicenceStatusLine`.
+        LicenceFade(state.licence?.let(::licenceView)) { view ->
+            if (view != null) {
+                StatusChip(
+                    label = stringResource(view.chip),
+                    dot = when (view.tone) {
+                        // The same brush the primary button is filled with. A
+                        // trial is the one condition on this screen that is
+                        // neither good news nor bad, and the primary gradient is
+                        // what the sibling screen already uses to say so.
+                        LicenceTone.Neutral -> colors.primaryBrush
+                        LicenceTone.Good -> SolidColor(colors.success)
+                        LicenceTone.Warning -> SolidColor(colors.warning)
+                        LicenceTone.Bad -> SolidColor(colors.danger)
+                    },
+                )
+            }
         }
 
         LanguageChip(m, onOpenLanguage)
@@ -247,22 +341,33 @@ private fun Header(
 }
 
 /**
- * "3 days left", with the numeral one weight heavier, or nothing at all.
+ * Fade one small thing into another, at the level of motion the device allows.
  *
- * Only a running trial counts down. An annual subscription has days remaining
- * too and they are not a trial — a licence somebody paid for should not be
- * displaying a countdown to its own expiry every time they open Settings.
+ * 220ms, inside the 200–250ms the design calls for and short enough that a user
+ * pressing on through it is never held up: `Crossfade` composes the incoming
+ * content immediately and only animates its alpha, so the new state is hittable
+ * and focusable from the first frame.
+ *
+ * At [MotionLevel.DISABLED] the swap is instant. That is not a degradation to
+ * apologise for — a user who has turned animation off has said what they want,
+ * and a 220ms fade is exactly the kind of thing they turned it off to stop.
  */
 @Composable
-private fun trialCount(licence: EntitlementState, view: LicenceView): AnnotatedString? {
-    if (!view.countsDays) return null
-    val days = (licence as? EntitlementState.TrialActive)?.daysRemaining?.coerceAtLeast(0)
-        ?: return null
-    // Quantity and argument are the same number, which is what a plural resource
-    // needs: Arabic and Polish choose different forms for 1, 2, a few and many.
-    val text = pluralStringResource(R.plurals.licence_trial_days, days, days)
-    return emphasiseNumber(text, days)
+private fun <T> LicenceFade(target: T, content: @Composable (T) -> Unit) {
+    if (CastivioTheme.motionLevel == MotionLevel.DISABLED) {
+        content(target)
+        return
+    }
+    Crossfade(
+        targetState = target,
+        animationSpec = tween(STATE_FADE_MS, easing = Motion.standard),
+        label = "licenceState",
+        content = content,
+    )
 }
+
+/** Long enough to be seen, short enough not to be waited on. */
+private const val STATE_FADE_MS = 220
 
 /**
  * The language control.
@@ -534,42 +639,69 @@ private fun LaunchedFocus(focus: FocusRequester, enabled: Boolean) {
 private fun LicenceStatusLine(state: LicenceUiState, m: LicenceMetrics, modifier: Modifier = Modifier) {
     val colors = CastivioTheme.colors
 
-    val resting = state.licence?.let(::licenceView)
+    // Keyed on the entitlement, not on the sentence.
+    //
+    // Both matter and only one is worth animating. A licence turning active is a
+    // change of condition and gets the fade; "MAC address copied" is a
+    // confirmation of something the user did a moment ago and appears at once,
+    // because a fade on it would be a delay between the press and its answer.
+    // Keying the crossfade on the view rather than the text is what separates
+    // the two without a second code path.
+    LicenceFade(state.licence?.let(::licenceView)) { resting ->
+        val message: Pair<String, Color>? = when {
+            state.lastCopied == Copied.Address ->
+                stringResource(R.string.licence_copied_mac) to colors.success
+            state.lastCopied == Copied.Key ->
+                stringResource(R.string.licence_copied_key) to colors.success
 
-    val message: Pair<String, Color>? = when {
-        state.lastCopied == Copied.Address ->
-            stringResource(R.string.licence_copied_mac) to colors.success
-        state.lastCopied == Copied.Key ->
-            stringResource(R.string.licence_copied_key) to colors.success
+            // A handoff that did not start. Said plainly rather than left as a
+            // card that stopped looking busy for no visible reason.
+            state.failed -> stringResource(R.string.licence_status_failed) to colors.danger
 
-        // A handoff that did not start. Said plainly rather than left as a card
-        // that stopped looking busy for no visible reason.
-        state.failed -> stringResource(R.string.licence_status_failed) to colors.danger
+            state.opening != null ->
+                stringResource(R.string.licence_status_opening) to colors.onBackgroundVariant
 
-        state.opening != null ->
-            stringResource(R.string.licence_status_opening) to colors.onBackgroundVariant
+            // The trial's line is a plural rather than a fixed sentence, so it
+            // is composed here where the day count is in hand.
+            resting != null && resting.countsDays ->
+                trialCountdown(state.licence) to toneColor(resting.tone)
 
-        // Null while the record is being read: the line keeps its height and
-        // says nothing, rather than guessing at a condition.
-        //
-        // Nested `let` rather than `resting?.status != null ->` and two smart
-        // casts. The compiler would probably grant both; "probably" is not a
-        // thing to find out from a seven-minute CI round trip.
-        else -> resting?.let { view ->
-            view.status?.let { stringResource(it) to toneColor(view.tone) }
+            // Null while the record is being read: the line keeps its height and
+            // says nothing, rather than guessing at a condition.
+            //
+            // Nested `let` rather than `resting?.status != null ->` and two smart
+            // casts. The compiler would probably grant both; "probably" is not a
+            // thing to find out from a seven-minute CI round trip.
+            else -> resting?.let { view ->
+                view.status?.let { stringResource(it) to toneColor(view.tone) }
+            }
         }
-    }
 
-    StatusLine(
-        modifier = modifier.testTag(LicenceTags.STATUS),
-        height = m.statusHeight,
-        text = message?.first,
-        tone = message?.second ?: colors.onBackgroundMuted,
-        // The sentence carries the tone as well as the dot. A 6dp circle is the
-        // whole signal otherwise, and it is the part a colour-blind reader is
-        // least likely to get.
-        textColor = message?.second ?: colors.onBackgroundMuted,
-    )
+        StatusLine(
+            modifier = modifier.testTag(LicenceTags.STATUS),
+            height = m.statusHeight,
+            text = message?.first,
+            tone = message?.second ?: colors.onBackgroundMuted,
+            // The sentence carries the tone as well as the dot. A 6dp circle is
+            // the whole signal otherwise, and it is the part a colour-blind
+            // reader is least likely to get.
+            textColor = message?.second ?: colors.onBackgroundMuted,
+        )
+    }
+}
+
+/**
+ * "3 days remaining in your trial.", in the plural form the language uses.
+ *
+ * Quantity and argument are the same number, which is what a plural resource
+ * needs: Arabic and Polish choose different forms for 1, 2, a few and many, and
+ * passing the count only as an argument would render "1 days" in every one of
+ * them.
+ */
+@Composable
+private fun trialCountdown(licence: EntitlementState?): String {
+    val days = (licence as? EntitlementState.TrialActive)?.daysRemaining?.coerceAtLeast(0) ?: 0
+    return pluralStringResource(R.plurals.licence_trial_days, days, days)
 }
 
 @Composable

@@ -36,25 +36,28 @@
     <string name="licence_chip_unavailable">無法使用</string>
     <string name="licence_chip_unreadable">無法讀取授權</string>
     <string name="licence_chip_revoked">授權已撤銷</string>
-    <string name="licence_status_trial">可在試用結束前隨時選擇授權。</string>
-    <string name="licence_status_active">您的授權有效。</string>
+    <string name="licence_status_active">你的 Castivio 授權已啟用。</string>
     <string name="licence_status_lifetime">您已擁有本裝置上的 Castivio。</string>
     <string name="licence_status_trial_ended">試用已結束。請選擇授權以繼續。</string>
     <string name="licence_status_expired">授權已過期。請選擇授權以繼續。</string>
-    <string name="licence_status_none">本裝置尚無 Castivio 授權。</string>
-    <string name="licence_status_verify">Castivio 最近無法驗證此授權。</string>
-    <string name="licence_status_unavailable">目前無法驗證授權。這是我們的問題，不是您的。</string>
-    <string name="licence_status_unreadable">無法讀取本裝置的授權。請攜帶裝置金鑰聯絡支援。</string>
-    <string name="licence_status_revoked">此授權已被撤銷。請攜帶裝置金鑰聯絡支援。</string>
+    <string name="licence_status_none">找不到此裝置的授權。</string>
+    <string name="licence_status_verify">必須先驗證授權，啟用才能繼續。</string>
+    <string name="licence_status_unavailable">授權服務暫時無法使用，請稍後再試。</string>
+    <string name="licence_status_unreadable">Castivio 無法讀取此裝置上儲存的授權。</string>
+    <string name="licence_status_revoked">此授權已被撤銷。</string>
     <string name="licence_status_opening">正在開啟 Castivio 入口…</string>
     <string name="licence_status_failed">操作失敗，請重試。</string>
     <string name="licence_retry">重試</string>
     <string name="licence_support">聯絡支援</string>
     <string name="licence_qr_caption">掃描 QR 碼，開啟本裝置的啟用頁面</string>
-    <string name="licence_legal">［授權頁面的法律文字 — 待撰寫］</string>
+    <string name="licence_legal">Castivio 只是一個媒體播放器，不提供也不代管任何內容。</string>
+    <string name="licence_legal_title">法律聲明</string>
+    <string name="licence_legal_open">閱讀完整法律聲明</string>
+    <string name="licence_legal_close">關閉</string>
+    <string name="licence_legal_full">Castivio 僅是一款媒體播放器應用程式。它不提供、不代管、不播送、不販售也不散布任何頻道、電影、影集、直播串流或媒體內容。所有內容皆完全由使用者本人或使用者自行選擇的服務供應商提供。使用者須自行負責確保擁有存取及使用其內容的合法權利。對於任何第三方內容或服務的可用性、合法性、授權或品質，Castivio 概不負責。</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="other">還剩 %d 天</item>
+        <item quantity="other">試用還剩 %d 天。</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">zh-Hant</string>

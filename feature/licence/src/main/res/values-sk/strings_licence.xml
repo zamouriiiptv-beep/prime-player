@@ -35,29 +35,32 @@
     <string name="licence_chip_verify">Je potrebné overenie</string>
     <string name="licence_chip_unavailable">Nedostupné</string>
     <string name="licence_chip_unreadable">Licenciu sa nedá prečítať</string>
-    <string name="licence_chip_revoked">Licencia bola odobratá</string>
-    <string name="licence_status_trial">Licenciu si môžete vybrať kedykoľvek pred koncom skúšobnej verzie.</string>
-    <string name="licence_status_active">Vaša licencia je aktívna.</string>
+    <string name="licence_chip_revoked">Licencia odvolaná</string>
+    <string name="licence_status_active">Vaša licencia Castivio je aktívna.</string>
     <string name="licence_status_lifetime">Castivio na tomto zariadení vlastníte.</string>
     <string name="licence_status_trial_ended">Skúšobná verzia skončila. Pokračujte výberom licencie.</string>
     <string name="licence_status_expired">Vaša licencia vypršala. Pokračujte výberom licencie.</string>
-    <string name="licence_status_none">Toto zariadenie zatiaľ nemá licenciu Castivio.</string>
-    <string name="licence_status_verify">Castivio nedokázalo túto licenciu v poslednom čase overiť.</string>
-    <string name="licence_status_unavailable">Castivio teraz nemôže overovať licencie. Je to náš problém, nie váš.</string>
-    <string name="licence_status_unreadable">Licenciu tohto zariadenia sa nedá prečítať. Kontaktujte podporu a uveďte kľúč zariadenia.</string>
-    <string name="licence_status_revoked">Táto licencia bola odobratá. Kontaktujte podporu a uveďte kľúč zariadenia.</string>
+    <string name="licence_status_none">Pre toto zariadenie sa nenašla žiadna licencia.</string>
+    <string name="licence_status_verify">Skôr než bude aktivácia pokračovať, je potrebné overenie licencie.</string>
+    <string name="licence_status_unavailable">Licenčná služba je dočasne nedostupná. Skúste to prosím neskôr.</string>
+    <string name="licence_status_unreadable">Castivio nedokázalo prečítať licenciu uloženú v tomto zariadení.</string>
+    <string name="licence_status_revoked">Táto licencia bola odvolaná.</string>
     <string name="licence_status_opening">Otvára sa portál Castivio…</string>
     <string name="licence_status_failed">Nepodarilo sa. Skúste to znova.</string>
     <string name="licence_retry">Skúsiť znova</string>
     <string name="licence_support">Kontaktovať podporu</string>
     <string name="licence_qr_caption">Naskenujte QR kód a otvorte stránku aktivácie zariadenia</string>
-    <string name="licence_legal">[právny text pre obrazovku licencie — bude doplnený]</string>
+    <string name="licence_legal">Castivio je len prehrávač médií. Neposkytuje ani nehostuje žiadny obsah.</string>
+    <string name="licence_legal_title">Právne oznámenie</string>
+    <string name="licence_legal_open">Prečítať celé právne oznámenie</string>
+    <string name="licence_legal_close">Zavrieť</string>
+    <string name="licence_legal_full">Castivio je len aplikácia na prehrávanie médií. Neposkytuje, nehostuje, nevysiela, nepredáva ani nedistribuuje žiadne kanály, filmy, seriály, živé prenosy ani mediálny obsah. Všetok obsah dodáva výhradne používateľ alebo poskytovateľ služby, ktorého si používateľ zvolil. Za zabezpečenie zákonných práv na prístup k svojmu obsahu a jeho používanie zodpovedajú výhradne používatelia. Castivio nenesie žiadnu zodpovednosť za dostupnosť, zákonnosť, licencovanie ani kvalitu akéhokoľvek obsahu či služieb tretích strán.</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="one">zostáva %d deň</item>
-        <item quantity="few">zostávajú %d dni</item>
-        <item quantity="many">zostáva %d dňa</item>
-        <item quantity="other">zostáva %d dní</item>
+        <item quantity="one">Do konca skúšobnej verzie zostáva %d deň.</item>
+        <item quantity="few">Do konca skúšobnej verzie zostávajú %d dni.</item>
+        <item quantity="many">Do konca skúšobnej verzie zostáva %d dňa.</item>
+        <item quantity="other">Do konca skúšobnej verzie zostáva %d dní.</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">sk</string>

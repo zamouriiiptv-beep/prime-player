@@ -26,7 +26,7 @@
     <string name="refresh">I-refresh</string>
     <string name="refresh_checking">Sinusuri…</string>
     <string name="refresh_found">May nakitang subscription</string>
-    <string name="refresh_none">Wala pang subscription</string>
+    <string name="refresh_none">Puwede mo nang idagdag ang una mong playlist.</string>
     <string name="refresh_error">Hindi na-refresh — subukan ulit</string>
     <string name="qr_caption">I-scan ang QR code para buksan ang activation page ng device mo</string>
     <string name="legal_player_only">Ang Castivio ay player lamang at hindi nagbibigay ng subscription o nilalaman.</string>

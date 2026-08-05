@@ -36,25 +36,28 @@
     <string name="licence_chip_unavailable">利用できません</string>
     <string name="licence_chip_unreadable">ライセンスを読み取れません</string>
     <string name="licence_chip_revoked">ライセンス取り消し</string>
-    <string name="licence_status_trial">体験版が終了する前に、いつでもライセンスを選べます。</string>
-    <string name="licence_status_active">ライセンスは有効です。</string>
+    <string name="licence_status_active">Castivio ライセンスは有効です。</string>
     <string name="licence_status_lifetime">この端末の Castivio はお客様のものです。</string>
     <string name="licence_status_trial_ended">体験版が終了しました。続けるにはライセンスを選んでください。</string>
     <string name="licence_status_expired">ライセンスの期限が切れました。続けるにはライセンスを選んでください。</string>
-    <string name="licence_status_none">この端末にはまだ Castivio ライセンスがありません。</string>
-    <string name="licence_status_verify">Castivio は最近このライセンスを確認できていません。</string>
-    <string name="licence_status_unavailable">現在ライセンスを確認できません。これは当社側の問題です。</string>
-    <string name="licence_status_unreadable">この端末のライセンスを読み取れません。デバイスキーを添えてサポートにご連絡ください。</string>
-    <string name="licence_status_revoked">このライセンスは取り消されました。デバイスキーを添えてサポートにご連絡ください。</string>
+    <string name="licence_status_none">この端末のライセンスは見つかりませんでした。</string>
+    <string name="licence_status_verify">アクティベーションを続けるには、ライセンスの確認が必要です。</string>
+    <string name="licence_status_unavailable">ライセンスサービスは一時的にご利用いただけません。しばらくしてからお試しください。</string>
+    <string name="licence_status_unreadable">この端末に保存されたライセンスを Castivio は読み取れませんでした。</string>
+    <string name="licence_status_revoked">このライセンスは取り消されました。</string>
     <string name="licence_status_opening">Castivio ポータルを開いています…</string>
     <string name="licence_status_failed">うまくいきませんでした。もう一度お試しください。</string>
-    <string name="licence_retry">もう一度試す</string>
+    <string name="licence_retry">再試行</string>
     <string name="licence_support">サポートに連絡</string>
     <string name="licence_qr_caption">QR コードをスキャンして、この端末のアクティベーションページを開きます</string>
-    <string name="licence_legal">［ライセンス画面の法的表記 — 作成予定］</string>
+    <string name="licence_legal">Castivio はメディアプレーヤーにすぎません。コンテンツの提供も配信も行いません。</string>
+    <string name="licence_legal_title">法的通知</string>
+    <string name="licence_legal_open">法的通知の全文を読む</string>
+    <string name="licence_legal_close">閉じる</string>
+    <string name="licence_legal_full">Castivio はメディアプレーヤーアプリにすぎません。チャンネル、映画、シリーズ、ライブ配信、その他のメディアコンテンツを提供、ホスト、放送、販売、配布することは一切ありません。すべてのコンテンツは、利用者ご自身または利用者が選んだサービス提供者からのみ供給されます。コンテンツにアクセスし利用する法的権利を有していることを確認する責任は、すべて利用者にあります。Castivio は、第三者のコンテンツやサービスの提供状況、適法性、ライセンス、品質について一切の責任を負いません。</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="other">残り %d 日</item>
+        <item quantity="other">体験版は残り %d 日です。</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">ja</string>

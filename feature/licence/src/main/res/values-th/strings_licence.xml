@@ -35,26 +35,29 @@
     <string name="licence_chip_verify">ต้องยืนยัน</string>
     <string name="licence_chip_unavailable">ไม่พร้อมใช้งาน</string>
     <string name="licence_chip_unreadable">อ่านใบอนุญาตไม่ได้</string>
-    <string name="licence_chip_revoked">ใบอนุญาตถูกเพิกถอน</string>
-    <string name="licence_status_trial">เลือกใบอนุญาตได้ทุกเมื่อก่อนสิ้นสุดการทดลองใช้</string>
-    <string name="licence_status_active">ใบอนุญาตของคุณใช้งานอยู่</string>
+    <string name="licence_chip_revoked">เพิกถอนใบอนุญาตแล้ว</string>
+    <string name="licence_status_active">ใบอนุญาต Castivio ของคุณใช้งานอยู่</string>
     <string name="licence_status_lifetime">Castivio เป็นของคุณบนอุปกรณ์นี้</string>
     <string name="licence_status_trial_ended">การทดลองใช้สิ้นสุดแล้ว เลือกใบอนุญาตเพื่อใช้งานต่อ</string>
     <string name="licence_status_expired">ใบอนุญาตหมดอายุแล้ว เลือกใบอนุญาตเพื่อใช้งานต่อ</string>
-    <string name="licence_status_none">อุปกรณ์นี้ยังไม่มีใบอนุญาต Castivio</string>
-    <string name="licence_status_verify">Castivio ยังไม่สามารถตรวจสอบใบอนุญาตนี้ได้เมื่อเร็ว ๆ นี้</string>
-    <string name="licence_status_unavailable">Castivio ตรวจสอบใบอนุญาตไม่ได้ในขณะนี้ เป็นปัญหาของเรา ไม่ใช่ของคุณ</string>
-    <string name="licence_status_unreadable">อ่านใบอนุญาตของอุปกรณ์นี้ไม่ได้ ติดต่อฝ่ายสนับสนุนพร้อมคีย์อุปกรณ์</string>
-    <string name="licence_status_revoked">ใบอนุญาตนี้ถูกเพิกถอน ติดต่อฝ่ายสนับสนุนพร้อมคีย์อุปกรณ์</string>
+    <string name="licence_status_none">ไม่พบใบอนุญาตสำหรับอุปกรณ์นี้</string>
+    <string name="licence_status_verify">ต้องยืนยันใบอนุญาตก่อนจึงจะเปิดใช้งานต่อได้</string>
+    <string name="licence_status_unavailable">บริการใบอนุญาตไม่พร้อมใช้งานชั่วคราว โปรดลองอีกครั้งภายหลัง</string>
+    <string name="licence_status_unreadable">Castivio อ่านใบอนุญาตที่เก็บไว้ในอุปกรณ์นี้ไม่ได้</string>
+    <string name="licence_status_revoked">ใบอนุญาตนี้ถูกเพิกถอนแล้ว</string>
     <string name="licence_status_opening">กำลังเปิดพอร์ทัล Castivio…</string>
     <string name="licence_status_failed">ไม่สำเร็จ ลองอีกครั้ง</string>
-    <string name="licence_retry">ลองอีกครั้ง</string>
+    <string name="licence_retry">ลองใหม่</string>
     <string name="licence_support">ติดต่อฝ่ายสนับสนุน</string>
     <string name="licence_qr_caption">สแกนคิวอาร์โค้ดเพื่อเปิดหน้าเปิดใช้งานอุปกรณ์</string>
-    <string name="licence_legal">[ข้อความทางกฎหมายสำหรับหน้าใบอนุญาต — รอการเขียน]</string>
+    <string name="licence_legal">Castivio เป็นเพียงโปรแกรมเล่นสื่อ ไม่ได้ให้บริการหรือโฮสต์เนื้อหาใด ๆ</string>
+    <string name="licence_legal_title">ประกาศทางกฎหมาย</string>
+    <string name="licence_legal_open">อ่านประกาศทางกฎหมายฉบับเต็ม</string>
+    <string name="licence_legal_close">ปิด</string>
+    <string name="licence_legal_full">Castivio เป็นเพียงแอปโปรแกรมเล่นสื่อเท่านั้น ไม่ได้ให้บริการ โฮสต์ ออกอากาศ จำหน่าย หรือเผยแพร่ช่อง ภาพยนตร์ ซีรีส์ การถ่ายทอดสด หรือเนื้อหาสื่อใด ๆ เนื้อหาทั้งหมดจัดหาโดยผู้ใช้หรือผู้ให้บริการที่ผู้ใช้เลือกเองเท่านั้น ผู้ใช้มีหน้าที่รับผิดชอบแต่เพียงผู้เดียวในการตรวจสอบว่าตนมีสิทธิ์ตามกฎหมายในการเข้าถึงและใช้เนื้อหาของตน Castivio ไม่รับผิดชอบต่อความพร้อมใช้งาน ความถูกต้องตามกฎหมาย การอนุญาตให้ใช้สิทธิ หรือคุณภาพของเนื้อหาหรือบริการของบุคคลที่สามใด ๆ</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="other">เหลืออีก %d วัน</item>
+        <item quantity="other">เหลืออีก %d วันในช่วงทดลองใช้</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">th</string>

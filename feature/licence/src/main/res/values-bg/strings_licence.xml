@@ -35,27 +35,30 @@
     <string name="licence_chip_verify">Нужна е проверка</string>
     <string name="licence_chip_unavailable">Недостъпно</string>
     <string name="licence_chip_unreadable">Лицензът не се чете</string>
-    <string name="licence_chip_revoked">Лицензът е отнет</string>
-    <string name="licence_status_trial">Изберете лиценз по всяко време преди края на пробния период.</string>
-    <string name="licence_status_active">Вашият лиценз е активен.</string>
+    <string name="licence_chip_revoked">Отнет лиценз</string>
+    <string name="licence_status_active">Вашият лиценз за Castivio е активен.</string>
     <string name="licence_status_lifetime">Притежавате Castivio на това устройство.</string>
     <string name="licence_status_trial_ended">Пробният ви период приключи. Изберете лиценз, за да продължите.</string>
     <string name="licence_status_expired">Лицензът ви изтече. Изберете лиценз, за да продължите.</string>
-    <string name="licence_status_none">Това устройство още няма лиценз за Castivio.</string>
-    <string name="licence_status_verify">Castivio не успя да провери този лиценз наскоро.</string>
-    <string name="licence_status_unavailable">Castivio не може да проверява лицензи в момента. Проблемът е наш, не ваш.</string>
-    <string name="licence_status_unreadable">Лицензът на това устройство не може да бъде прочетен. Свържете се с поддръжката с ключа на устройството.</string>
-    <string name="licence_status_revoked">Този лиценз беше отнет. Свържете се с поддръжката с ключа на устройството.</string>
+    <string name="licence_status_none">За това устройство не е намерен лиценз.</string>
+    <string name="licence_status_verify">Необходима е проверка на лиценза, преди активирането да продължи.</string>
+    <string name="licence_status_unavailable">Услугата за лицензи е временно недостъпна. Опитайте отново по-късно.</string>
+    <string name="licence_status_unreadable">Castivio не можа да прочете лиценза, запазен на това устройство.</string>
+    <string name="licence_status_revoked">Този лиценз е отнет.</string>
     <string name="licence_status_opening">Отваряне на портала на Castivio…</string>
     <string name="licence_status_failed">Не се получи. Опитайте отново.</string>
-    <string name="licence_retry">Опитайте отново</string>
+    <string name="licence_retry">Опитай отново</string>
     <string name="licence_support">Свържете се с поддръжката</string>
     <string name="licence_qr_caption">Сканирайте QR кода, за да отворите страницата за активиране на устройството</string>
-    <string name="licence_legal">[правен текст за екрана с лиценза — предстои да бъде написан]</string>
+    <string name="licence_legal">Castivio е само медиен плейър. Не предоставя и не хоства съдържание.</string>
+    <string name="licence_legal_title">Правна бележка</string>
+    <string name="licence_legal_open">Прочетете пълната правна бележка</string>
+    <string name="licence_legal_close">Затвори</string>
+    <string name="licence_legal_full">Castivio е само приложение — медиен плейър. То не предоставя, не хоства, не излъчва, не продава и не разпространява канали, филми, сериали, живи потоци или медийно съдържание. Цялото съдържание се доставя единствено от потребителя или от избрания от него доставчик на услуги. Потребителите носят цялата отговорност да се уверят, че имат законните права да достъпват и използват своето съдържание. Castivio не поема отговорност за наличността, законността, лицензирането или качеството на каквото и да е съдържание или услуги на трети страни.</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="one">остава %d ден</item>
-        <item quantity="other">остават %d дни</item>
+        <item quantity="one">Остава %d ден от пробния период.</item>
+        <item quantity="other">Остават %d дни от пробния период.</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">bg</string>

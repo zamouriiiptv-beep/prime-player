@@ -35,26 +35,29 @@
     <string name="licence_chip_verify">확인 필요</string>
     <string name="licence_chip_unavailable">사용할 수 없음</string>
     <string name="licence_chip_unreadable">라이선스를 읽을 수 없음</string>
-    <string name="licence_chip_revoked">라이선스 철회됨</string>
-    <string name="licence_status_trial">체험판이 끝나기 전 언제든 라이선스를 선택할 수 있습니다.</string>
-    <string name="licence_status_active">라이선스가 사용 중입니다.</string>
+    <string name="licence_chip_revoked">라이선스 취소됨</string>
+    <string name="licence_status_active">Castivio 라이선스가 활성 상태입니다.</string>
     <string name="licence_status_lifetime">이 기기의 Castivio는 회원님의 것입니다.</string>
     <string name="licence_status_trial_ended">체험판이 끝났습니다. 계속하려면 라이선스를 선택하세요.</string>
     <string name="licence_status_expired">라이선스가 만료되었습니다. 계속하려면 라이선스를 선택하세요.</string>
-    <string name="licence_status_none">이 기기에는 아직 Castivio 라이선스가 없습니다.</string>
-    <string name="licence_status_verify">Castivio가 최근 이 라이선스를 확인하지 못했습니다.</string>
-    <string name="licence_status_unavailable">지금은 라이선스를 확인할 수 없습니다. 저희 문제이지 회원님 문제가 아닙니다.</string>
-    <string name="licence_status_unreadable">이 기기의 라이선스를 읽을 수 없습니다. 기기 키와 함께 지원팀에 문의하세요.</string>
-    <string name="licence_status_revoked">이 라이선스는 철회되었습니다. 기기 키와 함께 지원팀에 문의하세요.</string>
+    <string name="licence_status_none">이 기기에 대한 라이선스를 찾을 수 없습니다.</string>
+    <string name="licence_status_verify">활성화를 계속하려면 라이선스 확인이 필요합니다.</string>
+    <string name="licence_status_unavailable">라이선스 서비스를 일시적으로 사용할 수 없습니다. 나중에 다시 시도해 주세요.</string>
+    <string name="licence_status_unreadable">Castivio가 이 기기에 저장된 라이선스를 읽지 못했습니다.</string>
+    <string name="licence_status_revoked">이 라이선스는 취소되었습니다.</string>
     <string name="licence_status_opening">Castivio 포털을 여는 중…</string>
     <string name="licence_status_failed">실패했습니다. 다시 시도하세요.</string>
     <string name="licence_retry">다시 시도</string>
     <string name="licence_support">지원팀에 문의</string>
     <string name="licence_qr_caption">QR 코드를 스캔해 기기 활성화 페이지를 여세요</string>
-    <string name="licence_legal">[라이선스 화면 법률 문구 — 작성 예정]</string>
+    <string name="licence_legal">Castivio는 미디어 플레이어일 뿐입니다. 콘텐츠를 제공하거나 호스팅하지 않습니다.</string>
+    <string name="licence_legal_title">법적 고지</string>
+    <string name="licence_legal_open">법적 고지 전문 읽기</string>
+    <string name="licence_legal_close">닫기</string>
+    <string name="licence_legal_full">Castivio는 미디어 플레이어 애플리케이션일 뿐입니다. 채널, 영화, 시리즈, 라이브 스트림 또는 미디어 콘텐츠를 제공, 호스팅, 방송, 판매하거나 배포하지 않습니다. 모든 콘텐츠는 오로지 사용자 또는 사용자가 선택한 서비스 제공업체가 공급합니다. 콘텐츠에 접근하고 이를 사용할 법적 권리를 갖추는 책임은 전적으로 사용자에게 있습니다. Castivio는 제3자 콘텐츠나 서비스의 가용성, 적법성, 라이선스 또는 품질에 대해 어떠한 책임도 지지 않습니다.</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="other">%d일 남음</item>
+        <item quantity="other">체험판이 %d일 남았습니다.</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">ko</string>

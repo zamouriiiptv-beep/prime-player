@@ -25,6 +25,7 @@ import com.castivio.tv.locale.AppLocale
 import com.castivio.tv.locale.LocalLocaleController
 import com.castivio.tv.locale.LocaleController
 import com.castivio.tv.shell.ShellScreen
+import com.castivio.tv.sound.StartupSound
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
@@ -104,6 +105,15 @@ class MainActivity : ComponentActivity() {
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
+
+        // Castivio's one sound, at the moment the system splash hands over.
+        //
+        // Here rather than in the composition: `SoundPool` decodes off this
+        // thread and plays from its load callback, so the first frame never
+        // waits on it, and a composable that played a sound would play it again
+        // the first time somebody made the tree recompose for another reason.
+        // `restored` is what keeps it off a warm rebuild -- see `StartupSound`.
+        StartupSound.playOnce(this, restored = savedInstanceState != null)
 
         // Measure once, then let the design system do less on a weak box.
         val performance = AndroidDeviceCapabilities(this).toPerformanceProfile()

@@ -26,7 +26,7 @@
     <string name="refresh">Päivitä</string>
     <string name="refresh_checking">Tarkistetaan…</string>
     <string name="refresh_found">Tilaus löytyi</string>
-    <string name="refresh_none">Ei vielä tilausta</string>
+    <string name="refresh_none">Voit nyt lisätä ensimmäisen soittolistasi.</string>
     <string name="refresh_error">Päivitys epäonnistui — yritä uudelleen</string>
     <string name="qr_caption">Skannaa QR-koodi avataksesi laitteen aktivointisivun</string>
     <string name="legal_player_only">Castivio on vain soitin eikä tarjoa tilauksia tai sisältöä.</string>

@@ -36,26 +36,29 @@
     <string name="licence_chip_unavailable">Μη διαθέσιμο</string>
     <string name="licence_chip_unreadable">Η άδεια δεν διαβάζεται</string>
     <string name="licence_chip_revoked">Η άδεια ανακλήθηκε</string>
-    <string name="licence_status_trial">Επιλέξτε άδεια οποιαδήποτε στιγμή πριν λήξει η δοκιμή.</string>
-    <string name="licence_status_active">Η άδειά σας είναι ενεργή.</string>
+    <string name="licence_status_active">Η άδεια Castivio σας είναι ενεργή.</string>
     <string name="licence_status_lifetime">Το Castivio σας ανήκει σε αυτή τη συσκευή.</string>
     <string name="licence_status_trial_ended">Η δοκιμή σας έληξε. Επιλέξτε άδεια για να συνεχίσετε.</string>
     <string name="licence_status_expired">Η άδειά σας έληξε. Επιλέξτε άδεια για να συνεχίσετε.</string>
-    <string name="licence_status_none">Αυτή η συσκευή δεν έχει ακόμη άδεια Castivio.</string>
-    <string name="licence_status_verify">Το Castivio δεν μπόρεσε να ελέγξει πρόσφατα αυτή την άδεια.</string>
-    <string name="licence_status_unavailable">Το Castivio δεν μπορεί να ελέγξει άδειες αυτή τη στιγμή. Το πρόβλημα είναι δικό μας, όχι δικό σας.</string>
-    <string name="licence_status_unreadable">Η άδεια αυτής της συσκευής δεν διαβάζεται. Επικοινωνήστε με την υποστήριξη με το κλειδί συσκευής σας.</string>
-    <string name="licence_status_revoked">Αυτή η άδεια ανακλήθηκε. Επικοινωνήστε με την υποστήριξη με το κλειδί συσκευής σας.</string>
+    <string name="licence_status_none">Δεν βρέθηκε άδεια για αυτήν τη συσκευή.</string>
+    <string name="licence_status_verify">Απαιτείται επαλήθευση της άδειας πριν συνεχιστεί η ενεργοποίηση.</string>
+    <string name="licence_status_unavailable">Η υπηρεσία αδειών δεν είναι προσωρινά διαθέσιμη. Δοκιμάστε ξανά αργότερα.</string>
+    <string name="licence_status_unreadable">Το Castivio δεν μπόρεσε να διαβάσει την άδεια που είναι αποθηκευμένη σε αυτήν τη συσκευή.</string>
+    <string name="licence_status_revoked">Αυτή η άδεια ανακλήθηκε.</string>
     <string name="licence_status_opening">Άνοιγμα της πύλης Castivio…</string>
     <string name="licence_status_failed">Δεν λειτούργησε. Δοκιμάστε ξανά.</string>
-    <string name="licence_retry">Δοκιμάστε ξανά</string>
-    <string name="licence_support">Επικοινωνία με υποστήριξη</string>
+    <string name="licence_retry">Δοκιμή ξανά</string>
+    <string name="licence_support">Επικοινωνία με την υποστήριξη</string>
     <string name="licence_qr_caption">Σαρώστε τον κωδικό QR για να ανοίξετε τη σελίδα ενεργοποίησης της συσκευής</string>
-    <string name="licence_legal">[νομικό κείμενο για την οθόνη άδειας — θα γραφτεί]</string>
+    <string name="licence_legal">Το Castivio είναι μόνο πρόγραμμα αναπαραγωγής. Δεν παρέχει ούτε φιλοξενεί περιεχόμενο.</string>
+    <string name="licence_legal_title">Νομική σημείωση</string>
+    <string name="licence_legal_open">Διαβάστε ολόκληρη τη νομική σημείωση</string>
+    <string name="licence_legal_close">Κλείσιμο</string>
+    <string name="licence_legal_full">Το Castivio είναι αποκλειστικά μια εφαρμογή αναπαραγωγής πολυμέσων. Δεν παρέχει, δεν φιλοξενεί, δεν μεταδίδει, δεν πωλεί και δεν διανέμει κανάλια, ταινίες, σειρές, ζωντανές ροές ή περιεχόμενο πολυμέσων. Όλο το περιεχόμενο παρέχεται αποκλειστικά από τον χρήστη ή από τον πάροχο υπηρεσιών που έχει επιλέξει ο χρήστης. Οι χρήστες είναι αποκλειστικά υπεύθυνοι να διασφαλίζουν ότι έχουν τα νόμιμα δικαιώματα πρόσβασης και χρήσης του περιεχομένου τους. Το Castivio δεν αναλαμβάνει καμία ευθύνη για τη διαθεσιμότητα, τη νομιμότητα, την αδειοδότηση ή την ποιότητα οποιουδήποτε περιεχομένου ή υπηρεσιών τρίτων.</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="one">απομένει %d ημέρα</item>
-        <item quantity="other">απομένουν %d ημέρες</item>
+        <item quantity="one">Απομένει %d ημέρα από τη δοκιμή σας.</item>
+        <item quantity="other">Απομένουν %d ημέρες από τη δοκιμή σας.</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">el</string>

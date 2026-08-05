@@ -26,7 +26,14 @@
     <string name="refresh">Refresh</string>
     <string name="refresh_checking">Checking…</string>
     <string name="refresh_found">Subscription found</string>
-    <string name="refresh_none">No subscription yet</string>
+    <!--
+      An invitation, not a verdict.
+
+      "No subscription yet" is accurate and reads as a failure report on the one
+      screen a user reaches before they have done anything wrong. This screen's
+      resting state is somebody at the start, so it says what they can do next.
+    -->
+    <string name="refresh_none">You can now add your first playlist.</string>
     <string name="refresh_error">Couldn’t refresh — try again</string>
     <string name="qr_caption">Scan the QR code to open your device activation page</string>
     <string name="legal_player_only">Castivio is only a player and does not provide subscriptions or content.</string>

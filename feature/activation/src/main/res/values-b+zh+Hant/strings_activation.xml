@@ -26,7 +26,7 @@
     <string name="refresh">重新整理</string>
     <string name="refresh_checking">正在檢查…</string>
     <string name="refresh_found">已找到訂閱</string>
-    <string name="refresh_none">尚無訂閱</string>
+    <string name="refresh_none">現在可以新增你的第一個播放清單了。</string>
     <string name="refresh_error">無法重新整理 — 請再試一次</string>
     <string name="qr_caption">掃描 QR code，開啟本裝置的啟用頁面</string>
     <string name="legal_player_only">Castivio 僅為播放器，不提供訂閱或內容。</string>

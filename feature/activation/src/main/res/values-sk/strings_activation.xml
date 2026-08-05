@@ -26,7 +26,7 @@
     <string name="refresh">Obnoviť</string>
     <string name="refresh_checking">Overuje sa…</string>
     <string name="refresh_found">Predplatné nájdené</string>
-    <string name="refresh_none">Zatiaľ žiadne predplatné</string>
+    <string name="refresh_none">Teraz môžete pridať svoj prvý playlist.</string>
     <string name="refresh_error">Obnovenie zlyhalo — skúste to znova</string>
     <string name="qr_caption">Naskenujte QR kód a otvorte aktivačnú stránku zariadenia</string>
     <string name="legal_player_only">Castivio je len prehrávač a neposkytuje predplatné ani obsah.</string>

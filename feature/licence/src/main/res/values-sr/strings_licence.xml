@@ -35,28 +35,31 @@
     <string name="licence_chip_verify">Потребна је провера</string>
     <string name="licence_chip_unavailable">Недоступно</string>
     <string name="licence_chip_unreadable">Лиценца се не може прочитати</string>
-    <string name="licence_chip_revoked">Лиценца је повучена</string>
-    <string name="licence_status_trial">Лиценцу можете изабрати било када пре краја пробног периода.</string>
-    <string name="licence_status_active">Ваша лиценца је активна.</string>
+    <string name="licence_chip_revoked">Licenca opozvana</string>
+    <string name="licence_status_active">Vaša Castivio licenca je aktivna.</string>
     <string name="licence_status_lifetime">Castivio је ваш на овом уређају.</string>
     <string name="licence_status_trial_ended">Пробни период је завршен. Изаберите лиценцу да наставите.</string>
     <string name="licence_status_expired">Лиценца вам је истекла. Изаберите лиценцу да наставите.</string>
-    <string name="licence_status_none">Овај уређај још нема Castivio лиценцу.</string>
-    <string name="licence_status_verify">Castivio у последње време није могао да провери ову лиценцу.</string>
-    <string name="licence_status_unavailable">Castivio тренутно не може да проверава лиценце. То је наш проблем, не ваш.</string>
-    <string name="licence_status_unreadable">Лиценца овог уређаја не може да се прочита. Обратите се подршци с кључем уређаја.</string>
-    <string name="licence_status_revoked">Ова лиценца је повучена. Обратите се подршци с кључем уређаја.</string>
+    <string name="licence_status_none">Za ovaj uređaj nije pronađena licenca.</string>
+    <string name="licence_status_verify">Potrebna je provera licence pre nego što se aktivacija nastavi.</string>
+    <string name="licence_status_unavailable">Usluga licenciranja je privremeno nedostupna. Pokušajte ponovo kasnije.</string>
+    <string name="licence_status_unreadable">Castivio nije mogao da pročita licencu sačuvanu na ovom uređaju.</string>
+    <string name="licence_status_revoked">Ova licenca je opozvana.</string>
     <string name="licence_status_opening">Отвара се Castivio портал…</string>
     <string name="licence_status_failed">Није успело. Покушајте поново.</string>
-    <string name="licence_retry">Покушајте поново</string>
-    <string name="licence_support">Обратите се подршци</string>
+    <string name="licence_retry">Pokušaj ponovo</string>
+    <string name="licence_support">Kontaktirajte podršku</string>
     <string name="licence_qr_caption">Скенирајте QR код да отворите страницу за активацију уређаја</string>
-    <string name="licence_legal">[правни текст за екран лиценце — тек треба написати]</string>
+    <string name="licence_legal">Castivio je samo medija plejer. Ne pruža niti hostuje bilo kakav sadržaj.</string>
+    <string name="licence_legal_title">Pravno obaveštenje</string>
+    <string name="licence_legal_open">Pročitajte celo pravno obaveštenje</string>
+    <string name="licence_legal_close">Zatvori</string>
+    <string name="licence_legal_full">Castivio je isključivo aplikacija za reprodukciju medija. Ne pruža, ne hostuje, ne emituje, ne prodaje i ne distribuira nikakve kanale, filmove, serije, prenose uživo ni medijski sadržaj. Sav sadržaj isključivo obezbeđuje korisnik ili pružalac usluge koji je korisnik izabrao. Korisnici su jedini odgovorni da obezbede zakonska prava za pristup i korišćenje svog sadržaja. Castivio ne preuzima nikakvu odgovornost za dostupnost, zakonitost, licenciranje ili kvalitet bilo kog sadržaja ili usluga trećih strana.</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="one">још %d дан</item>
-        <item quantity="few">још %d дана</item>
-        <item quantity="other">још %d дана</item>
+        <item quantity="one">Preostao je %d dan probnog perioda.</item>
+        <item quantity="few">Preostala su %d dana probnog perioda.</item>
+        <item quantity="other">Preostalo je %d dana probnog perioda.</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">sr</string>

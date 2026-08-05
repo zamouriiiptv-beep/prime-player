@@ -26,7 +26,7 @@
     <string name="refresh">更新</string>
     <string name="refresh_checking">確認中…</string>
     <string name="refresh_found">サブスクリプションが見つかりました</string>
-    <string name="refresh_none">サブスクリプションはまだありません</string>
+    <string name="refresh_none">最初のプレイリストを追加できます。</string>
     <string name="refresh_error">更新できませんでした — もう一度お試しください</string>
     <string name="qr_caption">QR コードをスキャンして、この端末のアクティベーションページを開きます</string>
     <string name="legal_player_only">Castivio はプレーヤーのみを提供し、サブスクリプションやコンテンツは提供しません。</string>

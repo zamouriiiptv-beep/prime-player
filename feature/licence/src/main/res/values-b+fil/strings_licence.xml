@@ -36,26 +36,29 @@
     <string name="licence_chip_unavailable">Hindi available</string>
     <string name="licence_chip_unreadable">Hindi mabasa ang lisensya</string>
     <string name="licence_chip_revoked">Binawi ang lisensya</string>
-    <string name="licence_status_trial">Pumili ng lisensya anumang oras bago matapos ang pagsubok.</string>
-    <string name="licence_status_active">Aktibo ang iyong lisensya.</string>
+    <string name="licence_status_active">Aktibo ang Castivio license mo.</string>
     <string name="licence_status_lifetime">Pagmamay-ari mo ang Castivio sa device na ito.</string>
     <string name="licence_status_trial_ended">Tapos na ang pagsubok mo. Pumili ng lisensya para magpatuloy.</string>
     <string name="licence_status_expired">Expired na ang lisensya mo. Pumili ng lisensya para magpatuloy.</string>
-    <string name="licence_status_none">Wala pang lisensya ng Castivio ang device na ito.</string>
-    <string name="licence_status_verify">Hindi nasuri ng Castivio ang lisensyang ito kamakailan.</string>
-    <string name="licence_status_unavailable">Hindi masuri ng Castivio ang mga lisensya ngayon. Problema namin ito, hindi sa inyo.</string>
-    <string name="licence_status_unreadable">Hindi mabasa ang lisensya ng device na ito. Makipag-ugnayan sa suporta gamit ang device key mo.</string>
-    <string name="licence_status_revoked">Binawi ang lisensyang ito. Makipag-ugnayan sa suporta gamit ang device key mo.</string>
+    <string name="licence_status_none">Walang lisensyang nakita para sa device na ito.</string>
+    <string name="licence_status_verify">Kailangan ng pag-verify ng lisensya bago magpatuloy ang activation.</string>
+    <string name="licence_status_unavailable">Pansamantalang hindi available ang serbisyo ng lisensya. Subukan ulit mamaya.</string>
+    <string name="licence_status_unreadable">Hindi mabasa ng Castivio ang lisensyang nakaimbak sa device na ito.</string>
+    <string name="licence_status_revoked">Binawi ang lisensyang ito.</string>
     <string name="licence_status_opening">Binubuksan ang portal ng Castivio…</string>
     <string name="licence_status_failed">Hindi umubra. Subukan ulit.</string>
     <string name="licence_retry">Subukan ulit</string>
-    <string name="licence_support">Makipag-ugnayan sa suporta</string>
+    <string name="licence_support">Makipag-ugnayan sa support</string>
     <string name="licence_qr_caption">I-scan ang QR code para buksan ang activation page ng device mo</string>
-    <string name="licence_legal">[legal na teksto para sa lisensya — isusulat pa]</string>
+    <string name="licence_legal">Media player lang ang Castivio. Hindi ito nagbibigay o nagho-host ng anumang content.</string>
+    <string name="licence_legal_title">Paunawang legal</string>
+    <string name="licence_legal_open">Basahin ang buong paunawang legal</string>
+    <string name="licence_legal_close">Isara</string>
+    <string name="licence_legal_full">Isang media player application lamang ang Castivio. Hindi ito nagbibigay, nagho-host, nagbo-broadcast, nagbebenta o namamahagi ng anumang channel, pelikula, serye, live stream o media content. Ang lahat ng content ay eksklusibong mula sa user o sa service provider na pinili ng user. Ang mga user lamang ang may pananagutan na tiyaking may legal silang karapatang i-access at gamitin ang kanilang content. Walang anumang pananagutan ang Castivio sa availability, legalidad, paglilisensya o kalidad ng anumang content o serbisyo ng third party.</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="one">%d araw na lang</item>
-        <item quantity="other">%d na araw na lang</item>
+        <item quantity="one">%d araw na lang ang natitira sa trial mo.</item>
+        <item quantity="other">%d na araw na lang ang natitira sa trial mo.</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">fil</string>

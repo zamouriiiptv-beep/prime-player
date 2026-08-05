@@ -35,27 +35,30 @@
     <string name="licence_chip_verify">نیاز به بررسی</string>
     <string name="licence_chip_unavailable">در دسترس نیست</string>
     <string name="licence_chip_unreadable">مجوز خوانده نمی‌شود</string>
-    <string name="licence_chip_revoked">مجوز لغو شد</string>
-    <string name="licence_status_trial">هر زمان پیش از پایان دورهٔ آزمایشی می‌توانید مجوزی انتخاب کنید.</string>
-    <string name="licence_status_active">مجوز شما فعال است.</string>
+    <string name="licence_chip_revoked">مجوز لغو شده</string>
+    <string name="licence_status_active">مجوز Castivio شما فعال است.</string>
     <string name="licence_status_lifetime">Castivio روی این دستگاه متعلق به شماست.</string>
     <string name="licence_status_trial_ended">دورهٔ آزمایشی شما تمام شد. برای ادامه مجوزی انتخاب کنید.</string>
     <string name="licence_status_expired">مجوز شما منقضی شده است. برای ادامه مجوزی انتخاب کنید.</string>
-    <string name="licence_status_none">این دستگاه هنوز مجوز Castivio ندارد.</string>
-    <string name="licence_status_verify">Castivio اخیراً نتوانسته این مجوز را بررسی کند.</string>
-    <string name="licence_status_unavailable">Castivio هم‌اکنون نمی‌تواند مجوزها را بررسی کند. مشکل از ماست، نه از شما.</string>
-    <string name="licence_status_unreadable">مجوز این دستگاه خوانده نمی‌شود. با کلید دستگاه خود با پشتیبانی تماس بگیرید.</string>
-    <string name="licence_status_revoked">این مجوز لغو شد. با کلید دستگاه خود با پشتیبانی تماس بگیرید.</string>
+    <string name="licence_status_none">هیچ مجوزی برای این دستگاه پیدا نشد.</string>
+    <string name="licence_status_verify">پیش از ادامهٔ فعال‌سازی، بررسی مجوز لازم است.</string>
+    <string name="licence_status_unavailable">سرویس مجوز موقتاً در دسترس نیست. لطفاً بعداً دوباره تلاش کنید.</string>
+    <string name="licence_status_unreadable">Castivio نتوانست مجوز ذخیره‌شده روی این دستگاه را بخواند.</string>
+    <string name="licence_status_revoked">این مجوز لغو شده است.</string>
     <string name="licence_status_opening">در حال باز کردن درگاه Castivio…</string>
     <string name="licence_status_failed">انجام نشد. دوباره تلاش کنید.</string>
-    <string name="licence_retry">دوباره تلاش کنید</string>
+    <string name="licence_retry">تلاش دوباره</string>
     <string name="licence_support">تماس با پشتیبانی</string>
     <string name="licence_qr_caption">کد QR را اسکن کنید تا صفحهٔ فعال‌سازی دستگاه باز شود</string>
-    <string name="licence_legal">[متن حقوقی صفحهٔ مجوز — در دست نگارش]</string>
+    <string name="licence_legal">Castivio فقط یک پخش‌کنندهٔ رسانه است. هیچ محتوایی ارائه یا میزبانی نمی‌کند.</string>
+    <string name="licence_legal_title">اطلاعیهٔ حقوقی</string>
+    <string name="licence_legal_open">خواندن کامل اطلاعیهٔ حقوقی</string>
+    <string name="licence_legal_close">بستن</string>
+    <string name="licence_legal_full">Castivio فقط یک برنامهٔ پخش‌کنندهٔ رسانه است. هیچ شبکه، فیلم، سریال، پخش زنده یا محتوای رسانه‌ای را ارائه، میزبانی، پخش، فروش یا توزیع نمی‌کند. تمام محتوا منحصراً توسط کاربر یا ارائه‌دهندهٔ خدماتی که کاربر انتخاب کرده تأمین می‌شود. مسئولیت اطمینان از داشتن حقوق قانونی برای دسترسی و استفاده از محتوا تنها بر عهدهٔ کاربران است. Castivio هیچ مسئولیتی در قبال در دسترس بودن، قانونی بودن، مجوز یا کیفیت محتوا یا خدمات اشخاص ثالث نمی‌پذیرد.</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="one">%d روز مانده</item>
-        <item quantity="other">%d روز مانده</item>
+        <item quantity="one">%d روز از دورهٔ آزمایشی شما باقی مانده است.</item>
+        <item quantity="other">%d روز از دورهٔ آزمایشی شما باقی مانده است.</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">fa</string>

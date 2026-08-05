@@ -35,29 +35,32 @@
     <string name="licence_chip_verify">Je potřeba ověření</string>
     <string name="licence_chip_unavailable">Nedostupné</string>
     <string name="licence_chip_unreadable">Licenci nelze přečíst</string>
-    <string name="licence_chip_revoked">Licence byla odebrána</string>
-    <string name="licence_status_trial">Licenci si můžete vybrat kdykoli před koncem zkušební verze.</string>
-    <string name="licence_status_active">Vaše licence je aktivní.</string>
+    <string name="licence_chip_revoked">Licence odvolána</string>
+    <string name="licence_status_active">Vaše licence Castivio je aktivní.</string>
     <string name="licence_status_lifetime">Castivio na tomto zařízení vlastníte.</string>
     <string name="licence_status_trial_ended">Zkušební verze skončila. Pokračujte výběrem licence.</string>
     <string name="licence_status_expired">Vaše licence vypršela. Pokračujte výběrem licence.</string>
-    <string name="licence_status_none">Toto zařízení zatím nemá licenci Castivio.</string>
-    <string name="licence_status_verify">Castivio nedokázalo tuto licenci v poslední době ověřit.</string>
-    <string name="licence_status_unavailable">Castivio teď nemůže licence ověřovat. Je to náš problém, ne váš.</string>
-    <string name="licence_status_unreadable">Licenci tohoto zařízení nelze přečíst. Kontaktujte podporu a uveďte klíč zařízení.</string>
-    <string name="licence_status_revoked">Tato licence byla odebrána. Kontaktujte podporu a uveďte klíč zařízení.</string>
+    <string name="licence_status_none">Pro toto zařízení nebyla nalezena žádná licence.</string>
+    <string name="licence_status_verify">Než bude aktivace pokračovat, je nutné ověření licence.</string>
+    <string name="licence_status_unavailable">Licenční služba je dočasně nedostupná. Zkuste to prosím později.</string>
+    <string name="licence_status_unreadable">Castivio nedokázalo přečíst licenci uloženou v tomto zařízení.</string>
+    <string name="licence_status_revoked">Tato licence byla odvolána.</string>
     <string name="licence_status_opening">Otevírá se portál Castivio…</string>
     <string name="licence_status_failed">Nepovedlo se. Zkuste to znovu.</string>
     <string name="licence_retry">Zkusit znovu</string>
     <string name="licence_support">Kontaktovat podporu</string>
     <string name="licence_qr_caption">Naskenujte QR kód a otevřete stránku aktivace zařízení</string>
-    <string name="licence_legal">[právní text pro obrazovku licence — bude doplněn]</string>
+    <string name="licence_legal">Castivio je pouze přehrávač médií. Neposkytuje ani nehostuje žádný obsah.</string>
+    <string name="licence_legal_title">Právní upozornění</string>
+    <string name="licence_legal_open">Přečíst celé právní upozornění</string>
+    <string name="licence_legal_close">Zavřít</string>
+    <string name="licence_legal_full">Castivio je pouze aplikace pro přehrávání médií. Neposkytuje, nehostuje, nevysílá, neprodává ani nedistribuuje žádné kanály, filmy, seriály, živé přenosy ani mediální obsah. Veškerý obsah dodává výhradně uživatel nebo poskytovatel služby, kterého si uživatel zvolil. Za zajištění zákonných práv k přístupu ke svému obsahu a jeho užívání odpovídají výhradně uživatelé. Castivio nenese žádnou odpovědnost za dostupnost, zákonnost, licencování ani kvalitu jakéhokoli obsahu či služeb třetích stran.</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="one">zbývá %d den</item>
-        <item quantity="few">zbývají %d dny</item>
-        <item quantity="many">zbývá %d dne</item>
-        <item quantity="other">zbývá %d dní</item>
+        <item quantity="one">Do konce zkušební verze zbývá %d den.</item>
+        <item quantity="few">Do konce zkušební verze zbývají %d dny.</item>
+        <item quantity="many">Do konce zkušební verze zbývá %d dne.</item>
+        <item quantity="other">Do konce zkušební verze zbývá %d dní.</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">cs</string>

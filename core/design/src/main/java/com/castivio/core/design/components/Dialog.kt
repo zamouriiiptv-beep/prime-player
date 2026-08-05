@@ -7,13 +7,17 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,8 +27,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.dialog
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -83,7 +87,6 @@ fun CastivioDialog(
 ) {
     val colors = CastivioTheme.colors
     val tv = CastivioTheme.device.isTv
-    val shape = RoundedCornerShape(if (tv) Radius.xxl else Radius.xl)
     val safe = remember { FocusRequester() }
 
     // The safe action takes focus once, when the dialog appears. Not on every
@@ -91,7 +94,113 @@ fun CastivioDialog(
     // have the remote pulled back under them.
     LaunchedEffect(Unit) { runCatching { safe.requestFocus() } }
 
-    Box(
+    DialogPanel(title = title, onScrim = onDismiss, modifier = modifier) {
+        Text(
+            text = message,
+            style = CastivioType.bodyMedium,
+            color = colors.onBackgroundVariant,
+        )
+
+        Row(
+            Modifier.padding(top = Spacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            CastivioButton(
+                text = dismissLabel,
+                weight = ButtonWeight.Secondary,
+                onClick = onDismiss,
+                modifier = Modifier.focusRequester(safe).focusable(),
+            )
+            CastivioButton(
+                text = confirmLabel,
+                // Not Primary. The primary fill is Castivio saying "this is
+                // the thing to do", and on a dialog guarding an irreversible
+                // action it is saying the opposite of what the focus order
+                // says. Ghost keeps it plainly available and plainly second.
+                weight = ButtonWeight.Ghost,
+                onClick = onConfirm,
+            )
+        }
+    }
+}
+
+/**
+ * A statement the user reads and closes, rather than a question they answer.
+ *
+ * The legal notice is the case this was built for, and it is the case that
+ * decides the shape: a paragraph too long to draw permanently on a 360dp-tall
+ * landscape phone, which still has to be readable in full, in every language,
+ * with a remote.
+ *
+ * So the body **scrolls** and the panel is bounded to a fraction of the screen
+ * rather than to a line count. A notice that fits is not scrolled and does not
+ * look scrollable; the same notice in German on the shortest frame scrolls, and
+ * on a television the D-pad reaches the body from the close button because the
+ * body is focusable. A fixed line clamp would have been the same design with a
+ * language-shaped hole in it.
+ *
+ * Everything else — the scrim, the panel, the corner radius, the hairline, the
+ * focus rule — is [CastivioDialog]'s, shared through [DialogPanel] rather than
+ * copied. Two modals that agree because one file draws them both.
+ */
+@Composable
+fun CastivioNoticeDialog(
+    title: String,
+    body: String,
+    closeLabel: String,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = CastivioTheme.colors
+    val close = remember { FocusRequester() }
+
+    LaunchedEffect(Unit) { runCatching { close.requestFocus() } }
+
+    DialogPanel(title = title, onScrim = onClose, modifier = modifier) {
+        Text(
+            text = body,
+            style = CastivioType.bodySmall,
+            color = colors.onBackgroundVariant,
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .verticalScroll(rememberScrollState())
+                // Focusable so a remote can scroll it. Not focus-requested: the
+                // close button is still what the dialog opens on, and a user who
+                // only wants out should not have to travel to find the way.
+                .focusable(),
+        )
+
+        Row(Modifier.padding(top = Spacing.sm)) {
+            CastivioButton(
+                text = closeLabel,
+                weight = ButtonWeight.Secondary,
+                onClick = onClose,
+                modifier = Modifier.focusRequester(close).focusable(),
+            )
+        }
+    }
+}
+
+/**
+ * The scrim, the panel and the title — the parts every Castivio modal shares.
+ *
+ * Private, and the only place any of it is written. A second modal that drew its
+ * own scrim would drift from this one the first time either was touched, and the
+ * invariant script's "a shared component is declared once" exists because that
+ * has already happened here.
+ */
+@Composable
+private fun DialogPanel(
+    title: String,
+    onScrim: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val colors = CastivioTheme.colors
+    val tv = CastivioTheme.device.isTv
+    val shape = RoundedCornerShape(if (tv) Radius.xxl else Radius.xl)
+
+    BoxWithConstraints(
         modifier
             .fillMaxSize()
             .background(colors.scrim)
@@ -101,7 +210,7 @@ fun CastivioDialog(
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
-                onClick = onDismiss,
+                onClick = onScrim,
             )
             // Announced as a dialog, so a screen reader says so rather than
             // reading a heading that happens to be on top.
@@ -111,6 +220,10 @@ fun CastivioDialog(
         Column(
             Modifier
                 .widthIn(max = if (tv) TV_WIDTH else PHONE_WIDTH)
+                // Never taller than most of the screen. On the 360dp frame that
+                // is 288dp, which is the number that makes the notice scroll
+                // rather than push its own close button off the bottom.
+                .heightIn(max = maxHeight * PANEL_MAX_FRACTION)
                 .clip(shape)
                 .background(colors.backgroundElevated)
                 .border(BorderStroke(1.dp, colors.glassBorderSoft), shape)
@@ -127,36 +240,15 @@ fun CastivioDialog(
                 text = title,
                 style = if (tv) CastivioType.headlineSmall else CastivioType.titleMedium,
                 color = colors.onBackground,
+                modifier = Modifier.semantics { heading() },
             )
-            Text(
-                text = message,
-                style = CastivioType.bodyMedium,
-                color = colors.onBackgroundVariant,
-            )
-
-            Row(
-                Modifier.padding(top = Spacing.sm),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-            ) {
-                CastivioButton(
-                    text = dismissLabel,
-                    weight = ButtonWeight.Secondary,
-                    onClick = onDismiss,
-                    modifier = Modifier.focusRequester(safe).focusable(),
-                )
-                CastivioButton(
-                    text = confirmLabel,
-                    // Not Primary. The primary fill is Castivio saying "this is
-                    // the thing to do", and on a dialog guarding an irreversible
-                    // action it is saying the opposite of what the focus order
-                    // says. Ghost keeps it plainly available and plainly second.
-                    weight = ButtonWeight.Ghost,
-                    onClick = onConfirm,
-                )
-            }
+            content()
         }
     }
 }
+
+/** Most of the screen, never all of it — a modal has to read as one. */
+private const val PANEL_MAX_FRACTION = 0.8f
 
 /** Wide enough for two lines of a question, narrow enough to read as a dialog. */
 private val PHONE_WIDTH: Dp = 420.dp

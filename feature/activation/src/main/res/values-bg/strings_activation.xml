@@ -26,7 +26,7 @@
     <string name="refresh">Обновяване</string>
     <string name="refresh_checking">Проверява се…</string>
     <string name="refresh_found">Намерен е абонамент</string>
-    <string name="refresh_none">Все още няма абонамент</string>
+    <string name="refresh_none">Вече можете да добавите първия си плейлист.</string>
     <string name="refresh_error">Обновяването не бе успешно — опитайте отново</string>
     <string name="qr_caption">Сканирайте QR кода, за да отворите страницата за активиране на устройството</string>
     <string name="legal_player_only">Castivio е само плейър и не предоставя абонаменти или съдържание.</string>

@@ -35,27 +35,30 @@
     <string name="licence_chip_verify">Vérification nécessaire</string>
     <string name="licence_chip_unavailable">Indisponible</string>
     <string name="licence_chip_unreadable">Licence illisible</string>
-    <string name="licence_chip_revoked">Licence retirée</string>
-    <string name="licence_status_trial">Choisissez une licence à tout moment avant la fin de l’essai.</string>
-    <string name="licence_status_active">Votre licence est active.</string>
+    <string name="licence_chip_revoked">Licence révoquée</string>
+    <string name="licence_status_active">Votre licence Castivio est active.</string>
     <string name="licence_status_lifetime">Castivio vous appartient sur cet appareil.</string>
     <string name="licence_status_trial_ended">Votre essai est terminé. Choisissez une licence pour continuer.</string>
     <string name="licence_status_expired">Votre licence a expiré. Choisissez une licence pour continuer.</string>
-    <string name="licence_status_none">Cet appareil n’a pas encore de licence Castivio.</string>
-    <string name="licence_status_verify">Castivio n’a pas pu vérifier cette licence récemment.</string>
-    <string name="licence_status_unavailable">Castivio ne peut pas vérifier les licences pour le moment. Le problème vient de nous, pas de vous.</string>
-    <string name="licence_status_unreadable">La licence de cet appareil est illisible. Contactez l’assistance avec votre clé d’appareil.</string>
-    <string name="licence_status_revoked">Cette licence a été retirée. Contactez l’assistance avec votre clé d’appareil.</string>
+    <string name="licence_status_none">Aucune licence n’a été trouvée pour cet appareil.</string>
+    <string name="licence_status_verify">Une vérification de la licence est nécessaire avant de poursuivre l’activation.</string>
+    <string name="licence_status_unavailable">Le service de licences est temporairement indisponible. Réessayez plus tard.</string>
+    <string name="licence_status_unreadable">Castivio n’a pas pu lire la licence enregistrée sur cet appareil.</string>
+    <string name="licence_status_revoked">Cette licence a été révoquée.</string>
     <string name="licence_status_opening">Ouverture du portail Castivio…</string>
     <string name="licence_status_failed">Ça n’a pas marché. Réessayez.</string>
     <string name="licence_retry">Réessayer</string>
-    <string name="licence_support">Contacter l’assistance</string>
+    <string name="licence_support">Contacter le support</string>
     <string name="licence_qr_caption">Scannez le code QR pour ouvrir la page d’activation de votre appareil</string>
-    <string name="licence_legal">[texte juridique de l’écran de licence — à rédiger]</string>
+    <string name="licence_legal">Castivio n’est qu’un lecteur multimédia. Il ne fournit ni n’héberge aucun contenu.</string>
+    <string name="licence_legal_title">Mentions légales</string>
+    <string name="licence_legal_open">Lire les mentions légales complètes</string>
+    <string name="licence_legal_close">Fermer</string>
+    <string name="licence_legal_full">Castivio est uniquement une application de lecture multimédia. Elle ne fournit, n’héberge, ne diffuse, ne vend ni ne distribue aucune chaîne, aucun film, aucune série, aucun flux en direct ni aucun contenu multimédia. Tout le contenu est fourni exclusivement par l’utilisateur ou par le fournisseur de services qu’il a choisi. Il incombe aux seuls utilisateurs de s’assurer qu’ils disposent des droits légaux nécessaires pour accéder à leur contenu et l’utiliser. Castivio décline toute responsabilité quant à la disponibilité, à la légalité, aux licences ou à la qualité des contenus ou services de tiers.</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="one">%d jour restant</item>
-        <item quantity="other">%d jours restants</item>
+        <item quantity="one">Il reste %d jour à votre essai.</item>
+        <item quantity="other">Il reste %d jours à votre essai.</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">fr</string>

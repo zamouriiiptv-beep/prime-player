@@ -36,25 +36,28 @@
     <string name="licence_chip_unavailable">Tidak tersedia</string>
     <string name="licence_chip_unreadable">Lisensi tidak terbaca</string>
     <string name="licence_chip_revoked">Lisensi dicabut</string>
-    <string name="licence_status_trial">Pilih lisensi kapan saja sebelum uji coba berakhir.</string>
-    <string name="licence_status_active">Lisensi Anda aktif.</string>
+    <string name="licence_status_active">Lisensi Castivio Anda aktif.</string>
     <string name="licence_status_lifetime">Castivio menjadi milik Anda di perangkat ini.</string>
     <string name="licence_status_trial_ended">Uji coba Anda telah berakhir. Pilih lisensi untuk melanjutkan.</string>
     <string name="licence_status_expired">Lisensi Anda telah kedaluwarsa. Pilih lisensi untuk melanjutkan.</string>
-    <string name="licence_status_none">Perangkat ini belum memiliki lisensi Castivio.</string>
-    <string name="licence_status_verify">Castivio belum dapat memeriksa lisensi ini belakangan ini.</string>
-    <string name="licence_status_unavailable">Castivio tidak dapat memeriksa lisensi saat ini. Ini masalah kami, bukan Anda.</string>
-    <string name="licence_status_unreadable">Lisensi perangkat ini tidak dapat dibaca. Hubungi dukungan dengan kunci perangkat Anda.</string>
-    <string name="licence_status_revoked">Lisensi ini dicabut. Hubungi dukungan dengan kunci perangkat Anda.</string>
+    <string name="licence_status_none">Tidak ada lisensi yang ditemukan untuk perangkat ini.</string>
+    <string name="licence_status_verify">Verifikasi lisensi diperlukan sebelum aktivasi dapat dilanjutkan.</string>
+    <string name="licence_status_unavailable">Layanan lisensi sementara tidak tersedia. Silakan coba lagi nanti.</string>
+    <string name="licence_status_unreadable">Castivio tidak dapat membaca lisensi yang tersimpan di perangkat ini.</string>
+    <string name="licence_status_revoked">Lisensi ini telah dicabut.</string>
     <string name="licence_status_opening">Membuka portal Castivio…</string>
     <string name="licence_status_failed">Tidak berhasil. Coba lagi.</string>
     <string name="licence_retry">Coba lagi</string>
     <string name="licence_support">Hubungi dukungan</string>
     <string name="licence_qr_caption">Pindai kode QR untuk membuka halaman aktivasi perangkat Anda</string>
-    <string name="licence_legal">[teks hukum untuk layar lisensi — belum ditulis]</string>
+    <string name="licence_legal">Castivio hanyalah pemutar media. Aplikasi ini tidak menyediakan atau menghosting konten.</string>
+    <string name="licence_legal_title">Pemberitahuan hukum</string>
+    <string name="licence_legal_open">Baca pemberitahuan hukum selengkapnya</string>
+    <string name="licence_legal_close">Tutup</string>
+    <string name="licence_legal_full">Castivio hanyalah aplikasi pemutar media. Aplikasi ini tidak menyediakan, menghosting, menyiarkan, menjual, atau mendistribusikan saluran, film, serial, siaran langsung, maupun konten media apa pun. Semua konten disediakan sepenuhnya oleh pengguna atau oleh penyedia layanan yang dipilih pengguna. Pengguna sepenuhnya bertanggung jawab memastikan bahwa mereka memiliki hak hukum untuk mengakses dan menggunakan kontennya. Castivio tidak bertanggung jawab atas ketersediaan, legalitas, pelisensian, atau kualitas konten maupun layanan pihak ketiga mana pun.</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="other">%d hari lagi</item>
+        <item quantity="other">Masa uji coba Anda tersisa %d hari.</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">id</string>
