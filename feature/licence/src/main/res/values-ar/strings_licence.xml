@@ -35,16 +35,16 @@
     <string name="licence_chip_verify">يلزم التحقق</string>
     <string name="licence_chip_unavailable">غير متاح</string>
     <string name="licence_chip_unreadable">تعذّرت قراءة الترخيص</string>
-    <string name="licence_chip_revoked">ترخيص مسحوب</string>
+    <string name="licence_chip_revoked">ترخيص مُلغى</string>
     <string name="licence_status_active">ترخيص Castivio الخاص بك مُفعَّل.</string>
-    <string name="licence_status_lifetime">أنت تملك Castivio على هذا الجهاز.</string>
+    <string name="licence_status_lifetime">تطبيق Castivio مُفعّل مدى الحياة.</string>
     <string name="licence_status_trial_ended">انتهت تجربتك. اختر ترخيصًا للمتابعة.</string>
     <string name="licence_status_expired">انتهى ترخيصك. اختر ترخيصًا للمتابعة.</string>
     <string name="licence_status_none">لم يُعثر على ترخيص لهذا الجهاز.</string>
-    <string name="licence_status_verify">يلزم التحقق من الترخيص قبل متابعة التفعيل.</string>
+    <string name="licence_status_verify">يلزم التحقق من حالة الترخيص قبل المتابعة.</string>
     <string name="licence_status_unavailable">خدمة التراخيص غير متاحة مؤقتًا. يُرجى المحاولة لاحقًا.</string>
     <string name="licence_status_unreadable">تعذّر على Castivio قراءة الترخيص المخزَّن على هذا الجهاز.</string>
-    <string name="licence_status_revoked">تم سحب هذا الترخيص.</string>
+    <string name="licence_status_revoked">تم إلغاء هذا الترخيص.</string>
     <string name="licence_status_opening">جارٍ فتح بوابة Castivio…</string>
     <string name="licence_status_failed">لم ينجح ذلك. حاول مرة أخرى.</string>
     <string name="licence_valid_until">صالح حتى %s</string>
@@ -73,12 +73,12 @@
     <string name="licence_legal_full">Castivio هو تطبيق مشغّل وسائط فقط. وهو لا يوفّر ولا يستضيف ولا يبثّ ولا يبيع ولا يوزّع أي قنوات أو أفلام أو مسلسلات أو بثوث مباشرة أو محتوى وسائط. يُقدَّم كل المحتوى حصريًا من المستخدم أو من مزوّد الخدمة الذي يختاره. يتحمّل المستخدمون وحدهم مسؤولية التأكد من امتلاكهم الحقوق القانونية للوصول إلى محتواهم واستخدامه. ولا يتحمّل Castivio أي مسؤولية عن توفّر أو قانونية أو ترخيص أو جودة أي محتوى أو خدمات تابعة لجهات خارجية.</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="zero">بقي %d يوم في تجربتك.</item>
-        <item quantity="one">بقي يوم واحد في تجربتك.</item>
-        <item quantity="two">بقي يومان في تجربتك.</item>
-        <item quantity="few">بقيت %d أيام في تجربتك.</item>
-        <item quantity="many">بقي %d يومًا في تجربتك.</item>
-        <item quantity="other">بقي %d يوم في تجربتك.</item>
+        <item quantity="zero">بقي %d يوم للاستفادة من النسخة التجريبية.</item>
+        <item quantity="one">بقي يوم واحد للاستفادة من النسخة التجريبية.</item>
+        <item quantity="two">بقي يومان للاستفادة من النسخة التجريبية.</item>
+        <item quantity="few">بقيت %d أيام للاستفادة من النسخة التجريبية.</item>
+        <item quantity="many">بقي %d يومًا للاستفادة من النسخة التجريبية.</item>
+        <item quantity="other">بقي %d يوم للاستفادة من النسخة التجريبية.</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">ar</string>
