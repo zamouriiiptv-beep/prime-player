@@ -28,8 +28,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import java.text.DateFormat
-import java.util.Date
+import java.util.Locale
 
 /**
  * The four things the last polish pass changed, each of which a layout test
@@ -134,9 +133,34 @@ class LicencePolishTest {
         val locale = ConfigurationCompat.getLocales(res.configuration).get(0)!!
         val expected = res.getString(
             R.string.licence_valid_until,
-            DateFormat.getDateInstance(DateFormat.MEDIUM, locale).format(Date(EXPIRY_MS)),
+            formatExpiry(EXPIRY_MS, locale),
         )
         compose.onNodeWithText(expected).assertExists()
+    }
+
+    /**
+     * The month is a word, in every language Castivio ships.
+     *
+     * This is the assertion the first version did not make, and its absence is
+     * why a numeric Arabic date reached a device. `DateFormat.MEDIUM` looks like
+     * "a readable date" and is really "whatever this language puts in the medium
+     * slot" — which is `dd/MM/y` in Arabic, `2027/02/19` in Japanese and
+     * `19.02.2027` in German. A row of numbers separated by slashes is ambiguous
+     * in exactly the way a date on a receipt must not be.
+     *
+     * So the claim is made directly: whatever the platform returns must contain
+     * a letter. Not which letters, and not in what order — that is ICU's
+     * business and testing it would be testing ICU.
+     */
+    @Test
+    fun `the expiry month is named and not numbered in every language`() {
+        for (tag in EVERY_LANGUAGE) {
+            val formatted = formatExpiry(EXPIRY_MS, Locale.forLanguageTag(tag))
+            assertTrue(
+                "$tag formats the expiry as \"$formatted\", which has no month name in it",
+                formatted.any { it.isLetter() },
+            )
+        }
     }
 
     /**
@@ -386,6 +410,23 @@ private fun uiFor(licence: EntitlementState) = LicenceUiState(
     deviceKey = "482731",
     qr = licenceQrBitmap(256),
     plans = PricingDefaults.config.purchasable,
+)
+
+/**
+ * Every language Castivio ships, by tag.
+ *
+ * Written out rather than derived, because a unit test cannot enumerate the
+ * resource directories it was compiled against. That is a real weakness and it
+ * is stated rather than hidden: a thirty-ninth language could be added and this
+ * list not updated. What limits the damage is that `check-invariants.sh` already
+ * fails the build when the bundles disagree, so the gap is one of coverage here
+ * and never of a missing translation there.
+ */
+private val EVERY_LANGUAGE = listOf(
+    "ar", "bg", "bn", "cs", "da", "de", "el", "en", "es", "fa", "fi", "fil", "fr",
+    "hi", "hr", "hu", "id", "it", "ja", "ko", "ms", "nb", "nl", "pl", "pt", "pt-PT",
+    "ro", "ru", "sk", "sq", "sr", "sv", "th", "tr", "uk", "ur", "vi",
+    "zh-Hans", "zh-Hant",
 )
 
 /** A fixed instant, so the formatted date is the same on every run. */

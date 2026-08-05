@@ -78,7 +78,7 @@ import com.castivio.core.design.theme.Spacing
 import com.castivio.domain.entitlement.EntitlementState
 import com.castivio.domain.entitlement.Plan
 import com.castivio.domain.entitlement.PlanOffer
-import java.text.DateFormat
+import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
@@ -803,18 +803,16 @@ private fun LicenceStatusLine(state: LicenceUiState, m: LicenceMetrics, modifier
  * reserved height exactly as before, so the column is unchanged everywhere the
  * date is absent, which is everywhere but one.
  *
- * The date itself is formatted by the platform in the interface's locale, never
- * by a pattern of ours -- `1 Aug 2027`, `1 août 2027`, `2027年8月1日`, and the
- * right one in each of the 38.
+ * The date is formatted by the platform in the interface's locale, never by a
+ * pattern of ours. See [formatExpiry] for which platform call, and why it is not
+ * the obvious one.
  */
 @Composable
 private fun ExpiryLine(expiresAtMs: Long?, m: LicenceMetrics) {
     if (expiresAtMs == null || expiresAtMs <= 0L) return
     val colors = CastivioTheme.colors
     val locale = interfaceLocale()
-    val date = remember(expiresAtMs, locale) {
-        DateFormat.getDateInstance(DateFormat.MEDIUM, locale).format(Date(expiresAtMs))
-    }
+    val date = remember(expiresAtMs, locale) { formatExpiry(expiresAtMs, locale) }
     Text(
         text = stringResource(R.string.licence_valid_until, date),
         style = CastivioType.bodySmall,
@@ -825,6 +823,54 @@ private fun ExpiryLine(expiresAtMs: Long?, m: LicenceMetrics) {
             .testTag(LicenceTags.EXPIRY),
     )
 }
+
+/**
+ * The expiry, as a date with the month **named** rather than numbered.
+ *
+ * ## Why not `DateFormat.MEDIUM`, which is the obvious call
+ *
+ * Because "medium" is not a shape, it is a slot, and CLDR fills that slot with
+ * whatever each language conventionally uses — which for a good many of them is
+ * all digits:
+ *
+ * | locale | `MEDIUM` |
+ * |---|---|
+ * | en-GB | `19 Feb 2027` |
+ * | ar | `19‏/02‏/2027` |
+ * | de | `19.02.2027` |
+ * | ja | `2027/02/19` |
+ *
+ * Arabic is the one that made this visible. Its medium pattern is `dd‏/MM‏/y`,
+ * with a **right-to-left mark after each field**; those marks break the three
+ * numbers into separate runs, and right-to-left layout then orders the runs
+ * right to left. The string is "19/02/2027" and the screen reads `2027/02/19`.
+ * Nothing is wrong with it — it is what an Arabic reader's platform produces —
+ * and it is still not what a licence screen wants, because a row of numbers
+ * separated by slashes is ambiguous in exactly the way a date on a receipt must
+ * not be. Is that the 2nd of December or the 12th of February?
+ *
+ * ## What this asks for instead
+ *
+ * A **skeleton**: day, abbreviated month, year, with no opinion about order or
+ * separators. `getBestDateTimePattern` hands that to ICU, which answers with the
+ * pattern that language actually uses for those three fields —
+ * `19 Feb 2027`, `Feb 19, 2027`, `19 févr. 2027`, `2027年2月19日`,
+ * `١٩ فبراير ٢٠٢٧`. Still entirely the platform's decision, still localised in
+ * all 38; the only thing specified is that the month is a word, which is what
+ * removes the ambiguity.
+ *
+ * Reverting to plain `MEDIUM` is one line, if a numeric date is ever preferred.
+ */
+internal fun formatExpiry(expiresAtMs: Long, locale: Locale): String {
+    // Fully qualified: `android.text.format.DateFormat` and `java.text.DateFormat`
+    // are one import away from being confused for each other, and only one of
+    // them knows what a skeleton is.
+    val pattern = android.text.format.DateFormat.getBestDateTimePattern(locale, EXPIRY_SKELETON)
+    return SimpleDateFormat(pattern, locale).format(Date(expiresAtMs))
+}
+
+/** Day, month as a word, year. Order and separators are the locale's business. */
+private const val EXPIRY_SKELETON = "dMMMy"
 
 /**
  * "3 days remaining in your trial.", in the plural form the language uses.
