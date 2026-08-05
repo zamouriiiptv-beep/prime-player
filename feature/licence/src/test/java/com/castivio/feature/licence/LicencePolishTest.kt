@@ -14,6 +14,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
 import androidx.core.os.ConfigurationCompat
 import androidx.test.core.app.ApplicationProvider
 import com.castivio.core.design.theme.CastivioTheme
