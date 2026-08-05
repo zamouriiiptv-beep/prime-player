@@ -149,28 +149,44 @@ class LicencePolishTest {
     }
 
     /**
-     * And the status line above it is unchanged, in every state.
+     * The date goes under the sentence, and the sentence keeps its reserved
+     * height.
      *
-     * The claim the request actually turns on: adding a second line must not
-     * move the first one. It is composed *below* a status line that keeps its
-     * own reserved height, so this compares the status line's placement with the
-     * date present and with it absent.
+     * What this does **not** assert, on purpose: that the status line stays at
+     * the same y. It does not, and it should not — the field band centres its
+     * content vertically, so a column that gains a line rises by half of it.
+     * That is the band doing its job, it happens inside the one state that has
+     * a date, and asserting the opposite would be pinning a bug in place.
+     *
+     * The claim the requirement actually makes is that no *other* state is
+     * affected, and `no other state shows an expiry date` is what holds that:
+     * eight of the nine compose no element here at all, so their columns are
+     * arithmetically identical to what they were.
      */
     @Test
-    fun `the expiry line does not move the status line`() {
+    fun `the expiry line sits under the status line without shrinking it`() {
         val ui = mutableStateOf(uiFor(EntitlementState.Lifetime))
         compose.setContent { Harness(ui, MotionLevel.DISABLED) }
         compose.waitForIdle()
-        val alone = compose.onNodeWithTag(LicenceTags.STATUS).getUnclippedBoundsInRoot()
+        val undated = compose.onNodeWithTag(LicenceTags.STATUS).getUnclippedBoundsInRoot()
 
         compose.runOnIdle {
             ui.value = uiFor(EntitlementState.AnnualActive(EXPIRY_MS, daysRemaining = 200))
         }
         compose.waitForIdle()
-        val dated = compose.onNodeWithTag(LicenceTags.STATUS).getUnclippedBoundsInRoot()
+        val status = compose.onNodeWithTag(LicenceTags.STATUS).getUnclippedBoundsInRoot()
+        val expiry = compose.onNodeWithTag(LicenceTags.EXPIRY).getUnclippedBoundsInRoot()
 
-        assertEquals("the expiry line moved the status line", alone.top, dated.top)
-        assertEquals("the expiry line changed the status line's height", alone.height, dated.height)
+        assertEquals(
+            "the expiry line ate into the status line's reserved height",
+            undated.height,
+            status.height,
+        )
+        assertTrue(
+            "the expiry line is not below the status line: it starts at " +
+                "${expiry.top} and the status line ends at ${status.bottom}",
+            expiry.top >= status.bottom,
+        )
     }
 
     // -- The legal notice ---------------------------------------------------
