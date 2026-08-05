@@ -50,9 +50,24 @@
     <string name="licence_retry">重试</string>
     <string name="licence_support">联系支持</string>
     <string name="licence_qr_caption">扫描二维码，打开本设备的激活页面</string>
-    <string name="licence_legal">Castivio 只是一个媒体播放器，不提供也不托管任何内容。</string>
-    <string name="licence_legal_title">法律声明</string>
-    <string name="licence_legal_open">阅读完整法律声明</string>
+    <string name="licence_legal_title">法律信息</string>
+    <string name="licence_legal_link">法律信息</string>
+    <string name="licence_legal_back_hint">按返回关闭</string>
+    <string name="licence_legal_about_title">关于 Castivio</string>
+    <string name="licence_legal_about_body">Castivio 是一款用于播放你已经拥有的内容的媒体播放器。它播放你自己添加的，或从你自行选择并单独付费的服务提供商处获得的播放列表和流。Castivio 不是内容服务，也不隶属于任何提供商。</string>
+    <string name="licence_legal_scope_title">许可范围</string>
+    <string name="licence_legal_scope_body">Castivio 许可证允许在其签发的设备上使用本应用。许可证与该设备绑定，不可转让、转售或共享。许可证仅覆盖应用本身，不授予任何频道、电影、剧集或直播流的权利。</string>
+    <string name="licence_legal_content_title">内容责任</string>
+    <string name="licence_legal_copyright_title">版权</string>
+    <string name="licence_legal_copyright_body">Castivio 应用及其名称、界面和源代码受版权保护，归其权利人所有。Castivio 依据 SIL Open Font License 1.1 内置 Inter 与 IBM Plex Sans Arabic 字体。其余所有商标、名称与内容均归各自所有者所有。</string>
+    <string name="licence_legal_privacy_title">隐私</string>
+    <string name="licence_legal_privacy_body">Castivio 没有用户账户，也不索取任何个人信息。你的播放列表、提供商凭据以及观看记录都保存在本设备上，不会发送给 Castivio。许可证页面上显示的标识符仅用于为本设备签发和校验许可证。</string>
+    <string name="licence_legal_refund_title">退款政策</string>
+    <string name="licence_legal_refund_body">应用从不处理任何付款。许可证通过 Castivio 激活门户购买，任何退款也在该处按购买时展示的条款申请和处理。向内容提供商支付的款项属于该提供商，不在 Castivio 的控制范围内。</string>
+    <string name="licence_legal_support_title">支持</string>
+    <string name="licence_legal_support_body">支持通过 Castivio 激活门户提供。请提供许可证页面上显示的设备密钥：它用于识别本设备，不会透露你的任何信息。对于内容提供商的服务、凭据或账单，Castivio 无法提供帮助。</string>
+    <string name="licence_legal_acceptance_title">条款的接受</string>
+    <string name="licence_legal_acceptance_body">使用 Castivio 即表示接受本页条款。若不接受，请勿使用本应用。未来版本可能更新这些条款，始终以此处显示的版本为准。</string>
     <string name="licence_legal_close">关闭</string>
     <string name="licence_legal_full">Castivio 仅仅是一款媒体播放器应用。它不提供、不托管、不播出、不销售也不分发任何频道、电影、剧集、直播流或媒体内容。所有内容均完全由用户本人或用户自行选择的服务提供商提供。用户须自行负责确保拥有访问和使用其内容的合法权利。对于任何第三方内容或服务的可用性、合法性、授权或质量，Castivio 概不负责。</string>
 

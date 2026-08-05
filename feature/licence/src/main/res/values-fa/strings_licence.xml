@@ -50,9 +50,24 @@
     <string name="licence_retry">تلاش دوباره</string>
     <string name="licence_support">تماس با پشتیبانی</string>
     <string name="licence_qr_caption">کد QR را اسکن کنید تا صفحهٔ فعال‌سازی دستگاه باز شود</string>
-    <string name="licence_legal">Castivio فقط یک پخش‌کنندهٔ رسانه است. هیچ محتوایی ارائه یا میزبانی نمی‌کند.</string>
-    <string name="licence_legal_title">اطلاعیهٔ حقوقی</string>
-    <string name="licence_legal_open">خواندن کامل اطلاعیهٔ حقوقی</string>
+    <string name="licence_legal_title">اطلاعات حقوقی</string>
+    <string name="licence_legal_link">اطلاعات حقوقی</string>
+    <string name="licence_legal_back_hint">برای بستن، بازگشت</string>
+    <string name="licence_legal_about_title">دربارهٔ Castivio</string>
+    <string name="licence_legal_about_body">Castivio پخش‌کنندهٔ رسانه‌ای برای محتوایی است که از پیش دارید. فهرست‌های پخش و جریان‌هایی را پخش می‌کند که خودتان اضافه می‌کنید یا از ارائه‌دهنده‌ای که خودتان انتخاب کرده‌اید و جداگانه هزینه‌اش را می‌پردازید دریافت می‌کنید. Castivio سرویس محتوا نیست و به هیچ ارائه‌دهنده‌ای وابسته نیست.</string>
+    <string name="licence_legal_scope_title">دامنهٔ مجوز</string>
+    <string name="licence_legal_scope_body">مجوز Castivio اجازهٔ استفاده از برنامه را روی همان دستگاهی می‌دهد که برایش صادر شده است. این مجوز به آن دستگاه گره خورده و قابل انتقال، فروش مجدد یا اشتراک‌گذاری نیست. مجوز فقط برنامه را پوشش می‌دهد و هیچ حقی نسبت به شبکه، فیلم، سریال یا پخش زنده ایجاد نمی‌کند.</string>
+    <string name="licence_legal_content_title">مسئولیت محتوا</string>
+    <string name="licence_legal_copyright_title">حق نشر</string>
+    <string name="licence_legal_copyright_body">برنامهٔ Castivio، نام، رابط کاربری و کد منبع آن تحت حمایت حق نشر است و در مالکیت صاحب آن باقی می‌ماند. Castivio از قلم‌های Inter و IBM Plex Sans Arabic بر پایهٔ پروانهٔ SIL Open Font License 1.1 استفاده می‌کند. سایر نشان‌های تجاری، نام‌ها و محتواها متعلق به صاحبان خودشان است.</string>
+    <string name="licence_legal_privacy_title">حریم خصوصی</string>
+    <string name="licence_legal_privacy_body">Castivio حساب کاربری ندارد و هیچ اطلاعات شخصی نمی‌خواهد. فهرست‌های پخش، اطلاعات ورود ارائه‌دهنده و آنچه تماشا می‌کنید روی همین دستگاه ذخیره می‌شود و به Castivio فرستاده نمی‌شود. شناسه‌های نشان‌داده‌شده در صفحهٔ مجوز فقط برای صدور و بررسی مجوز همین دستگاه به کار می‌روند.</string>
+    <string name="licence_legal_refund_title">سیاست بازپرداخت</string>
+    <string name="licence_legal_refund_body">برنامه هرگز پرداختی را پردازش نمی‌کند. مجوزها از طریق درگاه فعال‌سازی Castivio خریداری می‌شوند و هر بازپرداختی همان‌جا و بر اساس شرایط زمان خرید درخواست و تسویه می‌شود. آنچه به ارائه‌دهندهٔ محتوا پرداخت می‌شود به خود او مربوط است و خارج از اختیار Castivio است.</string>
+    <string name="licence_legal_support_title">پشتیبانی</string>
+    <string name="licence_legal_support_body">پشتیبانی از طریق درگاه فعال‌سازی Castivio ارائه می‌شود. کلید دستگاه نشان‌داده‌شده در صفحهٔ مجوز را ذکر کنید: این کلید همین دستگاه را مشخص می‌کند و چیزی دربارهٔ شما نمی‌گوید. Castivio نمی‌تواند دربارهٔ سرویس، اطلاعات ورود یا صورت‌حساب ارائه‌دهندهٔ محتوا کمکی کند.</string>
+    <string name="licence_legal_acceptance_title">پذیرش شرایط</string>
+    <string name="licence_legal_acceptance_body">استفاده از Castivio به معنای پذیرش شرایط این صفحه است. اگر آن‌ها را نمی‌پذیرید، از برنامه استفاده نکنید. نسخه‌های بعدی ممکن است این شرایط را به‌روز کنند و همیشه همان چیزی معتبر است که اینجا نمایش داده می‌شود.</string>
     <string name="licence_legal_close">بستن</string>
     <string name="licence_legal_full">Castivio فقط یک برنامهٔ پخش‌کنندهٔ رسانه است. هیچ شبکه، فیلم، سریال، پخش زنده یا محتوای رسانه‌ای را ارائه، میزبانی، پخش، فروش یا توزیع نمی‌کند. تمام محتوا منحصراً توسط کاربر یا ارائه‌دهندهٔ خدماتی که کاربر انتخاب کرده تأمین می‌شود. مسئولیت اطمینان از داشتن حقوق قانونی برای دسترسی و استفاده از محتوا تنها بر عهدهٔ کاربران است. Castivio هیچ مسئولیتی در قبال در دسترس بودن، قانونی بودن، مجوز یا کیفیت محتوا یا خدمات اشخاص ثالث نمی‌پذیرد.</string>
 

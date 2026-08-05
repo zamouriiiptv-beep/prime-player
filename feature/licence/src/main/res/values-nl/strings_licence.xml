@@ -50,9 +50,24 @@
     <string name="licence_retry">Opnieuw</string>
     <string name="licence_support">Neem contact op met support</string>
     <string name="licence_qr_caption">Scan de QR-code om de activeringspagina van uw apparaat te openen</string>
-    <string name="licence_legal">Castivio is alleen een mediaspeler. Het levert en host geen inhoud.</string>
-    <string name="licence_legal_title">Juridische kennisgeving</string>
-    <string name="licence_legal_open">Lees de volledige juridische kennisgeving</string>
+    <string name="licence_legal_title">Juridische informatie</string>
+    <string name="licence_legal_link">Juridische informatie</string>
+    <string name="licence_legal_back_hint">Terug om te sluiten</string>
+    <string name="licence_legal_about_title">Over Castivio</string>
+    <string name="licence_legal_about_body">Castivio is een mediaspeler voor inhoud die je al hebt. Het speelt afspeellijsten en streams af die je zelf toevoegt of afneemt bij een dienstverlener die je zelf hebt gekozen en apart betaalt. Castivio is geen inhoudsdienst en is niet verbonden aan enige aanbieder.</string>
+    <string name="licence_legal_scope_title">Reikwijdte van de licentie</string>
+    <string name="licence_legal_scope_body">Een Castivio-licentie geeft het recht de app te gebruiken op het apparaat waarvoor zij is uitgegeven. Zij is aan dat apparaat gebonden en kan niet worden overgedragen, doorverkocht of gedeeld. De licentie dekt alleen de app en geeft geen recht op enig kanaal, film, serie of stream.</string>
+    <string name="licence_legal_content_title">Verantwoordelijkheid voor inhoud</string>
+    <string name="licence_legal_copyright_title">Auteursrecht</string>
+    <string name="licence_legal_copyright_body">De app Castivio, haar naam, haar interface en haar broncode zijn auteursrechtelijk beschermd en blijven eigendom van de rechthebbende. Castivio bevat de lettertypen Inter en IBM Plex Sans Arabic onder de SIL Open Font License 1.1. Alle andere merken, namen en inhoud behoren toe aan hun eigenaars.</string>
+    <string name="licence_legal_privacy_title">Privacy</string>
+    <string name="licence_legal_privacy_body">Castivio kent geen gebruikersaccounts en vraagt geen persoonlijke gegevens. Je afspeellijsten, je inloggegevens bij de aanbieder en wat je kijkt blijven op dit apparaat en worden niet naar Castivio gestuurd. De identificatoren op het licentiescherm dienen alleen om een licentie voor dit apparaat uit te geven en te controleren.</string>
+    <string name="licence_legal_refund_title">Terugbetalingsbeleid</string>
+    <string name="licence_legal_refund_body">De app verwerkt nooit een betaling. Licenties worden gekocht via het Castivio-activeringsportaal, en elke terugbetaling wordt daar aangevraagd en afgehandeld volgens de voorwaarden die bij aankoop zijn getoond. Wat aan een inhoudsaanbieder is betaald, is diens zaak en valt buiten de invloed van Castivio.</string>
+    <string name="licence_legal_support_title">Ondersteuning</string>
+    <string name="licence_legal_support_body">Ondersteuning loopt via het Castivio-activeringsportaal. Vermeld de apparaatsleutel van het licentiescherm: die identificeert dit apparaat en zegt niets over jou. Castivio kan niet helpen met de dienst, inloggegevens of facturatie van een inhoudsaanbieder.</string>
+    <string name="licence_legal_acceptance_title">Aanvaarding van de voorwaarden</string>
+    <string name="licence_legal_acceptance_body">Castivio gebruiken betekent de voorwaarden op deze pagina aanvaarden. Aanvaard je ze niet, gebruik de app dan niet. Een toekomstige versie kan ze bijwerken; van kracht is altijd wat hier staat.</string>
     <string name="licence_legal_close">Sluiten</string>
     <string name="licence_legal_full">Castivio is uitsluitend een mediaspeler-app. Het levert, host, zendt, verkoopt of verspreidt geen kanalen, films, series, livestreams of media-inhoud. Alle inhoud wordt uitsluitend geleverd door de gebruiker of door de door de gebruiker gekozen dienstverlener. Gebruikers zijn zelf volledig verantwoordelijk om zich ervan te vergewissen dat zij het wettelijke recht hebben om hun inhoud te openen en te gebruiken. Castivio aanvaardt geen enkele verantwoordelijkheid voor de beschikbaarheid, rechtmatigheid, licenties of kwaliteit van inhoud of diensten van derden.</string>
 

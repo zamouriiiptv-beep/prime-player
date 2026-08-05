@@ -50,9 +50,24 @@
     <string name="licence_retry">Yeniden dene</string>
     <string name="licence_support">Destek ile iletişime geç</string>
     <string name="licence_qr_caption">Cihazınızın etkinleştirme sayfasını açmak için QR kodu okutun</string>
-    <string name="licence_legal">Castivio yalnızca bir medya oynatıcıdır. İçerik sağlamaz ve barındırmaz.</string>
-    <string name="licence_legal_title">Yasal bildirim</string>
-    <string name="licence_legal_open">Yasal bildirimin tamamını oku</string>
+    <string name="licence_legal_title">Yasal bilgiler</string>
+    <string name="licence_legal_link">Yasal Bilgiler</string>
+    <string name="licence_legal_back_hint">Kapatmak için geri</string>
+    <string name="licence_legal_about_title">Castivio hakkında</string>
+    <string name="licence_legal_about_body">Castivio, halihazırda sahip olduğunuz içerik için bir medya oynatıcıdır. Kendi eklediğiniz ya da seçtiğiniz ve ayrıca ödeme yaptığınız bir hizmet sağlayıcıdan aldığınız oynatma listelerini ve yayınları oynatır. Castivio bir içerik hizmeti değildir ve hiçbir sağlayıcıyla bağlantısı yoktur.</string>
+    <string name="licence_legal_scope_title">Lisans kapsamı</string>
+    <string name="licence_legal_scope_body">Castivio lisansı, uygulamanın verildiği cihazda kullanılmasına izin verir. Lisans o cihaza bağlıdır; devredilemez, yeniden satılamaz veya paylaşılamaz. Lisans yalnızca uygulamayı kapsar ve hiçbir kanal, film, dizi ya da yayın üzerinde hak vermez.</string>
+    <string name="licence_legal_content_title">İçerik sorumluluğu</string>
+    <string name="licence_legal_copyright_title">Telif hakkı</string>
+    <string name="licence_legal_copyright_body">Castivio uygulaması, adı, arayüzü ve kaynak kodu telif hakkıyla korunur ve sahibinin mülkiyetinde kalır. Castivio, Inter ve IBM Plex Sans Arabic yazı tiplerini SIL Open Font License 1.1 kapsamında içerir. Diğer tüm ticari markalar, adlar ve içerikler kendi sahiplerine aittir.</string>
+    <string name="licence_legal_privacy_title">Gizlilik</string>
+    <string name="licence_legal_privacy_body">Castivio\'da kullanıcı hesabı yoktur ve hiçbir kişisel bilgi istenmez. Oynatma listeleriniz, sağlayıcı bilgileriniz ve izledikleriniz bu cihazda saklanır ve Castivio\'ya gönderilmez. Lisans ekranında görünen tanımlayıcılar yalnızca bu cihaz için lisans vermek ve doğrulamak amacıyla kullanılır.</string>
+    <string name="licence_legal_refund_title">İade politikası</string>
+    <string name="licence_legal_refund_body">Uygulama hiçbir ödemeyi işlemez. Lisanslar Castivio etkinleştirme portalından satın alınır ve her iade, satın alma sırasında gösterilen koşullara göre orada talep edilip sonuçlandırılır. Bir içerik sağlayıcıya yapılan ödemeler o sağlayıcıya aittir ve Castivio\'nun denetimi dışındadır.</string>
+    <string name="licence_legal_support_title">Destek</string>
+    <string name="licence_legal_support_body">Destek, Castivio etkinleştirme portalı üzerinden verilir. Lisans ekranında görünen cihaz anahtarını belirtin: bu anahtar cihazı tanımlar, sizin hakkınızda hiçbir şey söylemez. Castivio bir içerik sağlayıcının hizmeti, kimlik bilgileri veya faturalandırması konusunda yardımcı olamaz.</string>
+    <string name="licence_legal_acceptance_title">Koşulların kabulü</string>
+    <string name="licence_legal_acceptance_body">Castivio\'yu kullanmak bu sayfadaki koşulları kabul etmek anlamına gelir. Kabul etmiyorsanız uygulamayı kullanmayın. İleride bir sürüm bu koşulları güncelleyebilir; geçerli olan her zaman burada gösterilendir.</string>
     <string name="licence_legal_close">Kapat</string>
     <string name="licence_legal_full">Castivio yalnızca bir medya oynatıcı uygulamasıdır. Hiçbir kanalı, filmi, diziyi, canlı yayını veya medya içeriğini sağlamaz, barındırmaz, yayınlamaz, satmaz veya dağıtmaz. Tüm içerik yalnızca kullanıcı ya da kullanıcının seçtiği hizmet sağlayıcı tarafından sunulur. İçeriklerine erişmek ve onu kullanmak için yasal haklara sahip olduklarından emin olmak tümüyle kullanıcıların sorumluluğundadır. Castivio, üçüncü taraf içerik veya hizmetlerin kullanılabilirliği, yasallığı, lisansı ya da kalitesi konusunda hiçbir sorumluluk kabul etmez.</string>
 

@@ -510,18 +510,70 @@ by a test.
 | 2 | Reachable from Settings | **Yes** — Settings → Licence, so a user can review a licence after activating |
 | 3 | Device identity on screen | **Both**, in the approved capsules; the MAC stays visually dominant |
 | 4 | Recommended plan | **No** — equal weight, no commercial bias |
-| 5 | Legal line | **Kept, rewritten** for a licence screen; the wording is not invented here and the mockup carries a bracketed placeholder |
+| 5 | Legal line | **Final.** The footer carries the notice's operative first clause; the complete notice opens from it in a dialog — see 15.1 |
 | 6 | Recovery code | **Not in version 1** |
 | 7 | Plan card is the button | **Approved** — no radio, no selected state, no Continue |
 
-### 15.1 The one thing still outstanding
+### 15.1 The legal copy, and where it ended up
 
-**The legal copy itself.** The mockup renders
-`[legal copy for the licence screen — to be written]` in all nine measured
-languages, at the same size and position as the sibling's notice, so the layout
-is measured against a real line box. Replacing that placeholder is a legal task,
-not a design one, and the sentence that lands must be no taller than two lines on
-the 800×360 frame or the budget is re-derived.
+**Settled: a page, not a paragraph.** The licence screen is an activation
+screen, and everything drawn on it competes with the one thing a user came here
+to do. The legal text is not a footnote to that job — eight sections of it is a
+second screen pretending to be a footer.
+
+The arithmetic agreed from the other direction. The content responsibility
+clause alone is 479 characters, which `measure.js` renders as **four** lines of
+`bodySmall` on every frame Castivio ships to:
+
+| frame | footer | band spare |
+|---|---|---|
+| 873×393 | 90dp | −27dp |
+| 800×360 | 87dp | −27dp, and the code zone overruns as well |
+| TV 960×540 | 93dp | −25dp |
+
+The footer's slot is 20dp and the band's whole margin is 35dp. The two ways to
+make that fit were both rejected: shrinking the type makes the one text nobody
+may misread the hardest to read, and shrinking the activation controls trades
+the screen's purpose for its disclaimer.
+
+So the footer is a **link** — one short label in the slot the footer already
+had, with nothing above it moved — and the notice is `LegalScreen`, a full-bleed
+scrolling page in eight sections:
+
+| # | Section | Where the wording comes from |
+|---|---|---|
+| 1 | About Castivio | what the application is |
+| 2 | Licence scope | one device, not transferable, application only |
+| 3 | Content responsibility | **the product's own final wording, verbatim** |
+| 4 | Copyright | Castivio's software; Inter and IBM Plex Sans Arabic under SIL OFL 1.1 |
+| 5 | Privacy | what the application actually does: no accounts, nothing sent |
+| 6 | Refund policy | portal-first — the application never takes a payment |
+| 7 | Support | the portal, quoting the device key |
+| 8 | Acceptance of terms | standard |
+
+Sections 4 to 7 state facts about the product that the codebase already
+establishes, rather than commitments the application cannot keep: there is no
+account system to describe, no payment path to have a policy about, and the font
+licences are in `core/design/licenses/`. **Sections 5 and 6 are the two a lawyer
+should read before a store submission** — not because anything in them is
+invented, but because a privacy statement and a refund policy are the two that
+bind a business rather than describe a binary.
+
+The page is not another `Activity`. It replaces the licence screen inside the
+same composition, the way the shell already draws a detail page — see `Overlay`
+and `BackPolicy.fromShell`. None of the licence screen's state lives in the
+screen, so coming back cannot land on a screen that has forgotten what it was
+showing: the entitlement, the address and the QR are the view model's.
+
+Two consequences worth naming rather than discovering:
+
+- The footer link is the one control in Castivio below the 48dp touch floor, at
+  the 27dp the footer's budget allows. It buys its hit area sideways instead —
+  the pill is the label plus 24dp either side. The floor exists to stop 24dp
+  icons; the alternative was a legal page with no door.
+- On focus it takes the glass fill and the brighter ink, at the pill radius and
+  on the same focus spec as the language chip. Ink alone was legible in the hand
+  and too quiet across a room.
 
 ## 16. The mockup, and what it measured
 

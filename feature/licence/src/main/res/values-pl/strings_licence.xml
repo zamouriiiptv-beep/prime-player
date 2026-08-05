@@ -50,9 +50,24 @@
     <string name="licence_retry">Ponów</string>
     <string name="licence_support">Skontaktuj się z pomocą</string>
     <string name="licence_qr_caption">Zeskanuj kod QR, aby otworzyć stronę aktywacji urządzenia</string>
-    <string name="licence_legal">Castivio to wyłącznie odtwarzacz multimediów. Nie udostępnia ani nie hostuje treści.</string>
-    <string name="licence_legal_title">Informacja prawna</string>
-    <string name="licence_legal_open">Przeczytaj pełną informację prawną</string>
+    <string name="licence_legal_title">Informacje prawne</string>
+    <string name="licence_legal_link">Informacje prawne</string>
+    <string name="licence_legal_back_hint">Wstecz zamyka</string>
+    <string name="licence_legal_about_title">O Castivio</string>
+    <string name="licence_legal_about_body">Castivio to odtwarzacz multimediów do treści, które już masz. Odtwarza playlisty i strumienie, które dodajesz samodzielnie albo otrzymujesz od wybranego przez siebie dostawcy usług i opłacasz osobno. Castivio nie jest usługą treści i nie jest powiązane z żadnym dostawcą.</string>
+    <string name="licence_legal_scope_title">Zakres licencji</string>
+    <string name="licence_legal_scope_body">Licencja Castivio zezwala na używanie aplikacji na urządzeniu, dla którego została wydana. Jest z nim powiązana i nie można jej przenieść, odsprzedać ani udostępnić. Licencja obejmuje wyłącznie aplikację i nie daje praw do żadnego kanału, filmu, serialu ani transmisji.</string>
+    <string name="licence_legal_content_title">Odpowiedzialność za treści</string>
+    <string name="licence_legal_copyright_title">Prawa autorskie</string>
+    <string name="licence_legal_copyright_body">Aplikacja Castivio, jej nazwa, interfejs i kod źródłowy są chronione prawem autorskim i pozostają własnością właściciela. Castivio zawiera kroje Inter oraz IBM Plex Sans Arabic na licencji SIL Open Font License 1.1. Wszystkie pozostałe znaki towarowe, nazwy i treści należą do ich właścicieli.</string>
+    <string name="licence_legal_privacy_title">Prywatność</string>
+    <string name="licence_legal_privacy_body">Castivio nie ma kont użytkowników i nie prosi o dane osobowe. Twoje playlisty, dane logowania do dostawcy i to, co oglądasz, pozostają na tym urządzeniu i nie są wysyłane do Castivio. Identyfikatory pokazane na ekranie licencji służą wyłącznie do wydania i weryfikacji licencji dla tego urządzenia.</string>
+    <string name="licence_legal_refund_title">Zwroty</string>
+    <string name="licence_legal_refund_body">Aplikacja nigdy nie obsługuje płatności. Licencje kupuje się przez portal aktywacyjny Castivio, a każdy zwrot zgłasza się i rozlicza tam, na warunkach pokazanych w chwili zakupu. Cokolwiek zapłacono dostawcy treści, należy do niego i pozostaje poza kontrolą Castivio.</string>
+    <string name="licence_legal_support_title">Pomoc</string>
+    <string name="licence_legal_support_body">Pomoc jest udzielana przez portal aktywacyjny Castivio. Podaj klucz urządzenia widoczny na ekranie licencji: identyfikuje on to urządzenie i nie mówi nic o Tobie. Castivio nie pomoże w sprawach usługi, danych logowania ani rozliczeń dostawcy treści.</string>
+    <string name="licence_legal_acceptance_title">Akceptacja warunków</string>
+    <string name="licence_legal_acceptance_body">Korzystanie z Castivio oznacza akceptację warunków na tej stronie. Jeśli ich nie akceptujesz, nie używaj aplikacji. Przyszła wersja może je zmienić; obowiązuje zawsze ta pokazana tutaj.</string>
     <string name="licence_legal_close">Zamknij</string>
     <string name="licence_legal_full">Castivio to wyłącznie aplikacja odtwarzacza multimediów. Nie udostępnia, nie hostuje, nie nadaje, nie sprzedaje ani nie rozpowszechnia żadnych kanałów, filmów, seriali, transmisji na żywo ani treści multimedialnych. Wszystkie treści pochodzą wyłącznie od użytkownika lub wybranego przez niego dostawcy usług. Wyłącznie użytkownicy odpowiadają za posiadanie praw do dostępu do swoich treści i korzystania z nich. Castivio nie ponosi odpowiedzialności za dostępność, legalność, licencjonowanie ani jakość jakichkolwiek treści lub usług podmiotów trzecich.</string>
 

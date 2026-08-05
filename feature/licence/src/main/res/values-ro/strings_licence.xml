@@ -50,9 +50,24 @@
     <string name="licence_retry">Reîncearcă</string>
     <string name="licence_support">Contactează asistența</string>
     <string name="licence_qr_caption">Scanați codul QR pentru a deschide pagina de activare a dispozitivului</string>
-    <string name="licence_legal">Castivio este doar un player media. Nu furnizează și nu găzduiește conținut.</string>
-    <string name="licence_legal_title">Notă juridică</string>
-    <string name="licence_legal_open">Citește nota juridică completă</string>
+    <string name="licence_legal_title">Informații juridice</string>
+    <string name="licence_legal_link">Informații juridice</string>
+    <string name="licence_legal_back_hint">Înapoi pentru a închide</string>
+    <string name="licence_legal_about_title">Despre Castivio</string>
+    <string name="licence_legal_about_body">Castivio este un player media pentru conținutul pe care îl ai deja. Redă playlisturi și fluxuri pe care le adaugi singur sau pe care le obții de la un furnizor de servicii ales de tine și plătit separat. Castivio nu este un serviciu de conținut și nu este afiliat niciunui furnizor.</string>
+    <string name="licence_legal_scope_title">Domeniul licenței</string>
+    <string name="licence_legal_scope_body">O licență Castivio permite folosirea aplicației pe dispozitivul pentru care a fost emisă. Este legată de acel dispozitiv și nu poate fi transferată, revândută sau împărțită. Licența acoperă doar aplicația și nu conferă niciun drept asupra vreunui canal, film, serial sau flux.</string>
+    <string name="licence_legal_content_title">Răspunderea pentru conținut</string>
+    <string name="licence_legal_copyright_title">Drepturi de autor</string>
+    <string name="licence_legal_copyright_body">Aplicația Castivio, numele, interfața și codul ei sursă sunt protejate prin drepturi de autor și rămân proprietatea titularului. Castivio include fonturile Inter și IBM Plex Sans Arabic sub licența SIL Open Font License 1.1. Toate celelalte mărci, denumiri și conținuturi aparțin proprietarilor lor.</string>
+    <string name="licence_legal_privacy_title">Confidențialitate</string>
+    <string name="licence_legal_privacy_body">Castivio nu are conturi de utilizator și nu cere date personale. Playlisturile tale, datele de acces la furnizor și ce urmărești rămân pe acest dispozitiv și nu sunt trimise către Castivio. Identificatorii afișați pe ecranul licenței sunt folosiți doar pentru a emite și a verifica o licență pentru acest dispozitiv.</string>
+    <string name="licence_legal_refund_title">Politica de rambursare</string>
+    <string name="licence_legal_refund_body">Aplicația nu procesează niciodată o plată. Licențele se cumpără prin portalul de activare Castivio, iar orice rambursare se solicită și se rezolvă acolo, în condițiile afișate la momentul cumpărării. Ce se plătește unui furnizor de conținut este treaba lui și în afara controlului Castivio.</string>
+    <string name="licence_legal_support_title">Asistență</string>
+    <string name="licence_legal_support_body">Asistența se oferă prin portalul de activare Castivio. Menționează cheia dispozitivului afișată pe ecranul licenței: identifică acest dispozitiv și nu spune nimic despre tine. Castivio nu poate ajuta cu serviciul, datele de acces sau facturarea unui furnizor de conținut.</string>
+    <string name="licence_legal_acceptance_title">Acceptarea termenilor</string>
+    <string name="licence_legal_acceptance_body">Folosirea Castivio înseamnă acceptarea termenilor de pe această pagină. Dacă nu îi accepți, nu folosi aplicația. O versiune viitoare îi poate actualiza; în vigoare este întotdeauna cea afișată aici.</string>
     <string name="licence_legal_close">Închide</string>
     <string name="licence_legal_full">Castivio este exclusiv o aplicație de tip player media. Nu furnizează, nu găzduiește, nu difuzează, nu vinde și nu distribuie canale, filme, seriale, transmisiuni live sau conținut media. Tot conținutul este furnizat exclusiv de utilizator sau de furnizorul de servicii ales de acesta. Utilizatorii sunt singurii responsabili să se asigure că dețin drepturile legale de a accesa și de a folosi conținutul lor. Castivio nu își asumă nicio responsabilitate pentru disponibilitatea, legalitatea, licențierea sau calitatea niciunui conținut sau serviciu al terților.</string>
 

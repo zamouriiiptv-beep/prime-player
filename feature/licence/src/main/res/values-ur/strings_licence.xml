@@ -50,9 +50,24 @@
     <string name="licence_retry">دوبارہ کوشش</string>
     <string name="licence_support">سپورٹ سے رابطہ</string>
     <string name="licence_qr_caption">اپنے ڈیوائس کا ایکٹیویشن صفحہ کھولنے کے لیے QR کوڈ اسکین کریں</string>
-    <string name="licence_legal">Castivio صرف ایک میڈیا پلیئر ہے۔ یہ کوئی مواد فراہم یا میزبان نہیں کرتا۔</string>
-    <string name="licence_legal_title">قانونی نوٹس</string>
-    <string name="licence_legal_open">مکمل قانونی نوٹس پڑھیں</string>
+    <string name="licence_legal_title">قانونی معلومات</string>
+    <string name="licence_legal_link">قانونی معلومات</string>
+    <string name="licence_legal_back_hint">بند کرنے کے لیے واپس</string>
+    <string name="licence_legal_about_title">Castivio کے بارے میں</string>
+    <string name="licence_legal_about_body">Castivio اُس مواد کے لیے ایک میڈیا پلیئر ہے جو پہلے سے آپ کے پاس ہے۔ یہ وہ پلے لسٹس اور اسٹریمز چلاتا ہے جو آپ خود شامل کرتے ہیں یا اپنے منتخب کردہ سروس فراہم کنندہ سے حاصل کرتے ہیں اور جس کی ادائیگی الگ سے کرتے ہیں۔ Castivio کوئی مواد کی سروس نہیں اور کسی فراہم کنندہ سے وابستہ نہیں۔</string>
+    <string name="licence_legal_scope_title">لائسنس کا دائرہ</string>
+    <string name="licence_legal_scope_body">Castivio لائسنس ایپلی کیشن کو اُسی ڈیوائس پر استعمال کرنے کی اجازت دیتا ہے جس کے لیے وہ جاری ہوا۔ یہ اُسی ڈیوائس سے منسلک ہے اور منتقل، دوبارہ فروخت یا شیئر نہیں کیا جا سکتا۔ لائسنس صرف ایپلی کیشن پر لاگو ہے اور کسی چینل، فلم، سیریز یا اسٹریم کا کوئی حق نہیں دیتا۔</string>
+    <string name="licence_legal_content_title">مواد کی ذمہ داری</string>
+    <string name="licence_legal_copyright_title">کاپی رائٹ</string>
+    <string name="licence_legal_copyright_body">Castivio ایپلی کیشن، اس کا نام، انٹرفیس اور سورس کوڈ کاپی رائٹ سے محفوظ ہیں اور اپنے مالک کی ملکیت رہتے ہیں۔ Castivio میں Inter اور IBM Plex Sans Arabic فونٹس SIL Open Font License 1.1 کے تحت شامل ہیں۔ باقی تمام ٹریڈ مارکس، نام اور مواد اپنے اپنے مالکان کے ہیں۔</string>
+    <string name="licence_legal_privacy_title">رازداری</string>
+    <string name="licence_legal_privacy_body">Castivio میں کوئی صارف اکاؤنٹ نہیں اور یہ کوئی ذاتی تفصیل نہیں مانگتا۔ آپ کی پلے لسٹس، فراہم کنندہ کی اسناد اور آپ جو دیکھتے ہیں سب اسی ڈیوائس پر محفوظ رہتا ہے اور Castivio کو نہیں بھیجا جاتا۔ لائسنس اسکرین پر دکھائے گئے شناخت کنندہ صرف اس ڈیوائس کا لائسنس جاری کرنے اور اس کی تصدیق کے لیے استعمال ہوتے ہیں۔</string>
+    <string name="licence_legal_refund_title">رقم کی واپسی کی پالیسی</string>
+    <string name="licence_legal_refund_body">ایپلی کیشن کبھی کوئی ادائیگی نہیں سنبھالتی۔ لائسنس Castivio ایکٹیویشن پورٹل سے خریدے جاتے ہیں، اور رقم کی واپسی کی درخواست اور تصفیہ وہیں خریداری کے وقت دکھائی گئی شرائط کے مطابق ہوتا ہے۔ مواد فراہم کنندہ کو دی گئی کوئی بھی رقم اُسی کا معاملہ ہے اور Castivio کے اختیار سے باہر ہے۔</string>
+    <string name="licence_legal_support_title">سپورٹ</string>
+    <string name="licence_legal_support_body">سپورٹ Castivio ایکٹیویشن پورٹل کے ذریعے فراہم کی جاتی ہے۔ لائسنس اسکرین پر دکھایا گیا ڈیوائس کی چابی بتائیں: یہ اس ڈیوائس کی شناخت کرتی ہے اور آپ کے بارے میں کچھ نہیں بتاتی۔ Castivio مواد فراہم کنندہ کی سروس، اسناد یا بلنگ میں مدد نہیں کر سکتا۔</string>
+    <string name="licence_legal_acceptance_title">شرائط کی قبولیت</string>
+    <string name="licence_legal_acceptance_body">Castivio استعمال کرنے کا مطلب اس صفحے کی شرائط قبول کرنا ہے۔ اگر آپ انہیں قبول نہیں کرتے تو ایپلی کیشن استعمال نہ کریں۔ کوئی آئندہ ورژن ان شرائط کو تبدیل کر سکتا ہے، اور نافذ العمل ہمیشہ وہی ہے جو یہاں دکھایا گیا ہے۔</string>
     <string name="licence_legal_close">بند کریں</string>
     <string name="licence_legal_full">Castivio صرف ایک میڈیا پلیئر ایپلی کیشن ہے۔ یہ کوئی چینل، فلم، سیریز، لائیو اسٹریم یا میڈیا مواد فراہم، میزبان، نشر، فروخت یا تقسیم نہیں کرتا۔ تمام مواد صرف صارف یا صارف کے منتخب کردہ سروس فراہم کنندہ کی جانب سے فراہم کیا جاتا ہے۔ اپنے مواد تک رسائی اور اس کے استعمال کے قانونی حقوق کو یقینی بنانا مکمل طور پر صارفین کی ذمہ داری ہے۔ Castivio کسی بھی فریقِ ثالث کے مواد یا خدمات کی دستیابی، قانونی حیثیت، لائسنسنگ یا معیار کی کوئی ذمہ داری قبول نہیں کرتا۔</string>
 

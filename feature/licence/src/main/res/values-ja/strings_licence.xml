@@ -50,9 +50,24 @@
     <string name="licence_retry">再試行</string>
     <string name="licence_support">サポートに連絡</string>
     <string name="licence_qr_caption">QR コードをスキャンして、この端末のアクティベーションページを開きます</string>
-    <string name="licence_legal">Castivio はメディアプレーヤーにすぎません。コンテンツの提供も配信も行いません。</string>
-    <string name="licence_legal_title">法的通知</string>
-    <string name="licence_legal_open">法的通知の全文を読む</string>
+    <string name="licence_legal_title">法的情報</string>
+    <string name="licence_legal_link">法的情報</string>
+    <string name="licence_legal_back_hint">戻るで閉じます</string>
+    <string name="licence_legal_about_title">Castivio について</string>
+    <string name="licence_legal_about_body">Castivio は、お客様がすでにお持ちのコンテンツのためのメディアプレーヤーです。お客様ご自身が追加した、またはご自身で選び別途料金を支払っているサービス提供者から取得したプレイリストやストリームを再生します。Castivio はコンテンツサービスではなく、いかなる提供者とも関係がありません。</string>
+    <string name="licence_legal_scope_title">ライセンスの範囲</string>
+    <string name="licence_legal_scope_body">Castivio ライセンスは、発行された端末でのアプリの利用を許可します。ライセンスはその端末に紐づき、譲渡・転売・共有はできません。対象はアプリのみで、チャンネル・映画・シリーズ・配信に対する権利は一切含みません。</string>
+    <string name="licence_legal_content_title">コンテンツの責任</string>
+    <string name="licence_legal_copyright_title">著作権</string>
+    <string name="licence_legal_copyright_body">Castivio アプリ、その名称、インターフェース、ソースコードは著作権により保護され、権利者に帰属します。Castivio は Inter および IBM Plex Sans Arabic の書体を SIL Open Font License 1.1 に基づいて同梱しています。その他の商標、名称、コンテンツはそれぞれの所有者に帰属します。</string>
+    <string name="licence_legal_privacy_title">プライバシー</string>
+    <string name="licence_legal_privacy_body">Castivio にはユーザーアカウントがなく、個人情報を求めません。プレイリスト、提供者の認証情報、視聴内容はこの端末に保存され、Castivio へ送信されることはありません。ライセンス画面に表示される識別子は、この端末のライセンスを発行し確認するためだけに使われます。</string>
+    <string name="licence_legal_refund_title">返金について</string>
+    <string name="licence_legal_refund_body">アプリが決済を処理することはありません。ライセンスは Castivio アクティベーションポータルで購入し、返金の申請と対応も購入時に表示された条件に従ってそこで行われます。コンテンツ提供者への支払いは提供者の領分であり、Castivio の管理外です。</string>
+    <string name="licence_legal_support_title">サポート</string>
+    <string name="licence_legal_support_body">サポートは Castivio アクティベーションポータルで受け付けます。ライセンス画面のデバイスキーをお知らせください。これは端末を特定するもので、お客様について何も示しません。コンテンツ提供者のサービス・認証情報・請求について Castivio はお手伝いできません。</string>
+    <string name="licence_legal_acceptance_title">規約への同意</string>
+    <string name="licence_legal_acceptance_body">Castivio を利用することは、このページの規約に同意することを意味します。同意されない場合はアプリをご利用にならないでください。将来のバージョンで規約が更新されることがあり、有効なものは常にここに表示されている内容です。</string>
     <string name="licence_legal_close">閉じる</string>
     <string name="licence_legal_full">Castivio はメディアプレーヤーアプリにすぎません。チャンネル、映画、シリーズ、ライブ配信、その他のメディアコンテンツを提供、ホスト、放送、販売、配布することは一切ありません。すべてのコンテンツは、利用者ご自身または利用者が選んだサービス提供者からのみ供給されます。コンテンツにアクセスし利用する法的権利を有していることを確認する責任は、すべて利用者にあります。Castivio は、第三者のコンテンツやサービスの提供状況、適法性、ライセンス、品質について一切の責任を負いません。</string>
 

@@ -60,7 +60,6 @@ import androidx.core.os.ConfigurationCompat
 import com.castivio.core.design.components.ButtonWeight
 import com.castivio.core.design.components.CapsuleMetrics
 import com.castivio.core.design.components.CastivioButton
-import com.castivio.core.design.components.CastivioNoticeDialog
 import com.castivio.core.design.components.IdentityCapsule
 import com.castivio.core.design.components.PlanCard
 import com.castivio.core.design.components.PlanCardMetrics
@@ -133,6 +132,22 @@ internal fun LicenceScreen(
     BackHandler(enabled = notice) { notice = false }
 
     BoxWithConstraints(modifier.fillMaxSize()) {
+        // The legal page replaces this screen rather than covering it.
+        //
+        // Covering it was the first version and it is subtly wrong twice: a
+        // screen reader reads straight through an opaque page into the
+        // controls behind it, and the D-pad can travel into a plan card nobody
+        // can see. Replacing it costs nothing, because none of this screen's
+        // state lives here -- the entitlement, the address, the QR and the
+        // plans are all the view model's, one level up. That is the whole
+        // reason this is an overlay in the composition rather than a second
+        // Activity: coming back cannot land on a screen that has forgotten
+        // what it was showing, because it was never asked to remember.
+        if (notice) {
+            LegalScreen(onClose = { notice = false })
+            return@BoxWithConstraints
+        }
+
         val m = licenceMetricsFor(tv, maxHeight)
         Column(
             Modifier
@@ -172,67 +187,56 @@ internal fun LicenceScreen(
             Hairline()
             LegalFooter(m = m, onOpen = { notice = true })
         }
-
-        if (notice) {
-            CastivioNoticeDialog(
-                title = stringResource(R.string.licence_legal_title),
-                body = stringResource(R.string.licence_legal_full),
-                closeLabel = stringResource(R.string.licence_legal_close),
-                onClose = { notice = false },
-                modifier = Modifier.testTag(LicenceTags.NOTICE),
-            )
-        }
     }
 }
 
 /**
- * The standing notice, and the way to the rest of it.
+ * A link, and nothing else.
  *
- * ## Why the footer is one line and the notice is not
+ * ## What used to be here
  *
- * The complete legal notice measures **four lines** of `bodySmall` across the
- * widest phone this ships to — 90dp on 873×393, 87dp on 800×360, 93dp on the
- * television — against a footer slot of 20dp and a whole-band margin of 35dp.
- * Drawing it permanently costs 27dp more than the screen has, before the
- * transient navigation bar takes another 24. That is measured, in
- * `design/mockups/licence.html`, by `measure.js`, and it is not a number that
- * tighter padding pays for.
+ * The notice itself, as a paragraph. That was wrong for a reason worth writing
+ * down rather than quietly fixing: this is an **activation** screen. Everything
+ * drawn on it competes with the one thing a user came here to do, and eight
+ * sections of legal prose is not a footnote to that job — it is a second screen
+ * pretending to be a footer.
  *
- * So the footer carries the notice's operative first clause, always visible on
- * every frame in every language, and the notice itself — unabridged — is one
- * press behind it. Neither is a summary that changes the meaning and neither is
- * a placeholder.
+ * The arithmetic said the same thing from the other direction. The content
+ * responsibility clause alone is 479 characters, which `measure.js` renders as
+ * four lines of `bodySmall` on every frame Castivio ships to — 90dp on 873×393,
+ * 87dp on 800×360, 93dp on the television — against a 20dp slot and 35dp of
+ * whole-band margin. The two ways to make that fit are to shrink the type,
+ * which makes the one text nobody may misread the hardest to read, or to shrink
+ * the activation controls, which trades the screen's purpose for its
+ * disclaimer. Both were rejected. See [LegalScreen].
  *
- * ## And why it is a control
+ * ## What it is now
  *
- * A notice nobody can reach is not a notice. The line is focusable, so a remote
- * finds it in the ordinary D-pad order after the plans, and it announces itself
- * as "Read the full legal notice" rather than by reading the sentence twice.
+ * One short label, centred, in the footer's existing slot. Nothing above it
+ * moved: the band, the capsules, the plans, the QR and the status line are the
+ * numbers `LicenceMetrics` already held.
  *
- * It is the one control in Castivio **below** the 48dp touch floor, at the 27dp
- * the footer's budget allows, and that is a deliberate exception rather than an
- * oversight: it is full-bleed, so the hit area is 748×27dp on the tightest
- * frame, which is twelve times the area of a compliant 48dp square. The floor
- * exists to stop 24dp icons, and the alternative here is not a taller strip —
- * the arithmetic above shows there is no dp to give it — but no way to read the
- * notice at all.
+ * ## The target floor, honestly
+ *
+ * It is 27dp tall on the tightest frame, because that is the whole of the
+ * footer's budget and the layout above it is fixed. Its hit area is widened
+ * horizontally instead — the pill is the label plus 24dp either side, so a thumb
+ * has something to land on even though the strip is short. That is a documented
+ * exception to the 48dp floor, not an oversight; the floor exists to stop 24dp
+ * icons, and the alternative is a legal page with no door.
  */
 @Composable
 private fun LegalFooter(m: LicenceMetrics, onOpen: () -> Unit) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
     var focused by remember { mutableStateOf(false) }
-    val open = stringResource(R.string.licence_legal_open)
 
-    // Fill and ink together, because neither is enough on its own.
-    //
-    // A focus *ring* is out: a hairline rectangle across the full width of the
-    // screen reads as a border on the design rather than a state of a control.
-    // A change of ink alone was the first attempt and is too quiet at three
-    // metres, which is exactly where it matters. So the strip takes the same
-    // glass fill every other focusable surface in Castivio uses, at the same
-    // pill radius, and the sentence brightens inside it. Both animate on the
-    // shared focus spec, so this control agrees with the language chip beside it.
+    // Fill and ink together, because neither is enough on its own. A focus ring
+    // would draw a hairline rectangle across the bottom of the screen, which
+    // reads as a border on the design rather than a state of a control; a change
+    // of ink alone is legible in the hand and too quiet at three metres. So the
+    // pill takes the same glass fill every other focusable surface in Castivio
+    // uses, on the same focus spec as the language chip in the header.
     val fill by animateColorAsState(
         if (focused) colors.glassFill else Color.Transparent,
         Motion.focusSpec(),
@@ -247,23 +251,31 @@ private fun LegalFooter(m: LicenceMetrics, onOpen: () -> Unit) {
     Box(
         Modifier
             .fillMaxWidth()
-            .testTag(LicenceTags.FOOTER)
-            .onFocusChanged { focused = it.isFocused || it.hasFocus }
-            .clip(RoundedCornerShape(Radius.pill))
-            .background(fill)
-            .clickable(interaction, indication = null, onClick = onOpen)
-            .semantics { contentDescription = open; role = Role.Button }
             .padding(top = m.footTop, bottom = m.footBottom),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = stringResource(R.string.licence_legal),
-            style = CastivioType.bodySmall,
-            color = ink,
-            textAlign = TextAlign.Center,
-        )
+        Box(
+            Modifier
+                .testTag(LicenceTags.FOOTER)
+                .onFocusChanged { focused = it.isFocused || it.hasFocus }
+                .clip(RoundedCornerShape(Radius.pill))
+                .background(fill)
+                .clickable(interaction, indication = null, onClick = onOpen)
+                .semantics { role = Role.Button }
+                .padding(horizontal = LINK_PADDING),
+        ) {
+            Text(
+                text = stringResource(R.string.licence_legal_link),
+                style = CastivioType.bodySmall,
+                color = ink,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }
+
+/** What the short label borrows sideways, since it cannot borrow height. */
+private val LINK_PADDING = 24.dp
 
 /**
  * A hairline that fades at both ends.

@@ -50,9 +50,24 @@
     <string name="licence_retry">फिर कोशिश करें</string>
     <string name="licence_support">सहायता से संपर्क करें</string>
     <string name="licence_qr_caption">डिवाइस ऐक्टिवेशन पेज खोलने के लिए QR कोड स्कैन करें</string>
-    <string name="licence_legal">Castivio सिर्फ़ एक मीडिया प्लेयर है। यह कोई सामग्री न देता है न होस्ट करता है।</string>
-    <string name="licence_legal_title">कानूनी सूचना</string>
-    <string name="licence_legal_open">पूरी कानूनी सूचना पढ़ें</string>
+    <string name="licence_legal_title">कानूनी जानकारी</string>
+    <string name="licence_legal_link">कानूनी जानकारी</string>
+    <string name="licence_legal_back_hint">बंद करने के लिए बैक दबाएँ</string>
+    <string name="licence_legal_about_title">Castivio के बारे में</string>
+    <string name="licence_legal_about_body">Castivio उस सामग्री के लिए मीडिया प्लेयर है जो पहले से आपके पास है। यह वे प्लेलिस्ट और स्ट्रीम चलाता है जिन्हें आप स्वयं जोड़ते हैं, या जो आपको आपके चुने हुए सेवा प्रदाता से मिलती हैं और जिनका भुगतान आप अलग से करते हैं। Castivio कोई सामग्री सेवा नहीं है और किसी प्रदाता से संबद्ध नहीं है।</string>
+    <string name="licence_legal_scope_title">लाइसेंस का दायरा</string>
+    <string name="licence_legal_scope_body">Castivio लाइसेंस उसी डिवाइस पर ऐप्लिकेशन के उपयोग की अनुमति देता है जिसके लिए वह जारी हुआ है। यह उसी डिवाइस से जुड़ा है और इसे हस्तांतरित, पुनः बेचा या साझा नहीं किया जा सकता। लाइसेंस केवल ऐप्लिकेशन पर लागू है और किसी चैनल, फ़िल्म, सीरीज़ या स्ट्रीम पर कोई अधिकार नहीं देता।</string>
+    <string name="licence_legal_content_title">सामग्री की ज़िम्मेदारी</string>
+    <string name="licence_legal_copyright_title">कॉपीराइट</string>
+    <string name="licence_legal_copyright_body">Castivio ऐप्लिकेशन, उसका नाम, इंटरफ़ेस और स्रोत कोड कॉपीराइट से सुरक्षित हैं और उनके स्वामी की संपत्ति बने रहते हैं। Castivio में Inter और IBM Plex Sans Arabic टाइपफ़ेस SIL Open Font License 1.1 के तहत शामिल हैं। अन्य सभी ट्रेडमार्क, नाम और सामग्री अपने-अपने स्वामियों की हैं।</string>
+    <string name="licence_legal_privacy_title">निजता</string>
+    <string name="licence_legal_privacy_body">Castivio में कोई उपयोगकर्ता खाता नहीं है और यह कोई व्यक्तिगत जानकारी नहीं माँगता। आपकी प्लेलिस्ट, प्रदाता के लॉगिन विवरण और आप जो देखते हैं, सब इसी डिवाइस पर रहता है और Castivio को नहीं भेजा जाता। लाइसेंस स्क्रीन पर दिखने वाले पहचानकर्ता केवल इस डिवाइस का लाइसेंस जारी करने और जाँचने के लिए उपयोग होते हैं।</string>
+    <string name="licence_legal_refund_title">धनवापसी नीति</string>
+    <string name="licence_legal_refund_body">ऐप्लिकेशन कभी कोई भुगतान संसाधित नहीं करता। लाइसेंस Castivio सक्रियण पोर्टल से खरीदे जाते हैं, और कोई भी धनवापसी वहीं, खरीद के समय दिखाई गई शर्तों के अनुसार, माँगी और निपटाई जाती है। सामग्री प्रदाता को दिया गया कोई भी भुगतान उसी का मामला है और Castivio के नियंत्रण से बाहर है।</string>
+    <string name="licence_legal_support_title">सहायता</string>
+    <string name="licence_legal_support_body">सहायता Castivio सक्रियण पोर्टल के माध्यम से दी जाती है। लाइसेंस स्क्रीन पर दिखाई गई डिवाइस कुंजी बताएँ: यह इस डिवाइस की पहचान करती है और आपके बारे में कुछ नहीं बताती। सामग्री प्रदाता की सेवा, लॉगिन विवरण या बिलिंग में Castivio सहायता नहीं कर सकता।</string>
+    <string name="licence_legal_acceptance_title">शर्तों की स्वीकृति</string>
+    <string name="licence_legal_acceptance_body">Castivio का उपयोग करने का अर्थ है इस पृष्ठ की शर्तें स्वीकार करना। यदि आप उन्हें स्वीकार नहीं करते, तो ऐप्लिकेशन का उपयोग न करें। भविष्य का कोई संस्करण इन्हें बदल सकता है; लागू सदैव वही है जो यहाँ दिखाया गया है।</string>
     <string name="licence_legal_close">बंद करें</string>
     <string name="licence_legal_full">Castivio केवल एक मीडिया प्लेयर ऐप्लिकेशन है। यह किसी भी चैनल, फ़िल्म, सीरीज़, लाइव स्ट्रीम या मीडिया सामग्री को न तो उपलब्ध कराता है, न होस्ट करता है, न प्रसारित करता है, न बेचता है और न ही वितरित करता है। सारी सामग्री केवल उपयोगकर्ता या उपयोगकर्ता द्वारा चुने गए सेवा प्रदाता से आती है। अपनी सामग्री तक पहुँचने और उसका उपयोग करने के कानूनी अधिकार सुनिश्चित करना पूरी तरह उपयोगकर्ताओं की ज़िम्मेदारी है। किसी भी तृतीय-पक्ष सामग्री या सेवा की उपलब्धता, वैधता, लाइसेंसिंग या गुणवत्ता के लिए Castivio कोई ज़िम्मेदारी नहीं लेता।</string>
 

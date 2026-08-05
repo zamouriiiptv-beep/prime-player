@@ -50,9 +50,24 @@
     <string name="licence_retry">Skúsiť znova</string>
     <string name="licence_support">Kontaktovať podporu</string>
     <string name="licence_qr_caption">Naskenujte QR kód a otvorte stránku aktivácie zariadenia</string>
-    <string name="licence_legal">Castivio je len prehrávač médií. Neposkytuje ani nehostuje žiadny obsah.</string>
-    <string name="licence_legal_title">Právne oznámenie</string>
-    <string name="licence_legal_open">Prečítať celé právne oznámenie</string>
+    <string name="licence_legal_title">Právne informácie</string>
+    <string name="licence_legal_link">Právne informácie</string>
+    <string name="licence_legal_back_hint">Späť zavrie</string>
+    <string name="licence_legal_about_title">O Castiviu</string>
+    <string name="licence_legal_about_body">Castivio je prehrávač médií pre obsah, ktorý už máte. Prehráva playlisty a streamy, ktoré si pridáte sami alebo získate od poskytovateľa služby, ktorého ste si vybrali a platíte mu osobitne. Castivio nie je službou obsahu a nie je spojené so žiadnym poskytovateľom.</string>
+    <string name="licence_legal_scope_title">Rozsah licencie</string>
+    <string name="licence_legal_scope_body">Licencia Castivio umožňuje používať aplikáciu na zariadení, pre ktoré bola vydaná. Je viazaná na toto zariadenie a nemožno ju previesť, ďalej predať ani zdieľať. Licencia sa týka len aplikácie a nedáva právo na žiadny kanál, film, seriál ani prenos.</string>
+    <string name="licence_legal_content_title">Zodpovednosť za obsah</string>
+    <string name="licence_legal_copyright_title">Autorské práva</string>
+    <string name="licence_legal_copyright_body">Aplikácia Castivio, jej názov, rozhranie aj zdrojový kód sú chránené autorským právom a zostávajú majetkom svojho vlastníka. Castivio obsahuje písma Inter a IBM Plex Sans Arabic pod licenciou SIL Open Font License 1.1. Všetky ostatné ochranné známky, názvy a obsah patria svojim vlastníkom.</string>
+    <string name="licence_legal_privacy_title">Súkromie</string>
+    <string name="licence_legal_privacy_body">Castivio nemá používateľské účty a nežiada žiadne osobné údaje. Vaše playlisty, prihlasovacie údaje k poskytovateľovi aj to, čo pozeráte, zostávajú v tomto zariadení a neodosielajú sa do Castivia. Identifikátory zobrazené na licenčnej obrazovke slúžia len na vydanie a overenie licencie pre toto zariadenie.</string>
+    <string name="licence_legal_refund_title">Vrátenie peňazí</string>
+    <string name="licence_legal_refund_body">Aplikácia nikdy nespracúva platbu. Licencie sa kupujú cez aktivačný portál Castivio a prípadné vrátenie peňazí sa tam žiada aj vybavuje podľa podmienok zobrazených pri nákupe. Čokoľvek zaplatené poskytovateľovi obsahu je jeho vec a mimo kontroly Castivia.</string>
+    <string name="licence_legal_support_title">Podpora</string>
+    <string name="licence_legal_support_body">Podpora sa poskytuje cez aktivačný portál Castivio. Uveďte kľúč zariadenia zobrazený na licenčnej obrazovke: identifikuje toto zariadenie a nehovorí o vás nič. Castivio nedokáže pomôcť so službou, prihlasovacími údajmi ani fakturáciou poskytovateľa obsahu.</string>
+    <string name="licence_legal_acceptance_title">Prijatie podmienok</string>
+    <string name="licence_legal_acceptance_body">Používaním Castivia prijímate podmienky na tejto stránke. Ak ich neprijímate, aplikáciu nepoužívajte. Budúca verzia ich môže zmeniť; platí vždy tá, ktorá je zobrazená tu.</string>
     <string name="licence_legal_close">Zavrieť</string>
     <string name="licence_legal_full">Castivio je len aplikácia na prehrávanie médií. Neposkytuje, nehostuje, nevysiela, nepredáva ani nedistribuuje žiadne kanály, filmy, seriály, živé prenosy ani mediálny obsah. Všetok obsah dodáva výhradne používateľ alebo poskytovateľ služby, ktorého si používateľ zvolil. Za zabezpečenie zákonných práv na prístup k svojmu obsahu a jeho používanie zodpovedajú výhradne používatelia. Castivio nenesie žiadnu zodpovednosť za dostupnosť, zákonnosť, licencovanie ani kvalitu akéhokoľvek obsahu či služieb tretích strán.</string>
 

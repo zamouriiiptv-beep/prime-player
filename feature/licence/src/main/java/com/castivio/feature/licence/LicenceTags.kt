@@ -44,9 +44,10 @@ internal object LicenceTags {
     const val STAGE = "licence.stage"
     const val HEADER = "licence.header"
 
-    /** The standing notice, which is also the control that opens the full one. */
+    /** The link in the footer, which is the only way to the legal page. */
     const val FOOTER = "licence.footer"
 
-    /** The full legal notice, when it is open. */
-    const val NOTICE = "licence.notice"
+    /** The legal page, when it is open, and the button that closes it. */
+    const val LEGAL = "licence.legal"
+    const val LEGAL_CLOSE = "licence.legal.close"
 }

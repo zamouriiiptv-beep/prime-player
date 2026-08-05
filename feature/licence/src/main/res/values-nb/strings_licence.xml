@@ -50,9 +50,24 @@
     <string name="licence_retry">Prøv igjen</string>
     <string name="licence_support">Kontakt kundestøtte</string>
     <string name="licence_qr_caption">Skann QR-koden for å åpne aktiveringssiden for enheten</string>
-    <string name="licence_legal">Castivio er bare en mediespiller. Den leverer og er ikke vert for innhold.</string>
-    <string name="licence_legal_title">Juridisk merknad</string>
-    <string name="licence_legal_open">Les hele den juridiske merknaden</string>
+    <string name="licence_legal_title">Juridisk informasjon</string>
+    <string name="licence_legal_link">Juridisk informasjon</string>
+    <string name="licence_legal_back_hint">Tilbake lukker</string>
+    <string name="licence_legal_about_title">Om Castivio</string>
+    <string name="licence_legal_about_body">Castivio er en mediespiller for innhold du allerede har. Den spiller av spillelister og strømmer du legger til selv, eller som du får fra en tjenesteleverandør du selv har valgt og betaler separat. Castivio er ikke en innholdstjeneste og er ikke tilknyttet noen leverandør.</string>
+    <string name="licence_legal_scope_title">Lisensens omfang</string>
+    <string name="licence_legal_scope_body">En Castivio-lisens gir rett til å bruke appen på enheten den er utstedt til. Den er knyttet til den enheten og kan ikke overføres, videreselges eller deles. Lisensen dekker bare appen og gir ingen rett til noen kanal, film, serie eller strøm.</string>
+    <string name="licence_legal_content_title">Ansvar for innhold</string>
+    <string name="licence_legal_copyright_title">Opphavsrett</string>
+    <string name="licence_legal_copyright_body">Appen Castivio, navnet, grensesnittet og kildekoden er beskyttet av opphavsrett og forblir eierens eiendom. Castivio inneholder skrifttypene Inter og IBM Plex Sans Arabic under SIL Open Font License 1.1. Alle andre varemerker, navn og innhold tilhører sine respektive eiere.</string>
+    <string name="licence_legal_privacy_title">Personvern</string>
+    <string name="licence_legal_privacy_body">Castivio har ingen brukerkontoer og ber ikke om personopplysninger. Spillelistene dine, påloggingsdetaljene hos leverandøren og det du ser på, blir værende på denne enheten og sendes ikke til Castivio. Identifikatorene på lisensskjermen brukes bare til å utstede og kontrollere en lisens for denne enheten.</string>
+    <string name="licence_legal_refund_title">Refusjon</string>
+    <string name="licence_legal_refund_body">Appen behandler aldri en betaling. Lisenser kjøpes gjennom Castivios aktiveringsportal, og enhver refusjon bes om og avgjøres der, etter vilkårene som ble vist ved kjøpet. Det som betales til en innholdsleverandør, er leverandørens eget og utenfor Castivios kontroll.</string>
+    <string name="licence_legal_support_title">Kundestøtte</string>
+    <string name="licence_legal_support_body">Kundestøtte gis gjennom Castivios aktiveringsportal. Oppgi enhetsnøkkelen fra lisensskjermen: den identifiserer denne enheten og sier ingenting om deg. Castivio kan ikke hjelpe med en innholdsleverandørs tjeneste, påloggingsdetaljer eller fakturering.</string>
+    <string name="licence_legal_acceptance_title">Godtakelse av vilkårene</string>
+    <string name="licence_legal_acceptance_body">Å bruke Castivio betyr å godta vilkårene på denne siden. Godtar du dem ikke, må du ikke bruke appen. En framtidig versjon kan endre dem; det som gjelder, er alltid det som vises her.</string>
     <string name="licence_legal_close">Lukk</string>
     <string name="licence_legal_full">Castivio er utelukkende en mediespiller-app. Den leverer ikke, er ikke vert for, kringkaster ikke, selger ikke og distribuerer ikke kanaler, filmer, serier, direktestrømmer eller medieinnhold. Alt innhold leveres utelukkende av brukeren eller av tjenesteleverandøren brukeren har valgt. Brukerne har alene ansvaret for å sikre at de har de juridiske rettighetene til å få tilgang til og bruke innholdet sitt. Castivio påtar seg ikke noe ansvar for tilgjengeligheten, lovligheten, lisensieringen eller kvaliteten på innhold eller tjenester fra tredjeparter.</string>
 

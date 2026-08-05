@@ -50,9 +50,24 @@
     <string name="licence_retry">Réessayer</string>
     <string name="licence_support">Contacter le support</string>
     <string name="licence_qr_caption">Scannez le code QR pour ouvrir la page d’activation de votre appareil</string>
-    <string name="licence_legal">Castivio n’est qu’un lecteur multimédia. Il ne fournit ni n’héberge aucun contenu.</string>
-    <string name="licence_legal_title">Mentions légales</string>
-    <string name="licence_legal_open">Lire les mentions légales complètes</string>
+    <string name="licence_legal_title">Informations légales</string>
+    <string name="licence_legal_link">Informations légales</string>
+    <string name="licence_legal_back_hint">Retour pour fermer</string>
+    <string name="licence_legal_about_title">À propos de Castivio</string>
+    <string name="licence_legal_about_body">Castivio est un lecteur multimédia pour du contenu que vous possédez déjà. Il lit les playlists et les flux que vous ajoutez vous-même, ou que vous obtenez d’un fournisseur de services que vous avez choisi et payez séparément. Castivio n’est pas un service de contenu et n’est affilié à aucun fournisseur.</string>
+    <string name="licence_legal_scope_title">Portée de la licence</string>
+    <string name="licence_legal_scope_body">Une licence Castivio autorise l’usage de l’application sur l’appareil pour lequel elle a été délivrée. Elle est liée à cet appareil et ne peut être ni transférée, ni revendue, ni partagée. Elle couvre l’application seule et ne confère aucun droit sur une chaîne, un film, une série ou un flux.</string>
+    <string name="licence_legal_content_title">Responsabilité du contenu</string>
+    <string name="licence_legal_copyright_title">Droit d’auteur</string>
+    <string name="licence_legal_copyright_body">L’application Castivio, son nom, son interface et son code source sont protégés par le droit d’auteur et restent la propriété de leur titulaire. Castivio intègre les polices Inter et IBM Plex Sans Arabic sous licence SIL Open Font License 1.1. Toutes les autres marques, dénominations et contenus appartiennent à leurs propriétaires respectifs.</string>
+    <string name="licence_legal_privacy_title">Confidentialité</string>
+    <string name="licence_legal_privacy_body">Castivio n’a pas de comptes utilisateur et ne demande aucune donnée personnelle. Vos playlists, vos identifiants de fournisseur et ce que vous regardez restent sur cet appareil et ne sont pas envoyés à Castivio. Les identifiants affichés sur l’écran de licence servent uniquement à délivrer et à vérifier une licence pour cet appareil.</string>
+    <string name="licence_legal_refund_title">Politique de remboursement</string>
+    <string name="licence_legal_refund_body">L’application ne traite jamais de paiement. Les licences s’achètent sur le portail d’activation Castivio, et tout remboursement s’y demande et s’y règle selon les conditions affichées au moment de l’achat. Ce qui est versé à un fournisseur de contenu lui appartient et échappe au contrôle de Castivio.</string>
+    <string name="licence_legal_support_title">Assistance</string>
+    <string name="licence_legal_support_body">L’assistance passe par le portail d’activation Castivio. Indiquez la clé d’appareil affichée sur l’écran de licence : elle identifie cet appareil et ne dit rien de vous. Castivio ne peut rien pour le service, les identifiants ou la facturation d’un fournisseur de contenu.</string>
+    <string name="licence_legal_acceptance_title">Acceptation des conditions</string>
+    <string name="licence_legal_acceptance_body">Utiliser Castivio vaut acceptation des conditions de cette page. Si vous ne les acceptez pas, n’utilisez pas l’application. Une version future pourra les modifier ; la version applicable est toujours celle affichée ici.</string>
     <string name="licence_legal_close">Fermer</string>
     <string name="licence_legal_full">Castivio est uniquement une application de lecture multimédia. Elle ne fournit, n’héberge, ne diffuse, ne vend ni ne distribue aucune chaîne, aucun film, aucune série, aucun flux en direct ni aucun contenu multimédia. Tout le contenu est fourni exclusivement par l’utilisateur ou par le fournisseur de services qu’il a choisi. Il incombe aux seuls utilisateurs de s’assurer qu’ils disposent des droits légaux nécessaires pour accéder à leur contenu et l’utiliser. Castivio décline toute responsabilité quant à la disponibilité, à la légalité, aux licences ou à la qualité des contenus ou services de tiers.</string>
 

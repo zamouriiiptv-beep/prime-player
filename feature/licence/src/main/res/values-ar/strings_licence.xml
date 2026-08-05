@@ -50,9 +50,24 @@
     <string name="licence_retry">إعادة المحاولة</string>
     <string name="licence_support">تواصل مع الدعم</string>
     <string name="licence_qr_caption">امسح رمز QR لفتح صفحة تفعيل جهازك</string>
-    <string name="licence_legal">Castivio مشغّل وسائط فقط. لا يوفّر أي محتوى ولا يستضيفه.</string>
-    <string name="licence_legal_title">إشعار قانوني</string>
-    <string name="licence_legal_open">اقرأ الإشعار القانوني كاملًا</string>
+    <string name="licence_legal_title">معلومات قانونية</string>
+    <string name="licence_legal_link">معلومات قانونية</string>
+    <string name="licence_legal_back_hint">عُد للإغلاق</string>
+    <string name="licence_legal_about_title">عن Castivio</string>
+    <string name="licence_legal_about_body">Castivio مشغّل وسائط للمحتوى الذي تملكه بالفعل. يشغّل قوائم التشغيل والبثوث التي تضيفها بنفسك أو تحصل عليها من مزوّد خدمة اخترته وتدفع له بشكل منفصل. Castivio ليس خدمة محتوى وليس تابعًا لأي مزوّد.</string>
+    <string name="licence_legal_scope_title">نطاق الترخيص</string>
+    <string name="licence_legal_scope_body">يتيح ترخيص Castivio استخدام التطبيق على الجهاز الصادر له. وهو مرتبط بذلك الجهاز ولا يمكن نقله أو إعادة بيعه أو مشاركته. يغطي الترخيص التطبيق فقط ولا يمنح أي حق في أي قناة أو فيلم أو مسلسل أو بث.</string>
+    <string name="licence_legal_content_title">المسؤولية عن المحتوى</string>
+    <string name="licence_legal_copyright_title">حقوق النشر</string>
+    <string name="licence_legal_copyright_body">تطبيق Castivio واسمه وواجهته وشفرته المصدرية محمية بحقوق النشر وتبقى ملكًا لصاحبها. يتضمن Castivio خطي Inter و IBM Plex Sans Arabic بموجب رخصة SIL Open Font License 1.1. أما سائر العلامات التجارية والأسماء والمحتويات فهي ملك لأصحابها.</string>
+    <string name="licence_legal_privacy_title">الخصوصية</string>
+    <string name="licence_legal_privacy_body">لا توجد في Castivio حسابات مستخدمين ولا يطلب أي بيانات شخصية. تُخزَّن قوائم التشغيل وبيانات اعتماد المزوّد وما تشاهده على هذا الجهاز ولا تُرسَل إلى Castivio. تُستخدم المعرّفات الظاهرة في شاشة الترخيص فقط لإصدار ترخيص لهذا الجهاز والتحقق منه.</string>
+    <string name="licence_legal_refund_title">سياسة الاسترداد</string>
+    <string name="licence_legal_refund_body">لا يعالج التطبيق أي عملية دفع. تُشترى التراخيص عبر بوابة تفعيل Castivio، ويُطلب أي استرداد ويُسوّى هناك وفق الشروط المعروضة وقت الشراء. أما ما يُدفع لمزوّد المحتوى فهو شأن ذلك المزوّد وخارج سيطرة Castivio.</string>
+    <string name="licence_legal_support_title">الدعم</string>
+    <string name="licence_legal_support_body">يُقدَّم الدعم عبر بوابة تفعيل Castivio. اذكر مفتاح الجهاز الظاهر في شاشة الترخيص: فهو يعرّف هذا الجهاز ولا يكشف عنك شيئًا. لا يستطيع Castivio المساعدة في خدمة مزوّد المحتوى أو بيانات اعتماده أو فواتيره.</string>
+    <string name="licence_legal_acceptance_title">قبول الشروط</string>
+    <string name="licence_legal_acceptance_body">استخدامك Castivio يعني قبولك الشروط الواردة في هذه الصفحة. إن لم تقبلها فلا تستخدم التطبيق. قد يحدّث إصدار لاحق هذه الشروط، والنسخة السارية هي دائمًا المعروضة هنا.</string>
     <string name="licence_legal_close">إغلاق</string>
     <string name="licence_legal_full">Castivio هو تطبيق مشغّل وسائط فقط. وهو لا يوفّر ولا يستضيف ولا يبثّ ولا يبيع ولا يوزّع أي قنوات أو أفلام أو مسلسلات أو بثوث مباشرة أو محتوى وسائط. يُقدَّم كل المحتوى حصريًا من المستخدم أو من مزوّد الخدمة الذي يختاره. يتحمّل المستخدمون وحدهم مسؤولية التأكد من امتلاكهم الحقوق القانونية للوصول إلى محتواهم واستخدامه. ولا يتحمّل Castivio أي مسؤولية عن توفّر أو قانونية أو ترخيص أو جودة أي محتوى أو خدمات تابعة لجهات خارجية.</string>
 

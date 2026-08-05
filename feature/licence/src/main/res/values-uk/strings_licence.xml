@@ -50,9 +50,24 @@
     <string name="licence_retry">Повторити</string>
     <string name="licence_support">Звернутися до підтримки</string>
     <string name="licence_qr_caption">Відскануйте QR-код, щоб відкрити сторінку активації пристрою</string>
-    <string name="licence_legal">Castivio — лише медіаплеєр. Він не надає і не розміщує контент.</string>
     <string name="licence_legal_title">Правова інформація</string>
-    <string name="licence_legal_open">Прочитати правову інформацію повністю</string>
+    <string name="licence_legal_link">Правова інформація</string>
+    <string name="licence_legal_back_hint">Назад — закрити</string>
+    <string name="licence_legal_about_title">Про Castivio</string>
+    <string name="licence_legal_about_body">Castivio — медіаплеєр для контенту, який у вас уже є. Він відтворює плейлисти та потоки, які ви додаєте самі або отримуєте від обраного вами постачальника послуг і оплачуєте окремо. Castivio не є контент-сервісом і не пов\'язаний із жодним постачальником.</string>
+    <string name="licence_legal_scope_title">Обсяг ліцензії</string>
+    <string name="licence_legal_scope_body">Ліцензія Castivio дозволяє використовувати застосунок на тому пристрої, для якого її видано. Вона прив\'язана до цього пристрою і не може бути передана, перепродана чи розділена. Ліцензія стосується лише застосунку і не надає прав на жодні канали, фільми, серіали чи трансляції.</string>
+    <string name="licence_legal_content_title">Відповідальність за контент</string>
+    <string name="licence_legal_copyright_title">Авторське право</string>
+    <string name="licence_legal_copyright_body">Застосунок Castivio, його назва, інтерфейс і вихідний код захищені авторським правом і залишаються власністю правовласника. Castivio використовує шрифти Inter та IBM Plex Sans Arabic за ліцензією SIL Open Font License 1.1. Усі інші торгові марки, назви й матеріали належать їхнім власникам.</string>
+    <string name="licence_legal_privacy_title">Конфіденційність</string>
+    <string name="licence_legal_privacy_body">У Castivio немає облікових записів, і застосунок не запитує особистих даних. Ваші плейлисти, дані для входу до постачальника і те, що ви дивитеся, зберігаються на цьому пристрої та не надсилаються до Castivio. Ідентифікатори на екрані ліцензії використовуються лише для видачі та перевірки ліцензії для цього пристрою.</string>
+    <string name="licence_legal_refund_title">Повернення коштів</string>
+    <string name="licence_legal_refund_body">Застосунок ніколи не проводить платежів. Ліцензії купуються на порталі активації Castivio, і будь-яке повернення запитується та оформлюється там на умовах, показаних під час купівлі. Усе сплачене постачальнику контенту стосується його і перебуває поза контролем Castivio.</string>
+    <string name="licence_legal_support_title">Підтримка</string>
+    <string name="licence_legal_support_body">Підтримка надається через портал активації Castivio. Наведіть ключ пристрою з екрана ліцензії: він визначає цей пристрій і нічого не повідомляє про вас. Castivio не може допомогти з послугами, обліковими даними чи рахунками постачальника контенту.</string>
+    <string name="licence_legal_acceptance_title">Прийняття умов</string>
+    <string name="licence_legal_acceptance_body">Користування Castivio означає прийняття умов на цій сторінці. Якщо ви їх не приймаєте, не користуйтеся застосунком. Майбутня версія може оновити ці умови; чинною завжди є та, що показана тут.</string>
     <string name="licence_legal_close">Закрити</string>
     <string name="licence_legal_full">Castivio — це лише застосунок-медіаплеєр. Він не надає, не розміщує, не транслює, не продає і не поширює жодних каналів, фільмів, серіалів, прямих трансляцій чи медіаконтенту. Увесь контент постачає виключно користувач або обраний ним постачальник послуг. Користувачі несуть одноосібну відповідальність за наявність законних прав на доступ до свого контенту та його використання. Castivio не несе відповідальності за доступність, законність, ліцензування чи якість будь-якого стороннього контенту або послуг.</string>
 

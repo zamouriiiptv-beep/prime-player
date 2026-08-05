@@ -97,36 +97,84 @@ class LicencePolishTest {
     // -- The legal notice ---------------------------------------------------
 
     @Test
-    fun `the full legal notice is one press from the footer and closes again`() {
+    fun `the legal page is one press from the footer and closes again`() {
         show(EntitlementState.Unknown)
 
-        assertEquals("the notice is open before anything was pressed", 0, nodes(LicenceTags.NOTICE))
+        assertEquals("the legal page is open before anything was pressed", 0, nodes(LicenceTags.LEGAL))
 
         compose.onNodeWithTag(LicenceTags.FOOTER).performClick()
         compose.waitForIdle()
-        assertEquals("pressing the footer did not open the notice", 1, nodes(LicenceTags.NOTICE))
-        compose.onNodeWithText(res.getString(R.string.licence_legal_full)).assertExists()
+        assertEquals("pressing the link did not open the legal page", 1, nodes(LicenceTags.LEGAL))
 
-        compose.onNodeWithText(res.getString(R.string.licence_legal_close)).performClick()
+        compose.onNodeWithTag(LicenceTags.LEGAL_CLOSE).performClick()
         compose.waitForIdle()
-        assertEquals("the notice would not close", 0, nodes(LicenceTags.NOTICE))
+        assertEquals("the legal page would not close", 0, nodes(LicenceTags.LEGAL))
     }
 
     /**
-     * The footer is never empty, in any state.
+     * All eight sections are on the page, headings and bodies both.
      *
-     * A standing notice that disappears while the screen is loading is a notice
-     * that is not standing.
+     * Enumerated rather than spot-checked: a page that renders seven of eight is
+     * a page missing a legal section, and the one it drops will be whichever one
+     * nobody scrolled to.
      */
     @Test
-    fun `the footer carries the standing notice in every state`() {
+    fun `every legal section is rendered`() {
+        show(EntitlementState.Unknown)
+        compose.onNodeWithTag(LicenceTags.FOOTER).performClick()
+        compose.waitForIdle()
+
+        for (id in LEGAL_STRINGS) {
+            assertTrue(
+                "the legal page is missing ${res.getResourceEntryName(id)}",
+                textNodes(res.getString(id)) >= 1,
+            )
+        }
+    }
+
+    /**
+     * Opening and closing it does not disturb the screen underneath.
+     *
+     * This is the claim that makes it an overlay rather than a second Activity:
+     * the entitlement, the address, the QR and the plans are the same objects
+     * afterwards, because nothing was ever torn down.
+     */
+    @Test
+    fun `the entitlement survives a trip to the legal page`() {
+        show(EntitlementState.TrialActive(expiresAtMs = 0, daysRemaining = 3))
+        val countdown = res.getQuantityString(R.plurals.licence_trial_days, 3, 3)
+        compose.onNodeWithText(countdown).assertExists()
+
+        compose.onNodeWithTag(LicenceTags.FOOTER).performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag(LicenceTags.LEGAL_CLOSE).performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText(countdown).assertExists()
+        for (offer in PricingDefaults.config.purchasable) {
+            assertEquals(
+                "the ${offer.plan} card did not come back",
+                1,
+                nodes(LicenceTags.plan(offer.plan.name.lowercase())),
+            )
+        }
+    }
+
+    /**
+     * The link is in the footer in every state.
+     *
+     * A door that is present only in some conditions is a door somebody will
+     * report as missing.
+     */
+    @Test
+    fun `the footer carries the legal link in every state`() {
         val ui = mutableStateOf(uiFor(EntitlementState.Unknown))
         compose.setContent { Harness(ui, MotionLevel.DISABLED) }
 
         for (state in states) {
             ui.value = uiFor(state)
             compose.waitForIdle()
-            compose.onNodeWithText(res.getString(R.string.licence_legal)).assertExists()
+            compose.onNodeWithText(res.getString(R.string.licence_legal_link)).assertExists()
         }
     }
 
@@ -274,6 +322,18 @@ private fun uiFor(licence: EntitlementState) = LicenceUiState(
     deviceKey = "482731",
     qr = licenceQrBitmap(256),
     plans = PricingDefaults.config.purchasable,
+)
+
+/** Every string the legal page is required to draw. */
+private val LEGAL_STRINGS = listOf(
+    R.string.licence_legal_about_title, R.string.licence_legal_about_body,
+    R.string.licence_legal_scope_title, R.string.licence_legal_scope_body,
+    R.string.licence_legal_content_title, R.string.licence_legal_full,
+    R.string.licence_legal_copyright_title, R.string.licence_legal_copyright_body,
+    R.string.licence_legal_privacy_title, R.string.licence_legal_privacy_body,
+    R.string.licence_legal_refund_title, R.string.licence_legal_refund_body,
+    R.string.licence_legal_support_title, R.string.licence_legal_support_body,
+    R.string.licence_legal_acceptance_title, R.string.licence_legal_acceptance_body,
 )
 
 /** The reference landscape phone, which is the frame the design is cut against. */

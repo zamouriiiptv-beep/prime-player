@@ -50,9 +50,24 @@
     <string name="licence_retry">ลองใหม่</string>
     <string name="licence_support">ติดต่อฝ่ายสนับสนุน</string>
     <string name="licence_qr_caption">สแกนคิวอาร์โค้ดเพื่อเปิดหน้าเปิดใช้งานอุปกรณ์</string>
-    <string name="licence_legal">Castivio เป็นเพียงโปรแกรมเล่นสื่อ ไม่ได้ให้บริการหรือโฮสต์เนื้อหาใด ๆ</string>
-    <string name="licence_legal_title">ประกาศทางกฎหมาย</string>
-    <string name="licence_legal_open">อ่านประกาศทางกฎหมายฉบับเต็ม</string>
+    <string name="licence_legal_title">ข้อมูลทางกฎหมาย</string>
+    <string name="licence_legal_link">ข้อมูลทางกฎหมาย</string>
+    <string name="licence_legal_back_hint">กดย้อนกลับเพื่อปิด</string>
+    <string name="licence_legal_about_title">เกี่ยวกับ Castivio</string>
+    <string name="licence_legal_about_body">Castivio เป็นโปรแกรมเล่นสื่อสำหรับเนื้อหาที่คุณมีอยู่แล้ว โดยเล่นเพลย์ลิสต์และสตรีมที่คุณเพิ่มเอง หรือได้รับจากผู้ให้บริการที่คุณเลือกและชำระเงินแยกต่างหาก Castivio ไม่ใช่บริการเนื้อหาและไม่มีความเกี่ยวข้องกับผู้ให้บริการรายใด</string>
+    <string name="licence_legal_scope_title">ขอบเขตของใบอนุญาต</string>
+    <string name="licence_legal_scope_body">ใบอนุญาต Castivio อนุญาตให้ใช้แอปบนอุปกรณ์ที่ออกใบอนุญาตให้เท่านั้น ใบอนุญาตผูกกับอุปกรณ์นั้นและไม่สามารถโอน ขายต่อ หรือแบ่งปันได้ ใบอนุญาตครอบคลุมเฉพาะแอปและไม่ให้สิทธิ์ใด ๆ ในช่อง ภาพยนตร์ ซีรีส์ หรือการถ่ายทอดสด</string>
+    <string name="licence_legal_content_title">ความรับผิดชอบต่อเนื้อหา</string>
+    <string name="licence_legal_copyright_title">ลิขสิทธิ์</string>
+    <string name="licence_legal_copyright_body">แอป Castivio ชื่อ ส่วนติดต่อผู้ใช้ และซอร์สโค้ดได้รับความคุ้มครองตามกฎหมายลิขสิทธิ์และยังคงเป็นทรัพย์สินของเจ้าของ Castivio รวมฟอนต์ Inter และ IBM Plex Sans Arabic ภายใต้ SIL Open Font License 1.1 เครื่องหมายการค้า ชื่อ และเนื้อหาอื่นทั้งหมดเป็นของเจ้าของแต่ละราย</string>
+    <string name="licence_legal_privacy_title">ความเป็นส่วนตัว</string>
+    <string name="licence_legal_privacy_body">Castivio ไม่มีบัญชีผู้ใช้และไม่ขอข้อมูลส่วนบุคคล เพลย์ลิสต์ ข้อมูลเข้าสู่ระบบของผู้ให้บริการ และสิ่งที่คุณรับชมจะถูกเก็บไว้ในอุปกรณ์นี้และไม่ถูกส่งไปยัง Castivio ตัวระบุที่แสดงบนหน้าใบอนุญาตใช้เพื่อออกและตรวจสอบใบอนุญาตของอุปกรณ์นี้เท่านั้น</string>
+    <string name="licence_legal_refund_title">นโยบายการคืนเงิน</string>
+    <string name="licence_legal_refund_body">แอปไม่เคยดำเนินการชำระเงินใด ๆ ใบอนุญาตซื้อผ่านพอร์ทัลเปิดใช้งานของ Castivio และการขอคืนเงินทั้งหมดจะยื่นและดำเนินการที่นั่นตามเงื่อนไขที่แสดงขณะซื้อ เงินที่จ่ายให้ผู้ให้บริการเนื้อหาเป็นเรื่องของผู้ให้บริการรายนั้นและอยู่นอกเหนือการควบคุมของ Castivio</string>
+    <string name="licence_legal_support_title">การสนับสนุน</string>
+    <string name="licence_legal_support_body">การสนับสนุนให้บริการผ่านพอร์ทัลเปิดใช้งานของ Castivio โปรดแจ้งคีย์อุปกรณ์ที่แสดงบนหน้าใบอนุญาต ซึ่งระบุอุปกรณ์นี้และไม่บอกอะไรเกี่ยวกับตัวคุณ Castivio ไม่สามารถช่วยเรื่องบริการ ข้อมูลเข้าสู่ระบบ หรือการเรียกเก็บเงินของผู้ให้บริการเนื้อหาได้</string>
+    <string name="licence_legal_acceptance_title">การยอมรับข้อกำหนด</string>
+    <string name="licence_legal_acceptance_body">การใช้ Castivio ถือว่ายอมรับข้อกำหนดในหน้านี้ หากไม่ยอมรับ โปรดอย่าใช้แอป เวอร์ชันในอนาคตอาจปรับปรุงข้อกำหนดเหล่านี้ และฉบับที่มีผลบังคับใช้คือฉบับที่แสดงอยู่ที่นี่เสมอ</string>
     <string name="licence_legal_close">ปิด</string>
     <string name="licence_legal_full">Castivio เป็นเพียงแอปโปรแกรมเล่นสื่อเท่านั้น ไม่ได้ให้บริการ โฮสต์ ออกอากาศ จำหน่าย หรือเผยแพร่ช่อง ภาพยนตร์ ซีรีส์ การถ่ายทอดสด หรือเนื้อหาสื่อใด ๆ เนื้อหาทั้งหมดจัดหาโดยผู้ใช้หรือผู้ให้บริการที่ผู้ใช้เลือกเองเท่านั้น ผู้ใช้มีหน้าที่รับผิดชอบแต่เพียงผู้เดียวในการตรวจสอบว่าตนมีสิทธิ์ตามกฎหมายในการเข้าถึงและใช้เนื้อหาของตน Castivio ไม่รับผิดชอบต่อความพร้อมใช้งาน ความถูกต้องตามกฎหมาย การอนุญาตให้ใช้สิทธิ หรือคุณภาพของเนื้อหาหรือบริการของบุคคลที่สามใด ๆ</string>
 

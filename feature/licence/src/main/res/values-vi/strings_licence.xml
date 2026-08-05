@@ -50,9 +50,24 @@
     <string name="licence_retry">Thử lại</string>
     <string name="licence_support">Liên hệ hỗ trợ</string>
     <string name="licence_qr_caption">Quét mã QR để mở trang kích hoạt thiết bị của bạn</string>
-    <string name="licence_legal">Castivio chỉ là một trình phát media. Ứng dụng không cung cấp hay lưu trữ nội dung.</string>
-    <string name="licence_legal_title">Thông báo pháp lý</string>
-    <string name="licence_legal_open">Đọc toàn văn thông báo pháp lý</string>
+    <string name="licence_legal_title">Thông tin pháp lý</string>
+    <string name="licence_legal_link">Thông tin pháp lý</string>
+    <string name="licence_legal_back_hint">Nhấn quay lại để đóng</string>
+    <string name="licence_legal_about_title">Giới thiệu Castivio</string>
+    <string name="licence_legal_about_body">Castivio là trình phát media cho nội dung bạn đã có. Ứng dụng phát các danh sách phát và luồng do bạn tự thêm, hoặc nhận từ nhà cung cấp dịch vụ mà bạn tự chọn và trả phí riêng. Castivio không phải dịch vụ nội dung và không liên kết với bất kỳ nhà cung cấp nào.</string>
+    <string name="licence_legal_scope_title">Phạm vi giấy phép</string>
+    <string name="licence_legal_scope_body">Giấy phép Castivio cho phép dùng ứng dụng trên thiết bị đã được cấp phép. Giấy phép gắn với thiết bị đó và không thể chuyển nhượng, bán lại hay chia sẻ. Giấy phép chỉ áp dụng cho ứng dụng và không trao bất kỳ quyền nào đối với kênh, phim, loạt phim hay luồng phát.</string>
+    <string name="licence_legal_content_title">Trách nhiệm về nội dung</string>
+    <string name="licence_legal_copyright_title">Bản quyền</string>
+    <string name="licence_legal_copyright_body">Ứng dụng Castivio, tên gọi, giao diện và mã nguồn của nó được bảo hộ bản quyền và thuộc sở hữu của chủ sở hữu. Castivio kèm theo phông chữ Inter và IBM Plex Sans Arabic theo giấy phép SIL Open Font License 1.1. Mọi nhãn hiệu, tên gọi và nội dung khác thuộc về chủ sở hữu tương ứng.</string>
+    <string name="licence_legal_privacy_title">Quyền riêng tư</string>
+    <string name="licence_legal_privacy_body">Castivio không có tài khoản người dùng và không yêu cầu thông tin cá nhân. Danh sách phát, thông tin đăng nhập nhà cung cấp và những gì bạn xem được lưu trên thiết bị này và không gửi tới Castivio. Các định danh hiển thị trên màn hình giấy phép chỉ dùng để cấp và xác minh giấy phép cho thiết bị này.</string>
+    <string name="licence_legal_refund_title">Chính sách hoàn tiền</string>
+    <string name="licence_legal_refund_body">Ứng dụng không bao giờ xử lý thanh toán. Giấy phép được mua qua cổng kích hoạt Castivio, và mọi yêu cầu hoàn tiền đều được gửi và giải quyết tại đó theo các điều khoản hiển thị lúc mua. Khoản tiền trả cho nhà cung cấp nội dung là việc của họ và nằm ngoài tầm kiểm soát của Castivio.</string>
+    <string name="licence_legal_support_title">Hỗ trợ</string>
+    <string name="licence_legal_support_body">Hỗ trợ được cung cấp qua cổng kích hoạt Castivio. Hãy nêu khóa thiết bị hiển thị trên màn hình giấy phép: khóa này nhận diện thiết bị và không nói gì về bạn. Castivio không thể hỗ trợ về dịch vụ, thông tin đăng nhập hay hóa đơn của nhà cung cấp nội dung.</string>
+    <string name="licence_legal_acceptance_title">Chấp nhận điều khoản</string>
+    <string name="licence_legal_acceptance_body">Việc sử dụng Castivio đồng nghĩa với chấp nhận các điều khoản trên trang này. Nếu không chấp nhận, đừng dùng ứng dụng. Phiên bản sau có thể cập nhật các điều khoản này; bản có hiệu lực luôn là bản hiển thị tại đây.</string>
     <string name="licence_legal_close">Đóng</string>
     <string name="licence_legal_full">Castivio chỉ là một ứng dụng trình phát media. Ứng dụng không cung cấp, lưu trữ, phát sóng, bán hay phân phối bất kỳ kênh, phim, loạt phim, luồng trực tiếp hoặc nội dung media nào. Toàn bộ nội dung do người dùng hoặc nhà cung cấp dịch vụ mà người dùng lựa chọn cung cấp. Người dùng hoàn toàn chịu trách nhiệm bảo đảm mình có quyền hợp pháp để truy cập và sử dụng nội dung của mình. Castivio không chịu bất kỳ trách nhiệm nào về tính khả dụng, tính hợp pháp, việc cấp phép hay chất lượng của bất kỳ nội dung hoặc dịch vụ nào của bên thứ ba.</string>
 

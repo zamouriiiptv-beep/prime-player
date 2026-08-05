@@ -50,9 +50,24 @@
     <string name="licence_retry">Tentar novamente</string>
     <string name="licence_support">Contactar o apoio</string>
     <string name="licence_qr_caption">Leia o código QR para abrir a página de ativação do seu dispositivo</string>
-    <string name="licence_legal">O Castivio é apenas um leitor multimédia. Não fornece nem aloja conteúdos.</string>
-    <string name="licence_legal_title">Aviso legal</string>
-    <string name="licence_legal_open">Ler o aviso legal completo</string>
+    <string name="licence_legal_title">Informações legais</string>
+    <string name="licence_legal_link">Informações legais</string>
+    <string name="licence_legal_back_hint">Voltar para fechar</string>
+    <string name="licence_legal_about_title">Acerca do Castivio</string>
+    <string name="licence_legal_about_body">O Castivio é um leitor multimédia para conteúdos que já tem. Reproduz playlists e transmissões que adiciona por si ou que obtém de um fornecedor de serviços escolhido por si e pago à parte. O Castivio não é um serviço de conteúdos e não está associado a nenhum fornecedor.</string>
+    <string name="licence_legal_scope_title">Âmbito da licença</string>
+    <string name="licence_legal_scope_body">A licença Castivio permite utilizar a aplicação no dispositivo para o qual foi emitida. Está associada a esse dispositivo e não pode ser transferida, revendida nem partilhada. A licença abrange apenas a aplicação e não confere qualquer direito sobre canais, filmes, séries ou transmissões.</string>
+    <string name="licence_legal_content_title">Responsabilidade pelos conteúdos</string>
+    <string name="licence_legal_copyright_title">Direitos de autor</string>
+    <string name="licence_legal_copyright_body">A aplicação Castivio, o seu nome, a sua interface e o seu código-fonte estão protegidos por direitos de autor e permanecem propriedade do respetivo titular. O Castivio inclui os tipos de letra Inter e IBM Plex Sans Arabic ao abrigo da SIL Open Font License 1.1. Todas as restantes marcas, nomes e conteúdos pertencem aos respetivos proprietários.</string>
+    <string name="licence_legal_privacy_title">Privacidade</string>
+    <string name="licence_legal_privacy_body">O Castivio não tem contas de utilizador nem pede dados pessoais. As suas playlists, as credenciais do fornecedor e aquilo que vê permanecem neste dispositivo e não são enviados ao Castivio. Os identificadores apresentados no ecrã da licença servem apenas para emitir e verificar uma licença para este dispositivo.</string>
+    <string name="licence_legal_refund_title">Política de reembolso</string>
+    <string name="licence_legal_refund_body">A aplicação nunca processa pagamentos. As licenças são adquiridas através do portal de ativação Castivio, e qualquer reembolso é pedido e resolvido aí, segundo as condições apresentadas no momento da compra. O que for pago a um fornecedor de conteúdos é assunto seu e está fora do controlo do Castivio.</string>
+    <string name="licence_legal_support_title">Apoio</string>
+    <string name="licence_legal_support_body">O apoio é prestado através do portal de ativação Castivio. Indique a chave do dispositivo apresentada no ecrã da licença: identifica este dispositivo e nada diz sobre si. O Castivio não pode ajudar com o serviço, as credenciais ou a faturação de um fornecedor de conteúdos.</string>
+    <string name="licence_legal_acceptance_title">Aceitação dos termos</string>
+    <string name="licence_legal_acceptance_body">Utilizar o Castivio significa aceitar os termos desta página. Se não os aceitar, não utilize a aplicação. Uma versão futura poderá atualizá-los; em vigor está sempre o que aqui é apresentado.</string>
     <string name="licence_legal_close">Fechar</string>
     <string name="licence_legal_full">O Castivio é apenas uma aplicação de leitura multimédia. Não fornece, aloja, transmite, vende nem distribui quaisquer canais, filmes, séries, transmissões em direto ou conteúdos multimédia. Todos os conteúdos são fornecidos exclusivamente pelo utilizador ou pelo fornecedor de serviços escolhido por ele. Os utilizadores são os únicos responsáveis por assegurar que têm os direitos legais para aceder aos seus conteúdos e utilizá-los. O Castivio não assume qualquer responsabilidade pela disponibilidade, legalidade, licenciamento ou qualidade de quaisquer conteúdos ou serviços de terceiros.</string>
 

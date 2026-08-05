@@ -50,9 +50,24 @@
     <string name="licence_retry">Coba lagi</string>
     <string name="licence_support">Hubungi dukungan</string>
     <string name="licence_qr_caption">Pindai kode QR untuk membuka halaman aktivasi perangkat Anda</string>
-    <string name="licence_legal">Castivio hanyalah pemutar media. Aplikasi ini tidak menyediakan atau menghosting konten.</string>
-    <string name="licence_legal_title">Pemberitahuan hukum</string>
-    <string name="licence_legal_open">Baca pemberitahuan hukum selengkapnya</string>
+    <string name="licence_legal_title">Informasi hukum</string>
+    <string name="licence_legal_link">Informasi Hukum</string>
+    <string name="licence_legal_back_hint">Kembali untuk menutup</string>
+    <string name="licence_legal_about_title">Tentang Castivio</string>
+    <string name="licence_legal_about_body">Castivio adalah pemutar media untuk konten yang sudah Anda miliki. Aplikasi ini memutar playlist dan siaran yang Anda tambahkan sendiri, atau yang Anda peroleh dari penyedia layanan pilihan Anda yang dibayar terpisah. Castivio bukan layanan konten dan tidak berafiliasi dengan penyedia mana pun.</string>
+    <string name="licence_legal_scope_title">Cakupan lisensi</string>
+    <string name="licence_legal_scope_body">Lisensi Castivio mengizinkan penggunaan aplikasi pada perangkat tempat lisensi diterbitkan. Lisensi terikat pada perangkat itu dan tidak dapat dipindahtangankan, dijual kembali, atau dibagikan. Lisensi hanya mencakup aplikasi dan tidak memberi hak atas saluran, film, serial, atau siaran apa pun.</string>
+    <string name="licence_legal_content_title">Tanggung jawab konten</string>
+    <string name="licence_legal_copyright_title">Hak cipta</string>
+    <string name="licence_legal_copyright_body">Aplikasi Castivio, namanya, antarmukanya, dan kode sumbernya dilindungi hak cipta dan tetap menjadi milik pemiliknya. Castivio menyertakan huruf Inter dan IBM Plex Sans Arabic di bawah SIL Open Font License 1.1. Semua merek dagang, nama, dan konten lain adalah milik pemiliknya masing-masing.</string>
+    <string name="licence_legal_privacy_title">Privasi</string>
+    <string name="licence_legal_privacy_body">Castivio tidak memiliki akun pengguna dan tidak meminta data pribadi. Playlist Anda, kredensial penyedia, dan apa yang Anda tonton disimpan di perangkat ini dan tidak dikirim ke Castivio. Pengenal yang tampil di layar lisensi hanya dipakai untuk menerbitkan dan memverifikasi lisensi perangkat ini.</string>
+    <string name="licence_legal_refund_title">Kebijakan pengembalian dana</string>
+    <string name="licence_legal_refund_body">Aplikasi tidak pernah memproses pembayaran. Lisensi dibeli melalui portal aktivasi Castivio, dan setiap pengembalian dana diajukan serta diselesaikan di sana sesuai ketentuan yang ditampilkan saat pembelian. Apa pun yang dibayarkan kepada penyedia konten adalah urusan penyedia tersebut dan di luar kendali Castivio.</string>
+    <string name="licence_legal_support_title">Dukungan</string>
+    <string name="licence_legal_support_body">Dukungan diberikan melalui portal aktivasi Castivio. Sebutkan kunci perangkat yang tampil di layar lisensi: kunci itu mengenali perangkat ini dan tidak mengatakan apa pun tentang Anda. Castivio tidak dapat membantu soal layanan, kredensial, atau tagihan penyedia konten.</string>
+    <string name="licence_legal_acceptance_title">Penerimaan ketentuan</string>
+    <string name="licence_legal_acceptance_body">Menggunakan Castivio berarti menerima ketentuan pada halaman ini. Jika Anda tidak menerimanya, jangan gunakan aplikasi ini. Versi mendatang dapat memperbaruinya; yang berlaku selalu yang ditampilkan di sini.</string>
     <string name="licence_legal_close">Tutup</string>
     <string name="licence_legal_full">Castivio hanyalah aplikasi pemutar media. Aplikasi ini tidak menyediakan, menghosting, menyiarkan, menjual, atau mendistribusikan saluran, film, serial, siaran langsung, maupun konten media apa pun. Semua konten disediakan sepenuhnya oleh pengguna atau oleh penyedia layanan yang dipilih pengguna. Pengguna sepenuhnya bertanggung jawab memastikan bahwa mereka memiliki hak hukum untuk mengakses dan menggunakan kontennya. Castivio tidak bertanggung jawab atas ketersediaan, legalitas, pelisensian, atau kualitas konten maupun layanan pihak ketiga mana pun.</string>
 

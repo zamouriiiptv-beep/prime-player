@@ -50,9 +50,24 @@
     <string name="licence_retry">আবার চেষ্টা</string>
     <string name="licence_support">সহায়তায় যোগাযোগ</string>
     <string name="licence_qr_caption">ডিভাইস অ্যাক্টিভেশন পেজ খুলতে QR কোড স্ক্যান করুন</string>
-    <string name="licence_legal">Castivio শুধুমাত্র একটি মিডিয়া প্লেয়ার। এটি কোনো কনটেন্ট সরবরাহ বা হোস্ট করে না।</string>
-    <string name="licence_legal_title">আইনি বিজ্ঞপ্তি</string>
-    <string name="licence_legal_open">সম্পূর্ণ আইনি বিজ্ঞপ্তি পড়ুন</string>
+    <string name="licence_legal_title">আইনি তথ্য</string>
+    <string name="licence_legal_link">আইনি তথ্য</string>
+    <string name="licence_legal_back_hint">বন্ধ করতে ব্যাক চাপুন</string>
+    <string name="licence_legal_about_title">Castivio সম্পর্কে</string>
+    <string name="licence_legal_about_body">Castivio হলো আপনার কাছে ইতিমধ্যে থাকা কনটেন্টের জন্য একটি মিডিয়া প্লেয়ার। এটি সেসব প্লেলিস্ট ও স্ট্রিম চালায় যা আপনি নিজে যোগ করেন, অথবা আপনার বেছে নেওয়া ও আলাদাভাবে অর্থ পরিশোধ করা পরিষেবা প্রদানকারীর কাছ থেকে পান। Castivio কোনো কনটেন্ট পরিষেবা নয় এবং কোনো প্রদানকারীর সঙ্গে যুক্ত নয়।</string>
+    <string name="licence_legal_scope_title">লাইসেন্সের পরিধি</string>
+    <string name="licence_legal_scope_body">Castivio লাইসেন্স যে ডিভাইসের জন্য দেওয়া হয়েছে সেই ডিভাইসে অ্যাপ্লিকেশন ব্যবহারের অনুমতি দেয়। এটি সেই ডিভাইসের সঙ্গে যুক্ত এবং হস্তান্তর, পুনর্বিক্রয় বা ভাগাভাগি করা যায় না। লাইসেন্স শুধু অ্যাপ্লিকেশনের জন্য এবং কোনো চ্যানেল, চলচ্চিত্র, সিরিজ বা স্ট্রিমের ওপর কোনো অধিকার দেয় না।</string>
+    <string name="licence_legal_content_title">কনটেন্টের দায়</string>
+    <string name="licence_legal_copyright_title">কপিরাইট</string>
+    <string name="licence_legal_copyright_body">Castivio অ্যাপ্লিকেশন, এর নাম, ইন্টারফেস ও সোর্স কোড কপিরাইট দ্বারা সুরক্ষিত এবং মালিকের সম্পত্তি হিসেবেই থাকে। Castivio-তে Inter ও IBM Plex Sans Arabic টাইপফেস SIL Open Font License 1.1 অনুসারে অন্তর্ভুক্ত। অন্য সব ট্রেডমার্ক, নাম ও কনটেন্ট তাদের নিজ নিজ মালিকের।</string>
+    <string name="licence_legal_privacy_title">গোপনীয়তা</string>
+    <string name="licence_legal_privacy_body">Castivio-তে কোনো ব্যবহারকারী অ্যাকাউন্ট নেই এবং এটি কোনো ব্যক্তিগত তথ্য চায় না। আপনার প্লেলিস্ট, প্রদানকারীর লগইন তথ্য এবং আপনি যা দেখেন সবই এই ডিভাইসে থাকে এবং Castivio-তে পাঠানো হয় না। লাইসেন্স স্ক্রিনে দেখানো শনাক্তকারীগুলো শুধু এই ডিভাইসের লাইসেন্স ইস্যু ও যাচাইয়ের জন্য ব্যবহৃত হয়।</string>
+    <string name="licence_legal_refund_title">ফেরত নীতি</string>
+    <string name="licence_legal_refund_body">অ্যাপ্লিকেশন কখনো কোনো পেমেন্ট প্রক্রিয়া করে না। লাইসেন্স Castivio অ্যাক্টিভেশন পোর্টাল থেকে কেনা হয়, এবং যেকোনো ফেরতের অনুরোধ ও নিষ্পত্তি সেখানেই হয়, কেনার সময় দেখানো শর্ত অনুযায়ী। কনটেন্ট প্রদানকারীকে দেওয়া অর্থ তার নিজস্ব বিষয় এবং Castivio-র নিয়ন্ত্রণের বাইরে।</string>
+    <string name="licence_legal_support_title">সহায়তা</string>
+    <string name="licence_legal_support_body">সহায়তা দেওয়া হয় Castivio অ্যাক্টিভেশন পোর্টালের মাধ্যমে। লাইসেন্স স্ক্রিনে দেখানো ডিভাইস কী উল্লেখ করুন: এটি এই ডিভাইস শনাক্ত করে এবং আপনার সম্পর্কে কিছুই বলে না। কনটেন্ট প্রদানকারীর পরিষেবা, লগইন তথ্য বা বিলিং নিয়ে Castivio সহায়তা করতে পারে না।</string>
+    <string name="licence_legal_acceptance_title">শর্তাবলি গ্রহণ</string>
+    <string name="licence_legal_acceptance_body">Castivio ব্যবহার করার অর্থ এই পৃষ্ঠার শর্তাবলি মেনে নেওয়া। আপনি যদি সেগুলো না মানেন, তবে অ্যাপ্লিকেশনটি ব্যবহার করবেন না। ভবিষ্যতের কোনো সংস্করণ এগুলো হালনাগাদ করতে পারে; কার্যকর সর্বদা সেটিই যা এখানে দেখানো হয়েছে।</string>
     <string name="licence_legal_close">বন্ধ করুন</string>
     <string name="licence_legal_full">Castivio কেবলমাত্র একটি মিডিয়া প্লেয়ার অ্যাপ্লিকেশন। এটি কোনো চ্যানেল, চলচ্চিত্র, সিরিজ, লাইভ স্ট্রিম বা মিডিয়া কনটেন্ট সরবরাহ, হোস্ট, সম্প্রচার, বিক্রি বা বিতরণ করে না। সমস্ত কনটেন্ট সরবরাহ করেন কেবল ব্যবহারকারী নিজে অথবা ব্যবহারকারীর বেছে নেওয়া পরিষেবা প্রদানকারী। নিজের কনটেন্ট দেখা ও ব্যবহারের আইনি অধিকার আছে কি না তা নিশ্চিত করার দায়িত্ব সম্পূর্ণভাবে ব্যবহারকারীর। কোনো তৃতীয় পক্ষের কনটেন্ট বা পরিষেবার প্রাপ্যতা, বৈধতা, লাইসেন্সিং বা মানের জন্য Castivio কোনো দায় নেয় না।</string>
 

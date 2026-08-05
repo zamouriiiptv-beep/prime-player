@@ -50,9 +50,24 @@
     <string name="licence_retry">Subukan ulit</string>
     <string name="licence_support">Makipag-ugnayan sa support</string>
     <string name="licence_qr_caption">I-scan ang QR code para buksan ang activation page ng device mo</string>
-    <string name="licence_legal">Media player lang ang Castivio. Hindi ito nagbibigay o nagho-host ng anumang content.</string>
-    <string name="licence_legal_title">Paunawang legal</string>
-    <string name="licence_legal_open">Basahin ang buong paunawang legal</string>
+    <string name="licence_legal_title">Legal na impormasyon</string>
+    <string name="licence_legal_link">Legal na Impormasyon</string>
+    <string name="licence_legal_back_hint">Pindutin ang bumalik para isara</string>
+    <string name="licence_legal_about_title">Tungkol sa Castivio</string>
+    <string name="licence_legal_about_body">Ang Castivio ay isang media player para sa content na mayroon ka na. Pinapatugtog nito ang mga playlist at stream na ikaw mismo ang nagdagdag, o nakuha mo mula sa service provider na ikaw ang pumili at hiwalay mong binabayaran. Hindi content service ang Castivio at walang kaugnayan sa anumang provider.</string>
+    <string name="licence_legal_scope_title">Saklaw ng lisensya</string>
+    <string name="licence_legal_scope_body">Pinapayagan ng lisensyang Castivio ang paggamit ng application sa device na pinaglabasan nito. Nakatali ito sa device na iyon at hindi maaaring ilipat, ibenta muli o ibahagi. Ang lisensya ay para sa application lamang at walang ibinibigay na karapatan sa anumang channel, pelikula, serye o stream.</string>
+    <string name="licence_legal_content_title">Pananagutan sa content</string>
+    <string name="licence_legal_copyright_title">Karapatang-sipi</string>
+    <string name="licence_legal_copyright_body">Ang Castivio application, ang pangalan, interface at source code nito ay protektado ng karapatang-sipi at nananatiling pag-aari ng may-ari nito. Kasama sa Castivio ang mga typeface na Inter at IBM Plex Sans Arabic sa ilalim ng SIL Open Font License 1.1. Ang lahat ng iba pang trademark, pangalan at content ay pag-aari ng kani-kanilang may-ari.</string>
+    <string name="licence_legal_privacy_title">Privacy</string>
+    <string name="licence_legal_privacy_body">Walang user account ang Castivio at hindi ito humihingi ng personal na detalye. Ang iyong mga playlist, ang credentials ng provider at ang pinapanood mo ay nananatili sa device na ito at hindi ipinapadala sa Castivio. Ang mga identifier na nasa licence screen ay ginagamit lamang para maglabas at mag-verify ng lisensya para sa device na ito.</string>
+    <string name="licence_legal_refund_title">Patakaran sa refund</string>
+    <string name="licence_legal_refund_body">Hindi kailanman nagpoproseso ng bayad ang application. Binibili ang lisensya sa Castivio activation portal, at doon din hinihiling at inaayos ang anumang refund, ayon sa mga tuntuning ipinakita noong bumili. Anumang binayaran sa isang content provider ay sa kanya at wala sa kontrol ng Castivio.</string>
+    <string name="licence_legal_support_title">Suporta</string>
+    <string name="licence_legal_support_body">Ibinibigay ang suporta sa pamamagitan ng Castivio activation portal. Banggitin ang device key na nasa licence screen: kinikilala nito ang device na ito at wala itong sinasabi tungkol sa iyo. Hindi makakatulong ang Castivio sa serbisyo, credentials o billing ng isang content provider.</string>
+    <string name="licence_legal_acceptance_title">Pagtanggap sa mga tuntunin</string>
+    <string name="licence_legal_acceptance_body">Ang paggamit ng Castivio ay nangangahulugang pagtanggap sa mga tuntunin sa pahinang ito. Kung hindi mo tinatanggap ang mga ito, huwag gamitin ang application. Maaaring baguhin ng susunod na bersyon ang mga tuntunin; ang umiiral ay palaging ang nakikita rito.</string>
     <string name="licence_legal_close">Isara</string>
     <string name="licence_legal_full">Isang media player application lamang ang Castivio. Hindi ito nagbibigay, nagho-host, nagbo-broadcast, nagbebenta o namamahagi ng anumang channel, pelikula, serye, live stream o media content. Ang lahat ng content ay eksklusibong mula sa user o sa service provider na pinili ng user. Ang mga user lamang ang may pananagutan na tiyaking may legal silang karapatang i-access at gamitin ang kanilang content. Walang anumang pananagutan ang Castivio sa availability, legalidad, paglilisensya o kalidad ng anumang content o serbisyo ng third party.</string>
 

@@ -50,9 +50,24 @@
     <string name="licence_retry">Pokušaj ponovno</string>
     <string name="licence_support">Kontaktirajte podršku</string>
     <string name="licence_qr_caption">Skenirajte QR kod da otvorite stranicu za aktivaciju uređaja</string>
-    <string name="licence_legal">Castivio je samo medijski reproduktor. Ne pruža niti hostira sadržaj.</string>
-    <string name="licence_legal_title">Pravna obavijest</string>
-    <string name="licence_legal_open">Pročitajte cijelu pravnu obavijest</string>
+    <string name="licence_legal_title">Pravne informacije</string>
+    <string name="licence_legal_link">Pravne informacije</string>
+    <string name="licence_legal_back_hint">Natrag za zatvaranje</string>
+    <string name="licence_legal_about_title">O Castiviju</string>
+    <string name="licence_legal_about_body">Castivio je medijski reproduktor za sadržaj koji već imate. Reproducira playliste i prijenose koje sami dodate ili dobijete od pružatelja usluge kojeg ste odabrali i plaćate zasebno. Castivio nije usluga sadržaja i nije povezan ni s jednim pružateljem.</string>
+    <string name="licence_legal_scope_title">Opseg licence</string>
+    <string name="licence_legal_scope_body">Licenca Castivio dopušta korištenje aplikacije na uređaju za koji je izdana. Vezana je uz taj uređaj i ne može se prenijeti, preprodati ni dijeliti. Licenca pokriva samo aplikaciju i ne daje nikakvo pravo na kanal, film, seriju ili prijenos.</string>
+    <string name="licence_legal_content_title">Odgovornost za sadržaj</string>
+    <string name="licence_legal_copyright_title">Autorska prava</string>
+    <string name="licence_legal_copyright_body">Aplikacija Castivio, njezino ime, sučelje i izvorni kod zaštićeni su autorskim pravom i ostaju vlasništvo njihova vlasnika. Castivio sadrži fontove Inter i IBM Plex Sans Arabic pod licencom SIL Open Font License 1.1. Svi ostali žigovi, nazivi i sadržaj pripadaju svojim vlasnicima.</string>
+    <string name="licence_legal_privacy_title">Privatnost</string>
+    <string name="licence_legal_privacy_body">Castivio nema korisničke račune i ne traži osobne podatke. Vaše playliste, podaci za pristup pružatelju i ono što gledate pohranjeni su na ovom uređaju i ne šalju se Castiviju. Identifikatori prikazani na zaslonu licence koriste se samo za izdavanje i provjeru licence za ovaj uređaj.</string>
+    <string name="licence_legal_refund_title">Pravila povrata</string>
+    <string name="licence_legal_refund_body">Aplikacija nikada ne obrađuje plaćanje. Licence se kupuju preko Castivio portala za aktivaciju, a svaki se povrat traži i rješava ondje, prema uvjetima prikazanima u trenutku kupnje. Sve plaćeno pružatelju sadržaja njegova je stvar i izvan nadzora Castivija.</string>
+    <string name="licence_legal_support_title">Podrška</string>
+    <string name="licence_legal_support_body">Podrška se pruža preko Castivio portala za aktivaciju. Navedite ključ uređaja prikazan na zaslonu licence: on identificira ovaj uređaj i ne govori ništa o vama. Castivio ne može pomoći oko usluge, podataka za pristup ili naplate pružatelja sadržaja.</string>
+    <string name="licence_legal_acceptance_title">Prihvaćanje uvjeta</string>
+    <string name="licence_legal_acceptance_body">Korištenje Castivija znači prihvaćanje uvjeta na ovoj stranici. Ako ih ne prihvaćate, nemojte koristiti aplikaciju. Buduća verzija može izmijeniti ove uvjete; na snazi je uvijek ona prikazana ovdje.</string>
     <string name="licence_legal_close">Zatvori</string>
     <string name="licence_legal_full">Castivio je isključivo aplikacija za reprodukciju medija. Ne pruža, ne hostira, ne emitira, ne prodaje i ne distribuira nikakve kanale, filmove, serije, prijenose uživo ni medijski sadržaj. Sav sadržaj isključivo osigurava korisnik ili pružatelj usluge koji je korisnik odabrao. Korisnici su jedini odgovorni za to da imaju zakonska prava za pristup svojem sadržaju i njegovo korištenje. Castivio ne preuzima nikakvu odgovornost za dostupnost, zakonitost, licenciranje ili kvalitetu bilo kojeg sadržaja ili usluga trećih strana.</string>
 

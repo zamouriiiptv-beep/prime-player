@@ -50,9 +50,24 @@
     <string name="licence_retry">Försök igen</string>
     <string name="licence_support">Kontakta supporten</string>
     <string name="licence_qr_caption">Skanna QR-koden för att öppna enhetens aktiveringssida</string>
-    <string name="licence_legal">Castivio är bara en mediespelare. Den tillhandahåller och lagrar inget innehåll.</string>
-    <string name="licence_legal_title">Juridiskt meddelande</string>
-    <string name="licence_legal_open">Läs hela det juridiska meddelandet</string>
+    <string name="licence_legal_title">Juridisk information</string>
+    <string name="licence_legal_link">Juridisk information</string>
+    <string name="licence_legal_back_hint">Bakåt stänger</string>
+    <string name="licence_legal_about_title">Om Castivio</string>
+    <string name="licence_legal_about_body">Castivio är en mediespelare för innehåll du redan har. Den spelar upp spellistor och strömmar som du lägger till själv eller får från en tjänsteleverantör som du valt och betalar separat. Castivio är ingen innehållstjänst och är inte knutet till någon leverantör.</string>
+    <string name="licence_legal_scope_title">Licensens omfattning</string>
+    <string name="licence_legal_scope_body">En Castivio-licens ger rätt att använda appen på den enhet den utfärdats för. Den är bunden till den enheten och kan inte överlåtas, säljas vidare eller delas. Licensen omfattar endast appen och ger ingen rätt till någon kanal, film, serie eller ström.</string>
+    <string name="licence_legal_content_title">Ansvar för innehåll</string>
+    <string name="licence_legal_copyright_title">Upphovsrätt</string>
+    <string name="licence_legal_copyright_body">Appen Castivio, dess namn, dess gränssnitt och dess källkod skyddas av upphovsrätt och förblir ägarens egendom. Castivio innehåller typsnitten Inter och IBM Plex Sans Arabic under SIL Open Font License 1.1. Alla övriga varumärken, namn och innehåll tillhör sina respektive ägare.</string>
+    <string name="licence_legal_privacy_title">Integritet</string>
+    <string name="licence_legal_privacy_body">Castivio har inga användarkonton och ber inte om några personuppgifter. Dina spellistor, dina inloggningsuppgifter hos leverantören och det du tittar på stannar på den här enheten och skickas inte till Castivio. Identifierarna på licensskärmen används bara för att utfärda och kontrollera en licens för den här enheten.</string>
+    <string name="licence_legal_refund_title">Återbetalning</string>
+    <string name="licence_legal_refund_body">Appen hanterar aldrig en betalning. Licenser köps via Castivios aktiveringsportal, och varje återbetalning begärs och avgörs där enligt de villkor som visades vid köpet. Det som betalas till en innehållsleverantör är leverantörens eget och utanför Castivios kontroll.</string>
+    <string name="licence_legal_support_title">Support</string>
+    <string name="licence_legal_support_body">Support ges via Castivios aktiveringsportal. Ange enhetsnyckeln från licensskärmen: den identifierar den här enheten och säger ingenting om dig. Castivio kan inte hjälpa till med en innehållsleverantörs tjänst, inloggningsuppgifter eller fakturering.</string>
+    <string name="licence_legal_acceptance_title">Godkännande av villkoren</string>
+    <string name="licence_legal_acceptance_body">Att använda Castivio innebär att godta villkoren på den här sidan. Godtar du dem inte ska du inte använda appen. En framtida version kan uppdatera dem; det som gäller är alltid det som visas här.</string>
     <string name="licence_legal_close">Stäng</string>
     <string name="licence_legal_full">Castivio är enbart en mediespelarapp. Den tillhandahåller, lagrar, sänder, säljer eller distribuerar inga kanaler, filmer, serier, liveströmmar eller medieinnehåll. Allt innehåll tillhandahålls uteslutande av användaren eller av den tjänsteleverantör som användaren har valt. Användarna ansvarar helt själva för att säkerställa att de har de juridiska rättigheterna att komma åt och använda sitt innehåll. Castivio tar inget ansvar för tillgänglighet, laglighet, licensiering eller kvalitet hos innehåll eller tjänster från tredje part.</string>
 

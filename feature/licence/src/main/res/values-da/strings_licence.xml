@@ -50,9 +50,24 @@
     <string name="licence_retry">Prøv igen</string>
     <string name="licence_support">Kontakt support</string>
     <string name="licence_qr_caption">Scan QR-koden for at åbne enhedens aktiveringsside</string>
-    <string name="licence_legal">Castivio er kun en medieafspiller. Den leverer og hoster ikke indhold.</string>
-    <string name="licence_legal_title">Juridisk meddelelse</string>
-    <string name="licence_legal_open">Læs hele den juridiske meddelelse</string>
+    <string name="licence_legal_title">Juridiske oplysninger</string>
+    <string name="licence_legal_link">Juridiske oplysninger</string>
+    <string name="licence_legal_back_hint">Tilbage lukker</string>
+    <string name="licence_legal_about_title">Om Castivio</string>
+    <string name="licence_legal_about_body">Castivio er en medieafspiller til indhold, du allerede har. Den afspiller playlister og streams, som du selv tilføjer, eller som du får fra en tjenesteudbyder, du selv har valgt og betaler særskilt. Castivio er ikke en indholdstjeneste og er ikke tilknyttet nogen udbyder.</string>
+    <string name="licence_legal_scope_title">Licensens omfang</string>
+    <string name="licence_legal_scope_body">En Castivio-licens giver ret til at bruge appen på den enhed, den er udstedt til. Den er bundet til den enhed og kan ikke overdrages, videresælges eller deles. Licensen dækker kun appen og giver ingen ret til nogen kanal, film, serie eller stream.</string>
+    <string name="licence_legal_content_title">Ansvar for indhold</string>
+    <string name="licence_legal_copyright_title">Ophavsret</string>
+    <string name="licence_legal_copyright_body">Appen Castivio, dens navn, dens brugerflade og dens kildekode er beskyttet af ophavsret og forbliver ejerens ejendom. Castivio indeholder skrifttyperne Inter og IBM Plex Sans Arabic under SIL Open Font License 1.1. Alle andre varemærker, navne og indhold tilhører deres respektive ejere.</string>
+    <string name="licence_legal_privacy_title">Privatliv</string>
+    <string name="licence_legal_privacy_body">Castivio har ingen brugerkonti og beder ikke om personlige oplysninger. Dine playlister, dine loginoplysninger hos udbyderen og det, du ser, bliver på denne enhed og sendes ikke til Castivio. Identifikatorerne på licensskærmen bruges kun til at udstede og kontrollere en licens til denne enhed.</string>
+    <string name="licence_legal_refund_title">Refusion</string>
+    <string name="licence_legal_refund_body">Appen behandler aldrig en betaling. Licenser købes gennem Castivios aktiveringsportal, og enhver refusion anmodes om og afgøres dér på de vilkår, der blev vist ved købet. Hvad der betales til en indholdsudbyder, er udbyderens eget og uden for Castivios kontrol.</string>
+    <string name="licence_legal_support_title">Support</string>
+    <string name="licence_legal_support_body">Support gives gennem Castivios aktiveringsportal. Oplys enhedsnøglen fra licensskærmen: den identificerer denne enhed og siger intet om dig. Castivio kan ikke hjælpe med en indholdsudbyders tjeneste, loginoplysninger eller fakturering.</string>
+    <string name="licence_legal_acceptance_title">Accept af vilkår</string>
+    <string name="licence_legal_acceptance_body">At bruge Castivio betyder at acceptere vilkårene på denne side. Accepterer du dem ikke, så brug ikke appen. En fremtidig version kan opdatere dem; gældende er altid den, der vises her.</string>
     <string name="licence_legal_close">Luk</string>
     <string name="licence_legal_full">Castivio er udelukkende en medieafspiller-app. Den leverer, hoster, udsender, sælger eller distribuerer ikke kanaler, film, serier, livestreams eller medieindhold. Alt indhold leveres udelukkende af brugeren eller af den tjenesteudbyder, brugeren har valgt. Brugerne har alene ansvaret for at sikre, at de har de juridiske rettigheder til at tilgå og bruge deres indhold. Castivio påtager sig intet ansvar for tilgængeligheden, lovligheden, licenseringen eller kvaliteten af indhold eller tjenester fra tredjeparter.</string>
 
