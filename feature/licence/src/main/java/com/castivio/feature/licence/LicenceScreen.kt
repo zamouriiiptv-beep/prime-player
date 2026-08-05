@@ -78,6 +78,8 @@ import com.castivio.core.design.theme.Spacing
 import com.castivio.domain.entitlement.EntitlementState
 import com.castivio.domain.entitlement.Plan
 import com.castivio.domain.entitlement.PlanOffer
+import java.text.DateFormat
+import java.util.Date
 import java.util.Locale
 
 /**
@@ -349,8 +351,9 @@ private fun Header(
         //
         // Keyed on the whole `LicenceView`, so a change of *condition* animates
         // and a change of sentence underneath does not. See `LicenceStatusLine`.
-        LicenceFade(fadeKey(state)) { view ->
-            if (view != null) {
+        LicenceFade(fadeKey(state)) { condition ->
+            if (condition != null) {
+                val view = condition.view
                 StatusChip(
                     label = stringResource(view.chip),
                     dot = when (view.tone) {
@@ -564,7 +567,27 @@ private fun IdentityColumn(
  * this rather than on the rendered sentence is what separates the two without a
  * second code path, and `LicenceMotionTest` pins it.
  */
-internal fun fadeKey(state: LicenceUiState): LicenceView? = state.licence?.let(::licenceView)
+internal fun fadeKey(state: LicenceUiState): LicenceCondition? = state.licence?.let { licence ->
+    LicenceCondition(
+        view = licenceView(licence),
+        // Only an annual licence has one, and that is the whole rule: nothing
+        // else on this screen shows a date, because for every other state the
+        // date is either irrelevant, unknown, or the bad news itself.
+        expiresAtMs = (licence as? EntitlementState.AnnualActive)?.expiresAtMs,
+    )
+}
+
+/**
+ * The condition, and the one fact about it that is not in [LicenceView].
+ *
+ * The expiry travels with the view rather than being read from the live state
+ * inside the crossfade, so the *outgoing* half of a fade keeps the date it was
+ * drawn with. Reading `state.licence` in there instead would blank the line the
+ * instant the entitlement changed, a fifth of a second before the sentence
+ * above it finished fading -- a small wrongness, and the kind that is easier to
+ * design out than to notice.
+ */
+internal data class LicenceCondition(val view: LicenceView, val expiresAtMs: Long?)
 
 /**
  * What the middle of the column offers, which is not the same in every state.
@@ -712,7 +735,8 @@ private fun LicenceStatusLine(state: LicenceUiState, m: LicenceMetrics, modifier
     // because a fade on it would be a delay between the press and its answer.
     // Keying the crossfade on the view rather than the text is what separates
     // the two without a second code path.
-    LicenceFade(fadeKey(state)) { resting ->
+    LicenceFade(fadeKey(state)) { condition ->
+        val resting = condition?.view
         val message: Pair<String, Color>? = when {
             state.lastCopied == Copied.Address ->
                 stringResource(R.string.licence_copied_mac) to colors.success
@@ -742,17 +766,64 @@ private fun LicenceStatusLine(state: LicenceUiState, m: LicenceMetrics, modifier
             }
         }
 
-        StatusLine(
-            modifier = modifier.testTag(LicenceTags.STATUS),
-            height = m.statusHeight,
-            text = message?.first,
-            tone = message?.second ?: colors.onBackgroundMuted,
-            // The sentence carries the tone as well as the dot. A 6dp circle is
-            // the whole signal otherwise, and it is the part a colour-blind
-            // reader is least likely to get.
-            textColor = message?.second ?: colors.onBackgroundMuted,
-        )
+        Column(modifier) {
+            StatusLine(
+                modifier = Modifier.testTag(LicenceTags.STATUS),
+                height = m.statusHeight,
+                text = message?.first,
+                tone = message?.second ?: colors.onBackgroundMuted,
+                // The sentence carries the tone as well as the dot. A 6dp circle
+                // is the whole signal otherwise, and it is the part a
+                // colour-blind reader is least likely to get.
+                textColor = message?.second ?: colors.onBackgroundMuted,
+            )
+            ExpiryLine(expiresAtMs = condition?.expiresAtMs, m = m)
+        }
     }
+}
+
+/**
+ * "Valid until 1 August 2027", under the confirmation and only under that one.
+ *
+ * ## Why only an annual licence gets a date
+ *
+ * Because it is the only state where a date is a fact the user can act on.
+ * Lifetime has no expiry; a trial already says how many days are left in
+ * sentence form, and a second rendering of the same fact as a date would be two
+ * countdowns disagreeing about their units; expired, missing, revoked and
+ * unverified are conditions, and putting a date on any of them tells somebody
+ * the day their licence stopped working, which they know.
+ *
+ * ## Why it does not move anything
+ *
+ * The states that show it are the states with no plan cards -- an active annual
+ * licence is offered nothing further -- so this line occupies part of the space
+ * the card row would have taken. Every other state composes nothing here at all:
+ * not an empty box, not a reserved height. The status line above keeps its own
+ * reserved height exactly as before, so the column is unchanged everywhere the
+ * date is absent, which is everywhere but one.
+ *
+ * The date itself is formatted by the platform in the interface's locale, never
+ * by a pattern of ours -- `1 Aug 2027`, `1 août 2027`, `2027年8月1日`, and the
+ * right one in each of the 38.
+ */
+@Composable
+private fun ExpiryLine(expiresAtMs: Long?, m: LicenceMetrics) {
+    if (expiresAtMs == null || expiresAtMs <= 0L) return
+    val colors = CastivioTheme.colors
+    val locale = interfaceLocale()
+    val date = remember(expiresAtMs, locale) {
+        DateFormat.getDateInstance(DateFormat.MEDIUM, locale).format(Date(expiresAtMs))
+    }
+    Text(
+        text = stringResource(R.string.licence_valid_until, date),
+        style = CastivioType.bodySmall,
+        color = colors.onBackgroundMuted,
+        maxLines = 1,
+        modifier = Modifier
+            .padding(top = m.expiryTop)
+            .testTag(LicenceTags.EXPIRY),
+    )
 }
 
 /**
@@ -817,15 +888,25 @@ private fun CodeZone(state: LicenceUiState, m: LicenceMetrics) {
 /** The formatted amount, in the interface's locale and never from a resource. */
 @Composable
 private fun price(offer: PlanOffer): String {
+    val locale = interfaceLocale()
+    return remember(offer, locale) { formatPrice(offer.priceMinor, offer.currency, locale) }
+}
+
+/**
+ * The locale the interface is in, which is not always the device's.
+ *
+ * The configuration's locale, not the system default: Castivio's language is
+ * chosen in the app and applied by wrapping the activity's context, so
+ * `Locale.getDefault()` would format a French interface's prices -- and its
+ * dates -- in the system's conventions. One function, because two places
+ * needing the same locale and resolving it twice is how they come to disagree.
+ */
+@Composable
+private fun interfaceLocale(): Locale {
     val configuration = LocalConfiguration.current
-    // The configuration's locale, not the system default: Castivio's language is
-    // chosen in the app and applied by wrapping the activity's context, so
-    // `Locale.getDefault()` would format a French interface's prices in the
-    // system's conventions.
-    val locale = remember(configuration) {
+    return remember(configuration) {
         ConfigurationCompat.getLocales(configuration).get(0) ?: Locale.getDefault()
     }
-    return remember(offer, locale) { formatPrice(offer.priceMinor, offer.currency, locale) }
 }
 
 /**

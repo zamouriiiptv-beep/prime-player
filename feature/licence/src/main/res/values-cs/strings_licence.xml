@@ -47,6 +47,7 @@
     <string name="licence_status_revoked">Tato licence byla odvolána.</string>
     <string name="licence_status_opening">Otevírá se portál Castivio…</string>
     <string name="licence_status_failed">Nepovedlo se. Zkuste to znovu.</string>
+    <string name="licence_valid_until">Platná do %s</string>
     <string name="licence_retry">Zkusit znovu</string>
     <string name="licence_support">Kontaktovat podporu</string>
     <string name="licence_qr_caption">Naskenujte QR kód a otevřete stránku aktivace zařízení</string>

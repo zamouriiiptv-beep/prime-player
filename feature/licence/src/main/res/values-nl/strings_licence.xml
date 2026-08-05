@@ -47,6 +47,7 @@
     <string name="licence_status_revoked">Deze licentie is ingetrokken.</string>
     <string name="licence_status_opening">Castivio-portaal wordt geopend…</string>
     <string name="licence_status_failed">Dat werkte niet. Probeer het opnieuw.</string>
+    <string name="licence_valid_until">Geldig tot %s</string>
     <string name="licence_retry">Opnieuw</string>
     <string name="licence_support">Neem contact op met support</string>
     <string name="licence_qr_caption">Scan de QR-code om de activeringspagina van uw apparaat te openen</string>

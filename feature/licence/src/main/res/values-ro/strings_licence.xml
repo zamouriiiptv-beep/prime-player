@@ -47,6 +47,7 @@
     <string name="licence_status_revoked">Această licență a fost revocată.</string>
     <string name="licence_status_opening">Se deschide portalul Castivio…</string>
     <string name="licence_status_failed">Nu a funcționat. Încercați din nou.</string>
+    <string name="licence_valid_until">Valabilă până la %s</string>
     <string name="licence_retry">Reîncearcă</string>
     <string name="licence_support">Contactează asistența</string>
     <string name="licence_qr_caption">Scanați codul QR pentru a deschide pagina de activare a dispozitivului</string>

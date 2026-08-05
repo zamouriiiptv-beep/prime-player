@@ -47,6 +47,7 @@
     <string name="licence_status_revoked">این مجوز لغو شده است.</string>
     <string name="licence_status_opening">در حال باز کردن درگاه Castivio…</string>
     <string name="licence_status_failed">انجام نشد. دوباره تلاش کنید.</string>
+    <string name="licence_valid_until">معتبر تا %s</string>
     <string name="licence_retry">تلاش دوباره</string>
     <string name="licence_support">تماس با پشتیبانی</string>
     <string name="licence_qr_caption">کد QR را اسکن کنید تا صفحهٔ فعال‌سازی دستگاه باز شود</string>

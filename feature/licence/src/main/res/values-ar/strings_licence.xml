@@ -47,6 +47,7 @@
     <string name="licence_status_revoked">تم سحب هذا الترخيص.</string>
     <string name="licence_status_opening">جارٍ فتح بوابة Castivio…</string>
     <string name="licence_status_failed">لم ينجح ذلك. حاول مرة أخرى.</string>
+    <string name="licence_valid_until">صالح حتى %s</string>
     <string name="licence_retry">إعادة المحاولة</string>
     <string name="licence_support">تواصل مع الدعم</string>
     <string name="licence_qr_caption">امسح رمز QR لفتح صفحة تفعيل جهازك</string>

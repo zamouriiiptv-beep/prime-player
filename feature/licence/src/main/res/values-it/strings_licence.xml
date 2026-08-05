@@ -47,6 +47,7 @@
     <string name="licence_status_revoked">Questa licenza è stata revocata.</string>
     <string name="licence_status_opening">Apertura del portale Castivio…</string>
     <string name="licence_status_failed">Non ha funzionato. Riprova.</string>
+    <string name="licence_valid_until">Valida fino al %s</string>
     <string name="licence_retry">Riprova</string>
     <string name="licence_support">Contatta l’assistenza</string>
     <string name="licence_qr_caption">Inquadra il codice QR per aprire la pagina di attivazione del dispositivo</string>

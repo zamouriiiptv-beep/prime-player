@@ -47,6 +47,7 @@
     <string name="licence_status_revoked">Αυτή η άδεια ανακλήθηκε.</string>
     <string name="licence_status_opening">Άνοιγμα της πύλης Castivio…</string>
     <string name="licence_status_failed">Δεν λειτούργησε. Δοκιμάστε ξανά.</string>
+    <string name="licence_valid_until">Ισχύει έως %s</string>
     <string name="licence_retry">Δοκιμή ξανά</string>
     <string name="licence_support">Επικοινωνία με την υποστήριξη</string>
     <string name="licence_qr_caption">Σαρώστε τον κωδικό QR για να ανοίξετε τη σελίδα ενεργοποίησης της συσκευής</string>

@@ -47,6 +47,7 @@
     <string name="licence_status_revoked">Tämä lisenssi on peruttu.</string>
     <string name="licence_status_opening">Avataan Castivio-portaalia…</string>
     <string name="licence_status_failed">Se ei onnistunut. Yritä uudelleen.</string>
+    <string name="licence_valid_until">Voimassa %s asti</string>
     <string name="licence_retry">Yritä uudelleen</string>
     <string name="licence_support">Ota yhteyttä tukeen</string>
     <string name="licence_qr_caption">Skannaa QR-koodi avataksesi laitteen aktivointisivun</string>

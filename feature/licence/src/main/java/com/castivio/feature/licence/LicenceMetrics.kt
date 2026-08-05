@@ -81,6 +81,15 @@ internal data class LicenceMetrics(
     val priceStyle: TextStyle,
     val statusTop: Dp,
     val statusHeight: Dp,
+    /**
+     * From the status line to the expiry date under it.
+     *
+     * Composed only for an active annual licence, which is a state with no plan
+     * cards, so it is spent out of room the card row would otherwise have had.
+     * It is not in `columnHeight`: adding it there would reserve height on every
+     * frame for a line that eight of the nine states never draw.
+     */
+    val expiryTop: Dp,
     val footTop: Dp,
     val footBottom: Dp,
     val plate: Dp,
@@ -113,7 +122,7 @@ internal fun licenceMetricsFor(tv: Boolean, available: Dp): LicenceMetrics = whe
         plansTop = 24.dp, plansGap = 20.dp,
         planMinHeight = 96.dp, planPaddingH = 24.dp, planPaddingV = 12.dp,
         priceStyle = CastivioType.displayMedium,
-        statusTop = 16.dp, statusHeight = 24.dp,
+        statusTop = 16.dp, statusHeight = 24.dp, expiryTop = 6.dp,
         footTop = 13.dp, footBottom = 0.dp,
         plate = 208.dp, platePadding = 12.dp, captionTop = 15.dp, captionWidth = 236.dp,
         target = 56.dp,
@@ -126,7 +135,7 @@ internal fun licenceMetricsFor(tv: Boolean, available: Dp): LicenceMetrics = whe
         // The same token as the reference phone. See the note on the class for
         // why this was a step down for one commit and is not any more.
         priceStyle = CastivioType.headlineLarge,
-        statusTop = 8.dp, statusHeight = 20.dp,
+        statusTop = 8.dp, statusHeight = 20.dp, expiryTop = 3.dp,
         footTop = 6.dp, footBottom = 1.dp,
         plate = 138.dp, platePadding = 8.dp, captionTop = 9.dp, captionWidth = 162.dp,
         target = 48.dp,
@@ -137,7 +146,7 @@ internal fun licenceMetricsFor(tv: Boolean, available: Dp): LicenceMetrics = whe
         plansTop = 22.dp, plansGap = 14.dp,
         planMinHeight = 76.dp, planPaddingH = 18.dp, planPaddingV = 10.dp,
         priceStyle = CastivioType.headlineLarge,
-        statusTop = 12.dp, statusHeight = 20.dp,
+        statusTop = 12.dp, statusHeight = 20.dp, expiryTop = 4.dp,
         footTop = 8.dp, footBottom = 2.dp,
         plate = 157.dp, platePadding = 9.dp, captionTop = 11.dp, captionWidth = 180.dp,
         target = 48.dp,

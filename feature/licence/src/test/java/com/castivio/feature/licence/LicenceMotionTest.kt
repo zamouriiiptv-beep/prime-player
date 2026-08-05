@@ -81,6 +81,9 @@ class LicenceMotionTest {
 
     // -- What the crossfade watches ----------------------------------------
 
+    /** Somewhere in 2027, which is only ever compared with itself. */
+    private val EXPIRES = 1_817_000_000_000L
+
     private val base = LicenceUiState(
         licence = EntitlementState.Unknown,
         address = "2F:19:EB:20:44:7C",
@@ -132,6 +135,29 @@ class LicenceMotionTest {
             "a failed handoff would restart the crossfade",
             fadeKey(base),
             fadeKey(base.copy(failed = true)),
+        )
+    }
+
+    /**
+     * The expiry travels inside the key, so a fade keeps the date it started
+     * with.
+     *
+     * If the date were read from the live state inside the crossfade, the
+     * outgoing half would blank the moment the entitlement changed — a fifth of
+     * a second before the sentence above it finished fading. Carrying it here
+     * is what makes the two halves of the crossover each internally consistent.
+     */
+    @Test
+    fun `only an annual licence puts an expiry in the key`() {
+        assertEquals(
+            "a lifetime licence carries an expiry it does not have",
+            null,
+            fadeKey(base.copy(licence = EntitlementState.Lifetime))?.expiresAtMs,
+        )
+        assertEquals(
+            "an active annual licence lost its expiry on the way into the key",
+            EXPIRES,
+            fadeKey(base.copy(licence = EntitlementState.AnnualActive(EXPIRES, 200)))?.expiresAtMs,
         )
     }
 

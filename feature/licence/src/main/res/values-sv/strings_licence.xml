@@ -47,6 +47,7 @@
     <string name="licence_status_revoked">Den här licensen har återkallats.</string>
     <string name="licence_status_opening">Öppnar Castivio-portalen…</string>
     <string name="licence_status_failed">Det gick inte. Försök igen.</string>
+    <string name="licence_valid_until">Giltig till %s</string>
     <string name="licence_retry">Försök igen</string>
     <string name="licence_support">Kontakta supporten</string>
     <string name="licence_qr_caption">Skanna QR-koden för att öppna enhetens aktiveringssida</string>

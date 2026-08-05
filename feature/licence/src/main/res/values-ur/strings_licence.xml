@@ -47,6 +47,7 @@
     <string name="licence_status_revoked">یہ لائسنس منسوخ کر دیا گیا ہے۔</string>
     <string name="licence_status_opening">Castivio پورٹل کھولا جا رہا ہے…</string>
     <string name="licence_status_failed">یہ کام نہیں آیا۔ دوبارہ کوشش کریں۔</string>
+    <string name="licence_valid_until">%s تک کارآمد</string>
     <string name="licence_retry">دوبارہ کوشش</string>
     <string name="licence_support">سپورٹ سے رابطہ</string>
     <string name="licence_qr_caption">اپنے ڈیوائس کا ایکٹیویشن صفحہ کھولنے کے لیے QR کوڈ اسکین کریں</string>

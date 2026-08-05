@@ -47,6 +47,7 @@
     <string name="licence_status_revoked">此授權已被撤銷。</string>
     <string name="licence_status_opening">正在開啟 Castivio 入口…</string>
     <string name="licence_status_failed">操作失敗，請重試。</string>
+    <string name="licence_valid_until">有效期至 %s</string>
     <string name="licence_retry">重試</string>
     <string name="licence_support">聯絡支援</string>
     <string name="licence_qr_caption">掃描 QR 碼，開啟本裝置的啟用頁面</string>

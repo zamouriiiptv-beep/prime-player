@@ -47,6 +47,7 @@
     <string name="licence_status_revoked">このライセンスは取り消されました。</string>
     <string name="licence_status_opening">Castivio ポータルを開いています…</string>
     <string name="licence_status_failed">うまくいきませんでした。もう一度お試しください。</string>
+    <string name="licence_valid_until">%s まで有効</string>
     <string name="licence_retry">再試行</string>
     <string name="licence_support">サポートに連絡</string>
     <string name="licence_qr_caption">QR コードをスキャンして、この端末のアクティベーションページを開きます</string>

@@ -47,6 +47,7 @@
     <string name="licence_status_revoked">Цю ліцензію відкликано.</string>
     <string name="licence_status_opening">Відкривається портал Castivio…</string>
     <string name="licence_status_failed">Не вийшло. Спробуйте ще раз.</string>
+    <string name="licence_valid_until">Дійсна до %s</string>
     <string name="licence_retry">Повторити</string>
     <string name="licence_support">Звернутися до підтримки</string>
     <string name="licence_qr_caption">Відскануйте QR-код, щоб відкрити сторінку активації пристрою</string>

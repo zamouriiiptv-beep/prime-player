@@ -47,6 +47,7 @@
     <string name="licence_status_revoked">Bu lisans iptal edildi.</string>
     <string name="licence_status_opening">Castivio portalı açılıyor…</string>
     <string name="licence_status_failed">Olmadı. Tekrar deneyin.</string>
+    <string name="licence_valid_until">%s tarihine kadar geçerli</string>
     <string name="licence_retry">Yeniden dene</string>
     <string name="licence_support">Destek ile iletişime geç</string>
     <string name="licence_qr_caption">Cihazınızın etkinleştirme sayfasını açmak için QR kodu okutun</string>

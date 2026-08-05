@@ -47,6 +47,7 @@
     <string name="licence_status_revoked">Kjo licencë është revokuar.</string>
     <string name="licence_status_opening">Po hapet portali Castivio…</string>
     <string name="licence_status_failed">Nuk funksionoi. Provoni sërish.</string>
+    <string name="licence_valid_until">E vlefshme deri më %s</string>
     <string name="licence_retry">Riprovo</string>
     <string name="licence_support">Kontaktoni mbështetjen</string>
     <string name="licence_qr_caption">Skanoni kodin QR për të hapur faqen e aktivizimit të pajisjes</string>

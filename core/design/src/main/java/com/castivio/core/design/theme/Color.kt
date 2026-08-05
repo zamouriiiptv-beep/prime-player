@@ -115,6 +115,21 @@ class CastivioColors(
     val selectedBorder: Color,
 
     /**
+     * The same violet, thrown a little further.
+     *
+     * A spot colour for the shadow under a focused surface that is already
+     * filled and bordered in [selectedFill] and [selectedBorder] — the plan
+     * cards, and nothing else so far. It is not a second hue: it is Violet50 at
+     * a third alpha, so a focused card reads as the same colour getting nearer
+     * rather than as a new colour arriving.
+     *
+     * Distinct from [focusGlow], which is azure and belongs to the controls
+     * whose focus is azure. Two glows because there are two focus colours, not
+     * because two looked nice.
+     */
+    val selectedGlow: Color,
+
+    /**
      * "Now". The one meaning aqua has anywhere in the product: a live programme,
      * a playing stream, the moving meter. Never used for navigation or status.
      */
@@ -184,6 +199,7 @@ fun castivioDarkColors() = CastivioColors(
     divider = Color(0x1FFFFFFF),
     selectedFill = Palette.Violet50.copy(alpha = 0.16f),
     selectedBorder = Palette.Violet50.copy(alpha = 0.34f),
+    selectedGlow = Palette.Violet50.copy(alpha = 0.38f),
     live = Palette.Aqua,
 
     success = Palette.Success,

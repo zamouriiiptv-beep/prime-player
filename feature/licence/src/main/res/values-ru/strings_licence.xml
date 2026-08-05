@@ -47,6 +47,7 @@
     <string name="licence_status_revoked">Эта лицензия отозвана.</string>
     <string name="licence_status_opening">Открывается портал Castivio…</string>
     <string name="licence_status_failed">Не получилось. Попробуйте ещё раз.</string>
+    <string name="licence_valid_until">Действует до %s</string>
     <string name="licence_retry">Повторить</string>
     <string name="licence_support">Обратиться в поддержку</string>
     <string name="licence_qr_caption">Отсканируйте QR-код, чтобы открыть страницу активации устройства</string>

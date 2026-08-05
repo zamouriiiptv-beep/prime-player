@@ -47,6 +47,7 @@
     <string name="licence_status_revoked">এই লাইসেন্স বাতিল করা হয়েছে।</string>
     <string name="licence_status_opening">Castivio পোর্টাল খোলা হচ্ছে…</string>
     <string name="licence_status_failed">কাজ হয়নি। আবার চেষ্টা করুন।</string>
+    <string name="licence_valid_until">%s পর্যন্ত বৈধ</string>
     <string name="licence_retry">আবার চেষ্টা</string>
     <string name="licence_support">সহায়তায় যোগাযোগ</string>
     <string name="licence_qr_caption">ডিভাইস অ্যাক্টিভেশন পেজ খুলতে QR কোড স্ক্যান করুন</string>

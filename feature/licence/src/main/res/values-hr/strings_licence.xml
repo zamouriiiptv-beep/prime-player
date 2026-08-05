@@ -47,6 +47,7 @@
     <string name="licence_status_revoked">Ova licenca je opozvana.</string>
     <string name="licence_status_opening">Otvaranje Castivio portala…</string>
     <string name="licence_status_failed">Nije uspjelo. Pokušajte ponovno.</string>
+    <string name="licence_valid_until">Vrijedi do %s</string>
     <string name="licence_retry">Pokušaj ponovno</string>
     <string name="licence_support">Kontaktirajte podršku</string>
     <string name="licence_qr_caption">Skenirajte QR kod da otvorite stranicu za aktivaciju uređaja</string>

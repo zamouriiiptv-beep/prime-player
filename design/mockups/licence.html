@@ -296,6 +296,10 @@ html[dir="rtl"] .backdrop{
 #tv .codezone .cap{margin-top:15px;width:236px}
 
 /* --------------------------------------------------------------- the foot */
+.expiry{flex:0 0 auto;color:var(--muted)}
+#phone-873 .expiry{padding-top:4px}
+#phone-800 .expiry{padding-top:3px}
+#tv .expiry{padding-top:6px}
 .foot{flex:0 0 auto;text-align:center;color:var(--muted)}
 #phone-873 .foot{padding:8px 0 2px}
 #phone-800 .foot{padding:6px 0 1px}
@@ -398,7 +402,7 @@ var S = {
       sWorking:"Opening the Castivio portal…", sError:"That didn't work. Try again.",
       sActive:"Your licence is active.",
       retry:"Try again", support:"Contact support",
-      legal:"Legal Information"},
+      legal:"Legal Information", until:"Valid until 1 Aug 2027"},
   ar:{title:"ترخيص Castivio", lang:"اللغة",
       trial:"تجربة", active:"الترخيص مُفعَّل", ended:"انتهت التجربة", lapsed:"انتهى الترخيص",
       nolic:"لا يوجد ترخيص", verify:"يلزم التحقق", unavail:"غير متاح", withdrawn:"سُحب الترخيص",
@@ -416,7 +420,7 @@ var S = {
       sWorking:"جارٍ فتح بوابة Castivio…", sError:"لم ينجح ذلك. حاول مرة أخرى.",
       sActive:"ترخيصك مُفعَّل.",
       retry:"حاول مرة أخرى", support:"تواصل مع الدعم",
-      legal:"معلومات قانونية"},
+      legal:"معلومات قانونية", until:"صالح حتى ١ أغسطس ٢٠٢٧"},
   de:{title:"Castivio-Lizenz", lang:"Sprache",
       trial:"Testphase", active:"Lizenz aktiv", ended:"Testphase beendet", lapsed:"Lizenz abgelaufen",
       nolic:"Keine Lizenz", verify:"Überprüfung nötig", unavail:"Nicht verfügbar", withdrawn:"Lizenz entzogen",
@@ -434,7 +438,7 @@ var S = {
       sWorking:"Castivio-Portal wird geöffnet…", sError:"Das hat nicht geklappt. Bitte erneut versuchen.",
       sActive:"Ihre Lizenz ist aktiv.",
       retry:"Erneut versuchen", support:"Support kontaktieren",
-      legal:"Rechtliche Hinweise"},
+      legal:"Rechtliche Hinweise", until:"Gültig bis 01.08.2027"},
   fi:{title:"Castivio-lisenssi", lang:"Kieli",
       trial:"Kokeilu", active:"Lisenssi voimassa", ended:"Kokeilu päättyi", lapsed:"Lisenssi vanhentui",
       nolic:"Ei lisenssiä", verify:"Vahvistus tarvitaan", unavail:"Ei käytettävissä", withdrawn:"Lisenssi peruttu",
@@ -452,7 +456,7 @@ var S = {
       sWorking:"Avataan Castivio-portaalia…", sError:"Se ei onnistunut. Yritä uudelleen.",
       sActive:"Lisenssisi on voimassa.",
       retry:"Yritä uudelleen", support:"Ota yhteyttä tukeen",
-      legal:"Oikeudelliset tiedot"},
+      legal:"Oikeudelliset tiedot", until:"Voimassa 1.8.2027 asti"},
   th:{title:"ใบอนุญาต Castivio", lang:"ภาษา",
       trial:"ทดลองใช้", active:"ใบอนุญาตใช้งานอยู่", ended:"สิ้นสุดการทดลองใช้", lapsed:"ใบอนุญาตหมดอายุ",
       nolic:"ไม่มีใบอนุญาต", verify:"ต้องยืนยัน", unavail:"ไม่พร้อมใช้งาน", withdrawn:"ใบอนุญาตถูกเพิกถอน",
@@ -470,7 +474,7 @@ var S = {
       sWorking:"กำลังเปิดพอร์ทัล Castivio…", sError:"ไม่สำเร็จ ลองอีกครั้ง",
       sActive:"ใบอนุญาตของคุณใช้งานอยู่",
       retry:"ลองอีกครั้ง", support:"ติดต่อฝ่ายสนับสนุน",
-      legal:"ข้อมูลทางกฎหมาย"},
+      legal:"ข้อมูลทางกฎหมาย", until:"ใช้ได้ถึง 1 ส.ค. 2570"},
   hi:{title:"Castivio लाइसेंस", lang:"भाषा",
       trial:"परीक्षण", active:"लाइसेंस सक्रिय", ended:"परीक्षण समाप्त", lapsed:"लाइसेंस समाप्त",
       nolic:"कोई लाइसेंस नहीं", verify:"सत्यापन आवश्यक", unavail:"अनुपलब्ध", withdrawn:"लाइसेंस वापस लिया गया",
@@ -488,7 +492,7 @@ var S = {
       sWorking:"Castivio पोर्टल खोला जा रहा है…", sError:"यह काम नहीं आया। फिर कोशिश करें।",
       sActive:"आपका लाइसेंस सक्रिय है।",
       retry:"फिर कोशिश करें", support:"सहायता से संपर्क करें",
-      legal:"कानूनी जानकारी"},
+      legal:"कानूनी जानकारी", until:"1 अग॰ 2027 तक वैध"},
   bn:{title:"Castivio লাইসেন্স", lang:"ভাষা",
       trial:"ট্রায়াল", active:"লাইসেন্স সক্রিয়", ended:"ট্রায়াল শেষ", lapsed:"লাইসেন্সের মেয়াদ শেষ",
       nolic:"লাইসেন্স নেই", verify:"যাচাই প্রয়োজন", unavail:"অনুপলব্ধ", withdrawn:"লাইসেন্স প্রত্যাহৃত",
@@ -506,7 +510,7 @@ var S = {
       sWorking:"Castivio পোর্টাল খোলা হচ্ছে…", sError:"কাজ হয়নি। আবার চেষ্টা করুন।",
       sActive:"আপনার লাইসেন্স সক্রিয়।",
       retry:"আবার চেষ্টা করুন", support:"সহায়তায় যোগাযোগ করুন",
-      legal:"আইনি তথ্য"},
+      legal:"আইনি তথ্য", until:"১ আগ, ২০২৭ পর্যন্ত বৈধ"},
   ja:{title:"Castivio ライセンス", lang:"言語",
       trial:"体験版", active:"ライセンス有効", ended:"体験版終了", lapsed:"ライセンス期限切れ",
       nolic:"ライセンスなし", verify:"確認が必要", unavail:"利用できません", withdrawn:"ライセンス取り消し",
@@ -524,7 +528,7 @@ var S = {
       sWorking:"Castivio ポータルを開いています…", sError:"うまくいきませんでした。もう一度お試しください。",
       sActive:"ライセンスは有効です。",
       retry:"もう一度試す", support:"サポートに連絡",
-      legal:"法的情報"},
+      legal:"法的情報", until:"2027年8月1日 まで有効"},
   zh:{title:"Castivio 许可证", lang:"语言",
       trial:"试用", active:"许可证有效", ended:"试用已结束", lapsed:"许可证已过期",
       nolic:"无许可证", verify:"需要验证", unavail:"不可用", withdrawn:"许可证已撤销",
@@ -542,7 +546,7 @@ var S = {
       sWorking:"正在打开 Castivio 门户…", sError:"操作失败，请重试。",
       sActive:"您的许可证有效。",
       retry:"重试", support:"联系支持",
-      legal:"法律信息"}
+      legal:"法律信息", until:"有效期至 2027年8月1日"}
 };
 
 var LOCALE = {en:"en-GB", ar:"ar-EG", de:"de-DE", fi:"fi-FI", th:"th-TH",
@@ -606,12 +610,12 @@ document.documentElement.setAttribute("dir", rtl ? "rtl" : "ltr");
 var VIEW = {
   loading:            {chip:null,            tone:"",     line:null,      plans:true,  skeleton:true},
   trial:              {chip:"trial",         tone:"",     line:"sTrial",  plans:true},
-  "activated-annual": {chip:"active",        tone:"ok",   line:"sActive", plans:true},
+  "activated-annual": {chip:"active",        tone:"ok",   line:"sActive", plans:false, expiry:true},
   "activated-lifetime":{chip:"active",       tone:"ok",   line:"sActive", plans:false, lifetime:true},
   "expired-trial":    {chip:"ended",         tone:"warn", line:"sEnded",  plans:true},
   "expired-annual":   {chip:"lapsed",        tone:"warn", line:"sLapsed", plans:true},
   none:               {chip:"nolic",         tone:"warn", line:"sNone",   plans:true},
-  verify:             {chip:"verify",        tone:"warn", line:"sVerify", plans:true},
+  verify:             {chip:"verify",        tone:"warn", line:"sVerify", plans:false, action:"support"},
   unavailable:        {chip:"unavail",       tone:"warn", line:"sUnavail",plans:false, action:"retry"},
   revoked:            {chip:"withdrawn",     tone:"bad",  line:"sRevoked",plans:false, action:"support"},
   working:            {chip:"trial",         tone:"",     line:"sWorking",plans:true,  busy:true},
@@ -693,6 +697,13 @@ function shellHtml(){
       esc(s[v.line]) + "</span></div>"
     : '<div class="status" data-status></div>';
 
+  // Under the confirmation, for an active annual licence and nothing else. Not
+  // a reserved slot: every other state composes no element at all here, which
+  // is what keeps the column identical everywhere the date is absent.
+  var expiry = v.expiry
+    ? '<div class="expiry t-body-s" data-s="until">' + esc(s.until) + "</div>"
+    : "";
+
   var code = v.skeleton
     ? '<div class="codezone"><span class="skel plate" style="width:138px;height:138px"></span></div>'
     : '<div class="codezone">' +
@@ -709,7 +720,7 @@ function shellHtml(){
       "</div>" +
       '<div class="rule"></div>' +
       '<div class="field">' +
-        '<div class="identity">' + identity + busy + status + "</div>" +
+        '<div class="identity">' + identity + busy + status + expiry + "</div>" +
         code +
       "</div>" +
       '<div class="rule"></div>' +

@@ -47,6 +47,7 @@
     <string name="licence_status_revoked">Lisensi ini telah dicabut.</string>
     <string name="licence_status_opening">Membuka portal Castivio…</string>
     <string name="licence_status_failed">Tidak berhasil. Coba lagi.</string>
+    <string name="licence_valid_until">Berlaku sampai %s</string>
     <string name="licence_retry">Coba lagi</string>
     <string name="licence_support">Hubungi dukungan</string>
     <string name="licence_qr_caption">Pindai kode QR untuk membuka halaman aktivasi perangkat Anda</string>

@@ -47,6 +47,7 @@
     <string name="licence_status_revoked">Ta licencja została cofnięta.</string>
     <string name="licence_status_opening">Otwieranie portalu Castivio…</string>
     <string name="licence_status_failed">Nie udało się. Spróbuj ponownie.</string>
+    <string name="licence_valid_until">Ważna do %s</string>
     <string name="licence_retry">Ponów</string>
     <string name="licence_support">Skontaktuj się z pomocą</string>
     <string name="licence_qr_caption">Zeskanuj kod QR, aby otworzyć stronę aktywacji urządzenia</string>

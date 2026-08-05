@@ -1,11 +1,17 @@
 package com.castivio.core.design.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,8 +28,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.TextStyle
@@ -31,7 +40,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
+import com.castivio.core.design.theme.Elevation
 import com.castivio.core.design.theme.Motion
+import com.castivio.core.design.theme.MotionLevel
 import com.castivio.core.design.theme.Radius
 
 /**
@@ -103,25 +114,64 @@ fun PlanCard(
     // lozenge. Same material, same hairline, at the shape the content needs.
     val shape = RoundedCornerShape(Radius.xl)
 
+    // One spec for all four properties, so the card arrives as a single thing.
+    //
+    // 200ms, in the middle of the 180-220ms the design asks for. A `tween`
+    // rather than a spring: a spring on a purchase control overshoots, and a
+    // card that bounces under a remote reads as a toy. `snap` when the user has
+    // turned animation off -- the card still changes, it just stops travelling.
+    val level = CastivioTheme.motionLevel
+    val spec: FiniteAnimationSpec<Float> = remember(level) { focusSpec(level) }
+    val colourSpec: FiniteAnimationSpec<Color> = remember(level) { focusSpec(level) }
+    val sizeSpec: FiniteAnimationSpec<Dp> = remember(level) { focusSpec(level) }
+
     val fill by animateColorAsState(
         if (focused) colors.selectedFill else colors.glassFill,
-        Motion.focusSpec(), label = "planFill",
+        colourSpec, label = "planFill",
     )
     val border by animateColorAsState(
         if (focused) colors.selectedBorder else colors.glassBorderSoft,
-        Motion.focusSpec(), label = "planBorder",
+        colourSpec, label = "planBorder",
+    )
+    // Two dp focused, one at rest. The hairline is what every Castivio surface
+    // wears; doubling it is the cheapest way to say "this one" at three metres
+    // without introducing a shape the resting card does not have.
+    val stroke by animateDpAsState(
+        if (focused) FOCUSED_STROKE else RESTING_STROKE,
+        sizeSpec, label = "planStroke",
+    )
+    // The glow, as a shadow rather than a second border. Violet, because the
+    // fill and the border under the remote are already violet -- the card gets
+    // nearer, it does not change colour. Zero at rest, so an unfocused card
+    // casts nothing and the row stays flat.
+    val lift by animateDpAsState(
+        if (focused) FOCUSED_LIFT else Elevation.level0,
+        sizeSpec, label = "planLift",
+    )
+    // Press wins over focus, and presses down. Unchanged from what the shared
+    // focus modifier did: this is the touch behaviour, and a thumb expects the
+    // surface to give.
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        when {
+            pressed -> Motion.pressScale
+            focused -> FOCUSED_SCALE
+            else -> 1f
+        },
+        spec, label = "planScale",
     )
 
     Column(
         modifier
             .alpha(if (working) WORKING_ALPHA else 1f)
-            .castivioFocusScale(Motion.focusScaleButton, interaction)
+            .graphicsLayer { scaleX = scale; scaleY = scale }
             .focusProperties { canFocus = !working }
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
             .defaultMinSize(minHeight = metrics.minHeight)
+            .shadow(lift, shape, ambientColor = Elevation.ambient, spotColor = colors.selectedGlow)
             .clip(shape)
             .background(fill)
-            .border(BorderStroke(1.dp, border), shape)
+            .border(BorderStroke(stroke, border), shape)
             .clickable(interaction, indication = null, enabled = !working, onClick = onClick)
             .padding(
                 horizontal = metrics.horizontalPadding,
@@ -163,6 +213,47 @@ fun PlanCard(
         }
     }
 }
+
+/**
+ * The focus spec every animated property on the card shares.
+ *
+ * Not `Motion.focusSpec()`, which is 180ms and shared with every control in the
+ * product. This is 200ms and belongs to the plan cards, because they are the
+ * one surface where focus does four things at once and they have to arrive
+ * together.
+ */
+private fun <T> focusSpec(level: MotionLevel): FiniteAnimationSpec<T> =
+    planFocusMillis(level).let { if (it == 0) snap() else tween(it, easing = Motion.standard) }
+
+/**
+ * How long a plan card takes to arrive at, or leave, focus.
+ *
+ * Split out from the spec so it can be asserted without a device:
+ * `PlanCardFocusTest` checks it against the window the design states, and checks
+ * that motion off is a snap rather than a fast animation. A frame-stepped test
+ * of the real thing needs a clock this environment cannot drive reliably, and
+ * three attempts at one taught nothing except how long CI takes.
+ *
+ * @return 0 when the change must be instant.
+ */
+internal fun planFocusMillis(level: MotionLevel): Int =
+    if (level == MotionLevel.DISABLED) 0 else FOCUS_MS
+
+/** Inside the 180-220ms window, and deliberately in the middle of it. */
+internal const val FOCUS_MS = 200
+
+/**
+ * Slight. 1.05 was the shared button value and it is too much for a card this
+ * wide -- at 210dp it moves the outer edge five dp, which on a row of two reads
+ * as the pair shifting rather than one of them lifting.
+ */
+internal const val FOCUSED_SCALE = 1.03f
+
+internal val RESTING_STROKE = 1.dp
+internal val FOCUSED_STROKE = 2.dp
+
+/** Enough for the violet to be seen around the card, not enough to detach it. */
+internal val FOCUSED_LIFT = Elevation.level2
 
 /** Visibly busy, still legible. The card is not gone, it is occupied. */
 private const val WORKING_ALPHA = 0.5f

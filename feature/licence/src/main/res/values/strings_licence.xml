@@ -56,6 +56,15 @@
     <string name="licence_status_opening">Opening the Castivio portal…</string>
     <string name="licence_status_failed">That didn’t work. Try again.</string>
 
+    <!--
+      The expiry date, for an active annual licence and for nothing else.
+
+      `%s` is a date the platform has already formatted in the interface's
+      locale — never a pattern written here, which would render 2027-08-01 to a
+      French reader and 8/1/2027 to a German one.
+    -->
+    <string name="licence_valid_until">Valid until %s</string>
+
     <string name="licence_retry">Retry</string>
     <string name="licence_support">Contact Support</string>
 

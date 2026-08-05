@@ -47,6 +47,7 @@
     <string name="licence_status_revoked">Giấy phép này đã bị thu hồi.</string>
     <string name="licence_status_opening">Đang mở cổng Castivio…</string>
     <string name="licence_status_failed">Không thành công. Hãy thử lại.</string>
+    <string name="licence_valid_until">Có hiệu lực đến %s</string>
     <string name="licence_retry">Thử lại</string>
     <string name="licence_support">Liên hệ hỗ trợ</string>
     <string name="licence_qr_caption">Quét mã QR để mở trang kích hoạt thiết bị của bạn</string>

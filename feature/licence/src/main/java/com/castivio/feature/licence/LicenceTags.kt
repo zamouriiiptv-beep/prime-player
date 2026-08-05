@@ -37,6 +37,9 @@ internal object LicenceTags {
     /** Reserved height whether or not it has anything to say, so it is tagged. */
     const val STATUS = "licence.status"
 
+    /** The expiry date, which exists for one state and must not for the rest. */
+    const val EXPIRY = "licence.expiry"
+
     const val CODE_ZONE = "licence.codeZone"
     const val QR = "licence.qr"
 
