@@ -14,8 +14,7 @@
   produces the wrong I in Turkish.
 -->
 <resources>
-    <string name="activation_title">Dodaj swoją subskrypcję</string>
-    <string name="trial_name">Okres próbny Castivio</string>
+    <string name="activation_title">Dodawanie playlisty</string>
     <string name="mac_label">ADRES MAC</string>
     <string name="key_label">KLUCZ URZĄDZENIA</string>
     <string name="copy_mac">Kopiuj adres MAC</string>
@@ -28,7 +27,7 @@
     <string name="refresh_found">Znaleziono subskrypcję</string>
     <string name="refresh_none">Możesz teraz dodać swoją pierwszą playlistę.</string>
     <string name="refresh_error">Nie udało się odświeżyć — spróbuj ponownie</string>
-    <string name="qr_caption">Zeskanuj kod QR, aby otworzyć stronę aktywacji urządzenia</string>
+    <string name="qr_caption">Zeskanuj kod QR, aby aktywować to urządzenie.</string>
     <string name="legal_player_only">Castivio jest wyłącznie odtwarzaczem i nie zapewnia subskrypcji ani treści.</string>
     <string name="mac_spoken">Adres MAC %s</string>
     <string name="language">Język</string>
@@ -36,13 +35,13 @@
     <string name="language_close">Zamknij</string>
     <string name="language_back_hint">Wstecz, aby zamknąć</string>
     <string name="language_selected">Wybrany</string>
-    <string name="activation_screen">Dodaj swoją subskrypcję</string>
+    <string name="activation_screen">Dodawanie playlisty</string>
 
-    <plurals name="trial_days">
-        <item quantity="one">%d dzień</item>
-        <item quantity="few">%d dni</item>
-        <item quantity="many">%d dni</item>
-        <item quantity="other">%d dnia</item>
+    <plurals name="trial_badge">
+        <item quantity="one">%d-dniowy okres próbny</item>
+        <item quantity="few">%d-dniowy okres próbny</item>
+        <item quantity="many">%d-dniowy okres próbny</item>
+        <item quantity="other">%d-dniowy okres próbny</item>
     </plurals>
 
     <string name="locale_sentinel" translatable="false">pl</string>

@@ -51,7 +51,7 @@
     <string name="licence_valid_until">Érvényes eddig: %s</string>
     <string name="licence_retry">Újra</string>
     <string name="licence_support">Ügyfélszolgálat megkeresése</string>
-    <string name="licence_qr_caption">Olvassa be a QR-kódot az eszköz aktiválási oldalának megnyitásához</string>
+    <string name="licence_qr_caption">Olvassa be a QR-kódot az eszköz aktiválásához.</string>
     <string name="licence_legal_title">Jogi információk</string>
     <string name="licence_legal_link">Jogi információk</string>
     <string name="licence_legal_back_hint">A Vissza bezárja</string>

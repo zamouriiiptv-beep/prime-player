@@ -14,8 +14,7 @@
   produces the wrong I in Turkish.
 -->
 <resources>
-    <string name="activation_title">Abonnement hinzufügen</string>
-    <string name="trial_name">Castivio-Testphase</string>
+    <string name="activation_title">Playlist hinzufügen</string>
     <string name="mac_label">MAC-ADRESSE</string>
     <string name="key_label">GERÄTESCHLÜSSEL</string>
     <string name="copy_mac">MAC-Adresse kopieren</string>
@@ -28,7 +27,7 @@
     <string name="refresh_found">Abonnement gefunden</string>
     <string name="refresh_none">Du kannst jetzt deine erste Playlist hinzufügen.</string>
     <string name="refresh_error">Aktualisieren fehlgeschlagen — erneut versuchen</string>
-    <string name="qr_caption">QR-Code scannen, um die Aktivierungsseite des Geräts zu öffnen</string>
+    <string name="qr_caption">Scannen Sie den QR-Code, um dieses Gerät zu aktivieren.</string>
     <string name="legal_player_only">Castivio ist nur ein Player und bietet keine Abonnements oder Inhalte an.</string>
     <string name="mac_spoken">MAC-Adresse %s</string>
     <string name="language">Sprache</string>
@@ -36,11 +35,11 @@
     <string name="language_close">Schließen</string>
     <string name="language_back_hint">Zurück zum Schließen</string>
     <string name="language_selected">Ausgewählt</string>
-    <string name="activation_screen">Abonnement hinzufügen</string>
+    <string name="activation_screen">Playlist hinzufügen</string>
 
-    <plurals name="trial_days">
-        <item quantity="one">%d Tag</item>
-        <item quantity="other">%d Tage</item>
+    <plurals name="trial_badge">
+        <item quantity="one">Testversion für %d Tag</item>
+        <item quantity="other">Testversion für %d Tage</item>
     </plurals>
 
     <string name="locale_sentinel" translatable="false">de</string>

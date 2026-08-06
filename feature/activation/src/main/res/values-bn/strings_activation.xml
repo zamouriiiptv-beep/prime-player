@@ -14,8 +14,7 @@
   produces the wrong I in Turkish.
 -->
 <resources>
-    <string name="activation_title">আপনার সাবস্ক্রিপশন যোগ করুন</string>
-    <string name="trial_name">Castivio ট্রায়াল</string>
+    <string name="activation_title">প্লেলিস্ট যোগ করা</string>
     <string name="mac_label">MAC ঠিকানা</string>
     <string name="key_label">ডিভাইস কী</string>
     <string name="copy_mac">MAC ঠিকানা কপি করুন</string>
@@ -28,7 +27,7 @@
     <string name="refresh_found">সাবস্ক্রিপশন পাওয়া গেছে</string>
     <string name="refresh_none">এখন আপনি আপনার প্রথম প্লেলিস্ট যোগ করতে পারেন।</string>
     <string name="refresh_error">রিফ্রেশ করা যায়নি — আবার চেষ্টা করুন</string>
-    <string name="qr_caption">ডিভাইস অ্যাক্টিভেশন পেজ খুলতে QR কোড স্ক্যান করুন</string>
+    <string name="qr_caption">এই ডিভাইসটি সক্রিয় করতে QR কোড স্ক্যান করুন।</string>
     <string name="legal_player_only">Castivio শুধুমাত্র একটি প্লেয়ার এবং সাবস্ক্রিপশন বা কনটেন্ট সরবরাহ করে না।</string>
     <string name="mac_spoken">MAC ঠিকানা %s</string>
     <string name="language">ভাষা</string>
@@ -36,11 +35,11 @@
     <string name="language_close">বন্ধ</string>
     <string name="language_back_hint">বন্ধ করতে ফিরে যান</string>
     <string name="language_selected">নির্বাচিত</string>
-    <string name="activation_screen">আপনার সাবস্ক্রিপশন যোগ করুন</string>
+    <string name="activation_screen">প্লেলিস্ট যোগ করা</string>
 
-    <plurals name="trial_days">
-        <item quantity="one">%d দিন</item>
-        <item quantity="other">%d দিন</item>
+    <plurals name="trial_badge">
+        <item quantity="one">%d দিনের ট্রায়াল</item>
+        <item quantity="other">%d দিনের ট্রায়াল</item>
     </plurals>
 
     <string name="locale_sentinel" translatable="false">bn</string>

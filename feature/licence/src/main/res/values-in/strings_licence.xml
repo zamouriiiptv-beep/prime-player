@@ -51,7 +51,7 @@
     <string name="licence_valid_until">Berlaku sampai %s</string>
     <string name="licence_retry">Coba lagi</string>
     <string name="licence_support">Hubungi dukungan</string>
-    <string name="licence_qr_caption">Pindai kode QR untuk membuka halaman aktivasi perangkat Anda</string>
+    <string name="licence_qr_caption">Pindai kode QR untuk mengaktifkan perangkat ini.</string>
     <string name="licence_legal_title">Informasi hukum</string>
     <string name="licence_legal_link">Informasi Hukum</string>
     <string name="licence_legal_back_hint">Kembali untuk menutup</string>

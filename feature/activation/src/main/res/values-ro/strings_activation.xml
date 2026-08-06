@@ -14,8 +14,7 @@
   produces the wrong I in Turkish.
 -->
 <resources>
-    <string name="activation_title">Adaugă-ți abonamentul</string>
-    <string name="trial_name">Perioadă de probă Castivio</string>
+    <string name="activation_title">Adăugarea unei playliste</string>
     <string name="mac_label">ADRESĂ MAC</string>
     <string name="key_label">CHEIA DISPOZITIVULUI</string>
     <string name="copy_mac">Copiază adresa MAC</string>
@@ -28,7 +27,7 @@
     <string name="refresh_found">Abonament găsit</string>
     <string name="refresh_none">Acum poți adăuga prima ta playlistă.</string>
     <string name="refresh_error">Actualizarea a eșuat — încearcă din nou</string>
-    <string name="qr_caption">Scanează codul QR pentru a deschide pagina de activare a dispozitivului</string>
+    <string name="qr_caption">Scanați codul QR pentru a activa acest dispozitiv.</string>
     <string name="legal_player_only">Castivio este doar un player și nu oferă abonamente sau conținut.</string>
     <string name="mac_spoken">Adresă MAC %s</string>
     <string name="language">Limbă</string>
@@ -36,12 +35,12 @@
     <string name="language_close">Închide</string>
     <string name="language_back_hint">Înapoi pentru a închide</string>
     <string name="language_selected">Selectată</string>
-    <string name="activation_screen">Adaugă-ți abonamentul</string>
+    <string name="activation_screen">Adăugarea unei playliste</string>
 
-    <plurals name="trial_days">
-        <item quantity="one">%d zi</item>
-        <item quantity="few">%d zile</item>
-        <item quantity="other">%d de zile</item>
+    <plurals name="trial_badge">
+        <item quantity="one">Perioadă de probă de %d zi</item>
+        <item quantity="few">Perioadă de probă de %d zile</item>
+        <item quantity="other">Perioadă de probă de %d de zile</item>
     </plurals>
 
     <string name="locale_sentinel" translatable="false">ro</string>

@@ -51,7 +51,7 @@
     <string name="licence_valid_until">Дійсна до %s</string>
     <string name="licence_retry">Повторити</string>
     <string name="licence_support">Звернутися до підтримки</string>
-    <string name="licence_qr_caption">Відскануйте QR-код, щоб відкрити сторінку активації пристрою</string>
+    <string name="licence_qr_caption">Відскануйте QR-код, щоб активувати цей пристрій.</string>
     <string name="licence_legal_title">Правова інформація</string>
     <string name="licence_legal_link">Правова інформація</string>
     <string name="licence_legal_back_hint">Назад — закрити</string>

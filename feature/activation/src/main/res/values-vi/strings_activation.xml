@@ -14,8 +14,7 @@
   produces the wrong I in Turkish.
 -->
 <resources>
-    <string name="activation_title">Thêm gói đăng ký của bạn</string>
-    <string name="trial_name">Bản dùng thử Castivio</string>
+    <string name="activation_title">Thêm danh sách phát</string>
     <string name="mac_label">ĐỊA CHỈ MAC</string>
     <string name="key_label">KHÓA THIẾT BỊ</string>
     <string name="copy_mac">Sao chép địa chỉ MAC</string>
@@ -28,7 +27,7 @@
     <string name="refresh_found">Đã tìm thấy gói đăng ký</string>
     <string name="refresh_none">Giờ bạn có thể thêm danh sách phát đầu tiên.</string>
     <string name="refresh_error">Không làm mới được — thử lại</string>
-    <string name="qr_caption">Quét mã QR để mở trang kích hoạt thiết bị</string>
+    <string name="qr_caption">Quét mã QR để kích hoạt thiết bị này.</string>
     <string name="legal_player_only">Castivio chỉ là trình phát và không cung cấp gói đăng ký hay nội dung.</string>
     <string name="mac_spoken">Địa chỉ MAC %s</string>
     <string name="language">Ngôn ngữ</string>
@@ -36,10 +35,10 @@
     <string name="language_close">Đóng</string>
     <string name="language_back_hint">Quay lại để đóng</string>
     <string name="language_selected">Đang chọn</string>
-    <string name="activation_screen">Thêm gói đăng ký của bạn</string>
+    <string name="activation_screen">Thêm danh sách phát</string>
 
-    <plurals name="trial_days">
-        <item quantity="other">%d ngày</item>
+    <plurals name="trial_badge">
+        <item quantity="other">Dùng thử %d ngày</item>
     </plurals>
 
     <string name="locale_sentinel" translatable="false">vi</string>

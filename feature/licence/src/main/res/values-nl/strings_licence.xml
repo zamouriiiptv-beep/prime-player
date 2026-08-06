@@ -51,7 +51,7 @@
     <string name="licence_valid_until">Geldig tot %s</string>
     <string name="licence_retry">Opnieuw</string>
     <string name="licence_support">Neem contact op met support</string>
-    <string name="licence_qr_caption">Scan de QR-code om de activeringspagina van uw apparaat te openen</string>
+    <string name="licence_qr_caption">Scan de QR-code om dit apparaat te activeren.</string>
     <string name="licence_legal_title">Juridische informatie</string>
     <string name="licence_legal_link">Juridische informatie</string>
     <string name="licence_legal_back_hint">Terug om te sluiten</string>

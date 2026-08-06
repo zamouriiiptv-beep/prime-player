@@ -51,7 +51,7 @@
     <string name="licence_valid_until">有效期至 %s</string>
     <string name="licence_retry">重試</string>
     <string name="licence_support">聯絡支援</string>
-    <string name="licence_qr_caption">掃描 QR 碼，開啟本裝置的啟用頁面</string>
+    <string name="licence_qr_caption">掃描 QR 碼以啟用此裝置。</string>
     <string name="licence_legal_title">法律資訊</string>
     <string name="licence_legal_link">法律資訊</string>
     <string name="licence_legal_back_hint">按返回關閉</string>

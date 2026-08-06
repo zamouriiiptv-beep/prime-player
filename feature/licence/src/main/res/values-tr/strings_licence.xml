@@ -51,7 +51,7 @@
     <string name="licence_valid_until">%s tarihine kadar geçerli</string>
     <string name="licence_retry">Yeniden dene</string>
     <string name="licence_support">Destek ile iletişime geç</string>
-    <string name="licence_qr_caption">Cihazınızın etkinleştirme sayfasını açmak için QR kodu okutun</string>
+    <string name="licence_qr_caption">Bu cihazı etkinleştirmek için QR kodunu tarayın.</string>
     <string name="licence_legal_title">Yasal bilgiler</string>
     <string name="licence_legal_link">Yasal Bilgiler</string>
     <string name="licence_legal_back_hint">Kapatmak için geri</string>

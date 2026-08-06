@@ -14,8 +14,7 @@
   produces the wrong I in Turkish.
 -->
 <resources>
-    <string name="activation_title">Додајте своју претплату</string>
-    <string name="trial_name">Castivio пробни период</string>
+    <string name="activation_title">Додавање плејлисте</string>
     <string name="mac_label">MAC АДРЕСА</string>
     <string name="key_label">КЉУЧ УРЕЂАЈА</string>
     <string name="copy_mac">Копирај MAC адресу</string>
@@ -28,7 +27,7 @@
     <string name="refresh_found">Претплата је пронађена</string>
     <string name="refresh_none">Sada možete dodati svoju prvu plejlistu.</string>
     <string name="refresh_error">Освежавање није успело — покушајте поново</string>
-    <string name="qr_caption">Скенирајте QR кôд да отворите страницу за активацију уређаја</string>
+    <string name="qr_caption">Скенирајте QR код да бисте активирали овај уређај.</string>
     <string name="legal_player_only">Castivio је само плејер и не пружа претплате ни садржај.</string>
     <string name="mac_spoken">MAC адреса %s</string>
     <string name="language">Језик</string>
@@ -36,12 +35,12 @@
     <string name="language_close">Затвори</string>
     <string name="language_back_hint">Назад за затварање</string>
     <string name="language_selected">Изабрано</string>
-    <string name="activation_screen">Додајте своју претплату</string>
+    <string name="activation_screen">Додавање плејлисте</string>
 
-    <plurals name="trial_days">
-        <item quantity="one">%d дан</item>
-        <item quantity="few">%d дана</item>
-        <item quantity="other">%d дана</item>
+    <plurals name="trial_badge">
+        <item quantity="one">Пробни период %d дан</item>
+        <item quantity="few">Пробни период %d дана</item>
+        <item quantity="other">Пробни период %d дана</item>
     </plurals>
 
     <string name="locale_sentinel" translatable="false">sr</string>

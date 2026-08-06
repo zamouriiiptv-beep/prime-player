@@ -14,8 +14,7 @@
   produces the wrong I in Turkish.
 -->
 <resources>
-    <string name="activation_title">Add hozzá az előfizetésed</string>
-    <string name="trial_name">Castivio próbaidőszak</string>
+    <string name="activation_title">Lejátszási lista hozzáadása</string>
     <string name="mac_label">MAC-CÍM</string>
     <string name="key_label">ESZKÖZKULCS</string>
     <string name="copy_mac">MAC-cím másolása</string>
@@ -28,7 +27,7 @@
     <string name="refresh_found">Előfizetés megtalálva</string>
     <string name="refresh_none">Most hozzáadhatod az első lejátszási listádat.</string>
     <string name="refresh_error">A frissítés nem sikerült — próbáld újra</string>
-    <string name="qr_caption">Olvassa be a QR-kódot az eszköz aktiválási oldalának megnyitásához</string>
+    <string name="qr_caption">Olvassa be a QR-kódot az eszköz aktiválásához.</string>
     <string name="legal_player_only">A Castivio csak egy lejátszó, nem nyújt előfizetést vagy tartalmat.</string>
     <string name="mac_spoken">MAC-cím %s</string>
     <string name="language">Nyelv</string>
@@ -36,11 +35,11 @@
     <string name="language_close">Bezárás</string>
     <string name="language_back_hint">Vissza a bezáráshoz</string>
     <string name="language_selected">Kiválasztva</string>
-    <string name="activation_screen">Add hozzá az előfizetésed</string>
+    <string name="activation_screen">Lejátszási lista hozzáadása</string>
 
-    <plurals name="trial_days">
-        <item quantity="one">%d nap</item>
-        <item quantity="other">%d nap</item>
+    <plurals name="trial_badge">
+        <item quantity="one">%d napos próbaidőszak</item>
+        <item quantity="other">%d napos próbaidőszak</item>
     </plurals>
 
     <string name="locale_sentinel" translatable="false">hu</string>

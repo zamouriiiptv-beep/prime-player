@@ -51,7 +51,7 @@
     <string name="licence_valid_until">Balido hanggang %s</string>
     <string name="licence_retry">Subukan ulit</string>
     <string name="licence_support">Makipag-ugnayan sa support</string>
-    <string name="licence_qr_caption">I-scan ang QR code para buksan ang activation page ng device mo</string>
+    <string name="licence_qr_caption">I-scan ang QR code para i-activate ang device na ito.</string>
     <string name="licence_legal_title">Legal na impormasyon</string>
     <string name="licence_legal_link">Legal na Impormasyon</string>
     <string name="licence_legal_back_hint">Pindutin ang bumalik para isara</string>

@@ -14,8 +14,7 @@
   produces the wrong I in Turkish.
 -->
 <resources>
-    <string name="activation_title">Tambahkan langganan Anda</string>
-    <string name="trial_name">Uji coba Castivio</string>
+    <string name="activation_title">Menambahkan playlist</string>
     <string name="mac_label">ALAMAT MAC</string>
     <string name="key_label">KUNCI PERANGKAT</string>
     <string name="copy_mac">Salin alamat MAC</string>
@@ -28,7 +27,7 @@
     <string name="refresh_found">Langganan ditemukan</string>
     <string name="refresh_none">Sekarang Anda bisa menambahkan playlist pertama.</string>
     <string name="refresh_error">Gagal memuat ulang — coba lagi</string>
-    <string name="qr_caption">Pindai kode QR untuk membuka halaman aktivasi perangkat</string>
+    <string name="qr_caption">Pindai kode QR untuk mengaktifkan perangkat ini.</string>
     <string name="legal_player_only">Castivio hanya pemutar dan tidak menyediakan langganan atau konten.</string>
     <string name="mac_spoken">Alamat MAC %s</string>
     <string name="language">Bahasa</string>
@@ -36,10 +35,10 @@
     <string name="language_close">Tutup</string>
     <string name="language_back_hint">Kembali untuk menutup</string>
     <string name="language_selected">Dipilih</string>
-    <string name="activation_screen">Tambahkan langganan Anda</string>
+    <string name="activation_screen">Menambahkan playlist</string>
 
-    <plurals name="trial_days">
-        <item quantity="other">%d hari</item>
+    <plurals name="trial_badge">
+        <item quantity="other">Uji coba %d hari</item>
     </plurals>
 
     <string name="locale_sentinel" translatable="false">id</string>

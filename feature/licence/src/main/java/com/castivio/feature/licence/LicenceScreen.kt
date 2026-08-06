@@ -355,7 +355,10 @@ private fun Header(
             if (condition != null) {
                 val view = condition.view
                 StatusChip(
-                    label = stringResource(view.chip),
+                    // Plain text. The chip names a condition and has no number
+                    // in it to emphasise; the annotated type is the activation
+                    // screen's trial badge, which does.
+                    label = AnnotatedString(stringResource(view.chip)),
                     dot = when (view.tone) {
                         // The same brush the primary button is filled with. A
                         // trial is the one condition on this screen that is

@@ -14,8 +14,7 @@
   produces the wrong I in Turkish.
 -->
 <resources>
-    <string name="activation_title">Dodajte svoju pretplatu</string>
-    <string name="trial_name">Castivio probno razdoblje</string>
+    <string name="activation_title">Dodavanje playliste</string>
     <string name="mac_label">MAC ADRESA</string>
     <string name="key_label">KLJUČ UREĐAJA</string>
     <string name="copy_mac">Kopiraj MAC adresu</string>
@@ -28,7 +27,7 @@
     <string name="refresh_found">Pretplata pronađena</string>
     <string name="refresh_none">Sada možete dodati svoju prvu playlistu.</string>
     <string name="refresh_error">Osvježavanje nije uspjelo — pokušajte ponovno</string>
-    <string name="qr_caption">Skenirajte QR kôd da otvorite stranicu za aktivaciju uređaja</string>
+    <string name="qr_caption">Skenirajte QR kôd da biste aktivirali ovaj uređaj.</string>
     <string name="legal_player_only">Castivio je samo reproduktor i ne pruža pretplate ni sadržaj.</string>
     <string name="mac_spoken">MAC adresa %s</string>
     <string name="language">Jezik</string>
@@ -36,12 +35,12 @@
     <string name="language_close">Zatvori</string>
     <string name="language_back_hint">Natrag za zatvaranje</string>
     <string name="language_selected">Odabrano</string>
-    <string name="activation_screen">Dodajte svoju pretplatu</string>
+    <string name="activation_screen">Dodavanje playliste</string>
 
-    <plurals name="trial_days">
-        <item quantity="one">%d dan</item>
-        <item quantity="few">%d dana</item>
-        <item quantity="other">%d dana</item>
+    <plurals name="trial_badge">
+        <item quantity="one">Probno razdoblje od %d dan</item>
+        <item quantity="few">Probno razdoblje od %d dana</item>
+        <item quantity="other">Probno razdoblje od %d dana</item>
     </plurals>
 
     <string name="locale_sentinel" translatable="false">hr</string>

@@ -51,7 +51,7 @@
     <string name="licence_valid_until">صالح حتى %s</string>
     <string name="licence_retry">إعادة المحاولة</string>
     <string name="licence_support">تواصل مع الدعم</string>
-    <string name="licence_qr_caption">امسح رمز QR لفتح صفحة تفعيل جهازك</string>
+    <string name="licence_qr_caption">امسح رمز QR لتفعيل هذا الجهاز.</string>
     <string name="licence_legal_title">معلومات قانونية</string>
     <string name="licence_legal_link">معلومات قانونية</string>
     <string name="licence_legal_back_hint">عُد للإغلاق</string>

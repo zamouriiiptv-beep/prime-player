@@ -51,7 +51,7 @@
     <string name="licence_valid_until">Có hiệu lực đến %s</string>
     <string name="licence_retry">Thử lại</string>
     <string name="licence_support">Liên hệ hỗ trợ</string>
-    <string name="licence_qr_caption">Quét mã QR để mở trang kích hoạt thiết bị của bạn</string>
+    <string name="licence_qr_caption">Quét mã QR để kích hoạt thiết bị này.</string>
     <string name="licence_legal_title">Thông tin pháp lý</string>
     <string name="licence_legal_link">Thông tin pháp lý</string>
     <string name="licence_legal_back_hint">Nhấn quay lại để đóng</string>

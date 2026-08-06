@@ -80,7 +80,7 @@
     <string name="licence_retry">Retry</string>
     <string name="licence_support">Contact Support</string>
 
-    <string name="licence_qr_caption">Scan the QR code to open your device activation page</string>
+    <string name="licence_qr_caption">Scan the QR code to activate this device.</string>
 
     <!--
       The legal page, and the link that opens it.

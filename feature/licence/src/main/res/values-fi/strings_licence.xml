@@ -51,7 +51,7 @@
     <string name="licence_valid_until">Voimassa %s asti</string>
     <string name="licence_retry">Yritä uudelleen</string>
     <string name="licence_support">Ota yhteyttä tukeen</string>
-    <string name="licence_qr_caption">Skannaa QR-koodi avataksesi laitteen aktivointisivun</string>
+    <string name="licence_qr_caption">Aktivoi tämä laite skannaamalla QR-koodi.</string>
     <string name="licence_legal_title">Oikeudelliset tiedot</string>
     <string name="licence_legal_link">Oikeudelliset tiedot</string>
     <string name="licence_legal_back_hint">Takaisin sulkee</string>

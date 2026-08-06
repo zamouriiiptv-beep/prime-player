@@ -228,11 +228,17 @@ internal fun Metrics.identityHeight(): Dp {
  * fact about the current numbers, not a law, and a gate that only measured the
  * column would go on passing while the QR quietly overran.
  *
- * @param captionLines budgeted at two. The caption is a sentence at a fixed
- *   width, it wraps in most of the 37 languages, and budgeting for one line would
- *   be budgeting for English.
+ * @param captionLines budgeted at **three**, measured rather than reasoned. It
+ *   was two on the argument that the caption wraps in most of the 37 languages
+ *   and one line would be budgeting for English — true, and still a guess, and
+ *   it was a guess against the wrong sentence: the drawing carried *Scan to set
+ *   up on your phone* long after the screen had stopped saying it. With the
+ *   drawing and the resources finally holding the same words, `measure.js` puts
+ *   the worst case at three lines on the 800×360 frame in German, two on the
+ *   other two. The sibling screen budgets three for the same caption at the same
+ *   width, which it should, because it is the same caption at the same width.
  */
-internal fun Metrics.codeHeight(caption: Dp, captionLines: Int = 2): Dp =
+internal fun Metrics.codeHeight(caption: Dp, captionLines: Int = 3): Dp =
     plate + captionTop + caption * captionLines
 
 /** The two full-bleed rules that bracket the field band, at a pixel each. */
@@ -372,32 +378,43 @@ private fun Header(m: Metrics, tv: Boolean, trialDays: Int?, onOpenLanguage: () 
         )
         Box(Modifier.weight(1f))
 
-        // Castivio's trial, carrying Castivio's name. The word "subscription"
-        // belongs to the provider and is never used here: a screen that said
-        // "Add your subscription" beside "Your subscription: 7 days" would
-        // contradict itself.
+        // The trial, as one sentence rather than a name and a count.
+        //
+        // It used to be "Castivio trial" beside "7 days", two resources joined
+        // by the chip's own gap, and the name was there to stop the seven days
+        // being read as the provider's. "7-day trial" says the same thing in one
+        // clause and says nothing a provider could claim, so the name has no
+        // work left to do; the word "subscription" is still never used here.
+        //
+        // One resource also fixes what the two could not: the number does not
+        // come last in every language -- Japanese, Turkish and Finnish all put
+        // it inside -- so a label plus a trailing count was a word order this
+        // screen had chosen on English's behalf.
         //
         // The count comes from `EntitlementRepository` and is null until the
-        // sealed record has been read -- so the chip is absent for an instant
-        // rather than announcing a seven that might turn out to be a two. It was
-        // a hardcoded 7 until this commit, which is a number that would have been
-        // wrong on every launch after the first.
+        // sealed record has been read, so the chip is absent for an instant
+        // rather than announcing a seven that might turn out to be a two.
         if (trialDays != null) {
             // Quantity and argument are the same number, which is what a plural
             // resource needs: Arabic and Polish choose different forms for 1, 2,
             // a few and many, and a string built here would get all of that
             // wrong.
-            val days = androidx.compose.ui.res.pluralStringResource(
-                R.plurals.trial_days, trialDays, trialDays,
+            val badge = androidx.compose.ui.res.pluralStringResource(
+                R.plurals.trial_badge, trialDays, trialDays,
             )
             StatusChip(
-                label = stringResource(R.string.trial_name),
+                // Emphasised in place, and in the colour the count already had.
+                // `emphasiseNumber` finds the numeral in the formatted sentence
+                // rather than assuming where it fell, which is the whole reason
+                // the badge can be one string; carrying the primary with it is
+                // what stops a rewording from quietly removing the chip's only
+                // colour.
+                label = emphasiseNumber(badge, trialDays, colors.primary),
                 // The same brush the primary button is filled with, not a flat
                 // token that happens to be near it. Two blues that are almost
                 // the same is worse than one, and this dot and Add playlist are
                 // the only two primary-coloured things on the screen.
                 dot = colors.primaryBrush,
-                value = emphasiseNumber(days, trialDays),
             )
         }
 

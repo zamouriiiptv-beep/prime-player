@@ -14,8 +14,7 @@
   produces the wrong I in Turkish.
 -->
 <resources>
-    <string name="activation_title">구독 추가</string>
-    <string name="trial_name">Castivio 체험판</string>
+    <string name="activation_title">재생목록 추가하기</string>
     <string name="mac_label">MAC 주소</string>
     <string name="key_label">기기 키</string>
     <string name="copy_mac">MAC 주소 복사</string>
@@ -28,7 +27,7 @@
     <string name="refresh_found">구독을 찾았습니다</string>
     <string name="refresh_none">이제 첫 재생목록을 추가할 수 있습니다.</string>
     <string name="refresh_error">새로고침하지 못했습니다 — 다시 시도하세요</string>
-    <string name="qr_caption">QR 코드를 스캔하여 기기 활성화 페이지를 여세요</string>
+    <string name="qr_caption">QR 코드를 스캔하여 이 기기를 활성화하세요.</string>
     <string name="legal_player_only">Castivio는 플레이어일 뿐이며 구독이나 콘텐츠를 제공하지 않습니다.</string>
     <string name="mac_spoken">MAC 주소 %s</string>
     <string name="language">언어</string>
@@ -36,10 +35,10 @@
     <string name="language_close">닫기</string>
     <string name="language_back_hint">뒤로 눌러 닫기</string>
     <string name="language_selected">선택됨</string>
-    <string name="activation_screen">구독 추가</string>
+    <string name="activation_screen">재생목록 추가하기</string>
 
-    <plurals name="trial_days">
-        <item quantity="other">%d일</item>
+    <plurals name="trial_badge">
+        <item quantity="other">%d일 체험판</item>
     </plurals>
 
     <string name="locale_sentinel" translatable="false">ko</string>

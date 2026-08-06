@@ -51,7 +51,7 @@
     <string name="licence_valid_until">%s तक वैध</string>
     <string name="licence_retry">फिर कोशिश करें</string>
     <string name="licence_support">सहायता से संपर्क करें</string>
-    <string name="licence_qr_caption">डिवाइस ऐक्टिवेशन पेज खोलने के लिए QR कोड स्कैन करें</string>
+    <string name="licence_qr_caption">इस डिवाइस को चालू करने के लिए QR कोड स्कैन करें।</string>
     <string name="licence_legal_title">कानूनी जानकारी</string>
     <string name="licence_legal_link">कानूनी जानकारी</string>
     <string name="licence_legal_back_hint">बंद करने के लिए बैक दबाएँ</string>

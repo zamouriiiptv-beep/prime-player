@@ -14,8 +14,7 @@
   produces the wrong I in Turkish.
 -->
 <resources>
-    <string name="activation_title">Idagdag ang iyong subscription</string>
-    <string name="trial_name">Pagsubok ng Castivio</string>
+    <string name="activation_title">Pagdagdag ng playlist</string>
     <string name="mac_label">MAC ADDRESS</string>
     <string name="key_label">DEVICE KEY</string>
     <string name="copy_mac">Kopyahin ang MAC address</string>
@@ -28,7 +27,7 @@
     <string name="refresh_found">May nakitang subscription</string>
     <string name="refresh_none">Puwede mo nang idagdag ang una mong playlist.</string>
     <string name="refresh_error">Hindi na-refresh — subukan ulit</string>
-    <string name="qr_caption">I-scan ang QR code para buksan ang activation page ng device mo</string>
+    <string name="qr_caption">I-scan ang QR code para i-activate ang device na ito.</string>
     <string name="legal_player_only">Ang Castivio ay player lamang at hindi nagbibigay ng subscription o nilalaman.</string>
     <string name="mac_spoken">MAC address %s</string>
     <string name="language">Wika</string>
@@ -36,11 +35,11 @@
     <string name="language_close">Isara</string>
     <string name="language_back_hint">Bumalik para isara</string>
     <string name="language_selected">Napili</string>
-    <string name="activation_screen">Idagdag ang iyong subscription</string>
+    <string name="activation_screen">Pagdagdag ng playlist</string>
 
-    <plurals name="trial_days">
-        <item quantity="one">%d araw</item>
-        <item quantity="other">%d na araw</item>
+    <plurals name="trial_badge">
+        <item quantity="one">Pagsubok nang %d araw</item>
+        <item quantity="other">Pagsubok nang %d na araw</item>
     </plurals>
 
     <string name="locale_sentinel" translatable="false">fil</string>

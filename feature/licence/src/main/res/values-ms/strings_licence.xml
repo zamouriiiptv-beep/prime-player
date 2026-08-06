@@ -51,7 +51,7 @@
     <string name="licence_valid_until">Sah sehingga %s</string>
     <string name="licence_retry">Cuba lagi</string>
     <string name="licence_support">Hubungi sokongan</string>
-    <string name="licence_qr_caption">Imbas kod QR untuk membuka halaman pengaktifan peranti anda</string>
+    <string name="licence_qr_caption">Imbas kod QR untuk mengaktifkan peranti ini.</string>
     <string name="licence_legal_title">Maklumat undang-undang</string>
     <string name="licence_legal_link">Maklumat Undang-undang</string>
     <string name="licence_legal_back_hint">Kembali untuk menutup</string>

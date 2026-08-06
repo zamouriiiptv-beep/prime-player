@@ -14,8 +14,7 @@
   produces the wrong I in Turkish.
 -->
 <resources>
-    <string name="activation_title">เพิ่มการสมัครสมาชิกของคุณ</string>
-    <string name="trial_name">ทดลองใช้ Castivio</string>
+    <string name="activation_title">เพิ่มเพลย์ลิสต์</string>
     <string name="mac_label">ที่อยู่ MAC</string>
     <string name="key_label">คีย์อุปกรณ์</string>
     <string name="copy_mac">คัดลอกที่อยู่ MAC</string>
@@ -28,7 +27,7 @@
     <string name="refresh_found">พบการสมัครสมาชิก</string>
     <string name="refresh_none">ตอนนี้คุณเพิ่มเพลย์ลิสต์แรกได้แล้ว</string>
     <string name="refresh_error">รีเฟรชไม่สำเร็จ — ลองอีกครั้ง</string>
-    <string name="qr_caption">สแกนคิวอาร์โค้ดเพื่อเปิดหน้าเปิดใช้งานอุปกรณ์</string>
+    <string name="qr_caption">สแกนคิวอาร์โค้ดเพื่อเปิดใช้งานอุปกรณ์นี้</string>
     <string name="legal_player_only">Castivio เป็นเพียงโปรแกรมเล่นเท่านั้น ไม่ได้ให้บริการสมัครสมาชิกหรือเนื้อหา</string>
     <string name="mac_spoken">ที่อยู่ MAC %s</string>
     <string name="language">ภาษา</string>
@@ -36,10 +35,10 @@
     <string name="language_close">ปิด</string>
     <string name="language_back_hint">กดย้อนกลับเพื่อปิด</string>
     <string name="language_selected">เลือกอยู่</string>
-    <string name="activation_screen">เพิ่มการสมัครสมาชิกของคุณ</string>
+    <string name="activation_screen">เพิ่มเพลย์ลิสต์</string>
 
-    <plurals name="trial_days">
-        <item quantity="other">%d วัน</item>
+    <plurals name="trial_badge">
+        <item quantity="other">ทดลองใช้ %d วัน</item>
     </plurals>
 
     <string name="locale_sentinel" translatable="false">th</string>

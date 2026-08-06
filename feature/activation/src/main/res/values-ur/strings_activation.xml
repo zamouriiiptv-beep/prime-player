@@ -14,8 +14,7 @@
   produces the wrong I in Turkish.
 -->
 <resources>
-    <string name="activation_title">اپنی سبسکرپشن شامل کریں</string>
-    <string name="trial_name">Castivio آزمائشی مدت</string>
+    <string name="activation_title">پلے لسٹ شامل کرنا</string>
     <string name="mac_label">MAC پتہ</string>
     <string name="key_label">ڈیوائس کلید</string>
     <string name="copy_mac">MAC پتہ کاپی کریں</string>
@@ -28,7 +27,7 @@
     <string name="refresh_found">سبسکرپشن مل گئی</string>
     <string name="refresh_none">اب آپ اپنی پہلی پلے لسٹ شامل کر سکتے ہیں۔</string>
     <string name="refresh_error">تازہ نہیں ہو سکا — دوبارہ کوشش کریں</string>
-    <string name="qr_caption">ڈیوائس ایکٹیویشن پیج کھولنے کے لیے QR کوڈ اسکین کریں</string>
+    <string name="qr_caption">اس ڈیوائس کو فعال کرنے کے لیے QR کوڈ اسکین کریں۔</string>
     <string name="legal_player_only">Castivio صرف ایک پلیئر ہے اور سبسکرپشن یا مواد فراہم نہیں کرتا۔</string>
     <string name="mac_spoken">MAC پتہ %s</string>
     <string name="language">زبان</string>
@@ -36,11 +35,11 @@
     <string name="language_close">بند کریں</string>
     <string name="language_back_hint">بند کرنے کے لیے واپس</string>
     <string name="language_selected">منتخب</string>
-    <string name="activation_screen">اپنی سبسکرپشن شامل کریں</string>
+    <string name="activation_screen">پلے لسٹ شامل کرنا</string>
 
-    <plurals name="trial_days">
-        <item quantity="one">%d دن</item>
-        <item quantity="other">%d دن</item>
+    <plurals name="trial_badge">
+        <item quantity="one">%d دن کا ٹرائل</item>
+        <item quantity="other">%d دن کا ٹرائل</item>
     </plurals>
 
     <string name="locale_sentinel" translatable="false">ur</string>

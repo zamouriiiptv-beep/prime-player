@@ -14,8 +14,7 @@
   produces the wrong I in Turkish.
 -->
 <resources>
-    <string name="activation_title">Pridajte svoje predplatné</string>
-    <string name="trial_name">Skúšobná verzia Castivio</string>
+    <string name="activation_title">Pridanie playlistu</string>
     <string name="mac_label">MAC ADRESA</string>
     <string name="key_label">KĽÚČ ZARIADENIA</string>
     <string name="copy_mac">Kopírovať MAC adresu</string>
@@ -28,7 +27,7 @@
     <string name="refresh_found">Predplatné nájdené</string>
     <string name="refresh_none">Teraz môžete pridať svoj prvý playlist.</string>
     <string name="refresh_error">Obnovenie zlyhalo — skúste to znova</string>
-    <string name="qr_caption">Naskenujte QR kód a otvorte aktivačnú stránku zariadenia</string>
+    <string name="qr_caption">Naskenujte QR kód a aktivujte toto zariadenie.</string>
     <string name="legal_player_only">Castivio je len prehrávač a neposkytuje predplatné ani obsah.</string>
     <string name="mac_spoken">MAC adresa %s</string>
     <string name="language">Jazyk</string>
@@ -36,13 +35,13 @@
     <string name="language_close">Zavrieť</string>
     <string name="language_back_hint">Späť pre zatvorenie</string>
     <string name="language_selected">Vybrané</string>
-    <string name="activation_screen">Pridajte svoje predplatné</string>
+    <string name="activation_screen">Pridanie playlistu</string>
 
-    <plurals name="trial_days">
-        <item quantity="one">%d deň</item>
-        <item quantity="few">%d dni</item>
-        <item quantity="many">%d dňa</item>
-        <item quantity="other">%d dní</item>
+    <plurals name="trial_badge">
+        <item quantity="one">Skúšobná verzia na %d deň</item>
+        <item quantity="few">Skúšobná verzia na %d dni</item>
+        <item quantity="many">Skúšobná verzia na %d dňa</item>
+        <item quantity="other">Skúšobná verzia na %d dní</item>
     </plurals>
 
     <string name="locale_sentinel" translatable="false">sk</string>

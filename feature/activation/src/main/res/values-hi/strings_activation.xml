@@ -14,8 +14,7 @@
   produces the wrong I in Turkish.
 -->
 <resources>
-    <string name="activation_title">अपनी सदस्यता जोड़ें</string>
-    <string name="trial_name">Castivio परीक्षण</string>
+    <string name="activation_title">प्लेलिस्ट जोड़ना</string>
     <string name="mac_label">MAC पता</string>
     <string name="key_label">डिवाइस कुंजी</string>
     <string name="copy_mac">MAC पता कॉपी करें</string>
@@ -28,7 +27,7 @@
     <string name="refresh_found">सदस्यता मिल गई</string>
     <string name="refresh_none">अब आप अपनी पहली प्लेलिस्ट जोड़ सकते हैं।</string>
     <string name="refresh_error">ताज़ा नहीं हो सका — फिर कोशिश करें</string>
-    <string name="qr_caption">डिवाइस ऐक्टिवेशन पेज खोलने के लिए QR कोड स्कैन करें</string>
+    <string name="qr_caption">इस डिवाइस को चालू करने के लिए QR कोड स्कैन करें।</string>
     <string name="legal_player_only">Castivio केवल एक प्लेयर है और सदस्यता या सामग्री प्रदान नहीं करता।</string>
     <string name="mac_spoken">MAC पता %s</string>
     <string name="language">भाषा</string>
@@ -36,11 +35,11 @@
     <string name="language_close">बंद करें</string>
     <string name="language_back_hint">बंद करने के लिए वापस</string>
     <string name="language_selected">चयनित</string>
-    <string name="activation_screen">अपनी सदस्यता जोड़ें</string>
+    <string name="activation_screen">प्लेलिस्ट जोड़ना</string>
 
-    <plurals name="trial_days">
-        <item quantity="one">%d दिन</item>
-        <item quantity="other">%d दिन</item>
+    <plurals name="trial_badge">
+        <item quantity="one">%d दिन का ट्रायल</item>
+        <item quantity="other">%d दिन का ट्रायल</item>
     </plurals>
 
     <string name="locale_sentinel" translatable="false">hi</string>

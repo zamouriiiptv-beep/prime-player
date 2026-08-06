@@ -14,8 +14,7 @@
   produces the wrong I in Turkish.
 -->
 <resources>
-    <string name="activation_title">Shtoni abonimin tuaj</string>
-    <string name="trial_name">Provë e Castivio</string>
+    <string name="activation_title">Shtimi i një liste luajtjeje</string>
     <string name="mac_label">ADRESA MAC</string>
     <string name="key_label">ÇELËSI I PAJISJES</string>
     <string name="copy_mac">Kopjo adresën MAC</string>
@@ -28,7 +27,7 @@
     <string name="refresh_found">U gjet abonim</string>
     <string name="refresh_none">Tani mund të shtoni listën tuaj të parë të luajtjes.</string>
     <string name="refresh_error">Rifreskimi dështoi — provoni sërish</string>
-    <string name="qr_caption">Skanoni kodin QR për të hapur faqen e aktivizimit të pajisjes</string>
+    <string name="qr_caption">Skanoni kodin QR për ta aktivizuar këtë pajisje.</string>
     <string name="legal_player_only">Castivio është vetëm një luajtës dhe nuk ofron abonime apo përmbajtje.</string>
     <string name="mac_spoken">Adresa MAC %s</string>
     <string name="language">Gjuha</string>
@@ -36,11 +35,11 @@
     <string name="language_close">Mbyll</string>
     <string name="language_back_hint">Prapa për ta mbyllur</string>
     <string name="language_selected">E zgjedhur</string>
-    <string name="activation_screen">Shtoni abonimin tuaj</string>
+    <string name="activation_screen">Shtimi i një liste luajtjeje</string>
 
-    <plurals name="trial_days">
-        <item quantity="one">%d ditë</item>
-        <item quantity="other">%d ditë</item>
+    <plurals name="trial_badge">
+        <item quantity="one">Provë %d ditë</item>
+        <item quantity="other">Provë %d ditë</item>
     </plurals>
 
     <string name="locale_sentinel" translatable="false">sq</string>

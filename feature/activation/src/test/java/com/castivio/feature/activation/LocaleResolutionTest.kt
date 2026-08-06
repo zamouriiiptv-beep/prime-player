@@ -161,7 +161,7 @@ class LocaleResolutionTest {
     fun `every locale can render every string on the screen`() {
         val context: Context = RuntimeEnvironment.getApplication()
         val keys = listOf(
-            R.string.activation_title, R.string.trial_name, R.string.mac_label,
+            R.string.activation_title, R.string.mac_label,
             R.string.key_label, R.string.copy_mac, R.string.copy_key,
             R.string.copied_mac, R.string.copied_key, R.string.add_playlist,
             R.string.refresh, R.string.refresh_checking, R.string.refresh_found,
@@ -182,8 +182,8 @@ class LocaleResolutionTest {
                     }
                 }
                 // A plural must produce something for the count the trial uses.
-                if (localised.resources.getQuantityString(R.plurals.trial_days, 7, 7).isBlank()) {
-                    empty += "${variant.tag}/trial_days"
+                if (localised.resources.getQuantityString(R.plurals.trial_badge, 7, 7).isBlank()) {
+                    empty += "${variant.tag}/trial_badge"
                 }
             }
         }

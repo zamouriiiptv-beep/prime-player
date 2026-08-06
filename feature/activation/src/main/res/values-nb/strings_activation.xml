@@ -14,8 +14,7 @@
   produces the wrong I in Turkish.
 -->
 <resources>
-    <string name="activation_title">Legg til abonnementet ditt</string>
-    <string name="trial_name">Castivio-prøveperiode</string>
+    <string name="activation_title">Legg til en spilleliste</string>
     <string name="mac_label">MAC-ADRESSE</string>
     <string name="key_label">ENHETSNØKKEL</string>
     <string name="copy_mac">Kopier MAC-adressen</string>
@@ -28,7 +27,7 @@
     <string name="refresh_found">Abonnement funnet</string>
     <string name="refresh_none">Nå kan du legge til den første spillelisten din.</string>
     <string name="refresh_error">Kunne ikke oppdatere — prøv igjen</string>
-    <string name="qr_caption">Skann QR-koden for å åpne aktiveringssiden for enheten</string>
+    <string name="qr_caption">Skann QR-koden for å aktivere denne enheten.</string>
     <string name="legal_player_only">Castivio er bare en spiller og tilbyr ikke abonnementer eller innhold.</string>
     <string name="mac_spoken">MAC-adresse %s</string>
     <string name="language">Språk</string>
@@ -36,11 +35,11 @@
     <string name="language_close">Lukk</string>
     <string name="language_back_hint">Tilbake for å lukke</string>
     <string name="language_selected">Valgt</string>
-    <string name="activation_screen">Legg til abonnementet ditt</string>
+    <string name="activation_screen">Legg til en spilleliste</string>
 
-    <plurals name="trial_days">
-        <item quantity="one">%d dag</item>
-        <item quantity="other">%d dager</item>
+    <plurals name="trial_badge">
+        <item quantity="one">Prøveperiode på %d dag</item>
+        <item quantity="other">Prøveperiode på %d dager</item>
     </plurals>
 
     <string name="locale_sentinel" translatable="false">nb</string>

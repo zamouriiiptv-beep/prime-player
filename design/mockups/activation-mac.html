@@ -200,7 +200,7 @@ html[dir="rtl"] .backdrop{
    typed -- a middle dot between "Castivio" and an Arabic-Indic numeral is a
    neutral the bidi algorithm may place on the far side of the digit, which it
    did. A shape in a flex gap has no direction to resolve. */
-.trial{display:flex;align-items:center;gap:9px;white-space:nowrap;flex:0 0 auto;
+.trial{display:flex;align-items:center;gap:8px;white-space:nowrap;flex:0 0 auto;
   color:var(--silver);font-weight:500}
 .trial .dot{width:5px;height:5px;border-radius:50%;background:var(--violet50);flex:0 0 auto;
   box-shadow:0 0 10px rgba(155,107,255,.85)}
@@ -381,7 +381,7 @@ html[data-spec="1"] .spec{display:block}
       <div class="head">
         <h1 class="t-headline-m" data-s="title"></h1>
         <span class="spacer"></span>
-        <span class="trial t-body-m"><i class="dot"></i><span data-s="trialName"></span><span class="days" data-s="trialDays"></span></span>
+        <span class="trial t-body-m"><i class="dot"></i><span data-s="trialBadge" data-badge></span></span>
         <span class="lang" data-globe data-target="48" data-s="lang"></span>
       </div>
       <div class="rule"></div>
@@ -446,7 +446,7 @@ html[data-spec="1"] .spec{display:block}
       <div class="head">
         <h1 class="t-headline-m" data-s="title"></h1>
         <span class="spacer"></span>
-        <span class="trial t-body-m"><i class="dot"></i><span data-s="trialName"></span><span class="days" data-s="trialDays"></span></span>
+        <span class="trial t-body-m"><i class="dot"></i><span data-s="trialBadge" data-badge></span></span>
         <span class="lang" data-globe data-target="48" data-s="lang"></span>
       </div>
       <div class="rule"></div>
@@ -508,7 +508,7 @@ html[data-spec="1"] .spec{display:block}
     <div class="head">
       <h1 class="t-headline-l" data-s="title"></h1>
       <span class="spacer"></span>
-      <span class="trial t-body-m"><i class="dot"></i><span data-s="trialName"></span><span class="days" data-s="trialDays"></span></span>
+      <span class="trial t-body-m"><i class="dot"></i><span data-s="trialBadge" data-badge></span></span>
       <span class="lang" data-globe data-target="56" data-s="lang"></span>
     </div>
     <div class="rule"></div>
@@ -562,83 +562,83 @@ html[data-spec="1"] .spec{display:block}
    real portal URL, which is recorded as a gate in design/activation-spec.md.
    ------------------------------------------------------------------------ */
 var S = {
-  en: { dir:"ltr", lang:"English", title:"Add your subscription",
-        trialName:"Castivio trial", trialDays:"7 days", macLabel:"MAC address",
+  en: { dir:"ltr", lang:"English", title:"Add a playlist",
+        trialBadge:"7-day trial", macLabel:"MAC address",
         add:"Add playlist", refresh:"Refresh", copy:"Copy", copied:"Copied",
-        keyLabel:"Device key", qr:"Scan to set up on your phone",
+        keyLabel:"Device key", qr:"Scan the QR code to activate this device.",
         checking:"Checking…", found:"Playlist found", none:"You can now add your first playlist.",
         error:"Couldn’t refresh — try again",
         copiedMac:"MAC address copied", copiedKey:"Device key copied",
         footer:"Castivio is only a player and does not provide subscriptions or content." },
 
-  ar: { dir:"rtl", lang:"العربية", title:"أضف اشتراكك",
-        trialName:"تجربة Castivio", trialDays:"٧ أيام", macLabel:"عنوان MAC",
+  ar: { dir:"rtl", lang:"العربية", title:"إضافة قائمة تشغيل",
+        trialBadge:"نسخة تجريبية لمدة ٧ أيام", macLabel:"عنوان MAC",
         add:"إضافة قائمة تشغيل", refresh:"تحديث", copy:"نسخ", copied:"تم النسخ",
-        keyLabel:"مفتاح الجهاز", qr:"امسح لإكمال الإعداد من هاتفك",
+        keyLabel:"مفتاح الجهاز", qr:"امسح رمز QR لتفعيل هذا الجهاز.",
         checking:"جارٍ التحقّق…", found:"تم العثور على قائمة التشغيل", none:"يمكنك الآن إضافة قائمة التشغيل الأولى.",
         error:"تعذّر التحديث — أعد المحاولة",
         copiedMac:"تم نسخ عنوان MAC", copiedKey:"تم نسخ مفتاح الجهاز",
         footer:"Castivio مشغّل فقط ولا يوفّر اشتراكات أو محتوى." },
 
-  de: { dir:"ltr", lang:"Deutsch", title:"Abonnement hinzufügen",
-        trialName:"Castivio-Testphase", trialDays:"7 Tage", macLabel:"MAC-Adresse",
+  de: { dir:"ltr", lang:"Deutsch", title:"Playlist hinzufügen",
+        trialBadge:"Testversion für 7 Tage", macLabel:"MAC-Adresse",
         add:"Wiedergabeliste hinzufügen", refresh:"Aktualisieren",
         copy:"Kopieren", copied:"Kopiert",
-        keyLabel:"Geräteschlüssel", qr:"Scannen und am Telefon einrichten",
+        keyLabel:"Geräteschlüssel", qr:"Scannen Sie den QR-Code, um dieses Gerät zu aktivieren.",
         checking:"Wird geprüft…", found:"Wiedergabeliste gefunden", none:"Du kannst jetzt deine erste Playlist hinzufügen.",
         error:"Aktualisierung fehlgeschlagen — erneut versuchen",
         copiedMac:"MAC-Adresse kopiert", copiedKey:"Geräteschlüssel kopiert",
         footer:"Castivio ist nur ein Player und bietet keine Abonnements oder Inhalte an." },
 
-  fi: { dir:"ltr", lang:"Suomi", title:"Lisää tilauksesi",
-        trialName:"Castivio-kokeilu", trialDays:"7 päivää", macLabel:"MAC-osoite",
+  fi: { dir:"ltr", lang:"Suomi", title:"Soittolistan lisääminen",
+        trialBadge:"7 päivän kokeilu", macLabel:"MAC-osoite",
         add:"Lisää soittolista", refresh:"Päivitä", copy:"Kopioi", copied:"Kopioitu",
-        keyLabel:"Laiteavain", qr:"Skannaa ja tee asetukset puhelimella",
+        keyLabel:"Laiteavain", qr:"Aktivoi tämä laite skannaamalla QR-koodi.",
         checking:"Tarkistetaan…", found:"Soittolista löytyi", none:"Voit nyt lisätä ensimmäisen soittolistasi.",
         error:"Päivitys epäonnistui — yritä uudelleen",
         copiedMac:"MAC-osoite kopioitu", copiedKey:"Laiteavain kopioitu",
         footer:"Castivio on vain soitin eikä tarjoa tilauksia tai sisältöä." },
 
-  th: { dir:"ltr", lang:"ไทย", title:"เพิ่มการสมัครสมาชิกของคุณ",
-        trialName:"ทดลองใช้ Castivio", trialDays:"7 วัน", macLabel:"ที่อยู่ MAC",
+  th: { dir:"ltr", lang:"ไทย", title:"เพิ่มเพลย์ลิสต์",
+        trialBadge:"ทดลองใช้ 7 วัน", macLabel:"ที่อยู่ MAC",
         add:"เพิ่มเพลย์ลิสต์", refresh:"รีเฟรช", copy:"คัดลอก", copied:"คัดลอกแล้ว",
-        keyLabel:"คีย์อุปกรณ์", qr:"สแกนเพื่อตั้งค่าบนโทรศัพท์ของคุณ",
+        keyLabel:"คีย์อุปกรณ์", qr:"สแกนคิวอาร์โค้ดเพื่อเปิดใช้งานอุปกรณ์นี้",
         checking:"กำลังตรวจสอบ…", found:"พบเพลย์ลิสต์แล้ว", none:"ตอนนี้คุณเพิ่มเพลย์ลิสต์แรกได้แล้ว",
         error:"รีเฟรชไม่สำเร็จ — ลองอีกครั้ง",
         copiedMac:"คัดลอกที่อยู่ MAC แล้ว", copiedKey:"คัดลอกคีย์อุปกรณ์แล้ว",
         footer:"Castivio เป็นเพียงโปรแกรมเล่นเท่านั้น ไม่ได้ให้บริการสมัครสมาชิกหรือเนื้อหา" },
 
-  hi: { dir:"ltr", lang:"हिन्दी", title:"अपनी सदस्यता जोड़ें",
-        trialName:"Castivio परीक्षण", trialDays:"7 दिन", macLabel:"MAC पता",
+  hi: { dir:"ltr", lang:"हिन्दी", title:"प्लेलिस्ट जोड़ना",
+        trialBadge:"7 दिन का ट्रायल", macLabel:"MAC पता",
         add:"प्लेलिस्ट जोड़ें", refresh:"रिफ़्रेश करें", copy:"कॉपी", copied:"कॉपी हो गया",
-        keyLabel:"डिवाइस कुंजी", qr:"अपने फ़ोन पर सेटअप करने के लिए स्कैन करें",
+        keyLabel:"डिवाइस कुंजी", qr:"इस डिवाइस को चालू करने के लिए QR कोड स्कैन करें।",
         checking:"जाँच हो रही है…", found:"प्लेलिस्ट मिल गई", none:"अब आप अपनी पहली प्लेलिस्ट जोड़ सकते हैं।",
         error:"रिफ़्रेश नहीं हो सका — फिर कोशिश करें",
         copiedMac:"MAC पता कॉपी हुआ", copiedKey:"डिवाइस कुंजी कॉपी हुई",
         footer:"Castivio केवल एक प्लेयर है और सदस्यता या सामग्री प्रदान नहीं करता।" },
 
-  bn: { dir:"ltr", lang:"বাংলা", title:"আপনার সাবস্ক্রিপশন যোগ করুন",
-        trialName:"Castivio ট্রায়াল", trialDays:"৭ দিন", macLabel:"MAC ঠিকানা",
+  bn: { dir:"ltr", lang:"বাংলা", title:"প্লেলিস্ট যোগ করা",
+        trialBadge:"৭ দিনের ট্রায়াল", macLabel:"MAC ঠিকানা",
         add:"প্লেলিস্ট যোগ করুন", refresh:"রিফ্রেশ", copy:"কপি", copied:"কপি হয়েছে",
-        keyLabel:"ডিভাইস কী", qr:"আপনার ফোনে সেটআপ করতে স্ক্যান করুন",
+        keyLabel:"ডিভাইস কী", qr:"এই ডিভাইসটি সক্রিয় করতে QR কোড স্ক্যান করুন।",
         checking:"পরীক্ষা করা হচ্ছে…", found:"প্লেলিস্ট পাওয়া গেছে", none:"এখন আপনি আপনার প্রথম প্লেলিস্ট যোগ করতে পারেন।",
         error:"রিফ্রেশ করা যায়নি — আবার চেষ্টা করুন",
         copiedMac:"MAC ঠিকানা কপি হয়েছে", copiedKey:"ডিভাইস কী কপি হয়েছে",
         footer:"Castivio শুধুমাত্র একটি প্লেয়ার এবং কোনো সাবস্ক্রিপশন বা কনটেন্ট সরবরাহ করে না।" },
 
-  ja: { dir:"ltr", lang:"日本語", title:"サブスクリプションを追加",
-        trialName:"Castivio 体験版", trialDays:"7日", macLabel:"MAC アドレス",
+  ja: { dir:"ltr", lang:"日本語", title:"プレイリストの追加",
+        trialBadge:"7日間の試用", macLabel:"MAC アドレス",
         add:"プレイリストを追加", refresh:"更新", copy:"コピー", copied:"コピーしました",
-        keyLabel:"デバイスキー", qr:"スキャンしてスマートフォンで設定",
+        keyLabel:"デバイスキー", qr:"QRコードをスキャンしてこの端末を有効化してください。",
         checking:"確認中…", found:"プレイリストが見つかりました", none:"最初のプレイリストを追加できます。",
         error:"更新できませんでした — 再試行してください",
         copiedMac:"MAC アドレスをコピーしました", copiedKey:"デバイスキーをコピーしました",
         footer:"Castivio はプレーヤーのみを提供し、サブスクリプションやコンテンツは提供しません。" },
 
-  zh: { dir:"ltr", lang:"简体中文", title:"添加您的订阅",
-        trialName:"Castivio 试用", trialDays:"7 天", macLabel:"MAC 地址",
+  zh: { dir:"ltr", lang:"简体中文", title:"添加播放列表",
+        trialBadge:"7 天试用", macLabel:"MAC 地址",
         add:"添加播放列表", refresh:"刷新", copy:"复制", copied:"已复制",
-        keyLabel:"设备密钥", qr:"扫码在手机上完成设置",
+        keyLabel:"设备密钥", qr:"扫描二维码以激活此设备。",
         checking:"正在检查…", found:"已找到播放列表", none:"现在可以添加你的第一个播放列表了。",
         error:"刷新失败 — 请重试",
         copiedMac:"已复制 MAC 地址", copiedKey:"已复制设备密钥",
@@ -769,7 +769,13 @@ var ICON = {
     // "undefined" -- text, so nothing downstream notices. It happened once: a
     // whole button rendered blank and every check still passed.
     var text = key in s ? s[key] : (key in S.en ? S.en[key] : "⟨" + key + "⟩");
-    if (n.hasAttribute("data-globe")) n.innerHTML = ICON.globe + "<span>" + text + "</span>";
+    if (n.hasAttribute("data-badge")) {
+      n.innerHTML = text.replace(
+        /[0-9\u0660-\u0669\u06F0-\u06F9\u09E6-\u09EF\u0E50-\u0E59]+/,
+        function (d) { return '<b class="days">' + d + "</b>"; },
+      );
+    }
+    else if (n.hasAttribute("data-globe")) n.innerHTML = ICON.globe + "<span>" + text + "</span>";
     else if (n.hasAttribute("data-refresh")) {
       if (state !== "checking") n.innerHTML = ICON.refresh + "<span>" + text + "</span>";
     }

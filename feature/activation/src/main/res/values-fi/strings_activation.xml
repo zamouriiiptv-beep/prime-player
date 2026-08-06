@@ -14,8 +14,7 @@
   produces the wrong I in Turkish.
 -->
 <resources>
-    <string name="activation_title">Lisää tilauksesi</string>
-    <string name="trial_name">Castivio-kokeilujakso</string>
+    <string name="activation_title">Soittolistan lisääminen</string>
     <string name="mac_label">MAC-OSOITE</string>
     <string name="key_label">LAITEAVAIN</string>
     <string name="copy_mac">Kopioi MAC-osoite</string>
@@ -28,7 +27,7 @@
     <string name="refresh_found">Tilaus löytyi</string>
     <string name="refresh_none">Voit nyt lisätä ensimmäisen soittolistasi.</string>
     <string name="refresh_error">Päivitys epäonnistui — yritä uudelleen</string>
-    <string name="qr_caption">Skannaa QR-koodi avataksesi laitteen aktivointisivun</string>
+    <string name="qr_caption">Aktivoi tämä laite skannaamalla QR-koodi.</string>
     <string name="legal_player_only">Castivio on vain soitin eikä tarjoa tilauksia tai sisältöä.</string>
     <string name="mac_spoken">MAC-osoite %s</string>
     <string name="language">Kieli</string>
@@ -36,11 +35,11 @@
     <string name="language_close">Sulje</string>
     <string name="language_back_hint">Sulje takaisin-painikkeella</string>
     <string name="language_selected">Valittu</string>
-    <string name="activation_screen">Lisää tilauksesi</string>
+    <string name="activation_screen">Soittolistan lisääminen</string>
 
-    <plurals name="trial_days">
-        <item quantity="one">%d päivä</item>
-        <item quantity="other">%d päivää</item>
+    <plurals name="trial_badge">
+        <item quantity="one">%d päivän kokeilu</item>
+        <item quantity="other">%d päivän kokeilu</item>
     </plurals>
 
     <string name="locale_sentinel" translatable="false">fi</string>

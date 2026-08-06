@@ -51,7 +51,7 @@
     <string name="licence_valid_until">E vlefshme deri më %s</string>
     <string name="licence_retry">Riprovo</string>
     <string name="licence_support">Kontaktoni mbështetjen</string>
-    <string name="licence_qr_caption">Skanoni kodin QR për të hapur faqen e aktivizimit të pajisjes</string>
+    <string name="licence_qr_caption">Skanoni kodin QR për ta aktivizuar këtë pajisje.</string>
     <string name="licence_legal_title">Informacione ligjore</string>
     <string name="licence_legal_link">Informacione ligjore</string>
     <string name="licence_legal_back_hint">Prapa për ta mbyllur</string>

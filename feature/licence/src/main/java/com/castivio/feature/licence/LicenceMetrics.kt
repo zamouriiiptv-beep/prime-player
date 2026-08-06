@@ -244,8 +244,13 @@ internal fun LicenceMetrics.columnHeight(name: Dp): Dp =
  *   on the argument that the caption wraps in most of the 37 languages and one
  *   line would be budgeting for English — right as far as it went, and still a
  *   guess. The mockup was asked: the caption takes three lines on both phone
- *   frames, German on the reference one and English on the tight one. Two was
- *   the same class of mistake in a smaller size.
+ *   frames, German on each, and two on the television. Two was the same class of
+ *   mistake in a smaller size.
+ *
+ *   Re-measured when the caption shortened to *Scan the QR code to activate this
+ *   device.* — the worst case is still three, so the number stands. Worth
+ *   restating that it was checked: a budget nobody re-measures after the text
+ *   changes is a number that used to be true.
  */
 internal fun LicenceMetrics.codeHeight(caption: Dp, captionLines: Int = 3): Dp =
     plate + captionTop + caption * captionLines

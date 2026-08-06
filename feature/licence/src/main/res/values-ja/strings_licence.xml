@@ -51,7 +51,7 @@
     <string name="licence_valid_until">%s まで有効</string>
     <string name="licence_retry">再試行</string>
     <string name="licence_support">サポートに連絡</string>
-    <string name="licence_qr_caption">QR コードをスキャンして、この端末のアクティベーションページを開きます</string>
+    <string name="licence_qr_caption">QRコードをスキャンしてこの端末を有効化してください。</string>
     <string name="licence_legal_title">法的情報</string>
     <string name="licence_legal_link">法的情報</string>
     <string name="licence_legal_back_hint">戻るで閉じます</string>

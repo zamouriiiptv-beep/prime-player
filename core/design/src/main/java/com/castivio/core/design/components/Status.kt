@@ -27,7 +27,6 @@ import androidx.compose.ui.unit.dp
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Radius
-import com.castivio.core.design.theme.Spacing
 import java.util.Locale
 
 /**
@@ -52,26 +51,33 @@ import java.util.Locale
 /**
  * The header's condition, at the weight of body text.
  *
+ * There was a second `value` slot here, for a count appended after the label,
+ * and it is gone because the one caller that used it stopped: a trailing count
+ * fixes the word order at "words then number", which is English's and not
+ * Japanese's, Turkish's or Finnish's. The count now lives inside the sentence
+ * and is emphasised where the language actually puts it, which is what
+ * [emphasiseNumber] is for and why [label] is an [AnnotatedString].
+ *
+ * @param label the condition, as an [AnnotatedString] because one of the two
+ *   callers emphasises a number inside its sentence rather than appending one.
+ *   Plain text passes `AnnotatedString("…")`; there is deliberately no `String`
+ *   overload, because a defaulted pair of them is the kind of ambiguity that
+ *   resolves differently under a compiler upgrade.
  * @param dot the mark's fill. A [Brush] rather than a [Color] because the trial
  *   dot is the primary gradient — the same fill as the primary button, which is
  *   the whole reason it is a gradient and not a flat token near it. Solid tones
  *   pass [SolidColor].
- * @param value an optional trailing count, already localised and already
- *   emphasised by [emphasiseNumber]. Absent on every state that is not counting
- *   something down.
  */
 @Composable
 fun StatusChip(
-    label: String,
+    label: AnnotatedString,
     dot: Brush,
     modifier: Modifier = Modifier,
-    value: AnnotatedString? = null,
-    valueColor: Color = CastivioTheme.colors.primary,
 ) {
     val colors = CastivioTheme.colors
     Row(
         modifier,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(MARK_GAP),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
@@ -85,10 +91,10 @@ fun StatusChip(
         // different words, which is the signal that survives colour blindness
         // and a monochrome screenshot. Colouring the label as well would add
         // nothing a reader could not already read.
+        //
+        // The one span that is not silver is the trial's numeral, which
+        // `emphasiseNumber` tints -- a count, not a condition.
         Text(text = label, style = CastivioType.bodyMedium, color = colors.onBackgroundVariant)
-        if (value != null) {
-            Text(text = value, style = CastivioType.bodyMedium, color = valueColor)
-        }
     }
 }
 
@@ -122,7 +128,7 @@ fun StatusLine(
     ) {
         if (text != null) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                horizontalArrangement = Arrangement.spacedBy(MARK_GAP),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
@@ -147,7 +153,7 @@ fun StatusLine(
  * The count inside a localised sentence, one weight heavier than the words
  * around it.
  *
- * "Castivio trial **7** days", "**3** days left". The number is the only part
+ * "**7**-day trial", "**3** days left". The number is the only part
  * anybody reads twice, so it carries the emphasis and the sentence stays quiet.
  * One `Text` with one span — not two composables with a gap, which breaks the
  * moment a language puts the numeral in the middle or at the end, and several
@@ -159,18 +165,27 @@ fun StatusLine(
  * and looked up in the result, with the ASCII spelling as a fallback. If neither
  * is present the sentence is drawn unemphasised, which is the right failure: a
  * missing bold is invisible, a bold at the wrong offset is a typo.
+ *
+ * @param color an optional tint for the numeral alone. The trial badge passes
+ *   the primary, which is where that colour used to live when the count was a
+ *   separate [StatusChip] slot: the badge became one sentence and the accent had
+ *   to come with it, or the chip would have lost its only colour to a rewording.
  */
-fun emphasiseNumber(text: String, count: Int): AnnotatedString {
+fun emphasiseNumber(text: String, count: Int, color: Color? = null): AnnotatedString {
     val spellings = listOf(
         String.format(Locale.getDefault(), "%d", count),
         count.toString(),
+    )
+    val style = SpanStyle(
+        fontWeight = FontWeight.SemiBold,
+        color = color ?: Color.Unspecified,
     )
     return buildAnnotatedString {
         append(text)
         for (spelling in spellings) {
             val at = text.indexOf(spelling)
             if (spelling.isNotEmpty() && at >= 0) {
-                addStyle(SpanStyle(fontWeight = FontWeight.SemiBold), at, at + spelling.length)
+                addStyle(style, at, at + spelling.length)
                 return@buildAnnotatedString
             }
         }
@@ -179,3 +194,21 @@ fun emphasiseNumber(text: String, count: Int): AnnotatedString {
 
 /** Small enough to read as punctuation, large enough to carry a colour. */
 private val MARK = 6.dp
+
+/**
+ * Between the mark and the sentence, and the same number in both of the two
+ * places a mark appears.
+ *
+ * It was `Spacing.xs`, four dp, which is close enough to the 6dp mark's own
+ * radius that the dot read as attached to the first letter rather than as a
+ * separate piece of punctuation — most visibly in Arabic, where the sentence
+ * starts on the other side and the dot has no ascender to lean against.
+ *
+ * Its own constant rather than `Spacing.sm`, which is also eight. The token
+ * would carry this number away the next time somebody retunes the spacing
+ * scale, and this gap is answerable to the mark's diameter — a fixed 6dp — and
+ * not to the layout rhythm. Named here so the chip in the header and the line
+ * under the controls cannot drift apart: that pairing is why they live in the
+ * same file, and the drift is invisible until the two are seen at once.
+ */
+internal val MARK_GAP = 8.dp

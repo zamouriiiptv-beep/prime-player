@@ -51,7 +51,7 @@
     <string name="licence_valid_until">%s까지 유효</string>
     <string name="licence_retry">다시 시도</string>
     <string name="licence_support">지원팀에 문의</string>
-    <string name="licence_qr_caption">QR 코드를 스캔해 기기 활성화 페이지를 여세요</string>
+    <string name="licence_qr_caption">QR 코드를 스캔하여 이 기기를 활성화하세요.</string>
     <string name="licence_legal_title">법적 정보</string>
     <string name="licence_legal_link">법적 정보</string>
     <string name="licence_legal_back_hint">뒤로 가면 닫힙니다</string>

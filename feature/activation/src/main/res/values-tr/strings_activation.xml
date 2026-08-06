@@ -14,8 +14,7 @@
   produces the wrong I in Turkish.
 -->
 <resources>
-    <string name="activation_title">Aboneliğinizi ekleyin</string>
-    <string name="trial_name">Castivio deneme sürümü</string>
+    <string name="activation_title">Oynatma listesi ekleme</string>
     <string name="mac_label">MAC ADRESİ</string>
     <string name="key_label">CİHAZ ANAHTARI</string>
     <string name="copy_mac">MAC adresini kopyala</string>
@@ -28,7 +27,7 @@
     <string name="refresh_found">Abonelik bulundu</string>
     <string name="refresh_none">Artık ilk oynatma listenizi ekleyebilirsiniz.</string>
     <string name="refresh_error">Yenilenemedi — tekrar deneyin</string>
-    <string name="qr_caption">Cihaz etkinleştirme sayfasını açmak için QR kodu tarayın</string>
+    <string name="qr_caption">Bu cihazı etkinleştirmek için QR kodunu tarayın.</string>
     <string name="legal_player_only">Castivio yalnızca bir oynatıcıdır; abonelik veya içerik sağlamaz.</string>
     <string name="mac_spoken">MAC adresi %s</string>
     <string name="language">Dil</string>
@@ -36,11 +35,11 @@
     <string name="language_close">Kapat</string>
     <string name="language_back_hint">Kapatmak için geri</string>
     <string name="language_selected">Seçili</string>
-    <string name="activation_screen">Aboneliğinizi ekleyin</string>
+    <string name="activation_screen">Oynatma listesi ekleme</string>
 
-    <plurals name="trial_days">
-        <item quantity="one">%d gün</item>
-        <item quantity="other">%d gün</item>
+    <plurals name="trial_badge">
+        <item quantity="one">%d günlük deneme</item>
+        <item quantity="other">%d günlük deneme</item>
     </plurals>
 
     <string name="locale_sentinel" translatable="false">tr</string>

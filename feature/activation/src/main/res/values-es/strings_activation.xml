@@ -14,8 +14,7 @@
   produces the wrong I in Turkish.
 -->
 <resources>
-    <string name="activation_title">Añade tu suscripción</string>
-    <string name="trial_name">Prueba de Castivio</string>
+    <string name="activation_title">Añadir una lista de reproducción</string>
     <string name="mac_label">DIRECCIÓN MAC</string>
     <string name="key_label">CLAVE DEL DISPOSITIVO</string>
     <string name="copy_mac">Copiar la dirección MAC</string>
@@ -28,7 +27,7 @@
     <string name="refresh_found">Suscripción encontrada</string>
     <string name="refresh_none">Ya puedes añadir tu primera lista de reproducción.</string>
     <string name="refresh_error">No se pudo actualizar — inténtalo de nuevo</string>
-    <string name="qr_caption">Escanea el código QR para abrir la página de activación del dispositivo</string>
+    <string name="qr_caption">Escanea el código QR para activar este dispositivo.</string>
     <string name="legal_player_only">Castivio es solo un reproductor y no proporciona suscripciones ni contenidos.</string>
     <string name="mac_spoken">Dirección MAC %s</string>
     <string name="language">Idioma</string>
@@ -36,11 +35,11 @@
     <string name="language_close">Cerrar</string>
     <string name="language_back_hint">Atrás para cerrar</string>
     <string name="language_selected">Seleccionado</string>
-    <string name="activation_screen">Añade tu suscripción</string>
+    <string name="activation_screen">Añadir una lista de reproducción</string>
 
-    <plurals name="trial_days">
-        <item quantity="one">%d día</item>
-        <item quantity="other">%d días</item>
+    <plurals name="trial_badge">
+        <item quantity="one">Prueba de %d día</item>
+        <item quantity="other">Prueba de %d días</item>
     </plurals>
 
     <string name="locale_sentinel" translatable="false">es</string>

@@ -51,7 +51,7 @@
     <string name="licence_valid_until">Gyldig til %s</string>
     <string name="licence_retry">Prøv igen</string>
     <string name="licence_support">Kontakt support</string>
-    <string name="licence_qr_caption">Scan QR-koden for at åbne enhedens aktiveringsside</string>
+    <string name="licence_qr_caption">Scan QR-koden for at aktivere denne enhed.</string>
     <string name="licence_legal_title">Juridiske oplysninger</string>
     <string name="licence_legal_link">Juridiske oplysninger</string>
     <string name="licence_legal_back_hint">Tilbage lukker</string>

@@ -5,17 +5,23 @@
   Every key here exists in every locale directory; check-invariants.sh fails the
   build if one does not.
 
-  "subscription" belongs to the provider. Castivio's seven days are a trial and
-  always carry Castivio's name; a wording that lets the two be read as one is a
-  defect, not a nuance.
+  "subscription" belongs to the provider and is never what this screen offers.
+  Castivio's seven days are a trial and say so in one clause — "7-day trial" —
+  which is a wording no provider can claim; a wording that lets the two be read
+  as one is a defect, not a nuance. The badge used to carry Castivio's name for
+  the same reason, and stopped needing to when the name and the count became one
+  sentence.
+
+  The heading is the noun form of what the primary button does, not the same
+  words. Several languages form both the same way and the two do read alike
+  there; where a language distinguishes them, it does.
 
   The overline labels are stored in the case they are displayed in. Nothing calls
   uppercase() on them: that is locale sensitive, strips accents in Greek and
   produces the wrong I in Turkish.
 -->
 <resources>
-    <string name="activation_title">Add your subscription</string>
-    <string name="trial_name">Castivio trial</string>
+    <string name="activation_title">Add a playlist</string>
     <string name="mac_label">MAC ADDRESS</string>
     <string name="key_label">DEVICE KEY</string>
     <string name="copy_mac">Copy MAC address</string>
@@ -35,7 +41,7 @@
     -->
     <string name="refresh_none">You can now add your first playlist.</string>
     <string name="refresh_error">Couldn’t refresh — try again</string>
-    <string name="qr_caption">Scan the QR code to open your device activation page</string>
+    <string name="qr_caption">Scan the QR code to activate this device.</string>
     <string name="legal_player_only">Castivio is only a player and does not provide subscriptions or content.</string>
     <string name="mac_spoken">MAC address %s</string>
     <string name="language">Language</string>
@@ -43,11 +49,11 @@
     <string name="language_close">Close</string>
     <string name="language_back_hint">Back to close</string>
     <string name="language_selected">Selected</string>
-    <string name="activation_screen">Add your subscription</string>
+    <string name="activation_screen">Add a playlist</string>
 
-    <plurals name="trial_days">
-        <item quantity="one">%d day</item>
-        <item quantity="other">%d days</item>
+    <plurals name="trial_badge">
+        <item quantity="one">%d-day trial</item>
+        <item quantity="other">%d-day trial</item>
     </plurals>
 
     <string name="locale_sentinel" translatable="false">en</string>

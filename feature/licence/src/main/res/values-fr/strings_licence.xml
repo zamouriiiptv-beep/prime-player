@@ -51,7 +51,7 @@
     <string name="licence_valid_until">Valable jusqu’au %s</string>
     <string name="licence_retry">Réessayer</string>
     <string name="licence_support">Contacter le support</string>
-    <string name="licence_qr_caption">Scannez le code QR pour ouvrir la page d’activation de votre appareil</string>
+    <string name="licence_qr_caption">Scannez le code QR pour activer cet appareil.</string>
     <string name="licence_legal_title">Informations légales</string>
     <string name="licence_legal_link">Informations légales</string>
     <string name="licence_legal_back_hint">Retour pour fermer</string>

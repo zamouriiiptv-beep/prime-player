@@ -14,8 +14,7 @@
   produces the wrong I in Turkish.
 -->
 <resources>
-    <string name="activation_title">اشتراک خود را اضافه کنید</string>
-    <string name="trial_name">نسخهٔ آزمایشی Castivio</string>
+    <string name="activation_title">افزودن سیاههٔ پخش</string>
     <string name="mac_label">نشانی MAC</string>
     <string name="key_label">کلید دستگاه</string>
     <string name="copy_mac">کپی نشانی MAC</string>
@@ -28,7 +27,7 @@
     <string name="refresh_found">اشتراک پیدا شد</string>
     <string name="refresh_none">اکنون می‌توانید نخستین فهرست پخش خود را اضافه کنید.</string>
     <string name="refresh_error">بازخوانی نشد — دوباره تلاش کنید</string>
-    <string name="qr_caption">کد QR را اسکن کنید تا صفحهٔ فعال‌سازی دستگاه باز شود</string>
+    <string name="qr_caption">برای فعال‌سازی این دستگاه، کد QR را اسکن کنید.</string>
     <string name="legal_player_only">Castivio فقط یک پخش‌کننده است و اشتراک یا محتوا ارائه نمی‌دهد.</string>
     <string name="mac_spoken">نشانی MAC %s</string>
     <string name="language">زبان</string>
@@ -36,11 +35,11 @@
     <string name="language_close">بستن</string>
     <string name="language_back_hint">بازگشت برای بستن</string>
     <string name="language_selected">انتخاب‌شده</string>
-    <string name="activation_screen">اشتراک خود را اضافه کنید</string>
+    <string name="activation_screen">افزودن سیاههٔ پخش</string>
 
-    <plurals name="trial_days">
-        <item quantity="one">%d روز</item>
-        <item quantity="other">%d روز</item>
+    <plurals name="trial_badge">
+        <item quantity="one">نسخهٔ آزمایشی %d روزه</item>
+        <item quantity="other">نسخهٔ آزمایشی %d روزه</item>
     </plurals>
 
     <string name="locale_sentinel" translatable="false">fa</string>

@@ -14,8 +14,7 @@
   produces the wrong I in Turkish.
 -->
 <resources>
-    <string name="activation_title">أضف اشتراكك</string>
-    <string name="trial_name">تجربة Castivio</string>
+    <string name="activation_title">إضافة قائمة تشغيل</string>
     <string name="mac_label">عنوان MAC</string>
     <string name="key_label">مفتاح الجهاز</string>
     <string name="copy_mac">نسخ عنوان MAC</string>
@@ -28,7 +27,7 @@
     <string name="refresh_found">تم العثور على اشتراك</string>
     <string name="refresh_none">يمكنك الآن إضافة قائمة التشغيل الأولى.</string>
     <string name="refresh_error">تعذر التحديث — أعد المحاولة</string>
-    <string name="qr_caption">امسح رمز QR لفتح صفحة تفعيل جهازك</string>
+    <string name="qr_caption">امسح رمز QR لتفعيل هذا الجهاز.</string>
     <string name="legal_player_only">Castivio مشغّل فقط ولا يوفّر اشتراكات أو محتوى.</string>
     <string name="mac_spoken">عنوان MAC %s</string>
     <string name="language">اللغة</string>
@@ -36,15 +35,15 @@
     <string name="language_close">إغلاق</string>
     <string name="language_back_hint">رجوع للإغلاق</string>
     <string name="language_selected">مختارة</string>
-    <string name="activation_screen">أضف اشتراكك</string>
+    <string name="activation_screen">إضافة قائمة تشغيل</string>
 
-    <plurals name="trial_days">
-        <item quantity="zero">%d يوم</item>
-        <item quantity="one">يوم واحد</item>
-        <item quantity="two">يومان</item>
-        <item quantity="few">%d أيام</item>
-        <item quantity="many">%d يومًا</item>
-        <item quantity="other">%d يوم</item>
+    <plurals name="trial_badge">
+        <item quantity="zero">نسخة تجريبية لمدة %d يوم</item>
+        <item quantity="one">نسخة تجريبية ليوم واحد</item>
+        <item quantity="two">نسخة تجريبية لمدة يومين</item>
+        <item quantity="few">نسخة تجريبية لمدة %d أيام</item>
+        <item quantity="many">نسخة تجريبية لمدة %d يومًا</item>
+        <item quantity="other">نسخة تجريبية لمدة %d يوم</item>
     </plurals>
 
     <string name="locale_sentinel" translatable="false">ar</string>

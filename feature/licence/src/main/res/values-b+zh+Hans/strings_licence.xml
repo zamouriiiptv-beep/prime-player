@@ -51,7 +51,7 @@
     <string name="licence_valid_until">有效期至 %s</string>
     <string name="licence_retry">重试</string>
     <string name="licence_support">联系支持</string>
-    <string name="licence_qr_caption">扫描二维码，打开本设备的激活页面</string>
+    <string name="licence_qr_caption">扫描二维码以激活此设备。</string>
     <string name="licence_legal_title">法律信息</string>
     <string name="licence_legal_link">法律信息</string>
     <string name="licence_legal_back_hint">按返回关闭</string>

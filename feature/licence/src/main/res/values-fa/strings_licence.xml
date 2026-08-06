@@ -51,7 +51,7 @@
     <string name="licence_valid_until">معتبر تا %s</string>
     <string name="licence_retry">تلاش دوباره</string>
     <string name="licence_support">تماس با پشتیبانی</string>
-    <string name="licence_qr_caption">کد QR را اسکن کنید تا صفحهٔ فعال‌سازی دستگاه باز شود</string>
+    <string name="licence_qr_caption">برای فعال‌سازی این دستگاه، کد QR را اسکن کنید.</string>
     <string name="licence_legal_title">اطلاعات حقوقی</string>
     <string name="licence_legal_link">اطلاعات حقوقی</string>
     <string name="licence_legal_back_hint">برای بستن، بازگشت</string>

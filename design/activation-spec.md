@@ -38,7 +38,7 @@ glass card and one is not to be reintroduced: the screen itself is the surface.
 
 ```
 ┌─ header ──────────────────────────────────────────────────────────┐
-│ Add your subscription        · Castivio trial 7 days   ⊕ English  │
+│ Add a playlist                       · 7-day trial     ⊕ English  │
 ├───────────────────────────────────────────────────────────────────┤
 │                                                                   │
 │   MAC ADDRESS                              ┌───────────┐          │
@@ -181,10 +181,12 @@ protocol exist.
 
 **There is one design, and it is visually complete.** The QR zone is part of the
 approved composition and is not hidden, reduced, or made conditional. The caption
-is *"Scan the QR code to open your device activation page"* — the wording the
-QR now earns, because it encodes that page and nothing else. It replaced
-*"Scan to set up on your phone"*, which described a pairing flow that was never
-built, in all 39 locale files at once.
+is *"Scan the QR code to activate this device."* — the wording the QR now
+earns, because it encodes that device's activation page and nothing else. It
+replaced *"Scan to set up on your phone"*, which described a pairing flow that
+was never built, and then the longer *"…to open your device activation page"*,
+which spent eleven words on naming a page the user never has to think about.
+All 39 locale files move together, on both screens.
 
 What is pending is the **payload and the behaviour behind it**, not the element.
 An earlier revision of this section proposed hiding the zone until the portal
@@ -537,11 +539,21 @@ is a script or region choice **inside** the row — not a second row.
 ### 10.3 Translation quality
 
 Strings are translated for meaning, not word for word, and the terminology is
-part of the meaning: *Add your subscription*, *Castivio trial · 7 days*, *MAC
-Address*, *Device Key*, *Add playlist*, *Refresh*, *Checking…*, *Playlist found*,
-*No playlist found yet*, *Couldn't refresh — try again*, *Scan the QR code to
-open your device activation page*, *Copy*, *Copied*, the legal line, and every
-accessibility description.
+part of the meaning: *Add a playlist*, *7-day trial*, *MAC Address*, *Device
+Key*, *Add playlist*, *Refresh*, *Checking…*, *Playlist found*, *No playlist
+found yet*, *Couldn't refresh — try again*, *Scan the QR code to activate this
+device.*, *Copy*, *Copied*, the legal line, and every accessibility
+description.
+
+Two of those moved late and the reasons are worth keeping. The heading was
+*Add your subscription*, which named the thing Castivio does not sell; it is
+now the noun form of what the button below it does. The badge was *Castivio
+trial · 7 days*, a name and a count in two resources, and carrying the name
+was how the seven days were kept from reading as the provider's. *7-day trial*
+says that in one clause no provider can claim, and being one resource is also
+what lets a language put the numeral where it belongs — Japanese, Turkish and
+Finnish all put it inside the phrase, and a trailing count had fixed the word
+order at English's.
 
 The distinction in §3 survives translation or the translation is wrong: the seven
 days are **Castivio's trial**, never the provider's subscription. A language whose

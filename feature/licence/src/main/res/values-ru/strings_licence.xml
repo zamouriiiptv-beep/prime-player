@@ -51,7 +51,7 @@
     <string name="licence_valid_until">Действует до %s</string>
     <string name="licence_retry">Повторить</string>
     <string name="licence_support">Обратиться в поддержку</string>
-    <string name="licence_qr_caption">Отсканируйте QR-код, чтобы открыть страницу активации устройства</string>
+    <string name="licence_qr_caption">Отсканируйте QR-код, чтобы активировать это устройство.</string>
     <string name="licence_legal_title">Правовая информация</string>
     <string name="licence_legal_link">Правовая информация</string>
     <string name="licence_legal_back_hint">Назад — закрыть</string>

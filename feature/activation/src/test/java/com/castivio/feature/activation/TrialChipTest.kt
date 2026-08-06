@@ -61,7 +61,7 @@ class TrialChipTest {
      * Everything that is not a running trial has no chip.
      *
      * Including the paid plans: an annual subscription has days remaining and they
-     * are not a trial, and saying "Castivio trial 340 days" to somebody who paid
+     * are not a trial, and saying "340-day trial" to somebody who paid
      * is worse than saying nothing.
      */
     @Test

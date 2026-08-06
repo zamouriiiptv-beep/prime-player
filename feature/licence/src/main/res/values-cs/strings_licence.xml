@@ -51,7 +51,7 @@
     <string name="licence_valid_until">Platná do %s</string>
     <string name="licence_retry">Zkusit znovu</string>
     <string name="licence_support">Kontaktovat podporu</string>
-    <string name="licence_qr_caption">Naskenujte QR kód a otevřete stránku aktivace zařízení</string>
+    <string name="licence_qr_caption">Naskenujte QR kód a aktivujte toto zařízení.</string>
     <string name="licence_legal_title">Právní informace</string>
     <string name="licence_legal_link">Právní informace</string>
     <string name="licence_legal_back_hint">Zpět pro zavření</string>

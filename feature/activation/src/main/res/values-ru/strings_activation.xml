@@ -14,8 +14,7 @@
   produces the wrong I in Turkish.
 -->
 <resources>
-    <string name="activation_title">Добавьте подписку</string>
-    <string name="trial_name">Пробный период Castivio</string>
+    <string name="activation_title">Добавление плейлиста</string>
     <string name="mac_label">MAC-АДРЕС</string>
     <string name="key_label">КЛЮЧ УСТРОЙСТВА</string>
     <string name="copy_mac">Копировать MAC-адрес</string>
@@ -28,7 +27,7 @@
     <string name="refresh_found">Подписка найдена</string>
     <string name="refresh_none">Теперь можно добавить первый плейлист.</string>
     <string name="refresh_error">Не удалось обновить — попробуйте снова</string>
-    <string name="qr_caption">Отсканируйте QR-код, чтобы открыть страницу активации устройства</string>
+    <string name="qr_caption">Отсканируйте QR-код, чтобы активировать это устройство.</string>
     <string name="legal_player_only">Castivio — только плеер; он не предоставляет подписки или контент.</string>
     <string name="mac_spoken">MAC-адрес %s</string>
     <string name="language">Язык</string>
@@ -36,13 +35,13 @@
     <string name="language_close">Закрыть</string>
     <string name="language_back_hint">Назад, чтобы закрыть</string>
     <string name="language_selected">Выбран</string>
-    <string name="activation_screen">Добавьте подписку</string>
+    <string name="activation_screen">Добавление плейлиста</string>
 
-    <plurals name="trial_days">
-        <item quantity="one">%d день</item>
-        <item quantity="few">%d дня</item>
-        <item quantity="many">%d дней</item>
-        <item quantity="other">%d дня</item>
+    <plurals name="trial_badge">
+        <item quantity="one">Пробный период %d день</item>
+        <item quantity="few">Пробный период %d дня</item>
+        <item quantity="many">Пробный период %d дней</item>
+        <item quantity="other">Пробный период %d дня</item>
     </plurals>
 
     <string name="locale_sentinel" translatable="false">ru</string>

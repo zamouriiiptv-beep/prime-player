@@ -359,9 +359,9 @@ private fun ComposeContentTestRule.assertActivationIsWhole(television: Boolean =
             "qr ${size(ActivationTags.QR)}",
     )
     println(
-        "activation text — title ${textSize("Add your subscription")} | " +
+        "activation text — title ${textSize("Add a playlist")} | " +
             "legal ${textSize("Castivio is only a player")} | " +
-            "caption ${textSize("Scan the QR code to open your device activation page")}",
+            "caption ${textSize("Scan the QR code to activate this device.")}",
     )
 
     // The three bands first. A band with no height is the failure this file
@@ -381,9 +381,11 @@ private fun ComposeContentTestRule.assertActivationIsWhole(television: Boolean =
     byTag("the MAC capsule", ActivationTags.MAC_CAPSULE, min = pill)
     byTag("the device key capsule", ActivationTags.KEY_CAPSULE, min = pill)
 
-    byText("the title", "Add your subscription")
-    byText("the trial name", "Castivio trial")
-    byText("the trial days", "7 days")
+    byText("the title", "Add a playlist")
+    // One node, not two. The badge used to be a name and a trailing count and
+    // is now one sentence with the numeral emphasised inside it, which is what
+    // lets a language put the number anywhere it likes.
+    byText("the trial badge", "7-day trial")
 
     // The chip and the two code values carry `clearAndSetSemantics`, which
     // replaces their text with one description -- deliberately, so a reader says
@@ -426,7 +428,7 @@ private fun ComposeContentTestRule.assertActivationIsWhole(television: Boolean =
     check("the reserved status line") { onNodeWithTag(ActivationTags.STATUS).assertExists() }
 
     byTag("the QR fixture", ActivationTags.QR, min = 100.dp)
-    byText("the QR caption", "Scan the QR code to open your device activation page")
+    byText("the QR caption", "Scan the QR code to activate this device.")
 
     byText("the legal line", "Castivio is only a player")
 

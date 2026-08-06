@@ -51,7 +51,7 @@
     <string name="licence_valid_until">ใช้ได้ถึง %s</string>
     <string name="licence_retry">ลองใหม่</string>
     <string name="licence_support">ติดต่อฝ่ายสนับสนุน</string>
-    <string name="licence_qr_caption">สแกนคิวอาร์โค้ดเพื่อเปิดหน้าเปิดใช้งานอุปกรณ์</string>
+    <string name="licence_qr_caption">สแกนคิวอาร์โค้ดเพื่อเปิดใช้งานอุปกรณ์นี้</string>
     <string name="licence_legal_title">ข้อมูลทางกฎหมาย</string>
     <string name="licence_legal_link">ข้อมูลทางกฎหมาย</string>
     <string name="licence_legal_back_hint">กดย้อนกลับเพื่อปิด</string>

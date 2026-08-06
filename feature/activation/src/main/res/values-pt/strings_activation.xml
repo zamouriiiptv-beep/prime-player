@@ -14,8 +14,7 @@
   produces the wrong I in Turkish.
 -->
 <resources>
-    <string name="activation_title">Adicione sua assinatura</string>
-    <string name="trial_name">Teste do Castivio</string>
+    <string name="activation_title">Adicionar uma playlist</string>
     <string name="mac_label">ENDEREÇO MAC</string>
     <string name="key_label">CHAVE DO DISPOSITIVO</string>
     <string name="copy_mac">Copiar o endereço MAC</string>
@@ -28,7 +27,7 @@
     <string name="refresh_found">Assinatura encontrada</string>
     <string name="refresh_none">Agora você pode adicionar sua primeira playlist.</string>
     <string name="refresh_error">Não foi possível atualizar — tente de novo</string>
-    <string name="qr_caption">Leia o código QR para abrir a página de ativação do dispositivo</string>
+    <string name="qr_caption">Escaneie o código QR para ativar este dispositivo.</string>
     <string name="legal_player_only">O Castivio é apenas um reprodutor e não fornece assinaturas nem conteúdo.</string>
     <string name="mac_spoken">Endereço MAC %s</string>
     <string name="language">Idioma</string>
@@ -36,11 +35,11 @@
     <string name="language_close">Fechar</string>
     <string name="language_back_hint">Voltar para fechar</string>
     <string name="language_selected">Selecionado</string>
-    <string name="activation_screen">Adicione sua assinatura</string>
+    <string name="activation_screen">Adicionar uma playlist</string>
 
-    <plurals name="trial_days">
-        <item quantity="one">%d dia</item>
-        <item quantity="other">%d dias</item>
+    <plurals name="trial_badge">
+        <item quantity="one">Teste de %d dia</item>
+        <item quantity="other">Teste de %d dias</item>
     </plurals>
 
     <string name="locale_sentinel" translatable="false">pt-BR</string>

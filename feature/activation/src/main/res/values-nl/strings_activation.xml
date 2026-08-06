@@ -14,8 +14,7 @@
   produces the wrong I in Turkish.
 -->
 <resources>
-    <string name="activation_title">Voeg je abonnement toe</string>
-    <string name="trial_name">Castivio-proefperiode</string>
+    <string name="activation_title">Een playlist toevoegen</string>
     <string name="mac_label">MAC-ADRES</string>
     <string name="key_label">APPARAATSLEUTEL</string>
     <string name="copy_mac">MAC-adres kopiëren</string>
@@ -28,7 +27,7 @@
     <string name="refresh_found">Abonnement gevonden</string>
     <string name="refresh_none">Je kunt nu je eerste afspeellijst toevoegen.</string>
     <string name="refresh_error">Vernieuwen mislukt — probeer opnieuw</string>
-    <string name="qr_caption">Scan de QR-code om de activeringspagina van het apparaat te openen</string>
+    <string name="qr_caption">Scan de QR-code om dit apparaat te activeren.</string>
     <string name="legal_player_only">Castivio is alleen een speler en levert geen abonnementen of content.</string>
     <string name="mac_spoken">MAC-adres %s</string>
     <string name="language">Taal</string>
@@ -36,11 +35,11 @@
     <string name="language_close">Sluiten</string>
     <string name="language_back_hint">Terug om te sluiten</string>
     <string name="language_selected">Geselecteerd</string>
-    <string name="activation_screen">Voeg je abonnement toe</string>
+    <string name="activation_screen">Een playlist toevoegen</string>
 
-    <plurals name="trial_days">
-        <item quantity="one">%d dag</item>
-        <item quantity="other">%d dagen</item>
+    <plurals name="trial_badge">
+        <item quantity="one">Proefperiode van %d dag</item>
+        <item quantity="other">Proefperiode van %d dagen</item>
     </plurals>
 
     <string name="locale_sentinel" translatable="false">nl</string>
