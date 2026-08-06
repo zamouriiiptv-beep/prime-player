@@ -27,31 +27,31 @@
     <string name="licence_plan_lifetime">مدى الحياة</string>
     <string name="licence_per_year">في السنة</string>
     <string name="licence_once">مرة واحدة لهذا الجهاز</string>
-    <string name="licence_chip_trial">تجربة</string>
-    <string name="licence_chip_active">الترخيص مُفعَّل</string>
+    <string name="licence_chip_trial">نسخة تجريبية</string>
+    <string name="licence_chip_active">الترخيص مفعّل</string>
     <string name="licence_chip_trial_ended">انتهت التجربة</string>
     <string name="licence_chip_expired">انتهى الترخيص</string>
     <string name="licence_chip_none">لا يوجد ترخيص</string>
     <string name="licence_chip_verify">يلزم التحقق</string>
     <string name="licence_chip_unavailable">غير متاح</string>
-    <string name="licence_chip_unreadable">تعذّرت قراءة الترخيص</string>
-    <string name="licence_chip_revoked">ترخيص مُلغى</string>
-    <string name="licence_status_active">ترخيص Castivio الخاص بك مُفعَّل.</string>
-    <string name="licence_status_lifetime">ترخيص Castivio مدى الحياة مفعّل</string>
-    <string name="licence_status_trial_ended">انتهت تجربتك. اختر ترخيصًا للمتابعة.</string>
-    <string name="licence_status_expired">انتهى ترخيصك. اختر ترخيصًا للمتابعة.</string>
-    <string name="licence_status_expired_on">انتهى ترخيصك في %s. اختر ترخيصًا للمتابعة.</string>
-    <string name="licence_status_none">لم يُعثر على ترخيص لهذا الجهاز.</string>
-    <string name="licence_status_verify">يلزم التحقق من الترخيص قبل المتابعة</string>
-    <string name="licence_status_unavailable">خدمة التراخيص غير متاحة مؤقتًا. يُرجى المحاولة لاحقًا.</string>
-    <string name="licence_status_unreadable">تعذر قراءة بيانات الترخيص على هذا الجهاز</string>
+    <string name="licence_chip_unreadable">تعذرت قراءة الترخيص</string>
+    <string name="licence_chip_revoked">تم إلغاء الترخيص</string>
+    <string name="licence_status_active">ترخيص Castivio مفعّل</string>
+    <string name="licence_status_lifetime">ترخيص Castivio مفعّل مدى الحياة</string>
+    <string name="licence_status_trial_ended">انتهت الفترة التجريبية. اختر ترخيصًا للمتابعة</string>
+    <string name="licence_status_expired">انتهى الترخيص. اختر ترخيصًا للمتابعة</string>
+    <string name="licence_status_expired_on">انتهى الترخيص في %s. اختر ترخيصًا للمتابعة</string>
+    <string name="licence_status_none">لم يتم العثور على ترخيص لهذا الجهاز</string>
+    <string name="licence_status_verify">يجب التحقق من الترخيص قبل المتابعة</string>
+    <string name="licence_status_unavailable">خدمة التراخيص غير متاحة حاليًا. يُرجى المحاولة لاحقًا</string>
+    <string name="licence_status_unreadable">تعذر قراءة بيانات الترخيص لهذا الجهاز</string>
     <string name="licence_status_revoked">تم إلغاء ترخيص هذا الجهاز</string>
     <string name="licence_status_opening">جارٍ فتح بوابة Castivio…</string>
     <string name="licence_status_failed">لم ينجح ذلك. حاول مرة أخرى.</string>
     <string name="licence_valid_until">صالح حتى %s</string>
     <string name="licence_retry">إعادة المحاولة</string>
-    <string name="licence_support">تواصل مع الدعم</string>
-    <string name="licence_qr_caption">امسح رمز QR لتفعيل هذا الجهاز.</string>
+    <string name="licence_support">التواصل مع الدعم</string>
+    <string name="licence_qr_caption">امسح رمز QR لتفعيل هذا الجهاز</string>
     <string name="licence_legal_title">معلومات قانونية</string>
     <string name="licence_legal_link">معلومات قانونية</string>
     <string name="licence_legal_back_hint">عُد للإغلاق</string>
@@ -74,12 +74,12 @@
     <string name="licence_legal_full">Castivio هو تطبيق مشغّل وسائط فقط. وهو لا يوفّر ولا يستضيف ولا يبثّ ولا يبيع ولا يوزّع أي قنوات أو أفلام أو مسلسلات أو بثوث مباشرة أو محتوى وسائط. يُقدَّم كل المحتوى حصريًا من المستخدم أو من مزوّد الخدمة الذي يختاره. يتحمّل المستخدمون وحدهم مسؤولية التأكد من امتلاكهم الحقوق القانونية للوصول إلى محتواهم واستخدامه. ولا يتحمّل Castivio أي مسؤولية عن توفّر أو قانونية أو ترخيص أو جودة أي محتوى أو خدمات تابعة لجهات خارجية.</string>
 
     <plurals name="licence_trial_days">
-        <item quantity="zero">بقي %d يوم للاستفادة من النسخة التجريبية.</item>
-        <item quantity="one">بقي يوم واحد للاستفادة من النسخة التجريبية.</item>
-        <item quantity="two">بقي يومان للاستفادة من النسخة التجريبية.</item>
-        <item quantity="few">بقيت %d أيام للاستفادة من النسخة التجريبية.</item>
-        <item quantity="many">بقي %d يومًا للاستفادة من النسخة التجريبية.</item>
-        <item quantity="other">بقي %d يوم للاستفادة من النسخة التجريبية.</item>
+        <item quantity="zero">يتبقى %d يوم على انتهاء الفترة التجريبية</item>
+        <item quantity="one">يتبقى يوم واحد على انتهاء الفترة التجريبية</item>
+        <item quantity="two">يتبقى يومان على انتهاء الفترة التجريبية</item>
+        <item quantity="few">يتبقى %d أيام على انتهاء الفترة التجريبية</item>
+        <item quantity="many">يتبقى %d يومًا على انتهاء الفترة التجريبية</item>
+        <item quantity="other">يتبقى %d يوم على انتهاء الفترة التجريبية</item>
     </plurals>
 
     <string name="licence_sentinel" translatable="false">ar</string>
