@@ -40,6 +40,7 @@
     <string name="licence_status_lifetime">Castivio è tuo su questo dispositivo.</string>
     <string name="licence_status_trial_ended">La prova è terminata. Scegli una licenza per continuare.</string>
     <string name="licence_status_expired">La licenza è scaduta. Scegli una licenza per continuare.</string>
+    <string name="licence_status_expired_on">La licenza è scaduta il %s. Scegli una licenza per continuare.</string>
     <string name="licence_status_none">Nessuna licenza trovata per questo dispositivo.</string>
     <string name="licence_status_verify">È necessaria la verifica della licenza prima di proseguire con l’attivazione.</string>
     <string name="licence_status_unavailable">Il servizio licenze è temporaneamente non disponibile. Riprova più tardi.</string>

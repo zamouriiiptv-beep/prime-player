@@ -40,6 +40,7 @@
     <string name="licence_status_lifetime">এই ডিভাইসে Castivio আপনার নিজের।</string>
     <string name="licence_status_trial_ended">আপনার ট্রায়াল শেষ হয়েছে। চালিয়ে যেতে লাইসেন্স বেছে নিন।</string>
     <string name="licence_status_expired">আপনার লাইসেন্সের মেয়াদ শেষ। চালিয়ে যেতে লাইসেন্স বেছে নিন।</string>
+    <string name="licence_status_expired_on">আপনার লাইসেন্সের মেয়াদ %s তারিখে শেষ হয়েছে। চালিয়ে যেতে লাইসেন্স বেছে নিন।</string>
     <string name="licence_status_none">এই ডিভাইসের জন্য কোনো লাইসেন্স পাওয়া যায়নি।</string>
     <string name="licence_status_verify">অ্যাক্টিভেশন চালিয়ে যাওয়ার আগে লাইসেন্স যাচাই করা প্রয়োজন।</string>
     <string name="licence_status_unavailable">লাইসেন্স পরিষেবা সাময়িকভাবে অনুপলব্ধ। অনুগ্রহ করে পরে আবার চেষ্টা করুন।</string>

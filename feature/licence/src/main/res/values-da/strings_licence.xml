@@ -40,6 +40,7 @@
     <string name="licence_status_lifetime">Du ejer Castivio på denne enhed.</string>
     <string name="licence_status_trial_ended">Din prøveperiode er slut. Vælg en licens for at fortsætte.</string>
     <string name="licence_status_expired">Din licens er udløbet. Vælg en licens for at fortsætte.</string>
+    <string name="licence_status_expired_on">Din licens udløb den %s. Vælg en licens for at fortsætte.</string>
     <string name="licence_status_none">Der blev ikke fundet nogen licens til denne enhed.</string>
     <string name="licence_status_verify">Licensen skal verificeres, før aktiveringen kan fortsætte.</string>
     <string name="licence_status_unavailable">Licenstjenesten er midlertidigt utilgængelig. Prøv igen senere.</string>

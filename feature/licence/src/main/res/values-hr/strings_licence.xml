@@ -40,6 +40,7 @@
     <string name="licence_status_lifetime">Castivio je vaš na ovom uređaju.</string>
     <string name="licence_status_trial_ended">Probno razdoblje je završilo. Odaberite licencu za nastavak.</string>
     <string name="licence_status_expired">Licenca vam je istekla. Odaberite licencu za nastavak.</string>
+    <string name="licence_status_expired_on">Licenca vam je istekla %s. Odaberite licencu za nastavak.</string>
     <string name="licence_status_none">Za ovaj uređaj nije pronađena licenca.</string>
     <string name="licence_status_verify">Potrebna je provjera licence prije nego što se aktivacija nastavi.</string>
     <string name="licence_status_unavailable">Usluga licenciranja privremeno je nedostupna. Pokušajte ponovno kasnije.</string>

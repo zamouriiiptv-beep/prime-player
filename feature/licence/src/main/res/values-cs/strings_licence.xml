@@ -40,6 +40,7 @@
     <string name="licence_status_lifetime">Castivio na tomto zařízení vlastníte.</string>
     <string name="licence_status_trial_ended">Zkušební verze skončila. Pokračujte výběrem licence.</string>
     <string name="licence_status_expired">Vaše licence vypršela. Pokračujte výběrem licence.</string>
+    <string name="licence_status_expired_on">Vaše licence vypršela %s. Pokračujte výběrem licence.</string>
     <string name="licence_status_none">Pro toto zařízení nebyla nalezena žádná licence.</string>
     <string name="licence_status_verify">Než bude aktivace pokračovat, je nutné ověření licence.</string>
     <string name="licence_status_unavailable">Licenční služba je dočasně nedostupná. Zkuste to prosím později.</string>

@@ -40,6 +40,7 @@
     <string name="licence_status_lifetime">Castivio është i juaji në këtë pajisje.</string>
     <string name="licence_status_trial_ended">Prova juaj mbaroi. Zgjidhni një licencë për të vazhduar.</string>
     <string name="licence_status_expired">Licenca juaj skadoi. Zgjidhni një licencë për të vazhduar.</string>
+    <string name="licence_status_expired_on">Licenca juaj skadoi më %s. Zgjidhni një licencë për të vazhduar.</string>
     <string name="licence_status_none">Nuk u gjet asnjë licencë për këtë pajisje.</string>
     <string name="licence_status_verify">Nevojitet verifikimi i licencës përpara se aktivizimi të vazhdojë.</string>
     <string name="licence_status_unavailable">Shërbimi i licencave është përkohësisht i padisponueshëm. Provoni sërish më vonë.</string>

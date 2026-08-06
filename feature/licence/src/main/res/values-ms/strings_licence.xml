@@ -40,6 +40,7 @@
     <string name="licence_status_lifetime">Castivio milik anda pada peranti ini.</string>
     <string name="licence_status_trial_ended">Percubaan anda telah tamat. Pilih lesen untuk meneruskan.</string>
     <string name="licence_status_expired">Lesen anda telah tamat tempoh. Pilih lesen untuk meneruskan.</string>
+    <string name="licence_status_expired_on">Lesen anda tamat tempoh pada %s. Pilih lesen untuk meneruskan.</string>
     <string name="licence_status_none">Tiada lesen ditemui untuk peranti ini.</string>
     <string name="licence_status_verify">Pengesahan lesen diperlukan sebelum pengaktifan boleh diteruskan.</string>
     <string name="licence_status_unavailable">Perkhidmatan lesen tidak tersedia buat sementara waktu. Sila cuba lagi nanti.</string>

@@ -40,6 +40,7 @@
     <string name="licence_status_lifetime">O Castivio é seu neste dispositivo.</string>
     <string name="licence_status_trial_ended">O seu teste terminou. Escolha uma licença para continuar.</string>
     <string name="licence_status_expired">A sua licença expirou. Escolha uma licença para continuar.</string>
+    <string name="licence_status_expired_on">A sua licença expirou em %s. Escolha uma licença para continuar.</string>
     <string name="licence_status_none">Não foi encontrada nenhuma licença para este dispositivo.</string>
     <string name="licence_status_verify">É necessária a verificação da licença antes de a ativação poder continuar.</string>
     <string name="licence_status_unavailable">O serviço de licenças está temporariamente indisponível. Tente novamente mais tarde.</string>

@@ -158,7 +158,10 @@ object EntitlementPolicy {
                 when {
                     expires == null -> EntitlementState.Unknown
                     now < expires -> EntitlementState.AnnualActive(expires, daysRemaining(now, expires))
-                    else -> EntitlementState.AnnualExpired
+                    // The same `expires` the comparison just used. Carrying it
+                    // costs nothing and is the difference between "your licence
+                    // expired" and "your licence expired on 21 February".
+                    else -> EntitlementState.AnnualExpired(expires)
                 }
             }
 

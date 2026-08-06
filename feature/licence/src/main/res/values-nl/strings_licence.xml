@@ -40,6 +40,7 @@
     <string name="licence_status_lifetime">Castivio is van u op dit apparaat.</string>
     <string name="licence_status_trial_ended">Uw proefperiode is afgelopen. Kies een licentie om verder te gaan.</string>
     <string name="licence_status_expired">Uw licentie is verlopen. Kies een licentie om verder te gaan.</string>
+    <string name="licence_status_expired_on">Uw licentie is op %s verlopen. Kies een licentie om verder te gaan.</string>
     <string name="licence_status_none">Er is geen licentie gevonden voor dit apparaat.</string>
     <string name="licence_status_verify">Voordat de activering verder kan, is verificatie van de licentie nodig.</string>
     <string name="licence_status_unavailable">De licentiedienst is tijdelijk niet beschikbaar. Probeer het later opnieuw.</string>

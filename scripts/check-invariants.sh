@@ -347,6 +347,62 @@ PYCOPY
   fi
 fi
 
+# --------------------------------------------- a translation that lost its slot
+#
+# A parameterised string is a contract between the resource and the call site:
+# `licence_status_expired_on` takes one date, and every one of the 38 other
+# bundles has to take exactly one too. A translator who drops the `%s` produces a
+# sentence with the fact missing from it; one who writes it twice crashes
+# `getString` with an argument-index error at the moment the state is reached,
+# which on this screen is the moment somebody's licence runs out.
+#
+# Neither is visible to the completeness check above -- the key is present and
+# non-empty in both cases -- and neither is visible to a reader who does not
+# speak the language. It is pure arithmetic, so it is checked here rather than
+# left to review.
+#
+# `%%` is an escaped percent and carries no argument, so it is removed before
+# counting; positional (`%1$s`) and plain (`%s`) forms both count as one.
+if command -v python3 >/dev/null 2>&1; then
+  slots=$(python3 <<'PYSLOT'
+import glob, io, os, re
+
+BUNDLES = {
+    "feature/activation/src/main/res": "strings_activation.xml",
+    "feature/licence/src/main/res": "strings_licence.xml",
+    "app/src/main/res": "strings_exit.xml",
+}
+
+SPEC = re.compile(r"%(?:\d+\$)?[-#+ 0,(]*\d*(?:\.\d+)?[a-zA-Z]")
+
+def slots(path):
+    text = io.open(path, encoding="utf-8").read()
+    out = {}
+    for m in re.finditer(
+        r'<(string|plurals) name="([a-z_0-9]+)"[^>]*>(.*?)</\1>', text, re.S
+    ):
+        # A plural's forms are one contract: every <item> takes the same
+        # arguments, so the maximum across them is the count for the key.
+        bodies = re.findall(r"<item[^>]*>(.*?)</item>", m.group(3), re.S) or [m.group(3)]
+        out[m.group(2)] = max(len(SPEC.findall(b.replace("%%", ""))) for b in bodies)
+    return out
+
+for res, name in sorted(BUNDLES.items()):
+    english = slots(os.path.join(res, "values", name))
+    for f in sorted(glob.glob(os.path.join(res, "values-*", name))):
+        for key, count in sorted(slots(f).items()):
+            want = english.get(key)
+            if want is not None and count != want:
+                print("  %s/%s: %s takes %d argument(s), English takes %d"
+                      % (os.path.basename(os.path.dirname(f)), name, key, count, want))
+PYSLOT
+)
+  if [ -n "$slots" ]; then
+    fail "A translation does not take the arguments its English original does" \
+         "$slots"
+  fi
+fi
+
 # ------------------------------------------- a translation in the wrong script
 #
 # The English screen rendered an Arabic sentence for a whole review cycle. That

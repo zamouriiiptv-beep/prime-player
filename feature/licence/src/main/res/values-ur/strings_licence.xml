@@ -40,6 +40,7 @@
     <string name="licence_status_lifetime">اس ڈیوائس پر Castivio آپ کا ہے۔</string>
     <string name="licence_status_trial_ended">آپ کی آزمائش ختم ہو گئی۔ جاری رکھنے کے لیے لائسنس منتخب کریں۔</string>
     <string name="licence_status_expired">آپ کا لائسنس ختم ہو گیا۔ جاری رکھنے کے لیے لائسنس منتخب کریں۔</string>
+    <string name="licence_status_expired_on">آپ کا لائسنس %s کو ختم ہو گیا۔ جاری رکھنے کے لیے لائسنس منتخب کریں۔</string>
     <string name="licence_status_none">اس ڈیوائس کے لیے کوئی لائسنس نہیں ملا۔</string>
     <string name="licence_status_verify">ایکٹیویشن جاری رکھنے سے پہلے لائسنس کی تصدیق ضروری ہے۔</string>
     <string name="licence_status_unavailable">لائسنس سروس عارضی طور پر دستیاب نہیں۔ براہِ کرم بعد میں دوبارہ کوشش کریں۔</string>

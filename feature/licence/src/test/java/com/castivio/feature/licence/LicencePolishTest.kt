@@ -139,6 +139,65 @@ class LicencePolishTest {
     }
 
     /**
+     * A lapsed licence names the day it lapsed, in its own sentence.
+     *
+     * ## Why the date is in the sentence and not on a second line
+     *
+     * Because this is the one dated state that still shows the plan cards. An
+     * active annual licence is offered nothing further, so its "valid until"
+     * line is spent out of the room the card row would have taken; an expired
+     * one has the cards *and* would have the extra line, and on the 800×360
+     * frame with the transient navigation bar showing that takes the band 10dp
+     * negative. A `Column` that does not fit hands zero height to the child it
+     * measured last, so the line that would vanish for those two or three
+     * seconds is the one telling the user what to do about it.
+     *
+     * One parameterised sentence costs nothing: it lands at the length of
+     * `licence_status_unavailable`, which this screen already carries, and the
+     * status line grows to hold a second row of text if a language needs one.
+     *
+     * ## What is asserted
+     *
+     * The whole sentence, composed the way the screen composes it — the same
+     * resource with the same locale-formatted date — so a `%s` reaching the
+     * screen unsubstituted fails here rather than on a device. Not the date's
+     * own shape: that is ICU's, and the language-by-language claim about it is
+     * `the expiry month is named and not numbered in every language`.
+     */
+    @Test
+    fun `an expired annual licence names the day it lapsed`() {
+        show(EntitlementState.AnnualExpired(expiredAtMs = EXPIRY_MS))
+
+        val locale = ConfigurationCompat.getLocales(res.configuration).get(0)!!
+        val expected = res.getString(
+            R.string.licence_status_expired_on,
+            formatExpiry(EXPIRY_MS, locale),
+        )
+        compose.onNodeWithText(expected).assertExists()
+        assertEquals(
+            "the lapsed date was drawn as a second line as well as in the sentence",
+            0,
+            nodes(LicenceTags.EXPIRY),
+        )
+    }
+
+    /**
+     * And says it without one when it has none.
+     *
+     * The nullable half of the same field, and the reason it is nullable: a
+     * record written by an older build, or repaired after a clock rollback, has
+     * no date to name. The undated wording is not a fallback that nobody will
+     * see — it is what a device in that condition actually renders.
+     */
+    @Test
+    fun `an expired annual licence with no date says so without one`() {
+        show(EntitlementState.AnnualExpired(expiredAtMs = null))
+
+        compose.onNodeWithText(res.getString(R.string.licence_status_expired)).assertExists()
+        assertEquals("an undated expiry drew a date line", 0, nodes(LicenceTags.EXPIRY))
+    }
+
+    /**
      * The month is a word, in every language Castivio ships.
      *
      * This is the assertion the first version did not make, and its absence is
@@ -164,13 +223,18 @@ class LicencePolishTest {
     }
 
     /**
-     * And no other state does, including the two that also have a date.
+     * And no other state draws this **line**, including the one that also has a
+     * date.
      *
-     * Lifetime has no expiry at all; a trial has one and says it in days
+     * The claim is about the second line specifically, not about dates in
+     * general, and the distinction is the whole of the expired state's design.
+     * A lapsed licence does now name the day it lapsed — see
+     * `an expired annual licence names the day it lapsed` — but it says so
+     * *inside its sentence* rather than on a line of its own, because it is the
+     * one dated state that still shows the plan cards and so has no room to
+     * spare. Lifetime has no expiry at all; a trial has one and says it in days
      * instead, because two renderings of the same fact in different units is
-     * how a user ends up counting on their fingers. Expired, missing, revoked
-     * and unverified are conditions, and a date on any of them would be telling
-     * somebody the day their licence stopped working.
+     * how a user ends up counting on their fingers.
      */
     @Test
     fun `no other state shows an expiry date`() {
@@ -381,7 +445,7 @@ class LicencePolishTest {
         EntitlementState.AnnualActive(expiresAtMs = 0, daysRemaining = 200),
         EntitlementState.Lifetime,
         EntitlementState.TrialExpired,
-        EntitlementState.AnnualExpired,
+        EntitlementState.AnnualExpired(),
         EntitlementState.Unknown,
         EntitlementState.Revoked(revokedAtMs = 0),
     )

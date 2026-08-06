@@ -385,7 +385,7 @@ private fun everyState(): List<Pair<String, EntitlementState>> = listOf(
     "TrialActive" to EntitlementState.TrialActive(expiresAtMs = 0, daysRemaining = 3),
     "TrialExpired" to EntitlementState.TrialExpired,
     "AnnualActive" to EntitlementState.AnnualActive(expiresAtMs = 0, daysRemaining = 200),
-    "AnnualExpired" to EntitlementState.AnnualExpired,
+    "AnnualExpired" to EntitlementState.AnnualExpired(),
     "Lifetime" to EntitlementState.Lifetime,
     "Revoked" to EntitlementState.Revoked(revokedAtMs = 0),
     "Unknown" to EntitlementState.Unknown,

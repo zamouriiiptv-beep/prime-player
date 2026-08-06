@@ -40,6 +40,7 @@
     <string name="licence_status_lifetime">Castivio vă aparține pe acest dispozitiv.</string>
     <string name="licence_status_trial_ended">Perioada de probă s-a încheiat. Alegeți o licență pentru a continua.</string>
     <string name="licence_status_expired">Licența a expirat. Alegeți o licență pentru a continua.</string>
+    <string name="licence_status_expired_on">Licența a expirat pe %s. Alegeți o licență pentru a continua.</string>
     <string name="licence_status_none">Nu a fost găsită nicio licență pentru acest dispozitiv.</string>
     <string name="licence_status_verify">Este necesară verificarea licenței înainte ca activarea să poată continua.</string>
     <string name="licence_status_unavailable">Serviciul de licențe este temporar indisponibil. Încearcă din nou mai târziu.</string>

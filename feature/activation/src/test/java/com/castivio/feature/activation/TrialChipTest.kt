@@ -69,7 +69,7 @@ class TrialChipTest {
         val others = listOf(
             EntitlementState.TrialExpired,
             EntitlementState.AnnualActive(expiresAtMs = 0L, daysRemaining = 340),
-            EntitlementState.AnnualExpired,
+            EntitlementState.AnnualExpired(),
             EntitlementState.Lifetime,
             EntitlementState.Revoked(revokedAtMs = null),
             EntitlementState.Unknown,

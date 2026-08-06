@@ -40,6 +40,7 @@
     <string name="licence_status_lifetime">Castivio เป็นของคุณบนอุปกรณ์นี้</string>
     <string name="licence_status_trial_ended">การทดลองใช้สิ้นสุดแล้ว เลือกใบอนุญาตเพื่อใช้งานต่อ</string>
     <string name="licence_status_expired">ใบอนุญาตหมดอายุแล้ว เลือกใบอนุญาตเพื่อใช้งานต่อ</string>
+    <string name="licence_status_expired_on">ใบอนุญาตหมดอายุเมื่อ %s เลือกใบอนุญาตเพื่อใช้งานต่อ</string>
     <string name="licence_status_none">ไม่พบใบอนุญาตสำหรับอุปกรณ์นี้</string>
     <string name="licence_status_verify">ต้องยืนยันใบอนุญาตก่อนจึงจะเปิดใช้งานต่อได้</string>
     <string name="licence_status_unavailable">บริการใบอนุญาตไม่พร้อมใช้งานชั่วคราว โปรดลองอีกครั้งภายหลัง</string>

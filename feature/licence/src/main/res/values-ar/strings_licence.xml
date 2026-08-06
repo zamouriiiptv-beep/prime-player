@@ -40,6 +40,7 @@
     <string name="licence_status_lifetime">تطبيق Castivio مُفعّل مدى الحياة.</string>
     <string name="licence_status_trial_ended">انتهت تجربتك. اختر ترخيصًا للمتابعة.</string>
     <string name="licence_status_expired">انتهى ترخيصك. اختر ترخيصًا للمتابعة.</string>
+    <string name="licence_status_expired_on">انتهى ترخيصك في %s. اختر ترخيصًا للمتابعة.</string>
     <string name="licence_status_none">لم يُعثر على ترخيص لهذا الجهاز.</string>
     <string name="licence_status_verify">يلزم التحقق من حالة الترخيص قبل المتابعة.</string>
     <string name="licence_status_unavailable">خدمة التراخيص غير متاحة مؤقتًا. يُرجى المحاولة لاحقًا.</string>

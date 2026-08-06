@@ -175,13 +175,23 @@ private fun everyEntitlement(): List<Pair<String, EntitlementState>> = listOf(
     // board that could never show it.
     //
     // The other fixtures keep their zeros because nothing renders their
-    // timestamps: a trial shows a day count, and the expired, revoked and
-    // unavailable states show no date by design.
+    // timestamps: a trial shows a day count, and the revoked and unavailable
+    // states show no date by design.
     "Annual · active" to EntitlementState.AnnualActive(
         expiresAtMs = System.currentTimeMillis() + ANNUAL_FIXTURE_DAYS * DAY_MS,
         daysRemaining = ANNUAL_FIXTURE_DAYS.toInt(),
     ),
-    "Annual · expired" to EntitlementState.AnnualExpired,
+    // Both halves of the expired state, because they are two sentences.
+    //
+    // The date is optional in the model -- a record restored from an older build
+    // or repaired after a clock rollback may not carry one -- and the wording
+    // changes when it is absent. One row would test whichever branch the fixture
+    // happened to pick, which is the mistake the active row above made for a
+    // commit and nobody noticed until it was on a screenshot.
+    "Annual · expired" to EntitlementState.AnnualExpired(
+        expiredAtMs = System.currentTimeMillis() - EXPIRED_FIXTURE_DAYS * DAY_MS,
+    ),
+    "Annual · expired, date unknown" to EntitlementState.AnnualExpired(expiredAtMs = null),
     "Lifetime" to EntitlementState.Lifetime,
     "No licence yet" to EntitlementState.Unknown,
     "Verification needed" to EntitlementState.VerificationUnavailable(
@@ -198,6 +208,16 @@ private fun everyEntitlement(): List<Pair<String, EntitlementState>> = listOf(
 
 /** Two hundred days out, so the date on screen is always plausibly in future. */
 private const val ANNUAL_FIXTURE_DAYS = 200L
+
+/**
+ * And forty back, so the expired date is plausibly in the past.
+ *
+ * Far enough that it is unambiguously a lapse rather than a rounding of today,
+ * and near enough to land in a different month from the active fixture — which
+ * is what makes a screenshot of the two rows show two different dates rather
+ * than two renderings that could be the same one.
+ */
+private const val EXPIRED_FIXTURE_DAYS = 40L
 private const val DAY_MS = 86_400_000L
 
 internal const val DEBUG_TAG = "debug.entry"

@@ -40,6 +40,7 @@
     <string name="licence_status_lifetime">您已擁有本裝置上的 Castivio。</string>
     <string name="licence_status_trial_ended">試用已結束。請選擇授權以繼續。</string>
     <string name="licence_status_expired">授權已過期。請選擇授權以繼續。</string>
+    <string name="licence_status_expired_on">您的授權已於 %s 過期。請選擇授權以繼續。</string>
     <string name="licence_status_none">找不到此裝置的授權。</string>
     <string name="licence_status_verify">必須先驗證授權，啟用才能繼續。</string>
     <string name="licence_status_unavailable">授權服務暫時無法使用，請稍後再試。</string>

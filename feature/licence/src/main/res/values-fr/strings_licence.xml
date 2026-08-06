@@ -40,6 +40,7 @@
     <string name="licence_status_lifetime">Castivio vous appartient sur cet appareil.</string>
     <string name="licence_status_trial_ended">Votre essai est terminé. Choisissez une licence pour continuer.</string>
     <string name="licence_status_expired">Votre licence a expiré. Choisissez une licence pour continuer.</string>
+    <string name="licence_status_expired_on">Votre licence a expiré le %s. Choisissez une licence pour continuer.</string>
     <string name="licence_status_none">Aucune licence n’a été trouvée pour cet appareil.</string>
     <string name="licence_status_verify">Une vérification de la licence est nécessaire avant de poursuivre l’activation.</string>
     <string name="licence_status_unavailable">Le service de licences est temporairement indisponible. Réessayez plus tard.</string>

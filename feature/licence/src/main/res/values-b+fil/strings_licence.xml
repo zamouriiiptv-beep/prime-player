@@ -40,6 +40,7 @@
     <string name="licence_status_lifetime">Pagmamay-ari mo ang Castivio sa device na ito.</string>
     <string name="licence_status_trial_ended">Tapos na ang pagsubok mo. Pumili ng lisensya para magpatuloy.</string>
     <string name="licence_status_expired">Expired na ang lisensya mo. Pumili ng lisensya para magpatuloy.</string>
+    <string name="licence_status_expired_on">Nag-expire ang lisensya mo noong %s. Pumili ng lisensya para magpatuloy.</string>
     <string name="licence_status_none">Walang lisensyang nakita para sa device na ito.</string>
     <string name="licence_status_verify">Kailangan ng pag-verify ng lisensya bago magpatuloy ang activation.</string>
     <string name="licence_status_unavailable">Pansamantalang hindi available ang serbisyo ng lisensya. Subukan ulit mamaya.</string>

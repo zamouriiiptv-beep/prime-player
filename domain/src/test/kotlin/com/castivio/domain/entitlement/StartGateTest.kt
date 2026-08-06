@@ -54,7 +54,7 @@ class StartGateTest {
         )
         assertEquals(
             StartDestination.Licence(LicenceReason.SUBSCRIPTION_EXPIRED),
-            startDestination(EntitlementState.AnnualExpired, source()),
+            startDestination(EntitlementState.AnnualExpired(), source()),
         )
     }
 
@@ -185,7 +185,7 @@ class StartGateTest {
         )
         assertEquals(
             StartDestination.Licence(LicenceReason.SUBSCRIPTION_EXPIRED),
-            startDestination(EntitlementState.AnnualExpired, full),
+            startDestination(EntitlementState.AnnualExpired(), full),
         )
         assertEquals(
             StartDestination.Licence(LicenceReason.REVOKED),
@@ -257,7 +257,7 @@ class StartGateTest {
     @Test
     fun `each denying state has its own sentence`() {
         assertEquals(LicenceReason.TRIAL_EXPIRED, licenceReason(EntitlementState.TrialExpired))
-        assertEquals(LicenceReason.SUBSCRIPTION_EXPIRED, licenceReason(EntitlementState.AnnualExpired))
+        assertEquals(LicenceReason.SUBSCRIPTION_EXPIRED, licenceReason(EntitlementState.AnnualExpired()))
         assertEquals(LicenceReason.NOT_ESTABLISHED, licenceReason(EntitlementState.Unknown))
         assertEquals(
             LicenceReason.VERIFICATION_REQUIRED,

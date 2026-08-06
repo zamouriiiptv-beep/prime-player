@@ -570,9 +570,11 @@ private fun IdentityColumn(
 internal fun fadeKey(state: LicenceUiState): LicenceCondition? = state.licence?.let { licence ->
     LicenceCondition(
         view = licenceView(licence),
-        // Only an annual licence has one, and that is the whole rule: nothing
-        // else on this screen shows a date, because for every other state the
-        // date is either irrelevant, unknown, or the bad news itself.
+        // An *active* annual licence, and only that one. A lapsed licence also
+        // has a date and does not travel here: it says so inside its own
+        // sentence, so its date rides in `LicenceView.statusDateMs` and is
+        // already part of the view this condition carries. This field is the
+        // second line specifically, and nothing else on the screen draws one.
         expiresAtMs = (licence as? EntitlementState.AnnualActive)?.expiresAtMs,
     )
 }
@@ -762,7 +764,7 @@ private fun LicenceStatusLine(state: LicenceUiState, m: LicenceMetrics, modifier
             // casts. The compiler would probably grant both; "probably" is not a
             // thing to find out from a seven-minute CI round trip.
             else -> resting?.let { view ->
-                view.status?.let { stringResource(it) to toneColor(view.tone) }
+                view.status?.let { statusSentence(view, it) to toneColor(view.tone) }
             }
         }
 
@@ -783,16 +785,60 @@ private fun LicenceStatusLine(state: LicenceUiState, m: LicenceMetrics, modifier
 }
 
 /**
+ * The condition's sentence, with its date in it where it has one.
+ *
+ * Two resources and one of them takes an argument, which is exactly the shape
+ * that goes wrong if the choice is made twice. It is made once, in `licenceView`,
+ * which hands back the resource **and** the timestamp that belongs to it: a
+ * non-null [LicenceView.statusDateMs] is the view saying "this sentence has a
+ * `%s` in it". Nothing here re-inspects the entitlement to work that out.
+ *
+ * @param status [LicenceView.status], already known to be non-null at the call
+ *   site. Passed rather than re-read so the smart cast is the caller's problem.
+ */
+@Composable
+private fun statusSentence(view: LicenceView, status: Int): String {
+    val at = view.statusDateMs ?: return stringResource(status)
+    return stringResource(status, expiryDate(at))
+}
+
+/**
+ * A timestamp as the interface's own date, memoised on both of its inputs.
+ *
+ * One function for the two places that need it — the expired sentence and the
+ * "valid until" line — because a screen that formats the same kind of value two
+ * ways is a screen where one of them eventually stops matching the other.
+ */
+@Composable
+private fun expiryDate(atMs: Long): String {
+    val locale = interfaceLocale()
+    return remember(atMs, locale) { formatExpiry(atMs, locale) }
+}
+
+/**
  * "Valid until 1 August 2027", under the confirmation and only under that one.
  *
- * ## Why only an annual licence gets a date
+ * ## Why only an active annual licence gets a *line*
  *
- * Because it is the only state where a date is a fact the user can act on.
- * Lifetime has no expiry; a trial already says how many days are left in
- * sentence form, and a second rendering of the same fact as a date would be two
- * countdowns disagreeing about their units; expired, missing, revoked and
- * unverified are conditions, and putting a date on any of them tells somebody
- * the day their licence stopped working, which they know.
+ * Two states hold a date worth showing and only one of them gets a line of its
+ * own. A lapsed licence names the day it lapsed too — the user's own request,
+ * and the right one: "your licence expired" leaves somebody who last opened the
+ * app in March unable to tell whether that was yesterday or eight months ago.
+ * It says so **inside its sentence** rather than under it, because it is the
+ * state that still shows the plan cards. An active annual licence is offered
+ * nothing further, so this line is spent out of the room the card row would have
+ * taken; an expired one has the cards as well, and on the 800×360 frame with the
+ * transient navigation bar showing the extra line takes the band 10dp negative.
+ * A `Column` that does not fit hands zero height to the child it measured last,
+ * so the line that would disappear for those seconds is the one telling the user
+ * what to do about it. One sentence with a `%s` in it costs nothing and was
+ * measured to still be one line in all nine stress languages on all three
+ * frames.
+ *
+ * The remaining states have nothing to put here. Lifetime has no expiry at all;
+ * a trial says how many days are left in sentence form, and a second rendering
+ * of the same fact as a date would be two countdowns disagreeing about their
+ * units; missing, revoked and unverified are conditions rather than moments.
  *
  * ## Why it does not move anything
  *
@@ -811,10 +857,8 @@ private fun LicenceStatusLine(state: LicenceUiState, m: LicenceMetrics, modifier
 private fun ExpiryLine(expiresAtMs: Long?, m: LicenceMetrics) {
     if (expiresAtMs == null || expiresAtMs <= 0L) return
     val colors = CastivioTheme.colors
-    val locale = interfaceLocale()
-    val date = remember(expiresAtMs, locale) { formatExpiry(expiresAtMs, locale) }
     Text(
-        text = stringResource(R.string.licence_valid_until, date),
+        text = stringResource(R.string.licence_valid_until, expiryDate(expiresAtMs)),
         style = CastivioType.bodySmall,
         color = colors.onBackgroundMuted,
         maxLines = 1,

@@ -60,7 +60,7 @@ class EntitlementPolicyTest {
 
         assertFalse(EntitlementPolicy.verificationIsStale(expired, t0 + 365 * day, config))
         assertEquals(
-            EntitlementState.AnnualExpired,
+            EntitlementState.AnnualExpired(t0 + 365 * day),
             EntitlementPolicy.evaluate(expired, t0 + 365 * day, config),
         )
     }
@@ -227,7 +227,7 @@ class EntitlementPolicyTest {
             config = config,
         )
 
-        assertEquals(EntitlementState.AnnualExpired, state)
+        assertEquals(EntitlementState.AnnualExpired(t0 + day), state)
     }
 
     /** Renewal is just a later expiry; nothing else about the record changes. */

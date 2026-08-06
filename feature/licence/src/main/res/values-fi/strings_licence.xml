@@ -40,6 +40,7 @@
     <string name="licence_status_lifetime">Castivio on omasi tällä laitteella.</string>
     <string name="licence_status_trial_ended">Kokeilusi on päättynyt. Valitse lisenssi jatkaaksesi.</string>
     <string name="licence_status_expired">Lisenssisi on vanhentunut. Valitse lisenssi jatkaaksesi.</string>
+    <string name="licence_status_expired_on">Lisenssisi vanhentui %s. Valitse lisenssi jatkaaksesi.</string>
     <string name="licence_status_none">Tälle laitteelle ei löytynyt lisenssiä.</string>
     <string name="licence_status_verify">Lisenssi on vahvistettava, ennen kuin aktivointi voi jatkua.</string>
     <string name="licence_status_unavailable">Lisenssipalvelu ei ole juuri nyt käytettävissä. Yritä myöhemmin uudelleen.</string>

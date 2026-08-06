@@ -40,6 +40,7 @@
     <string name="licence_status_lifetime">A Castivio az Öné ezen az eszközön.</string>
     <string name="licence_status_trial_ended">A próbaidőszaka véget ért. Válasszon licencet a folytatáshoz.</string>
     <string name="licence_status_expired">A licence lejárt. Válasszon licencet a folytatáshoz.</string>
+    <string name="licence_status_expired_on">A licence %s napján lejárt. Válasszon licencet a folytatáshoz.</string>
     <string name="licence_status_none">Nem található licenc ehhez az eszközhöz.</string>
     <string name="licence_status_verify">Az aktiválás folytatásához a licenc ellenőrzése szükséges.</string>
     <string name="licence_status_unavailable">A licencszolgáltatás átmenetileg nem érhető el. Próbáld újra később.</string>

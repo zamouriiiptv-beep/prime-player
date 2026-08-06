@@ -48,6 +48,15 @@
     <string name="licence_status_lifetime">You own Castivio on this device.</string>
     <string name="licence_status_trial_ended">Your trial has ended. Choose a licence to continue.</string>
     <string name="licence_status_expired">Your licence has expired. Choose a licence to continue.</string>
+    <!--
+      The same sentence, for the ordinary case where the date is known.
+
+      Two resources rather than one with an optional argument, because a string
+      is either parameterised or it is not: a translator handed one `%s` that is
+      sometimes empty writes a sentence with a hole in it. The unparameterised
+      form above stays for the record that cannot say when it lapsed.
+    -->
+    <string name="licence_status_expired_on">Your licence expired on %s. Choose a licence to continue.</string>
     <string name="licence_status_none">No licence was found for this device.</string>
     <string name="licence_status_verify">Licence verification is required before activation can continue.</string>
     <string name="licence_status_unavailable">The licence service is temporarily unavailable. Please try again later.</string>
@@ -57,11 +66,14 @@
     <string name="licence_status_failed">That didn’t work. Try again.</string>
 
     <!--
-      The expiry date, for an active annual licence and for nothing else.
+      The second line under an active annual licence's confirmation, and the
+      only place on this screen a date gets a line of its own. A lapsed licence
+      names its date too and does it inside `licence_status_expired_on` above,
+      because that state still shows the plan cards and has no line to spare.
 
-      `%s` is a date the platform has already formatted in the interface's
-      locale — never a pattern written here, which would render 2027-08-01 to a
-      French reader and 8/1/2027 to a German one.
+      `%s` here and there is a date the platform has already formatted in the
+      interface's locale — never a pattern written here, which would render
+      2027-08-01 to a French reader and 8/1/2027 to a German one.
     -->
     <string name="licence_valid_until">Valid until %s</string>
 

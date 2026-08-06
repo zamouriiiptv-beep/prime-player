@@ -40,6 +40,7 @@
     <string name="licence_status_lifetime">Castivio روی این دستگاه متعلق به شماست.</string>
     <string name="licence_status_trial_ended">دورهٔ آزمایشی شما تمام شد. برای ادامه مجوزی انتخاب کنید.</string>
     <string name="licence_status_expired">مجوز شما منقضی شده است. برای ادامه مجوزی انتخاب کنید.</string>
+    <string name="licence_status_expired_on">مجوز شما در %s منقضی شد. برای ادامه مجوزی انتخاب کنید.</string>
     <string name="licence_status_none">هیچ مجوزی برای این دستگاه پیدا نشد.</string>
     <string name="licence_status_verify">پیش از ادامهٔ فعال‌سازی، بررسی مجوز لازم است.</string>
     <string name="licence_status_unavailable">سرویس مجوز موقتاً در دسترس نیست. لطفاً بعداً دوباره تلاش کنید.</string>

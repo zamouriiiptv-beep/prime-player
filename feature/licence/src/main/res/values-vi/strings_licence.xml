@@ -40,6 +40,7 @@
     <string name="licence_status_lifetime">Castivio là của bạn trên thiết bị này.</string>
     <string name="licence_status_trial_ended">Thời gian dùng thử đã hết. Chọn giấy phép để tiếp tục.</string>
     <string name="licence_status_expired">Giấy phép của bạn đã hết hạn. Chọn giấy phép để tiếp tục.</string>
+    <string name="licence_status_expired_on">Giấy phép của bạn đã hết hạn vào %s. Chọn giấy phép để tiếp tục.</string>
     <string name="licence_status_none">Không tìm thấy giấy phép nào cho thiết bị này.</string>
     <string name="licence_status_verify">Cần xác minh giấy phép trước khi tiếp tục kích hoạt.</string>
     <string name="licence_status_unavailable">Dịch vụ giấy phép tạm thời không khả dụng. Vui lòng thử lại sau.</string>

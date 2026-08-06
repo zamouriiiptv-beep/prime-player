@@ -40,6 +40,7 @@
     <string name="licence_status_lifetime">Το Castivio σας ανήκει σε αυτή τη συσκευή.</string>
     <string name="licence_status_trial_ended">Η δοκιμή σας έληξε. Επιλέξτε άδεια για να συνεχίσετε.</string>
     <string name="licence_status_expired">Η άδειά σας έληξε. Επιλέξτε άδεια για να συνεχίσετε.</string>
+    <string name="licence_status_expired_on">Η άδειά σας έληξε στις %s. Επιλέξτε άδεια για να συνεχίσετε.</string>
     <string name="licence_status_none">Δεν βρέθηκε άδεια για αυτήν τη συσκευή.</string>
     <string name="licence_status_verify">Απαιτείται επαλήθευση της άδειας πριν συνεχιστεί η ενεργοποίηση.</string>
     <string name="licence_status_unavailable">Η υπηρεσία αδειών δεν είναι προσωρινά διαθέσιμη. Δοκιμάστε ξανά αργότερα.</string>

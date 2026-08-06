@@ -40,6 +40,7 @@
     <string name="licence_status_lifetime">Castivio menjadi milik Anda di perangkat ini.</string>
     <string name="licence_status_trial_ended">Uji coba Anda telah berakhir. Pilih lisensi untuk melanjutkan.</string>
     <string name="licence_status_expired">Lisensi Anda telah kedaluwarsa. Pilih lisensi untuk melanjutkan.</string>
+    <string name="licence_status_expired_on">Lisensi Anda kedaluwarsa pada %s. Pilih lisensi untuk melanjutkan.</string>
     <string name="licence_status_none">Tidak ada lisensi yang ditemukan untuk perangkat ini.</string>
     <string name="licence_status_verify">Verifikasi lisensi diperlukan sebelum aktivasi dapat dilanjutkan.</string>
     <string name="licence_status_unavailable">Layanan lisensi sementara tidak tersedia. Silakan coba lagi nanti.</string>

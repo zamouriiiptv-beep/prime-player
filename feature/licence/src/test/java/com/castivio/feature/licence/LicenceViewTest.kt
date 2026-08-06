@@ -39,7 +39,7 @@ class LicenceViewTest {
         EntitlementState.AnnualActive(expiresAtMs = 0L, daysRemaining = 340),
         EntitlementState.Lifetime,
         EntitlementState.TrialExpired,
-        EntitlementState.AnnualExpired,
+        EntitlementState.AnnualExpired(),
         EntitlementState.Unknown,
         EntitlementState.VerificationUnavailable(
             lastKnownPlan = Plan.ANNUAL,
@@ -242,8 +242,107 @@ class LicenceViewTest {
             bad.toSet(),
         )
         assertEquals(LicenceTone.Warning, licenceView(EntitlementState.TrialExpired).tone)
-        assertEquals(LicenceTone.Warning, licenceView(EntitlementState.AnnualExpired).tone)
+        assertEquals(LicenceTone.Warning, licenceView(EntitlementState.AnnualExpired()).tone)
     }
+
+    // -- The date on a lapsed licence ---------------------------------------
+
+    /**
+     * An expired annual licence says **when**, and that is a change of copy
+     * rather than of logic.
+     *
+     * "Your licence has expired" is true and unhelpful: a user who last opened
+     * the app in March cannot tell from it whether the licence lapsed yesterday
+     * or eight months ago, and those are two different conversations with
+     * support. The date was already in the policy's hand — it is the value the
+     * clock was compared against — so this exposes it rather than computing it.
+     */
+    @Test
+    fun `an expired annual licence names the day it lapsed`() {
+        val view = licenceView(EntitlementState.AnnualExpired(LAPSED))
+        assertEquals(R.string.licence_status_expired_on, view.status)
+        // Boxed on both sides. `assertEquals(String, long, long)` and
+        // `assertEquals(String, Object, Object)` both look applicable when one
+        // side is a `Long?`, and which one Kotlin picks is not a thing to find
+        // out from a seven-minute CI round trip.
+        assertEquals(LAPSED as Long?, view.statusDateMs)
+    }
+
+    /**
+     * And keeps the undated sentence when it has no date to name.
+     *
+     * The field is nullable on purpose: a record written by an older build, or
+     * repaired after a clock rollback, may not carry one. A screen that had to
+     * have a date would have to invent one.
+     */
+    @Test
+    fun `an expired annual licence with no date keeps the sentence that has none`() {
+        val view = licenceView(EntitlementState.AnnualExpired(null))
+        assertEquals(R.string.licence_status_expired, view.status)
+        assertNull(view.statusDateMs)
+    }
+
+    /**
+     * An instant at or before the epoch is no date either.
+     *
+     * Zero is 1 January 1970, and "your licence expired on 1 Jan 1970" in front
+     * of a paying customer is worse than saying nothing about the day at all.
+     * The same guard the "valid until" line already carries, moved to where it
+     * can be checked without a device.
+     */
+    @Test
+    fun `an implausible instant is treated as no date at all`() {
+        for (at in listOf(0L, -1L, Long.MIN_VALUE)) {
+            val view = licenceView(EntitlementState.AnnualExpired(at))
+            assertEquals(
+                "$at was accepted as a date",
+                R.string.licence_status_expired,
+                view.status,
+            )
+            assertNull("$at was accepted as a date", view.statusDateMs)
+        }
+    }
+
+    /**
+     * The resource and its argument are chosen together, and cannot come apart.
+     *
+     * This is the assertion that matters, and the reason [LicenceView] carries
+     * the timestamp instead of the screen reading it back off the entitlement.
+     * `licence_status_expired_on` has a `%s` in it; every other status string
+     * does not. Resolve the parameterised one without an argument and the
+     * literal text "%s" reaches the screen; pass an argument to an
+     * unparameterised one and nothing happens, which is the harmless direction.
+     * So the claim is the exact correspondence, in both directions.
+     */
+    @Test
+    fun `only the parameterised sentence carries a date`() {
+        val dated = everyState + EntitlementState.AnnualExpired(LAPSED)
+        for (state in dated) {
+            val view = licenceView(state)
+            assertEquals(
+                "$state pairs ${view.status} with a date of ${view.statusDateMs}",
+                view.status == R.string.licence_status_expired_on,
+                view.statusDateMs != null,
+            )
+        }
+    }
+
+    /**
+     * A lifetime licence never shows a date, which is a product rule and not an
+     * accident of the mapping.
+     *
+     * There is no date to show — a lifetime licence does not end — so any date
+     * on that screen would be a fabrication. Stated as its own test because the
+     * loop above would go on passing if `Lifetime` ever gained a timestamp
+     * field and somebody plumbed it through.
+     */
+    @Test
+    fun `a lifetime licence never carries a date`() {
+        assertNull(licenceView(EntitlementState.Lifetime).statusDateMs)
+    }
+
+    /** Somewhere in 2027, and only ever compared with itself. */
+    private val LAPSED = 1_817_000_000_000L
 
     /** An active licence is the only green thing on the screen. */
     @Test

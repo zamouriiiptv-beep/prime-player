@@ -38,6 +38,23 @@ internal data class LicenceView(
      */
     val status: Int?,
     /**
+     * The one argument [status] takes, when it takes one.
+     *
+     * Non-null for exactly one condition today — an annual licence that lapsed on
+     * a date we still hold — and the pair is chosen together, in this file, so
+     * that a resource with a `%s` in it can never be resolved without the
+     * substitution. That coupling is the reason this lives on the view rather
+     * than being read from the entitlement again at the point of rendering: two
+     * places deriving the same decision from the same value is two places that
+     * can come to disagree, and the way that failure presents is the literal text
+     * "%s" on a paying customer's screen.
+     *
+     * A timestamp rather than a formatted string, because the formatting is the
+     * interface locale's business and this function has no locale and no Compose
+     * runtime. See `formatExpiry`.
+     */
+    val statusDateMs: Long? = null,
+    /**
      * Whether the plans are offered.
      *
      * False wherever a price is the wrong thing to show, which is two different
@@ -152,12 +169,33 @@ internal fun licenceView(state: EntitlementState): LicenceView = when (state) {
         offersPlans = true,
     )
 
-    EntitlementState.AnnualExpired -> LicenceView(
-        chip = R.string.licence_chip_expired,
-        tone = LicenceTone.Warning,
-        status = R.string.licence_status_expired,
-        offersPlans = true,
-    )
+    // The one state that says *when*, and only when it actually knows.
+    //
+    // "Your licence has expired" is true and unhelpful: a user who last opened
+    // the app in March cannot tell whether it lapsed yesterday or eight months
+    // ago, and those are different conversations with support. The date is a
+    // fact the policy already had in its hand -- it is the very value it compared
+    // the clock against -- so carrying it costs a field and answers the question.
+    //
+    // `> 0` rather than merely non-null. A record repaired after a clock rollback
+    // can hold a zero, and "your licence expired on 1 January 1970" is worse than
+    // saying nothing about the date at all. The guard lives here, where it is a
+    // pure function two lines long, rather than in the composable where it would
+    // be untestable without a device.
+    is EntitlementState.AnnualExpired -> {
+        val at = state.expiredAtMs?.takeIf { it > 0L }
+        LicenceView(
+            chip = R.string.licence_chip_expired,
+            tone = LicenceTone.Warning,
+            status = if (at == null) {
+                R.string.licence_status_expired
+            } else {
+                R.string.licence_status_expired_on
+            },
+            statusDateMs = at,
+            offersPlans = true,
+        )
+    }
 
     EntitlementState.Unknown -> LicenceView(
         chip = R.string.licence_chip_none,

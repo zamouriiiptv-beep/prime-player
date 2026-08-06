@@ -40,6 +40,7 @@
     <string name="licence_status_lifetime">Притежавате Castivio на това устройство.</string>
     <string name="licence_status_trial_ended">Пробният ви период приключи. Изберете лиценз, за да продължите.</string>
     <string name="licence_status_expired">Лицензът ви изтече. Изберете лиценз, за да продължите.</string>
+    <string name="licence_status_expired_on">Лицензът ви изтече на %s. Изберете лиценз, за да продължите.</string>
     <string name="licence_status_none">За това устройство не е намерен лиценз.</string>
     <string name="licence_status_verify">Необходима е проверка на лиценза, преди активирането да продължи.</string>
     <string name="licence_status_unavailable">Услугата за лицензи е временно недостъпна. Опитайте отново по-късно.</string>

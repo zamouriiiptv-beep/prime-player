@@ -40,6 +40,7 @@
     <string name="licence_status_lifetime">Castivio принадлежит вам на этом устройстве.</string>
     <string name="licence_status_trial_ended">Пробный период закончился. Выберите лицензию, чтобы продолжить.</string>
     <string name="licence_status_expired">Ваша лицензия истекла. Выберите лицензию, чтобы продолжить.</string>
+    <string name="licence_status_expired_on">Ваша лицензия истекла %s. Выберите лицензию, чтобы продолжить.</string>
     <string name="licence_status_none">Для этого устройства лицензия не найдена.</string>
     <string name="licence_status_verify">Прежде чем продолжить активацию, нужно проверить лицензию.</string>
     <string name="licence_status_unavailable">Служба лицензий временно недоступна. Попробуйте позже.</string>

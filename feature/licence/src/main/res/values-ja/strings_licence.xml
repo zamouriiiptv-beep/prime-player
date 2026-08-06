@@ -40,6 +40,7 @@
     <string name="licence_status_lifetime">この端末の Castivio はお客様のものです。</string>
     <string name="licence_status_trial_ended">体験版が終了しました。続けるにはライセンスを選んでください。</string>
     <string name="licence_status_expired">ライセンスの期限が切れました。続けるにはライセンスを選んでください。</string>
+    <string name="licence_status_expired_on">ライセンスは %s に期限が切れました。続けるにはライセンスを選んでください。</string>
     <string name="licence_status_none">この端末のライセンスは見つかりませんでした。</string>
     <string name="licence_status_verify">アクティベーションを続けるには、ライセンスの確認が必要です。</string>
     <string name="licence_status_unavailable">ライセンスサービスは一時的にご利用いただけません。しばらくしてからお試しください。</string>

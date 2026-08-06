@@ -40,6 +40,7 @@
     <string name="licence_status_lifetime">Bu cihazda Castivio sizin.</string>
     <string name="licence_status_trial_ended">Denemeniz bitti. Devam etmek için bir lisans seçin.</string>
     <string name="licence_status_expired">Lisansınızın süresi doldu. Devam etmek için bir lisans seçin.</string>
+    <string name="licence_status_expired_on">Lisansınızın süresi %s tarihinde doldu. Devam etmek için bir lisans seçin.</string>
     <string name="licence_status_none">Bu cihaz için lisans bulunamadı.</string>
     <string name="licence_status_verify">Etkinleştirmeye devam edebilmek için lisans doğrulaması gerekiyor.</string>
     <string name="licence_status_unavailable">Lisans hizmeti geçici olarak kullanılamıyor. Lütfen daha sonra tekrar deneyin.</string>

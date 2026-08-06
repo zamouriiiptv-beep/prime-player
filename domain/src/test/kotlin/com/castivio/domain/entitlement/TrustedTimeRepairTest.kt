@@ -86,7 +86,7 @@ class TrustedTimeRepairTest {
         signals.wallClockMs = t0 + 2 * year
         val poisoned = EntitlementPolicy.evaluate(stored, clock.now(), config)
 
-        assertEquals(EntitlementState.AnnualExpired, poisoned.state)
+        assertEquals(EntitlementState.AnnualExpired(t0 + year), poisoned.state)
         stored = poisoned.record!!
         assertEquals(t0 + 2 * year, stored.maxObservedTimeMs)
 
@@ -97,7 +97,7 @@ class TrustedTimeRepairTest {
         val handCorrected = EntitlementPolicy.evaluate(stored, clock.now(), config)
 
         assertEquals(TimeTrust.FLOORED, clock.now().trust)
-        assertEquals(EntitlementState.AnnualExpired, handCorrected.state)
+        assertEquals(EntitlementState.AnnualExpired(t0 + year), handCorrected.state)
         assertFalse(handCorrected.state.allowsUse)
 
         // 4. The device reaches Castivio's licence host, which states the time.

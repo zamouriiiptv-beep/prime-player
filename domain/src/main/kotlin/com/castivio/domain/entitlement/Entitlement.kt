@@ -56,7 +56,20 @@ sealed interface EntitlementState {
         override val allowsUse: Boolean get() = true
     }
 
-    data object AnnualExpired : EntitlementState {
+    /**
+     * An annual licence that has run out.
+     *
+     * [expiredAtMs] is the moment it lapsed, carried so the screen can say when
+     * rather than only that. It is **nullable and defaulted** on purpose: the
+     * policy always knows the date, because it is the very value it compared the
+     * clock against, but a record restored from an older build or repaired after
+     * a clock rollback may not, and a screen that must have a date would have to
+     * invent one. Absent means "say it expired, do not say when".
+     *
+     * A class rather than an object for the same reason [AnnualActive] is one:
+     * the date is a property of this particular lapse, not of the concept.
+     */
+    data class AnnualExpired(val expiredAtMs: Long? = null) : EntitlementState {
         override val allowsUse: Boolean get() = false
     }
 
