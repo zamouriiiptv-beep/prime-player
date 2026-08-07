@@ -12,11 +12,16 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
+import com.castivio.core.design.components.CastivioIntro
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.platform.AndroidDeviceCapabilities
 import com.castivio.tv.debug.DebugEntry
@@ -24,8 +29,8 @@ import com.castivio.tv.gate.SplashGate
 import com.castivio.tv.locale.AppLocale
 import com.castivio.tv.locale.LocalLocaleController
 import com.castivio.tv.locale.LocaleController
+import com.castivio.tv.root.ExitGuard
 import com.castivio.tv.shell.ShellScreen
-import com.castivio.tv.sound.StartupSound
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
@@ -106,15 +111,6 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
 
-        // Castivio's one sound, at the moment the system splash hands over.
-        //
-        // Here rather than in the composition: `SoundPool` decodes off this
-        // thread and plays from its load callback, so the first frame never
-        // waits on it, and a composable that played a sound would play it again
-        // the first time somebody made the tree recompose for another reason.
-        // `restored` is what keeps it off a warm rebuild -- see `StartupSound`.
-        StartupSound.playOnce(this, restored = savedInstanceState != null)
-
         // Measure once, then let the design system do less on a weak box.
         val performance = AndroidDeviceCapabilities(this).toPerformanceProfile()
 
@@ -156,20 +152,42 @@ class MainActivity : ComponentActivity() {
                     },
             ) {
                 CastivioTheme(performance = performance, motionLevel = motionLevel) {
-                    // Nothing in a release build; see `DebugEntry`. It wraps the
-                    // whole app rather than one screen because the screen it
-                    // opens is the one the gate makes unreachable.
-                    DebugEntry {
-                    SplashGate(
-                        onExit = { finish() },
-                        home = {
-                            ShellScreen(
-                                motionLevel = motionLevel,
-                                onMotionLevel = { motionLevel = it },
-                                onExit = { finish() },
-                            )
-                        },
-                    )
+                    // Whether the mark has already played. `rememberSaveable`,
+                    // so a rotation or a night-mode change does not replay it:
+                    // the intro belongs to *starting Castivio*, and turning a
+                    // phone sideways is not that.
+                    var introDone by rememberSaveable { mutableStateOf(false) }
+
+                    Box(Modifier.fillMaxSize()) {
+                        // One exit question, above the gate and the shell alike.
+                        // Both used to call `finish()` directly and only the
+                        // shell asked first -- which the gate makes unreachable
+                        // on a fresh install. See `ExitGuard`.
+                        ExitGuard(onExit = { finish() }) { askToExit ->
+                            // Nothing in a release build; see `DebugEntry`. It
+                            // wraps the whole app rather than one screen because
+                            // the screen it opens is the one the gate makes
+                            // unreachable.
+                            DebugEntry {
+                                SplashGate(
+                                    onExit = askToExit,
+                                    home = {
+                                        ShellScreen(
+                                            motionLevel = motionLevel,
+                                            onMotionLevel = { motionLevel = it },
+                                            onExit = askToExit,
+                                        )
+                                    },
+                                )
+                            }
+                        }
+
+                        // Last, so it is over everything, and gone the moment it
+                        // is done -- a transparent full-screen box that stayed
+                        // would eat every touch that landed on it.
+                        if (!introDone) {
+                            CastivioIntro(onFinished = { introDone = true })
+                        }
                     }
                 }
             }

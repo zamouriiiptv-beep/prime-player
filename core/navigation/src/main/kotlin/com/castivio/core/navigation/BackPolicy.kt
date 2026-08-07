@@ -103,25 +103,31 @@ object BackPolicy {
      * teaches the user to dismiss the dialog without reading it, and by the time
      * it guards something real they no longer see it.
      *
-     * @param dialogOpen a confirmation is already on screen. It closes first, and
-     *   closes *only* itself: Back must never both dismiss the question and act
-     *   on the thing it was asking about.
+     * ## The confirmation is no longer a rung here
+     *
+     * It was, and it should not have been. The dialog belonged to the shell, so
+     * it could only be reached from the shell — and on a fresh install the gate
+     * sends the user to Add a playlist and never to the shell at all, which made
+     * the question unaskable on the one launch where somebody is most likely to
+     * press Back by accident. It is now asked at the application's root, above
+     * the gate and the shell alike, and it owns its own Back there: an open
+     * confirmation closes, and takes nothing with it.
+     *
+     * So this decides three things instead of four. The ladder it describes is
+     * the shell's, and the shell has no dialog.
+     *
      * @param overlayOpen a detail, the player or a modal is over the shell.
      * @param atRoot the shell is showing its root destination.
      */
-    fun fromShell(dialogOpen: Boolean, overlayOpen: Boolean, atRoot: Boolean): ShellBack = when {
-        dialogOpen -> ShellBack.CloseDialog
+    fun fromShell(overlayOpen: Boolean, atRoot: Boolean): ShellBack = when {
         overlayOpen -> ShellBack.CloseOverlay
         !atRoot -> ShellBack.GoToRoot
         else -> ShellBack.ConfirmExit
     }
 }
 
-/** The four things Back can do on the shell, in the order they are taken. */
+/** The three things Back can do on the shell, in the order they are taken. */
 enum class ShellBack {
-    /** Dismiss the confirmation, and nothing else. */
-    CloseDialog,
-
     CloseOverlay,
 
     /** From a section back to the root, per [BackPolicy.from]. */

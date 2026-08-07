@@ -154,39 +154,35 @@ class BackPolicyTest {
      */
     @Test
     fun `only the root with nothing over it asks before leaving`() {
-        for (dialog in listOf(true, false)) {
-            for (overlay in listOf(true, false)) {
-                for (root in listOf(true, false)) {
-                    val asks = BackPolicy.fromShell(dialog, overlay, root) == ShellBack.ConfirmExit
-                    assertEquals(
-                        "dialog=$dialog overlay=$overlay root=$root should " +
-                            (if (!dialog && !overlay && root) "ask" else "not ask"),
-                        !dialog && !overlay && root,
-                        asks,
-                    )
-                }
+        for (overlay in listOf(true, false)) {
+            for (root in listOf(true, false)) {
+                val asks = BackPolicy.fromShell(overlay, root) == ShellBack.ConfirmExit
+                assertEquals(
+                    "overlay=$overlay root=$root should " +
+                        (if (!overlay && root) "ask" else "not ask"),
+                    !overlay && root,
+                    asks,
+                )
             }
         }
     }
 
     /**
-     * An open confirmation closes and takes nothing with it.
+     * The shell asks; it does not answer.
      *
-     * The requirement is that Back on an open dialog closes *only* the dialog —
-     * so it must win over every other rung, including the one it was asking
-     * about.
+     * [ShellBack.ConfirmExit] raises the question and nothing here dismisses it,
+     * because the confirmation is not the shell's any more — it is the
+     * application's, drawn above the gate and the shell alike, and it owns its
+     * own Back. This is the assertion that stops the rung growing back: three
+     * outcomes, and none of them is about a dialog.
      */
     @Test
-    fun `back on an open confirmation closes only the confirmation`() {
-        for (overlay in listOf(true, false)) {
-            for (root in listOf(true, false)) {
-                assertEquals(
-                    "an open dialog did not win over overlay=$overlay root=$root",
-                    ShellBack.CloseDialog,
-                    BackPolicy.fromShell(dialogOpen = true, overlayOpen = overlay, atRoot = root),
-                )
-            }
-        }
+    fun `the shell decides three things and a dialog is not one of them`() {
+        assertEquals(
+            "the shell has grown a fourth outcome; is the dialog back inside it?",
+            setOf(ShellBack.CloseOverlay, ShellBack.GoToRoot, ShellBack.ConfirmExit),
+            ShellBack.entries.toSet(),
+        )
     }
 
     /** Navigating inside the app is never confirmed. */
@@ -194,11 +190,11 @@ class BackPolicyTest {
     fun `moving back through the app does not ask`() {
         assertEquals(
             ShellBack.CloseOverlay,
-            BackPolicy.fromShell(dialogOpen = false, overlayOpen = true, atRoot = true),
+            BackPolicy.fromShell(overlayOpen = true, atRoot = true),
         )
         assertEquals(
             ShellBack.GoToRoot,
-            BackPolicy.fromShell(dialogOpen = false, overlayOpen = false, atRoot = false),
+            BackPolicy.fromShell(overlayOpen = false, atRoot = false),
         )
     }
 }
