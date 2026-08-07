@@ -281,7 +281,15 @@ private val REFERENCE_WIDTH = 1920.dp
 private val GLOW_WIDTH = 1512.dp
 private val GLOW_HEIGHT = 840.dp
 private const val GLOW_K = 3.2f
-private const val GLOW_PEAK = 0.155f
+/**
+ * The strongest alpha anywhere in the field, at its centre.
+ *
+ * `internal` so `IntroTest` can state the "never brighter than the mark" rule
+ * in the terms it is actually true in — the rendered peak — rather than in
+ * terms of the layer alpha, which is a different number and briefly a larger
+ * one. See that test; it was written the wrong way round first.
+ */
+internal const val GLOW_PEAK = 0.155f
 private const val GLOW_STOPS = 20
 
 /**
