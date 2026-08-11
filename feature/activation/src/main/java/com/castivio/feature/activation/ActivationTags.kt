@@ -42,6 +42,20 @@ internal object ActivationTags {
     const val STATUS = "activation.status"
 
     /**
+     * The source choice: its two cards and its Back.
+     *
+     * Tagged for the same reason the capsules are. This step overflowed a
+     * television's viewport and scrolled, which no existing gate could see --
+     * the elements were all composed and all correct, and one of them was
+     * simply off the bottom of the screen. "Inside the frame", "the same height
+     * as each other" and "side by side rather than stacked" are three claims
+     * about placement, and placement needs a handle.
+     */
+    const val SOURCE_XTREAM = "activation.sourceXtream"
+    const val SOURCE_M3U = "activation.sourceM3u"
+    const val SOURCE_BACK = "activation.sourceBack"
+
+    /**
      * The two bands that bracket the field, and the stage that holds all three.
      *
      * Tagged for diagnosis rather than for assertion. When the field band comes

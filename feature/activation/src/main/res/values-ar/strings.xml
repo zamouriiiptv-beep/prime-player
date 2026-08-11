@@ -10,8 +10,8 @@
 
 
 
-    <string name="source_choice_title">ماذا أعطاك مزوّدك؟</string>
-    <string name="source_choice_subtitle">اختر ما أُرسل إليك. كلاهما يصل إلى النتيجة نفسها.</string>
+    <string name="source_choice_title">اختر طريقة الإضافة</string>
+    <string name="source_choice_subtitle">كلاهما يصل إلى النتيجة نفسها.</string>
     <string name="source_xtream_title">Xtream Codes</string>
     <string name="source_xtream_detail">عنوان سيرفر واسم مستخدم وكلمة مرور.</string>
     <string name="source_m3u_title">قائمة M3U</string>

@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -72,12 +73,24 @@ fun GlassHeroCard(
 /**
  * A glass card that behaves as one target: lifts and brightens on focus,
  * dips on press. Use for menu entries, method pickers, channel tiles.
+ *
+ * @param fill the pane's own glass. The default is `glassFillBrush`, 7.8% of
+ *   white falling to 3.9% down the card — right for a list of tiles, where the
+ *   fade is what keeps a column of them from reading as a stack of slabs.
+ *
+ *   A screen whose whole content is two large panes wants the opposite: at that
+ *   size the fade lands the bottom half of each pane on 3.9%, which is the fill
+ *   of an *inactive* surface, and the card stops reading as a thing you can
+ *   choose. Passing `SolidColor(colors.glassFillStrong)` holds it at 7.8%
+ *   throughout. Both values are the ones already in the theme; what the caller
+ *   picks is whether the pane fades, not what it is made of.
  */
 @Composable
 fun InteractiveGlassCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(Radius.lg),
+    fill: Brush = CastivioTheme.colors.glassFillBrush,
     content: @Composable () -> Unit,
 ) {
     val colors = CastivioTheme.colors
@@ -98,7 +111,7 @@ fun InteractiveGlassCard(
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
             .shadow(elevation, shape, ambientColor = Elevation.ambient, spotColor = glow)
             .clip(shape)
-            .background(colors.glassFillBrush)
+            .background(fill)
             .border(BorderStroke(1.dp, border), shape)
             .clickable(interaction, indication = null, onClick = onClick),
     ) { content() }

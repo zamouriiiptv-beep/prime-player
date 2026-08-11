@@ -29,8 +29,10 @@ class ActivationFrameTest {
 
     /** The state the user lands in on first launch. The one that broke. */
     @Test
-    fun `the address screen at rest owns the viewport`() {
-        assertTrue(isFixedViewport(ActivationUiState(), atAddressStep = true))
+    fun `the address screen at rest owns the viewport, on both frames`() {
+        for (tv in listOf(true, false)) {
+            assertTrue(isFixedViewport(ActivationUiState(), ActivationStep.Mac, isTv = tv))
+        }
     }
 
     /**
@@ -39,7 +41,34 @@ class ActivationFrameTest {
      */
     @Test
     fun `the forms scroll`() {
-        assertFalse(isFixedViewport(ActivationUiState(), atAddressStep = false))
+        for (step in listOf(ActivationStep.Xtream, ActivationStep.Playlist)) {
+            for (tv in listOf(true, false)) {
+                assertFalse(
+                    "$step on ${if (tv) "a television" else "a phone"} was given the fixed frame",
+                    isFixedViewport(ActivationUiState(), step, isTv = tv),
+                )
+            }
+        }
+    }
+
+    /**
+     * The source choice is fixed on a television and scrolls everywhere else.
+     *
+     * Stacked, its header, two cards and Back came to more than the 444dp inside
+     * a television's overscan, so the step scrolled and clipped at whichever end
+     * the user was not looking at. Side by side it fits, and the fixed frame is
+     * what turns "fits" into a property of the layout rather than of the scroll
+     * position.
+     *
+     * The phone keeps the scrolling column deliberately: it has vertical room and
+     * no horizontal room, so two cards abreast would be this fix turning into the
+     * next defect. That is the whole reason the predicate knows about the device,
+     * and it is why the qualifier is asserted rather than assumed.
+     */
+    @Test
+    fun `the source choice owns the viewport on a television and scrolls on a phone`() {
+        assertTrue(isFixedViewport(ActivationUiState(), ActivationStep.Choose, isTv = true))
+        assertFalse(isFixedViewport(ActivationUiState(), ActivationStep.Choose, isTv = false))
     }
 
     /**
@@ -55,7 +84,7 @@ class ActivationFrameTest {
         )) {
             assertFalse(
                 "$phase was given the fixed viewport",
-                isFixedViewport(ActivationUiState(phase = phase), atAddressStep = true),
+                isFixedViewport(ActivationUiState(phase = phase), ActivationStep.Mac, isTv = true),
             )
         }
     }
@@ -68,7 +97,8 @@ class ActivationFrameTest {
                 "$reason was given the fixed viewport",
                 isFixedViewport(
                     ActivationUiState(phase = ActivationPhase.Failed(reason)),
-                    atAddressStep = true,
+                    ActivationStep.Mac,
+                    isTv = true,
                 ),
             )
         }
@@ -86,7 +116,7 @@ class ActivationFrameTest {
             status = ProviderStatus(usable = true),
         )
         assertTrue(
-            isFixedViewport(ActivationUiState(phase = succeeded), atAddressStep = true),
+            isFixedViewport(ActivationUiState(phase = succeeded), ActivationStep.Mac, isTv = true),
         )
     }
 }

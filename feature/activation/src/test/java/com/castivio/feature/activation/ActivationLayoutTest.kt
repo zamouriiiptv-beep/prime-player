@@ -237,7 +237,11 @@ private fun Screen(frame: Frame, identity: MutableState<ActivationIdentityState>
     CastivioTheme {
         Stage(frame) {
             ActivationSurface(
-                fixedViewport = isFixedViewport(ActivationUiState(), atAddressStep = true),
+                fixedViewport = isFixedViewport(
+                    ActivationUiState(),
+                    ActivationStep.Mac,
+                    isTv = frame == Frame.Television,
+                ),
             ) {
                 ActivationScreenUnderTest(identity)
             }

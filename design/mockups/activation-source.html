@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Castivio — choosing how to add a playlist</title>
+<style>
+/* ============================================================================
+   Castivio — the source choice, as one screen.
+
+   ---------------------------------------------------------------------------
+   Why this file exists
+
+   It did not, and that is how the screen shipped broken. The step was a
+   top-anchored column inside `ActivationSurface`'s `verticalScroll`: a header,
+   two full-width cards and Back, which on a television came to more than the
+   444dp inside the overscan. So it scrolled, and clipped at whichever end the
+   user was not looking at -- the title off the top, or Back off the bottom.
+   A remote pressing *down* moved the page instead of the focus.
+
+   Nothing about the content was wrong. It had never been drawn at the size it
+   had to fit, which is the one thing a mockup is for.
+
+   ---------------------------------------------------------------------------
+   The composition
+
+   Three parts, spaced evenly and centred as one group.
+
+   Pinning them to the band's three edges was the first fix and it solved the
+   scroll, but it bought the fit with two 32-48dp holes -- one under the header,
+   one over Back -- and cards stretched to 244dp to fill what was left. Two lines
+   of type in a 244dp pane read as a pane that lost something.
+
+   So the cards are the size of what is in them and the group is centred. The
+   leftover, which is the same leftover either way, becomes an even margin above
+   and below rather than two gaps inside the composition. Emptiness at the edge
+   of a page is margin; the same emptiness between two elements is a hole.
+
+   The cards are side by side. They are a choice between two, and stacking them
+   spent the vertical axis -- the scarce one on a 16:9 frame -- while the
+   horizontal axis sat empty. On a remote it is also the gesture the hand
+   expects: left and right between the options, down to Back.
+
+   No height is written down. Each card is the height of what is in it, the row
+   is the height of the taller, and the group is placed by
+   `Arrangement.spacedBy(Spacing.xxl, Alignment.CenterVertically)`. There is no
+   Spacer and no card height to keep in step with a frame table, so a longer
+   translation makes the cards taller and the margins narrower rather than
+   pushing Back off the screen.
+
+   No intrinsic pass either. `height(IntrinsicSize.Min)` with `fillMaxHeight` is
+   the Compose idiom for equalising siblings, and it was drawn both ways: with
+   these strings the two renders are byte-identical, because both cards hold a
+   title and one line. It was buying nothing and costing a second measurement of
+   the subtree that can only fail at runtime. Where a translation wraps, the two
+   cards differ by 20dp and their titles still line up.
+
+     band    864 x 444    inset 48 = Spacing.tvOverscan
+     margin       58      what is left over, split evenly
+     header       64      headlineMedium 22/32 + Spacing.sm + bodyLarge 15/24
+     gap          32      Spacing.xxl
+     cards       146      the taller card's own height; two of 420, Spacing.xl apart
+     gap          32      Spacing.xxl
+     back         56      Sizing.minTvTarget, ButtonWeight.Ghost
+     margin       58
+     overflow      0
+
+   116dp of headroom over the content as it stands. That is the honest number:
+   the layout is not overflow-proof at any conceivable content size, it has room
+   for the type to grow by a third. The stress render (?stress=1) doubles both
+   lines in each card and the title, and still measures 0.
+
+   ---------------------------------------------------------------------------
+   The card's own hierarchy
+
+   `titleLarge` 17/24 over `bodySmall` 12.5/20, where it was `titleMedium` 15/22
+   over `bodyMedium` 14/22. A sixteenth of a step is not a hierarchy: the two
+   lines were the same size and the same weight, and only the colour said which
+   was the name of the thing. The source name is what the eye is choosing
+   between, so it leads, and the sentence under it explains rather than competes.
+
+   ---------------------------------------------------------------------------
+   The glass, and the one value that is not the default
+
+   `InteractiveGlassCard` fills with `glassFillBrush` -- 7.8% of white fading to
+   3.9% down the card. That is right for a column of tiles, where the fade is
+   what stops them reading as a stack of slabs. It is wrong at this size: the
+   fade lands the bottom half of a 244dp pane on 3.9%, the fill of an *inactive*
+   surface, so a card the user is being asked to choose looks half switched off.
+   These two hold at 7.8% throughout. Same token, no fade.
+
+   Everything else is the system untouched: `glassBorder` at 23.9%, `Radius.lg`,
+   and `focusRing` / `focusGlow` for the focused pane.
+
+     ?lang=en   the same composition the other way round
+     ?spec=1    the band arithmetic, drawn
+     ?stress=1  every string doubled, to spend the headroom on purpose
+   ========================================================================= */
+@font-face{font-family:"Castivio Sans";font-weight:400;font-style:normal;
+  src:url("../../core/design/src/main/res/font/inter_regular.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:500;font-style:normal;
+  src:url("../../core/design/src/main/res/font/inter_medium.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:600;font-style:normal;
+  src:url("../../core/design/src/main/res/font/inter_semibold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:700;font-style:normal;
+  src:url("../../core/design/src/main/res/font/inter_bold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:400;font-style:normal;
+  src:url("../../core/design/src/main/res/font/plex_arabic_regular.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:500;font-style:normal;
+  src:url("../../core/design/src/main/res/font/plex_arabic_medium.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:700;font-style:normal;
+  src:url("../../core/design/src/main/res/font/plex_arabic_bold.ttf") format("truetype")}
+
+:root{
+  --void:#08071A; --deep:#141031; --violet10:#1B1038; --violet50:#9B6BFF;
+  --azure10:#0A1E3D; --azure40:#2E6BFF; --azure60:#6FB2FF;
+  --mist:#F2F2F8; --silver:#C9C9DA;
+  /* Colour.kt: GlassMid 0x14 is glassFillStrong, GlassEdge 0x3D is glassBorder. */
+  --glass-strong:rgba(255,255,255,.078);
+  --glass-border:rgba(255,255,255,.239);
+  --r-lg:20px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#000}
+body{font-family:"Castivio Sans","Castivio Arabic","Noto Sans",sans-serif;color:var(--mist);
+  -webkit-font-smoothing:antialiased;text-rendering:geometricPrecision}
+
+#tv{position:relative;width:960px;height:540px;overflow:hidden;background:var(--void)}
+
+/* The aurora `ActivationSurface` draws, unchanged, mirrored for RTL. */
+.backdrop{position:absolute;inset:0;
+  background:
+    radial-gradient(44% 118% at 79% 54%, rgba(111,178,255,.14) 0%, rgba(111,178,255,0) 66%),
+    radial-gradient(58% 78% at 96% 108%, rgba(110,75,216,.30) 0%, rgba(110,75,216,0) 62%),
+    radial-gradient(54% 70% at 3% 20%, rgba(46,107,255,.26) 0%, rgba(46,107,255,0) 60%),
+    linear-gradient(225deg, var(--deep) 0%, var(--violet10) 48%, var(--azure10) 100%);
+}
+html[dir="ltr"] .backdrop{
+  background:
+    radial-gradient(44% 118% at 21% 54%, rgba(111,178,255,.14) 0%, rgba(111,178,255,0) 66%),
+    radial-gradient(58% 78% at 4% 108%, rgba(110,75,216,.30) 0%, rgba(110,75,216,0) 62%),
+    radial-gradient(54% 70% at 97% 20%, rgba(46,107,255,.26) 0%, rgba(46,107,255,0) 60%),
+    linear-gradient(135deg, var(--deep) 0%, var(--violet10) 48%, var(--azure10) 100%);
+}
+.mesh{position:absolute;inset:0;opacity:.45}
+
+/* Type.kt */
+.t-headline-m{font-size:22px;line-height:32px;font-weight:700}
+.t-body-l    {font-size:15px;line-height:24px;font-weight:400}
+.t-title-l   {font-size:17px;line-height:24px;font-weight:600}
+.t-body-s    {font-size:12.5px;line-height:20px;font-weight:500}
+.t-label-l   {font-size:14px;line-height:20px;font-weight:600}
+
+/* `Arrangement.spacedBy(Spacing.xxl, Alignment.CenterVertically)`. */
+.band{position:absolute;inset:48px;display:flex;flex-direction:column;
+  justify-content:center;gap:32px}
+.head{display:flex;flex-direction:column;gap:8px}
+.head .sub{color:var(--silver)}
+
+/* `flex-start`, not the `stretch` a flex row defaults to.
+   ------------------------------------------------------------------------
+   The drawing has to model what Compose does, and a plain `Row` does not
+   equalise its children -- each card is the height of its own content and the
+   row is the height of the taller. Left on `stretch` this file would draw an
+   equal pair that the application does not produce, which is the one way a
+   mockup can be worse than no mockup.
+
+   With the strings as they are the two are the same height anyway: both hold a
+   title and one line, both come to 146. `?stress=1` is where they diverge. */
+.choices{flex:0 0 auto;display:flex;gap:24px;align-items:flex-start}
+.card{flex:1 1 0;min-width:0;border-radius:var(--r-lg);
+  background:var(--glass-strong);border:1px solid var(--glass-border);
+  box-shadow:0 10px 30px rgba(0,0,0,.32);
+  /* Spacing.xxxl down, Spacing.xxl across. Taller than it is wide-padded
+     because the card is 420 across and 50 of type tall: equal padding would
+     leave a letterbox. */
+  padding:48px 32px;
+  display:flex;flex-direction:column;justify-content:center;gap:4px}
+.card .detail{color:var(--silver)}
+/* focusRing = Azure60, focusGlow = Azure40 at 45%. Drawn on the first pane so
+   the D-pad story is visible: left and right between the two, down to Back. */
+.card.focused{border-color:var(--azure60);
+  box-shadow:0 0 0 1px var(--azure60), 0 14px 44px rgba(46,107,255,.45)}
+
+/* ButtonWeight.Ghost: no fill and no border until it is focused. */
+.back{align-self:flex-start;display:inline-flex;align-items:center;
+  height:56px;padding:0 24px;color:var(--mist)}
+
+/* The stress render says so, on the render.
+   ------------------------------------------------------------------------
+   `?stress=1` doubles every string, and a doubled string is indistinguishable
+   from a screen with a duplication bug -- which is exactly how it was read the
+   first time this file was shown to anyone. A diagnostic that can be mistaken
+   for the product is worse than no diagnostic: it costs a round trip and it
+   spends trust. So it labels itself, in a colour nothing in Castivio uses. */
+.stress-flag{display:none;position:absolute;z-index:11;top:0;inset-inline:0;
+  height:26px;align-items:center;justify-content:center;direction:ltr;
+  font-family:"Liberation Mono",monospace;font-size:11px;font-weight:700;
+  letter-spacing:.6px;color:#08071A;background:#FFB020}
+html[data-stress="1"] .stress-flag{display:flex}
+html[data-stress="1"] #tv{outline:3px solid #FFB020;outline-offset:-3px}
+
+.spec{display:none}
+html[data-spec="1"] .spec{display:block}
+.spec-safe{position:absolute;inset:48px;z-index:8;pointer-events:none;
+  border:1px dashed rgba(255,176,32,.55)}
+.spec-note{position:absolute;z-index:9;left:6px;bottom:6px;direction:ltr;
+  font-family:"Liberation Mono",monospace;font-size:9px;line-height:13px;
+  color:#FFB020;background:rgba(8,7,26,.86);padding:3px 6px;border-radius:4px}
+</style>
+</head>
+<body>
+
+<section id="tv">
+  <div class="backdrop"></div>
+  <svg class="mesh" viewBox="0 0 960 540" preserveAspectRatio="none">
+    <g fill="none" stroke="#9B6BFF" stroke-opacity=".07" stroke-width="1">
+      <path d="M0,392 C160,352 320,432 480,392 C640,352 800,432 960,392"/>
+      <path d="M0,428 C160,388 320,468 480,428 C640,388 800,468 960,428"/>
+      <path d="M0,464 C160,424 320,504 480,464 C640,424 800,504 960,464"/>
+      <path d="M0,500 C160,462 320,534 480,500 C640,462 800,534 960,500"/>
+    </g>
+  </svg>
+
+  <div class="band">
+    <div class="head">
+      <h1 class="t-headline-m" data-s="title"></h1>
+      <p class="sub t-body-l" data-s="sub"></p>
+    </div>
+
+    <!-- Source order, not visual order: a Row lays its children out start to
+         end, so Xtream is on the right in Arabic and on the left in English
+         without either being written down. -->
+    <div class="choices">
+      <div class="card focused">
+        <div class="t-title-l" data-s="xtream"></div>
+        <div class="detail t-body-s" data-s="xtreamDetail"></div>
+      </div>
+      <div class="card">
+        <div class="t-title-l" data-s="m3u"></div>
+        <div class="detail t-body-s" data-s="m3uDetail"></div>
+      </div>
+    </div>
+
+    <span class="back t-label-l" data-s="back"></span>
+  </div>
+
+  <div class="stress-flag">STRESS RENDER — EVERY STRING DOUBLED ON PURPOSE. NOT THE SCREEN.</div>
+
+  <div class="spec">
+    <div class="spec-safe"></div>
+    <div class="spec-note" id="note"></div>
+  </div>
+</section>
+
+<script>
+var S = {
+  ar: { dir:"rtl", title:"اختر طريقة الإضافة",
+        sub:"كلاهما يصل إلى النتيجة نفسها.",
+        xtream:"Xtream Codes", xtreamDetail:"عنوان سيرفر واسم مستخدم وكلمة مرور.",
+        m3u:"قائمة M3U", m3uDetail:"رابط واحد طويل، يُرسَل عادةً بالبريد.",
+        back:"رجوع" },
+  en: { dir:"ltr", title:"What did your provider give you?",
+        sub:"Pick whichever you were sent. Both end up in the same place.",
+        xtream:"Xtream Codes", xtreamDetail:"A server address, a username and a password.",
+        m3u:"M3U playlist", m3uDetail:"A single long link, usually sent by e-mail.",
+        back:"Back" },
+};
+
+var q = new URLSearchParams(location.search);
+var s = S[q.get("lang")] || S.ar;
+document.documentElement.dir = s.dir;
+document.documentElement.lang = s.dir === "rtl" ? "ar" : "en";
+if (q.get("spec")) document.documentElement.dataset.spec = "1";
+/* Not a language, a load test: every string doubled, so the headroom the
+   comment above claims is a number this file can be made to prove. */
+if (q.get("stress")) {
+  document.documentElement.dataset.stress = "1";
+  Object.keys(s).forEach(function (k) {
+    if (k !== "dir") s[k] = s[k] + " " + s[k];
+  });
+}
+document.querySelectorAll("[data-s]").forEach(function (n) {
+  n.textContent = s[n.getAttribute("data-s")];
+});
+
+/* The band's arithmetic, measured rather than asserted in a comment. If this
+   ever reports an overflow, the screen has gone back to scrolling. */
+window.addEventListener("load", function () {
+  var band = document.querySelector(".band");
+  var r = band.getBoundingClientRect();
+  var head = document.querySelector(".head").getBoundingClientRect();
+  var cards = document.querySelector(".choices").getBoundingClientRect();
+  var back = document.querySelector(".back").getBoundingClientRect();
+  window.__fit = {
+    head: head.height,
+    gapTop: cards.top - head.bottom,
+    cards: cards.height,
+    gapBottom: back.top - cards.bottom,
+    back: back.height,
+    bottomSlack: r.bottom - back.bottom,
+    overflow: band.scrollHeight - band.clientHeight,
+  };
+  document.getElementById("note").textContent =
+    "band 864x444 | head " + window.__fit.head + " | gap " + window.__fit.gapTop +
+    " | cards " + window.__fit.cards + " | gap " + window.__fit.gapBottom +
+    " | back " + window.__fit.back + " | slack " + window.__fit.bottomSlack +
+    " | OVERFLOW " + window.__fit.overflow;
+});
+document.fonts.ready.then(function () { window.__fontsReady = true; });
+</script>
+</body>
+</html>

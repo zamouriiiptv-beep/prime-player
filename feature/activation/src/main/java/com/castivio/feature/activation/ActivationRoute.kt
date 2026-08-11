@@ -63,8 +63,15 @@ import com.castivio.domain.activation.ActivationUiState
  * every one of them belongs to this feature, and the app-level `Route.Activation` is a
  * single destination as far as the rest of Castivio is concerned — putting a second
  * NavHost inside it would add a library and a back stack to model three transitions.
+ *
+ * `internal` rather than private, and only so [isFixedViewport] can take it. That
+ * predicate used to be handed a boolean the caller derived -- which is how the
+ * source choice came to be in the scrolling frame: nothing about the type stopped
+ * a second step from being forgotten, because the set of fixed steps was written
+ * at the call site and the function could not see it. It is written once, here,
+ * and the compiler checks the `when` is exhaustive.
  */
-private enum class ActivationStep {
+internal enum class ActivationStep {
     /** The address, and the route most people take. */
     Mac,
 
@@ -145,7 +152,7 @@ fun ActivationRoute(
 
     ImmersiveWhileVisible()
 
-    val fixedViewport = isFixedViewport(state, atAddressStep = step == ActivationStep.Mac)
+    val fixedViewport = isFixedViewport(state, step, CastivioTheme.device.isTv)
 
     ActivationSurface(modifier, fixedViewport = fixedViewport) {
         when {
@@ -244,8 +251,25 @@ private tailrec fun Context.findWindow(): Window? = when (this) {
  * without a device. Getting it wrong again should cost a red JVM test, not a
  * user's screen.
  */
-internal fun isFixedViewport(state: ActivationUiState, atAddressStep: Boolean): Boolean =
-    !state.busy && state.phase !is ActivationPhase.Failed && atAddressStep
+internal fun isFixedViewport(
+    state: ActivationUiState,
+    step: ActivationStep,
+    isTv: Boolean,
+): Boolean =
+    !state.busy && state.phase !is ActivationPhase.Failed && when (step) {
+        ActivationStep.Mac -> true
+        // On a television only, and the qualifier is the point. Stacked, this
+        // step overran the 444dp inside a television's overscan and scrolled --
+        // the title clipped at the top or Back at the bottom. Side by side it
+        // fits, and the fixed frame is what makes "fits" a property of the
+        // layout rather than of where the user left the scroll.
+        //
+        // A phone has the opposite shape: vertical room and no horizontal room.
+        // Two cards abreast at 170dp would be this fix becoming the next bug, so
+        // a phone keeps the scrolling column it has today.
+        ActivationStep.Choose -> isTv
+        ActivationStep.Xtream, ActivationStep.Playlist -> false
+    }
 
 @Composable
 private fun Steps(
@@ -287,21 +311,17 @@ private fun Steps(
                 onOpenLanguage = onOpenLanguage,
             )
 
-            ActivationStep.Choose -> Column(
-                verticalArrangement = Arrangement.spacedBy(Spacing.xl),
-            ) {
-                SourceChoiceScreen(
-                    onXtream = {
-                        activation.useXtream()
-                        onStep(ActivationStep.Xtream)
-                    },
-                    onPlaylist = {
-                        activation.usePlaylistUrl()
-                        onStep(ActivationStep.Playlist)
-                    },
-                )
-                BackButton { onStep(ActivationStep.Mac) }
-            }
+            ActivationStep.Choose -> SourceChoiceScreen(
+                onXtream = {
+                    activation.useXtream()
+                    onStep(ActivationStep.Xtream)
+                },
+                onPlaylist = {
+                    activation.usePlaylistUrl()
+                    onStep(ActivationStep.Playlist)
+                },
+                onBack = { onStep(ActivationStep.Mac) },
+            )
 
             ActivationStep.Xtream -> Column(
                 verticalArrangement = Arrangement.spacedBy(Spacing.xl),
@@ -340,12 +360,14 @@ private fun Steps(
     }
 }
 
+/** One declaration, used by the three steps that have somewhere to go back to. */
 @Composable
-private fun BackButton(onClick: () -> Unit) {
+internal fun BackButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     CastivioButton(
         text = stringResource(R.string.action_back),
         weight = ButtonWeight.Ghost,
         onClick = onClick,
+        modifier = modifier,
     )
 }
 
