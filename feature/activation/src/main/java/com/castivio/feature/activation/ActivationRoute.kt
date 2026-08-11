@@ -336,7 +336,7 @@ private fun Steps(
                     onPassword = activation::password,
                     onSubmit = activation::submit,
                 )
-                BackButton { onStep(ActivationStep.Choose) }
+                BackButton(onClick = { onStep(ActivationStep.Choose) })
             }
 
             ActivationStep.Playlist -> Column(
@@ -354,7 +354,7 @@ private fun Steps(
                         onStep(ActivationStep.Xtream)
                     },
                 )
-                BackButton { onStep(ActivationStep.Choose) }
+                BackButton(onClick = { onStep(ActivationStep.Choose) })
             }
         }
     }
