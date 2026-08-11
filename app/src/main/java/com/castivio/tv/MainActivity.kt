@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import com.castivio.core.design.components.CastivioIntro
+import com.castivio.core.design.components.playsIntro
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.platform.AndroidDeviceCapabilities
 import com.castivio.tv.debug.DebugEntry
@@ -152,11 +153,20 @@ class MainActivity : ComponentActivity() {
                     },
             ) {
                 CastivioTheme(performance = performance, motionLevel = motionLevel) {
-                    // Whether the mark has already played. `rememberSaveable`,
-                    // so a rotation or a night-mode change does not replay it:
-                    // the intro belongs to *starting Castivio*, and turning a
-                    // phone sideways is not that.
-                    var introDone by rememberSaveable { mutableStateOf(false) }
+                    // Whether the mark is behind us. `rememberSaveable`, so a
+                    // rotation or a night-mode change does not replay it: the
+                    // intro belongs to *starting Castivio*, and turning a phone
+                    // sideways is not that.
+                    //
+                    // It starts *true* when motion is off, which is how the
+                    // intro is skipped rather than played instantly. The state
+                    // is seeded once, from the level at launch, so a user who
+                    // turns animation back on in Settings does not get a logo
+                    // dropped on them mid-session -- and reading `motionLevel`
+                    // in the condition instead would do exactly that.
+                    var introDone by rememberSaveable {
+                        mutableStateOf(!playsIntro(motionLevel))
+                    }
 
                     Box(Modifier.fillMaxSize()) {
                         // One exit question, above the gate and the shell alike.
@@ -184,7 +194,9 @@ class MainActivity : ComponentActivity() {
 
                         // Last, so it is over everything, and gone the moment it
                         // is done -- a transparent full-screen box that stayed
-                        // would eat every touch that landed on it.
+                        // would eat every touch that landed on it. Not composed
+                        // at all when it is being skipped: an intro that ends on
+                        // its first frame still paints that frame black.
                         if (!introDone) {
                             CastivioIntro(onFinished = { introDone = true })
                         }
