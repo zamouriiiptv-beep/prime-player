@@ -30,17 +30,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Motion
+import com.castivio.core.design.theme.Palette
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Sizing
 
@@ -88,6 +93,23 @@ data class CapsuleMetrics(
 )
 
 /**
+ * The temperature a capsule is drawn at.
+ *
+ * [None] is the pill exactly as it has always been: `glassFill`, the soft white
+ * border, and a copy control on `glassFillStrong`. Every screen that does not
+ * ask for a temperature keeps it, which is how the licence screen is untouched
+ * by a change made for the activation screen.
+ *
+ * The two tinted cases sort two identifiers that sit one above the other. On
+ * "Add a playlist" the address is the device saying what it is and the key is
+ * what a licence is issued against, and they were the same white slab. So the
+ * address takes [Azure] and the key takes [Violet] — one hue each, from the two
+ * ends of the brand, and no third option: a variant list is a place where
+ * "just one more shade" accumulates.
+ */
+enum class CapsuleTint { None, Azure, Violet }
+
+/**
  * One identifier, its label and its copy control, in a glass pill.
  *
  * ## The shape
@@ -119,9 +141,11 @@ fun IdentityCapsule(
     modifier: Modifier = Modifier,
     spoken: String? = null,
     copyEnabled: Boolean = true,
+    tint: CapsuleTint = CapsuleTint.None,
 ) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(percent = 50)
+    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
 
     Row(
         modifier
@@ -131,8 +155,8 @@ fun IdentityCapsule(
             // the pill belongs to the background rather than sitting on it. The
             // soft border, not the loud one: at this size a strong outline turns
             // a container into a button.
-            .background(colors.glassFill)
-            .border(BorderStroke(1.dp, colors.glassBorderSoft), shape)
+            .background(capsuleFill(tint, colors.glassFill, rtl))
+            .border(BorderStroke(1.dp, capsuleEdge(tint, colors.glassBorderSoft)), shape)
             .padding(start = metrics.startPadding, end = CAPSULE_END),
         horizontalArrangement = Arrangement.spacedBy(metrics.gap),
         verticalAlignment = Alignment.CenterVertically,
@@ -165,10 +189,113 @@ fun IdentityCapsule(
                 label = copyLabel,
                 isCopied = isCopied,
                 onClick = onCopy,
+                fill = capsuleWell(tint),
             )
         }
     }
 }
+
+/* -----------------------------------------------------------------------------
+   How a tint is drawn.
+
+   ## The hue is mixed into the white, not laid over it
+
+   The palette colour is moved toward white and *then* given an alpha, rather
+   than laid at a low alpha over the existing glass. Colour on top of glass adds
+   saturation and the pill stops reading as a surface the background shows
+   through; mixing moves its temperature and leaves the material alone. That
+   distinction is the whole difference between a tinted pill and a coloured one.
+
+   ## The ramp descends toward the copy control
+
+   [TINT_HI] at the label end, [TINT_LO] at the control. Deep because there is
+   *less* light there, which is what "deeper" means — an earlier draft raised the
+   alpha toward that end and leaned on a hue rotation to look deeper, which is
+   how you get a gradient the eye can follow across a pill.
+
+   The two average 0.041 against the 0.039 `glassFill` has always been, so the
+   pill is the brightness it was; what changed is that the brightness is no
+   longer evenly spread.
+   -------------------------------------------------------------------------- */
+
+/** Toward white, far enough that Azure50 and Violet50 stop being saturated. */
+private const val WHITEN = 0.58f
+
+/**
+ * The hue, moved toward white — channel by channel, in sRGB.
+ *
+ * **Not `androidx.compose.ui.graphics.lerp`.** That interpolates in a perceptual
+ * space, which is the right answer for a colour *animation* and the wrong one
+ * here: at this fraction it puts Azure50's red at 205 where an sRGB mix puts it
+ * at 180, a 25-level difference, and the drawing these values were approved
+ * against mixes in sRGB. A tint that renders lighter than the picture it was
+ * signed off on is the exact failure this repository has already paid for twice
+ * by measuring through the wrong font.
+ */
+private fun Color.whitened(t: Float) = Color(
+    red = red + (1f - red) * t,
+    green = green + (1f - green) * t,
+    blue = blue + (1f - blue) * t,
+)
+
+/** The label end, and the control end. Their mean is `glassFill`'s alpha. */
+private const val TINT_HI = 0.060f
+private const val TINT_LO = 0.022f
+
+/** Enough for the rim to have a temperature; short of drawing a coloured ring. */
+private const val EDGE_ALPHA = 0.28f
+
+/**
+ * The control, one step below the surface it sits in.
+ *
+ * `glassFillStrong` made it *brighter* than the pill — a raised disc beside the
+ * value rather than a well cut into it. Drawn in the dark end of the pill's own
+ * family, so it reads as the same material going down instead of as grey.
+ */
+private const val WELL_ALPHA = 0.30f
+
+private fun CapsuleTint.hue(): Color? = when (this) {
+    CapsuleTint.None -> null
+    CapsuleTint.Azure -> Palette.Azure50
+    CapsuleTint.Violet -> Palette.Violet50
+}
+
+private fun CapsuleTint.floor(): Color? = when (this) {
+    CapsuleTint.None -> null
+    CapsuleTint.Azure -> Palette.Azure10
+    CapsuleTint.Violet -> Palette.Violet10
+}
+
+/**
+ * The pill's two stops, in the order the brush will paint them.
+ *
+ * `internal` and separate from [capsuleFill] because this is the one part of the
+ * tint that can be silently wrong: `Brush.horizontalGradient` is absolute — left
+ * to right, whatever the paragraph does — so the stops are swapped by hand for
+ * a right-to-left layout. Get that backwards and the deep end lands under the
+ * label in Arabic while the control sits on the pill's brightest point, which is
+ * the one place it must not, in half the languages Castivio ships. A `LinearGradient`
+ * does not expose its colours, so the list is tested rather than the brush.
+ *
+ * @param rtl which way the pill is laid out.
+ */
+internal fun capsuleStops(tint: CapsuleTint, rtl: Boolean): List<Color> {
+    val hue = tint.hue() ?: return emptyList()
+    val glass = hue.whitened(WHITEN)
+    val stops = listOf(glass.copy(alpha = TINT_HI), glass.copy(alpha = TINT_LO))
+    return if (rtl) stops.reversed() else stops
+}
+
+private fun capsuleFill(tint: CapsuleTint, plain: Color, rtl: Boolean): Brush {
+    val stops = capsuleStops(tint, rtl)
+    return if (stops.isEmpty()) SolidColor(plain) else Brush.horizontalGradient(stops)
+}
+
+internal fun capsuleEdge(tint: CapsuleTint, plain: Color): Color =
+    tint.hue()?.copy(alpha = EDGE_ALPHA) ?: plain
+
+internal fun capsuleWell(tint: CapsuleTint): Color? =
+    tint.floor()?.copy(alpha = WELL_ALPHA)
 
 /**
  * Copy, and its confirmation.
@@ -190,6 +317,7 @@ fun CopyButton(
     isCopied: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    fill: Color? = null,
 ) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
@@ -211,7 +339,7 @@ fun CopyButton(
             .castivioFocusScale(Motion.focusScaleIcon, interaction)
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
             .clip(shape)
-            .background(colors.glassFillStrong)
+            .background(fill ?: colors.glassFillStrong)
             .border(BorderStroke(1.dp, border), shape)
             .clickable(interaction, indication = null, onClick = onClick)
             .semantics { contentDescription = label },

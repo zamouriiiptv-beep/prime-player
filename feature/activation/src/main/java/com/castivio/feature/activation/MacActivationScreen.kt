@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.castivio.core.design.components.ButtonWeight
 import com.castivio.core.design.components.CapsuleMetrics
+import com.castivio.core.design.components.CapsuleTint
 import com.castivio.core.design.components.IdentityCapsule
 import com.castivio.core.design.components.QrPlate
 import com.castivio.core.design.components.StatusChip
@@ -494,6 +495,8 @@ private fun IdentityZone(
             copyLabel = stringResource(R.string.copy_mac),
             isCopied = identity.addressCopied,
             enabled = address != null,
+            // The device saying what it is: the cool half of the brand.
+            tint = CapsuleTint.Azure,
             onCopy = {
                 clipboard.setText(AnnotatedString(address.orEmpty()))
                 onCopied(Copied.Address)
@@ -514,6 +517,8 @@ private fun IdentityZone(
                 copyLabel = stringResource(R.string.copy_key),
                 isCopied = identity.keyCopied,
                 enabled = true,
+                // What a licence is issued against: the warm half.
+                tint = CapsuleTint.Violet,
                 onCopy = {
                     clipboard.setText(AnnotatedString(key))
                     onCopied(Copied.Key)
@@ -609,6 +614,7 @@ private fun ActivationCapsule(
     copyLabel: String,
     isCopied: Boolean,
     enabled: Boolean,
+    tint: CapsuleTint,
     onCopy: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -628,6 +634,7 @@ private fun ActivationCapsule(
         modifier = modifier,
         spoken = spoken,
         copyEnabled = enabled,
+        tint = tint,
     )
 }
 
