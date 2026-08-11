@@ -32,7 +32,7 @@ import com.castivio.core.design.theme.Spacing
  * Two cards, no third. Local files are deliberately absent: they were cut from this
  * screen because a route almost nobody takes still costs everybody a decision.
  *
- * ## Two layouts, because a television is not a tall screen
+ * ## Two layouts, chosen by width
  *
  * Stacked, the two cards plus the header plus Back came to more than the 444dp a
  * television leaves inside its overscan, and the step was inside
@@ -40,14 +40,20 @@ import com.castivio.core.design.theme.Spacing
  * at the bottom, and which one depended on where the user had left the scroll.
  * A remote pressing *down* moved the page rather than the focus.
  *
- * On a television the cards go side by side instead. They are a choice between
- * two, and stacking them spent the vertical axis — the scarce one on a 16:9
- * frame — while the horizontal axis sat empty. `Row` also gives the remote the
+ * On a wide screen the cards go side by side instead. They are a choice between
+ * two, and stacking them spent the vertical axis — the scarce one on a landscape
+ * frame — while the horizontal axis sat empty. `Row` also gives a remote the
  * gesture the hand expects: left and right between the options, down to Back.
  *
- * Everywhere else the composition is unchanged. A phone in portrait has vertical
- * room and no horizontal room, which is the opposite problem, and two cards
- * abreast at 170dp would be the fix becoming the bug.
+ * "Wide" is [fitsTwoCards], not `isTv`. The first version asked whether this was
+ * a television and shipped, and a 873dp phone in landscape still came up stacked
+ * and still scrolled — `DeviceClass.Expanded` is not `Television`, and the
+ * condition had never been about the kind of device. It is about room: 840dp up
+ * gives each card 420, which is what a television gives them.
+ *
+ * A narrow screen keeps the column. That is the same reasoning honoured rather
+ * than reversed: two cards abreast at 170dp would be this fix becoming the next
+ * defect.
  *
  * ## Centred as a group, rather than pinned to three edges
  *
@@ -99,7 +105,7 @@ internal fun SourceChoiceScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    if (!CastivioTheme.device.isTv) {
+    if (!CastivioTheme.device.fitsTwoCards) {
         // Unchanged: the same column, at the same `Spacing.xl`, that the step's
         // own wrapper used to supply around this screen and Back.
         Column(
@@ -127,10 +133,17 @@ internal fun SourceChoiceScreen(
     Column(
         modifier
             .fillMaxSize()
-            // The screen owns the viewport now, so it owns its overscan too --
+            // The screen owns the viewport now, so it owns its edge inset too --
             // `ActivationSurface` applies no padding in its fixed frame, for the
             // same reason the address screen pads itself.
-            .padding(Spacing.tvOverscan),
+            //
+            // `screenPadding`, not `Spacing.tvOverscan`. They are the same 48dp on
+            // a television, which is where this was written and why the constant
+            // looked right; on a wide phone there is no overscan to clear and the
+            // token already knows it, giving `Spacing.screen`. Hard-coding the
+            // television's inset would have been the same mistake as `isTv` in a
+            // second place.
+            .padding(CastivioTheme.device.screenPadding),
         verticalArrangement = Arrangement.spacedBy(Spacing.xxl, Alignment.CenterVertically),
     ) {
         Heading()

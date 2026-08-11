@@ -48,6 +48,7 @@ import com.castivio.core.common.locale.CastivioLanguage
 import com.castivio.core.design.components.ButtonWeight
 import com.castivio.core.design.components.CastivioButton
 import com.castivio.core.design.theme.CastivioTheme
+import com.castivio.core.design.theme.DeviceClass
 import com.castivio.core.design.theme.Motion
 import com.castivio.core.design.theme.MotionLevel
 import com.castivio.core.design.theme.Sizing
@@ -152,7 +153,7 @@ fun ActivationRoute(
 
     ImmersiveWhileVisible()
 
-    val fixedViewport = isFixedViewport(state, step, CastivioTheme.device.isTv)
+    val fixedViewport = isFixedViewport(state, step, CastivioTheme.device)
 
     ActivationSurface(modifier, fixedViewport = fixedViewport) {
         when {
@@ -254,22 +255,39 @@ private tailrec fun Context.findWindow(): Window? = when (this) {
 internal fun isFixedViewport(
     state: ActivationUiState,
     step: ActivationStep,
-    isTv: Boolean,
+    device: DeviceClass,
 ): Boolean =
     !state.busy && state.phase !is ActivationPhase.Failed && when (step) {
         ActivationStep.Mac -> true
-        // On a television only, and the qualifier is the point. Stacked, this
-        // step overran the 444dp inside a television's overscan and scrolled --
-        // the title clipped at the top or Back at the bottom. Side by side it
-        // fits, and the fixed frame is what makes "fits" a property of the
-        // layout rather than of where the user left the scroll.
-        //
-        // A phone has the opposite shape: vertical room and no horizontal room.
-        // Two cards abreast at 170dp would be this fix becoming the next bug, so
-        // a phone keeps the scrolling column it has today.
-        ActivationStep.Choose -> isTv
+        ActivationStep.Choose -> device.fitsTwoCards
         ActivationStep.Xtream, ActivationStep.Playlist -> false
     }
+
+/**
+ * Is there room to put the two source cards beside each other?
+ *
+ * ## The question this replaced, and why that one was wrong
+ *
+ * It asked `isTv`, and shipped. On a 873dp phone in landscape the source choice
+ * still came up stacked and still scrolled, because `DeviceClass` has four cases
+ * and `isTv` only distinguishes one of them: a wide phone resolves to [Expanded]
+ * and fell into the branch written for a narrow one.
+ *
+ * The reasoning behind the original condition was about *width* the whole time —
+ * two cards abreast need enough of it, and a portrait phone has none to spare.
+ * It was then written down as "is this a television", which is a different fact
+ * that merely correlates. [Expanded] starts at 840dp, so each card gets 420dp:
+ * exactly what a television gives them.
+ *
+ * ## Why it lives here rather than at each call site
+ *
+ * Two places need it — the frame the step is given and the layout the screen
+ * draws — and they must never disagree, because a fixed frame around a scrolling
+ * layout is a clipped screen and a scrolling frame around a fixed layout is the
+ * bug above. One property, read twice.
+ */
+internal val DeviceClass.fitsTwoCards: Boolean
+    get() = this == DeviceClass.Television || this == DeviceClass.Expanded
 
 @Composable
 private fun Steps(

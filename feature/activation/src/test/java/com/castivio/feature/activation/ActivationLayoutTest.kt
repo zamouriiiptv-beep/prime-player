@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import com.castivio.core.design.theme.CastivioTheme
+import com.castivio.core.design.theme.DeviceClass
 import com.castivio.domain.activation.ActivationUiState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -220,7 +221,21 @@ private enum class Frame(val width: Dp, val height: Dp) {
     /** The shortest Castivio ships to. The band has about 9dp to spare here. */
     ShortPhone(800.dp, 360.dp),
 
-    Television(960.dp, 540.dp),
+    Television(960.dp, 540.dp);
+
+    /**
+     * What `rememberDeviceClass` would call this frame.
+     *
+     * Stated rather than derived from `isTv`, because 873dp is `Expanded` and
+     * 800 is `Medium` — a distinction a boolean cannot carry, and the one that
+     * let the source choice ship stacked on a wide phone.
+     */
+    val device: DeviceClass
+        get() = when (this) {
+            Phone -> DeviceClass.Expanded
+            ShortPhone -> DeviceClass.Medium
+            Television -> DeviceClass.Television
+        }
 }
 
 /**
@@ -240,7 +255,7 @@ private fun Screen(frame: Frame, identity: MutableState<ActivationIdentityState>
                 fixedViewport = isFixedViewport(
                     ActivationUiState(),
                     ActivationStep.Mac,
-                    isTv = frame == Frame.Television,
+                    frame.device,
                 ),
             ) {
                 ActivationScreenUnderTest(identity)

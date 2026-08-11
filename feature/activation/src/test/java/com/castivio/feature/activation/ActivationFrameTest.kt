@@ -1,5 +1,6 @@
 package com.castivio.feature.activation
 
+import com.castivio.core.design.theme.DeviceClass
 import com.castivio.domain.ProviderStatus
 import com.castivio.domain.activation.ActivationFailure
 import com.castivio.domain.activation.ActivationPhase
@@ -29,9 +30,9 @@ class ActivationFrameTest {
 
     /** The state the user lands in on first launch. The one that broke. */
     @Test
-    fun `the address screen at rest owns the viewport, on both frames`() {
-        for (tv in listOf(true, false)) {
-            assertTrue(isFixedViewport(ActivationUiState(), ActivationStep.Mac, isTv = tv))
+    fun `the address screen at rest owns the viewport, on every device`() {
+        for (device in DeviceClass.entries) {
+            assertTrue("$device", isFixedViewport(ActivationUiState(), ActivationStep.Mac, device))
         }
     }
 
@@ -42,33 +43,42 @@ class ActivationFrameTest {
     @Test
     fun `the forms scroll`() {
         for (step in listOf(ActivationStep.Xtream, ActivationStep.Playlist)) {
-            for (tv in listOf(true, false)) {
+            for (device in DeviceClass.entries) {
                 assertFalse(
-                    "$step on ${if (tv) "a television" else "a phone"} was given the fixed frame",
-                    isFixedViewport(ActivationUiState(), step, isTv = tv),
+                    "$step on $device was given the fixed frame",
+                    isFixedViewport(ActivationUiState(), step, device),
                 )
             }
         }
     }
 
     /**
-     * The source choice is fixed on a television and scrolls everywhere else.
+     * The source choice is fixed wherever two cards fit, and scrolls where they
+     * do not.
      *
-     * Stacked, its header, two cards and Back came to more than the 444dp inside
-     * a television's overscan, so the step scrolled and clipped at whichever end
-     * the user was not looking at. Side by side it fits, and the fixed frame is
-     * what turns "fits" into a property of the layout rather than of the scroll
-     * position.
+     * ## The version of this that was wrong, and shipped
      *
-     * The phone keeps the scrolling column deliberately: it has vertical room and
-     * no horizontal room, so two cards abreast would be this fix turning into the
-     * next defect. That is the whole reason the predicate knows about the device,
-     * and it is why the qualifier is asserted rather than assumed.
+     * It asserted `isTv = true` against `isTv = false` — and passed, while the
+     * screen came up stacked and scrolling on a 873dp phone in landscape. That
+     * device is [DeviceClass.Expanded]: not a television, and 420dp per card,
+     * which is exactly what a television gives them. The predicate was answering
+     * the question it was asked; the question was about the wrong thing.
+     *
+     * Enumerated over every case now rather than over a boolean, so a fifth
+     * device class cannot be added without this test making someone decide which
+     * side of the line it falls on.
      */
     @Test
-    fun `the source choice owns the viewport on a television and scrolls on a phone`() {
-        assertTrue(isFixedViewport(ActivationUiState(), ActivationStep.Choose, isTv = true))
-        assertFalse(isFixedViewport(ActivationUiState(), ActivationStep.Choose, isTv = false))
+    fun `the source choice owns the viewport wherever two cards fit`() {
+        for (device in DeviceClass.entries) {
+            val fixed = isFixedViewport(ActivationUiState(), ActivationStep.Choose, device)
+            when (device) {
+                DeviceClass.Television, DeviceClass.Expanded ->
+                    assertTrue("$device is wide enough but scrolls", fixed)
+                DeviceClass.Compact, DeviceClass.Medium ->
+                    assertFalse("$device is too narrow for a row but was given one", fixed)
+            }
+        }
     }
 
     /**
@@ -84,7 +94,7 @@ class ActivationFrameTest {
         )) {
             assertFalse(
                 "$phase was given the fixed viewport",
-                isFixedViewport(ActivationUiState(phase = phase), ActivationStep.Mac, isTv = true),
+                isFixedViewport(ActivationUiState(phase = phase), ActivationStep.Mac, DeviceClass.Television),
             )
         }
     }
@@ -98,7 +108,7 @@ class ActivationFrameTest {
                 isFixedViewport(
                     ActivationUiState(phase = ActivationPhase.Failed(reason)),
                     ActivationStep.Mac,
-                    isTv = true,
+                    DeviceClass.Television,
                 ),
             )
         }
@@ -116,7 +126,7 @@ class ActivationFrameTest {
             status = ProviderStatus(usable = true),
         )
         assertTrue(
-            isFixedViewport(ActivationUiState(phase = succeeded), ActivationStep.Mac, isTv = true),
+            isFixedViewport(ActivationUiState(phase = succeeded), ActivationStep.Mac, DeviceClass.Television),
         )
     }
 }
