@@ -24,7 +24,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import com.castivio.core.design.components.CastivioIntro
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.platform.AndroidDeviceCapabilities
-import com.castivio.tv.debug.DebugEntry
 import com.castivio.tv.gate.SplashGate
 import com.castivio.tv.locale.AppLocale
 import com.castivio.tv.locale.LocalLocaleController
@@ -164,22 +163,16 @@ class MainActivity : ComponentActivity() {
                         // shell asked first -- which the gate makes unreachable
                         // on a fresh install. See `ExitGuard`.
                         ExitGuard(onExit = { finish() }) { askToExit ->
-                            // Nothing in a release build; see `DebugEntry`. It
-                            // wraps the whole app rather than one screen because
-                            // the screen it opens is the one the gate makes
-                            // unreachable.
-                            DebugEntry {
-                                SplashGate(
-                                    onExit = askToExit,
-                                    home = {
-                                        ShellScreen(
-                                            motionLevel = motionLevel,
-                                            onMotionLevel = { motionLevel = it },
-                                            onExit = askToExit,
-                                        )
-                                    },
-                                )
-                            }
+                            SplashGate(
+                                onExit = askToExit,
+                                home = {
+                                    ShellScreen(
+                                        motionLevel = motionLevel,
+                                        onMotionLevel = { motionLevel = it },
+                                        onExit = askToExit,
+                                    )
+                                },
+                            )
                         }
 
                         // Last, so it is over everything, and gone the moment it

@@ -28,7 +28,7 @@
     <string name="refresh_none">أضف أول قائمة تشغيل للبدء</string>
     <string name="refresh_error">تعذر التحديث — أعد المحاولة</string>
     <string name="qr_caption">امسح رمز QR لتفعيل هذا الجهاز</string>
-    <string name="legal_player_only">Castivio مشغّل فقط ولا يوفّر اشتراكات أو محتوى.</string>
+    <string name="legal_player_only">Castivio مشغّل وسائط فقط ولا يوفّر اشتراكات أو محتوى.</string>
     <string name="mac_spoken">عنوان MAC %s</string>
     <string name="language">اللغة</string>
     <string name="language_count">%d متاحة</string>

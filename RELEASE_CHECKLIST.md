@@ -143,10 +143,13 @@ reopen, and confirm it is still in that language with the device set to another.
       clause alone renders as four lines of `bodySmall` on every frame, 27dp more
       than the whole band's margin. Reproduce with
       `node measure.js --file licence.html`.
-- [ ] **No debug entry point survives the release build.** `DebugEntry` composes
-      nothing, `LicenceRoute` ignores `forcedState`, and R8 removes both because
+- [ ] **No debug entry point survives the release build.** The on-screen DEBUG
+      chip and the licence state board it opened were deleted outright once
+      device testing was done, so nothing debug-shaped is drawn in any build type.
+      What remains is one seam with no affordance: `LicenceRoute` ignores
+      `forcedState` unless `BuildConfig.DEBUG`, and R8 removes that branch because
       the constant is false at compile time. `check-invariants.sh` fails the build
-      if either file loses its `BuildConfig.DEBUG` check.
+      if that file loses its check.
 - [ ] **No price is shown to somebody who has already paid.** Lifetime, an active
       annual licence, and a licence that merely has not been verified all draw no
       plan cards. `LicenceViewTest` and `LicencePolishTest` hold this.
