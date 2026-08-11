@@ -30,7 +30,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.castivio.core.design.theme.CastivioType
-import com.castivio.core.design.theme.MotionLevel
 import kotlin.math.PI
 import kotlin.math.exp
 import kotlin.math.sin
@@ -75,28 +74,6 @@ private const val HANDOVER_TO = 1200L
 
 /** The whole of it. Nothing composes after this. */
 const val INTRO_MS = HANDOVER_TO
-
-/**
- * Whether the mark plays at all.
- *
- * At [MotionLevel.DISABLED] it does not, and the application starts directly.
- * A user who has turned animation off has said what they want, and 1.2 seconds
- * of brand is exactly the kind of thing they turned it off to stop; a brand
- * moment nobody asked for is not owed a hearing.
- *
- * Skipped, not shortened. There is no instant variant, no single frame of
- * black, no `onFinished` fired from the first composition — the caller asks
- * this *before* composing [CastivioIntro], so at `DISABLED` the intro is never
- * built and never draws. That distinction is the whole requirement: an intro
- * that plays in one frame still flashes black over the first screen.
- *
- * [MotionLevel.REDUCED] keeps it. Reduced-motion guidance is about *movement* —
- * travel, parallax, large scale changes — which is what makes people ill. This
- * is an opacity ramp and 4% of scale over six hundred milliseconds, and taking
- * it away would leave a user who asked for less motion with a harder cut than
- * everybody else gets. The same reasoning the licence screen's crossfade uses.
- */
-fun playsIntro(level: MotionLevel): Boolean = level != MotionLevel.DISABLED
 
 /**
  * Material 3's emphasised-decelerate. Fast out, long settle — the shape that

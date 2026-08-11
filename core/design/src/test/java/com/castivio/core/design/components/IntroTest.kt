@@ -1,6 +1,5 @@
 package com.castivio.core.design.components
 
-import com.castivio.core.design.theme.MotionLevel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -22,41 +21,6 @@ import org.junit.Test
  * nothing.
  */
 class IntroTest {
-
-    // -- Whether it plays at all --------------------------------------------
-
-    /**
-     * Motion off means no intro, not a fast one.
-     *
-     * A user who has turned animation off has said what they want, and 1.2
-     * seconds of brand is exactly the kind of thing they turned it off to stop.
-     *
-     * The caller reads this *before* composing anything, which is the part that
-     * matters and the part a test can only half-see: an intro that ended on its
-     * first frame would still paint that frame black over the first screen, so
-     * "skipped" and "instant" are different behaviours and only one of them was
-     * asked for. `MainActivity` seeds its state from this rather than checking
-     * it in the condition, so the answer is fixed at launch.
-     */
-    @Test
-    fun `motion off skips the intro`() {
-        assertTrue("motion is off and the mark still plays", !playsIntro(MotionLevel.DISABLED))
-    }
-
-    /**
-     * Reduced motion keeps it.
-     *
-     * Deliberate, and worth stating because the opposite is a reasonable guess.
-     * Reduced-motion guidance is about *movement* — travel, parallax, large
-     * scale changes — and this is an opacity ramp with 4% of scale on it. The
-     * licence screen's crossfade is exempt for the same reason.
-     */
-    @Test
-    fun `every other motion level keeps it`() {
-        for (level in MotionLevel.entries - MotionLevel.DISABLED) {
-            assertTrue("$level lost the intro", playsIntro(level))
-        }
-    }
 
     /**
      * The first fifth of a second is black, and that is not "nearly black".
