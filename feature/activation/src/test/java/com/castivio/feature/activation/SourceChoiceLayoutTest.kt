@@ -144,10 +144,7 @@ class SourceChoiceLayoutTest {
         assertTrue("RTL: the local card is not right of the users card", local.left > users.left)
         assertTrue("RTL: Xtream is not above the local card", xtream.top < local.top)
 
-        // Back at the start, Terms at the end -- the mirror of the English footer.
-        val back = compose.bounds(ActivationTags.SOURCE_BACK)
-        val terms = compose.bounds(ActivationTags.SOURCE_TERMS)
-        assertTrue("RTL: Back is not on the right", back.left > terms.left)
+        compose.assertFooterSurvivesMirroring(HANDSET, "RTL")
     }
 
     /** And the mirror of it, which is the same composition and no extra code. */
@@ -164,9 +161,66 @@ class SourceChoiceLayoutTest {
         assertTrue("LTR: the local card is not left of the users card", local.left < users.left)
         assertTrue("LTR: Xtream is not above the local card", xtream.top < local.top)
 
-        val back = compose.bounds(ActivationTags.SOURCE_BACK)
-        val terms = compose.bounds(ActivationTags.SOURCE_TERMS)
-        assertTrue("LTR: Back is not on the left", back.left < terms.left)
+        compose.assertFooterSurvivesMirroring(HANDSET, "LTR")
+    }
+
+    /**
+     * The footer reads the same in both directions, because it no longer has ends.
+     *
+     * This replaces a pair of assertions that outlived the design they were written
+     * for. They put Back at one end of a row and the terms sentence at the other, and
+     * asserted the two swapped when the direction did. The sentence has left that row:
+     * it is `fillMaxWidth` with `TextAlign.Center` beneath the container now, so there
+     * is no end for it to be at, and the old claim held in RTL only because the
+     * container's padding puts Back 8dp inside the sentence's edge — an accident, not
+     * the property being tested.
+     *
+     * What is direction-sensitive here is the grid, and both callers assert that
+     * directly above. This is the other half of the same statement: the footer is
+     * placed by containment and by symmetry rather than by side, so mirroring the
+     * screen must not move either element. A `SpaceBetween` row reintroduced tomorrow
+     * fails this in whichever direction it was not written for -- which is exactly the
+     * mistake the direction tests exist to catch.
+     */
+    private fun ComposeContentTestRule.assertFooterSurvivesMirroring(frame: Frame, direction: String) {
+        val panel = bounds(ActivationTags.SOURCE_CONTAINER)
+        val back = bounds(ActivationTags.SOURCE_BACK)
+        val terms = bounds(ActivationTags.SOURCE_TERMS)
+
+        // Back is inside the container, in both axes and both directions.
+        assertTrue(
+            "$direction: Back ${back.left}..${back.right} is not inside the container " +
+                "${panel.left}..${panel.right}",
+            back.left >= panel.left && back.right <= panel.right,
+        )
+        assertTrue(
+            "$direction: Back ${back.top}..${back.bottom} is not inside the container " +
+                "${panel.top}..${panel.bottom}",
+            back.top >= panel.top && back.bottom <= panel.bottom,
+        )
+
+        // The sentence is outside the container and below it.
+        assertTrue(
+            "$direction: the terms sentence is not below the container — " +
+                "${terms.top} against ${panel.bottom}",
+            terms.top >= panel.bottom,
+        )
+
+        // It takes the whole measure rather than hugging its words -- which is what
+        // makes `TextAlign.Center` centre it on the screen instead of on itself.
+        assertTrue(
+            "$direction: the terms line spans ${terms.width} against the container's " +
+                "${panel.width}, so it is not filling the measure",
+            abs((terms.width - panel.width).value) <= 1f,
+        )
+
+        // And that measure sits symmetrically on the frame, so the centring means equal
+        // margins in either direction rather than equal margins in one of them.
+        assertTrue(
+            "$direction: the terms line is not centred — ${terms.left} leading, " +
+                "${frame.width - terms.right} trailing",
+            abs((terms.left - (frame.width - terms.right)).value) <= 1f,
+        )
     }
 
     /* ------------------------------------------------------------------ behaviour */
