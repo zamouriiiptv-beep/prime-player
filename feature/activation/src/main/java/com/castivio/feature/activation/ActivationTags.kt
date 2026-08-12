@@ -76,6 +76,16 @@ internal object ActivationTags {
      */
     const val SOURCE_TERMS = "activation.sourceTerms"
 
+    /**
+     * The glass surface the grid and Back sit inside.
+     *
+     * Tagged because "the cards are in a container" is otherwise a claim only a
+     * screenshot can settle, and because the two claims that matter about it are
+     * relational: every card is *inside* it, and the terms sentence is *outside* it.
+     * Both need its bounds.
+     */
+    const val SOURCE_CONTAINER = "activation.sourceContainer"
+
     /** The saved-subscriptions step the fourth card opens. */
     const val SAVED_TITLE = "activation.savedTitle"
     const val SAVED_EMPTY = "activation.savedEmpty"

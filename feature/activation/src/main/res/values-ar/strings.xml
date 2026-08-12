@@ -20,6 +20,7 @@
     <string name="source_users_title">قائمة المستخدمين</string>
     <string name="source_users_detail">أضف وبدّل بين اشتراكات Xtream وM3U.</string>
     <string name="source_terms">شروط الخدمة</string>
+    <string name="source_terms_note"> — باستخدام التطبيق، فإنك توافق على شروط الاستخدام.</string>
 
     <string name="saved_sources_title">قائمة المستخدمين</string>
     <string name="saved_sources_empty">لا توجد اشتراكات محفوظة على هذا الجهاز بعد.</string>

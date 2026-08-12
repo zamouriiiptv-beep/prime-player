@@ -3,18 +3,17 @@ package com.castivio.feature.activation
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Dns
@@ -25,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
@@ -36,8 +36,14 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import com.castivio.core.design.components.GlassCard
 import com.castivio.core.design.components.InteractiveGlassCard
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
@@ -79,19 +85,20 @@ import com.castivio.core.design.theme.Spacing
  *
  * ## Why the four are the same height, and how
  *
- * Not by a number. [SourceGrid] wraps its two rows in a `Column` at
- * `IntrinsicSize.Min` and gives each row `weight(1f)`. Compose resolves a column's
- * minimum intrinsic height over weighted children as the largest child-height-per-unit
- * of weight times the total weight — so the pair comes out at twice the height of the
- * taller row, each row is handed exactly that, and `fillMaxHeight` passes it to all
- * four cards. A description that wraps in one language therefore makes all four cards
- * taller together instead of leaving one standing 20dp proud of its neighbours, and
- * nothing is clipped or ellipsised to achieve it.
+ * The container is sized from the frame and the grid takes what it leaves, so the two
+ * rows divide a *known* height: `weight(1f)` each makes them exactly equal, and
+ * `fillMaxHeight` passes that to all four cards. Equality is structural — there is no
+ * arrangement of content that can make one card taller than another, in any language.
  *
- * The cost is honest and worth naming: an intrinsic pass measures the subtree twice,
- * and it throws at runtime rather than at compile time if something inside it does not
- * support intrinsics. Everything here is `Column`, `Row`, `Text` and `Icon`, all of
- * which do.
+ * It was not always this way. While the cards were sized by their content the rows had
+ * to be equalised with `height(IntrinsicSize.Min)`, which measures the subtree twice
+ * and throws at runtime if anything inside it does not support intrinsics. Sizing the
+ * container from the frame retired that pass along with its risk.
+ *
+ * What replaces the risk is a floor rather than a ceiling: the derived card height has
+ * to stay above what a title over two lines of description needs, or the text clips
+ * instead of the layout overflowing. `SourceChoiceBudgetTest` computes the derived
+ * height on every frame and asserts exactly that.
  *
  * ## Direction
  *
@@ -124,16 +131,83 @@ internal fun SourceChoiceScreen(
             // hard-coded figure: it is `Spacing.tvOverscan` on a television, which has
             // overscan to clear, and `Spacing.screen` everywhere else, which does not.
             .padding(CastivioTheme.device.screenPadding),
-        verticalArrangement = Arrangement.spacedBy(GroupGap, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.Top,
     ) {
         Heading()
-        SourceGrid(
-            onXtream = onXtream,
-            onPlaylist = onPlaylist,
-            onLocalVideo = onLocalVideo,
-            onSavedSources = onSavedSources,
+        Spacer(Modifier.height(TitleGap))
+
+        // The container takes the height, and the cards take it from the container.
+        //
+        // This is the direction the whole screen was solved in until now, reversed.
+        // The cards used to be sized by their content and the container by the cards,
+        // which left the surface floating in the middle of the frame with the sentence
+        // adrift below it -- and it is why a 360dp handset could only afford a 64dp
+        // card. `weight(1f)` makes the container the size of what is left instead, so
+        // it reaches for the edges the way the approved reference does, and the space
+        // it gains lands inside the cards: 86dp on the shortest frame, 102 on the
+        // reference handset, 120 on a television.
+        //
+        // Two things follow that are worth naming. Overflow becomes structural rather
+        // than arithmetic -- a weighted child cannot push its siblings out, so the
+        // title, Back and the sentence are placed first and the grid absorbs whatever
+        // is left. And the equal-height problem stops needing an intrinsic pass: two
+        // rows of `weight(1f)` inside a bounded column are exactly equal, measured
+        // once. What has to be watched instead is the floor, and that is what
+        // `SourceChoiceBudgetTest` computes: the derived card must stay taller than a
+        // title over two lines of description, or the text inside it clips.
+        SourceContainer(Modifier.weight(1f)) {
+            SourceGrid(
+                modifier = Modifier.weight(1f),
+                onXtream = onXtream,
+                onPlaylist = onPlaylist,
+                onLocalVideo = onLocalVideo,
+                onSavedSources = onSavedSources,
+            )
+            Spacer(Modifier.height(ContainerGap))
+            BackButton(onBack, Modifier.testTag(ActivationTags.SOURCE_BACK))
+        }
+
+        // At the bottom of the screen, a hair under the container, as the reference
+        // has it -- not floating in the middle of a leftover band.
+        Spacer(Modifier.height(TermsGap))
+        TermsLine(onTerms)
+    }
+}
+
+/**
+ * The container: one surface holding the four choices and the way back.
+ *
+ * `GlassCard` rather than a `Box` dressed up to look like one — it is the design
+ * system's own glass surface, it already carries `glassFillBrush`, `glassBorderBrush`
+ * and the elevation shadow, and building a second one here would be a shared component
+ * declared twice, which the invariant script rejects for good reason.
+ *
+ * `Radius.xl` against the cards' `Radius.lg`, so the corners nest rather than trace
+ * each other. The fill is the brush the system uses for every glass surface: 7.8%
+ * fading to 3.9% down the card, under cards held flat at 7.8%. The cards keep their own
+ * border, which is what stops the top pair flattening into the container where the two
+ * fills momentarily agree.
+ *
+ * The inset is [ContainerPadding], and it is 8dp on a handset for a reason that is
+ * arithmetic rather than taste — see that token.
+ */
+@Composable
+private fun SourceContainer(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    GlassCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag(ActivationTags.SOURCE_CONTAINER),
+        shape = RoundedCornerShape(Radius.xl),
+    ) {
+        Column(
+            Modifier
+                .fillMaxHeight()
+                .padding(ContainerPadding),
+            content = content,
         )
-        Footer(onBack = onBack, onTerms = onTerms)
     }
 }
 
@@ -171,15 +245,19 @@ private fun Heading() {
  */
 @Composable
 private fun SourceGrid(
+    modifier: Modifier,
     onXtream: () -> Unit,
     onPlaylist: () -> Unit,
     onLocalVideo: () -> Unit,
     onSavedSources: () -> Unit,
 ) {
     Column(
-        // The whole point. See the note on the screen: this is what makes the two rows
-        // -- and therefore all four cards -- one height rather than two.
-        Modifier.height(IntrinsicSize.Min),
+        // Bounded by the container, so the two rows divide a known height and come out
+        // equal without an intrinsic pass. That pass used to be here and was the only
+        // way to equalise rows whose height came from their content; it measured the
+        // subtree twice and threw at runtime if anything in it did not support
+        // intrinsics. Sizing the container from the frame retired it.
+        modifier,
         verticalArrangement = Arrangement.spacedBy(GridGap),
     ) {
         Row(
@@ -224,58 +302,49 @@ private fun SourceGrid(
 }
 
 /**
- * Back at the start, Terms at the end, one row.
+ * The terms sentence, below the container and centred on the frame.
  *
- * Terms on a line of its own was the obvious reading and it does not fit: a
- * `bodySmall` line plus the gap separating it is 36dp, and the band has 10.5 spare.
- * A third row would overflow, and this frame does not scroll — it would clip.
+ * `fillMaxWidth()` with `TextAlign.Center`, which is the plainest way to say "the same
+ * distance from each edge" and is direction-agnostic by construction. It was not
+ * available while Back shared this row -- a full-width text carries its click target
+ * across the row and would have taken Back's presses. Back is inside the container
+ * now, so the row is the sentence's alone and the simple thing is also the correct one.
  *
- * On Back's row it costs nothing at all: the row is already the height of the button
- * and the full width of the band, and the link is 20dp inside it. `SpaceBetween` puts
- * them on opposite ends, which the layout direction resolves — Back on the right and
- * Terms on the left in Arabic, mirrored in English, with no side named here.
+ * One control, not two. "Terms of Service" is underlined and the rest is not, because
+ * the underline is what tells a reader the line can be pressed; but the whole line is
+ * the target, since a partially-pressable sentence is unusable with a D-pad — there is
+ * no cursor to put on half a paragraph.
+ *
+ * `ButtonWeight` has three values and none of them is a text link, and adding a fourth
+ * is a change to `:core:design` that every screen would inherit for the sake of one
+ * footer. So this is local, and it is the only element on this screen that is.
  */
 @Composable
-private fun Footer(onBack: () -> Unit, onTerms: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        BackButton(onBack, Modifier.testTag(ActivationTags.SOURCE_BACK))
-        TermsLink(onTerms)
-    }
-}
+private fun TermsLine(onClick: () -> Unit) {
+    val lead = stringResource(R.string.source_terms)
+    val note = stringResource(R.string.source_terms_note)
 
-/**
- * The Terms link, built here rather than reached for.
- *
- * `ButtonWeight` has three values — `Primary`, `Secondary`, `Ghost` — and none of them
- * is a text link. Adding a fourth is a change to `:core:design`, which is a shared
- * component every screen inherits and not something to alter for one footer; so this
- * is local, and it is the only element on the screen that is.
- *
- * It is still a control rather than a caption. `clickable` with the module's own
- * indication, a `minTarget` floor so a thumb and a D-pad can both land on it, and the
- * underline that is the whole reason a reader knows it can be pressed. Type and colour
- * are `bodySmall` in `onBackgroundVariant`, which is what every secondary line on this
- * screen already uses, so it introduces no new value of anything.
- */
-@Composable
-private fun TermsLink(onClick: () -> Unit) {
-    val isTv = CastivioTheme.device.isTv
+    // Underlined on the two words that name the thing, plain for the sentence that
+    // follows. One control, not two: the whole line is the target, because a
+    // partially-pressable line is unusable with a D-pad -- there is no cursor to put
+    // on the underlined half of a paragraph.
+    val sentence = remember(lead, note) {
+        buildAnnotatedString {
+            withStyle(SpanStyle(textDecoration = TextDecoration.Underline)) { append(lead) }
+            append(note)
+        }
+    }
+
     Text(
-        text = stringResource(R.string.source_terms),
+        text = sentence,
         style = CastivioType.bodySmall,
         color = CastivioTheme.colors.onBackgroundVariant,
-        textDecoration = TextDecoration.Underline,
+        textAlign = TextAlign.Center,
         modifier = Modifier
+            .fillMaxWidth()
             .testTag(ActivationTags.SOURCE_TERMS)
             .clip(RoundedCornerShape(Radius.sm))
-            .clickable(role = Role.Button, onClick = onClick)
-            .defaultMinSize(minHeight = Sizing.minTarget(isTv))
-            .wrapContentHeight(Alignment.CenterVertically)
-            .padding(horizontal = Spacing.sm),
+            .clickable(role = Role.Button, onClick = onClick),
     )
 }
 
@@ -289,39 +358,76 @@ private fun TermsLink(onClick: () -> Unit) {
  */
 private val GridGap: Dp
     @Composable @ReadOnlyComposable get() =
-        if (CastivioTheme.device.isTv) Spacing.xl else Spacing.lg
+        if (CastivioTheme.device.isTv) Spacing.lg else Spacing.sm
 
 /**
- * Title to grid, and grid to footer.
+ * Title to container.
  *
- * Deliberately larger than [GridGap]: the three parts of the screen have to read as
- * separate from each other while the four cards read as one set.
- *
- * `Spacing.xl` and not `Spacing.xxl` off a television, and the reason is the shortest
- * frame rather than taste. A 360dp-tall landscape window is an ordinary 360dp-wide
- * phone turned sideways, and at `Spacing.xxl` this screen comes to 368 against that
- * 360 — an 8dp overrun in a frame that does not scroll, which clips. At `Spacing.xl`
- * it is 352 and fits, and the reference handset keeps 41dp. `SourceChoiceBudgetTest`
- * computes both from these tokens.
+ * The one fixed gap left in the column. Everything below the container is a computed
+ * region rather than a spacer, so this is the only figure that has to be chosen.
  */
-private val GroupGap: Dp
+private val TitleGap: Dp
     @Composable @ReadOnlyComposable get() =
-        if (CastivioTheme.device.isTv) Spacing.xxl else Spacing.xl
+        if (CastivioTheme.device.isTv) Spacing.lg else Spacing.sm
 
 /**
- * Deeper than it is wide-padded, and one step up on a television.
+ * Container to the terms sentence.
  *
- * The card is between a third and a half of the screen across and holds 50dp of type,
- * so padding it equally would leave a letterbox. `Spacing.xxxl` was the figure when
- * two cards had the whole band to themselves; with four it makes the screen 8dp taller
- * than the shortest frame Castivio ships to, and a frame that no longer scrolls does
- * not scroll on an overrun — it clips. `SourceChoiceBudgetTest` computes both.
+ * Small, and deliberately so: the reference puts the sentence on the bottom edge of
+ * the screen, a hair under the surface, rather than floating in a band of its own. The
+ * container is `weight(1f)`, so this gap is subtracted from what the container gets --
+ * every dp here is a dp off the cards.
+ */
+private val TermsGap: Dp
+    @Composable @ReadOnlyComposable get() =
+        if (CastivioTheme.device.isTv) Spacing.lg else Spacing.xs
+
+/** Grid to Back, inside the container. */
+private val ContainerGap: Dp
+    @Composable @ReadOnlyComposable get() =
+        if (CastivioTheme.device.isTv) Spacing.lg else Spacing.xs
+
+/**
+ * The container's own inset.
+ *
+ * `Spacing.sm` on a handset and `Spacing.lg` on a television — enough that no card
+ * touches the edge it sits in, and not a dp more, because on the short frame there is
+ * not a dp more to give. See [CardPadding] for the arithmetic that sets all of these.
+ */
+private val ContainerPadding: Dp
+    @Composable @ReadOnlyComposable get() =
+        if (CastivioTheme.device.isTv) Spacing.lg else Spacing.sm
+
+/**
+ * The card's own inset, and the figure the whole screen is solved around.
+ *
+ * ## Why 8dp on a handset and not 16
+ *
+ * The requirement that sets it is not appearance, it is that a description which wraps
+ * to two lines must still fit — on every frame, including the shortest one the project
+ * ships to, an 800x360 landscape window that is an ordinary 360dp-wide phone turned
+ * sideways.
+ *
+ * That frame gives the layout 312dp once `screenPadding` is taken. Three things in it
+ * cannot move: a 32dp title, a 48dp Back at the touch-target floor, and a 20dp
+ * sentence. 100dp gone, 212 left for two rows of cards, the container's inset twice
+ * over, and four gaps. Two cards with a wrapped description are `4 * padY + 136`, so
+ * every dp of card padding costs four.
+ *
+ * The token space was searched rather than guessed: of the combinations that fit both
+ * one line and two on both 360 and 393, **none has a card taller than 64dp**. 8dp of
+ * card padding is therefore not a preference, it is the maximum, and everything else
+ * on the screen was set from what it left — which is the order the priorities asked
+ * for: no overflow first, room for a wrap second, card size third, spacing last.
+ *
+ * A television has 444dp and none of this pressure, so it keeps `Spacing.xl` and a
+ * 96dp card.
  */
 private val CardPadding: PaddingValues
     @Composable @ReadOnlyComposable get() = if (CastivioTheme.device.isTv) {
         PaddingValues(horizontal = Spacing.xxl, vertical = Spacing.xl)
     } else {
-        PaddingValues(horizontal = Spacing.lg, vertical = Spacing.lg)
+        PaddingValues(horizontal = Spacing.lg, vertical = Spacing.sm)
     }
 
 /**

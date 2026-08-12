@@ -148,6 +148,7 @@
   --glass:rgba(255,255,255,.039);
   --glass-border:rgba(255,255,255,.239);
   --r-lg:20px;
+  --r-xl:24px;   /* Radius.xl -- one step up, so the container nests the cards */
 
   /* The handset, which is the frame that decides everything: 873dp of window
      less the 41dp `safeDrawing` spends on the display cutout. `?frame=tv`
@@ -160,15 +161,22 @@
      rows, Back 48, and the two `Spacing.xl` gaps that separate the three
      groups. `Spacing.lg` inside the card leaves 80 per row and 9dp over --
      `Spacing.xl` would leave 96 per row and overrun by 23. */
-  --card-pad-y:16px;   /* Spacing.lg */
+  --card-pad-y:8px;   /* Spacing.lg */
   --card-pad-x:20px;
-  --grid-gap:16px;     /* Spacing.lg, the same figure across and down */
+  --grid-gap:8px;     /* Spacing.lg, the same figure across and down */
+  --panel-pad:8px;     /* Spacing.sm -- what the arithmetic leaves; see the Kotlin */
+  --panel-gap:4px;     /* Spacing.sm, grid to Back inside the container */
+  --legal-gap:4px;    /* was Spacing.sm 8, +8 as asked */
   /* `Spacing.xxl`, up from `Spacing.xl` when the subtitle went. Deleting it
      freed 32dp, and the whole 32 going into the outer margin would have left
      the title and the footer clinging to a grid they are 24 away from while
      34 of nothing sat above and below. Split between the two gaps instead:
      the three parts separate, and 10.5 is still left over at each end. */
-  --group-gap:32px;
+  /* Down from `Spacing.xxl`. The container groups the middle of the screen by
+     drawing a surface around it, so the gap no longer has to do that work --
+     and 12 is what this composition can afford once the container's own inset
+     and the sentence below it are paid for. */
+  --group-gap:8px;    /* was Spacing.md 12, +8 as asked */
   --back-h:48px;       /* Sizing.minTouchTarget */
 }
 html[data-frame="tv"]{
@@ -178,8 +186,11 @@ html[data-frame="tv"]{
      and there is still 44dp spare. */
   --card-pad-y:24px;   /* Spacing.xl */
   --card-pad-x:32px;   /* Spacing.xxl */
-  --grid-gap:24px;     /* Spacing.xl */
-  --group-gap:32px;    /* Spacing.xxl */
+  --grid-gap:16px;     /* Spacing.xl */
+  --panel-pad:16px;    /* Spacing.lg */
+  --panel-gap:16px;    /* Spacing.lg */
+  --legal-gap:16px;    /* was Spacing.xl 24, +8 as asked */
+  --group-gap:16px;    /* was Spacing.xl 24, +8 as asked */
   --back-h:56px;       /* Sizing.minTvTarget */
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -223,8 +234,35 @@ html[dir="ltr"] .backdrop{
    rows says the same thing the sizes say: the two rows are one choice with a
    primary half and a secondary half, not four unrelated things evenly spaced. */
 .band{position:absolute;inset:var(--inset);display:flex;flex-direction:column;
-  justify-content:center;gap:var(--group-gap)}
+  justify-content:flex-start;gap:0}
 .head{display:flex;flex-direction:column;gap:8px}
+
+/* The container: one surface holding the four choices and the way back.
+   ------------------------------------------------------------------------
+   Behind the cards rather than beside them, so it fills at `glassFill` where
+   they fill at `glassFillStrong` -- 3.9% under 7.8%. That ordering is the whole
+   trick: a container as bright as its contents flattens into one slab and the
+   cards stop reading as pressable. Same `glassBorder`, `Radius.xl` against the
+   cards' `Radius.lg` so the corners nest instead of tracing each other.
+
+   `--panel-pad` all round, so no card ever touches the edge it sits in. */
+.panel{flex:1 1 auto;margin-top:var(--group-gap);border-radius:var(--r-xl);background:var(--glass);
+  border:1px solid var(--glass-border);box-shadow:0 10px 30px rgba(0,0,0,.24);
+  padding:var(--panel-pad);
+  display:flex;flex-direction:column;gap:var(--panel-gap)}
+
+/* Below the container, not inside it, and centred on the frame rather than on
+   what Back leaves over -- its margin from each edge is the same number by
+   construction, in either direction. */
+/* The remainder, with the sentence in the middle of it. Not a fixed gap: the space
+   above the sentence and the space below it are half of whatever the container
+   leaves, on every frame. */
+/* At the bottom of the screen, just under the container -- the reference has it on
+   the bottom edge, not floating in a leftover band. */
+.legal{flex:0 0 auto;align-self:center;margin-top:var(--legal-gap);
+  text-align:center;color:var(--silver);white-space:nowrap;text-decoration:none}
+.legal .lead{text-decoration:underline;text-decoration-thickness:1px;
+  text-underline-offset:3px;text-decoration-color:rgba(201,201,218,.55)}
 .head .sub{color:var(--silver)}
 
 /* `flex-start`, not the `stretch` a flex row defaults to.
@@ -252,7 +290,7 @@ html[dir="ltr"] .backdrop{
    between them, which is a second measurement pass over the subtree. That is a
    real decision for the implementation, not a detail -- the alternative is to
    accept that a wrapped description makes one card taller. */
-.choices{flex:0 0 auto;display:grid;grid-template-columns:1fr 1fr;
+.choices{flex:1 1 auto;display:grid;grid-template-columns:1fr 1fr;
   grid-auto-rows:1fr;gap:var(--grid-gap)}
 .card{min-width:0;border-radius:var(--r-lg);
   background:var(--glass-strong);border:1px solid var(--glass-border);
@@ -294,7 +332,15 @@ html[dir="ltr"] .backdrop{
    keep their size and position to the dp, and Back keeps its own. It also reads
    as a footer rather than as a fifth choice, which a centred line under the
    grid would have risked. */
-.foot{display:flex;align-items:center;justify-content:space-between;gap:24px}
+/* Back on its own side, the sentence centred on the frame.
+   ------------------------------------------------------------------------
+   A grid of three equal columns rather than `space-between`: the middle column
+   is the width of the row, so the sentence is centred on the *frame* and its
+   margin from each edge is the same number by construction. `space-between`
+   would have centred it on whatever Back left over, which is a different thing
+   that looks the same until Back changes width in another language. */
+/* Back alone now, on the starting side, which the direction resolves. */
+.foot{display:flex;align-items:center;justify-content:flex-start}
 
 /* ButtonWeight.Ghost: no fill and no border until it is focused. */
 .back{display:inline-flex;align-items:center;
@@ -307,9 +353,11 @@ html[dir="ltr"] .backdrop{
    what makes it a link rather than a caption -- offset off the baseline so the
    Arabic descenders clear it, and hairline so it stays quiet. No icon and no
    sentence beside it: the words are the whole control. */
-.terms{color:var(--silver);text-decoration:underline;
-  text-decoration-thickness:1px;text-underline-offset:3px;
-  text-decoration-color:rgba(201,201,218,.55)}
+/* One control, and only the two words that name it are underlined. The rest of
+   the sentence is context; a partially-pressable line is unusable with a D-pad. */
+.terms{color:var(--silver);text-decoration:none;white-space:nowrap}
+.terms .lead{text-decoration:underline;text-decoration-thickness:1px;
+  text-underline-offset:3px;text-decoration-color:rgba(201,201,218,.55)}
 
 /* The stress render says so, on the render.
    ------------------------------------------------------------------------
@@ -366,7 +414,8 @@ html[data-spec="1"] .spec{display:block}
     <!-- Source order, not visual order: a Row lays its children out start to
          end, so Xtream is on the right in Arabic and on the left in English
          without either being written down. -->
-    <div class="choices" id="grid">
+    <div class="panel" id="panel">
+      <div class="choices" id="grid">
       <div class="card focused">
         <div class="line t-title-l">
           <!-- A server: two stacked units and a status light. Xtream is an
@@ -418,12 +467,14 @@ html[data-spec="1"] .spec{display:block}
         </div>
         <div class="detail t-body-s" data-s="usersDetail"></div>
       </div>
+      </div>
+
+      <div class="foot">
+        <span class="back t-label-l" data-s="back"></span>
+      </div>
     </div>
 
-    <div class="foot">
-      <span class="back t-label-l" data-s="back"></span>
-      <a class="terms t-body-s" href="#" data-s="terms"></a>
-    </div>
+    <a class="legal t-body-s" href="#"><span class="lead" data-s="terms"></span><span data-s="termsNote"></span></a>
   </div>
 
   <div class="stress-flag">STRESS RENDER — EVERY STRING DOUBLED ON PURPOSE. NOT THE SCREEN.</div>
@@ -441,7 +492,8 @@ var S = {
         m3u:"قائمة M3U", m3uDetail:"رابط واحد طويل، يُرسَل عادةً بالبريد.",
         local:"تشغيل فيديو من الجهاز", localDetail:"تشغيل ملف فيديو محفوظ على الجهاز.",
         users:"قائمة المستخدمين", usersDetail:"أضف وبدّل بين اشتراكات Xtream وM3U.",
-        back:"رجوع", terms:"شروط الخدمة" },
+        back:"رجوع", terms:"شروط الخدمة",
+        termsNote:" — باستخدام التطبيق، فإنك توافق على شروط الاستخدام." },
   en: { dir:"ltr", title:"What did your provider give you?",
         xtream:"Xtream Codes", xtreamDetail:"A server address, a username and a password.",
         m3u:"M3U playlist", m3uDetail:"A single long link, usually sent by e-mail.",
@@ -453,7 +505,8 @@ var S = {
            overflow and a Back button crushed to 20dp. See the note on the
            band. */
         users:"Saved users", usersDetail:"Add or switch between Xtream and M3U.",
-        back:"Back", terms:"Terms of Service" },
+        back:"Back", terms:"Terms of Service",
+        termsNote:" — By using this app, you agree to the Terms of Service." },
 };
 
 var q = new URLSearchParams(location.search);
@@ -484,8 +537,9 @@ window.addEventListener("load", function () {
   var head = document.querySelector(".head").getBoundingClientRect();
   var grid = document.getElementById("grid").getBoundingClientRect();
   var foot = document.querySelector(".foot").getBoundingClientRect();
+  var panel = document.getElementById("panel").getBoundingClientRect();
   var back = document.querySelector(".back").getBoundingClientRect();
-  var terms = document.querySelector(".terms").getBoundingClientRect();
+  var terms = document.querySelector(".legal").getBoundingClientRect();
   var frame = document.getElementById("tv").getBoundingClientRect();
   var cards = [].map.call(document.querySelectorAll("#grid .card"), function (n) {
     var b = n.getBoundingClientRect();

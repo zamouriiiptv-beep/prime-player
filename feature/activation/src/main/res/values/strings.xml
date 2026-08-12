@@ -30,6 +30,9 @@
          four and the first to wrap. -->
     <string name="source_users_detail">Add or switch between Xtream and M3U.</string>
     <string name="source_terms">Terms of Service</string>
+    <!-- Follows `source_terms` on the same line, and it is one line: the footer
+         shares Back's row, so a wrap would push the sentence out of it. -->
+    <string name="source_terms_note"> — By using this app, you agree to the Terms of Service.</string>
 
     <!-- The subscriptions already on this box -->
     <string name="saved_sources_title">Saved users</string>

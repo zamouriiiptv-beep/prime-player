@@ -60,14 +60,17 @@ import org.robolectric.annotation.Config
  * ## What is asserted here, and what is asserted next door
  *
  * Robolectric does not lay text out: every `Text` measures 35dp whatever its style, as
- * `ActivationBudgetTest` documents at length. Four cards of two text lines each makes
- * this screen about 60dp taller in the harness than on a device. Vertical containment
- * is therefore asserted only on frames with room for that inflation, and fit on the
- * tight frames is computed from real type metrics in `SourceChoiceBudgetTest`.
+ * `ActivationBudgetTest` documents at length. Nine text nodes on this screen makes it
+ * about 80dp taller in the harness than on a device, which is more than either target
+ * frame has — so **vertical containment is not assertable here at all**, on any frame,
+ * and no assertion pretends otherwise. Fit is computed from real type metrics in
+ * `SourceChoiceBudgetTest`, on the JVM, where the numbers are the device's.
  *
  * Everything the harness measures truthfully is asserted on every frame: equal widths,
- * equal heights, the two-by-two arrangement, reading order, direction, containment
- * across the width, and the absence of anything scrollable.
+ * equal heights, the two-by-two arrangement, the container actually containing them,
+ * the sentence being outside it, reading order, direction, symmetry across the width,
+ * and the absence of anything scrollable. Those are all *relative* claims, and a
+ * harness with the wrong text metrics still gets relative claims right.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w1280dp-h800dp-land")
@@ -83,7 +86,6 @@ class SourceChoiceLayoutTest {
     fun `an Expanded handset gets the grid, whole and unscrollable`() {
         compose.show(HANDSET, DeviceClass.Expanded)
         compose.assertGrid(HANDSET)
-        compose.assertVerticallyInside(HANDSET)
     }
 
     /**
@@ -96,7 +98,6 @@ class SourceChoiceLayoutTest {
     fun `the same handset gets the grid even when it calls itself Compact`() {
         compose.show(HANDSET, DeviceClass.Compact)
         compose.assertGrid(HANDSET)
-        compose.assertVerticallyInside(HANDSET)
     }
 
     /** The television, in its own class, which is where the overscan inset applies. */
@@ -104,7 +105,6 @@ class SourceChoiceLayoutTest {
     fun `a television gets the grid, whole and unscrollable`() {
         compose.show(TELEVISION, DeviceClass.Television)
         compose.assertGrid(TELEVISION)
-        compose.assertVerticallyInside(TELEVISION)
     }
 
     /** The shortest frame the project ships to, at a width nothing real is this narrow. */
@@ -269,10 +269,64 @@ class SourceChoiceLayoutTest {
             abs((xtream.left - local.left).value) <= 1f,
         )
 
-        // Heading above the grid, footer below it. The sequence the scroll destroyed.
-        assertTrue("${frame.width}: the heading is not above the grid", heading.bottom <= xtream.top)
+        // Heading above the container, container above the sentence. The sequence the
+        // scroll destroyed, now with the container in the middle of it.
+        val panel = bounds(ActivationTags.SOURCE_CONTAINER)
+        assertTrue("${frame.width}: the heading is not above the container", heading.bottom <= panel.top)
         assertTrue("${frame.width}: Back is not below the grid", back.top >= local.bottom)
-        assertTrue("${frame.width}: Terms is not below the grid", terms.top >= local.bottom)
+
+        // The container really contains them: all four cards and Back inside its
+        // bounds, none of them touching an edge. "There is a container" is otherwise
+        // a claim only a screenshot can settle.
+        for ((what, box) in CARD_TAGS.map { it.substringAfterLast('.') }.zip(cards.map { it.second }) +
+            listOf("Back" to back)) {
+            assertTrue(
+                "${frame.width}: $what is not inside the container — " +
+                    "${box.left}..${box.right} of ${panel.left}..${panel.right}",
+                box.left >= panel.left && box.right <= panel.right,
+            )
+            assertTrue(
+                "${frame.width}: $what is not inside the container vertically — " +
+                    "${box.top}..${box.bottom} of ${panel.top}..${panel.bottom}",
+                box.top >= panel.top && box.bottom <= panel.bottom,
+            )
+            assertTrue(
+                "${frame.width}: $what touches the container edge",
+                box.left > panel.left && box.right < panel.right,
+            )
+        }
+
+        // And the sentence is outside it, below. This is the half of the composition
+        // the container is not allowed to swallow.
+        assertTrue(
+            "${frame.width}: the terms sentence is not below the container — " +
+                "${terms.top} against ${panel.bottom}",
+            terms.top >= panel.bottom,
+        )
+
+        // The terms sentence is centred on the frame, not placed against Back: its
+        // margin from each edge is the same number. Asserted rather than trusted,
+        // because "centred" is the one property a `SpaceBetween` row also looks like
+        // at some widths, and because the two share a row and must not collide.
+        // `fillMaxWidth` makes the node the width of the row, so the node's own margins
+        // are the screen padding and say nothing about where the words sit. The
+        // sentence is centred by `TextAlign.Center` inside it, and what is asserted is
+        // that the node itself is symmetric on the frame -- which is the property that
+        // makes the centring mean equal margins.
+        val leadingGap = terms.left
+        val trailingGap = frame.width - terms.right
+        assertTrue(
+            "${frame.width}: the terms line is not centred — ${leadingGap} leading, " +
+                "${trailingGap} trailing",
+            abs((leadingGap - trailingGap).value) <= 1f,
+        )
+        // Back and the sentence are in different bands now, so the claim is vertical
+        // separation rather than horizontal clearance.
+        assertTrue(
+            "${frame.width}: Back ${back.top}..${back.bottom} runs into the terms line " +
+                "${terms.top}..${terms.bottom}",
+            terms.top >= back.bottom,
+        )
 
         // Inside the width, every element. Widths Robolectric measures honestly.
         for ((what, box) in named(heading, cards.map { it.second }, back, terms)) {
@@ -284,23 +338,6 @@ class SourceChoiceLayoutTest {
         }
 
         onAllNodes(hasScrollAction()).assertCountEquals(0)
-    }
-
-    /** And inside the height, on the frames with room for the harness's fake text. */
-    private fun ComposeContentTestRule.assertVerticallyInside(frame: Frame) {
-        val cards = CARD_TAGS.map { bounds(it) }
-        for ((what, box) in named(
-            bounds(ActivationTags.SOURCE_HEADING),
-            cards,
-            bounds(ActivationTags.SOURCE_BACK),
-            bounds(ActivationTags.SOURCE_TERMS),
-        )) {
-            assertTrue("${frame.height}: $what starts above the frame, at ${box.top}", box.top >= 0.dp)
-            assertTrue(
-                "${frame.height}: $what runs past the bottom — ${box.bottom} of ${frame.height}",
-                box.bottom <= frame.height,
-            )
-        }
     }
 
     private fun named(
