@@ -142,17 +142,53 @@
   --void:#08071A; --deep:#141031; --violet10:#1B1038; --violet50:#9B6BFF;
   --azure10:#0A1E3D; --azure40:#2E6BFF; --azure60:#6FB2FF;
   --mist:#F2F2F8; --silver:#C9C9DA;
-  /* Colour.kt: GlassMid 0x14 is glassFillStrong, GlassEdge 0x3D is glassBorder. */
+  /* Colour.kt: GlassMid 0x14 is glassFillStrong, GlassLow 0x0A is glassFill,
+     GlassEdge 0x3D is glassBorder. */
   --glass-strong:rgba(255,255,255,.078);
+  --glass:rgba(255,255,255,.039);
   --glass-border:rgba(255,255,255,.239);
   --r-lg:20px;
+
+  /* The handset, which is the frame that decides everything: 873dp of window
+     less the 41dp `safeDrawing` spends on the display cutout. `?frame=tv`
+     swaps in the television's, which has 44dp more slack than this one. */
+  --frame-w:827px; --frame-h:393px;
+  --inset:24px;        /* Spacing.screen */
+  /* Four cards carrying a description each is what sets these.
+     ------------------------------------------------------------------------
+     The band is 345 and the fixed parts take 296 of it: header 64, two card
+     rows, Back 48, and the two `Spacing.xl` gaps that separate the three
+     groups. `Spacing.lg` inside the card leaves 80 per row and 9dp over --
+     `Spacing.xl` would leave 96 per row and overrun by 23. */
+  --card-pad-y:16px;   /* Spacing.lg */
+  --card-pad-x:20px;
+  --grid-gap:16px;     /* Spacing.lg, the same figure across and down */
+  /* `Spacing.xxl`, up from `Spacing.xl` when the subtitle went. Deleting it
+     freed 32dp, and the whole 32 going into the outer margin would have left
+     the title and the footer clinging to a grid they are 24 away from while
+     34 of nothing sat above and below. Split between the two gaps instead:
+     the three parts separate, and 10.5 is still left over at each end. */
+  --group-gap:32px;
+  --back-h:48px;       /* Sizing.minTouchTarget */
+}
+html[data-frame="tv"]{
+  --frame-w:960px; --frame-h:540px;
+  --inset:48px;        /* Spacing.tvOverscan */
+  /* 444dp of band and the same seven parts, so every figure goes up one step
+     and there is still 44dp spare. */
+  --card-pad-y:24px;   /* Spacing.xl */
+  --card-pad-x:32px;   /* Spacing.xxl */
+  --grid-gap:24px;     /* Spacing.xl */
+  --group-gap:32px;    /* Spacing.xxl */
+  --back-h:56px;       /* Sizing.minTvTarget */
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:#000}
 body{font-family:"Castivio Sans","Castivio Arabic","Noto Sans",sans-serif;color:var(--mist);
   -webkit-font-smoothing:antialiased;text-rendering:geometricPrecision}
 
-#tv{position:relative;width:960px;height:540px;overflow:hidden;background:var(--void)}
+#tv{position:relative;width:var(--frame-w);height:var(--frame-h);
+  overflow:hidden;background:var(--void)}
 
 /* The aurora `ActivationSurface` draws, unchanged, mirrored for RTL. */
 .backdrop{position:absolute;inset:0;
@@ -178,9 +214,16 @@ html[dir="ltr"] .backdrop{
 .t-body-s    {font-size:12.5px;line-height:20px;font-weight:500}
 .t-label-l   {font-size:14px;line-height:20px;font-weight:600}
 
-/* `Arrangement.spacedBy(Spacing.xxl, Alignment.CenterVertically)`. */
-.band{position:absolute;inset:48px;display:flex;flex-direction:column;
-  justify-content:center;gap:32px}
+/* Centred as one group, as `Alignment.CenterVertically` does.
+   ------------------------------------------------------------------------
+   The gap is no longer one number. Three children became four, and at
+   `Spacing.xxl` throughout the composition came to 344 in the handset's 345 --
+   a fit with nothing left, which is the state this screen has twice shipped
+   from. `Spacing.xl` between the groups and `Spacing.lg` inside the pair of
+   rows says the same thing the sizes say: the two rows are one choice with a
+   primary half and a secondary half, not four unrelated things evenly spaced. */
+.band{position:absolute;inset:var(--inset);display:flex;flex-direction:column;
+  justify-content:center;gap:var(--group-gap)}
 .head{display:flex;flex-direction:column;gap:8px}
 .head .sub{color:var(--silver)}
 
@@ -194,24 +237,79 @@ html[dir="ltr"] .backdrop{
 
    With the strings as they are the two are the same height anyway: both hold a
    title and one line, both come to 146. `?stress=1` is where they diverge. */
-.choices{flex:0 0 auto;display:flex;gap:24px;align-items:flex-start}
-.card{flex:1 1 0;min-width:0;border-radius:var(--r-lg);
+/* Two by two, one gap figure in both directions.
+   ------------------------------------------------------------------------
+   `1fr 1fr` gives the four the same width whatever is in them, and
+   `grid-auto-rows: 1fr` gives the two rows the same height as each other. With
+   these strings that is already true -- every card is a title over one line, so
+   all four measure 80 without being told to. The `1fr` is what holds it when a
+   translation wraps one description: the other three grow with it rather than
+   one card standing 20dp taller than its neighbours.
+
+   **What that will cost in Compose.** A plain `Row` does not equalise its
+   children and two `Row`s do not equalise each other, so this is not free
+   there: it needs `height(IntrinsicSize.Min)` on each row and a shared height
+   between them, which is a second measurement pass over the subtree. That is a
+   real decision for the implementation, not a detail -- the alternative is to
+   accept that a wrapped description makes one card taller. */
+.choices{flex:0 0 auto;display:grid;grid-template-columns:1fr 1fr;
+  grid-auto-rows:1fr;gap:var(--grid-gap)}
+.card{min-width:0;border-radius:var(--r-lg);
   background:var(--glass-strong);border:1px solid var(--glass-border);
   box-shadow:0 10px 30px rgba(0,0,0,.32);
-  /* Spacing.xxxl down, Spacing.xxl across. Taller than it is wide-padded
-     because the card is 420 across and 50 of type tall: equal padding would
-     leave a letterbox. */
-  padding:48px 32px;
+  padding:var(--card-pad-y) var(--card-pad-x);
   display:flex;flex-direction:column;justify-content:center;gap:4px}
 .card .detail{color:var(--silver)}
 /* focusRing = Azure60, focusGlow = Azure40 at 45%. Drawn on the first pane so
-   the D-pad story is visible: left and right between the two, down to Back. */
+   the D-pad story is visible: left and right along a row, down between them. */
 .card.focused{border-color:var(--azure60);
   box-shadow:0 0 0 1px var(--azure60), 0 14px 44px rgba(46,107,255,.45)}
 
+/* The title line carries the icon.
+   ------------------------------------------------------------------------
+   Beside the words rather than above them, and at the cap height of the title
+   it sits on, so it costs the card nothing: the row is `t-title-l`'s own 24px
+   line box either way. An icon block above the title would have added 24 plus a
+   gap to all four cards, which is 40 of the handset's 17dp of slack. */
+.line{display:flex;align-items:center;gap:12px}
+.line svg{flex:0 0 auto;width:20px;height:20px;stroke:currentColor;fill:none;
+  stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+
+/* No second style. Four cards, one card.
+   ------------------------------------------------------------------------
+   An earlier draft gave the lower pair `glassFill` and no description, so they
+   came out 58dp against 98 -- hierarchy carried by size and fill. That is
+   rejected: reading order is the only ranking here. Xtream leads because it is
+   first in the grid and holds the focus on entry, not because it is bigger. */
+
+/* The bottom bar: Back at the start, Terms at the end, one row.
+   ------------------------------------------------------------------------
+   A footer on its own line was the obvious reading of the request and it does
+   not fit. The band has 2.5dp spare on a handset -- a `bodySmall` line plus the
+   gap that would separate it is 36 -- so a third row would overflow by 33 and
+   the frame does not scroll. It would clip.
+
+   On Back's row it costs nothing at all: the row is already 48 tall for the
+   button and full width, and the link is 20. Nothing above it moves, the cards
+   keep their size and position to the dp, and Back keeps its own. It also reads
+   as a footer rather than as a fifth choice, which a centred line under the
+   grid would have risked. */
+.foot{display:flex;align-items:center;justify-content:space-between;gap:24px}
+
 /* ButtonWeight.Ghost: no fill and no border until it is focused. */
-.back{align-self:flex-start;display:inline-flex;align-items:center;
-  height:56px;padding:0 24px;color:var(--mist)}
+.back{display:inline-flex;align-items:center;
+  height:var(--back-h);padding:0 24px;color:var(--mist)}
+
+/* Quiet, and unmistakably a link.
+   ------------------------------------------------------------------------
+   `bodySmall` in `onBackgroundVariant`, which is what every secondary line on
+   this screen already uses, so it does not introduce a colour. The underline is
+   what makes it a link rather than a caption -- offset off the baseline so the
+   Arabic descenders clear it, and hairline so it stays quiet. No icon and no
+   sentence beside it: the words are the whole control. */
+.terms{color:var(--silver);text-decoration:underline;
+  text-decoration-thickness:1px;text-underline-offset:3px;
+  text-decoration-color:rgba(201,201,218,.55)}
 
 /* The stress render says so, on the render.
    ------------------------------------------------------------------------
@@ -229,7 +327,7 @@ html[data-stress="1"] #tv{outline:3px solid #FFB020;outline-offset:-3px}
 
 .spec{display:none}
 html[data-spec="1"] .spec{display:block}
-.spec-safe{position:absolute;inset:48px;z-index:8;pointer-events:none;
+.spec-safe{position:absolute;inset:var(--inset);z-index:8;pointer-events:none;
   border:1px dashed rgba(255,176,32,.55)}
 .spec-note{position:absolute;z-index:9;left:6px;bottom:6px;direction:ltr;
   font-family:"Liberation Mono",monospace;font-size:9px;line-height:13px;
@@ -250,26 +348,82 @@ html[data-spec="1"] .spec{display:block}
   </svg>
 
   <div class="band">
+    <!-- The title alone.
+         ------------------------------------------------------------------
+         There was a subtitle here -- "كلاهما يصل إلى النتيجة نفسها.", "both end
+         up in the same place" -- and two cards became four, which made it
+         false. It is deleted rather than reworded: with four named options
+         carrying a description each, a sentence above them explaining that
+         they are alternatives is telling the reader what the grid already
+         shows.
+
+         It also bought the layout 32dp, which is the difference between a
+         screen with 2.5dp of slack and one with room to breathe. -->
     <div class="head">
       <h1 class="t-headline-m" data-s="title"></h1>
-      <p class="sub t-body-l" data-s="sub"></p>
     </div>
 
     <!-- Source order, not visual order: a Row lays its children out start to
          end, so Xtream is on the right in Arabic and on the left in English
          without either being written down. -->
-    <div class="choices">
+    <div class="choices" id="grid">
       <div class="card focused">
-        <div class="t-title-l" data-s="xtream"></div>
+        <div class="line t-title-l">
+          <!-- A server: two stacked units and a status light. Xtream is an
+               address, a name and a password -- a machine you sign in to. -->
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="7" rx="2"/>
+            <rect x="3" y="13" width="18" height="7" rx="2"/>
+            <path d="M7 7.5h.01M7 16.5h.01"/>
+          </svg>
+          <span data-s="xtream"></span>
+        </div>
         <div class="detail t-body-s" data-s="xtreamDetail"></div>
       </div>
       <div class="card">
-        <div class="t-title-l" data-s="m3u"></div>
+        <div class="line t-title-l">
+          <!-- A link. The playlist is one long URL and nothing else. -->
+          <svg viewBox="0 0 24 24">
+            <path d="M10 13.5a4 4 0 0 0 5.7.4l2.6-2.6a4 4 0 0 0-5.7-5.7l-1.5 1.5"/>
+            <path d="M14 10.5a4 4 0 0 0-5.7-.4l-2.6 2.6a4 4 0 0 0 5.7 5.7l1.5-1.5"/>
+          </svg>
+          <span data-s="m3u"></span>
+        </div>
         <div class="detail t-body-s" data-s="m3uDetail"></div>
+      </div>
+      <div class="card">
+        <div class="line t-title-l">
+          <!-- A sheet with a folded corner and a play mark: the file idea from
+               the reference, drawn in Castivio's stroke rather than borrowed as
+               a solid glyph. A file the device already holds. -->
+          <svg viewBox="0 0 24 24">
+            <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/>
+            <path d="M14 3v5h5"/>
+            <path d="M10.5 12.5v4l3.5-2z"/>
+          </svg>
+          <span data-s="local"></span>
+        </div>
+        <div class="detail t-body-s" data-s="localDetail"></div>
+      </div>
+      <div class="card">
+        <div class="line t-title-l">
+          <!-- A person and the entries beside them: the subscriptions saved on
+               this box, which is all this card claims to be. -->
+          <svg viewBox="0 0 24 24">
+            <circle cx="8" cy="8.5" r="2.75"/>
+            <path d="M3.5 18.5a4.5 4.5 0 0 1 9 0"/>
+            <path d="M15.5 8.5H21M15.5 13H21M15.5 17.5H21"/>
+          </svg>
+          <span data-s="users"></span>
+        </div>
+        <div class="detail t-body-s" data-s="usersDetail"></div>
       </div>
     </div>
 
-    <span class="back t-label-l" data-s="back"></span>
+    <div class="foot">
+      <span class="back t-label-l" data-s="back"></span>
+      <a class="terms t-body-s" href="#" data-s="terms"></a>
+    </div>
   </div>
 
   <div class="stress-flag">STRESS RENDER — EVERY STRING DOUBLED ON PURPOSE. NOT THE SCREEN.</div>
@@ -283,19 +437,30 @@ html[data-spec="1"] .spec{display:block}
 <script>
 var S = {
   ar: { dir:"rtl", title:"اختر طريقة الإضافة",
-        sub:"كلاهما يصل إلى النتيجة نفسها.",
         xtream:"Xtream Codes", xtreamDetail:"عنوان سيرفر واسم مستخدم وكلمة مرور.",
         m3u:"قائمة M3U", m3uDetail:"رابط واحد طويل، يُرسَل عادةً بالبريد.",
-        back:"رجوع" },
+        local:"تشغيل فيديو من الجهاز", localDetail:"تشغيل ملف فيديو محفوظ على الجهاز.",
+        users:"قائمة المستخدمين", usersDetail:"أضف وبدّل بين اشتراكات Xtream وM3U.",
+        back:"رجوع", terms:"شروط الخدمة" },
   en: { dir:"ltr", title:"What did your provider give you?",
-        sub:"Pick whichever you were sent. Both end up in the same place.",
         xtream:"Xtream Codes", xtreamDetail:"A server address, a username and a password.",
         m3u:"M3U playlist", m3uDetail:"A single long link, usually sent by e-mail.",
-        back:"Back" },
+        local:"Play a video from this device",
+        localDetail:"Play a video file stored on this device.",
+        /* Short enough to hold one line in 341dp of card. The first draft ran
+           to "Add and switch between Xtream and M3U subscriptions.", which
+           wrapped -- and a wrap here is not a taller card, it is 4dp of
+           overflow and a Back button crushed to 20dp. See the note on the
+           band. */
+        users:"Saved users", usersDetail:"Add or switch between Xtream and M3U.",
+        back:"Back", terms:"Terms of Service" },
 };
 
 var q = new URLSearchParams(location.search);
 var s = S[q.get("lang")] || S.ar;
+/* The handset is the default because it is the frame that decides everything.
+   `?frame=tv` draws the television, which has 44dp more room than this one. */
+if (q.get("frame") === "tv") document.documentElement.dataset.frame = "tv";
 document.documentElement.dir = s.dir;
 document.documentElement.lang = s.dir === "rtl" ? "ar" : "en";
 if (q.get("spec")) document.documentElement.dataset.spec = "1";
@@ -317,21 +482,56 @@ window.addEventListener("load", function () {
   var band = document.querySelector(".band");
   var r = band.getBoundingClientRect();
   var head = document.querySelector(".head").getBoundingClientRect();
-  var cards = document.querySelector(".choices").getBoundingClientRect();
+  var grid = document.getElementById("grid").getBoundingClientRect();
+  var foot = document.querySelector(".foot").getBoundingClientRect();
   var back = document.querySelector(".back").getBoundingClientRect();
+  var terms = document.querySelector(".terms").getBoundingClientRect();
+  var frame = document.getElementById("tv").getBoundingClientRect();
+  var cards = [].map.call(document.querySelectorAll("#grid .card"), function (n) {
+    var b = n.getBoundingClientRect();
+    return { w: Math.round(b.width * 10) / 10, h: Math.round(b.height * 10) / 10,
+             x: Math.round(b.left * 10) / 10, y: Math.round(b.top * 10) / 10 };
+  });
+  /* Four equal cards is the requirement, so it is measured rather than trusted
+     to the grid: the widest minus the narrowest, and the tallest minus the
+     shortest, both of which have to be zero. */
+  var w = cards.map(function (c) { return c.w; });
+  var h = cards.map(function (c) { return c.h; });
   window.__fit = {
+    frame: frame.width + "x" + frame.height,
     head: head.height,
-    gapTop: cards.top - head.bottom,
-    cards: cards.height,
-    gapBottom: back.top - cards.bottom,
+    gapTop: grid.top - head.bottom,
+    grid: grid.height,
+    gapBottom: foot.top - grid.bottom,
     back: back.height,
-    bottomSlack: r.bottom - back.bottom,
+    foot: foot.height,
+    /* The link costs the row nothing: it is 20 inside Back's 48. Reported so a
+       future change to either is caught by the number rather than by eye. */
+    terms: Math.round(terms.width * 10) / 10 + "x" + terms.height,
+    termsInside: terms.left >= frame.left + parseFloat(getComputedStyle(band).paddingLeft || 0) - 0.5 &&
+      terms.right <= frame.right && terms.bottom <= frame.bottom,
+    termsAtEnd: document.documentElement.dir === "rtl"
+      ? terms.left < back.left : terms.left > back.left,
+    topSlack: head.top - r.top,
+    bottomSlack: r.bottom - foot.bottom,
+    cards: cards,
+    cardW: Math.max.apply(null, w), widthSpread: Math.max.apply(null, w) - Math.min.apply(null, w),
+    cardH: Math.max.apply(null, h), heightSpread: Math.max.apply(null, h) - Math.min.apply(null, h),
+    gapX: Math.round((cards[1].x > cards[0].x
+      ? cards[1].x - (cards[0].x + cards[0].w)
+      : cards[0].x - (cards[1].x + cards[1].w)) * 10) / 10,
+    gapY: Math.round((cards[2].y - (cards[0].y + cards[0].h)) * 10) / 10,
     overflow: band.scrollHeight - band.clientHeight,
   };
   document.getElementById("note").textContent =
-    "band 864x444 | head " + window.__fit.head + " | gap " + window.__fit.gapTop +
-    " | cards " + window.__fit.cards + " | gap " + window.__fit.gapBottom +
-    " | back " + window.__fit.back + " | slack " + window.__fit.bottomSlack +
+    "band " + window.__fit.frame + " | margin " + window.__fit.topSlack +
+    " | head " + window.__fit.head + " | gap " + window.__fit.gapTop +
+    " | grid " + window.__fit.grid + " | gap " + window.__fit.gapBottom +
+    " | foot " + window.__fit.foot + " (back " + window.__fit.back +
+    ", terms " + window.__fit.terms + ") | margin " + window.__fit.bottomSlack +
+    " || card " + window.__fit.cardW + "x" + window.__fit.cardH +
+    " | spread " + window.__fit.widthSpread + "/" + window.__fit.heightSpread +
+    " | gaps " + window.__fit.gapX + "/" + window.__fit.gapY +
     " | OVERFLOW " + window.__fit.overflow;
 });
 document.fonts.ready.then(function () { window.__fontsReady = true; });

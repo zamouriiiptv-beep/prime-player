@@ -18,11 +18,25 @@
 
     <!-- Add manually -->
     <string name="source_choice_title">What did your provider give you?</string>
-    <string name="source_choice_subtitle">Pick whichever you were sent. Both end up in the same place.</string>
     <string name="source_xtream_title">Xtream Codes</string>
     <string name="source_xtream_detail">A server address, a username and a password.</string>
     <string name="source_m3u_title">M3U playlist</string>
     <string name="source_m3u_detail">A single long link, usually sent by e-mail.</string>
+    <string name="source_local_title">Play a video from this device</string>
+    <string name="source_local_detail">Play a video file stored on this device.</string>
+    <string name="source_users_title">Saved users</string>
+    <!-- Short on purpose: the four cards share one height, so a description that
+         wraps in one of them makes all four taller. This one is the longest of the
+         four and the first to wrap. -->
+    <string name="source_users_detail">Add or switch between Xtream and M3U.</string>
+    <string name="source_terms">Terms of Service</string>
+
+    <!-- The subscriptions already on this box -->
+    <string name="saved_sources_title">Saved users</string>
+    <string name="saved_sources_empty">No subscriptions saved on this device yet.</string>
+    <string name="saved_sources_add_xtream">Add Xtream</string>
+    <string name="saved_sources_add_m3u">Add M3U</string>
+    <string name="saved_sources_active">In use</string>
 
     <!-- The forms -->
     <string name="field_playlist_name">Playlist name</string>

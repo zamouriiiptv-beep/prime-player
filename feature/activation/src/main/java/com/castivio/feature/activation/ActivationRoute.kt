@@ -78,6 +78,15 @@ internal enum class ActivationStep {
     /** "What did your provider give you?" */
     Choose,
 
+    /**
+     * The subscriptions already on this box, reached from the fourth card.
+     *
+     * A step rather than a route of its own: it is part of choosing where the
+     * catalogue comes from, it goes back to [Choose], and its two add buttons lead
+     * into [Xtream] and [Playlist] exactly as the cards do.
+     */
+    SavedSources,
+
     Xtream,
     Playlist,
 }
@@ -112,6 +121,31 @@ fun ActivationRoute(
      */
     language: CastivioLanguage,
     onLanguage: (CastivioLanguage) -> Unit,
+    /**
+     * Play a video file the device already holds.
+     *
+     * Hoisted for the same reason [onLanguage] is: this module draws the card and
+     * reports the press, and playing a file is somebody else's job. It is *also*
+     * hoisted because there is nobody to give it to yet — `:playback:engine-media3`
+     * is the slice after this one and `feature/player` is still a placeholder object.
+     *
+     * The default is deliberate and it is not a stub standing in for behaviour: it is
+     * the seam, defaulted so that the one line wiring it lands in `:app` alongside the
+     * player rather than being invented here. Until then the card is present,
+     * focusable, labelled and inert, which is honest — what it is not is a second
+     * playback implementation living in the activation feature.
+     */
+    onLocalVideo: () -> Unit = {},
+    /**
+     * Open the terms of service.
+     *
+     * `LegalScreen` already exists and already carries this text in all 39 bundles —
+     * in `:feature:licence`, where it is `internal`. Reaching it means either widening
+     * its visibility or adding a dependency between two feature modules, and both are
+     * decisions about the module graph rather than about this screen. So the link is
+     * hoisted and the destination is chosen where destinations are chosen.
+     */
+    onTerms: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val activation: ActivationViewModel = hiltViewModel()
@@ -177,6 +211,8 @@ fun ActivationRoute(
                 onRefresh = identityModel::refresh,
                 onCopied = identityModel::copied,
                 onOpenLanguage = { pickingLanguage = true },
+                onLocalVideo = onLocalVideo,
+                onTerms = onTerms,
             )
         }
     }
@@ -272,7 +308,7 @@ internal fun isFixedViewport(
     step: ActivationStep,
 ): Boolean =
     !state.busy && state.phase !is ActivationPhase.Failed && when (step) {
-        ActivationStep.Mac, ActivationStep.Choose -> true
+        ActivationStep.Mac, ActivationStep.Choose, ActivationStep.SavedSources -> true
         ActivationStep.Xtream, ActivationStep.Playlist -> false
     }
 
@@ -287,6 +323,8 @@ private fun Steps(
     onRefresh: () -> Unit,
     onCopied: (Copied) -> Unit,
     onOpenLanguage: () -> Unit,
+    onLocalVideo: () -> Unit,
+    onTerms: () -> Unit,
 ) {
     // Read outside the transition: transitionSpec is not a composable lambda, so a
     // token fetched inside it would not compile -- and reading it once is what makes
@@ -325,8 +363,31 @@ private fun Steps(
                     activation.usePlaylistUrl()
                     onStep(ActivationStep.Playlist)
                 },
+                onLocalVideo = onLocalVideo,
+                onSavedSources = { onStep(ActivationStep.SavedSources) },
+                onTerms = onTerms,
                 onBack = { onStep(ActivationStep.Mac) },
             )
+
+            ActivationStep.SavedSources -> {
+                val saved: SavedSourcesViewModel = hiltViewModel()
+                val savedState by saved.state.collectAsStateWithLifecycle()
+                SavedSourcesScreen(
+                    state = savedState,
+                    onChoose = saved::choose,
+                    // The same two calls the source choice makes, landing on the same
+                    // two forms. A second way in, not a second implementation.
+                    onAddXtream = {
+                        activation.useXtream()
+                        onStep(ActivationStep.Xtream)
+                    },
+                    onAddPlaylist = {
+                        activation.usePlaylistUrl()
+                        onStep(ActivationStep.Playlist)
+                    },
+                    onBack = { onStep(ActivationStep.Choose) },
+                )
+            }
 
             ActivationStep.Xtream -> Column(
                 verticalArrangement = Arrangement.spacedBy(Spacing.xl),

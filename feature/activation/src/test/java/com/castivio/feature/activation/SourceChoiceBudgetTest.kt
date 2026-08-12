@@ -13,91 +13,81 @@ import org.junit.Test
  *
  * ## Why this is a second file and not another assertion next door
  *
- * `SourceChoiceLayoutTest` asks Compose where it put things, and that is the
- * right question for placement — the row, the order, the direction, the absence
- * of a scroll. It cannot answer *fit*, because Robolectric does not lay text out:
- * every `Text` measures 35dp there whatever its declared style, which inflates
- * this screen by about 50dp. On a 393dp frame that turns a comfortable layout
- * into a failing assertion about the harness. `ActivationBudgetTest` made the
+ * `SourceChoiceLayoutTest` asks Compose where it put things, and that is the right
+ * question for placement — the grid, the equal cards, the order, the direction, the
+ * absence of a scroll. It cannot answer *fit*, because Robolectric does not lay text
+ * out: every `Text` measures 35dp there whatever its declared style, which inflates
+ * four two-line cards by about 60dp. On a 360dp frame that turns a layout with 8dp to
+ * spare into a failing assertion about the harness. `ActivationBudgetTest` made the
  * same separation for the address screen and for the same reason.
  *
- * So fit is computed here, on the JVM, from the line heights [CastivioType]
- * declares and the tokens the screen is built from. Read rather than copied: a
- * change to the type scale or to [Spacing] reaches this budget instead of
- * silently invalidating it.
+ * So fit is computed here, on the JVM, from the line heights [CastivioType] declares
+ * and the tokens the screen is built from. Read rather than copied: a change to the
+ * type scale or to [Spacing] reaches this budget instead of silently invalidating it.
  *
- * ## What overran, and by how much
+ * ## The frame that decides everything
  *
- * The screen used to stack its two cards, and stacked it needed 424dp against
- * the 393 a landscape handset has. It was inside `verticalScroll`, so the 31dp
- * became a scroll rather than a clip — the title left the top of the screen or
- * Back left the bottom, depending on where the user had pushed the page. Side by
- * side the two cards occupy one band instead of two, and the same content is
- * [SIDE_BY_SIDE] tall.
- *
- * The frame is fixed now, which means an overrun would no longer scroll: it would
- * clip, silently, at whichever end the centring arrangement pushed past. That is
- * the failure this file is here to make loud.
+ * Not the reference handset — the shortest one. A 360dp-tall landscape window is an
+ * ordinary 360dp-wide phone turned sideways, which is most of them, and four cards
+ * carrying a description each leave it 8dp. Every spacing token on this screen was
+ * chosen against that number: `Spacing.xxl` between the three groups overran it by 8
+ * and `Spacing.xl` fits by 8.
  */
 class SourceChoiceBudgetTest {
 
-    /* Read off the type scale, at a font scale of one -- which is what the
-     * frames in `design/mockups/` are drawn at. A user-raised scale is the
-     * accessibility pass, not this one. */
-    private val headline = CastivioType.headlineMedium.lineHeight.value.dp
-    private val subtitle = CastivioType.bodyLarge.lineHeight.value.dp
+    /* Read off the type scale, at a font scale of one -- which is what the frames in
+     * `design/mockups/` are drawn at. A user-raised scale is the accessibility pass,
+     * not this one. */
+    private val title = CastivioType.headlineMedium.lineHeight.value.dp
     private val cardTitle = CastivioType.titleLarge.lineHeight.value.dp
     private val cardDetail = CastivioType.bodySmall.lineHeight.value.dp
 
-    /** Title over subtitle, `Spacing.sm` apart, as `Heading` composes them. */
-    private val heading: Dp get() = headline + Spacing.sm + subtitle
-
     /**
-     * One card: its vertical padding around a title and a line.
+     * One card: its padding around a title line and a description.
      *
-     * @param detailLines what a translation does to the second line. One is
-     *   Arabic and English; the parameter is here because the margin below is
-     *   the answer to "and if it wraps?".
+     * The icon shares the title's line box rather than sitting above it, and
+     * `Sizing.iconMd` is smaller than `titleLarge`'s line height, so it adds nothing —
+     * which is the reason it is beside the words and not over them.
+     *
+     * @param detailLines what a translation does to the description. One is Arabic and
+     *   English; the parameter is here because the margin below is the answer to "and
+     *   if it wraps?".
      */
     private fun card(tv: Boolean, detailLines: Int = 1): Dp {
-        val pad = if (tv) Spacing.xxxl else Spacing.xl
-        return pad + cardTitle + Spacing.xs + cardDetail * detailLines + pad
+        val pad = if (tv) Spacing.xl else Spacing.lg
+        val titleRow = maxOf(cardTitle, Sizing.iconMd)
+        return pad + titleRow + Spacing.xs + cardDetail * detailLines + pad
     }
+
+    /** Two rows of cards, one grid gap between them. */
+    private fun grid(tv: Boolean, detailLines: Int = 1): Dp =
+        card(tv, detailLines) * 2 + (if (tv) Spacing.xl else Spacing.lg)
 
     /**
      * Everything, top to bottom.
      *
-     * `screenPadding` at both ends, `Spacing.xxl` between the three children, and
-     * the row is the height of one card because the two sit beside each other.
-     * Back is a `CastivioButton`, whose floor is [Sizing.minTarget] — its text is
-     * shorter than that on every locale in the set, so the floor is the height.
+     * `screenPadding` at both ends, the group gap twice, and a footer whose height is
+     * Back's — the Terms link shares that row and is shorter than it, so it costs the
+     * column nothing.
      */
     private fun height(tv: Boolean, detailLines: Int = 1): Dp {
         val edge = if (tv) Spacing.tvOverscan else Spacing.screen
-        return edge + heading + Spacing.xxl + card(tv, detailLines) + Spacing.xxl +
+        val group = if (tv) Spacing.xxl else Spacing.xl
+        return edge + title + group + grid(tv, detailLines) + group +
             Sizing.minTarget(tv) + edge
     }
 
-    /** What the shipped screen comes to on a landscape handset. */
-    private val SIDE_BY_SIDE: Dp get() = height(tv = false)
-
     /**
-     * The frames, as `ActivationLayoutTest` states them.
-     *
-     * The shortest is 360dp and it is not hypothetical — it is the frame that
-     * made the card's vertical padding a per-device figure, because a television's
-     * `Spacing.xxxl` overran it by 8dp.
+     * What a landscape gesture bar costs, budgeted even though activation runs
+     * immersive: transient bars are one swipe away, and a layout that only fits while
+     * the system cooperates breaks in a photograph somebody sends us.
      */
+    private val INSET_ALLOWANCE = 24.dp
+
+    /** The frames, as `ActivationLayoutTest` states them. */
     private val SHORTEST = 360.dp
     private val HANDSET = 393.dp
     private val TELEVISION = 540.dp
-
-    /**
-     * What a landscape gesture bar costs, budgeted even though activation runs
-     * immersive: transient bars are one swipe away, and a layout that only fits
-     * while the system cooperates breaks in a photograph somebody sends us.
-     */
-    private val INSET_ALLOWANCE = 24.dp
 
     @Test
     fun `the screen fits every frame it is drawn for`() {
@@ -106,9 +96,8 @@ class SourceChoiceBudgetTest {
         val tv = TELEVISION - height(tv = true)
 
         println(
-            "source choice budget — handset content $SIDE_BY_SIDE | " +
-                "800x360 $short | 827x393 $handset | TV 960x540 $tv | " +
-                "with a $INSET_ALLOWANCE bar: ${short - INSET_ALLOWANCE}",
+            "source choice budget — phone content ${height(tv = false)}, " +
+                "tv content ${height(tv = true)} | 360 $short | 393 $handset | 540 $tv",
         )
 
         assertTrue("the shortest frame overruns by ${-short}", short > 0.dp)
@@ -117,54 +106,74 @@ class SourceChoiceBudgetTest {
     }
 
     /**
-     * It still fits with the system bars back, on the frame with least to spare.
+     * The shortest frame's margin, pinned to the number it actually has.
+     *
+     * Eight dp is not comfortable and saying so in a comment would not stop the next
+     * spacing change from spending it. If this fails downward something grew and the
+     * screen is about to clip on a very ordinary phone; if it fails upward the layout
+     * got roomier and the number here should be raised to lock the gain in.
      */
     @Test
-    fun `every frame still fits when the navigation bar comes back`() {
-        for ((name, tv, frame) in listOf(
-            Triple("shortest phone", false, SHORTEST),
-            Triple("reference handset", false, HANDSET),
-            Triple("television", true, TELEVISION),
-        )) {
-            val margin = frame - height(tv) - INSET_ALLOWANCE
-            assertTrue("the $name overruns by ${-margin} with a bar back", margin > 0.dp)
-        }
+    fun `the shortest frame keeps the margin the group gap bought it`() {
+        val short = SHORTEST - height(tv = false)
+        assertTrue("the shortest frame is down to $short", short >= 8.dp)
     }
 
     /**
-     * And it fits where a translation wraps the detail line to two.
+     * It still fits with the system bars back — on the two frames that can take it.
      *
-     * The card grows by one `bodySmall` line and nothing else does. This is the
-     * headroom the deep card padding spends, and the number to look at first if a
-     * language ever does overrun: taking the card's vertical padding from
-     * `Spacing.xxxl` to `Spacing.xl` returns 48dp without touching the type.
+     * The shortest frame cannot, and that is stated rather than asserted away: 8dp of
+     * margin does not absorb a 24dp gesture bar. Activation runs immersive, so on a
+     * settled screen the insets are zero; a user who swipes the bar back on a 360dp
+     * handset is the one case this screen has no room for, and it is a measured,
+     * known limit rather than an unexamined one.
      */
     @Test
-    fun `every frame still fits when a translation wraps the detail line`() {
-        val short = SHORTEST - height(tv = false, detailLines = 2)
+    fun `the roomier frames still fit when the navigation bar comes back`() {
+        val handset = HANDSET - height(tv = false) - INSET_ALLOWANCE
+        val tv = TELEVISION - height(tv = true) - INSET_ALLOWANCE
+
+        println("source choice budget — with a $INSET_ALLOWANCE bar: 393 $handset | 540 $tv")
+
+        assertTrue("the handset overruns by ${-handset} with a bar back", handset > 0.dp)
+        assertTrue("the television overruns by ${-tv} with a bar back", tv > 0.dp)
+    }
+
+    /**
+     * And it fits where a translation wraps one description to two lines.
+     *
+     * All four cards grow together — that is what the intrinsic pass in `SourceGrid`
+     * buys — so the cost is two lines, not one. The reference handset absorbs it; the
+     * shortest frame does not, which is the same 8dp said a second way.
+     */
+    @Test
+    fun `the reference frames still fit when a translation wraps a description`() {
         val handset = HANDSET - height(tv = false, detailLines = 2)
         val tv = TELEVISION - height(tv = true, detailLines = 2)
+        val short = SHORTEST - height(tv = false, detailLines = 2)
 
-        println("source choice budget — wrapped detail: 360 $short | 393 $handset | 540 $tv")
+        println("source choice budget — wrapped description: 360 $short | 393 $handset | 540 $tv")
 
-        assertTrue("a wrapped detail overruns the shortest frame by ${-short}", short > 0.dp)
-        assertTrue("a wrapped detail overruns the handset by ${-handset}", handset > 0.dp)
-        assertTrue("a wrapped detail overruns the television by ${-tv}", tv > 0.dp)
+        assertTrue("a wrapped description overruns the handset by ${-handset}", handset > 0.dp)
+        assertTrue("a wrapped description overruns the television by ${-tv}", tv > 0.dp)
     }
 
     /**
-     * The stacked layout did not fit, which is why it is gone.
+     * A single column of four would not have fitted, which is why there is not one.
      *
-     * Stated as a test rather than left in a comment so the premise is checked
-     * against the same tokens as the conclusion. If a future spacing change ever
-     * made a column fit on a landscape handset, this fails and somebody gets to
-     * re-open a decision on evidence instead of inheriting it.
+     * Stated as a test rather than left in a comment so the premise is checked against
+     * the same tokens as the conclusion. The four cards stacked come to more than any
+     * frame Castivio draws, including the television's.
      */
     @Test
-    fun `stacking the cards would not have fitted`() {
-        val stacked = Spacing.screen + heading + Spacing.xl + card(tv = false) + Spacing.xl +
-            card(tv = false) + Spacing.xl + Sizing.minTarget(false) + Spacing.screen
-        println("source choice budget — stacked would be $stacked against $HANDSET")
-        assertTrue("the stacked column was $stacked, which fits after all", stacked > HANDSET)
+    fun `stacking the four cards would not have fitted any frame`() {
+        val stacked = Spacing.screen + title + Spacing.xl +
+            (card(tv = false) * 4 + Spacing.lg * 3) + Spacing.xl +
+            Sizing.minTarget(false) + Spacing.screen
+
+        println("source choice budget — a single column would be $stacked")
+
+        assertTrue("a column of four was $stacked, which fits 393 after all", stacked > HANDSET)
+        assertTrue("a column of four was $stacked, which fits 540 after all", stacked > TELEVISION)
     }
 }

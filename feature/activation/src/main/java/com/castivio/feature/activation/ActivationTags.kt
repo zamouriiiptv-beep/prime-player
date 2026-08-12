@@ -53,7 +53,36 @@ internal object ActivationTags {
      */
     const val SOURCE_XTREAM = "activation.sourceXtream"
     const val SOURCE_M3U = "activation.sourceM3u"
+
+    /**
+     * The lower pair, which are destinations rather than forms.
+     *
+     * Tagged on the same footing as the upper pair on purpose: the claim the gates
+     * make is that all four are *one* card repeated, equal in width and height and
+     * built from the same composable, and a claim about four things needs four
+     * handles.
+     */
+    const val SOURCE_LOCAL = "activation.sourceLocal"
+    const val SOURCE_USERS = "activation.sourceUsers"
+
     const val SOURCE_BACK = "activation.sourceBack"
+
+    /**
+     * The Terms link in the footer.
+     *
+     * It shares its row with Back and sits at the opposite end, so "inside the safe
+     * area" is a real question for it and not a formality -- it is the element
+     * furthest into the corner the display cutout eats on a landscape handset.
+     */
+    const val SOURCE_TERMS = "activation.sourceTerms"
+
+    /** The saved-subscriptions step the fourth card opens. */
+    const val SAVED_TITLE = "activation.savedTitle"
+    const val SAVED_EMPTY = "activation.savedEmpty"
+    const val SAVED_LIST = "activation.savedList"
+    const val SAVED_ADD_XTREAM = "activation.savedAddXtream"
+    const val SAVED_ADD_M3U = "activation.savedAddM3u"
+    const val SAVED_BACK = "activation.savedBack"
 
     /**
      * The heading above them, tagged late and for a specific reason.

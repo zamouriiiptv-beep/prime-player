@@ -46,14 +46,28 @@ class ActivationFrameTest {
     /**
      * The source choice owns it too, on every device there is.
      *
-     * Its two cards sit in a `Row` of `weight(1f)` halves, which divide whatever
-     * width the frame has and so cannot overflow it. Nothing about that needs a
-     * scroll, and a scroll is what clipped the title on one end of the gesture
-     * and Back on the other.
+     * Its four cards sit in a grid of `weight(1f)` halves, which divide whatever width
+     * the frame has and so cannot overflow it. Nothing about that needs a scroll, and
+     * a scroll is what clipped the title on one end of the gesture and Back on the
+     * other.
      */
     @Test
     fun `the source choice owns the viewport`() {
         assertTrue(isFixedViewport(ActivationUiState(), ActivationStep.Choose))
+    }
+
+    /**
+     * And so does the saved-subscriptions step, which is the counter-intuitive one.
+     *
+     * It is the only step here holding a list, so the scrolling frame looks like the
+     * obvious answer and is the wrong one: `ActivationSurface` implements that frame
+     * with `verticalScroll`, and a `LazyColumn` measured against an unbounded height
+     * does not scroll, it throws. The list needs a *bounded* parent to scroll inside,
+     * which is what the fixed frame is.
+     */
+    @Test
+    fun `the saved subscriptions step owns the viewport, so its list can scroll inside it`() {
+        assertTrue(isFixedViewport(ActivationUiState(), ActivationStep.SavedSources))
     }
 
     /**
@@ -109,7 +123,11 @@ class ActivationFrameTest {
     @Test
     fun `a failure scrolls from the fixed steps as well`() {
         val failed = ActivationUiState(phase = ActivationPhase.Failed(ActivationFailure.entries.first()))
-        for (step in listOf(ActivationStep.Mac, ActivationStep.Choose)) {
+        for (step in listOf(
+            ActivationStep.Mac,
+            ActivationStep.Choose,
+            ActivationStep.SavedSources,
+        )) {
             assertFalse("$step kept the fixed frame while failed", isFixedViewport(failed, step))
         }
     }
