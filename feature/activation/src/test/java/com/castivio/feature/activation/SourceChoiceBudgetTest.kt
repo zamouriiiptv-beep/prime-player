@@ -62,11 +62,11 @@ class SourceChoiceBudgetTest {
 
     /** What the container is given: everything the fixed parts leave. */
     private fun container(frame: Dp, tv: Boolean): Dp =
-        frame - 2 * edge(tv) - title - titleGap(tv) - termsGap(tv) - terms
+        frame - edge(tv) * 2 - title - titleGap(tv) - termsGap(tv) - terms
 
     /** What one card is given, derived exactly as the layout derives it. */
     private fun card(frame: Dp, tv: Boolean): Dp {
-        val grid = container(frame, tv) - 2 * containerPad(tv) -
+        val grid = container(frame, tv) - containerPad(tv) * 2 -
             containerGap(tv) - Sizing.minTarget(tv)
         return (grid - gridGap(tv)) / 2
     }
@@ -79,7 +79,7 @@ class SourceChoiceBudgetTest {
      * which is the reason it is beside the words and not over them.
      */
     private fun cardNeeds(tv: Boolean, detailLines: Int): Dp =
-        2 * cardPad(tv) + maxOf(cardTitle, Sizing.iconMd) + Spacing.xs +
+        cardPad(tv) * 2 + maxOf(cardTitle, Sizing.iconMd) + Spacing.xs +
             cardDetail * detailLines
 
     /**
@@ -117,7 +117,7 @@ class SourceChoiceBudgetTest {
     @Test
     fun `the container fills most of the band on every frame`() {
         for ((name, tv, frame) in frames) {
-            val band = frame - 2 * edge(tv)
+            val band = frame - edge(tv) * 2
             val share = container(frame, tv).value / band.value
             println("source choice budget — $name container ${container(frame, tv)} of $band")
             assertTrue(
