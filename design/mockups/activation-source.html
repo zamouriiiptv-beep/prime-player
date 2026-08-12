@@ -147,6 +147,12 @@
   --glass-strong:rgba(255,255,255,.078);
   --glass:rgba(255,255,255,.039);
   --glass-border:rgba(255,255,255,.239);
+  /* The startup mark's own fill, read out of `Intro.kt` rather than sampled off
+     a screenshot: `MARK_COLOURS = listOf(Color(0xFF9B6BFF), Color(0xFF4C9BFF))`
+     under a `Brush.horizontalGradient`. The violet is `--violet50` again; the
+     azure end is the one value Intro carries that the palette does not, so it
+     is named here for what it is rather than rounded to `--azure60`. */
+  --mark-a:#9B6BFF; --mark-b:#4C9BFF;
   --r-lg:20px;
   --r-xl:24px;   /* Radius.xl -- one step up, so the container nests the cards */
 
@@ -178,7 +184,16 @@
      and the sentence below it are paid for. */
   --group-gap:8px;    /* was Spacing.md 12, +8 as asked */
   --back-h:48px;       /* Sizing.minTouchTarget */
+  /* The corner mark, and the rule beside Back. Both are decoration, and both
+     are sized so that they cost the composition nothing -- see their rules. */
+  --mark-size:11px;
+  --mark-gap:16px;     /* Spacing.lg, mark to title */
+  --rule-gap:16px;     /* Spacing.lg, the same figure at both ends of the rule */
 }
+/* The shortest frame the project ships to: an ordinary 360dp phone turned
+   sideways. It is the same token set as the handset -- only the frame differs --
+   and it is drawn because it is the frame with the least of everything. */
+html[data-frame="short"]{--frame-w:800px; --frame-h:360px}
 html[data-frame="tv"]{
   --frame-w:960px; --frame-h:540px;
   --inset:48px;        /* Spacing.tvOverscan */
@@ -192,6 +207,9 @@ html[data-frame="tv"]{
   --legal-gap:16px;    /* was Spacing.xl 24, +8 as asked */
   --group-gap:16px;    /* was Spacing.xl 24, +8 as asked */
   --back-h:56px;       /* Sizing.minTvTarget */
+  --mark-size:13px;
+  --mark-gap:24px;     /* Spacing.xl */
+  --rule-gap:24px;     /* Spacing.xl */
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:#000}
@@ -235,7 +253,54 @@ html[dir="ltr"] .backdrop{
    primary half and a secondary half, not four unrelated things evenly spaced. */
 .band{position:absolute;inset:var(--inset);display:flex;flex-direction:column;
   justify-content:flex-start;gap:0}
-.head{display:flex;flex-direction:column;gap:8px}
+/* The title's row, which now carries the corner mark as well.
+   ------------------------------------------------------------------------
+   A row rather than a band of its own, and this is the whole reason the mark
+   costs nothing: `t-headline-m` is a 32px line box, the mark is a 32px line box,
+   so the head measures 32 either way. `.panel` is `flex:1 1 auto` and absorbs
+   whatever the fixed parts leave -- an eyebrow above the title would have taken
+   its height out of the container, which is the one thing this change is not
+   allowed to do. Sharing the title's line takes it out of nothing.
+
+   `align-items:baseline`, so the mark sits on the title's baseline rather than
+   floating in the middle of a taller line. At 11px against 22 it reads as a
+   corner mark and not as a second heading, which is the whole brief. */
+.head{display:flex;flex-direction:row;align-items:baseline;gap:var(--mark-gap)}
+.head h1{flex:1 1 auto;min-width:0}
+
+/* Castivio, in the corner, in Intro's own ink.
+   ------------------------------------------------------------------------
+   `Intro.kt` draws `MARK = "CASTIVIO"` in `displayLarge` at `FontWeight.Bold`
+   under a horizontal `#9B6BFF -> #4C9BFF`, tracked at `MARK_TRACKING / MARK_SIZE`
+   = 26/104 = 0.25em. Everything here is that, at a size that belongs in a corner:
+   same word, same case, same weight, same gradient, same tracking ratio. Only
+   the size differs, and it differs by design -- the startup mark is 104px
+   because it is the only thing on the screen, and this one is 11 because it is
+   not. No logo beside it: Castivio's mark *is* the word.
+
+   `direction:ltr` and `order` rather than a logical property, because the
+   requirement is physical: the mark stays in the left corner in Arabic too. In
+   RTL the row runs right to left, so the last child is the leftmost -- which is
+   what `order:2` buys, and it is also why the title needs no clearance rule in
+   either direction. The row does the clearing.
+
+   `90deg` for the same reason: `Brush.horizontalGradient` is left-to-right in
+   pixels whatever the layout direction, so the violet end is on the left on
+   every screen Castivio draws, exactly as the startup does it. */
+/* `line-height:1`, and it is load-bearing rather than tidy. A baseline-aligned
+   row is as tall as its deepest descender below the shared baseline, and a 32px
+   line box around an 11px glyph hangs about 12 below it against the title's 10 --
+   which grew the head by 3, took 3 off `.panel`, and shortened every card by
+   1.5. Measured, not guessed: the first render of this mark did exactly that.
+   At `1` the mark's own descent is 2.6 and the title's 10 still decides. */
+.brand{flex:0 0 auto;direction:ltr;white-space:nowrap;
+  font-size:var(--mark-size);line-height:1;font-weight:700;
+  letter-spacing:.25em;
+  background:linear-gradient(90deg,var(--mark-a),var(--mark-b));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  -webkit-text-fill-color:transparent;
+  user-select:none}
+html[dir="rtl"] .brand{order:2}
 
 /* The container: one surface holding the four choices and the way back.
    ------------------------------------------------------------------------
@@ -346,6 +411,31 @@ html[dir="ltr"] .backdrop{
 .back{display:inline-flex;align-items:center;
   height:var(--back-h);padding:0 24px;color:var(--mist)}
 
+/* The rule beside Back. Decoration, and nothing else.
+   ------------------------------------------------------------------------
+   Back is a ghost button on a full-width row, so it leaves two thirds of the
+   container's last band empty. The emptiness reads as a missing element rather
+   than as margin, because it is bounded on all four sides -- the grid above it,
+   the container's edge below and beside it. A hairline is the quietest thing
+   that can occupy it without claiming to be a control.
+
+   No text, no icon, no target: `aria-hidden` and no pointer, so a screen reader
+   and a D-pad both pass straight over it. `flex:1 1 auto` gives it the leftover
+   and nothing else -- Back keeps its own width and its own position to the
+   pixel, and the row keeps its height, so nothing above or below moves.
+
+   It fades away from Back rather than running at one strength into the corner:
+   `--glass-border`, the same 23.9% every edge on this screen is drawn at, at
+   full weight where it leaves the button and at nothing where it would have met
+   the container. A hairline that stops dead needs a reason to stop there, and
+   there is no reason -- so it does not stop, it ends. `--rule-gap` at both ends
+   keeps it off Back and off the container's inner edge by the same figure. */
+.rule{flex:1 1 auto;height:1px;align-self:center;
+  margin-inline:var(--rule-gap);
+  background:linear-gradient(to left,var(--glass-border),rgba(255,255,255,0))}
+html[dir="ltr"] .rule{
+  background:linear-gradient(to right,var(--glass-border),rgba(255,255,255,0))}
+
 /* Quiet, and unmistakably a link.
    ------------------------------------------------------------------------
    `bodySmall` in `onBackgroundVariant`, which is what every secondary line on
@@ -408,6 +498,9 @@ html[data-spec="1"] .spec{display:block}
          It also bought the layout 32dp, which is the difference between a
          screen with 2.5dp of slack and one with room to breathe. -->
     <div class="head">
+      <!-- Physically left in both directions, which `order` handles in the CSS.
+           The word is the mark; there is deliberately no glyph beside it. -->
+      <span class="brand" aria-hidden="true">CASTIVIO</span>
       <h1 class="t-headline-m" data-s="title"></h1>
     </div>
 
@@ -471,6 +564,7 @@ html[data-spec="1"] .spec{display:block}
 
       <div class="foot">
         <span class="back t-label-l" data-s="back"></span>
+        <span class="rule" aria-hidden="true"></span>
       </div>
     </div>
 
@@ -513,7 +607,8 @@ var q = new URLSearchParams(location.search);
 var s = S[q.get("lang")] || S.ar;
 /* The handset is the default because it is the frame that decides everything.
    `?frame=tv` draws the television, which has 44dp more room than this one. */
-if (q.get("frame") === "tv") document.documentElement.dataset.frame = "tv";
+var f = q.get("frame");
+if (f === "tv" || f === "short") document.documentElement.dataset.frame = f;
 document.documentElement.dir = s.dir;
 document.documentElement.lang = s.dir === "rtl" ? "ar" : "en";
 if (q.get("spec")) document.documentElement.dataset.spec = "1";
@@ -541,6 +636,8 @@ window.addEventListener("load", function () {
   var back = document.querySelector(".back").getBoundingClientRect();
   var terms = document.querySelector(".legal").getBoundingClientRect();
   var frame = document.getElementById("tv").getBoundingClientRect();
+  var brand = document.querySelector(".brand").getBoundingClientRect();
+  var rule = document.querySelector(".rule").getBoundingClientRect();
   var cards = [].map.call(document.querySelectorAll("#grid .card"), function (n) {
     var b = n.getBoundingClientRect();
     return { w: Math.round(b.width * 10) / 10, h: Math.round(b.height * 10) / 10,
@@ -568,6 +665,24 @@ window.addEventListener("load", function () {
       ? terms.left < back.left : terms.left > back.left,
     topSlack: head.top - r.top,
     bottomSlack: r.bottom - foot.bottom,
+    /* The mark: its size, and the two claims made about where it is. It is in
+       the left corner of the safe area *physically*, so the check is against
+       the band's left edge in both directions rather than against its start. */
+    brand: Math.round(brand.width * 10) / 10 + "x" + Math.round(brand.height * 10) / 10,
+    brandAtLeft: Math.round((brand.left - r.left) * 10) / 10,
+    brandInBand: brand.left >= r.left - 0.5 && brand.top >= r.top - 0.5,
+    /* It shares the title's line box rather than sitting above it, which is why
+       the head is still 32 and the container is still the height it was. */
+    brandSharesTitleLine: Math.round(head.height * 10) / 10,
+    /* The rule: how long, how far from Back, how far from the container's inner
+       edge. Both gaps are `--rule-gap` by construction; measured so that a
+       change to Back's padding shows up here rather than on a device. */
+    rule: Math.round(rule.width * 10) / 10 + "x" + Math.round(rule.height * 10) / 10,
+    ruleFromBack: Math.round(Math.abs(
+      document.documentElement.dir === "rtl" ? back.left - rule.right : rule.left - back.right) * 10) / 10,
+    ruleFromEdge: Math.round(Math.abs(
+      document.documentElement.dir === "rtl" ? rule.left - panel.left - parseFloat(getComputedStyle(document.getElementById("panel")).paddingLeft)
+        : panel.right - parseFloat(getComputedStyle(document.getElementById("panel")).paddingRight) - rule.right) * 10) / 10,
     cards: cards,
     cardW: Math.max.apply(null, w), widthSpread: Math.max.apply(null, w) - Math.min.apply(null, w),
     cardH: Math.max.apply(null, h), heightSpread: Math.max.apply(null, h) - Math.min.apply(null, h),
@@ -586,6 +701,9 @@ window.addEventListener("load", function () {
     " || card " + window.__fit.cardW + "x" + window.__fit.cardH +
     " | spread " + window.__fit.widthSpread + "/" + window.__fit.heightSpread +
     " | gaps " + window.__fit.gapX + "/" + window.__fit.gapY +
+    " || mark " + window.__fit.brand + " @" + window.__fit.brandAtLeft +
+    " | rule " + window.__fit.rule + " (" + window.__fit.ruleFromBack +
+    " from back, " + window.__fit.ruleFromEdge + " from edge)" +
     " | OVERFLOW " + window.__fit.overflow;
 });
 document.fonts.ready.then(function () { window.__fontsReady = true; });

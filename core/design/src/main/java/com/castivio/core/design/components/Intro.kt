@@ -301,9 +301,43 @@ private const val GLOW_STOPS = 20
  */
 private val GLOW_COLOUR = Color(0xFF7C4DFF)
 
-private val MARK_SIZE = 104.dp
-private val MARK_TRACKING = 26.dp
-private const val MARK = "CASTIVIO"
+/**
+ * The mark as data, so a second surface can draw it without defining it again.
+ *
+ * The startup is no longer the only place Castivio signs its name — the source
+ * choice puts the word in its corner — and the failure mode when two surfaces
+ * each keep their own copy is not that one is wrong the day it is written. It is
+ * that one of them is corrected later. Invariant 1 already forbids a feature
+ * from spelling a colour out; this is the other half of the same rule, which is
+ * that the thing being reused has to exist somewhere to be reused.
+ *
+ * Deliberately not a composable. [CastivioIntro] animates its draw across a
+ * 1.2-second timeline and a corner mark is a static line of type; what the two
+ * share is the definition, not the drawing, and a shared composable here would
+ * be a second declaration of something that only looks like one component.
+ *
+ * The size is not here for the same reason: it is the one part that is genuinely
+ * local. 104dp when the mark is the whole screen, 11sp when it is a corner.
+ */
+object CastivioMark {
+    const val TEXT: String = "CASTIVIO"
 
-/** Violet into azure — the wordmark's fill everywhere Castivio draws it. */
-private val MARK_COLOURS = listOf(Color(0xFF9B6BFF), Color(0xFF4C9BFF))
+    /** Violet into azure — the wordmark's fill everywhere Castivio draws it. */
+    val colours: List<Color> = listOf(Color(0xFF9B6BFF), Color(0xFF4C9BFF))
+
+    /**
+     * Tracking as a fraction of the size, which is what makes it portable.
+     *
+     * The startup draws 26dp of it at 104dp. A corner mark at 11sp wants the
+     * same *proportion* and not the same number of pixels, so the ratio is what
+     * is written down and each caller multiplies by its own size.
+     */
+    const val TRACKING_RATIO: Float = 0.25f
+}
+
+private val MARK_SIZE = 104.dp
+
+/** 104 × 0.25 = the 26dp this file has always tracked at, now stated as the ratio. */
+private val MARK_TRACKING = MARK_SIZE * CastivioMark.TRACKING_RATIO
+private const val MARK = CastivioMark.TEXT
+private val MARK_COLOURS = CastivioMark.colours

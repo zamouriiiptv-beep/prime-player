@@ -1,7 +1,9 @@
 package com.castivio.feature.activation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -27,9 +29,11 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -38,11 +42,17 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.sp
+import com.castivio.core.design.components.CastivioMark
 import com.castivio.core.design.components.GlassCard
 import com.castivio.core.design.components.InteractiveGlassCard
 import com.castivio.core.design.theme.CastivioTheme
@@ -164,7 +174,13 @@ internal fun SourceChoiceScreen(
                 onSavedSources = onSavedSources,
             )
             Spacer(Modifier.height(ContainerGap))
-            BackButton(onBack, Modifier.testTag(ActivationTags.SOURCE_BACK))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                BackButton(onBack, Modifier.testTag(ActivationTags.SOURCE_BACK))
+                Rule(Modifier.weight(1f).padding(horizontal = RuleGap))
+            }
         }
 
         // At the bottom of the screen, a hair under the container, as the reference
@@ -224,13 +240,73 @@ private fun SourceContainer(
  */
 @Composable
 private fun Heading() {
+    // Physical, not logical: the mark belongs in the left corner in Arabic too, so
+    // what changes with the direction is which end of the row it is composed at. A
+    // `Row` runs start to end, so in RTL the *last* child is the leftmost one.
+    //
+    // The direction-absolute alignments would say this in one word, and invariant 9
+    // bans them outright rather than case by case -- a rule that is argued about is a
+    // rule that loses. Composition order is not an exemption from it: it moves this
+    // one element and cannot quietly pin anything else to a physical side.
+    val leftmostIsLast = LocalLayoutDirection.current == LayoutDirection.Rtl
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(MarkGap),
+    ) {
+        if (!leftmostIsLast) Wordmark(Modifier.alignByBaseline())
+        Text(
+            text = stringResource(R.string.source_choice_title),
+            style = CastivioType.headlineMedium,
+            color = CastivioTheme.colors.onBackground,
+            modifier = Modifier
+                .weight(1f)
+                .alignByBaseline()
+                .testTag(ActivationTags.SOURCE_HEADING)
+                .semantics { heading() },
+        )
+        if (leftmostIsLast) Wordmark(Modifier.alignByBaseline())
+    }
+}
+
+/**
+ * Castivio, in the corner, in the startup's own ink.
+ *
+ * Everything here except the size comes from [CastivioMark], which is where the
+ * startup keeps it: the word, the violet-into-azure fill, and the tracking as a
+ * fraction of the size rather than a number of pixels. The size is 11sp against a
+ * 22sp title, which is the whole of what makes this branding rather than a second
+ * heading — it is read after the question, not before it.
+ *
+ * `lineHeight` equal to the size, so the mark contributes no leading of its own.
+ * This is load-bearing rather than tidy: the row is baseline-aligned, a
+ * baseline-aligned row is as tall as its deepest descender, and a default line box
+ * around an 11sp glyph hangs further below the baseline than the title's does. The
+ * mockup grew the header by 3dp exactly that way, which came out of the container
+ * and took 1.5dp off every card. At `lineHeight = fontSize` the title's own 32sp
+ * line box decides the height, as it did before this mark existed.
+ *
+ * No `contentDescription`, and `heading()` stays on the question. A wordmark read
+ * aloud before every screen title is noise; the application's name is in the
+ * launcher, the task switcher and the accessibility window title already.
+ */
+@Composable
+private fun Wordmark(modifier: Modifier = Modifier) {
+    val size = MarkSize
     Text(
-        text = stringResource(R.string.source_choice_title),
-        style = CastivioType.headlineMedium,
-        color = CastivioTheme.colors.onBackground,
-        modifier = Modifier
-            .testTag(ActivationTags.SOURCE_HEADING)
-            .semantics { heading() },
+        text = CastivioMark.TEXT,
+        style = CastivioType.labelSmall.copy(
+            fontSize = size,
+            lineHeight = size,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = CastivioMark.TRACKING_RATIO.em,
+            // Left to right in pixels whatever the layout direction, which is what
+            // `Brush.horizontalGradient` does and what the startup draws: the violet
+            // end is on the left on every screen Castivio signs.
+            brush = Brush.horizontalGradient(CastivioMark.colours),
+        ),
+        maxLines = 1,
+        modifier = modifier,
     )
 }
 
@@ -302,6 +378,45 @@ private fun SourceGrid(
 }
 
 /**
+ * The hairline beside Back. Decoration, and nothing else.
+ *
+ * Back is a ghost button on a full-width row, so it leaves two thirds of the
+ * container's last band empty. That emptiness reads as a missing element rather than
+ * as margin, because it is enclosed on all four sides — the grid above it, the
+ * container's own edge below and beside it. A hairline is the quietest thing that can
+ * occupy it without pretending to be a control.
+ *
+ * No text, no icon, no semantics and no click, so a D-pad and a screen reader both
+ * pass straight over it. `weight(1f)` gives it the leftover and nothing else: Back
+ * keeps its own width, its own position and its own height, and the row is as tall as
+ * the button was on its own, so nothing above or below it moves.
+ *
+ * It fades away from Back rather than running at one strength into the corner.
+ * `glassBorder` is the same 23.9% every edge on this screen is drawn at — full weight
+ * where it leaves the button, nothing where it would otherwise have met the container.
+ * A hairline that stops dead needs a reason to stop at that particular pixel, and
+ * there is none; so it does not stop, it ends.
+ *
+ * The colour order is read off the direction because `horizontalGradient` is physical
+ * and Back is not: the solid end has to be whichever end the button is at, and the
+ * button is at the start.
+ */
+@Composable
+private fun Rule(modifier: Modifier) {
+    val edge = CastivioTheme.colors.glassBorder
+    val fromBack = if (LocalLayoutDirection.current == LayoutDirection.Ltr) {
+        listOf(edge, edge.copy(alpha = 0f))
+    } else {
+        listOf(edge.copy(alpha = 0f), edge)
+    }
+    Box(
+        modifier
+            .height(RuleThickness)
+            .background(Brush.horizontalGradient(fromBack)),
+    )
+}
+
+/**
  * The terms sentence, below the container and centred on the frame.
  *
  * `fillMaxWidth()` with `TextAlign.Center`, which is the plainest way to say "the same
@@ -347,6 +462,38 @@ private fun TermsLine(onClick: () -> Unit) {
             .clickable(role = Role.Button, onClick = onClick),
     )
 }
+
+/**
+ * The corner mark's size: 11sp on a handset, 13sp on a television.
+ *
+ * Half the title, near enough, and that ratio is the brief. A mark that competes with
+ * the question is a mark that has to be read first, and nobody arriving on this screen
+ * needs to be told which application they opened. The television gets two points more
+ * for the same reason every other figure on this screen steps up there — it is read
+ * from three metres, not thirty centimetres.
+ */
+private val MarkSize: TextUnit
+    @Composable @ReadOnlyComposable get() =
+        if (CastivioTheme.device.isTv) 13.sp else 11.sp
+
+/** Mark to title. The same step the rest of the screen separates groups by. */
+private val MarkGap: Dp
+    @Composable @ReadOnlyComposable get() =
+        if (CastivioTheme.device.isTv) Spacing.xl else Spacing.lg
+
+/**
+ * The hairline's clearance, the same figure at both ends.
+ *
+ * It does not run into Back and it does not run into the container's inner edge; the
+ * gap either side is one number so the line reads as centred in what is left rather
+ * than as pushed against something.
+ */
+private val RuleGap: Dp
+    @Composable @ReadOnlyComposable get() =
+        if (CastivioTheme.device.isTv) Spacing.xl else Spacing.lg
+
+/** One device-independent pixel. A hairline is the whole point. */
+private val RuleThickness = 1.dp
 
 /**
  * The gap between the four cards, across and down alike.
