@@ -1,6 +1,5 @@
 package com.castivio.feature.activation
 
-import com.castivio.core.design.theme.DeviceClass
 import com.castivio.domain.ProviderStatus
 import com.castivio.domain.activation.ActivationFailure
 import com.castivio.domain.activation.ActivationPhase
@@ -25,15 +24,36 @@ import org.junit.Test
  *
  * `ActivationLayoutTest` proves what each frame does to the screen. This proves
  * which frame each state gets. Neither claim is worth much without the other.
+ *
+ * ## What this file can and cannot be asked
+ *
+ * It used to take a `DeviceClass` and enumerate the four cases, and that was the
+ * shape of a mistake rather than a safeguard: it made a screen-size question look
+ * answerable from a bucket, and both answers it gave for the source choice —
+ * `isTv`, then `Expanded` — shipped a stacked, scrolling screen to a landscape
+ * handset. The predicate no longer knows what a device is, so this file cannot
+ * assert anything about one. Where the cards land is a question for Compose, and
+ * `SourceChoiceLayoutTest` asks Compose.
  */
 class ActivationFrameTest {
 
     /** The state the user lands in on first launch. The one that broke. */
     @Test
-    fun `the address screen at rest owns the viewport, on every device`() {
-        for (device in DeviceClass.entries) {
-            assertTrue("$device", isFixedViewport(ActivationUiState(), ActivationStep.Mac, device))
-        }
+    fun `the address screen at rest owns the viewport`() {
+        assertTrue(isFixedViewport(ActivationUiState(), ActivationStep.Mac))
+    }
+
+    /**
+     * The source choice owns it too, on every device there is.
+     *
+     * Its two cards sit in a `Row` of `weight(1f)` halves, which divide whatever
+     * width the frame has and so cannot overflow it. Nothing about that needs a
+     * scroll, and a scroll is what clipped the title on one end of the gesture
+     * and Back on the other.
+     */
+    @Test
+    fun `the source choice owns the viewport`() {
+        assertTrue(isFixedViewport(ActivationUiState(), ActivationStep.Choose))
     }
 
     /**
@@ -43,41 +63,10 @@ class ActivationFrameTest {
     @Test
     fun `the forms scroll`() {
         for (step in listOf(ActivationStep.Xtream, ActivationStep.Playlist)) {
-            for (device in DeviceClass.entries) {
-                assertFalse(
-                    "$step on $device was given the fixed frame",
-                    isFixedViewport(ActivationUiState(), step, device),
-                )
-            }
-        }
-    }
-
-    /**
-     * The source choice is fixed wherever two cards fit, and scrolls where they
-     * do not.
-     *
-     * ## The version of this that was wrong, and shipped
-     *
-     * It asserted `isTv = true` against `isTv = false` — and passed, while the
-     * screen came up stacked and scrolling on a 873dp phone in landscape. That
-     * device is [DeviceClass.Expanded]: not a television, and 420dp per card,
-     * which is exactly what a television gives them. The predicate was answering
-     * the question it was asked; the question was about the wrong thing.
-     *
-     * Enumerated over every case now rather than over a boolean, so a fifth
-     * device class cannot be added without this test making someone decide which
-     * side of the line it falls on.
-     */
-    @Test
-    fun `the source choice owns the viewport wherever two cards fit`() {
-        for (device in DeviceClass.entries) {
-            val fixed = isFixedViewport(ActivationUiState(), ActivationStep.Choose, device)
-            when (device) {
-                DeviceClass.Television, DeviceClass.Expanded ->
-                    assertTrue("$device is wide enough but scrolls", fixed)
-                DeviceClass.Compact, DeviceClass.Medium ->
-                    assertFalse("$device is too narrow for a row but was given one", fixed)
-            }
+            assertFalse(
+                "$step was given the fixed frame",
+                isFixedViewport(ActivationUiState(), step),
+            )
         }
     }
 
@@ -94,7 +83,7 @@ class ActivationFrameTest {
         )) {
             assertFalse(
                 "$phase was given the fixed viewport",
-                isFixedViewport(ActivationUiState(phase = phase), ActivationStep.Mac, DeviceClass.Television),
+                isFixedViewport(ActivationUiState(phase = phase), ActivationStep.Mac),
             )
         }
     }
@@ -108,9 +97,20 @@ class ActivationFrameTest {
                 isFixedViewport(
                     ActivationUiState(phase = ActivationPhase.Failed(reason)),
                     ActivationStep.Mac,
-                    DeviceClass.Television,
                 ),
             )
+        }
+    }
+
+    /**
+     * A failure takes the scrolling frame from whichever step raised it, including
+     * the two that are fixed at rest.
+     */
+    @Test
+    fun `a failure scrolls from the fixed steps as well`() {
+        val failed = ActivationUiState(phase = ActivationPhase.Failed(ActivationFailure.entries.first()))
+        for (step in listOf(ActivationStep.Mac, ActivationStep.Choose)) {
+            assertFalse("$step kept the fixed frame while failed", isFixedViewport(failed, step))
         }
     }
 
@@ -125,8 +125,6 @@ class ActivationFrameTest {
             itemCount = 1,
             status = ProviderStatus(usable = true),
         )
-        assertTrue(
-            isFixedViewport(ActivationUiState(phase = succeeded), ActivationStep.Mac, DeviceClass.Television),
-        )
+        assertTrue(isFixedViewport(ActivationUiState(phase = succeeded), ActivationStep.Mac))
     }
 }

@@ -70,6 +70,34 @@
    lines in each card and the title, and still measures 0.
 
    ---------------------------------------------------------------------------
+   The other frame, which this file did not draw and should have
+
+   What renders below is a television. The screen shipped stacked and scrolling
+   on a landscape handset twice, and the reason it could is partly here: the one
+   frame that was ever drawn was the roomy one.
+
+   A handset is 873dp of window, and `safeDrawing` spends the display cutout
+   before the layout sees anything -- 41dp on the reporter's phone, on the
+   leading edge only. So the band is 827 x 393, not 873 x 393, and it is 51dp
+   shorter than the television's.
+
+     band    827 x 393    inset 24 = Spacing.screen, no overscan to clear
+     margin       36      what is left over, split evenly
+     header       64      the same type as above
+     gap          32      Spacing.xxl
+     cards        96      Spacing.xl of vertical padding, not Spacing.xxxl
+     gap          32      Spacing.xxl
+     back         48      Sizing.minTouchTarget
+     margin       36
+     overflow      0
+
+   The card padding is the one figure that differs, and it is not cosmetic:
+   `Spacing.xxxl` makes the card 144 and the screen 368, which fits 393 and
+   overruns the 360dp frame in `ActivationLayoutTest` by 8dp. The frame no longer
+   scrolls, so an overrun does not scroll -- it clips. `SourceChoiceBudgetTest`
+   computes both frames from the same tokens and fails on the overrun.
+
+   ---------------------------------------------------------------------------
    The card's own hierarchy
 
    `titleLarge` 17/24 over `bodySmall` 12.5/20, where it was `titleMedium` 15/22

@@ -56,6 +56,20 @@ internal object ActivationTags {
     const val SOURCE_BACK = "activation.sourceBack"
 
     /**
+     * The heading above them, tagged late and for a specific reason.
+     *
+     * It is the element the scroll clipped first: a user who had pushed the page
+     * down by one gesture saw the two cards and no title. The claim that the
+     * screen is three stacked things and all three are inside the viewport needs
+     * a handle on the first of them, not only on the last two.
+     *
+     * On the heading `Column` rather than on either `Text`, because what is being
+     * asserted is where the block sits, and a tag on the title alone would go
+     * green with the subtitle hanging off the edge.
+     */
+    const val SOURCE_HEADING = "activation.sourceHeading"
+
+    /**
      * The two bands that bracket the field, and the stage that holds all three.
      *
      * Tagged for diagnosis rather than for assertion. When the field band comes

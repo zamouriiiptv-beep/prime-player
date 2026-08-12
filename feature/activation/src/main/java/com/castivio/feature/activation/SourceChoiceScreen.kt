@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
@@ -32,28 +33,39 @@ import com.castivio.core.design.theme.Spacing
  * Two cards, no third. Local files are deliberately absent: they were cut from this
  * screen because a route almost nobody takes still costs everybody a decision.
  *
- * ## Two layouts, chosen by width
+ * ## One layout: the cards are side by side, always
  *
- * Stacked, the two cards plus the header plus Back came to more than the 444dp a
- * television leaves inside its overscan, and the step was inside
- * `verticalScroll`. So it scrolled: the title clipped at the top or Back clipped
- * at the bottom, and which one depended on where the user had left the scroll.
- * A remote pressing *down* moved the page rather than the focus.
+ * Stacked, the two cards plus the header plus Back came to 424dp against the
+ * 393dp a landscape handset has, and the step was inside `verticalScroll`. So it
+ * scrolled: the title clipped at the top or Back clipped at the bottom, and
+ * which one depended on where the user had left the scroll. A remote pressing
+ * *down* moved the page rather than the focus.
  *
- * On a wide screen the cards go side by side instead. They are a choice between
- * two, and stacking them spent the vertical axis — the scarce one on a landscape
- * frame — while the horizontal axis sat empty. `Row` also gives a remote the
- * gesture the hand expects: left and right between the options, down to Back.
+ * Side by side the same content is 320dp, because the two cards occupy one band
+ * instead of two. They are a choice between two options, and stacking them spent
+ * the vertical axis — the scarce one on a landscape frame — while the horizontal
+ * axis sat empty. `Row` also gives a remote the gesture the hand expects: left
+ * and right between the options, down to Back.
  *
- * "Wide" is [fitsTwoCards], not `isTv`. The first version asked whether this was
- * a television and shipped, and a 873dp phone in landscape still came up stacked
- * and still scrolled — `DeviceClass.Expanded` is not `Television`, and the
- * condition had never been about the kind of device. It is about room: 840dp up
- * gives each card 420, which is what a television gives them.
+ * ## Why there is no longer a condition here
  *
- * A narrow screen keeps the column. That is the same reasoning honoured rather
- * than reversed: two cards abreast at 170dp would be this fix becoming the next
- * defect.
+ * There were two of them, in turn, and both shipped broken. The first asked
+ * `isTv`; a 873dp phone in landscape is not a television, so it stacked. The
+ * second asked whether `DeviceClass` was `Expanded`, which is `screenWidthDp >=
+ * 840` — and `screenWidthDp` is not the width this screen is given. The window
+ * is 873dp, the display cutout takes 41 of it through `safeDrawing`, and the box
+ * that arrives here is 827dp. Whether the platform's own figure lands above or
+ * below 840 on any particular handset is a coin toss that has nothing to do with
+ * whether two cards fit.
+ *
+ * They fit. Two cards with `weight(1f)` divide whatever width there is, so the
+ * row cannot overflow horizontally at any size — there is no number for a narrow
+ * frame to exceed. And the frame is always landscape: `MainActivity` is
+ * `screenOrientation="sensorLandscape"`, so the 393dp-wide portrait case the old
+ * column existed for is unreachable in a shipped build.
+ *
+ * A condition that cannot be evaluated correctly is worse than no condition when
+ * one branch is right everywhere. The column is gone rather than re-guarded.
  *
  * ## Centred as a group, rather than pinned to three edges
  *
@@ -105,31 +117,6 @@ internal fun SourceChoiceScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    if (!CastivioTheme.device.fitsTwoCards) {
-        // Unchanged: the same column, at the same `Spacing.xl`, that the step's
-        // own wrapper used to supply around this screen and Back.
-        Column(
-            modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xl),
-        ) {
-            Heading()
-            SourceCard(
-                title = stringResource(R.string.source_xtream_title),
-                detail = stringResource(R.string.source_xtream_detail),
-                onClick = onXtream,
-                modifier = Modifier.fillMaxWidth().testTag(ActivationTags.SOURCE_XTREAM),
-            )
-            SourceCard(
-                title = stringResource(R.string.source_m3u_title),
-                detail = stringResource(R.string.source_m3u_detail),
-                onClick = onPlaylist,
-                modifier = Modifier.fillMaxWidth().testTag(ActivationTags.SOURCE_M3U),
-            )
-            BackButton(onBack, Modifier.testTag(ActivationTags.SOURCE_BACK))
-        }
-        return
-    }
-
     Column(
         modifier
             .fillMaxSize()
@@ -168,7 +155,6 @@ internal fun SourceChoiceScreen(
                 modifier = Modifier
                     .weight(1f)
                     .testTag(ActivationTags.SOURCE_XTREAM),
-                padding = TV_CARD_PADDING,
             )
             SourceCard(
                 title = stringResource(R.string.source_m3u_title),
@@ -177,7 +163,6 @@ internal fun SourceChoiceScreen(
                 modifier = Modifier
                     .weight(1f)
                     .testTag(ActivationTags.SOURCE_M3U),
-                padding = TV_CARD_PADDING,
             )
         }
 
@@ -188,7 +173,10 @@ internal fun SourceChoiceScreen(
 @Composable
 private fun Heading() {
     val colors = CastivioTheme.colors
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+    Column(
+        modifier = Modifier.testTag(ActivationTags.SOURCE_HEADING),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
         Text(
             text = stringResource(R.string.source_choice_title),
             style = CastivioType.headlineMedium,
@@ -204,20 +192,32 @@ private fun Heading() {
 }
 
 /**
- * Deeper than it is wide-padded, on a television.
+ * Deeper than it is wide-padded, and deeper still on a television.
  *
- * The pane is 420dp across and holds 50dp of type. Padding it equally would
- * leave a letterbox; `Spacing.xxxl` down and `Spacing.xxl` across is what makes
- * it read as a tile.
+ * The pane is between a third and a half of the screen across and holds 50dp of
+ * type. Padding it equally would leave a letterbox; more down than across is
+ * what makes it read as a tile.
  *
- * The default stays `Spacing.xl`, which is what the phone has always used. The
- * reason for widening it was that the card had become half the width of the
- * screen -- and on a phone it has not: it is still full width and still
- * stacked. Carrying the television's number over would have been changing a
- * frame nobody asked about, on the strength of an argument that does not apply
- * to it.
+ * **Why the vertical figure is not one number.** `Spacing.xxxl` was chosen
+ * against a television's 540dp and is right there. On a handset it is not: the
+ * screen comes to 368dp, and the shortest frame Castivio ships to is 360 —
+ * `SourceChoiceBudgetTest` computes both from these very tokens. An 8dp overrun
+ * in a frame that no longer scrolls does not scroll, it clips, and it clips
+ * whichever end the centring arrangement pushes past. `Spacing.xl` on a handset
+ * brings the card to 96dp and the screen to 320, which leaves 40dp on the
+ * shortest frame and 73 on the reference one.
+ *
+ * This is the same shape as `screenPadding` and `Sizing.minTarget`: a television
+ * is not a phone with everything scaled up, so the figure is decided per frame.
+ * It is `isTv` and not a width bucket, and that distinction is the whole history
+ * of this screen — `uiMode` is a fact the platform reports reliably, while
+ * `screenWidthDp` is a window the layout never actually receives.
  */
-private val TV_CARD_PADDING = PaddingValues(horizontal = Spacing.xxl, vertical = Spacing.xxxl)
+private val CardPadding: PaddingValues
+    @Composable @ReadOnlyComposable get() = PaddingValues(
+        horizontal = Spacing.xxl,
+        vertical = if (CastivioTheme.device.isTv) Spacing.xxxl else Spacing.xl,
+    )
 
 @Composable
 private fun SourceCard(
@@ -225,7 +225,6 @@ private fun SourceCard(
     detail: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    padding: PaddingValues = PaddingValues(Spacing.xl),
 ) {
     val colors = CastivioTheme.colors
 
@@ -242,10 +241,7 @@ private fun SourceCard(
         Column(
             Modifier
                 .fillMaxWidth()
-                // `Spacing.xl` on a phone, [TV_CARD_PADDING] on a television:
-                // the two frames give the card opposite shapes, and one number
-                // cannot be right for both.
-                .padding(padding),
+                .padding(CardPadding),
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             // `titleLarge` over `bodySmall`, where it was `titleMedium` over

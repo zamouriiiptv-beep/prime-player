@@ -48,7 +48,6 @@ import com.castivio.core.common.locale.CastivioLanguage
 import com.castivio.core.design.components.ButtonWeight
 import com.castivio.core.design.components.CastivioButton
 import com.castivio.core.design.theme.CastivioTheme
-import com.castivio.core.design.theme.DeviceClass
 import com.castivio.core.design.theme.Motion
 import com.castivio.core.design.theme.MotionLevel
 import com.castivio.core.design.theme.Sizing
@@ -153,7 +152,7 @@ fun ActivationRoute(
 
     ImmersiveWhileVisible()
 
-    val fixedViewport = isFixedViewport(state, step, CastivioTheme.device)
+    val fixedViewport = isFixedViewport(state, step)
 
     ActivationSurface(modifier, fixedViewport = fixedViewport) {
         when {
@@ -251,43 +250,31 @@ private tailrec fun Context.findWindow(): Window? = when (this) {
  * it is pure, takes a domain value, and is checked in `ActivationFrameTest`
  * without a device. Getting it wrong again should cost a red JVM test, not a
  * user's screen.
+ *
+ * ## The source choice is fixed on every device, and no longer asks which one
+ *
+ * It asked twice, and both answers shipped wrong. `isTv` first: a 873dp handset
+ * in landscape is not a television, so the step scrolled. Then
+ * `DeviceClass.Expanded`, which is `screenWidthDp >= 840` — but `screenWidthDp`
+ * describes the window, and the screen is drawn inside `safeDrawing`, so a
+ * display cutout of 41dp is spent before the layout sees a pixel. 873 becomes
+ * 827, and which side of 840 the platform's own figure falls on varies by
+ * handset for reasons that have nothing to do with the question.
+ *
+ * The question is gone rather than asked more precisely. `SourceChoiceScreen`
+ * lays its two cards out with `weight(1f)`, which divides whatever width exists
+ * and therefore cannot overflow one; and the activity is
+ * `screenOrientation="sensorLandscape"`, so the narrow portrait frame the old
+ * branch existed for never reaches a user. Fixed, always, like the address step.
  */
 internal fun isFixedViewport(
     state: ActivationUiState,
     step: ActivationStep,
-    device: DeviceClass,
 ): Boolean =
     !state.busy && state.phase !is ActivationPhase.Failed && when (step) {
-        ActivationStep.Mac -> true
-        ActivationStep.Choose -> device.fitsTwoCards
+        ActivationStep.Mac, ActivationStep.Choose -> true
         ActivationStep.Xtream, ActivationStep.Playlist -> false
     }
-
-/**
- * Is there room to put the two source cards beside each other?
- *
- * ## The question this replaced, and why that one was wrong
- *
- * It asked `isTv`, and shipped. On a 873dp phone in landscape the source choice
- * still came up stacked and still scrolled, because `DeviceClass` has four cases
- * and `isTv` only distinguishes one of them: a wide phone resolves to [Expanded]
- * and fell into the branch written for a narrow one.
- *
- * The reasoning behind the original condition was about *width* the whole time —
- * two cards abreast need enough of it, and a portrait phone has none to spare.
- * It was then written down as "is this a television", which is a different fact
- * that merely correlates. [Expanded] starts at 840dp, so each card gets 420dp:
- * exactly what a television gives them.
- *
- * ## Why it lives here rather than at each call site
- *
- * Two places need it — the frame the step is given and the layout the screen
- * draws — and they must never disagree, because a fixed frame around a scrolling
- * layout is a clipped screen and a scrolling frame around a fixed layout is the
- * bug above. One property, read twice.
- */
-internal val DeviceClass.fitsTwoCards: Boolean
-    get() = this == DeviceClass.Television || this == DeviceClass.Expanded
 
 @Composable
 private fun Steps(
