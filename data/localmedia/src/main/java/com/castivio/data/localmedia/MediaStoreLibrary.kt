@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import androidx.core.content.ContextCompat
+import com.castivio.core.common.AppDispatchers
 import com.castivio.domain.LocalFolder
 import com.castivio.domain.LocalMediaKind
 import com.castivio.domain.LocalMediaLibrary
@@ -22,8 +23,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
@@ -53,8 +52,16 @@ import kotlinx.coroutines.withContext
 @Singleton
 class MediaStoreLibrary @Inject constructor(
     @param:ApplicationContext private val context: Context,
-    private val io: CoroutineDispatcher = Dispatchers.IO,
+    /**
+     * Injected rather than referenced, which is the house pattern and also the only one
+     * Dagger accepts: a Kotlin default on a constructor parameter is invisible to it, so
+     * `Dispatchers.IO` written here as a default is a missing binding at assembly time
+     * rather than a convenience.
+     */
+    private val dispatchers: AppDispatchers,
 ) : LocalMediaLibrary {
+
+    private val io get() = dispatchers.io
 
     private val resolver: ContentResolver get() = context.contentResolver
 
