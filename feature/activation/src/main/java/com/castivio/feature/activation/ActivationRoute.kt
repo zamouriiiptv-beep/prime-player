@@ -458,7 +458,7 @@ private fun Steps(
                     videos = media.videos.map(LocalVideo::asTile),
                     onPlay = { index -> media.videos.getOrNull(index)?.let { onPlay(it.asSelection()) } },
                     onBack = { onStep(ActivationStep.MediaSource) },
-                    onNearEnd = host::loadMore,
+                    onNearEnd = host.loadMore,
                     permission = host.permission,
                 )
             }
@@ -468,7 +468,7 @@ private fun Steps(
                     tracks = media.tracks.map(LocalTrack::asTile),
                     onPlay = { index -> media.tracks.getOrNull(index)?.let { onPlay(it.asSelection()) } },
                     onBack = { onStep(ActivationStep.MediaSource) },
-                    onNearEnd = host::loadMore,
+                    onNearEnd = host.loadMore,
                     permission = host.permission,
                 )
             }
@@ -480,7 +480,7 @@ private fun Steps(
                     entries = media.entries(stringResource(R.string.media_picker_parent)),
                     onOpen = { index -> media.open(index, host, onPlay) },
                     onBack = { onStep(ActivationStep.MediaSource) },
-                    onNearEnd = host::loadMore,
+                    onNearEnd = host.loadMore,
                     permission = host.permission,
                 )
             }
@@ -492,7 +492,7 @@ private fun Steps(
                     entries = media.entries(stringResource(R.string.media_picker_parent)),
                     onOpen = { index -> media.open(index, host, onPlay) },
                     onBack = { onStep(ActivationStep.MediaSource) },
-                    onNearEnd = host::loadMore,
+                    onNearEnd = host.loadMore,
                     permission = host.permission,
                 )
             }
