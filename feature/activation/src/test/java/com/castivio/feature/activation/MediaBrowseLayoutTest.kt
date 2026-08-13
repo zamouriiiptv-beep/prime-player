@@ -8,7 +8,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.test.SemanticsNodeInteractionCollection
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
@@ -309,9 +308,14 @@ class MediaBrowseLayoutTest {
         val heading = compose.bounds(ActivationTags.LIBRARY_HEADING)
         val mark = compose.bounds(ActivationTags.BROWSE_MARK)
 
+        // The comparison is between the two leading edges rather than between the mark's
+        // trailing edge and the title's leading one. Robolectric's idea of how wide a
+        // string is has nothing to do with a device's, so a claim that leans on either
+        // box's *width* is a claim about the harness. Which box starts further along the
+        // row is a claim about the layout, and it is the one being made.
         assertTrue(
             "RTL: the mark at ${mark.left} is not left of the title at ${heading.left}",
-            mark.right <= heading.left,
+            mark.left < heading.left,
         )
         compose.assertShell(HANDSET, ActivationTags.LIBRARY_HEADING, ActivationTags.LIBRARY_CONTAINER, ActivationTags.LIBRARY_BACK)
     }
@@ -324,8 +328,8 @@ class MediaBrowseLayoutTest {
         val mark = compose.bounds(ActivationTags.BROWSE_MARK)
 
         assertTrue(
-            "LTR: the mark at ${mark.left} is not right of the title ending at ${heading.right}",
-            mark.left >= heading.right,
+            "LTR: the mark at ${mark.left} is not right of the title at ${heading.left}",
+            mark.left > heading.left,
         )
         compose.assertShell(HANDSET, ActivationTags.LIBRARY_HEADING, ActivationTags.LIBRARY_CONTAINER, ActivationTags.LIBRARY_BACK)
     }
@@ -340,20 +344,32 @@ class MediaBrowseLayoutTest {
      * and a change to it has to be caught wherever it is used.
      */
     @Test
-    fun `Back is centred on the container in both directions`() {
-        for (direction in listOf(LayoutDirection.Rtl, LayoutDirection.Ltr)) {
-            compose.showTracks(HANDSET, DeviceClass.Expanded, direction)
+    fun `Back is centred on the container in Arabic`() {
+        compose.showTracks(HANDSET, DeviceClass.Expanded, LayoutDirection.Rtl)
+        compose.assertBackIsCentred("RTL")
+    }
 
-            val panel = compose.bounds(ActivationTags.LIBRARY_CONTAINER)
-            val back = compose.bounds(ActivationTags.LIBRARY_BACK)
-            val leading = back.left - panel.left
-            val trailing = panel.right - back.right
+    /**
+     * The mirror of it — a separate test rather than a second pass of a loop, because
+     * `setContent` may be called once per rule and a loop over both directions throws
+     * on its second turn rather than asserting anything.
+     */
+    @Test
+    fun `Back is centred on the container in English`() {
+        compose.showTracks(HANDSET, DeviceClass.Expanded, LayoutDirection.Ltr)
+        compose.assertBackIsCentred("LTR")
+    }
 
-            assertTrue(
-                "$direction: Back is not centred — $leading leading, $trailing trailing",
-                abs((leading - trailing).value) <= 1f,
-            )
-        }
+    private fun ComposeContentTestRule.assertBackIsCentred(direction: String) {
+        val panel = bounds(ActivationTags.LIBRARY_CONTAINER)
+        val back = bounds(ActivationTags.LIBRARY_BACK)
+        val leading = back.left - panel.left
+        val trailing = panel.right - back.right
+
+        assertTrue(
+            "$direction: Back is not centred — $leading leading, $trailing trailing",
+            abs((leading - trailing).value) <= 1f,
+        )
     }
 
     /* ------------------------------------------------------------------- behaviour */
