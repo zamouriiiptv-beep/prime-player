@@ -32,6 +32,14 @@
     <string name="media_mp3_pick_title">اختيار MP3</string>
     <string name="media_mp3_pick_detail">اختيار ملف MP3 من الجهاز.</string>
 
+    <string name="media_video_library_empty">لا توجد فيديوهات على هذا الجهاز بعد.</string>
+    <string name="media_audio_library_empty">لا توجد ملفات صوتية على هذا الجهاز بعد.</string>
+    <string name="media_picker_filter_video">ملفات الفيديو فقط</string>
+    <string name="media_picker_filter_audio">ملفات MP3 فقط</string>
+    <string name="media_picker_empty">هذا المجلد فارغ.</string>
+    <string name="media_picker_parent">المجلد الأعلى</string>
+    <string name="media_picker_root">التخزين الداخلي</string>
+
     <string name="saved_sources_title">قائمة المستخدمين</string>
     <string name="saved_sources_empty">لا توجد اشتراكات محفوظة على هذا الجهاز بعد.</string>
     <string name="saved_sources_add_xtream">إضافة Xtream</string>

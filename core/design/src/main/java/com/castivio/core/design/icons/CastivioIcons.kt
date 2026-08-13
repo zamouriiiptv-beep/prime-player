@@ -81,6 +81,26 @@ object CastivioIcons {
         "M8 16.5a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0-2.6 0",
     )
 
+    /** A place inside a place: the folder a picker lists other things in. */
+    val Folder: ImageVector = strokeIcon(
+        "Folder",
+        "M3 7a2 2 0 0 1 2-2h3.6l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z",
+    )
+
+    /**
+     * The folder above this one.
+     *
+     * A folder with a way out of it rather than a bare chevron: everything else in a
+     * picker's list is a folder or a file, and the row that leaves reads as one of
+     * them at a glance instead of as a control that wandered in.
+     */
+    val FolderUp: ImageVector = strokeIcon(
+        "FolderUp",
+        "M3 7a2 2 0 0 1 2-2h3.6l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z",
+        "M12 16.5v-5",
+        "M9.5 14L12 11.5l2.5 2.5",
+    )
+
     /**
      * Back, at [Sizing.iconMd] rather than [Sizing.iconXl].
      *

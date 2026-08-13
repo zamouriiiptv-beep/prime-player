@@ -112,6 +112,26 @@ internal object ActivationTags {
      */
     const val MEDIA_BACK = "media.back"
 
+    /**
+     * The two libraries and the two pickers.
+     *
+     * One set of handles for the two libraries and one for the two pickers, because
+     * the video grid and the audio list are the same screen with a different box in
+     * the middle -- and a gate that asserts "the container holds the content and the
+     * footer, and the footer is inside it" is asking the same question of both.
+     */
+    const val LIBRARY_CONTAINER = "library.container"
+    const val LIBRARY_HEADING = "library.heading"
+    const val LIBRARY_GRID = "library.grid"
+    const val LIBRARY_LIST = "library.list"
+    const val LIBRARY_BACK = "library.back"
+
+    const val PICKER_CONTAINER = "picker.container"
+    const val PICKER_HEADING = "picker.heading"
+    const val PICKER_PATH = "picker.path"
+    const val PICKER_LIST = "picker.list"
+    const val PICKER_BACK = "picker.back"
+
     /** The saved-subscriptions step the fourth card opens. */
     const val SAVED_TITLE = "activation.savedTitle"
     const val SAVED_EMPTY = "activation.savedEmpty"

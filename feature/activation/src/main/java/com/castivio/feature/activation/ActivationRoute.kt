@@ -96,6 +96,19 @@ internal enum class ActivationStep {
      */
     MediaSource,
 
+    /**
+     * What the media source's four cards open.
+     *
+     * Steps rather than routes for the same reason every other screen in this flow
+     * is one: they belong to choosing what to play, each goes back to
+     * [MediaSource], and each owns its viewport. They are the first steps in the
+     * flow whose *content* scrolls -- the frame still does not.
+     */
+    VideoLibrary,
+    PickVideo,
+    AudioLibrary,
+    PickAudio,
+
     Xtream,
     Playlist,
 }
@@ -335,6 +348,11 @@ internal fun isFixedViewport(
     !state.busy && state.phase !is ActivationPhase.Failed && when (step) {
         ActivationStep.Mac, ActivationStep.Choose, ActivationStep.SavedSources,
         ActivationStep.MediaSource,
+        // The libraries and the pickers scroll *inside* their container. Putting
+        // them in the scrolling frame instead would nest one scroll in another and
+        // put Back below the fold, which is the defect this predicate exists for.
+        ActivationStep.VideoLibrary, ActivationStep.PickVideo,
+        ActivationStep.AudioLibrary, ActivationStep.PickAudio,
         -> true
 
         ActivationStep.Xtream, ActivationStep.Playlist -> false
@@ -406,11 +424,55 @@ private fun Steps(
             )
 
             ActivationStep.MediaSource -> MediaSourceScreen(
-                onVideoLibrary = onVideoLibrary,
-                onPickVideo = onLocalVideo,
-                onAudioLibrary = onAudioLibrary,
-                onPickAudio = onPickAudio,
+                onVideoLibrary = { onStep(ActivationStep.VideoLibrary) },
+                onPickVideo = { onStep(ActivationStep.PickVideo) },
+                onAudioLibrary = { onStep(ActivationStep.AudioLibrary) },
+                onPickAudio = { onStep(ActivationStep.PickAudio) },
                 onBack = { onStep(ActivationStep.Choose) },
+            )
+
+            // The four browse screens, and the one thing worth saying about them:
+            // they are handed an empty list.
+            //
+            // Reading the device's media is `MediaStore`, and choosing a file is the
+            // document picker; both are the slice after this one and neither is
+            // written here. What could have been written here instead is a list of
+            // invented filenames, which would make the screens look finished on a
+            // screenshot and would be a lie in the product -- `CLAUDE.md` forbids
+            // exactly that, and it is right to. So each screen draws its empty state,
+            // which is the only truthful thing to draw with no source: it is a real
+            // state these screens will have on a real device, and it is drawn once
+            // rather than discovered later.
+            //
+            // The press seams are the ones already hoisted for playback. They take no
+            // argument yet because there is no item to name until something supplies
+            // one.
+            ActivationStep.VideoLibrary -> VideoLibraryScreen(
+                videos = emptyList(),
+                onPlay = { onLocalVideo() },
+                onBack = { onStep(ActivationStep.MediaSource) },
+            )
+
+            ActivationStep.AudioLibrary -> AudioLibraryScreen(
+                tracks = emptyList(),
+                onPlay = { onAudioLibrary() },
+                onBack = { onStep(ActivationStep.MediaSource) },
+            )
+
+            ActivationStep.PickVideo -> FilePickerScreen(
+                kind = PickerKind.Video,
+                path = stringResource(R.string.media_picker_root),
+                entries = emptyList(),
+                onOpen = { onVideoLibrary() },
+                onBack = { onStep(ActivationStep.MediaSource) },
+            )
+
+            ActivationStep.PickAudio -> FilePickerScreen(
+                kind = PickerKind.Audio,
+                path = stringResource(R.string.media_picker_root),
+                entries = emptyList(),
+                onOpen = { onPickAudio() },
+                onBack = { onStep(ActivationStep.MediaSource) },
             )
 
             ActivationStep.SavedSources -> {
