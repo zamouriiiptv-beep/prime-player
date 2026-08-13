@@ -1,5 +1,6 @@
 package com.castivio.feature.player
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.castivio.playback.api.AspectMode
@@ -102,7 +103,18 @@ class PlayerViewModel @Inject constructor(
 
     private fun start(request: PlayerRequest, id: EngineId) {
         val kind = request.kind
-        val created = engines.create(id, kind)
+        // Building an engine constructs decoders and renderers, and on an unusual device
+        // that can fail outright. A player that dies here takes the application with it
+        // and tells the user nothing; a player that catches it can at least say which
+        // engine refused and offer the other one.
+        val created = runCatching { engines.create(id, kind) }.getOrElse { error ->
+            Log.e(TAG, "could not build the $id engine", error)
+            _state.value = _state.value?.copy(
+                picture = Picture.Failed(PlaybackError.UNKNOWN, canTryBackup = id == EngineId.PRIMARY),
+                switching = false,
+            )
+            return
+        }
         engine = created
         engineId = id
 
@@ -367,6 +379,8 @@ class PlayerViewModel @Inject constructor(
     }
 
     private companion object {
+        const val TAG = "CastivioPlayer"
+
         /** Four times a second: enough for a moving position, cheap enough to ignore. */
         const val TICK_MS = 250L
         const val STATS_INTERVAL_MS = 1_000L

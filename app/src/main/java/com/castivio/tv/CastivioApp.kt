@@ -2,6 +2,7 @@ package com.castivio.tv
 
 import android.app.Application
 import android.os.StrictMode
+import com.castivio.tv.debug.CrashReport
 import dagger.hilt.android.HiltAndroidApp
 
 /**
@@ -17,7 +18,14 @@ class CastivioApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        if (BuildConfig.DEBUG) enableStrictMode()
+        if (BuildConfig.DEBUG) {
+            enableStrictMode()
+            // Installed before anything else can throw. It writes one file and hands the
+            // throwable straight on, so it changes nothing about how a crash behaves --
+            // it only makes the trace reachable from the device it happened on. See
+            // `CrashReport` for why that is worth a class.
+            CrashReport.install(this)
+        }
     }
 
     /**

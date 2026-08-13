@@ -25,6 +25,7 @@ import com.castivio.core.design.components.CastivioIntro
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.platform.AndroidDeviceCapabilities
 import com.castivio.tv.gate.SplashGate
+import com.castivio.tv.debug.CrashReportSheet
 import com.castivio.tv.locale.AppLocale
 import com.castivio.tv.locale.LocalLocaleController
 import com.castivio.tv.locale.LocaleController
@@ -181,6 +182,12 @@ class MainActivity : ComponentActivity() {
                         if (!introDone) {
                             CastivioIntro(onFinished = { introDone = true })
                         }
+
+                        // Above even the intro, because a build that crashed on launch
+                        // would otherwise hide its own report behind the thing that
+                        // crashed. Debug only, and it draws nothing when there is no
+                        // report to show.
+                        CrashReportSheet()
                     }
                 }
             }

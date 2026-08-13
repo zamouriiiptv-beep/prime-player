@@ -1,5 +1,6 @@
 package com.castivio.feature.activation
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -17,8 +18,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
@@ -27,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -40,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import com.castivio.core.design.components.CastivioMark
 import com.castivio.core.design.components.GlassCard
 import com.castivio.core.design.components.InteractiveGlassCard
+import com.castivio.core.design.components.rememberThumbnail
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Radius
@@ -78,6 +83,15 @@ internal data class MediaRow(
     val detail: String,
     val icon: ImageVector,
     /**
+     * The file this row stands for, when it stands for one.
+     *
+     * Null for a folder and for the row that walks up. Where it is present the row shows
+     * the file's own cover in place of the glyph — which is the whole difference between a
+     * list of names and a list somebody can recognise at a glance.
+     */
+    val uri: String? = null,
+    val albumId: Long? = null,
+    /**
      * A place rather than a thing.
      *
      * Only the ink changes — a folder's glyph takes the muted colour — so a glance
@@ -86,10 +100,24 @@ internal data class MediaRow(
     val isPlace: Boolean = false,
 )
 
-/** One tile in the video grid: artwork, a duration over it, and a name under it. */
+/**
+ * One tile in the video grid: artwork, a duration over it, and a name under it.
+ *
+ * [uri] is what plays and what the thumbnail is read from — the same content URI, because
+ * asking the platform for a picture of a file and asking it to play that file are two
+ * requests about one thing and a second identifier would be a second thing to get wrong.
+ *
+ * The name and the duration are **not** derived from it. Both come out of the same
+ * `MediaStore` row the URI did, which is why a row can be drawn complete before any
+ * picture exists: the reference players that show `loading…` where a name belongs are
+ * waiting on a per-file read that Castivio never makes.
+ */
 internal data class MediaTile(
     val name: String,
     val duration: String,
+    val uri: String? = null,
+    /** Audio only: where the cover lives on platforms that keep it in the album table. */
+    val albumId: Long? = null,
 )
 
 /**
@@ -232,12 +260,29 @@ internal fun MediaListRow(
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = row.icon,
-                contentDescription = null,
-                tint = if (row.isPlace) colors.onBackgroundVariant else colors.onBackground,
-                modifier = Modifier.size(Sizing.iconXl),
-            )
+            // The file's own cover where there is one, the glyph where there is not. The
+            // glyph is not a placeholder waiting to be replaced -- most tracks genuinely
+            // have no art, and a row that reserved a square for a picture that never comes
+            // would be a row with a hole in it.
+            val cover by rememberThumbnail(row.uri, RowArtSize, RowArtSize, row.albumId)
+            val art = cover
+            if (art != null) {
+                Image(
+                    bitmap = art,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(RowArtSize)
+                        .clip(RoundedCornerShape(Radius.xs)),
+                )
+            } else {
+                Icon(
+                    imageVector = row.icon,
+                    contentDescription = null,
+                    tint = if (row.isPlace) colors.onBackgroundVariant else colors.onBackground,
+                    modifier = Modifier.size(Sizing.iconXl),
+                )
+            }
             Text(
                 text = row.name,
                 style = CastivioType.bodyLarge,
@@ -303,3 +348,11 @@ internal val BrowseTileMin: Dp
 
 /** How much of the content the fold eats into. */
 internal val BrowseFade = 24.dp
+
+/**
+ * The cover on a list row: square, and the height of the row's own target.
+ *
+ * Square rather than 16:9 because it is album art far more often than it is a video frame,
+ * and a cover letterboxed into a widescreen box reads as a mistake.
+ */
+internal val RowArtSize = 40.dp

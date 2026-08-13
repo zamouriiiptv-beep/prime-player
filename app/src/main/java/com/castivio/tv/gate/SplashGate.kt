@@ -59,16 +59,13 @@ internal fun SplashGate(
             // a film without leaving the flow it was opened from. `PlayerHost` owns that
             // swap, and the four seams below are the ones the screens have always hoisted
             // -- connecting them needed no change to any of the four.
-            PlayerHost(modifier = modifier) { openVideo, openAudio ->
+            PlayerHost(modifier = modifier) { onPlay ->
                 ActivationRoute(
                     onActivated = model::refresh,
                     onExit = onExit,
                     language = locale.current.language,
                     onLanguage = locale::choose,
-                    onLocalVideo = openVideo,
-                    onVideoLibrary = openVideo,
-                    onAudioLibrary = openAudio,
-                    onPickAudio = openAudio,
+                    onPlay = onPlay,
                     modifier = modifier,
                 )
             }

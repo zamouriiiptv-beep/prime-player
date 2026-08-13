@@ -38,6 +38,8 @@
     <string name="media_picker_filter_audio">ملفات MP3 فقط</string>
     <string name="media_picker_empty">هذا المجلد فارغ.</string>
     <string name="media_picker_parent">المجلد الأعلى</string>
+    <string name="media_permission_denied">يحتاج Castivio إذنًا لقراءة الوسائط الموجودة على هذا الجهاز.</string>
+    <string name="media_reading">جارٍ قراءة الجهاز…</string>
     <string name="media_picker_root">التخزين الداخلي</string>
 
     <string name="saved_sources_title">قائمة المستخدمين</string>

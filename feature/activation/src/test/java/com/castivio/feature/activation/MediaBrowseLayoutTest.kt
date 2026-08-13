@@ -51,13 +51,16 @@ import org.robolectric.annotation.Config
  * file: exactly one scrollable node, it is the list, and Back is inside the container
  * regardless.
  *
- * ## Why the fixture is used rather than a list written here
+ * ## Why the sample is written here
  *
- * `DebugFixtures` is what the debug build actually draws, so a test against it is a
- * test of the composition on the reviewer's device rather than of a convenient
- * neighbour of it. It is also chosen to be awkward — a name longer than any row is
- * wide, mixed scripts, durations from seconds to hours — and a test that quietly
- * substituted three short names would stop exercising any of that.
+ * It used to come from `DebugFixtures`, which the production build no longer has: the
+ * four screens read the device now, and a fixture behind them would be a mock in the
+ * product. So the gate states its own content, which is the right place for it — a
+ * layout test should say what it is measuring.
+ *
+ * It is chosen to be awkward rather than flattering: a name longer than any row is wide,
+ * Arabic among Latin and Latin among Arabic, durations from seconds to hours, and more of
+ * each than the tallest frame here can show. A sample that fits proves nothing.
  *
  * ## What Robolectric may and may not be asked
  *
@@ -380,7 +383,7 @@ class MediaBrowseLayoutTest {
         val pressed = mutableListOf<String>()
         compose.show(HANDSET, DeviceClass.Expanded) {
             AudioLibraryScreen(
-                tracks = DebugFixtures.tracks(),
+                tracks = SampleMedia.tracks,
                 onPlay = { pressed += "play $it" },
                 onBack = { pressed += "back" },
             )
@@ -407,7 +410,7 @@ class MediaBrowseLayoutTest {
             FilePickerScreen(
                 kind = PickerKind.Video,
                 path = PATH,
-                entries = DebugFixtures.folder(PickerKind.Video, PARENT),
+                entries = SampleMedia.folder(PARENT),
                 onOpen = { opened += it },
                 onBack = {},
             )
@@ -416,7 +419,7 @@ class MediaBrowseLayoutTest {
         compose.onAllNodesWithTag(ActivationTags.BROWSE_ROW)[0].performClick()
         assertEquals("the first row is not index 0", listOf(0), opened)
 
-        val entries = DebugFixtures.folder(PickerKind.Video, PARENT)
+        val entries = SampleMedia.folder(PARENT)
         assertEquals(
             "the first entry is not the parent",
             PickerEntry.EntryKind.Parent,
@@ -514,7 +517,7 @@ class MediaBrowseLayoutTest {
         device: DeviceClass,
         direction: LayoutDirection = LayoutDirection.Rtl,
     ) = show(frame, device, direction) {
-        VideoLibraryScreen(videos = DebugFixtures.videos(), onPlay = {}, onBack = {})
+        VideoLibraryScreen(videos = SampleMedia.videos, onPlay = {}, onBack = {})
     }
 
     private fun ComposeContentTestRule.showTracks(
@@ -522,7 +525,7 @@ class MediaBrowseLayoutTest {
         device: DeviceClass,
         direction: LayoutDirection = LayoutDirection.Rtl,
     ) = show(frame, device, direction) {
-        AudioLibraryScreen(tracks = DebugFixtures.tracks(), onPlay = {}, onBack = {})
+        AudioLibraryScreen(tracks = SampleMedia.tracks, onPlay = {}, onBack = {})
     }
 
     private fun ComposeContentTestRule.showPicker(
@@ -534,7 +537,7 @@ class MediaBrowseLayoutTest {
         FilePickerScreen(
             kind = kind,
             path = PATH,
-            entries = DebugFixtures.folder(kind, PARENT),
+            entries = SampleMedia.folder(PARENT),
             onOpen = {},
             onBack = {},
         )
@@ -561,6 +564,53 @@ class MediaBrowseLayoutTest {
             ) {
                 Box(Modifier.requiredSize(frame.width, frame.height)) { screen() }
             }
+        }
+    }
+
+    /**
+     * The content these gates measure.
+     *
+     * Deliberately hostile to the layout: the longest name is longer than any row is wide,
+     * the scripts are mixed in both directions, and there are more items than the tallest
+     * frame in the file can show.
+     */
+    private object SampleMedia {
+
+        val videos = listOf(
+            "Sintel.2010.1080p.mkv" to "14:48",
+            "رحلة إلى الصحراء.mp4" to "1:52:07",
+            "Big_Buck_Bunny_60fps.mp4" to "10:34",
+            "holiday-clip-0042.mp4" to "0:47",
+            "Tears.of.Steel.2012.BluRay.x265.10bit.HDR.Atmos.mkv" to "12:14",
+            "drone-over-the-harbour-take-3.mov" to "3:09",
+            "Cosmos.S01E04.mkv" to "44:21",
+            "مباراة الأمس كاملة.mkv" to "2:07:55",
+            "screen-record-2026-05-11.mp4" to "0:22",
+            "Elephants_Dream_1024.avi" to "10:53",
+            "wedding-final-cut-v7.mp4" to "1:18:40",
+            "timelapse_sunrise.webm" to "1:05",
+        ).map { (name, duration) -> MediaTile(name = name, duration = duration) }
+
+        val tracks = listOf(
+            "01 - Nocturne in E flat major.mp3" to "4:31",
+            "أم كلثوم - الأطلال.mp3" to "58:12",
+            "podcast-ep-114-the-long-one-about-everything.mp3" to "1:47:03",
+            "voice-memo-2026-04-02.m4a" to "0:38",
+            "Miles Davis - So What.flac" to "9:22",
+            "فيروز - كيفك إنت.mp3" to "3:44",
+            "track09.mp3" to "2:58",
+            "Ravel - Boléro (complete).mp3" to "15:06",
+            "ringtone_old.ogg" to "0:12",
+            "live-set-warehouse-2025-continuous.mp3" to "2:31:19",
+        ).map { (name, duration) -> MediaTile(name = name, duration = duration) }
+
+        /** A picker's listing: the way up, some folders, then the files. */
+        fun folder(parentLabel: String): List<PickerEntry> = buildList {
+            add(PickerEntry(parentLabel, "", PickerEntry.EntryKind.Parent))
+            listOf("DCIM", "Download", "Movies", "Music").forEach {
+                add(PickerEntry(it, "", PickerEntry.EntryKind.Folder))
+            }
+            videos.forEach { add(PickerEntry(it.name, it.duration, PickerEntry.EntryKind.File)) }
         }
     }
 

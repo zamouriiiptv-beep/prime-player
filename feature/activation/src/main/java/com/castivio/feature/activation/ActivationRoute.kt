@@ -52,6 +52,9 @@ import com.castivio.core.design.theme.Motion
 import com.castivio.core.design.theme.MotionLevel
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.Spacing
+import com.castivio.domain.LocalMediaKind
+import com.castivio.domain.LocalTrack
+import com.castivio.domain.LocalVideo
 import com.castivio.domain.activation.ActivationForm
 import com.castivio.domain.activation.ActivationPhase
 import com.castivio.domain.activation.ActivationUiState
@@ -114,6 +117,44 @@ internal enum class ActivationStep {
 }
 
 /**
+ * The step behind this one, or null at the root.
+ *
+ * ## Why this exists rather than a `when` inside the back handler
+ *
+ * Because the `when` inside the back handler was wrong, and wrong in the way a hand-written
+ * ladder always eventually is: it ended in `else -> Choose`, which was correct for the two
+ * forms it was written for and silently became the answer for five steps added afterwards.
+ * The four media screens and the media source itself all fell into it, so the system's back
+ * button skipped a whole screen — from the video library straight past "what would you like
+ * to play?" to "what did your provider give you?" — while the *drawn* Back button on the
+ * same screen went to the right place. Two answers to one question, and only one of them
+ * visible in review.
+ *
+ * So the tree is stated once, exhaustively, and the compiler requires a new step to name
+ * its parent. `ActivationBackTest` walks every value and asserts the ladder terminates.
+ */
+internal fun ActivationStep.parent(): ActivationStep? = when (this) {
+    ActivationStep.Mac -> null
+
+    ActivationStep.Choose -> ActivationStep.Mac
+
+    // Everything the source choice opens returns to it.
+    ActivationStep.MediaSource,
+    ActivationStep.SavedSources,
+    ActivationStep.Xtream,
+    ActivationStep.Playlist,
+    -> ActivationStep.Choose
+
+    // And everything the media source opens returns to *it*, which is the whole of the
+    // defect this function was written for.
+    ActivationStep.VideoLibrary,
+    ActivationStep.PickVideo,
+    ActivationStep.AudioLibrary,
+    ActivationStep.PickAudio,
+    -> ActivationStep.MediaSource
+}
+
+/**
  * The activation flow, root to finish.
  *
  * Two things are worth knowing about how this is put together.
@@ -144,42 +185,17 @@ fun ActivationRoute(
     language: CastivioLanguage,
     onLanguage: (CastivioLanguage) -> Unit,
     /**
-     * Play a video file the device already holds.
+     * Play something the device holds.
      *
-     * Hoisted for the same reason [onLanguage] is: this module draws the card and
-     * reports the press, and playing a file is somebody else's job. It is *also*
-     * hoisted because there is nobody to give it to yet — `:playback:engine-media3`
-     * is the slice after this one and `feature/player` is still a placeholder object.
+     * One seam where there were four, and it carries the file. It has to: the screens now
+     * list the device's real media, so a press is a press on a *particular* video, and a
+     * lambda with no argument could only mean "the user pressed something" — which is what
+     * the four seams meant while the lists were fixtures, and is no longer enough.
      *
-     * The default is deliberate and it is not a stub standing in for behaviour: it is
-     * the seam, defaulted so that the one line wiring it lands in `:app` alongside the
-     * player rather than being invented here. Until then the card is present,
-     * focusable, labelled and inert, which is honest — what it is not is a second
-     * playback implementation living in the activation feature.
+     * Still hoisted, and for the original reason: playing a file is somebody else's job.
+     * This module reads `MediaStore` and draws the result; `:app` owns what a press opens.
      */
-    onLocalVideo: () -> Unit = {},
-    /**
-     * The other three ways into the device's own media.
-     *
-     * Same seam, same reasoning, same default as [onLocalVideo] — which is now the
-     * *picker* of the four, because "play a video file the device already holds" is
-     * exactly what choosing one with the system picker means. The two libraries are a
-     * `MediaStore` query and the MP3 picker is the same document picker filtered to
-     * `audio/mpeg`; all three belong to whoever owns playback, and none of them is
-     * written here to make the screen look finished.
-     */
-    onVideoLibrary: () -> Unit = {},
-    onAudioLibrary: () -> Unit = {},
-    onPickAudio: () -> Unit = {},
-    /**
-     * Open the terms of service.
-     *
-     * `LegalScreen` already exists and already carries this text in all 39 bundles —
-     * in `:feature:licence`, where it is `internal`. Reaching it means either widening
-     * its visibility or adding a dependency between two feature modules, and both are
-     * decisions about the module graph rather than about this screen. So the link is
-     * hoisted and the destination is chosen where destinations are chosen.
-     */
+    onPlay: (LocalMediaSelection) -> Unit = {},
     onTerms: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -213,9 +229,11 @@ fun ActivationRoute(
             // A running attempt is the thing back cancels, whatever step started it.
             state.busy -> activation.cancel()
             phase is ActivationPhase.Failed -> activation.dismissFailure()
-            step == ActivationStep.Mac -> onExit()
-            step == ActivationStep.Choose -> step = ActivationStep.Mac
-            else -> step = ActivationStep.Choose
+            else -> when (val parent = step.parent()) {
+                // The root has nothing behind it, so back leaves the application.
+                null -> onExit()
+                else -> step = parent
+            }
         }
     }
 
@@ -246,10 +264,7 @@ fun ActivationRoute(
                 onRefresh = identityModel::refresh,
                 onCopied = identityModel::copied,
                 onOpenLanguage = { pickingLanguage = true },
-                onLocalVideo = onLocalVideo,
-                onVideoLibrary = onVideoLibrary,
-                onAudioLibrary = onAudioLibrary,
-                onPickAudio = onPickAudio,
+                onPlay = onPlay,
                 onTerms = onTerms,
             )
         }
@@ -369,10 +384,7 @@ private fun Steps(
     onRefresh: () -> Unit,
     onCopied: (Copied) -> Unit,
     onOpenLanguage: () -> Unit,
-    onLocalVideo: () -> Unit,
-    onVideoLibrary: () -> Unit,
-    onAudioLibrary: () -> Unit,
-    onPickAudio: () -> Unit,
+    onPlay: (LocalMediaSelection) -> Unit,
     onTerms: () -> Unit,
 ) {
     // Read outside the transition: transitionSpec is not a composable lambda, so a
@@ -431,56 +443,59 @@ private fun Steps(
                 onBack = { onStep(ActivationStep.Choose) },
             )
 
-            // The four browse screens, and the one thing worth saying about them:
-            // where their contents come from.
+            // The four browse screens, reading the device.
             //
-            // Reading the device's media is `MediaStore`, and choosing a file is the
-            // document picker; both are the slice after this one and neither is
-            // written here. A release build therefore draws the empty state, which is
-            // the only truthful thing to draw with no source -- and a real state these
-            // screens will have on a real device, so it is worth having drawn early.
+            // `LocalMediaHost` owns the query, the paging and the permission; each screen
+            // below is handed a finished list. It is one host for four screens because
+            // they are four views of two queries, and four copies of "ask for the
+            // permission, page the cursor, tell the empty state from the unread one" is
+            // four places for those to drift.
             //
-            // A debug build draws `DebugFixtures` instead, on exactly the terms the
-            // device key is here under: a constant, in one file, behind
-            // `BuildConfig.DEBUG`. A grid's column arithmetic and the fade at its fold
-            // are not reviewable from a sentence saying there is nothing to show, and
-            // the alternative to reviewing them now is discovering them later.
-            //
-            // The press seams are the ones already hoisted for playback. They take no
-            // argument yet because nothing plays until the engine slice lands.
-            ActivationStep.VideoLibrary -> VideoLibraryScreen(
-                videos = DebugFixtures.videos(),
-                onPlay = { onLocalVideo() },
-                onBack = { onStep(ActivationStep.MediaSource) },
-            )
+            // Nothing here is a fixture any more. There is no debug list behind these and
+            // no release list either: what is on the screen is what is on the device.
+            ActivationStep.VideoLibrary -> LocalMediaHost(LocalMediaKind.VIDEO) { media, host ->
+                VideoLibraryScreen(
+                    videos = media.videos.map(LocalVideo::asTile),
+                    onPlay = { index -> media.videos.getOrNull(index)?.let { onPlay(it.asSelection()) } },
+                    onBack = { onStep(ActivationStep.MediaSource) },
+                    onNearEnd = host::loadMore,
+                    permission = host.permission,
+                )
+            }
 
-            ActivationStep.AudioLibrary -> AudioLibraryScreen(
-                tracks = DebugFixtures.tracks(),
-                onPlay = { onAudioLibrary() },
-                onBack = { onStep(ActivationStep.MediaSource) },
-            )
+            ActivationStep.AudioLibrary -> LocalMediaHost(LocalMediaKind.AUDIO) { media, host ->
+                AudioLibraryScreen(
+                    tracks = media.tracks.map(LocalTrack::asTile),
+                    onPlay = { index -> media.tracks.getOrNull(index)?.let { onPlay(it.asSelection()) } },
+                    onBack = { onStep(ActivationStep.MediaSource) },
+                    onNearEnd = host::loadMore,
+                    permission = host.permission,
+                )
+            }
 
-            ActivationStep.PickVideo -> FilePickerScreen(
-                kind = PickerKind.Video,
-                path = stringResource(R.string.media_picker_root),
-                entries = DebugFixtures.folder(
+            ActivationStep.PickVideo -> LocalMediaHost(LocalMediaKind.VIDEO) { media, host ->
+                FilePickerScreen(
                     kind = PickerKind.Video,
-                    parentLabel = stringResource(R.string.media_picker_parent),
-                ),
-                onOpen = { onVideoLibrary() },
-                onBack = { onStep(ActivationStep.MediaSource) },
-            )
+                    path = media.folder ?: stringResource(R.string.media_picker_root),
+                    entries = media.entries(stringResource(R.string.media_picker_parent)),
+                    onOpen = { index -> media.open(index, host, onPlay) },
+                    onBack = { onStep(ActivationStep.MediaSource) },
+                    onNearEnd = host::loadMore,
+                    permission = host.permission,
+                )
+            }
 
-            ActivationStep.PickAudio -> FilePickerScreen(
-                kind = PickerKind.Audio,
-                path = stringResource(R.string.media_picker_root),
-                entries = DebugFixtures.folder(
+            ActivationStep.PickAudio -> LocalMediaHost(LocalMediaKind.AUDIO) { media, host ->
+                FilePickerScreen(
                     kind = PickerKind.Audio,
-                    parentLabel = stringResource(R.string.media_picker_parent),
-                ),
-                onOpen = { onPickAudio() },
-                onBack = { onStep(ActivationStep.MediaSource) },
-            )
+                    path = media.folder ?: stringResource(R.string.media_picker_root),
+                    entries = media.entries(stringResource(R.string.media_picker_parent)),
+                    onOpen = { index -> media.open(index, host, onPlay) },
+                    onBack = { onStep(ActivationStep.MediaSource) },
+                    onNearEnd = host::loadMore,
+                    permission = host.permission,
+                )
+            }
 
             ActivationStep.SavedSources -> {
                 val saved: SavedSourcesViewModel = hiltViewModel()

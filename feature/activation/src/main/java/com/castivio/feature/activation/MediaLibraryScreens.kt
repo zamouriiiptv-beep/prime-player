@@ -1,5 +1,6 @@
 package com.castivio.feature.activation
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,8 +15,11 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -25,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.castivio.core.design.components.CastivioArtwork
 import com.castivio.core.design.components.GlassCard
 import com.castivio.core.design.components.InteractiveGlassCard
+import com.castivio.core.design.components.rememberThumbnail
 import com.castivio.core.design.icons.CastivioIcons
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
@@ -50,6 +55,8 @@ internal fun VideoLibraryScreen(
     onPlay: (Int) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onNearEnd: () -> Unit = {},
+    permission: MediaPermission = MediaPermission.Granted,
 ) {
     MediaScaffold(
         title = stringResource(R.string.media_video_library_title),
@@ -60,7 +67,7 @@ internal fun VideoLibraryScreen(
         modifier = modifier,
     ) {
         if (videos.isEmpty()) {
-            EmptyBand(stringResource(R.string.media_video_library_empty))
+            EmptyBand(emptyMessage(permission, R.string.media_video_library_empty))
             return@MediaScaffold
         }
         LazyVerticalGrid(
@@ -74,6 +81,11 @@ internal fun VideoLibraryScreen(
             verticalArrangement = Arrangement.spacedBy(BrowseTileGap),
         ) {
             items(count = videos.size) { index ->
+                // The next page is asked for from the item that is nearing the end rather
+                // than from a scroll listener, so the trigger is "the user can see the
+                // bottom" instead of a pixel offset that means different things on a
+                // handset and a television.
+                if (index >= videos.size - PREFETCH) NearEnd(onNearEnd)
                 VideoTile(videos[index], index) { onPlay(index) }
             }
         }
@@ -105,11 +117,24 @@ private fun VideoTile(tile: MediaTile, index: Int, onClick: () -> Unit) {
                     contentDescription = "${tile.name}. ${tile.duration}"
                 },
             shape = RoundedCornerShape(Radius.sm),
-            // Not a fill but the artwork itself, which is what a thumbnail is until
-            // `MediaStore` produces one. See `CastivioArtwork` for why it is drawn.
+            // The drawn placeholder is what the tile is *until* the platform produces a
+            // frame, and for the files it never produces one for. It is a fill rather than
+            // a grey box with a broken-image glyph because "no thumbnail yet" is the
+            // ordinary state for the first second of a cold library, not a fault.
             fill = CastivioArtwork.placeholder(index),
         ) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomEnd) {
+                // The real frame, when it arrives. Drawn over the placeholder rather than
+                // instead of it, so the tile never flickers through a blank on the swap.
+                val frame by rememberThumbnail(tile.uri, BrowseTileMin, BrowseTileMin)
+                frame?.let { picture ->
+                    Image(
+                        bitmap = picture,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
                 DurationPill(tile.duration)
             }
         }
@@ -164,6 +189,8 @@ internal fun AudioLibraryScreen(
     onPlay: (Int) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onNearEnd: () -> Unit = {},
+    permission: MediaPermission = MediaPermission.Granted,
 ) {
     MediaScaffold(
         title = stringResource(R.string.media_audio_library_title),
@@ -174,7 +201,7 @@ internal fun AudioLibraryScreen(
         modifier = modifier,
     ) {
         if (tracks.isEmpty()) {
-            EmptyBand(stringResource(R.string.media_audio_library_empty))
+            EmptyBand(emptyMessage(permission, R.string.media_audio_library_empty))
             return@MediaScaffold
         }
         LazyColumn(
@@ -186,12 +213,15 @@ internal fun AudioLibraryScreen(
             verticalArrangement = Arrangement.spacedBy(BrowseItemGap),
         ) {
             items(count = tracks.size) { index ->
+                if (index >= tracks.size - PREFETCH) NearEnd(onNearEnd)
                 val track = tracks[index]
                 MediaListRow(
                     row = MediaRow(
                         name = track.name,
                         detail = track.duration,
                         icon = CastivioIcons.AudioLibrary,
+                        uri = track.uri,
+                        albumId = track.albumId,
                     ),
                     onClick = { onPlay(index) },
                 )
@@ -228,3 +258,37 @@ private fun ColumnScope.EmptyBand(message: String) {
 
 /** 16:9, the shape a video is, written once. */
 private const val WIDESCREEN = 16f / 9f
+
+/**
+ * How many rows from the end the next page is asked for.
+ *
+ * Half a page: enough that the fetch has landed before the user reaches the fold, few
+ * enough that a fast scroll does not queue four pages it will never look at.
+ */
+private const val PREFETCH = 30
+
+/**
+ * A side effect that fires once when a particular item is composed.
+ *
+ * A composable rather than a call inside the item body, because the item body runs on every
+ * recomposition and the fetch must not. `LaunchedEffect(Unit)` inside the item scope is
+ * keyed to that item's lifetime, which is exactly "the user has scrolled this far".
+ */
+@Composable
+private fun NearEnd(onReached: () -> Unit) {
+    LaunchedEffect(Unit) { onReached() }
+}
+
+/**
+ * What an empty list says, which depends on why it is empty.
+ *
+ * Three different sentences for three different situations, because "no videos on this
+ * device" in front of a user who simply declined a permission is the application blaming
+ * the device for its own unanswered question.
+ */
+@Composable
+private fun emptyMessage(permission: MediaPermission, whenEmpty: Int): String = when (permission) {
+    MediaPermission.Granted -> stringResource(whenEmpty)
+    MediaPermission.Denied -> stringResource(R.string.media_permission_denied)
+    MediaPermission.Unknown -> stringResource(R.string.media_reading)
+}

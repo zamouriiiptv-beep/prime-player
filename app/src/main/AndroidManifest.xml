@@ -4,6 +4,24 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <!--
+        Reading the device's own media.
+
+        Split by version because the platform split it: before Android 13 one broad
+        storage permission covered everything, and from 13 the media types are separate,
+        which is both better for the user and two different requests. `maxSdkVersion` on
+        the old one so a modern device is never asked for a permission it would refuse.
+
+        Deliberately *not* here: WRITE_EXTERNAL_STORAGE and MANAGE_EXTERNAL_STORAGE.
+        Castivio reads media and never writes it, and the all-files permission is the one
+        that gets an application removed from the store.
+    -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+
     <uses-feature
         android:name="android.software.leanback"
         android:required="false" />

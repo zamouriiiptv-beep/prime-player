@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -71,6 +72,8 @@ internal fun FilePickerScreen(
     onOpen: (Int) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onNearEnd: () -> Unit = {},
+    permission: MediaPermission = MediaPermission.Granted,
 ) {
     val title = when (kind) {
         PickerKind.Video -> stringResource(R.string.media_video_pick_title)
@@ -93,7 +96,13 @@ internal fun FilePickerScreen(
         Spacer(Modifier.height(BrowseItemGap))
 
         if (entries.isEmpty()) {
-            EmptyFolder(stringResource(R.string.media_picker_empty))
+            EmptyFolder(
+                when (permission) {
+                    MediaPermission.Granted -> stringResource(R.string.media_picker_empty)
+                    MediaPermission.Denied -> stringResource(R.string.media_permission_denied)
+                    MediaPermission.Unknown -> stringResource(R.string.media_reading)
+                },
+            )
             return@MediaScaffold
         }
         LazyColumn(
@@ -105,6 +114,7 @@ internal fun FilePickerScreen(
             verticalArrangement = Arrangement.spacedBy(BrowseItemGap),
         ) {
             items(count = entries.size) { index ->
+                if (index >= entries.size - PICKER_PREFETCH) LaunchedEffect(Unit) { onNearEnd() }
                 val entry = entries[index]
                 MediaListRow(
                     row = MediaRow(
@@ -182,6 +192,9 @@ private fun ColumnScope.EmptyFolder(message: String) {
  * The parent row is a folder with an arrow out of it rather than a chevron: it is a
  * place you go to, and every other place in the list is drawn as a folder.
  */
+/** Half a page, the same figure and the same reasoning as the libraries. */
+private const val PICKER_PREFETCH = 30
+
 private fun glyphFor(entry: PickerEntry.EntryKind, kind: PickerKind) = when (entry) {
     PickerEntry.EntryKind.Parent -> CastivioIcons.FolderUp
     PickerEntry.EntryKind.Folder -> CastivioIcons.Folder

@@ -57,6 +57,8 @@
     <string name="media_picker_filter_audio">MP3 files only</string>
     <string name="media_picker_empty">This folder is empty.</string>
     <string name="media_picker_parent">Parent folder</string>
+    <string name="media_permission_denied">Castivio needs permission to read the media on this device.</string>
+    <string name="media_reading">Reading this device…</string>
     <string name="media_picker_root">Internal storage</string>
 
     <!-- The subscriptions already on this box -->

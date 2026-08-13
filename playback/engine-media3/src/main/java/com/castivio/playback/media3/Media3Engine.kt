@@ -2,6 +2,7 @@ package com.castivio.playback.media3
 
 import android.content.Context
 import android.os.SystemClock
+import android.util.Log
 import android.view.SurfaceView
 import androidx.annotation.OptIn
 import androidx.media3.common.C
@@ -197,6 +198,17 @@ class Media3Engine(
      * to learn something the player is about to find out anyway.
      */
     override fun open(media: MediaRequest) {
+        // Wrapped, because everything below can throw on a real device and none of it is
+        // worth ending the process for: a content URI whose permission was revoked while
+        // the list was on screen, a scheme no data source claims, a malformed link out of
+        // a provider. Each of those is a card the user can act on, and a crash is not.
+        runCatching { openInternal(media) }.onFailure { error ->
+            Log.e(TAG, "open failed for ${media.url.take(URL_IN_LOG)}", error)
+            _state.value = PlaybackState.Failed(PlaybackError.UNKNOWN, error)
+        }
+    }
+
+    private fun openInternal(media: MediaRequest) {
         openedAtMs = SystemClock.elapsedRealtime()
         _firstFrameAtMs.value = null
         _tracks.value = TrackSet()
@@ -417,7 +429,12 @@ class Media3Engine(
         }
 
         override fun onPlayerError(error: PlaybackException) {
-            _state.value = PlaybackState.Failed(map(error), error)
+            val mapped = map(error)
+            // The one line that answers "why did this channel not play". `errorCodeName`
+            // is ExoPlayer's own name for the code, so the log says
+            // ERROR_CODE_DECODING_FORMAT_UNSUPPORTED rather than the number 4003.
+            Log.w(TAG, "${profile.id} engine failed: ${error.errorCodeName} -> $mapped", error)
+            _state.value = PlaybackState.Failed(mapped, error)
         }
     }
 
@@ -488,6 +505,11 @@ class Media3Engine(
     }
 
     private companion object {
+        const val TAG = "CastivioEngine"
+
+        /** Enough of a URL to identify the stream, not enough to put a token in a log. */
+        const val URL_IN_LOG = 120
+
         /**
          * Short on purpose, and shorter than the fallback deadline.
          *
