@@ -12,7 +12,7 @@ package com.castivio.feature.settings
  *
  * ```kotlin
  * // wherever the real Settings renders its Licence row
- * LicenceWithLanguage(onLeave = { /* back to Settings */ })
+ * LicenceWithLanguage(onLeave = { navigateBackToSettings() })
  * ```
  *
  * `com.castivio.tv.licence.LicenceWithLanguage` is the single entry point. It

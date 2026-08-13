@@ -608,6 +608,56 @@ if [ -n "$offenders" ]; then
     Dispatchers.Unconfined            -- what the rest of this repository uses"
 fi
 
+# ------------------------------------------- a comment that swallows the file
+# Kotlin block comments nest. So `/*` written inside a KDoc opens a second comment,
+# and the `*/` the author meant to end the KDoc closes only that inner one -- every
+# line after it is comment, and the compiler says "Unclosed comment" at the last line
+# of the file rather than at the sentence that caused it.
+#
+# It is written by accident and always the same way: a MIME wildcard in prose. `video/*`
+# in a KDoc silently deleted the rest of a screen, and the only thing that found it was
+# a seven-minute Android build -- the one gate that cannot run in this sandbox at all.
+# Grep finds it in a second, which is the whole argument for the rule being here.
+#
+# The scan is a small state machine rather than a count of `/*` against `*/`, because a
+# string literal is allowed to contain either and a count would fail an innocent file.
+# It reports every `/*` seen while already inside a comment; the first is the culprit.
+nested=$(awk '
+FNR == 1 { depth = 0; raw = 0 }
+{
+  line = $0; i = 1; n = length(line); str = 0
+  while (i <= n) {
+    c = substr(line, i, 1); two = substr(line, i, 2); three = substr(line, i, 3)
+    if (depth > 0) {
+      if (two == "/*") { printf "%s:%d:%s\n", FILENAME, FNR, line; depth++; i += 2; continue }
+      if (two == "*/") { depth--; i += 2; continue }
+      i++; continue
+    }
+    if (raw) { if (three == "\"\"\"") { raw = 0; i += 3; continue } i++; continue }
+    if (str) { if (c == "\\") { i += 2; continue }
+               if (c == "\"") { str = 0 } i++; continue }
+    if (three == "\"\"\"") { raw = 1; i += 3; continue }
+    if (c == "\"") { str = 1; i++; continue }
+    if (c == "'"'"'") { j = i + 1
+                  while (j <= n) { cc = substr(line, j, 1)
+                                   if (cc == "\\") { j += 2; continue }
+                                   if (cc == "'"'"'") break
+                                   j++ }
+                  i = j + 1; continue }
+    if (two == "//") break
+    if (two == "/*") { depth++; i += 2; continue }
+    i++
+  }
+}' $(find app core data domain feature playback benchmark -name '*.kt' 2>/dev/null | sort))
+if [ -n "$nested" ]; then
+  fail "A block comment is opened inside another one" \
+       "$nested
+
+  Kotlin nests block comments, so this one does not end where it looks like it
+  ends. Write the wildcard in prose, or the example without a comment in it.
+  The first line above is the one to fix; the rest are consequences of it."
+fi
+
 # ------------------------------------------- test dependencies are per module
 # Gradle scopes test dependencies to the module that declares them. A local classpath
 # -- an IDE's, or a hand-rolled one -- is usually one flat bag of jars, so a test that

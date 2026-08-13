@@ -29,9 +29,9 @@ import com.castivio.core.design.theme.Spacing
  * picker and an MP3 picker differ in a title, a glyph and a caption. Two files would
  * be two chances for the row height to drift.
  *
- * The MIME types the system picker will be given — `video/*` and `audio/mpeg` — are
- * not here and not in the interface. They are how this will be built; what the user
- * is choosing is a video or a song.
+ * The MIME filters the system picker will be given — every video type, and `audio/mpeg`
+ * for an MP3 — are not here and not in the interface. They are how this will be built;
+ * what the user is choosing is a video or a song.
  */
 internal enum class PickerKind { Video, Audio }
 
@@ -125,8 +125,8 @@ internal fun FilePickerScreen(
  *
  * Two things on one line because they answer the same question from opposite ends: the
  * path says which folder, the caption says which of its files are listed. The caption
- * is in the user's words — "video files only" — because "video/*" is a fact about the
- * implementation and not about the choice being made.
+ * is in the user's words — "video files only" — because a MIME filter is a fact about
+ * the implementation and not about the choice being made.
  */
 @Composable
 private fun PathBand(path: String, filter: String) {
