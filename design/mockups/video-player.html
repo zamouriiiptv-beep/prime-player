@@ -1,0 +1,1005 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Castivio — the player</title>
+<style>
+/* ============================================================================
+   Castivio — the player.
+
+   ---------------------------------------------------------------------------
+   The one rule this screen does not share with the others
+
+   Every screen before this one is a composition inside a glass container. This
+   one has no container at all: the picture is the screen, edge to edge, and
+   everything else is drawn *over* it and disappears. A container here would be a
+   frame around a film.
+
+   That changes what the design system means over video. `glassFill` is 7.8% of
+   white, which is invisible over a bright frame and grey over a dark one, so the
+   bars take a **scrim** -- a gradient of the app's own `--void` from the edge --
+   and only the controls themselves keep the glass. The scrim is what makes a
+   white caption legible over snow and over night, and it is the one thing added
+   to the palette here.
+
+   ---------------------------------------------------------------------------
+   Movie and live are one screen
+
+   A channel is not a different player. The top bar, the centre cluster and the
+   bottom bar are identical; live swaps three things and adds one:
+
+     the seek bar     becomes a live position bar with no scrubbing ahead
+     previous/next    step channels rather than tracks
+     the title        gains a channel number and a LIVE pill
+     and it adds      a programme strip, which hides
+
+   Anything more than that and a user who watches both would have to learn the
+   player twice.
+
+   ---------------------------------------------------------------------------
+   Two engines, one player
+
+   Castivio carries a fallback engine. The user is never asked to choose: the
+   first engine tries, and on a container or codec it cannot open, the second one
+   takes over. The interface for that is deliberately almost nothing -- a line
+   that says what happened and then goes away -- because a switch the user did
+   not ask for and cannot act on is not a decision to present, it is a fact to
+   report. `?state=fallback` is the moment of the switch and `?state=player2` is
+   the second engine playing, which differs only by a badge that a curious user
+   can find and nobody else will notice.
+
+   ---------------------------------------------------------------------------
+   What is allowed on the path to the first frame
+
+   This is the design constraint the whole player is judged by, so it is written
+   here rather than left to the implementation to remember.
+
+     ON THE PATH      the source URL, engine 1 opening it, the first frame.
+                      Nothing else. The title comes from what opened the player,
+                      not from a lookup.
+
+     AFTER IT         the programme strip, artwork and metadata, the track lists
+                      beyond what the container already declared, catch-up
+                      availability, seek thumbnails, and engine 2's warm-up.
+                      Each arrives into a slot that is already laid out, so
+                      nothing reflows when it does.
+
+     NEVER ON IT      statistics, network diagnostics, bookmarks, the next-episode
+                      lookup, the sleep timer. All of them are opened by the user.
+
+   Two things in the drawing exist to make that visible. `?state=loading` is what
+   the screen looks like while the first frame is pending -- a title, a spinner
+   and no chrome, because everything else would be work done before the picture.
+   And the programme strip in `?state=live` is drawn in its resolved form *and*
+   its pending form (`?state=live-cold`), so the reflow that a late EPG would
+   cause can be seen not to happen: the strip reserves its height from the start.
+
+   The fallback is a budget, not a retry loop: engine 1 gets one open attempt with
+   a fixed deadline, and a source that has already needed engine 2 is opened with
+   engine 2 first next time. `?state=fallback` is the switch; `?state=player2` is
+   what a remembered source looks like -- no switch at all, just a badge.
+
+     ?state=  movie · live · live-cold · hidden · loading · buffering
+              reconnecting · error · unsupported · drm · fallback · player2
+              subtitles · audio · settings · quality · statistics
+              locked · gestures · timeshift · catchup · skip · nextup
+              pip · cast
+     ?lang=en   the same player the other way round
+     ?frame=short   800x360      ?frame=tv   960x540
+     ?fit=1     scale the frame to fill the window
+     ?spec=1    the safe area, drawn
+   ========================================================================= */
+@font-face{font-family:"Castivio Sans";font-weight:400;font-style:normal;
+  src:url("../../core/design/src/main/res/font/inter_regular.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:500;font-style:normal;
+  src:url("../../core/design/src/main/res/font/inter_medium.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:600;font-style:normal;
+  src:url("../../core/design/src/main/res/font/inter_semibold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:700;font-style:normal;
+  src:url("../../core/design/src/main/res/font/inter_bold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:400;font-style:normal;
+  src:url("../../core/design/src/main/res/font/plex_arabic_regular.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:500;font-style:normal;
+  src:url("../../core/design/src/main/res/font/plex_arabic_medium.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:700;font-style:normal;
+  src:url("../../core/design/src/main/res/font/plex_arabic_bold.ttf") format("truetype")}
+
+:root{
+  --void:#08071A; --deep:#141031; --violet10:#1B1038; --violet50:#9B6BFF;
+  --azure10:#0A1E3D; --azure40:#2E6BFF; --azure60:#6FB2FF;
+  --mist:#F2F2F8; --silver:#C9C9DA;
+  --glass-strong:rgba(255,255,255,.078);
+  --glass:rgba(255,255,255,.039);
+  --glass-border:rgba(255,255,255,.239);
+  --mark-a:#9B6BFF; --mark-b:#4C9BFF;
+  --live:#FF4D6A;          /* the one hue reserved for "this is happening now" */
+  --r-sm:12px; --r-md:16px; --r-lg:20px; --r-xl:24px; --r-pill:999px;
+
+  --frame-w:827px; --frame-h:393px;
+  --inset:24px;            /* Spacing.screen */
+  --tap:48px;              /* Sizing.minTouchTarget */
+  --tap-lg:64px;           /* the one control the thumb finds without looking */
+  --gap:8px;               /* Spacing.sm */
+  --gap-lg:16px;           /* Spacing.lg */
+  --ic:24px;
+  --sheet-w:52%;
+}
+html[data-frame="short"]{--frame-w:800px; --frame-h:360px}
+html[data-frame="tv"]{
+  --frame-w:960px; --frame-h:540px;
+  --inset:48px;            /* Spacing.tvOverscan */
+  --tap:56px;              /* Sizing.minTvTarget */
+  --tap-lg:80px;
+  --gap:16px; --gap-lg:24px;
+  --ic:28px;
+  --sheet-w:40%;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#000}
+body{font-family:"Castivio Sans","Castivio Arabic","Noto Sans",sans-serif;color:var(--mist);
+  -webkit-font-smoothing:antialiased;text-rendering:geometricPrecision}
+
+/* Presentation only: scale the frame to fill the window. */
+html[data-fit="1"],html[data-fit="1"] body{width:100%;height:100%;overflow:hidden;
+  background:#000}
+html[data-fit="1"] #tv{position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%) scale(var(--fit,1));transform-origin:center}
+
+#tv{position:relative;width:var(--frame-w);height:var(--frame-h);
+  overflow:hidden;background:#000}
+
+/* --------------------------------------------------------------- the picture
+   A frame of film rather than artwork: a lit horizon, a vignette, and a grain
+   the eye reads as an image and not as a gradient. Drawn, because a mockup that
+   ships a still is a mockup that lies about the letterboxing. */
+.video{position:absolute;inset:0;
+  background:
+    radial-gradient(70% 90% at 62% 38%, rgba(111,178,255,.30), rgba(111,178,255,0) 62%),
+    radial-gradient(60% 70% at 22% 78%, rgba(155,107,255,.26), rgba(155,107,255,0) 66%),
+    radial-gradient(120% 100% at 50% 120%, rgba(8,7,26,.92), rgba(8,7,26,0) 58%),
+    linear-gradient(165deg,#0d1030 0%,#1b1440 42%,#0a1734 100%)}
+html[data-kind="live"] .video{
+  background:
+    radial-gradient(66% 80% at 30% 30%, rgba(255,77,106,.20), rgba(255,77,106,0) 60%),
+    radial-gradient(70% 90% at 76% 66%, rgba(46,107,255,.30), rgba(46,107,255,0) 62%),
+    radial-gradient(120% 100% at 50% 120%, rgba(8,7,26,.92), rgba(8,7,26,0) 58%),
+    linear-gradient(200deg,#101235 0%,#241748 46%,#08142e 100%)}
+/* `width` and `height` explicitly, not just `inset:0`: an inline SVG with a
+   viewBox has an intrinsic ratio, and on a frame that is not 16:9 the browser
+   sizes it from that ratio instead of from the box -- 465px tall inside a 393px
+   frame, clipped invisibly and overflowing measurably. */
+.grain{position:absolute;inset:0;width:100%;height:100%;
+  opacity:.5;mix-blend-mode:soft-light}
+
+/* The scrims. Only where a control sits: a full-screen veil would dim the film
+   for the sake of two rows of type. */
+.scrim{position:absolute;inset-inline:0;pointer-events:none;transition:opacity .18s}
+.scrim.t{top:0;height:38%;
+  background:linear-gradient(to bottom,rgba(8,7,26,.86),rgba(8,7,26,0))}
+.scrim.b{bottom:0;height:46%;
+  background:linear-gradient(to top,rgba(8,7,26,.90),rgba(8,7,26,0))}
+
+.safe{position:absolute;inset:var(--inset);display:flex;flex-direction:column;
+  justify-content:space-between;transition:opacity .18s}
+
+/* Controls hidden is the resting state of a player, so it is a state and not an
+   absence: the picture is whole, and one hairline says where you are. */
+html[data-controls="off"] .safe,
+html[data-controls="off"] .scrim{opacity:0;pointer-events:none}
+.resting{position:absolute;inset-inline:0;bottom:0;height:2px;opacity:0;
+  transition:opacity .18s}
+html[data-controls="off"] .resting{opacity:1}
+.resting i{display:block;height:100%;width:38%;
+  background:linear-gradient(to left,var(--azure60),var(--violet50))}
+html[dir="ltr"] .resting i{background:linear-gradient(to right,var(--azure60),var(--violet50))}
+
+/* ------------------------------------------------------------------ controls */
+.btn{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+  gap:8px;min-width:var(--tap);height:var(--tap);padding:0 10px;
+  border-radius:var(--r-pill);color:var(--mist);
+  background:var(--glass-strong);border:1px solid transparent;
+  backdrop-filter:blur(8px)}
+.btn.bare{background:transparent}
+.btn.wide{padding:0 14px}
+.btn .lbl{font-size:13px;line-height:18px;font-weight:600;white-space:nowrap}
+.btn.on{border-color:var(--azure60);
+  box-shadow:0 0 0 1px var(--azure60),0 10px 30px rgba(46,107,255,.40)}
+/* The focus ring is the product's, unchanged: azure60 and the azure glow. Drawn
+   on one control per state so the D-pad story is visible in a screenshot. */
+.btn.focused{border-color:var(--azure60);background:var(--glass-strong);
+  box-shadow:0 0 0 2px var(--azure60),0 14px 44px rgba(46,107,255,.45)}
+svg.ic{width:var(--ic);height:var(--ic);stroke:currentColor;fill:none;
+  stroke-width:1.25;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+
+/* ---------------------------------------------------------------- the top bar */
+.top{display:flex;align-items:center;gap:var(--gap)}
+.title{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px;
+  padding-inline:4px}
+.title .name{font-size:17px;line-height:24px;font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.title .sub{font-size:12.5px;line-height:18px;font-weight:500;color:var(--silver);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  display:flex;align-items:center;gap:8px}
+.pill{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;
+  border-radius:var(--r-pill);border:1px solid var(--glass-border);
+  font-size:11px;line-height:20px;font-weight:700;letter-spacing:.04em}
+.pill.live{color:#fff;border-color:transparent;background:var(--live)}
+.pill.live i{width:6px;height:6px;border-radius:50%;background:#fff;
+  animation:none}
+.pill.num{color:var(--mist);background:var(--glass-strong);direction:ltr}
+.pill.eng{color:var(--silver);background:var(--glass)}
+.spacer{flex:1 1 auto}
+
+/* --------------------------------------------------------------- the centre */
+.centre{display:flex;align-items:center;justify-content:center;gap:var(--gap-lg)}
+.play{width:var(--tap-lg);height:var(--tap-lg);border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;color:var(--mist);
+  background:var(--glass-strong);border:1px solid var(--glass-border);
+  backdrop-filter:blur(10px);box-shadow:0 14px 44px rgba(8,7,26,.55)}
+.play svg{width:calc(var(--ic) * 1.5);height:calc(var(--ic) * 1.5);stroke-width:1.1}
+/* The same ring the cards take, on the one control a remote lands on first. */
+.play.focused{border-color:var(--azure60);
+  box-shadow:0 0 0 2px var(--azure60),0 18px 52px rgba(46,107,255,.50)}
+.seek{position:relative}
+.seek .n{position:absolute;inset:0;display:flex;align-items:center;
+  justify-content:center;font-size:10px;line-height:10px;font-weight:700;
+  padding-top:3px;direction:ltr}
+
+/* ------------------------------------------------------------- the bottom bar */
+.bottom{display:flex;flex-direction:column;gap:var(--gap)}
+.bar{display:flex;align-items:center;gap:var(--gap-lg)}
+.time{font-size:12.5px;line-height:18px;font-weight:600;direction:ltr;
+  font-variant-numeric:tabular-nums;flex:0 0 auto}
+.track{position:relative;flex:1 1 auto;height:4px;border-radius:var(--r-pill);
+  background:rgba(255,255,255,.20)}
+/* Buffered ahead of the head, in the same ink at a third of the weight: it is
+   information about the network, not about the film. */
+.track .buf{position:absolute;inset-block:0;inset-inline-start:0;
+  border-radius:var(--r-pill);background:rgba(255,255,255,.30)}
+.track .fill{position:absolute;inset-block:0;inset-inline-start:0;
+  border-radius:var(--r-pill);
+  background:linear-gradient(to left,var(--azure60),var(--violet50))}
+html[dir="ltr"] .track .fill{
+  background:linear-gradient(to right,var(--violet50),var(--azure60))}
+.track .head{position:absolute;top:50%;width:14px;height:14px;border-radius:50%;
+  transform:translate(50%,-50%);background:#fff;
+  box-shadow:0 0 0 4px rgba(46,107,255,.35)}
+html[dir="ltr"] .track .head{transform:translate(-50%,-50%)}
+/* Live has no future to scrub into, so the bar is full and the head sits at the
+   end. The timeshift buffer behind it is what a long-press would reach. */
+html[data-kind="live"] .track .fill{inset-inline-end:0}
+/* The tools row is the one row whose contents vary by state: live adds a guide
+   and a channel list, timeshift adds a way back to the edge. On a television at
+   956dp with Arabic labels that ran past the safe area, so the row is allowed to
+   shrink its items rather than push them out -- the labels ellipsis, the targets
+   do not. */
+.tools{display:flex;align-items:center;gap:var(--gap);min-width:0}
+.tools .btn{min-width:var(--tap)}
+.tools .btn.wide{min-width:0;flex:0 1 auto;overflow:hidden}
+.tools .btn.wide .lbl{overflow:hidden;text-overflow:ellipsis}
+
+/* -------------------------------------------------------- the programme strip */
+.epg{display:none;align-items:center;gap:var(--gap-lg);
+  padding:10px 14px;border-radius:var(--r-md);
+  background:var(--glass);border:1px solid var(--glass-border);
+  backdrop-filter:blur(10px)}
+html[data-kind="live"][data-epg="1"] .epg{display:flex}
+.epg .now{flex:1 1 auto;min-width:0}
+.epg .now .t{font-size:14px;line-height:20px;font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.epg .now .s{font-size:12.5px;line-height:18px;color:var(--silver);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.epg .prog{flex:0 0 96px;height:3px;border-radius:var(--r-pill);
+  background:rgba(255,255,255,.20);position:relative}
+.epg .prog i{position:absolute;inset-block:0;inset-inline-start:0;width:64%;
+  border-radius:var(--r-pill);background:var(--azure60)}
+.epg .next{flex:0 0 auto;font-size:12.5px;line-height:18px;color:var(--silver);
+  white-space:nowrap;max-width:34%;overflow:hidden;text-overflow:ellipsis}
+
+/* ------------------------------------------------------------- side gestures
+   Not chrome: they appear under the thumb and leave. Drawn here so the shape is
+   agreed before it is animated. */
+.side{position:absolute;top:50%;transform:translateY(-50%);
+  display:none;flex-direction:column;align-items:center;gap:10px;
+  padding:12px 10px;border-radius:var(--r-pill);
+  background:rgba(8,7,26,.62);border:1px solid var(--glass-border);
+  backdrop-filter:blur(10px)}
+html[data-gestures="1"] .side{display:flex}
+.side.l{inset-inline-start:calc(var(--inset) / 2)}
+.side.r{inset-inline-end:calc(var(--inset) / 2)}
+.side .meter{width:6px;height:104px;border-radius:var(--r-pill);
+  background:rgba(255,255,255,.20);position:relative}
+.side .meter i{position:absolute;inset-inline:0;bottom:0;border-radius:var(--r-pill);
+  background:linear-gradient(to top,var(--violet50),var(--azure60))}
+.side .v{font-size:11px;line-height:14px;font-weight:700;direction:ltr}
+
+/* ----------------------------------------------------------------- the sheet
+   A panel at the end edge rather than a dialog in the middle: the film keeps
+   playing and the thumb that opened it is already on that side. */
+.sheet{position:absolute;inset-block:0;inset-inline-end:0;width:var(--sheet-w);
+  display:none;flex-direction:column;
+  background:linear-gradient(to left,rgba(8,7,26,.94),rgba(8,7,26,.72));
+  backdrop-filter:blur(18px);
+  border-inline-start:1px solid var(--glass-border)}
+html[dir="ltr"] .sheet{
+  background:linear-gradient(to right,rgba(8,7,26,.94),rgba(8,7,26,.72))}
+html[data-sheet="1"] .sheet{display:flex}
+.sheet .head{display:flex;align-items:center;gap:var(--gap);
+  padding:var(--inset) var(--inset) var(--gap)}
+.sheet .head .h{flex:1 1 auto;font-size:17px;line-height:24px;font-weight:700}
+.sheet .body{flex:1 1 auto;min-height:0;overflow:hidden;
+  padding:0 var(--inset) var(--inset);
+  -webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 24px),transparent);
+  mask-image:linear-gradient(to bottom,#000 calc(100% - 24px),transparent)}
+.opt{display:flex;align-items:center;gap:12px;min-height:var(--tap);
+  padding:0 12px;border-radius:var(--r-md);border:1px solid transparent}
+.opt + .opt{margin-top:4px}
+.opt .n{flex:1 1 auto;min-width:0;font-size:15px;line-height:22px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.opt .m{flex:0 0 auto;font-size:12.5px;color:var(--silver);direction:ltr}
+.opt.sel{background:var(--glass-strong)}
+.opt.sel .n{font-weight:700}
+.opt.focused{border-color:var(--azure60);background:var(--glass-strong);
+  box-shadow:0 0 0 1px var(--azure60),0 12px 36px rgba(46,107,255,.40)}
+.opt .tick{width:18px;height:18px;color:var(--azure60);flex:0 0 auto;opacity:0}
+.opt.sel .tick{opacity:1}
+
+/* --------------------------------------------------------------- transients */
+.centred{position:absolute;inset:0;display:none;align-items:center;
+  justify-content:center;flex-direction:column;gap:var(--gap-lg)}
+html[data-overlay="buffering"] .buffering,
+html[data-overlay="loading"] .buffering,
+html[data-overlay="reconnecting"] .buffering,
+html[data-overlay="error"] .error{display:flex}
+/* Opening is not buffering: there is no frame behind it yet, so the picture is
+   not dimmed -- it is not there. */
+html[data-overlay="loading"] .video{filter:brightness(.35)}
+html[data-overlay="reconnecting"] .video{filter:brightness(.55)}
+/* The programme strip before the guide answers: the height is held, the words
+   are not there yet. */
+html[data-epgcold="1"] .epg .now .t,
+html[data-epgcold="1"] .epg .now .s,
+html[data-epgcold="1"] .epg .next{color:transparent;
+  background:rgba(255,255,255,.09);border-radius:6px}
+html[data-epgcold="1"] .epg .prog i{width:0}
+/* Buffering dims the picture rather than covering it: the frame is still there
+   and the user is waiting for the next one, not for a new screen. */
+html[data-overlay="buffering"] .video{filter:brightness(.72)}
+.spinner{width:52px;height:52px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.18);border-top-color:var(--azure60)}
+.buffering .lbl{font-size:13px;line-height:18px;font-weight:600;color:var(--silver)}
+.card{max-width:62%;padding:var(--gap-lg) var(--inset);border-radius:var(--r-xl);
+  background:rgba(8,7,26,.82);border:1px solid var(--glass-border);
+  backdrop-filter:blur(18px);text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:10px}
+.card .t{font-size:17px;line-height:24px;font-weight:700}
+.card .d{font-size:13px;line-height:20px;color:var(--silver)}
+.card .row{display:flex;gap:var(--gap);margin-top:4px}
+
+/* The fallback line. One sentence, low, and gone -- the user did not ask for the
+   switch and cannot act on it, so it is reported and not presented. */
+.toast{position:absolute;inset-inline-start:var(--inset);
+  bottom:calc(var(--inset) + var(--tap) + var(--gap-lg) + 26px);
+  display:none;align-items:center;gap:10px;padding:10px 14px;
+  border-radius:var(--r-pill);background:rgba(8,7,26,.82);
+  border:1px solid var(--glass-border);backdrop-filter:blur(12px);
+  font-size:13px;line-height:18px;font-weight:600}
+html[data-toast="1"] .toast{display:inline-flex}
+.toast .dot{width:16px;height:16px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.20);border-top-color:var(--violet50)}
+
+/* Locked: the picture, and the one way out of it. */
+.lock{position:absolute;inset-inline-start:50%;transform:translateX(-50%);
+  bottom:var(--inset);display:none;align-items:center;gap:10px;
+  padding:0 16px;height:var(--tap);border-radius:var(--r-pill);
+  background:rgba(8,7,26,.72);border:1px solid var(--glass-border);
+  backdrop-filter:blur(12px);font-size:13px;font-weight:600}
+html[data-locked="1"] .lock{display:inline-flex}
+html[data-locked="1"] .safe,html[data-locked="1"] .scrim{opacity:0;pointer-events:none}
+
+/* ------------------------------------------------------- marks on the track
+   Bookmarks and an A-B loop live on the bar because that is where they mean
+   something. They are drawn under the head so a scrub never loses the head. */
+.mark{position:absolute;top:50%;width:2px;height:12px;transform:translateY(-50%);
+  border-radius:1px;background:var(--mist);opacity:.75}
+.ab{position:absolute;inset-block:0;border-radius:var(--r-pill);
+  background:rgba(155,107,255,.42);border-inline:1px solid var(--violet50)}
+
+/* --------------------------------------------------------------- the chips
+   One line, one job, and gone. Resume, sleep and skip are all this shape: a
+   suggestion the user can take or ignore, never a dialog. */
+.chip{position:absolute;display:none;align-items:center;gap:10px;height:var(--tap);
+  padding:0 16px;border-radius:var(--r-pill);background:rgba(8,7,26,.82);
+  border:1px solid var(--glass-border);backdrop-filter:blur(12px);
+  font-size:13px;line-height:18px;font-weight:600}
+.chip.skip{inset-inline-end:var(--inset);
+  bottom:calc(var(--inset) + var(--tap) + var(--gap-lg) + 26px)}
+html[data-chip="skip"] .chip.skip{display:inline-flex}
+
+/* Next episode: a card, because it is a choice with a countdown and a cover. */
+.nextup{position:absolute;display:none;inset-inline-end:var(--inset);
+  bottom:calc(var(--inset) + var(--tap) + var(--gap-lg) + 26px);
+  width:44%;padding:12px;border-radius:var(--r-lg);gap:12px;align-items:center;
+  background:rgba(8,7,26,.86);border:1px solid var(--glass-border);
+  backdrop-filter:blur(14px)}
+html[data-chip="nextup"] .nextup{display:flex}
+.nextup .art{flex:0 0 84px;aspect-ratio:16/9;border-radius:var(--r-sm);
+  border:1px solid var(--glass-border);
+  background:linear-gradient(135deg,var(--azure40),var(--violet50))}
+.nextup .txt{flex:1 1 auto;min-width:0}
+.nextup .k{font-size:11px;line-height:16px;font-weight:700;color:var(--silver);
+  letter-spacing:.04em}
+.nextup .t{font-size:15px;line-height:20px;font-weight:700;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.nextup .c{font-size:12.5px;line-height:18px;color:var(--silver)}
+
+/* ------------------------------------------------------------- statistics
+   A panel at the start edge, not a sheet: it is read *while* watching, and a
+   sheet would cover the picture it is describing. Monospaced figures so a
+   changing bitrate does not make the column dance. */
+.stats{position:absolute;display:none;inset-inline-end:var(--inset);
+  top:calc(var(--inset) + var(--tap) + var(--gap));
+  width:42%;max-height:64%;padding:14px 16px;border-radius:var(--r-lg);
+  background:rgba(8,7,26,.86);border:1px solid var(--glass-border);
+  backdrop-filter:blur(14px);overflow:hidden}
+html[data-stats="1"] .stats{display:block}
+.stats .h{font-size:13px;line-height:18px;font-weight:700;margin-bottom:8px;
+  display:flex;align-items:center;gap:8px}
+.stats .r{display:flex;align-items:center;gap:12px;
+  font-size:12px;line-height:20px}
+.stats .r .k{flex:1 1 auto;color:var(--silver)}
+.stats .r .v{flex:0 0 auto;direction:ltr;font-weight:600;
+  font-variant-numeric:tabular-nums}
+.stats .r .v.warn{color:#FFB020}
+
+/* ------------------------------------------------------------------- PiP
+   The window the system draws, at the size it draws it: a mockup that shows PiP
+   full-bleed is a mockup that has not asked how small it really is. */
+.pipwrap{position:absolute;inset:0;display:none;background:var(--void)}
+html[data-mode="pip"] .pipwrap{display:block}
+html[data-mode="pip"] .safe,html[data-mode="pip"] .scrim,
+html[data-mode="pip"] .video,html[data-mode="pip"] .grain{display:none}
+.pipwrap .home{position:absolute;inset:0;opacity:.5;
+  background:
+    radial-gradient(54% 70% at 3% 20%, rgba(46,107,255,.26), rgba(46,107,255,0) 60%),
+    linear-gradient(225deg,var(--deep),var(--violet10) 48%,var(--azure10))}
+.pip{position:absolute;inset-inline-end:24px;bottom:24px;width:34%;
+  aspect-ratio:16/9;border-radius:var(--r-md);overflow:hidden;
+  border:1px solid var(--glass-border);box-shadow:0 18px 52px rgba(0,0,0,.6);
+  background:linear-gradient(165deg,#0d1030,#1b1440 42%,#0a1734)}
+.pip .row{position:absolute;inset-inline:0;bottom:0;height:38%;
+  display:flex;align-items:center;justify-content:center;gap:18px;
+  background:linear-gradient(to top,rgba(8,7,26,.86),rgba(8,7,26,0))}
+.pip .row svg{width:18px;height:18px;stroke:currentColor;fill:none;
+  stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+
+/* ------------------------------------------------------------------ cast
+   The picture is on the television, so this screen stops being a picture and
+   becomes a remote control. Anything else is a lie about where the video is. */
+.castwrap{position:absolute;inset:0;display:none;flex-direction:column;
+  align-items:center;justify-content:center;gap:14px;background:var(--void)}
+html[data-mode="cast"] .castwrap{display:flex}
+html[data-mode="cast"] .video,html[data-mode="cast"] .grain{opacity:.18}
+.castwrap .to{font-size:13px;line-height:18px;color:var(--silver)}
+.castwrap .dev{font-size:20px;line-height:28px;font-weight:700}
+
+.spec{display:none}
+html[data-spec="1"] .spec{display:block}
+.spec-safe{position:absolute;inset:var(--inset);z-index:9;pointer-events:none;
+  border:1px dashed rgba(255,176,32,.55)}
+.spec-note{position:absolute;z-index:9;left:6px;bottom:6px;direction:ltr;
+  font-family:"Liberation Mono",monospace;font-size:9px;line-height:13px;
+  color:#FFB020;background:rgba(8,7,26,.86);padding:3px 6px;border-radius:4px}
+</style>
+</head>
+<body>
+
+<section id="tv">
+  <div class="video"></div>
+  <svg class="grain" viewBox="0 0 960 540" preserveAspectRatio="none">
+    <g fill="none" stroke="#9B6BFF" stroke-opacity=".06" stroke-width="1">
+      <path d="M0,392 C160,352 320,432 480,392 C640,352 800,432 960,392"/>
+      <path d="M0,452 C160,412 320,492 480,452 C640,412 800,492 960,452"/>
+    </g>
+  </svg>
+
+  <div class="scrim t"></div>
+  <div class="scrim b"></div>
+  <div class="resting"><i></i></div>
+
+  <div class="safe">
+    <!-- ------------------------------------------------------------ top -->
+    <div class="top">
+      <span class="btn bare" id="back"></span>
+      <div class="title">
+        <div class="name" id="name"></div>
+        <div class="sub" id="sub"></div>
+      </div>
+      <span class="spacer"></span>
+      <span class="btn bare" id="lock"></span>
+      <span class="btn bare" id="cast"></span>
+      <span class="btn bare" id="more-top"></span>
+    </div>
+
+    <!-- --------------------------------------------------------- centre -->
+    <div class="centre" id="centre"></div>
+
+    <!-- --------------------------------------------------------- bottom -->
+    <div class="bottom">
+      <div class="epg" id="epg"></div>
+      <div class="bar">
+        <span class="time" id="pos"></span>
+        <span class="track" id="track">
+          <i class="buf" style="width:72%"></i>
+          <i class="fill" style="width:41%"></i>
+          <i class="head" style="inset-inline-start:41%"></i>
+        </span>
+        <span class="time" id="dur"></span>
+      </div>
+      <div class="tools" id="tools"></div>
+    </div>
+  </div>
+
+  <!-- ------------------------------------------------------------ sides -->
+  <div class="side l">
+    <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/>
+      <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6L17 7M7 17l-1.4 1.4"/></svg>
+    <span class="meter"><i style="height:46%"></i></span>
+    <span class="v">46</span>
+  </div>
+  <div class="side r">
+    <svg class="ic" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z"/>
+      <path d="M16 9a4.5 4.5 0 0 1 0 6"/><path d="M18.6 6.4a8 8 0 0 1 0 11.2"/></svg>
+    <span class="meter"><i style="height:72%"></i></span>
+    <span class="v">72</span>
+  </div>
+
+  <!-- ---------------------------------------------------------- overlays -->
+  <div class="centred buffering">
+    <span class="spinner"></span>
+    <span class="lbl" id="bufLbl"></span>
+  </div>
+
+  <div class="centred error">
+    <div class="card">
+      <div class="t" id="errT"></div>
+      <div class="d" id="errD"></div>
+      <div class="row" id="errRow"></div>
+    </div>
+  </div>
+
+  <div class="toast"><span class="dot"></span><span id="toastText"></span></div>
+
+  <span class="chip skip" id="skipChip"></span>
+
+  <div class="nextup" id="nextUp"></div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="pipwrap">
+    <div class="home"></div>
+    <div class="pip"><div class="row" id="pipRow"></div></div>
+  </div>
+
+  <div class="castwrap">
+    <span id="castIcon"></span>
+    <span class="to" id="castTo"></span>
+    <span class="dev" id="castDev"></span>
+    <span id="castRow" style="display:flex;gap:12px;margin-top:6px"></span>
+  </div>
+
+  <div class="lock" id="lockPill"></div>
+
+  <!-- ------------------------------------------------------------- sheet -->
+  <div class="sheet">
+    <div class="head">
+      <span class="h" id="sheetTitle"></span>
+      <span class="btn bare" id="sheetClose"></span>
+    </div>
+    <div class="body" id="sheetBody"></div>
+  </div>
+
+  <div class="spec">
+    <div class="spec-safe"></div>
+    <div class="spec-note" id="note"></div>
+  </div>
+</section>
+
+<script>
+/* One icon set, the product's: a 24-unit grid, round caps, and a 1.25 stroke that
+   renders at 1.25px because the box is 24 too. */
+var I = {
+  back:'<path d="M20 12H5"/><path d="M11.5 5.5L5 12l6.5 6.5"/>',
+  lock:'<rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>',
+  unlock:'<rect x="5" y="10.5" width="14" height="9.5" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 6.8-1.2"/>',
+  cast:'<path d="M3 18.5a2.5 2.5 0 0 1 2.5 2.5"/><path d="M3 14.5a6.5 6.5 0 0 1 6.5 6.5"/><path d="M3 10.5a10.5 10.5 0 0 1 10.5 10.5"/><path d="M7 6h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-3"/>',
+  more:'<circle cx="12" cy="5.5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="18.5" r="1.4"/>',
+  close:'<path d="M6 6l12 12M18 6L6 18"/>',
+  play:'<path d="M8 5.5v13l11-6.5z"/>',
+  pause:'<path d="M9 5.5v13M15 5.5v13"/>',
+  prev:'<path d="M18 5.5v13L8 12z"/><path d="M6 5.5v13"/>',
+  next:'<path d="M6 5.5v13L16 12z"/><path d="M18 5.5v13"/>',
+  back10:'<path d="M11 5.5a7 7 0 1 0 7 7"/><path d="M11 2.5L8 5.5l3 3"/>',
+  fwd10:'<path d="M13 5.5a7 7 0 1 1-7 7"/><path d="M13 2.5l3 3-3 3"/>',
+  cc:'<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M10 10.5a2.5 2.5 0 1 0 0 3"/><path d="M16.5 10.5a2.5 2.5 0 1 0 0 3"/>',
+  audio:'<path d="M9 17.5V5l11-2v12.5"/><path d="M4 17.5a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0-5 0"/><path d="M15 15.5a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0-5 0"/>',
+  speed:'<path d="M4.5 18a8.5 8.5 0 1 1 15 0"/><path d="M12 12.5l4-3.5"/>',
+  ratio:'<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10v4M17 10v4"/>',
+  full:'<path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9"/><path d="M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9"/><path d="M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15"/><path d="M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15"/>',
+  channels:'<path d="M4 6h16M4 12h16M4 18h10"/>',
+  guide:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9.5h18"/><path d="M9 9.5V19"/>',
+  quality:'<path d="M5 19v-4"/><path d="M10 19V9"/><path d="M15 19V5"/><path d="M20 19v-8"/>',
+  pip:'<rect x="3" y="5" width="18" height="14" rx="2"/><rect x="12" y="11" width="7" height="6" rx="1.5"/>',
+  engine:'<path d="M12 3.5a8.5 8.5 0 1 1-8.5 8.5"/><path d="M12 8v4.5l3 2"/>',
+  tick:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  live:'<circle cx="12" cy="12" r="3"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4"/><path d="M16.2 16.2a6 6 0 0 0 0-8.4"/><path d="M5 5a10 10 0 0 0 0 14"/><path d="M19 19a10 10 0 0 0 0-14"/>',
+  next:'<path d="M6 5.5v13L16 12z"/><path d="M18 5.5v13"/>',
+  delay:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/>',
+  /* A small letter beside a large one, which is what "text size" is everywhere.
+     The first draft drew two F shapes and read as the word "FF". */
+  size:'<path d="M3.5 18l3-7.5L9.5 18"/><path d="M4.4 15.6h4.2"/>' +
+       '<path d="M12.5 18l4.5-11 4.5 11"/><path d="M13.9 14.6h7.2"/>',
+  deint:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M3 12h18M3 15h18"/>',
+};
+function ic(k, cls) { return '<svg class="ic ' + (cls||'') + '" viewBox="0 0 24 24">' + I[k] + '</svg>'; }
+function btn(k, id, extra, label) {
+  return '<span class="btn ' + (extra||'') + '" id="' + (id||'') + '">' + ic(k) +
+    (label ? '<span class="lbl">' + label + '</span>' : '') + '</span>';
+}
+
+var S = {
+  ar: { dir:"rtl",
+    movie:"الطريق إلى شفشاون", movieSub:"فيلم · 2024 · 1080p",
+    channel:"الأولى المغربية", channelSub:"باقة المغرب",
+    live:"مباشر", pos:"41:20", dur:"1:42:08", livePos:"مباشر الآن",
+    buffering:"جارٍ التحميل…", bufferingSub:"‏1.2 ميغابت/ث",
+    errT:"تعذّر تشغيل هذا الملف",
+    errD:"المشغّل الأساسي لا يدعم هذا الترميز. يمكن تجربة المشغّل الاحتياطي.",
+    errRetry:"إعادة المحاولة", errAlt:"جرّب المشغّل الاحتياطي",
+    fallback:"المشغّل الأساسي لم يفتح هذا الملف — جارٍ التحويل إلى الاحتياطي",
+    engine2:"المشغّل ٢",
+    locked:"الشاشة مقفلة — اضغط مطوّلًا لفتحها",
+    epgNow:"الأخبار المسائية", epgTime:"20:00 – 20:45",
+    epgNext:"التالي: وثائقي أعماق البحار",
+    loading:"جارٍ فتح القناة…", reconnecting:"انقطع الاتصال — إعادة المحاولة",
+    attempt:"المحاولة ٢ من ٣", resume:"المتابعة من 41:20", skip:"تخطّي المقدّمة",
+    nextK:"التالي بعد ٨ ثوانٍ", nextT:"الحلقة ٤ — العودة", nextC:"تشغيل الآن",
+    unsupT:"صيغة غير مدعومة",
+    unsupD:"لا يستطيع أيّ من المحرّكين قراءة هذا الترميز. جرّب مصدرًا آخر.",
+    drmT:"محتوى محمي",
+    drmD:"هذا المصدر يتطلّب حماية رقمية لا يدعمها هذا الجهاز.",
+    behind:"متأخّر ٤:�12 عن المباشر", toLive:"العودة إلى المباشر",
+    catchup:"إعادة", castTo:"يُعرض على", castDev:"تلفزيون غرفة الجلوس",
+    statsT:"إحصاءات التشغيل",
+    stats:[["الدقة","1920×1080"],["الإطارات","25 f/s"],["الترميز","H.264 · AAC"],
+      ["معدّل البت","5.8 Mb/s"],["المخزون","‏6.4 ث"],["إطارات ساقطة","0"],
+      ["الشبكة","‏18 ms · Wi-Fi"],["زمن البدء","‏0.9 ث"],["المحرّك","الأساسي"]],
+    sheets:{
+      settings:{ t:"الإعدادات", rows:[
+        ["audio","مسار الصوت","العربية"],["cc","الترجمة","العربية"],
+        ["size","حجم الترجمة","متوسط"],["delay","تأخير الترجمة","0.0 ث"],
+        ["delay","تأخير الصوت","0.0 ث"],["speed","سرعة التشغيل","1.0×"],
+        ["ratio","نسبة العرض","تلقائي"],["quality","جودة الفيديو","1080p"],
+        ["deint","إزالة التشابك","تلقائي"],["pip","صورة داخل صورة",""],
+        ["ratio","التكبير","احتواء"],["ratio","تدوير الصورة","0°"],
+        ["delay","مؤقّت النوم","معطّل"],["speed","تكرار A-B","معطّل"],
+        ["guide","العلامات المرجعية","2"],["next","تخطّي المقدّمة","تلقائي"],
+        ["quality","إحصاءات التشغيل",""],["cast","العرض على جهاز",""],
+        ["pip","صورة داخل صورة",""],
+        ["engine","المشغّل","الأساسي"],["engine","فتح بالمشغّل الاحتياطي",""],
+      ]},
+      quality:{ t:"جودة الفيديو", rows:[
+        ["quality","تلقائي","يتبع الشبكة"],["quality","1080p","5.8 Mb/s"],
+        ["quality","720p","3.1 Mb/s"],["quality","480p","1.4 Mb/s"],
+      ], sel:0 },
+      subtitles:{ t:"الترجمة", rows:[
+        ["cc","بدون ترجمة",""],["cc","العربية","مضمّنة"],
+        ["cc","الإنجليزية","مضمّنة"],["cc","الفرنسية","SRT"],
+        ["size","حجم الترجمة","متوسط"],["delay","تأخير الترجمة","0.0 ث"],
+      ], sel:1 },
+      audio:{ t:"مسار الصوت", rows:[
+        ["audio","العربية","AC3 · 5.1"],["audio","الإنجليزية","AAC · 2.0"],
+        ["audio","الفرنسية","AAC · 2.0"],["delay","تأخير الصوت","0.0 ث"],
+      ], sel:0 },
+    },
+  },
+  en: { dir:"ltr",
+    movie:"The Road to Chefchaouen", movieSub:"Film · 2024 · 1080p",
+    channel:"Al Aoula", channelSub:"Morocco bundle",
+    live:"LIVE", pos:"41:20", dur:"1:42:08", livePos:"Live now",
+    buffering:"Buffering…", bufferingSub:"1.2 Mbps",
+    errT:"This file would not play",
+    errD:"The main player does not support this encoding. The backup player can try it.",
+    errRetry:"Try again", errAlt:"Use the backup player",
+    fallback:"The main player could not open this — switching to the backup",
+    engine2:"Player 2",
+    locked:"Screen locked — press and hold to unlock",
+    epgNow:"Evening news", epgTime:"20:00 – 20:45",
+    epgNext:"Next: Deep sea, episode 3",
+    loading:"Opening the channel…", reconnecting:"Connection lost — retrying",
+    attempt:"Attempt 2 of 3", resume:"Resume from 41:20", skip:"Skip intro",
+    nextK:"Next in 8 seconds", nextT:"Episode 4 — The Return", nextC:"Play now",
+    unsupT:"Format not supported",
+    unsupD:"Neither player can read this encoding. Try another source.",
+    drmT:"Protected content",
+    drmD:"This source needs a form of protection this device does not support.",
+    behind:"4:12 behind live", toLive:"Back to live",
+    catchup:"Catch-up", castTo:"Playing on", castDev:"Living room TV",
+    statsT:"Playback statistics",
+    stats:[["Resolution","1920×1080"],["Frame rate","25 f/s"],["Codec","H.264 · AAC"],
+      ["Bitrate","5.8 Mb/s"],["Buffer","6.4 s"],["Dropped frames","0"],
+      ["Network","18 ms · Wi-Fi"],["Start-up","0.9 s"],["Engine","Main"]],
+    sheets:{
+      settings:{ t:"Settings", rows:[
+        ["audio","Audio track","Arabic"],["cc","Subtitles","Arabic"],
+        ["size","Subtitle size","Medium"],["delay","Subtitle delay","0.0 s"],
+        ["delay","Audio delay","0.0 s"],["speed","Playback speed","1.0×"],
+        ["ratio","Aspect ratio","Auto"],["quality","Video quality","1080p"],
+        ["deint","Deinterlace","Auto"],["pip","Picture in picture",""],
+        ["ratio","Zoom","Fit"],["ratio","Rotate","0°"],
+        ["delay","Sleep timer","Off"],["speed","A-B repeat","Off"],
+        ["guide","Bookmarks","2"],["next","Skip intro","Automatic"],
+        ["quality","Playback statistics",""],["cast","Play on a device",""],
+        ["pip","Picture in picture",""],
+        ["engine","Player","Main"],["engine","Open with backup player",""],
+      ]},
+      quality:{ t:"Video quality", rows:[
+        ["quality","Automatic","Follows the network"],["quality","1080p","5.8 Mb/s"],
+        ["quality","720p","3.1 Mb/s"],["quality","480p","1.4 Mb/s"],
+      ], sel:0 },
+      subtitles:{ t:"Subtitles", rows:[
+        ["cc","No subtitles",""],["cc","Arabic","Embedded"],
+        ["cc","English","Embedded"],["cc","French","SRT"],
+        ["size","Subtitle size","Medium"],["delay","Subtitle delay","0.0 s"],
+      ], sel:1 },
+      audio:{ t:"Audio track", rows:[
+        ["audio","Arabic","AC3 · 5.1"],["audio","English","AAC · 2.0"],
+        ["audio","French","AAC · 2.0"],["delay","Audio delay","0.0 s"],
+      ], sel:0 },
+    },
+  },
+};
+
+var q = new URLSearchParams(location.search);
+var s = S[q.get("lang")] || S.ar;
+var state = q.get("state") || "movie";
+var f = q.get("frame");
+if (f === "tv" || f === "short") document.documentElement.dataset.frame = f;
+document.documentElement.dir = s.dir;
+document.documentElement.lang = s.dir === "rtl" ? "ar" : "en";
+if (q.get("spec")) document.documentElement.dataset.spec = "1";
+
+var d = document.documentElement.dataset;
+/* Which family the state belongs to, so a state is declared once and every
+   surface reads the same answer. */
+var LIVE = ["live","live-cold","timeshift"];
+var SHEETS = ["settings","subtitles","audio","quality"];
+var CARDS = ["error","unsupported","drm"];
+var live = LIVE.indexOf(state) >= 0;
+
+d.kind = live ? "live" : "movie";
+d.controls = (state === "hidden" || state === "loading") ? "off" : "on";
+/* The strip reserves its height from the first frame and fills in when the guide
+   arrives. `live-cold` is that moment before it does -- drawn to prove nothing
+   reflows, which is the whole reason the EPG is not on the startup path. */
+d.epg = live ? "1" : "0";
+d.epgcold = state === "live-cold" ? "1" : "0";
+d.gestures = state === "gestures" ? "1" : "0";
+d.locked = state === "locked" ? "1" : "0";
+d.sheet = SHEETS.indexOf(state) >= 0 ? "1" : "0";
+d.toast = state === "fallback" ? "1" : "0";
+d.stats = state === "statistics" ? "1" : "0";
+d.chip = (state === "skip" || state === "nextup") ? state : "";
+d.mode = (state === "pip" || state === "cast") ? state : "";
+d.overlay =
+  state === "loading" ? "loading" :
+  state === "buffering" ? "buffering" :
+  state === "reconnecting" ? "reconnecting" :
+  CARDS.indexOf(state) >= 0 ? "error" : "";
+
+/* ------------------------------------------------------------------ the bars */
+document.getElementById("back").innerHTML = ic("back");
+document.getElementById("lock").innerHTML = ic(state === "locked" ? "unlock" : "lock");
+document.getElementById("cast").innerHTML = ic("cast");
+document.getElementById("more-top").innerHTML = ic("more");
+document.getElementById("sheetClose").innerHTML = ic("close");
+
+document.getElementById("name").textContent =
+  state === "catchup" ? s.epgNow : (live ? s.channel : s.movie);
+document.getElementById("sub").innerHTML =
+  state === "catchup"
+    ? '<span class="pill eng">' + s.catchup + '</span>' +
+      '<span class="pill num">104</span>' + s.channel
+  : live
+    ? '<span class="pill live"><i></i>' + s.live + '</span>' +
+      '<span class="pill num">104</span>' + s.channelSub
+    : s.movieSub + (state === "player2"
+        ? ' <span class="pill eng">' + s.engine2 + '</span>' : '');
+
+/* Bookmarks and an A-B loop, on the bar where they mean something. Drawn on the
+   states that have a timeline rather than on all of them. */
+if (!live || state === "timeshift") {
+  document.getElementById("track").insertAdjacentHTML("beforeend",
+    '<i class="ab" style="inset-inline-start:52%;width:14%"></i>' +
+    '<i class="mark" style="inset-inline-start:18%"></i>' +
+    '<i class="mark" style="inset-inline-start:66%"></i>');
+}
+
+/* The centre cluster. Live steps channels where a film steps chapters, and the
+   ten-second jumps stay in both -- a live stream that is behind is exactly where
+   a viewer wants them. */
+document.getElementById("centre").innerHTML =
+  btn(live ? "prev" : "prev", "", "bare") +
+  '<span class="btn bare seek">' + ic("back10") + '<span class="n">10</span></span>' +
+  '<span class="play' + (state === "movie" ? " focused" : "") + '">' +
+    ic(state === "buffering" ? "pause" : (state === "hidden" ? "play" : "pause")) + '</span>' +
+  '<span class="btn bare seek">' + ic("fwd10") + '<span class="n">10</span></span>' +
+  btn("next", "", "bare");
+
+document.getElementById("pos").textContent =
+  state === "timeshift" ? s.behind : (live ? s.livePos : s.pos);
+document.getElementById("dur").textContent = live ? "" : s.dur;
+
+document.getElementById("tools").innerHTML =
+  btn("speed", "", "wide", "1.0×") +
+  btn("cc", "", live ? "" : "on") +
+  btn("audio") +
+  btn("ratio") +
+  (live ? btn("guide") + btn("channels") : "") +
+  /* Returning to the edge of a live stream is a control like any other, so it is
+     the same 48dp target as its neighbours. It was drawn inline in the time row
+     first, at 32 -- which measured as the only control in the player under the
+     touch floor. */
+  (state === "timeshift"
+    ? '<span class="btn wide focused">' + ic("live") +
+      '<span class="lbl">' + s.toLive + '</span></span>' : "") +
+  '<span class="spacer"></span>' +
+  btn("quality", "", state === "quality" ? "on" : "") +
+  btn("more", "", (state === "settings" || state === "statistics") ? "on" : "") +
+  btn("full");
+
+document.getElementById("epg").innerHTML =
+  '<div class="now"><div class="t">' + s.epgNow + '</div>' +
+  '<div class="s">' + s.epgTime + '</div></div>' +
+  '<span class="prog"><i></i></span>' +
+  '<span class="next">' + s.epgNext + '</span>';
+
+/* --------------------------------------------------------------- transients */
+document.getElementById("bufLbl").textContent =
+  state === "loading" ? s.loading :
+  state === "reconnecting" ? s.reconnecting + "  ·  " + s.attempt :
+  s.buffering + "  ·  " + s.bufferingSub;
+
+/* Three cards, one shape. What differs is what can be done about it: a codec the
+   main engine refused is worth handing to the other one, a codec neither can read
+   is not, and protected content is neither engine's to fix. Offering "try the
+   other player" where it cannot help is worse than offering nothing. */
+var card = state === "unsupported"
+    ? { t:s.unsupT, d:s.unsupD, alt:false }
+  : state === "drm"
+    ? { t:s.drmT, d:s.drmD, alt:false }
+    : { t:s.errT, d:s.errD, alt:true };
+document.getElementById("errT").textContent = card.t;
+document.getElementById("errD").textContent = card.d;
+document.getElementById("errRow").innerHTML =
+  (card.alt ? '<span class="btn wide focused">' + ic("engine") +
+     '<span class="lbl">' + s.errAlt + '</span></span>' : '') +
+  '<span class="btn wide' + (card.alt ? '' : ' focused') + '">' + ic("delay") +
+    '<span class="lbl">' + s.errRetry + '</span></span>';
+
+/* Statistics. Read while watching, so a panel at the start edge rather than a
+   sheet over the picture it describes. */
+document.getElementById("stats").innerHTML =
+  '<div class="h">' + ic("quality") + s.statsT + '</div>' +
+  s.stats.map(function (r) {
+    return '<div class="r"><span class="k">' + r[0] + '</span>' +
+      '<span class="v">' + r[1] + '</span></div>';
+  }).join("");
+
+document.getElementById("skipChip").innerHTML = ic("next") + '<span>' + s.skip + '</span>';
+document.getElementById("nextUp").innerHTML =
+  '<span class="art"></span><span class="txt">' +
+  '<span class="k">' + s.nextK + '</span>' +
+  '<div class="t">' + s.nextT + '</div>' +
+  '<div class="c">' + s.nextC + '</div></span>' +
+  '<span class="btn focused">' + ic("play") + '</span>';
+
+document.getElementById("pipRow").innerHTML = ic("back10") + ic("pause") + ic("fwd10");
+document.getElementById("castIcon").innerHTML = ic("cast");
+document.getElementById("castTo").textContent = s.castTo;
+document.getElementById("castDev").textContent = s.castDev;
+document.getElementById("castRow").innerHTML =
+  '<span class="btn">' + ic("back10") + '</span>' +
+  '<span class="btn focused">' + ic("pause") + '</span>' +
+  '<span class="btn">' + ic("fwd10") + '</span>';
+document.getElementById("toastText").textContent = s.fallback;
+document.getElementById("lockPill").innerHTML = ic("lock") +
+  '<span>' + s.locked + '</span>';
+
+/* -------------------------------------------------------------------- sheet */
+var sheet = s.sheets[state];
+if (sheet) {
+  document.getElementById("sheetTitle").textContent = sheet.t;
+  document.getElementById("sheetBody").innerHTML = sheet.rows.map(function (r, i) {
+    var selected = sheet.sel === i;
+    return '<div class="opt' + (selected ? " sel" : "") + (i === 0 && sheet.sel !== 0 ? " focused" : "") +
+      (selected ? " focused" : "") + '">' + ic(r[0]) +
+      '<span class="n">' + r[1] + '</span>' +
+      (r[2] ? '<span class="m">' + r[2] + '</span>' : '') +
+      '<span class="tick">' + ic("tick") + '</span></div>';
+  }).join("");
+}
+
+if (q.get("fit")) {
+  document.documentElement.dataset.fit = "1";
+  var fit = function () {
+    var el = document.getElementById("tv");
+    var k = Math.min(window.innerWidth / el.offsetWidth, window.innerHeight / el.offsetHeight);
+    document.documentElement.style.setProperty("--fit", k);
+  };
+  fit();
+  window.addEventListener("resize", fit);
+}
+
+/* The measurement. What matters on a player is not that a column fits -- there is
+   no column -- but that nothing a thumb or a remote has to reach is outside the
+   safe area, that every target is a target, and that the picture is never inset. */
+window.addEventListener("load", function () {
+  var r1 = function (n) { return Math.round(n * 10) / 10; };
+  var frame = document.getElementById("tv").getBoundingClientRect();
+  var video = document.querySelector(".video").getBoundingClientRect();
+  var safe = document.querySelector(".safe").getBoundingClientRect();
+  var top = document.querySelector(".top").getBoundingClientRect();
+  var bottom = document.querySelector(".bottom").getBoundingClientRect();
+  var centre = document.querySelector(".centre").getBoundingClientRect();
+
+  var small = [], outside = [];
+  document.querySelectorAll(".btn, .play, .opt").forEach(function (n) {
+    if (n.closest(".spec")) return;
+    var b = n.getBoundingClientRect();
+    if (b.width < 0.5) return;
+    var min = parseFloat(getComputedStyle(document.documentElement)
+      .getPropertyValue("--tap"));
+    if (b.height + 0.5 < min || b.width + 0.5 < min) {
+      small.push(n.className.split(" ")[0] + " " + r1(b.width) + "x" + r1(b.height));
+    }
+    // The sheet reaches the screen edge by design -- it is a surface, not a
+    // control -- so only what lives in `.safe` is held to the safe area.
+    if (!n.closest(".safe")) return;
+    if (b.left < safe.left - 0.5 || b.right > safe.right + 0.5 ||
+        b.top < safe.top - 0.5 || b.bottom > safe.bottom + 0.5) {
+      outside.push(n.className.split(" ")[0]);
+    }
+  });
+
+  var overlapped = bottom.top < centre.bottom - 0.5 || centre.top < top.bottom - 0.5;
+
+  window.__fit = {
+    state: state,
+    frame: r1(frame.width) + "x" + r1(frame.height),
+    video: r1(video.width) + "x" + r1(video.height),
+    videoFillsFrame: Math.abs(video.width - frame.width) < 0.5 &&
+      Math.abs(video.height - frame.height) < 0.5,
+    safeInset: r1(safe.left - frame.left),
+    top: r1(top.height), centre: r1(centre.height), bottom: r1(bottom.height),
+    freeAboveCentre: r1(centre.top - top.bottom),
+    freeBelowCentre: r1(bottom.top - centre.bottom),
+    bandsOverlap: overlapped,
+    tooSmall: small,
+    outsideSafe: outside,
+    overflow: (document.getElementById("tv").scrollHeight -
+      document.getElementById("tv").clientHeight),
+  };
+
+  document.getElementById("note").textContent =
+    state + " " + window.__fit.frame + " | video " + window.__fit.video +
+    " | safe " + window.__fit.safeInset + " | top " + window.__fit.top +
+    " | centre " + window.__fit.centre + " | bottom " + window.__fit.bottom +
+    " | free " + window.__fit.freeAboveCentre + "/" + window.__fit.freeBelowCentre +
+    " | small " + window.__fit.tooSmall.length +
+    " | outside " + window.__fit.outsideSafe.length;
+});
+document.fonts.ready.then(function () { window.__fontsReady = true; });
+</script>
+</body>
+</html>
