@@ -1,9 +1,7 @@
 package com.castivio.feature.activation
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -33,7 +31,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -47,9 +44,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.castivio.core.design.components.CastivioMark
@@ -174,13 +169,7 @@ internal fun SourceChoiceScreen(
                 onSavedSources = onSavedSources,
             )
             Spacer(Modifier.height(ContainerGap))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                BackButton(onBack, Modifier.testTag(ActivationTags.SOURCE_BACK))
-                Rule(Modifier.weight(1f).padding(horizontal = RuleGap))
-            }
+            ChooserFooter(onBack, ActivationTags.SOURCE_BACK)
         }
 
         // At the bottom of the screen, a hair under the container, as the reference
@@ -240,21 +229,18 @@ private fun SourceContainer(
  */
 @Composable
 private fun Heading() {
-    // Physical, not logical: the mark belongs in the left corner in Arabic too, so
-    // what changes with the direction is which end of the row it is composed at. A
-    // `Row` runs start to end, so in RTL the *last* child is the leftmost one.
+    // The question takes the start of the row and the mark takes the end, so the two
+    // sit in opposite corners in either direction -- title right and mark left in
+    // Arabic, title left and mark right in English. One rule, and it needs nothing
+    // direction-aware: the last child of a row *is* the end, and the layout direction
+    // decides which physical corner that is.
     //
-    // The direction-absolute alignments would say this in one word, and invariant 9
-    // bans them outright rather than case by case -- a rule that is argued about is a
-    // rule that loses. Composition order is not an exemption from it: it moves this
-    // one element and cannot quietly pin anything else to a physical side.
-    val leftmostIsLast = LocalLayoutDirection.current == LayoutDirection.Rtl
-
+    // This used to hold the mark on the physical left in both, which put it under the
+    // English title's first word. Unified with the media source screen at review.
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(MarkGap),
     ) {
-        if (!leftmostIsLast) Wordmark(Modifier.alignByBaseline())
         Text(
             text = stringResource(R.string.source_choice_title),
             style = CastivioType.headlineMedium,
@@ -265,7 +251,7 @@ private fun Heading() {
                 .testTag(ActivationTags.SOURCE_HEADING)
                 .semantics { heading() },
         )
-        if (leftmostIsLast) Wordmark(Modifier.alignByBaseline())
+        Wordmark(Modifier.alignByBaseline())
     }
 }
 
@@ -378,45 +364,6 @@ private fun SourceGrid(
 }
 
 /**
- * The hairline beside Back. Decoration, and nothing else.
- *
- * Back is a ghost button on a full-width row, so it leaves two thirds of the
- * container's last band empty. That emptiness reads as a missing element rather than
- * as margin, because it is enclosed on all four sides — the grid above it, the
- * container's own edge below and beside it. A hairline is the quietest thing that can
- * occupy it without pretending to be a control.
- *
- * No text, no icon, no semantics and no click, so a D-pad and a screen reader both
- * pass straight over it. `weight(1f)` gives it the leftover and nothing else: Back
- * keeps its own width, its own position and its own height, and the row is as tall as
- * the button was on its own, so nothing above or below it moves.
- *
- * It fades away from Back rather than running at one strength into the corner.
- * `glassBorder` is the same 23.9% every edge on this screen is drawn at — full weight
- * where it leaves the button, nothing where it would otherwise have met the container.
- * A hairline that stops dead needs a reason to stop at that particular pixel, and
- * there is none; so it does not stop, it ends.
- *
- * The colour order is read off the direction because `horizontalGradient` is physical
- * and Back is not: the solid end has to be whichever end the button is at, and the
- * button is at the start.
- */
-@Composable
-private fun Rule(modifier: Modifier) {
-    val edge = CastivioTheme.colors.glassBorder
-    val fromBack = if (LocalLayoutDirection.current == LayoutDirection.Ltr) {
-        listOf(edge, edge.copy(alpha = 0f))
-    } else {
-        listOf(edge.copy(alpha = 0f), edge)
-    }
-    Box(
-        modifier
-            .height(RuleThickness)
-            .background(Brush.horizontalGradient(fromBack)),
-    )
-}
-
-/**
  * The terms sentence, below the container and centred on the frame.
  *
  * `fillMaxWidth()` with `TextAlign.Center`, which is the plainest way to say "the same
@@ -474,26 +421,12 @@ private fun TermsLine(onClick: () -> Unit) {
  */
 private val MarkSize: TextUnit
     @Composable @ReadOnlyComposable get() =
-        if (CastivioTheme.device.isTv) 13.sp else 11.sp
+        if (CastivioTheme.device.isTv) 19.sp else 16.sp
 
 /** Mark to title. The same step the rest of the screen separates groups by. */
 private val MarkGap: Dp
     @Composable @ReadOnlyComposable get() =
         if (CastivioTheme.device.isTv) Spacing.xl else Spacing.lg
-
-/**
- * The hairline's clearance, the same figure at both ends.
- *
- * It does not run into Back and it does not run into the container's inner edge; the
- * gap either side is one number so the line reads as centred in what is left rather
- * than as pushed against something.
- */
-private val RuleGap: Dp
-    @Composable @ReadOnlyComposable get() =
-        if (CastivioTheme.device.isTv) Spacing.xl else Spacing.lg
-
-/** One device-independent pixel. A hairline is the whole point. */
-private val RuleThickness = 1.dp
 
 /**
  * The gap between the four cards, across and down alike.

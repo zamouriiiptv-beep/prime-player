@@ -22,6 +22,16 @@
     <string name="source_terms">شروط الخدمة</string>
     <string name="source_terms_note"> — باستخدام التطبيق، فإنك توافق على شروط الاستخدام.</string>
 
+    <string name="media_source_title">اختر مصدر التشغيل</string>
+    <string name="media_video_library_title">مكتبة الفيديو</string>
+    <string name="media_video_library_detail">جميع الفيديوهات الموجودة على الجهاز.</string>
+    <string name="media_video_pick_title">اختيار فيديو</string>
+    <string name="media_video_pick_detail">اختيار ملف فيديو من الجهاز.</string>
+    <string name="media_audio_library_title">مكتبة الصوت</string>
+    <string name="media_audio_library_detail">جميع الملفات الصوتية الموجودة على الجهاز.</string>
+    <string name="media_mp3_pick_title">اختيار MP3</string>
+    <string name="media_mp3_pick_detail">اختيار ملف MP3 من الجهاز.</string>
+
     <string name="saved_sources_title">قائمة المستخدمين</string>
     <string name="saved_sources_empty">لا توجد اشتراكات محفوظة على هذا الجهاز بعد.</string>
     <string name="saved_sources_add_xtream">إضافة Xtream</string>

@@ -184,9 +184,10 @@
      and the sentence below it are paid for. */
   --group-gap:8px;    /* was Spacing.md 12, +8 as asked */
   --back-h:48px;       /* Sizing.minTouchTarget */
+  --ring:36px;         /* Sizing.minTarget - Spacing.md */
   /* The corner mark, and the rule beside Back. Both are decoration, and both
      are sized so that they cost the composition nothing -- see their rules. */
-  --mark-size:11px;
+  --mark-size:16px;
   --mark-gap:16px;     /* Spacing.lg, mark to title */
   --rule-gap:16px;     /* Spacing.lg, the same figure at both ends of the rule */
 }
@@ -207,7 +208,8 @@ html[data-frame="tv"]{
   --legal-gap:16px;    /* was Spacing.xl 24, +8 as asked */
   --group-gap:16px;    /* was Spacing.xl 24, +8 as asked */
   --back-h:56px;       /* Sizing.minTvTarget */
-  --mark-size:13px;
+  --ring:44px;
+  --mark-size:19px;
   --mark-gap:24px;     /* Spacing.xl */
   --rule-gap:24px;     /* Spacing.xl */
 }
@@ -300,7 +302,6 @@ html[dir="ltr"] .backdrop{
   -webkit-background-clip:text;background-clip:text;color:transparent;
   -webkit-text-fill-color:transparent;
   user-select:none}
-html[dir="rtl"] .brand{order:2}
 
 /* The container: one surface holding the four choices and the way back.
    ------------------------------------------------------------------------
@@ -405,11 +406,17 @@ html[dir="rtl"] .brand{order:2}
    would have centred it on whatever Back left over, which is a different thing
    that looks the same until Back changes width in another language. */
 /* Back alone now, on the starting side, which the direction resolves. */
-.foot{display:flex;align-items:center;justify-content:flex-start}
+.foot{display:flex;flex-direction:row;align-items:center;gap:0}
 
 /* ButtonWeight.Ghost: no fill and no border until it is focused. */
-.back{display:inline-flex;align-items:center;
+.back{display:inline-flex;align-items:center;gap:12px;
   height:var(--back-h);padding:0 24px;color:var(--mist)}
+.back .ring{flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  width:var(--ring);height:var(--ring);border-radius:50%;
+  border:1px solid var(--glass-border)}
+html[dir="rtl"] .back .ring svg{transform:scaleX(-1)}
+svg.g{flex:0 0 auto;width:20px;height:20px;stroke:currentColor;fill:none;
+  stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 
 /* The rule beside Back. Decoration, and nothing else.
    ------------------------------------------------------------------------
@@ -430,11 +437,13 @@ html[dir="rtl"] .brand{order:2}
    the container. A hairline that stops dead needs a reason to stop there, and
    there is no reason -- so it does not stop, it ends. `--rule-gap` at both ends
    keeps it off Back and off the container's inner edge by the same figure. */
-.rule{flex:1 1 auto;height:1px;align-self:center;
-  margin-inline:var(--rule-gap);
+.rule{flex:1 1 0;min-width:0;height:1px}
+.rule.a{background:linear-gradient(to right,rgba(255,255,255,0),var(--glass-border))}
+.rule.b{background:linear-gradient(to right,var(--glass-border),rgba(255,255,255,0))}
+html[dir="rtl"] .rule.a{
+  background:linear-gradient(to left,rgba(255,255,255,0),var(--glass-border))}
+html[dir="rtl"] .rule.b{
   background:linear-gradient(to left,var(--glass-border),rgba(255,255,255,0))}
-html[dir="ltr"] .rule{
-  background:linear-gradient(to right,var(--glass-border),rgba(255,255,255,0))}
 
 /* Quiet, and unmistakably a link.
    ------------------------------------------------------------------------
@@ -498,10 +507,10 @@ html[data-spec="1"] .spec{display:block}
          It also bought the layout 32dp, which is the difference between a
          screen with 2.5dp of slack and one with room to breathe. -->
     <div class="head">
-      <!-- Physically left in both directions, which `order` handles in the CSS.
-           The word is the mark; there is deliberately no glyph beside it. -->
-      <span class="brand" aria-hidden="true">CASTIVIO</span>
+      <!-- Last in the row, so it lands on the end side: the left corner in Arabic,
+           the right corner in English. Unified with the media source screen. -->
       <h1 class="t-headline-m" data-s="title"></h1>
+      <span class="brand" aria-hidden="true">CASTIVIO</span>
     </div>
 
     <!-- Source order, not visual order: a Row lays its children out start to
@@ -563,8 +572,16 @@ html[data-spec="1"] .spec{display:block}
       </div>
 
       <div class="foot">
-        <span class="back t-label-l" data-s="back"></span>
-        <span class="rule" aria-hidden="true"></span>
+        <span class="rule a" aria-hidden="true"></span>
+        <span class="back t-label-l">
+          <span class="ring" aria-hidden="true">
+            <svg class="g" viewBox="0 0 24 24">
+              <path d="M20 12H5"/><path d="M11.5 5.5L5 12l6.5 6.5"/>
+            </svg>
+          </span>
+          <span data-s="back"></span>
+        </span>
+        <span class="rule b" aria-hidden="true"></span>
       </div>
     </div>
 
@@ -637,7 +654,8 @@ window.addEventListener("load", function () {
   var terms = document.querySelector(".legal").getBoundingClientRect();
   var frame = document.getElementById("tv").getBoundingClientRect();
   var brand = document.querySelector(".brand").getBoundingClientRect();
-  var rule = document.querySelector(".rule").getBoundingClientRect();
+  var ruleA = document.querySelector(".rule.a").getBoundingClientRect();
+  var ruleB = document.querySelector(".rule.b").getBoundingClientRect();
   var cards = [].map.call(document.querySelectorAll("#grid .card"), function (n) {
     var b = n.getBoundingClientRect();
     return { w: Math.round(b.width * 10) / 10, h: Math.round(b.height * 10) / 10,
@@ -659,6 +677,16 @@ window.addEventListener("load", function () {
     /* The link costs the row nothing: it is 20 inside Back's 48. Reported so a
        future change to either is caught by the number rather than by eye. */
     terms: Math.round(terms.width * 10) / 10 + "x" + terms.height,
+    ruleA: Math.round(ruleA.width * 10) / 10 + "x" + Math.round(ruleA.height * 10) / 10,
+    ruleB: Math.round(ruleB.width * 10) / 10 + "x" + Math.round(ruleB.height * 10) / 10,
+    ruleSpread: Math.round(Math.abs(ruleA.width - ruleB.width) * 10) / 10,
+    backLeadIn: Math.round((back.left - panel.left -
+      parseFloat(getComputedStyle(document.getElementById("panel")).borderLeftWidth) -
+      parseFloat(getComputedStyle(document.getElementById("panel")).paddingLeft)) * 10) / 10,
+    backTrailIn: Math.round((panel.right -
+      parseFloat(getComputedStyle(document.getElementById("panel")).borderRightWidth) -
+      parseFloat(getComputedStyle(document.getElementById("panel")).paddingRight) -
+      back.right) * 10) / 10,
     termsInside: terms.left >= frame.left + parseFloat(getComputedStyle(band).paddingLeft || 0) - 0.5 &&
       terms.right <= frame.right && terms.bottom <= frame.bottom,
     termsAtEnd: document.documentElement.dir === "rtl"
@@ -677,12 +705,9 @@ window.addEventListener("load", function () {
     /* The rule: how long, how far from Back, how far from the container's inner
        edge. Both gaps are `--rule-gap` by construction; measured so that a
        change to Back's padding shows up here rather than on a device. */
-    rule: Math.round(rule.width * 10) / 10 + "x" + Math.round(rule.height * 10) / 10,
-    ruleFromBack: Math.round(Math.abs(
-      document.documentElement.dir === "rtl" ? back.left - rule.right : rule.left - back.right) * 10) / 10,
-    ruleFromEdge: Math.round(Math.abs(
-      document.documentElement.dir === "rtl" ? rule.left - panel.left - parseFloat(getComputedStyle(document.getElementById("panel")).paddingLeft)
-        : panel.right - parseFloat(getComputedStyle(document.getElementById("panel")).paddingRight) - rule.right) * 10) / 10,
+    ruleTouchesBack: Math.round(Math.max(
+      Math.abs(back.left - Math.min(ruleA.right, ruleB.right)),
+      Math.abs(Math.max(ruleA.left, ruleB.left) - back.right)) * 10) / 10,
     cards: cards,
     cardW: Math.max.apply(null, w), widthSpread: Math.max.apply(null, w) - Math.min.apply(null, w),
     cardH: Math.max.apply(null, h), heightSpread: Math.max.apply(null, h) - Math.min.apply(null, h),
@@ -702,8 +727,8 @@ window.addEventListener("load", function () {
     " | spread " + window.__fit.widthSpread + "/" + window.__fit.heightSpread +
     " | gaps " + window.__fit.gapX + "/" + window.__fit.gapY +
     " || mark " + window.__fit.brand + " @" + window.__fit.brandAtLeft +
-    " | rule " + window.__fit.rule + " (" + window.__fit.ruleFromBack +
-    " from back, " + window.__fit.ruleFromEdge + " from edge)" +
+    " | rules " + window.__fit.ruleA + " / " + window.__fit.ruleB +
+    " spread " + window.__fit.ruleSpread +
     " | OVERFLOW " + window.__fit.overflow;
 });
 document.fonts.ready.then(function () { window.__fontsReady = true; });

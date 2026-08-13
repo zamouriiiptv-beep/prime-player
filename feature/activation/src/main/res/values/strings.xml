@@ -34,6 +34,21 @@
          shares Back's row, so a wrap would push the sentence out of it. -->
     <string name="source_terms_note"> — By using this app, you agree to the Terms of Service.</string>
 
+    <!-- The device's own media: browse everything, or pick one file. Nothing here
+         names MediaStore or the document picker — those are how the four will be
+         built, not what the user is choosing between. -->
+    <string name="media_source_title">What would you like to play?</string>
+    <string name="media_video_library_title">Video library</string>
+    <string name="media_video_library_detail">Every video on this device.</string>
+    <string name="media_video_pick_title">Choose a video</string>
+    <string name="media_video_pick_detail">Pick a video file from this device.</string>
+    <string name="media_audio_library_title">Audio library</string>
+    <!-- The longest of the four, and so the first to wrap: the cards share one
+         height, so a wrap in this one makes all four taller. -->
+    <string name="media_audio_library_detail">Every audio file on this device.</string>
+    <string name="media_mp3_pick_title">Choose an MP3</string>
+    <string name="media_mp3_pick_detail">Pick an MP3 file from this device.</string>
+
     <!-- The subscriptions already on this box -->
     <string name="saved_sources_title">Saved users</string>
     <string name="saved_sources_empty">No subscriptions saved on this device yet.</string>

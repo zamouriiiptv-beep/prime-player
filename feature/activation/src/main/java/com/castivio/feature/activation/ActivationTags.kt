@@ -86,6 +86,32 @@ internal object ActivationTags {
      */
     const val SOURCE_CONTAINER = "activation.sourceContainer"
 
+    /**
+     * The media source step, which the third card opens.
+     *
+     * Tagged on the same footing as the source choice's four, and for the same
+     * reason: the claim these gates make is that all four are *one* card repeated,
+     * equal in width and height, and a claim about four things needs four handles.
+     * The container and the heading are here because "the cards are inside the
+     * glass" and "the header did not grow" are otherwise claims only a screenshot
+     * can settle.
+     */
+    const val MEDIA_CONTAINER = "media.container"
+    const val MEDIA_HEADING = "media.heading"
+    const val MEDIA_VIDEO_LIBRARY = "media.videoLibrary"
+    const val MEDIA_VIDEO_PICK = "media.videoPick"
+    const val MEDIA_AUDIO_LIBRARY = "media.audioLibrary"
+    const val MEDIA_MP3_PICK = "media.mp3Pick"
+
+    /**
+     * Back, which on this screen is centred rather than at the start.
+     *
+     * That is the whole of what the tag is for: "centred on the container" is two
+     * numbers that have to agree — the gap to each inner edge — and neither is
+     * reachable without the control's own bounds.
+     */
+    const val MEDIA_BACK = "media.back"
+
     /** The saved-subscriptions step the fourth card opens. */
     const val SAVED_TITLE = "activation.savedTitle"
     const val SAVED_EMPTY = "activation.savedEmpty"

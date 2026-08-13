@@ -87,6 +87,15 @@ internal enum class ActivationStep {
      */
     SavedSources,
 
+    /**
+     * The device's own media, reached from the third card.
+     *
+     * A step for the same reasons [SavedSources] is one: it is part of choosing
+     * where something to play comes from, it goes back to [Choose], and it owns its
+     * viewport rather than scrolling.
+     */
+    MediaSource,
+
     Xtream,
     Playlist,
 }
@@ -136,6 +145,19 @@ fun ActivationRoute(
      * playback implementation living in the activation feature.
      */
     onLocalVideo: () -> Unit = {},
+    /**
+     * The other three ways into the device's own media.
+     *
+     * Same seam, same reasoning, same default as [onLocalVideo] — which is now the
+     * *picker* of the four, because "play a video file the device already holds" is
+     * exactly what choosing one with the system picker means. The two libraries are a
+     * `MediaStore` query and the MP3 picker is the same document picker filtered to
+     * `audio/mpeg`; all three belong to whoever owns playback, and none of them is
+     * written here to make the screen look finished.
+     */
+    onVideoLibrary: () -> Unit = {},
+    onAudioLibrary: () -> Unit = {},
+    onPickAudio: () -> Unit = {},
     /**
      * Open the terms of service.
      *
@@ -212,6 +234,9 @@ fun ActivationRoute(
                 onCopied = identityModel::copied,
                 onOpenLanguage = { pickingLanguage = true },
                 onLocalVideo = onLocalVideo,
+                onVideoLibrary = onVideoLibrary,
+                onAudioLibrary = onAudioLibrary,
+                onPickAudio = onPickAudio,
                 onTerms = onTerms,
             )
         }
@@ -308,7 +333,10 @@ internal fun isFixedViewport(
     step: ActivationStep,
 ): Boolean =
     !state.busy && state.phase !is ActivationPhase.Failed && when (step) {
-        ActivationStep.Mac, ActivationStep.Choose, ActivationStep.SavedSources -> true
+        ActivationStep.Mac, ActivationStep.Choose, ActivationStep.SavedSources,
+        ActivationStep.MediaSource,
+        -> true
+
         ActivationStep.Xtream, ActivationStep.Playlist -> false
     }
 
@@ -324,6 +352,9 @@ private fun Steps(
     onCopied: (Copied) -> Unit,
     onOpenLanguage: () -> Unit,
     onLocalVideo: () -> Unit,
+    onVideoLibrary: () -> Unit,
+    onAudioLibrary: () -> Unit,
+    onPickAudio: () -> Unit,
     onTerms: () -> Unit,
 ) {
     // Read outside the transition: transitionSpec is not a composable lambda, so a
@@ -363,10 +394,23 @@ private fun Steps(
                     activation.usePlaylistUrl()
                     onStep(ActivationStep.Playlist)
                 },
-                onLocalVideo = onLocalVideo,
+                // The card names a video on this device, and what is on this device is
+                // four things rather than one -- a library and a picker, for video and
+                // for audio. So it opens the chooser rather than reaching for a player
+                // it cannot see, and the four seams below are where the reaching
+                // happens once there is something to reach for.
+                onLocalVideo = { onStep(ActivationStep.MediaSource) },
                 onSavedSources = { onStep(ActivationStep.SavedSources) },
                 onTerms = onTerms,
                 onBack = { onStep(ActivationStep.Mac) },
+            )
+
+            ActivationStep.MediaSource -> MediaSourceScreen(
+                onVideoLibrary = onVideoLibrary,
+                onPickVideo = onLocalVideo,
+                onAudioLibrary = onAudioLibrary,
+                onPickAudio = onPickAudio,
+                onBack = { onStep(ActivationStep.Choose) },
             )
 
             ActivationStep.SavedSources -> {
