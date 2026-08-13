@@ -432,29 +432,30 @@ private fun Steps(
             )
 
             // The four browse screens, and the one thing worth saying about them:
-            // they are handed an empty list.
+            // where their contents come from.
             //
             // Reading the device's media is `MediaStore`, and choosing a file is the
             // document picker; both are the slice after this one and neither is
-            // written here. What could have been written here instead is a list of
-            // invented filenames, which would make the screens look finished on a
-            // screenshot and would be a lie in the product -- `CLAUDE.md` forbids
-            // exactly that, and it is right to. So each screen draws its empty state,
-            // which is the only truthful thing to draw with no source: it is a real
-            // state these screens will have on a real device, and it is drawn once
-            // rather than discovered later.
+            // written here. A release build therefore draws the empty state, which is
+            // the only truthful thing to draw with no source -- and a real state these
+            // screens will have on a real device, so it is worth having drawn early.
+            //
+            // A debug build draws `DebugFixtures` instead, on exactly the terms the
+            // device key is here under: a constant, in one file, behind
+            // `BuildConfig.DEBUG`. A grid's column arithmetic and the fade at its fold
+            // are not reviewable from a sentence saying there is nothing to show, and
+            // the alternative to reviewing them now is discovering them later.
             //
             // The press seams are the ones already hoisted for playback. They take no
-            // argument yet because there is no item to name until something supplies
-            // one.
+            // argument yet because nothing plays until the engine slice lands.
             ActivationStep.VideoLibrary -> VideoLibraryScreen(
-                videos = emptyList(),
+                videos = DebugFixtures.videos(),
                 onPlay = { onLocalVideo() },
                 onBack = { onStep(ActivationStep.MediaSource) },
             )
 
             ActivationStep.AudioLibrary -> AudioLibraryScreen(
-                tracks = emptyList(),
+                tracks = DebugFixtures.tracks(),
                 onPlay = { onAudioLibrary() },
                 onBack = { onStep(ActivationStep.MediaSource) },
             )
@@ -462,7 +463,10 @@ private fun Steps(
             ActivationStep.PickVideo -> FilePickerScreen(
                 kind = PickerKind.Video,
                 path = stringResource(R.string.media_picker_root),
-                entries = emptyList(),
+                entries = DebugFixtures.folder(
+                    kind = PickerKind.Video,
+                    parentLabel = stringResource(R.string.media_picker_parent),
+                ),
                 onOpen = { onVideoLibrary() },
                 onBack = { onStep(ActivationStep.MediaSource) },
             )
@@ -470,7 +474,10 @@ private fun Steps(
             ActivationStep.PickAudio -> FilePickerScreen(
                 kind = PickerKind.Audio,
                 path = stringResource(R.string.media_picker_root),
-                entries = emptyList(),
+                entries = DebugFixtures.folder(
+                    kind = PickerKind.Audio,
+                    parentLabel = stringResource(R.string.media_picker_parent),
+                ),
                 onOpen = { onPickAudio() },
                 onBack = { onStep(ActivationStep.MediaSource) },
             )

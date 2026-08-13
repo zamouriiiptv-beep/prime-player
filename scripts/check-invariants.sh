@@ -562,7 +562,9 @@ fi
 # kind of thing nobody finds until a screenshot of it turns up.
 for gated in \
   'app/src/main/java/com/castivio/tv/debug/LicenceStateBoard.kt' \
-  'feature/licence/src/main/java/com/castivio/feature/licence/LicenceRoute.kt'
+  'feature/licence/src/main/java/com/castivio/feature/licence/LicenceRoute.kt' \
+  'feature/licence/src/main/java/com/castivio/feature/licence/DebugFixtures.kt' \
+  'feature/activation/src/main/java/com/castivio/feature/activation/DebugFixtures.kt'
 do
   [ -f "$gated" ] || continue
   if ! grep -q 'BuildConfig.DEBUG' "$gated"; then

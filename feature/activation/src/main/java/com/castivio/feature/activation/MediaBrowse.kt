@@ -167,7 +167,7 @@ private fun BrowseWordmark(modifier: Modifier = Modifier) {
             brush = Brush.horizontalGradient(CastivioMark.colours),
         ),
         maxLines = 1,
-        modifier = modifier,
+        modifier = modifier.testTag(ActivationTags.BROWSE_MARK),
     )
 }
 
@@ -220,6 +220,7 @@ internal fun MediaListRow(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
+            .testTag(ActivationTags.BROWSE_ROW)
             .semantics(mergeDescendants = true) { contentDescription = label },
         fill = SolidColor(colors.glassFillStrong),
     ) {

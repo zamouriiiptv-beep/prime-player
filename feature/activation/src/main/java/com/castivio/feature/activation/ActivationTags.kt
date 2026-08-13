@@ -132,6 +132,32 @@ internal object ActivationTags {
     const val PICKER_LIST = "picker.list"
     const val PICKER_BACK = "picker.back"
 
+    /**
+     * The mark in the header's far corner, on the browse screens.
+     *
+     * Tagged because which corner it is in is the question: opposite the title, which
+     * means left in Arabic and right in English, and it got that way by being told to
+     * twice. "Opposite the title" is a comparison between two boxes, so both need a
+     * handle -- and a mark that stops mirroring looks perfectly correct in whichever
+     * language it was last read in.
+     */
+    const val BROWSE_MARK = "browse.mark"
+
+    /**
+     * One tile, and one row, repeated.
+     *
+     * Deliberately not unique per item: what is asserted of them is asserted of all of
+     * them at once — every tile is 16:9 and every tile in a band is the same width,
+     * every row is at least a touch target tall. Those are claims about the set, and a
+     * tag per index would only let a test check the one it happened to name.
+     *
+     * One row tag rather than two, because the audio library's row and a picker's row
+     * are the same composable. Two tags would be two ways to describe one thing, and
+     * the day they disagree the disagreement is the bug.
+     */
+    const val BROWSE_TILE = "browse.tile"
+    const val BROWSE_ROW = "browse.row"
+
     /** The saved-subscriptions step the fourth card opens. */
     const val SAVED_TITLE = "activation.savedTitle"
     const val SAVED_EMPTY = "activation.savedEmpty"

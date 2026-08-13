@@ -100,6 +100,7 @@ private fun VideoTile(tile: MediaTile, index: Int, onClick: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(WIDESCREEN)
+                .testTag(ActivationTags.BROWSE_TILE)
                 .semantics(mergeDescendants = true) {
                     contentDescription = "${tile.name}. ${tile.duration}"
                 },
