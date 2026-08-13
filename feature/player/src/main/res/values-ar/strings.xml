@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  المشغّل بالعربية.
+
+  ليست ترجمة حرفية: رسائل الفشل الثلاث مكتوبة كما يقولها متحدث بالعربية، لأن ترجمة
+  حرفية لرسالة خطأ تنتج جملة صحيحة لغويًا لا يفهم منها المستخدم ما عليه فعله.
+-->
+<resources>
+
+    <string name="player_back">رجوع</string>
+    <string name="player_lock">قفل الشاشة</string>
+    <string name="player_unlock">فتح الشاشة</string>
+    <string name="player_cast">العرض على جهاز</string>
+    <string name="player_more">المزيد</string>
+    <string name="player_close">إغلاق</string>
+    <string name="player_play">تشغيل</string>
+    <string name="player_pause">إيقاف مؤقّت</string>
+    <string name="player_previous">السابق</string>
+    <string name="player_next">التالي</string>
+    <string name="player_replay_10">عشر ثوانٍ للخلف</string>
+    <string name="player_forward_10">عشر ثوانٍ للأمام</string>
+    <string name="player_fullscreen">ملء الشاشة</string>
+    <string name="player_channels">القنوات</string>
+    <string name="player_guide">الدليل</string>
+
+    <string name="player_live">مباشر</string>
+    <string name="player_live_now">مباشر الآن</string>
+    <string name="player_to_live">العودة إلى المباشر</string>
+    <string name="player_behind_live">متأخّر %1$s عن المباشر</string>
+    <string name="player_catchup">إعادة</string>
+
+    <string name="player_opening">جارٍ الفتح…</string>
+    <string name="player_buffering">جارٍ التحميل…</string>
+    <string name="player_reconnecting">انقطع الاتصال — إعادة المحاولة</string>
+    <string name="player_attempt">المحاولة %1$d من %2$d</string>
+    <string name="player_switching">المشغّل الأساسي لم يفتح هذا — جارٍ التحويل إلى الاحتياطي</string>
+    <string name="player_engine_backup">المشغّل ٢</string>
+
+    <string name="player_error_title">تعذّر التشغيل</string>
+    <string name="player_error_detail">المشغّل الأساسي لا يدعم هذا الترميز. يمكن للمشغّل الاحتياطي تجربته.</string>
+    <string name="player_error_retry">إعادة المحاولة</string>
+    <string name="player_error_backup">جرّب المشغّل الاحتياطي</string>
+    <string name="player_unsupported_title">صيغة غير مدعومة</string>
+    <string name="player_unsupported_detail">لا يستطيع أيّ من المشغّلين قراءة هذا الترميز. جرّب مصدرًا آخر.</string>
+    <string name="player_drm_title">محتوى محمي</string>
+    <string name="player_drm_detail">هذا المصدر يتطلّب حماية رقمية لا يدعمها هذا الجهاز.</string>
+    <string name="player_network_title">تعذّر الوصول إلى المصدر</string>
+    <string name="player_network_detail">لم يردّ أحد على هذا العنوان. تحقّق من اتصالك.</string>
+    <string name="player_not_found_title">لا شيء على هذا العنوان</string>
+    <string name="player_not_found_detail">الرابط لم يؤدِّ إلى شيء. مزوّدك يستطيع إخبارك إن كان قد تغيّر.</string>
+
+    <string name="player_locked">الشاشة مقفلة — اضغط مطوّلًا لفتحها</string>
+
+    <string name="player_sheet_subtitles">الترجمة</string>
+    <string name="player_sheet_audio">مسار الصوت</string>
+    <string name="player_sheet_settings">الإعدادات</string>
+    <string name="player_sheet_quality">جودة الفيديو</string>
+    <string name="player_subtitles_off">بدون ترجمة</string>
+    <string name="player_speed">سرعة التشغيل</string>
+    <string name="player_aspect">نسبة العرض</string>
+    <string name="player_aspect_fit">احتواء</string>
+    <string name="player_aspect_fill">ملء</string>
+    <string name="player_aspect_16_9">16:9</string>
+    <string name="player_aspect_4_3">4:3</string>
+    <string name="player_aspect_zoom">تكبير</string>
+    <string name="player_quality_auto">تلقائي</string>
+    <string name="player_pip">صورة داخل صورة</string>
+    <string name="player_statistics">إحصاءات التشغيل</string>
+    <string name="player_no_tracks">هذا البثّ يحمل مسارًا واحدًا فقط.</string>
+
+    <string name="stat_resolution">الدقة</string>
+    <string name="stat_frame_rate">الإطارات</string>
+    <string name="stat_codec">الترميز</string>
+    <string name="stat_bitrate">معدّل البت</string>
+    <string name="stat_buffer">المخزون</string>
+    <string name="stat_dropped">إطارات ساقطة</string>
+    <string name="stat_startup">زمن البدء</string>
+    <string name="stat_engine">المشغّل</string>
+    <string name="stat_engine_main">الأساسي</string>
+    <string name="stat_unknown">—</string>
+</resources>

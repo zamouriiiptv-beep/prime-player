@@ -12,6 +12,7 @@ import com.castivio.core.design.components.DelayedSpinner
 import com.castivio.domain.entitlement.StartDestination
 import com.castivio.feature.activation.ActivationRoute
 import com.castivio.tv.locale.LocalLocaleController
+import com.castivio.tv.player.PlayerHost
 import com.castivio.tv.licence.LicenceWithLanguage
 
 /**
@@ -52,13 +53,25 @@ internal fun SplashGate(
             // composition to it, so the screen changes language without the
             // window being destroyed. See `LocaleController`.
             val locale = LocalLocaleController.current
-            ActivationRoute(
-                onActivated = model::refresh,
-                onExit = onExit,
-                language = locale.current.language,
-                onLanguage = locale::choose,
-                modifier = modifier,
-            )
+
+            // The player sits *over* the activation flow rather than beside it: the four
+            // media screens are steps inside this route, and a press on one of them opens
+            // a film without leaving the flow it was opened from. `PlayerHost` owns that
+            // swap, and the four seams below are the ones the screens have always hoisted
+            // -- connecting them needed no change to any of the four.
+            PlayerHost(modifier = modifier) { openVideo, openAudio ->
+                ActivationRoute(
+                    onActivated = model::refresh,
+                    onExit = onExit,
+                    language = locale.current.language,
+                    onLanguage = locale::choose,
+                    onLocalVideo = openVideo,
+                    onVideoLibrary = openVideo,
+                    onAudioLibrary = openAudio,
+                    onPickAudio = openAudio,
+                    modifier = modifier,
+                )
+            }
         }
 
         // Castivio's own licence, which is not the provider's subscription. Back

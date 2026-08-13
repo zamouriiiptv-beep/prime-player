@@ -169,6 +169,40 @@ class CastivioColors(
     /** Border that fades from lit (top) to invisible (bottom). */
     val glassBorderBrush: Brush
         get() = Brush.verticalGradient(listOf(glassBorder, glassBorderSoft))
+
+    /* --------------------------------------------------------------- over video
+     *
+     * The player is the one screen with no glass container, because the picture *is*
+     * the screen. That breaks the rest of the palette: `glassFill` is 7.8% white, which
+     * is invisible over a bright frame and a grey smear over a dark one, and a caption
+     * on it is unreadable half the time.
+     *
+     * So a bar over video takes a scrim instead — the product's own void, fading out —
+     * and only where a control actually sits. A full-screen veil would dim the whole
+     * film for the sake of two rows of type, which is the mistake most players make.
+     */
+
+    /** Behind the title row. Strong at the edge, gone by 38% of the height. */
+    val videoScrimTop: Brush
+        get() = Brush.verticalGradient(
+            listOf(Palette.Void.copy(alpha = 0.86f), Color.Transparent),
+        )
+
+    /** Behind the timeline and tools. Deeper, because it carries two rows and a strip. */
+    val videoScrimBottom: Brush
+        get() = Brush.verticalGradient(
+            listOf(Color.Transparent, Palette.Void.copy(alpha = 0.90f)),
+        )
+
+    /**
+     * A panel that has to be read *over* moving video: an error card, the statistics,
+     * a sheet. Nearly opaque, because a bitrate that flickers with the frame behind it
+     * is not a figure anybody can read.
+     */
+    val overVideo: Color get() = Palette.Void.copy(alpha = 0.86f)
+
+    /** The same surface at the weight a transient chip takes. */
+    val overVideoSoft: Color get() = Palette.Void.copy(alpha = 0.72f)
 }
 
 /** The dark theme — Castivio's only theme. The brand is a dark product. */

@@ -118,6 +118,148 @@ object CastivioIcons {
         "M11.5 5.5L5 12l6.5 6.5",
         size = Sizing.iconMd,
     )
+
+    /* ------------------------------------------------------------------ the player
+     *
+     * Drawn rather than taken from Material for the reason the four above are, plus one
+     * that only applies here: over video. A filled glyph on a bright frame is a black
+     * blob, and a stroked one at this weight stays legible on snow and on night without a
+     * plate behind it — which is what lets the player's controls be glass instead of
+     * boxes.
+     *
+     * The paths are `design/mockups/video-player.html`'s, character for character. Two of
+     * them are there because the first attempt was misread in review and the drawing
+     * records why: the quality glyph was a star, which everybody read as "favourite", and
+     * is now a ladder of bars; the subtitle-size glyph was two Fs, which read as the word
+     * "FF", and is now a small A beside a large one.
+     */
+
+    val Play: ImageVector = strokeIcon("Play", "M8 5.5v13l11-6.5z", size = Sizing.iconMd)
+    val Pause: ImageVector = strokeIcon("Pause", "M9 5.5v13M15 5.5v13", size = Sizing.iconMd)
+
+    val Previous: ImageVector = strokeIcon(
+        "Previous", "M18 5.5v13L8 12z", "M6 5.5v13", size = Sizing.iconMd,
+    )
+    val Next: ImageVector = strokeIcon(
+        "Next", "M6 5.5v13L16 12z", "M18 5.5v13", size = Sizing.iconMd,
+    )
+
+    /** Ten seconds back, and ten forward. The figure is drawn by the caller, inside the arc. */
+    val Replay10: ImageVector = strokeIcon(
+        "Replay10", "M11 5.5a7 7 0 1 0 7 7", "M11 2.5L8 5.5l3 3", size = Sizing.iconMd,
+    )
+    val Forward10: ImageVector = strokeIcon(
+        "Forward10", "M13 5.5a7 7 0 1 1-7 7", "M13 2.5l3 3-3 3", size = Sizing.iconMd,
+    )
+
+    val Subtitles: ImageVector = strokeIcon(
+        "Subtitles",
+        "M3 5.5h18a2.5 2.5 0 0 1 0 0v13a2.5 2.5 0 0 1-2.5 2.5H5.5A2.5 2.5 0 0 1 3 18.5z",
+        "M10 10.5a2.5 2.5 0 1 0 0 3",
+        "M16.5 10.5a2.5 2.5 0 1 0 0 3",
+        size = Sizing.iconMd,
+    )
+
+    val AudioTrack: ImageVector = strokeIcon(
+        "AudioTrack",
+        "M9 17.5V5l11-2v12.5",
+        "M4 17.5a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0-5 0",
+        "M15 15.5a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0-5 0",
+        size = Sizing.iconMd,
+    )
+
+    val Speed: ImageVector = strokeIcon(
+        "Speed", "M4.5 18a8.5 8.5 0 1 1 15 0", "M12 12.5l4-3.5", size = Sizing.iconMd,
+    )
+
+    val Aspect: ImageVector = strokeIcon(
+        "Aspect", "M3 6h18v12H3z", "M7 10v4M17 10v4", size = Sizing.iconMd,
+    )
+
+    val Fullscreen: ImageVector = strokeIcon(
+        "Fullscreen",
+        "M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9",
+        "M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9",
+        "M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15",
+        "M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15",
+        size = Sizing.iconMd,
+    )
+
+    val Channels: ImageVector = strokeIcon(
+        "Channels", "M4 6h16M4 12h16M4 18h10", size = Sizing.iconMd,
+    )
+    val Guide: ImageVector = strokeIcon(
+        "Guide", "M3 5h18v14H3z", "M3 9.5h18", "M9 9.5V19", size = Sizing.iconMd,
+    )
+
+    /**
+     * Video quality: a ladder of bars, not a star.
+     *
+     * The first draft was a star, and every reviewer read it as "add to favourites" —
+     * which is a different control that will exist on this screen. Bars of rising height
+     * are the equaliser/quality idiom and cannot be confused with an approval.
+     */
+    val Quality: ImageVector = strokeIcon(
+        "Quality", "M5 19v-4", "M10 19V9", "M15 19V5", "M20 19v-8", size = Sizing.iconMd,
+    )
+
+    val More: ImageVector = strokeIcon(
+        "More",
+        "M12 4.1a1.4 1.4 0 1 0 0 2.8a1.4 1.4 0 1 0 0-2.8",
+        "M12 10.6a1.4 1.4 0 1 0 0 2.8a1.4 1.4 0 1 0 0-2.8",
+        "M12 17.1a1.4 1.4 0 1 0 0 2.8a1.4 1.4 0 1 0 0-2.8",
+        size = Sizing.iconMd,
+    )
+
+    val Close: ImageVector = strokeIcon(
+        "Close", "M6 6l12 12M18 6L6 18", size = Sizing.iconMd,
+    )
+
+    val Lock: ImageVector = strokeIcon(
+        "Lock", "M5 10.5h14v9.5H5z", "M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5", size = Sizing.iconMd,
+    )
+    val Unlock: ImageVector = strokeIcon(
+        "Unlock",
+        "M5 10.5h14v9.5H5z",
+        "M8.5 10.5V8a3.5 3.5 0 0 1 6.8-1.2",
+        size = Sizing.iconMd,
+    )
+
+    val Cast: ImageVector = strokeIcon(
+        "Cast",
+        "M3 18.5a2.5 2.5 0 0 1 2.5 2.5",
+        "M3 14.5a6.5 6.5 0 0 1 6.5 6.5",
+        "M3 10.5a10.5 10.5 0 0 1 10.5 10.5",
+        "M7 6h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-3",
+        size = Sizing.iconMd,
+    )
+
+    val PictureInPicture: ImageVector = strokeIcon(
+        "PictureInPicture", "M3 5h18v14H3z", "M12 11h7v6h-7z", size = Sizing.iconMd,
+    )
+
+    /** Back to the live edge: the broadcast mark, which is the same one the LIVE pill uses. */
+    val Live: ImageVector = strokeIcon(
+        "Live",
+        "M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6",
+        "M7.8 7.8a6 6 0 0 0 0 8.4",
+        "M16.2 16.2a6 6 0 0 0 0-8.4",
+        "M5 5a10 10 0 0 0 0 14",
+        "M19 19a10 10 0 0 0 0-14",
+        size = Sizing.iconMd,
+    )
+
+    /** The engine, and the retry: a clock face, because both are about a second attempt. */
+    val Engine: ImageVector = strokeIcon(
+        "Engine", "M12 3.5a8.5 8.5 0 1 1-8.5 8.5", "M12 8v4.5l3 2", size = Sizing.iconMd,
+    )
+    val Retry: ImageVector = strokeIcon(
+        "Retry", "M4 12a8 8 0 1 1 2.4 5.7", "M4 7.5V12h4.5", size = Sizing.iconMd,
+    )
+
+    val Tick: ImageVector = strokeIcon(
+        "Tick", "M5 12.5l4.5 4.5L19 7.5", size = Sizing.iconSm,
+    )
 }
 
 /** Material's grid, so these sit beside `Icons.Rounded` without being rescaled. */
