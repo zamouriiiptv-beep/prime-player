@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Castivio — the device's own media</title>
+<style>
+/* ============================================================================
+   Castivio — what the four cards open.
+
+   ---------------------------------------------------------------------------
+   One file, four screens
+
+   `?screen=video | pickVideo | audio | pickAudio`, and they share every token in
+   this stylesheet because they are one experience rather than four designs. The
+   header, the glass container, the footer and the mark are the media source
+   screen's, unchanged; what differs is the one box in the middle.
+
+   That is also the point of drawing them together. Four screens designed in four
+   files drift apart before any of them is written in Compose -- one grows a
+   different gap, another a different row height, and the drift is invisible
+   until they are seen side by side on a device.
+
+   ---------------------------------------------------------------------------
+   The one honest difference from the chooser screens
+
+   The choosers fit. These do not, and must not: a library is however many items
+   the device holds, and `CLAUDE.md` sizes this product for 400,000 of them. So
+   the content box scrolls and the composition around it does not -- header,
+   container and footer are fixed, and only the grid or the list moves inside.
+
+   The measurement below reflects that. `overflow` on the band must be 0, because
+   nothing may push the footer off the screen; the content's own overflow is
+   *expected* to be positive, and is reported rather than asserted at zero. A
+   partial row left visible at the bottom edge is the affordance that says so
+   without a scrollbar, which a television does not have.
+
+   ---------------------------------------------------------------------------
+   The thumbnails
+
+   Drawn, not fetched: two palette colours at a per-tile angle. No `<img>`, no
+   network, no bitmap. They stand in for artwork rather than pretending to be a
+   frame of video -- a grey rectangle with a broken-image glyph would read as a
+   bug, and a real still would make the mockup a lie about what MediaStore
+   returns for a file it has not thumbnailed yet.
+
+   The duration sits on the thumbnail rather than under the title. It is the
+   universal idiom, and it buys the tile a line: at 12.5/20 a second text row
+   costs 20dp on every tile, which on the shortest frame is the difference
+   between one row and a second row peeking.
+
+     ?lang=en       the same composition the other way round
+     ?frame=short   800x360, the shortest frame the project ships to
+     ?frame=tv      960x540 inside its overscan
+     ?spec=1        the band arithmetic, drawn
+   ========================================================================= */
+@font-face{font-family:"Castivio Sans";font-weight:400;font-style:normal;
+  src:url("../../core/design/src/main/res/font/inter_regular.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:500;font-style:normal;
+  src:url("../../core/design/src/main/res/font/inter_medium.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:600;font-style:normal;
+  src:url("../../core/design/src/main/res/font/inter_semibold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:700;font-style:normal;
+  src:url("../../core/design/src/main/res/font/inter_bold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:400;font-style:normal;
+  src:url("../../core/design/src/main/res/font/plex_arabic_regular.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:500;font-style:normal;
+  src:url("../../core/design/src/main/res/font/plex_arabic_medium.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:700;font-style:normal;
+  src:url("../../core/design/src/main/res/font/plex_arabic_bold.ttf") format("truetype")}
+
+:root{
+  --void:#08071A; --deep:#141031; --violet10:#1B1038; --violet50:#9B6BFF;
+  --azure10:#0A1E3D; --azure40:#2E6BFF; --azure60:#6FB2FF;
+  --mist:#F2F2F8; --silver:#C9C9DA;
+  --glass-strong:rgba(255,255,255,.078);
+  --glass:rgba(255,255,255,.039);
+  --glass-border:rgba(255,255,255,.239);
+  --mark-a:#9B6BFF; --mark-b:#4C9BFF;
+  --r-sm:12px;
+  --r-lg:20px;
+  --r-xl:24px;
+
+  --frame-w:827px; --frame-h:393px;
+  --inset:24px;        /* Spacing.screen */
+  --panel-pad:8px;     /* Spacing.sm */
+  --panel-gap:4px;     /* Spacing.xs */
+  --group-gap:8px;     /* Spacing.sm, title to container */
+  --back-h:48px;       /* Sizing.minTouchTarget */
+  --ring:36px;         /* Sizing.minTarget - Spacing.md */
+  --mark-size:16px;
+  --mark-gap:16px;     /* Spacing.lg */
+
+  /* The library's own figures, and the only ones this file introduces. */
+  --tile-min:150px;    /* the narrowest a 16:9 tile may be before it stops reading */
+  --tile-gap:8px;      /* Spacing.sm, across and down alike */
+  --row-h:48px;        /* Sizing.minTouchTarget: a list row is a target */
+  --row-gap:4px;       /* Spacing.xs */
+  --path-h:28px;       /* the breadcrumb above a picker's list */
+  --icon:32px;         /* Sizing.iconXl, as on the source screen */
+}
+html[data-frame="short"]{--frame-w:800px; --frame-h:360px}
+html[data-frame="tv"]{
+  --frame-w:960px; --frame-h:540px;
+  --inset:48px;        /* Spacing.tvOverscan */
+  --panel-pad:16px;    /* Spacing.lg */
+  --panel-gap:16px;    /* Spacing.lg */
+  --group-gap:16px;    /* Spacing.lg */
+  --back-h:56px;       /* Sizing.minTvTarget */
+  --ring:44px;
+  --mark-size:19px;
+  --mark-gap:24px;     /* Spacing.xl */
+  --tile-min:240px;    /* three metres, not thirty centimetres */
+  --tile-gap:16px;     /* Spacing.lg */
+  --row-h:56px;        /* Sizing.minTvTarget */
+  --row-gap:8px;       /* Spacing.sm */
+  --path-h:32px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#000}
+body{font-family:"Castivio Sans","Castivio Arabic","Noto Sans",sans-serif;color:var(--mist);
+  -webkit-font-smoothing:antialiased;text-rendering:geometricPrecision}
+
+#tv{position:relative;width:var(--frame-w);height:var(--frame-h);
+  overflow:hidden;background:var(--void)}
+
+.backdrop{position:absolute;inset:0;
+  background:
+    radial-gradient(44% 118% at 79% 54%, rgba(111,178,255,.14) 0%, rgba(111,178,255,0) 66%),
+    radial-gradient(58% 78% at 96% 108%, rgba(110,75,216,.30) 0%, rgba(110,75,216,0) 62%),
+    radial-gradient(54% 70% at 3% 20%, rgba(46,107,255,.26) 0%, rgba(46,107,255,0) 60%),
+    linear-gradient(225deg, var(--deep) 0%, var(--violet10) 48%, var(--azure10) 100%);
+}
+html[dir="ltr"] .backdrop{
+  background:
+    radial-gradient(44% 118% at 21% 54%, rgba(111,178,255,.14) 0%, rgba(111,178,255,0) 66%),
+    radial-gradient(58% 78% at 4% 108%, rgba(110,75,216,.30) 0%, rgba(110,75,216,0) 62%),
+    radial-gradient(54% 70% at 97% 20%, rgba(46,107,255,.26) 0%, rgba(46,107,255,0) 60%),
+    linear-gradient(135deg, var(--deep) 0%, var(--violet10) 48%, var(--azure10) 100%);
+}
+.mesh{position:absolute;inset:0;opacity:.45}
+
+/* Type.kt */
+.t-headline-m{font-size:22px;line-height:32px;font-weight:700}
+.t-title-l   {font-size:17px;line-height:24px;font-weight:600}
+.t-body-l    {font-size:15px;line-height:24px;font-weight:400}
+.t-body-s    {font-size:12.5px;line-height:20px;font-weight:500}
+.t-label-l   {font-size:14px;line-height:20px;font-weight:600}
+
+.band{position:absolute;inset:var(--inset);display:flex;flex-direction:column;
+  justify-content:flex-start;gap:0}
+
+/* The header, unchanged: the question at the start, the mark at the end. */
+.head{display:flex;flex-direction:row;align-items:baseline;gap:var(--mark-gap)}
+.head h1{flex:1 1 auto;min-width:0}
+.brand{flex:0 0 auto;direction:ltr;white-space:nowrap;
+  font-size:var(--mark-size);line-height:1;font-weight:700;letter-spacing:.25em;
+  background:linear-gradient(90deg,var(--mark-a),var(--mark-b));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  -webkit-text-fill-color:transparent;user-select:none}
+
+.panel{flex:1 1 auto;min-height:0;margin-top:var(--group-gap);
+  border-radius:var(--r-xl);background:var(--glass);
+  border:1px solid var(--glass-border);box-shadow:0 10px 30px rgba(0,0,0,.24);
+  padding:var(--panel-pad);
+  display:flex;flex-direction:column;gap:var(--panel-gap)}
+
+/* The one box that moves. `min-height:0` on both this and `.panel` is what stops
+   a flex child from refusing to shrink below its content and pushing the footer
+   out of the container -- the single most common way a list breaks a fixed
+   composition. */
+.content{flex:1 1 auto;min-height:0;overflow:hidden;position:relative}
+/* "There is more below", without a scrollbar -- a television has no pointer to
+   show one to. A partial row at the fold says it when the arithmetic happens to
+   leave one; on 827 the picker's rows divide the box almost exactly and the
+   fourth is cut by a pixel, which says nothing at all. The fade says it on every
+   frame, and it is applied only when there is actually something below. */
+.content.more{
+  -webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 24px),transparent);
+  mask-image:linear-gradient(to bottom,#000 calc(100% - 24px),transparent)}
+
+/* --------------------------------------------------------------- the grid */
+.grid{display:grid;gap:var(--tile-gap);
+  grid-template-columns:repeat(auto-fill,minmax(var(--tile-min),1fr));
+  align-content:start}
+.tile{min-width:0;display:flex;flex-direction:column;gap:6px}
+.thumb{position:relative;aspect-ratio:16/9;border-radius:var(--r-sm);
+  border:1px solid var(--glass-border);overflow:hidden}
+/* Drawn artwork, not a placeholder: a two-stop gradient per tile, angled off the
+   index so the wall does not read as one repeated swatch. */
+.thumb i{position:absolute;inset:0;display:block}
+.dur{position:absolute;inset-inline-end:6px;bottom:6px;direction:ltr;
+  padding:1px 6px;border-radius:999px;background:rgba(8,7,26,.72);
+  border:1px solid var(--glass-border);
+  font-size:11px;line-height:16px;font-weight:600;color:var(--mist)}
+.tile .name{color:var(--mist);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+.tile.focused .thumb{border-color:var(--azure60);
+  box-shadow:0 0 0 1px var(--azure60), 0 14px 44px rgba(46,107,255,.45)}
+
+/* --------------------------------------------------------------- the list */
+.list{display:flex;flex-direction:column;gap:var(--row-gap)}
+.row{display:flex;align-items:center;gap:12px;min-height:var(--row-h);
+  padding-inline:12px;border-radius:var(--r-lg);
+  background:var(--glass-strong);border:1px solid transparent}
+.row .name{flex:1 1 auto;min-width:0;color:var(--mist);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .meta{flex:0 0 auto;color:var(--silver);direction:ltr}
+.row.focused{border-color:var(--azure60);
+  box-shadow:0 0 0 1px var(--azure60), 0 14px 44px rgba(46,107,255,.45)}
+.row svg{flex:0 0 auto;width:var(--icon);height:var(--icon);stroke:currentColor;
+  fill:none;stroke-width:.9375;stroke-linecap:round;stroke-linejoin:round}
+/* A folder is a place, not a file: it takes the muted ink and a count instead of
+   a duration, so a glance separates the two without reading either. */
+.row.dir svg{color:var(--silver)}
+
+/* ------------------------------------------------------- the picker's path */
+/* `[hidden]` first: a class that sets `display` beats the user agent's rule for
+   the attribute, so the library screens were drawing an empty breadcrumb -- a
+   stray separator glyph and 28dp taken off the content for nothing. */
+.path[hidden]{display:none}
+.path{flex:0 0 auto;display:flex;align-items:center;gap:8px;height:var(--path-h);
+  padding-inline:12px;color:var(--silver);white-space:nowrap;overflow:hidden}
+.path .sep{opacity:.5}
+.path .here{color:var(--mist)}
+.path .filter{margin-inline-start:auto;color:var(--silver)}
+
+/* -------------------------------------------------------------- the footer */
+.foot{flex:0 0 auto;display:flex;flex-direction:row;align-items:center;gap:0}
+.back{display:inline-flex;align-items:center;gap:12px;
+  height:var(--back-h);padding:0 24px;color:var(--mist)}
+.back .ring{flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  width:var(--ring);height:var(--ring);border-radius:50%;
+  border:1px solid var(--glass-border)}
+.back svg{flex:0 0 auto;width:20px;height:20px;stroke:currentColor;fill:none;
+  stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+html[dir="rtl"] .back .ring svg{transform:scaleX(-1)}
+.rule{flex:1 1 0;min-width:0;height:1px}
+.rule.a{background:linear-gradient(to right,rgba(255,255,255,0),var(--glass-border))}
+.rule.b{background:linear-gradient(to right,var(--glass-border),rgba(255,255,255,0))}
+html[dir="rtl"] .rule.a{
+  background:linear-gradient(to left,rgba(255,255,255,0),var(--glass-border))}
+html[dir="rtl"] .rule.b{
+  background:linear-gradient(to left,var(--glass-border),rgba(255,255,255,0))}
+
+/* Presentation mode: `?fit=1` scales the frame to fill the window.
+   ------------------------------------------------------------------------
+   The frame is drawn at its dp size -- 960x540 is a television, and every
+   measurement in this file is a dp taken at that size. Opened in a browser that
+   is bigger than the frame, it therefore sits in the middle of the page with the
+   page's own background around it, which is not the screen and has never been
+   part of the design.
+   `?fit=1` scales the whole frame by the largest factor the window allows and
+   pins it to the corner. Nothing is re-laid-out and no measurement moves: it is
+   the same frame, magnified, the way a television magnifies 960dp to 1920px. */
+html[data-fit="1"],html[data-fit="1"] body{width:100%;height:100%;overflow:hidden;
+  background:var(--void)}
+html[data-fit="1"] #tv{position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%) scale(var(--fit,1));transform-origin:center}
+
+.spec{display:none}
+html[data-spec="1"] .spec{display:block}
+.spec-safe{position:absolute;inset:var(--inset);z-index:8;pointer-events:none;
+  border:1px dashed rgba(255,176,32,.55)}
+.spec-note{position:absolute;z-index:9;left:6px;bottom:6px;direction:ltr;
+  font-family:"Liberation Mono",monospace;font-size:9px;line-height:13px;
+  color:#FFB020;background:rgba(8,7,26,.86);padding:3px 6px;border-radius:4px}
+</style>
+</head>
+<body>
+
+<section id="tv">
+  <div class="backdrop"></div>
+  <svg class="mesh" viewBox="0 0 960 540" preserveAspectRatio="none">
+    <g fill="none" stroke="#9B6BFF" stroke-opacity=".07" stroke-width="1">
+      <path d="M0,392 C160,352 320,432 480,392 C640,352 800,432 960,392"/>
+      <path d="M0,428 C160,388 320,468 480,428 C640,388 800,468 960,428"/>
+      <path d="M0,464 C160,424 320,504 480,464 C640,424 800,504 960,464"/>
+      <path d="M0,500 C160,462 320,534 480,500 C640,462 800,534 960,500"/>
+    </g>
+  </svg>
+
+  <div class="band">
+    <div class="head">
+      <h1 class="t-headline-m" id="title"></h1>
+      <span class="brand" aria-hidden="true">CASTIVIO</span>
+    </div>
+
+    <div class="panel" id="panel">
+      <div class="path t-body-s" id="path" hidden>
+        <span id="pathRoot"></span>
+        <span class="sep">›</span>
+        <span class="here" id="pathHere"></span>
+        <span class="filter" id="pathFilter"></span>
+      </div>
+
+      <div class="content" id="content"></div>
+
+      <div class="foot">
+        <span class="rule a" aria-hidden="true"></span>
+        <span class="back t-label-l">
+          <span class="ring" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M20 12H5"/><path d="M11.5 5.5L5 12l6.5 6.5"/>
+            </svg>
+          </span>
+          <span id="backLabel"></span>
+        </span>
+        <span class="rule b" aria-hidden="true"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="spec">
+    <div class="spec-safe"></div>
+    <div class="spec-note" id="note"></div>
+  </div>
+</section>
+
+<script>
+/* The icons are the source screen's, at the same 32dp and the same rendered
+   1.25px: `stroke-width` is 0.9375 on a 24 grid, which is 1.25 once the box
+   scales it. Two of them are new -- a folder and a chevron for a parent -- and
+   they are drawn on the same grid with the same caps so the set reads as one. */
+var ICON = {
+  audio: '<path d="M9 17.5V5l11-2v12.5"/>' +
+         '<path d="M4 17.5a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0-5 0"/>' +
+         '<path d="M15 15.5a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0-5 0"/>',
+  videoFile: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/>' +
+         '<path d="M14 3v5h5"/><path d="M10.5 12.5v4l3.5-2z"/>',
+  audioFile: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/>' +
+         '<path d="M14 3v5h5"/><path d="M14.5 12.2l-4 .9v3.4"/>' +
+         '<path d="M8 16.5a1.3 1.3 0 1 0 2.6 0a1.3 1.3 0 1 0-2.6 0"/>',
+  folder: '<path d="M3 7a2 2 0 0 1 2-2h3.6l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  up: '<path d="M3 7a2 2 0 0 1 2-2h3.6l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>' +
+      '<path d="M12 16v-5"/><path d="M9.5 13.5L12 11l2.5 2.5"/>',
+};
+
+var S = {
+  ar: {
+    dir: "rtl", back: "رجوع", root: "التخزين الداخلي", up: "المجلد الأعلى",
+    videoTitle: "مكتبة الفيديو", audioTitle: "مكتبة الصوت",
+    pickVideoTitle: "اختيار فيديو", pickAudioTitle: "اختيار MP3",
+    videoFilter: "ملفات الفيديو فقط", audioFilter: "ملفات MP3 فقط",
+    items: "عنصرًا",
+    videos: [
+      ["رحلة الصحراء الكبرى", "1:42:08"], ["حفل الافتتاح 2025", "58:12"],
+      ["مباراة الدور النهائي", "2:05:33"], ["وثائقي أعماق البحار", "47:20"],
+      ["عيد ميلاد ليلى", "6:41"], ["الطريق إلى شفشاون", "22:57"],
+      ["درس الطبخ — كسكس", "31:04"], ["تسجيل الشاشة 12-08", "3:18"],
+    ],
+    audio: [
+      ["أم كلثوم — الأطلال", "58:24"], ["فيروز — لي بيروت", "4:12"],
+      ["ناس الغيوان — مهمومة", "7:36"], ["تسجيل المحاضرة 03", "1:12:40"],
+      ["مذكرة صوتية 14-07", "2:08"], ["عبد الحليم — قارئة الفنجان", "12:51"],
+      ["راديو — نشرة الصباح", "18:03"],
+    ],
+    videoDirs: [["الأفلام", "24"], ["التنزيلات", "112"], ["الكاميرا", "348"]],
+    videoFiles: [
+      ["رحلة الصحراء الكبرى.mp4", "1:42:08"], ["حفل الافتتاح 2025.mkv", "58:12"],
+      ["الطريق إلى شفشاون.mp4", "22:57"], ["تسجيل الشاشة 12-08.mp4", "3:18"],
+    ],
+    audioDirs: [["الموسيقى", "512"], ["التنزيلات", "112"], ["التسجيلات", "37"]],
+    audioFiles: [
+      ["فيروز — لي بيروت.mp3", "4:12"], ["ناس الغيوان — مهمومة.mp3", "7:36"],
+      ["مذكرة صوتية 14-07.mp3", "2:08"], ["راديو — نشرة الصباح.mp3", "18:03"],
+    ],
+  },
+  en: {
+    dir: "ltr", back: "Back", root: "Internal storage", up: "Parent folder",
+    videoTitle: "Video library", audioTitle: "Audio library",
+    pickVideoTitle: "Choose a video", pickAudioTitle: "Choose an MP3",
+    videoFilter: "Video files only", audioFilter: "MP3 files only",
+    items: "items",
+    videos: [
+      ["Crossing the Sahara", "1:42:08"], ["Opening night 2025", "58:12"],
+      ["The final, second half", "2:05:33"], ["Deep sea, episode 3", "47:20"],
+      ["Layla's birthday", "6:41"], ["The road to Chefchaouen", "22:57"],
+      ["Couscous, step by step", "31:04"], ["Screen recording 12-08", "3:18"],
+    ],
+    audio: [
+      ["Umm Kulthum — Al Atlal", "58:24"], ["Fairuz — Li Beirut", "4:12"],
+      ["Nass El Ghiwane — Mahmouma", "7:36"], ["Lecture recording 03", "1:12:40"],
+      ["Voice memo 14-07", "2:08"], ["Abdel Halim — Qariat al-Fingan", "12:51"],
+      ["Radio — morning bulletin", "18:03"],
+    ],
+    videoDirs: [["Movies", "24"], ["Downloads", "112"], ["Camera", "348"]],
+    videoFiles: [
+      ["Crossing the Sahara.mp4", "1:42:08"], ["Opening night 2025.mkv", "58:12"],
+      ["The road to Chefchaouen.mp4", "22:57"], ["Screen recording 12-08.mp4", "3:18"],
+    ],
+    audioDirs: [["Music", "512"], ["Downloads", "112"], ["Recordings", "37"]],
+    audioFiles: [
+      ["Fairuz — Li Beirut.mp3", "4:12"], ["Nass El Ghiwane — Mahmouma.mp3", "7:36"],
+      ["Voice memo 14-07.mp3", "2:08"], ["Radio — morning bulletin.mp3", "18:03"],
+    ],
+  },
+};
+
+var q = new URLSearchParams(location.search);
+var s = S[q.get("lang")] || S.ar;
+var screen = q.get("screen") || "video";
+var f = q.get("frame");
+if (f === "tv" || f === "short") document.documentElement.dataset.frame = f;
+document.documentElement.dir = s.dir;
+document.documentElement.lang = s.dir === "rtl" ? "ar" : "en";
+document.documentElement.dataset.screen = screen;
+if (q.get("spec")) document.documentElement.dataset.spec = "1";
+/* The scale, recomputed on resize: whichever of width or height runs out first. */
+if (q.get("fit")) {
+  document.documentElement.dataset.fit = "1";
+  var fit = function () {
+    var el = document.getElementById("tv");
+    var k = Math.min(window.innerWidth / el.offsetWidth,
+                     window.innerHeight / el.offsetHeight);
+    document.documentElement.style.setProperty("--fit", k);
+  };
+  fit();
+  window.addEventListener("resize", fit);
+}
+
+document.getElementById("backLabel").textContent = s.back;
+
+var content = document.getElementById("content");
+var svg = function (paths) {
+  return '<svg viewBox="0 0 24 24" aria-hidden="true">' + paths + '</svg>';
+};
+
+/* Two palette colours per tile at an angle off its index. Deterministic, so a
+   re-render is the same wall of artwork and a screenshot can be compared. */
+var ART = [
+  ["#2E6BFF", "#9B6BFF"], ["#6E4BD8", "#0A1E3D"], ["#6FB2FF", "#1B1038"],
+  ["#9B6BFF", "#0A1E3D"], ["#2E6BFF", "#141031"], ["#4C9BFF", "#6E4BD8"],
+  ["#1B1038", "#6FB2FF"], ["#6E4BD8", "#2E6BFF"],
+];
+
+function grid(items) {
+  var wrap = document.createElement("div");
+  wrap.className = "grid";
+  items.forEach(function (it, i) {
+    var art = ART[i % ART.length];
+    var tile = document.createElement("div");
+    tile.className = "tile" + (i === 0 ? " focused" : "");
+    tile.innerHTML =
+      '<div class="thumb"><i style="background:linear-gradient(' +
+      (120 + i * 37 % 180) + 'deg,' + art[0] + ',' + art[1] + ')"></i>' +
+      '<span class="dur">' + it[1] + '</span></div>' +
+      '<div class="name t-label-l">' + it[0] + '</div>';
+    wrap.appendChild(tile);
+  });
+  return wrap;
+}
+
+function list(rows) {
+  var wrap = document.createElement("div");
+  wrap.className = "list";
+  rows.forEach(function (r, i) {
+    var row = document.createElement("div");
+    row.className = "row" + (r.dir ? " dir" : "") + (i === 0 ? " focused" : "");
+    row.innerHTML = svg(r.icon) +
+      '<span class="name t-body-l">' + r.name + '</span>' +
+      '<span class="meta t-body-s">' + r.meta + '</span>';
+    wrap.appendChild(row);
+  });
+  return wrap;
+}
+
+function picker(dirs, files, icon, filter) {
+  document.getElementById("path").hidden = false;
+  document.getElementById("pathRoot").textContent = s.root;
+  document.getElementById("pathHere").textContent = dirs[0][0];
+  document.getElementById("pathFilter").textContent = filter;
+  var rows = [{ icon: ICON.up, name: s.up, meta: "", dir: true }];
+  dirs.forEach(function (d) {
+    rows.push({ icon: ICON.folder, name: d[0], meta: d[1] + " " + s.items, dir: true });
+  });
+  files.forEach(function (fl) {
+    rows.push({ icon: icon, name: fl[0], meta: fl[1] });
+  });
+  return list(rows);
+}
+
+var TITLE = {
+  video: s.videoTitle, audio: s.audioTitle,
+  pickVideo: s.pickVideoTitle, pickAudio: s.pickAudioTitle,
+};
+document.getElementById("title").textContent = TITLE[screen];
+
+if (screen === "video") {
+  content.appendChild(grid(s.videos));
+} else if (screen === "audio") {
+  content.appendChild(list(s.audio.map(function (a) {
+    return { icon: ICON.audio, name: a[0], meta: a[1] };
+  })));
+} else if (screen === "pickVideo") {
+  content.appendChild(picker(s.videoDirs, s.videoFiles, ICON.videoFile, s.videoFilter));
+} else {
+  content.appendChild(picker(s.audioDirs, s.audioFiles, ICON.audioFile, s.audioFilter));
+}
+
+/* The band's arithmetic, measured. The claim is *not* that nothing scrolls -- the
+   content is meant to -- it is that nothing escapes the frame and nothing lands
+   on top of anything else. */
+window.addEventListener("load", function () {
+  var r1 = function (n) { return Math.round(n * 10) / 10; };
+  var band = document.querySelector(".band");
+  var r = band.getBoundingClientRect();
+  var head = document.querySelector(".head").getBoundingClientRect();
+  var brand = document.querySelector(".brand").getBoundingClientRect();
+  var panelEl = document.getElementById("panel");
+  var panel = panelEl.getBoundingClientRect();
+  var box = content.getBoundingClientRect();
+  var foot = document.querySelector(".foot").getBoundingClientRect();
+  var back = document.querySelector(".back").getBoundingClientRect();
+  var ruleA = document.querySelector(".rule.a").getBoundingClientRect();
+  var ruleB = document.querySelector(".rule.b").getBoundingClientRect();
+  var frame = document.getElementById("tv").getBoundingClientRect();
+  var cs = getComputedStyle(panelEl);
+  var pad = parseFloat(cs.paddingLeft) + parseFloat(cs.borderLeftWidth);
+
+  var cells = [].map.call(content.querySelectorAll(".tile, .row"), function (n) {
+    var b = n.getBoundingClientRect();
+    return { w: r1(b.width), h: r1(b.height), x: r1(b.left), y: r1(b.top),
+             left: b.left, right: b.right, top: b.top, bottom: b.bottom };
+  });
+  var w = cells.map(function (c) { return c.w; });
+  var h = cells.map(function (c) { return c.h; });
+
+  /* Overlap, checked pairwise on everything the content drew. A grid whose gap
+     collapses looks like a grid until two tiles share a pixel column. */
+  var overlaps = [];
+  for (var i = 0; i < cells.length; i++) {
+    for (var j = i + 1; j < cells.length; j++) {
+      var a = cells[i], b2 = cells[j];
+      if (a.left < b2.right - 0.5 && b2.left < a.right - 0.5 &&
+          a.top < b2.bottom - 0.5 && b2.top < a.bottom - 0.5) overlaps.push(i + "/" + j);
+    }
+  }
+  var ruleL = ruleA.left < ruleB.left ? ruleA : ruleB;
+  var ruleR = ruleA.left < ruleB.left ? ruleB : ruleA;
+  if (ruleL.right > back.left + 0.5 || back.right > ruleR.left + 0.5) {
+    overlaps.push("rule/back");
+  }
+  if (box.bottom > foot.top + 0.5) overlaps.push("content/footer");
+
+  /* Clipping: a name cut mid-word is `text-overflow: ellipsis` doing its job, so
+     what is checked is the boxes -- a row or tile wider than the space it is in. */
+  var clipped = [];
+  cells.forEach(function (c, k) {
+    if (c.left < box.left - 0.5 || c.right > box.right + 0.5) clipped.push("cell" + k);
+  });
+  if (foot.bottom > panel.bottom - parseFloat(cs.paddingBottom) + 0.5) clipped.push("footer");
+
+  /* How much of the content is below the fold, and whether the row at the fold is
+     partly visible -- which is the affordance that says "there is more" without a
+     scrollbar. */
+  var hidden = content.scrollHeight - content.clientHeight;
+  if (hidden > 0.5) content.classList.add("more");
+  var lastVisible = null;
+  cells.forEach(function (c) {
+    if (c.top < box.bottom - 1 && c.bottom > box.bottom + 1) lastVisible = c;
+  });
+
+  window.__fit = {
+    screen: screen,
+    frame: r1(frame.width) + "x" + r1(frame.height),
+    container: r1(panel.width) + "x" + r1(panel.height),
+    containerAt: r1(panel.left - frame.left) + "," + r1(panel.top - frame.top),
+    containerInFrame: panel.left >= frame.left - 0.5 && panel.right <= frame.right + 0.5 &&
+      panel.top >= frame.top - 0.5 && panel.bottom <= frame.bottom + 0.5,
+    head: r1(head.height),
+    mark: r1(brand.width) + "x" + r1(brand.height),
+    markAtLeft: r1(brand.left - r.left),
+    headToPanel: r1(panel.top - head.bottom),
+    content: r1(box.width) + "x" + r1(box.height),
+    cells: cells.length,
+    cell: r1(Math.max.apply(null, w)) + "x" + r1(Math.max.apply(null, h)),
+    widthSpread: r1(Math.max.apply(null, w) - Math.min.apply(null, w)),
+    heightSpread: r1(Math.max.apply(null, h) - Math.min.apply(null, h)),
+    columns: cells.filter(function (c) { return Math.abs(c.y - cells[0].y) < 1; }).length,
+    gapX: cells.length > 1 && Math.abs(cells[1].y - cells[0].y) < 1
+      ? r1(Math.abs(cells[1].x - cells[0].x) - cells[0].w) : null,
+    scrollable: r1(hidden),
+    peeking: lastVisible ? r1(box.bottom - lastVisible.top) : 0,
+    contentToFooter: r1(foot.top - box.bottom),
+    back: r1(back.width) + "x" + r1(back.height),
+    backLeadIn: r1(back.left - (panel.left + pad)),
+    backTrailIn: r1((panel.right - pad) - back.right),
+    ruleA: r1(ruleA.width), ruleB: r1(ruleB.width),
+    ruleSpread: r1(Math.abs(ruleA.width - ruleB.width)),
+    overlaps: overlaps,
+    clipped: clipped,
+    overflow: band.scrollHeight - band.clientHeight,
+  };
+
+  document.getElementById("note").textContent =
+    screen + " " + window.__fit.frame + " | container " + window.__fit.container +
+    " | head " + window.__fit.head + " | content " + window.__fit.content +
+    " | cell " + window.__fit.cell + " x" + window.__fit.cells +
+    " | cols " + window.__fit.columns +
+    " | below the fold " + window.__fit.scrollable +
+    " | OVERFLOW " + window.__fit.overflow;
+});
+document.fonts.ready.then(function () { window.__fontsReady = true; });
+</script>
+</body>
+</html>

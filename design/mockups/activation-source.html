@@ -472,6 +472,21 @@ html[dir="rtl"] .rule.b{
 html[data-stress="1"] .stress-flag{display:flex}
 html[data-stress="1"] #tv{outline:3px solid #FFB020;outline-offset:-3px}
 
+/* Presentation mode: `?fit=1` scales the frame to fill the window.
+   ------------------------------------------------------------------------
+   The frame is drawn at its dp size -- 960x540 is a television, and every
+   measurement in this file is a dp taken at that size. Opened in a browser that
+   is bigger than the frame, it therefore sits in the middle of the page with the
+   page's own background around it, which is not the screen and has never been
+   part of the design.
+   `?fit=1` scales the whole frame by the largest factor the window allows and
+   pins it to the corner. Nothing is re-laid-out and no measurement moves: it is
+   the same frame, magnified, the way a television magnifies 960dp to 1920px. */
+html[data-fit="1"],html[data-fit="1"] body{width:100%;height:100%;overflow:hidden;
+  background:var(--void)}
+html[data-fit="1"] #tv{position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%) scale(var(--fit,1));transform-origin:center}
+
 .spec{display:none}
 html[data-spec="1"] .spec{display:block}
 .spec-safe{position:absolute;inset:var(--inset);z-index:8;pointer-events:none;
@@ -629,6 +644,18 @@ if (f === "tv" || f === "short") document.documentElement.dataset.frame = f;
 document.documentElement.dir = s.dir;
 document.documentElement.lang = s.dir === "rtl" ? "ar" : "en";
 if (q.get("spec")) document.documentElement.dataset.spec = "1";
+/* The scale, recomputed on resize: whichever of width or height runs out first. */
+if (q.get("fit")) {
+  document.documentElement.dataset.fit = "1";
+  var fit = function () {
+    var el = document.getElementById("tv");
+    var k = Math.min(window.innerWidth / el.offsetWidth,
+                     window.innerHeight / el.offsetHeight);
+    document.documentElement.style.setProperty("--fit", k);
+  };
+  fit();
+  window.addEventListener("resize", fit);
+}
 /* Not a language, a load test: every string doubled, so the headroom the
    comment above claims is a number this file can be made to prove. */
 if (q.get("stress")) {
