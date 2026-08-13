@@ -80,9 +80,9 @@ class MediaStoreLibrary @Inject constructor(
                 name = cursor.name(columns),
                 durationMs = cursor.getLongOrZero(columns.duration),
                 sizeBytes = cursor.getLongOrZero(columns.size),
-                folder = columns.bucket?.let(cursor::getStringOrNull),
-                width = columns.width?.let { cursor.getIntOrZero(it) } ?: 0,
-                height = columns.height?.let { cursor.getIntOrZero(it) } ?: 0,
+                folder = cursor.getStringOrNull(columns.bucket),
+                width = cursor.getIntOrZero(columns.width),
+                height = cursor.getIntOrZero(columns.height),
             )
         }
 
@@ -107,10 +107,10 @@ class MediaStoreLibrary @Inject constructor(
                 name = cursor.name(columns),
                 durationMs = cursor.getLongOrZero(columns.duration),
                 sizeBytes = cursor.getLongOrZero(columns.size),
-                folder = columns.bucket?.let(cursor::getStringOrNull),
-                artist = columns.artist?.let(cursor::getStringOrNull)?.takeIf { it != UNKNOWN },
-                album = columns.album?.let(cursor::getStringOrNull)?.takeIf { it != UNKNOWN },
-                albumId = columns.albumId?.let { cursor.getLongOrNull(it) },
+                folder = cursor.getStringOrNull(columns.bucket),
+                artist = cursor.getStringOrNull(columns.artist)?.takeIf { it != UNKNOWN },
+                album = cursor.getStringOrNull(columns.album)?.takeIf { it != UNKNOWN },
+                albumId = cursor.getLongOrNull(columns.albumId),
             )
         }
 
@@ -258,20 +258,29 @@ class MediaStoreLibrary @Inject constructor(
      */
     private fun Cursor.name(columns: Columns): String =
         getStringOrNull(columns.name)?.takeIf { it.isNotBlank() }
-            ?: columns.title.takeIf { it >= 0 }?.let(::getStringOrNull)?.takeIf { it.isNotBlank() }
+            ?: getStringOrNull(columns.title)?.takeIf { it.isNotBlank() }
             ?: UNTITLED
 
-    private fun Cursor.getStringOrNull(index: Int): String? =
-        if (index < 0 || isNull(index)) null else getString(index)
+    /*
+     * The four readers, each taking a nullable index.
+     *
+     * Nullable because that is what a call site has: `Columns` resolves a column that an
+     * OEM `MediaStore` does not report to null, and every reader already had to answer
+     * "is this column here at all" before answering "is this row's value null". Folding
+     * both questions into the reader removes five call sites that were answering the
+     * first one in three different ways.
+     */
+    private fun Cursor.getStringOrNull(index: Int?): String? =
+        if (index == null || index < 0 || isNull(index)) null else getString(index)
 
-    private fun Cursor.getLongOrZero(index: Int): Long =
-        if (index < 0 || isNull(index)) 0 else getLong(index)
+    private fun Cursor.getLongOrZero(index: Int?): Long =
+        if (index == null || index < 0 || isNull(index)) 0 else getLong(index)
 
-    private fun Cursor.getLongOrNull(index: Int): Long? =
-        if (index < 0 || isNull(index)) null else getLong(index)
+    private fun Cursor.getLongOrNull(index: Int?): Long? =
+        if (index == null || index < 0 || isNull(index)) null else getLong(index)
 
-    private fun Cursor.getIntOrZero(index: Int): Int =
-        if (index < 0 || isNull(index)) 0 else getInt(index)
+    private fun Cursor.getIntOrZero(index: Int?): Int =
+        if (index == null || index < 0 || isNull(index)) 0 else getInt(index)
 
     private fun videoCollection() =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
