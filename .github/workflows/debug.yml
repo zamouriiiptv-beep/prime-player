@@ -1,0 +1,65 @@
+name: Build Castivio Debug APK
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Android Debug APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      # الترقية إلى v4 وتحديد الحزم المطلوبة فقط دون أي Add-ons لـ Google TV
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: |
+            platform-tools
+            platforms;android-34
+            build-tools;34.0.0
+
+      # قبول كافة التراخيص بشكل صامت وغير تفاعلي (Non-interactive)
+      - name: Accept Android SDK Licenses Non-Interactively
+        run: |
+          yes | sdkmanager --licenses || true
+          mkdir -p "$ANDROID_HOME/licenses" || true
+          # ترخيص Android SDK العام
+          echo -e "\n24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$ANDROID_HOME/licenses/android-sdk-license"
+          # ترخيص معاينة Android SDK
+          echo -e "\n84831b9409646a533e30ed301bfd705003f7f83e\n601085b94cd77f0b54ff864063f4570504682e42" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
+          # ترخيص حزم ARM/Intel
+          echo -e "\nd975434587e429386b03bb350ab342619c6831c3" > "$ANDROID_HOME/licenses/android-sdk-arm-dbt-license"
+
+      - name: Make Gradle Wrapper Executable
+        run: chmod +x ./gradlew
+
+      # تنفيذ أمر البناء
+      - name: Build Debug APK with Gradle
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      # رفع الـ APK كـ Artifact
+      - name: Upload Castivio Debug APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: castivio-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
