@@ -27,7 +27,7 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-      # الترقية إلى v4 وتحديد الحزم المطلوبة فقط دون أي Add-ons لـ Google TV
+      # الترقية إلى v4 وتحديد الحزم  االمطلوبة فقط دون أي Add-ons لـ Google TV
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
         with:
