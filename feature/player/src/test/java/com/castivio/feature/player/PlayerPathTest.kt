@@ -6,6 +6,8 @@ import com.castivio.playback.api.EngineMemory
 import com.castivio.playback.api.FallbackPolicy
 import com.castivio.playback.api.MediaKind
 import com.castivio.playback.api.MediaRequest
+import com.castivio.playback.api.DecoderReport
+import com.castivio.playback.api.PlaybackDiagnosis
 import com.castivio.playback.api.PlaybackEngine
 import com.castivio.playback.api.PlaybackError
 import com.castivio.playback.api.PlaybackSample
@@ -219,7 +221,7 @@ class PlayerPathTest {
         model.open(vodRequest())
         advanceUntilIdle()
 
-        engines.last.fail(PlaybackError.DECODER)
+        engines.last.fail(PlaybackError.DECODER_INIT)
         advanceUntilIdle()
 
         assertEquals("two engines, in order", listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
@@ -240,9 +242,9 @@ class PlayerPathTest {
         val model = model()
         model.open(vodRequest())
         advanceUntilIdle()
-        engines.last.fail(PlaybackError.DECODER)
+        engines.last.fail(PlaybackError.DECODER_INIT)
         advanceUntilIdle()
-        engines.last.fail(PlaybackError.DECODER)
+        engines.last.fail(PlaybackError.DECODER_INIT)
         advanceUntilIdle()
 
         assertEquals("no third engine was built", 2, engines.built.size)
@@ -250,8 +252,8 @@ class PlayerPathTest {
         assertTrue("a card", picture is Picture.Failed)
         picture as Picture.Failed
         assertEquals(
-            "and it says nothing can read this, not that one engine could not",
-            PlaybackError.UNSUPPORTED_FORMAT,
+            "the reason the engine gave is the reason the user is told -- no renaming",
+            PlaybackError.DECODER_INIT,
             picture.reason,
         )
         assertFalse(
@@ -334,6 +336,154 @@ class PlayerPathTest {
         assertTrue(model.state.value?.picture is Picture.Playing)
     }
 
+    /* --------------------------------------------- the failures found on a device */
+
+    /**
+     * A timeout is reported as a timeout.
+     *
+     * The regression. The budget expiring used to be reported as `DECODER`, and once the
+     * backup had also timed out a second mapping renamed it `UNSUPPORTED_FORMAT` — so a
+     * source that simply never answered was described to the user as an unplayable codec,
+     * with nothing anywhere having examined the format.
+     */
+    @Test
+    fun `a source that never opens is reported as a timeout, not as a codec problem`() = runTest {
+        val model = model()
+        model.open(vodRequest())
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 100)
+        advanceUntilIdle()
+        // The budget switched to the backup. Let that one expire too.
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 100)
+        advanceUntilIdle()
+
+        val picture = model.state.value?.picture
+        assertTrue("a card", picture is Picture.Failed)
+        picture as Picture.Failed
+        assertEquals(
+            "silence must not be reported as an unsupported format",
+            PlaybackError.TIMEOUT,
+            picture.reason,
+        )
+        assertEquals(
+            "and the report says what actually happened",
+            PlaybackError.TIMEOUT,
+            model.state.value?.diagnosis?.reason,
+        )
+        assertEquals(
+            FallbackPolicy.OPEN_DEADLINE_MS,
+            model.state.value?.diagnosis?.timedOutAfterMs,
+        )
+    }
+
+    /**
+     * An unidentified failure reaches the user with the backup offered.
+     *
+     * The other half of the dead-button regression. `UNKNOWN` is the one reason the machine
+     * does not spend the fallback on, so it is the one case where the card can offer it —
+     * and before the split there was no such case at all.
+     */
+    @Test
+    fun `an unidentified failure offers the backup instead of guessing`() = runTest {
+        val model = model()
+        model.open(vodRequest())
+        advanceUntilIdle()
+        engines.last.fail(PlaybackError.UNKNOWN)
+        advanceUntilIdle()
+
+        assertEquals("the machine did not switch on its own", 1, engines.built.size)
+        val picture = model.state.value?.picture as Picture.Failed
+        assertEquals("and it stays unknown", PlaybackError.UNKNOWN, picture.reason)
+        assertTrue("with the backup offered to the person", picture.canTryBackup)
+
+        model.tryBackup()
+        advanceUntilIdle()
+        assertEquals(
+            "pressing it builds the backup engine, not another primary",
+            listOf(EngineId.PRIMARY, EngineId.BACKUP),
+            engines.built,
+        )
+    }
+
+    /**
+     * Retry does not silently re-run the primary.
+     *
+     * The defect: `retry()` reset `backupTried` and re-derived the engine from memory.
+     * Memory only records an engine after a frame renders, so a source that had never
+     * played had nothing remembered and the derivation returned `PRIMARY` — meaning Retry,
+     * pressed after the fallback had already failed, ran the primary a second time. On a
+     * device that is indistinguishable from "both engines failed", which is exactly what
+     * was reported.
+     */
+    @Test
+    fun `retry stays on the engine the fallback moved to`() = runTest {
+        val model = model()
+        model.open(vodRequest())
+        advanceUntilIdle()
+        engines.last.fail(PlaybackError.DECODER_INIT)
+        advanceUntilIdle()
+        assertEquals(listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
+
+        engines.last.fail(PlaybackError.DECODER_INIT)
+        advanceUntilIdle()
+
+        engines.built.clear()
+        model.retry()
+        advanceUntilIdle()
+
+        assertEquals(
+            "retry re-ran the primary, which is the attempt that already failed",
+            listOf(EngineId.BACKUP),
+            engines.built,
+        )
+    }
+
+    /**
+     * The engine that is running is on the state, always.
+     *
+     * Not cosmetic: the badge, the remembered-engine store and every log line key off it,
+     * and during the device investigation there was no way to tell from the screen which
+     * engine had produced a failure.
+     */
+    @Test
+    fun `the state names the engine that is actually running`() = runTest {
+        val model = model()
+        model.open(vodRequest())
+        advanceUntilIdle()
+        assertEquals(EngineId.PRIMARY, model.state.value?.engine)
+
+        engines.last.fail(PlaybackError.DECODER_INIT)
+        advanceUntilIdle()
+        engines.last.renderFirstFrame()
+        advanceUntilIdle()
+
+        assertEquals(EngineId.BACKUP, model.state.value?.engine)
+    }
+
+    /**
+     * The diagnosis reaches the state, and survives the engine being released.
+     *
+     * The fallback releases the engine that failed. A card that asked the engine for its
+     * diagnosis at draw time would be asking an object that no longer exists, which is why
+     * the report is copied onto the state at the moment of failure.
+     */
+    @Test
+    fun `the diagnosis is carried on the state, not fetched from a released engine`() = runTest {
+        val model = model()
+        model.open(vodRequest())
+        advanceUntilIdle()
+        engines.last.diagnose(PlaybackError.DECODER_INIT, "c2.android.avc.decoder")
+        engines.last.fail(PlaybackError.DECODER_INIT)
+        advanceUntilIdle()
+
+        val report = model.state.value?.diagnosis
+        assertTrue("a report reached the state", report != null)
+        assertEquals("c2.android.avc.decoder", report?.decoder?.codecName)
+        assertTrue(
+            "and it renders the decoder name for a person to read",
+            report?.render()?.contains("c2.android.avc.decoder") == true,
+        )
+    }
+
     /* -------------------------------------------------------------------- the memory */
 
     /**
@@ -349,7 +499,7 @@ class PlayerPathTest {
         val request = vodRequest()
         model.open(request)
         advanceUntilIdle()
-        engines.last.fail(PlaybackError.DECODER)
+        engines.last.fail(PlaybackError.DECODER_INIT)
         advanceUntilIdle()
         engines.last.renderFirstFrame()
         advanceUntilIdle()
@@ -434,6 +584,9 @@ class PlayerPathTest {
         private val _firstFrame = MutableStateFlow<Long?>(null)
         override val firstFrameAtMs: StateFlow<Long?> = _firstFrame.asStateFlow()
 
+        private val _diagnosis = MutableStateFlow<PlaybackDiagnosis?>(null)
+        override val diagnosis: StateFlow<PlaybackDiagnosis?> = _diagnosis.asStateFlow()
+
         val opened = mutableListOf<MediaRequest>()
         var samples = 0
         var released = false
@@ -473,6 +626,15 @@ class PlayerPathTest {
 
         fun fail(reason: PlaybackError) {
             _state.value = PlaybackState.Failed(reason)
+        }
+
+        /** What a real engine would have gathered from the exception before failing. */
+        fun diagnose(reason: PlaybackError, codecName: String) {
+            _diagnosis.value = PlaybackDiagnosis(
+                engine = EngineId.PRIMARY,
+                reason = reason,
+                decoder = DecoderReport(codecName = codecName),
+            )
         }
     }
 

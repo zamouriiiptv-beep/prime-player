@@ -49,6 +49,14 @@
     <string name="player_not_found_title">لا شيء على هذا العنوان</string>
     <string name="player_not_found_detail">الرابط لم يؤدِّ إلى شيء. مزوّدك يستطيع إخبارك إن كان قد تغيّر.</string>
 
+    <string name="player_source_title">تعذّر فتح هذا الملف</string>
+    <string name="player_source_detail">لم يستطع Castivio قراءته. ربما نُقل، أو لم يعد التطبيق يملك صلاحية الوصول إليه.</string>
+    <string name="player_timeout_title">لم يصل شيء</string>
+    <string name="player_timeout_detail">لم يرسل المصدر صورة ولم يُبلغ عن خطأ. تستحق المحاولة مرة أخرى.</string>
+    <string name="player_decoder_title">تعذّر التشغيل</string>
+    <string name="player_decoder_detail">رفضه أحد مفكّكات الترميز على هذا الجهاز. المشغّل الاحتياطي يجرّب واحدًا آخر.</string>
+    <string name="player_copy_report">نسخ التقرير</string>
+
     <string name="player_locked">الشاشة مقفلة — اضغط مطوّلًا لفتحها</string>
 
     <string name="player_sheet_subtitles">الترجمة</string>

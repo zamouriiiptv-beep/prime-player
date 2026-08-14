@@ -12,22 +12,28 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -39,6 +45,7 @@ import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.Spacing
 import com.castivio.playback.api.EngineId
+import com.castivio.playback.api.PlaybackDiagnosis
 import com.castivio.playback.api.PlaybackError
 import com.castivio.playback.api.Track
 
@@ -196,12 +203,65 @@ private fun BoxScope.FailureCard(failure: Picture.Failed, actions: PlayerActions
                 onClick = actions.onRetry,
             )
         }
+
+        DiagnosisBlock(state.diagnosis)
     }
 }
+
+/**
+ * The evidence, under the card, in a debug build only.
+ *
+ * ## Why it is on the card rather than behind a menu
+ *
+ * Because the person who needs it is looking at the card. A diagnostic two taps away is a
+ * diagnostic that gets described from memory instead of pasted, and the last round of this
+ * bug was lost to exactly that: the information existed in `logcat`, `logcat` needed a
+ * cable, and what came back was a screenshot of a sentence the app had made up.
+ *
+ * Compiled out of a release build entirely — `BuildConfig.DEBUG` is a constant the compiler
+ * folds, so this is absent rather than merely hidden.
+ */
+@Composable
+private fun ColumnScope.DiagnosisBlock(diagnosis: PlaybackDiagnosis?) {
+    if (!BuildConfig.DEBUG || diagnosis == null) return
+    val colors = CastivioTheme.colors
+    val clipboard = LocalClipboardManager.current
+    val text = remember(diagnosis) { diagnosis.render() }
+
+    Text(
+        text = text,
+        style = CastivioType.codeSmall,
+        color = colors.onBackgroundVariant,
+        modifier = Modifier
+            .padding(top = Spacing.sm)
+            .fillMaxWidth()
+            .heightIn(max = REPORT_HEIGHT)
+            .verticalScroll(rememberScrollState())
+            .testTag(PlayerTags.DIAGNOSIS),
+    )
+    CardButton(
+        icon = CastivioIcons.Engine,
+        text = stringResource(R.string.player_copy_report),
+        tag = PlayerTags.DIAGNOSIS_COPY,
+        onClick = { clipboard.setText(AnnotatedString(text)) },
+    )
+}
+
+/** Tall enough for a decoder failure with its chain, short enough to leave the card a card. */
+private val REPORT_HEIGHT = 180.dp
 
 /** Which sentences the card carries. One place, so the three stay distinguishable. */
 private data class FailureCopy(val title: Int, val detail: Int)
 
+/**
+ * One sentence per reason, and no reason borrowing another's.
+ *
+ * Several reasons share a card where the user's next move is the same — a permission and a
+ * source failure are both "this file could not be opened" to somebody holding a phone — but
+ * none of them borrows the *codec* card. That sharing is what produced a report saying a
+ * perfectly ordinary MP4 was an unsupported format, and the diagnosis under the card keeps
+ * the distinction the copy compresses.
+ */
 private fun failureCopy(reason: PlaybackError): FailureCopy = when (reason) {
     PlaybackError.UNSUPPORTED_FORMAT ->
         FailureCopy(R.string.player_unsupported_title, R.string.player_unsupported_detail)
@@ -211,7 +271,13 @@ private fun failureCopy(reason: PlaybackError): FailureCopy = when (reason) {
         FailureCopy(R.string.player_network_title, R.string.player_network_detail)
     PlaybackError.NOT_FOUND ->
         FailureCopy(R.string.player_not_found_title, R.string.player_not_found_detail)
-    PlaybackError.DECODER, PlaybackError.UNKNOWN ->
+    PlaybackError.PERMISSION, PlaybackError.SOURCE ->
+        FailureCopy(R.string.player_source_title, R.string.player_source_detail)
+    PlaybackError.TIMEOUT ->
+        FailureCopy(R.string.player_timeout_title, R.string.player_timeout_detail)
+    PlaybackError.DECODER_INIT, PlaybackError.DECODING, PlaybackError.CONTAINER ->
+        FailureCopy(R.string.player_decoder_title, R.string.player_decoder_detail)
+    PlaybackError.UNKNOWN ->
         FailureCopy(R.string.player_error_title, R.string.player_error_detail)
 }
 

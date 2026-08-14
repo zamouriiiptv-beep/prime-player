@@ -91,6 +91,16 @@ internal object PlayerTags {
      */
     const val ERROR_BACKUP = "player.errorBackup"
 
+    /**
+     * The evidence block and its Copy button.
+     *
+     * Tagged so a gate can assert the thing that matters about them: that they appear when
+     * there is a diagnosis and that the copied text is the displayed text. A report whose
+     * copy differs from what is on screen is worse than no copy button.
+     */
+    const val DIAGNOSIS = "player.diagnosis"
+    const val DIAGNOSIS_COPY = "player.diagnosisCopy"
+
     const val SHEET = "player.sheet"
     const val SHEET_CLOSE = "player.sheetClose"
     const val STATISTICS = "player.statistics"

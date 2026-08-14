@@ -30,6 +30,18 @@ interface PlaybackEngine {
     val firstFrameAtMs: StateFlow<Long?>
 
     /**
+     * Why the last failure happened, in full, or null while nothing has failed.
+     *
+     * Separate from [PlaybackState.Failed] because the two have different audiences. The
+     * state carries a [PlaybackError] because that is what the screen branches on; this
+     * carries the evidence, because an enum value is not a diagnosis and the difference
+     * cost a real debugging round on a real device.
+     *
+     * Cleared on every open, so a report always describes the attempt in front of you.
+     */
+    val diagnosis: StateFlow<PlaybackDiagnosis?>
+
+    /**
      * Where to draw. Null detaches, which is what leaving the screen must do before the
      * view goes away.
      */
@@ -130,7 +142,89 @@ sealed interface PlaybackState {
     data object Ended : PlaybackState
 }
 
-enum class PlaybackError { NETWORK, UNSUPPORTED_FORMAT, DECODER, DRM, NOT_FOUND, UNKNOWN }
+/**
+ * Why playback stopped, at the granularity the product can actually act on.
+ *
+ * ## Why this list grew
+ *
+ * It used to be six values, and one of them — `DECODER` — was doing the work of five. The
+ * consequence was found on a device: a real MP4 failed, and the card said "format not
+ * supported" because the taxonomy had nowhere else to put it. It had not been established
+ * that anything was unsupported; that was simply the label the last branch reached.
+ *
+ * So every distinct thing that can go wrong now has a name, and the rule is:
+ *
+ * > nothing is called [UNSUPPORTED_FORMAT] unless the platform said so.
+ *
+ * [UNKNOWN] stays unknown. An unclassified failure relabelled as a codec problem sends the
+ * user looking for a different file when the fault may be a permission, a timeout or a
+ * data source — and sends whoever reads the report looking in the wrong place.
+ */
+enum class PlaybackError {
+    /** The transport failed: no route, a refused connection, a timeout in the stack. */
+    NETWORK,
+
+    /** The host or the file answered "not here". */
+    NOT_FOUND,
+
+    /**
+     * The bytes could not be opened for reading — as distinct from not existing.
+     *
+     * A `content://` URI whose grant was revoked, a file the process may not read, a
+     * cleartext link on a network-security config that forbids one. The stream is there and
+     * we are not allowed to have it.
+     */
+    PERMISSION,
+
+    /**
+     * A data source failed for a reason that is neither the network nor a permission.
+     *
+     * A scheme nothing claims, a local read that failed mid-file, a provider that closed
+     * the descriptor. Kept apart from [NETWORK] because the user's next move differs: one
+     * is "check the connection" and the other is "this file is not readable".
+     */
+    SOURCE,
+
+    /** The container or manifest could not be parsed. The bytes arrived and made no sense. */
+    CONTAINER,
+
+    /**
+     * A decoder exists for this format and would not start.
+     *
+     * `MediaCodec` configure or start failed — a busy decoder, an out-of-resources device,
+     * a profile the codec advertises and does not honour. **This is not "unsupported"**:
+     * the platform listed a decoder, and the decoder refused. It is the case where trying
+     * the next decoder in the device's list is worth doing, which is exactly what the
+     * backup engine changes.
+     */
+    DECODER_INIT,
+
+    /** A decoder started and then failed on the stream. */
+    DECODING,
+
+    /**
+     * The platform has no decoder for this format at all.
+     *
+     * Only ever set from a platform answer that says so — `ERROR_CODE_DECODING_FORMAT_
+     * UNSUPPORTED`, or a decoder query that came back empty. Never a default.
+     */
+    UNSUPPORTED_FORMAT,
+
+    /** Protected content this device cannot get keys for. */
+    DRM,
+
+    /**
+     * No frame arrived inside the opening budget, and nothing reported an error.
+     *
+     * Its own reason because it is its own situation: the engine said nothing at all. It
+     * used to be reported as a decoder failure, which meant a slow source was described to
+     * the user as an unplayable one.
+     */
+    TIMEOUT,
+
+    /** Something failed and did not identify itself. Left exactly that way. */
+    UNKNOWN,
+}
 
 data class TrackSet(
     val audio: List<Track> = emptyList(),

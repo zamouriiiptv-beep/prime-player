@@ -2,6 +2,7 @@ package com.castivio.feature.player
 
 import com.castivio.playback.api.EngineId
 import com.castivio.playback.api.PlaybackError
+import com.castivio.playback.api.PlaybackDiagnosis
 import com.castivio.playback.api.PlaybackSample
 import com.castivio.playback.api.Track
 
@@ -39,6 +40,14 @@ data class PlayerState(
      */
     val statistics: Boolean = false,
     val sample: PlaybackSample? = null,
+    /**
+     * Why the last failure happened, in full.
+     *
+     * Carried on the state rather than fetched by the card, because the engine that knows
+     * is released the moment the fallback switches — a card that asked at draw time would
+     * be asking something that no longer exists.
+     */
+    val diagnosis: PlaybackDiagnosis? = null,
     val positionMs: Long = 0,
     val bufferedMs: Long = 0,
     val durationMs: Long? = null,

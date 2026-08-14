@@ -17,16 +17,21 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.ExoPlaybackException
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.mediacodec.MediaCodecRenderer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory
 import com.castivio.playback.api.AspectMode
+import com.castivio.playback.api.DecoderReport
+import com.castivio.playback.api.FormatReport
 import com.castivio.playback.api.EngineId
 import com.castivio.playback.api.MediaKind
 import com.castivio.playback.api.MediaRequest
+import com.castivio.playback.api.PlaybackDiagnosis
 import com.castivio.playback.api.PlaybackEngine
 import com.castivio.playback.api.PlaybackError
 import com.castivio.playback.api.PlaybackSample
@@ -94,6 +99,12 @@ class Media3Engine(
 
     private val _firstFrameAtMs = MutableStateFlow<Long?>(null)
     override val firstFrameAtMs: StateFlow<Long?> = _firstFrameAtMs.asStateFlow()
+
+    private val _diagnosis = MutableStateFlow<PlaybackDiagnosis?>(null)
+    override val diagnosis: StateFlow<PlaybackDiagnosis?> = _diagnosis.asStateFlow()
+
+    /** The source currently open, already stripped of its query. For the report only. */
+    private var openedSource: String? = null
 
     /** When [open] was called, so the start-up figure is a measurement and not a guess. */
     private var openedAtMs: Long = 0
@@ -203,13 +214,25 @@ class Media3Engine(
         // the list was on screen, a scheme no data source claims, a malformed link out of
         // a provider. Each of those is a card the user can act on, and a crash is not.
         runCatching { openInternal(media) }.onFailure { error ->
-            Log.e(TAG, "open failed for ${media.url.take(URL_IN_LOG)}", error)
-            _state.value = PlaybackState.Failed(PlaybackError.UNKNOWN, error)
+            // Classified from the throwable rather than defaulted. A SecurityException on a
+            // content URI and an unknown scheme are different problems with different
+            // answers, and both used to arrive here as UNKNOWN and leave as "unsupported".
+            val reason = classify(error)
+            Log.e(TAG, "$reason opening ${safeSource(media.url)}", error)
+            _diagnosis.value = PlaybackDiagnosis(
+                engine = profile.id,
+                reason = reason,
+                causes = chain(error),
+                source = safeSource(media.url),
+            )
+            _state.value = PlaybackState.Failed(reason, error)
         }
     }
 
     private fun openInternal(media: MediaRequest) {
         openedAtMs = SystemClock.elapsedRealtime()
+        openedSource = safeSource(media.url)
+        _diagnosis.value = null
         _firstFrameAtMs.value = null
         _tracks.value = TrackSet()
         videoFormat = null
@@ -405,11 +428,12 @@ class Media3Engine(
                         TrackType.SUBTITLE -> subtitle += entry
                         TrackType.VIDEO -> video += entry
                     }
-                    if (selected) {
-                        when (group.type) {
-                            C.TRACK_TYPE_AUDIO -> audioFormat = format
-                            C.TRACK_TYPE_VIDEO -> videoFormat = format
-                        }
+                    // Selected first, but any format is better than none: a decoder that
+                    // would not initialise never got its track selected, and that is
+                    // precisely the failure whose format the report has to carry.
+                    when (group.type) {
+                        C.TRACK_TYPE_AUDIO -> if (selected || audioFormat == null) audioFormat = format
+                        C.TRACK_TYPE_VIDEO -> if (selected || videoFormat == null) videoFormat = format
                     }
                 }
             }
@@ -428,13 +452,46 @@ class Media3Engine(
             }
         }
 
+        /**
+         * Where the whole diagnosis is assembled.
+         *
+         * Everything below is read out of the exception and the player at the one moment
+         * it all still exists — the engine is released as soon as the fallback switches,
+         * and a report gathered afterwards would be a report of nothing.
+         */
         override fun onPlayerError(error: PlaybackException) {
-            val mapped = map(error)
-            // The one line that answers "why did this channel not play". `errorCodeName`
-            // is ExoPlayer's own name for the code, so the log says
-            // ERROR_CODE_DECODING_FORMAT_UNSUPPORTED rather than the number 4003.
-            Log.w(TAG, "${profile.id} engine failed: ${error.errorCodeName} -> $mapped", error)
-            _state.value = PlaybackState.Failed(mapped, error)
+            val decoderFailure = error.findCause<MediaCodecRenderer.DecoderInitializationException>()
+            val reason = map(error, decoderFailure)
+
+            val report = PlaybackDiagnosis(
+                engine = profile.id,
+                reason = reason,
+                errorCode = error.errorCode,
+                errorCodeName = error.errorCodeName,
+                rendererName = (error as? ExoPlaybackException)?.takeIf {
+                    it.type == ExoPlaybackException.TYPE_RENDERER
+                }?.rendererName,
+                causes = chain(error),
+                decoder = decoderFailure?.let {
+                    DecoderReport(
+                        codecName = it.codecInfo?.name,
+                        mimeType = it.mimeType,
+                        diagnosticInfo = it.diagnosticInfo,
+                        secureDecoderRequired = it.secureDecoderRequired,
+                        // Non-null means the renderer already walked on to another decoder
+                        // and that one failed too -- which is precisely the evidence for
+                        // whether the backup engine's one real difference can help here.
+                        triedAnotherDecoder = it.fallbackDecoderInitializationException != null,
+                    )
+                },
+                video = videoFormat?.asReport(),
+                audio = audioFormat?.asReport(),
+                source = openedSource,
+            )
+            _diagnosis.value = report
+
+            Log.w(TAG, "${profile.id} failed: ${error.errorCodeName} -> $reason\n${report.render()}", error)
+            _state.value = PlaybackState.Failed(reason, error)
         }
     }
 
@@ -458,51 +515,144 @@ class Media3Engine(
         "${group.type}:${group.mediaTrackGroup.id}:$index"
 
     /**
-     * ExoPlayer's error, as one of the six the product reasons about.
+     * ExoPlayer's error, as one of the reasons the product reasons about.
      *
-     * The mapping is the whole error taxonomy of the player, so it is exhaustive over the
-     * codes that actually occur rather than a `when` with a large `else`. Getting
-     * `UNSUPPORTED` and `DECODER` the wrong way round would offer the backup engine where
-     * it cannot help, or withhold it where it can.
+     * ## The rule
+     *
+     * **Nothing becomes [PlaybackError.UNSUPPORTED_FORMAT] unless the platform said so.**
+     * Two codes say it and nothing else does. Everything unrecognised stays
+     * [PlaybackError.UNKNOWN] and is reported as unknown, because a wrong name on a failure
+     * is worse than no name: it sends the user looking for a different file and whoever
+     * reads the report looking in the wrong subsystem.
+     *
+     * A [MediaCodecRenderer.DecoderInitializationException] anywhere in the chain outranks
+     * the code, because it is the more specific fact: the platform listed a decoder and the
+     * decoder refused, which is a different situation from having no decoder at all and is
+     * the one case the backup engine is actually built for.
      */
-    private fun map(error: PlaybackException): PlaybackError = when (error.errorCode) {
-        PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS,
-        PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND,
-        -> PlaybackError.NOT_FOUND
+    private fun map(
+        error: PlaybackException,
+        decoderFailure: MediaCodecRenderer.DecoderInitializationException?,
+    ): PlaybackError {
+        if (decoderFailure != null) return PlaybackError.DECODER_INIT
+        return when (error.errorCode) {
+            PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND,
+            PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS,
+            -> PlaybackError.NOT_FOUND
 
-        PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
-        PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT,
-        PlaybackException.ERROR_CODE_IO_NO_PERMISSION,
-        PlaybackException.ERROR_CODE_IO_CLEARTEXT_NOT_PERMITTED,
-        PlaybackException.ERROR_CODE_IO_UNSPECIFIED,
-        -> PlaybackError.NETWORK
+            PlaybackException.ERROR_CODE_IO_NO_PERMISSION,
+            PlaybackException.ERROR_CODE_IO_CLEARTEXT_NOT_PERMITTED,
+            -> PlaybackError.PERMISSION
 
-        PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED,
-        PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED,
-        PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED,
-        PlaybackException.ERROR_CODE_PARSING_MANIFEST_UNSUPPORTED,
-        -> PlaybackError.DECODER
+            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
+            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT,
+            -> PlaybackError.NETWORK
 
-        PlaybackException.ERROR_CODE_DECODER_INIT_FAILED,
-        PlaybackException.ERROR_CODE_DECODER_QUERY_FAILED,
-        PlaybackException.ERROR_CODE_DECODING_FAILED,
-        PlaybackException.ERROR_CODE_DECODING_FORMAT_EXCEEDS_CAPABILITIES,
-        PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED,
-        -> PlaybackError.DECODER
+            // Deliberately not NETWORK. `IO_UNSPECIFIED` is what a ContentDataSource
+            // failure arrives as, and telling a user to check their connection because a
+            // local file would not open is the kind of wrong advice this pass exists to
+            // remove.
+            PlaybackException.ERROR_CODE_IO_UNSPECIFIED,
+            -> PlaybackError.SOURCE
 
-        PlaybackException.ERROR_CODE_DRM_UNSPECIFIED,
-        PlaybackException.ERROR_CODE_DRM_SCHEME_UNSUPPORTED,
-        PlaybackException.ERROR_CODE_DRM_PROVISIONING_FAILED,
-        PlaybackException.ERROR_CODE_DRM_CONTENT_ERROR,
-        PlaybackException.ERROR_CODE_DRM_LICENSE_ACQUISITION_FAILED,
-        PlaybackException.ERROR_CODE_DRM_DISALLOWED_OPERATION,
-        PlaybackException.ERROR_CODE_DRM_SYSTEM_ERROR,
-        PlaybackException.ERROR_CODE_DRM_DEVICE_REVOKED,
-        PlaybackException.ERROR_CODE_DRM_LICENSE_EXPIRED,
-        -> PlaybackError.DRM
+            PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED,
+            PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED,
+            PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED,
+            PlaybackException.ERROR_CODE_PARSING_MANIFEST_UNSUPPORTED,
+            -> PlaybackError.CONTAINER
 
+            PlaybackException.ERROR_CODE_DECODER_INIT_FAILED,
+            PlaybackException.ERROR_CODE_DECODER_QUERY_FAILED,
+            -> PlaybackError.DECODER_INIT
+
+            PlaybackException.ERROR_CODE_DECODING_FAILED,
+            PlaybackException.ERROR_CODE_DECODING_FORMAT_EXCEEDS_CAPABILITIES,
+            -> PlaybackError.DECODING
+
+            // The only code that means what the word means.
+            PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED,
+            -> PlaybackError.UNSUPPORTED_FORMAT
+
+            PlaybackException.ERROR_CODE_DRM_UNSPECIFIED,
+            PlaybackException.ERROR_CODE_DRM_SCHEME_UNSUPPORTED,
+            PlaybackException.ERROR_CODE_DRM_PROVISIONING_FAILED,
+            PlaybackException.ERROR_CODE_DRM_CONTENT_ERROR,
+            PlaybackException.ERROR_CODE_DRM_LICENSE_ACQUISITION_FAILED,
+            PlaybackException.ERROR_CODE_DRM_DISALLOWED_OPERATION,
+            PlaybackException.ERROR_CODE_DRM_SYSTEM_ERROR,
+            PlaybackException.ERROR_CODE_DRM_DEVICE_REVOKED,
+            PlaybackException.ERROR_CODE_DRM_LICENSE_EXPIRED,
+            -> PlaybackError.DRM
+
+            else -> PlaybackError.UNKNOWN
+        }
+    }
+
+    /**
+     * A throwable from [open], classified.
+     *
+     * These are the failures that happen before ExoPlayer has an error code of its own: a
+     * revoked content URI, a scheme nothing claims. Previously all of them were UNKNOWN.
+     */
+    private fun classify(error: Throwable): PlaybackError = when {
+        error.chainHas<SecurityException>() -> PlaybackError.PERMISSION
+        error.chainHas<java.io.FileNotFoundException>() -> PlaybackError.NOT_FOUND
+        error.chainHas<java.io.IOException>() -> PlaybackError.SOURCE
         else -> PlaybackError.UNKNOWN
     }
+
+    /**
+     * The chain, outermost first.
+     *
+     * The answer is almost never in the top frame. `ExoPlaybackException` says "a renderer
+     * failed"; four links down is a `MediaCodec.CodecException` with a vendor string that
+     * names the actual problem. Bounded, because a cyclic `cause` is a real thing and a
+     * report that never finishes rendering is a report nobody reads.
+     */
+    private fun chain(error: Throwable): List<String> = buildList {
+        var current: Throwable? = error
+        var depth = 0
+        val seen = mutableSetOf<Throwable>()
+        while (current != null && depth < MAX_CAUSES && seen.add(current)) {
+            add("${current.javaClass.name}: ${current.message ?: "(no message)"}")
+            current = current.cause
+            depth++
+        }
+    }
+
+    private inline fun <reified T : Throwable> Throwable.findCause(): T? {
+        var current: Throwable? = this
+        var depth = 0
+        while (current != null && depth < MAX_CAUSES) {
+            if (current is T) return current
+            current = current.cause
+            depth++
+        }
+        return null
+    }
+
+    private inline fun <reified T : Throwable> Throwable.chainHas(): Boolean = findCause<T>() != null
+
+    /** A format, flattened for the report. Nothing here is computed; it is all declared. */
+    private fun Format.asReport() = FormatReport(
+        sampleMimeType = sampleMimeType,
+        codecs = codecs,
+        width = width.takeIf { it != Format.NO_VALUE },
+        height = height.takeIf { it != Format.NO_VALUE },
+        frameRate = frameRate.takeIf { it != Format.NO_VALUE.toFloat() && it > 0f },
+        channelCount = channelCount.takeIf { it != Format.NO_VALUE },
+        sampleRateHz = sampleRate.takeIf { it != Format.NO_VALUE },
+        bitrate = bitrate.takeIf { it != Format.NO_VALUE },
+    )
+
+    /**
+     * A source, safe to put in a report.
+     *
+     * The query is dropped. An Xtream URL carries the subscriber's username, password and
+     * session token in it, and a diagnostic the user is invited to copy and paste to
+     * somebody else must not carry credentials out of the device.
+     */
+    private fun safeSource(url: String): String = url.substringBefore('?').take(URL_IN_LOG)
 
     private companion object {
         const val TAG = "CastivioEngine"
@@ -525,6 +675,9 @@ class Media3Engine(
         const val LIVE_TARGET_OFFSET_MS = 3_000L
 
         const val UNKNOWN_TRACK = "—"
+
+        /** Deep enough for any real chain, shallow enough that a cycle cannot hang it. */
+        const val MAX_CAUSES = 12
     }
 }
 

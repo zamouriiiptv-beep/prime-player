@@ -60,6 +60,14 @@
     <string name="player_not_found_title">Nothing at that address</string>
     <string name="player_not_found_detail">The link led nowhere. Your provider can tell you whether it moved.</string>
 
+    <string name="player_source_title">This file could not be opened</string>
+    <string name="player_source_detail">Castivio could not read it. It may have moved, or the app may no longer have access to it.</string>
+    <string name="player_timeout_title">Nothing arrived</string>
+    <string name="player_timeout_detail">The source did not send a picture and reported no error. Trying again is worth a go.</string>
+    <string name="player_decoder_title">This would not play</string>
+    <string name="player_decoder_detail">A decoder on this device refused it. The backup player tries a different one.</string>
+    <string name="player_copy_report">Copy report</string>
+
     <!-- Locked -->
     <string name="player_locked">Screen locked — press and hold to unlock</string>
 

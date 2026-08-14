@@ -31,11 +31,25 @@ enum class EngineId {
     PRIMARY,
 
     /**
-     * Software decoders and a permissive reader, for the streams the fast path refuses.
+     * The same platform decoders, tried more patiently, and a more forgiving reader.
      *
-     * Slower to start and heavier on the CPU, which is exactly why it is not the
-     * default: paying that cost on every channel to rescue the few that need it would
-     * make the whole product slower to be right about a minority of it.
+     * ## What this is not
+     *
+     * It is **not a software decoder**, and describing it as one — which this comment
+     * previously did — is the kind of claim that sends somebody looking in the wrong place
+     * when a file fails. Castivio ships no `media3-decoder-*` artifact, so there is no
+     * bundled codec to fall back to, and `EXTENSION_RENDERER_MODE_PREFER` resolves nothing.
+     *
+     * ## What it actually is
+     *
+     * `enableDecoderFallback`: where the primary gives up when the first decoder the
+     * platform lists refuses to initialise, this one walks the rest of the list. Devices
+     * ship several decoders per format — a vendor one and an AOSP one — and the second is
+     * frequently more tolerant than the first. Plus MPEG-TS extractor flags for transport
+     * streams that declare nothing useful in their PMT.
+     *
+     * That is a real difference and a narrow one. It cannot play a format the device has no
+     * decoder for at all, and `EngineProfileTest` holds both halves of that statement.
      */
     BACKUP,
 }
@@ -111,42 +125,68 @@ object FallbackPolicy {
     /**
      * Whether handing this failure to the other engine could plausibly fix it.
      *
-     * This is the question the three error cards differ on, and it is answered here once
-     * so that the card and the automatic fallback can never disagree — an "unsupported"
-     * card offering a backup button that the automatic path already knows is useless
-     * would be the player lying about what it can do.
+     * The backup engine differs from the primary in exactly one way that matters on a
+     * device: `enableDecoderFallback`, which walks the platform's own list of decoders for
+     * the format instead of giving up on the first one. It is **not** a software decoder —
+     * no `media3-decoder-*` artifact is on the classpath, so the extension renderer mode is
+     * a no-op — and the extractor flags it also sets apply to MPEG-TS and MP3 and to
+     * nothing else. `EngineProfileTest` asserts both of those facts rather than trusting
+     * this comment.
      *
-     * - A **container or codec** the first engine refused is precisely what the second
-     *   one exists for. Yes.
-     * - **UNSUPPORTED_FORMAT** is the answer after both have refused. There is no third
-     *   engine, so no.
-     * - **DRM** is not a decoding problem. The device lacks the keys or the security
-     *   level, and a different decoder on the same device lacks them identically. No.
-     * - **NETWORK** and **NOT_FOUND** are about the source, not the reader. Swapping
-     *   engines cannot make a host answer. No — this is a retry, if anything.
+     * So the question is narrow and honest: *is this a failure that a different decoder
+     * from the same device might not have?*
+     *
+     * - **DECODER_INIT** is exactly that. A decoder was listed and refused. Yes.
+     * - **DECODING** is a decoder that started and broke on the stream. Yes.
+     * - **CONTAINER** is the one case the extractor flags address, on a transport stream
+     *   whose PMT declares nothing useful. Yes.
+     * - **UNSUPPORTED_FORMAT** means the platform said it has no decoder for this. There
+     *   is no second list to consult. No.
+     * - **DRM** is not a decoding problem; the same device lacks the same keys. No.
+     * - **NETWORK**, **NOT_FOUND**, **PERMISSION**, **SOURCE** are about getting the
+     *   bytes. Swapping decoders cannot open a file. No.
+     * - **TIMEOUT** is silence, and the budget exists precisely to spend the other engine
+     *   on silence. Yes.
+     * - **UNKNOWN** could be anything, so it is the one case the machine does not decide
+     *   for itself. See [decideAutomatically].
      */
     fun canBackupHelp(error: PlaybackError): Boolean = when (error) {
-        PlaybackError.DECODER -> true
+        PlaybackError.DECODER_INIT -> true
+        PlaybackError.DECODING -> true
+        PlaybackError.CONTAINER -> true
+        PlaybackError.TIMEOUT -> true
         PlaybackError.UNKNOWN -> true
+
         PlaybackError.UNSUPPORTED_FORMAT -> false
         PlaybackError.DRM -> false
         PlaybackError.NETWORK -> false
         PlaybackError.NOT_FOUND -> false
+        PlaybackError.PERMISSION -> false
+        PlaybackError.SOURCE -> false
     }
 
     /**
-     * What the failure becomes once the engines have been exhausted.
+     * Whether the player should spend the fallback *without asking*.
      *
-     * The distinction the three cards are built on. A decoder failure that engine 2 has
-     * *also* refused stops being "this engine could not read it" and becomes "nothing
-     * here can read it" — which is a different sentence to the user and a different set
-     * of buttons, and getting it from the same function as the fallback decision is what
-     * keeps the two in step.
+     * ## The defect this function exists to fix
+     *
+     * One predicate was answering two different questions, and the result was that the
+     * "try the backup player" button could never appear: every reason that made the button
+     * meaningful also triggered the automatic switch first, so by the time a card was
+     * drawn the fallback had always already been spent. A button that cannot be reached is
+     * worse than no button — it is a promise the design makes and the code does not keep.
+     *
+     * The split is **automatic where the evidence is specific, ask where it is not.** A
+     * decoder that refused, a container that would not parse, a source that said nothing
+     * inside the budget: concrete, and worth switching on silently because the user did not
+     * ask for the switch and cannot act on it.
+     *
+     * [PlaybackError.UNKNOWN] is different by definition — nothing identified itself, so
+     * spending the single fallback attempt on it is a guess. The card appears with the
+     * backup offered and a person decides.
      */
-    fun exhausted(error: PlaybackError): PlaybackError = when (error) {
-        PlaybackError.DECODER, PlaybackError.UNKNOWN -> PlaybackError.UNSUPPORTED_FORMAT
-        else -> error
-    }
+    fun decideAutomatically(error: PlaybackError): Boolean =
+        canBackupHelp(error) && error != PlaybackError.UNKNOWN
 
     /**
      * The key a source is remembered under.

@@ -270,7 +270,12 @@ class PlayerLayoutTest {
     /* ------------------------------------------------------------- the three cards */
 
     /**
-     * A decoder refusal the backup has not seen offers both buttons.
+     * An unidentified failure offers both buttons.
+     *
+     * `UNKNOWN` rather than a decoder refusal, because the decoder cases are switched
+     * automatically and never reach a card with the backup still unspent. This is the one
+     * state where the person decides, and it is the state the dead-button regression was
+     * about.
      *
      * The only one of the three that does, and the reason the other two are separate tests
      * rather than one parameterised sweep: what is being asserted is *absence*, and an
@@ -281,7 +286,7 @@ class PlayerLayoutTest {
         compose.show(
             HANDSET,
             DeviceClass.Expanded,
-            playingLive().copy(picture = Picture.Failed(PlaybackError.DECODER, canTryBackup = true)),
+            playingLive().copy(picture = Picture.Failed(PlaybackError.UNKNOWN, canTryBackup = true)),
         )
 
         compose.onAllNodesWithTag(PlayerTags.ERROR_BACKUP).assertCountEquals(1)

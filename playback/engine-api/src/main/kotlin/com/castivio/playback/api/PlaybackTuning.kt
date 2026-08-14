@@ -81,8 +81,21 @@ data class RetryPolicy(
     /** Only transient transport failures are worth retrying. */
     fun shouldRetry(error: PlaybackError, attempt: Int): Boolean =
         attempt < maxAttempts && when (error) {
-            PlaybackError.NETWORK, PlaybackError.UNKNOWN -> true
-            PlaybackError.UNSUPPORTED_FORMAT, PlaybackError.DECODER -> false // try a fallback stream instead
-            PlaybackError.DRM, PlaybackError.NOT_FOUND -> false
+            // Only a transport failure is worth riding out on a stream that *was* playing.
+            PlaybackError.NETWORK -> true
+
+            // Everything else is either about the format, the decoder or the bytes, and
+            // repeating the same request will produce the same answer. Exhaustive rather
+            // than an `else`, so a new reason has to be classified deliberately.
+            PlaybackError.UNKNOWN -> false
+            PlaybackError.UNSUPPORTED_FORMAT -> false
+            PlaybackError.DECODER_INIT -> false
+            PlaybackError.DECODING -> false
+            PlaybackError.CONTAINER -> false
+            PlaybackError.TIMEOUT -> false
+            PlaybackError.PERMISSION -> false
+            PlaybackError.SOURCE -> false
+            PlaybackError.DRM -> false
+            PlaybackError.NOT_FOUND -> false
         }
 }

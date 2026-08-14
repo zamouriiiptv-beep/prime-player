@@ -9,6 +9,7 @@ import com.castivio.playback.api.EngineMemory
 import com.castivio.playback.api.FallbackPolicy
 import com.castivio.playback.api.MediaRequest
 import com.castivio.playback.api.PlaybackEngine
+import com.castivio.playback.api.PlaybackDiagnosis
 import com.castivio.playback.api.PlaybackError
 import com.castivio.playback.api.PlaybackState
 import com.castivio.playback.api.Track
@@ -74,6 +75,9 @@ class PlayerViewModel @Inject constructor(
     /** Set when the primary has already been tried and refused, so a second failure is final. */
     private var backupTried = false
 
+    /** Whether the current attempt ended by the budget expiring rather than by an error. */
+    private var timedOut = false
+
     /**
      * Open a source. The whole of the critical path.
      *
@@ -85,7 +89,9 @@ class PlayerViewModel @Inject constructor(
         release()
 
         backupTried = false
+        timedOut = false
         engineId = FallbackPolicy.first(FallbackPolicy.sourceKey(request.url), memory)
+        Log.i(TAG, "opening on $engineId")
         _state.value = PlayerState(request = request, engine = engineId)
         start(request, engineId)
     }
@@ -142,7 +148,11 @@ class PlayerViewModel @Inject constructor(
             // Still no frame. Not an error — the engine has not said anything — but the
             // budget is spent, and a source that has not opened in three seconds is not
             // about to.
-            if (created.firstFrameAtMs.value == null) fallOver(PlaybackError.DECODER)
+            if (created.firstFrameAtMs.value == null) {
+                Log.w(TAG, "$id produced no frame in ${FallbackPolicy.OPEN_DEADLINE_MS}ms")
+                timedOut = true
+                fallOver(PlaybackError.TIMEOUT)
+            }
         }
     }
 
@@ -159,20 +169,22 @@ class PlayerViewModel @Inject constructor(
             is PlaybackState.Paused -> Picture.Paused
             is PlaybackState.Ended -> Picture.Ended
             is PlaybackState.Failed -> {
-                // A failure the other engine might fix takes the source there instead of
-                // drawing a card. The card is what is left when there is nowhere to go.
-                if (!backupTried && FallbackPolicy.canBackupHelp(playback.reason)) {
+                // Automatic only where the evidence is specific. `decideAutomatically`
+                // deliberately excludes UNKNOWN: spending the single fallback attempt on a
+                // failure that did not identify itself is a guess, and it was that guess
+                // which made the backup button unreachable in every case where it mattered.
+                if (!backupTried && FallbackPolicy.decideAutomatically(playback.reason)) {
                     fallOver(playback.reason)
                     return
                 }
-                // Whether the card offers the backup is the same question the automatic
-                // path asked, answered by the same function. With the automatic fallback
-                // in place this is normally false by the time a card is drawn -- the
-                // switch has already happened -- and it is true only where the machine
-                // declined to spend the fallback and a person might still want to.
                 val untried = !backupTried && engineId == EngineId.PRIMARY
                 Picture.Failed(
-                    reason = if (untried) playback.reason else FallbackPolicy.exhausted(playback.reason),
+                    // Reported as it happened. There is no second mapping that turns an
+                    // exhausted failure into a different one -- that mapping existed, it
+                    // renamed everything unclassified to "format not supported", and it is
+                    // the reason a perfectly ordinary MP4 was described as an unplayable
+                    // codec.
+                    reason = playback.reason,
                     canTryBackup = untried && FallbackPolicy.canBackupHelp(playback.reason),
                 )
             }
@@ -180,6 +192,7 @@ class PlayerViewModel @Inject constructor(
 
         _state.value = current.copy(
             picture = picture,
+            diagnosis = engine?.diagnosis?.value ?: timeoutDiagnosis(picture),
             audioTracks = engine?.tracks?.value?.audio.orEmpty(),
             subtitleTracks = engine?.tracks?.value?.subtitle.orEmpty(),
             videoTracks = engine?.tracks?.value?.video.orEmpty(),
@@ -212,8 +225,9 @@ class PlayerViewModel @Inject constructor(
         val current = _state.value ?: return
         if (backupTried || engineId == EngineId.BACKUP) {
             _state.value = current.copy(
-                picture = Picture.Failed(FallbackPolicy.exhausted(reason), canTryBackup = false),
+                picture = Picture.Failed(reason, canTryBackup = false),
                 switching = false,
+                diagnosis = engine?.diagnosis?.value ?: current.diagnosis,
             )
             return
         }
@@ -223,7 +237,13 @@ class PlayerViewModel @Inject constructor(
         start(current.request, EngineId.BACKUP)
     }
 
-    /** The button on the error card. The same path the automatic switch takes. */
+    /**
+     * The button on the error card, and now genuinely reachable.
+     *
+     * It appears when the machine declined to spend the fallback on its own — which after
+     * `decideAutomatically` means an unidentified failure, the exact case a person should
+     * be deciding. The path it takes is the automatic one; what differs is who chose.
+     */
     fun tryBackup() {
         val current = _state.value ?: return
         backupTried = true
@@ -232,15 +252,31 @@ class PlayerViewModel @Inject constructor(
         start(current.request, EngineId.BACKUP)
     }
 
-    /** Start again on whichever engine this source is now remembered as needing. */
+    /**
+     * Start again, on the engine we are actually on.
+     *
+     * ## What this used to do, and why it was wrong
+     *
+     * It reset `backupTried` and re-derived the engine from memory. Memory only records an
+     * engine *after a frame renders*, so a source that had never played had nothing
+     * remembered, and the derivation returned `PRIMARY` — meaning Retry, pressed after the
+     * fallback had already been tried and failed, silently repeated the identical primary
+     * attempt. On a device that looks exactly like "both engines failed" when in fact one
+     * of them was run twice and the other once.
+     *
+     * Now it retries what is in front of the user. If the fallback has been spent, Retry
+     * retries the fallback; the way back to the primary is a new open, not this button.
+     */
     fun retry() {
         val current = _state.value ?: return
         val request = current.request
-        release()
-        backupTried = false
-        engineId = FallbackPolicy.first(FallbackPolicy.sourceKey(request.url), memory)
-        _state.value = current.copy(picture = Picture.Opening, engine = engineId, switching = false)
-        start(request, engineId)
+        val on = engineId
+        val spent = backupTried
+        stopEngine()
+        backupTried = spent
+        Log.i(TAG, "retry on $on (fallback already spent: $spent)")
+        _state.value = current.copy(picture = Picture.Opening, engine = on, switching = false)
+        start(request, on)
     }
 
     /* ------------------------------------------------------------------- controls */
@@ -315,6 +351,22 @@ class PlayerViewModel @Inject constructor(
     }
 
     /* -------------------------------------------------------------------- the rest */
+
+    /**
+     * The report for a failure that produced no exception at all.
+     *
+     * A budget that expired has nothing to read out of the engine — that is what makes it
+     * a distinct reason — so the report is written here, and says the one thing that is
+     * true: nothing was reported and no frame arrived.
+     */
+    private fun timeoutDiagnosis(picture: Picture): PlaybackDiagnosis? {
+        if (!timedOut || picture !is Picture.Failed) return null
+        return PlaybackDiagnosis(
+            engine = engineId,
+            reason = PlaybackError.TIMEOUT,
+            timedOutAfterMs = FallbackPolicy.OPEN_DEADLINE_MS,
+        )
+    }
 
     private fun startTicker() {
         ticker?.cancel()

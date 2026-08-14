@@ -19,90 +19,148 @@ class FallbackPolicyTest {
     /* ------------------------------------------------------- what the backup can fix */
 
     /**
-     * The three error cards, as one table.
+     * The taxonomy, exhaustively, so a new reason cannot slip in unclassified.
      *
-     * This is the whole taxonomy, and it is asserted exhaustively rather than case by case
-     * so that adding a seventh [PlaybackError] fails here until somebody decides which
-     * side of the line it is on. A new error code that silently defaults to "offer the
-     * backup" would put a useless button in front of a user at the worst moment.
+     * Written as a table over `entries` rather than as a list of cases, because the failure
+     * mode is somebody adding an eleventh reason and the `when` defaulting it somewhere
+     * plausible. Every value must appear below or this fails.
      */
     @Test
-    fun `only a decoder refusal is worth handing to the other engine`() {
-        assertTrue(
-            "a container the first engine refused is exactly what the second is for",
-            FallbackPolicy.canBackupHelp(PlaybackError.DECODER),
+    fun `every reason states whether the backup could help`() {
+        val helps = setOf(
+            PlaybackError.DECODER_INIT,
+            PlaybackError.DECODING,
+            PlaybackError.CONTAINER,
+            PlaybackError.TIMEOUT,
+            PlaybackError.UNKNOWN,
         )
-        assertTrue(
-            "an unclassified failure is worth one attempt on the other engine",
-            FallbackPolicy.canBackupHelp(PlaybackError.UNKNOWN),
-        )
-
-        assertFalse(
-            "UNSUPPORTED_FORMAT is the answer after both refused — there is no third engine",
-            FallbackPolicy.canBackupHelp(PlaybackError.UNSUPPORTED_FORMAT),
-        )
-        assertFalse(
-            "DRM is not a decoding problem; the same device lacks the keys either way",
-            FallbackPolicy.canBackupHelp(PlaybackError.DRM),
-        )
-        assertFalse(
-            "swapping decoders cannot make a host answer",
-            FallbackPolicy.canBackupHelp(PlaybackError.NETWORK),
-        )
-        assertFalse(
-            "a link that leads nowhere leads nowhere on both engines",
-            FallbackPolicy.canBackupHelp(PlaybackError.NOT_FOUND),
-        )
-    }
-
-    /**
-     * What a failure becomes once there is nowhere left to send it.
-     *
-     * The card the user sees changes with this, and so do its buttons: a decoder failure
-     * that engine 2 has also refused stops being "this engine could not read it" and
-     * becomes "nothing here can read it". Deriving both from one function is what keeps the
-     * automatic path and the card in step.
-     */
-    @Test
-    fun `an exhausted decoder failure becomes unsupported, and nothing else changes`() {
-        assertEquals(
+        val cannot = setOf(
             PlaybackError.UNSUPPORTED_FORMAT,
-            FallbackPolicy.exhausted(PlaybackError.DECODER),
-        )
-        assertEquals(
-            PlaybackError.UNSUPPORTED_FORMAT,
-            FallbackPolicy.exhausted(PlaybackError.UNKNOWN),
-        )
-
-        // The rest are already final. A network failure that has been through both engines
-        // is still a network failure, and calling it "unsupported" would send the user
-        // looking for a different source instead of a different connection.
-        for (error in listOf(
+            PlaybackError.DRM,
             PlaybackError.NETWORK,
             PlaybackError.NOT_FOUND,
-            PlaybackError.DRM,
-            PlaybackError.UNSUPPORTED_FORMAT,
+            PlaybackError.PERMISSION,
+            PlaybackError.SOURCE,
+        )
+
+        assertEquals(
+            "a reason was added and this table was not updated",
+            PlaybackError.entries.toSet(),
+            helps + cannot,
+        )
+        helps.forEach { assertTrue("$it should offer the backup", FallbackPolicy.canBackupHelp(it)) }
+        cannot.forEach { assertFalse("$it must not offer the backup", FallbackPolicy.canBackupHelp(it)) }
+    }
+
+    /**
+     * A decoder that refused is not the same as a format nothing supports.
+     *
+     * The distinction the device failure turned on. `DECODER_INIT` means the platform
+     * listed a decoder and it would not start, which is precisely what walking to the next
+     * entry in that list might fix. `UNSUPPORTED_FORMAT` means there was no list.
+     */
+    @Test
+    fun `a decoder refusal offers the backup and an unsupported format does not`() {
+        assertTrue(FallbackPolicy.canBackupHelp(PlaybackError.DECODER_INIT))
+        assertFalse(FallbackPolicy.canBackupHelp(PlaybackError.UNSUPPORTED_FORMAT))
+    }
+
+    /**
+     * Nothing about getting the bytes is a decoder question.
+     *
+     * These four were previously collapsed into two, and a `ContentDataSource` failure on a
+     * local file arrived at the user as advice to check their network connection.
+     */
+    @Test
+    fun `a source, a permission, a network and a missing file all decline the backup`() {
+        for (error in listOf(
+            PlaybackError.SOURCE,
+            PlaybackError.PERMISSION,
+            PlaybackError.NETWORK,
+            PlaybackError.NOT_FOUND,
         )) {
-            assertEquals("$error should be reported as itself", error, FallbackPolicy.exhausted(error))
+            assertFalse("$error is not a decoder problem", FallbackPolicy.canBackupHelp(error))
+        }
+    }
+
+    /* ------------------------------------------- who decides, and the button that was dead */
+
+    /**
+     * The regression this split was written for.
+     *
+     * One predicate used to answer both "could the backup help" and "should we switch
+     * without asking", which meant every reason that made the button meaningful had
+     * already consumed the fallback before the card was drawn. The button was unreachable
+     * in every case.
+     *
+     * The property that fixes it: there must exist at least one reason where the backup
+     * could help **and** the machine does not spend it. That is what makes the button
+     * reachable at all, and asserting the existence rather than the specific value keeps
+     * the test honest if the policy is retuned.
+     */
+    @Test
+    fun `at least one reason leaves the fallback for the user to spend`() {
+        val userDecides = PlaybackError.entries.filter {
+            FallbackPolicy.canBackupHelp(it) && !FallbackPolicy.decideAutomatically(it)
+        }
+        assertTrue(
+            "no reason leaves the choice to the user, so the backup button can never appear",
+            userDecides.isNotEmpty(),
+        )
+        assertTrue(
+            "an unidentified failure is the one the machine must not guess at",
+            PlaybackError.UNKNOWN in userDecides,
+        )
+    }
+
+    /** And the converse: nothing is switched automatically that the backup cannot address. */
+    @Test
+    fun `nothing is switched automatically unless the backup could help`() {
+        for (error in PlaybackError.entries) {
+            if (FallbackPolicy.decideAutomatically(error)) {
+                assertTrue(
+                    "$error is switched automatically but the backup cannot help it",
+                    FallbackPolicy.canBackupHelp(error),
+                )
+            }
         }
     }
 
     /**
-     * The pairing the whole design rests on: what is exhausted must not be offered.
+     * A timeout is its own reason and is not a codec verdict.
      *
-     * Asserted as a relationship rather than as two lists, because the failure mode is the
-     * two lists drifting. Whatever [exhausted] turns an error into, [canBackupHelp] must
-     * say no to the result — otherwise the card offers a button that leads to the same card.
+     * It used to arrive as a decoder failure and then be relabelled "format not supported",
+     * so a slow source was described to the user as an unplayable one — with no evidence
+     * that anything about the format was wrong.
      */
     @Test
-    fun `nothing that survives exhaustion still offers the backup`() {
-        for (error in PlaybackError.entries) {
-            val final = FallbackPolicy.exhausted(error)
-            assertFalse(
-                "$error exhausts to $final, which still offers the backup — that is a loop",
-                FallbackPolicy.canBackupHelp(final),
-            )
-        }
+    fun `a timeout is distinct from every decoder reason`() {
+        assertTrue(PlaybackError.TIMEOUT != PlaybackError.DECODER_INIT)
+        assertTrue(PlaybackError.TIMEOUT != PlaybackError.UNSUPPORTED_FORMAT)
+        assertTrue(
+            "the budget exists to spend the other engine on silence",
+            FallbackPolicy.canBackupHelp(PlaybackError.TIMEOUT),
+        )
+    }
+
+    /**
+     * Nothing renames a failure on its way to the user.
+     *
+     * `exhausted()` used to map DECODER and UNKNOWN to UNSUPPORTED_FORMAT once both engines
+     * had refused, which is how an ordinary MP4 came to be reported as an unsupported
+     * codec. It is gone, and this test is the marker that it must not come back: the reason
+     * the engine reported is the reason the user is told.
+     */
+    @Test
+    fun `the policy exposes no mapping that renames a failure`() {
+        val renamers = FallbackPolicy::class.java.methods
+            .filter { it.returnType == PlaybackError::class.java }
+            .map { it.name }
+        assertTrue(
+            "FallbackPolicy has a method returning a PlaybackError ($renamers). That is how " +
+                "'exhausted' relabelled every unclassified failure as an unsupported codec.",
+            renamers.isEmpty(),
+        )
     }
 
     /* ------------------------------------------------------------------- the memory */

@@ -19,4 +19,8 @@ dependencies {
     implementation(libs.media3.exoplayer.hls)
     implementation(libs.coroutines.android)
     testImplementation(libs.junit)
+    // A real ExoPlayer is constructed in `EngineProfileTest`, because the claim being
+    // tested is about this build's actual Media3 and not about an idea of it.
+    testImplementation(libs.robolectric)
+    testImplementation(libs.coroutines.test)
 }

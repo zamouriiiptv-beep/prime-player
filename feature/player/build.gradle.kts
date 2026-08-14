@@ -10,6 +10,13 @@ plugins {
 android {
     namespace = "com.castivio.feature.player"
 
+    // The diagnostic block under the error card is compiled out of a release build by a
+    // constant that is false, which needs the class generated here rather than only in
+    // :app. A stack trace on screen is a tool, not a product feature.
+    buildFeatures {
+        buildConfig = true
+    }
+
     testOptions {
         unitTests.isIncludeAndroidResources = true
 
