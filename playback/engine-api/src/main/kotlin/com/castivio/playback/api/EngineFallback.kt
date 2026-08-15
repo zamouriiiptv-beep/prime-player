@@ -31,25 +31,16 @@ enum class EngineId {
     PRIMARY,
 
     /**
-     * The same platform decoders, tried more patiently, and a more forgiving reader.
+     * The same platform decoders tried more patiently, bundled software audio decoding via FFmpeg,
+     * and a more forgiving reader.
      *
-     * ## What this is not
+     * ## What it provides
      *
-     * It is **not a software decoder**, and describing it as one — which this comment
-     * previously did — is the kind of claim that sends somebody looking in the wrong place
-     * when a file fails. Castivio ships no `media3-decoder-*` artifact, so there is no
-     * bundled codec to fall back to, and `EXTENSION_RENDERER_MODE_PREFER` resolves nothing.
-     *
-     * ## What it actually is
-     *
-     * `enableDecoderFallback`: where the primary gives up when the first decoder the
-     * platform lists refuses to initialise, this one walks the rest of the list. Devices
-     * ship several decoders per format — a vendor one and an AOSP one — and the second is
-     * frequently more tolerant than the first. Plus MPEG-TS extractor flags for transport
-     * streams that declare nothing useful in their PMT.
-     *
-     * That is a real difference and a narrow one. It cannot play a format the device has no
-     * decoder for at all, and `EngineProfileTest` holds both halves of that statement.
+     * 1. `media3-decoder-ffmpeg`: Bundled software audio decoding extension that is preferred
+     *    when hardware decoders fail or are absent on the device (AC-3, E-AC-3, DTS, TrueHD, FLAC, etc.).
+     * 2. `enableDecoderFallback`: where the primary gives up when the first decoder the
+     *    platform lists refuses to initialise, this one walks the rest of the list.
+     * 3. Plus MPEG-TS extractor flags for transport streams that declare nothing useful in their PMT.
      */
     BACKUP,
 }

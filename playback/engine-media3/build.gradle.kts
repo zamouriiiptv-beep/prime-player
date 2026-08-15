@@ -17,6 +17,7 @@ dependencies {
     ksp(libs.hilt.compiler)
     api(libs.media3.exoplayer)
     implementation(libs.media3.exoplayer.hls)
+    implementation(libs.media3.decoder.ffmpeg)
     implementation(libs.coroutines.android)
     testImplementation(libs.junit)
     // A real ExoPlayer is constructed in `EngineProfileTest`, because the claim being

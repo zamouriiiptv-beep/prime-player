@@ -571,7 +571,16 @@ class Media3Engine(
 
             // The only code that means what the word means.
             PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED,
-            -> PlaybackError.UNSUPPORTED_FORMAT
+            -> {
+                val isAudioTrack = decoderFailure?.mimeType?.startsWith("audio/") == true ||
+                    (error as? ExoPlaybackException)?.rendererFormat?.sampleMimeType?.startsWith("audio/") == true ||
+                    audioFormat?.sampleMimeType?.startsWith("audio/") == true
+                if (profile == EngineProfile.PRIMARY && isFfmpegAvailable && isAudioTrack) {
+                    PlaybackError.DECODER_INIT
+                } else {
+                    PlaybackError.UNSUPPORTED_FORMAT
+                }
+            }
 
             PlaybackException.ERROR_CODE_DRM_UNSPECIFIED,
             PlaybackException.ERROR_CODE_DRM_SCHEME_UNSUPPORTED,
@@ -678,6 +687,12 @@ class Media3Engine(
 
         /** Deep enough for any real chain, shallow enough that a cycle cannot hang it. */
         const val MAX_CAUSES = 12
+
+        val isFfmpegAvailable: Boolean by lazy {
+            runCatching {
+                Class.forName("androidx.media3.decoder.ffmpeg.FfmpegAudioRenderer")
+            }.isSuccess
+        }
     }
 }
 

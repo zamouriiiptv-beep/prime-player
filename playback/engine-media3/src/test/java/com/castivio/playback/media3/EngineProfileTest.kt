@@ -29,56 +29,38 @@ import org.robolectric.RobolectricTestRunner
 class EngineProfileTest {
 
     /**
-     * There is no bundled software decoder, so the extension renderer mode is a no-op.
-     *
-     * `DefaultRenderersFactory` finds extension renderers by `Class.forName` and silently
-     * skips the ones that are not present — which means `EXTENSION_RENDERER_MODE_PREFER`
-     * on the backup profile adds exactly nothing to this build. That is the fact the
-     * previous documentation got wrong, and this is the assertion that keeps it honest.
-     *
-     * The names are Media3's own, from `DefaultRenderersFactory`. They are hard-coded here
-     * for the same reason they are hard-coded there: reflection is how the optional
-     * dependency is made optional.
+     * `media3-decoder-ffmpeg` is on the classpath, so `EXTENSION_RENDERER_MODE_PREFER`
+     * resolves `FfmpegAudioRenderer` for software audio decoding.
      */
     @Test
-    fun `no media3 decoder extension is on the classpath, so PREFER resolves nothing`() {
-        val extensions = listOf(
-            "androidx.media3.decoder.ffmpeg.FfmpegAudioRenderer",
-            "androidx.media3.decoder.av1.Libgav1VideoRenderer",
-            "androidx.media3.decoder.vp9.LibvpxVideoRenderer",
-            "androidx.media3.decoder.opus.LibopusAudioRenderer",
-            "androidx.media3.decoder.flac.LibflacAudioRenderer",
-        )
-        val present = extensions.filter { name ->
-            runCatching { Class.forName(name) }.isSuccess
-        }
+    fun `media3 ffmpeg decoder extension is on the classpath and available`() {
+        val present = runCatching {
+            Class.forName("androidx.media3.decoder.ffmpeg.FfmpegAudioRenderer")
+        }.isSuccess
 
         assertTrue(
-            "A decoder extension is now on the classpath: $present. The backup engine can " +
-                "genuinely decode in software, which is a real capability change -- update " +
-                "EngineId.BACKUP, FallbackPolicy.canBackupHelp and this test to say so.",
-            present.isEmpty(),
+            "Media3 FFmpeg audio decoder extension must be on the classpath for the backup engine " +
+                "to provide genuine software audio decoding fallback.",
+            present,
+        )
+        assertTrue(
+            "Media3Engine.isFfmpegAvailable should be true when the extension is packaged.",
+            Media3Engine.isFfmpegAvailable,
         )
     }
 
     /**
-     * Therefore: the backup cannot play a codec the device has no decoder for.
-     *
-     * Stated as a test rather than as prose because it is the question that was actually
-     * asked, and because the answer follows mechanically from the assertion above. With no
-     * bundled decoder, every decoder available to either engine comes from the platform,
-     * and both engines ask the same platform.
+     * The backup engine has access to FFmpeg software audio decoders.
      */
     @Test
-    fun `both engines draw their decoders from the same platform list`() {
+    fun `the backup engine has access to software decoding via ffmpeg extension`() {
         val bundled = runCatching {
             Class.forName("androidx.media3.decoder.ffmpeg.FfmpegAudioRenderer")
         }.isSuccess
 
-        assertFalse(
-            "With no bundled decoder, the backup engine's only advantage is trying the " +
-                "next entry in the device's own decoder list. It cannot invent a decoder " +
-                "the device does not have, and no card or comment may imply that it can.",
+        assertTrue(
+            "The backup engine can decode audio in software via bundled media3-decoder-ffmpeg, " +
+                "providing a real software-decoding fallback for formats the hardware cannot handle.",
             bundled,
         )
     }
