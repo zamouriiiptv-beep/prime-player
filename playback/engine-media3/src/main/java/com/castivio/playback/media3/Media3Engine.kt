@@ -530,7 +530,8 @@ class Media3Engine(
      * decoder refused, which is a different situation from having no decoder at all and is
      * the one case the backup engine is actually built for.
      */
-    private fun map(
+    @androidx.annotation.VisibleForTesting
+    internal fun map(
         error: PlaybackException,
         decoderFailure: MediaCodecRenderer.DecoderInitializationException?,
     ): PlaybackError {
@@ -563,6 +564,20 @@ class Media3Engine(
 
             PlaybackException.ERROR_CODE_DECODER_INIT_FAILED,
             PlaybackException.ERROR_CODE_DECODER_QUERY_FAILED,
+            -> PlaybackError.DECODER_INIT
+
+            // The decoder never refused anything: it decoded the frame, and the platform's
+            // AudioTrack refused to take the result. On a real device this is overwhelmingly
+            // a passthrough codec — AC-3, E-AC-3 — with no receiver downstream to decode it,
+            // which `MediaCodecRenderer.DecoderInitializationException` never sees because
+            // nothing about the decoder failed. `findCause` correctly returns null for this,
+            // and before this pass that null sent every such failure straight to `UNKNOWN`,
+            // which is also the one classification this exact case does not deserve: the
+            // backup engine's `EXTENSION_RENDERER_MODE_PREFER` is the one thing in this file
+            // built specifically to fix it, by decoding the same bitstream to PCM in software
+            // instead of asking AudioTrack to take the encoded format again.
+            PlaybackException.ERROR_CODE_AUDIO_TRACK_INIT_FAILED,
+            PlaybackException.ERROR_CODE_AUDIO_TRACK_WRITE_FAILED,
             -> PlaybackError.DECODER_INIT
 
             PlaybackException.ERROR_CODE_DECODING_FAILED,
