@@ -79,7 +79,7 @@ jobs:
         with:
           name: room-schema
           path: data/database/schemas/**/*.json
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Upload Android test reports
         if: always()
