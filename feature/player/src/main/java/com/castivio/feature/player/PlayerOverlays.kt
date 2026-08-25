@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -112,7 +113,7 @@ internal fun BoxScope.Transients(state: PlayerState, actions: PlayerActions, ins
                 stringResource(R.string.player_attempt, picture.attempt, picture.of),
         )
 
-        is Picture.Failed -> FailureCard(picture, actions)
+        is Picture.Failed -> FailureCard(picture, state.diagnosis, actions)
 
         else -> Unit
     }
@@ -156,7 +157,7 @@ private fun BoxScope.CentredSpinner(label: String) {
  * card and the machine can never disagree about whether the backup is worth trying.
  */
 @Composable
-private fun BoxScope.FailureCard(failure: Picture.Failed, actions: PlayerActions) {
+private fun BoxScope.FailureCard(failure: Picture.Failed, diagnosis: PlaybackDiagnosis?, actions: PlayerActions) {
     val colors = CastivioTheme.colors
     val copy = failureCopy(failure.reason)
 
@@ -204,7 +205,7 @@ private fun BoxScope.FailureCard(failure: Picture.Failed, actions: PlayerActions
             )
         }
 
-        DiagnosisBlock(state.diagnosis)
+        DiagnosisBlock(diagnosis)
     }
 }
 
