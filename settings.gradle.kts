@@ -41,6 +41,7 @@ include(":data:localmedia")
 // playback — the engine boundary
 include(":playback:engine-api")
 include(":playback:engine-media3")
+include(":playback:engine-vlc")
 
 // features — independently replaceable
 include(":feature:activation")
