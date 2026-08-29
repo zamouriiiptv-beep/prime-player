@@ -20,6 +20,17 @@ android {
     testOptions {
         unitTests.isIncludeAndroidResources = true
 
+        // PlayerPathTest is a plain JUnit test on purpose — the fallback budget is checked
+        // against a virtual clock, and Robolectric's looper would only make that slower and
+        // less deterministic. But the view model logs which engine it opened on, and in a
+        // plain unit test `android.util.Log` is the stub android.jar, which throws rather
+        // than returning. Defaults turn those calls into no-ops.
+        //
+        // This weakens nothing: no assertion in this module reads a framework return value,
+        // and the alternative — deleting the logging that tells us which engine ran — would
+        // remove the diagnostic the player exists to produce.
+        unitTests.isReturnDefaultValues = true
+
         // The player's gates are placement gates, and a placement failure whose whole
         // value is the list of what is outside the safe area is useless if the list ends
         // up in an HTML report nobody on a CI runner can open. Failures print in full.
