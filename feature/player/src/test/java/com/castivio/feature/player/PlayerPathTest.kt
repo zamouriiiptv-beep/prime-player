@@ -22,8 +22,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -36,6 +36,25 @@ import org.junit.Test
 
 /**
  * The performance contract, as assertions.
+ *
+ * ## `runCurrent`, never `advanceUntilIdle`
+ *
+ * The clock in this file is only ever moved on purpose. `advanceUntilIdle` is wrong here
+ * twice over, and both ways were found the first time CI actually ran this file:
+ *
+ *  - **After a first frame it never returns.** `onFirstFrame` starts the position ticker,
+ *    which is `while (true) { … delay(TICK_MS) }` by design — a player that stopped
+ *    telling the time would be the bug. There is therefore always another task queued,
+ *    and "run until idle" has no end. The job sat in one test for twenty-three minutes.
+ *  - **Before a first frame it runs the deadline.** The opening budget is a `delay` of
+ *    [FallbackPolicy.OPEN_DEADLINE_MS]; advancing to idle steps straight over it and
+ *    switches to the backup engine — the exact thing several of these tests assert does
+ *    not happen.
+ *
+ * `runCurrent` runs everything already queued and moves the clock by nothing, which is
+ * what "let the pending work settle" was always supposed to mean. Where a test genuinely
+ * wants time to pass it says so with `advanceTimeBy`, and that stays readable precisely
+ * because nothing else moves the clock behind its back.
  *
  * ## Why this file exists rather than a comment
  *
@@ -93,7 +112,7 @@ class PlayerPathTest {
     fun `opening a channel asks the engine for a picture and asks nothing else`() = runTest {
         val model = model()
         model.open(liveRequest())
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals("one engine was built, and it was the primary", 1, engines.built.size)
         assertEquals(EngineId.PRIMARY, engines.built.single())
@@ -128,7 +147,7 @@ class PlayerPathTest {
         val model = model()
         val request = liveRequest()
         model.open(request)
-        advanceUntilIdle()
+        runCurrent()
 
         val state = model.state.value!!
         assertTrue("the picture has not arrived", state.picture is Picture.Opening)
@@ -147,11 +166,11 @@ class PlayerPathTest {
     fun `the guide is fetched after the first frame and never before it`() = runTest {
         val model = model()
         model.open(liveRequest())
-        advanceUntilIdle()
+        runCurrent()
         assertEquals("before the frame", 0, guide.calls)
 
         engines.last.renderFirstFrame()
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals("after the frame", 1, guide.calls)
         assertEquals("and it filled the strip", "Evening news", model.state.value?.programme?.now)
@@ -170,7 +189,7 @@ class PlayerPathTest {
         val model = model()
         model.open(liveRequest())
         engines.last.renderFirstFrame()
-        advanceUntilIdle()
+        runCurrent()
 
         assertTrue("the picture is up", model.state.value?.picture is Picture.Playing)
         assertNull("and the strip has no words, which is a state and not a failure",
@@ -219,10 +238,10 @@ class PlayerPathTest {
     fun `a decoder refusal switches to the backup exactly once`() = runTest {
         val model = model()
         model.open(vodRequest())
-        advanceUntilIdle()
+        runCurrent()
 
         engines.last.fail(PlaybackError.DECODER_INIT)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals("two engines, in order", listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
         assertTrue("and it is still opening rather than showing a card",
@@ -241,11 +260,11 @@ class PlayerPathTest {
     fun `when the backup refuses as well the user gets a card, not a third engine`() = runTest {
         val model = model()
         model.open(vodRequest())
-        advanceUntilIdle()
+        runCurrent()
         engines.last.fail(PlaybackError.DECODER_INIT)
-        advanceUntilIdle()
+        runCurrent()
         engines.last.fail(PlaybackError.DECODER_INIT)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals("no third engine was built", 2, engines.built.size)
         val picture = model.state.value?.picture
@@ -273,9 +292,9 @@ class PlayerPathTest {
     fun `a DRM failure neither switches engines nor offers to`() = runTest {
         val model = model()
         model.open(vodRequest())
-        advanceUntilIdle()
+        runCurrent()
         engines.last.fail(PlaybackError.DRM)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals("no switch was attempted", 1, engines.built.size)
         val picture = model.state.value?.picture as Picture.Failed
@@ -288,9 +307,9 @@ class PlayerPathTest {
     fun `an unsupported format neither switches engines nor offers to`() = runTest {
         val model = model()
         model.open(vodRequest())
-        advanceUntilIdle()
+        runCurrent()
         engines.last.fail(PlaybackError.UNSUPPORTED_FORMAT)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals(1, engines.built.size)
         val picture = model.state.value?.picture as Picture.Failed
@@ -313,7 +332,7 @@ class PlayerPathTest {
         assertEquals("still on the first engine inside the budget", 1, engines.built.size)
 
         advanceTimeBy(200)
-        advanceUntilIdle()
+        runCurrent()
         assertEquals("and on the second once it is spent", 2, engines.built.size)
     }
 
@@ -330,7 +349,7 @@ class PlayerPathTest {
         advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS - 500)
         engines.last.renderFirstFrame()
         advanceTimeBy(5_000)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals("no second engine", 1, engines.built.size)
         assertTrue(model.state.value?.picture is Picture.Playing)
@@ -351,10 +370,10 @@ class PlayerPathTest {
         val model = model()
         model.open(vodRequest())
         advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 100)
-        advanceUntilIdle()
+        runCurrent()
         // The budget switched to the backup. Let that one expire too.
         advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 100)
-        advanceUntilIdle()
+        runCurrent()
 
         val picture = model.state.value?.picture
         assertTrue("a card", picture is Picture.Failed)
@@ -386,9 +405,9 @@ class PlayerPathTest {
     fun `an unidentified failure offers the backup instead of guessing`() = runTest {
         val model = model()
         model.open(vodRequest())
-        advanceUntilIdle()
+        runCurrent()
         engines.last.fail(PlaybackError.UNKNOWN)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals("the machine did not switch on its own", 1, engines.built.size)
         val picture = model.state.value?.picture as Picture.Failed
@@ -396,7 +415,7 @@ class PlayerPathTest {
         assertTrue("with the backup offered to the person", picture.canTryBackup)
 
         model.tryBackup()
-        advanceUntilIdle()
+        runCurrent()
         assertEquals(
             "pressing it builds the backup engine, not another primary",
             listOf(EngineId.PRIMARY, EngineId.BACKUP),
@@ -418,17 +437,17 @@ class PlayerPathTest {
     fun `retry stays on the engine the fallback moved to`() = runTest {
         val model = model()
         model.open(vodRequest())
-        advanceUntilIdle()
+        runCurrent()
         engines.last.fail(PlaybackError.DECODER_INIT)
-        advanceUntilIdle()
+        runCurrent()
         assertEquals(listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
 
         engines.last.fail(PlaybackError.DECODER_INIT)
-        advanceUntilIdle()
+        runCurrent()
 
         engines.built.clear()
         model.retry()
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals(
             "retry re-ran the primary, which is the attempt that already failed",
@@ -448,13 +467,13 @@ class PlayerPathTest {
     fun `the state names the engine that is actually running`() = runTest {
         val model = model()
         model.open(vodRequest())
-        advanceUntilIdle()
+        runCurrent()
         assertEquals(EngineId.PRIMARY, model.state.value?.engine)
 
         engines.last.fail(PlaybackError.DECODER_INIT)
-        advanceUntilIdle()
+        runCurrent()
         engines.last.renderFirstFrame()
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals(EngineId.BACKUP, model.state.value?.engine)
     }
@@ -470,10 +489,10 @@ class PlayerPathTest {
     fun `the diagnosis is carried on the state, not fetched from a released engine`() = runTest {
         val model = model()
         model.open(vodRequest())
-        advanceUntilIdle()
+        runCurrent()
         engines.last.diagnose(PlaybackError.DECODER_INIT, "c2.android.avc.decoder")
         engines.last.fail(PlaybackError.DECODER_INIT)
-        advanceUntilIdle()
+        runCurrent()
 
         val report = model.state.value?.diagnosis
         assertTrue("a report reached the state", report != null)
@@ -498,11 +517,11 @@ class PlayerPathTest {
         val model = model()
         val request = vodRequest()
         model.open(request)
-        advanceUntilIdle()
+        runCurrent()
         engines.last.fail(PlaybackError.DECODER_INIT)
-        advanceUntilIdle()
+        runCurrent()
         engines.last.renderFirstFrame()
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals(
             "the backup is what worked, so the backup is what is written down",
@@ -513,7 +532,7 @@ class PlayerPathTest {
         engines.built.clear()
         val second = model()
         second.open(request)
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals(
             "the second play opens straight on the engine that worked — no wasted attempt",
@@ -533,11 +552,11 @@ class PlayerPathTest {
         val model = model()
         model.open(liveRequest())
         engines.last.renderFirstFrame()
-        advanceUntilIdle()
+        runCurrent()
         val first = engines.last
 
         model.switchTo(liveRequest(url = "http://provider.tv/live/2.ts", title = "Second"))
-        advanceUntilIdle()
+        runCurrent()
 
         assertTrue("the previous engine was released", first.released)
         assertEquals("and exactly one new one was built", 2, engines.built.size)
