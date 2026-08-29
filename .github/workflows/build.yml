@@ -55,6 +55,11 @@ jobs:
       # the pure-JVM "Unit tests" job. The database module's queries are verified
       # against real SQLite through Robolectric — a Room query that only gets
       # exercised by launching the app on a TV is a query nobody verifies.
+      #
+      # The player modules are listed because they were not, and that is worse than
+      # having no tests: the job reported success over two rounds of player work while
+      # :feature:player, :playback:engine-media3 and :data:localmedia never ran a single
+      # test. A gate nobody runs is still believed.
       - name: Run Android unit tests
         run: |
           ./gradlew --no-daemon --console=plain \
@@ -64,8 +69,12 @@ jobs:
             :data:playlist:testDebugUnitTest \
             :data:activation:testDebugUnitTest \
             :data:entitlement:testDebugUnitTest \
+            :data:localmedia:testDebugUnitTest \
             :feature:activation:testDebugUnitTest \
             :feature:licence:testDebugUnitTest \
+            :feature:player:testDebugUnitTest \
+            :playback:engine-media3:testDebugUnitTest \
+            :playback:engine-vlc:testDebugUnitTest \
             :app:testDebugUnitTest
 
       # The schema is what any future migration is written against, so its export
@@ -79,7 +88,11 @@ jobs:
         with:
           name: room-schema
           path: data/database/schemas/**/*.json
-          if-no-files-found: warn
+          # `error`, not `warn`: the verify step above already exits 1 when KSP exported
+          # nothing, so by the time this runs the files exist or the job is already red.
+          # Downgrading this to a warning does not make a failing build pass — it only
+          # removes the second place that would have said why.
+          if-no-files-found: error
 
       - name: Upload Android test reports
         if: always()

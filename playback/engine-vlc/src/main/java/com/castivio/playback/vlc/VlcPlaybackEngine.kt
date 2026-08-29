@@ -230,10 +230,6 @@ class VlcPlaybackEngine(
 
         mediaPlayer.media = vlcMedia
         mediaPlayer.play()
-
-        if (media.startPositionMs > 0 && media.kind != MediaKind.LIVE) {
-            mediaPlayer.time = media.startPositionMs
-        }
     }
 
     override fun play() {

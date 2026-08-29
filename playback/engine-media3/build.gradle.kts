@@ -6,6 +6,10 @@ plugins {
 
 android {
     namespace = "com.castivio.playback.media3"
+
+    // Robolectric builds a real ExoPlayer in EngineProfileTest, and a real ExoPlayer
+    // resolves resources while it constructs its renderers.
+    testOptions.unitTests.isIncludeAndroidResources = true
 }
 
 dependencies {
