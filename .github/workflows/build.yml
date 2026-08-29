@@ -10,6 +10,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    # A compose test that renders an indefinite spinner never reaches idle, and without
+    # this the job sat on one blocked assertion until GitHub's six-hour default killed it.
+    # A hang should cost minutes and read as a failure, not a day and read as "running".
+    timeout-minutes: 30
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4

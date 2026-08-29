@@ -339,7 +339,16 @@ class PlayerLayoutTest {
      */
     @Test
     fun `nothing but the title and the spinner is composed before the first frame`() {
+        // The clock is stopped before the composition, and that is not a workaround.
+        // `Picture.Opening` draws an indefinite CircularProgressIndicator, whose animation
+        // by definition never settles. With the test clock auto-advancing, the composition
+        // is therefore never idle, and every assertion below — each of which waits for idle
+        // first — blocks for as long as the runner will let it. Stopping the clock and
+        // advancing exactly one frame composes, measures and lays out the screen once,
+        // which is the entire state this test reads.
+        compose.mainClock.autoAdvance = false
         compose.show(HANDSET, DeviceClass.Expanded, playingLive().copy(picture = Picture.Opening))
+        compose.mainClock.advanceTimeByFrame()
 
         compose.onAllNodesWithTag(PlayerTags.TITLE).assertCountEquals(1)
         compose.onAllNodesWithTag(PlayerTags.TOP).assertCountEquals(0)
