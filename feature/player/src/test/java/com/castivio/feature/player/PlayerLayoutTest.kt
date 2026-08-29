@@ -461,7 +461,7 @@ class PlayerLayoutTest {
         val nodes = onAllNodes(hasClickAction())
         for (i in nodes.fetchSemanticsNodes().indices) {
             val box = nodes[i].getUnclippedBoundsInRoot()
-            if (box.width.value < floor.value - TOLERANCE || box.height.value < floor.value - TOLERANCE) {
+            if (box.width < floor - TOLERANCE || box.height < floor - TOLERANCE) {
                 small += "${box.width}x${box.height}"
             }
         }
@@ -496,8 +496,15 @@ class PlayerLayoutTest {
 
     private val FOUR_MINUTES = 4 * 60 * 1000L + 12_000L
 
-    /** Half a device-independent pixel, which is rounding rather than a defect. */
-    private val TOLERANCE = 0.5f
+    /**
+     * Half a device-independent pixel, which is rounding rather than a defect.
+     *
+     * Typed as [Dp] because every comparison in this file is between two [Dp] bounds, and
+     * a `Float` here does not add to one. It was a `Float`, and nothing said so for two
+     * rounds of player work — this module was missing from the CI test list, so the file
+     * was never compiled by anything that could fail.
+     */
+    private val TOLERANCE = 0.5.dp
 
     private val CONTROLS = listOf(
         PlayerTags.BACK, PlayerTags.LOCK, PlayerTags.CAST, PlayerTags.MORE,

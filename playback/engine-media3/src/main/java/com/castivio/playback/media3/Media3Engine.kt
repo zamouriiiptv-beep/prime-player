@@ -678,7 +678,10 @@ class Media3Engine(
      */
     private fun safeSource(url: String): String = url.substringBefore('?').take(URL_IN_LOG)
 
-    private companion object {
+    // `internal`, not `private`: `isFfmpegAvailable` below is a claim about the classpath
+    // that EngineProfileTest checks, and a member of a private companion cannot be read
+    // even from the same module. Everything here stays inside :playback:engine-media3.
+    internal companion object {
         const val TAG = "CastivioEngine"
 
         /** Enough of a URL to identify the stream, not enough to put a token in a log. */
