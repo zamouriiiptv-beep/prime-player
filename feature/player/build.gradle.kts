@@ -36,7 +36,12 @@ android {
         // up in an HTML report nobody on a CI runner can open. Failures print in full.
         unitTests.all {
             it.testLogging {
-                events("failed")
+                // "started" as well as the outcomes, because a test that never finishes
+                // has no outcome to log. The job hung here for twenty-three silent minutes
+                // and the log could not say which test was in it — the last line was one
+                // test's own stdout, and the next test never announced itself. A name at
+                // the start costs one line and turns a hang into a located hang.
+                events("started", "passed", "failed", "skipped")
                 showStandardStreams = true
                 exceptionFormat = TestExceptionFormat.FULL
             }
