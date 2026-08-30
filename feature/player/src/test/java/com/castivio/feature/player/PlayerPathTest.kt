@@ -1041,6 +1041,89 @@ class PlayerPathTest {
         assertFalse(engines.last.playing)
     }
 
+    /**
+     * The screen is told what the engine has been asked to do, four times a second.
+     *
+     * The icon used to read `picture`, which is the last transition the engine announced
+     * and can be stale — a pause bar over a paused film, and the control that should have
+     * started it offering to stop it. The intent is published so the icon can read the
+     * same thing the control acts on.
+     */
+    @Test
+    fun `the play intent reaches the screen`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        assertEquals(true, model.state.value?.playRequested)
+
+        model.playPause()
+
+        assertEquals("the icon would still show a pause bar", false, model.state.value?.playRequested)
+    }
+
+    /**
+     * A run of presses reports how far the run went, not how far one press goes.
+     *
+     * Pressing forward four times is one intention — "about a minute on" — and a mark that
+     * said the same ten seconds four times running answers a question nobody asked.
+     */
+    @Test
+    fun `a run of jumps reports the distance of the run`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        engines.last.positionMs = 30_000
+
+        model.seekBy(10_000)
+        assertEquals(10_000L, model.state.value?.lastJumpMs)
+        model.seekBy(10_000)
+        assertEquals(20_000L, model.state.value?.lastJumpMs)
+        model.seekBy(10_000)
+        assertEquals(30_000L, model.state.value?.lastJumpMs)
+    }
+
+    /** Turning round starts the count again: two directions are two intentions. */
+    @Test
+    fun `changing direction starts the count again`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        engines.last.positionMs = 60_000
+
+        model.seekBy(10_000)
+        model.seekBy(10_000)
+        model.seekBy(-10_000)
+
+        assertEquals(-10_000L, model.state.value?.lastJumpMs)
+    }
+
+    /**
+     * And a drag is not a jump, so it clears the mark rather than raising the last one.
+     *
+     * The mark is keyed on the count of seeks, and a scrub asks for a great many. Without
+     * this, dragging the bar would flash "+30 s" from a jump made a minute earlier.
+     */
+    @Test
+    fun `dragging the bar clears the jump mark`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        model.seekBy(10_000)
+        assertEquals(10_000L, model.state.value?.lastJumpMs)
+
+        model.seekTo(90_000)
+
+        assertNull(model.state.value?.lastJumpMs)
+    }
+
     /* ---------------------------------------------------------------- the background */
 
     /**
@@ -1255,7 +1338,7 @@ class PlayerPathTest {
          * screen deciding from a stale announcement, so a fake whose two answers cannot
          * disagree would be a fake that cannot reproduce it.
          */
-        override val isPlaying: Boolean get() = playing
+        override val isPlayRequested: Boolean get() = playing
 
         override fun setVideoOutput(output: VideoOutput?) = Unit
         override fun open(media: MediaRequest) {

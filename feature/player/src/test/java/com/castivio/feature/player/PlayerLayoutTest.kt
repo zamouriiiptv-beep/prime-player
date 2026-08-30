@@ -436,6 +436,52 @@ class PlayerLayoutTest {
     }
 
     /**
+     * The chrome is laid out inside the picture, not inside the window.
+     *
+     * On a 21:9 phone showing a 16:9 film the safe area filled the screen, so the clock at
+     * each end of the timeline sat in the black pillar beside the picture — text floating
+     * in the letterbox, pointing at nothing. Asserted on the two clocks rather than on the
+     * safe box alone, because they are the elements that reach furthest into the bars and
+     * the ones that were actually seen to be wrong.
+     */
+    @Test
+    fun `the controls stay inside a letterboxed picture`() {
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingFilm().copy(aspect = AspectMode.FIT, videoAspectRatio = 16f / 9f),
+        )
+
+        val surface = compose.bounds(PlayerTags.SURFACE)
+        val safe = compose.bounds(PlayerTags.SAFE)
+        val position = compose.bounds(PlayerTags.POSITION)
+        val duration = compose.bounds(PlayerTags.DURATION)
+
+        assertTrue(
+            "the frame is not letterboxed, so this test proves nothing: ${surface.width} of ${HANDSET.width}",
+            surface.width < HANDSET.width - TOLERANCE,
+        )
+        assertTrue(
+            "the safe area ${safe.left}..${safe.right} is outside the picture " +
+                "${surface.left}..${surface.right}",
+            safe.left >= surface.left - TOLERANCE && safe.right <= surface.right + TOLERANCE,
+        )
+        for ((name, box) in listOf("position" to position, "duration" to duration)) {
+            assertTrue(
+                "the $name clock at ${box.left}..${box.right} is in the black bar",
+                box.left >= surface.left - TOLERANCE && box.right <= surface.right + TOLERANCE,
+            )
+        }
+    }
+
+    /** And when nothing is letterboxed the chrome is the whole frame, exactly as before. */
+    @Test
+    fun `an unletterboxed picture keeps the chrome on the whole frame`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingFilm())
+        compose.assertSafe(HANDSET, PHONE_INSET)
+    }
+
+    /**
      * The jumps sit on the bar they move, one at each end of it.
      *
      * They were in the tools row among the aspect, the speed and the subtitles — the

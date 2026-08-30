@@ -82,19 +82,21 @@ interface PlaybackEngine {
     val isSeekable: Boolean
 
     /**
-     * Whether sound and pictures are coming out of it *now*.
+     * Whether the engine has been *asked* to run.
      *
-     * The engine's own answer, not the last thing it announced, and the difference is a
-     * defect this contract exists to prevent. [state] is a report of the last transition
-     * the engine noticed; a rebuffer, a stall or a transition it did not classify can leave
-     * that report saying `Playing` while nothing is playing. A play/pause control that
-     * decides what to do from the report then calls `pause()` on something already paused —
-     * a no-op — and the control is stuck for as long as the report is wrong.
+     * Intent, not motion, and the distinction is the whole reason this exists. [state] is a
+     * report of the last transition the engine noticed, and it can be wrong about now: a
+     * stall, a rebuffer or a transition it did not classify leaves the report saying
+     * `Playing` while nothing is playing. A play/pause control that decides from the report
+     * then calls `pause()` on something already paused — a no-op — and the control is dead
+     * for as long as the report is stale.
      *
-     * So the control asks this instead. A player cannot be wrong about whether it is
-     * running.
+     * Intent rather than actual motion because that is what a play/pause control is about.
+     * A film stalled mid-rebuffer is still a film the user has asked to play: the control
+     * must offer to pause it, and the icon must stay a pause bar rather than flickering to
+     * a triangle every time the network hiccups.
      */
-    val isPlaying: Boolean
+    val isPlayRequested: Boolean
 
     fun open(media: MediaRequest)
     fun play()

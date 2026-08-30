@@ -368,8 +368,15 @@ class PlayerViewModel @Inject constructor(
             // Pressing it called `pause()` on something already paused — a no-op — and the
             // control stayed dead for as long as the announcement was stale, which is
             // exactly "I paused it and then it would not start again".
-            running.isPlaying -> running.pause()
-            else -> running.play()
+            running.isPlayRequested -> {
+                running.pause()
+                _state.value = _state.value?.copy(playRequested = false)
+            }
+
+            else -> {
+                running.play()
+                _state.value = _state.value?.copy(playRequested = true)
+            }
         }
     }
 
@@ -438,8 +445,21 @@ class PlayerViewModel @Inject constructor(
         val ceiling = running.durationMs ?: _state.value?.durationMs
         var target = (base + deltaMs).coerceAtLeast(0)
         if (ceiling != null) target = target.coerceAtMost(ceiling)
+
+        // How far this run of presses has moved, not how far one press moves.
+        //
+        // Pressing forward four times is one intention — "about a minute on" — and a mark
+        // that said "+10 s" four times running would answer a question nobody asked. A run
+        // is presses that arrive while the previous aim is still outstanding and in the
+        // same direction; the aim expires on its own, so stopping for a moment starts the
+        // count again, which is what a viewer means by stopping for a moment.
+        val inRun = seekTarget != null
+        val previous = _state.value?.lastJumpMs ?: 0L
+        val sameWay = previous != 0L && (previous > 0) == (deltaMs > 0)
+        val run = if (inRun && sameWay) previous + deltaMs else deltaMs
+
         aimAt(target, running)
-        _state.value = _state.value?.copy(lastJumpMs = deltaMs)
+        _state.value = _state.value?.copy(lastJumpMs = run)
     }
 
     fun seekTo(positionMs: Long) {
@@ -451,6 +471,7 @@ class PlayerViewModel @Inject constructor(
             return
         }
         aimAt(positionMs.coerceAtLeast(0), running)
+        _state.value = _state.value?.copy(lastJumpMs = null)
     }
 
     /**
@@ -626,6 +647,7 @@ class PlayerViewModel @Inject constructor(
                         bufferedMs = (e.bufferedPositionMs - position).coerceAtLeast(0),
                         durationMs = duration,
                         seekable = e.isSeekable,
+                        playRequested = e.isPlayRequested,
                         behindLiveMs = if (current.request.isLive && duration != null) {
                             (duration - position).coerceAtLeast(0)
                         } else {

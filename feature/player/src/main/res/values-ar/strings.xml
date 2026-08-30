@@ -11,8 +11,9 @@
     <string name="player_lock">قفل الشاشة</string>
     <string name="player_unlock">فتح الشاشة</string>
     <string name="player_share">مشاركة</string>
-    <string name="player_jump_ahead">+%1$d ث</string>
-    <string name="player_jump_back">−%1$d ث</string>
+    <string name="player_jump_ahead">+%1$s</string>
+    <string name="player_jump_back">−%1$s</string>
+    <string name="player_jump_seconds">%1$d ث</string>
     <string name="player_more">المزيد</string>
     <string name="player_close">إغلاق</string>
     <string name="player_play">تشغيل</string>

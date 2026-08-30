@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,6 +52,7 @@ import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.Spacing
+import kotlinx.coroutines.delay
 
 /* ============================================================================
  * The three bands.
@@ -231,7 +233,12 @@ internal fun CentreCluster(state: PlayerState, actions: PlayerActions) {
 @Composable
 private fun PlayControl(state: PlayerState, actions: PlayerActions) {
     val colors = CastivioTheme.colors
-    val playing = state.picture is Picture.Playing
+    // What the engine has been *asked* to do, not the last transition it announced. A
+    // stall, a rebuffer or a transition it did not classify leaves `picture` saying Playing
+    // while nothing is playing, and the control then showed a pause bar over a paused film
+    // — the one thing a play control must never do. `picture` remains the fallback for a
+    // screen composed from a fixture, which has no engine to ask.
+    val playing = state.playRequested ?: (state.picture is Picture.Playing)
     Box(
         Modifier
             .size(playSize())
@@ -431,6 +438,23 @@ private fun Timeline(state: PlayerState, actions: PlayerActions) {
     val direction = LocalLayoutDirection.current
     val touch = Sizing.minTarget(CastivioTheme.device.isTv)
 
+    // The picture follows the finger.
+    //
+    // Seeking only on release was wrong, and obviously so once it was on a device: dragging
+    // a bar with no picture behind it is dragging a number. What a viewer is doing is
+    // *looking for a moment*, and they can only recognise it by seeing it.
+    //
+    // Throttled rather than continuous, because a seek per pointer event is a decode per
+    // pointer event and the picture would never settle long enough to be recognised. Keyed
+    // on whether a drag is in flight, so this loop exists only while a finger is down.
+    LaunchedEffect(dragged != null, duration) {
+        if (dragged == null || duration == null) return@LaunchedEffect
+        while (true) {
+            dragged?.let { actions.onSeekTo((it * duration).toLong()) }
+            delay(SCRUB_PREVIEW_MS)
+        }
+    }
+
     val position = when {
         dragged != null && duration != null -> (dragged!! * duration).toLong()
         else -> state.positionMs
@@ -470,7 +494,6 @@ private fun Timeline(state: PlayerState, actions: PlayerActions) {
             label = stringResource(R.string.player_replay_10),
             tag = PlayerTags.REPLAY,
             onClick = { actions.onSeekBy(-JUMP_MS) },
-            text = JUMP_SECONDS,
             mirror = true,
         )
 
@@ -571,7 +594,6 @@ private fun Timeline(state: PlayerState, actions: PlayerActions) {
             label = stringResource(R.string.player_forward_10),
             tag = PlayerTags.FORWARD,
             onClick = { actions.onSeekBy(JUMP_MS) },
-            text = JUMP_SECONDS,
             mirror = true,
         )
 
@@ -770,20 +792,22 @@ internal val HAIRLINE = 1.dp
 /** Ten seconds, in both directions. */
 private const val JUMP_MS = 10_000L
 
-/**
- * The same ten, as the label beside the chevrons.
- *
- * A bare numeral rather than a string resource, and deliberately: it is a figure, it is
- * derived from [JUMP_MS] so the two cannot drift, and every language writes it the same way
- * — the digit shapes come from the locale's own font, which is what a translation of "10"
- * would have had to reproduce by hand.
- */
-private val JUMP_SECONDS = (JUMP_MS / 1000L).toString()
+
 
 private val TRACK_HEIGHT = 4.dp
 
 /** The head on the bar. Large enough to see against a bright frame, small enough not to hide it. */
 private val THUMB = 14.dp
+
+/**
+ * How often the picture catches up with the finger during a drag.
+ *
+ * Six frames of a 24fps film. Fast enough that the picture reads as following the finger,
+ * slow enough that each decode has time to produce something a person can recognise — a
+ * seek per pointer event would leave the decoder permanently one request behind and the
+ * screen permanently blank, which is the worse of the two failures.
+ */
+private const val SCRUB_PREVIEW_MS = 250L
 private val PROGRESS_WIDTH = 96.dp
 private val PROGRESS_HEIGHT = 3.dp
 private val SKELETON_TITLE = 148.dp

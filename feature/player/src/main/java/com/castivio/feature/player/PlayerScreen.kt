@@ -65,13 +65,18 @@ fun PlayerScreen(
     val colors = CastivioTheme.colors
     val inset = CastivioTheme.device.screenPadding
 
-    Box(
+    BoxWithConstraints(
         modifier
             .fillMaxSize()
             .background(colors.background)
             .testTag(PlayerTags.ROOT),
+        contentAlignment = Alignment.Center,
     ) {
-        VideoSurface(state, actions)
+        // Where the film actually is. Computed once, here, and used twice: the surface is
+        // drawn at this size and the chrome is laid out inside it.
+        val picture = surfaceSize(maxWidth, maxHeight, state)
+
+        VideoSurface(state, actions, picture)
 
         // Locked hides everything but the way out of it, and it does so before the
         // opening branch: a screen that is locked while a channel opens must not draw a
@@ -83,17 +88,30 @@ fun PlayerScreen(
 
             else -> {
                 if (state.controls) {
-                    Scrims()
-                    Column(
-                        Modifier
-                            .fillMaxSize()
-                            .padding(inset)
-                            .testTag(PlayerTags.SAFE),
-                        verticalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        TopBar(state, actions)
-                        CentreCluster(state, actions)
-                        BottomBar(state, actions)
+                    // The chrome belongs to the film, not to the window.
+                    //
+                    // It filled the whole screen, so on a 21:9 phone showing a 16:9 film
+                    // the clock at each end of the timeline sat in the black pillar beside
+                    // the picture — text floating in the letterbox, pointing at nothing.
+                    // The scrim was worse: a gradient over black, shading a bar that has
+                    // no image in it.
+                    //
+                    // Sized to the picture and centred with it, everything reads as part
+                    // of the film. When there are no bars — fill, or a source whose shape
+                    // matches the screen — this is the whole frame and nothing moves.
+                    Box(Modifier.size(picture)) {
+                        Scrims()
+                        Column(
+                            Modifier
+                                .fillMaxSize()
+                                .padding(inset)
+                                .testTag(PlayerTags.SAFE),
+                            verticalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            TopBar(state, actions)
+                            CentreCluster(state, actions)
+                            BottomBar(state, actions)
+                        }
                     }
                 }
 
@@ -129,14 +147,14 @@ fun PlayerScreen(
  * decoder from its output every time the chrome appeared.
  */
 @Composable
-private fun VideoSurface(state: PlayerState, actions: PlayerActions) {
+private fun VideoSurface(state: PlayerState, actions: PlayerActions, picture: DpSize) {
     val taps = remember { MutableInteractionSource() }
     val covered = state.statistics || state.sheet != null
     val label = stringResource(
         if (covered) R.string.player_close else R.string.player_reveal_controls,
     )
 
-    BoxWithConstraints(
+    Box(
         Modifier
             .fillMaxSize()
             .testTag(PlayerTags.VIDEO)
@@ -177,11 +195,10 @@ private fun VideoSurface(state: PlayerState, actions: PlayerActions) {
             ),
         contentAlignment = Alignment.Center,
     ) {
-        val size = surfaceSize(maxWidth, maxHeight, state)
         AndroidView(
             factory = { context -> SurfaceView(context) },
             modifier = Modifier
-                .size(size.width, size.height)
+                .size(picture)
                 .testTag(PlayerTags.SURFACE),
             onRelease = { actions.setOutput(null) },
             update = { view -> actions.setOutput(VideoOutput.Platform(view)) },

@@ -626,7 +626,7 @@ class Media3Engine(
     override val bufferedPositionMs: Long get() = player.bufferedPosition
     override val durationMs: Long? get() = player.duration.takeIf { it != C.TIME_UNSET }
     override val isSeekable: Boolean get() = player.isCurrentMediaItemSeekable
-    override val isPlaying: Boolean get() = player.isPlaying
+    override val isPlayRequested: Boolean get() = player.playWhenReady
 
     private fun describe(format: Format): String =
         format.sampleMimeType?.substringAfterLast('/')?.uppercase() ?: UNKNOWN_TRACK

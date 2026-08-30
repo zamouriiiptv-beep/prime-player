@@ -77,6 +77,19 @@ data class PlayerState(
      */
     val seekable: Boolean = false,
     /**
+     * Whether the engine has been asked to run, or null before it has been asked anything.
+     *
+     * The play control used to read [picture], which is the last transition the engine
+     * *announced* — and a stall, a rebuffer or a transition it did not classify leaves that
+     * announcement saying `Playing` while nothing is. The screen then showed a pause bar
+     * over a paused film, and the control that should have started it offered to stop it.
+     *
+     * Null rather than false before the first tick, so a screen composed from a fixture
+     * still draws from [picture] and a state holder that has not spoken yet does not claim
+     * the film is stopped.
+     */
+    val playRequested: Boolean? = null,
+    /**
      * How many jumps have been asked for, and where the last one was aimed.
      *
      * Counted at the moment the press arrives, before any check: that is what makes the

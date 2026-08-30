@@ -158,11 +158,10 @@ private fun BoxScope.JumpMark(state: PlayerState) {
     }
     if (!shown) return
 
-    val seconds = (abs(distance) / 1000L).toInt()
     Text(
         text = stringResource(
             if (distance >= 0) R.string.player_jump_ahead else R.string.player_jump_back,
-            seconds,
+            jumpDistance(abs(distance)),
         ),
         style = CastivioType.titleMedium,
         color = colors.onBackground,
@@ -177,6 +176,26 @@ private fun BoxScope.JumpMark(state: PlayerState) {
 
 /** Long enough to read at a glance, short enough not to sit over the film. */
 private const val JUMP_MARK_MS = 900L
+
+/**
+ * How far a run of presses has moved, written the way a person would say it.
+ *
+ * Seconds while it is seconds, and minutes once it is minutes: "+90 s" is a figure a reader
+ * has to divide, and by the fourth press of a control that is what the mark had become.
+ * Under a minute the unit is spelled out because a bare number beside a plus sign could be
+ * anything; over one, `m:ss` is the form the timeline beside it already uses.
+ */
+@Composable
+private fun jumpDistance(distanceMs: Long): String {
+    val seconds = distanceMs / 1000L
+    return if (seconds < SECONDS_IN_MINUTE) {
+        stringResource(R.string.player_jump_seconds, seconds.toInt())
+    } else {
+        clock(distanceMs)
+    }
+}
+
+private const val SECONDS_IN_MINUTE = 60L
 
 @Composable
 private fun BoxScope.CentredSpinner(label: String) {
