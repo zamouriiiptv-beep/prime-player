@@ -1,5 +1,8 @@
 package com.castivio.feature.player
 
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
 import com.castivio.playback.api.EngineFactory
 import com.castivio.playback.api.EngineId
 import com.castivio.playback.api.EngineMemory
@@ -21,6 +24,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
@@ -37,19 +41,25 @@ import org.junit.Test
 /**
  * The performance contract, as assertions.
  *
- * ## `runCurrent`, never `advanceUntilIdle`
+ * ## `playerTest` and `runCurrent`, never `runTest` and `advanceUntilIdle`
  *
- * The clock in this file is only ever moved on purpose. `advanceUntilIdle` is wrong here
- * twice over, and both ways were found the first time CI actually ran this file:
+ * Both exist because the view model owns a ticker that never stops on its own, and both
+ * were found the first time CI actually ran this file.
  *
- *  - **After a first frame it never returns.** `onFirstFrame` starts the position ticker,
- *    which is `while (true) { … delay(TICK_MS) }` by design — a player that stopped
- *    telling the time would be the bug. There is therefore always another task queued,
- *    and "run until idle" has no end. The job sat in one test for twenty-three minutes.
- *  - **Before a first frame it runs the deadline.** The opening budget is a `delay` of
- *    [FallbackPolicy.OPEN_DEADLINE_MS]; advancing to idle steps straight over it and
- *    switches to the backup engine — the exact thing several of these tests assert does
- *    not happen.
+ * `onFirstFrame` starts the position ticker: `while (true) { … delay(TICK_MS) }`. That is
+ * correct — a player that stopped telling the time would be the defect — but it means the
+ * scheduler always has another task queued once a frame has arrived. Anything that runs
+ * the scheduler "until idle" therefore never comes back:
+ *
+ *  - **`runTest` itself drains the scheduler when the body ends.** So a plain `runTest`
+ *    hangs *after* the last assertion has passed, which is a hang with no failing test
+ *    and no timeout to explain it — a drain is a loop, not a suspension, so nothing can
+ *    cancel it. [playerTest] clears the [ViewModelStore] first, cancelling
+ *    `viewModelScope` exactly as the framework does when a real player screen goes away.
+ *  - **`advanceUntilIdle` hangs the same way inside a test**, and is wrong a second time
+ *    over: before a first frame it runs the opening budget, a `delay` of
+ *    [FallbackPolicy.OPEN_DEADLINE_MS], and switching to the backup engine is the exact
+ *    thing several of these tests assert does not happen.
  *
  * `runCurrent` runs everything already queued and moves the clock by nothing, which is
  * what "let the pending work settle" was always supposed to mean. Where a test genuinely
@@ -80,6 +90,8 @@ import org.junit.Test
 class PlayerPathTest {
 
     private val dispatcher = StandardTestDispatcher()
+    private val store = ViewModelStore()
+    private var created = 0
     private lateinit var engines: FakeFactory
     private lateinit var guide: RecordingGuide
     private lateinit var memory: RecordingMemory
@@ -95,7 +107,46 @@ class PlayerPathTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun model() = PlayerViewModel(engines, memory, guide)
+    /**
+     * A view model held in a real [ViewModelStore], so that [playerTest] can end it.
+     *
+     * A plain constructor call cannot be stopped: `onCleared` is protected and
+     * `viewModelScope` outlives the test, which is exactly the leak that hung CI. Going
+     * through the store is also the lifecycle the app itself uses, so what these tests
+     * exercise is what actually runs. Each call gets its own key, because a test that
+     * opens two players is testing two players.
+     */
+    private fun model(): PlayerViewModel {
+        val factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T =
+                PlayerViewModel(engines, memory, guide) as T
+        }
+        return ViewModelProvider(store, factory)["player-${created++}", PlayerViewModel::class.java]
+    }
+
+    /**
+     * `runTest`, with the view models shut down before it drains the scheduler.
+     *
+     * This is the fix for a hang that stopped CI dead. `runTest` finishes a test by running
+     * the scheduler until it is idle — and `onFirstFrame` starts the position ticker, which
+     * is `while (true) { … delay(TICK_MS) }` and correct: a player that stopped telling the
+     * time would be the defect. Nothing cancelled it, so from the first test that reached a
+     * frame the scheduler always had another task and the drain never ended. No assertion
+     * failed and no timeout fired, because a drain is a loop and not a suspension; the job
+     * simply went silent for twenty-three minutes until the runner killed it.
+     *
+     * Clearing the store cancels `viewModelScope`, which is what the framework does when a
+     * real player screen goes away. It happens in a `finally` so that a failing assertion
+     * still reports its own message rather than being buried under a hang.
+     */
+    private fun playerTest(body: suspend TestScope.() -> Unit) = runTest {
+        try {
+            body()
+        } finally {
+            store.clear()
+        }
+    }
 
     /* ------------------------------------------------------------- the critical path */
 
@@ -109,7 +160,7 @@ class PlayerPathTest {
      * every channel change to save a case that almost never happens.
      */
     @Test
-    fun `opening a channel asks the engine for a picture and asks nothing else`() = runTest {
+    fun `opening a channel asks the engine for a picture and asks nothing else`() = playerTest {
         val model = model()
         model.open(liveRequest())
         runCurrent()
@@ -143,7 +194,7 @@ class PlayerPathTest {
      * matters here is that no lookup stands between the request and the text.
      */
     @Test
-    fun `the title is available before the first frame, from the request alone`() = runTest {
+    fun `the title is available before the first frame, from the request alone`() = playerTest {
         val model = model()
         val request = liveRequest()
         model.open(request)
@@ -163,7 +214,7 @@ class PlayerPathTest {
      * first and rendered it late.
      */
     @Test
-    fun `the guide is fetched after the first frame and never before it`() = runTest {
+    fun `the guide is fetched after the first frame and never before it`() = playerTest {
         val model = model()
         model.open(liveRequest())
         runCurrent()
@@ -184,7 +235,7 @@ class PlayerPathTest {
      * of them land here, and none of them may affect the picture.
      */
     @Test
-    fun `a channel whose guide never answers still plays`() = runTest {
+    fun `a channel whose guide never answers still plays`() = playerTest {
         guide.answer = null
         val model = model()
         model.open(liveRequest())
@@ -204,7 +255,7 @@ class PlayerPathTest {
      * sequence.
      */
     @Test
-    fun `nothing is sampled until the panel is opened, and nothing after it closes`() = runTest {
+    fun `nothing is sampled until the panel is opened, and nothing after it closes`() = playerTest {
         val model = model()
         model.open(vodRequest())
         engines.last.renderFirstFrame()
@@ -235,7 +286,7 @@ class PlayerPathTest {
      * it.
      */
     @Test
-    fun `a decoder refusal switches to the backup exactly once`() = runTest {
+    fun `a decoder refusal switches to the backup exactly once`() = playerTest {
         val model = model()
         model.open(vodRequest())
         runCurrent()
@@ -257,7 +308,7 @@ class PlayerPathTest {
      * engine can", which is a different card with a different button.
      */
     @Test
-    fun `when the backup refuses as well the user gets a card, not a third engine`() = runTest {
+    fun `when the backup refuses as well the user gets a card, not a third engine`() = playerTest {
         val model = model()
         model.open(vodRequest())
         runCurrent()
@@ -289,7 +340,7 @@ class PlayerPathTest {
      * possibly work.
      */
     @Test
-    fun `a DRM failure neither switches engines nor offers to`() = runTest {
+    fun `a DRM failure neither switches engines nor offers to`() = playerTest {
         val model = model()
         model.open(vodRequest())
         runCurrent()
@@ -304,7 +355,7 @@ class PlayerPathTest {
 
     /** The same, for a format neither engine claims to read. */
     @Test
-    fun `an unsupported format neither switches engines nor offers to`() = runTest {
+    fun `an unsupported format neither switches engines nor offers to`() = playerTest {
         val model = model()
         model.open(vodRequest())
         runCurrent()
@@ -325,7 +376,7 @@ class PlayerPathTest {
      * that case finite.
      */
     @Test
-    fun `a source that never opens falls over when the budget runs out`() = runTest {
+    fun `a source that never opens falls over when the budget runs out`() = playerTest {
         val model = model()
         model.open(vodRequest())
         advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS - 100)
@@ -343,7 +394,7 @@ class PlayerPathTest {
      * which is the worst possible outcome: the user waited, got a picture, and lost it.
      */
     @Test
-    fun `a frame inside the budget cancels the switch`() = runTest {
+    fun `a frame inside the budget cancels the switch`() = playerTest {
         val model = model()
         model.open(vodRequest())
         advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS - 500)
@@ -366,7 +417,7 @@ class PlayerPathTest {
      * with nothing anywhere having examined the format.
      */
     @Test
-    fun `a source that never opens is reported as a timeout, not as a codec problem`() = runTest {
+    fun `a source that never opens is reported as a timeout, not as a codec problem`() = playerTest {
         val model = model()
         model.open(vodRequest())
         advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 100)
@@ -402,7 +453,7 @@ class PlayerPathTest {
      * and before the split there was no such case at all.
      */
     @Test
-    fun `an unidentified failure offers the backup instead of guessing`() = runTest {
+    fun `an unidentified failure offers the backup instead of guessing`() = playerTest {
         val model = model()
         model.open(vodRequest())
         runCurrent()
@@ -434,7 +485,7 @@ class PlayerPathTest {
      * was reported.
      */
     @Test
-    fun `retry stays on the engine the fallback moved to`() = runTest {
+    fun `retry stays on the engine the fallback moved to`() = playerTest {
         val model = model()
         model.open(vodRequest())
         runCurrent()
@@ -464,7 +515,7 @@ class PlayerPathTest {
      * engine had produced a failure.
      */
     @Test
-    fun `the state names the engine that is actually running`() = runTest {
+    fun `the state names the engine that is actually running`() = playerTest {
         val model = model()
         model.open(vodRequest())
         runCurrent()
@@ -486,7 +537,7 @@ class PlayerPathTest {
      * the report is copied onto the state at the moment of failure.
      */
     @Test
-    fun `the diagnosis is carried on the state, not fetched from a released engine`() = runTest {
+    fun `the diagnosis is carried on the state, not fetched from a released engine`() = playerTest {
         val model = model()
         model.open(vodRequest())
         runCurrent()
@@ -513,7 +564,7 @@ class PlayerPathTest {
      * this bundle was slow once".
      */
     @Test
-    fun `the engine that worked is remembered and used first next time`() = runTest {
+    fun `the engine that worked is remembered and used first next time`() = playerTest {
         val model = model()
         val request = vodRequest()
         model.open(request)
@@ -548,7 +599,7 @@ class PlayerPathTest {
      * box, and how the old one holding a decoder the new one wants becomes a failure.
      */
     @Test
-    fun `a channel change releases the previous engine first`() = runTest {
+    fun `a channel change releases the previous engine first`() = playerTest {
         val model = model()
         model.open(liveRequest())
         engines.last.renderFirstFrame()
