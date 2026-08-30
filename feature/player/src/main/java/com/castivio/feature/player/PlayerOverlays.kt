@@ -425,6 +425,27 @@ internal fun BoxScope.StatisticsPanel(state: PlayerState, actions: PlayerActions
                 stringResource(R.string.stat_engine_main)
             },
         )
+
+        // The two rows that make a jump control diagnosable from a photograph.
+        //
+        // It can do nothing for three unrelated reasons and they look identical on a
+        // device: the press never reaching the state holder, the source refusing to be
+        // sought, or the engine taking a position and staying where it was. The count is
+        // taken before every check, so a zero here after pressing the control rules out the
+        // last two outright — which is the difference between reading the code and guessing
+        // at it.
+        StatRow(
+            R.string.stat_seek,
+            stringResource(
+                if (state.seekable) R.string.stat_seek_allowed else R.string.stat_seek_refused,
+            ),
+        )
+        StatRow(
+            R.string.stat_seek_asked,
+            state.lastSeekMs
+                ?.let { "${state.seekRequests} · %.1f s".format(it / 1000f) }
+                ?: state.seekRequests.toString(),
+        )
     }
 }
 

@@ -331,6 +331,36 @@ class PlayerLayoutTest {
     }
 
     /**
+     * The jump controls reach their callback, with ten seconds in each direction.
+     *
+     * Written because the controls were reported dead on a device and the wiring read as
+     * correct at every layer — which leaves three possibilities that look identical from a
+     * photograph: the press not arriving, the source refusing to be sought, or the engine
+     * accepting a position and staying put. This rules out the first at handset geometry,
+     * with the chrome up and the full-screen tap target of the picture underneath it.
+     */
+    @Test
+    fun `the jump controls call back with ten seconds in each direction`() {
+        val jumps = mutableListOf<Long>()
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingLive(),
+            LayoutDirection.Rtl,
+            PlayerActions(onSeekBy = { jumps += it }),
+        )
+
+        compose.onNodeWithTag(PlayerTags.REPLAY).performClick()
+        compose.onNodeWithTag(PlayerTags.FORWARD).performClick()
+
+        assertEquals(
+            "the presses did not reach the contract, or did not carry ten seconds",
+            listOf(-10_000L, 10_000L),
+            jumps,
+        )
+    }
+
+    /**
      * A tap on the film closes an open sheet, and closes nothing else.
      *
      * The defect: a sheet had exactly one way out, its close icon. A tap on the picture

@@ -103,5 +103,9 @@
     <string name="stat_startup">Start-up</string>
     <string name="stat_engine">Player</string>
     <string name="stat_engine_main">Main</string>
+    <string name="stat_seek">Seeking</string>
+    <string name="stat_seek_allowed">available</string>
+    <string name="stat_seek_refused">not available</string>
+    <string name="stat_seek_asked">Jumps asked for</string>
     <string name="stat_unknown">—</string>
 </resources>

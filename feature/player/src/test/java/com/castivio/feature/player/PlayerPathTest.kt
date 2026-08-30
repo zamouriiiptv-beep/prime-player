@@ -873,14 +873,16 @@ class PlayerPathTest {
     }
 
     /**
-     * A source that cannot be sought is left alone.
+     * A source that cannot be sought is left alone — and the press is still recorded.
      *
-     * Live without a buffer is the real case. The control does nothing either way; what
-     * changes is that the log says which of the two reasons it was, so the next report from
-     * a device does not have to be guessed at.
+     * Live without a buffer is the real case. The control does nothing either way; the
+     * difference is that the state now says which of the reasons it was. A jump control can
+     * fail in three unrelated ways that look identical on a device — the press never
+     * arriving, the source refusing, or the engine taking a position and staying put — and
+     * counting the ask *before* the check is what separates the first from the other two.
      */
     @Test
-    fun `a source that cannot be sought is not asked to seek`() = playerTest {
+    fun `a source that cannot be sought records the press and does not seek`() = playerTest {
         val model = model()
         model.open(liveRequest())
         runCurrent()
@@ -892,6 +894,55 @@ class PlayerPathTest {
         model.seekTo(90_000)
 
         assertTrue("an unseekable source was asked to seek", engines.last.seeks.isEmpty())
+        assertEquals(
+            "the presses were not recorded, so a refusal is indistinguishable from a " +
+                "press that never arrived",
+            2,
+            model.state.value?.seekRequests,
+        )
+        assertNull("nothing was aimed at, so nothing may be reported", model.state.value?.lastSeekMs)
+    }
+
+    /** And a jump that is accepted says where it went, for the same panel. */
+    @Test
+    fun `an accepted jump records where it was aimed`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        engines.last.positionMs = 30_000
+
+        model.seekBy(10_000)
+
+        assertEquals(1, model.state.value?.seekRequests)
+        assertEquals(40_000L, model.state.value?.lastSeekMs)
+    }
+
+    /**
+     * Whether the source can be sought at all reaches the panel.
+     *
+     * The only place a person can be told, and the reason it is on the state rather than
+     * read from the engine at draw time: the engine that knows is released the moment a
+     * fallback switches.
+     */
+    @Test
+    fun `whether the source can be sought reaches the state`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        assertTrue("a seekable source was reported as fixed", model.state.value?.seekable == true)
+
+        engines.last.isSeekable = false
+        advanceTimeBy(PlayerViewModel.TICK_MS + 1)
+
+        assertFalse(
+            "the panel would go on saying a refused source can be sought",
+            model.state.value?.seekable == true,
+        )
     }
 
     /* -------------------------------------------------------------------- the memory */

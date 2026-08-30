@@ -368,6 +368,7 @@ class PlayerViewModel @Inject constructor(
      * guessed at from a device.
      */
     fun seekBy(deltaMs: Long) {
+        countTheAsk()
         val running = engine ?: return
         if (!running.isSeekable) {
             Log.i(TAG, "the source is not seekable — a ${deltaMs}ms jump was ignored")
@@ -381,6 +382,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun seekTo(positionMs: Long) {
+        countTheAsk()
         val running = engine ?: return
         if (!running.isSeekable) {
             Log.i(TAG, "the source is not seekable — a seek to ${positionMs}ms was ignored")
@@ -402,7 +404,21 @@ class PlayerViewModel @Inject constructor(
         seekTarget = target
         seekTicks = SEEK_SETTLE_TICKS
         running.seekTo(target)
-        _state.value = _state.value?.copy(positionMs = target)
+        _state.value = _state.value?.copy(positionMs = target, lastSeekMs = target)
+    }
+
+    /**
+     * A press arrived. Recorded before every check there is, and that is the whole point.
+     *
+     * The jump controls can do nothing for three unrelated reasons — the press never
+     * reaching this class, the source refusing to be sought, or the engine accepting a
+     * position and staying where it was — and from a device they look identical. This
+     * counter separates the first from the other two without a cable: the statistics panel
+     * shows it, so a photograph of that panel answers the question.
+     */
+    private fun countTheAsk() {
+        val current = _state.value ?: return
+        _state.value = current.copy(seekRequests = current.seekRequests + 1)
     }
 
     /** Forget an aim: the source under it is gone, or has been jumped past by other means. */
@@ -519,6 +535,7 @@ class PlayerViewModel @Inject constructor(
                         positionMs = position,
                         bufferedMs = (e.bufferedPositionMs - position).coerceAtLeast(0),
                         durationMs = duration,
+                        seekable = e.isSeekable,
                         behindLiveMs = if (current.request.isLive && duration != null) {
                             (duration - position).coerceAtLeast(0)
                         } else {

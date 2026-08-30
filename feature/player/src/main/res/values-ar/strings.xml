@@ -86,5 +86,9 @@
     <string name="stat_startup">زمن البدء</string>
     <string name="stat_engine">المشغّل</string>
     <string name="stat_engine_main">الأساسي</string>
+    <string name="stat_seek">التقديم</string>
+    <string name="stat_seek_allowed">متاح</string>
+    <string name="stat_seek_refused">غير متاح</string>
+    <string name="stat_seek_asked">طلبات القفز</string>
     <string name="stat_unknown">—</string>
 </resources>

@@ -67,6 +67,25 @@ data class PlayerState(
     val positionMs: Long = 0,
     val bufferedMs: Long = 0,
     val durationMs: Long? = null,
+    /**
+     * Whether the source will accept a jump at all, as the engine reports it.
+     *
+     * On the state because the statistics panel is the only place a person can be told. A
+     * live stream with no buffer behind it is not seekable and never will be, and a player
+     * whose jump controls quietly do nothing — with no way to find out which of the several
+     * possible reasons it was — is a player that cannot be diagnosed from a photograph.
+     */
+    val seekable: Boolean = false,
+    /**
+     * How many jumps have been asked for, and where the last one was aimed.
+     *
+     * Counted at the moment the press arrives, before any check: that is what makes the
+     * pair diagnostic rather than decorative. Zero after pressing the control means the
+     * press never reached the state holder at all, which is a different fault in a
+     * different file from a jump the engine received and refused.
+     */
+    val seekRequests: Int = 0,
+    val lastSeekMs: Long? = null,
     val speed: Float = 1f,
     val audioTracks: List<Track> = emptyList(),
     val subtitleTracks: List<Track> = emptyList(),
