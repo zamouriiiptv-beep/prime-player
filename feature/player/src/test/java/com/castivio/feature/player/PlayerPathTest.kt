@@ -353,18 +353,39 @@ class PlayerPathTest {
         assertFalse("and no button offers one", picture.canTryBackup)
     }
 
-    /** The same, for a format neither engine claims to read. */
+    /**
+     * An unsupported format is now exactly what the backup is for.
+     *
+     * This test used to assert the opposite, and it was right to. While the backup was a
+     * second Media3 profile it could only walk the same device's MediaCodec list, so a
+     * format the platform had no decoder for failed identically on both engines and
+     * offering the switch would have been a lie. `:playback:engine-vlc` brings its own
+     * decoders, which is the single fact that reverses it.
+     *
+     * Kept as a switching test rather than deleted, because the claim it guards — that
+     * this reason is routed deliberately and not by a default branch — is the same claim
+     * either way. The DRM test above is now the case that stands for "no engine can help",
+     * and it is a better example: the device lacks the keys, and no decoder anywhere
+     * changes that.
+     */
     @Test
-    fun `an unsupported format neither switches engines nor offers to`() = playerTest {
+    fun `an unsupported format switches to the backup, which has its own decoders`() = playerTest {
         val model = model()
         model.open(vodRequest())
         runCurrent()
         engines.last.fail(PlaybackError.UNSUPPORTED_FORMAT)
         runCurrent()
 
-        assertEquals(1, engines.built.size)
-        val picture = model.state.value?.picture as Picture.Failed
-        assertFalse(picture.canTryBackup)
+        assertEquals(
+            "the backup decodes in software, so this is the one failure it exists for",
+            listOf(EngineId.PRIMARY, EngineId.BACKUP),
+            engines.built,
+        )
+        assertTrue(
+            "and it is still opening on the backup rather than showing a card",
+            model.state.value?.picture is Picture.Opening,
+        )
+        assertTrue("with the switch reported", model.state.value?.switching == true)
     }
 
     /**
@@ -523,10 +544,25 @@ class PlayerPathTest {
 
         engines.last.fail(PlaybackError.DECODER_INIT)
         runCurrent()
+
+        // Asserted before the frame so that a failure says which half broke. "expected
+        // BACKUP but was PRIMARY" on the last line alone cannot distinguish "the switch
+        // never happened" from "it happened and the state did not follow", and those have
+        // nothing to do with each other.
+        assertEquals(
+            "the refusal did not reach the backup engine",
+            listOf(EngineId.PRIMARY, EngineId.BACKUP),
+            engines.built,
+        )
+
         engines.last.renderFirstFrame()
         runCurrent()
 
-        assertEquals(EngineId.BACKUP, model.state.value?.engine)
+        assertEquals(
+            "the backup produced the frame, so it is the engine the state must name",
+            EngineId.BACKUP,
+            model.state.value?.engine,
+        )
     }
 
     /**
