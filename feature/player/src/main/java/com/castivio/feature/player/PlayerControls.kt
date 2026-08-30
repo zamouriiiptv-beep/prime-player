@@ -454,6 +454,26 @@ private fun Timeline(state: PlayerState, actions: PlayerActions) {
             modifier = Modifier.testTag(PlayerTags.POSITION),
         )
 
+        // The jumps live on the bar, one at each end of it.
+        //
+        // They were in the tools row, among the aspect, the speed and the subtitles — the
+        // controls you touch while setting something up rather than while watching. A jump
+        // is not one of those: it is the bar, in ten-second steps, for the times when
+        // dragging is too coarse. Put either side of the thing they move, what they do is
+        // legible from where they are, which is most of what "understood at a glance" means.
+        //
+        // `mirror`, because the bar itself mirrors: in Arabic it fills from the right, so
+        // later in the film is to the left and a chevron that pointed left in both
+        // directions would be pointing backwards in one of them.
+        PlayerButton(
+            icon = CastivioIcons.Replay10,
+            label = stringResource(R.string.player_replay_10),
+            tag = PlayerTags.REPLAY,
+            onClick = { actions.onSeekBy(-JUMP_MS) },
+            text = JUMP_SECONDS,
+            mirror = true,
+        )
+
         val played = when {
             live -> 1f
             dragged != null -> dragged!!
@@ -546,6 +566,15 @@ private fun Timeline(state: PlayerState, actions: PlayerActions) {
             }
         }
 
+        PlayerButton(
+            icon = CastivioIcons.Forward10,
+            label = stringResource(R.string.player_forward_10),
+            tag = PlayerTags.FORWARD,
+            onClick = { actions.onSeekBy(JUMP_MS) },
+            text = JUMP_SECONDS,
+            mirror = true,
+        )
+
         if (!live) {
             Text(
                 text = duration?.let(::clock) ?: stringResource(R.string.stat_unknown),
@@ -593,21 +622,6 @@ private fun ToolsRow(state: PlayerState, actions: PlayerActions) {
         horizontalArrangement = Arrangement.spacedBy(barGap()),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // First in the row, at the start edge, because they are the two controls in it that
-        // are pressed while watching rather than while setting something up — and because
-        // they belong beside the bar they move, which is directly above them.
-        PlayerButton(
-            icon = CastivioIcons.Replay10,
-            label = stringResource(R.string.player_replay_10),
-            tag = PlayerTags.REPLAY,
-            onClick = { actions.onSeekBy(-JUMP_MS) },
-        )
-        PlayerButton(
-            icon = CastivioIcons.Forward10,
-            label = stringResource(R.string.player_forward_10),
-            tag = PlayerTags.FORWARD,
-            onClick = { actions.onSeekBy(JUMP_MS) },
-        )
         PlayerButton(
             icon = CastivioIcons.Speed,
             label = stringResource(R.string.player_speed),
@@ -753,8 +767,18 @@ internal fun RowScope.PlayerButton(
 /** A hairline is one device-independent pixel, everywhere in the product. */
 internal val HAIRLINE = 1.dp
 
-/** Ten seconds, in both directions. The figure the icons draw. */
+/** Ten seconds, in both directions. */
 private const val JUMP_MS = 10_000L
+
+/**
+ * The same ten, as the label beside the chevrons.
+ *
+ * A bare numeral rather than a string resource, and deliberately: it is a figure, it is
+ * derived from [JUMP_MS] so the two cannot drift, and every language writes it the same way
+ * — the digit shapes come from the locale's own font, which is what a translation of "10"
+ * would have had to reproduce by hand.
+ */
+private val JUMP_SECONDS = (JUMP_MS / 1000L).toString()
 
 private val TRACK_HEIGHT = 4.dp
 

@@ -435,6 +435,40 @@ class PlayerLayoutTest {
         compose.onAllNodesWithTag(PlayerTags.JUMP_MARK).assertCountEquals(0)
     }
 
+    /**
+     * The jumps sit on the bar they move, one at each end of it.
+     *
+     * They were in the tools row among the aspect, the speed and the subtitles — the
+     * controls you touch while setting something up rather than while watching. Asserted as
+     * a relation between three boxes rather than as a list of row members, because what is
+     * being claimed is that they read as part of the bar: back before it, forward after it,
+     * in whichever direction the language runs.
+     */
+    @Test
+    fun `the jumps flank the bar in English`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingFilm(), LayoutDirection.Ltr)
+
+        val back = compose.bounds(PlayerTags.REPLAY)
+        val bar = compose.bounds(PlayerTags.TIMELINE)
+        val on = compose.bounds(PlayerTags.FORWARD)
+
+        assertTrue("back is not before the bar: ${back.right} against ${bar.left}", back.right <= bar.left + TOLERANCE)
+        assertTrue("forward is not after the bar: ${on.left} against ${bar.right}", on.left >= bar.right - TOLERANCE)
+    }
+
+    /** And mirrored in Arabic, where the bar fills from the right and so does time. */
+    @Test
+    fun `the jumps flank the bar in Arabic`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingFilm(), LayoutDirection.Rtl)
+
+        val back = compose.bounds(PlayerTags.REPLAY)
+        val bar = compose.bounds(PlayerTags.TIMELINE)
+        val on = compose.bounds(PlayerTags.FORWARD)
+
+        assertTrue("back must be on the right of the bar in Arabic", back.left >= bar.right - TOLERANCE)
+        assertTrue("forward must be on its left", on.right <= bar.left + TOLERANCE)
+    }
+
     /* ------------------------------------------------------------------ the scrubber */
 
     /**

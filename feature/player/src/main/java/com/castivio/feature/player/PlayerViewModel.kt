@@ -358,10 +358,18 @@ class PlayerViewModel @Inject constructor(
     fun playPause() {
         val current = _state.value ?: return
         noteInteraction()
+        val running = engine ?: return
         when {
             current.picture is Picture.Ended -> replay()
-            current.picture is Picture.Playing -> engine?.pause()
-            else -> engine?.play()
+            // The *engine's* answer, not the screen's. `picture` is the last transition the
+            // engine announced, and it can be wrong about now: a stall announces buffering,
+            // a transition the engine did not classify announces nothing at all, and the
+            // screen then goes on showing a pause bar over a film that is not running.
+            // Pressing it called `pause()` on something already paused — a no-op — and the
+            // control stayed dead for as long as the announcement was stale, which is
+            // exactly "I paused it and then it would not start again".
+            running.isPlaying -> running.pause()
+            else -> running.play()
         }
     }
 

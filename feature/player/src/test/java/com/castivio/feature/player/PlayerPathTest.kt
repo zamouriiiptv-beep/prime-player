@@ -996,6 +996,51 @@ class PlayerPathTest {
         assertTrue("the picture would have stayed frozen on the last frame", engines.last.playing)
     }
 
+    /**
+     * The play control asks the engine what it is doing, not the screen.
+     *
+     * `picture` is the last transition the engine announced, and it can be wrong about now:
+     * a stall announces buffering, a transition the engine did not classify announces
+     * nothing at all, and the screen then goes on showing a pause bar over a film that is
+     * not running. Deciding from that snapshot means pressing the control calls `pause()`
+     * on something already paused — a no-op — and it stays dead for as long as the
+     * announcement is stale. Which is exactly "I paused it and it would not start again".
+     */
+    @Test
+    fun `the play control asks the engine and not the screen`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        assertEquals(Picture.Playing, model.state.value?.picture)
+
+        // Stopped without saying so. The screen still reads Playing.
+        engines.last.playing = false
+
+        model.playPause()
+
+        assertTrue(
+            "the control paused something already paused, and there is no way out of that",
+            engines.last.playing,
+        )
+    }
+
+    /** And the ordinary direction, so the fix is not simply "always play". */
+    @Test
+    fun `the play control pauses a film that is running`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        model.playPause()
+
+        assertTrue(engines.last.paused)
+        assertFalse(engines.last.playing)
+    }
+
     /* ---------------------------------------------------------------- the background */
 
     /**
@@ -1203,6 +1248,15 @@ class PlayerPathTest {
         override var durationMs: Long? = null
         override var isSeekable: Boolean = true
 
+        /**
+         * What the engine is actually doing, which is not what it last announced.
+         *
+         * Kept separate from [_state] on purpose: the defect the play control had was a
+         * screen deciding from a stale announcement, so a fake whose two answers cannot
+         * disagree would be a fake that cannot reproduce it.
+         */
+        override val isPlaying: Boolean get() = playing
+
         override fun setVideoOutput(output: VideoOutput?) = Unit
         override fun open(media: MediaRequest) {
             opened += media
@@ -1242,6 +1296,7 @@ class PlayerPathTest {
 
         fun renderFirstFrame() {
             _firstFrame.value = 1_000
+            playing = true
             _state.value = PlaybackState.Playing(positionMs = 0, durationMs = null, bitrateBps = 0)
         }
 

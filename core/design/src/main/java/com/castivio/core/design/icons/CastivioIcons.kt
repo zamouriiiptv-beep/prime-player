@@ -145,11 +145,26 @@ object CastivioIcons {
     )
 
     /** Ten seconds back, and ten forward. The figure is drawn by the caller, inside the arc. */
+    /**
+     * The two jumps, as double chevrons rather than circular arrows.
+     *
+     * They were an almost-closed circle with a three-pixel arrowhead on it, and the pair
+     * differed only in which way that arrowhead pointed — at 24dp, over a moving picture,
+     * on a phone held at arm's length, the two were the same mark. A viewer could not tell
+     * back from forward without pressing one and watching what happened, which is the
+     * opposite of what an icon is for.
+     *
+     * A double chevron is the rewind mark on every tape deck, remote control and media
+     * player of the last fifty years, it survives being small, and its direction is the
+     * whole of the drawing rather than a detail on it. The ten is carried as the button's
+     * label beside it: a numeral inside a 24dp glyph is unreadable, and one next to it is
+     * both legible and translatable.
+     */
     val Replay10: ImageVector = strokeIcon(
-        "Replay10", "M11 5.5a7 7 0 1 0 7 7", "M11 2.5L8 5.5l3 3", size = Sizing.iconMd,
+        "Replay10", "M12.5 6L6.5 12l6 6", "M19 6l-6 6 6 6", size = Sizing.iconMd,
     )
     val Forward10: ImageVector = strokeIcon(
-        "Forward10", "M13 5.5a7 7 0 1 1-7 7", "M13 2.5l3 3-3 3", size = Sizing.iconMd,
+        "Forward10", "M11.5 6l6 6-6 6", "M5 6l6 6-6 6", size = Sizing.iconMd,
     )
 
     val Subtitles: ImageVector = strokeIcon(

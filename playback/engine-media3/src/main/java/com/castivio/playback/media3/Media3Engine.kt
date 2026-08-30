@@ -417,11 +417,25 @@ class Media3Engine(
             }
         }
 
+        /**
+         * Started, or stopped — and which of the two kinds of stopping it was.
+         *
+         * The old guard recorded a pause only when the last thing announced was `Playing`.
+         * A rebuffer announces `Buffering`, so a pause during one was never recorded at
+         * all: the screen went on showing a pause bar over a film that was not running,
+         * and pressing it called `pause()` on something already paused. A no-op, a control
+         * that appeared dead, and no way out of it but leaving the player.
+         *
+         * `playWhenReady` is what separates the two: a stall keeps it true and the user
+         * setting it false is the only thing that does not. So a stop with it false is a
+         * pause, whatever the engine happened to be announcing a moment earlier, and a
+         * stop with it true is a stall — which the buffering state already covers.
+         */
         override fun onIsPlayingChanged(isPlaying: Boolean) {
-            if (!isPlaying && _state.value is PlaybackState.Playing) {
-                _state.value = PlaybackState.Paused(player.currentPosition)
-            } else if (isPlaying && _firstFrameAtMs.value != null) {
-                pushPlaying()
+            if (_firstFrameAtMs.value == null) return
+            when {
+                isPlaying -> pushPlaying()
+                !player.playWhenReady -> _state.value = PlaybackState.Paused(player.currentPosition)
             }
         }
 
@@ -612,6 +626,7 @@ class Media3Engine(
     override val bufferedPositionMs: Long get() = player.bufferedPosition
     override val durationMs: Long? get() = player.duration.takeIf { it != C.TIME_UNSET }
     override val isSeekable: Boolean get() = player.isCurrentMediaItemSeekable
+    override val isPlaying: Boolean get() = player.isPlaying
 
     private fun describe(format: Format): String =
         format.sampleMimeType?.substringAfterLast('/')?.uppercase() ?: UNKNOWN_TRACK

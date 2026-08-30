@@ -379,6 +379,9 @@ class VlcPlaybackEngine(
     override val isSeekable: Boolean
         get() = !isReleased && mediaPlayer.isSeekable
 
+    override val isPlaying: Boolean
+        get() = !isReleased && mediaPlayer.isPlaying
+
     private fun pushPlaying() {
         _state.value = PlaybackState.Playing(
             positionMs = positionMs,
