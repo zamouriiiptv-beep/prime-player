@@ -131,7 +131,10 @@ fun PlayerScreen(
 @Composable
 private fun VideoSurface(state: PlayerState, actions: PlayerActions) {
     val taps = remember { MutableInteractionSource() }
-    val reveal = stringResource(R.string.player_reveal_controls)
+    val covered = state.statistics || state.sheet != null
+    val label = stringResource(
+        if (covered) R.string.player_close else R.string.player_reveal_controls,
+    )
 
     BoxWithConstraints(
         Modifier
@@ -141,6 +144,13 @@ private fun VideoSurface(state: PlayerState, actions: PlayerActions) {
             // tap: `onToggleControls` existed on the contract and nothing on this screen
             // ever called it, so once the chrome auto-hid after four seconds there was no
             // way left to reach play/pause at all.
+            //
+            // What that tap means depends on what is over the picture, and the ladder is
+            // deliberately the same one `PlayerRoute` gives the back button: a panel first,
+            // then a sheet, then the chrome. A sheet used to have exactly one way out — the
+            // close icon — because a tap on the film beside it toggled the chrome behind it
+            // and left the sheet exactly where it was. Innermost first, and nothing on this
+            // ladder touches playback: dismissing a panel must never pause a film.
             //
             // Not while locked — the lock pill is the only way out of a lock, and a tap
             // that dismissed it would make the lock protect nothing.
@@ -154,8 +164,14 @@ private fun VideoSurface(state: PlayerState, actions: PlayerActions) {
                     Modifier.clickable(
                         interactionSource = taps,
                         indication = null,
-                        onClickLabel = reveal,
-                        onClick = actions.onToggleControls,
+                        onClickLabel = label,
+                        onClick = {
+                            when {
+                                state.statistics -> actions.onStatistics(false)
+                                state.sheet != null -> actions.onSheet(null)
+                                else -> actions.onToggleControls()
+                            }
+                        },
                     )
                 },
             ),

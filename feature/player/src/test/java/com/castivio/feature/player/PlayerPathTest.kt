@@ -718,6 +718,182 @@ class PlayerPathTest {
         )
     }
 
+    /* --------------------------------------------------------------------- the jumps */
+
+    /**
+     * A jump is measured from where the engine is, not from what the screen last drew.
+     *
+     * The defect this replaces: the target was computed from [PlayerState.positionMs], a
+     * value the ticker refreshes four times a second. Forty seconds into a film the drawn
+     * position can be anything up to a quarter of a second behind, and — worse — before the
+     * first tick it is still 0, so the very first press of either control was computed from
+     * a position the stream had long left.
+     */
+    @Test
+    fun `a jump is measured from the engine's own position`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        // The engine has moved and the ticker has not run, which is the ordinary case: a
+        // press lands between two ticks far more often than on one.
+        engines.last.positionMs = 40_000
+
+        model.seekBy(10_000)
+
+        assertEquals(
+            "the jump was computed from the drawn position rather than from the stream",
+            listOf(50_000L),
+            engines.last.seeks,
+        )
+    }
+
+    /**
+     * Two presses inside one tick move twice.
+     *
+     * This is what "the forward and back buttons do nothing" was. Both presses read the same
+     * base, so both asked for the same position and the second one was a no-op — and going
+     * backwards it was worse than a no-op: near the start of a file the base clamps to 0, so
+     * the control could be pressed all day and never ask for anything but 0.
+     *
+     * The engine's own position deliberately does not move between the presses. A real seek
+     * is asynchronous, and the backup engine reports its old time until the seek lands, so
+     * reading the engine alone would collapse the two presses exactly as the state did.
+     */
+    @Test
+    fun `two jumps inside one tick move twice`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        engines.last.positionMs = 30_000
+
+        model.seekBy(10_000)
+        model.seekBy(10_000)
+        model.seekBy(10_000)
+
+        assertEquals(
+            "the presses collapsed onto one target — the second and third did nothing",
+            listOf(40_000L, 50_000L, 60_000L),
+            engines.last.seeks,
+        )
+    }
+
+    /** And backwards, from the start, where the old arithmetic could only ever ask for 0. */
+    @Test
+    fun `jumping back never asks for a negative position`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        engines.last.positionMs = 4_000
+
+        model.seekBy(-10_000)
+
+        assertEquals(listOf(0L), engines.last.seeks)
+    }
+
+    /** A jump forward stops at the end of the file rather than off it. */
+    @Test
+    fun `a jump forward is bounded by the duration`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        engines.last.durationMs = 62_000
+        engines.last.positionMs = 58_000
+
+        model.seekBy(10_000)
+
+        assertEquals(listOf(62_000L), engines.last.seeks)
+    }
+
+    /**
+     * The timeline shows the jump on the press, and hands itself back when the seek lands.
+     *
+     * A control that moves the stream and not the scrubber reads as a control that did
+     * nothing, which is half of what was reported. The hand-back is the other half: the aim
+     * is a display, not a claim, and the engine is believed again the moment it agrees.
+     */
+    @Test
+    fun `the timeline moves on the press and returns to the engine when the seek lands`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        engines.last.positionMs = 30_000
+
+        model.seekBy(10_000)
+        assertEquals("the scrubber did not move on the press", 40_000L, model.state.value?.positionMs)
+
+        // The engine has not caught up yet, and the timeline must not fall back to where
+        // the stream was before the jump.
+        advanceTimeBy(PlayerViewModel.TICK_MS + 1)
+        assertEquals(40_000L, model.state.value?.positionMs)
+
+        engines.last.positionMs = 40_120
+        advanceTimeBy(PlayerViewModel.TICK_MS)
+        assertEquals(
+            "once the seek has landed the engine is the only thing worth reading",
+            40_120L,
+            model.state.value?.positionMs,
+        )
+    }
+
+    /**
+     * A seek that never lands expires rather than freezing the timeline.
+     *
+     * The aim exists to cover a lag of a few hundred milliseconds. A source that quietly
+     * refuses the seek has no lag to cover, and holding its aim would leave the scrubber
+     * parked on a position the stream is not at for the rest of the film.
+     */
+    @Test
+    fun `an aim that is never reached gives the timeline back`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        engines.last.positionMs = 30_000
+
+        model.seekBy(10_000)
+        advanceTimeBy(PlayerViewModel.TICK_MS * (PlayerViewModel.SEEK_SETTLE_TICKS + 1))
+
+        assertEquals(
+            "the aim outlived its budget and the timeline stayed on it",
+            30_000L,
+            model.state.value?.positionMs,
+        )
+    }
+
+    /**
+     * A source that cannot be sought is left alone.
+     *
+     * Live without a buffer is the real case. The control does nothing either way; what
+     * changes is that the log says which of the two reasons it was, so the next report from
+     * a device does not have to be guessed at.
+     */
+    @Test
+    fun `a source that cannot be sought is not asked to seek`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        engines.last.isSeekable = false
+
+        model.seekBy(10_000)
+        model.seekTo(90_000)
+
+        assertTrue("an unseekable source was asked to seek", engines.last.seeks.isEmpty())
+    }
+
     /* -------------------------------------------------------------------- the memory */
 
     /**
@@ -828,10 +1004,21 @@ class PlayerPathTest {
         var samples = 0
         var released = false
 
-        override val positionMs: Long = 0
-        override val bufferedPositionMs: Long = 0
-        override val durationMs: Long? = null
-        override val isSeekable: Boolean = false
+        /** Every position asked for, in order. The jump controls are a claim about these. */
+        val seeks = mutableListOf<Long>()
+
+        /**
+         * Where the engine says it is, which a test moves by hand.
+         *
+         * Deliberately *not* moved by [seekTo]. A real seek is asynchronous — the backup
+         * engine goes on reporting its old time until the seek lands — and that lag is the
+         * thing the jump controls have to survive, so the fake reproduces it rather than
+         * hiding it.
+         */
+        override var positionMs: Long = 0
+        override val bufferedPositionMs: Long get() = positionMs
+        override var durationMs: Long? = null
+        override var isSeekable: Boolean = true
 
         override fun setVideoOutput(output: VideoOutput?) = Unit
         override fun open(media: MediaRequest) {
@@ -842,7 +1029,9 @@ class PlayerPathTest {
         override fun play() = Unit
         override fun pause() = Unit
         override fun stop() = Unit
-        override fun seekTo(positionMs: Long) = Unit
+        override fun seekTo(positionMs: Long) {
+            seeks += positionMs
+        }
         override fun selectTrack(track: Track) = Unit
         override fun setSpeed(speed: Float) = Unit
         override fun setAspect(mode: com.castivio.playback.api.AspectMode) = Unit

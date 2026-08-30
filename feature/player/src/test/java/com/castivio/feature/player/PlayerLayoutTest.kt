@@ -6,8 +6,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
@@ -15,6 +17,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.LayoutDirection
@@ -325,6 +328,94 @@ class PlayerLayoutTest {
         compose.onNodeWithTag(PlayerTags.VIDEO).performClick()
 
         assertEquals("the lock was dismissed by a tap on the film", 0, asked)
+    }
+
+    /**
+     * A tap on the film closes an open sheet, and closes nothing else.
+     *
+     * The defect: a sheet had exactly one way out, its close icon. A tap on the picture
+     * beside it toggled the chrome *behind* the sheet and left the sheet where it was, which
+     * on a handset — where the sheet covers half the screen and the icon is a small target
+     * in a corner — reads as a panel that will not go away.
+     *
+     * The tap is taken on the picture side rather than at the node's centre, which on a
+     * handset is under the sheet. In `Ltr` the sheet is at the end edge, so a tenth of the
+     * way across is film.
+     */
+    @Test
+    fun `tapping the film closes an open sheet instead of toggling the controls`() {
+        var closed = 0
+        var toggled = 0
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingLive().copy(sheet = Sheet.Audio),
+            LayoutDirection.Ltr,
+            PlayerActions(
+                onToggleControls = { toggled++ },
+                onSheet = { if (it == null) closed++ },
+            ),
+        )
+
+        compose.tapTheFilm()
+
+        assertEquals("the sheet is still open", 1, closed)
+        assertEquals(
+            "the tap went to the chrome behind the sheet instead of to the sheet",
+            0,
+            toggled,
+        )
+    }
+
+    /** The statistics panel is on the same ladder, innermost first, exactly as back is. */
+    @Test
+    fun `tapping the film closes the statistics panel first`() {
+        var closed = 0
+        var toggled = 0
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingLive().copy(statistics = true, sheet = Sheet.Audio),
+            LayoutDirection.Ltr,
+            PlayerActions(
+                onToggleControls = { toggled++ },
+                onStatistics = { if (!it) closed++ },
+            ),
+        )
+
+        compose.tapTheFilm()
+
+        assertEquals("the panel over everything else was not the one dismissed", 1, closed)
+        assertEquals(0, toggled)
+    }
+
+    /**
+     * And with nothing over the picture the tap is still the way the chrome comes back.
+     *
+     * The regression the ladder above could introduce, asserted from the same tap position
+     * as the two before it so that the three differ only in what is open.
+     */
+    @Test
+    fun `tapping the film with nothing open still asks for the controls`() {
+        var toggled = 0
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingLive().copy(controls = false),
+            LayoutDirection.Ltr,
+            PlayerActions(onToggleControls = { toggled++ }),
+        )
+
+        compose.tapTheFilm()
+
+        assertEquals(1, toggled)
+    }
+
+    /** A press on the picture, clear of the sheet at the end edge. */
+    private fun ComposeContentTestRule.tapTheFilm() {
+        onNodeWithTag(PlayerTags.VIDEO).performTouchInput {
+            click(Offset(width * FILM_SIDE, height / 2f))
+        }
     }
 
     /* -------------------------------------------------------- the reserved strip */
@@ -638,6 +729,14 @@ class PlayerLayoutTest {
     private val TV_FLOOR = 56.dp
 
     private val FOUR_MINUTES = 4 * 60 * 1000L + 12_000L
+
+    /**
+     * A tenth of the way across the picture.
+     *
+     * Far enough from the end edge to be film rather than sheet — the sheet takes 52% of a
+     * handset — and far enough from the start edge to be clear of the back arrow.
+     */
+    private val FILM_SIDE = 0.1f
 
     /**
      * Half a device-independent pixel, which is rounding rather than a defect.

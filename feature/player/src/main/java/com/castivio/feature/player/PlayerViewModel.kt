@@ -79,6 +79,12 @@ class PlayerViewModel @Inject constructor(
     /** Whether the current attempt ended by the budget expiring rather than by an error. */
     private var timedOut = false
 
+    /** Where a jump was aimed, held until the engine's own clock gets there. */
+    private var seekTarget: Long? = null
+
+    /** How many more ticks that aim is believed for. A seek that never lands must expire. */
+    private var seekTicks = 0
+
     /**
      * Open a source. The whole of the critical path.
      *
@@ -339,12 +345,82 @@ class PlayerViewModel @Inject constructor(
         if (current.picture is Picture.Playing) engine?.pause() else engine?.play()
     }
 
+    /**
+     * Jump, from where the engine actually is.
+     *
+     * ## Why the rendered position was the wrong base
+     *
+     * [PlayerState.positionMs] is a *drawn* value: the ticker refreshes it four times a
+     * second, and everything in between is 250ms old. Computing a jump from it means every
+     * press inside one tick starts from the same base and lands on the same target — so a
+     * second press adds nothing, and pressing forward three times quickly moves ten seconds
+     * rather than thirty. Backwards it does not even move once: near the start the base is
+     * 0, the target clamps to 0, and the control does nothing at all.
+     *
+     * So the engine is asked, because the engine is the only thing that knows. [seekTarget]
+     * carries the accumulation across the gap the engine has of its own: a seek is
+     * asynchronous, and the backup engine keeps reporting its old time until the seek lands.
+     * Without it a press a tenth of a second after the last one reads a position that has
+     * not moved yet and recomputes the same target — the identical defect, one layer deeper.
+     *
+     * A source that cannot be sought is logged rather than silently dropped. That is the
+     * other way for this control to do nothing, and it is not one that should have to be
+     * guessed at from a device.
+     */
     fun seekBy(deltaMs: Long) {
-        val current = _state.value ?: return
-        engine?.seekTo((current.positionMs + deltaMs).coerceAtLeast(0))
+        val running = engine ?: return
+        if (!running.isSeekable) {
+            Log.i(TAG, "the source is not seekable — a ${deltaMs}ms jump was ignored")
+            return
+        }
+        val base = seekTarget ?: running.positionMs
+        val ceiling = running.durationMs ?: _state.value?.durationMs
+        var target = (base + deltaMs).coerceAtLeast(0)
+        if (ceiling != null) target = target.coerceAtMost(ceiling)
+        aimAt(target, running)
     }
 
-    fun seekTo(positionMs: Long) = engine?.seekTo(positionMs) ?: Unit
+    fun seekTo(positionMs: Long) {
+        val running = engine ?: return
+        if (!running.isSeekable) {
+            Log.i(TAG, "the source is not seekable — a seek to ${positionMs}ms was ignored")
+            return
+        }
+        aimAt(positionMs.coerceAtLeast(0), running)
+    }
+
+    /**
+     * Ask for a position, and show it before the engine has got there.
+     *
+     * The timeline moves on the press rather than on the next tick, which is what makes a
+     * jump feel like a jump. It is not a lie about the stream: [settle] hands the display
+     * back to the engine the moment its own clock arrives, and hands it back regardless
+     * after [SEEK_SETTLE_TICKS] so that a seek which never lands cannot freeze the timeline
+     * for the rest of the film.
+     */
+    private fun aimAt(target: Long, running: PlaybackEngine) {
+        seekTarget = target
+        seekTicks = SEEK_SETTLE_TICKS
+        running.seekTo(target)
+        _state.value = _state.value?.copy(positionMs = target)
+    }
+
+    /** Forget an aim: the source under it is gone, or has been jumped past by other means. */
+    private fun clearAim() {
+        seekTarget = null
+        seekTicks = 0
+    }
+
+    /** The position to display: the aim while it is outstanding, the engine's own after. */
+    private fun settle(reported: Long): Long {
+        val aim = seekTarget ?: return reported
+        seekTicks -= 1
+        if (kotlin.math.abs(reported - aim) <= SEEK_TOLERANCE_MS || seekTicks <= 0) {
+            clearAim()
+            return reported
+        }
+        return aim
+    }
 
     fun setSpeed(speed: Float) {
         engine?.setSpeed(speed)
@@ -385,6 +461,9 @@ class PlayerViewModel @Inject constructor(
     fun returnToLive() {
         val current = _state.value ?: return
         if (!current.request.isLive) return
+        // Past any aim a jump left outstanding: the live edge is wherever the stream has
+        // got to, so an old target must not go on being displayed over it.
+        clearAim()
         engine?.seekTo(Long.MAX_VALUE)
         _state.value = current.copy(behindLiveMs = 0)
     }
@@ -435,7 +514,7 @@ class PlayerViewModel @Inject constructor(
                 val current = _state.value
                 if (e != null && current != null) {
                     val duration = e.durationMs
-                    val position = e.positionMs
+                    val position = settle(e.positionMs)
                     _state.value = current.copy(
                         positionMs = position,
                         bufferedMs = (e.bufferedPositionMs - position).coerceAtLeast(0),
@@ -479,6 +558,7 @@ class PlayerViewModel @Inject constructor(
 
     private fun release() {
         stopEngine()
+        clearAim()
         ticker?.cancel(); ticker = null
         sampler?.cancel(); sampler = null
         guideJob?.cancel(); guideJob = null
@@ -511,11 +591,22 @@ class PlayerViewModel @Inject constructor(
         super.onCleared()
     }
 
-    private companion object {
+    /**
+     * `internal` rather than `private` so the tick budget can be asserted rather than
+     * repeated: a test that wrote 250 of its own would go on passing after the ticker
+     * changed, which is the sort of test that is worse than none.
+     */
+    internal companion object {
         const val TAG = "CastivioPlayer"
 
         /** Four times a second: enough for a moving position, cheap enough to ignore. */
         const val TICK_MS = 250L
         const val STATS_INTERVAL_MS = 1_000L
+
+        /** Close enough to call a seek landed: three ticks of ordinary playback. */
+        const val SEEK_TOLERANCE_MS = 750L
+
+        /** Two seconds. Long enough for a slow seek, short enough not to hold a timeline. */
+        const val SEEK_SETTLE_TICKS = 8
     }
 }
