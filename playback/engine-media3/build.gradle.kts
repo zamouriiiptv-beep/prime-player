@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+
 plugins {
     id("castivio.android.library")
     id("com.google.devtools.ksp")
@@ -7,9 +9,23 @@ plugins {
 android {
     namespace = "com.castivio.playback.media3"
 
-    // Robolectric builds a real ExoPlayer in EngineProfileTest, and a real ExoPlayer
-    // resolves resources while it constructs its renderers.
-    testOptions.unitTests.isIncludeAndroidResources = true
+    testOptions {
+        // Robolectric builds a real ExoPlayer in EngineProfileTest, and a real ExoPlayer
+        // resolves resources while it constructs its renderers.
+        unitTests.isIncludeAndroidResources = true
+
+        // Full stacks, because the default form gave us three identical lines —
+        // "NullPointerException at EngineProfileTest.kt:53" — which name the construction
+        // site we already knew about and say nothing about what inside ExoPlayer was null.
+        // A failure that cannot be read is a failure that gets guessed at.
+        unitTests.all {
+            it.testLogging {
+                events("started", "passed", "failed", "skipped")
+                showStandardStreams = true
+                exceptionFormat = TestExceptionFormat.FULL
+            }
+        }
+    }
 }
 
 dependencies {
