@@ -1,6 +1,7 @@
 package com.castivio.playback.vlc
 
 import android.content.Context
+import android.content.res.AssetFileDescriptor
 import android.net.Uri
 import android.os.SystemClock
 import android.util.Log
@@ -19,6 +20,7 @@ import com.castivio.playback.api.Track
 import com.castivio.playback.api.TrackSet
 import com.castivio.playback.api.TrackType
 import com.castivio.playback.api.VideoOutput
+import java.io.FileNotFoundException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -73,6 +75,12 @@ class VlcPlaybackEngine(
     }
 
     private var currentMedia: Media? = null
+
+    /**
+     * Held open for as long as LibVLC is reading from it. Only ever set for `content://`
+     * sources — see [newMedia] — and closed with the media it belongs to.
+     */
+    private var currentDescriptor: AssetFileDescriptor? = null
 
     @Volatile
     var aspect: AspectMode = AspectMode.FIT
@@ -202,7 +210,8 @@ class VlcPlaybackEngine(
         _tracks.value = TrackSet()
         _state.value = PlaybackState.Opening
 
-        val vlcMedia = Media(libVLC, Uri.parse(media.url)).apply {
+        val previousDescriptor = currentDescriptor
+        val vlcMedia = newMedia(media.url).apply {
             addOption(":network-caching=${tuning.bufferForPlaybackMs}")
             if (media.kind == MediaKind.LIVE) {
                 addOption(":live-caching=${tuning.bufferForPlaybackMs}")
@@ -225,11 +234,52 @@ class VlcPlaybackEngine(
             }
         }
 
-        currentMedia?.release()
+        val previousMedia = currentMedia
         currentMedia = vlcMedia
 
         mediaPlayer.media = vlcMedia
         mediaPlayer.play()
+
+        // After the swap, never before it: the old media is only safe to let go once the
+        // player is holding the new one, and its descriptor only once the media is gone.
+        previousMedia?.release()
+        runCatching { previousDescriptor?.close() }
+    }
+
+    /**
+     * A `Media` for this URL, opening a descriptor first when the URL is a `content://`.
+     *
+     * LibVLC resolves a URI through its own access modules — file, http, rtsp and the
+     * rest — and Android's content providers are not among them. Handed a `content://`
+     * URI it simply fails to open, which arrives here as event 266 and is reported as
+     * [PlaybackError.SOURCE] with nothing more specific to say. That is what happened to
+     * every local song and video the moment the backup engine was asked to play one, and
+     * the local library is precisely where those URLs come from.
+     *
+     * The fix is the one VLC itself uses: ask the resolver for the file and hand LibVLC
+     * the descriptor. `AssetFileDescriptor` rather than a bare `FileDescriptor` because it
+     * carries the offset and length, which a provider serving a file out of a larger
+     * container needs. The descriptor is held for the life of the media and closed with
+     * it — LibVLC reads from it for the whole of playback, so closing early would end the
+     * track partway through.
+     */
+    private fun newMedia(url: String): Media {
+        val uri = Uri.parse(url)
+        if (!requiresDescriptor(url)) return Media(libVLC, uri)
+
+        val descriptor = appContext.contentResolver.openAssetFileDescriptor(uri, "r")
+            ?: throw FileNotFoundException("the provider returned no descriptor for $uri")
+
+        // The caller holds the previous one and closes it after the swap, so this only
+        // ever overwrites — closing here would pull the descriptor out from under a media
+        // that is still attached to the player.
+        currentDescriptor = descriptor
+        return Media(libVLC, descriptor)
+    }
+
+    private fun closeDescriptor() {
+        runCatching { currentDescriptor?.close() }
+        currentDescriptor = null
     }
 
     override fun play() {
@@ -249,6 +299,7 @@ class VlcPlaybackEngine(
             mediaPlayer.stop()
             currentMedia?.release()
             currentMedia = null
+            closeDescriptor()
             _firstFrameAtMs.value = null
             _state.value = PlaybackState.Idle
         }
@@ -394,6 +445,8 @@ class VlcPlaybackEngine(
             currentMedia = null
         }
 
+        closeDescriptor()
+
         runCatching {
             mediaPlayer.release()
         }
@@ -407,7 +460,7 @@ class VlcPlaybackEngine(
 
     private fun classifyOpenError(error: Throwable): PlaybackError = when (error) {
         is SecurityException -> PlaybackError.PERMISSION
-        is java.io.FileNotFoundException -> PlaybackError.NOT_FOUND
+        is FileNotFoundException -> PlaybackError.NOT_FOUND
         is java.net.SocketTimeoutException -> PlaybackError.TIMEOUT
         is java.net.UnknownHostException,
         is java.net.ConnectException,
@@ -420,7 +473,25 @@ class VlcPlaybackEngine(
         return url.substringBefore('?').substringBefore('#').take(120)
     }
 
-    private companion object {
+    internal companion object {
         const val TAG = "VlcPlaybackEngine"
+
+        /** Android's own provider scheme, which LibVLC has no access module for. */
+        const val SCHEME_CONTENT = "content"
+
+        /**
+         * Whether LibVLC has to be handed a descriptor rather than this URL.
+         *
+         * A plain string test and not `Uri.parse`, so the rule can be asserted by an
+         * ordinary JVM test with no Android and no native library — which is the only kind
+         * of test this engine can have, since everything else about it needs a device.
+         *
+         * The rule itself is narrow: `content://` is Android's provider scheme and LibVLC
+         * has no access module for it. Everything else — `file`, `http`, `https`, `rtsp`,
+         * `udp` — it opens natively, and routing those through a descriptor would lose the
+         * streaming behaviour that is the reason to use it.
+         */
+        internal fun requiresDescriptor(url: String): Boolean =
+            url.startsWith("$SCHEME_CONTENT://", ignoreCase = true)
     }
 }

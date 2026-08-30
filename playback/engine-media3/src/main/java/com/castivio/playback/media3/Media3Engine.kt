@@ -113,6 +113,14 @@ class Media3Engine(
     private var audioFormat: Format? = null
 
     /**
+     * Whether this source has a picture at all. Null until the container has said.
+     *
+     * It exists because "the first frame" is a video idea and a music file does not have
+     * one. See [markOpened].
+     */
+    private var hasVideoTrack: Boolean? = null
+
+    /**
      * Built eagerly with the engine, because the first thing that happens to an engine is
      * that something opens a URL on it. Deferring construction would move the renderer and
      * decoder setup — tens of milliseconds of it — from where nobody is waiting to the
@@ -239,6 +247,7 @@ class Media3Engine(
         _tracks.value = TrackSet()
         videoFormat = null
         audioFormat = null
+        hasVideoTrack = null
         _state.value = PlaybackState.Opening
 
         val item = MediaItem.Builder()
@@ -275,6 +284,7 @@ class Media3Engine(
         player.clearMediaItems()
         _state.value = PlaybackState.Idle
         _firstFrameAtMs.value = null
+        hasVideoTrack = null
     }
 
     override fun seekTo(positionMs: Long) {
@@ -359,12 +369,7 @@ class Media3Engine(
          * The moment that matters. Everything the loading state is waiting for happens
          * here, and it is the platform telling us rather than us inferring it.
          */
-        override fun onRenderedFirstFrame() {
-            if (_firstFrameAtMs.value == null) {
-                _firstFrameAtMs.value = SystemClock.elapsedRealtime()
-            }
-            pushPlaying()
-        }
+        override fun onRenderedFirstFrame() = markOpened()
 
         override fun onPlaybackStateChanged(playbackState: Int) {
             when (playbackState) {
@@ -382,7 +387,13 @@ class Media3Engine(
                         )
                     }
 
-                Player.STATE_READY -> if (_firstFrameAtMs.value != null) pushPlaying()
+                // Audio-only has no first frame to wait for, so ready *is* opened. For
+                // video this stays exactly as it was: ready without a frame is still a
+                // black screen, and the overlay stays up until the picture arrives.
+                Player.STATE_READY -> when {
+                    _firstFrameAtMs.value != null -> pushPlaying()
+                    isAudioOnly() -> markOpened()
+                }
 
                 Player.STATE_ENDED -> _state.value = PlaybackState.Ended
                 Player.STATE_IDLE -> Unit
@@ -440,6 +451,14 @@ class Media3Engine(
                 }
             }
             _tracks.value = TrackSet(audio = audio, subtitle = subtitle, video = video)
+
+            // Now we know whether there is a picture to wait for. The two callbacks can
+            // arrive in either order, so the audio-only case is completed from whichever
+            // of them lands second: `STATE_READY` checks this flag, and this checks the
+            // state. Without the second half, a container that declares its tracks after
+            // becoming ready would sit on the loading overlay until the budget expired.
+            hasVideoTrack = video.isNotEmpty()
+            if (isAudioOnly() && player.playbackState == Player.STATE_READY) markOpened()
         }
 
         override fun onVideoSizeChanged(videoSize: VideoSize) {
@@ -520,6 +539,34 @@ class Media3Engine(
     init {
         player.addListener(listener)
     }
+
+    /**
+     * The source is open and playing — the moment the whole opening budget is measured to.
+     *
+     * For video that is [Player.Listener.onRenderedFirstFrame], and nothing else will do:
+     * a decoder can be ready while the surface is still black, and the black is what the
+     * user is looking at.
+     *
+     * **A music file never fires it.** There is no video renderer, so there is no first
+     * frame, so this used to stay null forever — the loading overlay never lifted, the
+     * three-second budget always expired, and *every* audio file was handed to the backup
+     * engine as a timeout. Nothing was wrong with the file or the decoder; the player was
+     * waiting for a picture that a sound file is never going to produce.
+     *
+     * So for audio-only sources the equivalent moment is `STATE_READY`: the container is
+     * parsed, the decoder is fed and the audio is about to be heard. That is the same
+     * promise the first frame makes for video — "it has started" — and it is only ever
+     * used where there is genuinely no picture to wait for.
+     */
+    private fun markOpened() {
+        if (_firstFrameAtMs.value == null) {
+            _firstFrameAtMs.value = SystemClock.elapsedRealtime()
+        }
+        pushPlaying()
+    }
+
+    /** True once the container has declared its tracks and none of them is a picture. */
+    private fun isAudioOnly(): Boolean = hasVideoTrack == false
 
     private fun pushPlaying() {
         _state.value = PlaybackState.Playing(
