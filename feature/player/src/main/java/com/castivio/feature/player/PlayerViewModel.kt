@@ -204,7 +204,13 @@ class PlayerViewModel @Inject constructor(
 
         _state.value = settled.copy(
             picture = picture,
-            diagnosis = engine?.diagnosis?.value ?: timeoutDiagnosis(picture),
+            // Falls back to what is already on the state, because a healthy engine has no
+            // diagnosis and must not erase the one belonging to the failure that put us
+            // here. After a fallback the backup opens cleanly, and reading its empty
+            // report over the primary's would throw away the only evidence that will ever
+            // exist for that failure. What clears this is a new `open`, which builds a
+            // fresh state — a report always describes the attempt in front of you.
+            diagnosis = engine?.diagnosis?.value ?: timeoutDiagnosis(picture) ?: settled.diagnosis,
             audioTracks = engine?.tracks?.value?.audio.orEmpty(),
             subtitleTracks = engine?.tracks?.value?.subtitle.orEmpty(),
             videoTracks = engine?.tracks?.value?.video.orEmpty(),
@@ -236,16 +242,35 @@ class PlayerViewModel @Inject constructor(
     private fun fallOver(reason: PlaybackError) {
         val current = _state.value ?: return
         if (backupTried || engineId == EngineId.BACKUP) {
+            val card = Picture.Failed(reason, canTryBackup = false)
             _state.value = current.copy(
-                picture = Picture.Failed(reason, canTryBackup = false),
+                picture = card,
                 switching = false,
-                diagnosis = engine?.diagnosis?.value ?: current.diagnosis,
+                // `timeoutDiagnosis` belongs here as much as it does on the engine-state
+                // path, and leaving it out left the one failure with no evidence at all.
+                // A budget that expired has nothing to read out of the engine — that is
+                // what makes it its own reason — so when both engines have gone silent the
+                // card said TIMEOUT and the report underneath it was empty. The report is
+                // the whole point: it has to say that nothing was reported and no frame
+                // arrived, and after how long.
+                diagnosis = engine?.diagnosis?.value ?: timeoutDiagnosis(card) ?: current.diagnosis,
             )
             return
         }
         backupTried = true
+        // Read the report **before** releasing the engine that holds it. `stopEngine`
+        // destroys that object, and the card is drawn later — so fetching at draw time
+        // would be asking something that no longer exists. This copy is the entire reason
+        // the diagnosis lives on the state instead of being pulled from the engine, and
+        // without it the one failure worth explaining switched engines and left nothing
+        // behind to explain it.
+        val report = engine?.diagnosis?.value ?: current.diagnosis
         stopEngine()
-        _state.value = current.copy(switching = true, picture = Picture.Opening)
+        _state.value = current.copy(
+            switching = true,
+            picture = Picture.Opening,
+            diagnosis = report,
+        )
         start(current.request, EngineId.BACKUP)
     }
 
