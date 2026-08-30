@@ -129,4 +129,32 @@ class EngineProfileTest {
             backup is Media3Engine,
         )
     }
+
+    /**
+     * The statistics panel reports the picture, not the file's idea of it.
+     *
+     * A phone records portrait by writing a landscape frame plus a rotation in the
+     * container. The format keeps the coded size and `onVideoSizeChanged` reports the size
+     * with the rotation applied, so a video the panel described as 720×1280 was drawn
+     * 1280×720 on every device that played it. The panel is read by someone looking at the
+     * picture, so the displayed size wins and the format is the fallback.
+     */
+    @Test
+    fun `the reported resolution is the one on screen`() {
+        assertEquals(
+            "the coded size was preferred over the size actually drawn",
+            1280,
+            Media3Engine.shownSize(displayed = 1280, coded = 720),
+        )
+        assertEquals(
+            "a container that reported no video size must still show its format's",
+            720,
+            Media3Engine.shownSize(displayed = null, coded = 720),
+        )
+        assertNull(
+            "a source with no picture must report no resolution rather than a zero",
+            Media3Engine.shownSize(displayed = 0, coded = 0),
+        )
+        assertNull(Media3Engine.shownSize(displayed = null, coded = null))
+    }
 }

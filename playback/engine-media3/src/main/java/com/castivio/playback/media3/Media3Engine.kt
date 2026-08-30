@@ -116,6 +116,18 @@ class Media3Engine(
     private var audioFormat: Format? = null
 
     /**
+     * The picture as the viewer sees it, which is not what the format says.
+     *
+     * A phone records portrait by writing a landscape frame plus a rotation in the
+     * container, so the coded size of the file on screen was 720×1280 while every pixel of
+     * it was drawn 1280×720. `onVideoSizeChanged` is the callback that has already applied
+     * that rotation; the format has not. The statistics panel is read by someone looking at
+     * the picture, so it is given the size of the picture.
+     */
+    private var displayWidth: Int? = null
+    private var displayHeight: Int? = null
+
+    /**
      * Whether this source has a picture at all. Null until the container has said.
      *
      * It exists because "the first frame" is a video idea and a music file does not have
@@ -337,8 +349,8 @@ class Media3Engine(
         val audio = audioFormat
         val started = _firstFrameAtMs.value
         return PlaybackSample(
-            width = video?.width?.takeIf { it > 0 },
-            height = video?.height?.takeIf { it > 0 },
+            width = shownSize(displayWidth, video?.width),
+            height = shownSize(displayHeight, video?.height),
             frameRate = video?.frameRate?.takeIf { it > 0f },
             videoCodec = video?.sampleMimeType,
             audioCodec = audio?.sampleMimeType,
@@ -477,8 +489,13 @@ class Media3Engine(
                 null
             }
 
-            // Kept so the statistics panel can report a resolution even for a container
-            // that declared none in its format.
+            if (videoSize.width > 0 && videoSize.height > 0) {
+                displayWidth = videoSize.width
+                displayHeight = videoSize.height
+            }
+
+            // Kept so a container that declared no format at all still has one to read a
+            // codec name from.
             val current = videoFormat
             if (current == null && videoSize.width > 0) {
                 videoFormat = Format.Builder()
@@ -771,6 +788,19 @@ class Media3Engine(
     // even from the same module. Everything here stays inside :playback:engine-media3.
     internal companion object {
         const val TAG = "CastivioEngine"
+
+        /**
+         * Which of the two sizes a person is actually looking at.
+         *
+         * The displayed one whenever the decoder has reported it, because that is the one
+         * with the container's rotation applied: a phone records portrait by writing a
+         * landscape frame plus a rotation, so a file whose format says 720×1280 is drawn
+         * 1280×720 and the panel said the wrong pair of numbers. The format is the fallback
+         * and not the other way round, which is the whole rule and the reason it is a named
+         * function rather than an `?:` buried in a builder.
+         */
+        internal fun shownSize(displayed: Int?, coded: Int?): Int? =
+            displayed?.takeIf { it > 0 } ?: coded?.takeIf { it > 0 }
 
         /** Enough of a URL to identify the stream, not enough to put a token in a log. */
         const val URL_IN_LOG = 120
