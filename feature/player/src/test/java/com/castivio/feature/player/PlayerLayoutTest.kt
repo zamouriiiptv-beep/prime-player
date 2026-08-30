@@ -360,6 +360,131 @@ class PlayerLayoutTest {
         )
     }
 
+    /* ------------------------------------------------------------------ the scrubber */
+
+    /**
+     * The bar can be dragged, and it seeks to where the finger was let go.
+     *
+     * The bar was a read-out: it showed where the film was and offered no way to move it,
+     * so the only way to reach a different part of an hour-long file was to press a
+     * ten-second control six times a minute. This is the control that replaces that, and
+     * the claim is the one that matters — the position asked for is the position under the
+     * finger, not where the drag started.
+     */
+    @Test
+    fun `dragging the bar seeks to where the finger was let go`() {
+        var sought: Long? = null
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingFilm(),
+            LayoutDirection.Ltr,
+            PlayerActions(onSeekTo = { sought = it }),
+        )
+
+        compose.onNodeWithTag(PlayerTags.TIMELINE).performTouchInput {
+            down(Offset(width * 0.2f, height / 2f))
+            moveTo(Offset(width * 0.75f, height / 2f))
+            up()
+        }
+
+        assertEquals(
+            "the seek followed the start of the drag rather than its end",
+            FILM_LENGTH * 0.75f,
+            sought?.toFloat() ?: -1f,
+            FILM_LENGTH * 0.03f,
+        )
+    }
+
+    /**
+     * And in Arabic the bar fills from the right, so the same touch means the opposite time.
+     *
+     * The half of a mirrored slider that is silently wrong far more often than it is right:
+     * a drag toward the right-hand edge in Arabic is a drag toward the *beginning* of the
+     * film. Read left-to-right it would seek to the far end, which reads as a broken control
+     * rather than a mirrored one.
+     */
+    @Test
+    fun `dragging the bar in Arabic seeks from the right-hand edge`() {
+        var sought: Long? = null
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingFilm(),
+            LayoutDirection.Rtl,
+            PlayerActions(onSeekTo = { sought = it }),
+        )
+
+        compose.onNodeWithTag(PlayerTags.TIMELINE).performTouchInput {
+            down(Offset(width * 0.75f, height / 2f))
+            up()
+        }
+
+        assertEquals(
+            "a quarter in from the right-hand edge is a quarter into the film, not three",
+            FILM_LENGTH * 0.25f,
+            sought?.toFloat() ?: -1f,
+            FILM_LENGTH * 0.03f,
+        )
+    }
+
+    /** A press without a drag is a seek too: a tap on the bar puts the head where you tapped. */
+    @Test
+    fun `a tap on the bar seeks to that point`() {
+        var sought: Long? = null
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingFilm(),
+            LayoutDirection.Ltr,
+            PlayerActions(onSeekTo = { sought = it }),
+        )
+
+        compose.onNodeWithTag(PlayerTags.TIMELINE).performTouchInput {
+            down(Offset(width * 0.5f, height / 2f))
+            up()
+        }
+
+        assertEquals(FILM_LENGTH * 0.5f, sought?.toFloat() ?: -1f, FILM_LENGTH * 0.03f)
+    }
+
+    /**
+     * The head is on a film and not on a live channel.
+     *
+     * Live has no future to scrub into. A head sitting at the end of a full bar would invite
+     * a drag that can only ever fail, and a control that cannot work is worse than no
+     * control — it is the same reasoning that keeps the backup-engine button off the DRM
+     * card.
+     */
+    @Test
+    fun `a film has a head on the bar and a live channel does not`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingFilm())
+        compose.onAllNodesWithTag(PlayerTags.THUMB).assertCountEquals(1)
+    }
+
+    @Test
+    fun `a live channel has no head to drag`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingLive())
+        compose.onAllNodesWithTag(PlayerTags.THUMB).assertCountEquals(0)
+    }
+
+    /**
+     * The bar is reachable by a thumb even though the line is four device pixels.
+     *
+     * The visible bar and the region that answers a touch are deliberately different sizes.
+     * A 4dp target is a twelfth of the touch floor and would be missed more often than hit,
+     * which is exactly how a slider that "does not work" is built by accident.
+     */
+    @Test
+    fun `the bar is at least the touch floor to press`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingFilm())
+        val bar = compose.bounds(PlayerTags.TIMELINE)
+        assertTrue(
+            "the bar answers touches in a ${bar.height} strip, under the $PHONE_FLOOR floor",
+            bar.height >= PHONE_FLOOR - TOLERANCE,
+        )
+    }
+
     /**
      * A tap on the film closes an open sheet, and closes nothing else.
      *
@@ -732,6 +857,19 @@ class PlayerLayoutTest {
         assertTrue("controls under the $floor floor: $small", small.isEmpty())
     }
 
+    /** A film of a known length, which is what makes the bar something to drag. */
+    private fun playingFilm() = PlayerState(
+        request = PlayerRequest(
+            url = "content://media/external/video/media/7",
+            title = "الطريق إلى شفشاون",
+            kind = MediaKind.VOD,
+        ),
+        picture = Picture.Playing,
+        positionMs = 0,
+        durationMs = FILM_LENGTH.toLong(),
+        seekable = true,
+    )
+
     /** A live channel, playing, with the guide not yet in. The commonest state there is. */
     private fun playingLive() = PlayerState(
         request = PlayerRequest(
@@ -759,6 +897,9 @@ class PlayerLayoutTest {
     private val TV_FLOOR = 56.dp
 
     private val FOUR_MINUTES = 4 * 60 * 1000L + 12_000L
+
+    /** Ninety minutes, as a `Float` because every scrubber assertion is a fraction of it. */
+    private val FILM_LENGTH = 90f * 60f * 1000f
 
     /**
      * A tenth of the way across the picture.

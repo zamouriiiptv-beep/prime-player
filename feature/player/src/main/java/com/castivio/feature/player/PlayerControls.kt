@@ -3,8 +3,11 @@ package com.castivio.feature.player
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -12,6 +15,7 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,12 +25,18 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -173,14 +183,19 @@ private fun Pill(text: String, fill: Color, ink: Color, tag: String? = null) {
 }
 
 /**
- * The centre: step, jump ten, play, jump ten, step.
+ * The centre: step back, play, step on.
  *
- * The ten-second jumps stay on live as well as on a film, and that is deliberate — a live
- * stream that is behind is exactly where a viewer wants them, and removing them on live
- * would mean the control moved depending on what you were watching.
+ * ## Why the ten-second jumps are no longer here
+ *
+ * They were, either side of the play control, and they were asked to move to the bottom row
+ * — where the timeline and every other control already live. Over the picture the middle of
+ * the screen is the worst place for something pressed repeatedly: the thumb covers the part
+ * of the film the viewer is looking at while trying to find the moment they want. The bar
+ * and the controls that move along it now sit together, out of the way of the frame.
  *
  * The play control is [Sizing.minTarget] plus a margin rather than the same size as its
- * neighbours: it is the one control a thumb finds without looking.
+ * neighbours: it is the one control a thumb finds without looking, and it is the one thing
+ * that has earned the middle of the picture.
  */
 @Composable
 internal fun CentreCluster(state: PlayerState, actions: PlayerActions) {
@@ -198,19 +213,7 @@ internal fun CentreCluster(state: PlayerState, actions: PlayerActions) {
             onClick = actions.onPrevious,
             mirror = true,
         )
-        PlayerButton(
-            icon = CastivioIcons.Replay10,
-            label = stringResource(R.string.player_replay_10),
-            tag = PlayerTags.REPLAY,
-            onClick = { actions.onSeekBy(-JUMP_MS) },
-        )
         PlayControl(state, actions)
-        PlayerButton(
-            icon = CastivioIcons.Forward10,
-            label = stringResource(R.string.player_forward_10),
-            tag = PlayerTags.FORWARD,
-            onClick = { actions.onSeekBy(JUMP_MS) },
-        )
         PlayerButton(
             icon = CastivioIcons.Next,
             label = stringResource(R.string.player_next),
@@ -381,18 +384,53 @@ private fun SkeletonText(
 }
 
 /**
- * Position, bar, duration.
+ * Position, bar, duration — and the bar is a control, not a picture.
  *
- * Live has no future to scrub into, so the bar is full and the head sits at the end — and
- * the left figure says "live now" or how far behind the edge you are rather than a
- * timestamp, because a timestamp on a live stream is a number about the provider's window
- * and not about the viewer.
+ * ## Why there is a head on it now
+ *
+ * The bar was a 4dp read-out: it showed where the film was and there was no way to move it.
+ * The only way to reach a different part of a film was the two jump controls, so a viewer
+ * who wanted the last ten minutes of an hour pressed a button sixty times — or, when those
+ * controls did not answer, had no way at all. A head that can be dragged is the way every
+ * player on the device does this, and it is what was asked for.
+ *
+ * The touch area is [Sizing.minTarget] tall while the bar stays 4dp. A 4dp target is a
+ * quarter of the floor and would be missed more often than hit; the bar people see and the
+ * region they touch are deliberately different sizes, which is the ordinary way to build a
+ * slider and the reason the floor gate keeps passing.
+ *
+ * ## Seeking happens when the finger lifts
+ *
+ * Not continuously while dragging. The head follows the finger — [dragged] is what the row
+ * displays while a drag is in flight, so it never lags — but the engine is asked once. A
+ * seek per frame is a decode from a new position per frame, which on a stream over a
+ * mobile connection is a request per frame; the picture would never settle long enough to
+ * show you where you are, which is the whole purpose of dragging it.
+ *
+ * ## Live has no future to scrub into
+ *
+ * So the bar is full, the head is absent and the figure says "live now" or how far behind
+ * the edge you are, rather than a timestamp — a timestamp on a live stream is a number
+ * about the provider's window and not about the viewer.
  */
 @Composable
 private fun Timeline(state: PlayerState, actions: PlayerActions) {
     val colors = CastivioTheme.colors
     val live = state.request.isLive
     val duration = state.durationMs
+    val scrubbable = !live && duration != null && duration > 0
+
+    // Where the head is while a finger is on it, and null the rest of the time. Held here
+    // rather than pushed to the state holder because it is a gesture in progress and not a
+    // fact about playback: nothing outside this row has any business knowing about it.
+    var dragged by remember { mutableStateOf<Float?>(null) }
+    val direction = LocalLayoutDirection.current
+    val touch = Sizing.minTarget(CastivioTheme.device.isTv)
+
+    val position = when {
+        dragged != null && duration != null -> (dragged!! * duration).toLong()
+        else -> state.positionMs
+    }
 
     Row(
         Modifier.fillMaxWidth(),
@@ -404,7 +442,7 @@ private fun Timeline(state: PlayerState, actions: PlayerActions) {
                 live && state.isTimeshifted ->
                     stringResource(R.string.player_behind_live, clock(state.behindLiveMs))
                 live -> stringResource(R.string.player_live_now)
-                else -> clock(state.positionMs)
+                else -> clock(position)
             },
             style = CastivioType.labelMedium,
             color = colors.onBackground,
@@ -412,39 +450,96 @@ private fun Timeline(state: PlayerState, actions: PlayerActions) {
             modifier = Modifier.testTag(PlayerTags.POSITION),
         )
 
-        Box(
+        val played = when {
+            live -> 1f
+            dragged != null -> dragged!!
+            duration != null && duration > 0 ->
+                (state.positionMs.toFloat() / duration).coerceIn(0f, 1f)
+            else -> 0f
+        }
+        val buffered = when {
+            duration != null && duration > 0 ->
+                ((state.positionMs + state.bufferedMs).toFloat() / duration).coerceIn(0f, 1f)
+            else -> played
+        }
+
+        BoxWithConstraints(
             Modifier
                 .weight(1f)
-                .height(TRACK_HEIGHT)
-                .clip(RoundedCornerShape(Radius.pill))
-                .background(colors.glassFillStrong)
-                .testTag(PlayerTags.TIMELINE),
+                .height(touch)
+                .testTag(PlayerTags.TIMELINE)
+                .then(
+                    if (!scrubbable) {
+                        Modifier
+                    } else {
+                        // One gesture handler for the press and the drag together, because
+                        // to a viewer they are one thing: a tap anywhere on the bar puts the
+                        // head there, and keeping the finger down carries it. Two detectors
+                        // would race for the same pointer and the tap would be the one to
+                        // lose.
+                        Modifier.pointerInput(duration, direction) {
+                            awaitEachGesture {
+                                val down = awaitFirstDown()
+                                val width = size.width.toFloat()
+                                dragged = fractionAt(down.position.x, width, direction)
+                                down.consume()
+
+                                var pointer = down
+                                while (pointer.pressed) {
+                                    val event = awaitPointerEvent()
+                                    pointer = event.changes.firstOrNull { it.id == down.id }
+                                        ?: break
+                                    dragged = fractionAt(pointer.position.x, width, direction)
+                                    if (pointer.positionChanged()) pointer.consume()
+                                }
+
+                                val target = dragged
+                                dragged = null
+                                if (target != null) {
+                                    actions.onSeekTo((target * duration!!).toLong())
+                                }
+                            }
+                        }
+                    },
+                ),
+            contentAlignment = Alignment.CenterStart,
         ) {
-            val played = when {
-                live -> 1f
-                duration != null && duration > 0 ->
-                    (state.positionMs.toFloat() / duration).coerceIn(0f, 1f)
-                else -> 0f
-            }
-            val buffered = when {
-                duration != null && duration > 0 ->
-                    ((state.positionMs + state.bufferedMs).toFloat() / duration).coerceIn(0f, 1f)
-                else -> played
-            }
             Box(
                 Modifier
-                    .fillMaxWidth(buffered)
-                    .fillMaxHeight()
+                    .fillMaxWidth()
+                    .height(TRACK_HEIGHT)
                     .clip(RoundedCornerShape(Radius.pill))
-                    .background(colors.glassBorder),
-            )
-            Box(
-                Modifier
-                    .fillMaxWidth(played)
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(Radius.pill))
-                    .background(colors.primaryBrush),
-            )
+                    .background(colors.glassFillStrong),
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxWidth(buffered)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(Radius.pill))
+                        .background(colors.glassBorder),
+                )
+                Box(
+                    Modifier
+                        .fillMaxWidth(played)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(Radius.pill))
+                        .background(colors.primaryBrush),
+                )
+            }
+
+            if (scrubbable) {
+                // `offset` and not `absoluteOffset`: the head travels from the start edge,
+                // which is the right-hand side in Arabic. The invariant script rejects the
+                // direction-absolute one, and this is exactly the reason it does.
+                Box(
+                    Modifier
+                        .offset(x = (maxWidth - THUMB) * played)
+                        .size(THUMB)
+                        .clip(CircleShape)
+                        .background(colors.primaryBrush)
+                        .testTag(PlayerTags.THUMB),
+                )
+            }
         }
 
         if (!live) {
@@ -457,6 +552,20 @@ private fun Timeline(state: PlayerState, actions: PlayerActions) {
             )
         }
     }
+}
+
+/**
+ * Where along the bar a touch landed, as a fraction of the film.
+ *
+ * Mirrored in Arabic, and that is not a detail: the bar fills from the right, so a touch
+ * near the right-hand edge is the *beginning* of the film. Reading it left-to-right would
+ * make every drag seek to the opposite end, which looks like a broken control rather than
+ * a mirrored one.
+ */
+private fun fractionAt(x: Float, width: Float, direction: LayoutDirection): Float {
+    if (width <= 0f) return 0f
+    val fromStart = (x / width).coerceIn(0f, 1f)
+    return if (direction == LayoutDirection.Rtl) 1f - fromStart else fromStart
 }
 
 /**
@@ -480,6 +589,21 @@ private fun ToolsRow(state: PlayerState, actions: PlayerActions) {
         horizontalArrangement = Arrangement.spacedBy(barGap()),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // First in the row, at the start edge, because they are the two controls in it that
+        // are pressed while watching rather than while setting something up — and because
+        // they belong beside the bar they move, which is directly above them.
+        PlayerButton(
+            icon = CastivioIcons.Replay10,
+            label = stringResource(R.string.player_replay_10),
+            tag = PlayerTags.REPLAY,
+            onClick = { actions.onSeekBy(-JUMP_MS) },
+        )
+        PlayerButton(
+            icon = CastivioIcons.Forward10,
+            label = stringResource(R.string.player_forward_10),
+            tag = PlayerTags.FORWARD,
+            onClick = { actions.onSeekBy(JUMP_MS) },
+        )
         PlayerButton(
             icon = CastivioIcons.Speed,
             label = stringResource(R.string.player_speed),
@@ -629,6 +753,9 @@ internal val HAIRLINE = 1.dp
 private const val JUMP_MS = 10_000L
 
 private val TRACK_HEIGHT = 4.dp
+
+/** The head on the bar. Large enough to see against a bright frame, small enough not to hide it. */
+private val THUMB = 14.dp
 private val PROGRESS_WIDTH = 96.dp
 private val PROGRESS_HEIGHT = 3.dp
 private val SKELETON_TITLE = 148.dp

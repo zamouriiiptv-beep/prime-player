@@ -56,6 +56,7 @@ internal object PlayerTags {
     const val FORWARD = "player.forward"
 
     const val TIMELINE = "player.timeline"
+    const val THUMB = "player.timeline.thumb"
     const val POSITION = "player.position"
     const val DURATION = "player.duration"
 
