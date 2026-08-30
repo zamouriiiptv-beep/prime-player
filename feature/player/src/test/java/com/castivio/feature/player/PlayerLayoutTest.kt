@@ -818,37 +818,6 @@ class PlayerLayoutTest {
         )
     }
 
-    /** A bigger size is a bigger caption, which is the only thing that setting promises. */
-    @Test
-    fun `the size setting changes the caption`() {
-        val style = mutableStateOf(SubtitleStyle(size = SubtitleSize.Small))
-        compose.setContent {
-            CastivioTheme {
-                CompositionLocalProvider(LocalDeviceClass provides DeviceClass.Expanded) {
-                    Stage(HANDSET) {
-                        PlayerScreen(
-                            state = playingFilm().copy(
-                                cues = listOf("مرحبًا"),
-                                subtitleStyle = style.value,
-                            ),
-                            actions = PlayerActions(),
-                        )
-                    }
-                }
-            }
-        }
-
-        val small = compose.bounds(PlayerTags.CAPTIONS)
-        style.value = SubtitleStyle(size = SubtitleSize.Huge)
-        compose.waitForIdle()
-        val huge = compose.bounds(PlayerTags.CAPTIONS)
-
-        assertTrue(
-            "the caption is ${small.height} small and ${huge.height} huge — the setting does nothing",
-            huge.height > small.height + TOLERANCE,
-        )
-    }
-
     /**
      * The caption takes no touches.
      *

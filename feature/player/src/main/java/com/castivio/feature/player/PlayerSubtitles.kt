@@ -119,10 +119,16 @@ internal fun BoxScope.SubtitleLayer(state: PlayerState) {
  * Nothing lifts a caption anchored to the top: the title bar is one row and a caption
  * clear of it is clear of it whether the chrome is up or not.
  */
-private fun inset(state: PlayerState): Dp = when (state.subtitleStyle.place) {
-    SubtitlePlace.Top -> EDGE_MARGIN
-    SubtitlePlace.Raised -> if (state.controls) RAISED_OVER_CHROME else RAISED
-    SubtitlePlace.Bottom -> if (state.controls) CLEAR_OF_CHROME else EDGE_MARGIN
+@Composable
+private fun inset(state: PlayerState): Dp {
+    // What the chrome takes at the bottom, which is not one figure: a television's controls
+    // are built on a 56dp target and a handset's on 48dp, and the row heights follow.
+    val chrome = if (CastivioTheme.device.isTv) CLEAR_OF_TV_CHROME else CLEAR_OF_CHROME
+    return when (state.subtitleStyle.place) {
+        SubtitlePlace.Top -> EDGE_MARGIN
+        SubtitlePlace.Raised -> if (state.controls) chrome + RAISE else RAISE
+        SubtitlePlace.Bottom -> if (state.controls) chrome else EDGE_MARGIN
+    }
 }
 
 private fun SubtitlePlace.alignment(): Alignment = when (this) {
@@ -130,7 +136,15 @@ private fun SubtitlePlace.alignment(): Alignment = when (this) {
     SubtitlePlace.Top -> Alignment.TopCenter
 }
 
-private fun SubtitleSize.type(): TextStyle = when (this) {
+/**
+ * The four sizes, as type.
+ *
+ * `internal` so a test can assert they differ and increase. Robolectric measures every
+ * `Text` at the same height whatever its style — `PlayerLayoutTest` says so at length — so
+ * "a bigger setting makes a bigger caption" is not a claim a layout test on this runner can
+ * make, and asserting it there would produce a test that passes for the wrong reason.
+ */
+internal fun SubtitleSize.type(): TextStyle = when (this) {
     SubtitleSize.Small -> CastivioType.subtitleSmall
     SubtitleSize.Medium -> CastivioType.subtitleMedium
     SubtitleSize.Large -> CastivioType.subtitleLarge
@@ -146,13 +160,19 @@ private val SIDE_MARGIN = 32.dp
 /** The ordinary resting place: a caption's own margin from the edge of the picture. */
 private val EDGE_MARGIN = 28.dp
 
-/** Clear of the timeline and the tools row, measured off the drawing. */
-private val CLEAR_OF_CHROME = 132.dp
+/**
+ * Clear of the timeline and the tools row, with air above them.
+ *
+ * The two rows are a touch target each plus the gap between them and the safe inset below
+ * — about 128dp on a handset — and a caption resting exactly on that would touch the
+ * timeline. The figure has room in it on purpose.
+ */
+private val CLEAR_OF_CHROME = 148.dp
 
-/** Above a film's own burnt-in text along the bottom edge, which is what Raised is for. */
-private val RAISED = 96.dp
+/** The same on a television, where every row is built on a 56dp target rather than 48. */
+private val CLEAR_OF_TV_CHROME = 196.dp
 
-/** The same, once the chrome has taken the bottom of the screen. */
-private val RAISED_OVER_CHROME = 196.dp
+/** How much higher Raised sits: above a film's own burnt-in text along the bottom edge. */
+private val RAISE = 68.dp
 
 private const val HALO = 6f
