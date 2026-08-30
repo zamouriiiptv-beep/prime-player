@@ -184,7 +184,9 @@ class Media3Engine(
             .setMediaSourceFactory(sources)
             .setTrackSelector(DefaultTrackSelector(appContext))
             .build()
-            .also { it.addListener(listener) }
+        // The listener is attached in the `init` block at the bottom of this class, not
+        // here. See the comment there — attaching it here is what stopped this engine from
+        // ever being constructible.
     }
 
     override fun setVideoOutput(output: VideoOutput?) {
@@ -493,6 +495,30 @@ class Media3Engine(
             Log.w(TAG, "${profile.id} failed: ${error.errorCodeName} -> $reason\n${report.render()}", error)
             _state.value = PlaybackState.Failed(reason, error)
         }
+    }
+
+    /**
+     * The listener is attached here, below its own declaration, and that is not tidiness —
+     * it is the fix for a crash that made this engine impossible to construct.
+     *
+     * Kotlin initialises properties in declaration order. `player` is declared near the
+     * top and runs `buildPlayer()` during construction, while `listener` is declared
+     * immediately above this block and is therefore still null at that moment.
+     * `buildPlayer()` used to end with `addListener(listener)`, which handed ExoPlayer a
+     * null and died inside `Assertions.checkNotNull`. **Every** `Media3Engine(...)` threw.
+     *
+     * It did not present as a crash, because `PlayerViewModel.start` builds the engine
+     * inside `runCatching` and turns a failure into an error card. So every source failed
+     * on both engines with one unexplained reason — which is the symptom the whole codec
+     * investigation began from, and the file's format was never involved at all.
+     *
+     * An `init` block here cannot have that problem: everything above it is initialised by
+     * the time it runs. Nothing is missed in the gap, because a player with no media
+     * loaded emits nothing. `EngineProfileTest` constructs both profiles and the factory's
+     * two engines, so a return to the old order fails there rather than on a device.
+     */
+    init {
+        player.addListener(listener)
     }
 
     private fun pushPlaying() {
