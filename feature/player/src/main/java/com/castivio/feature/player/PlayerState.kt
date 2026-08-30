@@ -50,6 +50,17 @@ data class PlayerState(
      * frame has a shape. Null therefore means "do not letterbox yet" rather than "square".
      */
     val videoAspectRatio: Float? = null,
+    /**
+     * The caption lines on screen right now, and empty when there are none.
+     *
+     * Carried on the state rather than read from the engine by the layer that draws them,
+     * for the reason every other engine reading is: the engine is released the moment a
+     * fallback switches, and a composable that asked it at draw time would be asking
+     * something that no longer exists.
+     */
+    val cues: List<String> = emptyList(),
+    /** Size, colour, backdrop and place. The viewer's, and remembered between films. */
+    val subtitleStyle: SubtitleStyle = SubtitleStyle(),
     val sheet: Sheet? = null,
     /**
      * Only ever true because the user asked. Nothing samples the engine until it is.
@@ -195,7 +206,7 @@ sealed interface Picture {
 }
 
 /** The panels that slide in from the end edge. The statistics panel is not one of them. */
-enum class Sheet { Subtitles, Audio, Settings, Quality }
+enum class Sheet { Subtitles, Audio, Settings, Quality, SubtitleLook }
 
 /**
  * What is on now, and what is next.

@@ -169,6 +169,34 @@ object CastivioType {
         fontSize = 11.sp, lineHeight = 18.sp, letterSpacing = 1.2.sp,
     )
 
+    // -- Subtitles ----------------------------------------------------------
+    //
+    // Four sizes rather than a slider, because a viewer choosing subtitle size is
+    // answering "can I read that from here", and a number they have to nudge is a worse
+    // way to answer it than four steps they can try in a second. The line heights are
+    // generous: a caption is read at a glance, in a hurry, over a moving picture.
+    //
+    // Semi-bold at every size and not by taste. A caption sits on whatever the film
+    // happens to be showing, so the letter that lands on a bright frame has to hold its
+    // shape without the backdrop's help — the backdrop is the viewer's choice and may be
+    // switched off.
+    val subtitleSmall = TextStyle(
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 14.sp, lineHeight = 20.sp,
+    )
+    val subtitleMedium = TextStyle(
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 18.sp, lineHeight = 26.sp,
+    )
+    val subtitleLarge = TextStyle(
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 23.sp, lineHeight = 32.sp,
+    )
+    val subtitleHuge = TextStyle(
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 29.sp, lineHeight = 40.sp,
+    )
+
     // -- Code: MAC addresses, activation keys, IDs --------------------------
     val codeHero = TextStyle(
         fontFamily = Mono, fontWeight = FontWeight.Bold,

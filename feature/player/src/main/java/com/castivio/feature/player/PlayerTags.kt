@@ -60,6 +60,9 @@ internal object PlayerTags {
     const val POSITION = "player.position"
     const val DURATION = "player.duration"
 
+    /** The caption layer. Named for what it draws, not for the button that lists tracks. */
+    const val CAPTIONS = "player.captions"
+
     /**
      * The tools row and the controls in it that a gate names individually.
      *

@@ -203,6 +203,38 @@ class CastivioColors(
 
     /** The same surface at the weight a transient chip takes. */
     val overVideoSoft: Color get() = Palette.Void.copy(alpha = 0.72f)
+
+    /* ------------------------------------------------------------- subtitles */
+
+    /**
+     * The two inks a caption may be written in, and why there are only two.
+     *
+     * White is what broadcast and cinema use, and it is right over almost everything.
+     * Amber is the one alternative that earns its place: it separates from white
+     * clothing, snow, paper and the blown-out skies that defeat white, and it is the
+     * colour television captions have used for that reason since teletext. A palette of
+     * eight would be eight ways to make a caption harder to read.
+     */
+    val subtitleInk: Color get() = Palette.White
+    val subtitleInkWarm: Color get() = Palette.Amber
+
+    /**
+     * What sits behind the words. Three weights, and none of them is a full-width bar.
+     *
+     * A box that spans the screen hides more film than the words do. These are drawn
+     * behind the text and nothing else, so what is covered is what is being read.
+     */
+    val subtitleBackdropSoft: Color get() = Palette.Void.copy(alpha = 0.45f)
+    val subtitleBackdropSolid: Color get() = Palette.Void.copy(alpha = 0.88f)
+
+    /**
+     * The outline a caption keeps when the backdrop is switched off.
+     *
+     * Not decoration: white text on a white frame is invisible, and a viewer who turned
+     * the backdrop off asked for less obstruction rather than for unreadable words. A
+     * dark shadow behind the glyphs costs nothing of the picture.
+     */
+    val subtitleShadow: Color get() = Palette.Void.copy(alpha = 0.95f)
 }
 
 /** The dark theme — Castivio's only theme. The brand is a dark product. */

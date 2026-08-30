@@ -47,6 +47,33 @@ interface PlaybackEngine {
     val videoAspectRatio: StateFlow<Float?>
 
     /**
+     * The caption lines to show right now, and empty when there are none.
+     *
+     * ## Why the player draws its own captions
+     *
+     * Because it draws its own everything. There is no `PlayerView` on this screen — the
+     * picture is a bare `SurfaceView`, chosen so that a television box is not laying out a
+     * second set of hidden views on every frame — and `PlayerView` is what would ordinarily
+     * bring a `SubtitleView` with it. Without one, a selected text track was decoded and
+     * thrown away: the sheet listed the tracks, selecting one did select it, and nothing
+     * appeared. This is the seam that fixes that, and it is on the contract because it is
+     * the engine that knows.
+     *
+     * Plain strings rather than the decoder's own cue objects. A cue carries a position, an
+     * anchor and a window that come from the source, and honouring them would mean the
+     * source deciding where a caption sits on a phone held in a hand — over the very
+     * controls the viewer is reaching for. The viewer's own choice of size and place wins,
+     * so what crosses this boundary is the words.
+     *
+     * ## Empty is a valid answer, and one engine always gives it
+     *
+     * LibVLC draws captions into the video output itself, before the frame reaches the
+     * surface. There is nothing for it to hand over and nothing for the screen to draw —
+     * a second layer over the top would show every line twice.
+     */
+    val cues: StateFlow<List<String>>
+
+    /**
      * Why the last failure happened, in full, or null while nothing has failed.
      *
      * Separate from [PlaybackState.Failed] because the two have different audiences. The

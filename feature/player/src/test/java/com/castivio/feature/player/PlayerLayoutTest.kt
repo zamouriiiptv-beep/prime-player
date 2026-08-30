@@ -15,7 +15,9 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Dp
@@ -728,6 +730,151 @@ class PlayerLayoutTest {
         }
     }
 
+    /* ------------------------------------------------------------------ the captions */
+
+    /**
+     * The words are on the screen.
+     *
+     * The claim this whole layer exists for, and it is worth stating baldly: before it,
+     * selecting a subtitle track did select it, the decoder decoded it, and nothing
+     * appeared — this screen has no `PlayerView` and therefore no `SubtitleView`.
+     */
+    @Test
+    fun `caption lines are drawn`() {
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingFilm().copy(cues = listOf("مرحبًا", "كيف حالك؟")),
+        )
+
+        compose.onNodeWithTag(PlayerTags.CAPTIONS).assertIsDisplayed()
+        compose.onNodeWithText("مرحبًا").assertIsDisplayed()
+        compose.onNodeWithText("كيف حالك؟").assertIsDisplayed()
+    }
+
+    /** And a film with nothing to say draws no layer at all, not an empty box. */
+    @Test
+    fun `a film with no caption draws nothing`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingFilm())
+        compose.onAllNodesWithTag(PlayerTags.CAPTIONS).assertCountEquals(0)
+    }
+
+    /**
+     * A caption never sits under the controls.
+     *
+     * The one placement claim that matters: the bottom band carries a timeline and a row of
+     * buttons, and words behind them are words nobody can read. Measured against the tools
+     * row rather than against a constant, so a control added to that row tomorrow moves the
+     * caption rather than quietly ending up on top of it.
+     */
+    @Test
+    fun `a caption clears the controls while they are up`() {
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingFilm().copy(cues = listOf("مرحبًا"), controls = true),
+        )
+
+        val caption = compose.bounds(PlayerTags.CAPTIONS)
+        val bottom = compose.bounds(PlayerTags.BOTTOM)
+
+        assertTrue(
+            "the caption at ${caption.bottom} runs into the controls at ${bottom.top}",
+            caption.bottom <= bottom.top + TOLERANCE,
+        )
+    }
+
+    /** And drops back down when they hide, rather than leaving a gap for nothing. */
+    @Test
+    fun `a caption drops when the controls hide`() {
+        val controls = mutableStateOf(true)
+        compose.setContent {
+            CastivioTheme {
+                CompositionLocalProvider(
+                    LocalDeviceClass provides DeviceClass.Expanded,
+                    LocalLayoutDirection provides LayoutDirection.Rtl,
+                ) {
+                    Stage(HANDSET) {
+                        PlayerScreen(
+                            state = playingFilm().copy(
+                                cues = listOf("مرحبًا"),
+                                controls = controls.value,
+                            ),
+                            actions = PlayerActions(),
+                        )
+                    }
+                }
+            }
+        }
+
+        val lifted = compose.bounds(PlayerTags.CAPTIONS)
+        controls.value = false
+        compose.waitForIdle()
+        val resting = compose.bounds(PlayerTags.CAPTIONS)
+
+        assertTrue(
+            "the caption stayed at ${lifted.top} with nothing above it to clear",
+            resting.top > lifted.top + TOLERANCE,
+        )
+    }
+
+    /** A bigger size is a bigger caption, which is the only thing that setting promises. */
+    @Test
+    fun `the size setting changes the caption`() {
+        val style = mutableStateOf(SubtitleStyle(size = SubtitleSize.Small))
+        compose.setContent {
+            CastivioTheme {
+                CompositionLocalProvider(LocalDeviceClass provides DeviceClass.Expanded) {
+                    Stage(HANDSET) {
+                        PlayerScreen(
+                            state = playingFilm().copy(
+                                cues = listOf("مرحبًا"),
+                                subtitleStyle = style.value,
+                            ),
+                            actions = PlayerActions(),
+                        )
+                    }
+                }
+            }
+        }
+
+        val small = compose.bounds(PlayerTags.CAPTIONS)
+        style.value = SubtitleStyle(size = SubtitleSize.Huge)
+        compose.waitForIdle()
+        val huge = compose.bounds(PlayerTags.CAPTIONS)
+
+        assertTrue(
+            "the caption is ${small.height} small and ${huge.height} huge — the setting does nothing",
+            huge.height > small.height + TOLERANCE,
+        )
+    }
+
+    /**
+     * The caption takes no touches.
+     *
+     * A caption that swallowed a tap would stop the controls appearing at the exact moment
+     * there are words on screen and the viewer wants to pause and read them.
+     */
+    @Test
+    fun `tapping a caption still reaches the picture`() {
+        var toggled = 0
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingFilm().copy(cues = listOf("مرحبًا"), controls = false),
+            LayoutDirection.Ltr,
+            PlayerActions(onToggleControls = { toggled++ }),
+        )
+
+        // Where a caption sits with the chrome down: clear of the bottom edge by its own
+        // margin, which on this frame is nine tenths of the way down.
+        compose.onNodeWithTag(PlayerTags.VIDEO).performTouchInput {
+            click(Offset(width / 2f, height * CAPTION_BAND))
+        }
+
+        assertEquals("the caption ate the tap", 1, toggled)
+    }
+
     /* -------------------------------------------------------- the reserved strip */
 
     /**
@@ -1063,6 +1210,9 @@ class PlayerLayoutTest {
      * handset — and far enough from the start edge to be clear of the back arrow.
      */
     private val FILM_SIDE = 0.1f
+
+    /** Nine tenths down the picture, which is where a caption rests with the chrome down. */
+    private val CAPTION_BAND = 0.88f
 
     /**
      * Half a device-independent pixel, which is rounding rather than a defect.

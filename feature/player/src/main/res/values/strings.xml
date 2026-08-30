@@ -80,6 +80,24 @@
     <string name="player_sheet_settings">Settings</string>
     <string name="player_sheet_quality">Video quality</string>
     <string name="player_subtitles_off">No subtitles</string>
+    <string name="player_subtitle_look">Subtitle appearance</string>
+    <string name="player_subtitle_size">Size</string>
+    <string name="player_subtitle_size_small">Small</string>
+    <string name="player_subtitle_size_medium">Medium</string>
+    <string name="player_subtitle_size_large">Large</string>
+    <string name="player_subtitle_size_huge">Very large</string>
+    <string name="player_subtitle_colour">Colour</string>
+    <string name="player_subtitle_white">White</string>
+    <string name="player_subtitle_amber">Amber</string>
+    <string name="player_subtitle_backdrop">Background</string>
+    <string name="player_subtitle_backdrop_none">None</string>
+    <string name="player_subtitle_backdrop_shadow">Outline</string>
+    <string name="player_subtitle_backdrop_soft">Shaded</string>
+    <string name="player_subtitle_backdrop_solid">Solid</string>
+    <string name="player_subtitle_place">Position</string>
+    <string name="player_subtitle_place_bottom">Bottom</string>
+    <string name="player_subtitle_place_raised">Raised</string>
+    <string name="player_subtitle_place_top">Top</string>
     <string name="player_speed">Playback speed</string>
     <!-- Spoken by a screen reader for the picture itself: the whole frame is the way
          the controls are brought back. -->

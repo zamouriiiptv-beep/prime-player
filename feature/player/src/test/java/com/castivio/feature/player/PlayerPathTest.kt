@@ -96,6 +96,7 @@ class PlayerPathTest {
     private lateinit var engines: FakeFactory
     private lateinit var guide: RecordingGuide
     private lateinit var memory: RecordingMemory
+    private lateinit var subtitles: RememberedStyle
 
     @Before
     fun setUp() {
@@ -103,6 +104,7 @@ class PlayerPathTest {
         engines = FakeFactory()
         guide = RecordingGuide()
         memory = RecordingMemory()
+        subtitles = RememberedStyle()
     }
 
     @After
@@ -121,7 +123,7 @@ class PlayerPathTest {
         val factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                PlayerViewModel(engines, memory, guide) as T
+                PlayerViewModel(engines, memory, guide, subtitles) as T
         }
         return ViewModelProvider(store, factory)["player-${created++}", PlayerViewModel::class.java]
     }
@@ -1124,6 +1126,88 @@ class PlayerPathTest {
         assertNull(model.state.value?.lastJumpMs)
     }
 
+    /* ------------------------------------------------------------------- the captions */
+
+    /**
+     * The words reach the screen.
+     *
+     * There was no path for them at all: a text track was selected, decoded, and thrown
+     * away, because the screen has no `PlayerView` and so no `SubtitleView`. This is the
+     * whole of the fix, from the engine's side.
+     */
+    @Test
+    fun `caption lines reach the state`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        assertTrue(model.state.value?.cues.orEmpty().isEmpty())
+
+        engines.last.say("مرحبًا", "كيف حالك؟")
+        runCurrent()
+
+        assertEquals(listOf("مرحبًا", "كيف حالك؟"), model.state.value?.cues)
+    }
+
+    /** And they go away again, which is the half that leaves words frozen on screen. */
+    @Test
+    fun `caption lines clear when the moment passes`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        engines.last.say("مرحبًا")
+        runCurrent()
+
+        engines.last.say()
+        runCurrent()
+
+        assertTrue(model.state.value?.cues.orEmpty().isEmpty())
+    }
+
+    /**
+     * The viewer's choice is remembered, and read once rather than per film.
+     *
+     * Once because reading it is a disk read and the critical path is the one place in this
+     * class where a disk read is a defect. Remembered because a setting that resets with
+     * every film is not a setting.
+     */
+    @Test
+    fun `the caption settings are kept between films`() = playerTest {
+        subtitles.held = SubtitleStyle(size = SubtitleSize.Large, ink = SubtitleInk.Amber)
+
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+
+        assertEquals(SubtitleSize.Large, model.state.value?.subtitleStyle?.size)
+        assertEquals(SubtitleInk.Amber, model.state.value?.subtitleStyle?.ink)
+
+        model.switchTo(liveRequest())
+        runCurrent()
+
+        assertEquals(
+            "a new film started from the defaults, so the setting was not a setting",
+            SubtitleSize.Large,
+            model.state.value?.subtitleStyle?.size,
+        )
+    }
+
+    /** Changing one is applied at once and written through, not saved on the way out. */
+    @Test
+    fun `changing a caption setting applies it and stores it`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+
+        model.setSubtitleStyle(SubtitleStyle(place = SubtitlePlace.Top))
+
+        assertEquals(SubtitlePlace.Top, model.state.value?.subtitleStyle?.place)
+        assertEquals("the choice was not written", 1, subtitles.writes)
+        assertEquals(SubtitlePlace.Top, subtitles.held.place)
+    }
+
     /* ---------------------------------------------------------------- the background */
 
     /**
@@ -1308,6 +1392,9 @@ class PlayerPathTest {
         private val _videoAspectRatio = MutableStateFlow<Float?>(null)
         override val videoAspectRatio: StateFlow<Float?> = _videoAspectRatio.asStateFlow()
 
+        private val _cues = MutableStateFlow<List<String>>(emptyList())
+        override val cues: StateFlow<List<String>> = _cues.asStateFlow()
+
         private val _diagnosis = MutableStateFlow<PlaybackDiagnosis?>(null)
         override val diagnosis: StateFlow<PlaybackDiagnosis?> = _diagnosis.asStateFlow()
 
@@ -1383,6 +1470,11 @@ class PlayerPathTest {
             _state.value = PlaybackState.Playing(positionMs = 0, durationMs = null, bitrateBps = 0)
         }
 
+        /** What the decoder hands over when a text track has words for this moment. */
+        fun say(vararg lines: String) {
+            _cues.value = lines.toList()
+        }
+
         /** What a real engine reports once the decoder knows the shape of the picture. */
         fun declareShape(ratio: Float?) {
             _videoAspectRatio.value = ratio
@@ -1409,6 +1501,25 @@ class PlayerPathTest {
                 reason = reason,
                 decoder = DecoderReport(codecName = codecName),
             )
+        }
+    }
+
+    /**
+     * The caption settings, in memory.
+     *
+     * A real store is `SharedPreferences` and this is not testing Android's ability to
+     * write a string. What these tests are about is that the choice reaches the state, is
+     * written once when it changes, and comes back on the next film.
+     */
+    private class RememberedStyle : SubtitleStyleStore {
+        var held = SubtitleStyle()
+        var writes = 0
+
+        override fun read(): SubtitleStyle = held
+
+        override fun write(style: SubtitleStyle) {
+            held = style
+            writes++
         }
     }
 

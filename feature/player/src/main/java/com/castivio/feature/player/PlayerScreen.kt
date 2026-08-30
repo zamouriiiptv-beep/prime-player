@@ -87,6 +87,11 @@ fun PlayerScreen(
             state.picture is Picture.Opening -> OpeningOverlay(state, inset)
 
             else -> {
+                // Inside the picture's box like the chrome, and outside the `controls`
+                // branch unlike it: captions are part of the film, and a film does not
+                // stop having words in it because the controls hid four seconds ago.
+                Box(Modifier.size(picture)) { SubtitleLayer(state) }
+
                 if (state.controls) {
                     // The chrome belongs to the film, not to the window.
                     //
@@ -327,6 +332,7 @@ data class PlayerActions(
     val onNext: () -> Unit = {},
     val onToggleControls: () -> Unit = {},
     val onAspect: (AspectMode) -> Unit = {},
+    val onSubtitleStyle: (SubtitleStyle) -> Unit = {},
     val onLock: (Boolean) -> Unit = {},
     val onSheet: (Sheet?) -> Unit = {},
     val onStatistics: (Boolean) -> Unit = {},

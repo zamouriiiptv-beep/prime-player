@@ -52,6 +52,20 @@ class VlcPlaybackEngine(
     private val _videoAspectRatio = MutableStateFlow<Float?>(null)
     override val videoAspectRatio: StateFlow<Float?> = _videoAspectRatio.asStateFlow()
 
+    /**
+     * Always empty, and that is the implementation rather than a gap in it.
+     *
+     * LibVLC draws captions into the video output itself, before a frame ever reaches the
+     * surface Castivio gave it. There is nothing here to hand to the screen, and a second
+     * layer drawn over the top would show every line twice — once burnt into the picture
+     * and once in Castivio's own type.
+     *
+     * The cost is that the viewer's size, colour and backdrop settings do not reach the
+     * backup engine's captions; they are the ones VLC drew. That is a real limitation and
+     * it is stated here rather than hidden: the alternative is not rendering them at all.
+     */
+    override val cues: StateFlow<List<String>> = MutableStateFlow<List<String>>(emptyList())
+
     private val _diagnosis = MutableStateFlow<PlaybackDiagnosis?>(null)
     override val diagnosis: StateFlow<PlaybackDiagnosis?> = _diagnosis.asStateFlow()
 

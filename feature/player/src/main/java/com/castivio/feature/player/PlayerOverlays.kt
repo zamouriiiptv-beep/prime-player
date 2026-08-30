@@ -625,6 +625,15 @@ internal fun BoxScope.PlayerSheet(sheet: Sheet, state: PlayerState, actions: Pla
 @Composable
 private fun SheetOption(row: SheetRow, onClick: () -> Unit) {
     val colors = CastivioTheme.colors
+    if (row.heading) {
+        Text(
+            text = row.name,
+            style = CastivioType.overline,
+            color = colors.onBackgroundVariant,
+            modifier = Modifier.padding(top = Spacing.md, bottom = Spacing.xxs),
+        )
+        return
+    }
     Row(
         Modifier
             .fillMaxWidth()
@@ -664,6 +673,15 @@ private data class SheetRow(
     val name: String,
     val detail: String? = null,
     val selected: Boolean = false,
+    /**
+     * A group's name rather than a choice in it.
+     *
+     * The look sheet asks four questions and each has its own answers, so the rows have to
+     * be told apart by something more than spacing. A heading is drawn quieter, carries no
+     * icon and takes no press — the last of those matters most, because a heading that
+     * looked pressable in a list of pressable things is a control that does nothing.
+     */
+    val heading: Boolean = false,
     val onPick: (PlayerActions) -> Unit = {},
 )
 
@@ -672,6 +690,7 @@ private fun sheetTitle(sheet: Sheet): Int = when (sheet) {
     Sheet.Audio -> R.string.player_sheet_audio
     Sheet.Settings -> R.string.player_sheet_settings
     Sheet.Quality -> R.string.player_sheet_quality
+    Sheet.SubtitleLook -> R.string.player_subtitle_look
 }
 
 /**
@@ -693,6 +712,68 @@ private fun sheetRows(sheet: Sheet, state: PlayerState): List<SheetRow> = when (
             ),
         )
         state.subtitleTracks.forEach { track -> add(trackRow(CastivioIcons.Subtitles, track)) }
+
+        // Last, because it is the one row that is not a track. Choosing what to read comes
+        // before choosing how it looks, and a viewer opening this sheet almost always wants
+        // the first of those.
+        add(
+            SheetRow(
+                icon = CastivioIcons.Quality,
+                name = stringResource(R.string.player_subtitle_look),
+                onPick = { it.onSheet(Sheet.SubtitleLook) },
+            ),
+        )
+    }
+
+    // Four questions, each with its answers on one line. A viewer adjusting captions is
+    // asking "can I read that from here", and four steps they can try in a second answer it
+    // better than a slider they have to nudge while a film plays.
+    Sheet.SubtitleLook -> buildList {
+        val look = state.subtitleStyle
+        add(heading(R.string.player_subtitle_size))
+        SubtitleSize.entries.forEach { size ->
+            add(
+                SheetRow(
+                    icon = CastivioIcons.Subtitles,
+                    name = stringResource(size.label()),
+                    selected = look.size == size,
+                    onPick = { it.onSubtitleStyle(look.copy(size = size)) },
+                ),
+            )
+        }
+        add(heading(R.string.player_subtitle_colour))
+        SubtitleInk.entries.forEach { ink ->
+            add(
+                SheetRow(
+                    icon = CastivioIcons.Subtitles,
+                    name = stringResource(ink.label()),
+                    selected = look.ink == ink,
+                    onPick = { it.onSubtitleStyle(look.copy(ink = ink)) },
+                ),
+            )
+        }
+        add(heading(R.string.player_subtitle_backdrop))
+        SubtitleBackdrop.entries.forEach { backdrop ->
+            add(
+                SheetRow(
+                    icon = CastivioIcons.Subtitles,
+                    name = stringResource(backdrop.label()),
+                    selected = look.backdrop == backdrop,
+                    onPick = { it.onSubtitleStyle(look.copy(backdrop = backdrop)) },
+                ),
+            )
+        }
+        add(heading(R.string.player_subtitle_place))
+        SubtitlePlace.entries.forEach { place ->
+            add(
+                SheetRow(
+                    icon = CastivioIcons.Subtitles,
+                    name = stringResource(place.label()),
+                    selected = look.place == place,
+                    onPick = { it.onSubtitleStyle(look.copy(place = place)) },
+                ),
+            )
+        }
     }
 
     Sheet.Audio -> state.audioTracks.map { track ->
@@ -759,6 +840,45 @@ private fun sheetRows(sheet: Sheet, state: PlayerState): List<SheetRow> = when (
             },
         ),
     )
+}
+
+/**
+ * A line of a sheet that names a group rather than offering a choice.
+ *
+ * [SheetRow.onPick] is left at its default, which does nothing, so a heading pressed by
+ * accident is a press that changed nothing rather than one that changed something the
+ * viewer cannot see.
+ */
+@Composable
+private fun heading(label: Int): SheetRow = SheetRow(
+    icon = CastivioIcons.Quality,
+    name = stringResource(label),
+    heading = true,
+)
+
+private fun SubtitleSize.label(): Int = when (this) {
+    SubtitleSize.Small -> R.string.player_subtitle_size_small
+    SubtitleSize.Medium -> R.string.player_subtitle_size_medium
+    SubtitleSize.Large -> R.string.player_subtitle_size_large
+    SubtitleSize.Huge -> R.string.player_subtitle_size_huge
+}
+
+private fun SubtitleInk.label(): Int = when (this) {
+    SubtitleInk.White -> R.string.player_subtitle_white
+    SubtitleInk.Amber -> R.string.player_subtitle_amber
+}
+
+private fun SubtitleBackdrop.label(): Int = when (this) {
+    SubtitleBackdrop.None -> R.string.player_subtitle_backdrop_none
+    SubtitleBackdrop.Shadow -> R.string.player_subtitle_backdrop_shadow
+    SubtitleBackdrop.Soft -> R.string.player_subtitle_backdrop_soft
+    SubtitleBackdrop.Solid -> R.string.player_subtitle_backdrop_solid
+}
+
+private fun SubtitlePlace.label(): Int = when (this) {
+    SubtitlePlace.Bottom -> R.string.player_subtitle_place_bottom
+    SubtitlePlace.Raised -> R.string.player_subtitle_place_raised
+    SubtitlePlace.Top -> R.string.player_subtitle_place_top
 }
 
 private fun trackRow(icon: ImageVector, track: Track): SheetRow = SheetRow(

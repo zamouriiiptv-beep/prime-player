@@ -10,6 +10,7 @@ import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.text.CueGroup
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
 import androidx.media3.common.VideoSize
@@ -102,6 +103,9 @@ class Media3Engine(
 
     private val _videoAspectRatio = MutableStateFlow<Float?>(null)
     override val videoAspectRatio: StateFlow<Float?> = _videoAspectRatio.asStateFlow()
+
+    private val _cues = MutableStateFlow<List<String>>(emptyList())
+    override val cues: StateFlow<List<String>> = _cues.asStateFlow()
 
     private val _diagnosis = MutableStateFlow<PlaybackDiagnosis?>(null)
     override val diagnosis: StateFlow<PlaybackDiagnosis?> = _diagnosis.asStateFlow()
@@ -302,6 +306,7 @@ class Media3Engine(
         _firstFrameAtMs.value = null
         hasVideoTrack = null
         _videoAspectRatio.value = null
+        _cues.value = emptyList()
     }
 
     override fun seekTo(positionMs: Long) {
@@ -490,6 +495,23 @@ class Media3Engine(
             // becoming ready would sit on the loading overlay until the budget expired.
             hasVideoTrack = video.isNotEmpty()
             if (isAudioOnly() && player.playbackState == Player.STATE_READY) markOpened()
+        }
+
+        /**
+         * The caption lines for this moment, as words.
+         *
+         * Everything the cue carries about *where* it should go is dropped, deliberately.
+         * A source's cue positions were authored for a cinema screen or a television, and
+         * honouring them on a phone in a hand puts a caption over the controls the viewer
+         * is reaching for. Where a caption sits is the viewer's setting.
+         *
+         * Blank cues are dropped rather than rendered: a subtitle track that carries empty
+         * lines to clear the screen would otherwise draw an empty backdrop over the film.
+         */
+        override fun onCues(cueGroup: CueGroup) {
+            _cues.value = cueGroup.cues
+                .mapNotNull { it.text?.toString()?.trim() }
+                .filter { it.isNotEmpty() }
         }
 
         override fun onVideoSizeChanged(videoSize: VideoSize) {

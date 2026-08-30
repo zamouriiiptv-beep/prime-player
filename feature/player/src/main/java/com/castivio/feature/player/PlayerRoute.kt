@@ -139,6 +139,7 @@ fun PlayerRoute(
                 onNext = { onNext?.invoke() },
                 onToggleControls = { model.showControls(!current.controls) },
                 onAspect = model::setAspect,
+                onSubtitleStyle = model::setSubtitleStyle,
                 onLock = model::setLocked,
                 onSheet = model::openSheet,
                 onStatistics = model::setStatistics,

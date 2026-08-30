@@ -56,6 +56,7 @@ class PlayerViewModel @Inject constructor(
     private val engines: EngineFactory,
     private val memory: EngineMemory,
     private val guide: ProgrammeSource,
+    private val subtitles: SubtitleStyleStore,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<PlayerState?>(null)
@@ -72,12 +73,23 @@ class PlayerViewModel @Inject constructor(
     private var sampler: Job? = null
     private var guideJob: Job? = null
     private var shapeJob: Job? = null
+    private var cueJob: Job? = null
 
     /** Set when the primary has already been tried and refused, so a second failure is final. */
     private var backupTried = false
 
     /** Whether the current attempt ended by the budget expiring rather than by an error. */
     private var timedOut = false
+
+    /**
+     * The viewer's caption settings, read once.
+     *
+     * Once and not per open: this is a disk read, and the critical path is the one place in
+     * this class where a disk read is a defect rather than a cost. A player built for one
+     * film keeps the same choice for every film after it, which is also what a person
+     * expects of a setting.
+     */
+    private var style: SubtitleStyle = subtitles.read()
 
     /** Where a jump was aimed, held until the engine's own clock gets there. */
     private var seekTarget: Long? = null
@@ -99,7 +111,7 @@ class PlayerViewModel @Inject constructor(
         timedOut = false
         engineId = FallbackPolicy.first(FallbackPolicy.sourceKey(request.url), memory)
         Log.i(TAG, "opening on $engineId")
-        _state.value = PlayerState(request = request, engine = engineId)
+        _state.value = PlayerState(request = request, engine = engineId, subtitleStyle = style)
         start(request, engineId)
     }
 
@@ -148,6 +160,16 @@ class PlayerViewModel @Inject constructor(
         shapeJob = viewModelScope.launch {
             created.videoAspectRatio.collect { ratio ->
                 _state.value = _state.value?.copy(videoAspectRatio = ratio)
+            }
+        }
+
+        // Its own collector, beside the shape's and for the same reason. Captions arrive
+        // with the frames and have nothing to do with opening; putting them in the combine
+        // that carries the opening state would put a caption change on the path that
+        // decides whether to fall over to the backup engine.
+        cueJob = viewModelScope.launch {
+            created.cues.collect { lines ->
+                _state.value = _state.value?.copy(cues = lines)
             }
         }
 
@@ -564,6 +586,20 @@ class PlayerViewModel @Inject constructor(
         _state.value = _state.value?.copy(aspect = mode)
     }
 
+    /**
+     * A caption setting changed. Applied now and remembered for the next film.
+     *
+     * Written straight through rather than on the way out: a player is left by the user
+     * walking away from it, and a setting that waited for a tidy exit would be a setting
+     * that is sometimes kept and sometimes not, in a way nobody could reproduce.
+     */
+    fun setSubtitleStyle(chosen: SubtitleStyle) {
+        noteInteraction()
+        style = chosen
+        subtitles.write(chosen)
+        _state.value = _state.value?.copy(subtitleStyle = chosen)
+    }
+
     fun selectTrack(track: Track) {
         noteInteraction()
         engine?.selectTrack(track)
@@ -692,6 +728,7 @@ class PlayerViewModel @Inject constructor(
         sampler?.cancel(); sampler = null
         guideJob?.cancel(); guideJob = null
         shapeJob?.cancel(); shapeJob = null
+        cueJob?.cancel(); cueJob = null
     }
 
     /**
