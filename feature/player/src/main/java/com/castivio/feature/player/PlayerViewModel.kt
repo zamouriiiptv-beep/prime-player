@@ -161,6 +161,18 @@ class PlayerViewModel @Inject constructor(
 
         if (hasFrame && deadline != null) onFirstFrame(current)
 
+        // Re-read, because `onFirstFrame` writes to `_state` and the tail of this function
+        // rebuilds the state from a snapshot. Built from `current`, that rebuild silently
+        // discarded both of the things the first frame had just established: which engine
+        // is playing, and that the switch is over. After a fallback the screen therefore
+        // still said PRIMARY while the backup was decoding, and the "switching to the
+        // backup" line never cleared — the same emission that carried the frame undid them.
+        //
+        // That is the defect this whole round exists to remove. "Which engine actually
+        // ran?" is the first question asked of a failure, and the player was answering it
+        // wrongly in exactly the case where the answer matters.
+        val settled = _state.value ?: return
+
         val picture = when (playback) {
             is PlaybackState.Idle, is PlaybackState.Opening ->
                 if (hasFrame) Picture.Buffering else Picture.Opening
@@ -190,7 +202,7 @@ class PlayerViewModel @Inject constructor(
             }
         }
 
-        _state.value = current.copy(
+        _state.value = settled.copy(
             picture = picture,
             diagnosis = engine?.diagnosis?.value ?: timeoutDiagnosis(picture),
             audioTracks = engine?.tracks?.value?.audio.orEmpty(),
