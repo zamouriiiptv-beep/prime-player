@@ -234,6 +234,23 @@ object CastivioIcons {
         size = Sizing.iconMd,
     )
 
+    /**
+     * Share: three nodes and the two lines between them.
+     *
+     * Drawn rather than reused from [Cast], which is the mark for sending a picture to a
+     * television and was doing duty for a button that shares a file. The two are different
+     * promises and a viewer reads the icon before the label.
+     */
+    val Share: ImageVector = strokeIcon(
+        "Share",
+        "M18 5a2.2 2.2 0 1 0 0 4.4a2.2 2.2 0 1 0 0-4.4",
+        "M6 9.8a2.2 2.2 0 1 0 0 4.4a2.2 2.2 0 1 0 0-4.4",
+        "M18 14.6a2.2 2.2 0 1 0 0 4.4a2.2 2.2 0 1 0 0-4.4",
+        "M7.9 11l8.2-3.4",
+        "M7.9 13l8.2 3.4",
+        size = Sizing.iconMd,
+    )
+
     val PictureInPicture: ImageVector = strokeIcon(
         "PictureInPicture", "M3 5h18v14H3z", "M12 11h7v6h-7z", size = Sizing.iconMd,
     )

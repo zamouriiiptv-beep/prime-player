@@ -25,7 +25,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,6 +54,8 @@ import com.castivio.playback.api.AspectMode
 import com.castivio.playback.api.PlaybackDiagnosis
 import com.castivio.playback.api.PlaybackError
 import com.castivio.playback.api.Track
+import kotlin.math.abs
+import kotlinx.coroutines.delay
 
 /**
  * The title on the loading screen, and nothing beside it.
@@ -118,7 +124,59 @@ internal fun BoxScope.Transients(state: PlayerState, actions: PlayerActions, ins
 
         else -> Unit
     }
+
+    JumpMark(state)
 }
+
+/**
+ * "+10 s", for about a second, in the middle of the picture.
+ *
+ * ## Why a jump needs to announce itself and a pause does not
+ *
+ * Pressing pause changes the picture into a still one, and there is nothing to explain. A
+ * ten-second jump inside a long take changes almost nothing on screen and moves the head on
+ * the bar by a hair, so a viewer who presses it and looks at the picture — which is where
+ * they are looking — has no way to tell whether anything happened. That is most of what
+ * "the buttons do nothing" felt like on a device even where the seek was being performed.
+ *
+ * Keyed on [PlayerState.seekRequests] rather than on the distance, so pressing the same
+ * control twice shows the mark twice. Keyed on the counter and not on a time, because a
+ * time would make this composable ask what the clock says, and nothing in a composition may.
+ *
+ * It draws over the picture and takes no touches: a mark that could be pressed would be a
+ * mark that swallows the next press of the control that raised it.
+ */
+@Composable
+private fun BoxScope.JumpMark(state: PlayerState) {
+    val distance = state.lastJumpMs ?: return
+    val colors = CastivioTheme.colors
+
+    var shown by remember(state.seekRequests) { mutableStateOf(true) }
+    LaunchedEffect(state.seekRequests) {
+        delay(JUMP_MARK_MS)
+        shown = false
+    }
+    if (!shown) return
+
+    val seconds = (abs(distance) / 1000L).toInt()
+    Text(
+        text = stringResource(
+            if (distance >= 0) R.string.player_jump_ahead else R.string.player_jump_back,
+            seconds,
+        ),
+        style = CastivioType.titleMedium,
+        color = colors.onBackground,
+        modifier = Modifier
+            .align(Alignment.Center)
+            .clip(RoundedCornerShape(Radius.pill))
+            .background(colors.overVideo)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
+            .testTag(PlayerTags.JUMP_MARK),
+    )
+}
+
+/** Long enough to read at a glance, short enough not to sit over the film. */
+private const val JUMP_MARK_MS = 900L
 
 @Composable
 private fun BoxScope.CentredSpinner(label: String) {
@@ -674,9 +732,12 @@ private fun sheetRows(sheet: Sheet, state: PlayerState): List<SheetRow> = when (
             },
         ),
         SheetRow(
-            icon = CastivioIcons.Cast,
-            name = stringResource(R.string.player_cast),
-            onPick = { it.onCast() },
+            icon = CastivioIcons.Share,
+            name = stringResource(R.string.player_share),
+            onPick = {
+                it.onSheet(null)
+                it.onShare()
+            },
         ),
     )
 }

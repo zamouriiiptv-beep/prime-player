@@ -2,7 +2,9 @@ package com.castivio.feature.player
 
 import android.app.Activity
 import android.app.PictureInPictureParams
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.util.Rational
 import androidx.activity.compose.BackHandler
@@ -14,7 +16,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
 
@@ -55,13 +61,43 @@ fun PlayerRoute(
         onDispose { activity?.window?.clearFlags(KEEP_SCREEN_ON) }
     }
 
+    val chooser = stringResource(R.string.player_share)
+
     val current = state ?: return
+
+    // The sound stops when the application does.
+    //
+    // `ON_STOP` rather than `ON_PAUSE`, and the difference is picture in picture: a player
+    // in a PiP window is paused by the system and still on screen, so pausing on ON_PAUSE
+    // would stop the one thing PiP exists to keep running. Nothing resumes on the way back
+    // — a film that restarts itself when a phone is unlocked is how a player gets muted.
+    val owner = LocalLifecycleOwner.current
+    DisposableEffect(owner) {
+        val watcher = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) model.pauseForBackground()
+        }
+        owner.lifecycle.addObserver(watcher)
+        onDispose { owner.lifecycle.removeObserver(watcher) }
+    }
 
     // Controls hide themselves, because a player whose chrome stays up is a player you
     // cannot watch. Restarted whenever they are shown again, and not running while a
     // sheet or the statistics panel is open — hiding the controls out from under a user
     // who is reading a panel is the most irritating thing a player can do.
-    LaunchedEffect(current.controls, current.sheet, current.statistics, current.picture) {
+    //
+    // `interactions` is on the key list because the clock used to run from the moment the
+    // chrome *appeared* and nothing restarted it. Four seconds is long enough to find a
+    // control and not long enough to find it, change your mind and press another, so the
+    // row could vanish under a thumb already travelling toward it — and the press then
+    // landed on the picture, bringing the chrome back, which reads exactly like a button
+    // that does nothing.
+    LaunchedEffect(
+        current.controls,
+        current.sheet,
+        current.statistics,
+        current.picture,
+        current.interactions,
+    ) {
         if (!current.controls || current.sheet != null || current.statistics) return@LaunchedEffect
         if (current.picture !is Picture.Playing) return@LaunchedEffect
         delay(CONTROLS_LINGER_MS)
@@ -113,6 +149,7 @@ fun PlayerRoute(
                 onTryBackup = model::tryBackup,
                 onFullscreen = { model.showControls(false) },
                 onPictureInPicture = { activity?.enterPip() },
+                onShare = { context.share(shareOffer(current.request), chooser) },
                 setOutput = model::setOutput,
             ),
         )
@@ -137,6 +174,42 @@ private fun Activity.enterPip() {
         .setAspectRatio(Rational(PIP_WIDTH, PIP_HEIGHT))
         .build()
     runCatching { enterPictureInPictureMode(params) }
+}
+
+/**
+ * Hand what is playing to whatever the user picks.
+ *
+ * The read permission is granted on the intent rather than assumed: a `MediaStore` URI
+ * belongs to this process's grant, and a receiving application that is simply handed the
+ * string gets a `SecurityException` instead of a file.
+ *
+ * Wrapped, because the share sheet is not worth a crash. A device with no application able
+ * to receive the intent throws, and the correct outcome there is a button that did nothing
+ * this once — not a player that disappears mid-film.
+ */
+private fun android.content.Context.share(offer: ShareOffer, chooserTitle: String) {
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        putExtra(Intent.EXTRA_TITLE, offerTitle(offer))
+        putExtra(Intent.EXTRA_SUBJECT, offerTitle(offer))
+        when (offer) {
+            is ShareOffer.File -> {
+                type = "video/*"
+                putExtra(Intent.EXTRA_STREAM, Uri.parse(offer.uri))
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+
+            is ShareOffer.Words -> {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, offer.title)
+            }
+        }
+    }
+    runCatching { startActivity(Intent.createChooser(intent, chooserTitle)) }
+}
+
+private fun offerTitle(offer: ShareOffer): String = when (offer) {
+    is ShareOffer.File -> offer.title
+    is ShareOffer.Words -> offer.title
 }
 
 private tailrec fun android.content.Context.findActivity(): Activity? = when (this) {

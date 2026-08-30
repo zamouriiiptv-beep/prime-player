@@ -340,9 +340,60 @@ class PlayerViewModel @Inject constructor(
         engine?.setVideoOutput(target)
     }
 
+    /**
+     * Play, pause, or start the film again.
+     *
+     * ## The third case, which was missing
+     *
+     * A film that reaches its end leaves the engine in `Ended` and the control showing a
+     * play triangle — so the obvious thing to do is press it, and pressing it called
+     * `play()` on a player that is already at the last frame. Neither engine treats that as
+     * "start again": Media3 sets `playWhenReady` on a timeline it has already run to the
+     * end of and nothing moves, LibVLC ignores it outright. The button was the right button
+     * and it did nothing, every time, on every file.
+     *
+     * A triangle at the end of a film means *replay* in every player anyone has used, so
+     * that is what it does: back to the beginning, then play.
+     */
     fun playPause() {
         val current = _state.value ?: return
-        if (current.picture is Picture.Playing) engine?.pause() else engine?.play()
+        noteInteraction()
+        when {
+            current.picture is Picture.Ended -> replay()
+            current.picture is Picture.Playing -> engine?.pause()
+            else -> engine?.play()
+        }
+    }
+
+    /** From the top. Separate from a seek to zero because it must also start playing. */
+    private fun replay() {
+        val running = engine ?: return
+        Log.i(TAG, "replaying from the start")
+        clearAim()
+        running.seekTo(0)
+        running.play()
+        _state.value = _state.value?.copy(positionMs = 0)
+    }
+
+    /**
+     * The application went to the background, so the sound goes with it.
+     *
+     * Leaving the player releases the engine; this does not, because the user has not left
+     * the player — they have taken a call, or looked at a message, and they expect to come
+     * back to the same frame. What they do not expect is a film they cannot see carrying on
+     * playing over whatever they went to do.
+     *
+     * `ON_STOP` and not `ON_PAUSE` is what calls this, and the distinction is picture in
+     * picture: a player in a PiP window is paused by the system and still on screen, and
+     * pausing there would stop the very thing PiP exists to keep running.
+     *
+     * Nothing resumes automatically on the way back. A film that starts itself the moment a
+     * phone is unlocked is how a player gets muted for good.
+     */
+    fun pauseForBackground() {
+        if (_state.value?.picture !is Picture.Playing) return
+        Log.i(TAG, "the application went to the background — pausing")
+        engine?.pause()
     }
 
     /**
@@ -369,6 +420,7 @@ class PlayerViewModel @Inject constructor(
      */
     fun seekBy(deltaMs: Long) {
         countTheAsk()
+        noteInteraction()
         val running = engine ?: return
         if (!running.isSeekable) {
             Log.i(TAG, "the source is not seekable — a ${deltaMs}ms jump was ignored")
@@ -379,10 +431,12 @@ class PlayerViewModel @Inject constructor(
         var target = (base + deltaMs).coerceAtLeast(0)
         if (ceiling != null) target = target.coerceAtMost(ceiling)
         aimAt(target, running)
+        _state.value = _state.value?.copy(lastJumpMs = deltaMs)
     }
 
     fun seekTo(positionMs: Long) {
         countTheAsk()
+        noteInteraction()
         val running = engine ?: return
         if (!running.isSeekable) {
             Log.i(TAG, "the source is not seekable — a seek to ${positionMs}ms was ignored")
@@ -403,7 +457,13 @@ class PlayerViewModel @Inject constructor(
     private fun aimAt(target: Long, running: PlaybackEngine) {
         seekTarget = target
         seekTicks = SEEK_SETTLE_TICKS
+        // Jumping back out of the last frame is a request to watch that part, not to look
+        // at it. An engine that has run to the end stays stopped when it is seeked, so the
+        // jump controls at the end of a film would move the position and leave the picture
+        // frozen — which is the same "the button does nothing" as before, one state later.
+        val ended = _state.value?.picture is Picture.Ended
         running.seekTo(target)
+        if (ended) running.play()
         _state.value = _state.value?.copy(positionMs = target, lastSeekMs = target)
     }
 
@@ -419,6 +479,23 @@ class PlayerViewModel @Inject constructor(
     private fun countTheAsk() {
         val current = _state.value ?: return
         _state.value = current.copy(seekRequests = current.seekRequests + 1)
+    }
+
+    /**
+     * The user did something. The four-second clock on the chrome starts again.
+     *
+     * It did not, and that is a defect worth naming: the controls hid four seconds after
+     * they *appeared*, no matter what happened in between. Tap the picture, reach for a
+     * control, and the row could go out from under the thumb already travelling toward it
+     * — the press then lands on the picture, which brings the chrome back, and the whole
+     * thing reads as a button that does nothing.
+     *
+     * Every control in the player goes through one of the methods that calls this, so the
+     * rule is "any interaction, not any particular one".
+     */
+    private fun noteInteraction() {
+        val current = _state.value ?: return
+        _state.value = current.copy(interactions = current.interactions + 1)
     }
 
     /** Forget an aim: the source under it is gone, or has been jumped past by other means. */
@@ -439,6 +516,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun setSpeed(speed: Float) {
+        noteInteraction()
         engine?.setSpeed(speed)
         _state.value = _state.value?.copy(speed = speed)
     }
@@ -452,17 +530,20 @@ class PlayerViewModel @Inject constructor(
      * the engine is why the setting existed and did nothing.
      */
     fun setAspect(mode: AspectMode) {
+        noteInteraction()
         engine?.setAspect(mode)
         _state.value = _state.value?.copy(aspect = mode)
     }
 
     fun selectTrack(track: Track) {
+        noteInteraction()
         engine?.selectTrack(track)
         _state.value = _state.value?.copy(sheet = null)
     }
 
     fun showControls(visible: Boolean) {
-        _state.value = _state.value?.copy(controls = visible)
+        val current = _state.value ?: return
+        _state.value = current.copy(controls = visible, interactions = current.interactions + 1)
     }
 
     fun setLocked(locked: Boolean) {
@@ -470,6 +551,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun openSheet(sheet: Sheet?) {
+        noteInteraction()
         _state.value = _state.value?.copy(sheet = sheet)
     }
 

@@ -16,7 +16,9 @@
     <string name="player_back">Back</string>
     <string name="player_lock">Lock the screen</string>
     <string name="player_unlock">Unlock the screen</string>
-    <string name="player_cast">Play on a device</string>
+    <string name="player_share">Share</string>
+    <string name="player_jump_ahead">+%1$d s</string>
+    <string name="player_jump_back">−%1$d s</string>
     <string name="player_more">More</string>
     <string name="player_close">Close</string>
     <string name="player_play">Play</string>

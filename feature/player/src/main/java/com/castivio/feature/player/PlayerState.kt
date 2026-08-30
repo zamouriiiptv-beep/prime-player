@@ -86,6 +86,26 @@ data class PlayerState(
      */
     val seekRequests: Int = 0,
     val lastSeekMs: Long? = null,
+    /**
+     * How far the last jump moved, and null when the last seek was not a jump.
+     *
+     * On the state so the screen can say so. A ten-second jump on a film of an hour moves
+     * the head by a hair and changes the picture not at all if the shot is a long one, so a
+     * control that only moved the stream was a control the viewer could not tell had worked
+     * — which is most of what "the buttons do nothing" turned out to feel like.
+     */
+    val lastJumpMs: Long? = null,
+    /**
+     * A tally of everything the user has done, and the only thing that reads it is the clock
+     * on the chrome.
+     *
+     * The controls used to hide four seconds after they *appeared*, whatever happened in
+     * between — so a row could go out from under a thumb already moving toward it, and the
+     * press that followed landed on the picture instead of the control. A number that only
+     * ever goes up is what lets the screen restart that clock on any interaction without
+     * every control having to know the clock exists.
+     */
+    val interactions: Int = 0,
     val speed: Float = 1f,
     val audioTracks: List<Track> = emptyList(),
     val subtitleTracks: List<Track> = emptyList(),

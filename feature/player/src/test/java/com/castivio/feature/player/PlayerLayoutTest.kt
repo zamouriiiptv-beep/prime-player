@@ -360,6 +360,81 @@ class PlayerLayoutTest {
         )
     }
 
+    /* --------------------------------------------------------------- the top-bar button */
+
+    /**
+     * The button at the end of the top bar does something.
+     *
+     * It did not. It carried the cast mark and cast is not built, and `PlayerRoute` never
+     * bound `onCast` at all — so the one control in the top bar beside back and lock was a
+     * picture. It shares what is playing now, which is something this product can do today.
+     */
+    @Test
+    fun `the top-bar button shares what is playing`() {
+        var shared = 0
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingFilm(),
+            LayoutDirection.Rtl,
+            PlayerActions(onShare = { shared++ }),
+        )
+
+        compose.onNodeWithTag(PlayerTags.CAST).performClick()
+
+        assertEquals("the top-bar button is still a picture", 1, shared)
+    }
+
+    /* ---------------------------------------------------------------- the jump mark */
+
+    /**
+     * A jump says so on the picture.
+     *
+     * Ten seconds inside a long take changes almost nothing on screen and moves the head on
+     * the bar by a hair, so a viewer looking at the picture — which is where they are
+     * looking — cannot tell the control worked. The mark is the only proof they get, and
+     * its absence is most of what "the buttons do nothing" felt like.
+     */
+    @Test
+    fun `a jump leaves a mark on the picture`() {
+        // The clock is stopped for the same reason the loading test stops it: the mark
+        // takes itself away after 900ms, and an assertion that waits for the composition
+        // to be idle would be waiting for exactly that. One frame is the state being read.
+        compose.mainClock.autoAdvance = false
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingFilm().copy(lastJumpMs = 10_000, seekRequests = 1),
+        )
+        compose.mainClock.advanceTimeByFrame()
+
+        compose.onAllNodesWithTag(PlayerTags.JUMP_MARK).assertCountEquals(1)
+    }
+
+    /** And it takes itself away, so it is not a label sitting over the film. */
+    @Test
+    fun `the mark goes away on its own`() {
+        compose.mainClock.autoAdvance = false
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingFilm().copy(lastJumpMs = -10_000, seekRequests = 1),
+        )
+        compose.mainClock.advanceTimeByFrame()
+        compose.onAllNodesWithTag(PlayerTags.JUMP_MARK).assertCountEquals(1)
+
+        compose.mainClock.advanceTimeBy(2_000)
+
+        compose.onAllNodesWithTag(PlayerTags.JUMP_MARK).assertCountEquals(0)
+    }
+
+    /** And a film nobody has jumped in carries no mark at all. */
+    @Test
+    fun `a film that has not been jumped carries no mark`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingFilm())
+        compose.onAllNodesWithTag(PlayerTags.JUMP_MARK).assertCountEquals(0)
+    }
+
     /* ------------------------------------------------------------------ the scrubber */
 
     /**

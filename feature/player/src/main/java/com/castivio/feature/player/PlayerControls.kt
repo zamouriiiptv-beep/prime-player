@@ -110,11 +110,15 @@ internal fun TopBar(state: PlayerState, actions: PlayerActions) {
             tag = PlayerTags.LOCK,
             onClick = { actions.onLock(!state.locked) },
         )
+        // Was a cast control, and cast is not built: the button carried the mark for
+        // sending a picture to a television and did nothing at all, because nothing on the
+        // route ever bound `onCast`. It shares what is playing, which is a thing this
+        // product can actually do today, and it says so with its own icon.
         PlayerButton(
-            icon = CastivioIcons.Cast,
-            label = stringResource(R.string.player_cast),
+            icon = CastivioIcons.Share,
+            label = stringResource(R.string.player_share),
             tag = PlayerTags.CAST,
-            onClick = actions.onCast,
+            onClick = actions.onShare,
         )
         PlayerButton(
             icon = CastivioIcons.More,

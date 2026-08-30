@@ -117,6 +117,9 @@ internal object PlayerTags {
     const val SHEET_CLOSE = "player.sheetClose"
     const val STATISTICS = "player.statistics"
     const val TOAST = "player.toast"
+
+    /** The "+10 s" mark a jump raises over the picture, and the only proof a viewer gets. */
+    const val JUMP_MARK = "player.jumpMark"
     const val LOCK_PILL = "player.lockPill"
 
     /** The small badge that says the backup engine is playing. Nothing else marks it. */

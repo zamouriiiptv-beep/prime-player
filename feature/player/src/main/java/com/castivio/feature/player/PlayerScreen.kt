@@ -320,7 +320,7 @@ data class PlayerActions(
     val onTryBackup: () -> Unit = {},
     val onFullscreen: () -> Unit = {},
     val onPictureInPicture: () -> Unit = {},
-    val onCast: () -> Unit = {},
+    val onShare: () -> Unit = {},
     val onGuide: () -> Unit = {},
     val onChannels: () -> Unit = {},
     val setOutput: (VideoOutput?) -> Unit = {},

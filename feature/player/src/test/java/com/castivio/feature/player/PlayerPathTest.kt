@@ -945,6 +945,138 @@ class PlayerPathTest {
         )
     }
 
+    /* ------------------------------------------------------------------ the last frame */
+
+    /**
+     * A triangle at the end of a film starts it again.
+     *
+     * The control showed a play triangle when the film ended — correctly — and pressing it
+     * called `play()` on an engine already sitting on the last frame. Neither engine treats
+     * that as "start again": Media3 sets `playWhenReady` on a timeline it has run to the end
+     * of and nothing moves, LibVLC ignores it. The right button, doing nothing, every time.
+     */
+    @Test
+    fun `pressing play at the end of a film starts it again`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        engines.last.finish()
+        runCurrent()
+        assertEquals(Picture.Ended, model.state.value?.picture)
+
+        model.playPause()
+
+        assertEquals("the film was not sent back to the start", listOf(0L), engines.last.seeks)
+        assertTrue("and nothing asked it to play again", engines.last.playing)
+    }
+
+    /**
+     * And a jump backwards out of the last frame plays, rather than stepping a still.
+     *
+     * The same defect one state along: an engine that has ended stays stopped when it is
+     * seeked, so the jump control at the end of a film would move the position and leave the
+     * picture frozen.
+     */
+    @Test
+    fun `jumping back from the end resumes the film`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        engines.last.positionMs = 600_000
+        engines.last.finish()
+        runCurrent()
+
+        model.seekBy(-10_000)
+
+        assertEquals(listOf(590_000L), engines.last.seeks)
+        assertTrue("the picture would have stayed frozen on the last frame", engines.last.playing)
+    }
+
+    /* ---------------------------------------------------------------- the background */
+
+    /**
+     * The sound stops when the application does.
+     *
+     * Not a release: the user has not left the player, they have taken a call, and they
+     * expect the same frame when they come back. What they do not expect is a film they
+     * cannot see carrying on over whatever they went to do.
+     */
+    @Test
+    fun `going to the background pauses the film`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        model.pauseForBackground()
+
+        assertTrue("the film played on behind another application", engines.last.paused)
+        assertFalse("the engine was released, so coming back would reopen the file", engines.last.released)
+    }
+
+    /** And a film already paused is left alone, so returning does not fight the user. */
+    @Test
+    fun `going to the background does not touch a film that is already paused`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        engines.last.pauseFrom()
+        runCurrent()
+        engines.last.paused = false
+
+        model.pauseForBackground()
+
+        assertFalse(engines.last.paused)
+    }
+
+    /* --------------------------------------------------------------- the chrome clock */
+
+    /**
+     * Every action restarts the clock on the controls.
+     *
+     * The chrome hid four seconds after it *appeared*, whatever happened in between — so a
+     * row could go out from under a thumb already travelling toward it, and the press that
+     * followed landed on the picture instead of the control. That is indistinguishable, from
+     * the far side of a screen, from a button that does nothing.
+     *
+     * Asserted as a number that moves rather than as a timer, because the timer belongs to
+     * the screen: this is the signal the screen keys its clock on, and what a test can hold.
+     */
+    @Test
+    fun `every control restarts the clock on the chrome`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        val marks = mutableListOf<Int>()
+        fun mark() = marks.add(model.state.value?.interactions ?: -1)
+
+        mark()
+        model.playPause(); mark()
+        model.seekBy(10_000); mark()
+        model.seekTo(20_000); mark()
+        model.setSpeed(1.5f); mark()
+        model.setAspect(AspectMode.RATIO_4_3); mark()
+        model.openSheet(Sheet.Audio); mark()
+        model.showControls(true); mark()
+
+        assertEquals(
+            "a control was pressed and the clock on the chrome did not restart: $marks",
+            marks.sorted(),
+            marks,
+        )
+        assertEquals("every one of those had to count", marks.first() + 7, marks.last())
+    }
+
     /* -------------------------------------------------------------------- the memory */
 
     /**
@@ -1077,8 +1209,20 @@ class PlayerPathTest {
             _state.value = PlaybackState.Opening
         }
 
-        override fun play() = Unit
-        override fun pause() = Unit
+        /** Whether the engine has been told to run, so "start again" is assertable. */
+        var playing = false
+        var paused = false
+
+        override fun play() {
+            playing = true
+            paused = false
+        }
+
+        override fun pause() {
+            paused = true
+            playing = false
+        }
+
         override fun stop() = Unit
         override fun seekTo(positionMs: Long) {
             seeks += positionMs
@@ -1104,6 +1248,16 @@ class PlayerPathTest {
         /** What a real engine reports once the decoder knows the shape of the picture. */
         fun declareShape(ratio: Float?) {
             _videoAspectRatio.value = ratio
+        }
+
+        /** The film reaches its end, which is where the play control had nothing to do. */
+        fun finish() {
+            _state.value = PlaybackState.Ended
+        }
+
+        /** The user paused, as the engine would report it. */
+        fun pauseFrom() {
+            _state.value = PlaybackState.Paused(positionMs = positionMs)
         }
 
         fun fail(reason: PlaybackError) {
