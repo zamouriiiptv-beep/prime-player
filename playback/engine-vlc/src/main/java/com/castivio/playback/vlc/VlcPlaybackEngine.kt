@@ -397,16 +397,18 @@ class VlcPlaybackEngine(
      */
     private fun updateVideoShape() {
         if (isReleased) return
+        // The null check is on the track itself, so the reads below are on something the
+        // compiler knows is there. Checking the width and height instead left `track`
+        // nullable and the sample-aspect reads would not compile.
         val track = runCatching { mediaPlayer.currentVideoTrack }.getOrNull()
-        val width = track?.width ?: 0
-        val height = track?.height ?: 0
-        if (width <= 0 || height <= 0) {
+        if (track == null || track.width <= 0 || track.height <= 0) {
             _videoAspectRatio.value = null
             return
         }
         val sarNum = track.sarNum.takeIf { it > 0 } ?: 1
         val sarDen = track.sarDen.takeIf { it > 0 } ?: 1
-        _videoAspectRatio.value = (width.toFloat() * sarNum) / (height.toFloat() * sarDen)
+        _videoAspectRatio.value =
+            (track.width.toFloat() * sarNum) / (track.height.toFloat() * sarDen)
     }
 
     private fun updateTracks() {
