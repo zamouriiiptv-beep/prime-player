@@ -500,11 +500,17 @@ private fun ToolsRow(state: PlayerState, actions: PlayerActions) {
             tag = PlayerTags.AUDIO,
             onClick = { actions.onSheet(Sheet.Audio) },
         )
+        // One press, one change, and the button says which fit is on — the same shape as
+        // the speed control beside it. It used to open the settings sheet onto a row that
+        // printed "Fit" and did nothing, so the picture could not be corrected from
+        // anywhere in the player.
         PlayerButton(
             icon = CastivioIcons.Aspect,
             label = stringResource(R.string.player_aspect),
             tag = PlayerTags.ASPECT,
-            onClick = { actions.onSheet(Sheet.Settings) },
+            onClick = { actions.onAspect(nextAspect(state.aspect)) },
+            text = aspectLabel(state.aspect),
+            shrinkable = true,
         )
 
         if (state.request.isLive) {

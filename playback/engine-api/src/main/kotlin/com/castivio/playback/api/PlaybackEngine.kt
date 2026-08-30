@@ -30,6 +30,23 @@ interface PlaybackEngine {
     val firstFrameAtMs: StateFlow<Long?>
 
     /**
+     * The picture's width divided by its height, or null while there is no picture.
+     *
+     * Null for a music file, and null before the decoder has said — those are the same
+     * thing to a screen that has to decide how big to make the surface, and both mean
+     * "nothing to shape yet".
+     *
+     * Corrected for non-square pixels. Anamorphic sources declare a sample aspect ratio and
+     * a player that ignores it shows a 4:3 picture of a 16:9 film, which is the same defect
+     * as having no aspect handling at all, arrived at more carefully.
+     *
+     * On the contract because the screen cannot lay out a picture whose shape it does not
+     * know, and [sample] is explicitly not the way to ask: that is a pull for a panel
+     * nobody has opened, and this is needed on the first frame of every source.
+     */
+    val videoAspectRatio: StateFlow<Float?>
+
+    /**
      * Why the last failure happened, in full, or null while nothing has failed.
      *
      * Separate from [PlaybackState.Failed] because the two have different audiences. The

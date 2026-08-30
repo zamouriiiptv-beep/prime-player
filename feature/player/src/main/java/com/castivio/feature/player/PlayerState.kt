@@ -1,5 +1,6 @@
 package com.castivio.feature.player
 
+import com.castivio.playback.api.AspectMode
 import com.castivio.playback.api.EngineId
 import com.castivio.playback.api.PlaybackError
 import com.castivio.playback.api.PlaybackDiagnosis
@@ -34,6 +35,21 @@ data class PlayerState(
     val switching: Boolean = false,
     val controls: Boolean = true,
     val locked: Boolean = false,
+    /**
+     * How the picture is fitted into the screen. [AspectMode.FIT] is the only honest
+     * default: it shows the whole frame the director shot, and every other mode throws
+     * some of it away or bends it in exchange for filling the glass.
+     */
+    val aspect: AspectMode = AspectMode.FIT,
+    /**
+     * The picture's own shape, or null for a sound file and for a source that has not
+     * decoded yet.
+     *
+     * Needed because [AspectMode.FIT] and [AspectMode.ZOOM] are relative to the source and
+     * the others are not: 16:9 is 16:9 whatever arrives, but "fit" means nothing until the
+     * frame has a shape. Null therefore means "do not letterbox yet" rather than "square".
+     */
+    val videoAspectRatio: Float? = null,
     val sheet: Sheet? = null,
     /**
      * Only ever true because the user asked. Nothing samples the engine until it is.

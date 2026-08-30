@@ -20,6 +20,17 @@ internal object PlayerTags {
     const val VIDEO = "player.video"
 
     /**
+     * The surface itself, inside [VIDEO].
+     *
+     * Two tags because they are two things. [VIDEO] is the picture *region*, which is the
+     * whole screen and must stay that way — a player that insets its own picture is
+     * showing a smaller film than the screen it was given. This is the drawing surface
+     * within it, which is sized to the aspect and so is smaller whenever the source and
+     * the screen disagree. The black is part of the region, not a margin around it.
+     */
+    const val SURFACE = "player.surface"
+
+    /**
      * The inset box every control must stay inside.
      *
      * Tagged rather than recomputed in the test from a padding value, because the padding

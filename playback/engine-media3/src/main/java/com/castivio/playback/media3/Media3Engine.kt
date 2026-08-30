@@ -100,6 +100,9 @@ class Media3Engine(
     private val _firstFrameAtMs = MutableStateFlow<Long?>(null)
     override val firstFrameAtMs: StateFlow<Long?> = _firstFrameAtMs.asStateFlow()
 
+    private val _videoAspectRatio = MutableStateFlow<Float?>(null)
+    override val videoAspectRatio: StateFlow<Float?> = _videoAspectRatio.asStateFlow()
+
     private val _diagnosis = MutableStateFlow<PlaybackDiagnosis?>(null)
     override val diagnosis: StateFlow<PlaybackDiagnosis?> = _diagnosis.asStateFlow()
 
@@ -248,6 +251,7 @@ class Media3Engine(
         videoFormat = null
         audioFormat = null
         hasVideoTrack = null
+        _videoAspectRatio.value = null
         _state.value = PlaybackState.Opening
 
         val item = MediaItem.Builder()
@@ -285,6 +289,7 @@ class Media3Engine(
         _state.value = PlaybackState.Idle
         _firstFrameAtMs.value = null
         hasVideoTrack = null
+        _videoAspectRatio.value = null
     }
 
     override fun seekTo(positionMs: Long) {
@@ -462,6 +467,16 @@ class Media3Engine(
         }
 
         override fun onVideoSizeChanged(videoSize: VideoSize) {
+            // The shape the surface has to be given. Reported here rather than read off
+            // the format, because this is the callback that also carries the pixel aspect
+            // ratio — an anamorphic source declares square dimensions and a correction,
+            // and a player that takes only the dimensions shows the film squashed.
+            _videoAspectRatio.value = if (videoSize.width > 0 && videoSize.height > 0) {
+                videoSize.width * videoSize.pixelWidthHeightRatio / videoSize.height
+            } else {
+                null
+            }
+
             // Kept so the statistics panel can report a resolution even for a container
             // that declared none in its format.
             val current = videoFormat

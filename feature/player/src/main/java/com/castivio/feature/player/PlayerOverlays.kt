@@ -46,6 +46,7 @@ import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.Spacing
 import com.castivio.playback.api.EngineId
+import com.castivio.playback.api.AspectMode
 import com.castivio.playback.api.PlaybackDiagnosis
 import com.castivio.playback.api.PlaybackError
 import com.castivio.playback.api.Track
@@ -631,7 +632,12 @@ private fun sheetRows(sheet: Sheet, state: PlayerState): List<SheetRow> = when (
         SheetRow(
             icon = CastivioIcons.Aspect,
             name = stringResource(R.string.player_aspect),
-            detail = stringResource(R.string.player_aspect_fit),
+            // Reads the mode and sets the next one, exactly as the speed row above does.
+            // It used to print "Fit" whatever the state was and had no `onPick` at all —
+            // an affordance the design had drawn and the code had never connected, which
+            // is why a stretched picture could not be corrected from inside the player.
+            detail = aspectLabel(state.aspect),
+            onPick = { it.onAspect(nextAspect(state.aspect)) },
         ),
         SheetRow(
             icon = CastivioIcons.PictureInPicture,
@@ -683,3 +689,34 @@ private const val STATS_WIDTH = 0.42f
 
 @Composable
 private fun sheetWidth(): Float = if (CastivioTheme.device.isTv) 0.40f else 0.52f
+
+/**
+ * The four fits offered, in the order the row steps through them.
+ *
+ * [AspectMode.ZOOM] is absent on purpose: cropping needs the surface drawn larger than the
+ * frame and clipped, and a `SurfaceView` is composited by the system rather than drawn by
+ * Compose, so the clip would not reliably hold. Four modes that work beat five that
+ * mostly do.
+ */
+internal val ASPECT_CYCLE = listOf(
+    AspectMode.FIT,
+    AspectMode.RATIO_16_9,
+    AspectMode.RATIO_4_3,
+    AspectMode.FILL,
+)
+
+internal fun nextAspect(current: AspectMode): AspectMode {
+    val at = ASPECT_CYCLE.indexOf(current)
+    return ASPECT_CYCLE[(at + 1) % ASPECT_CYCLE.size]
+}
+
+@Composable
+internal fun aspectLabel(mode: AspectMode): String = stringResource(
+    when (mode) {
+        AspectMode.FIT -> R.string.player_aspect_fit
+        AspectMode.FILL -> R.string.player_aspect_fill
+        AspectMode.RATIO_16_9 -> R.string.player_aspect_16_9
+        AspectMode.RATIO_4_3 -> R.string.player_aspect_4_3
+        AspectMode.ZOOM -> R.string.player_aspect_zoom
+    },
+)

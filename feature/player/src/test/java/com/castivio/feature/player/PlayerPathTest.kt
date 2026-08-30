@@ -3,6 +3,7 @@ package com.castivio.feature.player
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
+import com.castivio.playback.api.AspectMode
 import com.castivio.playback.api.EngineFactory
 import com.castivio.playback.api.EngineId
 import com.castivio.playback.api.EngineMemory
@@ -590,6 +591,133 @@ class PlayerPathTest {
         )
     }
 
+    /* ------------------------------------------------------------------- leaving */
+
+    /**
+     * Back out of the player and the sound stops.
+     *
+     * The bug this is written for: the player is shown by swapping a composable in and
+     * out, not by a navigation destination, so the view model is the activity's and
+     * outlives the screen. Nothing cleared it, `onCleared` never ran, and leaving detached
+     * the surface but not the decoder — the library screen came back with a film still
+     * playing behind it.
+     *
+     * Asserted on the engine rather than on the state, because "released" is the part the
+     * user can hear.
+     */
+    @Test
+    fun `leaving the player releases the engine`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        val playing = engines.last
+        assertFalse("still playing before the exit", playing.released)
+
+        model.leave()
+        runCurrent()
+
+        assertTrue("the engine was still decoding after the user left", playing.released)
+        assertNull("and the screen has nothing left to draw", model.state.value)
+    }
+
+    /** Leaving twice is what a fast double press is, and it must not throw. */
+    @Test
+    fun `leaving twice is harmless`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+
+        model.leave()
+        model.leave()
+        runCurrent()
+
+        assertNull(model.state.value)
+    }
+
+    /* ---------------------------------------------------------------- the picture */
+
+    /**
+     * The shape of the picture reaches the state.
+     *
+     * Without it the screen cannot letterbox: `FIT` is the only mode that is relative to
+     * the source, and it is the default and the one that was wrong on a device — a 16:9
+     * film stretched across a 21:9 phone, which is what "zoomed and cropped" was.
+     */
+    @Test
+    fun `the picture's shape reaches the state`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        assertNull("nothing is known before the decoder says", model.state.value?.videoAspectRatio)
+
+        engines.last.declareShape(16f / 9f)
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        assertEquals(16f / 9f, model.state.value?.videoAspectRatio ?: 0f, 0.001f)
+    }
+
+    /** A sound file has no shape, and saying so is the answer the screen needs. */
+    @Test
+    fun `a sound file reports no shape at all`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.declareShape(null)
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        assertNull(
+            "a null ratio means do not letterbox, not letterbox against nothing",
+            model.state.value?.videoAspectRatio,
+        )
+    }
+
+    /**
+     * The chosen fit is on the state, not only on the engine.
+     *
+     * It used to be only on the engine, which is why the setting existed and did nothing:
+     * a `SurfaceView` is scaled by its own size, so the screen is the half that has to
+     * know, and the screen reads the state.
+     */
+    @Test
+    fun `the chosen fit is recorded where the screen can read it`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        assertEquals(AspectMode.FIT, model.state.value?.aspect)
+
+        model.setAspect(AspectMode.RATIO_4_3)
+        runCurrent()
+
+        assertEquals(AspectMode.RATIO_4_3, model.state.value?.aspect)
+    }
+
+    /**
+     * The button steps through the four fits and comes back round.
+     *
+     * A cycle rather than a menu because it is one press on a control that lives in a row
+     * with six others. Four, not five: [AspectMode.ZOOM] would need the surface drawn
+     * larger than the frame and clipped, and a `SurfaceView` is composited by the system
+     * rather than drawn by Compose, so it is not offered at all.
+     */
+    @Test
+    fun `the fit cycles through the four the player offers`() {
+        val seen = generateSequence(AspectMode.FIT) { nextAspect(it) }
+            .take(ASPECT_CYCLE.size)
+            .toList()
+
+        assertEquals("every offered fit must be reachable", ASPECT_CYCLE, seen)
+        assertEquals("and the cycle must close", AspectMode.FIT, nextAspect(seen.last()))
+        assertFalse(
+            "zoom cannot be drawn correctly on a SurfaceView, so it is not offered",
+            AspectMode.ZOOM in ASPECT_CYCLE,
+        )
+    }
+
     /* -------------------------------------------------------------------- the memory */
 
     /**
@@ -690,6 +818,9 @@ class PlayerPathTest {
         private val _firstFrame = MutableStateFlow<Long?>(null)
         override val firstFrameAtMs: StateFlow<Long?> = _firstFrame.asStateFlow()
 
+        private val _videoAspectRatio = MutableStateFlow<Float?>(null)
+        override val videoAspectRatio: StateFlow<Float?> = _videoAspectRatio.asStateFlow()
+
         private val _diagnosis = MutableStateFlow<PlaybackDiagnosis?>(null)
         override val diagnosis: StateFlow<PlaybackDiagnosis?> = _diagnosis.asStateFlow()
 
@@ -728,6 +859,11 @@ class PlayerPathTest {
         fun renderFirstFrame() {
             _firstFrame.value = 1_000
             _state.value = PlaybackState.Playing(positionMs = 0, durationMs = null, bitrateBps = 0)
+        }
+
+        /** What a real engine reports once the decoder knows the shape of the picture. */
+        fun declareShape(ratio: Float?) {
+            _videoAspectRatio.value = ratio
         }
 
         fun fail(reason: PlaybackError) {

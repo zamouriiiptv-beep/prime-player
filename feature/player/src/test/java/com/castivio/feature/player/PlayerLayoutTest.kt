@@ -14,6 +14,7 @@ import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.LayoutDirection
@@ -23,6 +24,7 @@ import androidx.compose.ui.unit.width
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.DeviceClass
 import com.castivio.core.design.theme.LocalDeviceClass
+import com.castivio.playback.api.AspectMode
 import com.castivio.playback.api.MediaKind
 import com.castivio.playback.api.PlaybackError
 import org.junit.Assert.assertEquals
@@ -191,6 +193,138 @@ class PlayerLayoutTest {
 
         assertEquals("the picture is not the width of the frame", frame.width.value, video.width.value, 0.5f)
         assertEquals("the picture is not the height of the frame", frame.height.value, video.height.value, 0.5f)
+    }
+
+    /**
+     * The surface is letterboxed to the picture, inside a region that still fills.
+     *
+     * The two halves of the aspect fix, asserted together because either alone is wrong.
+     * A `SurfaceView` scales whatever the decoder writes to whatever size the view is, so
+     * a surface left filling a 827x393 frame shows a 16:9 film stretched across it — which
+     * is what reached a device. Sizing the view is what letterboxes it.
+     *
+     * The region keeps filling the frame: the black is part of the picture area, not a
+     * margin around it, which is the claim `the video fills the frame` above still makes.
+     */
+    @Test
+    fun `the surface is sized to the picture and not to the frame`() {
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingLive().copy(aspect = AspectMode.FIT, videoAspectRatio = 16f / 9f),
+        )
+
+        val region = compose.bounds(PlayerTags.VIDEO)
+        val surface = compose.bounds(PlayerTags.SURFACE)
+
+        assertEquals("the region must still be the whole frame", HANDSET.width.value, region.width.value, 0.5f)
+        assertEquals(
+            "827x393 is wider than 16:9, so the height is what runs out",
+            region.height.value,
+            surface.height.value,
+            0.5f,
+        )
+        assertEquals(
+            "and the width is what the ratio makes of that height",
+            region.height.value * 16f / 9f,
+            surface.width.value,
+            1f,
+        )
+        assertTrue(
+            "a letterboxed surface is narrower than its region",
+            surface.width.value < region.width.value,
+        )
+    }
+
+    /** A fixed ratio does not consult the source, which is the point of choosing one. */
+    @Test
+    fun `a chosen ratio ignores what the source declared`() {
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingLive().copy(aspect = AspectMode.RATIO_4_3, videoAspectRatio = 16f / 9f),
+        )
+        val surface = compose.bounds(PlayerTags.SURFACE)
+        assertEquals(
+            "4:3 was asked for and 4:3 is what the surface must be",
+            4f / 3f,
+            surface.width.value / surface.height.value,
+            0.02f,
+        )
+    }
+
+    /**
+     * Fill takes the frame, and a shapeless source does too.
+     *
+     * The second half matters more than it looks: a sound file has no ratio, and a player
+     * that letterboxed against a null would draw black bars around nothing.
+     */
+    @Test
+    fun `fill and a shapeless source both take the whole frame`() {
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingLive().copy(aspect = AspectMode.FILL, videoAspectRatio = 16f / 9f),
+        )
+        val filled = compose.bounds(PlayerTags.SURFACE)
+        assertEquals(HANDSET.width.value, filled.width.value, 0.5f)
+        assertEquals(HANDSET.height.value, filled.height.value, 0.5f)
+    }
+
+    @Test
+    fun `a source with no declared shape is not letterboxed`() {
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingLive().copy(aspect = AspectMode.FIT, videoAspectRatio = null),
+        )
+        val surface = compose.bounds(PlayerTags.SURFACE)
+        assertEquals(HANDSET.width.value, surface.width.value, 0.5f)
+        assertEquals(HANDSET.height.value, surface.height.value, 0.5f)
+    }
+
+    /* ------------------------------------------------------------ reaching the controls */
+
+    /**
+     * A tap on the picture is what brings the controls back.
+     *
+     * The defect: nothing on this screen ever called `onToggleControls`. The contract had
+     * it, the auto-hide used it, and after four seconds the chrome went away with no way
+     * left to reach play/pause at all.
+     */
+    @Test
+    fun `tapping the picture asks for the controls`() {
+        var asked = 0
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingLive().copy(controls = false),
+            actions = PlayerActions(onToggleControls = { asked++ }),
+        )
+
+        compose.onNodeWithTag(PlayerTags.VIDEO).performClick()
+
+        assertEquals("a tap on the picture did nothing", 1, asked)
+    }
+
+    /**
+     * Except while locked, where the pill is the only way out.
+     *
+     * A lock a tap dismisses is not a lock.
+     */
+    @Test
+    fun `tapping a locked picture does nothing`() {
+        var asked = 0
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingLive().copy(locked = true),
+            actions = PlayerActions(onToggleControls = { asked++ }),
+        )
+
+        compose.onNodeWithTag(PlayerTags.VIDEO).performClick()
+
+        assertEquals("the lock was dismissed by a tap on the film", 0, asked)
     }
 
     /* -------------------------------------------------------- the reserved strip */
@@ -530,13 +664,14 @@ class PlayerLayoutTest {
         device: DeviceClass,
         state: PlayerState,
         direction: LayoutDirection = LayoutDirection.Rtl,
+        actions: PlayerActions = PlayerActions(),
     ) = setContent {
         CastivioTheme {
             CompositionLocalProvider(
                 LocalDeviceClass provides device,
                 LocalLayoutDirection provides direction,
             ) {
-                Stage(frame) { PlayerScreen(state = state, actions = PlayerActions()) }
+                Stage(frame) { PlayerScreen(state = state, actions = actions) }
             }
         }
     }

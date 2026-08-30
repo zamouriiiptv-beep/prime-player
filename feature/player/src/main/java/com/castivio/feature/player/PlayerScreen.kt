@@ -2,13 +2,17 @@ package com.castivio.feature.player
 
 import android.view.SurfaceView
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -16,8 +20,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.viewinterop.AndroidView
 import com.castivio.core.design.theme.CastivioTheme
+import com.castivio.playback.api.AspectMode
 import com.castivio.playback.api.VideoOutput
 
 /**
@@ -63,7 +71,7 @@ fun PlayerScreen(
             .background(colors.background)
             .testTag(PlayerTags.ROOT),
     ) {
-        VideoSurface(actions)
+        VideoSurface(state, actions)
 
         // Locked hides everything but the way out of it, and it does so before the
         // opening branch: a screen that is locked while a channel opens must not draw a
@@ -121,15 +129,48 @@ fun PlayerScreen(
  * decoder from its output every time the chrome appeared.
  */
 @Composable
-private fun VideoSurface(actions: PlayerActions) {
-    AndroidView(
-        factory = { context -> SurfaceView(context) },
-        modifier = Modifier
+private fun VideoSurface(state: PlayerState, actions: PlayerActions) {
+    val taps = remember { MutableInteractionSource() }
+    val reveal = stringResource(R.string.player_reveal_controls)
+
+    BoxWithConstraints(
+        Modifier
             .fillMaxSize()
-            .testTag(PlayerTags.VIDEO),
-        onRelease = { actions.setOutput(null) },
-        update = { view -> actions.setOutput(VideoOutput.Platform(view)) },
-    )
+            .testTag(PlayerTags.VIDEO)
+            // A tap on the picture is how the controls come back, and there was no such
+            // tap: `onToggleControls` existed on the contract and nothing on this screen
+            // ever called it, so once the chrome auto-hid after four seconds there was no
+            // way left to reach play/pause at all.
+            //
+            // Not while locked — the lock pill is the only way out of a lock, and a tap
+            // that dismissed it would make the lock protect nothing.
+            //
+            // `clickable` and not a raw gesture, so the same press works from a remote
+            // and from a screen reader. No indication: a ripple across a film is noise.
+            .then(
+                if (state.locked) {
+                    Modifier
+                } else {
+                    Modifier.clickable(
+                        interactionSource = taps,
+                        indication = null,
+                        onClickLabel = reveal,
+                        onClick = actions.onToggleControls,
+                    )
+                },
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        val size = surfaceSize(maxWidth, maxHeight, state)
+        AndroidView(
+            factory = { context -> SurfaceView(context) },
+            modifier = Modifier
+                .size(size.width, size.height)
+                .testTag(PlayerTags.SURFACE),
+            onRelease = { actions.setOutput(null) },
+            update = { view -> actions.setOutput(VideoOutput.Platform(view)) },
+        )
+    }
 
     // Detaching on the way out is not tidiness: a surface that is destroyed while the
     // engine still holds it is a crash on some devices and a black frame on the rest.
@@ -137,6 +178,51 @@ private fun VideoSurface(actions: PlayerActions) {
         onDispose { actions.setOutput(null) }
     }
 }
+
+/**
+ * How big to make the drawing surface inside the frame.
+ *
+ * This is where the aspect ratio is actually applied, and it has to be here. A
+ * `SurfaceView` scales whatever the decoder writes into it to whatever size the view is,
+ * so a surface told to fill a 21:9 phone shows a 16:9 film stretched across it — which is
+ * what "zoomed and cropped" looked like, and no amount of setting a mode on the engine
+ * could have changed it. Sizing the view *is* sizing the surface; the letterbox is the
+ * part of the region the surface does not cover.
+ *
+ * [AspectMode.FIT] is relative to the source and needs [PlayerState.videoAspectRatio];
+ * the fixed ratios are not, and answer the same whatever arrives. A null ratio — a sound
+ * file, or a frame that has not been decoded — falls through to the frame, because there
+ * is nothing yet to letterbox against and black bars around nothing would be a defect of
+ * their own.
+ *
+ * [AspectMode.ZOOM] is deliberately not offered. Cropping means drawing the surface larger
+ * than the frame and clipping it, and a `SurfaceView` is composited by the system rather
+ * than drawn by Compose — the clip would not reliably hold. A mode that works on some
+ * devices is worse than a mode that is not in the list.
+ */
+private fun surfaceSize(frameWidth: Dp, frameHeight: Dp, state: PlayerState): DpSize {
+    val target = when (state.aspect) {
+        AspectMode.FILL, AspectMode.ZOOM -> null
+        AspectMode.RATIO_16_9 -> WIDE
+        AspectMode.RATIO_4_3 -> ACADEMY
+        AspectMode.FIT -> state.videoAspectRatio
+    }
+    if (target == null || target <= 0f || frameHeight.value <= 0f) {
+        return DpSize(frameWidth, frameHeight)
+    }
+
+    // A frame wider than the picture runs out of height first, so the height is the one
+    // to keep and the width is whatever the ratio makes of it. The other way round when
+    // the frame is the taller of the two.
+    return if (frameWidth / frameHeight > target) {
+        DpSize(frameHeight * target, frameHeight)
+    } else {
+        DpSize(frameWidth, frameWidth / target)
+    }
+}
+
+private const val WIDE = 16f / 9f
+private const val ACADEMY = 4f / 3f
 
 /**
  * The two gradients, and only where a control sits.
@@ -207,6 +293,7 @@ data class PlayerActions(
     val onPrevious: () -> Unit = {},
     val onNext: () -> Unit = {},
     val onToggleControls: () -> Unit = {},
+    val onAspect: (AspectMode) -> Unit = {},
     val onLock: (Boolean) -> Unit = {},
     val onSheet: (Sheet?) -> Unit = {},
     val onStatistics: (Boolean) -> Unit = {},

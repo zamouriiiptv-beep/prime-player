@@ -49,6 +49,9 @@ class VlcPlaybackEngine(
     private val _firstFrameAtMs = MutableStateFlow<Long?>(null)
     override val firstFrameAtMs: StateFlow<Long?> = _firstFrameAtMs.asStateFlow()
 
+    private val _videoAspectRatio = MutableStateFlow<Float?>(null)
+    override val videoAspectRatio: StateFlow<Float?> = _videoAspectRatio.asStateFlow()
+
     private val _diagnosis = MutableStateFlow<PlaybackDiagnosis?>(null)
     override val diagnosis: StateFlow<PlaybackDiagnosis?> = _diagnosis.asStateFlow()
 
@@ -123,6 +126,7 @@ class VlcPlaybackEngine(
                 _state.value = PlaybackState.Ended
             }
             MediaPlayer.Event.Vout -> {
+                updateVideoShape()
                 if (event.voutCount > 0 && _firstFrameAtMs.value == null) {
                     _firstFrameAtMs.value = SystemClock.elapsedRealtime()
                     pushPlaying()
@@ -132,6 +136,7 @@ class VlcPlaybackEngine(
             MediaPlayer.Event.ESDeleted,
             MediaPlayer.Event.ESSelected -> {
                 updateTracks()
+                updateVideoShape()
             }
             MediaPlayer.Event.TimeChanged -> {
                 if (_state.value is PlaybackState.Playing) {
@@ -207,6 +212,7 @@ class VlcPlaybackEngine(
         openedSource = safeSource(media.url)
         _diagnosis.value = null
         _firstFrameAtMs.value = null
+        _videoAspectRatio.value = null
         _tracks.value = TrackSet()
         _state.value = PlaybackState.Opening
 
@@ -301,6 +307,7 @@ class VlcPlaybackEngine(
             currentMedia = null
             closeDescriptor()
             _firstFrameAtMs.value = null
+            _videoAspectRatio.value = null
             _state.value = PlaybackState.Idle
         }
     }
@@ -378,6 +385,28 @@ class VlcPlaybackEngine(
             durationMs = durationMs,
             bitrateBps = 0,
         )
+    }
+
+    /**
+     * The shape of the picture, as LibVLC currently understands it.
+     *
+     * `sarNum`/`sarDen` is the sample aspect ratio and it is not decoration: an anamorphic
+     * source declares square dimensions plus a correction, and a player that reads only
+     * the dimensions shows the film squashed. Null for a sound file, which has no video
+     * track to ask — the same answer the screen wants there anyway.
+     */
+    private fun updateVideoShape() {
+        if (isReleased) return
+        val track = runCatching { mediaPlayer.currentVideoTrack }.getOrNull()
+        val width = track?.width ?: 0
+        val height = track?.height ?: 0
+        if (width <= 0 || height <= 0) {
+            _videoAspectRatio.value = null
+            return
+        }
+        val sarNum = track.sarNum.takeIf { it > 0 } ?: 1
+        val sarDen = track.sarDen.takeIf { it > 0 } ?: 1
+        _videoAspectRatio.value = (width.toFloat() * sarNum) / (height.toFloat() * sarDen)
     }
 
     private fun updateTracks() {

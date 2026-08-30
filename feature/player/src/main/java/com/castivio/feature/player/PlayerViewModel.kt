@@ -71,6 +71,7 @@ class PlayerViewModel @Inject constructor(
     private var ticker: Job? = null
     private var sampler: Job? = null
     private var guideJob: Job? = null
+    private var shapeJob: Job? = null
 
     /** Set when the primary has already been tried and refused, so a second failure is final. */
     private var backupTried = false
@@ -132,6 +133,16 @@ class PlayerViewModel @Inject constructor(
         collector = viewModelScope.launch {
             combine(created.state, created.firstFrameAtMs) { playback, frame -> playback to frame }
                 .collect { (playback, frame) -> onEngineState(playback, frame != null) }
+        }
+
+        // Its own collector rather than a third flow in the combine above. That combine is
+        // the opening path and it is the piece most recently gone wrong; the shape of the
+        // picture is not on the critical path — it arrives with the first frame at the
+        // earliest — so it is kept out of the way of the thing that is.
+        shapeJob = viewModelScope.launch {
+            created.videoAspectRatio.collect { ratio ->
+                _state.value = _state.value?.copy(videoAspectRatio = ratio)
+            }
         }
 
         created.open(
@@ -340,7 +351,18 @@ class PlayerViewModel @Inject constructor(
         _state.value = _state.value?.copy(speed = speed)
     }
 
-    fun setAspect(mode: AspectMode) = engine?.setAspect(mode) ?: Unit
+    /**
+     * The picture's fit, on the state as well as on the engine.
+     *
+     * Both, because the two do different halves of it: the engine records the mode for
+     * anything that scales inside itself, and the screen sizes the surface — which is
+     * where the letterboxing actually happens for a `SurfaceView`. Recording it only on
+     * the engine is why the setting existed and did nothing.
+     */
+    fun setAspect(mode: AspectMode) {
+        engine?.setAspect(mode)
+        _state.value = _state.value?.copy(aspect = mode)
+    }
 
     fun selectTrack(track: Track) {
         engine?.selectTrack(track)
@@ -460,6 +482,28 @@ class PlayerViewModel @Inject constructor(
         ticker?.cancel(); ticker = null
         sampler?.cancel(); sampler = null
         guideJob?.cancel(); guideJob = null
+        shapeJob?.cancel(); shapeJob = null
+    }
+
+    /**
+     * The user has left the player.
+     *
+     * This exists because leaving the screen was not enough to stop the sound. The player
+     * is shown by swapping a composable in and out, not by a navigation destination, so
+     * the view model is scoped to the activity and outlives the screen — nothing cleared
+     * it, `onCleared` never ran, and the engine went on decoding with its surface detached.
+     * What the user got was a library screen with a film still playing behind it.
+     *
+     * So the exit says so explicitly: release the engine, drop the state. Decoders, the
+     * ticker, the guide and — on the backup — LibVLC and its descriptor all go with it.
+     *
+     * Called on the way out and nowhere else. Not from `onDispose`, which would also fire
+     * on a rotation and stop playback for turning the phone.
+     */
+    fun leave() {
+        Log.i(TAG, "leaving the player")
+        release()
+        _state.value = null
     }
 
     override fun onCleared() {

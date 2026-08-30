@@ -68,6 +68,16 @@ fun PlayerRoute(
         model.showControls(false)
     }
 
+    // Leaving is two things and used to be one. The screen is swapped out by the host
+    // rather than popped off a back stack, so the view model is the activity's and
+    // survives — clearing the request hid the player and left the engine decoding, which
+    // is why the sound carried on over the library screen. The engine is released here,
+    // explicitly, and only on the way out.
+    val leave = {
+        model.leave()
+        onLeave()
+    }
+
     BackHandler {
         when {
             // Innermost first, which is the same ladder every other screen in Castivio
@@ -77,7 +87,7 @@ fun PlayerRoute(
             current.statistics -> model.setStatistics(false)
             current.sheet != null -> model.openSheet(null)
             current.controls -> model.showControls(false)
-            else -> onLeave()
+            else -> leave()
         }
     }
 
@@ -85,13 +95,14 @@ fun PlayerRoute(
         PlayerScreen(
             state = current,
             actions = PlayerActions(
-                onBack = onLeave,
+                onBack = leave,
                 onPlayPause = model::playPause,
                 onSeekBy = model::seekBy,
                 onSeekTo = model::seekTo,
                 onPrevious = { onPrevious?.invoke() },
                 onNext = { onNext?.invoke() },
                 onToggleControls = { model.showControls(!current.controls) },
+                onAspect = model::setAspect,
                 onLock = model::setLocked,
                 onSheet = model::openSheet,
                 onStatistics = model::setStatistics,

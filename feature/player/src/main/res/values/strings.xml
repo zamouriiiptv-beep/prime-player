@@ -78,6 +78,9 @@
     <string name="player_sheet_quality">Video quality</string>
     <string name="player_subtitles_off">No subtitles</string>
     <string name="player_speed">Playback speed</string>
+    <!-- Spoken by a screen reader for the picture itself: the whole frame is the way
+         the controls are brought back. -->
+    <string name="player_reveal_controls">Show or hide the controls</string>
     <string name="player_aspect">Aspect ratio</string>
     <string name="player_aspect_fit">Fit</string>
     <string name="player_aspect_fill">Fill</string>

@@ -65,6 +65,7 @@
     <string name="player_sheet_quality">جودة الفيديو</string>
     <string name="player_subtitles_off">بدون ترجمة</string>
     <string name="player_speed">سرعة التشغيل</string>
+    <string name="player_reveal_controls">إظهار أدوات التحكم أو إخفاؤها</string>
     <string name="player_aspect">نسبة العرض</string>
     <string name="player_aspect_fit">احتواء</string>
     <string name="player_aspect_fill">ملء</string>
