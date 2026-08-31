@@ -37,6 +37,7 @@ include(":data:database")
 include(":data:playlist")
 include(":data:epg")
 include(":data:localmedia")
+include(":data:subtitles")
 
 // playback — the engine boundary
 include(":playback:engine-api")

@@ -1,0 +1,34 @@
+# Castivio — the local settings that are never committed.
+#
+# Copy this file to `local.properties` in this same directory and fill in the values you
+# have. That file is in `.gitignore` and must stay there; nothing in it ever reaches the
+# repository, a build artefact that is published, or a log.
+#
+#     cp local.properties.example local.properties
+#
+# Every value below is optional. A clone with none of them compiles, runs, and passes its
+# tests — the features that need one report themselves as not set up rather than failing.
+# Android Studio writes `sdk.dir` into `local.properties` by itself the first time it opens
+# the project, so an existing file should be added to rather than replaced.
+#
+# On CI there is no file to write, so the same three names are read from the environment
+# instead. `Secrets.kt` in buildSrc does both and prefers the file.
+
+# ---------------------------------------------------------------------------------------
+# OpenSubtitles — for "find subtitles online" in the player.
+#
+# Two separate things are needed, and the first alone is not enough:
+#
+#   1. An API key. opensubtitles.com → log in → Consumers → New Consumer. Free.
+#   2. An ordinary account's username and password. The v1 API will search with the key
+#      alone, but a *download* link is only issued to a session, and a session comes from
+#      POST /api/v1/login with those credentials. This is how OpenSubtitles counts a
+#      person's daily downloads, so there is no way round it and no reason to want one.
+#
+# Leave them empty and the player keeps every subtitle a file already carries; only the
+# search is switched off, and it says so.
+# ---------------------------------------------------------------------------------------
+
+OPENSUBTITLES_API_KEY=
+OPENSUBTITLES_USERNAME=
+OPENSUBTITLES_PASSWORD=

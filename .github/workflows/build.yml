@@ -75,6 +75,7 @@ jobs:
             :data:activation:testDebugUnitTest \
             :data:entitlement:testDebugUnitTest \
             :data:localmedia:testDebugUnitTest \
+            :data:subtitles:testDebugUnitTest \
             :feature:activation:testDebugUnitTest \
             :feature:licence:testDebugUnitTest \
             :feature:player:testDebugUnitTest \
