@@ -15,6 +15,9 @@ import com.castivio.playback.api.PlaybackState
 import com.castivio.playback.api.Track
 import com.castivio.playback.api.VideoOutput
 import com.castivio.playback.api.EngineFactory
+import com.castivio.data.subtitles.SubtitleOffer
+import com.castivio.data.subtitles.SubtitleResult
+import com.castivio.data.subtitles.SubtitleTrack
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Job
@@ -57,6 +60,7 @@ class PlayerViewModel @Inject constructor(
     private val memory: EngineMemory,
     private val guide: ProgrammeSource,
     private val subtitles: SubtitleStyleStore,
+    private val hunt: SubtitleSource,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<PlayerState?>(null)
@@ -74,6 +78,8 @@ class PlayerViewModel @Inject constructor(
     private var guideJob: Job? = null
     private var shapeJob: Job? = null
     private var cueJob: Job? = null
+    private var huntJob: Job? = null
+    private var captionJob: Job? = null
 
     /** Set when the primary has already been tried and refused, so a second failure is final. */
     private var backupTried = false
@@ -90,6 +96,16 @@ class PlayerViewModel @Inject constructor(
      * expects of a setting.
      */
     private var style: SubtitleStyle = subtitles.read()
+
+    /**
+     * The downloaded subtitle, when there is one, and the reason it is not on the state.
+     *
+     * Fifteen hundred cues, and `PlayerState` is copied four times a second by the ticker.
+     * Carrying the track on it would put the whole thing through every `equals` the
+     * recomposition machinery performs, to serve a layer that needs one line of it. What
+     * reaches the screen is the caption for this moment, like every other caption.
+     */
+    private var downloaded: SubtitleTrack? = null
 
     /** Where a jump was aimed, held until the engine's own clock gets there. */
     private var seekTarget: Long? = null
@@ -111,7 +127,15 @@ class PlayerViewModel @Inject constructor(
         timedOut = false
         engineId = FallbackPolicy.first(FallbackPolicy.sourceKey(request.url), memory)
         Log.i(TAG, "opening on $engineId")
-        _state.value = PlayerState(request = request, engine = engineId, subtitleStyle = style)
+        downloaded = null
+        _state.value = PlayerState(
+            request = request,
+            engine = engineId,
+            subtitleStyle = style,
+            // Fixed for the life of the build: whether this APK was compiled with
+            // credentials. Asked once, here, rather than by the sheet at draw time.
+            subtitleSearch = SubtitleSearch(available = hunt.available),
+        )
         start(request, engineId)
     }
 
@@ -169,7 +193,11 @@ class PlayerViewModel @Inject constructor(
         // decides whether to fall over to the backup engine.
         cueJob = viewModelScope.launch {
             created.cues.collect { lines ->
-                _state.value = _state.value?.copy(cues = lines)
+                // Ignored while a downloaded subtitle is in use. The engine goes on
+                // decoding whatever text track the container carries, and letting both
+                // reach the layer would draw two subtitles at once — the film's own and
+                // the one the viewer went and found because the film's own was wrong.
+                if (downloaded == null) _state.value = _state.value?.copy(cues = lines)
             }
         }
 
@@ -600,6 +628,143 @@ class PlayerViewModel @Inject constructor(
         _state.value = _state.value?.copy(subtitleStyle = chosen)
     }
 
+    /* --------------------------------------------------------------- the subtitle hunt */
+
+    /**
+     * Look for a subtitle for what is playing.
+     *
+     * Nothing here is on the critical path and nothing here can affect playback: a failure
+     * is a sentence in a sheet. The search runs at most one at a time — pressing a second
+     * language while the first is in flight cancels it, because the answer to a question
+     * nobody is asking any more is not worth the wait it causes.
+     */
+    fun findSubtitles(language: SubtitleLanguage = _state.value?.subtitleSearch?.language ?: SubtitleLanguage.Arabic) {
+        val current = _state.value ?: return
+        noteInteraction()
+
+        val asked = current.subtitleSearch.copy(language = language, hunt = SubtitleHunt.Searching)
+        _state.value = current.copy(subtitleSearch = asked)
+
+        huntJob?.cancel()
+        huntJob = viewModelScope.launch {
+            val outcome = hunt.search(
+                url = current.request.url,
+                title = current.request.title,
+                languages = asked.codes,
+            )
+            val stage = when (outcome) {
+                is SubtitleResult.Found -> SubtitleHunt.Offers(outcome.value)
+                is SubtitleResult.Refused -> SubtitleHunt.Failed(outcome.reason)
+            }
+            _state.value = _state.value?.let { it.copy(subtitleSearch = it.subtitleSearch.copy(hunt = stage)) }
+        }
+    }
+
+    /**
+     * Take one of them, and show it.
+     *
+     * The track is applied by this class rather than handed to the engine, and that is the
+     * decision the whole feature rests on. Media3 would take a side-loaded subtitle only as
+     * part of a `MediaItem`, which means re-preparing the source and seeking back mid-film;
+     * LibVLC would take a file, which means writing one. Neither would give a sync control,
+     * because neither engine can shift a subtitle's timing after the fact.
+     *
+     * Holding the cues means the same downloaded subtitle draws over either engine, through
+     * the same caption layer, with the same settings — and the sync below is a subtraction.
+     */
+    fun useSubtitle(offer: SubtitleOffer) {
+        val current = _state.value ?: return
+        noteInteraction()
+        _state.value = current.copy(
+            subtitleSearch = current.subtitleSearch.copy(hunt = SubtitleHunt.Fetching(offer)),
+        )
+
+        huntJob?.cancel()
+        huntJob = viewModelScope.launch {
+            when (val outcome = hunt.download(offer)) {
+                is SubtitleResult.Refused -> _state.value = _state.value?.let {
+                    it.copy(subtitleSearch = it.subtitleSearch.copy(hunt = SubtitleHunt.Failed(outcome.reason)))
+                }
+
+                is SubtitleResult.Found -> {
+                    downloaded = outcome.value
+                    Log.i(TAG, "using a downloaded subtitle of ${outcome.value.cues.size} lines")
+                    _state.value = _state.value?.copy(
+                        downloadedSubtitle = offer.name,
+                        // A hash match was timed against these exact bytes, so it starts
+                        // where it was uploaded. So does a name match — the offset is the
+                        // viewer's correction, not a guess this class is entitled to make.
+                        subtitleOffsetMs = 0,
+                        cues = emptyList(),
+                        sheet = null,
+                    )
+                    startCaptions()
+                }
+            }
+        }
+    }
+
+    /**
+     * Back to whatever the film itself carries.
+     *
+     * The engine never stopped decoding its own text track, so there is nothing to restart:
+     * dropping the downloaded one lets the next cue through.
+     */
+    fun clearDownloadedSubtitle() {
+        noteInteraction()
+        captionJob?.cancel(); captionJob = null
+        downloaded = null
+        _state.value = _state.value?.copy(
+            downloadedSubtitle = null,
+            subtitleOffsetMs = 0,
+            cues = emptyList(),
+        )
+    }
+
+    /**
+     * Shift the downloaded subtitle, half a second at a time.
+     *
+     * Positive is later. Half a second because that is the smallest step a viewer can
+     * actually judge against dialogue — a tenth is below the threshold at which anyone can
+     * tell whether the last press helped, and a whole second overshoots the common case.
+     *
+     * Bounded, because the control is a pair of buttons and a viewer holding one down is
+     * not asking to move the subtitle to next Tuesday.
+     */
+    fun nudgeSubtitles(deltaMs: Long) {
+        val current = _state.value ?: return
+        if (downloaded == null) return
+        noteInteraction()
+        val shifted = (current.subtitleOffsetMs + deltaMs).coerceIn(-SUBTITLE_SHIFT_LIMIT_MS, SUBTITLE_SHIFT_LIMIT_MS)
+        _state.value = current.copy(subtitleOffsetMs = shifted)
+    }
+
+    /**
+     * The caption for this moment, from the downloaded track.
+     *
+     * Its own loop at a tenth of a second rather than the position ticker's quarter. The
+     * ticker's rate is set by what a clock needs, and a caption that arrived up to 250ms
+     * late would be visibly behind the dialogue on a line that is only spoken for one
+     * second. This runs only while a downloaded subtitle is in use, and it does nothing
+     * but read a position and look up a cue.
+     */
+    private fun startCaptions() {
+        captionJob?.cancel()
+        captionJob = viewModelScope.launch {
+            while (true) {
+                val track = downloaded
+                val running = engine
+                val current = _state.value
+                if (track != null && running != null && current != null) {
+                    val at = running.positionMs - current.subtitleOffsetMs
+                    val lines = track.at(at)?.lines.orEmpty()
+                    if (lines != current.cues) _state.value = current.copy(cues = lines)
+                }
+                delay(CAPTION_TICK_MS)
+            }
+        }
+    }
+
     fun selectTrack(track: Track) {
         noteInteraction()
         engine?.selectTrack(track)
@@ -729,6 +894,8 @@ class PlayerViewModel @Inject constructor(
         guideJob?.cancel(); guideJob = null
         shapeJob?.cancel(); shapeJob = null
         cueJob?.cancel(); cueJob = null
+        huntJob?.cancel(); huntJob = null
+        captionJob?.cancel(); captionJob = null
     }
 
     /**
@@ -774,5 +941,20 @@ class PlayerViewModel @Inject constructor(
 
         /** Two seconds. Long enough for a slow seek, short enough not to hold a timeline. */
         const val SEEK_SETTLE_TICKS = 8
+
+        /**
+         * How often a downloaded subtitle is looked up. A tenth of a second.
+         *
+         * Finer than the position ticker, and for a different reason: the ticker's rate is
+         * what a moving clock needs, and a caption that appeared a quarter of a second late
+         * would be visibly behind a line of dialogue that is only spoken for one.
+         */
+        const val CAPTION_TICK_MS = 100L
+
+        /** Ten seconds either way. A viewer correcting a subtitle is not rewriting it. */
+        const val SUBTITLE_SHIFT_LIMIT_MS = 10_000L
+
+        /** The step the two buttons take. Small enough to judge, large enough to feel. */
+        const val SUBTITLE_STEP_MS = 500L
     }
 }

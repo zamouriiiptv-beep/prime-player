@@ -266,6 +266,14 @@ object CastivioIcons {
         size = Sizing.iconMd,
     )
 
+    /** A lens and its handle. The mark for "go and look for one", and nothing else uses it. */
+    val Search: ImageVector = strokeIcon(
+        "Search",
+        "M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14",
+        "M16 16l4 4",
+        size = Sizing.iconMd,
+    )
+
     val PictureInPicture: ImageVector = strokeIcon(
         "PictureInPicture", "M3 5h18v14H3z", "M12 11h7v6h-7z", size = Sizing.iconMd,
     )

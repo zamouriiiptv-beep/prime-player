@@ -81,6 +81,32 @@
     <string name="player_sheet_quality">Video quality</string>
     <string name="player_subtitles_off">No subtitles</string>
     <string name="player_subtitle_look">Subtitle appearance</string>
+    <string name="player_find_subtitles">Find subtitles online</string>
+    <string name="player_subtitles_not_set_up">Not set up on this build</string>
+    <string name="player_subtitle_downloaded">Downloaded — tap to remove</string>
+    <string name="player_subtitle_language">Language</string>
+    <string name="player_subtitle_arabic">Arabic</string>
+    <string name="player_subtitle_english">English</string>
+    <string name="player_subtitle_french">French</string>
+    <string name="player_subtitle_any_language">Any language</string>
+    <string name="player_subtitle_pick_language">Choose a language to search.</string>
+    <string name="player_subtitle_searching">Searching…</string>
+    <string name="player_subtitle_fetching">Downloading…</string>
+    <string name="player_subtitle_results">Results</string>
+    <string name="player_subtitle_none">Nothing found for this film.</string>
+    <!-- Matched against this exact file, so it is already in step. -->
+    <string name="player_subtitle_exact">Matches this file</string>
+    <!-- %1$d is how many people have downloaded it. -->
+    <string name="player_subtitle_downloads">%1$d downloads</string>
+    <string name="player_subtitle_no_network">Could not reach the subtitle service.</string>
+    <string name="player_subtitle_refused">The subtitle account was refused. Check the key and password.</string>
+    <string name="player_subtitle_spent">Today\'s downloads are used up. Try again tomorrow.</string>
+    <string name="player_subtitle_unreadable">That subtitle could not be read.</string>
+    <string name="player_subtitle_sync">Timing</string>
+    <string name="player_subtitle_earlier">Half a second earlier</string>
+    <string name="player_subtitle_later">Half a second later</string>
+    <!-- %1$.1f is the shift in seconds, signed: "+1.5 s". -->
+    <string name="player_subtitle_shift">%1$+.1f s</string>
     <string name="player_subtitle_size">Size</string>
     <string name="player_subtitle_size_small">Small</string>
     <string name="player_subtitle_size_medium">Medium</string>

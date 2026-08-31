@@ -59,6 +59,12 @@ dependencies {
     // must have no route to an ExoPlayer type; the implementation is bound in `:app`.
     implementation(project(":playback:engine-api"))
 
+    // The subtitle search. A data module rather than an interface in this feature, because
+    // the hash and the SRT parser are algorithms with their own tests and no business being
+    // in a UI module — what this feature adds is the half that knows what a content:// URI
+    // is. Nothing here reaches OkHttp: the client is behind `SubtitleSource`.
+    implementation(project(":data:subtitles"))
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)

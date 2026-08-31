@@ -61,6 +61,31 @@ data class PlayerState(
     val cues: List<String> = emptyList(),
     /** Size, colour, backdrop and place. The viewer's, and remembered between films. */
     val subtitleStyle: SubtitleStyle = SubtitleStyle(),
+    /** The online search: what it can do, what was asked, and where it got to. */
+    val subtitleSearch: SubtitleSearch = SubtitleSearch(),
+    /**
+     * The name of the downloaded subtitle in use, or null when the film's own is showing.
+     *
+     * The track itself is not here. A parsed subtitle is fifteen hundred cues, and a
+     * `PlayerState` is copied four times a second by the ticker — carrying the cues on it
+     * would copy a reference fifteen hundred times a minute for no reason, and would put
+     * the whole track through every `equals` the recomposition machinery performs. The
+     * cues for *this moment* arrive in [cues] like any other; the track lives in the view
+     * model, which is the only thing that needs it.
+     */
+    val downloadedSubtitle: String? = null,
+    /**
+     * How far the downloaded subtitle is shifted, in milliseconds.
+     *
+     * Positive is later. Zero is the file as it was uploaded, which is right whenever the
+     * search matched on the file's own hash — somebody has already watched that subtitle
+     * against these exact bytes. A name match is the one that needs this.
+     *
+     * Only ever applied to a downloaded track. A film's own subtitles are timed by the
+     * engine and Media3 offers no way to shift them, which is why this control appears with
+     * the downloaded track and not before it.
+     */
+    val subtitleOffsetMs: Long = 0,
     val sheet: Sheet? = null,
     /**
      * Only ever true because the user asked. Nothing samples the engine until it is.
@@ -206,7 +231,7 @@ sealed interface Picture {
 }
 
 /** The panels that slide in from the end edge. The statistics panel is not one of them. */
-enum class Sheet { Subtitles, Audio, Settings, Quality, SubtitleLook }
+enum class Sheet { Subtitles, Audio, Settings, Quality, SubtitleLook, SubtitleSearch }
 
 /**
  * What is on now, and what is next.

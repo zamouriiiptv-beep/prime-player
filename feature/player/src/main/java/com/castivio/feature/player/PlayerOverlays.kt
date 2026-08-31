@@ -33,6 +33,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.testTag
@@ -645,7 +648,17 @@ private fun SheetOption(row: SheetRow, onClick: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(row.icon, contentDescription = null, tint = colors.onBackground, modifier = Modifier.size(Sizing.iconMd))
+        Icon(
+            row.icon,
+            contentDescription = null,
+            tint = colors.onBackground,
+            modifier = Modifier
+                .size(Sizing.iconMd)
+                .scale(
+                    scaleX = if (row.mirror && LocalLayoutDirection.current == LayoutDirection.Rtl) -1f else 1f,
+                    scaleY = 1f,
+                ),
+        )
         Text(
             row.name,
             style = CastivioType.bodyLarge,
@@ -682,6 +695,8 @@ private data class SheetRow(
      * looked pressable in a list of pressable things is a control that does nothing.
      */
     val heading: Boolean = false,
+    /** Mirrored in Arabic, for the two rows whose icon is a direction rather than a thing. */
+    val mirror: Boolean = false,
     val onPick: (PlayerActions) -> Unit = {},
 )
 
@@ -691,6 +706,7 @@ private fun sheetTitle(sheet: Sheet): Int = when (sheet) {
     Sheet.Settings -> R.string.player_sheet_settings
     Sheet.Quality -> R.string.player_sheet_quality
     Sheet.SubtitleLook -> R.string.player_subtitle_look
+    Sheet.SubtitleSearch -> R.string.player_find_subtitles
 }
 
 /**
@@ -713,9 +729,59 @@ private fun sheetRows(sheet: Sheet, state: PlayerState): List<SheetRow> = when (
         )
         state.subtitleTracks.forEach { track -> add(trackRow(CastivioIcons.Subtitles, track)) }
 
-        // Last, because it is the one row that is not a track. Choosing what to read comes
-        // before choosing how it looks, and a viewer opening this sheet almost always wants
-        // the first of those.
+        // A downloaded subtitle is a row of its own, above the search that found it: it is
+        // what is showing, and the way back to the film's own is to press it.
+        state.downloadedSubtitle?.let { name ->
+            add(
+                SheetRow(
+                    icon = CastivioIcons.Subtitles,
+                    name = name,
+                    detail = stringResource(R.string.player_subtitle_downloaded),
+                    selected = true,
+                    onPick = { it.onClearSubtitle() },
+                ),
+            )
+        }
+
+        // Only where it can work. An APK built without credentials says so on this row
+        // rather than offering a control whose every press ends in a refusal.
+        add(
+            SheetRow(
+                icon = CastivioIcons.Search,
+                name = stringResource(R.string.player_find_subtitles),
+                detail = if (state.subtitleSearch.available) null else {
+                    stringResource(R.string.player_subtitles_not_set_up)
+                },
+                onPick = { if (state.subtitleSearch.available) it.onSheet(Sheet.SubtitleSearch) },
+            ),
+        )
+
+        // The sync, and only with something to sync. A film's own subtitles are timed by
+        // the engine and neither engine can shift them after the fact, so a control offered
+        // before there is a downloaded track would be a control that does nothing.
+        if (state.downloadedSubtitle != null) {
+            add(heading(R.string.player_subtitle_sync))
+            add(
+                SheetRow(
+                    icon = CastivioIcons.Replay10,
+                    name = stringResource(R.string.player_subtitle_earlier),
+                    detail = shift(state.subtitleOffsetMs),
+                    mirror = true,
+                    onPick = { it.onNudgeSubtitles(-PlayerViewModel.SUBTITLE_STEP_MS) },
+                ),
+            )
+            add(
+                SheetRow(
+                    icon = CastivioIcons.Forward10,
+                    name = stringResource(R.string.player_subtitle_later),
+                    mirror = true,
+                    onPick = { it.onNudgeSubtitles(PlayerViewModel.SUBTITLE_STEP_MS) },
+                ),
+            )
+        }
+
+        // Last, because it is the one row that is not about which subtitle. Choosing what
+        // to read comes before choosing how it looks.
         add(
             SheetRow(
                 icon = CastivioIcons.Quality,
@@ -723,6 +789,47 @@ private fun sheetRows(sheet: Sheet, state: PlayerState): List<SheetRow> = when (
                 onPick = { it.onSheet(Sheet.SubtitleLook) },
             ),
         )
+    }
+
+    /**
+     * The search: four languages, then whatever the last one asked for produced.
+     *
+     * One sheet rather than two screens, because a viewer whose first language returns
+     * nothing wants to try another without going back anywhere. The languages stay at the
+     * top and the results replace themselves underneath.
+     */
+    Sheet.SubtitleSearch -> buildList {
+        val search = state.subtitleSearch
+        add(heading(R.string.player_subtitle_language))
+        SubtitleLanguage.entries.forEach { language ->
+            add(
+                SheetRow(
+                    icon = CastivioIcons.Subtitles,
+                    name = stringResource(language.label()),
+                    selected = search.language == language,
+                    onPick = { it.onFindSubtitles(language) },
+                ),
+            )
+        }
+
+        when (val stage = search.hunt) {
+            SubtitleHunt.Idle -> add(note(R.string.player_subtitle_pick_language))
+
+            SubtitleHunt.Searching -> add(note(R.string.player_subtitle_searching))
+
+            is SubtitleHunt.Fetching -> add(note(R.string.player_subtitle_fetching))
+
+            is SubtitleHunt.Failed -> add(note(stage.reason.label()))
+
+            is SubtitleHunt.Offers -> {
+                add(heading(R.string.player_subtitle_results))
+                if (stage.offers.isEmpty()) {
+                    add(note(R.string.player_subtitle_none))
+                } else {
+                    stage.offers.take(MOST_RESULTS).forEach { offer -> add(offerRow(offer)) }
+                }
+            }
+        }
     }
 
     // Four questions, each with its answers on one line. A viewer adjusting captions is
@@ -849,6 +956,65 @@ private fun sheetRows(sheet: Sheet, state: PlayerState): List<SheetRow> = when (
  * accident is a press that changed nothing rather than one that changed something the
  * viewer cannot see.
  */
+/**
+ * One result.
+ *
+ * Three facts and no more: what it is called, whether it was matched against this exact
+ * file, and how many people have used it. The API returns thirty fields per result and a
+ * row showing thirty fields is a row nobody reads.
+ */
+@Composable
+private fun offerRow(offer: com.castivio.data.subtitles.SubtitleOffer): SheetRow = SheetRow(
+    icon = CastivioIcons.Subtitles,
+    name = offer.name,
+    detail = if (offer.matchesThisFile) {
+        stringResource(R.string.player_subtitle_exact)
+    } else {
+        stringResource(R.string.player_subtitle_downloads, offer.downloads)
+    },
+    onPick = { it.onUseSubtitle(offer) },
+)
+
+/** A sentence rather than a choice: "searching", "nothing found", why it could not be done. */
+@Composable
+private fun note(label: Int): SheetRow = SheetRow(
+    icon = CastivioIcons.Subtitles,
+    name = stringResource(label),
+    heading = true,
+)
+
+/** The current shift, as a signed figure a viewer can read while pressing the buttons. */
+@Composable
+private fun shift(offsetMs: Long): String? = when {
+    offsetMs == 0L -> null
+    else -> stringResource(R.string.player_subtitle_shift, offsetMs / 1000f)
+}
+
+private fun SubtitleLanguage.label(): Int = when (this) {
+    SubtitleLanguage.Arabic -> R.string.player_subtitle_arabic
+    SubtitleLanguage.English -> R.string.player_subtitle_english
+    SubtitleLanguage.French -> R.string.player_subtitle_french
+    SubtitleLanguage.Any -> R.string.player_subtitle_any_language
+}
+
+/**
+ * Why a search or a download could not be done, as a sentence.
+ *
+ * Every one of these is a different thing for the viewer to do — check the setup, check the
+ * connection, check the account, wait until tomorrow — which is the whole reason the client
+ * distinguishes them rather than reporting one error.
+ */
+private fun com.castivio.data.subtitles.SubtitleFailure.label(): Int = when (this) {
+    com.castivio.data.subtitles.SubtitleFailure.NOT_CONFIGURED -> R.string.player_subtitles_not_set_up
+    com.castivio.data.subtitles.SubtitleFailure.NETWORK -> R.string.player_subtitle_no_network
+    com.castivio.data.subtitles.SubtitleFailure.REFUSED -> R.string.player_subtitle_refused
+    com.castivio.data.subtitles.SubtitleFailure.OUT_OF_DOWNLOADS -> R.string.player_subtitle_spent
+    com.castivio.data.subtitles.SubtitleFailure.UNREADABLE -> R.string.player_subtitle_unreadable
+}
+
+/** More than this in one sheet is a list to scroll rather than a choice to make. */
+private const val MOST_RESULTS = 20
+
 @Composable
 private fun heading(label: Int): SheetRow = SheetRow(
     icon = CastivioIcons.Quality,

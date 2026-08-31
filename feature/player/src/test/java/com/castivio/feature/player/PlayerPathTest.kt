@@ -19,6 +19,11 @@ import com.castivio.playback.api.PlaybackState
 import com.castivio.playback.api.Track
 import com.castivio.playback.api.TrackSet
 import com.castivio.playback.api.VideoOutput
+import com.castivio.data.subtitles.SubtitleCue
+import com.castivio.data.subtitles.SubtitleFailure
+import com.castivio.data.subtitles.SubtitleOffer
+import com.castivio.data.subtitles.SubtitleResult
+import com.castivio.data.subtitles.SubtitleTrack
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -97,6 +102,7 @@ class PlayerPathTest {
     private lateinit var guide: RecordingGuide
     private lateinit var memory: RecordingMemory
     private lateinit var subtitles: RememberedStyle
+    private lateinit var hunt: FakeSubtitles
 
     @Before
     fun setUp() {
@@ -105,6 +111,7 @@ class PlayerPathTest {
         guide = RecordingGuide()
         memory = RecordingMemory()
         subtitles = RememberedStyle()
+        hunt = FakeSubtitles()
     }
 
     @After
@@ -123,7 +130,7 @@ class PlayerPathTest {
         val factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                PlayerViewModel(engines, memory, guide, subtitles) as T
+                PlayerViewModel(engines, memory, guide, subtitles, hunt) as T
         }
         return ViewModelProvider(store, factory)["player-${created++}", PlayerViewModel::class.java]
     }
@@ -1208,6 +1215,313 @@ class PlayerPathTest {
         assertEquals(SubtitlePlace.Top, subtitles.held.place)
     }
 
+    /* --------------------------------------------------------------- the subtitle hunt */
+
+    /**
+     * A search asks for the language that was chosen, and reports what came back.
+     *
+     * The language reaching the request is the half of a picker that stops being true
+     * silently: the sheet would still highlight Arabic and the results would still be
+     * whatever the server felt like sending.
+     */
+    @Test
+    fun `a search asks in the chosen language and reports the results`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        hunt.offers = SubtitleResult.Found(listOf(offer("road-ar.srt")))
+
+        model.findSubtitles(SubtitleLanguage.Arabic)
+        runCurrent()
+
+        assertEquals(listOf(listOf("ar")), hunt.searches)
+        val stage = model.state.value?.subtitleSearch?.hunt
+        assertTrue(stage is SubtitleHunt.Offers && stage.offers.size == 1)
+    }
+
+    /** "Any language" sends no filter at all, which is what the row promises. */
+    @Test
+    fun `any language sends no filter`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+
+        model.findSubtitles(SubtitleLanguage.Any)
+        runCurrent()
+
+        assertEquals(listOf(emptyList<String>()), hunt.searches)
+    }
+
+    /** A refusal is a sentence for the sheet, not an exception and not a broken player. */
+    @Test
+    fun `a refused search is reported and playback is untouched`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        hunt.offers = SubtitleResult.Refused(SubtitleFailure.NETWORK)
+
+        model.findSubtitles(SubtitleLanguage.Arabic)
+        runCurrent()
+
+        assertEquals(
+            SubtitleHunt.Failed(SubtitleFailure.NETWORK),
+            model.state.value?.subtitleSearch?.hunt,
+        )
+        assertEquals("the film stopped because a subtitle search failed", Picture.Playing, model.state.value?.picture)
+    }
+
+    /**
+     * A downloaded subtitle is shown, and the film's own is not shown underneath it.
+     *
+     * The engine goes on decoding whatever text track the container carries — nothing asks
+     * it to stop — so letting both reach the layer would draw two subtitles at once: the
+     * film's own, and the one the viewer went and found *because* the film's own was wrong.
+     */
+    @Test
+    fun `a downloaded subtitle is used and the engine's own is ignored`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        hunt.track = SubtitleResult.Found(track())
+
+        model.useSubtitle(offer("road-ar.srt"))
+        runCurrent()
+        engines.last.positionMs = 1_500
+        advanceTimeBy(PlayerViewModel.CAPTION_TICK_MS + 1)
+
+        assertEquals("road-ar.srt", model.state.value?.downloadedSubtitle)
+        assertEquals(listOf("مرحبًا"), model.state.value?.cues)
+
+        engines.last.say("the film's own line")
+        runCurrent()
+
+        assertEquals(
+            "the film's own subtitle drew over the downloaded one",
+            listOf("مرحبًا"),
+            model.state.value?.cues,
+        )
+    }
+
+    /** And the sheet closes when it lands, because the viewer's question has been answered. */
+    @Test
+    fun `applying a subtitle closes the sheet`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        model.openSheet(Sheet.SubtitleSearch)
+        hunt.track = SubtitleResult.Found(track())
+
+        model.useSubtitle(offer("one.srt"))
+        runCurrent()
+
+        assertNull(model.state.value?.sheet)
+    }
+
+    /** A download that fails leaves the film's own subtitles alone. */
+    @Test
+    fun `a failed download changes nothing about the film`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        hunt.track = SubtitleResult.Refused(SubtitleFailure.OUT_OF_DOWNLOADS)
+
+        model.useSubtitle(offer("one.srt"))
+        runCurrent()
+
+        assertNull(model.state.value?.downloadedSubtitle)
+        assertEquals(
+            SubtitleHunt.Failed(SubtitleFailure.OUT_OF_DOWNLOADS),
+            model.state.value?.subtitleSearch?.hunt,
+        )
+
+        // And the film's own words get through again, because nothing was switched off.
+        engines.last.say("the film's own line")
+        runCurrent()
+        assertEquals(listOf("the film's own line"), model.state.value?.cues)
+    }
+
+    /**
+     * The caption follows the film, and the sync shifts it.
+     *
+     * Positive is later: a subtitle that arrives before the words are spoken is pushed back,
+     * so the cue that covered 1.0–2.0 seconds now covers 1.5–2.5. The whole control is this
+     * subtraction, and it is only possible because the cues are ours rather than the
+     * engine's — neither engine can shift a subtitle's timing after the fact.
+     */
+    @Test
+    fun `the sync shifts a downloaded subtitle in both directions`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        hunt.track = SubtitleResult.Found(track())
+        model.useSubtitle(offer("one.srt"))
+        runCurrent()
+
+        // 1.2s is inside the first cue, which runs from 1.0 to 2.0.
+        engines.last.positionMs = 1_200
+        advanceTimeBy(PlayerViewModel.CAPTION_TICK_MS + 1)
+        assertEquals(listOf("مرحبًا"), model.state.value?.cues)
+
+        // Pushed half a second later, 1.2s is now before it starts.
+        model.nudgeSubtitles(PlayerViewModel.SUBTITLE_STEP_MS)
+        advanceTimeBy(PlayerViewModel.CAPTION_TICK_MS + 1)
+        assertEquals(500L, model.state.value?.subtitleOffsetMs)
+        assertTrue(model.state.value?.cues.orEmpty().isEmpty())
+
+        // Back to where it started, and the line returns.
+        model.nudgeSubtitles(-PlayerViewModel.SUBTITLE_STEP_MS)
+        advanceTimeBy(PlayerViewModel.CAPTION_TICK_MS + 1)
+        assertEquals(0L, model.state.value?.subtitleOffsetMs)
+        assertEquals(listOf("مرحبًا"), model.state.value?.cues)
+    }
+
+    /**
+     * And the other direction, which is the one a name match usually needs.
+     *
+     * A subtitle that arrives after the words have been spoken is pulled earlier: at 0.6s
+     * nothing is showing, and shifted half a second early the cue that starts at 1.0s is.
+     */
+    @Test
+    fun `a negative sync pulls a late subtitle forward`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        hunt.track = SubtitleResult.Found(track())
+        model.useSubtitle(offer("one.srt"))
+        runCurrent()
+
+        engines.last.positionMs = 600
+        advanceTimeBy(PlayerViewModel.CAPTION_TICK_MS + 1)
+        assertTrue("nothing is spoken yet at 0.6s", model.state.value?.cues.orEmpty().isEmpty())
+
+        model.nudgeSubtitles(-PlayerViewModel.SUBTITLE_STEP_MS)
+        advanceTimeBy(PlayerViewModel.CAPTION_TICK_MS + 1)
+
+        assertEquals(-500L, model.state.value?.subtitleOffsetMs)
+        assertEquals(listOf("مرحبًا"), model.state.value?.cues)
+    }
+
+    /** The shift is bounded: a viewer correcting a subtitle is not rewriting it. */
+    @Test
+    fun `the sync cannot be pushed past its limit`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        hunt.track = SubtitleResult.Found(track())
+        model.useSubtitle(offer("one.srt"))
+        runCurrent()
+
+        repeat(TOO_MANY) { model.nudgeSubtitles(PlayerViewModel.SUBTITLE_STEP_MS) }
+
+        assertEquals(PlayerViewModel.SUBTITLE_SHIFT_LIMIT_MS, model.state.value?.subtitleOffsetMs)
+    }
+
+    /** Removing it hands the film's own subtitles back, and forgets the shift with it. */
+    @Test
+    fun `removing a downloaded subtitle restores the film's own`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        hunt.track = SubtitleResult.Found(track())
+        model.useSubtitle(offer("one.srt"))
+        runCurrent()
+        model.nudgeSubtitles(PlayerViewModel.SUBTITLE_STEP_MS)
+
+        model.clearDownloadedSubtitle()
+        runCurrent()
+
+        assertNull(model.state.value?.downloadedSubtitle)
+        assertEquals(0L, model.state.value?.subtitleOffsetMs)
+
+        engines.last.say("the film's own line")
+        runCurrent()
+        assertEquals(listOf("the film's own line"), model.state.value?.cues)
+    }
+
+    /**
+     * A build with no credentials says so, and never asks.
+     *
+     * The sheet reads this to decide whether to offer the row at all, so it has to be on the
+     * state from the moment the player opens rather than discovered by a request that fails.
+     */
+    @Test
+    fun `an unconfigured build reports the search as unavailable`() = playerTest {
+        hunt.available = false
+
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+
+        assertFalse(model.state.value?.subtitleSearch?.available ?: true)
+    }
+
+    /** Opening another film drops the subtitle that was found for the last one. */
+    @Test
+    fun `a new film starts with no downloaded subtitle`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        hunt.track = SubtitleResult.Found(track())
+        model.useSubtitle(offer("one.srt"))
+        runCurrent()
+        assertEquals("one.srt", model.state.value?.downloadedSubtitle)
+
+        model.switchTo(liveRequest())
+        runCurrent()
+
+        assertNull(model.state.value?.downloadedSubtitle)
+    }
+
+    /**
+     * Nothing about the search happens before the first frame.
+     *
+     * The critical-path rule, applied to the newest thing on the screen. A search that
+     * warmed itself on open would be a network call, and a login, in front of the picture.
+     */
+    @Test
+    fun `opening a film searches for nothing`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        assertTrue("a subtitle search ran without being asked for", hunt.searches.isEmpty())
+        assertEquals(0, hunt.downloads)
+        assertEquals(SubtitleHunt.Idle, model.state.value?.subtitleSearch?.hunt)
+    }
+
+    private fun offer(name: String) = SubtitleOffer(
+        fileId = 11,
+        language = "ar",
+        name = name,
+        downloads = 12,
+        matchesThisFile = true,
+    )
+
+    /** Two lines, a second each, with a silence between them. */
+    private fun track() = SubtitleTrack(
+        listOf(
+            SubtitleCue(1_000, 2_000, listOf("مرحبًا")),
+            SubtitleCue(3_000, 4_000, listOf("وداعًا")),
+        ),
+    )
+
+    /** More presses than the limit can absorb, so the clamp is what is being read. */
+    private val TOO_MANY = 40
+
     /* ---------------------------------------------------------------- the background */
 
     /**
@@ -1520,6 +1834,36 @@ class PlayerPathTest {
         override fun write(style: SubtitleStyle) {
             held = style
             writes++
+        }
+    }
+
+    /**
+     * The subtitle search, answering from a literal.
+     *
+     * No credentials, no network and no device: the view model takes a [SubtitleSource]
+     * rather than the API for exactly this reason. `offers` and `track` are what it will
+     * answer with, and `searches` records what it was asked — because "the language reached
+     * the request" is the half of a language picker that can silently stop being true.
+     */
+    private class FakeSubtitles : SubtitleSource {
+        override var available = true
+        var offers: SubtitleResult<List<SubtitleOffer>> = SubtitleResult.Found(emptyList())
+        var track: SubtitleResult<SubtitleTrack> = SubtitleResult.Found(SubtitleTrack(emptyList()))
+        val searches = mutableListOf<List<String>>()
+        var downloads = 0
+
+        override suspend fun search(
+            url: String,
+            title: String,
+            languages: List<String>,
+        ): SubtitleResult<List<SubtitleOffer>> {
+            searches += languages
+            return offers
+        }
+
+        override suspend fun download(offer: SubtitleOffer): SubtitleResult<SubtitleTrack> {
+            downloads++
+            return track
         }
     }
 
