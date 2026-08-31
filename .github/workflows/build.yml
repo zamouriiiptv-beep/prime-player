@@ -43,14 +43,32 @@ jobs:
       # No --stacktrace: a Kotlin compile error buries its own `e: file:…` lines
       # under 200 lines of Gradle internals, which makes the log useless for the
       # one thing it is needed for.
-      # No credentials are passed to this job, deliberately.
       #
-      # The subtitle search is configured on a developer's own machine through
-      # `local.properties`, and an APK built here is therefore always the unconfigured one:
-      # the search reports itself as not set up and everything else is unaffected. Wiring
-      # repository secrets in would bake an account's password into every published APK,
-      # where anyone holding the file can read it out.
+      # The three `env:` entries are the OpenSubtitles credentials, taken from the
+      # repository's encrypted secrets. `Secrets.kt` in buildSrc reads `local.properties`
+      # first and the environment second, and this is the second: no file is written, nothing
+      # is committed, and the values exist only as environment variables of this one step.
+      # `local.properties` stays a local file and is never uploaded anywhere.
+      #
+      # **Masking.** GitHub substitutes `***` for a secret's value everywhere it appears in
+      # the log, which covers anything Gradle might echo by accident. What masking cannot
+      # cover is a value a workflow prints deliberately — so nothing here prints them,
+      # `--console=plain` keeps Gradle to the tasks it runs, and the generated `BuildConfig`
+      # is never logged.
+      #
+      # An unset secret arrives as an empty string, which is exactly the unconfigured state
+      # the feature is built to survive: the job produces the APK it always did and the
+      # subtitle search reports itself as not set up rather than failing.
+      #
+      # What it does mean is that the values are compiled into every APK this job publishes,
+      # where anyone holding the file can read them back out. That is the accepted cost of
+      # installing CI builds rather than building locally, and the reason these credentials
+      # should be an account kept for this and rotated when it leaks.
       - name: Build debug APK
+        env:
+          OPENSUBTITLES_API_KEY: ${{ secrets.OPENSUBTITLES_API_KEY }}
+          OPENSUBTITLES_USERNAME: ${{ secrets.OPENSUBTITLES_USERNAME }}
+          OPENSUBTITLES_PASSWORD: ${{ secrets.OPENSUBTITLES_PASSWORD }}
         run: |
           attempt=0
           until ./gradlew assembleDebug --no-daemon --console=plain; do
@@ -72,7 +90,17 @@ jobs:
       # having no tests: the job reported success over two rounds of player work while
       # :feature:player, :playback:engine-media3 and :data:localmedia never ran a single
       # test. A gate nobody runs is still believed.
+      #
+      # The same three secrets are passed again, not because any test reads them — the
+      # subtitle tests construct their credentials from literals against a MockWebServer,
+      # precisely so they never depend on a real account — but because they are a build
+      # input. Give this step a different value and `BuildConfig` is regenerated and half
+      # the debug variant recompiles between the two steps.
       - name: Run Android unit tests
+        env:
+          OPENSUBTITLES_API_KEY: ${{ secrets.OPENSUBTITLES_API_KEY }}
+          OPENSUBTITLES_USERNAME: ${{ secrets.OPENSUBTITLES_USERNAME }}
+          OPENSUBTITLES_PASSWORD: ${{ secrets.OPENSUBTITLES_PASSWORD }}
         run: |
           ./gradlew --no-daemon --console=plain \
             :core:design:testDebugUnitTest \
