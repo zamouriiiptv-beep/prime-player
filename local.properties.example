@@ -6,6 +6,12 @@
 #
 #     cp local.properties.example local.properties
 #
+# **On the machine that builds, and never through github.com.** The web interface commits
+# what it is given without consulting `.gitignore`, so a file created there is a file in the
+# repository however thoroughly it is excluded — which is how a set of real credentials once
+# reached this project's history and had to be replaced. `.gitignore` protects `git add`. It
+# cannot protect a file written straight onto the remote.
+#
 # Every value below is optional. A clone with none of them compiles, runs, and passes its
 # tests — the features that need one report themselves as not set up rather than failing.
 # Android Studio writes `sdk.dir` into `local.properties` by itself the first time it opens
