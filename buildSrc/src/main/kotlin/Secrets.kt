@@ -10,21 +10,33 @@ import java.util.Properties
  * environment. Nowhere else — not in a Kotlin constant, not in a resource, not in a
  * `gradle.properties` that gets committed by habit, and not in a commit message.
  *
- * Two sources rather than one because they serve two people. `local.properties` is the
- * developer's own machine, where a file is easier than an environment variable that has to
- * be exported into every shell. The environment is CI, where there is no file to write and
- * the secret arrives from the runner's own store.
+ * CI deliberately supplies neither. An APK built by the workflow is therefore always the
+ * unconfigured one, which is the point: wiring repository secrets in would bake an
+ * account's password into every published artefact, where anyone holding the file can read
+ * it out. The subtitle search is configured on a developer's own machine and nowhere else.
  *
  * ## Missing is a valid answer
  *
- * [read] returns an empty string rather than failing the build, and that is deliberate: a
- * clone with no credentials must still compile, run, and pass its tests. Every feature that
- * needs one is responsible for saying so at runtime — see `OpenSubtitlesCredentials`, which
- * reports itself unconfigured rather than throwing, so the subtitle search says "not set up"
- * instead of taking the player down with it.
+ * [read] returns an empty string rather than failing the build. A clone with no credentials
+ * must still compile, run, and pass its tests; every feature that needs one is responsible
+ * for saying so at runtime — see `OpenSubtitlesCredentials`, which reports itself
+ * unconfigured rather than throwing, so the subtitle search says "not set up" instead of
+ * taking the player down with it.
  *
  * A build that failed here would mean nobody could build Castivio without an OpenSubtitles
  * account, to compile a player that does not need one.
+ *
+ * ## Why the values come through `providers` and not `File.readText`
+ *
+ * Because of the way this feature is switched on. Somebody builds the project, sees the
+ * search report itself as not set up, writes three lines into `local.properties`, and
+ * builds again — and with a plain file read Gradle has no idea anything it depends on has
+ * changed. The configuration cache hands back the previous run's *empty* values, the APK is
+ * byte-for-byte the unconfigured one, and the only symptom is that adding the key did
+ * nothing. There is nothing to see in a log and nothing to search for.
+ *
+ * `providers.fileContents` and `providers.environmentVariable` are inputs Gradle tracks, so
+ * the configuration is invalidated by the edit that is supposed to invalidate it.
  */
 object Secrets {
 
@@ -36,14 +48,10 @@ object Secrets {
      * parent shell is the more likely of the two to be stale.
      */
     fun read(project: Project, key: String): String {
-        val file = project.rootProject.file(LOCAL_PROPERTIES)
-        if (file.exists()) {
-            val properties = Properties()
-            file.inputStream().use(properties::load)
-            val stored = properties.getProperty(key)
-            if (!stored.isNullOrBlank()) return stored.trim()
-        }
-        return System.getenv(key)?.trim().orEmpty()
+        val fromFile = localProperties(project)?.getProperty(key)
+        if (!fromFile.isNullOrBlank()) return fromFile.trim()
+
+        return project.providers.environmentVariable(key).orNull?.trim().orEmpty()
     }
 
     /**
@@ -60,6 +68,19 @@ object Secrets {
             .replace("\\", "\\\\")
             .replace("\"", "\\\"")
         return "\"$escaped\""
+    }
+
+    /**
+     * `local.properties`, parsed, or null when there is none.
+     *
+     * Read through `providers.fileContents` rather than by opening the file, so that Gradle
+     * records it as an input — see the note above about the edit that switches this feature
+     * on being invisible to a cached configuration.
+     */
+    private fun localProperties(project: Project): Properties? {
+        val file = project.rootProject.layout.projectDirectory.file(LOCAL_PROPERTIES)
+        val text = project.providers.fileContents(file).asText.orNull ?: return null
+        return Properties().apply { load(text.reader()) }
     }
 
     private const val LOCAL_PROPERTIES = "local.properties"

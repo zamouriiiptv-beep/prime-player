@@ -32,3 +32,20 @@
 OPENSUBTITLES_API_KEY=
 OPENSUBTITLES_USERNAME=
 OPENSUBTITLES_PASSWORD=
+
+# ---------------------------------------------------------------------------------------
+# Building with them
+#
+#   ./gradlew assembleDebug
+#
+# and install app/build/outputs/apk/debug/app-debug.apk. Android Studio's Run does the same
+# thing. Gradle tracks this file, so editing the three lines above invalidates the build
+# that read them and the next one picks the new values up — there is nothing to clean.
+#
+# The APKs published by CI never carry any of this: the workflow supplies no credentials at
+# all, on purpose, because baking an account's password into a downloadable artefact is not
+# a thing to do by default. A build from this machine is the one that can search.
+#
+# To check which you are holding, open the player's subtitle sheet: "Find subtitles online"
+# says it is not set up when the three values were empty at build time.
+# ---------------------------------------------------------------------------------------

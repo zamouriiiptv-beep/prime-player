@@ -43,23 +43,14 @@ jobs:
       # No --stacktrace: a Kotlin compile error buries its own `e: file:…` lines
       # under 200 lines of Gradle internals, which makes the log useless for the
       # one thing it is needed for.
+      # No credentials are passed to this job, deliberately.
+      #
+      # The subtitle search is configured on a developer's own machine through
+      # `local.properties`, and an APK built here is therefore always the unconfigured one:
+      # the search reports itself as not set up and everything else is unaffected. Wiring
+      # repository secrets in would bake an account's password into every published APK,
+      # where anyone holding the file can read it out.
       - name: Build debug APK
-        # The OpenSubtitles credentials, when — and only when — the repository has them.
-        #
-        # `Secrets.kt` reads `local.properties` first and the environment second, so a
-        # developer's machine needs nothing here and this is how the same three values
-        # reach a build that has no such file. An unset secret is an empty string, which is
-        # the unconfigured state the whole feature is built to survive: the APK is the same
-        # APK, and the subtitle search says it is not set up rather than failing.
-        #
-        # Setting these bakes the values into every APK this job publishes, where anyone
-        # holding the file can read them out. That is ordinary for an API key and is not
-        # ordinary for an account password — which is why they are left to a deliberate act
-        # rather than turned on here.
-        env:
-          OPENSUBTITLES_API_KEY: ${{ secrets.OPENSUBTITLES_API_KEY }}
-          OPENSUBTITLES_USERNAME: ${{ secrets.OPENSUBTITLES_USERNAME }}
-          OPENSUBTITLES_PASSWORD: ${{ secrets.OPENSUBTITLES_PASSWORD }}
         run: |
           attempt=0
           until ./gradlew assembleDebug --no-daemon --console=plain; do
