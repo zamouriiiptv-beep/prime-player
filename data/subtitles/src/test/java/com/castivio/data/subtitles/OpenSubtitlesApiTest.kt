@@ -54,7 +54,7 @@ class OpenSubtitlesApiTest {
     fun `an unconfigured client refuses without asking`() = runTest {
         val api = api(OpenSubtitlesCredentials.NONE)
 
-        val result = api.search(hash = null, fileName = "film.mkv", languages = listOf("ar"))
+        val result = api.search(hash = null, query = SubtitleQuery.parse("film.mkv"), languages = listOf("ar"))
 
         assertEquals(SubtitleResult.Refused(SubtitleFailure.NOT_CONFIGURED), result)
         assertEquals("a request left the device with no credentials to send", 0, server.requestCount)
@@ -73,7 +73,11 @@ class OpenSubtitlesApiTest {
         server.enqueue(MockResponse().setBody(TWO_RESULTS))
         val api = api(WORKING)
 
-        val result = api.search(hash = 1L, fileName = "The.Road.2009.1080p.mkv", languages = listOf("ar", "en"))
+        val result = api.search(
+            hash = 1L,
+            query = SubtitleQuery.parse("The.Road.2009.1080p.mkv"),
+            languages = listOf("ar", "en"),
+        )
 
         val sent = server.takeRequest()
         assertEquals("castivio-key", sent.getHeader("Api-Key"))
@@ -81,13 +85,95 @@ class OpenSubtitlesApiTest {
         assertEquals("0000000000000001", sent.requestUrl?.queryParameter("moviehash"))
         assertEquals("ar,en", sent.requestUrl?.queryParameter("languages"))
         assertEquals(
-            "the extension was sent as part of the title",
-            "The.Road.2009.1080p",
+            "the release noise was sent as part of the name",
+            "The Road 2009",
             sent.requestUrl?.queryParameter("query"),
         )
+        assertEquals("2009", sent.requestUrl?.queryParameter("year"))
 
         val offers = result.found()
         assertEquals(2, offers.size)
+    }
+
+    /**
+     * An episode is asked for as a name and two numbers, not as a sentence.
+     *
+     * `query=Friends S05E02` asks the server to find those characters in a title, which is a
+     * different question from the one it has fields for and a much worse one. The numbers go
+     * where the numbers go.
+     */
+    @Test
+    fun `an episode is asked for by season and episode number`() = runTest {
+        server.enqueue(MockResponse().setBody("""{"data":[]}"""))
+
+        api(WORKING).search(null, SubtitleQuery.parse("Friends.S05E02.720p.HDTV.mkv"), emptyList())
+
+        val sent = server.takeRequest().requestUrl
+        assertEquals("Friends", sent?.queryParameter("query"))
+        assertEquals("5", sent?.queryParameter("season_number"))
+        assertEquals("2", sent?.queryParameter("episode_number"))
+    }
+
+    /* ------------------------------------------------------- results for something else */
+
+    /**
+     * The defect this filter was written for, as a test.
+     *
+     * The player used to search with the last path segment of the stream URL, so an IPTV
+     * address ending in `/502` produced a search for "502" — and OpenSubtitles answered it
+     * correctly, with episode 502 of five unrelated series. Those rows were real subtitles
+     * and every one of them was wrong.
+     *
+     * The query is right now, and this asserts the second half: that a result which is not
+     * about the query does not reach the viewer even when the server returns it.
+     */
+    @Test
+    fun `results for another programme are not shown`() = runTest {
+        server.enqueue(MockResponse().setBody(OTHER_PROGRAMMES))
+
+        val offers = api(WORKING).search(null, SubtitleQuery.parse("The Matrix 1999"), emptyList()).found()
+
+        assertEquals("a subtitle for another programme reached the viewer", emptyList<SubtitleOffer>(), offers)
+    }
+
+    /** The right series, the wrong episode, which is the same mistake one step smaller. */
+    @Test
+    fun `another episode of the right series is not shown`() = runTest {
+        server.enqueue(MockResponse().setBody(OTHER_PROGRAMMES))
+
+        val offers = api(WORKING).search(null, SubtitleQuery.parse("Friends S05E01"), emptyList()).found()
+
+        assertEquals(emptyList<SubtitleOffer>(), offers)
+    }
+
+    /** And the one that is actually asked for comes through, with what it is for read off. */
+    @Test
+    fun `the episode that was asked for is kept`() = runTest {
+        server.enqueue(MockResponse().setBody(OTHER_PROGRAMMES))
+
+        val offers = api(WORKING).search(null, SubtitleQuery.parse("Friends S05E02"), emptyList()).found()
+
+        assertEquals(1, offers.size)
+        assertEquals("Friends", offers[0].parentTitle)
+        assertEquals(5, offers[0].season)
+        assertEquals(2, offers[0].episode)
+    }
+
+    /**
+     * A hash match is never filtered out, whatever it is catalogued as.
+     *
+     * The escape hatch for every film held under one name and catalogued under another. The
+     * hash is evidence about these exact bytes; a title is evidence about somebody's
+     * spelling, and it must not be allowed to overrule the bytes.
+     */
+    @Test
+    fun `a hash match survives a name that does not match at all`() = runTest {
+        server.enqueue(MockResponse().setBody(HASHED_UNDER_ANOTHER_NAME))
+
+        val offers = api(WORKING).search(1L, SubtitleQuery.parse("المصفوفة"), emptyList()).found()
+
+        assertEquals(1, offers.size)
+        assertTrue(offers[0].matchesThisFile)
     }
 
     /**
@@ -102,7 +188,7 @@ class OpenSubtitlesApiTest {
         server.enqueue(MockResponse().setBody(TWO_RESULTS))
         val api = api(WORKING)
 
-        val offers = api.search(1L, "film.mkv", listOf("ar")).found()
+        val offers = api.search(1L, SubtitleQuery.parse("The Road 2009"), listOf("ar")).found()
 
         assertTrue("the popular one came first", offers[0].matchesThisFile)
         assertEquals(11L, offers[0].fileId)
@@ -115,7 +201,7 @@ class OpenSubtitlesApiTest {
     fun `no results is an answer`() = runTest {
         server.enqueue(MockResponse().setBody("""{"data":[]}"""))
 
-        val result = api(WORKING).search(null, "obscure.mkv", emptyList())
+        val result = api(WORKING).search(null, SubtitleQuery.parse("obscure.mkv"), emptyList())
 
         assertEquals(emptyList<SubtitleOffer>(), result.found())
     }
@@ -125,7 +211,7 @@ class OpenSubtitlesApiTest {
     fun `a rejected key is reported as refused`() = runTest {
         server.enqueue(MockResponse().setResponseCode(401))
 
-        val result = api(WORKING).search(null, "film.mkv", emptyList())
+        val result = api(WORKING).search(null, SubtitleQuery.parse("film.mkv"), emptyList())
 
         assertEquals(SubtitleResult.Refused(SubtitleFailure.REFUSED), result)
     }
@@ -135,7 +221,7 @@ class OpenSubtitlesApiTest {
     fun `a body that is not JSON is a reason, not a crash`() = runTest {
         server.enqueue(MockResponse().setBody("<html>maintenance</html>"))
 
-        val result = api(WORKING).search(null, "film.mkv", emptyList())
+        val result = api(WORKING).search(null, SubtitleQuery.parse("film.mkv"), emptyList())
 
         assertTrue(result is SubtitleResult.Refused)
     }
@@ -283,6 +369,44 @@ class OpenSubtitlesApiTest {
                 "release":"The.Road.2009.BluRay","files":[{"file_id":22,"file_name":"road-en.srt"}]}},
               {"attributes":{"language":"ar","download_count":12,"moviehash_match":true,
                 "release":"The.Road.2009.WEB","files":[{"file_id":11,"file_name":"road-ar.srt"}]}}
+            ]}
+        """.trimIndent()
+
+        /**
+         * What a bad query used to return: three real subtitles, none of them the film.
+         *
+         * Two are episode 502 of series nobody asked about; the third is the right series
+         * and the wrong episode. Between them they cover both ways a result can be wrong,
+         * and the one correct row is here so that a filter which simply returned nothing
+         * would fail as loudly as one that returned everything.
+         */
+        val OTHER_PROGRAMMES = """
+            {"data":[
+              {"attributes":{"language":"en","download_count":900,"moviehash_match":false,
+                "release":"Friends.S05E02.DVDRip",
+                "feature_details":{"title":"The One With All the Kissing","parent_title":"Friends",
+                  "season_number":5,"episode_number":2,"year":1998},
+                "files":[{"file_id":31,"file_name":"friends-502.srt"}]}},
+              {"attributes":{"language":"en","download_count":800,"moviehash_match":false,
+                "release":"The.Office.S05E02.HDTV",
+                "feature_details":{"title":"Business Ethics","parent_title":"The Office",
+                  "season_number":5,"episode_number":2,"year":2008},
+                "files":[{"file_id":32,"file_name":"office-502.srt"}]}},
+              {"attributes":{"language":"en","download_count":700,"moviehash_match":false,
+                "release":"Friends.S05E09.DVDRip",
+                "feature_details":{"title":"The One With Ross's Sandwich","parent_title":"Friends",
+                  "season_number":5,"episode_number":9,"year":1998},
+                "files":[{"file_id":33,"file_name":"friends-509.srt"}]}}
+            ]}
+        """.trimIndent()
+
+        /** One result, catalogued in English, matched by hash against an Arabic-named file. */
+        val HASHED_UNDER_ANOTHER_NAME = """
+            {"data":[
+              {"attributes":{"language":"ar","download_count":40,"moviehash_match":true,
+                "release":"The.Matrix.1999.BluRay",
+                "feature_details":{"title":"The Matrix","year":1999},
+                "files":[{"file_id":41,"file_name":"matrix-ar.srt"}]}}
             ]}
         """.trimIndent()
     }

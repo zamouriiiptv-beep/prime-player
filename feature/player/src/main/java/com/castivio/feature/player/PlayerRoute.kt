@@ -141,6 +141,7 @@ fun PlayerRoute(
                 onAspect = model::setAspect,
                 onSubtitleStyle = model::setSubtitleStyle,
                 onFindSubtitles = model::findSubtitles,
+                onSubtitleQuery = model::setSubtitleQuery,
                 onUseSubtitle = model::useSubtitle,
                 onClearSubtitle = model::clearDownloadedSubtitle,
                 onNudgeSubtitles = model::nudgeSubtitles,

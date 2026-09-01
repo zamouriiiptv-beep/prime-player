@@ -13,12 +13,17 @@ import org.json.JSONObject
 import java.io.BufferedReader
 
 /**
- * One subtitle somebody has uploaded, as much of it as is worth showing.
+ * One subtitle somebody has uploaded, as much of it as is worth showing — and, separately,
+ * as much of it as is needed to decide whether to show it at all.
  *
- * Deliberately small. The API returns thirty fields per result — upload date, uploader
- * rank, comments, a ratings breakdown — and a list showing thirty fields is a list nobody
- * reads. What decides between two results is the language, whether it matches this exact
- * file, and how many people have used it.
+ * The first four fields are the row. The API returns thirty per result — upload date,
+ * uploader rank, comments, a ratings breakdown — and a list showing thirty fields is a list
+ * nobody reads. What decides between two results is the language, whether it matches this
+ * exact file, and how many people have used it.
+ *
+ * The fields under [release] are not for the eye at all. They are what [SubtitleMatch] reads
+ * to answer "is this even the right programme", and they exist because the answer cannot be
+ * found in the four above: a file called `road-ar.srt` says nothing about which road.
  */
 data class SubtitleOffer(
     /** What the download call needs. Opaque, and the only field that is not for the eye. */
@@ -34,7 +39,39 @@ data class SubtitleOffer(
      * subtitle for this film, from some copy of it, and may be two minutes out.
      */
     val matchesThisFile: Boolean,
-)
+
+    /** The release this was timed to, as the uploader named it. Empty when unstated. */
+    val release: String = "",
+
+    /**
+     * What OpenSubtitles says this subtitle is *for*, from its own catalogue.
+     *
+     * The authoritative answer and the reason the filter is worth trusting: it is the site's
+     * own identification of the work, not an uploader's file name. For an episode it is the
+     * episode's title and [parentTitle] is the series — which is why both are carried and
+     * why [describes] joins them.
+     */
+    val featureTitle: String = "",
+    val parentTitle: String = "",
+    val season: Int? = null,
+    val episode: Int? = null,
+    val year: Int? = null,
+) {
+
+    /**
+     * The text that says what this subtitle is for, best source first.
+     *
+     * The catalogue's own titles when it gave any, and the uploader's names when it did not.
+     * The fallback matters more than it looks: a great many older uploads carry no feature
+     * details at all, and a filter that treated "no details" as "no match" would hide them
+     * all rather than judge them on the only evidence there is.
+     */
+    val describes: String
+        get() = listOf(parentTitle, featureTitle)
+            .filter { it.isNotBlank() }
+            .joinToString(" ")
+            .ifBlank { listOf(release, name).filter { it.isNotBlank() }.joinToString(" ") }
+}
 
 /** Why a search or a download could not be done, in the terms the screen has to explain. */
 enum class SubtitleFailure {
@@ -94,26 +131,42 @@ class OpenSubtitlesApi(
     private var token: String? = null
 
     /**
-     * What is available for this file.
+     * What is available for [query], and nothing that is available for something else.
      *
-     * The hash is tried and the name is the fallback, in that order and as one request:
-     * OpenSubtitles accepts both parameters together and returns hash matches first, so
-     * asking twice would be a second round trip to get a subset of the same list.
+     * The hash is sent alongside the name rather than instead of it: OpenSubtitles accepts
+     * both together and returns hash matches first, so asking twice would be a second round
+     * trip for a subset of the same list.
+     *
+     * ## The query is structured, not a sentence
+     *
+     * `query` carries the name alone and the season and episode go in their own parameters.
+     * Putting "Friends S05E02" in the text field asks the server to find those characters in
+     * a title, which is a different and much worse question than the one it has fields for.
+     *
+     * ## And the answer is filtered
+     *
+     * What comes back is passed through [SubtitleMatch] before anyone sees it. The server
+     * answers the query it was given, correctly, and "correctly" includes returning episode
+     * 502 of five other series when the query was poor. Only this side knows what is
+     * playing, so only this side can say that those are not it.
      *
      * [languages] is a list of two-letter codes. Empty means every language, which is what
      * the sheet asks for when the viewer has not chosen one.
      */
     suspend fun search(
         hash: Long?,
-        fileName: String,
+        query: SubtitleQuery,
         languages: List<String>,
     ): SubtitleResult<List<SubtitleOffer>> = call {
         if (!credentials.configured) return@call SubtitleResult.Refused(SubtitleFailure.NOT_CONFIGURED)
 
         val url = base.newBuilder()
             .addPathSegment("subtitles")
-            .addQueryParameter("query", fileName.substringBeforeLast('.'))
+            .addQueryParameter("query", query.title)
             .apply {
+                query.season?.let { addQueryParameter("season_number", it.toString()) }
+                query.episode?.let { addQueryParameter("episode_number", it.toString()) }
+                query.year?.let { addQueryParameter("year", it.toString()) }
                 hash?.let { addQueryParameter("moviehash", it.asSubtitleHash()) }
                 if (languages.isNotEmpty()) {
                     addQueryParameter("languages", languages.joinToString(","))
@@ -125,7 +178,7 @@ class OpenSubtitlesApi(
         response.use {
             if (!it.isSuccessful) return@call SubtitleResult.Refused(failure(it.code))
             val body = it.body?.string() ?: return@call SubtitleResult.Refused(SubtitleFailure.UNREADABLE)
-            SubtitleResult.Found(offers(body))
+            SubtitleResult.Found(SubtitleMatch.relevant(query, offers(body)))
         }
     }
 
@@ -265,6 +318,10 @@ class OpenSubtitlesApi(
             val file = attributes.optJSONArray("files")?.optJSONObject(0) ?: continue
             val fileId = file.optLong("file_id", -1L)
             if (fileId <= 0) continue
+            // The site's own identification of what this subtitle is for. Absent on a great
+            // many older uploads, which is why every field below tolerates being missing and
+            // why `SubtitleOffer.describes` has a fallback.
+            val feature = attributes.optJSONObject("feature_details")
             offers += SubtitleOffer(
                 fileId = fileId,
                 language = attributes.optString("language").ifBlank { UNKNOWN_LANGUAGE },
@@ -276,6 +333,12 @@ class OpenSubtitlesApi(
                 },
                 downloads = attributes.optInt("download_count"),
                 matchesThisFile = attributes.optBoolean("moviehash_match"),
+                release = attributes.optString("release"),
+                featureTitle = feature?.optString("title").orEmpty(),
+                parentTitle = feature?.optString("parent_title").orEmpty(),
+                season = feature?.number("season_number"),
+                episode = feature?.number("episode_number"),
+                year = feature?.number("year"),
             )
         }
         // Hash matches first, then by how many people have used it. The order is the whole
@@ -285,6 +348,16 @@ class OpenSubtitlesApi(
             compareByDescending<SubtitleOffer> { it.matchesThisFile }.thenByDescending { it.downloads },
         )
     }
+
+    /**
+     * A whole number that may not be there, and may be there as `null` or as `""`.
+     *
+     * `optInt` cannot express the difference: it returns 0 for all three, and a season 0 is a
+     * season the filter would then insist on. This returns null unless a number was actually
+     * stated.
+     */
+    private fun JSONObject.number(key: String): Int? =
+        if (isNull(key)) null else optString(key).toIntOrNull() ?: optInt(key, -1).takeIf { it >= 0 }
 
     companion object {
         const val DEFAULT_BASE = "https://api.opensubtitles.com/api/v1/"

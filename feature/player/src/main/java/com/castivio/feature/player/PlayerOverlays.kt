@@ -42,10 +42,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.castivio.core.design.components.CastivioTextField
 import com.castivio.core.design.icons.CastivioIcons
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
@@ -600,6 +602,13 @@ internal fun BoxScope.PlayerSheet(sheet: Sheet, state: PlayerState, actions: Pla
             )
         }
 
+        // Above the list and outside it, which is not a cosmetic choice: a text field placed
+        // in a `LazyColumn` is destroyed when it scrolls out of view, taking the caret, the
+        // keyboard and half a typed word with it.
+        if (sheet == Sheet.SubtitleSearch) {
+            SubtitleQueryField(state.subtitleSearch, actions, inset)
+        }
+
         val rows = sheetRows(sheet, state)
         if (rows.isEmpty()) {
             Text(
@@ -621,6 +630,63 @@ internal fun BoxScope.PlayerSheet(sheet: Sheet, state: PlayerState, actions: Pla
                 }
             }
         }
+    }
+}
+
+/**
+ * What is being searched for, and the key that searches for it.
+ *
+ * ## Why there is a box here at all
+ *
+ * Because the guess is a guess. The name is derived from the title the player was opened
+ * with, and that title is whatever a provider's playlist happened to say — a release name, a
+ * transliteration, an Arabic title for a film catalogued in English. When the guess is
+ * right, which is most of the time, the box is a label that happens to be editable and the
+ * results are already on screen underneath it. When it is wrong, this is the difference
+ * between a feature that works and a feature that does not, and no amount of parsing
+ * replaces being able to type the name.
+ *
+ * The keyboard's action key is Search rather than Done, so the run is one press from the
+ * last letter, and it does not close the sheet: the results appear below the box the viewer
+ * is still looking at, and a second attempt is an edit rather than a journey.
+ */
+@Composable
+private fun SubtitleQueryField(search: SubtitleSearch, actions: PlayerActions, inset: Dp) {
+    val colors = CastivioTheme.colors
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = inset)
+            .padding(bottom = Spacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        CastivioTextField(
+            value = search.query,
+            onValueChange = actions.onSubtitleQuery,
+            label = stringResource(R.string.player_subtitle_query),
+            placeholder = stringResource(R.string.player_subtitle_query_hint),
+            enabled = search.available,
+            imeAction = ImeAction.Search,
+            onImeAction = { if (search.askable) actions.onFindSubtitles(search.language) },
+            modifier = Modifier
+                .weight(1f)
+                .testTag(PlayerTags.SUBTITLE_QUERY),
+        )
+        Icon(
+            CastivioIcons.Search,
+            contentDescription = stringResource(R.string.player_subtitle_search_action),
+            tint = if (search.askable) colors.onBackground else colors.onBackgroundMuted,
+            modifier = Modifier
+                .size(Sizing.minTarget(CastivioTheme.device.isTv))
+                .clip(RoundedCornerShape(Radius.md))
+                .background(colors.glassFillStrong)
+                .clickable(enabled = search.askable, role = Role.Button) {
+                    actions.onFindSubtitles(search.language)
+                }
+                .padding(Spacing.md)
+                .testTag(PlayerTags.SUBTITLE_SEARCH),
+        )
     }
 }
 
@@ -792,11 +858,15 @@ private fun sheetRows(sheet: Sheet, state: PlayerState): List<SheetRow> = when (
     }
 
     /**
-     * The search: four languages, then whatever the last one asked for produced.
+     * The search: the name in the box above, four languages, then what they found.
      *
      * One sheet rather than two screens, because a viewer whose first language returns
      * nothing wants to try another without going back anywhere. The languages stay at the
      * top and the results replace themselves underneath.
+     *
+     * Pressing a language searches with it rather than only selecting it, which is why there
+     * is no fifth button between the two: choosing Arabic and then having to confirm Arabic
+     * is a step that exists to serve the state machine and not the viewer.
      */
     Sheet.SubtitleSearch -> buildList {
         val search = state.subtitleSearch
@@ -807,13 +877,15 @@ private fun sheetRows(sheet: Sheet, state: PlayerState): List<SheetRow> = when (
                     icon = CastivioIcons.Subtitles,
                     name = stringResource(language.label()),
                     selected = search.language == language,
-                    onPick = { it.onFindSubtitles(language) },
+                    onPick = { if (search.askable) it.onFindSubtitles(language) },
                 ),
             )
         }
 
         when (val stage = search.hunt) {
-            SubtitleHunt.Idle -> add(note(R.string.player_subtitle_pick_language))
+            // Reached only when there is nothing to search with — the sheet runs the search
+            // itself on the way in — so the sentence is about the box and not the languages.
+            SubtitleHunt.Idle -> add(note(R.string.player_subtitle_needs_a_name))
 
             SubtitleHunt.Searching -> add(note(R.string.player_subtitle_searching))
 
@@ -824,6 +896,10 @@ private fun sheetRows(sheet: Sheet, state: PlayerState): List<SheetRow> = when (
             is SubtitleHunt.Offers -> {
                 add(heading(R.string.player_subtitle_results))
                 if (stage.offers.isEmpty()) {
+                    // Empty because nothing matched what is playing — results for other
+                    // programmes were removed before this list was built, and saying so
+                    // plainly is the answer. A row for another series would be worse than
+                    // this sentence: it costs a download from a daily allowance to discover.
                     add(note(R.string.player_subtitle_none))
                 } else {
                     stage.offers.take(MOST_RESULTS).forEach { offer -> add(offerRow(offer)) }

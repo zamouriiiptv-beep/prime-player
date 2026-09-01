@@ -84,16 +84,19 @@
     <string name="player_find_subtitles">Find subtitles online</string>
     <string name="player_subtitles_not_set_up">Not set up on this build</string>
     <string name="player_subtitle_downloaded">Downloaded — tap to remove</string>
+    <string name="player_subtitle_query">Search for</string>
+    <string name="player_subtitle_query_hint">Film or series name</string>
+    <string name="player_subtitle_search_action">Search</string>
     <string name="player_subtitle_language">Language</string>
     <string name="player_subtitle_arabic">Arabic</string>
     <string name="player_subtitle_english">English</string>
     <string name="player_subtitle_french">French</string>
     <string name="player_subtitle_any_language">Any language</string>
-    <string name="player_subtitle_pick_language">Choose a language to search.</string>
+    <string name="player_subtitle_needs_a_name">Type what you are watching, then search.</string>
     <string name="player_subtitle_searching">Searching…</string>
     <string name="player_subtitle_fetching">Downloading…</string>
     <string name="player_subtitle_results">Results</string>
-    <string name="player_subtitle_none">Nothing found for this film.</string>
+    <string name="player_subtitle_none">No subtitles available for this title.</string>
     <!-- Matched against this exact file, so it is already in step. -->
     <string name="player_subtitle_exact">Matches this file</string>
     <!-- %1$d is how many people have downloaded it. -->

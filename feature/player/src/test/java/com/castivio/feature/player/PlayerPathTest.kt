@@ -22,6 +22,7 @@ import com.castivio.playback.api.VideoOutput
 import com.castivio.data.subtitles.SubtitleCue
 import com.castivio.data.subtitles.SubtitleFailure
 import com.castivio.data.subtitles.SubtitleOffer
+import com.castivio.data.subtitles.SubtitleQuery
 import com.castivio.data.subtitles.SubtitleResult
 import com.castivio.data.subtitles.SubtitleTrack
 import kotlinx.coroutines.Dispatchers
@@ -1239,6 +1240,165 @@ class PlayerPathTest {
         assertTrue(stage is SubtitleHunt.Offers && stage.offers.size == 1)
     }
 
+    /**
+     * The search asks for the film, and never for the last segment of the URL.
+     *
+     * The defect, at the level it was introduced. `search` used to build its query from
+     * `url.substringAfterLast('/')`, so a stream at `…/user/pass/502` asked OpenSubtitles
+     * for "502" and was answered with episode 502 of five unrelated series. The URL is a
+     * route to bytes; it never said anything about what the bytes are.
+     */
+    @Test
+    fun `a search asks for the title and not for the stream number`() = playerTest {
+        val model = model()
+        model.open(
+            PlayerRequest(
+                url = "http://provider.tv/live/user/pass/502",
+                title = "The Matrix",
+                kind = MediaKind.VOD,
+            ),
+        )
+        runCurrent()
+
+        model.findSubtitles(SubtitleLanguage.Arabic)
+        runCurrent()
+
+        assertEquals(listOf(SubtitleQuery(title = "The Matrix")), hunt.asked)
+    }
+
+    /**
+     * The box opens holding the name of what is playing, cleaned.
+     *
+     * What a provider calls a file is not what a catalogue calls a film, and the difference
+     * is the whole search: `The.Matrix.1999.1080p.BluRay.x264-GROUP.mkv` matches nothing
+     * anywhere. It is also what the viewer reads to decide whether to correct it, which is
+     * why the cleaning happens before the box and not on the way out of it.
+     */
+    @Test
+    fun `the search box opens with the name of what is playing`() = playerTest {
+        val model = model()
+        model.open(
+            PlayerRequest(
+                url = "content://media/external/video/42",
+                title = "The.Matrix.1999.1080p.BluRay.x264-GROUP.mkv",
+                kind = MediaKind.VOD,
+            ),
+        )
+        runCurrent()
+
+        assertEquals("The Matrix 1999", model.state.value?.subtitleSearch?.query)
+    }
+
+    /** An episode carries its numbers into the box, in the one form the box can be typed in. */
+    @Test
+    fun `an episode opens with its season and episode`() = playerTest {
+        val model = model()
+        model.open(
+            PlayerRequest(
+                url = "http://provider.tv/series/9",
+                title = "Friends",
+                subtitle = "Season 5 · Episode 2",
+                kind = MediaKind.VOD,
+            ),
+        )
+        runCurrent()
+
+        assertEquals("Friends S05E02", model.state.value?.subtitleSearch?.query)
+
+        model.findSubtitles(SubtitleLanguage.Arabic)
+        runCurrent()
+
+        assertEquals(listOf(SubtitleQuery("Friends", season = 5, episode = 2)), hunt.asked)
+    }
+
+    /**
+     * Typing a different title searches for that title instead.
+     *
+     * The escape hatch, and the reason the box is editable rather than a label: no amount of
+     * parsing rescues a film whose provider named it in one language and whose subtitles are
+     * catalogued in another. Typing is the answer, and it has to reach the request.
+     */
+    @Test
+    fun `what the viewer types is what is searched for`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+
+        model.setSubtitleQuery("Casablanca 1942")
+        model.findSubtitles(SubtitleLanguage.English)
+        runCurrent()
+
+        assertEquals(listOf(SubtitleQuery("Casablanca 1942", year = 1942)), hunt.asked)
+    }
+
+    /** And an edit alone is not a search: a request per keystroke is a spent allowance. */
+    @Test
+    fun `typing does not search`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+
+        model.setSubtitleQuery("Casa")
+        model.setSubtitleQuery("Casablanca")
+        runCurrent()
+
+        assertTrue("a search ran while the viewer was still typing", hunt.asked.isEmpty())
+    }
+
+    /**
+     * Opening the sheet runs the search, once.
+     *
+     * The title is known, the language is chosen and there is nothing to wait for, so a
+     * screen whose first state is an empty list and a button makes the viewer ask for the
+     * only thing it does. Coming back to results already found shows them rather than
+     * spending a second request out of a metered daily allowance to fetch the same rows.
+     */
+    @Test
+    fun `opening the search runs it, and reopening does not run it again`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+
+        model.openSheet(Sheet.SubtitleSearch)
+        runCurrent()
+        assertEquals(1, hunt.asked.size)
+
+        model.openSheet(null)
+        model.openSheet(Sheet.SubtitleSearch)
+        runCurrent()
+
+        assertEquals("the same search ran twice", 1, hunt.asked.size)
+    }
+
+    /** With nothing to search for, opening the sheet asks nothing and says so. */
+    @Test
+    fun `opening the search with an empty box asks nothing`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        model.setSubtitleQuery("")
+
+        model.openSheet(Sheet.SubtitleSearch)
+        runCurrent()
+
+        assertTrue(hunt.asked.isEmpty())
+        assertEquals(SubtitleHunt.Idle, model.state.value?.subtitleSearch?.hunt)
+    }
+
+    /** And a build with no credentials asks nothing either, however it is opened. */
+    @Test
+    fun `an unconfigured build never searches`() = playerTest {
+        hunt.available = false
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+
+        model.openSheet(Sheet.SubtitleSearch)
+        runCurrent()
+
+        assertTrue(hunt.asked.isEmpty())
+    }
+
     /** "Any language" sends no filter at all, which is what the row promises. */
     @Test
     fun `any language sends no filter`() = playerTest {
@@ -1850,14 +2010,24 @@ class PlayerPathTest {
         var offers: SubtitleResult<List<SubtitleOffer>> = SubtitleResult.Found(emptyList())
         var track: SubtitleResult<SubtitleTrack> = SubtitleResult.Found(SubtitleTrack(emptyList()))
         val searches = mutableListOf<List<String>>()
+
+        /**
+         * What was actually looked for, which is the claim the search now stands or falls on.
+         *
+         * Recorded separately from the languages because they fail differently: a wrong
+         * language returns subtitles nobody can read, and a wrong query returns subtitles for
+         * another programme — and the second one looked like it was working.
+         */
+        val asked = mutableListOf<SubtitleQuery>()
         var downloads = 0
 
         override suspend fun search(
             url: String,
-            title: String,
+            query: SubtitleQuery,
             languages: List<String>,
         ): SubtitleResult<List<SubtitleOffer>> {
             searches += languages
+            asked += query
             return offers
         }
 

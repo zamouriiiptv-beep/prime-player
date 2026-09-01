@@ -16,6 +16,7 @@ import com.castivio.playback.api.Track
 import com.castivio.playback.api.VideoOutput
 import com.castivio.playback.api.EngineFactory
 import com.castivio.data.subtitles.SubtitleOffer
+import com.castivio.data.subtitles.SubtitleQuery
 import com.castivio.data.subtitles.SubtitleResult
 import com.castivio.data.subtitles.SubtitleTrack
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -132,9 +133,15 @@ class PlayerViewModel @Inject constructor(
             request = request,
             engine = engineId,
             subtitleStyle = style,
-            // Fixed for the life of the build: whether this APK was compiled with
-            // credentials. Asked once, here, rather than by the sheet at draw time.
-            subtitleSearch = SubtitleSearch(available = hunt.available),
+            subtitleSearch = SubtitleSearch(
+                // Fixed for the life of the build: whether this APK was compiled with
+                // credentials. Asked once, here, rather than by the sheet at draw time.
+                available = hunt.available,
+                // What the search box is prefilled with, derived from the request and never
+                // from the URL. The title came from the catalogue row the viewer pressed,
+                // which is the only thing in the player that knows what this is.
+                query = SubtitleQuery.of(request.title, request.subtitle).text,
+            ),
         )
         start(request, engineId)
     }
@@ -631,12 +638,28 @@ class PlayerViewModel @Inject constructor(
     /* --------------------------------------------------------------- the subtitle hunt */
 
     /**
-     * Look for a subtitle for what is playing.
+     * What the viewer has typed in the search box.
+     *
+     * Held and not searched with. A search on every keystroke would be a request per letter
+     * to a service with a daily allowance, and the box is one line a viewer is often
+     * correcting a whole word of — the press of the search key is the moment they meant it.
+     */
+    fun setSubtitleQuery(text: String) {
+        val current = _state.value ?: return
+        noteInteraction()
+        _state.value = current.copy(subtitleSearch = current.subtitleSearch.copy(query = text))
+    }
+
+    /**
+     * Look for a subtitle for what is in the box.
      *
      * Nothing here is on the critical path and nothing here can affect playback: a failure
      * is a sentence in a sheet. The search runs at most one at a time — pressing a second
      * language while the first is in flight cancels it, because the answer to a question
      * nobody is asking any more is not worth the wait it causes.
+     *
+     * The text is parsed at this moment rather than kept parsed, so a viewer who types
+     * "Friends S05E02" gets the season and episode sent as the numbers they are.
      */
     fun findSubtitles(language: SubtitleLanguage = _state.value?.subtitleSearch?.language ?: SubtitleLanguage.Arabic) {
         val current = _state.value ?: return
@@ -645,11 +668,12 @@ class PlayerViewModel @Inject constructor(
         val asked = current.subtitleSearch.copy(language = language, hunt = SubtitleHunt.Searching)
         _state.value = current.copy(subtitleSearch = asked)
 
+        val query = SubtitleQuery.parse(asked.query)
         huntJob?.cancel()
         huntJob = viewModelScope.launch {
             val outcome = hunt.search(
                 url = current.request.url,
-                title = current.request.title,
+                query = query,
                 languages = asked.codes,
             )
             val stage = when (outcome) {
@@ -780,9 +804,29 @@ class PlayerViewModel @Inject constructor(
         _state.value = _state.value?.copy(locked = locked, controls = !locked)
     }
 
+    /**
+     * Show a sheet, and — for the search — ask the question it exists to ask.
+     *
+     * Opening the subtitle search runs the search. A screen whose first state is an empty
+     * list and a button is a screen that makes the viewer ask for the one thing it does; the
+     * title is already known, the language is already chosen, and there is nothing to wait
+     * for.
+     *
+     * Only from [SubtitleHunt.Idle], so coming back to results already found shows them
+     * instead of fetching them again out of a metered allowance. A viewer who wants the
+     * question asked again presses a language or the search key, both of which do.
+     */
     fun openSheet(sheet: Sheet?) {
         noteInteraction()
-        _state.value = _state.value?.copy(sheet = sheet)
+        val current = _state.value ?: return
+        _state.value = current.copy(sheet = sheet)
+
+        if (sheet == Sheet.SubtitleSearch &&
+            current.subtitleSearch.askable &&
+            current.subtitleSearch.hunt == SubtitleHunt.Idle
+        ) {
+            findSubtitles()
+        }
     }
 
     /** Back to the live edge. A control like any other, in the tools row. */

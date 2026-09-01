@@ -334,6 +334,8 @@ data class PlayerActions(
     val onAspect: (AspectMode) -> Unit = {},
     val onSubtitleStyle: (SubtitleStyle) -> Unit = {},
     val onFindSubtitles: (SubtitleLanguage) -> Unit = {},
+    /** What the viewer typed in the search box. Held; not searched with until they ask. */
+    val onSubtitleQuery: (String) -> Unit = {},
     val onUseSubtitle: (com.castivio.data.subtitles.SubtitleOffer) -> Unit = {},
     val onClearSubtitle: () -> Unit = {},
     val onNudgeSubtitles: (Long) -> Unit = {},

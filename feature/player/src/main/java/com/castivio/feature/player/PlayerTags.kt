@@ -118,6 +118,17 @@ internal object PlayerTags {
 
     const val SHEET = "player.sheet"
     const val SHEET_CLOSE = "player.sheetClose"
+
+    /**
+     * The subtitle search box and the key that runs it.
+     *
+     * Tagged because what the box *contains* is the fix for the defect that produced this
+     * screen: it must open holding the name of what is playing, and a test that cannot find
+     * the field cannot assert that. The button is named separately so "typing does not
+     * search, pressing does" is a claim about two different controls.
+     */
+    const val SUBTITLE_QUERY = "player.subtitleQuery"
+    const val SUBTITLE_SEARCH = "player.subtitleSearch"
     const val STATISTICS = "player.statistics"
     const val TOAST = "player.toast"
 

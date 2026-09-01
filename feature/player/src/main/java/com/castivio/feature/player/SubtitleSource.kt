@@ -4,6 +4,7 @@ import android.content.Context
 import com.castivio.data.subtitles.OpenSubtitlesApi
 import com.castivio.data.subtitles.SubtitleHash
 import com.castivio.data.subtitles.SubtitleOffer
+import com.castivio.data.subtitles.SubtitleQuery
 import com.castivio.data.subtitles.SubtitleResult
 import com.castivio.data.subtitles.SubtitleTrack
 import dagger.Binds
@@ -44,12 +45,18 @@ interface SubtitleSource {
     /**
      * What is offered for this file.
      *
-     * [url] is the source the player was opened with, and it is what the file hash is
-     * computed from when it can be. [title] is the fallback the API searches by name on.
+     * [url] is the source the player was opened with, and it is used for one thing only: the
+     * file hash, when there are local bytes to hash. It is emphatically **not** where the
+     * name comes from — that was the defect this signature exists to prevent. A URL is a
+     * route to bytes and says nothing about what they are, so an IPTV address ending in
+     * `/502` produced a search for "502" and results for five unrelated series.
+     *
+     * [query] is what is being looked for, and it comes from the title the player was
+     * opened with, or from what the viewer typed over it.
      */
     suspend fun search(
         url: String,
-        title: String,
+        query: SubtitleQuery,
         languages: List<String>,
     ): SubtitleResult<List<SubtitleOffer>>
 
@@ -78,13 +85,11 @@ class OpenSubtitles @Inject constructor(
 
     override suspend fun search(
         url: String,
-        title: String,
+        query: SubtitleQuery,
         languages: List<String>,
     ): SubtitleResult<List<SubtitleOffer>> = api.search(
         hash = hash(url),
-        // The uploader's name for the file is what the API matches on, and a local file's
-        // is far closer to it than the tidy title the library screen shows.
-        fileName = url.substringAfterLast('/').ifBlank { title },
+        query = query,
         languages = languages,
     )
 

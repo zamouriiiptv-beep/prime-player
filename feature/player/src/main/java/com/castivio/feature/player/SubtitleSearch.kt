@@ -2,6 +2,7 @@ package com.castivio.feature.player
 
 import com.castivio.data.subtitles.SubtitleFailure
 import com.castivio.data.subtitles.SubtitleOffer
+import com.castivio.data.subtitles.SubtitleQuery
 
 /**
  * The languages the search offers, and why it is four and not two hundred.
@@ -59,7 +60,24 @@ data class SubtitleSearch(
     val available: Boolean = false,
     val language: SubtitleLanguage = SubtitleLanguage.Arabic,
     val hunt: SubtitleHunt = SubtitleHunt.Idle,
+    /**
+     * What is being searched for, as text the viewer can edit.
+     *
+     * Filled from the title the player was opened with, cleaned by [SubtitleQuery] so that
+     * what appears in the box is "The Matrix 1999" and not "The.Matrix.1999.1080p.BluRay.
+     * x264-GROUP.mkv". A viewer who is watching something the library named badly — or named
+     * in a language OpenSubtitles does not catalogue it under — types over it, and that is
+     * the whole escape hatch for every case the parsing gets wrong.
+     *
+     * Text and not a [SubtitleQuery] because this is what a text field holds. It is parsed
+     * back into one at the moment it is searched with, so the round trip is a viewer's edit
+     * and not a second representation to keep in step.
+     */
+    val query: String = "",
 ) {
     /** The codes to send. Empty for [SubtitleLanguage.Any], which means no filter. */
     val codes: List<String> get() = listOfNotNull(language.code.takeIf { it.isNotBlank() })
+
+    /** Whether there is anything to search for. An empty box is not a search. */
+    val askable: Boolean get() = available && query.isNotBlank()
 }
