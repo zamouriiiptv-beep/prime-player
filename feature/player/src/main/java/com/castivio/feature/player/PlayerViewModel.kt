@@ -129,6 +129,10 @@ class PlayerViewModel @Inject constructor(
         engineId = FallbackPolicy.first(FallbackPolicy.sourceKey(request.url), memory)
         Log.i(TAG, "opening on $engineId")
         downloaded = null
+        // Worked out once, here, from the request and never from the URL: the title came
+        // from the catalogue row the viewer pressed, which is the only thing in the player
+        // that knows what this is.
+        val looking = SubtitleQuery.of(request.title, request.subtitle)
         _state.value = PlayerState(
             request = request,
             engine = engineId,
@@ -137,10 +141,10 @@ class PlayerViewModel @Inject constructor(
                 // Fixed for the life of the build: whether this APK was compiled with
                 // credentials. Asked once, here, rather than by the sheet at draw time.
                 available = hunt.available,
-                // What the search box is prefilled with, derived from the request and never
-                // from the URL. The title came from the catalogue row the viewer pressed,
-                // which is the only thing in the player that knows what this is.
-                query = SubtitleQuery.of(request.title, request.subtitle).text,
+                derived = looking,
+                // The box shows the name alone. The year and the episode stay on `derived`,
+                // where they are numbers to compare rather than words to read.
+                query = looking.text,
             ),
         )
         start(request, engineId)
@@ -658,23 +662,23 @@ class PlayerViewModel @Inject constructor(
      * language while the first is in flight cancels it, because the answer to a question
      * nobody is asking any more is not worth the wait it causes.
      *
-     * The text is parsed at this moment rather than kept parsed, so a viewer who types
-     * "Friends S05E02" gets the season and episode sent as the numbers they are.
+     * What is searched with is [SubtitleSearch.asked]: everything worked out from the title
+     * while the box is untouched, and what was typed once it is not.
      */
     fun findSubtitles(language: SubtitleLanguage = _state.value?.subtitleSearch?.language ?: SubtitleLanguage.Arabic) {
         val current = _state.value ?: return
         noteInteraction()
 
-        val asked = current.subtitleSearch.copy(language = language, hunt = SubtitleHunt.Searching)
-        _state.value = current.copy(subtitleSearch = asked)
+        val search = current.subtitleSearch.copy(language = language, hunt = SubtitleHunt.Searching)
+        _state.value = current.copy(subtitleSearch = search)
 
-        val query = SubtitleQuery.parse(asked.query)
+        val query = search.asked
         huntJob?.cancel()
         huntJob = viewModelScope.launch {
             val outcome = hunt.search(
                 url = current.request.url,
                 query = query,
-                languages = asked.codes,
+                languages = search.codes,
             )
             val stage = when (outcome) {
                 is SubtitleResult.Found -> SubtitleHunt.Offers(outcome.value)

@@ -1286,7 +1286,62 @@ class PlayerPathTest {
         )
         runCurrent()
 
-        assertEquals("The Matrix 1999", model.state.value?.subtitleSearch?.query)
+        assertEquals("The Matrix", model.state.value?.subtitleSearch?.query)
+    }
+
+    /**
+     * The listing found on a device, in the box and in the request.
+     *
+     * A provider's row is written to be clicked: the name, the year, the star, the genre.
+     * Sent whole it matched nothing, so the sheet said "no subtitles available" for a film
+     * that has them — and the box showed the viewer the whole listing, which told them
+     * nothing about why.
+     */
+    @Test
+    fun `a shop listing reaches the box and the request as a name`() = playerTest {
+        val model = model()
+        model.open(
+            PlayerRequest(
+                url = "http://provider.tv/vod/77",
+                title = "PURSUIT -- 2026 Jason Statham Full Action Movie",
+                kind = MediaKind.VOD,
+            ),
+        )
+        runCurrent()
+
+        assertEquals("Pursuit", model.state.value?.subtitleSearch?.query)
+
+        model.findSubtitles(SubtitleLanguage.Arabic)
+        runCurrent()
+
+        assertEquals(listOf(SubtitleQuery("Pursuit", year = 2026)), hunt.asked)
+    }
+
+    /**
+     * The year survives the box even though the box does not show it.
+     *
+     * The box holds a name because a name is what a person checks. What was worked out from
+     * the title is kept beside it, so an untouched box searches with the year as well — and
+     * the check that tells *The Matrix* from *The Matrix Resurrections* still has something
+     * to work with.
+     */
+    @Test
+    fun `an untouched box searches with what the box does not show`() = playerTest {
+        val model = model()
+        model.open(
+            PlayerRequest(
+                url = "content://media/external/video/42",
+                title = "The.Matrix.1999.1080p.BluRay.mkv",
+                kind = MediaKind.VOD,
+            ),
+        )
+        runCurrent()
+
+        model.findSubtitles(SubtitleLanguage.Arabic)
+        runCurrent()
+
+        assertEquals("The Matrix", model.state.value?.subtitleSearch?.query)
+        assertEquals(listOf(SubtitleQuery("The Matrix", year = 1999)), hunt.asked)
     }
 
     /** An episode carries its numbers into the box, in the one form the box can be typed in. */
@@ -1328,7 +1383,7 @@ class PlayerPathTest {
         model.findSubtitles(SubtitleLanguage.English)
         runCurrent()
 
-        assertEquals(listOf(SubtitleQuery("Casablanca 1942", year = 1942)), hunt.asked)
+        assertEquals(listOf(SubtitleQuery("Casablanca", year = 1942)), hunt.asked)
     }
 
     /** And an edit alone is not a search: a request per keystroke is a spent allowance. */

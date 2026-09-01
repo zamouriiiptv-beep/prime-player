@@ -7,6 +7,7 @@ import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -86,7 +87,7 @@ class OpenSubtitlesApiTest {
         assertEquals("ar,en", sent.requestUrl?.queryParameter("languages"))
         assertEquals(
             "the release noise was sent as part of the name",
-            "The Road 2009",
+            "The Road",
             sent.requestUrl?.queryParameter("query"),
         )
         assertEquals("2009", sent.requestUrl?.queryParameter("year"))
@@ -129,6 +130,9 @@ class OpenSubtitlesApiTest {
      */
     @Test
     fun `results for another programme are not shown`() = runTest {
+        // Twice: the query carries a year, so it is asked again without one before it gives
+        // up. Every rung is answered with the same wrong results and every rung rejects them.
+        server.enqueue(MockResponse().setBody(OTHER_PROGRAMMES))
         server.enqueue(MockResponse().setBody(OTHER_PROGRAMMES))
 
         val offers = api(WORKING).search(null, SubtitleQuery.parse("The Matrix 1999"), emptyList()).found()
@@ -157,6 +161,81 @@ class OpenSubtitlesApiTest {
         assertEquals("Friends", offers[0].parentTitle)
         assertEquals(5, offers[0].season)
         assertEquals(2, offers[0].episode)
+    }
+
+    /* ------------------------------------------------------------------------ the ladder */
+
+    /**
+     * Asked again without the year rather than given up on.
+     *
+     * A provider dates a film by when it put the file up and a catalogue dates it by when it
+     * was made, and they disagree often enough that insisting on the first is how a film with
+     * subtitles gets reported as having none. So the year is dropped and the question asked
+     * again — and dropped from the acceptance too, because a year that found nothing is not a
+     * year worth rejecting answers over.
+     *
+     * The fixture is exactly that disagreement: one subtitle for the right film, dated four
+     * years off. The first rung asks with the year and rejects it; the second finds it.
+     */
+    @Test
+    fun `a year that finds nothing is dropped and the search runs again`() = runTest {
+        server.enqueue(MockResponse().setBody(DATED_DIFFERENTLY))
+        server.enqueue(MockResponse().setBody(DATED_DIFFERENTLY))
+
+        val offers = api(WORKING).search(null, SubtitleQuery.parse("The.Matrix.1999.mkv"), emptyList()).found()
+
+        assertEquals(2, server.requestCount)
+        assertEquals("1999", server.takeRequest().requestUrl?.queryParameter("year"))
+        assertNull(
+            "the year was sent again after it had already found nothing",
+            server.takeRequest().requestUrl?.queryParameter("year"),
+        )
+        assertEquals(1, offers.size)
+        assertEquals(51L, offers[0].fileId)
+    }
+
+    /**
+     * And the subtitle after the colon is dropped last of all.
+     *
+     * A work listed under its short name is rarer than one dated differently, so it is the
+     * last thing tried — but it is tried, because "no subtitles available" has to mean the
+     * question was asked every way there was before it is put in front of anybody.
+     */
+    @Test
+    fun `the subtitle is dropped before the search gives up`() = runTest {
+        repeat(2) { server.enqueue(MockResponse().setBody("""{"data":[]}""")) }
+        server.enqueue(MockResponse().setBody(SHORT_NAME))
+
+        val offers = api(WORKING)
+            .search(null, SubtitleQuery.parse("Blade Runner: The Final Cut 2007"), emptyList())
+            .found()
+
+        assertEquals(3, server.requestCount)
+        assertEquals("Blade Runner: The Final Cut", server.takeRequest().requestUrl?.queryParameter("query"))
+        assertEquals("Blade Runner: The Final Cut", server.takeRequest().requestUrl?.queryParameter("query"))
+        assertEquals("Blade Runner", server.takeRequest().requestUrl?.queryParameter("query"))
+        assertEquals(1, offers.size)
+    }
+
+    /** A found rung ends it: nothing is asked twice once something has answered. */
+    @Test
+    fun `a rung that finds something is the last one`() = runTest {
+        server.enqueue(MockResponse().setBody(TWO_RESULTS))
+
+        api(WORKING).search(null, SubtitleQuery.parse("The.Road.2009.mkv"), emptyList())
+
+        assertEquals(1, server.requestCount)
+    }
+
+    /** And a refusal ends it too. Three ways of being told the key is wrong is not three answers. */
+    @Test
+    fun `a refusal is not retried down the ladder`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(401))
+
+        val result = api(WORKING).search(null, SubtitleQuery.parse("The.Matrix.1999.mkv"), emptyList())
+
+        assertEquals(SubtitleResult.Refused(SubtitleFailure.REFUSED), result)
+        assertEquals(1, server.requestCount)
     }
 
     /**
@@ -397,6 +476,26 @@ class OpenSubtitlesApiTest {
                 "feature_details":{"title":"The One With Ross's Sandwich","parent_title":"Friends",
                   "season_number":5,"episode_number":9,"year":1998},
                 "files":[{"file_id":33,"file_name":"friends-509.srt"}]}}
+            ]}
+        """.trimIndent()
+
+        /** The right film, dated four years off — the disagreement the ladder exists for. */
+        val DATED_DIFFERENTLY = """
+            {"data":[
+              {"attributes":{"language":"en","download_count":500,"moviehash_match":false,
+                "release":"The.Matrix.BluRay",
+                "feature_details":{"title":"The Matrix","year":2003},
+                "files":[{"file_id":51,"file_name":"matrix.srt"}]}}
+            ]}
+        """.trimIndent()
+
+        /** The same work, listed without the subtitle the provider's file name carried. */
+        val SHORT_NAME = """
+            {"data":[
+              {"attributes":{"language":"en","download_count":300,"moviehash_match":false,
+                "release":"Blade.Runner.1982",
+                "feature_details":{"title":"Blade Runner","year":1982},
+                "files":[{"file_id":61,"file_name":"blade.srt"}]}}
             ]}
         """.trimIndent()
 

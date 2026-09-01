@@ -27,7 +27,7 @@ class SubtitleQueryTest {
     fun `a release name becomes the name of the film`() {
         val query = SubtitleQuery.parse("The.Matrix.1999.1080p.BluRay.x264-GROUP.mkv")
 
-        assertEquals("The Matrix 1999", query.title)
+        assertEquals("The Matrix", query.title)
         assertEquals(1999, query.year)
         assertNull(query.season)
     }
@@ -47,7 +47,7 @@ class SubtitleQueryTest {
     /** A hyphen is part of a name and is not a separator. */
     @Test
     fun `a hyphenated name survives`() {
-        assertEquals("Spider-Man 2002", SubtitleQuery.parse("Spider-Man.2002.720p.WEB-DL").title)
+        assertEquals("Spider-Man", SubtitleQuery.parse("Spider-Man.2002.720p.WEB-DL").title)
     }
 
     /**
@@ -60,6 +60,111 @@ class SubtitleQueryTest {
     @Test
     fun `a name is never cut down to nothing`() {
         assertEquals("4K", SubtitleQuery.parse("4K").title)
+    }
+
+    /* ------------------------------------------------------------------- a shop listing */
+
+    /**
+     * The case found on a device, and the reason a year is treated as a boundary.
+     *
+     * A provider's row is written to be clicked, not to be searched with: the name, then the
+     * year, then the star, then what kind of film it is. Sent whole it matched nothing at
+     * all, and the player said "no subtitles available" for a film that has them.
+     *
+     * Note what is *not* here: any knowledge of who Jason Statham is. The year ends the name,
+     * and everything unbounded that follows a year goes with it unnamed — which is the only
+     * way this can work, because the list of actors is not a list anybody can write down.
+     */
+    @Test
+    fun `a shop listing is reduced to the name of the film`() {
+        val query = SubtitleQuery.parse("PURSUIT -- 2026 Jason Statham Full Action Movie")
+
+        assertEquals("Pursuit", query.title)
+        assertEquals(2026, query.year)
+    }
+
+    /** And without a year, the sales phrase ends it instead. */
+    @Test
+    fun `a sales phrase ends the name`() {
+        assertEquals("Pursuit", SubtitleQuery.parse("PURSUIT - Full Action Movie").title)
+        assertEquals("Pursuit", SubtitleQuery.parse("Pursuit Official Trailer HD").title)
+    }
+
+    /**
+     * A phrase and not a word, because the words are in real titles.
+     *
+     * `movie` alone would take the end off *The Lego Movie* and `full` alone off *Full Metal
+     * Jacket*. It is only the combination that means somebody is selling something.
+     */
+    @Test
+    fun `a title that contains a sales word is not cut`() {
+        assertEquals("The Lego Movie", SubtitleQuery.parse("The Lego Movie").title)
+        assertEquals("Full Metal Jacket", SubtitleQuery.parse("Full Metal Jacket 1987 1080p").title)
+    }
+
+    /**
+     * A number at the end of a name is a name, not a date.
+     *
+     * *Blade Runner 2049* was read as *Blade Runner* released in 2049 — which truncated the
+     * title *and* then rejected every subtitle for the film, whose catalogue year is 2017.
+     * No file that exists is dated that far ahead, so a number that far ahead is not a date.
+     */
+    @Test
+    fun `a title that ends in a number keeps it`() {
+        val query = SubtitleQuery.parse("Blade Runner 2049")
+
+        assertEquals("Blade Runner 2049", query.title)
+        assertNull(query.year)
+    }
+
+    /** A shouted listing is a listing, not a spelling. */
+    @Test
+    fun `a title in capitals is written normally`() {
+        assertEquals("Pursuit", SubtitleQuery.parse("PURSUIT").title)
+        assertEquals("The LEGO Movie", SubtitleQuery.parse("The LEGO Movie").title)
+        assertEquals("4K", SubtitleQuery.parse("4K").title)
+    }
+
+    /**
+     * An Arabic playlist row: the shelf in front, the sales words behind.
+     *
+     * `مسلسل` is "series" and `كامل` is "complete" — the first says what kind of row this is
+     * and the last says what you are getting. Neither is the name, and rows in this shape are
+     * most of an Arabic playlist.
+     */
+    @Test
+    fun `an arabic listing keeps only the name`() {
+        val query = SubtitleQuery.parse("مسلسل الاختيار الموسم 2 الحلقة 5 كامل")
+
+        assertEquals("الاختيار", query.title)
+        assertEquals(2, query.season)
+        assertEquals(5, query.episode)
+    }
+
+    /* ------------------------------------------------------------------------ the ladder */
+
+    /**
+     * What is tried, in order, before "no subtitles available" is said.
+     *
+     * Each rung drops one assumption. The year goes first because it is the likeliest to
+     * disagree between a provider and a catalogue; the subtitle goes last because a work
+     * listed under its short name is rarer than one dated differently.
+     */
+    @Test
+    fun `the ladder drops one assumption at a time`() {
+        val query = SubtitleQuery.parse("Blade Runner: The Final Cut 2007")
+
+        assertEquals(
+            listOf("Blade Runner: The Final Cut" to 2007, "Blade Runner: The Final Cut" to null, "Blade Runner" to null),
+            query.attempts().map { it.title to it.year },
+        )
+    }
+
+    /** With nothing to drop there is one rung, so the common case is still one request. */
+    @Test
+    fun `a plain name is asked for once`() {
+        assertEquals(1, SubtitleQuery.parse("Pursuit").attempts().size)
+        assertEquals(2, SubtitleQuery.parse("The.Matrix.1999.mkv").attempts().size)
     }
 
     /* ---------------------------------------------------------------------- the episode */
@@ -148,10 +253,16 @@ class SubtitleQueryTest {
         assertEquals(original, round)
     }
 
-    /** A film's displayed text is just its name. */
+    /**
+     * A film's displayed text is its name, and only its name.
+     *
+     * The year is on the query as a number and goes to the API's own `year` field, so putting
+     * it in the box as well would be showing a person a parameter. What they are being asked
+     * to check is whether the name is right.
+     */
     @Test
-    fun `a film shows its name and its year`() {
-        assertEquals("The Matrix 1999", SubtitleQuery.parse("The.Matrix.1999.BluRay.mkv").text)
+    fun `a film shows its name alone`() {
+        assertEquals("The Matrix", SubtitleQuery.parse("The.Matrix.1999.BluRay.mkv").text)
     }
 
     /* -------------------------------------------------------------- nothing to search for */

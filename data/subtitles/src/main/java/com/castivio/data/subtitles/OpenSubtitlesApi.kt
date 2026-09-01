@@ -150,6 +150,22 @@ class OpenSubtitlesApi(
      * 502 of five other series when the query was poor. Only this side knows what is
      * playing, so only this side can say that those are not it.
      *
+     * ## Asked more than once before it is given up on
+     *
+     * [SubtitleQuery.attempts] is a ladder — the name with everything worked out about it,
+     * then without the year, then without the subtitle — and each rung is tried only because
+     * the one above it found nothing. Each is filtered against *itself*, which is the point
+     * of dropping the assumption from the question at all: if this name in this year found
+     * nothing, that year is not the year the catalogue holds, and going on to reject answers
+     * for having a different one would be asking a question whose answers are thrown away.
+     *
+     * So "no subtitles available" is reached after up to three real attempts rather than one,
+     * and the common case is still a single request because the rungs collapse when they
+     * would be identical.
+     *
+     * A refusal ends it immediately. Three attempts at a wrong key is three ways of being
+     * told the same thing, more slowly.
+     *
      * [languages] is a list of two-letter codes. Empty means every language, which is what
      * the sheet asks for when the viewer has not chosen one.
      */
@@ -160,6 +176,22 @@ class OpenSubtitlesApi(
     ): SubtitleResult<List<SubtitleOffer>> = call {
         if (!credentials.configured) return@call SubtitleResult.Refused(SubtitleFailure.NOT_CONFIGURED)
 
+        for (attempt in query.attempts()) {
+            val found = when (val outcome = ask(hash, attempt, languages)) {
+                is SubtitleResult.Refused -> return@call outcome
+                is SubtitleResult.Found -> outcome.value
+            }
+            if (found.isNotEmpty()) return@call SubtitleResult.Found(found)
+        }
+        SubtitleResult.Found(emptyList())
+    }
+
+    /** One rung of the ladder: one request, and what is left of it after the filter. */
+    private fun ask(
+        hash: Long?,
+        query: SubtitleQuery,
+        languages: List<String>,
+    ): SubtitleResult<List<SubtitleOffer>> {
         val url = base.newBuilder()
             .addPathSegment("subtitles")
             .addQueryParameter("query", query.title)
@@ -174,11 +206,10 @@ class OpenSubtitlesApi(
             }
             .build()
 
-        val response = client.newCall(get(url).build()).execute()
-        response.use {
-            if (!it.isSuccessful) return@call SubtitleResult.Refused(failure(it.code))
-            val body = it.body?.string() ?: return@call SubtitleResult.Refused(SubtitleFailure.UNREADABLE)
-            SubtitleResult.Found(SubtitleMatch.relevant(query, offers(body)))
+        client.newCall(get(url).build()).execute().use {
+            if (!it.isSuccessful) return SubtitleResult.Refused(failure(it.code))
+            val body = it.body?.string() ?: return SubtitleResult.Refused(SubtitleFailure.UNREADABLE)
+            return SubtitleResult.Found(SubtitleMatch.relevant(query, offers(body)))
         }
     }
 

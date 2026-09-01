@@ -64,20 +64,42 @@ data class SubtitleSearch(
      * What is being searched for, as text the viewer can edit.
      *
      * Filled from the title the player was opened with, cleaned by [SubtitleQuery] so that
-     * what appears in the box is "The Matrix 1999" and not "The.Matrix.1999.1080p.BluRay.
-     * x264-GROUP.mkv". A viewer who is watching something the library named badly — or named
-     * in a language OpenSubtitles does not catalogue it under — types over it, and that is
-     * the whole escape hatch for every case the parsing gets wrong.
+     * what appears is "Pursuit" and not "PURSUIT -- 2026 Jason Statham Full Action Movie".
+     * A viewer who is watching something the library named badly — or named in a language
+     * OpenSubtitles does not catalogue it under — types over it, and that is the whole
+     * escape hatch for every case the parsing gets wrong.
      *
-     * Text and not a [SubtitleQuery] because this is what a text field holds. It is parsed
-     * back into one at the moment it is searched with, so the round trip is a viewer's edit
-     * and not a second representation to keep in step.
+     * Text and not a [SubtitleQuery] because this is what a text field holds.
      */
     val query: String = "",
+    /**
+     * The query worked out from the request, kept beside the text it produced.
+     *
+     * Not a second representation to keep in step — a record of what was known before the
+     * text was flattened. The box shows a name and only a name, which is what a person wants
+     * to read and correct, so the year and the episode that were worked out from the title
+     * are not written in it. Parsing the box back would therefore lose them, and with the
+     * year goes the check that tells *The Matrix* from *The Matrix Resurrections*.
+     *
+     * So an untouched box searches with everything that was derived, and an edited one
+     * searches with what was typed. [asked] is that rule, in one line.
+     */
+    val derived: SubtitleQuery = SubtitleQuery(""),
 ) {
     /** The codes to send. Empty for [SubtitleLanguage.Any], which means no filter. */
     val codes: List<String> get() = listOfNotNull(language.code.takeIf { it.isNotBlank() })
 
     /** Whether there is anything to search for. An empty box is not a search. */
     val askable: Boolean get() = available && query.isNotBlank()
+
+    /**
+     * What to actually search with: everything derived, unless the viewer has typed over it.
+     *
+     * The comparison is against the text the derived query itself produced, so "untouched"
+     * means untouched and a viewer who deletes a word gets a search for the words they left.
+     */
+    val asked: SubtitleQuery
+        get() = query.trim().let { typed ->
+            if (typed == derived.text) derived else SubtitleQuery.parse(typed)
+        }
 }
