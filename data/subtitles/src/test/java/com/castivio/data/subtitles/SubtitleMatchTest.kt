@@ -10,59 +10,88 @@ import org.junit.Test
  *
  * The filter has two ways to fail and they are not symmetric. Letting a wrong result through
  * wastes one download out of a metered daily allowance and shows the viewer subtitles for
- * another programme; rejecting a right one tells them no subtitle exists when one does, and
- * there is nothing they can do about that from the sheet. So the tests below come in pairs:
- * every rule that rejects something has one beside it proving what it still lets through.
+ * another programme; rejecting a right one tells them no subtitle exists when one does.
+ *
+ * The rule chosen is the strict one, deliberately: a name has to *be* the name. The escape
+ * hatches are the editable search box and the hash exemption, and both are tested here.
  */
 class SubtitleMatchTest {
 
-    /* ------------------------------------------------------------- the wrong programme */
+    /* ---------------------------------------------- a word in the title is not the title */
 
     /**
-     * The defect this was written for.
+     * The rule this filter exists for, in the two films that made it necessary.
      *
-     * A search for `502` — the last segment of an IPTV address — returned episode 502 of
-     * every series that has one. Each row was a real subtitle correctly matching the query,
-     * and none of them was the film.
+     * *Pursuit* is contained in *Cold Pursuit* and in *The Pursuit of Happyness*, so a filter
+     * that accepted a title *containing* every word of the query accepted all three — which
+     * is a keyword search wearing a filter's clothes. Identification means equality.
      */
     @Test
-    fun `a subtitle for another series is not about this film`() {
-        val watching = SubtitleQuery.parse("The Matrix 1999")
+    fun `a film whose title merely contains the query is not this film`() {
+        val watching = SubtitleQuery.parse("Pursuit 2026")
 
-        assertFalse(SubtitleMatch.keep(watching, episode("Friends", 5, 2)))
-        assertFalse(SubtitleMatch.keep(watching, episode("The Office", 5, 2)))
+        assertFalse(SubtitleMatch.keep(watching, film("Cold Pursuit", 2019)))
+        assertFalse(SubtitleMatch.keep(watching, film("The Pursuit of Happyness", 2006)))
+        assertFalse(SubtitleMatch.keep(watching, film("Pursuit of the Graf Spee", 1956)))
     }
 
+    /** And the film itself is kept, which is the other half of the same claim. */
     @Test
-    fun `a subtitle for this film is about this film`() {
-        val watching = SubtitleQuery.parse("The Matrix 1999")
+    fun `the film that was asked for is kept`() {
+        val watching = SubtitleQuery.parse("Pursuit 2026")
 
-        assertTrue(SubtitleMatch.keep(watching, film("The Matrix", 1999)))
+        assertTrue(SubtitleMatch.keep(watching, film("Pursuit", 2026)))
+        assertTrue("a year one out is the same film catalogued elsewhere", SubtitleMatch.keep(watching, film("Pursuit", 2025)))
+        assertFalse("a different Pursuit entirely", SubtitleMatch.keep(watching, film("Pursuit", 2015)))
     }
 
     /**
-     * A sequel is not the film, and the name alone cannot tell.
+     * Equality, but not letter by letter.
      *
-     * "The Matrix Resurrections" contains every significant word of "The Matrix", so the
-     * word check passes it. The year is what separates them, and it is the only thing that
-     * can.
+     * Two catalogues can be expected to agree about a name and not about its punctuation or
+     * its article. Both sides are reduced the same way, so *Spider-Man* meets *Spider Man*
+     * and a provider's *Matrix 1999* meets a catalogue's *The Matrix* — and nothing else is
+     * relaxed, because every further relaxation is a way for a different film to compare
+     * equal.
      */
     @Test
-    fun `a sequel twenty years later is not this film`() {
+    fun `punctuation and a leading article are not part of the name`() {
+        assertTrue(SubtitleMatch.keep(SubtitleQuery.parse("Spider-Man 2002"), film("Spider Man", 2002)))
+        assertTrue(SubtitleMatch.keep(SubtitleQuery.parse("Matrix 1999"), film("The Matrix", 1999)))
+        assertTrue(SubtitleMatch.keep(SubtitleQuery.parse("The Matrix 1999"), film("Matrix", 1999)))
+    }
+
+    /** A sequel shares every word of its parent's name and is not it. */
+    @Test
+    fun `a sequel is not the film`() {
         val watching = SubtitleQuery.parse("The Matrix 1999")
 
         assertFalse(SubtitleMatch.keep(watching, film("The Matrix Resurrections", 2021)))
+        assertFalse(SubtitleMatch.keep(watching, film("The Matrix Reloaded", 2003)))
     }
 
-    /** A year that is one out is the same film catalogued by somebody else. */
+    /* ------------------------------------------------------------ a release name is not a title */
+
+    /**
+     * An uploader's release name is held to a prefix, because it is not a title.
+     *
+     * It is free text with the name at the front and the encoding behind it, so *Friends
+     * complete pack* is plausibly *Friends*. *Cold Pursuit* puts another word first and is
+     * not plausibly *Pursuit* — which is the same rejection as above, reached without the
+     * catalogue's help.
+     */
     @Test
-    fun `a year that is one out is still this film`() {
-        val watching = SubtitleQuery.parse("The Road 2009")
+    fun `a release name has to start with the name`() {
+        val pursuit = SubtitleQuery.parse("Pursuit 2026")
 
-        assertTrue(SubtitleMatch.keep(watching, film("The Road", 2010)))
+        assertTrue(SubtitleMatch.keep(pursuit, named("Pursuit.2026.1080p.WEB-DL")))
+        assertFalse(SubtitleMatch.keep(pursuit, named("Cold.Pursuit.2019.1080p")))
+        assertTrue(SubtitleMatch.keep(SubtitleQuery.parse("Friends"), named("Friends complete pack")))
     }
 
-    /** And a result that states no year is judged on its name, not rejected for silence. */
+    /* ----------------------------------------------------------------------- the year */
+
+    /** A result that states no year is judged on its name, not rejected for silence. */
     @Test
     fun `a result with no year is judged on its name`() {
         val watching = SubtitleQuery.parse("The Road 2009")
@@ -81,6 +110,14 @@ class SubtitleMatchTest {
         assertTrue(SubtitleMatch.keep(watching, episode("Friends", 5, 2)))
     }
 
+    /** And another series' episode is rejected on the name before the numbers are reached. */
+    @Test
+    fun `the same episode of another series is not this episode`() {
+        val watching = SubtitleQuery.parse("Friends S05E02")
+
+        assertFalse(SubtitleMatch.keep(watching, episode("The Office", 5, 2)))
+    }
+
     /**
      * Searching a series without naming an episode accepts every episode of it.
      *
@@ -90,20 +127,18 @@ class SubtitleMatchTest {
      */
     @Test
     fun `a search with no episode accepts any episode of the series`() {
-        val watching = SubtitleQuery.parse("Friends")
-
-        assertTrue(SubtitleMatch.keep(watching, episode("Friends", 5, 9)))
+        assertTrue(SubtitleMatch.keep(SubtitleQuery.parse("Friends"), episode("Friends", 5, 9)))
     }
 
     /**
-     * When the catalogue states no numbers, the result's own name is read for them.
+     * When the catalogue states no numbers, the release name is read for them.
      *
      * Weaker evidence, used weakly: a name that states a different episode is rejected, and
      * a name that states nothing is allowed through — a subtitle filed under the right series
      * with no episode in its name is a plausible answer, and its name is visible in the row.
      */
     @Test
-    fun `an undeclared episode is read from the name, and silence is allowed`() {
+    fun `an undeclared episode is read from the release, and silence is allowed`() {
         val watching = SubtitleQuery.parse("Friends S05E02")
 
         assertFalse(SubtitleMatch.keep(watching, named("Friends.S05E09.DVDRip")))
@@ -125,14 +160,7 @@ class SubtitleMatchTest {
         val watching = SubtitleQuery.parse("المصفوفة")
 
         assertTrue(SubtitleMatch.keep(watching, film("The Matrix", 1999).copy(matchesThisFile = true)))
-    }
-
-    /** Without the hash, that same pair is exactly what the filter is supposed to reject. */
-    @Test
-    fun `the same pair without a hash is rejected`() {
-        val watching = SubtitleQuery.parse("المصفوفة")
-
-        assertFalse(SubtitleMatch.keep(watching, film("The Matrix", 1999)))
+        assertFalse("the same pair without the hash", SubtitleMatch.keep(watching, film("The Matrix", 1999)))
     }
 
     /* ------------------------------------------------------------- nothing to judge with */
@@ -149,12 +177,7 @@ class SubtitleMatchTest {
         assertTrue(SubtitleMatch.keep(SubtitleQuery.parse(""), film("Anything", 2001)))
     }
 
-    /**
-     * A title made only of articles is matched on the articles.
-     *
-     * "The One" is a series. Dropping "the" as noise leaves "one"; dropping both would leave
-     * nothing to match on and accept every result on the site.
-     */
+    /** A title that is only a small word is still a title. */
     @Test
     fun `a title of small words still has to match`() {
         val watching = SubtitleQuery.parse("The One")
@@ -163,17 +186,68 @@ class SubtitleMatchTest {
         assertFalse(SubtitleMatch.keep(watching, film("The Two Towers", 2002)))
     }
 
-    /** Whole words only: `ar` must not be found inside `Arrival`. */
+    /* -------------------------------------------------------- resolving before searching */
+
+    /**
+     * The gate on the catalogue lookup is the same gate.
+     *
+     * `/features` is a search as well, and asked for "Pursuit" it offers *Cold Pursuit*
+     * among the answers. Taking its first row on trust would be a keyword search with an
+     * extra round trip in front of it.
+     */
     @Test
-    fun `a word is matched whole`() {
-        assertFalse(SubtitleMatch.keep(SubtitleQuery.parse("Her"), film("Sherlock", 2010)))
+    fun `only an exact catalogue entry identifies the work`() {
+        val watching = SubtitleQuery.parse("Pursuit 2026")
+
+        assertTrue(SubtitleMatch.sameWork(watching, "Pursuit", 2026))
+        assertTrue("a catalogue that states no year", SubtitleMatch.sameWork(watching, "Pursuit", null))
+        assertFalse(SubtitleMatch.sameWork(watching, "Cold Pursuit", 2019))
+        assertFalse(SubtitleMatch.sameWork(watching, "Pursuit", 1998))
     }
 
-    /* ------------------------------------------------------------------------- the list */
-
-    /** The list keeps its order: the filter removes, it does not re-rank. */
+    /**
+     * Results asked for by identifier are not re-judged on their name.
+     *
+     * The identifier answered the question better than a comparison of strings can, so
+     * checking the title again could only reject a right answer for being spelled
+     * differently — a French catalogue title over a film asked for in English, say.
+     *
+     * The episode is still checked: a series' identifier covers every episode of it.
+     */
     @Test
-    fun `filtering keeps what is left in the order it arrived`() {
+    fun `a search by identifier trusts the name and still checks the episode`() {
+        val film = SubtitleQuery.parse("Pursuit 2026")
+        assertEquals(1, SubtitleMatch.ofFeature(film, listOf(film("Poursuite", 2026))).size)
+
+        val watching = SubtitleQuery.parse("Friends S05E02")
+        assertEquals(0, SubtitleMatch.ofFeature(watching, listOf(episode("Friends", 5, 9))).size)
+        assertEquals(1, SubtitleMatch.ofFeature(watching, listOf(episode("Friends", 5, 2))).size)
+    }
+
+    /* -------------------------------------------------------------------------- the order */
+
+    /**
+     * Best first: this file's own subtitle, then the right year, then the popular one.
+     *
+     * A viewer takes the top row, so the top row has to be the one that fits this file — and
+     * popularity alone puts the most-downloaded subtitle for some other copy above the one
+     * timed against these exact bytes.
+     */
+    @Test
+    fun `results are ranked by what fits this file`() {
+        val watching = SubtitleQuery.parse("Pursuit 2026")
+        val offers = listOf(
+            film("Pursuit", 2025).copy(fileId = 1, downloads = 900),
+            film("Pursuit", 2026).copy(fileId = 2, downloads = 10),
+            film("Pursuit", 2026).copy(fileId = 3, downloads = 5, matchesThisFile = true),
+        )
+
+        assertEquals(listOf(3L, 2L, 1L), SubtitleMatch.relevant(watching, offers).map { it.fileId })
+    }
+
+    /** What the ranking cannot separate keeps the order OpenSubtitles put it in. */
+    @Test
+    fun `results the ranking cannot separate are left as they arrived`() {
         val watching = SubtitleQuery.parse("Friends S05E02")
         val offers = listOf(
             episode("The Office", 5, 2),
@@ -182,9 +256,7 @@ class SubtitleMatchTest {
             episode("Friends", 5, 2).copy(fileId = 8),
         )
 
-        val kept = SubtitleMatch.relevant(watching, offers)
-
-        assertEquals(listOf(7L, 8L), kept.map { it.fileId })
+        assertEquals(listOf(7L, 8L), SubtitleMatch.relevant(watching, offers).map { it.fileId })
     }
 
     /* ----------------------------------------------------------------------- the fixtures */

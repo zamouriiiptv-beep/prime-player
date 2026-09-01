@@ -76,14 +76,26 @@ data class SubtitleQuery(
     /**
      * What the search box shows, and what [parse] turns back into this.
      *
+     * **The year is in it**, and that is a correction. It was left out once, on the grounds
+     * that a box should hold a name and not a parameter, and that was wrong for a reason the
+     * name makes obvious: `Pursuit` is not an identification. It is a word that *The Pursuit
+     * of Happyness* and *Cold Pursuit* also contain, and a person looking at a box that says
+     * `Pursuit` cannot tell whether the player has understood which film is playing.
+     * `Pursuit 2026` can be read and checked, and it is what disambiguates the search.
+     *
      * `S05E02` rather than the several other ways the marker was written, because the box is
      * also an editable field: a viewer correcting the season needs to see a form they can
      * edit without guessing which of them this build understands.
+     *
+     * Everything on this type is in here, so [parse] of this text is this query again. That
+     * is what lets the box be the single record of what is being looked for — no second copy
+     * kept beside it, and nothing lost when a viewer types.
      */
     val text: String
-        get() = when {
-            season != null && episode != null -> "$title S%02dE%02d".format(season, episode)
-            else -> title
+        get() = buildString {
+            append(title)
+            year?.let { append(' ').append(it) }
+            if (season != null && episode != null) append(" S%02dE%02d".format(season, episode))
         }
 
     /**

@@ -254,15 +254,35 @@ class SubtitleQueryTest {
     }
 
     /**
-     * A film's displayed text is its name, and only its name.
+     * A film's displayed text is its name *and its year*.
      *
-     * The year is on the query as a number and goes to the API's own `year` field, so putting
-     * it in the box as well would be showing a person a parameter. What they are being asked
-     * to check is whether the name is right.
+     * The year was left out of the box once, on the grounds that a box should hold a name
+     * and not a parameter. That was wrong, and the reason is what the box is for: a person
+     * reading `Pursuit` cannot tell whether the player has understood which film is playing,
+     * because *Cold Pursuit* and *The Pursuit of Happyness* would produce the same word.
+     * `Pursuit 2026` can be read and checked.
+     *
+     * It also makes the text a complete record, so parsing it back loses nothing and there
+     * is no second copy of the query kept beside the box for the parts it could not hold.
      */
     @Test
-    fun `a film shows its name alone`() {
-        assertEquals("The Matrix", SubtitleQuery.parse("The.Matrix.1999.BluRay.mkv").text)
+    fun `a film shows its name and its year`() {
+        assertEquals("The Matrix 1999", SubtitleQuery.parse("The.Matrix.1999.BluRay.mkv").text)
+        assertEquals("Pursuit 2026", SubtitleQuery.parse("PURSUIT -- 2026 Jason Statham Full Action Movie").text)
+    }
+
+    /** And everything in the text comes back out of it, year and episode alike. */
+    @Test
+    fun `every part of the query survives the box`() {
+        listOf(
+            "PURSUIT -- 2026 Jason Statham Full Action Movie",
+            "The.Matrix.1999.1080p.BluRay.mkv",
+            "Friends.S05E02.720p.HDTV.mkv",
+            "Blade Runner 2049",
+        ).forEach { name ->
+            val original = SubtitleQuery.parse(name)
+            assertEquals(name, original, SubtitleQuery.parse(original.text))
+        }
     }
 
     /* -------------------------------------------------------------- nothing to search for */

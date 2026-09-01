@@ -1,6 +1,7 @@
 package com.castivio.data.subtitles
 
 import kotlinx.coroutines.test.runTest
+import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -42,6 +43,25 @@ class OpenSubtitlesApiTest {
         server.shutdown()
     }
 
+    /**
+     * One attempt's worth of answers: the catalogue lookup, then the subtitles.
+     *
+     * Every search begins by asking `/features` what work this name refers to, so a rung of
+     * the ladder is two exchanges and not one. [features] defaults to a catalogue that
+     * recognises nothing, which sends the search to the name — the fallback path, and the one
+     * most of these tests are about.
+     */
+    private fun rung(subtitles: String, features: String = NOTHING_RESOLVED) {
+        server.enqueue(MockResponse().setBody(features))
+        server.enqueue(MockResponse().setBody(subtitles))
+    }
+
+    /** The subtitle request of the next rung, with its catalogue lookup stepped over. */
+    private fun subtitleRequest(): HttpUrl? {
+        server.takeRequest()
+        return server.takeRequest().requestUrl
+    }
+
     /* ------------------------------------------------------------ not set up at all */
 
     /**
@@ -71,7 +91,7 @@ class OpenSubtitlesApiTest {
      */
     @Test
     fun `a search sends what it must and reads what comes back`() = runTest {
-        server.enqueue(MockResponse().setBody(TWO_RESULTS))
+        rung(TWO_RESULTS)
         val api = api(WORKING)
 
         val result = api.search(
@@ -80,6 +100,7 @@ class OpenSubtitlesApiTest {
             languages = listOf("ar", "en"),
         )
 
+        server.takeRequest()
         val sent = server.takeRequest()
         assertEquals("castivio-key", sent.getHeader("Api-Key"))
         assertEquals(OpenSubtitlesApi.USER_AGENT, sent.getHeader("User-Agent"))
@@ -105,11 +126,11 @@ class OpenSubtitlesApiTest {
      */
     @Test
     fun `an episode is asked for by season and episode number`() = runTest {
-        server.enqueue(MockResponse().setBody("""{"data":[]}"""))
+        rung("""{"data":[]}""")
 
         api(WORKING).search(null, SubtitleQuery.parse("Friends.S05E02.720p.HDTV.mkv"), emptyList())
 
-        val sent = server.takeRequest().requestUrl
+        val sent = subtitleRequest()
         assertEquals("Friends", sent?.queryParameter("query"))
         assertEquals("5", sent?.queryParameter("season_number"))
         assertEquals("2", sent?.queryParameter("episode_number"))
@@ -132,8 +153,8 @@ class OpenSubtitlesApiTest {
     fun `results for another programme are not shown`() = runTest {
         // Twice: the query carries a year, so it is asked again without one before it gives
         // up. Every rung is answered with the same wrong results and every rung rejects them.
-        server.enqueue(MockResponse().setBody(OTHER_PROGRAMMES))
-        server.enqueue(MockResponse().setBody(OTHER_PROGRAMMES))
+        rung(OTHER_PROGRAMMES)
+        rung(OTHER_PROGRAMMES)
 
         val offers = api(WORKING).search(null, SubtitleQuery.parse("The Matrix 1999"), emptyList()).found()
 
@@ -143,7 +164,7 @@ class OpenSubtitlesApiTest {
     /** The right series, the wrong episode, which is the same mistake one step smaller. */
     @Test
     fun `another episode of the right series is not shown`() = runTest {
-        server.enqueue(MockResponse().setBody(OTHER_PROGRAMMES))
+        rung(OTHER_PROGRAMMES)
 
         val offers = api(WORKING).search(null, SubtitleQuery.parse("Friends S05E01"), emptyList()).found()
 
@@ -153,7 +174,7 @@ class OpenSubtitlesApiTest {
     /** And the one that is actually asked for comes through, with what it is for read off. */
     @Test
     fun `the episode that was asked for is kept`() = runTest {
-        server.enqueue(MockResponse().setBody(OTHER_PROGRAMMES))
+        rung(OTHER_PROGRAMMES)
 
         val offers = api(WORKING).search(null, SubtitleQuery.parse("Friends S05E02"), emptyList()).found()
 
@@ -161,6 +182,106 @@ class OpenSubtitlesApiTest {
         assertEquals("Friends", offers[0].parentTitle)
         assertEquals(5, offers[0].season)
         assertEquals(2, offers[0].episode)
+    }
+
+    /* ------------------------------------------------------- identifying the work first */
+
+    /**
+     * The work is looked up, and then its subtitles are asked for by its identifier.
+     *
+     * The strongest form of "only this film". `query=Pursuit` is a question that *Cold
+     * Pursuit* and *The Pursuit of Happyness* are both correct answers to; `id=9001` is not a
+     * question about a name at all, so there is nothing for another film to match.
+     */
+    @Test
+    fun `a recognised name is searched for by its identifier`() = runTest {
+        rung(subtitles = PURSUIT_SUBTITLE, features = PURSUIT_FEATURE)
+
+        val offers = api(WORKING).search(null, SubtitleQuery.parse("Pursuit 2026"), emptyList()).found()
+
+        val lookup = server.takeRequest().requestUrl
+        assertEquals("Pursuit", lookup?.queryParameter("query"))
+        assertEquals("2026", lookup?.queryParameter("year"))
+
+        val search = server.takeRequest().requestUrl
+        assertEquals("9001", search?.queryParameter("id"))
+        assertNull("the name was sent alongside the identifier", search?.queryParameter("query"))
+        assertEquals(1, offers.size)
+    }
+
+    /**
+     * A near miss from the catalogue is not the work.
+     *
+     * `/features` is a search too: asked for "Pursuit" it offers *Cold Pursuit* among the
+     * answers, and taking its first row on trust would be a keyword search with an extra
+     * round trip in front of it. Nothing resolves here, so the search falls back to the name
+     * — and the same equality rejects the same film a second time.
+     */
+    @Test
+    fun `a catalogue near miss does not resolve and does not slip through`() = runTest {
+        rung(subtitles = COLD_PURSUIT_SUBTITLE, features = COLD_PURSUIT_FEATURE)
+        rung(subtitles = COLD_PURSUIT_SUBTITLE, features = COLD_PURSUIT_FEATURE)
+
+        val offers = api(WORKING).search(null, SubtitleQuery.parse("Pursuit 2026"), emptyList()).found()
+
+        assertEquals("the name was sent, so nothing had resolved", "Pursuit", subtitleRequest()?.queryParameter("query"))
+        assertEquals("a different film reached the viewer", emptyList<SubtitleOffer>(), offers)
+    }
+
+    /**
+     * A series resolves to the series, and the episode numbers travel beside it.
+     *
+     * `parent_feature_id` and not `id`, because the identifier names *Friends* and the viewer
+     * is watching one episode of it.
+     */
+    @Test
+    fun `a series is searched for by its parent identifier`() = runTest {
+        rung(subtitles = FRIENDS_EPISODES, features = FRIENDS_FEATURE)
+
+        val offers = api(WORKING).search(null, SubtitleQuery.parse("Friends S05E02"), emptyList()).found()
+
+        val search = subtitleRequest()
+        assertEquals("7100", search?.queryParameter("parent_feature_id"))
+        assertEquals("5", search?.queryParameter("season_number"))
+        assertEquals("2", search?.queryParameter("episode_number"))
+        assertEquals("the wrong episode came back from the right series", 1, offers.size)
+        assertEquals(2, offers[0].episode)
+    }
+
+    /**
+     * A wrong query cannot be rescued by resolving it.
+     *
+     * `502` is the last segment of an IPTV address and it is not a name, so the catalogue
+     * does not recognise it, the fallback asks for it by name, and every real subtitle that
+     * comes back is rejected for being for another programme. The failure the whole feature
+     * was written about, through the whole feature as it now stands.
+     */
+    @Test
+    fun `a stream number identifies nothing and returns nothing`() = runTest {
+        rung(OTHER_PROGRAMMES)
+
+        val offers = api(WORKING).search(null, SubtitleQuery.parse("502"), emptyList()).found()
+
+        assertEquals(emptyList<SubtitleOffer>(), offers)
+    }
+
+    /**
+     * A catalogue that will not answer is not a search that fails.
+     *
+     * Resolution is an improvement on the fallback, not a dependency of it. A `/features`
+     * that is down, slow or unrecognisable leaves the search exactly where it was before
+     * this step existed — asking by name, filtered by name — rather than making the whole
+     * feature less reliable than it used to be.
+     */
+    @Test
+    fun `a broken catalogue lookup falls back to the name`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(500))
+        server.enqueue(MockResponse().setBody(PURSUIT_SUBTITLE))
+
+        val offers = api(WORKING).search(null, SubtitleQuery.parse("Pursuit 2026"), emptyList()).found()
+
+        assertEquals("Pursuit", subtitleRequest()?.queryParameter("query"))
+        assertEquals(1, offers.size)
     }
 
     /* ------------------------------------------------------------------------ the ladder */
@@ -179,16 +300,16 @@ class OpenSubtitlesApiTest {
      */
     @Test
     fun `a year that finds nothing is dropped and the search runs again`() = runTest {
-        server.enqueue(MockResponse().setBody(DATED_DIFFERENTLY))
-        server.enqueue(MockResponse().setBody(DATED_DIFFERENTLY))
+        rung(DATED_DIFFERENTLY)
+        rung(DATED_DIFFERENTLY)
 
         val offers = api(WORKING).search(null, SubtitleQuery.parse("The.Matrix.1999.mkv"), emptyList()).found()
 
-        assertEquals(2, server.requestCount)
-        assertEquals("1999", server.takeRequest().requestUrl?.queryParameter("year"))
+        assertEquals("two rungs, each a lookup and a search", 4, server.requestCount)
+        assertEquals("1999", subtitleRequest()?.queryParameter("year"))
         assertNull(
             "the year was sent again after it had already found nothing",
-            server.takeRequest().requestUrl?.queryParameter("year"),
+            subtitleRequest()?.queryParameter("year"),
         )
         assertEquals(1, offers.size)
         assertEquals(51L, offers[0].fileId)
@@ -203,39 +324,40 @@ class OpenSubtitlesApiTest {
      */
     @Test
     fun `the subtitle is dropped before the search gives up`() = runTest {
-        repeat(2) { server.enqueue(MockResponse().setBody("""{"data":[]}""")) }
-        server.enqueue(MockResponse().setBody(SHORT_NAME))
+        repeat(2) { rung("""{"data":[]}""") }
+        rung(SHORT_NAME)
 
         val offers = api(WORKING)
             .search(null, SubtitleQuery.parse("Blade Runner: The Final Cut 2007"), emptyList())
             .found()
 
-        assertEquals(3, server.requestCount)
-        assertEquals("Blade Runner: The Final Cut", server.takeRequest().requestUrl?.queryParameter("query"))
-        assertEquals("Blade Runner: The Final Cut", server.takeRequest().requestUrl?.queryParameter("query"))
-        assertEquals("Blade Runner", server.takeRequest().requestUrl?.queryParameter("query"))
+        assertEquals("three rungs, each a lookup and a search", 6, server.requestCount)
+        assertEquals("Blade Runner: The Final Cut", subtitleRequest()?.queryParameter("query"))
+        assertEquals("Blade Runner: The Final Cut", subtitleRequest()?.queryParameter("query"))
+        assertEquals("Blade Runner", subtitleRequest()?.queryParameter("query"))
         assertEquals(1, offers.size)
     }
 
     /** A found rung ends it: nothing is asked twice once something has answered. */
     @Test
     fun `a rung that finds something is the last one`() = runTest {
-        server.enqueue(MockResponse().setBody(TWO_RESULTS))
+        rung(TWO_RESULTS)
 
         api(WORKING).search(null, SubtitleQuery.parse("The.Road.2009.mkv"), emptyList())
 
-        assertEquals(1, server.requestCount)
+        assertEquals("one rung: a lookup and a search", 2, server.requestCount)
     }
 
     /** And a refusal ends it too. Three ways of being told the key is wrong is not three answers. */
     @Test
     fun `a refusal is not retried down the ladder`() = runTest {
+        server.enqueue(MockResponse().setBody(NOTHING_RESOLVED))
         server.enqueue(MockResponse().setResponseCode(401))
 
         val result = api(WORKING).search(null, SubtitleQuery.parse("The.Matrix.1999.mkv"), emptyList())
 
         assertEquals(SubtitleResult.Refused(SubtitleFailure.REFUSED), result)
-        assertEquals(1, server.requestCount)
+        assertEquals("the ladder went on after a refusal", 2, server.requestCount)
     }
 
     /**
@@ -247,7 +369,7 @@ class OpenSubtitlesApiTest {
      */
     @Test
     fun `a hash match survives a name that does not match at all`() = runTest {
-        server.enqueue(MockResponse().setBody(HASHED_UNDER_ANOTHER_NAME))
+        rung(HASHED_UNDER_ANOTHER_NAME)
 
         val offers = api(WORKING).search(1L, SubtitleQuery.parse("المصفوفة"), emptyList()).found()
 
@@ -264,7 +386,7 @@ class OpenSubtitlesApiTest {
      */
     @Test
     fun `a hash match outranks a more popular name match`() = runTest {
-        server.enqueue(MockResponse().setBody(TWO_RESULTS))
+        rung(TWO_RESULTS)
         val api = api(WORKING)
 
         val offers = api.search(1L, SubtitleQuery.parse("The Road 2009"), listOf("ar")).found()
@@ -278,7 +400,7 @@ class OpenSubtitlesApiTest {
     /** A search with nothing for this film is an empty list, not a failure. */
     @Test
     fun `no results is an answer`() = runTest {
-        server.enqueue(MockResponse().setBody("""{"data":[]}"""))
+        rung("""{"data":[]}""")
 
         val result = api(WORKING).search(null, SubtitleQuery.parse("obscure.mkv"), emptyList())
 
@@ -288,6 +410,7 @@ class OpenSubtitlesApiTest {
     /** A wrong key is reported as refused, which is a thing the user can act on. */
     @Test
     fun `a rejected key is reported as refused`() = runTest {
+        server.enqueue(MockResponse().setBody(NOTHING_RESOLVED))
         server.enqueue(MockResponse().setResponseCode(401))
 
         val result = api(WORKING).search(null, SubtitleQuery.parse("film.mkv"), emptyList())
@@ -298,6 +421,7 @@ class OpenSubtitlesApiTest {
     /** And an answer this client cannot read does not take the player down with it. */
     @Test
     fun `a body that is not JSON is a reason, not a crash`() = runTest {
+        server.enqueue(MockResponse().setBody(NOTHING_RESOLVED))
         server.enqueue(MockResponse().setBody("<html>maintenance</html>"))
 
         val result = api(WORKING).search(null, SubtitleQuery.parse("film.mkv"), emptyList())
@@ -430,6 +554,70 @@ class OpenSubtitlesApiTest {
     )
 
     private companion object {
+        /** A catalogue that recognises nothing, which sends the search to the name. */
+        const val NOTHING_RESOLVED = """{"data":[]}"""
+
+        /** The catalogue recognising the film that is playing. */
+        val PURSUIT_FEATURE = """
+            {"data":[
+              {"attributes":{"feature_id":9001,"feature_type":"Movie","title":"Pursuit","year":2026}}
+            ]}
+        """.trimIndent()
+
+        val PURSUIT_SUBTITLE = """
+            {"data":[
+              {"attributes":{"language":"ar","download_count":40,"moviehash_match":false,
+                "release":"Pursuit.2026.WEB-DL",
+                "feature_details":{"title":"Pursuit","year":2026},
+                "files":[{"file_id":71,"file_name":"pursuit-ar.srt"}]}}
+            ]}
+        """.trimIndent()
+
+        /**
+         * What the catalogue actually offers for "Pursuit": a different film containing it.
+         *
+         * The row is real and the search that returned it was answered correctly. It is
+         * simply not the film, which is the whole distinction this feature turns on.
+         */
+        val COLD_PURSUIT_FEATURE = """
+            {"data":[
+              {"attributes":{"feature_id":9500,"feature_type":"Movie","title":"Cold Pursuit","year":2019}}
+            ]}
+        """.trimIndent()
+
+        val COLD_PURSUIT_SUBTITLE = """
+            {"data":[
+              {"attributes":{"language":"ar","download_count":8000,"moviehash_match":false,
+                "release":"Cold.Pursuit.2019.1080p",
+                "feature_details":{"title":"Cold Pursuit","year":2019},
+                "files":[{"file_id":72,"file_name":"cold-pursuit.srt"}]}}
+            ]}
+        """.trimIndent()
+
+        /** Two episodes of the series the identifier named, one of them the one asked for. */
+        val FRIENDS_EPISODES = """
+            {"data":[
+              {"attributes":{"language":"en","download_count":900,"moviehash_match":false,
+                "release":"Friends.S05E09.DVDRip",
+                "feature_details":{"title":"The One With Ross's Sandwich","parent_title":"Friends",
+                  "season_number":5,"episode_number":9,"year":1998},
+                "files":[{"file_id":81,"file_name":"friends-509.srt"}]}},
+              {"attributes":{"language":"en","download_count":700,"moviehash_match":false,
+                "release":"Friends.S05E02.DVDRip",
+                "feature_details":{"title":"The One With All the Kissing","parent_title":"Friends",
+                  "season_number":5,"episode_number":2,"year":1998},
+                "files":[{"file_id":82,"file_name":"friends-502.srt"}]}}
+            ]}
+        """.trimIndent()
+
+        /** An episode row, which carries the series' identifier rather than its own. */
+        val FRIENDS_FEATURE = """
+            {"data":[
+              {"attributes":{"parent_feature_id":7100,"feature_type":"Episode",
+                "title":"Friends","year":1994}}
+            ]}
+        """.trimIndent()
+
         val WORKING = OpenSubtitlesCredentials(
             apiKey = "castivio-key",
             username = "sami",

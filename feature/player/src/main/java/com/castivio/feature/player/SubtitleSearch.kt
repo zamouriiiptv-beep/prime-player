@@ -69,22 +69,12 @@ data class SubtitleSearch(
      * OpenSubtitles does not catalogue it under — types over it, and that is the whole
      * escape hatch for every case the parsing gets wrong.
      *
-     * Text and not a [SubtitleQuery] because this is what a text field holds.
+     * Text and not a [SubtitleQuery], because this is what a text field holds — and the only
+     * record of what is being looked for. Everything worked out from the title is written
+     * into it, including the year, so parsing it back is lossless and there is no second
+     * copy to keep in step with a viewer's typing.
      */
     val query: String = "",
-    /**
-     * The query worked out from the request, kept beside the text it produced.
-     *
-     * Not a second representation to keep in step — a record of what was known before the
-     * text was flattened. The box shows a name and only a name, which is what a person wants
-     * to read and correct, so the year and the episode that were worked out from the title
-     * are not written in it. Parsing the box back would therefore lose them, and with the
-     * year goes the check that tells *The Matrix* from *The Matrix Resurrections*.
-     *
-     * So an untouched box searches with everything that was derived, and an edited one
-     * searches with what was typed. [asked] is that rule, in one line.
-     */
-    val derived: SubtitleQuery = SubtitleQuery(""),
 ) {
     /** The codes to send. Empty for [SubtitleLanguage.Any], which means no filter. */
     val codes: List<String> get() = listOfNotNull(language.code.takeIf { it.isNotBlank() })
@@ -93,13 +83,12 @@ data class SubtitleSearch(
     val askable: Boolean get() = available && query.isNotBlank()
 
     /**
-     * What to actually search with: everything derived, unless the viewer has typed over it.
+     * What to actually search with: the box, read as a query.
      *
-     * The comparison is against the text the derived query itself produced, so "untouched"
-     * means untouched and a viewer who deletes a word gets a search for the words they left.
+     * The same path whether the text was put there by the player or typed over it, which is
+     * the point of the box holding everything. A viewer who corrects `Pursuit 2026` to
+     * `Pursuit 2025` gets a search for 2025 — not a search that quietly kept the year the
+     * filename claimed because that is where the state was really held.
      */
-    val asked: SubtitleQuery
-        get() = query.trim().let { typed ->
-            if (typed == derived.text) derived else SubtitleQuery.parse(typed)
-        }
+    val asked: SubtitleQuery get() = SubtitleQuery.parse(query)
 }

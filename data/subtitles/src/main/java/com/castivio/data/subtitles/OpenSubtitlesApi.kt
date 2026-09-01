@@ -48,30 +48,30 @@ data class SubtitleOffer(
      *
      * The authoritative answer and the reason the filter is worth trusting: it is the site's
      * own identification of the work, not an uploader's file name. For an episode it is the
-     * episode's title and [parentTitle] is the series — which is why both are carried and
-     * why [describes] joins them.
+     * episode's own title and [parentTitle] is the series, which is why both are carried —
+     * a search for *Friends* is answered by the second of them.
      */
     val featureTitle: String = "",
     val parentTitle: String = "",
     val season: Int? = null,
     val episode: Int? = null,
     val year: Int? = null,
-) {
+)
 
-    /**
-     * The text that says what this subtitle is for, best source first.
-     *
-     * The catalogue's own titles when it gave any, and the uploader's names when it did not.
-     * The fallback matters more than it looks: a great many older uploads carry no feature
-     * details at all, and a filter that treated "no details" as "no match" would hide them
-     * all rather than judge them on the only evidence there is.
-     */
-    val describes: String
-        get() = listOf(parentTitle, featureTitle)
-            .filter { it.isNotBlank() }
-            .joinToString(" ")
-            .ifBlank { listOf(release, name).filter { it.isNotBlank() }.joinToString(" ") }
-}
+/**
+ * A work as OpenSubtitles' own catalogue holds it: an identifier, a name, a date.
+ *
+ * The thing a title is resolved *to* before any subtitle is asked for. Searching by [id]
+ * cannot return another film — not because a filter rejected it, but because the question
+ * was never about a name.
+ */
+data class SubtitleFeature(
+    val id: Long,
+    val title: String,
+    val year: Int?,
+    /** Whether [id] is a series, whose episodes are found through it rather than as it. */
+    val isSeries: Boolean,
+)
 
 /** Why a search or a download could not be done, in the terms the screen has to explain. */
 enum class SubtitleFailure {
@@ -133,22 +133,31 @@ class OpenSubtitlesApi(
     /**
      * What is available for [query], and nothing that is available for something else.
      *
-     * The hash is sent alongside the name rather than instead of it: OpenSubtitles accepts
-     * both together and returns hash matches first, so asking twice would be a second round
-     * trip for a subset of the same list.
+     * ## The work is identified before its subtitles are asked for
+     *
+     * The first request is not for subtitles at all. It is `/features`, which is
+     * OpenSubtitles' catalogue of works, and it turns a name and a year into an identifier.
+     * Once there is one, the subtitles are asked for *by it* — and a search by identifier
+     * cannot return another film, not because a filter rejected it but because the question
+     * was never about a name.
+     *
+     * That is the difference between this and a keyword search. `query=Pursuit` is a
+     * question that *The Pursuit of Happyness* and *Cold Pursuit* are both correct answers
+     * to. `id=1234` is not.
+     *
+     * When nothing resolves — an obscure work, a name the catalogue does not carry — the
+     * search falls back to the name, and [SubtitleMatch] then holds the results to a title
+     * that has to *equal* the query rather than contain it. The fallback is narrower than
+     * the keyword search it replaces, not wider.
      *
      * ## The query is structured, not a sentence
      *
-     * `query` carries the name alone and the season and episode go in their own parameters.
+     * The name goes in `query` and the season and episode go in their own parameters.
      * Putting "Friends S05E02" in the text field asks the server to find those characters in
      * a title, which is a different and much worse question than the one it has fields for.
      *
-     * ## And the answer is filtered
-     *
-     * What comes back is passed through [SubtitleMatch] before anyone sees it. The server
-     * answers the query it was given, correctly, and "correctly" includes returning episode
-     * 502 of five other series when the query was poor. Only this side knows what is
-     * playing, so only this side can say that those are not it.
+     * The hash rides on every request. It costs nothing and it is the only evidence here
+     * about *this file* rather than about somebody's spelling.
      *
      * ## Asked more than once before it is given up on
      *
@@ -159,9 +168,9 @@ class OpenSubtitlesApi(
      * nothing, that year is not the year the catalogue holds, and going on to reject answers
      * for having a different one would be asking a question whose answers are thrown away.
      *
-     * So "no subtitles available" is reached after up to three real attempts rather than one,
-     * and the common case is still a single request because the rungs collapse when they
-     * would be identical.
+     * Every rung is a narrowing of the *name*, never a broadening of what is accepted. So
+     * "no subtitles available" is reached after up to three real attempts rather than one,
+     * and none of the three can produce somebody else's film.
      *
      * A refusal ends it immediately. Three attempts at a wrong key is three ways of being
      * told the same thing, more slowly.
@@ -177,28 +186,112 @@ class OpenSubtitlesApi(
         if (!credentials.configured) return@call SubtitleResult.Refused(SubtitleFailure.NOT_CONFIGURED)
 
         for (attempt in query.attempts()) {
-            val found = when (val outcome = ask(hash, attempt, languages)) {
+            val feature = resolve(attempt)
+            val found = when (val outcome = ask(hash, attempt, languages, feature)) {
                 is SubtitleResult.Refused -> return@call outcome
                 is SubtitleResult.Found -> outcome.value
             }
+            Log.i(
+                TAG,
+                "searched: title=\"${attempt.title}\" year=${attempt.year} " +
+                    "season=${attempt.season} episode=${attempt.episode} " +
+                    "feature=${feature?.id ?: "unresolved"} languages=${languages.joinToString("+")} " +
+                    "matches=${found.size}",
+            )
             if (found.isNotEmpty()) return@call SubtitleResult.Found(found)
         }
         SubtitleResult.Found(emptyList())
     }
 
-    /** One rung of the ladder: one request, and what is left of it after the filter. */
+    /**
+     * The work this name refers to, or null when the catalogue does not recognise it.
+     *
+     * Held to the same equality [SubtitleMatch] uses, and for the same reason: `/features`
+     * is a search too, and asked for `Pursuit` it will offer *Cold Pursuit* among the
+     * answers. Taking its first row would be a keyword search with an extra round trip.
+     *
+     * Null is an ordinary outcome and not a failure. A network problem is also null here —
+     * the subtitle request that follows will meet the same problem and report it properly,
+     * and a resolution step that could fail the whole search would make the feature less
+     * reliable than the keyword search it improves on.
+     */
+    private fun resolve(query: SubtitleQuery): SubtitleFeature? = runCatching {
+        val url = base.newBuilder()
+            .addPathSegment("features")
+            .addQueryParameter("query", query.title)
+            .apply { query.year?.let { addQueryParameter("year", it.toString()) } }
+            .build()
+
+        client.newCall(get(url).build()).execute().use { response ->
+            if (!response.isSuccessful) return null
+            val body = response.body?.string() ?: return null
+            features(body).firstOrNull { candidate ->
+                SubtitleMatch.sameWork(query, candidate.title, candidate.year)
+            }
+        }
+    }.getOrNull()
+
+    private fun features(body: String): List<SubtitleFeature> {
+        val data = JSONObject(body).optJSONArray("data") ?: return emptyList()
+        val found = mutableListOf<SubtitleFeature>()
+        for (index in 0 until data.length()) {
+            val attributes = data.optJSONObject(index)?.optJSONObject("attributes") ?: continue
+            val kind = attributes.optString("feature_type")
+            val series = kind.equals(TV_SHOW, ignoreCase = true)
+            // A series is found through its own id; an episode's row carries the series' id
+            // in `parent_feature_id`, which is the one a subtitle search wants.
+            val id = when {
+                kind.equals(EPISODE, ignoreCase = true) -> attributes.number("parent_feature_id")
+                else -> attributes.number("feature_id")
+            } ?: continue
+            // `title` is the catalogue's name and `original_title` the one it was released
+            // under. Both are offered because a provider may use either.
+            listOfNotNull(
+                attributes.optString("title").takeIf { it.isNotBlank() },
+                attributes.optString("original_title").takeIf { it.isNotBlank() },
+            ).forEach { name ->
+                found += SubtitleFeature(
+                    id = id.toLong(),
+                    title = name,
+                    year = attributes.number("year"),
+                    isSeries = series || kind.equals(EPISODE, ignoreCase = true),
+                )
+            }
+        }
+        return found
+    }
+
+    /**
+     * One rung of the ladder: one request, and what is left of it after the filter.
+     *
+     * Asked by [feature] when the catalogue recognised the name, and by the name when it did
+     * not. The two are mutually exclusive on purpose — sending both would let the name widen
+     * a question the identifier had already closed.
+     *
+     * A series' identifier goes in `parent_feature_id` with the season and episode beside
+     * it, because it names the series and the viewer is watching one episode of it. A film's
+     * goes in `id`, which names the film itself.
+     */
     private fun ask(
         hash: Long?,
         query: SubtitleQuery,
         languages: List<String>,
+        feature: SubtitleFeature?,
     ): SubtitleResult<List<SubtitleOffer>> {
         val url = base.newBuilder()
             .addPathSegment("subtitles")
-            .addQueryParameter("query", query.title)
             .apply {
+                when {
+                    feature == null -> {
+                        addQueryParameter("query", query.title)
+                        query.year?.let { addQueryParameter("year", it.toString()) }
+                    }
+
+                    feature.isSeries -> addQueryParameter("parent_feature_id", feature.id.toString())
+                    else -> addQueryParameter("id", feature.id.toString())
+                }
                 query.season?.let { addQueryParameter("season_number", it.toString()) }
                 query.episode?.let { addQueryParameter("episode_number", it.toString()) }
-                query.year?.let { addQueryParameter("year", it.toString()) }
                 hash?.let { addQueryParameter("moviehash", it.asSubtitleHash()) }
                 if (languages.isNotEmpty()) {
                     addQueryParameter("languages", languages.joinToString(","))
@@ -209,7 +302,14 @@ class OpenSubtitlesApi(
         client.newCall(get(url).build()).execute().use {
             if (!it.isSuccessful) return SubtitleResult.Refused(failure(it.code))
             val body = it.body?.string() ?: return SubtitleResult.Refused(SubtitleFailure.UNREADABLE)
-            return SubtitleResult.Found(SubtitleMatch.relevant(query, offers(body)))
+            val offers = offers(body)
+            return SubtitleResult.Found(
+                if (feature == null) {
+                    SubtitleMatch.relevant(query, offers)
+                } else {
+                    SubtitleMatch.ofFeature(query, offers)
+                },
+            )
         }
     }
 
@@ -351,7 +451,7 @@ class OpenSubtitlesApi(
             if (fileId <= 0) continue
             // The site's own identification of what this subtitle is for. Absent on a great
             // many older uploads, which is why every field below tolerates being missing and
-            // why `SubtitleOffer.describes` has a fallback.
+            // why `SubtitleMatch` has a second, stricter rule for judging a release name.
             val feature = attributes.optJSONObject("feature_details")
             offers += SubtitleOffer(
                 fileId = fileId,
@@ -372,12 +472,10 @@ class OpenSubtitlesApi(
                 year = feature?.number("year"),
             )
         }
-        // Hash matches first, then by how many people have used it. The order is the whole
-        // recommendation: a viewer picks the top row, and the top row should be the one that
-        // fits this file.
-        return offers.sortedWith(
-            compareByDescending<SubtitleOffer> { it.matchesThisFile }.thenByDescending { it.downloads },
-        )
+        // Unordered on purpose. The ranking belongs with the filter that knows what was
+        // asked for -- the top row should be the one that fits *this file*, and half of that
+        // judgement is the query. `SubtitleMatch` does both in one pass.
+        return offers
     }
 
     /**
@@ -399,6 +497,10 @@ class OpenSubtitlesApi(
 
         const val UNKNOWN_LANGUAGE = "??"
         const val UNKNOWN_NAME = "subtitle"
+
+        /** What `/features` calls the two kinds of row that carry a series' identifier. */
+        private const val TV_SHOW = "Tvshow"
+        private const val EPISODE = "Episode"
 
         private val JSON = "application/json".toMediaType()
     }

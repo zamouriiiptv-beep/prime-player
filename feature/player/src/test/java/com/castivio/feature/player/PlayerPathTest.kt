@@ -1286,7 +1286,7 @@ class PlayerPathTest {
         )
         runCurrent()
 
-        assertEquals("The Matrix", model.state.value?.subtitleSearch?.query)
+        assertEquals("The Matrix 1999", model.state.value?.subtitleSearch?.query)
     }
 
     /**
@@ -1309,7 +1309,7 @@ class PlayerPathTest {
         )
         runCurrent()
 
-        assertEquals("Pursuit", model.state.value?.subtitleSearch?.query)
+        assertEquals("Pursuit 2026", model.state.value?.subtitleSearch?.query)
 
         model.findSubtitles(SubtitleLanguage.Arabic)
         runCurrent()
@@ -1318,15 +1318,15 @@ class PlayerPathTest {
     }
 
     /**
-     * The year survives the box even though the box does not show it.
+     * The box carries the year, and the year reaches the request.
      *
-     * The box holds a name because a name is what a person checks. What was worked out from
-     * the title is kept beside it, so an untouched box searches with the year as well — and
-     * the check that tells *The Matrix* from *The Matrix Resurrections* still has something
-     * to work with.
+     * A box reading `The Matrix` cannot be checked by the person reading it, and it is not
+     * an identification either — it is what *The Matrix Reloaded* and *The Matrix
+     * Resurrections* would also produce. The year is what separates them, so it is written
+     * where a viewer can see it and correct it, and it is what the search is run with.
      */
     @Test
-    fun `an untouched box searches with what the box does not show`() = playerTest {
+    fun `the box carries the year into the request`() = playerTest {
         val model = model()
         model.open(
             PlayerRequest(
@@ -1340,8 +1340,46 @@ class PlayerPathTest {
         model.findSubtitles(SubtitleLanguage.Arabic)
         runCurrent()
 
-        assertEquals("The Matrix", model.state.value?.subtitleSearch?.query)
+        assertEquals("The Matrix 1999", model.state.value?.subtitleSearch?.query)
         assertEquals(listOf(SubtitleQuery("The Matrix", year = 1999)), hunt.asked)
+    }
+
+    /**
+     * The next film gets its own box, and its own results.
+     *
+     * A search sheet still holding the last film's name is worse than one holding nothing:
+     * it is confidently wrong, and a viewer who presses search gets subtitles for whatever
+     * they were watching before. Everything about the search is rebuilt with the request.
+     */
+    @Test
+    fun `changing the video recalculates the box`() = playerTest {
+        val model = model()
+        model.open(
+            PlayerRequest(
+                url = "http://provider.tv/vod/1",
+                title = "PURSUIT -- 2026 Jason Statham Full Action Movie",
+                kind = MediaKind.VOD,
+            ),
+        )
+        runCurrent()
+        model.findSubtitles(SubtitleLanguage.Arabic)
+        runCurrent()
+
+        model.switchTo(
+            PlayerRequest(
+                url = "http://provider.tv/vod/2",
+                title = "The.Matrix.1999.1080p.BluRay.mkv",
+                kind = MediaKind.VOD,
+            ),
+        )
+        runCurrent()
+
+        assertEquals("The Matrix 1999", model.state.value?.subtitleSearch?.query)
+        assertEquals(
+            "the previous film's results were still on the sheet",
+            SubtitleHunt.Idle,
+            model.state.value?.subtitleSearch?.hunt,
+        )
     }
 
     /** An episode carries its numbers into the box, in the one form the box can be typed in. */

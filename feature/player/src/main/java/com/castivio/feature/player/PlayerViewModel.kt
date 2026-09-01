@@ -141,9 +141,9 @@ class PlayerViewModel @Inject constructor(
                 // Fixed for the life of the build: whether this APK was compiled with
                 // credentials. Asked once, here, rather than by the sheet at draw time.
                 available = hunt.available,
-                derived = looking,
-                // The box shows the name alone. The year and the episode stay on `derived`,
-                // where they are numbers to compare rather than words to read.
+                // Name, year and episode — everything worked out, in the one place it is
+                // held. A box reading "Pursuit" cannot be checked by the person reading it;
+                // "Pursuit 2026" can, and it is what tells the search which Pursuit.
                 query = looking.text,
             ),
         )
@@ -673,6 +673,17 @@ class PlayerViewModel @Inject constructor(
         _state.value = current.copy(subtitleSearch = search)
 
         val query = search.asked
+        // What was played, what was made of it, and what is about to be asked for. The three
+        // together are the whole diagnosis of a search that finds nothing: a wrong parse and
+        // a work the catalogue does not carry look identical from the sheet, and this is the
+        // line that tells them apart. `OpenSubtitlesApi` logs the other half — the identifier
+        // it resolved and how many results survived the filter — under the same tag.
+        Log.i(
+            TAG,
+            "subtitle search: source=\"${current.request.title}\" -> title=\"${query.title}\" " +
+                "year=${query.year} season=${query.season} episode=${query.episode} " +
+                "attempts=${query.attempts().size} language=${search.language.code.ifBlank { "any" }}",
+        )
         huntJob?.cancel()
         huntJob = viewModelScope.launch {
             val outcome = hunt.search(
