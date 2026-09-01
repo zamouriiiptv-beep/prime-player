@@ -15,6 +15,8 @@ import com.castivio.playback.api.PlaybackState
 import com.castivio.playback.api.Track
 import com.castivio.playback.api.VideoOutput
 import com.castivio.playback.api.EngineFactory
+import com.castivio.data.subtitles.SubtitleAllowance
+import com.castivio.data.subtitles.SubtitleFailure
 import com.castivio.data.subtitles.SubtitleOffer
 import com.castivio.data.subtitles.SubtitleQuery
 import com.castivio.data.subtitles.SubtitleResult
@@ -62,6 +64,14 @@ class PlayerViewModel @Inject constructor(
     private val guide: ProgrammeSource,
     private val subtitles: SubtitleStyleStore,
     private val hunt: SubtitleSource,
+    /**
+     * The day's completed downloads.
+     *
+     * On the constructor rather than reached for, because "how many have actually been
+     * downloaded today" is a fact this screen reports and a fact its tests have to be able
+     * to set. The defect it exists for was a screen reporting a number nobody was keeping.
+     */
+    private val allowance: SubtitleAllowance,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<PlayerState?>(null)
@@ -145,6 +155,10 @@ class PlayerViewModel @Inject constructor(
                 // held. A box reading "Pursuit" cannot be checked by the person reading it;
                 // "Pursuit 2026" can, and it is what tells the search which Pursuit.
                 query = looking.text,
+                // Read from where it is kept, on every open, so the sheet can never claim a
+                // day is used up while the stored count for today is zero.
+                spentToday = allowance.spentToday(),
+                dailyLimit = allowance.dailyLimit,
             ),
         )
         start(request, engineId)
@@ -710,24 +724,79 @@ class PlayerViewModel @Inject constructor(
      *
      * Holding the cues means the same downloaded subtitle draws over either engine, through
      * the same caption layer, with the same settings — and the sync below is a subtraction.
+     *
+     * ## This is the one place a download is counted
+     *
+     * The whole daily tally hangs off the `Found` branch below, after the cues are held and
+     * the layer is drawing them. Nothing else in the codebase increments it: not the press
+     * that got here, not the link request, not the file arriving, not a `200`. Those are
+     * parts of one operation, and the operation is what counts.
+     *
+     * A second press while the first is still in flight is ignored rather than started,
+     * which is what stops a double tap on one row from spending two of a day's five.
      */
     fun useSubtitle(offer: SubtitleOffer) {
         val current = _state.value ?: return
+        // Already fetching this exact one. A press is not an operation; it is a request for
+        // an operation that is already running, and starting a second would cancel a
+        // download that had nearly finished in order to make the same one again.
+        if ((current.subtitleSearch.hunt as? SubtitleHunt.Fetching)?.offer == offer) return
+
         noteInteraction()
+        if (allowance.spent()) {
+            // Refused here rather than at the server, so a viewer who is genuinely out is
+            // told so without a request — and so the sentence is about a number this
+            // application can show them rather than a status code it received.
+            Log.i(
+                TAG,
+                "downloadStarted=false subtitleId=${offer.fileId} quotaIncremented=false " +
+                    "reason=DAILY_LIMIT_REACHED dailyDownloadsBefore=${allowance.spentToday()}",
+            )
+            _state.value = current.copy(
+                subtitleSearch = current.subtitleSearch.copy(
+                    hunt = SubtitleHunt.Failed(SubtitleFailure.OUT_OF_DOWNLOADS),
+                ),
+            )
+            return
+        }
+
         _state.value = current.copy(
             subtitleSearch = current.subtitleSearch.copy(hunt = SubtitleHunt.Fetching(offer)),
         )
 
         huntJob?.cancel()
         huntJob = viewModelScope.launch {
+            val before = allowance.spentToday()
             when (val outcome = hunt.download(offer)) {
-                is SubtitleResult.Refused -> _state.value = _state.value?.let {
-                    it.copy(subtitleSearch = it.subtitleSearch.copy(hunt = SubtitleHunt.Failed(outcome.reason)))
+                is SubtitleResult.Refused -> {
+                    // A 406 is the provider stating that the day is gone, which it knows
+                    // better than we do — an account is shared across devices, and ours is
+                    // only a count of what happened here. Every other refusal changes
+                    // nothing: a download that did not happen is not a download.
+                    if (outcome.reason == SubtitleFailure.OUT_OF_DOWNLOADS) allowance.markSpent()
+                    Log.w(
+                        TAG,
+                        "downloadSuccess=false subtitleId=${offer.fileId} reason=${outcome.reason} " +
+                            "quotaIncremented=${outcome.reason == SubtitleFailure.OUT_OF_DOWNLOADS} " +
+                            "dailyDownloadsBefore=$before dailyDownloadsAfter=${allowance.spentToday()}",
+                    )
+                    _state.value = _state.value?.let {
+                        it.copy(subtitleSearch = it.subtitleSearch.copy(hunt = SubtitleHunt.Failed(outcome.reason)))
+                    }
                 }
 
                 is SubtitleResult.Found -> {
                     downloaded = outcome.value
-                    Log.i(TAG, "using a downloaded subtitle of ${outcome.value.cues.size} lines")
+                    // Counted here: the file arrived, parsed, and is now what the caption
+                    // layer draws from. That assignment is this application's "saved", since
+                    // a subtitle deliberately never reaches the disk.
+                    allowance.recordDownload()
+                    Log.i(
+                        TAG,
+                        "downloadSuccess=true subtitleId=${offer.fileId} fileValid=true " +
+                            "cues=${outcome.value.cues.size} quotaIncremented=true " +
+                            "dailyDownloadsBefore=$before dailyDownloadsAfter=${allowance.spentToday()}",
+                    )
                     _state.value = _state.value?.copy(
                         downloadedSubtitle = offer.name,
                         // A hash match was timed against these exact bytes, so it starts
@@ -736,12 +805,20 @@ class PlayerViewModel @Inject constructor(
                         subtitleOffsetMs = 0,
                         cues = emptyList(),
                         sheet = null,
+                        subtitleSearch = spending(),
                     )
                     startCaptions()
                 }
             }
         }
     }
+
+    /** The search as it stands, with the day's tally read back from where it is kept. */
+    private fun spending(): SubtitleSearch =
+        (_state.value?.subtitleSearch ?: SubtitleSearch()).copy(
+            spentToday = allowance.spentToday(),
+            dailyLimit = allowance.dailyLimit,
+        )
 
     /**
      * Back to whatever the film itself carries.

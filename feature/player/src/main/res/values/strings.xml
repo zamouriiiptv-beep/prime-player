@@ -104,6 +104,8 @@
     <string name="player_subtitle_no_network">Could not reach the subtitle service.</string>
     <string name="player_subtitle_refused">The subtitle account was refused. Check the key and password.</string>
     <string name="player_subtitle_spent">Today\'s downloads are used up. Try again tomorrow.</string>
+    <string name="player_subtitle_busy">The subtitle service is busy. Try again in a moment.</string>
+    <string name="player_subtitle_downloads_today">Downloaded today: %1$d of %2$d</string>
     <string name="player_subtitle_unreadable">That subtitle could not be read.</string>
     <string name="player_subtitle_sync">Timing</string>
     <string name="player_subtitle_earlier">Half a second earlier</string>

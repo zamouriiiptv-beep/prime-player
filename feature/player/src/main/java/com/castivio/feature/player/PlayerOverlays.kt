@@ -895,6 +895,15 @@ private fun sheetRows(sheet: Sheet, state: PlayerState): List<SheetRow> = when (
 
             is SubtitleHunt.Offers -> {
                 add(heading(R.string.player_subtitle_results))
+                // What is left of the day, from the stored count, whenever any of it has
+                // been used. Shown because the alternative was what this replaced: a
+                // sentence about the allowance that no number on the screen could contradict.
+                when {
+                    search.spent -> add(note(R.string.player_subtitle_spent))
+                    search.spentToday > 0 -> add(
+                        note(R.string.player_subtitle_downloads_today, search.spentToday, search.dailyLimit),
+                    )
+                }
                 if (stage.offers.isEmpty()) {
                     // Empty because nothing matched what is playing — results for other
                     // programmes were removed before this list was built, and saying so
@@ -1059,6 +1068,19 @@ private fun note(label: Int): SheetRow = SheetRow(
     heading = true,
 )
 
+/**
+ * The same, for the one sentence that has numbers in it.
+ *
+ * Two fixed parameters rather than a `vararg`, which would have made `note(id)` ambiguous
+ * between the two of these and stopped the file compiling.
+ */
+@Composable
+private fun note(label: Int, of: Int, outOf: Int): SheetRow = SheetRow(
+    icon = CastivioIcons.Subtitles,
+    name = stringResource(label, of, outOf),
+    heading = true,
+)
+
 /** The current shift, as a signed figure a viewer can read while pressing the buttons. */
 @Composable
 private fun shift(offsetMs: Long): String? = when {
@@ -1085,6 +1107,10 @@ private fun com.castivio.data.subtitles.SubtitleFailure.label(): Int = when (thi
     com.castivio.data.subtitles.SubtitleFailure.NETWORK -> R.string.player_subtitle_no_network
     com.castivio.data.subtitles.SubtitleFailure.REFUSED -> R.string.player_subtitle_refused
     com.castivio.data.subtitles.SubtitleFailure.OUT_OF_DOWNLOADS -> R.string.player_subtitle_spent
+    // Its own sentence, and the reason this enum grew a value. A throttle used to be
+    // reported as a spent daily allowance — "try again tomorrow" for something that clears
+    // in seconds, said to people who had downloaded nothing.
+    com.castivio.data.subtitles.SubtitleFailure.RATE_LIMITED -> R.string.player_subtitle_busy
     com.castivio.data.subtitles.SubtitleFailure.UNREADABLE -> R.string.player_subtitle_unreadable
 }
 

@@ -75,12 +75,37 @@ data class SubtitleSearch(
      * copy to keep in step with a viewer's typing.
      */
     val query: String = "",
+    /**
+     * Subtitle files actually downloaded today, and how many a day is expected to hold.
+     *
+     * On the state because the sheet has to be able to *show* them. The defect these two
+     * fields exist for was a screen announcing that the day's downloads were used up while
+     * nothing anywhere was counting downloads — the sentence was a mistranslation of an
+     * HTTP 429 on a *search*, which is a throttle and not a quota. A number the viewer can
+     * read is a number that cannot be wrong in that particular way without it being obvious.
+     *
+     * Read from where it is kept when the player opens and again after every completed
+     * download, so what is drawn is always the persisted count and never a guess.
+     */
+    val spentToday: Int = 0,
+    val dailyLimit: Int = 0,
 ) {
     /** The codes to send. Empty for [SubtitleLanguage.Any], which means no filter. */
     val codes: List<String> get() = listOfNotNull(language.code.takeIf { it.isNotBlank() })
 
     /** Whether there is anything to search for. An empty box is not a search. */
     val askable: Boolean get() = available && query.isNotBlank()
+
+    /**
+     * Whether the day's downloads are genuinely gone.
+     *
+     * Genuinely: a count of completed downloads, for today, having reached a limit that is
+     * not itself zero. With [spentToday] at zero this is false, and the sentence that says
+     * otherwise cannot be drawn — which is the whole of the defect this replaced.
+     *
+     * Searching is unaffected either way. A spent allowance stops downloads, not lookups.
+     */
+    val spent: Boolean get() = dailyLimit > 0 && spentToday >= dailyLimit
 
     /**
      * What to actually search with: the box, read as a query.

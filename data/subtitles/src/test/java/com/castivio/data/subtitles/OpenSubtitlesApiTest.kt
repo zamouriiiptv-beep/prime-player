@@ -360,6 +360,57 @@ class OpenSubtitlesApiTest {
         assertEquals("the ladder went on after a refusal", 2, server.requestCount)
     }
 
+    /* ------------------------------------------------- a throttle is not a spent quota */
+
+    /**
+     * The defect people actually saw, at the line that caused it.
+     *
+     * `429` is *too many requests*: a throttle, cleared by waiting a moment, and reachable
+     * from a search far more easily than from a download now that a search is several
+     * requests. It used to be mapped onto the same value as `406` — so the player told
+     * people their day's downloads were used up when they had downloaded nothing, and
+     * waiting until tomorrow would not have helped.
+     */
+    @Test
+    fun `a throttled search is not reported as a spent download quota`() = runTest {
+        server.enqueue(MockResponse().setBody(NOTHING_RESOLVED))
+        server.enqueue(MockResponse().setResponseCode(429))
+
+        val result = api(WORKING).search(null, SubtitleQuery.parse("Pursuit 2026"), emptyList())
+
+        assertEquals(SubtitleResult.Refused(SubtitleFailure.RATE_LIMITED), result)
+    }
+
+    /** And a throttle on a download is a throttle too. Nothing has been used up. */
+    @Test
+    fun `a throttled download is not a spent quota either`() = runTest {
+        server.enqueue(MockResponse().setBody("""{"token":"session-abc"}"""))
+        server.enqueue(MockResponse().setResponseCode(429))
+
+        val result = api(WORKING).link(11)
+
+        assertEquals(SubtitleResult.Refused(SubtitleFailure.RATE_LIMITED), result)
+    }
+
+    /**
+     * No search can report a spent download quota, whatever the server says.
+     *
+     * The strongest form of the rule, and structural rather than incidental: the search path
+     * has its own status mapping, and "the day's downloads are gone" is not in it. Even a
+     * `406` arriving on a lookup — which OpenSubtitles does not send, but which no client
+     * can prevent — comes out as a throttle. A sentence about downloads can only ever be
+     * caused by a download.
+     */
+    @Test
+    fun `no search can produce a spent download quota`() = runTest {
+        server.enqueue(MockResponse().setBody(NOTHING_RESOLVED))
+        server.enqueue(MockResponse().setResponseCode(406))
+
+        val result = api(WORKING).search(null, SubtitleQuery.parse("Pursuit 2026"), emptyList())
+
+        assertEquals(SubtitleResult.Refused(SubtitleFailure.RATE_LIMITED), result)
+    }
+
     /**
      * A hash match is never filtered out, whatever it is catalogued as.
      *

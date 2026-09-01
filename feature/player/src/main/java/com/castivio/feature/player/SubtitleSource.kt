@@ -93,10 +93,19 @@ class OpenSubtitles @Inject constructor(
         languages = languages,
     )
 
+    /**
+     * A link, then the file. Two requests, one operation, and no counting in either.
+     *
+     * A failure to get the link is a failure to download — the file never existed as far as
+     * this device is concerned — so it is returned as it came, with the reason intact. `406`
+     * here is the provider saying the day's allowance is gone, and it is the one refusal
+     * that means anything about the tally; what is done about that is decided where the
+     * tally lives, not here.
+     */
     override suspend fun download(offer: SubtitleOffer): SubtitleResult<SubtitleTrack> =
         when (val link = api.link(offer.fileId)) {
             is SubtitleResult.Refused -> link
-            is SubtitleResult.Found -> api.fetch(link.value)
+            is SubtitleResult.Found -> api.fetch(link.value, offer.fileId)
         }
 
     /**

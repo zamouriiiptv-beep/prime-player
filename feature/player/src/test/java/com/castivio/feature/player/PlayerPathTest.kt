@@ -21,6 +21,7 @@ import com.castivio.playback.api.TrackSet
 import com.castivio.playback.api.VideoOutput
 import com.castivio.data.subtitles.SubtitleCue
 import com.castivio.data.subtitles.SubtitleFailure
+import com.castivio.data.subtitles.SubtitleAllowance
 import com.castivio.data.subtitles.SubtitleOffer
 import com.castivio.data.subtitles.SubtitleQuery
 import com.castivio.data.subtitles.SubtitleResult
@@ -104,6 +105,7 @@ class PlayerPathTest {
     private lateinit var memory: RecordingMemory
     private lateinit var subtitles: RememberedStyle
     private lateinit var hunt: FakeSubtitles
+    private lateinit var allowance: CountingAllowance
 
     @Before
     fun setUp() {
@@ -113,6 +115,7 @@ class PlayerPathTest {
         memory = RecordingMemory()
         subtitles = RememberedStyle()
         hunt = FakeSubtitles()
+        allowance = CountingAllowance()
     }
 
     @After
@@ -131,7 +134,7 @@ class PlayerPathTest {
         val factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                PlayerViewModel(engines, memory, guide, subtitles, hunt) as T
+                PlayerViewModel(engines, memory, guide, subtitles, hunt, allowance) as T
         }
         return ViewModelProvider(store, factory)["player-${created++}", PlayerViewModel::class.java]
     }
@@ -1525,6 +1528,222 @@ class PlayerPathTest {
         assertEquals("the film stopped because a subtitle search failed", Picture.Playing, model.state.value?.picture)
     }
 
+    /* ------------------------------------------------------------- the day's downloads */
+
+    /**
+     * Nothing that is not a download counts as one.
+     *
+     * The defect, at its root. The player told people the day's downloads were used up when
+     * they had downloaded nothing at all — because nothing was counting downloads, and the
+     * sentence was a mistranslation of an HTTP status arriving on a *search*. This is the
+     * whole of the path a viewer takes before any file is asked for, and it must leave the
+     * number where it found it.
+     */
+    @Test
+    fun `opening, searching, and getting results spend nothing`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        hunt.offers = SubtitleResult.Found(listOf(offer("road-ar.srt")))
+
+        model.openSheet(Sheet.SubtitleSearch)
+        runCurrent()
+        model.setSubtitleQuery("Casablanca 1942")
+        model.findSubtitles(SubtitleLanguage.English)
+        runCurrent()
+
+        assertTrue("a search returned results", model.state.value?.subtitleSearch?.hunt is SubtitleHunt.Offers)
+        assertEquals("something that was not a download was counted as one", 0, allowance.recorded)
+        assertEquals(0, allowance.spentToday())
+        assertEquals(0, model.state.value?.subtitleSearch?.spentToday)
+    }
+
+    /**
+     * A refused download costs nothing, whatever refused it.
+     *
+     * Every one of these is a download that did not happen — a bad gateway, a missing file,
+     * a throttle, an unreadable file — and a tally that charged for them would run out
+     * without a single subtitle ever reaching the screen.
+     */
+    @Test
+    fun `a failed download does not spend the day`() = playerTest {
+        listOf(
+            SubtitleFailure.NETWORK,
+            SubtitleFailure.UNREADABLE,
+            SubtitleFailure.RATE_LIMITED,
+            SubtitleFailure.REFUSED,
+            SubtitleFailure.NOT_CONFIGURED,
+        ).forEach { reason ->
+            val model = model()
+            model.open(vodRequest())
+            runCurrent()
+            hunt.track = SubtitleResult.Refused(reason)
+
+            model.useSubtitle(offer("road-ar.srt"))
+            runCurrent()
+
+            assertEquals("$reason was counted as a download", 0, allowance.recorded)
+            assertEquals("$reason moved the day's count", 0, allowance.spentToday())
+        }
+    }
+
+    /**
+     * A cancelled download costs nothing either.
+     *
+     * Changing channel mid-download cancels the job before the result is applied, and an
+     * operation that never finished is not one that happened. Counting at the request would
+     * have charged for this; counting where the cues are put to use does not.
+     */
+    @Test
+    fun `a cancelled download does not spend the day`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        hunt.track = SubtitleResult.Found(track())
+        hunt.hold = true
+
+        model.useSubtitle(offer("road-ar.srt"))
+        runCurrent()
+        model.switchTo(liveRequest())
+        hunt.release()
+        runCurrent()
+
+        assertEquals(0, allowance.recorded)
+        assertEquals(0, allowance.spentToday())
+    }
+
+    /** A completed one costs exactly one, and the state says so afterwards. */
+    @Test
+    fun `a completed download spends one`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        hunt.track = SubtitleResult.Found(track())
+
+        model.useSubtitle(offer("road-ar.srt"))
+        runCurrent()
+
+        assertEquals(1, allowance.recorded)
+        assertEquals(1, allowance.spentToday())
+        assertEquals(1, model.state.value?.subtitleSearch?.spentToday)
+    }
+
+    /**
+     * Two presses on one row are one operation.
+     *
+     * A press is a request for an operation, not an operation. The second is ignored while
+     * the first is in flight — which also stops it cancelling a download that had nearly
+     * finished in order to start the same one again.
+     */
+    @Test
+    fun `pressing the same result twice spends one`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        hunt.track = SubtitleResult.Found(track())
+        hunt.hold = true
+
+        model.useSubtitle(offer("road-ar.srt"))
+        model.useSubtitle(offer("road-ar.srt"))
+        runCurrent()
+        hunt.release()
+        runCurrent()
+
+        assertEquals("one row, two presses, two downloads", 1, allowance.recorded)
+        assertEquals("the second press started a second request", 1, hunt.downloads)
+    }
+
+    /**
+     * The provider's word beats ours, and only from a download.
+     *
+     * A `406` on a download request is OpenSubtitles saying the day is gone — which it knows
+     * better than this device does, because the same account is spent from other devices. It
+     * is the one refusal allowed to move the number, and it does not increment it so much as
+     * settle it.
+     */
+    @Test
+    fun `the provider saying the day is gone is believed`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        hunt.track = SubtitleResult.Refused(SubtitleFailure.OUT_OF_DOWNLOADS)
+
+        model.useSubtitle(offer("road-ar.srt"))
+        runCurrent()
+
+        assertEquals("a refusal was counted as a completed download", 0, allowance.recorded)
+        assertEquals(1, allowance.declaredSpent)
+        assertEquals(5, allowance.spentToday())
+    }
+
+    /**
+     * With the day genuinely gone, nothing is even asked for.
+     *
+     * The sentence is about a number this application holds, so it can be said before a
+     * request rather than in place of a status code — and a viewer who is out is not made to
+     * wait for a round trip to be told.
+     */
+    @Test
+    fun `a spent day refuses without asking`() = playerTest {
+        allowance.startAt(5)
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+
+        model.useSubtitle(offer("road-ar.srt"))
+        runCurrent()
+
+        assertEquals("a request went out on a spent day", 0, hunt.downloads)
+        assertEquals(
+            SubtitleHunt.Failed(SubtitleFailure.OUT_OF_DOWNLOADS),
+            model.state.value?.subtitleSearch?.hunt,
+        )
+    }
+
+    /** And a spent day still searches. A quota is on downloads, not on looking. */
+    @Test
+    fun `a spent day can still search`() = playerTest {
+        allowance.startAt(5)
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+
+        model.findSubtitles(SubtitleLanguage.Arabic)
+        runCurrent()
+
+        assertEquals(1, hunt.asked.size)
+        assertTrue(model.state.value?.subtitleSearch?.hunt is SubtitleHunt.Offers)
+    }
+
+    /**
+     * What the screen shows is what is stored, on every open.
+     *
+     * The defect stated as a claim about the state: with nothing downloaded today, the sheet
+     * cannot be in the condition that draws "today's downloads are used up".
+     */
+    @Test
+    fun `the sheet reports the stored count and not a guess`() = playerTest {
+        allowance.startAt(2)
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+
+        val search = model.state.value?.subtitleSearch
+        assertEquals(2, search?.spentToday)
+        assertEquals(5, search?.dailyLimit)
+        assertFalse("two of five is not a spent day", search?.spent ?: true)
+    }
+
+    @Test
+    fun `nothing downloaded today is never a spent day`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+
+        assertEquals(0, model.state.value?.subtitleSearch?.spentToday)
+        assertFalse(model.state.value?.subtitleSearch?.spent ?: true)
+    }
+
     /**
      * A downloaded subtitle is shown, and the film's own is not shown underneath it.
      *
@@ -2105,6 +2324,20 @@ class PlayerPathTest {
         val searches = mutableListOf<List<String>>()
 
         /**
+         * Holds a download open, so a test can be inside one.
+         *
+         * Two of the claims here are about what happens *during* a download — a second press
+         * arriving, a channel change cancelling it — and neither can be made against a fake
+         * that has already returned by the time the next line runs.
+         */
+        var hold = false
+        private var gate: kotlinx.coroutines.CompletableDeferred<Unit>? = null
+
+        fun release() {
+            gate?.complete(Unit)
+        }
+
+        /**
          * What was actually looked for, which is the claim the search now stands or falls on.
          *
          * Recorded separately from the languages because they fail differently: a wrong
@@ -2126,7 +2359,42 @@ class PlayerPathTest {
 
         override suspend fun download(offer: SubtitleOffer): SubtitleResult<SubtitleTrack> {
             downloads++
+            if (hold) {
+                kotlinx.coroutines.CompletableDeferred<Unit>().also { gate = it }.await()
+            }
             return track
+        }
+    }
+
+    /**
+     * The day's tally, in memory, counting every touch of it.
+     *
+     * [recorded] is separate from [spentToday] and that is the point: most of the claims
+     * below are that the number did *not* move, and a fake that only exposed the total could
+     * not tell "never called" from "called and it made no difference".
+     */
+    private class CountingAllowance(
+        override val dailyLimit: Int = 5,
+        private var count: Int = 0,
+    ) : SubtitleAllowance {
+        var recorded = 0
+        var declaredSpent = 0
+
+        override fun spentToday(): Int = count
+
+        override fun recordDownload() {
+            recorded++
+            count++
+        }
+
+        override fun markSpent() {
+            declaredSpent++
+            count = dailyLimit
+        }
+
+        /** Put the day's count where a test needs it, as yesterday's downloads would. */
+        fun startAt(spent: Int) {
+            count = spent
         }
     }
 

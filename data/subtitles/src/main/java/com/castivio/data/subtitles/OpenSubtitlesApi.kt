@@ -84,8 +84,24 @@ enum class SubtitleFailure {
     /** The credentials were refused. A wrong key or a wrong password, and unrecoverable here. */
     REFUSED,
 
-    /** OpenSubtitles' daily download allowance for this account is spent. */
+    /**
+     * OpenSubtitles' daily download allowance for this account is spent.
+     *
+     * Only ever set from a `406` on a *download* request, which is the provider stating it.
+     * It used to be set from a `429` on anything, including a search — so a throttle on a
+     * lookup was reported as a spent quota, to people who had downloaded nothing and could
+     * not have fixed it by waiting until tomorrow. A rate limit is [RATE_LIMITED] and is a
+     * different sentence with a different remedy.
+     */
     OUT_OF_DOWNLOADS,
+
+    /**
+     * Too many requests, too quickly. Nothing is used up and the remedy is a moment.
+     *
+     * Reachable from a search as easily as from a download, because a search is now several
+     * requests: the catalogue lookup and the subtitle query, once per rung of the ladder.
+     */
+    RATE_LIMITED,
 
     /** It answered, and the answer was not one this client understands. */
     UNREADABLE,
@@ -300,7 +316,7 @@ class OpenSubtitlesApi(
             .build()
 
         client.newCall(get(url).build()).execute().use {
-            if (!it.isSuccessful) return SubtitleResult.Refused(failure(it.code))
+            if (!it.isSuccessful) return SubtitleResult.Refused(searchFailure(it.code))
             val body = it.body?.string() ?: return SubtitleResult.Refused(SubtitleFailure.UNREADABLE)
             val offers = offers(body)
             return SubtitleResult.Found(
@@ -338,19 +354,58 @@ class OpenSubtitlesApi(
      * Parsed here rather than saved and parsed later, because there is no reason for a
      * subtitle file to touch the disk: it is 60 KB, it is wanted now, and a file written to
      * a cache is a file somebody has to remember to delete.
+     *
+     * ## What this does not do
+     *
+     * It does not count. Nothing in this class touches the day's download tally — not the
+     * request, not a `200`, not a parsed file. This returns cues or a reason, and whether
+     * that amounts to a download is decided in one place, once, after the cues are actually
+     * in use. A counter incremented where a byte arrives is a counter that charges people
+     * for failures.
+     *
+     * [fileId] is carried only so the log line can name what was being fetched.
      */
-    suspend fun fetch(link: String): SubtitleResult<SubtitleTrack> = call {
+    suspend fun fetch(link: String, fileId: Long = 0L): SubtitleResult<SubtitleTrack> = call {
         val response = client.newCall(Request.Builder().url(link).build()).execute()
         response.use {
-            if (!it.isSuccessful) return@call SubtitleResult.Refused(failure(it.code))
-            val body = it.body ?: return@call SubtitleResult.Refused(SubtitleFailure.UNREADABLE)
+            val status = it.code
+            if (!it.isSuccessful) {
+                return@call refusedDownload(fileId, status, "HTTP_ERROR", failure(status))
+            }
+            val body = it.body
+                ?: return@call refusedDownload(fileId, status, "EMPTY_RESPONSE", SubtitleFailure.UNREADABLE)
             val track = body.charStream().buffered().use(SrtParser::parse)
             if (track.cues.isEmpty()) {
-                SubtitleResult.Refused(SubtitleFailure.UNREADABLE)
-            } else {
-                SubtitleResult.Found(track)
+                return@call refusedDownload(fileId, status, "INVALID_SUBTITLE_FILE", SubtitleFailure.UNREADABLE)
             }
+            Log.i(
+                TAG,
+                "downloadStarted=true subtitleId=$fileId httpStatus=$status fileValid=true " +
+                    "cues=${track.cues.size} downloadSuccess=true",
+            )
+            SubtitleResult.Found(track)
         }
+    }
+
+    /**
+     * A download that did not happen, said in the terms the diagnosis needs.
+     *
+     * `quotaIncremented=false` on every one of them, and the reason beside it, because the
+     * question these logs exist to answer is "why does it say the day is used up" — and the
+     * answer is usually that something which was not a download was being counted as one.
+     */
+    private fun refusedDownload(
+        fileId: Long,
+        status: Int,
+        reason: String,
+        failure: SubtitleFailure,
+    ): SubtitleResult<SubtitleTrack> {
+        Log.w(
+            TAG,
+            "downloadStarted=true subtitleId=$fileId httpStatus=$status " +
+                "downloadSuccess=false quotaIncremented=false reason=$reason failure=$failure",
+        )
+        return SubtitleResult.Refused(failure)
     }
 
     private fun requestLink(fileId: Long): SubtitleResult<String> {
@@ -415,15 +470,39 @@ class OpenSubtitlesApi(
     /**
      * What a status code means to a viewer.
      *
-     * 406 is the one worth naming separately: it is how OpenSubtitles says the account's
-     * daily downloads are spent, and it is the only failure here that is neither the user's
-     * mistake nor a broken network. Telling somebody "try again tomorrow" needs it.
+     * Two of these were one, and the conflation was a defect people could not work around.
+     *
+     *  - **406** is OpenSubtitles saying the account's *downloads* for the day are gone. It
+     *    can only arrive on a download, and "try again tomorrow" is the right answer to it.
+     *  - **429** is *too many requests*: a throttle, on any endpoint, cleared by waiting a
+     *    moment. A search is several requests now, so it is the likelier of the two to be
+     *    met — and it used to be reported as a spent download quota, to viewers who had
+     *    downloaded nothing that day and for whom tomorrow would change nothing.
+     *
+     * They are separate values with separate sentences, and 406 is not reachable from a
+     * search at all.
      */
     private fun failure(code: Int): SubtitleFailure = when (code) {
         401, 403 -> SubtitleFailure.REFUSED
-        406, 429 -> SubtitleFailure.OUT_OF_DOWNLOADS
+        406 -> SubtitleFailure.OUT_OF_DOWNLOADS
+        429 -> SubtitleFailure.RATE_LIMITED
         in 500..599 -> SubtitleFailure.NETWORK
         else -> SubtitleFailure.UNREADABLE
+    }
+
+    /**
+     * The same, for a request that is not a download — and [SubtitleFailure.OUT_OF_DOWNLOADS]
+     * is not in it.
+     *
+     * The rule made structural instead of merely intended. "The day's downloads are used up"
+     * is a sentence about downloads, so no lookup is able to cause it however the server
+     * answers: a `406` on a search, which OpenSubtitles does not send but which no client can
+     * prevent, comes out as a throttle. That is the entire defect closed at the type level —
+     * a search cannot produce the sentence, so it cannot produce it wrongly.
+     */
+    private fun searchFailure(code: Int): SubtitleFailure = when (val reason = failure(code)) {
+        SubtitleFailure.OUT_OF_DOWNLOADS -> SubtitleFailure.RATE_LIMITED
+        else -> reason
     }
 
     /**
