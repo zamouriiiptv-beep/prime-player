@@ -10,6 +10,7 @@ re-rendered when a token changes.
 |---|---|
 | `shell-home.html` | Shell (rail, top bar), Home, the rail focused, a section the provider does not carry, phone Home, tablet section, and the state-language reference sheet |
 | `activation-mac.html` | The first screen, where a subscription is added — phone landscape 873x393 and 800x360, television 960x540, in nine stress languages |
+| `tv-sections.html` | Live TV, Movies and Series on a television — the browse screens a remote drives, categories then content |
 
 ## Rendering
 
@@ -43,6 +44,16 @@ render() { ... "file://$PWD/activation-mac.html?frame=$1"; }   # same helper
 render phone-873  873 393 2   mac-phone-873.png    # 1080x2400 at 2.75, landscape
 render phone-800  800 360 2   mac-phone-800.png    # 720x1600 at 2.0, the shortest
 render tv         960 540 2   mac-tv.png           # 1920x1080 at 2.0
+```
+
+`tv-sections.html` is television only, so all three of its frames are one size:
+
+```sh
+render() { ... "file://$PWD/tv-sections.html?frame=$1"; }      # same helper
+
+render live    960 540 2  tv-live.png      # categories, channels, what is on
+render movies  960 540 2  tv-movies.png    # categories, a grid of titles
+render series  960 540 2  tv-series.png    # categories, a grid with seasons
 ```
 
 ## Measuring
