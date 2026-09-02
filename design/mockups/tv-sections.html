@@ -158,6 +158,7 @@ button{font:inherit;color:inherit;background:none;border:0;text-align:start;curs
    line this wide, and the half that gets truncated is the half that answers the
    question. Stacked, both are whole, and 46dp still clears the D-pad minimum. */
 .chans{flex:1;min-width:0}
+.cats{width:168rem}
 .chan{display:flex;align-items:center;gap:12rem;width:100%;height:46rem;
   padding:0 12rem;border-radius:var(--r-sm);color:var(--ink-2)}
 .chan .no{font-size:11.5rem;font-weight:700;color:var(--blue);
@@ -174,24 +175,58 @@ button{font:inherit;color:inherit;background:none;border:0;text-align:start;curs
 .chan[data-playing="true"] .pg{color:var(--ink-2)}
 
 /* ----------------------------------------------------------- live: on now */
-.onnow{width:222rem;flex:0 0 auto}
-.still{height:125rem;border-radius:var(--r-md);position:relative;overflow:hidden;
-  background:var(--raised);flex:0 0 auto}
+/* The widest of the three, because it is the only one with a picture in it.
+   Browsing a channel list without seeing the channel is the thing this pane
+   exists to fix: twelve thousand names, and a name is not a programme. */
+.onnow{width:256rem;flex:0 0 auto}
+/* A picture surface, not a decorative box. `<video>` and `<img>` both drop
+   straight in — the same arrangement as the posters — and until one does, the
+   surface is black with the channel's identity on it, which is what a tuner
+   showing nothing actually looks like. It is never a coloured rectangle
+   standing in for a picture. */
+.still{aspect-ratio:16/9;border-radius:var(--r-md);position:relative;
+  overflow:hidden;background:#000;flex:0 0 auto;display:grid}
+.still video,.still img{grid-area:1/1;width:100%;height:100%;object-fit:cover;
+  display:block}
+.still .idle{grid-area:1/1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:6rem;color:var(--ink-4)}
+.still .idle svg{width:26rem;height:26rem;fill:currentColor;opacity:.5}
+.still .idle b{font-size:10rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
 .still .tag{position:absolute;inset-inline-start:9rem;top:9rem;display:flex;
   align-items:center;gap:5rem;background:rgba(6,6,14,.76);padding:3rem 9rem;
-  border-radius:var(--r-pill);font-size:10rem;font-weight:600;letter-spacing:.04em}
-.still .res{position:absolute;inset-inline-end:9rem;bottom:9rem;font-size:10rem;
-  color:var(--ink-2);background:rgba(6,6,14,.76);padding:2rem 7rem;border-radius:var(--r-sm)}
-.prog{margin-top:13rem}
-.prog .t{font-size:14rem;font-weight:700;line-height:1.25}
+  border-radius:var(--r-pill);font-size:10rem;font-weight:600;letter-spacing:.04em;
+  z-index:2}
+/* The overlay is the channel's identity, over the picture, where a viewer
+   glancing up from the list will already be looking. */
+.still .over{position:absolute;inset-inline:0;bottom:0;z-index:2;
+  padding:16rem 10rem 8rem;
+  background:linear-gradient(to top, rgba(4,4,10,.92), rgba(4,4,10,0))}
+.still .over .row{display:flex;align-items:baseline;gap:8rem}
+.still .over .nm{font-size:12rem;font-weight:700;flex:1;min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.still .over .no{font-size:10rem;color:var(--blue);font-weight:700}
+.still .over .res{font-size:9.5rem;color:var(--ink-3)}
+.still .over .line{display:flex;align-items:center;gap:7rem;margin-top:6rem;
+  font-size:9.5rem;color:var(--ink-3)}
+
+/* Now and Next: two blocks, not one paragraph. What is on is the answer and
+   gets the weight; what is next is a fact and gets a line. */
+.card-now{margin-top:11rem;padding:11rem 12rem;border-radius:var(--r-md);
+  background:var(--raised);border:1px solid var(--violet-dim)}
+.card-next{margin-top:8rem;padding:10rem 12rem;border-radius:var(--r-md);
+  background:var(--surface);border:1px solid var(--line)}
+.lbl{display:flex;align-items:center;gap:6rem;font-size:9rem;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--ink-4);margin-bottom:6rem}
+.lbl svg{width:11rem;height:11rem;fill:currentColor}
+.card-now .lbl{color:var(--violet)}
+.prog .t{font-size:13.5rem;font-weight:700;line-height:1.3}
 .prog .bar{display:flex;align-items:center;gap:8rem;margin:8rem 0 7rem;
-  font-size:10.5rem;color:var(--ink-3)}
+  font-size:10rem;color:var(--ink-3)}
 .track{flex:1;height:3rem;border-radius:2rem;background:var(--line);overflow:hidden}
 .track i{display:block;height:100%;background:var(--violet)}
-.prog .d{font-size:11.5rem;color:var(--ink-3);line-height:1.45}
-.next{margin-top:13rem;padding-top:11rem;border-top:1px solid var(--line)}
-.next .lbl{font-size:9.5rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-4)}
-.next .t{font-size:12.5rem;color:var(--ink-2);margin-top:4rem}
+.prog .d{font-size:11rem;color:var(--ink-3);line-height:1.45}
+.card-next .t{font-size:12rem;color:var(--ink-2);font-weight:600}
+.card-next .when{font-size:10rem;color:var(--ink-4);margin-top:3rem}
 
 /* --------------------------------------------------- movies & series: grid */
 /* `align-items:start` and a stated row height, both deliberately. A grid item
@@ -748,23 +783,42 @@ function drawOnNow(){
   const cat = category();
   const c = cat.channels.find(x => x.no === state.playing) || cat.channels[0];
   box.replaceChildren();
+  const pct = progress(c);
   box.insertAdjacentHTML('beforeend', `
     <div class="still">
+      ${c.stream
+        ? `<video src="${c.stream}" autoplay muted playsinline loop></video>`
+        : `<div class="idle">${svg(ICON.live)}<b>Preview</b></div>`}
       <div class="tag"><i class="dot"></i>LIVE</div>
-      <div class="res num">1024 × 576</div>
+      <div class="over">
+        <div class="row">
+          <span class="nm">${c.nm}</span>
+          <span class="no num">N° ${c.no}</span>
+        </div>
+        <div class="line">
+          <span class="num">${c.from}</span>
+          <span class="track"><i style="width:${pct}%"></i></span>
+          <span class="num">${c.to}</span>
+          <span class="res num">1024 × 576</span>
+        </div>
+      </div>
     </div>
-    <div class="prog">
+
+    <div class="card-now prog">
+      <div class="lbl">${svg('M8 5v14l11-7z')}On now</div>
       <div class="t">${c.pg}</div>
       <div class="bar">
         <span class="num">${c.from}</span>
-        <span class="track"><i style="width:${progress(c)}%"></i></span>
+        <span class="track"><i style="width:${pct}%"></i></span>
         <span class="num">${c.to}</span>
       </div>
       <div class="d">${c.desc}</div>
     </div>
-    <div class="next">
-      <div class="lbl">Next · ${c.to}</div>
+
+    <div class="card-next">
+      <div class="lbl">${svg('M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20m1 11H7v-2h4V6h2z')}Next</div>
       <div class="t">${c.next}</div>
+      <div class="when num">${c.to}</div>
     </div>`);
 }
 
