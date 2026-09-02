@@ -127,22 +127,6 @@ class ActivateProviderTest {
         override suspend fun isUpToDate(source: PlaylistSource): Boolean = false
     }
 
-    /**
-     * An importer that fails the test if it is asked to do anything at all.
-     *
-     * The rule it guards is the whole flow: signing in to a panel fetches nothing, so
-     * anything that reaches this class on that path is a catalogue import creeping back
-     * in — through a refresh added "while we are here", a warm-up, a count. A fake that
-     * quietly returns nothing would let all of those pass; this one names them.
-     */
-    private class ForbiddenImporter : CatalogImporter {
-        override fun import(source: PlaylistSource): Flow<ImportProgress> =
-            throw AssertionError("the catalogue was imported at sign-in: import($source)")
-
-        override suspend fun isUpToDate(source: PlaylistSource): Boolean =
-            throw AssertionError("the catalogue was consulted at sign-in: isUpToDate($source)")
-    }
-
     /** An import that stops where it is told and never finishes on its own. */
     private class StallingImporter : CatalogImporter {
         val reachedMiddle = CompletableDeferred<Unit>()
@@ -182,112 +166,29 @@ class ActivateProviderTest {
 
     // ------------------------------------------------------------- the happy path
 
-    /**
-     * Signing in to a panel is signing in, and nothing else happens.
-     *
-     * This used to import the catalogue here — every category of every kind, tens of
-     * thousands of rows, before the user had said whether they came for football or
-     * for films. Two phases now: checked, then in. What the user watches decides what
-     * is fetched, and `CatalogSections` fetches it a section at a time.
-     */
     @Test
-    fun `signing in to a panel imports nothing`() = runTest {
+    fun `xtream details become a catalogue`() = runTest {
         val sources = Sources()
-        val importer = importOf(ImportProgress.Done(21_874, 9_000))
-
         val phases = activateProvider(
             Validator(usable(expiresAtMs = t0 + 300 * day)),
-            importer,
+            importOf(
+                ImportProgress.Importing(500, 1, MediaKind.LIVE),
+                ImportProgress.Importing(12_000, 4, MediaKind.MOVIE),
+                ImportProgress.Done(21_874, 9_000),
+            ),
             sources,
         ).activate(xtream, label = "Home", nowMs = t0).toList()
 
         assertEquals(
             listOf(
                 ActivationPhase.Checking,
-                ActivationPhase.Succeeded("xtream-1", 0, (usable(t0 + 300 * day)).value),
+                ActivationPhase.Importing(500, 1),
+                ActivationPhase.Importing(12_000, 4),
+                ActivationPhase.Succeeded("xtream-1", 21_874, (usable(t0 + 300 * day)).value),
             ),
             phases,
         )
-        assertEquals("the catalogue was imported at sign-in", 0, importer.started)
         assertEquals("xtream-1", sources.activeId)
-        assertEquals(1, sources.registrations)
-    }
-
-    /**
-     * Nothing on the sign-in path may touch the importer, by any route.
-     *
-     * Stronger than counting starts: the importer here throws, so a call that arrives
-     * through some path this test did not think of still fails, and fails naming
-     * itself. The two ways the defect would return — a direct import, and an
-     * "is it up to date" that pulls one in behind it — are both refused.
-     */
-    @Test
-    fun `signing in to a panel never reaches the importer at all`() = runTest {
-        val sources = Sources()
-
-        val phases = activateProvider(Validator(usable()), ForbiddenImporter(), sources)
-            .activate(xtream, nowMs = t0)
-            .toList()
-
-        assertTrue("${phases.last()}", phases.last() is ActivationPhase.Succeeded)
-        assertEquals("xtream-1", sources.activeId)
-    }
-
-    /** A refusal must not reach it either — there is nothing to import for a bad line. */
-    @Test
-    fun `a refused panel never reaches the importer either`() = runTest {
-        val phases = activateProvider(
-            Validator(Outcome.Failure(AppError.UNAUTHORIZED)),
-            ForbiddenImporter(),
-            Sources(),
-        ).activate(xtream, nowMs = t0).toList()
-
-        assertEquals(ActivationPhase.Failed(ActivationFailure.REJECTED), phases.last())
-    }
-
-    /**
-     * And it is still the *checked* sign-in it always was.
-     *
-     * Skipping the import must not become skipping the validation: wrong password,
-     * expired subscription and unreachable host still have to be three answers, and
-     * they still have to arrive before anything is registered.
-     */
-    @Test
-    fun `signing in still asks the provider first`() = runTest {
-        val sources = Sources()
-        val validator = Validator(usable())
-
-        activateProvider(validator, importOf(), sources).activate(xtream, nowMs = t0).toList()
-
-        assertEquals(1, validator.calls)
-    }
-
-    /**
-     * A playlist is imported at sign-in, because there is no later moment that is
-     * cheaper.
-     *
-     * An M3U is one file with no index — the only way to learn what is in it is to
-     * read it — so the choice is not between now and later, it is between now and
-     * never. This is the path the phases below still cover.
-     */
-    @Test
-    fun `a playlist is still imported when it is added`() = runTest {
-        val sources = Sources()
-        val importer = importOf(
-            ImportProgress.Importing(500, 1, MediaKind.LIVE),
-            ImportProgress.Done(21_874, 9_000),
-        )
-
-        val phases = activateProvider(Validator(usable()), importer, sources)
-            .activate(m3u, label = "Home", nowMs = t0)
-            .toList()
-
-        assertEquals(1, importer.started)
-        assertEquals(ActivationPhase.Importing(500, 1), phases[1])
-        assertEquals(
-            ActivationPhase.Succeeded("m3u-1", 21_874, usable().value),
-            phases.last(),
-        )
     }
 
     @Test
@@ -319,7 +220,7 @@ class ActivateProviderTest {
         val expires = t0 + 45 * day
         val phases = activateProvider(
             Validator(usable(expiresAtMs = expires, activeConnections = 1, maxConnections = 3)),
-            importOf(),
+            importOf(ImportProgress.Done(900, 1_000)),
             Sources(),
         ).activate(xtream, nowMs = t0).toList()
 
@@ -343,7 +244,7 @@ class ActivateProviderTest {
                 ImportProgress.Done(13_500, 8_000),
             ),
             Sources(),
-        ).activate(m3u, nowMs = t0).toList()
+        ).activate(xtream, nowMs = t0).toList()
 
         val counts = phases.filterIsInstance<ActivationPhase.Importing>().map { it.itemsFound }
         assertEquals(listOf(12_000, 12_000, 13_500), counts)

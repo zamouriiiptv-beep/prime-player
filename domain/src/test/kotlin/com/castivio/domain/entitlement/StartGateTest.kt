@@ -21,26 +21,14 @@ class StartGateTest {
     private fun source(
         lastImportAtMs: Long? = t0,
         itemCount: Int = 12_480,
-        kind: SourceKind = SourceKind.M3U_URL,
     ) = ProviderSource(
         id = "src-1",
-        kind = kind,
+        kind = SourceKind.XTREAM,
         label = "Nova IPTV",
         url = "http://example.com:8080",
         sync = SyncState(lastImportAtMs = lastImportAtMs, itemCount = itemCount),
         createdAtMs = t0,
     )
-
-    /**
-     * A playlist by default, because gate two is about stored rows and only a playlist
-     * has any at this point.
-     *
-     * A panel is read a section at a time: right after signing in it has no rows, and
-     * that is the working state rather than a broken one. The two are separate tests
-     * below rather than one fixture that quietly means both.
-     */
-    private fun panel(itemCount: Int = 0) =
-        source(lastImportAtMs = null, itemCount = itemCount, kind = SourceKind.XTREAM)
 
     private val entitled = EntitlementState.TrialActive(expiresAtMs = t0 + 7 * day, daysRemaining = 7)
 
@@ -105,24 +93,11 @@ class StartGateTest {
      * something" disagree.
      */
     @Test
-    fun `entitled with a zero-item playlist goes to activation`() {
+    fun `entitled with a zero-item catalogue goes to activation`() {
         assertEquals(
             StartDestination.Activation,
             startDestination(entitled, source(itemCount = 0)),
         )
-    }
-
-    /**
-     * And the opposite for a panel, which is the whole reason signing in can be cheap.
-     *
-     * A panel that has fetched nothing yet is a panel that was signed in to a moment
-     * ago. Sending it back to activation would make a successful sign-in loop back to
-     * the sign-in screen — the gate is the only place this could go wrong, so it is
-     * asserted here rather than found on a television.
-     */
-    @Test
-    fun `entitled with a freshly signed-in panel opens home`() {
-        assertEquals(StartDestination.Home, startDestination(entitled, panel()))
     }
 
     @Test

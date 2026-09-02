@@ -28,11 +28,9 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Motion
@@ -63,14 +61,6 @@ fun MediaCard(
     width: Dp = 176.dp,
     watchState: WatchState = WatchState.None,
     artworkSeed: Int = 0,
-    /**
-     * The provider's poster, fetched when this card is on screen.
-     *
-     * Null is not a missing feature: most providers leave artwork off most rows, and
-     * the placeholder below is the design rather than a gap. Nothing is prefetched --
-     * a card that scrolls past unseen costs no request.
-     */
-    artworkUrl: String? = null,
     /** One badge, top-start — a NowPlayingBadge, a WatchedTag or an episode chip. */
     badge: (@Composable BoxScope.() -> Unit)? = null,
     /** A single line under the artwork: now/next, or "42 min left". */
@@ -119,9 +109,6 @@ fun MediaCard(
                 .background(posterPlaceholderBrush(artworkSeed))
                 .border(1.dp, border, cardShape),
         ) {
-            // Over the placeholder, never instead of it: a poster that is slow, absent
-            // or broken leaves the card looking finished rather than leaving a hole.
-            Artwork(artworkUrl, title, Modifier.matchParentSize())
             WatchMarks(watchState)
             if (badge != null) {
                 Box(Modifier.align(Alignment.TopStart).padding(Spacing.sm)) {
@@ -167,8 +154,6 @@ fun ChannelCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     seed: Int = 0,
-    /** The channel's logo, fetched when the row is on screen. Null draws initials. */
-    logoUrl: String? = null,
     number: String? = null,
     watchState: WatchState = WatchState.None,
     width: Dp = 200.dp,
@@ -222,16 +207,11 @@ fun ChannelCard(
             modifier = Modifier.padding(Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(Modifier.size(34.dp)) {
-                LogoTile(
-                    initials = name.take(2).uppercase(),
-                    seed = seed,
-                    modifier = Modifier.matchParentSize(),
-                )
-                // Same rule as a poster: the logo lands on top of the initials, so a
-                // provider that serves none still gives a row that reads.
-                Artwork(logoUrl, name, Modifier.matchParentSize(), fill = false)
-            }
+            LogoTile(
+                initials = name.take(2).uppercase(),
+                seed = seed,
+                modifier = Modifier.size(34.dp),
+            )
             Column(
                 Modifier
                     .padding(start = Spacing.sm)
@@ -262,35 +242,4 @@ fun ChannelCard(
             }
         }
     }
-}
-
-/**
- * A remote image, drawn over whatever placeholder is already there.
- *
- * One place, so every card loads artwork the same way: fetched when it is composed and
- * not before, decoded to the size it is drawn at, and simply absent while it is on its
- * way. There is no spinner and no error icon — a card whose artwork is still arriving
- * is a card with its placeholder on, which is a finished-looking card.
- *
- * The description is cleared rather than set: the card above already carries a spoken
- * name for the whole row, and a second one here would have a screen reader announce the
- * title twice.
- *
- * @param fill true crops to fill the box, which is right for a poster; false fits
- *   inside it, which is right for a logo that must not be cut.
- */
-@Composable
-private fun Artwork(
-    url: String?,
-    label: String,
-    modifier: Modifier = Modifier,
-    fill: Boolean = true,
-) {
-    if (url.isNullOrBlank()) return
-    AsyncImage(
-        model = url,
-        contentDescription = null,
-        contentScale = if (fill) ContentScale.Crop else ContentScale.Fit,
-        modifier = modifier.clearAndSetSemantics {},
-    )
 }

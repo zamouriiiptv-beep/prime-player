@@ -154,10 +154,6 @@ internal fun GroupEntity.toDomain(): MediaGroup = MediaGroup(
     id = id,
     name = name,
     kind = runCatching { MediaKind.valueOf(kind) }.getOrDefault(MediaKind.LIVE),
-    providerRef = providerRef,
-    listedAtMs = listedAt,
-    itemsLoadedAtMs = itemsLoadedAt,
-    itemCount = itemCount,
 )
 
 internal fun MediaGroup.toEntity(
@@ -169,10 +165,6 @@ internal fun MediaGroup.toEntity(
     sourceId = sourceId,
     name = name,
     kind = kind.name,
-    providerRef = providerRef,
-    listedAt = listedAtMs,
-    itemsLoadedAt = itemsLoadedAtMs,
-    itemCount = itemCount,
     providerOrder = providerOrder,
     generation = generation,
 )

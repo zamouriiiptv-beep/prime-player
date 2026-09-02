@@ -17,7 +17,6 @@ import com.castivio.data.database.dao.ProgressDao
 import com.castivio.data.database.dao.SourceDao
 import com.castivio.domain.CatalogPager
 import com.castivio.domain.CatalogRepository
-import com.castivio.domain.CatalogSectionStore
 import com.castivio.domain.CatalogWriter
 import com.castivio.domain.EpgRepository
 import com.castivio.domain.EpgWriter
@@ -68,10 +67,6 @@ object DatabaseModule {
 
     @Provides
     fun catalogPager(repository: RoomCatalogRepository): CatalogPager = repository
-
-    /** The loader's view of the same store: is this section here, and is it current. */
-    @Provides
-    fun catalogSectionStore(repository: RoomCatalogRepository): CatalogSectionStore = repository
 
     /**
      * Not a singleton: a writer holds prepared statements and the state of one

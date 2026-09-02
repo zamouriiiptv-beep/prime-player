@@ -1,7 +1,9 @@
 package com.castivio.feature.home
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,13 +14,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.castivio.core.design.components.ChannelCard
+import com.castivio.core.design.components.EmptyState
+import com.castivio.core.design.components.SectionHeader
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Spacing
@@ -26,16 +31,16 @@ import com.castivio.domain.Episode
 import com.castivio.domain.SeriesSummary
 
 /**
- * One show's seasons, and the episodes inside them.
+ * One show's episodes, grouped by season.
  *
- * The last step before something plays, and the last request a browse costs:
- * `get_series_info` for this show and no other. Fetching them up front would be one
- * request per show — hundreds of them, for episode lists almost none of which are
- * opened — which is why this screen exists rather than the data arriving with the
- * catalogue.
+ * This exists because a poster that does nothing is worse than no poster. A series row
+ * is not a stream — [asSelection] returns null for it, deliberately — so the press has
+ * to land somewhere, and this is that somewhere: the seasons the provider actually
+ * numbered, each episode playable.
  *
- * A show is not a stream. The episode is the playable thing, which the model already
- * guarantees: there is nothing on a `Series` for a request to be built from.
+ * The read is bounded by the show rather than by the library, which is the one case
+ * where holding a whole list is correct: a season list is tens of rows, and paging it
+ * would cost a query per screenful to save nothing.
  */
 @Composable
 fun ShowScreen(
@@ -43,35 +48,35 @@ fun ShowScreen(
     onPlay: (CatalogSelection) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    model: ShowViewModel = hiltViewModel(key = show.seriesId),
+    model: BrowseViewModel = hiltViewModel(key = CatalogSection.Series.name),
 ) {
     BackHandler(onBack = onBack)
-    LaunchedEffect(show.seriesId) { model.open(show.seriesId) }
-
-    val seasons by model.seasons.collectAsStateWithLifecycle()
-    val load by model.load.collectAsStateWithLifecycle()
     val colors = CastivioTheme.colors
+    // Remembered by show, because `seasons` builds a query: recreating it on every
+    // recomposition would restart the collection and re-run the read each frame.
+    val query = remember(show.seriesId) { model.seasons(show.seriesId) }
+    val seasons by query.collectAsStateWithLifecycle(initialValue = emptyList())
 
     Column(
         modifier
             .fillMaxSize()
+            .background(colors.background)
             .statusBarsPadding()
             .padding(horizontal = CastivioTheme.device.screenPadding, vertical = Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        SectionTitle(
-            title = show.title,
-            subtitle = stringResource(R.string.show_seasons_count, seasons.size),
-        )
+        SectionHeader(title = show.title, count = show.episodeCount)
 
-        SectionBody(
-            load = load,
-            empty = seasons.isEmpty(),
-            emptyTitle = stringResource(R.string.show_no_episodes_title),
-            emptyDetail = stringResource(R.string.show_no_episodes_detail),
-            onRetry = model::retry,
-            onBack = onBack,
-        ) {
+        if (seasons.isEmpty()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                EmptyState(
+                    title = stringResource(R.string.show_no_episodes_title),
+                    detail = stringResource(R.string.show_no_episodes_detail),
+                    actionLabel = stringResource(R.string.show_back),
+                    onAction = onBack,
+                )
+            }
+        } else {
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 contentPadding = PaddingValues(bottom = Spacing.xxl),
@@ -102,7 +107,6 @@ private fun EpisodeRow(episode: Episode, onPlay: (CatalogSelection) -> Unit) {
         nowPlaying = selection.subtitle.orEmpty(),
         number = null,
         seed = episode.episodeNumber,
-        logoUrl = episode.artworkUrl,
         onClick = { onPlay(selection) },
         modifier = Modifier.fillMaxWidth(),
     )

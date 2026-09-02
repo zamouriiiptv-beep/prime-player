@@ -7,7 +7,6 @@ import androidx.paging.map
 import com.castivio.data.database.dao.GroupDao
 import com.castivio.data.database.dao.MediaDao
 import com.castivio.domain.CatalogPager
-import com.castivio.domain.CatalogSectionStore
 import com.castivio.domain.ChannelRef
 import com.castivio.domain.CatalogQuery
 import com.castivio.domain.CatalogRepository
@@ -20,7 +19,6 @@ import com.castivio.domain.Page
 import com.castivio.domain.PageRequest
 import com.castivio.domain.Season
 import com.castivio.domain.SeriesSummary
-import com.castivio.domain.ShowRef
 import com.castivio.domain.SortOrder
 import com.castivio.data.database.dao.FavoriteDao
 import com.castivio.data.database.dao.ProgressDao
@@ -39,7 +37,7 @@ class RoomCatalogRepository(
     private val groupDao: GroupDao,
     private val favoriteDao: FavoriteDao,
     private val progressDao: ProgressDao,
-) : CatalogRepository, CatalogPager, CatalogSectionStore {
+) : CatalogRepository, CatalogPager {
 
     // ------------------------------------------------------------- CatalogRepository
 
@@ -99,33 +97,6 @@ class RoomCatalogRepository(
 
     override fun count(kind: MediaKind, groupId: String?): Flow<Int> =
         if (groupId == null) mediaDao.countOf(kind.name) else mediaDao.countOfGroup(kind.name, groupId)
-
-    // --------------------------------------------------------- CatalogSectionStore
-    //
-    // The loader's view of the store: one-shot reads that decide whether a request is
-    // needed at all, plus the one write that records that it is not needed again.
-
-    override suspend fun groupsNow(kind: MediaKind): List<MediaGroup> =
-        groupDao.groupsNow(kind.name).map { it.toDomain() }
-
-    override suspend fun group(id: String): MediaGroup? = groupDao.byId(id)?.toDomain()
-
-    override suspend fun markItemsLoaded(groupId: String, atMs: Long) =
-        groupDao.markItemsLoaded(groupId, atMs)
-
-    override suspend fun hasEpisodes(seriesId: String): Boolean = mediaDao.hasEpisodes(seriesId)
-
-    override suspend fun show(seriesId: String): ShowRef? {
-        val shell = mediaDao.showShell(seriesId) ?: return null
-        // No provider id means nothing to ask with -- an M3U row, or a listing written
-        // by a version that did not keep it. Null rather than a guess.
-        val ref = shell.providerRef ?: return null
-        return ShowRef(
-            providerRef = ref,
-            title = shell.seriesTitle ?: shell.title,
-            groupId = shell.groupId,
-        )
-    }
 
     // -------------------------------------------------------------------- CatalogPager
 

@@ -18,10 +18,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LiveTv
+import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Radio
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -30,27 +35,34 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import com.castivio.core.design.components.CastivioShell
+import com.castivio.core.design.components.EmptyState
+import com.castivio.core.design.components.IconLabel
+import com.castivio.core.design.components.MediaCard
+import com.castivio.core.design.components.CardShape
+import com.castivio.core.design.components.NowPlayingBadge
 import com.castivio.core.design.components.NavAction
 import com.castivio.core.design.components.SectionHeader
+import com.castivio.core.design.components.WatchState
+import com.castivio.core.design.components.WatchedTag
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
+import com.castivio.core.design.theme.DeviceClass
 import com.castivio.core.design.theme.MotionLevel
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Spacing
-import com.castivio.domain.MediaGroup
+import com.castivio.core.navigation.BackPolicy
+import com.castivio.core.navigation.ShellBack
 import com.castivio.domain.SeriesSummary
+import com.castivio.feature.home.BrowseScreen
 import com.castivio.feature.home.CatalogSearchScreen
 import com.castivio.feature.home.CatalogSection
 import com.castivio.feature.home.CatalogSelection
-import com.castivio.feature.home.CategoriesScreen
-import com.castivio.feature.home.CategoryScreen
 import com.castivio.feature.home.HomeScreen
 import com.castivio.feature.home.ShowScreen
 import com.castivio.feature.home.R as CatalogStrings
@@ -60,52 +72,43 @@ import com.castivio.feature.player.PlayerRoute
 import com.castivio.playback.api.MediaKind
 import com.castivio.tv.licence.LicenceWithLanguage
 
-/** The three places the rail can be. Everything else is a step inside Browse. */
-private enum class Tab { Browse, Search, Settings }
+/** The top-level destinations the shell can be on. */
+private enum class Dest { Home, Live, Movies, Series, Radio, Favourites, Library, Search, Settings }
 
-/**
- * One step of the browse flow.
- *
- * A stack rather than a set of destinations, because the flow has real depth —
- * categories, then a category, then a show, then an episode — and each step is opened
- * with the thing the previous one was showing. A flat destination enum would have to
- * store the "current category" somewhere outside the navigation, and that is how back
- * ends up returning to a screen with the wrong contents.
- *
- * Each step carries what it needs, so nothing is re-fetched to redraw it.
- */
-private sealed interface Step {
+/** An overlay drawn above the shell: a show's episodes, the player, or Settings' extras. */
+private sealed interface Overlay {
+    /** One show's seasons. Series rows are not streams, so a press has to land here. */
+    data class Show(val show: SeriesSummary) : Overlay
 
-    /** The three choices. Loads nothing at all. */
-    data object Home : Step
+    /** A real stream, with everything the engine is allowed to be given. */
+    data class Play(val request: PlayerRequest) : Overlay
 
-    /** One section's categories. One request, for that section only. */
-    data class Categories(val section: CatalogSection) : Step
+    data object StateBoard : Overlay
 
-    /** One category's contents. One request, for that category only. */
-    data class Category(val section: CatalogSection, val group: MediaGroup) : Step
-
-    /** One show's seasons. One request, for that show only. */
-    data class Show(val show: SeriesSummary) : Step
+    /**
+     * Castivio's own licence, reached from Settings.
+     *
+     * An overlay rather than a rail destination, and that is the design decision
+     * rather than an implementation shortcut: the licence screen owns the whole
+     * viewport -- immersive, full-bleed, no scroll, hairlines edge to edge -- and
+     * a screen drawn inside the rail and the bottom bar would be a different
+     * composition from the one that was approved and measured. Back returns to
+     * Settings, which is where it was opened from.
+     */
+    data object Licence : Overlay
 }
 
 /**
- * The application shell.
+ * The application shell, over the provider's real catalogue.
  *
- * ## The flow this draws
+ * Every section here reads the database the activation flow imported into: categories
+ * from the group table, rows from the pager, counts from an indexed `COUNT`, and a
+ * press opens the provider's own stream URL in the real engine. Nothing on this screen
+ * is a fixture any more, which is what the comment on `MainActivity` used to promise
+ * and this slice delivers.
  *
- * Sign in, then Home: Channels, Movies, Series. Pressing one lists that section's
- * categories — one request — and pressing a category fetches that category and nothing
- * else. A channel or a film plays; a show opens its seasons and an episode plays.
- *
- * Nothing above is fetched before it is asked for. Home issues no request, and the app
- * never holds more of a provider's catalogue than the user has actually opened.
- *
- * ## Back
- *
- * The player closes, then the browse stack pops one step at a time, then a tab returns
- * to Browse, and only at Home is there nothing left to go back to — which is the whole
- * condition for asking whether to leave.
+ * Back follows the rule [BackPolicy] encodes: an overlay pops, a section returns Home,
+ * and Home asks whether to leave.
  */
 @Composable
 fun ShellScreen(
@@ -114,91 +117,126 @@ fun ShellScreen(
     /**
      * Ask to leave Castivio.
      *
-     * Ask, not leave. The confirmation is the application's now and is drawn above this
-     * screen; what happens once the user answers it is not the shell's business.
+     * Ask, not leave. The confirmation is the application's now and is drawn
+     * above this screen; what happens once the user answers it is not the
+     * shell's business, which is why this used to be `finish()` and is not.
      */
     onExit: () -> Unit,
 ) {
-    var tab by remember { mutableStateOf(Tab.Browse) }
-    val stack = remember { mutableStateListOf<Step>(Step.Home) }
-    var playing by remember { mutableStateOf<PlayerRequest?>(null) }
+    var dest by remember { mutableStateOf(Dest.Home) }
+    var overlay by remember { mutableStateOf<Overlay?>(null) }
+    val device = CastivioTheme.device
+    val phone = device == DeviceClass.Compact || device == DeviceClass.Medium
+
+    // ## Back, and the one place it asks before it acts
+    //
+    // Always enabled now, where it used to stand aside at the root and let the
+    // system close the app. The ladder is: an overlay, then a section, then the
+    // root — and only at the root is there nothing left to go back *to*, which
+    // is the whole condition for asking.
+    //
+    // Asking anywhere else would be the familiar mistake of confirming a
+    // navigation, and on a remote — where back is the most-pressed key on the
+    // device — a dialog between the user and Home is a dialog they learn to
+    // dismiss without reading.
+    BackHandler(enabled = true) {
+        when (
+            BackPolicy.fromShell(
+                overlayOpen = overlay != null,
+                atRoot = dest == Dest.Home,
+            )
+        ) {
+            ShellBack.CloseOverlay -> overlay = null
+            ShellBack.GoToRoot -> dest = Dest.Home
+            ShellBack.ConfirmExit -> onExit()
+        }
+    }
 
     // One conversion, in the one place that knows both the catalogue and the player.
     //
     // `:feature:home` must not depend on `:feature:player`, so a press arrives here as
-    // what the row already had on screen and becomes a request here -- the same seam a
-    // local file already uses. The player still fetches nothing before its first frame,
-    // because there is nothing left for it to fetch.
+    // what the row already had on screen and becomes a request here -- exactly as a
+    // local file does in `PlayerHost`. The player still fetches nothing before its
+    // first frame, because there is nothing left for it to fetch.
     val play: (CatalogSelection) -> Unit = { selection ->
-        playing = selection.asPlayerRequest()
+        overlay = Overlay.Play(selection.asPlayerRequest())
     }
 
-    val back: () -> Unit = {
-        when {
-            playing != null -> playing = null
-            stack.size > 1 -> stack.removeAt(stack.lastIndex)
-            tab != Tab.Browse -> tab = Tab.Browse
-            else -> onExit()
-        }
+    val destinations = if (phone) {
+        listOf(
+            navAction(Icons.Filled.Home, "Home") { dest = Dest.Home },
+            navAction(Icons.Filled.LiveTv, stringResource(CatalogStrings.string.browse_live)) { dest = Dest.Live },
+            navAction(Icons.Filled.VideoLibrary, "Library") { dest = Dest.Library },
+            navAction(Icons.Filled.Search, stringResource(CatalogStrings.string.search_label)) { dest = Dest.Search },
+            navAction(Icons.Filled.Settings, "Settings") { dest = Dest.Settings },
+        )
+    } else {
+        listOf(
+            navAction(Icons.Filled.Home, "Home") { dest = Dest.Home },
+            navAction(Icons.Filled.LiveTv, stringResource(CatalogStrings.string.browse_live)) { dest = Dest.Live },
+            navAction(Icons.Filled.Movie, stringResource(CatalogStrings.string.browse_movies)) { dest = Dest.Movies },
+            navAction(Icons.Filled.Tv, stringResource(CatalogStrings.string.browse_series)) { dest = Dest.Series },
+            navAction(Icons.Filled.Radio, stringResource(CatalogStrings.string.browse_radio)) { dest = Dest.Radio },
+            navAction(Icons.Filled.Favorite, "Favourites") { dest = Dest.Favourites },
+            navAction(Icons.Filled.Search, stringResource(CatalogStrings.string.search_label)) { dest = Dest.Search },
+            navAction(Icons.Filled.Settings, "Settings") { dest = Dest.Settings },
+        )
     }
-
-    // Always enabled. On a remote, back is the most-pressed key on the device, so it
-    // has to mean the same thing at every depth: undo the last step. It only reaches
-    // the exit question when there is genuinely nothing left to undo.
-    BackHandler(enabled = true, onBack = back)
-
-    val destinations = listOf(
-        navAction(Icons.Filled.Home, "Home") {
-            tab = Tab.Browse
-        },
-        navAction(Icons.Filled.Search, stringResource(CatalogStrings.string.search_label)) {
-            tab = Tab.Search
-        },
-        navAction(Icons.Filled.Settings, "Settings") { tab = Tab.Settings },
-    )
+    val selectedIndex = if (phone) phoneIndex(dest) else railIndex(dest)
 
     Box(Modifier.fillMaxSize()) {
-        CastivioShell(destinations = destinations, selectedIndex = tab.ordinal) {
-            when (tab) {
-                Tab.Browse -> when (val step = stack.last()) {
-                    is Step.Home -> HomeScreen(
-                        onOpen = { stack.add(Step.Categories(it)) },
-                    )
-
-                    is Step.Categories -> CategoriesScreen(
-                        section = step.section,
-                        onOpen = { group -> stack.add(Step.Category(step.section, group)) },
-                        onBack = back,
-                    )
-
-                    is Step.Category -> CategoryScreen(
-                        section = step.section,
-                        group = step.group,
-                        onPlay = play,
-                        onOpenShow = { show -> stack.add(Step.Show(show)) },
-                        onBack = back,
-                    )
-
-                    is Step.Show -> ShowScreen(
-                        show = step.show,
-                        onPlay = play,
-                        onBack = back,
-                    )
-                }
-
-                Tab.Search -> CatalogSearchScreen(onPlay = play)
-
-                Tab.Settings -> SettingsScreen(
+        CastivioShell(destinations = destinations, selectedIndex = selectedIndex) {
+            when (dest) {
+                Dest.Home -> HomeScreen(
+                    onPlay = play,
+                    onSeeSection = { dest = it.destination },
+                )
+                Dest.Live -> BrowseScreen(
+                    section = CatalogSection.Live,
+                    onPlay = play,
+                    onOpenShow = { overlay = Overlay.Show(it) },
+                )
+                Dest.Movies -> BrowseScreen(
+                    section = CatalogSection.Movies,
+                    onPlay = play,
+                    onOpenShow = { overlay = Overlay.Show(it) },
+                )
+                Dest.Series -> BrowseScreen(
+                    section = CatalogSection.Series,
+                    onPlay = play,
+                    onOpenShow = { overlay = Overlay.Show(it) },
+                )
+                Dest.Radio -> BrowseScreen(
+                    section = CatalogSection.Radio,
+                    onPlay = play,
+                    onOpenShow = { overlay = Overlay.Show(it) },
+                )
+                Dest.Favourites -> FavouritesScreen()
+                Dest.Library -> LibraryScreen(onOpenSection = { dest = it })
+                Dest.Search -> CatalogSearchScreen(onPlay = play)
+                Dest.Settings -> SettingsScreen(
                     motionLevel = motionLevel,
                     onMotionLevel = onMotionLevel,
+                    onShowStateBoard = { overlay = Overlay.StateBoard },
+                    onShowLicence = { overlay = Overlay.Licence },
                 )
             }
         }
 
-        // Over everything, and rebuilt from its request. A player drawn beside the
-        // shell would leave the rail focusable behind a full-screen video.
-        playing?.let { request ->
-            PlayerRoute(request = request, onLeave = { playing = null })
+        when (val o = overlay) {
+            is Overlay.Show -> ShowScreen(
+                show = o.show,
+                onPlay = play,
+                onBack = { overlay = null },
+            )
+            is Overlay.Play -> PlayerRoute(request = o.request, onLeave = { overlay = null })
+            is Overlay.StateBoard -> StateBoardOverlay(onBack = { overlay = null })
+            // Reached from a working app, so leaving means returning to
+            // Settings. Reached from the gate it means leaving Castivio, and
+            // that difference is the caller's -- the screen itself has no
+            // opinion about where back goes.
+            is Overlay.Licence -> LicenceWithLanguage(onLeave = { overlay = null })
+            null -> {}
         }
     }
 }
@@ -206,8 +244,8 @@ fun ShellScreen(
 /**
  * A catalogue press, as the player's request.
  *
- * `SERIES_EPISODE` rather than `VOD` for an episode: the engine reads it to decide what
- * "next" means, and a season that behaves like a single film is the bug this
+ * `SERIES_EPISODE` rather than `VOD` for an episode: the engine reads it to decide
+ * what "next" means, and a season that behaves like a single film is the bug this
  * distinction prevents.
  */
 private fun CatalogSelection.asPlayerRequest() = PlayerRequest(
@@ -215,7 +253,7 @@ private fun CatalogSelection.asPlayerRequest() = PlayerRequest(
     title = title,
     kind = when {
         live -> MediaKind.LIVE
-        episode -> MediaKind.SERIES_EPISODE
+        subtitle?.startsWith('S') == true || subtitle?.startsWith('E') == true -> MediaKind.SERIES_EPISODE
         else -> MediaKind.VOD
     },
     subtitle = subtitle,
@@ -224,11 +262,95 @@ private fun CatalogSelection.asPlayerRequest() = PlayerRequest(
     catchUpHours = catchUpHours,
 )
 
+/** Which rail entry a section belongs to, so Home's "see all" lands somewhere real. */
+private val CatalogSection.destination: Dest
+    get() = when (this) {
+        CatalogSection.Live -> Dest.Live
+        CatalogSection.Movies -> Dest.Movies
+        CatalogSection.Series -> Dest.Series
+        CatalogSection.Radio -> Dest.Radio
+    }
+
 private fun navAction(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     onClick: () -> Unit,
 ) = NavAction(icon = icon, label = label, onClick = onClick)
+
+private fun phoneIndex(dest: Dest): Int = when (dest) {
+    Dest.Home -> 0
+    Dest.Live -> 1
+    Dest.Movies, Dest.Series, Dest.Radio, Dest.Favourites, Dest.Library -> 2
+    Dest.Search -> 3
+    Dest.Settings -> 4
+}
+
+private fun railIndex(dest: Dest): Int = when (dest) {
+    Dest.Home, Dest.Library -> 0
+    Dest.Live -> 1
+    Dest.Movies -> 2
+    Dest.Series -> 3
+    Dest.Radio -> 4
+    Dest.Favourites -> 5
+    Dest.Search -> 6
+    Dest.Settings -> 7
+}
+
+// -------------------------------------------------------------------- sections
+
+/**
+ * Favourites, which is empty because nothing can be favourited yet.
+ *
+ * Drawn rather than hidden, and saying exactly that. A destination that vanishes when
+ * it has no content teaches people the app is unreliable; one that explains itself
+ * costs a sentence. The store and the paged reader for this already exist — what is
+ * missing is the control that adds to it, and that is the next slice rather than
+ * something to fake here.
+ */
+@Composable
+private fun FavouritesScreen() {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .padding(CastivioTheme.device.screenPadding),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+    ) {
+        SectionHeader(title = "Favourites", count = 0)
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            EmptyState(
+                title = "Nothing favourited yet",
+                detail = "Marking a channel or a film as a favourite arrives with the next " +
+                    "update. Until then this list stays empty rather than showing you " +
+                    "something you did not choose.",
+                actionLabel = "OK",
+                onAction = {},
+            )
+        }
+    }
+}
+
+@Composable
+private fun LibraryScreen(onOpenSection: (Dest) -> Unit) {
+    val entries = listOf(
+        Triple(Icons.Filled.Movie, stringResource(CatalogStrings.string.browse_movies), Dest.Movies),
+        Triple(Icons.Filled.Tv, stringResource(CatalogStrings.string.browse_series), Dest.Series),
+        Triple(Icons.Filled.Radio, stringResource(CatalogStrings.string.browse_radio), Dest.Radio),
+        Triple(Icons.Filled.Favorite, "Favourites", Dest.Favourites),
+    )
+    Column(
+        Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .padding(CastivioTheme.device.screenPadding),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+    ) {
+        SectionHeader(title = "Library")
+        entries.forEach { (icon, label, target) ->
+            SettingRow(icon = icon, label = label, onClick = { onOpenSection(target) })
+        }
+    }
+}
 
 // ------------------------------------------------------------------ settings
 
@@ -236,18 +358,10 @@ private fun navAction(
 private fun SettingsScreen(
     motionLevel: MotionLevel,
     onMotionLevel: (MotionLevel) -> Unit,
+    onShowStateBoard: () -> Unit,
+    onShowLicence: () -> Unit,
 ) {
     val colors = CastivioTheme.colors
-    var licence by remember { mutableStateOf(false) }
-
-    if (licence) {
-        // Reached from a working app, so leaving means returning to Settings. Reached
-        // from the gate it means leaving Castivio, and that difference is the caller's
-        // -- the screen itself has no opinion about where back goes.
-        LicenceWithLanguage(onLeave = { licence = false })
-        return
-    }
-
     Column(
         Modifier
             .fillMaxSize()
@@ -267,7 +381,7 @@ private fun SettingsScreen(
         )
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             MotionLevel.entries.forEach { level ->
-                MotionChip(
+                CategoryChipPlain(
                     label = level.name.lowercase().replaceFirstChar { it.uppercase() },
                     selected = level == motionLevel,
                     onClick = { onMotionLevel(level) },
@@ -278,20 +392,23 @@ private fun SettingsScreen(
         Text("Player", style = CastivioType.titleMedium, color = colors.onBackground)
         SettingRow(icon = Icons.Filled.PlayArrow, label = "Internal player", value = "Default")
 
-        // Castivio's licence, which is not the provider's subscription. The two are
-        // separate systems and this row says so by living under its own heading.
+        Text("Design", style = CastivioType.titleMedium, color = colors.onBackground)
+        SettingRow(
+            icon = Icons.Filled.VideoLibrary,
+            label = "Show the state language",
+            onClick = onShowStateBoard,
+        )
+        // Castivio's licence, which is not the provider's subscription. The two
+        // are separate systems and this row says so by living under its own
+        // heading rather than beside the playlist.
         Text("Licence", style = CastivioType.titleMedium, color = colors.onBackground)
         SettingRow(
             icon = Icons.Filled.Settings,
             label = stringResource(LicenceStrings.string.licence_title),
-            onClick = { licence = true },
+            onClick = onShowLicence,
         )
 
-        SettingRow(
-            icon = Icons.Filled.VideoLibrary,
-            label = "Device class",
-            value = CastivioTheme.device.name,
-        )
+        SettingRow(icon = Icons.Filled.Settings, label = "Device class", value = CastivioTheme.device.name)
         SettingRow(icon = Icons.Filled.Settings, label = "Version", value = "1.0.0")
     }
 }
@@ -329,7 +446,7 @@ private fun SettingRow(
 }
 
 @Composable
-private fun MotionChip(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun CategoryChipPlain(label: String, selected: Boolean, onClick: () -> Unit) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
     Text(
@@ -347,4 +464,62 @@ private fun MotionChip(label: String, selected: Boolean, onClick: () -> Unit) {
             .clickable(interaction, indication = null, onClick = onClick)
             .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
     )
+}
+
+// ------------------------------------------------------------------ overlays
+
+/**
+ * The four readings of an item's history, in one place.
+ *
+ * A design surface rather than a product one, reached from Settings, and it is the one
+ * screen in the shell that is allowed to draw cards with no data behind them: what it
+ * is showing *is* the state language.
+ */
+@Composable
+private fun StateBoardOverlay(onBack: () -> Unit) {
+    val colors = CastivioTheme.colors
+    BackHandler(onBack = onBack)
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(colors.background)
+            .statusBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(CastivioTheme.device.screenPadding),
+        verticalArrangement = Arrangement.spacedBy(Spacing.lg),
+    ) {
+        Text("State language", style = CastivioType.headlineSmall, color = colors.onBackground)
+        Text(
+            "Four readings of an item's history, one grammar, one place. Switch Motion to " +
+                "Disabled in Settings — all four still read.",
+            style = CastivioType.bodyMedium,
+            color = colors.onBackgroundVariant,
+        )
+        val samples = listOf(
+            "Not started" to WatchState.None,
+            "In progress" to WatchState.InProgress(0.58f),
+            "Recently watched" to WatchState.Watched,
+            "Playing now" to WatchState.Playing,
+        )
+        samples.forEach { (label, state) ->
+            MediaCard(
+                title = label,
+                shape = CardShape.Landscape,
+                width = 240.dp,
+                artworkSeed = 2,
+                watchState = state,
+                badge = when (state) {
+                    is WatchState.Playing -> {
+                        { NowPlayingBadge() }
+                    }
+                    is WatchState.Watched -> {
+                        { WatchedTag("Watched") }
+                    }
+                    else -> null
+                },
+                onClick = onBack,
+            )
+        }
+        IconLabel(Icons.Filled.LiveTv, "Aqua is now · violet is navigation · neutral is the past")
+    }
 }

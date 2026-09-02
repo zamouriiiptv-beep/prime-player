@@ -7,11 +7,8 @@ import com.castivio.data.networking.XtreamHttpApi
 import com.castivio.data.parsing.XtreamImportEngine
 import com.castivio.data.playlist.AndroidLocalPlaylistReader
 import com.castivio.data.playlist.DefaultCatalogImporter
-import com.castivio.data.playlist.XtreamCatalogSections
 import com.castivio.data.playlist.LocalPlaylistReader
 import com.castivio.domain.CatalogImporter
-import com.castivio.domain.CatalogSectionStore
-import com.castivio.domain.CatalogSections
 import com.castivio.domain.CatalogWriter
 import com.castivio.domain.PlaylistSource
 import com.castivio.domain.ProviderValidator
@@ -53,31 +50,6 @@ object PlaylistModule {
         localFiles = localFiles,
         xtreamApiFactory = { source -> source.toApi(client) },
     dispatchers = dispatchers,
-    )
-
-    /**
-     * On-demand loading: one section, when a section is asked for.
-     *
-     * The counterpart to `catalogImporter` rather than a replacement. That one reads a
-     * playlist, which has to be read whole; this one addresses a panel by category, and
-     * is what makes signing in cost one request instead of the catalogue.
-     */
-    @Provides
-    @Singleton
-    fun catalogSections(
-        sources: SourceRepository,
-        // A Provider for the same reason as above: each fetch gets its own writer, so
-        // two sections loading at once cannot interleave transactions.
-        writers: Provider<CatalogWriter>,
-        store: CatalogSectionStore,
-        client: OkHttpClient,
-        dispatchers: AppDispatchers,
-    ): CatalogSections = XtreamCatalogSections(
-        sources = sources,
-        writerFactory = { writers.get() },
-        groups = store,
-        apiFactory = { source -> source.toApi(client) },
-        dispatchers = dispatchers,
     )
 
     /**

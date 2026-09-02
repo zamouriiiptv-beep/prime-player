@@ -43,7 +43,6 @@ class RoomCatalogWriter(
     private var inTransaction = false
     private var itemStatement: SupportSQLiteStatement? = null
     private var groupStatement: SupportSQLiteStatement? = null
-    private var groupUpdate: SupportSQLiteStatement? = null
     private var ftsStatement: SupportSQLiteStatement? = null
 
     override fun begin(sourceId: String, mode: ImportMode) {
@@ -69,65 +68,25 @@ class RoomCatalogWriter(
         db.applyImportPragmas()
         itemStatement = db.compileStatement(INSERT_ITEM)
         groupStatement = db.compileStatement(INSERT_GROUP)
-        groupUpdate = db.compileStatement(UPDATE_GROUP)
         // Only APPEND maintains the index per row; REPLACE rebuilds it in two
         // statements at the end, which is far cheaper across 400,000 rows.
         ftsStatement = if (mode == ImportMode.APPEND) db.compileStatement(INSERT_FTS) else null
         db.begin()
     }
 
-    /**
-     * Insert then update, rather than `INSERT OR REPLACE`.
-     *
-     * Two columns here are not the caller's to overwrite: `item_count`, which is
-     * recomputed at the end of an import, and `items_loaded_at`, which records that a
-     * category's contents were fetched. A replace would reset both, and on the
-     * on-demand path that is not a detail — re-listing categories would forget every
-     * category the user had already opened, and each visit to a section would fetch it
-     * again. Groups number in the hundreds, so a second statement per row costs
-     * nothing worth measuring.
-     */
     override fun writeGroups(groups: List<MediaGroup>) {
         val source = requireStarted()
-        val insert = groupStatement ?: error("writeGroups before begin")
-        val update = groupUpdate ?: error("writeGroups before begin")
+        val statement = groupStatement ?: error("writeGroups before begin")
         for (group in groups) {
-            val order = (groupOrder++).toLong()
-            insert.clearBindings()
-            insert.bindString(1, group.id)
-            insert.bindString(2, source)
-            insert.bindString(3, group.name)
-            insert.bindString(4, group.kind.name)
-            insert.bindNullable(5, group.providerRef)
-            insert.bindLong(6, order)
-            insert.bindLong(7, generation)
-            insert.bindLong(8, now)
-            insert.executeInsert()
-
-            update.clearBindings()
-            update.bindString(1, group.name)
-            update.bindString(2, group.kind.name)
-            update.bindNullable(3, group.providerRef)
-            update.bindLong(4, order)
-            update.bindLong(5, generation)
-            update.bindLong(6, now)
-            update.bindString(7, group.id)
-            update.executeUpdateDelete()
+            statement.clearBindings()
+            statement.bindString(1, group.id)
+            statement.bindString(2, source)
+            statement.bindString(3, group.name)
+            statement.bindString(4, group.kind.name)
+            statement.bindLong(5, (groupOrder++).toLong())
+            statement.bindLong(6, generation)
+            statement.executeInsert()
         }
-    }
-
-    /**
-     * Records that a category's contents are on the device.
-     *
-     * Its own call rather than part of a write, because it is true at a different
-     * moment: the rows are committed batch by batch and this is the statement that says
-     * the category is complete.
-     */
-    fun markGroupLoaded(groupId: String, atMs: Long) {
-        database.openHelper.writableDatabase.execSQL(
-            "UPDATE media_group SET items_loaded_at = ? WHERE id = ?",
-            arrayOf<Any>(atMs, groupId),
-        )
     }
 
     override fun writeItems(items: List<CatalogItem>) {
@@ -255,11 +214,9 @@ class RoomCatalogWriter(
     private fun release() {
         runCatching { itemStatement?.close() }
         runCatching { groupStatement?.close() }
-        runCatching { groupUpdate?.close() }
         runCatching { ftsStatement?.close() }
         itemStatement = null
         groupStatement = null
-        groupUpdate = null
         ftsStatement = null
         sourceId = null
     }
@@ -348,24 +305,10 @@ class RoomCatalogWriter(
             INSERT OR REPLACE INTO media_fts (docid, media_id, search_text) VALUES (?, ?, ?)
         """
 
-        /**
-         * `OR IGNORE`, so a category that is already here keeps what only this app
-         * knows about it -- how many rows it holds, and whether they have been
-         * fetched. [UPDATE_GROUP] then refreshes what the provider owns.
-         */
         const val INSERT_GROUP = """
-            INSERT OR IGNORE INTO media_group (
-                id, source_id, name, kind, provider_ref, provider_order, item_count,
-                generation, listed_at, items_loaded_at
-            ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, NULL)
-        """
-
-        /** The provider's half of a category row: everything except what we counted. */
-        const val UPDATE_GROUP = """
-            UPDATE media_group
-               SET name = ?, kind = ?, provider_ref = ?, provider_order = ?,
-                   generation = ?, listed_at = ?
-             WHERE id = ?
+            INSERT OR REPLACE INTO media_group (
+                id, source_id, name, kind, provider_order, item_count, generation
+            ) VALUES (?, ?, ?, ?, ?, 0, ?)
         """
     }
 }

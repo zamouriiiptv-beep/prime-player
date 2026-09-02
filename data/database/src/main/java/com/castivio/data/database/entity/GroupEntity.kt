@@ -27,41 +27,6 @@ data class GroupEntity(
     @ColumnInfo(name = "kind")
     val kind: String,
 
-    /**
-     * The provider's own category id, which is how its contents are asked for later.
-     *
-     * The row id above is a hash of the category name and is not reversible, so this
-     * column is what makes it possible to list categories now and fetch one of them
-     * when the user opens it. Without it the only way to have a category's contents
-     * would be to have downloaded everything already.
-     *
-     * Null for M3U, where a group-title is all there is and there is no endpoint to
-     * address with it.
-     */
-    @ColumnInfo(name = "provider_ref")
-    val providerRef: String? = null,
-
-    /**
-     * When this category row itself was last written by a category listing.
-     *
-     * The pair with [itemsLoadedAt] is the whole of on-demand loading: this says the
-     * category is known to exist, that one says its contents are here. A section
-     * re-lists its categories when this goes stale, which is a cheap request; it
-     * re-fetches a category's rows only when that one does.
-     */
-    @ColumnInfo(name = "listed_at")
-    val listedAt: Long = 0,
-
-    /**
-     * When this category's rows were last fetched, or null if they never were.
-     *
-     * Separate from the category existing, because listing a category and loading it
-     * are separate requests: after `get_live_categories` there are hundreds of rows
-     * here and not one channel behind any of them.
-     */
-    @ColumnInfo(name = "items_loaded_at")
-    val itemsLoadedAt: Long? = null,
-
     @ColumnInfo(name = "provider_order")
     val providerOrder: Int,
 

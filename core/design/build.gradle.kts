@@ -17,12 +17,5 @@ dependencies {
     api(libs.compose.material.icons.extended)
     api(libs.androidx.core.ktx)
     implementation(libs.coroutines.android)
-
-    // Artwork, loaded lazily by the cards themselves.
-    //
-    // `api`, because a card takes a URL and the loading is the design system's
-    // business, not each feature's -- a feature that had to configure an image
-    // loader would be a feature that could configure it differently.
-    api(libs.coil.compose)
     testImplementation(libs.junit)
 }

@@ -27,17 +27,6 @@ data class ProviderSource(
     val isActive: Boolean = true,
 )
 
-/**
- * Whether this kind of provider can be read a section at a time.
- *
- * Stated on the kind rather than on [PlaylistSource] so that both the credentials the
- * user typed and the row this app stored answer it the same way — one rule, two
- * accessors, no chance of the sign-in and the start-up gate disagreeing about whether
- * a catalogue was expected.
- */
-val SourceKind.isOnDemand: Boolean
-    get() = this == SourceKind.XTREAM
-
 enum class SourceKind {
     /** A playlist URL, streamed and parsed in full. */
     M3U_URL,
@@ -151,23 +140,9 @@ object RefreshPolicy {
         return nowMs - last >= maxAgeMs
     }
 
-    /**
-     * True when the app has nothing to show and has to send the user back to set-up.
-     *
-     * The question is "is there anything here", and for a provider read a section at a
-     * time the answer is yes as soon as it is signed in to: the panel *is* the
-     * catalogue, and the first request happens when the user presses Channels. Counting
-     * its stored rows would send somebody who has just signed in successfully straight
-     * back to the sign-in screen, which is the one place this rule is consulted.
-     *
-     * A playlist is the opposite. Its rows arrive in one file at set-up, so none of
-     * them means the import did not happen, and there is no later moment that would
-     * fill them in.
-     */
-    fun needsFirstImport(source: ProviderSource): Boolean {
-        if (source.kind.isOnDemand) return false
-        return source.sync.lastImportAtMs == null || source.sync.itemCount == 0
-    }
+    /** True when the catalogue has never been imported and the app has nothing to show. */
+    fun needsFirstImport(source: ProviderSource): Boolean =
+        source.sync.lastImportAtMs == null || source.sync.itemCount == 0
 }
 
 /**

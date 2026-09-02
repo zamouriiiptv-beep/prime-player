@@ -1,13 +1,12 @@
 package com.castivio.feature.home
 
-import com.castivio.core.common.AppError
 import com.castivio.domain.Channel
 import com.castivio.domain.Episode
+import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaKind
 import com.castivio.domain.Movie
 import com.castivio.domain.Series
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -15,34 +14,47 @@ import org.junit.Test
 /**
  * The rules the browse screens are built on, proved without a device.
  *
- * All of them are the kind that only fail on somebody else's provider: an episode
- * nobody numbered, a show pressed where a film was expected, an error offered a retry
- * that cannot possibly work. None can be found by looking at a screen with a healthy
- * catalogue behind it, which is exactly why they are asserted here.
+ * All three of them are the kind that only fail on somebody else's provider: a category
+ * that disappeared overnight, an episode the provider did not number, a show pressed
+ * where a film was expected. None of them can be found by looking at a screen with a
+ * healthy catalogue behind it, which is exactly why they are asserted here.
  */
 class CatalogTest {
 
-    // -------------------------------------------------------- three, and only three
+    private val groups = listOf(
+        MediaGroup(id = "sports", name = "Sports", kind = MediaKind.LIVE),
+        MediaGroup(id = "news", name = "News", kind = MediaKind.LIVE),
+    )
 
-    /**
-     * Home is a choice between three things, and the flow depends on that being true.
-     *
-     * A fourth section would be a fourth thing to fetch and a fourth tile on a screen
-     * whose whole job is to be an unambiguous first press on a remote.
-     */
+    // ------------------------------------------------------- the surviving category
+
     @Test
-    fun `there are three sections and each reads its own kind`() {
-        assertEquals(3, CatalogSection.entries.size)
-        assertEquals(MediaKind.LIVE, CatalogSection.Channels.kind)
-        assertEquals(MediaKind.MOVIE, CatalogSection.Movies.kind)
-        assertEquals(MediaKind.SERIES, CatalogSection.Series.kind)
+    fun `a category that still exists stays selected`() {
+        assertEquals("sports", surviving("sports", groups))
     }
 
-    /** No two sections read the same table, so opening one cannot load another. */
+    /**
+     * The defect this rule exists for.
+     *
+     * Providers rename and drop categories between imports, and the selection is stored
+     * by id. Kept, a stale id leaves the pane with nothing highlighted and the content
+     * pane querying a group that is gone — an empty screen with no explanation and no
+     * way out except reinstalling.
+     */
     @Test
-    fun `no two sections read the same kind`() {
-        val kinds = CatalogSection.entries.map { it.kind }
-        assertEquals(kinds.size, kinds.toSet().size)
+    fun `a category that was dropped in a re-import falls back to all`() {
+        assertNull(surviving("sports", listOf(groups[1])))
+    }
+
+    @Test
+    fun `all is a selection and survives anything`() {
+        assertNull(surviving(null, groups))
+        assertNull(surviving(null, emptyList()))
+    }
+
+    @Test
+    fun `every category is stale when the import has not run`() {
+        assertNull(surviving("sports", emptyList()))
     }
 
     // ------------------------------------------------------------- episode numbering
@@ -89,16 +101,13 @@ class CatalogTest {
         assertEquals("http://example.invalid/live/u/p/128.ts", selection.url)
         assertEquals("Sky Documentaries", selection.title)
         assertTrue(selection.live)
-        assertFalse(selection.episode)
         assertEquals("128", selection.channelNumber)
         assertEquals("sky.docs", selection.epgChannelId)
         assertEquals(72, selection.catchUpHours)
     }
 
-    /**
-     * Catch-up is null rather than zero when the provider does not offer it, so no
-     * rewind control is drawn at all.
-     */
+    /** Catch-up is null rather than zero when the provider does not offer it, so no
+     *  rewind control is drawn at all. */
     @Test
     fun `a channel without catch-up says so with a null rather than a zero`() {
         val channel = Channel(
@@ -119,7 +128,7 @@ class CatalogTest {
     }
 
     @Test
-    fun `a film is neither live nor an episode`() {
+    fun `a film is not live and carries its year`() {
         val movie = Movie(
             id = "m1",
             title = "Pursuit",
@@ -131,17 +140,13 @@ class CatalogTest {
         val selection = movie.asSelection()
 
         requireNotNull(selection)
-        assertFalse(selection.live)
-        assertFalse("a film must not be opened as an episode", selection.episode)
+        assertEquals(false, selection.live)
         assertEquals("2022", selection.subtitle)
+        assertNull(selection.epgChannelId)
     }
 
-    /**
-     * An episode says it is one, which is what the engine reads to know what "next"
-     * means. A season that behaves like a single film is the bug this prevents.
-     */
     @Test
-    fun `an episode is marked as one and carries its numbering`() {
+    fun `an episode carries its numbering as its subtitle`() {
         val episode = Episode(
             id = "e1",
             title = "The Bells",
@@ -154,53 +159,21 @@ class CatalogTest {
         val selection = episode.asSelection()
 
         requireNotNull(selection)
-        assertTrue(selection.episode)
-        assertFalse(selection.live)
         assertEquals("S08E05", selection.subtitle)
+        assertEquals(false, selection.live)
     }
 
     /**
      * A show is not a stream, and this is where that stops being a convention.
      *
      * Null is the only answer that cannot be handed to the engine by accident. A
-     * `Series` has no `streamUrl` to give, so anything returning a request here would
-     * have had to invent one — which is exactly what "play the series" would be.
+     * `Series` has no `streamUrl` to give, so anything that returned a request here
+     * would have had to invent one.
      */
     @Test
     fun `a show is not playable`() {
         val show = Series(id = "s1", title = "Chernobyl", artworkUrl = null)
 
         assertNull(show.asSelection())
-    }
-
-    // --------------------------------------------------------------- what to offer
-
-    /**
-     * Retry is offered only where pressing it could plausibly work.
-     *
-     * Offering it on a refused subscription wastes the one move the user has and
-     * teaches them the button means nothing.
-     */
-    @Test
-    fun `only the transient failures offer a retry`() {
-        val offered = AppError.entries.filter { it.retryable }.toSet()
-
-        assertEquals(
-            setOf(
-                AppError.NETWORK_UNAVAILABLE,
-                AppError.TIMEOUT,
-                AppError.SERVER_ERROR,
-                AppError.UNKNOWN,
-            ),
-            offered,
-        )
-    }
-
-    @Test
-    fun `every error has an answer`() {
-        // Exhaustive by construction: a new AppError makes `retryable` fail to compile
-        // rather than silently defaulting. This asserts none was given a `when` branch
-        // that throws instead.
-        AppError.entries.forEach { it.retryable }
     }
 }

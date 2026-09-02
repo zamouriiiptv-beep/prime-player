@@ -144,8 +144,8 @@ class SourceAndMigrationTest {
     }
 
     @Test
-    fun `a playlist that has never imported always needs one`() {
-        val untouched = playlist("src")
+    fun `a source that has never imported always needs one`() {
+        val untouched = source("src")
         assertTrue(RefreshPolicy.needsFirstImport(untouched))
         assertTrue(RefreshPolicy.catalogueIsStale(untouched, now))
 
@@ -153,27 +153,6 @@ class SourceAndMigrationTest {
         // still a first import rather than a refresh that can wait.
         val empty = untouched.copy(sync = SyncState(lastImportAtMs = now, itemCount = 0))
         assertTrue(RefreshPolicy.needsFirstImport(empty))
-    }
-
-    /**
-     * A panel with no stored rows is not a panel that needs setting up again.
-     *
-     * This rule is consulted in exactly one place — the gate that decides whether the
-     * app opens on Home or on the sign-in screen — and a panel is read a section at a
-     * time, so having fetched nothing yet is the *normal* state right after signing in
-     * successfully. Counting its rows here would bounce the user straight back to the
-     * screen they had just completed.
-     */
-    @Test
-    fun `a panel with nothing fetched yet does not need setting up again`() {
-        val justSignedIn = source("src")
-
-        assertEquals(0, justSignedIn.sync.itemCount)
-        assertNull(justSignedIn.sync.lastImportAtMs)
-        assertFalse(
-            "signing in to a panel would have sent the user back to the sign-in screen",
-            RefreshPolicy.needsFirstImport(justSignedIn),
-        )
     }
 
     /**
@@ -256,15 +235,10 @@ class SourceAndMigrationTest {
         assertNull(stored.sync.lastImportAtMs)
         assertEquals(0, stored.sync.itemCount)
         assertEquals("secret", stored.password)
-        // Asked of a playlist, which is where the answer means anything: a panel is
-        // fetched a section at a time and never reports needing a first import.
-        assertTrue(RefreshPolicy.needsFirstImport(stored.copy(kind = SourceKind.M3U_URL)))
+        assertTrue(RefreshPolicy.needsFirstImport(stored))
     }
 
     // ------------------------------------------------------------------- fixtures
-
-    /** A playlist, whose rows arrive in one file and so can genuinely be missing. */
-    private fun playlist(id: String) = source(id).copy(kind = SourceKind.M3U_URL)
 
     private fun source(id: String, password: String = "secret") = ProviderSource(
         id = id,

@@ -1,72 +1,38 @@
 package com.castivio.feature.home
 
-import com.castivio.core.common.AppError
 import com.castivio.domain.Channel
 import com.castivio.domain.Episode
+import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaItem
 import com.castivio.domain.MediaKind
 import com.castivio.domain.Movie
 import com.castivio.domain.Series
 
 /**
- * The three things a provider carries, and the one place that says which kind each is.
+ * The browsable sections, and the one place that says which kind each one reads.
  *
- * Three and not more. Home is a choice between them and nothing else — no rows, no
- * counts, no artwork — because a screen that shows content has to have fetched content,
- * and the whole point of this flow is that signing in fetches nothing at all.
- *
- * Radio has no entry. Xtream carries stations inside live categories and the import
- * still files them under their own kind, so a station never appears in the channel
- * list; what it no longer has is a destination of its own, which was three presses deep
- * for content most providers do not carry.
+ * An enum rather than four screens because the three panes — categories, items, and
+ * what a press does — are the same shape in all of them. What differs is the kind
+ * queried and how an item is drawn, and both are decided from this one value.
  */
 enum class CatalogSection(val kind: MediaKind) {
-    Channels(MediaKind.LIVE),
+    Live(MediaKind.LIVE),
     Movies(MediaKind.MOVIE),
     Series(MediaKind.SERIES),
+    Radio(MediaKind.RADIO),
 }
 
 /**
- * How far a fetch has got, for one section or one category.
+ * A chosen category that survived a re-import, or none.
  *
- * Its own type rather than a boolean pair, because the four answers lead to four
- * different screens and a boolean pair can express states that do not exist. It is also
- * the reason a failure stays local: this is per screen, so a category that will not load
- * leaves every other part of the app exactly as usable as it was.
+ * Providers rename and drop categories between imports, and a selection is stored by
+ * id. Left alone, a stale id means a category pane with nothing highlighted and a
+ * content pane querying a group that no longer exists — an empty screen with no
+ * explanation. Falling back to "all" is the honest answer, and it is a rule rather
+ * than a coincidence, so it is written down and tested.
  */
-sealed interface SectionLoad {
-
-    /** Nothing asked yet. The screen has just been composed. */
-    data object Idle : SectionLoad
-
-    /** A request is out. Shown as skeletons only when there is nothing stored yet. */
-    data object Loading : SectionLoad
-
-    /**
-     * The fetch finished.
-     *
-     * @param wrote how many rows arrived, or null when nothing was fetched because the
-     *   section was already on the device. Null and zero are different screens: one has
-     *   rows to show, the other has to explain that the provider carries none.
-     */
-    data class Ready(val wrote: Int?) : SectionLoad
-
-    /** The fetch failed, with the reason kept so the screen can say which. */
-    data class Failed(val error: AppError) : SectionLoad
-}
-
-/**
- * Whether a fetch is worth offering again.
- *
- * The same rule the activation screen uses, for the same reason: offering "try again"
- * for a rejected subscription wastes the one move the user has, and teaches them the
- * button means nothing.
- */
-val AppError.retryable: Boolean
-    get() = when (this) {
-        AppError.NETWORK_UNAVAILABLE, AppError.TIMEOUT, AppError.SERVER_ERROR, AppError.UNKNOWN -> true
-        AppError.UNAUTHORIZED, AppError.NOT_FOUND, AppError.MALFORMED_PLAYLIST, AppError.NOT_CONFIGURED -> false
-    }
+internal fun surviving(selected: String?, groups: List<MediaGroup>): String? =
+    selected?.takeIf { id -> groups.any { it.id == id } }
 
 /**
  * A press on a catalogue row, reduced to what the player is allowed to be given.
@@ -100,7 +66,6 @@ fun MediaItem.asSelection(): CatalogSelection? = when (this) {
         url = streamUrl,
         title = title,
         live = false,
-        episode = true,
         subtitle = episodeLabel(seasonNumber, episodeNumber),
     )
 
@@ -120,8 +85,6 @@ data class CatalogSelection(
     val title: String,
     /** Decides the engine's buffering profile, and whether a timeline is drawn at all. */
     val live: Boolean,
-    /** An episode rather than a film, which the engine reads to know what "next" means. */
-    val episode: Boolean = false,
     val subtitle: String? = null,
     val channelNumber: String? = null,
     val epgChannelId: String? = null,
