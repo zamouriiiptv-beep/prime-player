@@ -127,6 +127,22 @@ class ActivateProviderTest {
         override suspend fun isUpToDate(source: PlaylistSource): Boolean = false
     }
 
+    /**
+     * An importer that fails the test if it is asked to do anything at all.
+     *
+     * The rule it guards is the whole flow: signing in to a panel fetches nothing, so
+     * anything that reaches this class on that path is a catalogue import creeping back
+     * in — through a refresh added "while we are here", a warm-up, a count. A fake that
+     * quietly returns nothing would let all of those pass; this one names them.
+     */
+    private class ForbiddenImporter : CatalogImporter {
+        override fun import(source: PlaylistSource): Flow<ImportProgress> =
+            throw AssertionError("the catalogue was imported at sign-in: import($source)")
+
+        override suspend fun isUpToDate(source: PlaylistSource): Boolean =
+            throw AssertionError("the catalogue was consulted at sign-in: isUpToDate($source)")
+    }
+
     /** An import that stops where it is told and never finishes on its own. */
     private class StallingImporter : CatalogImporter {
         val reachedMiddle = CompletableDeferred<Unit>()
@@ -195,6 +211,38 @@ class ActivateProviderTest {
         assertEquals("the catalogue was imported at sign-in", 0, importer.started)
         assertEquals("xtream-1", sources.activeId)
         assertEquals(1, sources.registrations)
+    }
+
+    /**
+     * Nothing on the sign-in path may touch the importer, by any route.
+     *
+     * Stronger than counting starts: the importer here throws, so a call that arrives
+     * through some path this test did not think of still fails, and fails naming
+     * itself. The two ways the defect would return — a direct import, and an
+     * "is it up to date" that pulls one in behind it — are both refused.
+     */
+    @Test
+    fun `signing in to a panel never reaches the importer at all`() = runTest {
+        val sources = Sources()
+
+        val phases = activateProvider(Validator(usable()), ForbiddenImporter(), sources)
+            .activate(xtream, nowMs = t0)
+            .toList()
+
+        assertTrue("${phases.last()}", phases.last() is ActivationPhase.Succeeded)
+        assertEquals("xtream-1", sources.activeId)
+    }
+
+    /** A refusal must not reach it either — there is nothing to import for a bad line. */
+    @Test
+    fun `a refused panel never reaches the importer either`() = runTest {
+        val phases = activateProvider(
+            Validator(Outcome.Failure(AppError.UNAUTHORIZED)),
+            ForbiddenImporter(),
+            Sources(),
+        ).activate(xtream, nowMs = t0).toList()
+
+        assertEquals(ActivationPhase.Failed(ActivationFailure.REJECTED), phases.last())
     }
 
     /**

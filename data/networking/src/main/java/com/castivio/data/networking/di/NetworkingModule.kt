@@ -1,6 +1,7 @@
 package com.castivio.data.networking.di
 
 import android.content.Context
+import com.castivio.core.common.AppDispatchers
 import com.castivio.core.platform.DeviceCapabilities
 import com.castivio.data.networking.HttpClientProvider
 import com.castivio.data.networking.HttpProviderValidator
@@ -51,7 +52,10 @@ object NetworkingModule {
     fun providerValidator(
         client: OkHttpClient,
         streams: HttpStreamSource,
-    ): ProviderValidator = HttpProviderValidator(client, streams, USER_AGENT)
+        // The validator blocks, and moves itself off the caller's thread to do it.
+        // Its caller is a view model collecting on the main thread; see the class.
+        dispatchers: AppDispatchers,
+    ): ProviderValidator = HttpProviderValidator(client, streams, USER_AGENT, dispatchers)
 
     /**
      * Providers do gate on the user agent, and some reject OkHttp's default
