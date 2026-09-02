@@ -134,6 +134,20 @@ class ActivationViewModelTest {
         password("hunter2")
     }
 
+    /**
+     * The form whose submit still runs an import.
+     *
+     * A panel is signed in to and nothing is fetched — that is the point of the flow,
+     * and it is asserted below. An M3U is one file with no index, so adding it *is*
+     * reading it, and the import lifecycle this view model exists to own — a job that
+     * belongs to the screen, fields frozen while it runs, cancel, retry — is only
+     * observable on that path. Hence these tests use a playlist.
+     */
+    private fun ActivationViewModel.fillPlaylist() {
+        usePlaylistUrl()
+        playlistUrl("http://line.example.com/playlist.m3u")
+    }
+
     // ---------------------------------------------------------------- the form
 
     @Test
@@ -195,11 +209,34 @@ class ActivationViewModelTest {
 
     // --------------------------------------------------------------- submitting
 
+    /**
+     * Signing in to a panel starts no import, and that is the whole change.
+     *
+     * The catalogue used to be fetched here: every category of every kind, before the
+     * user had said what they wanted to watch. Now submit checks the credentials and
+     * lands on Home, and `CatalogSections` fetches a section when one is opened.
+     */
     @Test
-    fun `submitting runs the sequence and ends in success`() = runTest {
+    fun `submitting panel details signs in without importing`() = runTest {
+        val importer = Importer(listOf(ImportProgress.Done(21_874, 9_000)))
+        val sources = Sources()
+        val model = viewModel(importer, sources = sources)
+        model.fillXtream()
+
+        model.submit()
+        advanceUntilIdle()
+
+        val phase = model.state.value.phase
+        assertTrue("$phase", phase is ActivationPhase.Succeeded)
+        assertEquals("the catalogue was imported at sign-in", 0, importer.starts)
+        assertEquals("src-1", sources.activeId)
+    }
+
+    @Test
+    fun `submitting a playlist runs the sequence and ends in success`() = runTest {
         val sources = Sources()
         val model = viewModel(sources = sources)
-        model.fillXtream()
+        model.fillPlaylist()
 
         model.submit()
         advanceUntilIdle()
@@ -230,7 +267,7 @@ class ActivationViewModelTest {
     fun `pressing submit twice starts one import`() = runTest {
         val importer = StallingImporter()
         val model = viewModel(importer)
-        model.fillXtream()
+        model.fillPlaylist()
 
         model.submit()
         importer.reachedMiddle.await()
@@ -246,13 +283,16 @@ class ActivationViewModelTest {
     fun `the fields are frozen while an import runs`() = runTest {
         val importer = StallingImporter()
         val model = viewModel(importer)
-        model.fillXtream()
+        model.fillPlaylist()
 
         model.submit()
         importer.reachedMiddle.await()
-        model.username("someone-else")
+        model.playlistUrl("http://somewhere-else.example.com/other.m3u")
 
-        assertEquals("bob", (model.state.value.form as ActivationForm.Xtream).username)
+        assertEquals(
+            "http://line.example.com/playlist.m3u",
+            (model.state.value.form as ActivationForm.Playlist).url,
+        )
         assertTrue(model.state.value.busy)
         model.cancel()
     }
@@ -270,7 +310,7 @@ class ActivationViewModelTest {
         val importer = StallingImporter()
         val sources = Sources()
         val model = viewModel(importer, sources = sources)
-        model.fillXtream()
+        model.fillPlaylist()
 
         model.submit()
         importer.reachedMiddle.await()
@@ -282,7 +322,10 @@ class ActivationViewModelTest {
         assertEquals(ActivationPhase.Editing, model.state.value.phase)
         assertNull(sources.activeId)
         // The text the user typed is still there for them to try again.
-        assertEquals("bob", (model.state.value.form as ActivationForm.Xtream).username)
+        assertEquals(
+            "http://line.example.com/playlist.m3u",
+            (model.state.value.form as ActivationForm.Playlist).url,
+        )
     }
 
     // ------------------------------------------------------------------ retrying
@@ -293,7 +336,7 @@ class ActivationViewModelTest {
             listOf(ImportProgress.Failed(AppError.NETWORK_UNAVAILABLE)),
         )
         val model = viewModel(importer)
-        model.fillXtream()
+        model.fillPlaylist()
 
         model.submit()
         advanceUntilIdle()

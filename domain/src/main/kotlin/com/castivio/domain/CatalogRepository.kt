@@ -107,7 +107,12 @@ sealed interface PlaylistSource {
  * fills it in afterwards, one screen at a time.
  */
 val PlaylistSource.isOnDemand: Boolean
-    get() = this is PlaylistSource.Xtream
+    get() = when (this) {
+        is PlaylistSource.Xtream -> SourceKind.XTREAM.isOnDemand
+        is PlaylistSource.M3u -> SourceKind.M3U_URL.isOnDemand
+        is PlaylistSource.LocalFile -> SourceKind.LOCAL_FILE.isOnDemand
+        is PlaylistSource.Portal -> SourceKind.PORTAL.isOnDemand
+    }
 
 /**
  * Fetching one part of a provider's catalogue, at the moment the user asks for it.
