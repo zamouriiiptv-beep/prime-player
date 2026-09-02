@@ -102,7 +102,9 @@ class XtreamImportEngine(
                         endpointKind
                     }
                     val groupId = StableIds.group(sourceId, kind, category.name)
-                    writer.writeGroups(listOf(MediaGroup(groupId, category.name, kind)))
+                    writer.writeGroups(
+                        listOf(MediaGroup(groupId, category.name, kind, providerRef = category.id)),
+                    )
                     groups++
 
                     when (kind) {
@@ -152,6 +154,124 @@ class XtreamImportEngine(
                 onProgress(ImportProgress.Done(imported, summary.durationMs))
             }
             return summary
+        } catch (t: Throwable) {
+            writer.abort(t)
+            throw t
+        }
+    }
+
+    /**
+     * Lists one kind's categories, and fetches nothing behind them.
+     *
+     * This is the first half of on-demand loading and the reason signing in is now
+     * instant: one request, a few hundred rows, and the section is drawable. The
+     * channels, films or shows inside those categories are not asked for — that is
+     * [importCategory], and it happens when a category is opened.
+     *
+     * `APPEND`, emphatically. A `REPLACE` here would prune every row that is not a
+     * category of this kind, which is the entire library.
+     *
+     * Live and radio come out of one request. Xtream has no radio endpoint: stations
+     * live in live categories and are told apart by the category's name, so asking for
+     * either kind lists both and each lands under the kind it belongs to. Splitting
+     * them here is what keeps a station out of the channel list without any live query
+     * having to remember to exclude it.
+     *
+     * @return the categories written, in the provider's order.
+     */
+    fun importCategories(sourceId: String, api: Api, kind: MediaKind): List<MediaGroup> {
+        val endpointKind = if (kind == MediaKind.RADIO) MediaKind.LIVE else kind
+        val categories = api.categories(endpointKind).use { reader ->
+            val list = ArrayList<XtreamCategory>(64)
+            XtreamParser.parseCategories(reader, endpointKind) { list.add(it) }
+            list
+        }
+
+        val groups = categories.map { category ->
+            val actual = if (endpointKind == MediaKind.LIVE && MediaClassifier.isRadioLabel(category.name)) {
+                MediaKind.RADIO
+            } else {
+                endpointKind
+            }
+            MediaGroup(
+                id = StableIds.group(sourceId, actual, category.name),
+                name = category.name,
+                kind = actual,
+                // Carried, because it is the only handle on this category's contents:
+                // the id above is a hash and cannot be turned back into a request.
+                providerRef = category.id,
+            )
+        }
+
+        writer.begin(sourceId, ImportMode.APPEND)
+        try {
+            writer.writeGroups(groups)
+            writer.commit()
+            writer.finish(
+                ImportSummary(
+                    sourceId = sourceId,
+                    items = 0,
+                    groups = groups.size,
+                    skipped = 0,
+                    byKind = emptyMap(),
+                    durationMs = 0,
+                ),
+            )
+        } catch (t: Throwable) {
+            writer.abort(t)
+            throw t
+        }
+        return groups.filter { it.kind == kind }
+    }
+
+    /**
+     * Fetches the rows of one category, and only that category.
+     *
+     * The second half of on-demand loading. Opening "UK · General" costs one request
+     * for that category; the other four hundred are not touched, and neither are films
+     * or series.
+     *
+     * @param group a category [importCategories] already stored, so its
+     *   [MediaGroup.providerRef] is the provider's own id. A group without one cannot be
+     *   fetched and is reported as zero rather than as a failure — that is an M3U
+     *   group, whose rows arrived with the playlist and are already here.
+     */
+    fun importCategory(sourceId: String, api: Api, group: MediaGroup): Int {
+        val categoryId = group.providerRef ?: return 0
+        val started = clock()
+        val batch = ArrayList<CatalogItem>(batchSize)
+        var order = 0
+        var written = 0
+
+        writer.begin(sourceId, ImportMode.APPEND)
+        try {
+            when (group.kind) {
+                MediaKind.SERIES -> api.series(categoryId).use { reader ->
+                    XtreamParser.parseSeries(reader) { series ->
+                        batch.add(seriesShell(sourceId, series, group.id, order++))
+                        if (batch.size >= batchSize) written += flush(batch)
+                    }
+                }
+
+                else -> api.streams(group.kind, categoryId).use { reader ->
+                    XtreamParser.parseStreams(reader) { stream ->
+                        batch.add(item(sourceId, api, group.kind, stream, group.id, order++))
+                        if (batch.size >= batchSize) written += flush(batch)
+                    }
+                }
+            }
+            written += flush(batch)
+            writer.finish(
+                ImportSummary(
+                    sourceId = sourceId,
+                    items = written,
+                    groups = 0,
+                    skipped = 0,
+                    byKind = mapOf(group.kind to written),
+                    durationMs = clock() - started,
+                ),
+            )
+            return written
         } catch (t: Throwable) {
             writer.abort(t)
             throw t

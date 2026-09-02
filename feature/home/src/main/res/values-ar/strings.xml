@@ -1,39 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="browse_live">البث المباشر</string>
+    <string name="browse_channels">القنوات</string>
     <string name="browse_movies">الأفلام</string>
     <string name="browse_series">المسلسلات</string>
-    <string name="browse_radio">الراديو</string>
-
-    <string name="browse_all_categories">الكل</string>
-
-    <string name="browse_episode_count">%1$d حلقة</string>
-
-    <string name="browse_your_provider">مزوّدك</string>
-
-    <string name="browse_empty_category_title">هذه الباقة فارغة</string>
-    <string name="browse_empty_category_detail">مزوّدك يعرض هذه الباقة لكنه لم يضع فيها شيئًا. اختر باقة أخرى، أو «الكل» لعرض كل المحتوى.</string>
-
-    <string name="browse_empty_section_title">%1$s لا يحتوي على %2$s</string>
-    <string name="browse_empty_section_detail">بقية الأقسام لم تتأثر. إن بدا هذا خطأً فحدّث القائمة — الاستيراد الجاري يملأ الأقسام واحدًا تلو الآخر.</string>
-    <string name="browse_empty_action">تحديث</string>
-
-    <string name="show_season">الموسم %1$d</string>
-    <string name="show_no_episodes_title">لا توجد حلقات بعد</string>
-    <string name="show_no_episodes_detail">مزوّدك يعرض هذا العمل لكنه لم يرسل حلقاته. تظهر عادةً بعد التحديث التالي.</string>
-    <string name="show_back">رجوع</string>
 
     <string name="home_brand">CASTIVIO</string>
-    <string name="home_empty_title">لم يُستورد أي محتوى بعد</string>
-    <string name="home_empty_detail">تم الوصول إلى مزوّدك لكنه لم يرسل قنوات ولا أفلامًا ولا مسلسلات. حدّث من أحد الأقسام، أو أضف مزوّدًا آخر.</string>
+    <string name="home_choose">ماذا تريد أن تشاهد؟</string>
+    <string name="home_channels_hint">بث مباشر، حسب الباقات</string>
+    <string name="home_movies_hint">أفلام، حسب التصنيفات</string>
+    <string name="home_series_hint">مسلسلات ومواسم وحلقات</string>
+
+    <string name="browse_categories_count">%1$d باقة</string>
+    <string name="browse_items_count">%1$d عنصر</string>
+    <string name="browse_shows_count">%1$d مسلسل</string>
+
+    <string name="browse_retry">أعد المحاولة</string>
+    <string name="browse_back">رجوع</string>
+
+    <string name="browse_no_categories_title">لا توجد باقات هنا</string>
+    <string name="browse_no_categories_detail">مزوّدك لا يعرض شيئًا في هذا القسم. بقية الأقسام لم تتأثر.</string>
+
+    <string name="browse_empty_category_title">هذه الباقة فارغة</string>
+    <string name="browse_empty_category_detail">مزوّدك يعرض هذه الباقة لكنه لم يضع فيها شيئًا. ارجع واختر باقة أخرى.</string>
+
+    <string name="show_season">الموسم %1$d</string>
+    <string name="show_seasons_count">%1$d موسم</string>
+    <string name="show_no_episodes_title">لا توجد حلقات بعد</string>
+    <string name="show_no_episodes_detail">مزوّدك يعرض هذا العمل لكنه لم يرسل حلقاته.</string>
+
+    <string name="fail_network_title">تعذّر الاتصال بمزوّدك</string>
+    <string name="fail_network_detail">لم يُمكن الوصول إلى العنوان إطلاقًا. تأكد أن الجهاز متصل بالإنترنت ثم أعد المحاولة.</string>
+    <string name="fail_timeout_title">مزوّدك لا يستجيب</string>
+    <string name="fail_timeout_detail">استغرق الردّ وقتًا طويلًا. غالبًا انشغال في السيرفر لا خلل عندك.</string>
+    <string name="fail_rejected_title">مزوّدك رفض الطلب</string>
+    <string name="fail_rejected_detail">تم رفض الاشتراك. راجعه مع مزوّدك — لا شيء في هذا الجهاز يغيّر ذلك.</string>
+    <string name="fail_not_found_title">لا شيء في هذا العنوان</string>
+    <string name="fail_not_found_detail">ردّ مزوّدك لكن لا يوجد لديه هذا القسم. تحقّق من عنوان السيرفر في الإعدادات.</string>
+    <string name="fail_unreadable_title">أرسل مزوّدك ردًّا غير مفهوم</string>
+    <string name="fail_unreadable_detail">الردّ ليس بصيغة يفهمها التطبيق. هذه مشكلة عندهم.</string>
+    <string name="fail_server_title">حدثت مشكلة عند مزوّدك</string>
+    <string name="fail_server_detail">سيرفره أبلغ عن خطأ من عنده. تزول عادةً من تلقاء نفسها.</string>
+    <string name="fail_no_provider_title">لا يوجد مزوّد بعد</string>
+    <string name="fail_no_provider_detail">أضف اشتراكًا قبل التصفّح.</string>
+    <string name="fail_unknown_title">لم تنجح العملية</string>
+    <string name="fail_unknown_detail">حدث خطأ أثناء جلب هذا القسم. بقية التطبيق لم تتأثر.</string>
 
     <string name="search_label">بحث</string>
     <string name="search_placeholder">قنوات، أفلام، مسلسلات</string>
-    <string name="search_prompt">تظهر النتائج أثناء الكتابة — بلا زرّ وبلا انتظار.</string>
+    <string name="search_prompt">يبحث فيما هو محمّل على هذا الجهاز — افتح باقة أولًا لإضافة محتواها.</string>
     <string name="search_results">النتائج</string>
     <string name="search_none_title">لا نتائج لـ «%1$s»</string>
-    <string name="search_none_detail">جرّب حروفًا أقل، أو جزءًا من الاسم بدل الاسم كاملًا.</string>
+    <string name="search_none_detail">البحث يشمل الأقسام التي فتحتها فقط. جرّب حروفًا أقل، أو افتح الباقة أولًا.</string>
     <string name="search_clear">مسح</string>
 
 </resources>

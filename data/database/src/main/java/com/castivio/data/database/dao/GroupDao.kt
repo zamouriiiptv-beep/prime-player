@@ -19,6 +19,15 @@ interface GroupDao {
     suspend fun byId(id: String): GroupEntity?
 
     /**
+     * Records that a category's rows have been fetched.
+     *
+     * One column, written after the rows are committed, so a fetch interrupted halfway
+     * leaves the category looking unloaded and is retried rather than half-trusted.
+     */
+    @Query("UPDATE media_group SET items_loaded_at = :atMs WHERE id = :id")
+    suspend fun markItemsLoaded(id: String, atMs: Long)
+
+    /**
      * Fills in the denormalised counts once, at the end of an import.
      *
      * One correlated update over a few hundred groups, instead of a

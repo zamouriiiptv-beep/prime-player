@@ -32,12 +32,33 @@ object CastivioMigrations {
     /**
      * Every migration, in order.
      *
-     * Version 1 is the first release, so this is empty. A schema change adds
-     * either a hand-written migration or [recreateCatalogue] here; if it adds
-     * neither, the app fails to open on upgrade during development rather than
-     * silently discarding user data in production.
+     * A schema change adds either a hand-written migration or [recreateCatalogue]
+     * here; if it adds neither, the app fails to open on upgrade during development
+     * rather than silently discarding user data in production.
      */
-    val ALL: Array<Migration> = emptyArray()
+    val ALL: Array<Migration> = arrayOf(ADD_GROUP_PROVIDER_REF)
+
+    /**
+     * 1 → 2: categories learn their provider id and the two times they were fetched.
+     *
+     * Three added columns and nothing dropped, so it is a hand-written migration rather
+     * than [recreateCatalogue] — there is no reason to make a user re-import a working
+     * catalogue to add a column that is allowed to be null.
+     *
+     * The sync state is cleared even so. A catalogue imported by the previous version
+     * has categories with no `provider_ref`, and on-demand loading cannot ask for a
+     * category it has no id for; forgetting the timestamps is what makes the next visit
+     * to a section re-list its categories and fill the column in.
+     */
+    private val ADD_GROUP_PROVIDER_REF: Migration
+        get() = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE media_group ADD COLUMN provider_ref TEXT")
+                db.execSQL("ALTER TABLE media_group ADD COLUMN items_loaded_at INTEGER")
+                db.execSQL("ALTER TABLE media_group ADD COLUMN listed_at INTEGER NOT NULL DEFAULT 0")
+                clearSyncState(db)
+            }
+        }
 
     /**
      * Replaces catalogue tables, leaving user data untouched.

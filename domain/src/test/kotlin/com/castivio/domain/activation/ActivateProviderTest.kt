@@ -166,29 +166,80 @@ class ActivateProviderTest {
 
     // ------------------------------------------------------------- the happy path
 
+    /**
+     * Signing in to a panel is signing in, and nothing else happens.
+     *
+     * This used to import the catalogue here — every category of every kind, tens of
+     * thousands of rows, before the user had said whether they came for football or
+     * for films. Two phases now: checked, then in. What the user watches decides what
+     * is fetched, and `CatalogSections` fetches it a section at a time.
+     */
     @Test
-    fun `xtream details become a catalogue`() = runTest {
+    fun `signing in to a panel imports nothing`() = runTest {
         val sources = Sources()
+        val importer = importOf(ImportProgress.Done(21_874, 9_000))
+
         val phases = activateProvider(
             Validator(usable(expiresAtMs = t0 + 300 * day)),
-            importOf(
-                ImportProgress.Importing(500, 1, MediaKind.LIVE),
-                ImportProgress.Importing(12_000, 4, MediaKind.MOVIE),
-                ImportProgress.Done(21_874, 9_000),
-            ),
+            importer,
             sources,
         ).activate(xtream, label = "Home", nowMs = t0).toList()
 
         assertEquals(
             listOf(
                 ActivationPhase.Checking,
-                ActivationPhase.Importing(500, 1),
-                ActivationPhase.Importing(12_000, 4),
-                ActivationPhase.Succeeded("xtream-1", 21_874, (usable(t0 + 300 * day)).value),
+                ActivationPhase.Succeeded("xtream-1", 0, (usable(t0 + 300 * day)).value),
             ),
             phases,
         )
+        assertEquals("the catalogue was imported at sign-in", 0, importer.started)
         assertEquals("xtream-1", sources.activeId)
+        assertEquals(1, sources.registrations)
+    }
+
+    /**
+     * And it is still the *checked* sign-in it always was.
+     *
+     * Skipping the import must not become skipping the validation: wrong password,
+     * expired subscription and unreachable host still have to be three answers, and
+     * they still have to arrive before anything is registered.
+     */
+    @Test
+    fun `signing in still asks the provider first`() = runTest {
+        val sources = Sources()
+        val validator = Validator(usable())
+
+        activateProvider(validator, importOf(), sources).activate(xtream, nowMs = t0).toList()
+
+        assertEquals(1, validator.calls)
+    }
+
+    /**
+     * A playlist is imported at sign-in, because there is no later moment that is
+     * cheaper.
+     *
+     * An M3U is one file with no index — the only way to learn what is in it is to
+     * read it — so the choice is not between now and later, it is between now and
+     * never. This is the path the phases below still cover.
+     */
+    @Test
+    fun `a playlist is still imported when it is added`() = runTest {
+        val sources = Sources()
+        val importer = importOf(
+            ImportProgress.Importing(500, 1, MediaKind.LIVE),
+            ImportProgress.Done(21_874, 9_000),
+        )
+
+        val phases = activateProvider(Validator(usable()), importer, sources)
+            .activate(m3u, label = "Home", nowMs = t0)
+            .toList()
+
+        assertEquals(1, importer.started)
+        assertEquals(ActivationPhase.Importing(500, 1), phases[1])
+        assertEquals(
+            ActivationPhase.Succeeded("m3u-1", 21_874, usable().value),
+            phases.last(),
+        )
     }
 
     @Test
@@ -220,7 +271,7 @@ class ActivateProviderTest {
         val expires = t0 + 45 * day
         val phases = activateProvider(
             Validator(usable(expiresAtMs = expires, activeConnections = 1, maxConnections = 3)),
-            importOf(ImportProgress.Done(900, 1_000)),
+            importOf(),
             Sources(),
         ).activate(xtream, nowMs = t0).toList()
 
@@ -244,7 +295,7 @@ class ActivateProviderTest {
                 ImportProgress.Done(13_500, 8_000),
             ),
             Sources(),
-        ).activate(xtream, nowMs = t0).toList()
+        ).activate(m3u, nowMs = t0).toList()
 
         val counts = phases.filterIsInstance<ActivationPhase.Importing>().map { it.itemsFound }
         assertEquals(listOf(12_000, 12_000, 13_500), counts)

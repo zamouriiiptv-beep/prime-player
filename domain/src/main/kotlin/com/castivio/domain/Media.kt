@@ -55,8 +55,36 @@ data class Episode(
     val episodeNumber: Int,
 ) : MediaItem
 
-/** A group as the provider defined it (a "category" in Xtream, a group-title in M3U). */
-data class MediaGroup(val id: String, val name: String, val kind: MediaKind)
+/**
+ * A group as the provider defined it (a "category" in Xtream, a group-title in M3U).
+ *
+ * [providerRef] is what makes on-demand loading possible at all. The row id is a hash
+ * of the category's name and is deliberately not reversible, so without the provider's
+ * own `category_id` there is no way to ask for this category's contents later — the
+ * app would be back to downloading everything up front to avoid needing it.
+ *
+ * [itemsLoadedAtMs] is when this category's rows were last fetched, or null when they
+ * never were. A category is listed long before it is opened, so "the category exists"
+ * and "its contents are on the device" are different facts and are stored as such.
+ */
+data class MediaGroup(
+    val id: String,
+    val name: String,
+    val kind: MediaKind,
+    /** The provider's own category id. Null for M3U, which has no such identifier. */
+    val providerRef: String? = null,
+    /** When this category was last listed. Written by the store, not by a caller. */
+    val listedAtMs: Long = 0,
+    val itemsLoadedAtMs: Long? = null,
+    /**
+     * How many rows this category holds, from the denormalised column.
+     *
+     * Meaningful only once [itemsLoadedAtMs] is set: before a category is opened
+     * nothing behind it has been fetched, and zero then means "not yet asked" rather
+     * than "the provider carries none".
+     */
+    val itemCount: Int = 0,
+)
 
 /**
  * What a row is, decided at import time.

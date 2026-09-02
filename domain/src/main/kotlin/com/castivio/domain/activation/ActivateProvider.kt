@@ -6,6 +6,7 @@ import com.castivio.domain.ImportProgress
 import com.castivio.domain.PlaylistSource
 import com.castivio.domain.ProviderStatus
 import com.castivio.domain.SourceRepository
+import com.castivio.domain.isOnDemand
 import com.castivio.domain.provider.ProviderHealth
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
@@ -63,7 +64,43 @@ class ActivateProvider(
             return@flow
         }
 
+        // Signing in is signing in, and for a provider that can be read a section at a
+        // time that is the whole of it.
+        //
+        // This used to import the catalogue here: every category of every kind, tens of
+        // thousands of rows, before the user had said what they wanted to watch. It is
+        // the wrong moment for that work twice over. It is minutes on a weak box for
+        // data most of which is never opened, and it is spent before the app has any
+        // idea whether this person came for football or for films. `CatalogSections`
+        // fetches a section when a section is asked for, which costs one request and
+        // arrives while the screen is still drawing.
+        //
+        // Nothing is skipped for a playlist, because nothing *can* be: an M3U is one
+        // file with no index, so reading it is the only way to learn what is in it, and
+        // no later moment makes that cheaper. See `PlaylistSource.isOnDemand`.
+        if (source.isOnDemand) {
+            signIn(source, label, status)
+            return@flow
+        }
+
         importCatalogue(source, label, status)
+    }
+
+    /**
+     * Registers the provider, makes it the active one, and stops.
+     *
+     * `itemCount = 0` is honest rather than unfortunate: nothing has been fetched, and a
+     * screen that reported a number here would be reporting one it invented. What the
+     * user gets instead is Home, immediately.
+     */
+    private suspend fun kotlinx.coroutines.flow.FlowCollector<ActivationPhase>.signIn(
+        source: PlaylistSource,
+        label: String?,
+        status: ProviderStatus,
+    ) {
+        val registered = sources.register(source, label)
+        sources.setActive(registered.id)
+        emit(ActivationPhase.Succeeded(registered.id, registered.sync.itemCount, status))
     }
 
     private suspend fun kotlinx.coroutines.flow.FlowCollector<ActivationPhase>.importCatalogue(

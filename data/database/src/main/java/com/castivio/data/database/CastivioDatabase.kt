@@ -28,7 +28,9 @@ import com.castivio.data.database.entity.SourceEntity
         ProgrammeEntity::class,
         SourceEntity::class,
     ],
-    version = 1,
+    // 2 adds `media_group.provider_ref` and `media_group.items_loaded_at`, which are
+    // what let a category be listed now and fetched when it is opened.
+    version = 2,
     exportSchema = true,
 )
 abstract class CastivioDatabase : RoomDatabase() {

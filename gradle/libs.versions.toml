@@ -20,6 +20,7 @@ datastore = "1.1.1"
 # Room 2.6.x is the last line that supports compileSdk 34; 2.7 requires 35.
 room = "2.6.1"
 paging = "3.3.2"
+coil = "2.7.0"
 zxing = "3.5.3"
 junit = "4.13.2"
 robolectric = "4.13"
@@ -68,6 +69,11 @@ room-testing = { module = "androidx.room:room-testing", version.ref = "room" }
 paging-runtime = { module = "androidx.paging:paging-runtime", version.ref = "paging" }
 paging-common = { module = "androidx.paging:paging-common", version.ref = "paging" }
 paging-compose = { module = "androidx.paging:paging-compose", version.ref = "paging" }
+
+# Lazy artwork: a channel logo or a poster is fetched when its card is on screen,
+# decoded to the size it is drawn at, and cached on disk. Nothing prefetches a
+# library of them.
+coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
 
 junit = { module = "junit:junit", version.ref = "junit" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }

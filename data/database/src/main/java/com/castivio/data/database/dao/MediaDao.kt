@@ -227,6 +227,36 @@ interface MediaDao {
     )
     fun episodesOf(seriesId: String): Flow<List<MediaEntity>>
 
+    /**
+     * Whether a show's episodes are already stored.
+     *
+     * `EXISTS` rather than a count: the question is whether a request is needed, and
+     * stopping at the first row answers it without scanning a long-running series.
+     */
+    @Query(
+        """
+        SELECT EXISTS(
+            SELECT 1 FROM media WHERE series_id = :seriesId AND episode_number IS NOT NULL
+        )
+        """,
+    )
+    suspend fun hasEpisodes(seriesId: String): Boolean
+
+    /**
+     * The show itself, as opposed to its episodes.
+     *
+     * A catalogue listing writes one shell row per show — no episode number, and the
+     * provider's series id in `provider_ref`. That id is what `get_series_info` is
+     * addressed by, so this is the row an episode fetch starts from.
+     */
+    @Query(
+        """
+        SELECT * FROM media WHERE series_id = :seriesId AND episode_number IS NULL
+        ORDER BY provider_order LIMIT 1
+        """,
+    )
+    suspend fun showShell(seriesId: String): MediaEntity?
+
     // --------------------------------------------------------------- maintenance
 
     /**
