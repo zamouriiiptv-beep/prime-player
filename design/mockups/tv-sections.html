@@ -1,543 +1,936 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="utf-8">
-<title>Castivio — Live, Movies, Series on Android TV</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Castivio — Live, Movies, Series</title>
 <style>
 /* ============================================================================
-   Castivio — the three browse screens, drawn for a remote.
+   Castivio — the three browse screens, running.
 
-       ?frame=live      categories -> channels -> what is on
-       ?frame=movies    categories -> a grid of titles
-       ?frame=series    categories -> a grid of series, seasons on the card
-
-   960x540dp = a 1080p television at 2x.
+   Not a picture of the screens: the screens. Arrow keys and Enter move a real
+   focus, a category press really loads its channels, the rail really switches
+   section, and everything is drawn from the data at the bottom of this file.
 
    ---------------------------------------------------------------------------
-   What this is arguing
+   One design, three form factors
 
-   An IPTV player is not a film platform with channels bolted on. The thing that
-   is opened twenty times a day is Live TV, and the shape of Live TV is a
-   provider's bundles: forty categories, twelve thousand channels, and a number
-   printed on each one. So Live is drawn first and the other two are drawn to
-   match it, rather than the other way round.
+   1920x1080 is the reference and the priority — at that size every measurement
+   below is exactly the approved mockup. But this build is for Android as a
+   whole, so the same markup has to hold on a phone in a hand, and the shape of
+   that is already decided in UI_ARCHITECTURE.md §3.4 rather than invented here:
 
-   That is why there is no hero here. A hero is a shop window — it exists to sell
-   one thing to someone who has not decided. Someone opening a television player
-   has decided: they want the news, or the match, or the channel they were on
-   last night. A screen that spends its top third on one recommendation makes all
-   three of those slower.
+       television   rail + categories + channels + what is on   (three panes)
+       tablet       rail + categories + channels                 (two panes)
+       phone        bottom bar + a row of category chips + one pane
 
-   ---------------------------------------------------------------------------
-   Density: the middle, deliberately
-
-   Two failure modes bracket this screen. Posters the size of a hand say almost
-   nothing per screenful and turn 12,480 channels into a scroll with no end. Rows
-   at eleven pixels fit everything and can be read by nobody at three metres.
-
-   The measure taken here: 40dp rows, ten to a pane, and one number, one name and
-   one programme on each. Ten is the number a person can look down without
-   scanning, and 40dp clears the D-pad minimum with room for a focus ring that
-   does not touch its neighbours.
+   The third pane is the first to go because it is the only one that is a
+   readout rather than a control — every fact in it is also on the channel row.
+   On the phone the rail becomes a bottom bar, which is invariant 4's "one rail,
+   one bottom bar" and not a second navigation pattern.
 
    ---------------------------------------------------------------------------
-   The rail is fixed and it is named
+   How the sizes work
 
-   Icons alone are a quiz. This rail keeps its labels at all times and does not
-   expand, collapse or animate — it is the one part of the screen that is in the
-   same place in every frame, which is what makes the remote's LEFT key mean one
-   thing everywhere.
+   Everything is authored in dp, exactly as the mockup was, by making 1rem equal
+   one dp: `html { font-size: calc(var(--s) * 1px) }`. So `46rem` below is 46dp,
+   and at a 1920-wide television --s is 2 and it lands on 92 physical pixels.
+   One number, one meaning, and no second set of values to keep in step.
 
    ---------------------------------------------------------------------------
-   Identity kept, contrast raised
+   Posters take real images
 
-   The violet and the blue are unchanged. What changed is the ground beneath
-   them: near-black instead of a violet field, so that the accent is the only lit
-   thing on the screen and reads as a position rather than as decoration. Body
-   text moved to #F4F4FA, secondary to #B8B8CE — both above 7:1 on this ground,
-   which a television at three metres in a lit room needs and 4.5:1 does not give.
+   `.art` is an image container with a neutral placeholder behind it. No
+   gradients stand in for artwork: give an item a `poster` URL in the data and
+   it appears, and until then the placeholder is honestly a placeholder rather
+   than a coloured rectangle pretending to be a film.
    ========================================================================= */
+
 :root{
+  --s:2;                              /* px per dp. Set by fit() at runtime. */
+
   /* ground — near-black, violet-biased. Not a coloured field. */
   --ground:#0A0918; --surface:#14122A; --raised:#1C1940; --line:#262246;
-  /* identity, unchanged */
-  --violet:#9B6BFF; --violet-dim:#6E4BD8; --violet-wash:rgba(155,107,255,.16);
+  /* identity, unchanged from :core:design */
+  --violet:#9B6BFF; --violet-wash:rgba(155,107,255,.16);
   --blue:#4C9BFF; --blue-wash:rgba(76,155,255,.14);
   /* status */
-  --live:#FF3B5C; --amber:#FFB020; --aqua:#2FBF9F;
-  /* text */
+  --live:#FF3B5C; --amber:#FFB020;
+  /* text — 7:1 and better on this ground */
   --ink:#F4F4FA; --ink-2:#B8B8CE; --ink-3:#7A7A98; --ink-4:#4A4A66;
-  --r-sm:8px; --r-md:12px; --r-lg:16px; --r-pill:999px;
+
+  --r-sm:8rem; --r-md:12rem; --r-lg:16rem; --r-pill:999px;
 }
+
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{background:#000}
-body{font-family:"Liberation Sans","DejaVu Sans",sans-serif;color:var(--ink);
-  -webkit-font-smoothing:antialiased;text-rendering:geometricPrecision}
+html{font-size:calc(var(--s) * 1px)}
+body{
+  background:var(--ground);color:var(--ink);
+  font-family:"Liberation Sans","DejaVu Sans",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;height:100vh;height:100dvh;
+}
 .num{font-variant-numeric:tabular-nums}
-
-.frame{display:none;position:relative;width:960px;height:540px;overflow:hidden;
-  background:var(--ground)}
-html[data-frame="live"]   #live,
-html[data-frame="movies"] #movies,
-html[data-frame="series"] #series{display:block}
-
-/* ================================================================ the rail */
-/* Fixed width, always labelled, never animated. 176dp is what the longest
-   label needs in the widest of the 37 languages plus its icon and its inset. */
-.rail{position:absolute;left:0;top:0;bottom:0;width:176px;background:var(--surface);
-  border-right:1px solid var(--line);padding:26px 14px;display:flex;flex-direction:column;gap:3px}
-.brand{display:flex;align-items:center;gap:8px;padding:0 8px;margin-bottom:22px}
-.brand b{font-size:15px;font-weight:700;letter-spacing:.13em;color:var(--violet)}
-.nav{display:flex;align-items:center;gap:11px;height:40px;padding:0 10px;
-  border-radius:var(--r-sm);color:var(--ink-3);font-size:13.5px;position:relative}
-.nav svg{width:19px;height:19px;flex:0 0 auto;fill:currentColor}
-.nav.sel{background:var(--violet-wash);color:var(--ink);font-weight:600}
-.nav.sel::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;
-  border-radius:var(--r-pill);background:var(--violet)}
-.rail .gap{flex:1}
-.rail .foot{font-size:10.5px;color:var(--ink-4);padding:0 10px}
-
-/* =============================================================== the stage */
-.stage{position:absolute;left:176px;right:0;top:0;bottom:0;padding:26px 28px 24px 24px;
-  display:flex;flex-direction:column}
-.head{display:flex;align-items:baseline;gap:11px;margin-bottom:16px}
-.head h1{font-size:22px;font-weight:700;letter-spacing:-.01em}
-.head .count{font-size:12.5px;color:var(--ink-3)}
-.head .right{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:12px;
-  color:var(--ink-2)}
-.pill{display:flex;align-items:center;gap:6px;padding:4px 11px;border-radius:var(--r-pill);
-  background:var(--raised);border:1px solid var(--line);font-size:11.5px}
-.dot{width:6px;height:6px;border-radius:50%;background:var(--live)}
+button{font:inherit;color:inherit;background:none;border:0;text-align:start;cursor:pointer}
+::-webkit-scrollbar{width:0;height:0}
+*{scrollbar-width:none}
 
 /* ------------------------------------------------------------------ focus */
-/* A ring, a fill and a lift. Three signals, so it survives a colour-blind
-   viewer, a washed-out panel and a photograph of the screen. */
-.focus{outline:2px solid var(--violet);outline-offset:-1px;
-  background:var(--violet-wash)!important;
-  box-shadow:0 0 0 4px rgba(155,107,255,.14), 0 10px 26px rgba(0,0,0,.6)}
+/* A ring, a fill and a lift — three signals, so the focus survives a
+   colour-blind viewer, a washed-out panel and a photograph of the screen.
+   `outline` rather than `border`, so nothing reflows when focus arrives. */
+.f{outline:2rem solid var(--violet);outline-offset:-1rem;
+  background:var(--violet-wash);
+  box-shadow:0 0 0 4rem rgba(155,107,255,.14), 0 10rem 26rem rgba(0,0,0,.6)}
+@media (prefers-reduced-motion:no-preference){
+  .nav,.cat,.chan,.card,.chip{transition:background-color 120ms ease-out}
+}
+
+/* =============================================================== the shell */
+.app{display:flex;height:100vh;height:100dvh;overflow:hidden}
+
+/* ------------------------------------------------------------------- rail */
+/* Fixed width, always labelled, never animated. It is the one part of the
+   screen in the same place in every section, which is what lets the remote's
+   LEFT key mean one thing everywhere. */
+.rail{
+  width:176rem;flex:0 0 auto;background:var(--surface);
+  border-inline-end:1px solid var(--line);
+  padding:26rem 14rem;display:flex;flex-direction:column;gap:3rem;
+}
+.brand{display:flex;align-items:center;gap:8rem;padding:0 8rem;margin-bottom:22rem}
+.brand svg{width:20rem;height:20rem;flex:0 0 auto}
+.brand b{font-size:15rem;font-weight:700;letter-spacing:.13em;color:var(--violet)}
+.nav{
+  display:flex;align-items:center;gap:11rem;width:100%;
+  height:40rem;padding:0 10rem;border-radius:var(--r-sm);
+  color:var(--ink-3);font-size:13.5rem;position:relative;
+}
+.nav svg{width:19rem;height:19rem;flex:0 0 auto;fill:currentColor}
+.nav[aria-current="page"]{background:var(--violet-wash);color:var(--ink);font-weight:600}
+.nav[aria-current="page"]::before{
+  content:"";position:absolute;inset-inline-start:0;top:9rem;bottom:9rem;width:3rem;
+  border-radius:var(--r-pill);background:var(--violet);
+}
+.rail .spacer{flex:1}
+.rail .foot{font-size:10.5rem;color:var(--ink-4);padding:0 10rem}
+
+/* ------------------------------------------------------------------ stage */
+.stage{flex:1;min-width:0;display:flex;flex-direction:column;
+  padding:26rem 28rem 24rem 24rem}
+.head{display:flex;align-items:baseline;gap:11rem;margin-bottom:16rem}
+.head h1{font-size:22rem;font-weight:700;letter-spacing:-.01em}
+.head .count{font-size:12.5rem;color:var(--ink-3)}
+.head .right{margin-inline-start:auto;display:flex;align-items:center;gap:10rem;
+  font-size:12rem;color:var(--ink-2)}
+.pill{display:flex;align-items:center;gap:6rem;padding:4rem 11rem;
+  border-radius:var(--r-pill);background:var(--raised);border:1px solid var(--line);
+  font-size:11.5rem}
+.dot{width:6rem;height:6rem;border-radius:50%;background:var(--live);flex:0 0 auto}
 
 /* ------------------------------------------------------------------ panes */
-.panes{display:flex;gap:14px;flex:1;min-height:0}
-.pane-title{font-size:10px;letter-spacing:.12em;text-transform:uppercase;
-  color:var(--ink-4);margin-bottom:8px;padding:0 2px}
+.panes{display:flex;gap:14rem;flex:1;min-height:0}
+.pane{display:flex;flex-direction:column;min-height:0}
+.pane-title{font-size:10rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-4);margin-bottom:8rem;padding:0 2rem;flex:0 0 auto}
+.scroll{overflow-y:auto;flex:1;min-height:0;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){.scroll{scroll-behavior:auto}}
 
-/* categories: identical in all three frames */
-.cats{width:196px;flex:0 0 auto;display:flex;flex-direction:column}
-.cat{display:flex;align-items:center;height:40px;padding:0 11px;border-radius:var(--r-sm);
-  font-size:13px;color:var(--ink-2)}
-.cat .n{margin-left:auto;font-size:11.5px;color:var(--ink-4)}
-.cat.sel{background:var(--raised);color:var(--ink);font-weight:600}
-.cat.sel .n{color:var(--ink-2)}
-.cat.more{color:var(--ink-4);font-size:12px}
+/* categories — the same pane in all three sections */
+.cats{width:196rem;flex:0 0 auto}
+.cat{display:flex;align-items:center;width:100%;height:40rem;padding:0 11rem;
+  border-radius:var(--r-sm);font-size:13rem;color:var(--ink-2)}
+.cat .n{margin-inline-start:auto;font-size:11.5rem;color:var(--ink-4)}
+.cat[aria-selected="true"]{background:var(--raised);color:var(--ink);font-weight:600}
+.cat[aria-selected="true"] .n{color:var(--ink-2)}
 
-/* ============================================================ frame: live */
-.chans{flex:1;min-width:0;display:flex;flex-direction:column}
+/* chips — the phone's categories, the same list turned on its side */
+.chips{display:none;gap:8rem;overflow-x:auto;padding-bottom:12rem;flex:0 0 auto}
+.chip{flex:0 0 auto;display:flex;align-items:center;gap:7rem;height:36rem;
+  padding:0 14rem;border-radius:var(--r-pill);background:var(--surface);
+  border:1px solid var(--line);color:var(--ink-2);font-size:13rem;white-space:nowrap}
+.chip .n{font-size:11rem;color:var(--ink-4)}
+.chip[aria-selected="true"]{background:var(--raised);color:var(--ink);font-weight:600;
+  border-color:var(--violet)}
+
+/* ----------------------------------------------------------- live: channels */
 /* Two lines, not one. A channel name and what is on it will not both fit on a
-   line this wide, and the one that gets truncated is the one that answers the
-   question -- the row said "Sky Documentaries  The ..." and the ellipsis ate the
-   programme. Stacked, both are whole, and 46dp still clears the D-pad minimum. */
-.chan{display:flex;align-items:center;gap:12px;height:46px;padding:0 12px;
-  border-radius:var(--r-sm);color:var(--ink-2)}
-.chan .no{font-size:11.5px;font-weight:700;color:var(--blue);background:var(--blue-wash);
-  padding:3px 7px;border-radius:var(--r-sm);min-width:50px;text-align:center;flex:0 0 auto}
+   line this wide, and the half that gets truncated is the half that answers the
+   question. Stacked, both are whole, and 46dp still clears the D-pad minimum. */
+.chans{flex:1;min-width:0}
+.chan{display:flex;align-items:center;gap:12rem;width:100%;height:46rem;
+  padding:0 12rem;border-radius:var(--r-sm);color:var(--ink-2)}
+.chan .no{font-size:11.5rem;font-weight:700;color:var(--blue);
+  background:var(--blue-wash);padding:3rem 7rem;border-radius:var(--r-sm);
+  min-width:50rem;text-align:center;flex:0 0 auto}
 .chan .body{flex:1;min-width:0}
-.chan .line{display:flex;align-items:center;gap:7px}
-.chan .nm{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.chan .pg{font-size:11px;color:var(--ink-4);overflow:hidden;white-space:nowrap;
-  text-overflow:ellipsis;margin-top:2px}
-.chan .q{font-size:9px;font-weight:700;letter-spacing:.03em;color:var(--ink-3);
-  border:1px solid var(--line);padding:1px 4px;border-radius:4px;flex:0 0 auto}
-.chan.cur{background:var(--raised);color:var(--ink)}
-.chan.cur .pg{color:var(--ink-2)}
+.chan .line{display:flex;align-items:center;gap:7rem}
+.chan .nm{font-size:13.5rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chan .pg{font-size:11rem;color:var(--ink-4);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;margin-top:2rem}
+.chan .q{font-size:9rem;font-weight:700;color:var(--ink-3);border:1px solid var(--line);
+  padding:1rem 4rem;border-radius:4rem;flex:0 0 auto}
+.chan[data-playing="true"]{background:var(--raised);color:var(--ink)}
+.chan[data-playing="true"] .pg{color:var(--ink-2)}
 
-.onnow{width:222px;flex:0 0 auto;display:flex;flex-direction:column}
-.still{height:125px;border-radius:var(--r-md);position:relative;overflow:hidden;
-  background:linear-gradient(155deg,#2A3A4E 0%,#3E4A38 52%,#5A4632 100%)}
-.still .tag{position:absolute;left:9px;top:9px;display:flex;align-items:center;gap:5px;
-  background:rgba(6,6,14,.76);padding:3px 9px;border-radius:var(--r-pill);font-size:10px;
-  letter-spacing:.04em;font-weight:600}
-.still .res{position:absolute;right:9px;bottom:9px;font-size:10px;color:var(--ink-2);
-  background:rgba(6,6,14,.76);padding:2px 7px;border-radius:var(--r-sm)}
-.prog{margin-top:13px}
-.prog .t{font-size:14px;font-weight:700;line-height:1.25}
-.prog .bar{display:flex;align-items:center;gap:8px;margin:8px 0 7px;font-size:10.5px;
-  color:var(--ink-3)}
-.track{flex:1;height:3px;border-radius:2px;background:var(--line);overflow:hidden}
+/* ----------------------------------------------------------- live: on now */
+.onnow{width:222rem;flex:0 0 auto}
+.still{height:125rem;border-radius:var(--r-md);position:relative;overflow:hidden;
+  background:var(--raised);flex:0 0 auto}
+.still .tag{position:absolute;inset-inline-start:9rem;top:9rem;display:flex;
+  align-items:center;gap:5rem;background:rgba(6,6,14,.76);padding:3rem 9rem;
+  border-radius:var(--r-pill);font-size:10rem;font-weight:600;letter-spacing:.04em}
+.still .res{position:absolute;inset-inline-end:9rem;bottom:9rem;font-size:10rem;
+  color:var(--ink-2);background:rgba(6,6,14,.76);padding:2rem 7rem;border-radius:var(--r-sm)}
+.prog{margin-top:13rem}
+.prog .t{font-size:14rem;font-weight:700;line-height:1.25}
+.prog .bar{display:flex;align-items:center;gap:8rem;margin:8rem 0 7rem;
+  font-size:10.5rem;color:var(--ink-3)}
+.track{flex:1;height:3rem;border-radius:2rem;background:var(--line);overflow:hidden}
 .track i{display:block;height:100%;background:var(--violet)}
-.prog .d{font-size:11.5px;color:var(--ink-3);line-height:1.45;
-  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.next{margin-top:13px;padding-top:11px;border-top:1px solid var(--line)}
-.next .lbl{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-4)}
-.next .t{font-size:12.5px;color:var(--ink-2);margin-top:4px}
+.prog .d{font-size:11.5rem;color:var(--ink-3);line-height:1.45}
+.next{margin-top:13rem;padding-top:11rem;border-top:1px solid var(--line)}
+.next .lbl{font-size:9.5rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-4)}
+.next .t{font-size:12.5rem;color:var(--ink-2);margin-top:4rem}
 
-/* =================================================== frames: movies, series */
-/* One card, two uses. The series card adds a season count and nothing else —
-   a second card that was nearly the same is the thing invariant 6 forbids. */
-/* `align-items:start` and an explicit row height, both deliberately. A grid item
-   stretches to its row by default, and a stretched card let the aspect-ratio art
-   swallow the space the title was standing in -- the labels rendered at zero
-   height and the grid looked like a wall of colour with no names on it. The row
-   is stated rather than derived so every row is the same height whether its
-   titles wrap to one line or two. */
-.grid{flex:1;min-width:0;display:grid;grid-template-columns:repeat(5,1fr);
-  gap:13px;align-content:start;align-items:start;grid-auto-rows:195px}
-.card{border-radius:var(--r-md);overflow:hidden}
-.art{aspect-ratio:2/3;border-radius:var(--r-md);position:relative;overflow:hidden}
-.art .badge{position:absolute;left:6px;top:6px;font-size:9px;font-weight:700;
-  background:rgba(6,6,14,.78);color:var(--ink-2);padding:2px 6px;border-radius:5px}
-.art .seasons{position:absolute;right:6px;bottom:6px;font-size:9.5px;font-weight:700;
-  background:rgba(6,6,14,.8);color:var(--ink);padding:2px 7px;border-radius:var(--r-pill)}
-.art .resume{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(0,0,0,.5)}
+/* --------------------------------------------------- movies & series: grid */
+/* `align-items:start` and a stated row height, both deliberately. A grid item
+   stretches to its row by default, and a stretched card let the poster swallow
+   the space the title stands in. The row is stated rather than derived so every
+   row is the same height whether a title wraps to one line or two. */
+.gridwrap{flex:1;min-width:0}
+.grid{display:grid;grid-template-columns:repeat(var(--cols,5),1fr);gap:13rem;
+  align-content:start;align-items:start;grid-auto-rows:195rem}
+.card{width:100%;border-radius:var(--r-md)}
+.art{aspect-ratio:2/3;border-radius:var(--r-md);position:relative;overflow:hidden;
+  background:var(--raised);display:grid;place-items:center}
+.art img{width:100%;height:100%;object-fit:cover;display:block;
+  grid-area:1/1;position:relative;z-index:1}
+/* The placeholder. Sits under the image, so a real poster simply covers it. */
+.art .ph{grid-area:1/1;width:34%;height:34%;opacity:.13;fill:var(--ink)}
+.art .badge{position:absolute;inset-inline-start:6rem;top:6rem;font-size:9rem;
+  font-weight:700;background:rgba(6,6,14,.78);color:var(--ink-2);padding:2rem 6rem;
+  border-radius:5rem;z-index:2}
+.art .seasons{position:absolute;inset-inline-end:6rem;bottom:6rem;font-size:9.5rem;
+  font-weight:700;background:rgba(6,6,14,.8);color:var(--ink);padding:2rem 7rem;
+  border-radius:var(--r-pill);z-index:2}
+.art .resume{position:absolute;inset-inline:0;bottom:0;height:3rem;
+  background:rgba(0,0,0,.5);z-index:2}
 .art .resume i{display:block;height:100%;background:var(--amber)}
-/* Two lines and a fixed box. A title that truncates is a title a viewer cannot
-   read from the sofa, and a box that grows with the title breaks the grid's
-   baseline -- so the space for the second line is always reserved. */
-.card .nm{font-size:12px;color:var(--ink-2);margin-top:7px;line-height:1.32;
-  height:32px;overflow:hidden}
-.card .meta{font-size:10.5px;color:var(--ink-4);margin-top:2px}
-.card.on .nm{color:var(--ink);font-weight:600}
-.card .shot{width:100%;height:100%}
+.card .nm{font-size:12rem;color:var(--ink-2);margin-top:7rem;line-height:1.32;
+  height:32rem;overflow:hidden}
+.card .meta{font-size:10.5rem;color:var(--ink-4)}
+.card[data-on="true"] .nm{color:var(--ink);font-weight:600}
+
+/* ------------------------------------------------------------ empty state */
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:8rem;color:var(--ink-3);text-align:center;padding:24rem}
+.empty b{font-size:15rem;color:var(--ink-2);font-weight:600}
+.empty span{font-size:12rem;max-width:280rem;line-height:1.5}
+
+/* ========================================================== tablet: two panes */
+/* The third pane goes first because it is the only one that is a readout: every
+   fact in it is already on the channel row. */
+body[data-mode="tablet"] .onnow{display:none}
+
+/* ============================================== phone: one pane, bottom bar */
+body[data-mode="phone"] .app{flex-direction:column}
+body[data-mode="phone"] .rail{
+  width:100%;flex:0 0 auto;order:2;flex-direction:row;gap:0;
+  border-inline-end:0;border-top:1px solid var(--line);
+  padding:6rem 4rem calc(6rem + env(safe-area-inset-bottom));
+}
+body[data-mode="phone"] .brand,
+body[data-mode="phone"] .rail .spacer,
+body[data-mode="phone"] .rail .foot,
+body[data-mode="phone"] .cats,
+body[data-mode="phone"] .onnow{display:none}
+body[data-mode="phone"] .nav{
+  flex:1;flex-direction:column;gap:3rem;height:auto;padding:6rem 2rem;
+  font-size:9.5rem;justify-content:center;
+}
+body[data-mode="phone"] .nav svg{width:20rem;height:20rem}
+body[data-mode="phone"] .nav[aria-current="page"]::before{display:none}
+/* Five destinations fit a phone's bottom bar; the rest live behind the fifth.
+   Six was tried and the labels started truncating in German. */
+body[data-mode="phone"] .nav[data-overflow="true"]{display:none}
+body[data-mode="phone"] .stage{order:1;padding:calc(14rem + env(safe-area-inset-top)) 14rem 8rem}
+body[data-mode="phone"] .head{margin-bottom:12rem}
+body[data-mode="phone"] .head h1{font-size:19rem}
+body[data-mode="phone"] .head .count{display:none}
+body[data-mode="phone"] .chips{display:flex}
+body[data-mode="phone"] .panes{flex-direction:column;gap:0}
+body[data-mode="phone"] .pane-title{display:none}
+body[data-mode="phone"] .chan{height:52rem}
+body[data-mode="phone"] .chan .nm{font-size:14rem}
+body[data-mode="phone"] .chan .pg{font-size:11.5rem}
+body[data-mode="phone"] .grid{--cols:3;gap:11rem;grid-auto-rows:184rem}
 </style>
 </head>
 <body>
 
-<!-- =============================================================== LIVE -->
-<section class="frame" id="live">
-  <nav class="rail">
-    <div class="brand">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="#9B6BFF"><path d="M12 2 3 7v10l9 5 9-5V7z" opacity=".35"/><path d="M12 6.5 7 9.3v5.4l5 2.8 5-2.8V9.3z"/></svg>
-      <b>CASTIVIO</b>
-    </div>
-    <div class="nav"><svg viewBox="0 0 24 24"><path d="M12 3 3 10v11h6v-6h6v6h6V10z"/></svg>Home</div>
-    <div class="nav sel"><svg viewBox="0 0 24 24"><path d="M21 6H10.4l3.3-3.3-1-1L8.6 6h-.2L4.3 1.7l-1 1L6.6 6H3a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2m0 13H3V8h18z"/></svg>Live TV</div>
-    <div class="nav"><svg viewBox="0 0 24 24"><path d="M18 4v1h-2V4a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v1H6V4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2v-1h2v1a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-1h2v1a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2M8 17H6v-2h2zm0-4H6v-2h2zm0-4H6V7h2zm10 8h-2v-2h2zm0-4h-2v-2h2zm0-4h-2V7h2z"/></svg>Movies</div>
-    <div class="nav"><svg viewBox="0 0 24 24"><path d="M4 6H2v14a2 2 0 0 0 2 2h14v-2H4zm16-4H8a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2m-9 12V6l7 4z"/></svg>Series</div>
-    <div class="nav"><svg viewBox="0 0 24 24"><path d="M20 6H10.7l4.9-2-.7-1.9L8.5 4.7 6 5.7V5a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v1.3A2 2 0 0 0 2 8v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2M7 18a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7m13-7h-2V9h2zm0 4h-2v-2h2z"/></svg>Radio</div>
-    <div class="nav"><svg viewBox="0 0 24 24"><path d="m12 21-1.5-1.3C5.4 15.1 2 12.1 2 8.5 2 5.4 4.4 3 7.5 3c1.7 0 3.4.8 4.5 2.1C13.1 3.8 14.8 3 16.5 3 19.6 3 22 5.4 22 8.5c0 3.6-3.4 6.6-8.5 11.2z"/></svg>Favourites</div>
-    <div class="nav"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 5 1.5-1.5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9"/></svg>Search</div>
-    <div class="gap"></div>
-    <div class="nav"><svg viewBox="0 0 24 24"><path d="M19.1 12.9a7 7 0 0 0 0-1.8l2-1.6a.5.5 0 0 0 .1-.6l-1.9-3.2a.5.5 0 0 0-.6-.2l-2.4 1a7 7 0 0 0-1.6-.9l-.3-2.5a.5.5 0 0 0-.5-.4h-3.8a.5.5 0 0 0-.5.4l-.3 2.5a7 7 0 0 0-1.6.9l-2.4-1a.5.5 0 0 0-.6.2L2.8 8.9a.5.5 0 0 0 .1.6l2 1.6a7 7 0 0 0 0 1.8l-2 1.6a.5.5 0 0 0-.1.6l1.9 3.2a.5.5 0 0 0 .6.2l2.4-1a7 7 0 0 0 1.6.9l.3 2.5a.5.5 0 0 0 .5.4h3.8a.5.5 0 0 0 .5-.4l.3-2.5a7 7 0 0 0 1.6-.9l2.4 1a.5.5 0 0 0 .6-.2l1.9-3.2a.5.5 0 0 0-.1-.6zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7"/></svg>Settings</div>
-    <div class="foot">Nova IPTV · 338 days</div>
-  </nav>
+<div class="app">
+  <nav class="rail" id="rail" aria-label="Sections"></nav>
 
-  <div class="stage">
-    <div class="head">
-      <h1>Live TV</h1>
-      <span class="count num">12,480 channels · 41 categories</span>
+  <main class="stage">
+    <header class="head">
+      <h1 id="title"></h1>
+      <span class="count num" id="count"></span>
       <div class="right">
-        <span class="pill"><i class="dot"></i>On air</span>
-        <span class="num">20:14</span>
+        <span class="pill" id="mode"></span>
+        <span class="num" id="clock"></span>
       </div>
-    </div>
+    </header>
+
+    <div class="chips" id="chips" role="tablist" aria-label="Categories"></div>
 
     <div class="panes">
-      <div class="cats">
+      <section class="pane cats" aria-label="Categories">
         <div class="pane-title">Categories</div>
-        <div class="cat"><span>UK General</span><span class="n num">161</span></div>
-        <div class="cat"><span>UK Entertainment</span><span class="n num">81</span></div>
-        <div class="cat"><span>UK Sports</span><span class="n num">54</span></div>
-        <div class="cat"><span>UK News</span><span class="n num">39</span></div>
-        <div class="cat sel"><span>UK Documentary</span><span class="n num">35</span></div>
-        <div class="cat"><span>UK Kids</span><span class="n num">31</span></div>
-        <div class="cat"><span>Arabic General</span><span class="n num">212</span></div>
-        <div class="cat"><span>BE Telesat</span><span class="n num">38</span></div>
-        <div class="cat more">+ 33 more</div>
-      </div>
+        <div class="scroll" id="cats" role="listbox"></div>
+      </section>
 
-      <div class="chans">
-        <div class="pane-title">UK Documentary · 35 channels</div>
-        <div class="chan"><span class="no num">28124</span><span class="body"><span class="line"><span class="nm">Animal Planet</span><span class="q">FHD</span></span><div class="pg">Wild Frank &middot; until 20:30</div></span></div>
-        <div class="chan"><span class="no num">28125</span><span class="body"><span class="line"><span class="nm">Animal Planet +1</span></span><div class="pg">Wild Frank &middot; until 21:30</div></span></div>
-        <div class="chan"><span class="no num">28126</span><span class="body"><span class="line"><span class="nm">Sky Documentaries</span><span class="q">FHD</span></span><div class="pg">The Rise and Fall of Boris &middot; until 20:30</div></span></div>
-        <div class="chan"><span class="no num">28127</span><span class="body"><span class="line"><span class="nm">Sky Documentaries</span><span class="q">HD</span></span><div class="pg">The Rise and Fall of Boris &middot; until 20:30</div></span></div>
-        <div class="chan cur focus"><span class="no num">28128</span><span class="body"><span class="line"><span class="nm">Sky Documentaries</span><span class="q">SD</span></span><div class="pg">The Body Next Door &middot; 20:00 – 21:00</div></span></div>
-        <div class="chan"><span class="no num">28129</span><span class="body"><span class="line"><span class="nm">Discovery</span><span class="q">FHD</span></span><div class="pg">Gold Rush &middot; until 21:00</div></span></div>
-        <div class="chan"><span class="no num">28130</span><span class="body"><span class="line"><span class="nm">Discovery</span><span class="q">HD</span></span><div class="pg">Gold Rush &middot; until 21:00</div></span></div>
-        <div class="chan"><span class="no num">28131</span><span class="body"><span class="line"><span class="nm">Discovery</span><span class="q">SD</span></span><div class="pg">How It's Made &middot; until 20:30</div></span></div>
-        <div class="chan"><span class="no num">28133</span><span class="body"><span class="line"><span class="nm">Discovery Turbo</span></span><div class="pg">Wheeler Dealers &middot; until 21:00</div></span></div>
-      </div>
+      <section class="pane chans" id="contentPane" aria-live="polite">
+        <div class="pane-title" id="contentTitle"></div>
+        <div class="scroll" id="content"></div>
+      </section>
 
-      <div class="onnow">
+      <aside class="pane onnow" id="onnowPane" aria-label="On now">
         <div class="pane-title">On now</div>
-        <div class="still">
-          <div class="tag"><i class="dot"></i>LIVE</div>
-          <div class="res num">1024 × 576</div>
-        </div>
-        <div class="prog">
-          <div class="t">The Body Next Door</div>
-          <div class="bar">
-            <span class="num">20:00</span>
-            <span class="track"><i style="width:23%"></i></span>
-            <span class="num">21:00</span>
-          </div>
-          <div class="d">While forensic officers search for evidence, the investigation
-            uncovers a complicated history between the two households.</div>
-        </div>
-        <div class="next">
-          <div class="lbl">Next · 21:00</div>
-          <div class="t">The Body Next Door</div>
-        </div>
-      </div>
+        <div id="onnow"></div>
+      </aside>
     </div>
-  </div>
-</section>
-
-<!-- ============================================================= MOVIES -->
-<section class="frame" id="movies">
-  <nav class="rail">
-    <div class="brand">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="#9B6BFF"><path d="M12 2 3 7v10l9 5 9-5V7z" opacity=".35"/><path d="M12 6.5 7 9.3v5.4l5 2.8 5-2.8V9.3z"/></svg>
-      <b>CASTIVIO</b>
-    </div>
-    <div class="nav"><svg viewBox="0 0 24 24"><path d="M12 3 3 10v11h6v-6h6v6h6V10z"/></svg>Home</div>
-    <div class="nav"><svg viewBox="0 0 24 24"><path d="M21 6H10.4l3.3-3.3-1-1L8.6 6h-.2L4.3 1.7l-1 1L6.6 6H3a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2m0 13H3V8h18z"/></svg>Live TV</div>
-    <div class="nav sel"><svg viewBox="0 0 24 24"><path d="M18 4v1h-2V4a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v1H6V4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2v-1h2v1a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-1h2v1a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2M8 17H6v-2h2zm0-4H6v-2h2zm0-4H6V7h2zm10 8h-2v-2h2zm0-4h-2v-2h2zm0-4h-2V7h2z"/></svg>Movies</div>
-    <div class="nav"><svg viewBox="0 0 24 24"><path d="M4 6H2v14a2 2 0 0 0 2 2h14v-2H4zm16-4H8a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2m-9 12V6l7 4z"/></svg>Series</div>
-    <div class="nav"><svg viewBox="0 0 24 24"><path d="M20 6H10.7l4.9-2-.7-1.9L8.5 4.7 6 5.7V5a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v1.3A2 2 0 0 0 2 8v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2M7 18a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7m13-7h-2V9h2zm0 4h-2v-2h2z"/></svg>Radio</div>
-    <div class="nav"><svg viewBox="0 0 24 24"><path d="m12 21-1.5-1.3C5.4 15.1 2 12.1 2 8.5 2 5.4 4.4 3 7.5 3c1.7 0 3.4.8 4.5 2.1C13.1 3.8 14.8 3 16.5 3 19.6 3 22 5.4 22 8.5c0 3.6-3.4 6.6-8.5 11.2z"/></svg>Favourites</div>
-    <div class="nav"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 5 1.5-1.5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9"/></svg>Search</div>
-    <div class="gap"></div>
-    <div class="nav"><svg viewBox="0 0 24 24"><path d="M19.1 12.9a7 7 0 0 0 0-1.8l2-1.6a.5.5 0 0 0 .1-.6l-1.9-3.2a.5.5 0 0 0-.6-.2l-2.4 1a7 7 0 0 0-1.6-.9l-.3-2.5a.5.5 0 0 0-.5-.4h-3.8a.5.5 0 0 0-.5.4l-.3 2.5a7 7 0 0 0-1.6.9l-2.4-1a.5.5 0 0 0-.6.2L2.8 8.9a.5.5 0 0 0 .1.6l2 1.6a7 7 0 0 0 0 1.8l-2 1.6a.5.5 0 0 0-.1.6l1.9 3.2a.5.5 0 0 0 .6.2l2.4-1a7 7 0 0 0 1.6.9l.3 2.5a.5.5 0 0 0 .5.4h3.8a.5.5 0 0 0 .5-.4l.3-2.5a7 7 0 0 0 1.6-.9l2.4 1a.5.5 0 0 0 .6-.2l1.9-3.2a.5.5 0 0 0-.1-.6zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7"/></svg>Settings</div>
-    <div class="foot">Nova IPTV · 338 days</div>
-  </nav>
-
-  <div class="stage">
-    <div class="head">
-      <h1>Movies</h1>
-      <span class="count num">24,318 titles · 28 categories</span>
-      <div class="right">
-        <span class="pill">A–Z</span>
-        <span class="num">20:14</span>
-      </div>
-    </div>
-
-    <div class="panes">
-      <div class="cats">
-        <div class="pane-title">Categories</div>
-        <div class="cat sel"><span>Action</span><span class="n num">4,182</span></div>
-        <div class="cat"><span>Arabic</span><span class="n num">2,940</span></div>
-        <div class="cat"><span>Comedy</span><span class="n num">3,106</span></div>
-        <div class="cat"><span>Documentary</span><span class="n num">918</span></div>
-        <div class="cat"><span>Drama</span><span class="n num">5,477</span></div>
-        <div class="cat"><span>Family</span><span class="n num">1,264</span></div>
-        <div class="cat"><span>Horror</span><span class="n num">1,803</span></div>
-        <div class="cat"><span>Sci-Fi</span><span class="n num">1,392</span></div>
-        <div class="cat more">+ 20 more</div>
-      </div>
-
-      <div class="grid">
-        <div class="card on focus" style="padding:0;outline-offset:3px">
-          <div class="art" style="background:linear-gradient(160deg,#3A2350,#7A3B52)"></div>
-          <div class="nm">Blade Runner 2049</div><div class="meta num">2017 · 2 h 44</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#1F3550,#2E5B6B)"></div>
-          <div class="nm">Arrival</div><div class="meta num">2016 · 1 h 56</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#4A2E1C,#8A5A2A)">
-            <span class="badge">WATCHED</span>
-          </div>
-          <div class="nm">Dune</div><div class="meta num">2021 · 2 h 35</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#4A1F2C,#8C3446)">
-            <span class="resume"><i style="width:62%"></i></span>
-          </div>
-          <div class="nm">Heat</div><div class="meta num">1995 · 2 h 50</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#1B2C4A,#2F5C8A)"></div>
-          <div class="nm">Interstellar</div><div class="meta num">2014 · 2 h 49</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#25412C,#4A6B3A)"></div>
-          <div class="nm">No Country for Old Men</div><div class="meta num">2007 · 2 h 02</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#33244E,#5E3F7A)"></div>
-          <div class="nm">Oppenheimer</div><div class="meta num">2023 · 3 h 00</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#1E3242,#39606E)"></div>
-          <div class="nm">Sicario</div><div class="meta num">2015 · 2 h 01</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#2A2246,#4C3A72)"></div>
-          <div class="nm">Tenet</div><div class="meta num">2020 · 2 h 30</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#4A2A22,#7E4632)"></div>
-          <div class="nm">The Prestige</div><div class="meta num">2006 · 2 h 10</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#1D2C3E,#39566E)"></div>
-          <div class="nm">Tinker Tailor Soldier Spy</div><div class="meta num">2011 · 2 h 07</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#3E2038,#6B3A5E)"></div>
-          <div class="nm">Zodiac</div><div class="meta num">2007 · 2 h 37</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#243B2E,#456B4E)"></div>
-          <div class="nm">Children of Men</div><div class="meta num">2006 · 1 h 49</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#42322A,#725648)"></div>
-          <div class="nm">There Will Be Blood</div><div class="meta num">2007 · 2 h 38</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#282442,#4A4276)"></div>
-          <div class="nm">Prisoners</div><div class="meta num">2013 · 2 h 33</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============================================================= SERIES -->
-<section class="frame" id="series">
-  <nav class="rail">
-    <div class="brand">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="#9B6BFF"><path d="M12 2 3 7v10l9 5 9-5V7z" opacity=".35"/><path d="M12 6.5 7 9.3v5.4l5 2.8 5-2.8V9.3z"/></svg>
-      <b>CASTIVIO</b>
-    </div>
-    <div class="nav"><svg viewBox="0 0 24 24"><path d="M12 3 3 10v11h6v-6h6v6h6V10z"/></svg>Home</div>
-    <div class="nav"><svg viewBox="0 0 24 24"><path d="M21 6H10.4l3.3-3.3-1-1L8.6 6h-.2L4.3 1.7l-1 1L6.6 6H3a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2m0 13H3V8h18z"/></svg>Live TV</div>
-    <div class="nav"><svg viewBox="0 0 24 24"><path d="M18 4v1h-2V4a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v1H6V4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2v-1h2v1a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-1h2v1a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2M8 17H6v-2h2zm0-4H6v-2h2zm0-4H6V7h2zm10 8h-2v-2h2zm0-4h-2v-2h2zm0-4h-2V7h2z"/></svg>Movies</div>
-    <div class="nav sel"><svg viewBox="0 0 24 24"><path d="M4 6H2v14a2 2 0 0 0 2 2h14v-2H4zm16-4H8a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2m-9 12V6l7 4z"/></svg>Series</div>
-    <div class="nav"><svg viewBox="0 0 24 24"><path d="M20 6H10.7l4.9-2-.7-1.9L8.5 4.7 6 5.7V5a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v1.3A2 2 0 0 0 2 8v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2M7 18a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7m13-7h-2V9h2zm0 4h-2v-2h2z"/></svg>Radio</div>
-    <div class="nav"><svg viewBox="0 0 24 24"><path d="m12 21-1.5-1.3C5.4 15.1 2 12.1 2 8.5 2 5.4 4.4 3 7.5 3c1.7 0 3.4.8 4.5 2.1C13.1 3.8 14.8 3 16.5 3 19.6 3 22 5.4 22 8.5c0 3.6-3.4 6.6-8.5 11.2z"/></svg>Favourites</div>
-    <div class="nav"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 5 1.5-1.5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9"/></svg>Search</div>
-    <div class="gap"></div>
-    <div class="nav"><svg viewBox="0 0 24 24"><path d="M19.1 12.9a7 7 0 0 0 0-1.8l2-1.6a.5.5 0 0 0 .1-.6l-1.9-3.2a.5.5 0 0 0-.6-.2l-2.4 1a7 7 0 0 0-1.6-.9l-.3-2.5a.5.5 0 0 0-.5-.4h-3.8a.5.5 0 0 0-.5.4l-.3 2.5a7 7 0 0 0-1.6.9l-2.4-1a.5.5 0 0 0-.6.2L2.8 8.9a.5.5 0 0 0 .1.6l2 1.6a7 7 0 0 0 0 1.8l-2 1.6a.5.5 0 0 0-.1.6l1.9 3.2a.5.5 0 0 0 .6.2l2.4-1a7 7 0 0 0 1.6.9l.3 2.5a.5.5 0 0 0 .5.4h3.8a.5.5 0 0 0 .5-.4l.3-2.5a7 7 0 0 0 1.6-.9l2.4 1a.5.5 0 0 0 .6-.2l1.9-3.2a.5.5 0 0 0-.1-.6zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7"/></svg>Settings</div>
-    <div class="foot">Nova IPTV · 338 days</div>
-  </nav>
-
-  <div class="stage">
-    <div class="head">
-      <h1>Series</h1>
-      <span class="count num">3,904 series · 19 categories</span>
-      <div class="right">
-        <span class="pill">Recently added</span>
-        <span class="num">20:14</span>
-      </div>
-    </div>
-
-    <div class="panes">
-      <div class="cats">
-        <div class="pane-title">Categories</div>
-        <div class="cat"><span>Arabic Drama</span><span class="n num">640</span></div>
-        <div class="cat sel"><span>Crime</span><span class="n num">418</span></div>
-        <div class="cat"><span>Documentary</span><span class="n num">203</span></div>
-        <div class="cat"><span>Drama</span><span class="n num">877</span></div>
-        <div class="cat"><span>Kids</span><span class="n num">312</span></div>
-        <div class="cat"><span>Reality</span><span class="n num">259</span></div>
-        <div class="cat"><span>Sci-Fi</span><span class="n num">344</span></div>
-        <div class="cat"><span>Turkish</span><span class="n num">486</span></div>
-        <div class="cat more">+ 11 more</div>
-      </div>
-
-      <div class="grid">
-        <div class="card on focus" style="padding:0;outline-offset:3px">
-          <div class="art" style="background:linear-gradient(160deg,#232E42,#41586E)">
-            <span class="seasons num">5 seasons</span>
-            <span class="resume"><i style="width:34%"></i></span>
-          </div>
-          <div class="nm">Breaking Bad</div><div class="meta">S2 · E4 · continue</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#2E2038,#584066)">
-            <span class="seasons num">4 seasons</span>
-          </div>
-          <div class="nm">True Detective</div><div class="meta num">2014</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#1E3A34,#356054)">
-            <span class="seasons num">3 seasons</span>
-          </div>
-          <div class="nm">Dark</div><div class="meta num">2017</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#42221E,#78403A)">
-            <span class="seasons num">6 seasons</span>
-          </div>
-          <div class="nm">Peaky Blinders</div><div class="meta num">2013</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#22304A,#3E5C82)">
-            <span class="seasons num">2 seasons</span>
-          </div>
-          <div class="nm">Mare of Easttown</div><div class="meta num">2021</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#3A2A20,#6E5038)">
-            <span class="seasons num">8 seasons</span>
-          </div>
-          <div class="nm">The Sopranos</div><div class="meta num">1999</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#252044,#463C78)">
-            <span class="seasons num">1 season</span>
-          </div>
-          <div class="nm">Chernobyl</div><div class="meta num">2019</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#1F3A42,#356A72)">
-            <span class="seasons num">3 seasons</span>
-          </div>
-          <div class="nm">The Bureau</div><div class="meta num">2015</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#402638,#6E4058)">
-            <span class="seasons num">2 seasons</span>
-          </div>
-          <div class="nm">Al Hayba</div><div class="meta num">2017</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#2C3620,#516642)">
-            <span class="seasons num">4 seasons</span>
-          </div>
-          <div class="nm">Ertugrul</div><div class="meta num">2014</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#203040,#3A5670)">
-            <span class="seasons num">2 seasons</span>
-          </div>
-          <div class="nm">The Night Of</div><div class="meta num">2016</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#3A2432,#664058)">
-            <span class="seasons num">5 seasons</span>
-          </div>
-          <div class="nm">Line of Duty</div><div class="meta num">2012</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#26382E,#456A52)">
-            <span class="seasons num">3 seasons</span>
-          </div>
-          <div class="nm">Money Heist</div><div class="meta num">2017</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#3E2C22,#6E5038)">
-            <span class="seasons num">1 season</span>
-          </div>
-          <div class="nm">Band of Brothers</div><div class="meta num">2001</div>
-        </div>
-        <div class="card">
-          <div class="art" style="background:linear-gradient(160deg,#2A2438,#4E4470)">
-            <span class="seasons num">4 seasons</span>
-          </div>
-          <div class="nm">Better Call Saul</div><div class="meta num">2015</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+  </main>
+</div>
 
 <script>
-  const frame = new URLSearchParams(location.search).get('frame') || 'live';
-  document.documentElement.dataset.frame = frame;
+"use strict";
+
+/* ===========================================================================
+   The catalogue.
+
+   Shaped like what an Xtream or M3U import produces, because that is what this
+   screen will really be given: categories carrying a count, channels carrying a
+   number and a programme, titles carrying a poster URL that is not there yet.
+
+   `poster:null` renders the placeholder. Put a URL there and it is an image.
+   =========================================================================== */
+
+const ICON = {
+  home:'M12 3 3 10v11h6v-6h6v6h6V10z',
+  live:'M21 6H10.4l3.3-3.3-1-1L8.6 6h-.2L4.3 1.7l-1 1L6.6 6H3a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2m0 13H3V8h18z',
+  movies:'M18 4v1h-2V4a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v1H6V4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2v-1h2v1a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-1h2v1a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2M8 17H6v-2h2zm0-4H6v-2h2zm0-4H6V7h2zm10 8h-2v-2h2zm0-4h-2v-2h2zm0-4h-2V7h2z',
+  series:'M4 6H2v14a2 2 0 0 0 2 2h14v-2H4zm16-4H8a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2m-9 12V6l7 4z',
+  radio:'M20 6H10.7l4.9-2-.7-1.9L8.5 4.7 6 5.7V5a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v1.3A2 2 0 0 0 2 8v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2M7 18a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7m13-7h-2V9h2zm0 4h-2v-2h2z',
+  fav:'m12 21-1.5-1.3C5.4 15.1 2 12.1 2 8.5 2 5.4 4.4 3 7.5 3c1.7 0 3.4.8 4.5 2.1C13.1 3.8 14.8 3 16.5 3 19.6 3 22 5.4 22 8.5c0 3.6-3.4 6.6-8.5 11.2z',
+  search:'M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 5 1.5-1.5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9',
+  settings:'M19.1 12.9a7 7 0 0 0 0-1.8l2-1.6a.5.5 0 0 0 .1-.6l-1.9-3.2a.5.5 0 0 0-.6-.2l-2.4 1a7 7 0 0 0-1.6-.9l-.3-2.5a.5.5 0 0 0-.5-.4h-3.8a.5.5 0 0 0-.5.4l-.3 2.5a7 7 0 0 0-1.6.9l-2.4-1a.5.5 0 0 0-.6.2L2.8 8.9a.5.5 0 0 0 .1.6l2 1.6a7 7 0 0 0 0 1.8l-2 1.6a.5.5 0 0 0-.1.6l1.9 3.2a.5.5 0 0 0 .6.2l2.4-1a7 7 0 0 0 1.6.9l.3 2.5a.5.5 0 0 0 .5.4h3.8a.5.5 0 0 0 .5-.4l.3-2.5a7 7 0 0 0 1.6-.9l2.4 1a.5.5 0 0 0 .6-.2l1.9-3.2a.5.5 0 0 0-.1-.6zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7',
+};
+
+/* The five that fit a phone's bottom bar, and the three that do not. */
+const RAIL = [
+  {id:'home',    label:'Home',       icon:'home'},
+  {id:'live',    label:'Live TV',    icon:'live'},
+  {id:'movies',  label:'Movies',     icon:'movies'},
+  {id:'series',  label:'Series',     icon:'series'},
+  {id:'radio',   label:'Radio',      icon:'radio'},
+  {id:'fav',     label:'Favourites', icon:'fav',      overflow:true},
+  {id:'search',  label:'Search',     icon:'search',   overflow:true},
+  {id:'settings',label:'Settings',   icon:'settings', overflow:true, foot:true},
+];
+
+const ch = (no,nm,q,pg,from,to,desc,next) => ({no,nm,q,pg,from,to,desc,next});
+
+const DATA = {
+  live: {
+    title:'Live TV', total:'12,480 channels · 41 categories',
+    badge:{live:true, text:'On air'},
+    categories:[
+      {name:'UK General', count:161, channels:[
+        ch(28001,'BBC One','FHD','The One Show','19:00','19:30','A magazine programme with news, features and interviews from around the country.','EastEnders'),
+        ch(28002,'BBC Two','HD','Only Connect','20:00','20:30','Two teams of quizzers face fiendish questions from Victoria Coren Mitchell.','University Challenge'),
+        ch(28003,'ITV1','FHD','Coronation Street','20:00','20:30','Drama in Weatherfield as an old face returns to the cobbles.','Emmerdale'),
+        ch(28004,'Channel 4','HD','Grand Designs','20:00','21:00','A couple attempt to build a house into the side of a Devon quarry.','24 Hours in A&E'),
+        ch(28005,'Channel 5','SD','Police Interceptors','20:00','21:00','The team pursue a stolen vehicle across three counties.','The Yorkshire Vet'),
+        ch(28006,'BBC Four','HD','Sound of Cinema','20:00','21:00','How the film score grew from silent accompaniment to an art of its own.','Top of the Pops'),
+      ]},
+      {name:'UK Entertainment', count:81, channels:[
+        ch(28201,'Sky Witness','FHD','Blue Bloods','20:00','21:00','Frank faces political pressure over a controversial arrest.','Chicago Fire'),
+        ch(28202,'Comedy Central','HD','Friends','20:00','20:30','The one where Ross and Rachel argue about a break.','South Park'),
+        ch(28203,'Dave','SD','Taskmaster','20:00','21:00','Five comedians attempt to hide a pineapple from Greg Davies.','QI'),
+        ch(28204,'Gold','HD','Only Fools and Horses','20:00','20:40','Del Boy invests in a consignment of unsellable dolls.','Porridge'),
+      ]},
+      {name:'UK Sports', count:54, channels:[
+        ch(28301,'Sky Sports Main Event','FHD','Premier League Live','19:30','22:00','Full coverage from the Etihad, with build-up, the match and analysis.','Premier League Highlights'),
+        ch(28302,'Sky Sports Football','FHD','EFL Championship','19:45','22:00','Live coverage from the Championship, plus goals from around the grounds.','Football Gold'),
+        ch(28303,'TNT Sports 1','HD','UEFA Magazine','20:00','20:30','The week in European football, with goals and reaction.','Boxing Classics'),
+        ch(28304,'Eurosport 1','SD','Cycling: Vuelta','20:00','21:00','Highlights of stage eleven, through the Cantabrian mountains.','Snooker'),
+      ]},
+      {name:'UK News', count:39, channels:[
+        ch(28401,'BBC News','FHD','BBC News at Ten','22:00','22:30','The day’s national and international news, with correspondents.','Newsnight'),
+        ch(28402,'Sky News','FHD','Sky News Tonight','20:00','21:00','The evening’s stories, with analysis and interviews.','Press Preview'),
+        ch(28403,'Al Jazeera English','HD','Newshour','20:00','21:00','An hour of international news and current affairs.','Inside Story'),
+        ch(28404,'France 24 English','SD','Live from Paris','20:00','20:30','World news from the French international broadcaster.','The Debate'),
+      ]},
+      {name:'UK Documentary', count:35, channels:[
+        ch(28124,'Animal Planet','FHD','Wild Frank','19:30','20:30','Frank Cuesta travels through south-east Asia in search of reptiles.','Crikey! It’s Irwin'),
+        ch(28125,'Animal Planet +1','','Wild Frank','20:30','21:30','Frank Cuesta travels through south-east Asia in search of reptiles.','Crikey! It’s Irwin'),
+        ch(28126,'Sky Documentaries','FHD','The Rise and Fall of Boris','19:00','20:30','An account of a political career, told by the people who were there.','Hillsborough'),
+        ch(28127,'Sky Documentaries','HD','The Rise and Fall of Boris','19:00','20:30','An account of a political career, told by the people who were there.','Hillsborough'),
+        ch(28128,'Sky Documentaries','SD','The Body Next Door','20:00','21:00','While forensic officers search for evidence, the investigation uncovers a complicated history between the two households.','The Body Next Door'),
+        ch(28129,'Discovery','FHD','Gold Rush','20:00','21:00','The Hoffman crew race to move a wash plant before the ground freezes.','Deadliest Catch'),
+        ch(28130,'Discovery','HD','Gold Rush','20:00','21:00','The Hoffman crew race to move a wash plant before the ground freezes.','Deadliest Catch'),
+        ch(28131,'Discovery','SD','How It’s Made','20:00','20:30','Inside the factories that produce bicycle chains and church organs.','Mythbusters'),
+        ch(28133,'Discovery Turbo','','Wheeler Dealers','19:30','21:00','Mike buys a neglected Alfa Romeo and Elvis attempts to save its engine.','Fast N’ Loud'),
+        ch(28135,'Discovery Science','','How the Universe Works','20:00','21:00','What the first galaxies were made of, and how we know.','Space’s Deepest Secrets'),
+        ch(28137,'PBS America','','Ancient Egypt','20:00','21:00','New excavation at Saqqara reopens a question about the Old Kingdom.','The War on Everest'),
+      ]},
+      {name:'UK Kids', count:31, channels:[
+        ch(28501,'CBeebies','HD','Bluey','20:00','20:15','Bluey and Bingo invent a game that gets out of hand.','In the Night Garden'),
+        ch(28502,'CBBC','HD','Horrible Histories','20:00','20:30','The rotten Romans, the vile Victorians and a song about drains.','Danger Mouse'),
+        ch(28503,'Cartoon Network','SD','Adventure Time','20:00','20:30','Finn and Jake set out to recover a stolen sandwich.','Regular Show'),
+      ]},
+      {name:'Arabic General', count:212, channels:[
+        ch(29001,'MBC 1','FHD','فيلم السهرة','20:00','22:00','فيلم السهرة الأسبوعي.','نشرة الأخبار'),
+        ch(29002,'MBC 2','FHD','Action Tonight','20:00','22:00','The week’s feature, with subtitles.','Late Feature'),
+        ch(29003,'Al Arabiya','HD','الحصاد','20:00','21:00','حصاد اليوم من الأخبار والتحليل.','بانوراما'),
+        ch(29004,'Rotana Cinema','SD','فيلم عربي','20:00','22:00','فيلم من الأرشيف العربي.','أغاني'),
+      ]},
+      {name:'BE Telesat', count:38, channels:[
+        ch(27001,'Ã‰en','HD','Thuis','20:00','20:30','Dagelijkse dramareeks uit Vlaanderen.','Het Journaal'),
+        ch(27002,'VTM','HD','Familie','20:00','20:30','De familie Van den Bossche krijgt onverwacht bezoek.','Het Nieuws'),
+        ch(27003,'Canvas','SD','Terzake','20:00','20:40','Actualiteit en duiding.','De Afspraak'),
+      ]},
+    ],
+  },
+
+  movies: {
+    title:'Movies', total:'24,318 titles · 28 categories',
+    badge:{text:'A–Z'},
+    categories:[
+      {name:'Action', count:4182, items:[
+        {t:'Blade Runner 2049', y:2017, run:'2 h 44', poster:null},
+        {t:'Heat', y:1995, run:'2 h 50', poster:null, resume:.62},
+        {t:'Sicario', y:2015, run:'2 h 01', poster:null},
+        {t:'Tenet', y:2020, run:'2 h 30', poster:null},
+        {t:'Mad Max: Fury Road', y:2015, run:'2 h 00', poster:null},
+        {t:'John Wick', y:2014, run:'1 h 41', poster:null, watched:true},
+        {t:'The Raid', y:2011, run:'1 h 41', poster:null},
+        {t:'Casino Royale', y:2006, run:'2 h 24', poster:null},
+        {t:'Mission: Impossible — Fallout', y:2018, run:'2 h 27', poster:null},
+        {t:'Skyfall', y:2012, run:'2 h 23', poster:null},
+        {t:'The Bourne Ultimatum', y:2007, run:'1 h 55', poster:null},
+        {t:'Dredd', y:2012, run:'1 h 35', poster:null},
+        {t:'Nobody', y:2021, run:'1 h 32', poster:null},
+        {t:'Sisu', y:2022, run:'1 h 31', poster:null},
+        {t:'Ronin', y:1998, run:'2 h 02', poster:null},
+      ]},
+      {name:'Arabic', count:2940, items:[
+        {t:'الممر', y:2019, run:'2 h 08', poster:null},
+        {t:'تراب الماس', y:2018, run:'2 h 00', poster:null},
+        {t:'الفيل', y:2014, run:'1 h 45', poster:null},
+        {t:'عمارة يعقوبيان', y:2006, run:'2 h 52', poster:null},
+        {t:'الكيت كات', y:1991, run:'1 h 55', poster:null},
+        {t:'وجهة نظر', y:2019, run:'1 h 50', poster:null},
+      ]},
+      {name:'Comedy', count:3106, items:[
+        {t:'The Grand Budapest Hotel', y:2014, run:'1 h 39', poster:null},
+        {t:'In Bruges', y:2008, run:'1 h 47', poster:null},
+        {t:'Hot Fuzz', y:2007, run:'2 h 01', poster:null},
+        {t:'The Nice Guys', y:2016, run:'1 h 56', poster:null},
+        {t:'Jojo Rabbit', y:2019, run:'1 h 48', poster:null},
+      ]},
+      {name:'Documentary', count:918, items:[
+        {t:'Free Solo', y:2018, run:'1 h 40', poster:null},
+        {t:'Icarus', y:2017, run:'2 h 01', poster:null},
+        {t:'Man on Wire', y:2008, run:'1 h 34', poster:null},
+        {t:'The Act of Killing', y:2012, run:'2 h 39', poster:null},
+      ]},
+      {name:'Drama', count:5477, items:[
+        {t:'No Country for Old Men', y:2007, run:'2 h 02', poster:null},
+        {t:'There Will Be Blood', y:2007, run:'2 h 38', poster:null},
+        {t:'Oppenheimer', y:2023, run:'3 h 00', poster:null},
+        {t:'Prisoners', y:2013, run:'2 h 33', poster:null},
+        {t:'Zodiac', y:2007, run:'2 h 37', poster:null},
+        {t:'Children of Men', y:2006, run:'1 h 49', poster:null},
+        {t:'Tinker Tailor Soldier Spy', y:2011, run:'2 h 07', poster:null},
+        {t:'The Prestige', y:2006, run:'2 h 10', poster:null},
+      ]},
+      {name:'Family', count:1264, items:[
+        {t:'Paddington 2', y:2017, run:'1 h 43', poster:null},
+        {t:'Spirited Away', y:2001, run:'2 h 05', poster:null},
+        {t:'Coco', y:2017, run:'1 h 45', poster:null},
+      ]},
+      {name:'Horror', count:1803, items:[
+        {t:'Hereditary', y:2018, run:'2 h 07', poster:null},
+        {t:'The Witch', y:2015, run:'1 h 32', poster:null},
+        {t:'Get Out', y:2017, run:'1 h 44', poster:null},
+      ]},
+      {name:'Sci-Fi', count:1392, items:[
+        {t:'Arrival', y:2016, run:'1 h 56', poster:null},
+        {t:'Dune', y:2021, run:'2 h 35', poster:null, watched:true},
+        {t:'Interstellar', y:2014, run:'2 h 49', poster:null},
+        {t:'Ex Machina', y:2014, run:'1 h 48', poster:null},
+        {t:'Annihilation', y:2018, run:'1 h 55', poster:null},
+      ]},
+    ],
+  },
+
+  series: {
+    title:'Series', total:'3,904 series · 19 categories',
+    badge:{text:'Recently added'},
+    categories:[
+      {name:'Arabic Drama', count:640, items:[
+        {t:'الهيبة', y:2017, seasons:5, poster:null},
+        {t:'الاختيار', y:2020, seasons:3, poster:null},
+        {t:'جرابيع', y:2023, seasons:1, poster:null},
+        {t:'معاوية', y:2025, seasons:1, poster:null},
+      ]},
+      {name:'Crime', count:418, items:[
+        {t:'Breaking Bad', y:2008, seasons:5, poster:null, resume:.34, sub:'S2 · E4 · continue'},
+        {t:'True Detective', y:2014, seasons:4, poster:null},
+        {t:'Peaky Blinders', y:2013, seasons:6, poster:null},
+        {t:'The Sopranos', y:1999, seasons:8, poster:null},
+        {t:'Mare of Easttown', y:2021, seasons:2, poster:null},
+        {t:'The Night Of', y:2016, seasons:2, poster:null},
+        {t:'Line of Duty', y:2012, seasons:5, poster:null},
+        {t:'Money Heist', y:2017, seasons:3, poster:null},
+        {t:'Better Call Saul', y:2015, seasons:4, poster:null},
+        {t:'The Wire', y:2002, seasons:5, poster:null},
+        {t:'Ozark', y:2017, seasons:4, poster:null},
+        {t:'Narcos', y:2015, seasons:3, poster:null},
+      ]},
+      {name:'Documentary', count:203, items:[
+        {t:'Planet Earth II', y:2016, seasons:1, poster:null},
+        {t:'Chernobyl', y:2019, seasons:1, poster:null},
+        {t:'The Last Dance', y:2020, seasons:1, poster:null},
+      ]},
+      {name:'Drama', count:877, items:[
+        {t:'Dark', y:2017, seasons:3, poster:null},
+        {t:'The Bureau', y:2015, seasons:3, poster:null},
+        {t:'Band of Brothers', y:2001, seasons:1, poster:null},
+        {t:'Succession', y:2018, seasons:4, poster:null},
+        {t:'Mad Men', y:2007, seasons:7, poster:null},
+      ]},
+      {name:'Kids', count:312, items:[
+        {t:'Bluey', y:2018, seasons:3, poster:null},
+        {t:'Avatar: The Last Airbender', y:2005, seasons:3, poster:null},
+      ]},
+      {name:'Reality', count:259, items:[
+        {t:'Taskmaster', y:2015, seasons:16, poster:null},
+        {t:'The Great British Bake Off', y:2010, seasons:14, poster:null},
+      ]},
+      {name:'Sci-Fi', count:344, items:[
+        {t:'Severance', y:2022, seasons:2, poster:null},
+        {t:'The Expanse', y:2015, seasons:6, poster:null},
+        {t:'Black Mirror', y:2011, seasons:6, poster:null},
+      ]},
+      {name:'Turkish', count:486, items:[
+        {t:'Ertuğrul', y:2014, seasons:5, poster:null},
+        {t:'Çukur', y:2017, seasons:4, poster:null},
+        {t:'Kara Para Aşk', y:2014, seasons:1, poster:null},
+      ]},
+    ],
+  },
+};
+
+/* Sections the provider does not carry are still destinations. UI_ARCHITECTURE
+   §3.4: they are never hidden, and the screen says whose gap it is. */
+const EMPTY = {
+  home:    {title:'Home',       total:'', why:'Home is not part of this prototype.'},
+  radio:   {title:'Radio',      total:'', why:'Nova IPTV carries no radio stations.'},
+  fav:     {title:'Favourites', total:'', why:'Nothing has been marked as a favourite yet.'},
+  search:  {title:'Search',     total:'', why:'Search is not part of this prototype.'},
+  settings:{title:'Settings',   total:'', why:'Settings is not part of this prototype.'},
+};
+
+/* =========================================================================== */
+
+const $ = id => document.getElementById(id);
+const el = (tag, cls, html) => {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (html != null) n.innerHTML = html;
+  return n;
+};
+const svg = (path, size) =>
+  `<svg viewBox="0 0 24 24" ${size ? `width="${size}" height="${size}"` : ''} aria-hidden="true"><path d="${path}"/></svg>`;
+
+const state = {
+  section:'live',
+  cat:4,               // UK Documentary, as in the approved design
+  playing:28128,       // the channel the On now panel is describing
+  column:'content',    // 'rail' | 'cats' | 'content'
+  mode:'tv',
+};
+
+/* --------------------------------------------------------------- the scale */
+/* One number decides both the form factor and the size of a dp. 1920x1080 is
+   the reference: there --s is exactly 2, and every measurement in the CSS lands
+   on the pixel the mockup was approved at. */
+function fit(){
+  const w = window.innerWidth, h = window.innerHeight;
+  let mode, s;
+  if (w >= 1100 && w / h >= 1.4) {          // television, and a desktop window
+    mode = 'tv';
+    s = Math.min(w / 960, h / 540);
+  } else if (w >= 700) {                     // tablet, either way up
+    mode = 'tablet';
+    s = Math.min(w / 800, h / 600, 1.5);
+  } else {                                   // phone
+    mode = 'phone';
+    s = Math.max(0.85, Math.min(w / 412, 1.25));
+  }
+  document.documentElement.style.setProperty('--s', s.toFixed(4));
+  // Written every time, not only on a change. It starts equal to the initial
+  // state, so a "change only" write left the television with no data-mode at
+  // all -- which worked only because television is the unqualified default, and
+  // would stop working the day anyone wrote a [data-mode="tv"] rule.
+  state.mode = mode;
+  document.body.dataset.mode = mode;
+  columns();
+}
+
+/* The grid's column count is the one thing that cannot come from a media query,
+   because the pane it lives in is what got narrower, not the window. */
+function columns(){
+  const grid = document.querySelector('.grid');
+  if (!grid) return;
+  grid.style.setProperty('--cols', state.mode === 'phone' ? 3 : state.mode === 'tablet' ? 4 : 5);
+}
+
+/* ----------------------------------------------------------------- the rail */
+function drawRail(){
+  const rail = $('rail');
+  rail.replaceChildren();
+
+  const brand = el('div','brand',
+    `<svg viewBox="0 0 24 24" fill="#9B6BFF" aria-hidden="true"><path d="M12 2 3 7v10l9 5 9-5V7z" opacity=".35"/><path d="M12 6.5 7 9.3v5.4l5 2.8 5-2.8V9.3z"/></svg><b>CASTIVIO</b>`);
+  rail.append(brand);
+
+  RAIL.forEach(item => {
+    if (item.foot) rail.append(el('div','spacer'));
+    const b = el('button','nav', svg(ICON[item.icon]) + `<span>${item.label}</span>`);
+    b.dataset.id = item.id;
+    b.dataset.overflow = item.overflow ? 'true' : 'false';
+    if (item.id === state.section) b.setAttribute('aria-current','page');
+    b.addEventListener('click', () => { open(item.id); focusTo('content'); });
+    rail.append(b);
+  });
+
+  rail.append(el('div','foot','Nova IPTV · 338 days'));
+}
+
+/* --------------------------------------------------------------- the screen */
+function section(){ return DATA[state.section] || null; }
+function categories(){ const s = section(); return s ? s.categories : []; }
+function category(){ return categories()[state.cat] || null; }
+
+function draw(){
+  const s = section();
+  const empty = EMPTY[state.section];
+
+  $('title').textContent = s ? s.title : empty.title;
+  $('count').textContent = s ? s.total : '';
+
+  const badge = $('mode');
+  badge.replaceChildren();
+  if (s) {
+    if (s.badge.live) badge.append(el('i','dot'));
+    badge.append(document.createTextNode(s.badge.text));
+    badge.style.display = '';
+  } else {
+    badge.style.display = 'none';
+  }
+
+  drawRail();
+  drawCats();
+  drawContent();
+  drawOnNow();
+  columns();
+}
+
+function drawCats(){
+  const cats = $('cats'), chips = $('chips');
+  cats.replaceChildren(); chips.replaceChildren();
+  const list = categories();
+  document.querySelector('.cats').style.display = list.length ? '' : 'none';
+
+  list.forEach((c, i) => {
+    const pick = () => { state.cat = i; drawContent(); drawOnNow(); focusTo('content'); };
+
+    const b = el('button','cat', `<span>${c.name}</span><span class="n num">${c.count.toLocaleString('en')}</span>`);
+    b.setAttribute('role','option');
+    b.setAttribute('aria-selected', i === state.cat ? 'true' : 'false');
+    b.addEventListener('click', pick);
+    cats.append(b);
+
+    const chip = el('button','chip', `<span>${c.name}</span><span class="n num">${c.count.toLocaleString('en')}</span>`);
+    chip.setAttribute('role','tab');
+    chip.setAttribute('aria-selected', i === state.cat ? 'true' : 'false');
+    chip.addEventListener('click', pick);
+    chips.append(chip);
+  });
+
+  // The chip row is the phone's category pane, and a pane that opens scrolled
+  // away from the selected item is a pane that looks like it selected nothing.
+  const sel = chips.children[state.cat];
+  if (sel) sel.scrollIntoView({block:'nearest', inline:'center'});
+}
+
+function drawContent(){
+  const box = $('content'), cat = category(), s = section();
+  box.replaceChildren();
+
+  if (!s) {
+    $('contentTitle').textContent = '';
+    box.append(el('div','empty',
+      `<b>${EMPTY[state.section].title}</b><span>${EMPTY[state.section].why}</span>`));
+    return;
+  }
+
+  $('contentTitle').textContent = state.section === 'live'
+    ? `${cat.name} · ${cat.count.toLocaleString('en')} channels`
+    : `${cat.name} · ${cat.count.toLocaleString('en')} titles`;
+
+  if (state.section === 'live') {
+    cat.channels.forEach(c => box.append(channelRow(c)));
+  } else {
+    const grid = el('div','grid');
+    cat.items.forEach(item => grid.append(card(item)));
+    box.append(grid);
+  }
+  // Selecting a category also re-marks the selected chip and pane row.
+  [...$('cats').children].forEach((n,i) => n.setAttribute('aria-selected', i === state.cat));
+  [...$('chips').children].forEach((n,i) => n.setAttribute('aria-selected', i === state.cat));
+}
+
+function channelRow(c){
+  const b = el('button','chan',
+    `<span class="no num">${c.no}</span>
+     <span class="body">
+       <span class="line"><span class="nm">${c.nm}</span>${c.q ? `<span class="q">${c.q}</span>` : ''}</span>
+       <span class="pg">${c.pg} · ${c.from} – ${c.to}</span>
+     </span>`);
+  b.dataset.no = c.no;
+  b.dataset.playing = c.no === state.playing ? 'true' : 'false';
+  b.addEventListener('click', () => play(c.no));
+  return b;
+}
+
+function card(item){
+  const b = el('button','card');
+  const art = el('div','art');
+  if (item.poster) {
+    const img = el('img');
+    img.src = item.poster; img.alt = '';
+    img.addEventListener('error', () => img.remove());
+    art.append(img);
+  }
+  art.insertAdjacentHTML('afterbegin',
+    `<svg class="ph" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICON.movies}"/></svg>`);
+  if (item.watched) art.append(el('span','badge','WATCHED'));
+  if (item.seasons) art.append(el('span','seasons num', item.seasons === 1 ? '1 season' : `${item.seasons} seasons`));
+  if (item.resume) art.insertAdjacentHTML('beforeend',
+    `<span class="resume"><i style="width:${Math.round(item.resume*100)}%"></i></span>`);
+
+  b.append(art);
+  b.append(el('div','nm', item.t));
+  b.append(el('div','meta num', item.sub || (item.run ? `${item.y} · ${item.run}` : `${item.y}`)));
+  b.addEventListener('click', () => { /* detail is a later screen; selection only */ });
+  return b;
+}
+
+function drawOnNow(){
+  const pane = $('onnowPane'), box = $('onnow');
+  if (state.section !== 'live') { pane.style.display = 'none'; return; }
+  pane.style.display = '';
+  const cat = category();
+  const c = cat.channels.find(x => x.no === state.playing) || cat.channels[0];
+  box.replaceChildren();
+  box.insertAdjacentHTML('beforeend', `
+    <div class="still">
+      <div class="tag"><i class="dot"></i>LIVE</div>
+      <div class="res num">1024 × 576</div>
+    </div>
+    <div class="prog">
+      <div class="t">${c.pg}</div>
+      <div class="bar">
+        <span class="num">${c.from}</span>
+        <span class="track"><i style="width:${progress(c)}%"></i></span>
+        <span class="num">${c.to}</span>
+      </div>
+      <div class="d">${c.desc}</div>
+    </div>
+    <div class="next">
+      <div class="lbl">Next · ${c.to}</div>
+      <div class="t">${c.next}</div>
+    </div>`);
+}
+
+/* Where the programme has got to, from the clock, so the bar is never a guess. */
+function progress(c){
+  const mins = t => { const [h,m] = t.split(':').map(Number); return h*60 + m; };
+  const now = new Date(), at = now.getHours()*60 + now.getMinutes();
+  const a = mins(c.from), b = mins(c.to);
+  if (b <= a || at <= a) return 0;
+  return Math.max(0, Math.min(100, Math.round((at - a) / (b - a) * 100)));
+}
+
+function play(no){
+  state.playing = no;
+  [...$('content').children].forEach(n => {
+    if (n.dataset) n.dataset.playing = n.dataset.no === String(no) ? 'true' : 'false';
+  });
+  drawOnNow();
+}
+
+function open(id){
+  state.section = id;
+  state.cat = 0;
+  if (id === 'live') state.playing = DATA.live.categories[0].channels[0].no;
+  draw();
+}
+
+/* ====================================================================== D-pad */
+/* Three columns, and the panes are the columns. LEFT and RIGHT move between
+   them, UP and DOWN move inside one. The On now panel is not in the rotation:
+   it is a readout with nothing to press, and a focus stop that does nothing is
+   a stop that makes every journey past it longer. */
+
+function items(column){
+  if (column === 'rail')    return [...$('rail').querySelectorAll('.nav')]
+                                   .filter(n => getComputedStyle(n).display !== 'none');
+  if (column === 'cats')    return state.mode === 'phone'
+                                   ? [...$('chips').children] : [...$('cats').children];
+  return [...$('content').querySelectorAll('.chan, .card')];
+}
+
+function focusTo(column, index){
+  const list = items(column);
+  if (!list.length) {
+    if (column !== 'rail') return focusTo('rail');
+    return;
+  }
+  state.column = column;
+  const i = Math.max(0, Math.min(index == null ? indexIn(list) : index, list.length - 1));
+  list[i].focus({preventScroll:true});
+  list[i].scrollIntoView({block:'nearest', inline:'nearest'});
+}
+
+/* Where the focus should land when a column is entered: the selected row if the
+   column has one, otherwise the first. Arriving somewhere arbitrary is how a
+   remote starts to feel unpredictable. */
+function indexIn(list){
+  const sel = list.findIndex(n =>
+    n.getAttribute('aria-selected') === 'true' ||
+    n.getAttribute('aria-current') === 'page' ||
+    n.dataset.playing === 'true');
+  return sel < 0 ? 0 : sel;
+}
+
+function current(){
+  const list = items(state.column);
+  return {list, i: list.indexOf(document.activeElement)};
+}
+
+/* The grid is the one place UP and DOWN move by a row rather than by one. */
+function gridCols(){
+  const grid = document.querySelector('.grid');
+  if (!grid) return 1;
+  return getComputedStyle(grid).gridTemplateColumns.split(' ').length;
+}
+
+document.addEventListener('keydown', e => {
+  const key = e.key;
+  const nav = ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter',' ','Escape','Backspace'];
+  if (!nav.includes(key)) return;
+
+  const {list, i} = current();
+  const inGrid = state.column === 'content' && document.querySelector('.grid');
+  const cols = inGrid ? gridCols() : 1;
+  const horizontal = state.mode === 'phone' && state.column === 'cats';
+
+  let handled = true;
+  switch (key) {
+    case 'ArrowDown':
+      if (horizontal) { focusTo('content'); break; }
+      focusTo(state.column, i < 0 ? 0 : Math.min(i + cols, list.length - 1));
+      break;
+
+    case 'ArrowUp':
+      if (horizontal) break;
+      if (state.column === 'content' && i - cols < 0 && state.mode === 'phone') { focusTo('cats'); break; }
+      focusTo(state.column, Math.max(i - cols, 0));
+      break;
+
+    case 'ArrowRight':
+      if (horizontal) { focusTo('cats', Math.min(i + 1, list.length - 1)); break; }
+      if (inGrid && i % cols < cols - 1 && i + 1 < list.length) { focusTo('content', i + 1); break; }
+      if (state.column === 'rail') focusTo(items('cats').length ? 'cats' : 'content');
+      else if (state.column === 'cats') focusTo('content');
+      else handled = false;
+      break;
+
+    case 'ArrowLeft':
+      if (horizontal) { focusTo('cats', Math.max(i - 1, 0)); break; }
+      if (inGrid && i % cols > 0) { focusTo('content', i - 1); break; }
+      if (state.column === 'content') focusTo(items('cats').length ? 'cats' : 'rail');
+      else if (state.column === 'cats') focusTo('rail');
+      else handled = false;
+      break;
+
+    case 'Enter': case ' ':
+      if (document.activeElement && document.activeElement.click) document.activeElement.click();
+      break;
+
+    case 'Escape': case 'Backspace':
+      focusTo('rail');
+      break;
+  }
+  if (handled) e.preventDefault();
+});
+
+/* Touch and a mouse move the focus too, so the highlight is never somewhere the
+   finger is not. */
+document.addEventListener('focusin', e => {
+  const n = e.target;
+  if (n.closest('#rail')) state.column = 'rail';
+  else if (n.closest('#cats, #chips')) state.column = 'cats';
+  else if (n.closest('#content')) state.column = 'content';
+});
+document.addEventListener('pointerdown', e => {
+  const b = e.target.closest('button');
+  if (b) b.focus({preventScroll:true});
+});
+
+/* The focus ring is drawn by us rather than by the browser, so that it is the
+   same shape on a television, a tablet and a phone. */
+const style = document.createElement('style');
+style.textContent = `
+  .nav:focus,.cat:focus,.chan:focus,.card:focus,.chip:focus{outline:none}
+  .nav:focus-visible,.cat:focus-visible,.chan:focus-visible,
+  .card:focus-visible,.chip:focus-visible{
+    outline:2rem solid var(--violet);outline-offset:-1rem;
+    background:var(--violet-wash);
+    box-shadow:0 0 0 4rem rgba(155,107,255,.14), 0 10rem 26rem rgba(0,0,0,.6);
+  }
+  .card:focus-visible{outline-offset:3rem;background:transparent;
+    box-shadow:0 0 0 4rem rgba(155,107,255,.14), 0 10rem 26rem rgba(0,0,0,.6)}
+  .card:focus-visible .nm{color:var(--ink);font-weight:600}`;
+document.head.append(style);
+
+function clock(){
+  const d = new Date();
+  $('clock').textContent = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+window.addEventListener('resize', fit);
+fit();
+draw();
+clock();
+setInterval(clock, 20000);
+focusTo('content');
 </script>
 </body>
 </html>
