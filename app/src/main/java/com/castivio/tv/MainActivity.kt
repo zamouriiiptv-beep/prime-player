@@ -41,9 +41,10 @@ import dagger.hilt.android.AndroidEntryPoint
  * or the shell. Which of those the user sees is a domain question, answered in nine
  * lines of pure code and merely rendered here.
  *
- * The shell still runs on mock data. Activation now commits a real catalogue, but
- * reading it back onto Home is the next slice, so what a user sees after activating is
- * the same demo content as before — deliberately unchanged rather than half-rewired.
+ * The shell now runs on the provider's own catalogue. Activation commits it and the
+ * sections read it back — categories, channels, films and episodes — so what a user
+ * sees after activating is what they subscribed to, and a press opens the provider's
+ * stream in the real engine.
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {

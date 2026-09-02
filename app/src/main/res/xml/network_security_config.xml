@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Cleartext HTTP, permitted deliberately.
+
+  From Android 9 the platform blocks `http://` outright unless an application says
+  otherwise, and it blocks it *silently* from the caller's point of view: OkHttp
+  throws before a packet leaves the device, so a working server, correct
+  credentials and a live subscription all arrive at the user as "we could not
+  reach your provider". That is exactly the failure this file removes.
+
+  It is not a shortcut. IPTV panels are overwhelmingly served over plain HTTP —
+  the Xtream API, the playlist and the streams themselves — and an IPTV player
+  that refuses cleartext is an IPTV player that works with almost no provider.
+  The user types their own server address; refusing to connect to it is not a
+  security decision made on their behalf, it is the product not working.
+
+  What is *not* given up: `trust-anchors` stays at the system store, so every
+  `https://` provider is still verified normally. There is no user-CA trust here
+  and no per-domain exemption to a weaker check — the only thing relaxed is the
+  scheme, and only because the provider chose it.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Section names, as they appear in the rail, the header and the empty states. -->
+    <string name="browse_live">Live TV</string>
+    <string name="browse_movies">Movies</string>
+    <string name="browse_series">Series</string>
+    <string name="browse_radio">Radio</string>
+
+    <!-- The first entry in the category pane: the whole section, unfiltered. -->
+    <string name="browse_all_categories">All</string>
+
+    <string name="browse_episode_count">%1$d episodes</string>
+
+    <!-- Used in place of a provider's name before one is known. -->
+    <string name="browse_your_provider">your provider</string>
+
+    <string name="browse_empty_category_title">This category is empty</string>
+    <string name="browse_empty_category_detail">Your provider lists this category but has not put anything in it. Choose another category, or All to see everything.</string>
+
+    <!-- %1$s is the provider's name, %2$s the section: "IPTV Pro carries no Radio". -->
+    <string name="browse_empty_section_title">%1$s carries no %2$s</string>
+    <string name="browse_empty_section_detail">Your other sections are unaffected. If this looks wrong, refresh — an import that is still running fills sections one at a time.</string>
+    <string name="browse_empty_action">Refresh</string>
+
+    <string name="show_season">Season %1$d</string>
+    <string name="show_no_episodes_title">No episodes yet</string>
+    <string name="show_no_episodes_detail">Your provider lists this show but has not sent its episodes. It usually appears after the next refresh.</string>
+    <string name="show_back">Back</string>
+
+    <string name="home_brand">CASTIVIO</string>
+    <string name="home_empty_title">Nothing imported yet</string>
+    <string name="home_empty_detail">Your provider was reached but sent no channels, films or series. Refresh from a section, or add another provider.</string>
+
+    <string name="search_label">Search</string>
+    <string name="search_placeholder">Channels, films, series</string>
+    <string name="search_prompt">Results appear as you type — there is no button and no wait.</string>
+    <string name="search_results">Results</string>
+    <!-- %1$s is exactly what the user typed, echoed back. -->
+    <string name="search_none_title">Nothing matched “%1$s”</string>
+    <string name="search_none_detail">Try fewer letters, or part of the name instead of all of it.</string>
+    <string name="search_clear">Clear</string>
+
+</resources>

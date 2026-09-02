@@ -77,6 +77,7 @@ dependencies {
     implementation(project(":playback:engine-api"))
     implementation(project(":playback:engine-media3"))
     implementation(project(":feature:activation"))
+    implementation(project(":feature:home"))
     implementation(project(":feature:player"))
     implementation(project(":feature:licence"))
 
