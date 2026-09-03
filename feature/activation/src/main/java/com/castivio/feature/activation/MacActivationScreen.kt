@@ -95,9 +95,9 @@ import com.castivio.core.design.theme.Spacing
  *
  * | frame | band | identity column | code panel | spare |
  * |---|---|---|---|---|
- * | 960×540 TV | 344 | 292 | 270 | 52 / 74 |
- * | 873×393 | 277 | 242 | 232 | 35 / 45 |
- * | 800×360 | 262 | 222 | 218 | 40 / 44 |
+ * | 960×540 TV | 344 | 290 | 270 | 54 / 74 |
+ * | 873×393 | 269 | 240 | 232 | 29 / 37 |
+ * | 800×360 | 257 | 222 | 218 | 35 / 39 |
  *
  * Measured in the drawing across four languages — Arabic, English, and the two
  * longest Latin translations, Spanish and Portuguese — because the header and the
@@ -106,11 +106,21 @@ import com.castivio.core.design.theme.Spacing
  * to 35dp, and set the title at full size in every language but Portuguese and
  * Spanish on the television.
  *
- * The identity column's margins went up by half again in this pass without
+ * The identity column's margins went up by half again in an earlier pass without
  * anything on it getting smaller to look at: the field cards gave 8dp of frame
  * each and the two buttons 6dp, and it was spent on the space between them rather
  * than taken back into the band. A screen is not crowded because its parts are
  * large; it is crowded because they are close.
+ *
+ * Some of it has since been spent on the top edge. [Metrics.stageTop] is 18 and 13
+ * on the two phone frames rather than 10 and 8: the screen runs edge to edge and
+ * there is no status bar to stand the header off the glass, so 10dp of it read as
+ * a header glued to the top of the display. The band pays, and can: 29dp and 35dp
+ * of margin remain, and the two buttons gave 2dp back at the same time by coming
+ * down to their touch floors exactly.
+ *
+ * The television keeps its 24dp. It is not against an edge in any sense that
+ * matters — a set is watched from three metres and most of them overscan.
  *
  * Those rows are not a comment: [bandHeight], [identityHeight] and [codeHeight]
  * compute them, and `ActivationBudgetTest` fails if any of them goes negative.
@@ -197,11 +207,11 @@ internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
         edge = 46.dp, stageTop = 24.dp, stageBottom = 22.dp,
         header = 54.dp, bandTop = 22.dp, bandBottom = 20.dp, footer = 54.dp,
         fsTitle = 26.dp, fsChip = 13.dp, fsLabel = 15.8.dp, fsCaption = 13.5.dp,
-        fsStatus = 15.dp, fsFooter = 13.5.dp, fsButton = 16.5.dp,
+        fsStatus = 15.dp, fsFooter = 13.5.dp, fsButton = 15.5.dp,
         macSize = 30.dp, keySize = 27.dp,
         headGap = 26.dp, chip = 44.dp, chipPad = 11.dp, chipsGap = 6.dp, brand = 40.dp,
         capsule = 72.dp, capsuleGap = 20.dp, cardPad = 17.dp, cardGap = 15.dp, labelWidth = 106.dp,
-        actionsTop = 30.dp, actionsGap = 20.dp, button = 58.dp,
+        actionsTop = 30.dp, actionsGap = 20.dp, button = 56.dp,
         statusTop = 16.dp, statusHeight = 24.dp,
         plate = 192.dp, zoneWidth = 244.dp, zonePad = 14.dp, zoneGap = 10.dp,
         bandGap = 32.dp, radius = 20.dp, zoneRadius = 26.dp, mark = 32.dp,
@@ -209,14 +219,14 @@ internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
     )
     available < SHORT_PHONE -> shortPhone(available)
     else -> Metrics(
-        edge = 32.dp, stageTop = 10.dp, stageBottom = 6.dp,
+        edge = 32.dp, stageTop = 18.dp, stageBottom = 6.dp,
         header = 42.dp, bandTop = 10.dp, bandBottom = 8.dp, footer = 40.dp,
         fsTitle = 20.dp, fsChip = 12.dp, fsLabel = 14.7.dp, fsCaption = 13.dp,
-        fsStatus = 14.dp, fsFooter = 13.dp, fsButton = 15.5.dp,
+        fsStatus = 14.dp, fsFooter = 13.dp, fsButton = 14.5.dp,
         macSize = 28.dp, keySize = 25.dp,
         headGap = 24.dp, chip = 36.dp, chipPad = 12.dp, chipsGap = 6.dp, brand = 31.dp,
         capsule = 60.dp, capsuleGap = 16.dp, cardPad = 15.dp, cardGap = 13.dp, labelWidth = 99.dp,
-        actionsTop = 22.dp, actionsGap = 18.dp, button = 50.dp,
+        actionsTop = 22.dp, actionsGap = 18.dp, button = 48.dp,
         statusTop = 12.dp, statusHeight = 22.dp,
         plate = 174.dp, zoneWidth = 234.dp, zonePad = 7.dp, zoneGap = 5.dp,
         bandGap = 24.dp, radius = 17.dp, zoneRadius = 20.dp, mark = 26.dp,
@@ -232,10 +242,10 @@ internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
  */
 private fun shortPhone(available: Dp): Metrics {
     val drawn = Metrics(
-        edge = 26.dp, stageTop = 8.dp, stageBottom = 6.dp,
+        edge = 26.dp, stageTop = 13.dp, stageBottom = 6.dp,
         header = 36.dp, bandTop = 8.dp, bandBottom = 6.dp, footer = 34.dp,
         fsTitle = 19.dp, fsChip = 11.5.dp, fsLabel = 14.1.dp, fsCaption = 12.5.dp,
-        fsStatus = 13.5.dp, fsFooter = 12.5.dp, fsButton = 14.5.dp,
+        fsStatus = 13.5.dp, fsFooter = 12.5.dp, fsButton = 14.dp,
         macSize = 25.dp, keySize = 22.dp,
         headGap = 20.dp, chip = 34.dp, chipPad = 11.dp, chipsGap = 6.dp, brand = 28.dp,
         capsule = 56.dp, capsuleGap = 14.dp, cardPad = 14.dp, cardGap = 12.dp, labelWidth = 95.dp,
