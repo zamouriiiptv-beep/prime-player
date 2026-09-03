@@ -207,7 +207,7 @@ body{
   column-gap:var(--head-gap)}
 html[dir="rtl"] .header .title,
 html[dir="rtl"] .header .chips{direction:rtl}
-.title{grid-column:2;justify-self:center;min-width:0;max-width:100%;white-space:nowrap;overflow:hidden;
+.title{grid-column:2;grid-row:1;justify-self:center;min-width:0;max-width:100%;white-space:nowrap;overflow:hidden;
   font-size:var(--fs-title);line-height:1.35;font-weight:700;color:var(--white)}
 
 /* The lockup: the mark, then the name -- pinned, in every language.
@@ -226,7 +226,7 @@ html[dir="rtl"] .header .chips{direction:rtl}
    `CompositionLocalProvider(LocalLayoutDirection provides Ltr)` around the Row.
    Invariant 4 forbids direction-absolute layout APIs; a subtree declaring its
    own direction is the mechanism the platform provides for exactly this. */
-.wordmark{grid-column:1;justify-self:start;direction:ltr;
+.wordmark{grid-column:1;grid-row:1;justify-self:start;direction:ltr;
   display:flex;align-items:center;gap:calc(var(--brand) * .32)}
 .wordmark span{
   font-family:"Castivio Sans",sans-serif;font-weight:700;line-height:1;
@@ -251,7 +251,7 @@ html[dir="rtl"] .header .chips{direction:rtl}
 .brand{flex:0 0 auto;width:var(--brand);height:var(--brand);display:block;
   filter:drop-shadow(0 2px 7px rgba(0,0,0,.5))}
 
-.chips{grid-column:3;justify-self:end;display:flex;align-items:center;gap:var(--chips-gap);
+.chips{grid-column:3;grid-row:1;justify-self:end;display:flex;align-items:center;gap:var(--chips-gap);
   flex:0 0 auto;white-space:nowrap}
 .chip{display:flex;align-items:center;gap:8px;height:var(--chip);
   padding:0 var(--chip-pad);border-radius:999px;
@@ -450,8 +450,8 @@ html[dir="rtl"] .header .chips{direction:rtl}
 
   <div class="stage">
     <div class="header">
-      <h1 class="title" data-s="title">إضافة قائمة تشغيل</h1>
       <div class="wordmark"><img class="brand" src="../../core/design/src/main/res/drawable-nodpi/castivio_mark.png" alt=""><span>CASTIVIO</span></div>
+      <h1 class="title" data-s="title">إضافة قائمة تشغيل</h1>
       <div class="chips">
         <div class="chip trial" data-s="trial"><span class="dot"></span>نسخة تجريبية لمدة <b>7</b> أيام</div>
         <div class="chip lang" id="lang"></div>
