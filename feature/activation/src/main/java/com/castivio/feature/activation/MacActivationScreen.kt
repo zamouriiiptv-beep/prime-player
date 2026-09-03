@@ -20,7 +20,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Smartphone
@@ -37,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
@@ -96,7 +99,7 @@ import com.castivio.core.design.theme.Spacing
  * | frame | band | identity column | code panel | spare |
  * |---|---|---|---|---|
  * | 960×540 TV | 344 | 290 | 270 | 54 / 74 |
- * | 873×393 | 269 | 240 | 232 | 29 / 37 |
+ * | 873×393 | 267 | 240 | 232 | 27 / 35 |
  * | 800×360 | 257 | 222 | 218 | 35 / 39 |
  *
  * Measured in the drawing across four languages — Arabic, English, and the two
@@ -112,15 +115,22 @@ import com.castivio.core.design.theme.Spacing
  * than taken back into the band. A screen is not crowded because its parts are
  * large; it is crowded because they are close.
  *
- * Some of it has since been spent on the top edge. [Metrics.stageTop] is 18 and 13
- * on the two phone frames rather than 10 and 8: the screen runs edge to edge and
- * there is no status bar to stand the header off the glass, so 10dp of it read as
- * a header glued to the top of the display. The band pays, and can: 29dp and 35dp
- * of margin remain, and the two buttons gave 2dp back at the same time by coming
- * down to their touch floors exactly.
+ * Some of it has since been spent on the outer margin, at both ends. The phone
+ * frames stand off the glass by 15/11 and 11/8 rather than the 10/6 and 8/6 they
+ * had: the screen runs edge to edge, so there is no status bar holding the header
+ * away from the top of the display, and 10dp of padding read as a header glued
+ * to it.
  *
- * The television keeps its 24dp. It is not against an edge in any sense that
- * matters — a set is watched from three metres and most of them overscan.
+ * **Both ends, and that is the part worth writing down.** Raising the top alone
+ * did fix the header, and left 18 above against 6 below — a three-to-one outer
+ * frame that read worse than the glued header had, because the eye judges a
+ * composition by its margins and not by any one element's. A near-even 15/11
+ * costs the band two dp more than 18/6 did and answers both. The two buttons
+ * repaid some of it by coming down to their touch floors exactly.
+ *
+ * The television keeps its 24/22. It was already even, and it is not against an
+ * edge in any sense that matters — a set is watched from three metres and most of
+ * them overscan.
  *
  * Those rows are not a comment: [bandHeight], [identityHeight] and [codeHeight]
  * compute them, and `ActivationBudgetTest` fails if any of them goes negative.
@@ -219,7 +229,7 @@ internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
     )
     available < SHORT_PHONE -> shortPhone(available)
     else -> Metrics(
-        edge = 32.dp, stageTop = 18.dp, stageBottom = 6.dp,
+        edge = 32.dp, stageTop = 15.dp, stageBottom = 11.dp,
         header = 42.dp, bandTop = 10.dp, bandBottom = 8.dp, footer = 40.dp,
         fsTitle = 20.dp, fsChip = 12.dp, fsLabel = 14.7.dp, fsCaption = 13.dp,
         fsStatus = 14.dp, fsFooter = 13.dp, fsButton = 14.5.dp,
@@ -242,7 +252,7 @@ internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
  */
 private fun shortPhone(available: Dp): Metrics {
     val drawn = Metrics(
-        edge = 26.dp, stageTop = 13.dp, stageBottom = 6.dp,
+        edge = 26.dp, stageTop = 11.dp, stageBottom = 8.dp,
         header = 36.dp, bandTop = 8.dp, bandBottom = 6.dp, footer = 34.dp,
         fsTitle = 19.dp, fsChip = 11.5.dp, fsLabel = 14.1.dp, fsCaption = 12.5.dp,
         fsStatus = 13.5.dp, fsFooter = 12.5.dp, fsButton = 14.dp,
@@ -629,6 +639,7 @@ private fun IdentityZone(
                 copyLabel = stringResource(R.string.copy_key),
                 isCopied = identity.keyCopied,
                 enabled = true,
+                icon = Icons.Rounded.Key,
                 // What a licence is issued against: the warm half.
                 tint = CapsuleTint.Violet,
                 onCopy = {
@@ -751,6 +762,23 @@ private fun ActivationCard(
     tint: CapsuleTint,
     onCopy: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * The glyph on the control, which names the **field** rather than the action.
+     *
+     * Both discs carried the copy glyph and the drawing has never said they
+     * should: two circles a card's width apart, holding the same picture, read as
+     * one control repeated rather than as two different things, and the two
+     * things are the whole content of this screen. The address keeps copy; the
+     * device key takes a key.
+     *
+     * The action is unchanged and so is what a screen reader is told — "Copy
+     * device key" — and pressing it still swaps to a tick. Worth stating plainly,
+     * because a control whose picture describes its field and whose label
+     * describes its action is a compromise: it is the drawing's, it is what makes
+     * the pair legible at a glance, and the description is what a user who cannot
+     * see the glyph actually receives.
+     */
+    icon: ImageVector = Icons.Rounded.ContentCopy,
 ) {
     IdentityCapsule(
         metrics = CapsuleMetrics(
@@ -780,6 +808,7 @@ private fun ActivationCard(
         copyEnabled = enabled,
         tint = tint,
         form = CapsuleForm.Card,
+        icon = icon,
         labelStyle = CastivioType.labelMedium.copy(
             fontSize = m.fsLabel.value.sp,
             lineHeight = (m.fsLabel.value * LABEL_LEADING).sp,

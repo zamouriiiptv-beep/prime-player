@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -192,11 +193,13 @@ fun IdentityCapsule(
     form: CapsuleForm = CapsuleForm.Pill,
     /** The card's label type. Null keeps the pill's overline. */
     labelStyle: TextStyle? = null,
+    /** The control's glyph at rest. See [CopyButton]. */
+    icon: ImageVector = Icons.Rounded.ContentCopy,
 ) {
     if (form == CapsuleForm.Card) {
         IdentityCard(
             metrics, label, value, valueStyle, copyLabel, isCopied, onCopy,
-            modifier, spoken, copyEnabled, tint, labelStyle,
+            modifier, spoken, copyEnabled, tint, labelStyle, icon,
         )
         return
     }
@@ -285,6 +288,7 @@ private fun IdentityCard(
     copyEnabled: Boolean,
     tint: CapsuleTint,
     labelStyle: TextStyle?,
+    icon: ImageVector,
 ) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(metrics.corner)
@@ -342,6 +346,7 @@ private fun IdentityCard(
                 fillBrush = controlBrush(tint),
                 ring = controlRing(tint),
                 iconTint = controlInk(tint),
+                icon = icon,
             )
         }
     }
@@ -484,6 +489,18 @@ fun CopyButton(
     ring: Color = Color.Transparent,
     /** The glyph's colour at rest. Null keeps `onBackgroundVariant`. */
     iconTint: Color? = null,
+    /**
+     * The glyph at rest.
+     *
+     * Copy is the default and is right for most fields. The card form uses it to
+     * tell its two identifiers apart: two discs a card's width from each other,
+     * carrying the same picture, read as one control repeated rather than as two
+     * fields — and on this screen the two fields are the whole content. The
+     * confirmation still swaps to a tick, and the description still says what
+     * pressing it does, so the change is to what the field *is* and never to what
+     * the control *does*.
+     */
+    icon: ImageVector = Icons.Rounded.ContentCopy,
 ) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
@@ -512,7 +529,7 @@ fun CopyButton(
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            imageVector = if (isCopied) Icons.Rounded.Check else Icons.Rounded.ContentCopy,
+            imageVector = if (isCopied) Icons.Rounded.Check else icon,
             contentDescription = null,
             tint = when {
                 isCopied -> colors.success
