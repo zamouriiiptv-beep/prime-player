@@ -22,114 +22,73 @@ import androidx.compose.ui.semantics.semantics
 import com.castivio.core.design.R
 import com.castivio.core.design.theme.CastivioType
 import kotlin.math.max
-import kotlin.math.min
 
 /**
- * The screen header: a title, the lockup, and a row of chips.
+ * The screen header: the lockup, the screen's name, and a row of chips.
  *
- * ## One layout, two facts
+ * ## The row does not mirror; its contents do
  *
- * The mark has to sit at the row's true centre, and the space either side of it
- * has to be the same. Those are two different claims and the obvious composition
- * — a `Row` with the title, a spacer, the chips, and the mark drawn over the top
- * at the centre — delivers only the first. The gaps then fall out of two
- * translated strings' lengths: at the top of a television that was 72dp on one
- * side and 7 on the other, and it changed with the language.
+ * The brand sits at the same edge in every language. It is the mark Castivio
+ * signs its name with, and a signature that changes sides per locale is two
+ * signatures — the same reason [CastivioLockup] fixes the order of the mark and
+ * the word. Once the lockup is pinned there the chrome around it has to be
+ * pinned too, or the header would mirror around a fixed point, which reads as a
+ * mistake rather than as a decision. So the row is placed left to right always:
+ * mark, then the screen's name, then the chips. What each of them *says* still
+ * runs in its own script and its own direction, which is the part that is
+ * language.
  *
- * So the row is measured as three columns instead:
+ * Invariant 4 forbids direction-absolute layout APIs, and this is the one place
+ * that deliberately takes the exception, in one function, with the reason
+ * written down.
  *
- *     [ side ][ gap ][ mark ][ gap ][ side ]
+ * ## The space
  *
- * The two side columns are given the same width, which puts the middle column —
- * and the mark in it — at the exact centre, and splits the header's space evenly
- * either side of it in every language. Each side block is then centred in its own
- * column, so the space that side has left over is divided between its outer
- * margin and its inner gap rather than all of it going to one.
- *
- * When one side's content will not fit its share, that column takes what it needs
- * and the other takes the rest — the same yielding CSS grid does for `1fr` — so
- * a long title crowds the mark off centre rather than being clipped. The gaps
- * survive that; the centring is what gives, because a clipped title is a defect
- * and a mark 20dp off centre is a compromise.
- *
- * ## Direction
- *
- * Nothing here is left or right. The columns are leading-to-trailing and the
- * placement mirrors with [LayoutDirection], so Arabic reads title-mark-chips from
- * the right and English reads it from the left with the same numbers.
+ * The two ends take the width they need and the title takes what is between
+ * them, centred in it. Both outer margins are therefore the stage's own edge —
+ * the space is split evenly either side without anything having to be measured —
+ * and the element that gives when a translation is long is the title, which is
+ * the only one of the three whose full size is not load-bearing.
  *
  * @param height the row's height; the three slots are centred in it.
- * @param gap the one spacing value, and the space that will appear either side
- *   of the mark.
+ * @param gap the one spacing value: between the lockup and the title, and
+ *   between the title and the chips.
  */
 @Composable
 fun CastivioHeader(
     height: Dp,
     gap: Dp,
-    title: @Composable () -> Unit,
     lockup: @Composable () -> Unit,
+    title: @Composable () -> Unit,
     chips: @Composable () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Layout(
-        contents = listOf(title, lockup, chips),
+        contents = listOf(lockup, title, chips),
         modifier = modifier.height(height),
-    ) { (titleM, lockM, chipM), constraints ->
+    ) { (lockM, titleM, chipM), constraints ->
         val gapPx = gap.roundToPx()
         val total = constraints.maxWidth
         val rowH = constraints.maxHeight
+        val loose = constraints.copy(minWidth = 0, maxWidth = total)
 
-        val lock = lockM.first().measure(constraints.copy(minWidth = 0, maxWidth = total))
-        val available = max(0, total - lock.width - gapPx * 2)
-        val share = available / 2
-
-        val chipsWanted = chipM.first().maxIntrinsicWidth(rowH)
-
-        // The chips are never squeezed, and that is a priority rather than a
-        // preference: one of them is the language control, and a control that
-        // shrinks to nothing to make room for a caption is a control the user
-        // cannot reach. In Spanish and Portuguese the title is two and a half
-        // times its English width, and the old rule -- grow whichever side asks
-        // for more -- let it take the row and push the globe off the end of it.
-        //
-        // So the trailing column takes at least its content, and the title keeps
-        // what is left and yields into it. The mark stays centred while both
-        // sides fit inside their half, which is every language but the two
-        // longest; past that the mark drifts by half the chips' excess, and that
-        // is the right thing to give up.
-        val trail = min(max(share, chipsWanted), available)
-        val lead = available - trail
-
-        val titleP = titleM.first().measure(constraints.copy(minWidth = 0, maxWidth = max(0, lead)))
-        val chipsP = chipM.first().measure(constraints.copy(minWidth = 0, maxWidth = max(0, trail)))
+        // The two ends take what they need; the title takes what is between them
+        // and yields into it. Neither end is ever measured into a remainder,
+        // which is the rule that was missing: one of the chips is the language
+        // control, and a control squeezed to nothing to make room for a caption
+        // is a control the user cannot reach.
+        val lock = lockM.first().measure(loose)
+        val chip = chipM.first().measure(loose)
+        val middle = max(0, total - lock.width - chip.width - gapPx * 2)
+        val titleP = titleM.first().measure(constraints.copy(minWidth = 0, maxWidth = middle))
 
         layout(total, rowH) {
-            fun place(p: androidx.compose.ui.layout.Placeable, leadingEdge: Int) {
-                val x = if (layoutDirection == LayoutDirection.Ltr) {
-                    leadingEdge
-                } else {
-                    total - leadingEdge - p.width
-                }
+            fun place(p: androidx.compose.ui.layout.Placeable, x: Int) =
                 p.place(x, (rowH - p.height) / 2)
-            }
-            // Each side block is centred in its own half.
-            //
-            // The halves are equal, so the header's space is already split evenly
-            // either side of the mark; what this decides is where the content
-            // sits inside its half, and therefore how that space is divided
-            // between an outer margin and an inner gap.
-            //
-            // Hugging the inner edge -- which is what this did, to make the two
-            // gaps exactly equal -- puts every dp of the difference into the
-            // outer margin. That is invisible in Arabic, where the title and the
-            // chips are within twenty dp of each other, and obvious in English,
-            // where the title is sixty dp shorter and ends up floating a hundred
-            // dp off the leading margin while the chips sit thirty off the
-            // trailing one. Centring halves both errors instead of zeroing one
-            // and doubling the other.
-            place(titleP, (lead - titleP.width) / 2)
-            place(lock, lead + gapPx)
-            place(chipsP, lead + gapPx + lock.width + gapPx + (trail - chipsP.width) / 2)
+
+            place(lock, 0)
+            place(titleP, lock.width + gapPx + (middle - titleP.width) / 2)
+            place(chip, total - chip.width)
         }
     }
 }

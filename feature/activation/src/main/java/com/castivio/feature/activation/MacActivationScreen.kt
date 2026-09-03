@@ -375,6 +375,9 @@ private fun Header(m: Metrics, trialDays: Int?, onOpenLanguage: () -> Unit) {
         height = m.header,
         gap = m.headGap,
         modifier = Modifier.fillMaxWidth().testTag(ActivationTags.HEADER),
+        lockup = {
+            CastivioLockup(markSize = m.brand, wordSize = (m.fsTitle.value * WORD_RATIO).sp)
+        },
         title = {
             CastivioHeaderTitle(
                 text = stringResource(R.string.activation_title),
@@ -391,7 +394,6 @@ private fun Header(m: Metrics, trialDays: Int?, onOpenLanguage: () -> Unit) {
                 color = Palette.White,
             )
         },
-        lockup = { CastivioLockup(markSize = m.brand, wordSize = m.fsTitle.value.sp) },
         chips = {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(m.chipsGap),
@@ -930,6 +932,18 @@ private fun spaced(address: String): String = address.replace(":", " ")
 
 /** Shown for the instant before the identity resolves. Never a real address. */
 private const val ADDRESS_PLACEHOLDER = "··:··:··:··:··:··"
+
+/**
+ * The name against the screen's title.
+ *
+ * Under one, and it was over one until the header put the lockup at the leading
+ * edge. Centred, a wordmark larger than the page's own name reads as the brand
+ * announcing itself; at the edge, next to the title, the same proportion reads as
+ * a splash screen that forgot to leave. The mark's job in a header is to say
+ * whose screen this is, once, and then get out of the way of what the screen is
+ * for.
+ */
+private const val WORD_RATIO = 0.88f
 
 /* ------------------------------------------------------------------- ratios */
 /*
