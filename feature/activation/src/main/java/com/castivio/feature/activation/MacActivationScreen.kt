@@ -127,7 +127,8 @@ internal data class Metrics(
     /* the identity column */
     val capsule: Dp,
     val capsuleGap: Dp,
-    val control: Dp,
+    val cardPad: Dp,
+    val cardGap: Dp,
     val labelWidth: Dp,
     val actionsTop: Dp,
     val actionsGap: Dp,
@@ -182,10 +183,10 @@ internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
         fsStatus = 15.dp, fsFooter = 13.5.dp, fsButton = 17.5.dp,
         macSize = 30.dp, keySize = 27.dp,
         headGap = 26.dp, chip = 44.dp, chipPad = 11.dp, chipsGap = 6.dp, brand = 40.dp,
-        capsule = 80.dp, capsuleGap = 18.dp, control = 52.dp, labelWidth = 104.dp,
+        capsule = 80.dp, capsuleGap = 18.dp, cardPad = 19.dp, cardGap = 16.dp, labelWidth = 102.dp,
         actionsTop = 26.dp, actionsGap = 15.dp, button = 64.dp,
         statusTop = 15.dp, statusHeight = 24.dp,
-        plate = 216.dp, zoneWidth = 272.dp, zonePad = 20.dp, zoneGap = 14.dp,
+        plate = 216.dp, zoneWidth = 268.dp, zonePad = 20.dp, zoneGap = 14.dp,
         bandGap = 32.dp, radius = 20.dp, zoneRadius = 26.dp, mark = 32.dp,
         target = 56.dp,
     )
@@ -197,10 +198,10 @@ internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
         fsStatus = 14.dp, fsFooter = 13.dp, fsButton = 16.dp,
         macSize = 28.dp, keySize = 25.dp,
         headGap = 24.dp, chip = 36.dp, chipPad = 12.dp, chipsGap = 6.dp, brand = 31.dp,
-        capsule = 66.dp, capsuleGap = 12.dp, control = 46.dp, labelWidth = 97.dp,
+        capsule = 66.dp, capsuleGap = 12.dp, cardPad = 17.dp, cardGap = 14.dp, labelWidth = 95.dp,
         actionsTop = 18.dp, actionsGap = 13.dp, button = 54.dp,
         statusTop = 10.dp, statusHeight = 22.dp,
-        plate = 198.dp, zoneWidth = 262.dp, zonePad = 12.dp, zoneGap = 8.dp,
+        plate = 198.dp, zoneWidth = 258.dp, zonePad = 12.dp, zoneGap = 8.dp,
         bandGap = 24.dp, radius = 17.dp, zoneRadius = 20.dp, mark = 26.dp,
         target = 48.dp,
     )
@@ -220,10 +221,10 @@ private fun shortPhone(available: Dp): Metrics {
         fsStatus = 13.5.dp, fsFooter = 12.5.dp, fsButton = 15.dp,
         macSize = 25.dp, keySize = 22.dp,
         headGap = 20.dp, chip = 34.dp, chipPad = 11.dp, chipsGap = 6.dp, brand = 28.dp,
-        capsule = 60.dp, capsuleGap = 10.dp, control = 42.dp, labelWidth = 93.dp,
+        capsule = 60.dp, capsuleGap = 10.dp, cardPad = 15.dp, cardGap = 13.dp, labelWidth = 91.dp,
         actionsTop = 14.dp, actionsGap = 12.dp, button = 50.dp,
         statusTop = 8.dp, statusHeight = 20.dp,
-        plate = 188.dp, zoneWidth = 250.dp, zonePad = 10.dp, zoneGap = 7.dp,
+        plate = 188.dp, zoneWidth = 242.dp, zonePad = 10.dp, zoneGap = 7.dp,
         bandGap = 20.dp, radius = 16.dp, zoneRadius = 18.dp, mark = 24.dp,
         target = 48.dp,
     )
@@ -667,9 +668,17 @@ private fun ActivationCard(
     IdentityCapsule(
         metrics = CapsuleMetrics(
             height = m.capsule,
-            startPadding = m.control * CARD_PAD,
-            gap = m.control * CARD_GAP,
-            target = m.control,
+            startPadding = m.cardPad,
+            gap = m.cardGap,
+            // The frame's floor, not the circle's drawn size. The drawing has a
+            // 52dp disc on a television and 42 on the shortest phone, and both
+            // are under the target a D-pad and a thumb need -- which is the
+            // defect that was called blocking the last time this control shipped
+            // 8dp short. The card grows to hold the target; the target does not
+            // shrink to fit the card. The inset and the inner gap stopped riding
+            // on it in the same change, so holding the floor widens the card once
+            // rather than three times.
+            target = m.target,
             corner = m.radius,
             labelWidth = m.labelWidth,
         ),
@@ -918,10 +927,6 @@ private const val CODE_LEADING = 1.3f
 /** Between the six pairs, and between the six digits, which want more air. */
 private const val CODE_TRACKING = 1.5f
 private const val KEY_TRACKING = 4f
-
-/** The card's inset and its inner gaps, against the control it has to hold. */
-private const val CARD_PAD = 0.36f
-private const val CARD_GAP = 0.30f
 
 /** A button's corner against the card's, and Refresh's label against the CTA's. */
 private const val BUTTON_CORNER = 0.9f
