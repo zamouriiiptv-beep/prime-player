@@ -43,6 +43,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -439,13 +440,28 @@ private fun TrialChip(m: Metrics, badge: String, days: Int) {
                 .clip(RoundedCornerShape(percent = 50))
                 .background(Palette.Azure70),
         )
+        // **The colour is stated, and that is the whole of this fix.**
+        //
+        // It was not, and the sentence came out black on a dark chip. `bodyMedium`
+        // declares a weight and a size and no colour, so `Text` fell through to
+        // `LocalContentColor` — which, outside a Material `Surface`, is black.
+        // Every other string on this screen is handed a colour explicitly; this
+        // one was the exception, and an exception is exactly what it looked like.
+        //
+        // White throughout, including the numeral: the whole string was asked for
+        // in white, so the seven can no longer be picked out by hue and is picked
+        // out by weight instead — Bold inside a SemiBold sentence, at 1.18 of its
+        // size. The azure it used to carry is gone with the hue, which is the
+        // trade the instruction makes.
         Text(
-            text = emphasiseNumber(badge, days, Palette.Azure70),
+            text = emphasiseNumber(badge, days, Palette.White, FontWeight.Bold),
             style = CastivioType.bodyMedium.copy(
                 fontSize = m.fsChip.value.sp,
                 lineHeight = (m.fsChip.value * CHIP_LEADING).sp,
+                fontWeight = FontWeight.SemiBold,
                 letterSpacing = 0.sp,
             ),
+            color = Palette.White,
             maxLines = 1,
         )
     }

@@ -171,13 +171,27 @@ fun StatusLine(
  *   separate [StatusChip] slot: the badge became one sentence and the accent had
  *   to come with it, or the chip would have lost its only colour to a rewording.
  */
-fun emphasiseNumber(text: String, count: Int, color: Color? = null): AnnotatedString {
+fun emphasiseNumber(
+    text: String,
+    count: Int,
+    color: Color? = null,
+    /**
+     * How much heavier the numeral is than the sentence around it.
+     *
+     * Defaulted, so every existing caller is unchanged. It exists because the
+     * emphasis has to survive the numeral and the sentence being the same
+     * colour: a SemiBold numeral inside SemiBold prose is not emphasised at
+     * all, and a caller that has just been told to make the whole string one
+     * colour needs the other axis.
+     */
+    weight: FontWeight = FontWeight.SemiBold,
+): AnnotatedString {
     val spellings = listOf(
         String.format(Locale.getDefault(), "%d", count),
         count.toString(),
     )
     val style = SpanStyle(
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = weight,
         color = color ?: Color.Unspecified,
     )
     return buildAnnotatedString {
