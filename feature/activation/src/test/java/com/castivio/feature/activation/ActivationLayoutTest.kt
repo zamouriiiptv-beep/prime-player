@@ -145,6 +145,47 @@ class ActivationLayoutTest {
     }
 
     /**
+     * The header's title is a line of type, not a slab the height of the row.
+     *
+     * ## The bug this is here for
+     *
+     * `CastivioHeader` measured its three slots with `constraints.copy(maxWidth =
+     * …)`, and the constraints it copied came from `Modifier.height`, which sets
+     * `minHeight == maxHeight`. So every slot was *required* to be exactly as tall
+     * as the row. A `Row` shrugs that off — it centres its own children, which is
+     * why the wordmark and the chips looked right and why this went unnoticed —
+     * but a `Text` handed a fixed height puts its one line at the **top** of it.
+     * The title rode eight dp above the wordmark on every device and in every
+     * language, and no arithmetic below the measure step could have corrected it:
+     * the placeable was already the row's height, so centring it was a no-op.
+     *
+     * ## Why this harness can see it, when it cannot see type
+     *
+     * Robolectric gives every `Text` the same 35dp whatever its style, which is
+     * what stops this file making claims about leading or fit. Here that is not a
+     * problem but the mechanism: 35 is *not* the header's height on any frame, so
+     * a title reporting the row's height reports the constraint rather than the
+     * text, and the two numbers cannot be confused. It is the rare defect a
+     * harness that cannot lay out text is perfectly placed to catch.
+     */
+    @Test
+    fun `the header's title is measured as text, not stretched to the row`() {
+        compose.setContent { Screen(Frame.Phone) }
+
+        val header = compose.onNodeWithTag(ActivationTags.HEADER)
+            .getUnclippedBoundsInRoot().height
+        val title = compose.onNodeWithText("Add a playlist", substring = true)
+            .getUnclippedBoundsInRoot().height
+
+        assertTrue(
+            "the title measures $title in a $header header — it was handed the " +
+                "row's own height, so its line is sitting at the top of the row " +
+                "rather than on the wordmark's baseline",
+            title < header,
+        )
+    }
+
+    /**
      * The status region's whole promise: nothing moves when it fills.
      *
      * §6.3 calls it a reserved height, and the only way to check a reservation is

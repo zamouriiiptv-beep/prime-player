@@ -654,6 +654,36 @@ var EN = {
     }
   })();
 
+  /* The title is seated on the wordmark's baseline, not centred beside it.
+
+     Centring two boxes is not putting two words on one line, and on this row it
+     visibly is not: the Arabic title is top-heavy -- alef, lam and ta rise where
+     nothing descends to answer them -- so a centred box gives a high word above a
+     wordmark sitting exactly where it should. A shared baseline is what "on the
+     same line" has meant since type was set in metal, and unlike a box it is the
+     same number in Chromium and on Android.
+
+     Measured rather than declared, because CSS cannot express it here: the lockup
+     is a flex row and a flex container takes its baseline from its first item,
+     which is the picture. So the two baselines are read off the rendered page and
+     the difference is applied, which is exactly what `CastivioHeader` does with
+     `FirstBaseline` -- one rule, stated twice, in the two places it has to hold.
+
+     A zero-sized inline-block sits ON the baseline of the line it is added to, so
+     its bottom edge is that baseline. It is removed again immediately. */
+  function baselineOf(el) {
+    var probe = document.createElement('span');
+    probe.style.cssText = 'display:inline-block;width:0;height:0;overflow:hidden';
+    el.appendChild(probe);
+    var y = probe.getBoundingClientRect().bottom;
+    el.removeChild(probe);
+    return y;
+  }
+  var titleEl = document.querySelector('.title');
+  var wordEl = document.querySelector('.wordmark span');
+  titleEl.style.position = 'relative';
+  titleEl.style.top = (baselineOf(wordEl) - baselineOf(titleEl)) + 'px';
+
   /* The fit, measured rather than reasoned. A negative spare here is the bug
      that ships: the Column hands zero to whatever it measured last. */
   var band = document.querySelector('.band');
@@ -711,6 +741,28 @@ var EN = {
       var rowMid = (H.top + H.bottom) / 2;
       function mid(el){ var r = el.getBoundingClientRect(); return (r.top + r.bottom) / 2; }
       window.__hdr = { inkGapTitle: gapA, inkGapTrial: gapB,
+        baselineGap: +(baselineOf(tEl) - baselineOf(wordEl)).toFixed(2),
+        // Where the INK sits, which is the only thing a reader sees. Canvas
+        // reports a run's real glyph bounds rather than its font's metrics, so
+        // this is the drawing's actual answer to "are they on the same level".
+        ink: (function () {
+          var cx = document.createElement('canvas').getContext('2d');
+          function band(el, text) {
+            var cs = getComputedStyle(el);
+            cx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+            var m = cx.measureText(text);
+            var base = baselineOf(el);
+            return { top: +(base - m.actualBoundingBoxAscent).toFixed(1),
+                     bot: +(base + m.actualBoundingBoxDescent).toFixed(1) };
+          }
+          var t = band(tEl, tEl.textContent);
+          var w = band(wordEl, wordEl.textContent);
+          var mk = document.querySelector('.brand').getBoundingClientRect();
+          return { titleMid: +((t.top + t.bot) / 2).toFixed(1),
+                   wordMid: +((w.top + w.bot) / 2).toFixed(1),
+                   markMid: +((mk.top + mk.bottom) / 2).toFixed(1),
+                   rowMid: +rowMid.toFixed(1) };
+        })(),
         offTitle:  +(mid(tEl) - rowMid).toFixed(2),
         offLockup: +(mid(lk) - rowMid).toFixed(2),
         offMark:   +(mid(kid[0]) - rowMid).toFixed(2),

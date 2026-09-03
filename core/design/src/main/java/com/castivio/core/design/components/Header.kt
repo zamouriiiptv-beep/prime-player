@@ -8,7 +8,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.AlignmentLine
+import androidx.compose.ui.layout.FirstBaseline
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.PlatformTextStyle
@@ -52,7 +55,34 @@ import kotlin.math.max
  * and the element that gives when a translation is long is the title, which is
  * the only one of the three whose full size is not load-bearing.
  *
- * @param height the row's height; the three slots are centred in it.
+ * ## The level: a baseline, not a box
+ *
+ * The title and the wordmark sit on **one baseline**. They used to be centred in
+ * the row instead, each in its own box, and that is not the same thing and does
+ * not look like it: the row sets two scripts, and centring a box centres the
+ * metrics of a font rather than the ink of a word. The Arabic title is top-heavy
+ * — alef, lam and ta rise where nothing descends to answer them — so its box came
+ * out centred and its word came out high, above a wordmark that was exactly where
+ * it should be. The drawing did not show this because Chromium's line box for
+ * IBM Plex Sans Arabic is not Android's, which is precisely why the rule has to
+ * be one that does not depend on either.
+ *
+ * A shared baseline does not. It is what "on the same line" has meant since type
+ * was set in metal, it is the only vertical relationship a reader actually
+ * perceives between two words, and it is exact rather than approximate: no font
+ * metric, no fudge factor, and no second opinion between the mockup and the
+ * device.
+ *
+ * It only became *possible* once the slots stopped being measured at the row's
+ * own fixed height — see the measure block. Both faults pointed the same way and
+ * the larger one hid the smaller: eight dp of the title's rise was the forced
+ * height, the last dp or so was the box.
+ *
+ * The chips stay centred, because a pill is a shape and not a word — its ink is
+ * its own outline, and an outline is centred, not seated.
+ *
+ * @param height the row's height. The chips are centred in it and the lockup
+ *   with them; the title is then seated on the lockup's baseline.
  * @param gap the one spacing value: between the lockup and the title, and
  *   between the title and the chips.
  */
@@ -72,25 +102,51 @@ fun CastivioHeader(
         val gapPx = gap.roundToPx()
         val total = constraints.maxWidth
         val rowH = constraints.maxHeight
-        val loose = constraints.copy(minWidth = 0, maxWidth = total)
+
+        // **Every slot is measured loose in BOTH axes**, and the second half of
+        // that is not a tidiness: `Modifier.height` arrives here as
+        // `minHeight == maxHeight == rowH`, and `constraints.copy(maxWidth = …)`
+        // carries it through untouched. A `Row` given a fixed height survives it,
+        // because a row centres its own children — which is why the lockup and
+        // the chips looked right. A `Text` does not. One line inside a box it was
+        // forced to fill sits at the **top** of that box, so the title was riding
+        // eight dp above a wordmark that was exactly where it should be, and no
+        // amount of arithmetic further down could have moved it: it was already
+        // as tall as the row, so `(rowH - height) / 2` was zero.
+        fun slot(width: Int) = androidx.compose.ui.unit.Constraints(
+            minWidth = 0, maxWidth = width, minHeight = 0, maxHeight = rowH,
+        )
 
         // The two ends take what they need; the title takes what is between them
         // and yields into it. Neither end is ever measured into a remainder,
         // which is the rule that was missing: one of the chips is the language
         // control, and a control squeezed to nothing to make room for a caption
         // is a control the user cannot reach.
-        val lock = lockM.first().measure(loose)
-        val chip = chipM.first().measure(loose)
+        val lock = lockM.first().measure(slot(total))
+        val chip = chipM.first().measure(slot(total))
         val middle = max(0, total - lock.width - chip.width - gapPx * 2)
-        val titleP = titleM.first().measure(constraints.copy(minWidth = 0, maxWidth = middle))
+        val titleP = titleM.first().measure(slot(middle))
+
+        // Where each of the three sits vertically. The lockup and the chips are
+        // centred; the title is seated on the lockup's baseline, and falls back
+        // to centring if either baseline is missing — which is what Robolectric
+        // reports, since it does not lay text out at all.
+        fun centre(p: Placeable) = (rowH - p.height) / 2
+        val lockY = centre(lock)
+        val lockBase = lock[FirstBaseline]
+        val titleBase = titleP[FirstBaseline]
+        val titleY = if (lockBase == AlignmentLine.Unspecified || titleBase == AlignmentLine.Unspecified) {
+            centre(titleP)
+        } else {
+            // Clamped to the row, so a title larger than the header it was given
+            // leans rather than hangs out of it.
+            (lockY + lockBase - titleBase).coerceIn(0, max(0, rowH - titleP.height))
+        }
 
         layout(total, rowH) {
-            fun place(p: androidx.compose.ui.layout.Placeable, x: Int) =
-                p.place(x, (rowH - p.height) / 2)
-
-            place(lock, 0)
-            place(titleP, lock.width + gapPx + (middle - titleP.width) / 2)
-            place(chip, total - chip.width)
+            lock.place(0, lockY)
+            titleP.place(lock.width + gapPx + (middle - titleP.width) / 2, titleY)
+            chip.place(total - chip.width, centre(chip))
         }
     }
 }
