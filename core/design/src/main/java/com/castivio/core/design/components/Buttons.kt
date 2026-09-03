@@ -29,8 +29,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
@@ -72,11 +75,29 @@ fun CastivioButton(
      * land on a button which does nothing is the television version of the same bug.
      */
     enabled: Boolean = true,
+    /**
+     * A different ramp for the primary fill.
+     *
+     * The default is `primaryBrush`, which is the azure every primary action in
+     * the app is drawn with. The activation screen's call to action is the width
+     * of a whole column, and a two-stop blue across that distance reads as a bar
+     * rather than as a button, so it passes `ctaBrush` instead. A parameter
+     * rather than a fourth `ButtonWeight`: the weight says what the control means
+     * and this says what it is painted with, and conflating the two is how a
+     * variant list starts growing.
+     */
+    fill: Brush? = null,
+    /** Overrides the corner. Null keeps `Radius.sm`. */
+    corner: Dp? = null,
+    /** Overrides the label's type. Null keeps `labelLarge`. */
+    labelStyle: TextStyle? = null,
+    /** A floor above the frame's own. The D-pad minimum still applies under it. */
+    minHeight: Dp? = null,
 ) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
     var focused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(Radius.sm)
+    val shape = RoundedCornerShape(corner ?: Radius.sm)
 
     val elevation by animateDpAsState(
         when {
@@ -111,12 +132,17 @@ fun CastivioButton(
             // television -- 8dp under `minTvTarget` and the same defect that was
             // called blocking when the activation screen's copy control had it.
             // A remote is not a thumb, and the constant that says so exists.
-            .defaultMinSize(minHeight = Sizing.minTarget(CastivioTheme.device.isTv))
+            .defaultMinSize(
+                minHeight = maxOf(
+                    Sizing.minTarget(CastivioTheme.device.isTv),
+                    minHeight ?: 0.dp,
+                ),
+            )
             .shadow(elevation, shape, ambientColor = Elevation.ambient, spotColor = glow)
             .clip(shape)
             .then(
                 when (weight) {
-                    ButtonWeight.Primary -> Modifier.background(colors.primaryBrush)
+                    ButtonWeight.Primary -> Modifier.background(fill ?: colors.primaryBrush)
                     ButtonWeight.Secondary -> Modifier
                         .background(colors.glassFillBrush)
                         .border(BorderStroke(1.dp, border), shape)
@@ -138,7 +164,7 @@ fun CastivioButton(
             if (icon != null) {
                 Icon(icon, null, tint = contentColor, modifier = Modifier.size(Sizing.iconMd))
             }
-            Text(text, color = contentColor, style = CastivioType.labelLarge)
+            Text(text, color = contentColor, style = labelStyle ?: CastivioType.labelLarge)
         }
     }
 }
@@ -215,7 +241,12 @@ fun CastivioChip(
             // Sixteen dp of padding around a 20dp line is a 36dp control, which
             // is under the floor on a thumb and well under it on a remote. The
             // padding still decides the *width*; the floor decides the height.
-            .defaultMinSize(minHeight = Sizing.minTarget(CastivioTheme.device.isTv))
+            .defaultMinSize(
+                minHeight = maxOf(
+                    Sizing.minTarget(CastivioTheme.device.isTv),
+                    minHeight ?: 0.dp,
+                ),
+            )
             .clip(shape)
             .background(colors.glassFillBrush)
             .border(BorderStroke(1.dp, border), shape)

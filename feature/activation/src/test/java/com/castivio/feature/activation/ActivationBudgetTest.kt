@@ -2,7 +2,6 @@ package com.castivio.feature.activation
 
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Sizing
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -42,18 +41,6 @@ import org.junit.Test
 class ActivationBudgetTest {
 
     /**
-     * The declared line heights this screen's height budget depends on.
-     *
-     * Read off the type scale rather than copied, so a change to `CastivioType`
-     * reaches this budget instead of silently invalidating it. Taken at a font
-     * scale of one, which is what the frames in `design/mockups/` are drawn at;
-     * a user-raised scale is the accessibility pass, not this one.
-     */
-    private val legal = CastivioType.bodySmall.lineHeight.value.dp
-    private val phoneTitle = CastivioType.headlineMedium.lineHeight.value.dp
-    private val tvTitle = CastivioType.headlineLarge.lineHeight.value.dp
-
-    /**
      * What a swiped-back navigation bar costs the tallest thing on screen.
      *
      * Activation runs immersive, so on a settled screen the insets are zero and
@@ -68,12 +55,7 @@ class ActivationBudgetTest {
     private fun spare(frame: Dp, tv: Boolean, inset: Dp = 0.dp): Dp {
         val usable = frame - inset
         val m = metricsFor(tv = tv, available = usable)
-        val band = m.bandHeight(
-            frame = usable,
-            title = if (tv) tvTitle else phoneTitle,
-            legal = legal,
-        )
-        return band - m.identityHeight()
+        return m.bandHeight(usable) - m.identityHeight()
     }
 
     /**
@@ -113,9 +95,9 @@ class ActivationBudgetTest {
     fun `the shortest phone keeps the margin the capsules bought it`() {
         val short = spare(360.dp, tv = false)
         assertTrue(
-            "the shortest phone is down to $short of margin; the capsules left it " +
-                "33dp and the inset budget needs most of that",
-            short >= 28.dp,
+            "the shortest phone is down to $short of margin; the field cards left " +
+                "it 40dp and the inset budget needs most of that",
+            short >= 34.dp,
         )
     }
 
@@ -163,12 +145,8 @@ class ActivationBudgetTest {
             for (inset in listOf(0.dp, INSET_ALLOWANCE)) {
                 val usable = frame - inset
                 val m = metricsFor(tv = tv, available = usable)
-                val band = m.bandHeight(
-                    frame = usable,
-                    title = if (tv) tvTitle else phoneTitle,
-                    legal = legal,
-                )
-                val code = m.codeHeight(caption = legal)
+                val band = m.bandHeight(usable)
+                val code = m.codeHeight()
                 assertTrue(
                     "$name with a $inset bar: the QR zone is $code in a $band band",
                     band - code > 0.dp,
@@ -228,7 +206,7 @@ class ActivationBudgetTest {
         val phone = metricsFor(tv = false, available = 393.dp)
 
         assertTrue("the 800x360 frame is not on the short set", short.edge == 26.dp)
-        assertTrue("the 873x393 frame is not on the tall set", phone.edge == 30.dp)
+        assertTrue("the 873x393 frame is not on the tall set", phone.edge == 32.dp)
         assertTrue("the two phone frames share a metric set", short != phone)
     }
 }

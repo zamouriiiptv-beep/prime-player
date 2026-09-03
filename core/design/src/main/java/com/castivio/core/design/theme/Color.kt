@@ -17,6 +17,15 @@ import androidx.compose.ui.graphics.Color
 object Palette {
 
     // -- Base: deep navy, darkest to lightest -----------------------------
+    /**
+     * Below [Void], and the reason the identity screen has any depth.
+     *
+     * Every surface used to sit inside a narrow band — ground near #241E50, glass
+     * a few percent above it, text at 95% — so nothing was dark and nothing was
+     * bright, and a composition with no black and no white reads as fog however
+     * carefully it is arranged. This is the black end that band was missing.
+     */
+    val Ink = Color(0xFF05040E)
     val Void = Color(0xFF08071A)
     val Abyss = Color(0xFF0D0B22)
     val Deep = Color(0xFF141031)
@@ -28,6 +37,8 @@ object Palette {
     val Azure40 = Color(0xFF2E6BFF)
     val Azure50 = Color(0xFF4C9BFF)
     val Azure60 = Color(0xFF6FB2FF)
+    /** Between [Azure60] and [Azure80]: a numeral that has to carry inside a chip. */
+    val Azure70 = Color(0xFF8FC0FF)
     val Azure80 = Color(0xFFB4D6FF)
 
     // -- Brand: violet -----------------------------------------------------
@@ -55,6 +66,26 @@ object Palette {
     val GlassLow = Color(0x0AFFFFFF)
     val GlassEdge = Color(0x3DFFFFFF)
     val GlassEdgeSoft = Color(0x14FFFFFF)
+
+    // -- Panes: a field card, which is glass drawn the other way round -------
+    //
+    // `GlassLow` and its family are *lighter* than the ground, which is what a
+    // sheet of glass over a photograph looks like. A field on a dark screen is
+    // the opposite: a pane sunk into the surface, darker than what surrounds it,
+    // found by its lit edge rather than by its fill. Drawing the identity fields
+    // as the lighter form is what removed the only dark the middle of the
+    // activation screen had, and is why it read washed out.
+    val PaneHigh = Color(0xCC241D5C)
+    val PaneLow = Color(0xBD0F0B2C)
+
+    // -- Edges: one for a field, one for a quiet surface, one for the focus ---
+    //
+    // Three, not four, and not one per component. Four surfaces that mean the
+    // same thing were being drawn four slightly different ways — .30 here, .26
+    // there, .22 on the footer — which is the decay a token exists to stop.
+    val EdgeCard = Color(0x477E8CFF)
+    val EdgeQuiet = Color(0x33A0A3D7)
+    val EdgeAccent = Color(0x669E74FF)
 
     // -- Status -------------------------------------------------------------
     val Success = Color(0xFF3DD68C)
@@ -161,6 +192,61 @@ class CastivioColors(
     /** Brand mark / badge fill: violet into azure. */
     val brandBrush: Brush
         get() = Brush.linearGradient(listOf(Palette.Violet40, Palette.Azure40))
+
+    /**
+     * The one filled control on a screen, and the only place this ramp appears.
+     *
+     * Four stops rather than [primaryBrush]'s three, and it starts a good way
+     * further into the violet: this is a call to action the width of a column,
+     * and a two-stop blue across that distance reads as a bar rather than as a
+     * button. Absolute left-to-right in both directions on purpose — the ramp is
+     * the brand's, like the wordmark, and a signature that reverses per locale is
+     * two signatures.
+     */
+    val ctaBrush: Brush
+        get() = Brush.horizontalGradient(
+            0.00f to Color(0xFF8B3FF5),
+            0.32f to Color(0xFF6A45EE),
+            0.72f to Color(0xFF3D63F5),
+            1.00f to Palette.Azure40,
+        )
+
+    /**
+     * A field card: a pane sunk into the surface, not glass laid over it.
+     *
+     * Vertical, lighter at the top, so the lit rim along its upper edge reads as
+     * a highlight on a solid rather than as a border drawn round a hole.
+     */
+    val paneBrush: Brush
+        get() = Brush.verticalGradient(listOf(Palette.PaneHigh, Palette.PaneLow))
+
+    /**
+     * A chip that carries information rather than a control.
+     *
+     * The trial count and the language button were the same neutral glass, which
+     * said they were the same kind of thing. One is a fact the user needs and the
+     * other is a control they may never touch, so the fact takes a tint of the
+     * brand and the control keeps the glass. A step apart, and still nowhere near
+     * the filled button — a chip that competes with a call to action is a chip
+     * that has been given the wrong job.
+     */
+    val trialChipBrush: Brush
+        get() = Brush.verticalGradient(listOf(Color(0x47564AD6), Color(0x38281E6E)))
+
+    /**
+     * The one lit container on the identity screen.
+     *
+     * Diagonal rather than vertical, and violet at the corner the light comes
+     * from, so the panel reads as catching the ground's own bloom instead of
+     * carrying a colour of its own.
+     */
+    val codePanelBrush: Brush
+        get() = Brush.linearGradient(
+            listOf(Color(0x8F2E1A74), Color(0x94100B2E), Color(0x9909071C)),
+        )
+
+    /** The disc behind an information glyph: a tint, not a button. */
+    val infoMarkFill: Color get() = Palette.Violet40.copy(alpha = 0.20f)
 
     /** Vertical sheen that gives a glass panel its lit top edge. */
     val glassFillBrush: Brush

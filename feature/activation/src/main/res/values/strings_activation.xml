@@ -22,8 +22,8 @@
 -->
 <resources>
     <string name="activation_title">Add a playlist</string>
-    <string name="mac_label">MAC ADDRESS</string>
-    <string name="key_label">DEVICE KEY</string>
+    <string name="mac_label">MAC address</string>
+    <string name="key_label">Device key</string>
     <string name="copy_mac">Copy MAC address</string>
     <string name="copy_key">Copy device key</string>
     <string name="copied_mac">MAC address copied</string>
@@ -41,8 +41,8 @@
     -->
     <string name="refresh_none">You can now add your first playlist.</string>
     <string name="refresh_error">Couldn’t refresh — try again</string>
-    <string name="qr_caption">Scan the QR code to activate this device.</string>
-    <string name="legal_player_only">Castivio is only a player and does not provide subscriptions or content.</string>
+    <string name="qr_caption">Scan the QR code with your phone to activate this device</string>
+    <string name="legal_player_only">Castivio is a multimedia player and does not provide any channels, content or subscriptions</string>
     <string name="mac_spoken">MAC address %s</string>
     <string name="language">Language</string>
     <string name="language_count">%d available</string>

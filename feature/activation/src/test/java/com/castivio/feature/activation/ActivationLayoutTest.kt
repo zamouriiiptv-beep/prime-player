@@ -360,8 +360,8 @@ private fun ComposeContentTestRule.assertActivationIsWhole(television: Boolean =
     )
     println(
         "activation text — title ${textSize("Add a playlist")} | " +
-            "legal ${textSize("Castivio is only a player")} | " +
-            "caption ${textSize("Scan the QR code to activate this device.")}",
+            "legal ${textSize("Castivio is a multimedia player")} | " +
+            "caption ${textSize("Scan the QR code with your phone")}",
     )
 
     // The three bands first. A band with no height is the failure this file
@@ -398,11 +398,11 @@ private fun ComposeContentTestRule.assertActivationIsWhole(television: Boolean =
     // asserting one against the Add playlist label.
     byDescription("the language control", "Language")
 
-    byText("the MAC label", "MAC ADDRESS")
+    byText("the MAC label", "MAC address")
     byDescription("the MAC address", "MAC address 2F 19 EB 20 44 7C")
     byDescription("the copy-MAC control", "Copy MAC address", min = MIN_TARGET)
 
-    byText("the device key label", "DEVICE KEY")
+    byText("the device key label", "Device key")
     byDescription("the device key", "482731")
     byDescription("the copy-key control", "Copy device key", min = MIN_TARGET)
 
@@ -428,9 +428,9 @@ private fun ComposeContentTestRule.assertActivationIsWhole(television: Boolean =
     check("the reserved status line") { onNodeWithTag(ActivationTags.STATUS).assertExists() }
 
     byTag("the QR fixture", ActivationTags.QR, min = 100.dp)
-    byText("the QR caption", "Scan the QR code to activate this device.")
+    byText("the QR caption", "Scan the QR code with your phone")
 
-    byText("the legal line", "Castivio is only a player")
+    byText("the legal line", "Castivio is a multimedia player")
 
     if (missing.isNotEmpty()) {
         val report = "The approved activation composition is incomplete. " +

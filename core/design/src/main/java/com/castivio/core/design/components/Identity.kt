@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -39,6 +40,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -90,7 +92,52 @@ data class CapsuleMetrics(
     val gap: Dp,
     /** The copy control's size: [Sizing.minTouchTarget] or [Sizing.minTvTarget]. */
     val target: Dp,
+    /**
+     * The corner, for [CapsuleForm.Card] only. A pill computes its own from its
+     * height and ignores this.
+     */
+    val corner: Dp = 0.dp,
+    /**
+     * A fixed column for the label, for [CapsuleForm.Card] only. Zero means the
+     * label sizes to its own text, which is the pill's behaviour.
+     *
+     * ## Why a card wants it fixed and a pill does not
+     *
+     * In the card the label and the value share a row and the value is centred in
+     * what is left, so the column decides where the value sits. "MAC address" and
+     * "Device key" are not the same length in any language, and two codes a few
+     * dp out of column read as a mistake rather than as two fields.
+     *
+     * It is also what keeps the address safe. The value is one line by contract —
+     * a MAC on two lines is two addresses to anyone reading it off a screen — so
+     * every dp the label takes is a dp the address loses. Left to size itself,
+     * German's `Geräteschlüssel` measures about 125dp against a 104dp column and
+     * pushes a 332dp address into a 318dp slot. Fixed, the label wraps to two
+     * lines inside its column and the address never moves: a field name on two
+     * lines is legible and complete, an address sliding out of its card is
+     * neither.
+     */
+    val labelWidth: Dp = 0.dp,
 )
+
+/**
+ * The two shapes an identifier is drawn in.
+ *
+ * [Pill] is what this component has always been and what the licence screen
+ * still asks for: a true pill on `glassFill`, label then value then control,
+ * each sized to itself.
+ *
+ * [Card] is the activation screen's field: a rounded rectangle on a pane that is
+ * *darker* than the ground, found by its lit edge, with the label in a fixed
+ * column at the leading edge, the value centred in the remainder, and the
+ * control on the trailing edge — reading order in whichever direction the reader
+ * reads, name then value then the action on it.
+ *
+ * One component, two forms, because the alternative is two components: the
+ * second gets a 1dp border because somebody preferred it, and six months later
+ * nobody can say which is correct. Invariant 6 exists for that.
+ */
+enum class CapsuleForm { Pill, Card }
 
 /**
  * The temperature a capsule is drawn at.
@@ -142,7 +189,18 @@ fun IdentityCapsule(
     spoken: String? = null,
     copyEnabled: Boolean = true,
     tint: CapsuleTint = CapsuleTint.None,
+    form: CapsuleForm = CapsuleForm.Pill,
+    /** The card's label type. Null keeps the pill's overline. */
+    labelStyle: TextStyle? = null,
 ) {
+    if (form == CapsuleForm.Card) {
+        IdentityCard(
+            metrics, label, value, valueStyle, copyLabel, isCopied, onCopy,
+            modifier, spoken, copyEnabled, tint, labelStyle,
+        )
+        return
+    }
+
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(percent = 50)
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
@@ -190,6 +248,98 @@ fun IdentityCapsule(
                 isCopied = isCopied,
                 onClick = onCopy,
                 fill = capsuleWell(tint),
+            )
+        }
+    }
+}
+
+/**
+ * The card form: a pane, a fixed label column, a centred value, a control.
+ *
+ * ## The order is reading order
+ *
+ * Name, then value, then the action on it — stated in the order the children are
+ * written and left to the row to mirror, so Arabic reads name-value-action from
+ * the right and English reads it from the left, with no `start`/`end` anywhere
+ * and nothing to remember to undo.
+ *
+ * ## The value is centred and the label is not
+ *
+ * The label anchors to the leading edge because it is prose; the value is
+ * centred in the space that remains because it is a figure, and a figure that
+ * hangs off one edge of a wide card looks stranded. With [CapsuleMetrics.labelWidth]
+ * fixed, "the space that remains" is the same on both cards, so the two codes sit
+ * on one axis.
+ */
+@Composable
+private fun IdentityCard(
+    metrics: CapsuleMetrics,
+    label: String,
+    value: String,
+    valueStyle: TextStyle,
+    copyLabel: String,
+    isCopied: Boolean,
+    onCopy: () -> Unit,
+    modifier: Modifier,
+    spoken: String?,
+    copyEnabled: Boolean,
+    tint: CapsuleTint,
+    labelStyle: TextStyle?,
+) {
+    val colors = CastivioTheme.colors
+    val shape = RoundedCornerShape(metrics.corner)
+
+    Row(
+        modifier
+            .height(metrics.height)
+            .shadow(CARD_LIFT, shape)
+            .clip(shape)
+            .background(colors.paneBrush)
+            .border(BorderStroke(1.dp, Palette.EdgeCard), shape)
+            .padding(horizontal = metrics.startPadding),
+        horizontalArrangement = Arrangement.spacedBy(metrics.gap),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = labelStyle ?: CastivioType.overline,
+            // White, and the whole of the lift that was available: at Mist the
+            // label was already at 0.85 of white's luminance, so white *is* the
+            // step and there is nothing above it. What says which of the two
+            // matters was never six percent of a near-white — it is 30dp of mono
+            // against 15dp of sans, and that is untouched.
+            color = Palette.White,
+            // Two lines, and only ever reached by a translation longer than the
+            // column. Wrapping a field name is recoverable; widening the column
+            // pushes the address out of the card, which is not.
+            maxLines = 2,
+            modifier = if (metrics.labelWidth > 0.dp) {
+                Modifier.width(metrics.labelWidth)
+            } else {
+                Modifier
+            },
+        )
+
+        Text(
+            text = ltrIsolate(value),
+            style = valueStyle,
+            color = Palette.White,
+            maxLines = 1,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .weight(1f)
+                .clearAndSetSemantics { contentDescription = spoken ?: value },
+        )
+
+        if (copyEnabled) {
+            CopyButton(
+                size = metrics.target,
+                label = copyLabel,
+                isCopied = isCopied,
+                onClick = onCopy,
+                fillBrush = controlBrush(tint),
+                ring = controlRing(tint),
+                iconTint = controlInk(tint),
             )
         }
     }
@@ -318,6 +468,20 @@ fun CopyButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     fill: Color? = null,
+    /** The card form's well: a ramp rather than a flat tint. Wins over [fill]. */
+    fillBrush: Brush? = null,
+    /**
+     * A rim at rest, for the card form only.
+     *
+     * The pill deliberately has none — inside a bordered pill a second outline a
+     * few dp from the first is what makes a control look bolted on. The card is
+     * wider and its own border is further away, so the disc needs an edge of its
+     * own or it reads as a smudge. Focus and the confirmation still override it,
+     * because those are the two moments the ring carries meaning.
+     */
+    ring: Color = Color.Transparent,
+    /** The glyph's colour at rest. Null keeps `onBackgroundVariant`. */
+    iconTint: Color? = null,
 ) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
@@ -327,7 +491,7 @@ fun CopyButton(
         when {
             focused -> colors.focusRing
             isCopied -> colors.success
-            else -> Color.Transparent
+            else -> ring
         },
         Motion.focusSpec(),
         label = "copyBorder",
@@ -339,7 +503,7 @@ fun CopyButton(
             .castivioFocusScale(Motion.focusScaleIcon, interaction)
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
             .clip(shape)
-            .background(fill ?: colors.glassFillStrong)
+            .background(fillBrush ?: SolidColor(fill ?: colors.glassFillStrong))
             .border(BorderStroke(1.dp, border), shape)
             .clickable(interaction, indication = null, onClick = onClick)
             .semantics { contentDescription = label },
@@ -348,7 +512,11 @@ fun CopyButton(
         Icon(
             imageVector = if (isCopied) Icons.Rounded.Check else Icons.Rounded.ContentCopy,
             contentDescription = null,
-            tint = if (isCopied) colors.success else colors.onBackgroundVariant,
+            tint = when {
+                isCopied -> colors.success
+                iconTint != null -> iconTint
+                else -> colors.onBackgroundVariant
+            },
             modifier = Modifier.size(Sizing.iconSm),
         )
     }
@@ -397,6 +565,35 @@ fun QrPlate(
  * order in an Arabic interface, and cannot reorder the row around it either.
  */
 fun ltrIsolate(value: String): String = "⁦$value⁩"
+
+/**
+ * The card's well, its rim and its glyph.
+ *
+ * Brighter than [capsuleWell], which the pill uses: the pill's control sits in a
+ * pale glass tube and has to step *down* to read as a well, while the card's sits
+ * on a pane darker than the ground and has to step *up* for the same reason. Same
+ * intent, opposite direction, because the surface underneath is the opposite.
+ */
+private fun controlBrush(tint: CapsuleTint): Brush? = when (tint) {
+    CapsuleTint.None -> null
+    CapsuleTint.Azure -> Brush.linearGradient(listOf(Color(0x803460E6), Color(0xD90E1448)))
+    CapsuleTint.Violet -> Brush.linearGradient(listOf(Color(0x80783EEB), Color(0xD91E0E48)))
+}
+
+private fun controlRing(tint: CapsuleTint): Color = when (tint) {
+    CapsuleTint.None -> Color.Transparent
+    CapsuleTint.Azure -> Color(0x6178AAFF)
+    CapsuleTint.Violet -> Color(0x61B48CFF)
+}
+
+private fun controlInk(tint: CapsuleTint): Color? = when (tint) {
+    CapsuleTint.None -> null
+    CapsuleTint.Azure -> Color(0xFFA8CBFF)
+    CapsuleTint.Violet -> Color(0xFFCDB2FF)
+}
+
+/** The card's drop shadow: enough to seat it on the ground, short of a dialog. */
+private val CARD_LIFT = 10.dp
 
 /** 2dp: what a 48dp control leaves in a 52dp pill, and 4 in a 64dp one. */
 private val CAPSULE_END = 2.dp
