@@ -27,6 +27,7 @@ import androidx.compose.material.icons.rounded.Smartphone
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,6 +38,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -46,6 +48,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.castivio.core.design.components.ButtonWeight
@@ -92,14 +95,22 @@ import com.castivio.core.design.theme.Spacing
  *
  * | frame | band | identity column | code panel | spare |
  * |---|---|---|---|---|
- * | 960×540 TV | 344 | 307 | 294 | 37 / 50 |
- * | 873×393 | 277 | 248 | 252 | 29 / 25 |
- * | 800×360 | 262 | 222 | 236 | 40 / 26 |
+ * | 960×540 TV | 344 | 292 | 270 | 52 / 74 |
+ * | 873×393 | 277 | 242 | 232 | 35 / 45 |
+ * | 800×360 | 262 | 222 | 218 | 40 / 44 |
  *
  * Measured in the drawing across four languages — Arabic, English, and the two
  * longest Latin translations, Spanish and Portuguese — because the header and the
  * caption are where a translation actually costs something. All twelve
- * combinations hold the caption to two lines and clear the address by 8 to 11dp.
+ * combinations hold the caption to three lines at worst, clear the address by 30
+ * to 35dp, and set the title at full size in every language but Portuguese and
+ * Spanish on the television.
+ *
+ * The identity column's margins went up by half again in this pass without
+ * anything on it getting smaller to look at: the field cards gave 8dp of frame
+ * each and the two buttons 6dp, and it was spent on the space between them rather
+ * than taken back into the band. A screen is not crowded because its parts are
+ * large; it is crowded because they are close.
  *
  * Those rows are not a comment: [bandHeight], [identityHeight] and [codeHeight]
  * compute them, and `ActivationBudgetTest` fails if any of them goes negative.
@@ -186,12 +197,12 @@ internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
         edge = 46.dp, stageTop = 24.dp, stageBottom = 22.dp,
         header = 54.dp, bandTop = 22.dp, bandBottom = 20.dp, footer = 54.dp,
         fsTitle = 26.dp, fsChip = 13.dp, fsLabel = 15.8.dp, fsCaption = 13.5.dp,
-        fsStatus = 15.dp, fsFooter = 13.5.dp, fsButton = 17.5.dp,
+        fsStatus = 15.dp, fsFooter = 13.5.dp, fsButton = 16.5.dp,
         macSize = 30.dp, keySize = 27.dp,
         headGap = 26.dp, chip = 44.dp, chipPad = 11.dp, chipsGap = 6.dp, brand = 40.dp,
-        capsule = 80.dp, capsuleGap = 18.dp, cardPad = 19.dp, cardGap = 16.dp, labelWidth = 106.dp,
-        actionsTop = 26.dp, actionsGap = 15.dp, button = 64.dp,
-        statusTop = 15.dp, statusHeight = 24.dp,
+        capsule = 72.dp, capsuleGap = 20.dp, cardPad = 17.dp, cardGap = 15.dp, labelWidth = 106.dp,
+        actionsTop = 30.dp, actionsGap = 20.dp, button = 58.dp,
+        statusTop = 16.dp, statusHeight = 24.dp,
         plate = 192.dp, zoneWidth = 244.dp, zonePad = 14.dp, zoneGap = 10.dp,
         bandGap = 32.dp, radius = 20.dp, zoneRadius = 26.dp, mark = 32.dp,
         target = 56.dp,
@@ -201,12 +212,12 @@ internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
         edge = 32.dp, stageTop = 10.dp, stageBottom = 6.dp,
         header = 42.dp, bandTop = 10.dp, bandBottom = 8.dp, footer = 40.dp,
         fsTitle = 20.dp, fsChip = 12.dp, fsLabel = 14.7.dp, fsCaption = 13.dp,
-        fsStatus = 14.dp, fsFooter = 13.dp, fsButton = 16.dp,
+        fsStatus = 14.dp, fsFooter = 13.dp, fsButton = 15.5.dp,
         macSize = 28.dp, keySize = 25.dp,
         headGap = 24.dp, chip = 36.dp, chipPad = 12.dp, chipsGap = 6.dp, brand = 31.dp,
-        capsule = 66.dp, capsuleGap = 12.dp, cardPad = 17.dp, cardGap = 14.dp, labelWidth = 99.dp,
-        actionsTop = 18.dp, actionsGap = 13.dp, button = 54.dp,
-        statusTop = 10.dp, statusHeight = 22.dp,
+        capsule = 60.dp, capsuleGap = 16.dp, cardPad = 15.dp, cardGap = 13.dp, labelWidth = 99.dp,
+        actionsTop = 22.dp, actionsGap = 18.dp, button = 50.dp,
+        statusTop = 12.dp, statusHeight = 22.dp,
         plate = 174.dp, zoneWidth = 234.dp, zonePad = 7.dp, zoneGap = 5.dp,
         bandGap = 24.dp, radius = 17.dp, zoneRadius = 20.dp, mark = 26.dp,
         target = 48.dp,
@@ -224,12 +235,12 @@ private fun shortPhone(available: Dp): Metrics {
         edge = 26.dp, stageTop = 8.dp, stageBottom = 6.dp,
         header = 36.dp, bandTop = 8.dp, bandBottom = 6.dp, footer = 34.dp,
         fsTitle = 19.dp, fsChip = 11.5.dp, fsLabel = 14.1.dp, fsCaption = 12.5.dp,
-        fsStatus = 13.5.dp, fsFooter = 12.5.dp, fsButton = 15.dp,
+        fsStatus = 13.5.dp, fsFooter = 12.5.dp, fsButton = 14.5.dp,
         macSize = 25.dp, keySize = 22.dp,
         headGap = 20.dp, chip = 34.dp, chipPad = 11.dp, chipsGap = 6.dp, brand = 28.dp,
-        capsule = 60.dp, capsuleGap = 10.dp, cardPad = 15.dp, cardGap = 13.dp, labelWidth = 95.dp,
-        actionsTop = 14.dp, actionsGap = 12.dp, button = 50.dp,
-        statusTop = 8.dp, statusHeight = 20.dp,
+        capsule = 56.dp, capsuleGap = 14.dp, cardPad = 14.dp, cardGap = 12.dp, labelWidth = 95.dp,
+        actionsTop = 18.dp, actionsGap = 16.dp, button = 48.dp,
+        statusTop = 10.dp, statusHeight = 20.dp,
         plate = 164.dp, zoneWidth = 220.dp, zonePad = 6.dp, zoneGap = 5.dp,
         bandGap = 20.dp, radius = 16.dp, zoneRadius = 18.dp, mark = 24.dp,
         target = 48.dp,
@@ -395,27 +406,49 @@ private fun Header(m: Metrics, trialDays: Int?, onOpenLanguage: () -> Unit) {
             )
         },
         chips = {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(m.chipsGap),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // The trial, as one sentence rather than a name and a count.
-                //
-                // The count comes from `EntitlementRepository` and is null until
-                // the sealed record has been read, so the chip is absent for an
-                // instant rather than announcing a seven that might turn out to
-                // be a two.
-                if (trialDays != null) {
-                    // Quantity and argument are the same number, which is what a
-                    // plural resource needs: Arabic and Polish choose different
-                    // forms for 1, 2, a few and many, and a string built here
-                    // would get all of that wrong.
-                    val badge = androidx.compose.ui.res.pluralStringResource(
-                        R.plurals.trial_badge, trialDays, trialDays,
-                    )
-                    TrialChip(m, badge, trialDays)
+            // **The pair's order is part of the row, not part of the sentence.**
+            //
+            // The row is pinned left to right, so what mirrors here is each chip's
+            // own text — and letting the *group* mirror as well put the fact at the
+            // screen's edge and the control inside it, which is that priority
+            // backwards. Read from the outer end inward the header now says the
+            // same thing in every language: the language control, the trial, the
+            // page's name, the mark. The control takes the outer end because it is
+            // the only thing in the header anyone presses, and an edge is where a
+            // thumb reaches and an eye returning to the screen lands first.
+            //
+            // Pinned the way the lockup is — by declaring a direction for the
+            // subtree rather than by putting a `start` on one of them — and each
+            // chip is handed the reader's own direction back, because the words
+            // inside a chip are language and the order of the two is not.
+            val reading = LocalLayoutDirection.current
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(m.chipsGap),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // The trial, as one sentence rather than a name and a count.
+                    //
+                    // The count comes from `EntitlementRepository` and is null until
+                    // the sealed record has been read, so the chip is absent for an
+                    // instant rather than announcing a seven that might turn out to
+                    // be a two.
+                    if (trialDays != null) {
+                        // Quantity and argument are the same number, which is what a
+                        // plural resource needs: Arabic and Polish choose different
+                        // forms for 1, 2, a few and many, and a string built here
+                        // would get all of that wrong.
+                        val badge = androidx.compose.ui.res.pluralStringResource(
+                            R.plurals.trial_badge, trialDays, trialDays,
+                        )
+                        CompositionLocalProvider(LocalLayoutDirection provides reading) {
+                            TrialChip(m, badge, trialDays)
+                        }
+                    }
+                    CompositionLocalProvider(LocalLayoutDirection provides reading) {
+                        LanguageChip(m, onOpenLanguage)
+                    }
                 }
-                LanguageChip(m, onOpenLanguage)
             }
         },
     )
@@ -448,7 +481,7 @@ private fun TrialChip(m: Metrics, badge: String, days: Int) {
                 .clip(RoundedCornerShape(percent = 50))
                 .background(Palette.Azure70),
         )
-        // **The colour is stated, and that is the whole of this fix.**
+        // **The colour is stated, and that is the whole of the first fix here.**
         //
         // It was not, and the sentence came out black on a dark chip. `bodyMedium`
         // declares a weight and a size and no colour, so `Text` fell through to
@@ -456,13 +489,21 @@ private fun TrialChip(m: Metrics, badge: String, days: Int) {
         // Every other string on this screen is handed a colour explicitly; this
         // one was the exception, and an exception is exactly what it looked like.
         //
-        // White throughout, including the numeral: the whole string was asked for
-        // in white, so the seven can no longer be picked out by hue and is picked
-        // out by weight instead — Bold inside a SemiBold sentence, at 1.18 of its
-        // size. The azure it used to carry is gone with the hue, which is the
-        // trade the instruction makes.
+        // The sentence is white. **The count is not**, and it is the only thing in
+        // it that is not: [Palette.Azure50], the saturated end of the mark's own
+        // ramp, at the size and weight the numeral already carried. What a reader
+        // needs from this chip is the number, and a number set apart by weight
+        // alone inside a white sentence is a number that has to be looked for.
+        //
+        // Azure50 rather than the paler Azure70 the dot beside it uses: at 13dp,
+        // inside a phrase of white, a near-white blue reads as white. The dot
+        // stays where it is — it is a marker, not a value, and two saturations of
+        // one hue is what an accent and its echo look like.
+        //
+        // Nothing else on the screen takes a hue from this. The address and the
+        // device key are white, and they stay white.
         Text(
-            text = emphasiseNumber(badge, days, Palette.White, FontWeight.Bold),
+            text = emphasiseNumber(badge, days, Palette.Azure50, FontWeight.Bold),
             style = CastivioType.bodyMedium.copy(
                 fontSize = m.fsChip.value.sp,
                 lineHeight = (m.fsChip.value * CHIP_LEADING).sp,
@@ -943,8 +984,15 @@ private const val ADDRESS_PLACEHOLDER = "··:··:··:··:··:··"
  * a splash screen that forgot to leave. The mark's job in a header is to say
  * whose screen this is, once, and then get out of the way of what the screen is
  * for.
+ *
+ * Down again, from .88, because the header carries four things and the wordmark
+ * is the only one that can give width without losing anything. A control cannot
+ * shrink below a thumb, a fact cannot be abbreviated, and a title that steps down
+ * is a title the reader notices stepping down. A signature is recognised by its
+ * shape rather than read at size, and the mark beside it is what carries the
+ * brand across a room.
  */
-private const val WORD_RATIO = 0.88f
+private const val WORD_RATIO = 0.80f
 
 /* ------------------------------------------------------------------- ratios */
 /*

@@ -11,7 +11,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.TextUnit
@@ -168,7 +170,7 @@ private fun Wordmark(size: TextUnit, modifier: Modifier = Modifier) {
             lineHeight = size,
             letterSpacing = tracking,
             brush = Brush.linearGradient(CastivioMark.colours),
-        ),
+        ).tightBox(),
         maxLines = 1,
         modifier = modifier.layout { measurable, constraints ->
             val placeable = measurable.measure(constraints)
@@ -179,6 +181,44 @@ private fun Wordmark(size: TextUnit, modifier: Modifier = Modifier) {
         },
     )
 }
+
+/**
+ * The same style, in a box that ends where the type does.
+ *
+ * ## Why a header needs this and a paragraph does not
+ *
+ * Android gives every `Text` a slab of *font padding* above the ascent and below
+ * the descent, sized from the font's own hinting metrics. In a paragraph nobody
+ * sees it. In a row of three things centred against each other it is the whole
+ * problem: the padding is a different size for IBM Plex Sans Arabic — which hangs
+ * marks high and drops tails deep — than for Inter, so centring the two boxes
+ * puts the two scripts on two different levels, by a few dp that the eye reads
+ * immediately as "the title is not on the wordmark's line".
+ *
+ * Dropping it leaves a box that runs from the font's ascent to its descent and
+ * nothing more. For type set in capitals — which the wordmark is — that box's
+ * centre and the capitals' own centre are the same point to within a rounding
+ * error, because a cap sits as far below the ascent as the descent sits below the
+ * baseline. So centring the box centres the ink, which is what the row was always
+ * trying to do.
+ *
+ * The leading is centred rather than distributed, for the second half of the same
+ * reason. Compose's default splits a line's extra height between ascent and
+ * descent *in proportion to them*, so a face with a deep descent — Arabic, again —
+ * takes more of it below than above and the box's centre drifts off the type's.
+ * An even split keeps the two together whatever the leading is set to.
+ *
+ * The drawing had this for free: CSS has no font padding, and `line-height:1`
+ * with `align-items:center` is exactly this. It is the one respect in which the
+ * mockup was not telling the truth about the device.
+ */
+private fun TextStyle.tightBox(): TextStyle = copy(
+    platformStyle = PlatformTextStyle(includeFontPadding = false),
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None,
+    ),
+)
 
 /**
  * The gap inside the lockup, as a fraction of the mark.
@@ -206,7 +246,7 @@ private const val LOCKUP_GAP_RATIO = 0.32f
 fun CastivioHeaderTitle(text: String, style: TextStyle, color: androidx.compose.ui.graphics.Color) {
     CastivioFittedText(
         text = text,
-        style = style,
+        style = style.tightBox(),
         color = color,
         modifier = Modifier.semantics { heading() },
     )
