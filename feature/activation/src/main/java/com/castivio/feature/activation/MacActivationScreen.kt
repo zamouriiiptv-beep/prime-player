@@ -192,7 +192,7 @@ internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
         capsule = 80.dp, capsuleGap = 18.dp, cardPad = 19.dp, cardGap = 16.dp, labelWidth = 106.dp,
         actionsTop = 26.dp, actionsGap = 15.dp, button = 64.dp,
         statusTop = 15.dp, statusHeight = 24.dp,
-        plate = 216.dp, zoneWidth = 262.dp, zonePad = 14.dp, zoneGap = 10.dp,
+        plate = 192.dp, zoneWidth = 244.dp, zonePad = 14.dp, zoneGap = 10.dp,
         bandGap = 32.dp, radius = 20.dp, zoneRadius = 26.dp, mark = 32.dp,
         target = 56.dp,
     )
@@ -207,7 +207,7 @@ internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
         capsule = 66.dp, capsuleGap = 12.dp, cardPad = 17.dp, cardGap = 14.dp, labelWidth = 99.dp,
         actionsTop = 18.dp, actionsGap = 13.dp, button = 54.dp,
         statusTop = 10.dp, statusHeight = 22.dp,
-        plate = 194.dp, zoneWidth = 252.dp, zonePad = 7.dp, zoneGap = 5.dp,
+        plate = 174.dp, zoneWidth = 234.dp, zonePad = 7.dp, zoneGap = 5.dp,
         bandGap = 24.dp, radius = 17.dp, zoneRadius = 20.dp, mark = 26.dp,
         target = 48.dp,
     )
@@ -230,7 +230,7 @@ private fun shortPhone(available: Dp): Metrics {
         capsule = 60.dp, capsuleGap = 10.dp, cardPad = 15.dp, cardGap = 13.dp, labelWidth = 95.dp,
         actionsTop = 14.dp, actionsGap = 12.dp, button = 50.dp,
         statusTop = 8.dp, statusHeight = 20.dp,
-        plate = 182.dp, zoneWidth = 236.dp, zonePad = 6.dp, zoneGap = 5.dp,
+        plate = 164.dp, zoneWidth = 220.dp, zonePad = 6.dp, zoneGap = 5.dp,
         bandGap = 20.dp, radius = 16.dp, zoneRadius = 18.dp, mark = 24.dp,
         target = 48.dp,
     )
@@ -239,7 +239,7 @@ private fun shortPhone(available: Dp): Metrics {
     // A bar is on screen. Take it out of the panel's own padding first, then off
     // the plate — twelve dp, which is what a gesture bar costs the panel once the
     // padding has given what it can.
-    return drawn.copy(plate = 160.dp, zonePad = 6.dp, zoneGap = 5.dp)
+    return drawn.copy(plate = 144.dp, zonePad = 6.dp, zoneGap = 5.dp)
 }
 
 /**
@@ -730,8 +730,9 @@ private fun ActivationCard(
 /**
  * The plate, its panel and the caption that says what to do with it.
  *
- * The plate holds its size across the three frames — 216 / 198 / 188dp — and what
- * gives way on a short screen is the space around it. The white margin inside the
+ * The plate is 192 / 174 / 164dp — an 11% step down from the first drawing, which
+ * read as a poster rather than as a code to point a phone at — and what gives way
+ * on a short screen is the space around it, not the symbol. The white margin inside the
  * plate is not decoration: it is the symbol's quiet zone, and a reader that cannot
  * find the quiet zone cannot find the symbol, so it scales with the plate rather
  * than being a fixed number.
