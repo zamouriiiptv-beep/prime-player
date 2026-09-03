@@ -636,14 +636,25 @@ private fun IdentityZone(
             horizontalArrangement = Arrangement.spacedBy(m.actionsGap),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // The one filled control on the screen, and it takes the width that
-            // is left. Refresh sizes to its own label, so a narrowing frame costs
-            // Refresh its width and never the call to action's.
+            // **Both are sized by the row, in a fixed proportion.**
+            //
+            // Refresh used to size to its own label and Add playlist to take what
+            // was left. That was right while Refresh was the lesser of the two,
+            // and it is not: a user who has just pasted a playlist URL on their
+            // phone presses Refresh, and a user who has not presses Add. Neither
+            // is the other's fallback, and a control drawn at a third of its
+            // neighbour's width says it is.
+            //
+            // 1.1 to 1 — near enough to equal that the two read as a pair, with
+            // just enough left over that the order of them is still visible
+            // without the fill having to say it a second time. The weights are a
+            // proportion of the row rather than of the labels, so Portuguese and
+            // Arabic get the same pair of buttons.
             CastivioButton(
                 text = stringResource(R.string.add_playlist),
                 weight = ButtonWeight.Primary,
                 onClick = onAddPlaylist,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(ACTION_LEAD),
                 fill = CastivioTheme.colors.ctaBrush,
                 corner = m.radius * BUTTON_CORNER,
                 labelStyle = buttonStyle(m.fsButton),
@@ -655,6 +666,7 @@ private fun IdentityZone(
                 icon = Icons.Rounded.Refresh,
                 enabled = identity.refresh != RefreshState.Checking,
                 onClick = onRefresh,
+                modifier = Modifier.weight(1f),
                 corner = m.radius * BUTTON_CORNER,
                 labelStyle = buttonStyle(m.fsButton * SECONDARY_LABEL),
                 minHeight = m.button,
@@ -1013,6 +1025,17 @@ private const val KEY_TRACKING = 4f
 
 /** A button's corner against the card's, and Refresh's label against the CTA's. */
 private const val BUTTON_CORNER = 0.9f
+
+/**
+ * How much wider the call to action is than Refresh.
+ *
+ * Not "how much of the row it takes": both buttons are weighted, so this is the
+ * ratio between them and nothing in the row is sized by its own label. Ten
+ * percent is the smallest difference that still reads as an order when the two
+ * sit side by side — below it they look like a mistake in the arithmetic, and far
+ * above it Refresh looks like the thing you do when Add playlist has failed.
+ */
+private const val ACTION_LEAD = 1.1f
 private const val SECONDARY_LABEL = 0.92f
 
 /** The QR's quiet zone, as a share of the plate. */

@@ -385,8 +385,26 @@ html[dir="rtl"] .header .chips .chip{direction:rtl}
   border-color:rgba(180,140,255,.38)}
 
 /* ---------------------------------------------------------------- actions */
-/* The primary takes the remaining width and the secondary sizes to its own
-   label, so a narrowing frame costs Refresh its width and never the CTA's. */
+/* Both are sized by the row, in a fixed proportion, rather than one taking what
+   the other left.
+
+   Refresh used to size to its own label -- correct while it was the lesser of
+   the two controls, and wrong now that it is not. A user who has pasted a
+   playlist URL on their phone presses Refresh, and a user who has not presses
+   Add; neither is the fallback for the other, and a control drawn at a third of
+   its neighbour's width says it is. So the split is 1.1 to 1 from a zero basis:
+   near enough to equal that they read as a pair, with just enough left over that
+   the order of the two is still visible without the fill having to say it twice.
+
+   A zero basis rather than `auto`, so the proportion is the proportion whatever
+   the two labels measure -- otherwise Portuguese's "Adicionar lista" against
+   "Atualizar" would set a different ratio in every language.
+
+   And no horizontal padding on either, which is not a detail: under
+   `box-sizing:border-box` a flex item's zero basis is a zero *content* box, so
+   Refresh's 17dp of padding came back as 36dp of basis it was handed before the
+   ratio was applied -- 1.15 measured out as 1.01. The padding was there to size
+   the button to its label, and the button is not sized by its label any more. */
 /* The gap is its own number now. It used to be a fraction of the button, which
    meant every dp taken off the button took a dp off the space beside it too --
    exactly the wrong coupling for a pass whose point is that the two controls
@@ -399,13 +417,13 @@ html[dir="rtl"] .header .chips .chip{direction:rtl}
 
 /* One filled control on the screen, and this is it. One shadow and a rim, where
    there used to be three shadows saying the same thing louder. */
-.btn.primary{flex:1 1 auto;min-width:0;color:#fff;
+.btn.primary{flex:1.1 1 0;min-width:0;color:#fff;
   background:linear-gradient(100deg,#8B3FF5 0%,#6A45EE 32%,#3D63F5 72%,#2E7BFF 100%);
   box-shadow:0 12px 30px rgba(88,60,240,.40), inset 0 1px 0 rgba(255,255,255,.26)}
 
 /* A control, not an offer: no pane of its own, no inner highlight, and text a
    step below white. Same height, so the target is not what was reduced. */
-.btn.secondary{flex:0 0 auto;padding:0 calc(var(--btn) * .58);
+.btn.secondary{flex:1 1 0;min-width:0;
   color:var(--text-2);font-weight:600;
   background:rgba(255,255,255,.045);border:1px solid var(--edge-quiet)}
 .btn.secondary svg{width:calc(var(--fs-btn) * 1.1);height:calc(var(--fs-btn) * 1.1);
@@ -714,6 +732,11 @@ var EN = {
       return { row: Math.round(h.width), title: w('.title'), lockup: lw,
                trial: w('.chip.trial'), lang: w('.chip.lang') };
     })());
+    })(),
+    actions: (function () {
+      function w(sel){ return Math.round(document.querySelector(sel).getBoundingClientRect().width); }
+      return { add: w('.btn.primary'), refresh: w('.btn.secondary'),
+               ratio: +(w('.btn.primary') / w('.btn.secondary')).toFixed(2) };
     })(),
     lockGap: Math.round(Math.abs(r.left > b.left ? r.left - b.right : b.left - r.right)),
     lockAlign: +((r.top + r.height / 2) - (b.top + b.height / 2)).toFixed(2)
