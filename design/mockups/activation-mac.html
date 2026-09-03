@@ -95,8 +95,8 @@ html[data-frame="tv"]{
   --capsule:80px; --capsule-gap:18px; --ctl:56px;
   --actions-top:26px; --btn:64px; --fs-btn:17.5px;
   --status-top:15px; --status:24px;
-  --card-pad:19px; --card-gap:16px; --label-w:102px;
-  --plate:216px; --zone-w:268px; --zone-pad:20px; --zone-gap:14px;
+  --card-pad:19px; --card-gap:16px; --label-w:106px;
+  --plate:216px; --zone-w:262px; --zone-pad:20px; --zone-gap:14px;
   --band-gap:32px; --radius:20px; --zone-radius:26px;
   --brand:40px;
 }
@@ -111,8 +111,8 @@ html[data-frame="p873"]{
   --capsule:66px; --capsule-gap:12px; --ctl:48px;
   --actions-top:18px; --btn:54px; --fs-btn:16px;
   --status-top:10px; --status:22px;
-  --card-pad:17px; --card-gap:14px; --label-w:95px;
-  --plate:198px; --zone-w:258px; --zone-pad:12px; --zone-gap:8px;
+  --card-pad:17px; --card-gap:14px; --label-w:99px;
+  --plate:198px; --zone-w:252px; --zone-pad:12px; --zone-gap:8px;
   --band-gap:24px; --radius:17px; --zone-radius:20px;
   --brand:31px;
 }
@@ -127,8 +127,8 @@ html[data-frame="p800"]{
   --capsule:60px; --capsule-gap:10px; --ctl:48px;
   --actions-top:14px; --btn:50px; --fs-btn:15px;
   --status-top:8px; --status:20px;
-  --card-pad:15px; --card-gap:13px; --label-w:91px;
-  --plate:188px; --zone-w:242px; --zone-pad:10px; --zone-gap:7px;
+  --card-pad:15px; --card-gap:13px; --label-w:95px;
+  --plate:188px; --zone-w:236px; --zone-pad:10px; --zone-gap:7px;
   --band-gap:20px; --radius:16px; --zone-radius:18px;
   --brand:28px;
 }
@@ -194,7 +194,7 @@ body{
 .header{flex:0 0 auto;height:var(--header);
   display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
   column-gap:var(--head-gap)}
-.title{justify-self:end;white-space:nowrap;
+.title{justify-self:center;white-space:nowrap;
   font-size:var(--fs-title);line-height:1.35;font-weight:700;color:var(--white)}
 
 /* The lockup: the mark, then the name -- pinned, in every language.
@@ -238,7 +238,7 @@ body{
 .brand{flex:0 0 auto;width:var(--brand);height:var(--brand);display:block;
   filter:drop-shadow(0 2px 7px rgba(0,0,0,.5))}
 
-.chips{justify-self:start;display:flex;align-items:center;gap:var(--chips-gap)}
+.chips{justify-self:center;display:flex;align-items:center;gap:var(--chips-gap)}
 .chip{display:flex;align-items:center;gap:8px;height:var(--chip);
   padding:0 var(--chip-pad);border-radius:999px;
   font-size:var(--fs-chip);line-height:1.45;white-space:nowrap}

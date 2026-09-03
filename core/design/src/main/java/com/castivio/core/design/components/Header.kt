@@ -41,10 +41,10 @@ import kotlin.math.min
  *     [ side ][ gap ][ mark ][ gap ][ side ]
  *
  * The two side columns are given the same width, which puts the middle column —
- * and the mark in it — at the exact centre. The title is placed at the **end** of
- * the leading column and the chips at the **start** of the trailing one, so both
- * of their inner edges land on a column boundary and the space either side of the
- * mark is the gap itself, the same number, whatever the strings do.
+ * and the mark in it — at the exact centre, and splits the header's space evenly
+ * either side of it in every language. Each side block is then centred in its own
+ * column, so the space that side has left over is divided between its outer
+ * margin and its inner gap rather than all of it going to one.
  *
  * When one side's content will not fit its share, that column takes what it needs
  * and the other takes the rest — the same yielding CSS grid does for `1fr` — so
@@ -110,11 +110,24 @@ fun CastivioHeader(
                 }
                 p.place(x, (rowH - p.height) / 2)
             }
-            // The title ends where the leading column ends.
-            place(titleP, lead - titleP.width)
+            // Each side block is centred in its own half.
+            //
+            // The halves are equal, so the header's space is already split evenly
+            // either side of the mark; what this decides is where the content
+            // sits inside its half, and therefore how that space is divided
+            // between an outer margin and an inner gap.
+            //
+            // Hugging the inner edge -- which is what this did, to make the two
+            // gaps exactly equal -- puts every dp of the difference into the
+            // outer margin. That is invisible in Arabic, where the title and the
+            // chips are within twenty dp of each other, and obvious in English,
+            // where the title is sixty dp shorter and ends up floating a hundred
+            // dp off the leading margin while the chips sit thirty off the
+            // trailing one. Centring halves both errors instead of zeroing one
+            // and doubling the other.
+            place(titleP, (lead - titleP.width) / 2)
             place(lock, lead + gapPx)
-            // The chips begin where the trailing column begins.
-            place(chipsP, lead + gapPx + lock.width + gapPx)
+            place(chipsP, lead + gapPx + lock.width + gapPx + (trail - chipsP.width) / 2)
         }
     }
 }
