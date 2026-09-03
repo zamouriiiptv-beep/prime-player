@@ -10,7 +10,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -30,7 +29,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
@@ -46,7 +44,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Motion
@@ -323,11 +320,17 @@ private fun IdentityCard(
             },
         )
 
-        FittedValue(
+        // Never clipped. A frame is chosen by its height and assumes a width, and
+        // the assumption breaks on a landscape handset narrower than the drawing:
+        // a truncated address is not a smaller address, it is a different one.
+        CastivioFittedText(
             text = ltrIsolate(value),
             style = valueStyle,
-            spoken = spoken ?: value,
-            modifier = Modifier.weight(1f),
+            color = Palette.White,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .weight(1f)
+                .clearAndSetSemantics { contentDescription = spoken ?: value },
         )
 
         if (copyEnabled) {
@@ -564,69 +567,6 @@ fun QrPlate(
  * order in an Arabic interface, and cannot reorder the row around it either.
  */
 fun ltrIsolate(value: String): String = "⁦$value⁩"
-
-/**
- * The value, at the largest size that fits the width it was actually given.
- *
- * ## Why a fixed size was not enough
- *
- * The card's drawn sizes come from three frames, and a frame is picked by its
- * *height*. Width is assumed, and the assumption breaks: a landscape handset
- * around 660dp wide gets the shortest frame's numbers, which were drawn for 800,
- * and the value box comes out about 130dp short of the address. `maxLines = 1`
- * does not wrap it -- it clips it, silently, in the middle of a hexadecimal pair.
- * A truncated MAC is worse than a small one by a wide margin: a small address is
- * read out correctly, and `3E:26:C1:EF:9` is read out wrong and believed.
- *
- * So the type yields instead. The text is laid out, and while it overflows its
- * width it is re-laid at 94% until it fits or reaches the floor -- three or four
- * passes at the worst case, all before anything is drawn, because the content is
- * held back until the size settles. A visible reflow from oversized to correct
- * would be its own defect.
- *
- * The floor exists so that a pathologically narrow card produces something too
- * small rather than something invisible; below it the clip is the lesser evil,
- * and `ActivationBudgetTest` is what stops any drawn frame ever reaching it.
- *
- * Compose 1.8 does this natively with `BasicText(autoSize = ...)`. This project
- * is on 1.7, so it is done by hand; the replacement is one line when the bill of
- * materials moves.
- */
-@Composable
-private fun RowScope.FittedValue(
-    text: String,
-    style: TextStyle,
-    spoken: String,
-    modifier: Modifier = Modifier,
-) {
-    var size by remember(text, style) { mutableStateOf(style.fontSize) }
-    var settled by remember(text, style) { mutableStateOf(false) }
-
-    Text(
-        text = text,
-        style = style.copy(fontSize = size),
-        color = Palette.White,
-        maxLines = 1,
-        softWrap = false,
-        textAlign = TextAlign.Center,
-        onTextLayout = { result ->
-            if (result.didOverflowWidth && size > FIT_FLOOR) {
-                size *= FIT_STEP
-            } else {
-                settled = true
-            }
-        },
-        modifier = modifier
-            .drawWithContent { if (settled) drawContent() }
-            .clearAndSetSemantics { contentDescription = spoken },
-    )
-}
-
-/** Six percent a pass: fine enough not to overshoot, coarse enough to converge. */
-private const val FIT_STEP = 0.94f
-
-/** Below this the card is broken in a way no font size can answer. */
-private val FIT_FLOOR = 11.sp
 
 /**
  * The card's well, its rim and its glyph.

@@ -8,7 +8,7 @@
    Castivio — the first screen, where a subscription is added.
 
    ?frame=tv | p873 | p800      the three frames, at their real dp geometry
-   ?lang=en                     the same screen in English, to check the mirror
+   ?lang=en | es | pt           the same screen mirrored, and its two longest
    ---------------------------------------------------------------------------
 
    This pass is a review, not a redesign. The composition, the palette, the
@@ -88,7 +88,7 @@ html[data-frame="tv"]{
   --W:960px; --H:540px;
   --edge:46px; --top:24px; --bottom:22px;
   --header:54px; --band-top:22px; --band-bottom:20px; --footer:54px;
-  --fs-title:30px; --fs-chip:14px; --fs-label:15.8px; --fs-cap:13.5px;
+  --fs-title:26px; --fs-chip:13px; --fs-label:15.8px; --fs-cap:13.5px;
   --fs-status:15px; --fs-foot:13.5px;
   --mac:30px; --key:27px;
   --chip:44px; --chip-pad:11px; --chips-gap:6px; --head-gap:26px; --mark:32px;
@@ -96,7 +96,7 @@ html[data-frame="tv"]{
   --actions-top:26px; --btn:64px; --fs-btn:17.5px;
   --status-top:15px; --status:24px;
   --card-pad:19px; --card-gap:16px; --label-w:106px;
-  --plate:216px; --zone-w:262px; --zone-pad:20px; --zone-gap:14px;
+  --plate:216px; --zone-w:262px; --zone-pad:14px; --zone-gap:10px;
   --band-gap:32px; --radius:20px; --zone-radius:26px;
   --brand:40px;
 }
@@ -104,7 +104,7 @@ html[data-frame="p873"]{
   --W:873px; --H:393px;
   --edge:32px; --top:10px; --bottom:6px;
   --header:42px; --band-top:10px; --band-bottom:8px; --footer:40px;
-  --fs-title:23px; --fs-chip:13px; --fs-label:14.7px; --fs-cap:13px;
+  --fs-title:20px; --fs-chip:12px; --fs-label:14.7px; --fs-cap:13px;
   --fs-status:14px; --fs-foot:13px;
   --mac:28px; --key:25px;
   --chip:36px; --chip-pad:12px; --chips-gap:6px; --head-gap:24px; --mark:26px;
@@ -112,7 +112,7 @@ html[data-frame="p873"]{
   --actions-top:18px; --btn:54px; --fs-btn:16px;
   --status-top:10px; --status:22px;
   --card-pad:17px; --card-gap:14px; --label-w:99px;
-  --plate:198px; --zone-w:252px; --zone-pad:12px; --zone-gap:8px;
+  --plate:194px; --zone-w:252px; --zone-pad:7px; --zone-gap:5px;
   --band-gap:24px; --radius:17px; --zone-radius:20px;
   --brand:31px;
 }
@@ -120,7 +120,7 @@ html[data-frame="p800"]{
   --W:800px; --H:360px;
   --edge:26px; --top:8px; --bottom:6px;
   --header:36px; --band-top:8px; --band-bottom:6px; --footer:34px;
-  --fs-title:21px; --fs-chip:12.5px; --fs-label:14.1px; --fs-cap:12.5px;
+  --fs-title:19px; --fs-chip:11.5px; --fs-label:14.1px; --fs-cap:12.5px;
   --fs-status:13.5px; --fs-foot:12.5px;
   --mac:25px; --key:22px;
   --chip:34px; --chip-pad:11px; --chips-gap:6px; --head-gap:20px; --mark:24px;
@@ -128,7 +128,7 @@ html[data-frame="p800"]{
   --actions-top:14px; --btn:50px; --fs-btn:15px;
   --status-top:8px; --status:20px;
   --card-pad:15px; --card-gap:13px; --label-w:95px;
-  --plate:188px; --zone-w:236px; --zone-pad:10px; --zone-gap:7px;
+  --plate:182px; --zone-w:236px; --zone-pad:6px; --zone-gap:5px;
   --band-gap:20px; --radius:16px; --zone-radius:18px;
   --brand:28px;
 }
@@ -194,7 +194,7 @@ body{
 .header{flex:0 0 auto;height:var(--header);
   display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
   column-gap:var(--head-gap)}
-.title{justify-self:center;white-space:nowrap;
+.title{justify-self:center;min-width:0;max-width:100%;white-space:nowrap;overflow:hidden;
   font-size:var(--fs-title);line-height:1.35;font-weight:700;color:var(--white)}
 
 /* The lockup: the mark, then the name -- pinned, in every language.
@@ -217,10 +217,10 @@ body{
   display:flex;align-items:center;gap:calc(var(--brand) * .32)}
 .wordmark span{
   font-family:"Castivio Sans",sans-serif;font-weight:700;line-height:1;
-  font-size:calc(var(--fs-title) * 1.07);
+  font-size:var(--fs-title);
   /* CastivioMark.TRACKING_RATIO, the value :core:design already publishes for
      this mark. It was 0.26 here, which is a second opinion about the brand. */
-  letter-spacing:calc(var(--fs-title) * 1.07 * .25);
+  letter-spacing:calc(var(--fs-title) * .25);
   /* Letter-spacing is added AFTER every character, the last one included, so the
      final O carries a quarter-em of empty box behind it that nothing draws in.
      The grid was centring that box, which is honest arithmetic and a visibly
@@ -230,7 +230,7 @@ body{
 
      `margin-inline-end`, inside a subtree that has already declared itself ltr,
      so it is the trailing edge of the *word* and not of the screen. */
-  margin-inline-end:calc(var(--fs-title) * 1.07 * -.25);
+  margin-inline-end:calc(var(--fs-title) * -.25);
   background:linear-gradient(97deg,#A86BFF 0%,#7B4BEE 30%,#3D6BFF 70%,#3A9BFF 100%);
   -webkit-background-clip:text;background-clip:text;color:transparent;
   filter:drop-shadow(0 0 16px rgba(124,75,255,.42));
@@ -238,7 +238,8 @@ body{
 .brand{flex:0 0 auto;width:var(--brand);height:var(--brand);display:block;
   filter:drop-shadow(0 2px 7px rgba(0,0,0,.5))}
 
-.chips{justify-self:center;display:flex;align-items:center;gap:var(--chips-gap)}
+.chips{justify-self:center;display:flex;align-items:center;gap:var(--chips-gap);
+  flex:0 0 auto;white-space:nowrap}
 .chip{display:flex;align-items:center;gap:8px;height:var(--chip);
   padding:0 var(--chip-pad);border-radius:999px;
   font-size:var(--fs-chip);line-height:1.45;white-space:nowrap}
@@ -530,6 +531,20 @@ var ICON = {
 };
 
 /* English, only so the screen can be *shown* mirroring rather than claimed to. */
+var PT = {
+  title:"Adicionar uma lista de reprodução", trial:'<span class="dot"></span>Período de teste de <b>7</b> dias',
+  lang:"Idioma", macLabel:'Endereço <span class="iso accent">MAC</span>', keyLabel:"Chave do dispositivo",
+  add:"Adicionar lista", refresh:"Atualizar", hint:"Adicione a sua primeira lista para começar",
+  qr:"Leia o código <b>QR</b> com o telemóvel para ativar este dispositivo",
+  legal:"O <b>Castivio</b> é apenas um reprodutor multimédia"
+};
+var ES = {
+  title:"Añadir una lista de reproducción", trial:'<span class="dot"></span>Prueba de <b>7</b> días',
+  lang:"Idioma", macLabel:'Dirección <span class="iso accent">MAC</span>', keyLabel:"Clave del dispositivo",
+  add:"Añadir lista", refresh:"Actualizar", hint:"Ya puedes añadir tu primera lista",
+  qr:"Escanea el código <b>QR</b> para activar este dispositivo",
+  legal:"<b>Castivio</b> es solo un reproductor multimedia"
+};
 var EN = {
   title:"Add a playlist", trial:'<span class="dot"></span>7-day trial', lang:"Language",
   macLabel:'<span class="iso accent">MAC</span> address', keyLabel:"Device key",
@@ -541,18 +556,43 @@ var EN = {
 (function () {
   var q = new URLSearchParams(location.search);
   document.documentElement.dataset.frame = q.get("frame") || "tv";
-  var en = q.get("lang") === "en";
+  // The two longest Latin translations are here because they are what the
+  // header was tuned against: Portuguese's title is two and a half times
+  // English's, and it is the case that decides whether the language control
+  // survives the row.
+  var code = q.get("lang") || "ar";
+  var en = code !== "ar";
+  var T = code === "pt" ? PT : code === "es" ? ES : EN;
   if (en) {
-    document.documentElement.lang = "en";
+    document.documentElement.lang = code;
     document.documentElement.dir = "ltr";
     document.querySelectorAll("[data-s]").forEach(function (n) {
-      if (EN[n.dataset.s] != null) n.innerHTML = EN[n.dataset.s];
+      if (T[n.dataset.s] != null) n.innerHTML = T[n.dataset.s];
     });
   }
   document.querySelectorAll('[data-qr]').forEach(function (n) { n.innerHTML = qrSvg(); });
   document.querySelectorAll('[data-icon]').forEach(function (n) { n.innerHTML = ICON[n.dataset.icon]; });
   document.getElementById('lang').innerHTML =
-    '<span>' + (en ? EN.lang : 'اللغة') + '</span>' + ICON.globe;
+    '<span>' + (en ? T.lang : 'اللغة') + '</span>' + ICON.globe;
+
+  /* The title yields, and nothing else does.
+     The chips are a control and a fact and keep their intrinsic width; the mark
+     is the brand and keeps its size; the title is the one element whose full
+     text is not load-bearing -- it names the screen the reader is already on.
+     So when a translation will not fit the column it is given, the title steps
+     down until it does. Uniform where it fits, which is every language but the
+     longest two, and smaller only where the alternative is a clipped word or a
+     language button squeezed out of existence. */
+  (function fitTitle() {
+    var t = document.querySelector('.title');
+    var size = parseFloat(getComputedStyle(t).fontSize);
+    var floor = size * 0.62;
+    var guard = 0;
+    while (t.scrollWidth > t.clientWidth + 0.5 && size > floor && guard++ < 40) {
+      size *= 0.94;
+      t.style.fontSize = size + 'px';
+    }
+  })();
 
   /* The fit, measured rather than reasoned. A negative spare here is the bug
      that ships: the Column hands zero to whatever it measured last. */
@@ -594,7 +634,8 @@ var EN = {
     }),
     header: (function () {
       var H = document.querySelector('.header').getBoundingClientRect();
-      var t = document.querySelector('.title').getBoundingClientRect();
+      var tEl = document.querySelector('.title');
+      var t = tEl.getBoundingClientRect();
       var lk = document.querySelector('.wordmark');
       var m = lk.getBoundingClientRect();
       var kid = lk.children;
@@ -606,6 +647,8 @@ var EN = {
       var gapA = Math.round(Math.min(Math.abs(ink.left - t.right), Math.abs(t.left - ink.right)));
       var gapB = Math.round(Math.min(Math.abs(c.left - ink.right), Math.abs(ink.left - c.right)));
       window.__hdr = { inkGapTitle: gapA, inkGapTrial: gapB,
+        titleSize: +parseFloat(getComputedStyle(tEl).fontSize).toFixed(1),
+        titleClipped: Math.max(0, Math.round(tEl.scrollWidth - tEl.clientWidth)),
         inkOffCentre: +(((ink.left + ink.right) / 2) - ((H.left + H.right) / 2)).toFixed(2) };
       return Object.assign(window.__hdr, (function () {
       var h = document.querySelector('.header').getBoundingClientRect();

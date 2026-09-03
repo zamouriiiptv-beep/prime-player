@@ -83,20 +83,22 @@ fun CastivioHeader(
         val available = max(0, total - lock.width - gapPx * 2)
         val share = available / 2
 
-        val titleWanted = titleM.first().maxIntrinsicWidth(rowH)
         val chipsWanted = chipM.first().maxIntrinsicWidth(rowH)
 
-        // `1fr` floors at its content: the column that needs more than its share
-        // takes it, and the other keeps the remainder.
-        var lead = share
-        var trail = share
-        if (chipsWanted > share) {
-            trail = min(chipsWanted, available)
-            lead = available - trail
-        } else if (titleWanted > share) {
-            lead = min(titleWanted, available)
-            trail = available - lead
-        }
+        // The chips are never squeezed, and that is a priority rather than a
+        // preference: one of them is the language control, and a control that
+        // shrinks to nothing to make room for a caption is a control the user
+        // cannot reach. In Spanish and Portuguese the title is two and a half
+        // times its English width, and the old rule -- grow whichever side asks
+        // for more -- let it take the row and push the globe off the end of it.
+        //
+        // So the trailing column takes at least its content, and the title keeps
+        // what is left and yields into it. The mark stays centred while both
+        // sides fit inside their half, which is every language but the two
+        // longest; past that the mark drifts by half the chips' excess, and that
+        // is the right thing to give up.
+        val trail = min(max(share, chipsWanted), available)
+        val lead = available - trail
 
         val titleP = titleM.first().measure(constraints.copy(minWidth = 0, maxWidth = max(0, lead)))
         val chipsP = chipM.first().measure(constraints.copy(minWidth = 0, maxWidth = max(0, trail)))
@@ -228,14 +230,25 @@ private fun Wordmark(size: TextUnit, modifier: Modifier = Modifier) {
  */
 private const val LOCKUP_GAP_RATIO = 0.32f
 
-/** A heading, for a reader that navigates by them. */
+/**
+ * The screen's name: a heading, one line, at whatever size that line allows.
+ *
+ * It is the one element in the header that yields. The chips are a control and a
+ * fact and keep their intrinsic width; the mark is the brand and keeps its size;
+ * the title names the screen the reader is already looking at, so of the three it
+ * is the one whose full size is least load-bearing — and unlike the other two it
+ * varies by a factor of two and a half across the languages Castivio ships.
+ *
+ * Uniform wherever it fits, which is every language but the longest few, and
+ * smaller only where the alternative is a clipped word or a language button
+ * squeezed out of the row.
+ */
 @Composable
 fun CastivioHeaderTitle(text: String, style: TextStyle, color: androidx.compose.ui.graphics.Color) {
-    Text(
+    CastivioFittedText(
         text = text,
         style = style,
         color = color,
-        maxLines = 1,
         modifier = Modifier.semantics { heading() },
     )
 }

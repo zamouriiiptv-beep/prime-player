@@ -92,9 +92,14 @@ import com.castivio.core.design.theme.Spacing
  *
  * | frame | band | identity column | code panel | spare |
  * |---|---|---|---|---|
- * | 960×540 TV | 344 | 307 | 311 | 37 / 33 |
- * | 873×393 | 277 | 248 | 269 | 29 / 8 |
- * | 800×360 | 262 | 222 | 253 | 40 / 9 |
+ * | 960×540 TV | 344 | 307 | 294 | 37 / 50 |
+ * | 873×393 | 277 | 248 | 252 | 29 / 25 |
+ * | 800×360 | 262 | 222 | 236 | 40 / 26 |
+ *
+ * Measured in the drawing across four languages — Arabic, English, and the two
+ * longest Latin translations, Spanish and Portuguese — because the header and the
+ * caption are where a translation actually costs something. All twelve
+ * combinations hold the caption to two lines and clear the address by 8 to 11dp.
  *
  * Those rows are not a comment: [bandHeight], [identityHeight] and [codeHeight]
  * compute them, and `ActivationBudgetTest` fails if any of them goes negative.
@@ -180,14 +185,14 @@ internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
     tv -> Metrics(
         edge = 46.dp, stageTop = 24.dp, stageBottom = 22.dp,
         header = 54.dp, bandTop = 22.dp, bandBottom = 20.dp, footer = 54.dp,
-        fsTitle = 30.dp, fsChip = 14.dp, fsLabel = 15.8.dp, fsCaption = 13.5.dp,
+        fsTitle = 26.dp, fsChip = 13.dp, fsLabel = 15.8.dp, fsCaption = 13.5.dp,
         fsStatus = 15.dp, fsFooter = 13.5.dp, fsButton = 17.5.dp,
         macSize = 30.dp, keySize = 27.dp,
         headGap = 26.dp, chip = 44.dp, chipPad = 11.dp, chipsGap = 6.dp, brand = 40.dp,
         capsule = 80.dp, capsuleGap = 18.dp, cardPad = 19.dp, cardGap = 16.dp, labelWidth = 106.dp,
         actionsTop = 26.dp, actionsGap = 15.dp, button = 64.dp,
         statusTop = 15.dp, statusHeight = 24.dp,
-        plate = 216.dp, zoneWidth = 262.dp, zonePad = 20.dp, zoneGap = 14.dp,
+        plate = 216.dp, zoneWidth = 262.dp, zonePad = 14.dp, zoneGap = 10.dp,
         bandGap = 32.dp, radius = 20.dp, zoneRadius = 26.dp, mark = 32.dp,
         target = 56.dp,
     )
@@ -195,14 +200,14 @@ internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
     else -> Metrics(
         edge = 32.dp, stageTop = 10.dp, stageBottom = 6.dp,
         header = 42.dp, bandTop = 10.dp, bandBottom = 8.dp, footer = 40.dp,
-        fsTitle = 23.dp, fsChip = 13.dp, fsLabel = 14.7.dp, fsCaption = 13.dp,
+        fsTitle = 20.dp, fsChip = 12.dp, fsLabel = 14.7.dp, fsCaption = 13.dp,
         fsStatus = 14.dp, fsFooter = 13.dp, fsButton = 16.dp,
         macSize = 28.dp, keySize = 25.dp,
         headGap = 24.dp, chip = 36.dp, chipPad = 12.dp, chipsGap = 6.dp, brand = 31.dp,
         capsule = 66.dp, capsuleGap = 12.dp, cardPad = 17.dp, cardGap = 14.dp, labelWidth = 99.dp,
         actionsTop = 18.dp, actionsGap = 13.dp, button = 54.dp,
         statusTop = 10.dp, statusHeight = 22.dp,
-        plate = 198.dp, zoneWidth = 252.dp, zonePad = 12.dp, zoneGap = 8.dp,
+        plate = 194.dp, zoneWidth = 252.dp, zonePad = 7.dp, zoneGap = 5.dp,
         bandGap = 24.dp, radius = 17.dp, zoneRadius = 20.dp, mark = 26.dp,
         target = 48.dp,
     )
@@ -218,14 +223,14 @@ private fun shortPhone(available: Dp): Metrics {
     val drawn = Metrics(
         edge = 26.dp, stageTop = 8.dp, stageBottom = 6.dp,
         header = 36.dp, bandTop = 8.dp, bandBottom = 6.dp, footer = 34.dp,
-        fsTitle = 21.dp, fsChip = 12.5.dp, fsLabel = 14.1.dp, fsCaption = 12.5.dp,
+        fsTitle = 19.dp, fsChip = 11.5.dp, fsLabel = 14.1.dp, fsCaption = 12.5.dp,
         fsStatus = 13.5.dp, fsFooter = 12.5.dp, fsButton = 15.dp,
         macSize = 25.dp, keySize = 22.dp,
         headGap = 20.dp, chip = 34.dp, chipPad = 11.dp, chipsGap = 6.dp, brand = 28.dp,
         capsule = 60.dp, capsuleGap = 10.dp, cardPad = 15.dp, cardGap = 13.dp, labelWidth = 95.dp,
         actionsTop = 14.dp, actionsGap = 12.dp, button = 50.dp,
         statusTop = 8.dp, statusHeight = 20.dp,
-        plate = 188.dp, zoneWidth = 236.dp, zonePad = 10.dp, zoneGap = 7.dp,
+        plate = 182.dp, zoneWidth = 236.dp, zonePad = 6.dp, zoneGap = 5.dp,
         bandGap = 20.dp, radius = 16.dp, zoneRadius = 18.dp, mark = 24.dp,
         target = 48.dp,
     )
@@ -234,7 +239,7 @@ private fun shortPhone(available: Dp): Metrics {
     // A bar is on screen. Take it out of the panel's own padding first, then off
     // the plate — twelve dp, which is what a gesture bar costs the panel once the
     // padding has given what it can.
-    return drawn.copy(plate = 176.dp, zonePad = 8.dp, zoneGap = 6.dp)
+    return drawn.copy(plate = 160.dp, zonePad = 6.dp, zoneGap = 5.dp)
 }
 
 /**
@@ -277,11 +282,12 @@ internal fun Metrics.identityHeight(): Dp =
 /**
  * What the code panel needs: the plate, its padding, the gap and the caption.
  *
- * @param captionLines budgeted at **two**, measured rather than reasoned. The
- *   caption became a longer sentence — it now says to use a phone — and at the
- *   panel widths this screen gives it, Arabic and English both take two lines on
- *   all three frames. Budgeting one would be budgeting for a caption this screen
- *   no longer has.
+ * @param captionLines budgeted at **three**, which is one more than any of the
+ *   twelve frame-and-language combinations in the drawing actually produces. The
+ *   caption is a sentence and Castivio ships thirty-seven of them; two is what
+ *   Arabic, English, Spanish and Portuguese take, and the spare line is for the
+ *   one nobody measured. A budget that is exactly the measurement is a budget
+ *   that fails the first time a translator is generous.
  */
 internal fun Metrics.codeHeight(captionLines: Int = CAPTION_LINES): Dp =
     plate + zonePad * 2 + zoneGap + fsCaption * CAPTION_LEADING * captionLines
@@ -385,7 +391,7 @@ private fun Header(m: Metrics, trialDays: Int?, onOpenLanguage: () -> Unit) {
                 color = Palette.White,
             )
         },
-        lockup = { CastivioLockup(markSize = m.brand, wordSize = (m.fsTitle.value * WORD_RATIO).sp) },
+        lockup = { CastivioLockup(markSize = m.brand, wordSize = m.fsTitle.value.sp) },
         chips = {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(m.chipsGap),
@@ -932,8 +938,6 @@ private const val ADDRESS_PLACEHOLDER = "··:··:··:··:··:··"
  * beside a 28dp one, and the frame table is long enough already.
  */
 
-/** The wordmark against the title: the mark reads a shade larger than the words. */
-private const val WORD_RATIO = 1.07f
 private const val TITLE_LEADING = 1.35f
 private const val CHIP_LEADING = 1.45f
 private const val LABEL_LEADING = 1.4f
@@ -953,7 +957,7 @@ private const val QUIET_ZONE = 0.062f
 
 /** The caption's phone glyph and its two-line budget. */
 private const val CAPTION_ICON = 1.3f
-private const val CAPTION_LINES = 2
+private const val CAPTION_LINES = 3
 
 /** The footer bar's inset, and the information glyph inside its disc. */
 private const val FOOTER_PAD = 0.34f
