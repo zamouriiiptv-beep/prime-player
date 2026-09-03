@@ -241,12 +241,7 @@ fun CastivioChip(
             // Sixteen dp of padding around a 20dp line is a 36dp control, which
             // is under the floor on a thumb and well under it on a remote. The
             // padding still decides the *width*; the floor decides the height.
-            .defaultMinSize(
-                minHeight = maxOf(
-                    Sizing.minTarget(CastivioTheme.device.isTv),
-                    minHeight ?: 0.dp,
-                ),
-            )
+            .defaultMinSize(minHeight = Sizing.minTarget(CastivioTheme.device.isTv))
             .clip(shape)
             .background(colors.glassFillBrush)
             .border(BorderStroke(1.dp, border), shape)
