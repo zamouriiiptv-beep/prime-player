@@ -3,7 +3,10 @@ package com.castivio.feature.licence
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.castivio.core.design.theme.CastivioFrame
 import com.castivio.core.design.theme.CastivioType
+import com.castivio.core.design.theme.SHORT_FRAME
+import com.castivio.core.design.theme.TABLET_FRAME
 
 /**
  * The approved screen's numbers, per frame, transcribed from the mockup.
@@ -58,10 +61,17 @@ import com.castivio.core.design.theme.CastivioType
  * and not a control. That is a designed property, not a happy accident.
  */
 internal data class LicenceMetrics(
-    val edge: Dp,
-    val stageTop: Dp,
-    val stageBottom: Dp,
-    val headBottom: Dp,
+    /**
+     * The stage, the header and the four type steps — from [CastivioFrame], the one
+     * table every screen in Castivio reads.
+     *
+     * This screen used to hold its own copy of five of them: `edge`, `stageTop`,
+     * `stageBottom`, `headBottom` and a `target` beside them, on three frames, behind
+     * a `SHORT_FRAME` constant of its own that happened to equal the shared one. Two
+     * tables that agree because somebody typed the same number twice agree until one
+     * of the two is edited.
+     */
+    val frame: CastivioFrame,
     /** Between the identity column and the code. */
     val zoneGap: Dp,
     /** Between the two capsules. */
@@ -110,7 +120,23 @@ internal data class LicenceMetrics(
      * this project has now shipped twice.
      */
     val target: Dp,
-)
+) {
+    /* The frame's numbers, reachable as this screen's own. */
+    val edge get() = frame.edge
+    val stageTop get() = frame.stageTop
+    val stageBottom get() = frame.stageBottom
+    val header get() = frame.header
+    val headGap get() = frame.headGap
+    val brand get() = frame.brand
+    val chip get() = frame.chip
+    val chipPad get() = frame.chipPad
+    val headBottom get() = frame.bandTop
+    val radius get() = frame.radius
+    val fsTitle get() = frame.fsTitle
+    val fsLabel get() = frame.fsLabel
+    val fsBody get() = frame.fsBody
+    val fsChip get() = frame.fsChip
+}
 
 /**
  * Which frame this is, decided by the height the screen actually has.
@@ -118,12 +144,15 @@ internal data class LicenceMetrics(
  * Height rather than width or a device class, for the reason the sibling gives:
  * height is the dimension that runs out, and `DeviceClass` would call 800dp
  * "Medium" and 873dp "Expanded", which is a fact about width.
+ *
+ * The thresholds are [TABLET_FRAME] and [SHORT_FRAME], from `:core:design`. This file
+ * declared a `SHORT_FRAME` of its own at the same 380dp, and the tablet had no branch
+ * at all — a 1280×800 tablet drew the reference phone's numbers, which is a phone-sized
+ * composition floating in twice the frame.
  */
-internal val SHORT_FRAME = 380.dp
-
 internal fun licenceMetricsFor(tv: Boolean, available: Dp): LicenceMetrics = when {
     tv -> LicenceMetrics(
-        edge = 48.dp, stageTop = 48.dp, stageBottom = 48.dp, headBottom = 16.dp,
+        frame = CastivioFrame.Television,
         zoneGap = 52.dp, rowGap = 14.dp, capsuleStart = 24.dp, capsule = 64.dp, copyGap = 22.dp,
         plansTop = 24.dp, plansGap = 20.dp,
         planMinHeight = 96.dp, planPaddingH = 24.dp, planPaddingV = 12.dp,
@@ -133,8 +162,23 @@ internal fun licenceMetricsFor(tv: Boolean, available: Dp): LicenceMetrics = whe
         plate = 208.dp, platePadding = 12.dp, captionTop = 15.dp, captionWidth = 236.dp,
         target = 56.dp,
     )
+    // The tablet: its extra room goes into the stage's margins, which the frame
+    // already holds, and everything on the stage keeps the reference phone's
+    // proportions at the tablet's own type steps. A tablet is held at 45cm, so the
+    // one thing it does not get is larger content.
+    available >= TABLET_FRAME -> LicenceMetrics(
+        frame = CastivioFrame.Tablet,
+        zoneGap = 44.dp, rowGap = 13.dp, capsuleStart = 22.dp, capsule = 56.dp, copyGap = 18.dp,
+        plansTop = 22.dp, plansGap = 16.dp,
+        planMinHeight = 82.dp, planPaddingH = 20.dp, planPaddingV = 11.dp,
+        priceStyle = CastivioType.headlineLarge,
+        statusTop = 13.dp, statusHeight = 22.dp, expiryTop = 2.dp,
+        footTop = 10.dp, footBottom = 2.dp,
+        plate = 170.dp, platePadding = 10.dp, captionTop = 12.dp, captionWidth = 196.dp,
+        target = 48.dp,
+    )
     available < SHORT_FRAME -> LicenceMetrics(
-        edge = 26.dp, stageTop = 8.dp, stageBottom = 2.dp, headBottom = 9.dp,
+        frame = CastivioFrame.ShortPhone,
         zoneGap = 34.dp, rowGap = 11.dp, capsuleStart = 18.dp, capsule = 52.dp, copyGap = 14.dp,
         plansTop = 12.dp, plansGap = 12.dp,
         planMinHeight = 74.dp, planPaddingH = 16.dp, planPaddingV = 8.dp,
@@ -147,7 +191,7 @@ internal fun licenceMetricsFor(tv: Boolean, available: Dp): LicenceMetrics = whe
         target = 48.dp,
     )
     else -> LicenceMetrics(
-        edge = 30.dp, stageTop = 12.dp, stageBottom = 6.dp, headBottom = 11.dp,
+        frame = CastivioFrame.Phone,
         zoneGap = 40.dp, rowGap = 13.dp, capsuleStart = 20.dp, capsule = 52.dp, copyGap = 16.dp,
         plansTop = 22.dp, plansGap = 14.dp,
         planMinHeight = 76.dp, planPaddingH = 18.dp, planPaddingV = 10.dp,
@@ -176,9 +220,7 @@ internal fun licenceMetricsFor(tv: Boolean, available: Dp): LicenceMetrics = whe
  * `LicenceLayoutTest` still asserts that Compose *places* all of it, and this
  * says that the places it puts them add up.
  *
- * @param frame the whole display, minus whatever insets are actually applied.
- * @param title the title's declared line height. The header is the taller of the
- *   title and the language control, not their sum.
+ * @param display the whole display, minus whatever insets are actually applied.
  * @param legal the legal line's declared line height, for one line.
  * @param legalLines how many lines the footer takes. **Not always one.** The
  *   footer's sentence is short enough for one line in English and is not
@@ -195,13 +237,12 @@ internal fun licenceMetricsFor(tv: Boolean, available: Dp): LicenceMetrics = whe
  *   See `LegalFooter`.
  */
 internal fun LicenceMetrics.bandHeight(
-    frame: Dp,
-    title: Dp,
+    display: Dp,
     legal: Dp,
     legalLines: Int = 1,
 ): Dp =
-    frame - stageTop - stageBottom -
-        (maxOf(title, target) + headBottom) - // header
+    display - stageTop - stageBottom -
+        (header + headBottom) - // the header is a declared height now, not a measured one
         HAIRLINES -
         (footTop + legal * legalLines + footBottom) // footer
 

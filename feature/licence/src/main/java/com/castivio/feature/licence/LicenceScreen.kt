@@ -27,6 +27,7 @@ import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,22 +45,27 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.os.ConfigurationCompat
 import com.castivio.core.design.components.ButtonWeight
 import com.castivio.core.design.components.CapsuleMetrics
 import com.castivio.core.design.components.CastivioButton
+import com.castivio.core.design.components.CastivioHeader
+import com.castivio.core.design.components.CastivioHeaderTitle
+import com.castivio.core.design.components.CastivioLockup
 import com.castivio.core.design.components.IdentityCapsule
 import com.castivio.core.design.components.PlanCard
 import com.castivio.core.design.components.PlanCardMetrics
@@ -67,12 +73,13 @@ import com.castivio.core.design.components.QrPlate
 import com.castivio.core.design.components.Skeleton
 import com.castivio.core.design.components.StatusChip
 import com.castivio.core.design.components.StatusLine
+import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioFocusScale
+import com.castivio.core.design.components.castivioTitleStyle
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Motion
 import com.castivio.core.design.theme.MotionLevel
-import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.Spacing
 import com.castivio.domain.entitlement.EntitlementState
@@ -157,7 +164,7 @@ internal fun LicenceScreen(
                 .testTag(LicenceTags.STAGE)
                 .padding(start = m.edge, end = m.edge, top = m.stageTop, bottom = m.stageBottom),
         ) {
-            Header(m = m, tv = tv, state = state, onOpenLanguage = onOpenLanguage)
+            Header(m = m, state = state, onOpenLanguage = onOpenLanguage)
             Hairline()
 
             // `weight(1f)` needs a parent with a bounded height, and on the
@@ -260,7 +267,8 @@ private fun LegalFooter(m: LicenceMetrics, onOpen: () -> Unit) {
             Modifier
                 .testTag(LicenceTags.FOOTER)
                 .onFocusChanged { focused = it.isFocused || it.hasFocus }
-                .clip(RoundedCornerShape(Radius.pill))
+                // Round by definition, like every pill in Castivio.
+                .clip(RoundedCornerShape(percent = 50))
                 .background(fill)
                 .clickable(interaction, indication = null, onClick = onOpen)
                 .semantics { role = Role.Button }
@@ -305,77 +313,109 @@ private fun Hairline() {
 }
 
 /**
- * Title, condition, language — the sibling's header with a different chip in it.
+ * Title, condition, language — the sibling's header, and now literally it.
  *
- * The chip is absent while the entitlement is still being read, rather than
- * showing a condition that might turn out to be another one. An instant with no
- * chip is honest; an instant of the wrong chip is not.
+ * It used to be a `Row` of its own: a title at `headlineMedium` (`headlineLarge` on a
+ * television), the condition chip, and the language control, with no mark and a
+ * spacing scale picked here. The activation screen a user reaches this one from wears
+ * `CastivioHeader`, so this screen wore a second header — same job, different brand,
+ * different title size, different rule about which end the control takes.
+ *
+ * Now it is the one component: the lockup pinned to the same physical edge in every
+ * language, the screen's name beside it on the lockup's own baseline, and the two chips
+ * at the far end. The pair is pinned left to right for the reason the sibling gives —
+ * what mirrors is each chip's own text, not the order of the two — so the language
+ * control keeps the outer end, where a thumb reaches and an eye returning to the screen
+ * lands first.
+ *
+ * The condition chip is absent while the entitlement is still being read, rather than
+ * showing a condition that might turn out to be another one. An instant with no chip is
+ * honest; an instant of the wrong chip is not.
  */
 @Composable
 private fun Header(
     m: LicenceMetrics,
-    tv: Boolean,
     state: LicenceUiState,
     onOpenLanguage: () -> Unit,
 ) {
     val colors = CastivioTheme.colors
-    Row(
-        Modifier
+    CastivioHeader(
+        height = m.header,
+        gap = m.headGap,
+        modifier = Modifier
             .fillMaxWidth()
             .testTag(LicenceTags.HEADER)
             .padding(bottom = m.headBottom),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = stringResource(R.string.licence_title),
-            style = if (tv) CastivioType.headlineLarge else CastivioType.headlineMedium,
-            color = colors.onBackground,
-            modifier = Modifier.semantics { heading() },
-        )
-        Box(Modifier.weight(1f))
+        lockup = {
+            CastivioLockup(markSize = m.brand, wordSize = (m.fsTitle.value * WORD_RATIO).sp)
+        },
+        title = {
+            CastivioHeaderTitle(
+                text = stringResource(R.string.licence_title),
+                style = castivioTitleStyle(m.fsTitle),
+                color = colors.onBackground,
+            )
+        },
+        chips = {
+            val reading = LocalLayoutDirection.current
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    CompositionLocalProvider(LocalLayoutDirection provides reading) {
+                        // The condition, faded rather than swapped.
+                        //
+                        // A licence becoming active is the one moment on this screen
+                        // worth marking, and the whole of the mark is 220ms of opacity
+                        // on the chip and on the sentence beneath it. Nothing scales,
+                        // nothing travels, and navigation is not waiting on any of it --
+                        // the incoming chip is composed and hittable from the first
+                        // frame of the fade.
+                        //
+                        // The one thing that is not fixed is the chip's own width,
+                        // because a crossfade measures both children and takes the
+                        // larger: a chip becoming a longer one grows to its final width
+                        // immediately and fades within it. That is the cheap end of the
+                        // trade -- the alternative is animating a width, which is the
+                        // kind of motion this design does not use.
+                        //
+                        // Keyed on the whole `LicenceView`, so a change of *condition*
+                        // animates and a change of sentence underneath does not. See
+                        // `LicenceStatusLine`.
+                        LicenceFade(fadeKey(state)) { condition ->
+                            if (condition != null) {
+                                val view = condition.view
+                                StatusChip(
+                                    // Plain text. The chip names a condition and has no
+                                    // number in it to emphasise; the annotated type is
+                                    // the activation screen's trial badge, which does.
+                                    label = AnnotatedString(stringResource(view.chip)),
+                                    dot = when (view.tone) {
+                                        // The same brush the primary button is filled
+                                        // with. A trial is the one condition on this
+                                        // screen that is neither good news nor bad, and
+                                        // the primary gradient is what the sibling
+                                        // screen already uses to say so.
+                                        LicenceTone.Neutral -> colors.primaryBrush
+                                        LicenceTone.Good -> SolidColor(colors.success)
+                                        LicenceTone.Warning -> SolidColor(colors.warning)
+                                        LicenceTone.Bad -> SolidColor(colors.danger)
+                                    },
+                                )
+                            }
+                        }
 
-        // The condition, faded rather than swapped.
-        //
-        // A licence becoming active is the one moment on this screen worth
-        // marking, and the whole of the mark is 220ms of opacity on the chip and
-        // on the sentence beneath it. Nothing scales, nothing travels, and
-        // navigation is not waiting on any of it -- the incoming chip is
-        // composed and hittable from the first frame of the fade.
-        //
-        // The one thing that is not fixed is the chip's own width, because a
-        // crossfade measures both children and takes the larger: a chip becoming
-        // a longer one grows to its final width immediately and fades within it.
-        // That is the cheap end of the trade -- the alternative is animating a
-        // width, which is the kind of motion this design does not use.
-        //
-        // Keyed on the whole `LicenceView`, so a change of *condition* animates
-        // and a change of sentence underneath does not. See `LicenceStatusLine`.
-        LicenceFade(fadeKey(state)) { condition ->
-            if (condition != null) {
-                val view = condition.view
-                StatusChip(
-                    // Plain text. The chip names a condition and has no number
-                    // in it to emphasise; the annotated type is the activation
-                    // screen's trial badge, which does.
-                    label = AnnotatedString(stringResource(view.chip)),
-                    dot = when (view.tone) {
-                        // The same brush the primary button is filled with. A
-                        // trial is the one condition on this screen that is
-                        // neither good news nor bad, and the primary gradient is
-                        // what the sibling screen already uses to say so.
-                        LicenceTone.Neutral -> colors.primaryBrush
-                        LicenceTone.Good -> SolidColor(colors.success)
-                        LicenceTone.Warning -> SolidColor(colors.warning)
-                        LicenceTone.Bad -> SolidColor(colors.danger)
-                    },
-                )
+                        LanguageChip(m, onOpenLanguage)
+                    }
+                }
             }
-        }
-
-        LanguageChip(m, onOpenLanguage)
-    }
+        },
+    )
 }
+
+/** The wordmark against the screen's name — the activation screen's figure. */
+private const val WORD_RATIO = 0.80f
 
 /**
  * Fade one small thing into another, at the level of motion the device allows.
@@ -441,7 +481,9 @@ private fun LanguageChip(m: LicenceMetrics, onClick: () -> Unit) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
     var focused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(Radius.pill)
+    // A pill is round by definition, so half its own height — not the frame's
+    // `radius`, which is the corner the rectangles on the stage are cut with.
+    val shape = RoundedCornerShape(percent = 50)
     val border by animateColorAsState(
         if (focused) colors.focusRing else colors.glassBorder,
         Motion.focusSpec(),
@@ -451,14 +493,14 @@ private fun LanguageChip(m: LicenceMetrics, onClick: () -> Unit) {
 
     Row(
         Modifier
-            .heightIn(min = m.target)
+            .heightIn(min = m.chip)
             .castivioFocusScale(Motion.focusScaleIcon, interaction)
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
             .clip(shape)
             .background(colors.glassFill)
             .border(BorderStroke(1.dp, border), shape)
             .clickable(interaction, indication = null, onClick = onClick)
-            .padding(horizontal = Spacing.md),
+            .padding(horizontal = m.chipPad),
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -470,7 +512,7 @@ private fun LanguageChip(m: LicenceMetrics, onClick: () -> Unit) {
         )
         Text(
             text = label,
-            style = CastivioType.bodySmall,
+            style = castivioChipStyle(m.fsChip),
             color = colors.onBackground,
             modifier = Modifier.clearAndSetSemantics { contentDescription = label },
         )
@@ -629,7 +671,9 @@ private fun Choice(
                 Skeleton(
                     height = m.planMinHeight,
                     width = SKELETON_CARD_WIDTH,
-                    cornerRadius = Radius.xl,
+                    // The card's own corner, so the placeholder is the shape of the
+                    // thing arriving rather than a rectangle beside it.
+                    cornerRadius = m.radius,
                 )
             }
         }
@@ -959,7 +1003,7 @@ private fun CodeZone(state: LicenceUiState, m: LicenceMetrics) {
         if (bitmap == null) {
             // The plate's shape while the symbol is being drawn, so the band's
             // width does not change under the user when it arrives.
-            Skeleton(height = m.plate, width = m.plate, cornerRadius = Radius.md)
+            Skeleton(height = m.plate, width = m.plate, cornerRadius = m.radius)
             return@Column
         }
         QrPlate(

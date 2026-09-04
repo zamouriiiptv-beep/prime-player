@@ -46,11 +46,9 @@ class LicenceBudgetTest {
     private val frames = listOf(
         Triple("reference phone 873x393", false, 393.dp),
         Triple("shortest phone 800x360", false, 360.dp),
+        Triple("tablet 1280x800", false, 800.dp),
         Triple("television 960x540", true, 540.dp),
     )
-
-    private fun title(tv: Boolean): Dp =
-        (if (tv) CastivioType.headlineLarge else CastivioType.headlineMedium).lineHeight.value.dp
 
     private val legal: Dp get() = CastivioType.bodySmall.lineHeight.value.dp
     private val overline: Dp get() = CastivioType.overline.lineHeight.value.dp
@@ -58,13 +56,12 @@ class LicenceBudgetTest {
 
     private fun spare(frame: Dp, tv: Boolean, insets: Dp = 0.dp, legalLines: Int = 1): Dp {
         val m = licenceMetricsFor(tv, frame - insets)
-        return m.bandHeight(frame - insets, title(tv), legal, legalLines) -
-            m.columnHeight(overline)
+        return m.bandHeight(frame - insets, legal, legalLines) - m.columnHeight(overline)
     }
 
     private fun codeSpare(frame: Dp, tv: Boolean, insets: Dp = 0.dp): Dp {
         val m = licenceMetricsFor(tv, frame - insets)
-        return m.bandHeight(frame - insets, title(tv), legal) - m.codeHeight(caption)
+        return m.bandHeight(frame - insets, legal) - m.codeHeight(caption)
     }
 
     @Test
@@ -164,11 +161,13 @@ class LicenceBudgetTest {
     fun `each frame gets the metric set the mockup drew for it`() {
         val short = licenceMetricsFor(tv = false, available = 360.dp)
         val phone = licenceMetricsFor(tv = false, available = 393.dp)
+        val tablet = licenceMetricsFor(tv = false, available = 800.dp)
         val tv = licenceMetricsFor(tv = true, available = 540.dp)
 
         assertEquals("the 800x360 frame is not on the short set", 26.dp, short.edge)
-        assertEquals("the 873x393 frame is not on the reference set", 30.dp, phone.edge)
-        assertEquals("the television is not on the TV set", 48.dp, tv.edge)
+        assertEquals("the 873x393 frame is not on the reference set", 32.dp, phone.edge)
+        assertEquals("the television is not on the TV set", 46.dp, tv.edge)
+        assertEquals("the 1280x800 frame is not on the tablet set", 140.dp, tablet.edge)
 
         // One price token for both phones, and no per-frame exception.
         //
@@ -183,33 +182,43 @@ class LicenceBudgetTest {
             short.priceStyle,
         )
         assertEquals(CastivioType.headlineLarge, phone.priceStyle)
+        assertEquals(CastivioType.headlineLarge, tablet.priceStyle)
         assertEquals(CastivioType.displayMedium, tv.priceStyle)
     }
 
     /**
-     * The bands are the sibling's, to the dp.
+     * The bands are what the shared frame leaves, to the dp.
      *
-     * The two screens are the same three-band composition in the same frame, so
-     * their bands must be identical numbers. If they ever differ, one of the two
-     * has changed a margin and the pair has stopped reading as one product.
+     * They used to be 284/264/337, measured off `design/mockups/licence.html` when
+     * this screen carried its own stage: 48dp of margin all round on a television,
+     * 12/6 on the reference phone, and a header whose height was the taller of the
+     * title's line box and a touch target.
      *
-     * These are also the numbers `design/mockups/licence.html` now measures —
-     * 284/259/337 — which is the whole point of having corrected the drawing.
+     * They are now what `CastivioFrame` leaves once the shared header has taken its
+     * declared height — which is the whole point of the change, and it is *not* a
+     * free one to state: the television gains 46dp of band because the frame's stage
+     * margins are 24/22 rather than 48/48, and the drawing has not been redrawn to
+     * match. Pinned here so that when the drawing is made, the two either agree or
+     * the disagreement is a failing test rather than a discrepancy nobody measured.
+     *
+     * The tablet is in the list because it did not exist before: a 1280×800 tablet
+     * drew the reference phone's numbers.
      */
     @Test
-    fun `the bands are the measured ones`() {
+    fun `the bands are what the frame leaves`() {
         val expected = mapOf(
-            Triple("reference phone 873x393", false, 393.dp) to 284.dp,
-            Triple("shortest phone 800x360", false, 360.dp) to 264.dp,
-            Triple("television 960x540", true, 540.dp) to 337.dp,
+            Triple("reference phone 873x393", false, 393.dp) to 283.dp,
+            Triple("shortest phone 800x360", false, 360.dp) to 268.dp,
+            Triple("tablet 1280x800", false, 800.dp) to 390.dp,
+            Triple("television 960x540", true, 540.dp) to 383.dp,
         )
         for ((frame, band) in expected) {
             val (name, tv, height) = frame
             val m = licenceMetricsFor(tv, height)
             assertEquals(
-                "$name: the band is not the height the mockup measures",
+                "$name: the band is not what the frame leaves",
                 band,
-                m.bandHeight(height, title(tv), legal),
+                m.bandHeight(height, legal),
             )
         }
     }
@@ -233,9 +242,10 @@ class LicenceBudgetTest {
      *
      * | frame | 1 line | 1 + bar | 2 lines | 2 + bar |
      * |---|---|---|---|---|
-     * | 873×393 | 35dp | 44dp ¹ | 15dp | 24dp ¹ |
-     * | 800×360 | 35dp | 11dp | 15dp | **−9dp** |
-     * | TV | 35dp | — | 15dp | — |
+     * | 873×393 | 34dp | 48dp ¹ | 14dp | 28dp ¹ |
+     * | 800×360 | 39dp | 15dp | 19dp | **−5dp** |
+     * | 1280×800 | 148dp | 124dp | 128dp | 104dp |
+     * | TV | 81dp | — | 61dp | — |
      *
      * ¹ A bar takes the 873dp frame under the 380dp threshold, so it adopts the
      * tighter metric set and gains margin rather than losing it.
@@ -260,7 +270,7 @@ class LicenceBudgetTest {
      * The compound case, stated as an assertion so it cannot drift unnoticed.
      *
      * Two-line footer **and** a navigation bar transiently on screen **and** the
-     * shortest phone. This is the one combination that does not fit, by 9dp, and
+     * shortest phone. This is the one combination that does not fit, by 5dp, and
      * pinning the number means a change that makes it worse shows up here rather
      * than on somebody's handset.
      *
@@ -275,10 +285,10 @@ class LicenceBudgetTest {
         val room = spare(360.dp, tv = false, insets = NAV_BAR, legalLines = 2)
         assertEquals(
             "the shortest phone with a two-line footer and the navigation bar " +
-                "showing is no longer 9dp short. If it got better, say so here and " +
+                "showing is no longer 5dp short. If it got better, say so here and " +
                 "in LicenceMetrics; if it got worse, the status line is losing more " +
                 "than a sentence.",
-            (-9).dp,
+            (-5).dp,
             room,
         )
     }
