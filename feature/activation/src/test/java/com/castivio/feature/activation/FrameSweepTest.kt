@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
@@ -401,8 +402,13 @@ class FrameSweepTest {
             passes.size,
             nodes.size,
         )
+        // **Unclipped**, and that is load-bearing here rather than a preference: the
+        // eight passes are stacked in a column taller than the root, so the ones below
+        // the viewport are clipped away and the clipped rect of a pass that was never
+        // on screen is empty. What is being measured is where the layout *put* things,
+        // which is exactly what the unclipped bounds report.
         return nodes.indices.map {
-            onAllNodesWithTag(tag, useUnmergedTree = true)[it].getBoundsInRoot()
+            onAllNodesWithTag(tag, useUnmergedTree = true)[it].getUnclippedBoundsInRoot()
         }
     }
 
