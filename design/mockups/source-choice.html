@@ -98,10 +98,11 @@ html[data-frame="tv"]{
   --header:54px; --head-gap:26px; --brand:40px; --fs-title:26px;
   --back:44px; --back-pad:11px; --fs-back:13px;
   --band-top:20px; --grid-gap:18px; --card-max:168px;
-  --card-pad:22px; --card-gap:20px; --disc:84px; --chev:26px;
-  --fs-card:20px; --fs-desc:13.5px; --fs-badge:13px; --desc-lines:4;
+  --card-pad:16px; --card-gap:16px; --disc:72px; --chev:24px;
+  --fs-card:20px; --fs-desc:13.5px; --fs-badge:13px; --desc-lines:3;
   --radius:22px;
-  --terms:24px; --terms-gap:20px; --fs-terms:13.5px;
+  --sub:26px; --fs-sub:13.5px;
+  --terms:24px; --terms-gap:14px; --fs-terms:13.5px;
   --trust:64px; --trust-gap:18px; --trust-disc:38px;
   --fs-trust:13.5px; --fs-trust2:13px;
 }
@@ -111,10 +112,11 @@ html[data-frame="p873"]{
   --header:42px; --head-gap:24px; --brand:31px; --fs-title:20px;
   --back:36px; --back-pad:12px; --fs-back:12px;
   --band-top:12px; --grid-gap:14px; --card-max:132px;
-  --card-pad:16px; --card-gap:15px; --disc:62px; --chev:20px;
-  --fs-card:15.5px; --fs-desc:13px; --fs-badge:12px; --desc-lines:3;
+  --card-pad:10px; --card-gap:12px; --disc:52px; --chev:18px;
+  --fs-card:15.5px; --fs-desc:13px; --fs-badge:12px; --desc-lines:2;
   --radius:18px;
-  --terms:20px; --terms-gap:8px; --fs-terms:13px;
+  --sub:20px; --fs-sub:13px;
+  --terms:19px; --terms-gap:6px; --fs-terms:13px;
   --trust:54px; --trust-gap:12px; --trust-disc:30px;
   --fs-trust:13px; --fs-trust2:12px;
 }
@@ -124,10 +126,11 @@ html[data-frame="p800"]{
   --header:36px; --head-gap:20px; --brand:28px; --fs-title:19px;
   --back:34px; --back-pad:11px; --fs-back:11.5px;
   --band-top:10px; --grid-gap:12px; --card-max:124px;
-  --card-pad:14px; --card-gap:13px; --disc:56px; --chev:18px;
-  --fs-card:14.5px; --fs-desc:12.5px; --fs-badge:11.5px; --desc-lines:3;
+  --card-pad:9px; --card-gap:11px; --disc:50px; --chev:17px;
+  --fs-card:14.5px; --fs-desc:12.5px; --fs-badge:11.5px; --desc-lines:2;
   --radius:16px;
-  --terms:18px; --terms-gap:6px; --fs-terms:12.5px;
+  --sub:18px; --fs-sub:12.5px;
+  --terms:18px; --terms-gap:5px; --fs-terms:12.5px;
   --trust:48px; --trust-gap:10px; --trust-disc:27px;
   --fs-trust:12.5px; --fs-trust2:11.5px;
 }
@@ -190,6 +193,11 @@ html[dir="rtl"] .header .back{direction:rtl}
 .back svg{width:calc(var(--fs-back) * 1.25);height:calc(var(--fs-back) * 1.25);
   flex:0 0 auto;color:var(--text-2)}
 html[dir="rtl"] .back svg{transform:scaleX(-1)}
+
+/* The line under the question, as the reference has it. */
+.sub{flex:0 0 auto;height:var(--sub);display:flex;align-items:center;
+  justify-content:flex-end;font-size:var(--fs-sub);line-height:1.4;color:var(--text-3)}
+html[dir="ltr"] .sub{justify-content:flex-start}
 
 /* ------------------------------------------------------------------- grid */
 .band{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;
@@ -259,8 +267,15 @@ html[dir="ltr"] .chev svg{transform:scaleX(-1)}
   border:1px solid rgba(178,132,255,.46)}
 .badge svg{width:calc(var(--fs-badge) * 1.05);height:calc(var(--fs-badge) * 1.05);
   color:#D9C3FF}
+/* The reference's own treatment for the suggested card: a violet edge and a
+   glow around it. Focus keeps a different picture -- an azure ring -- because a
+   television needs to say where the remote is and this says which option is
+   suggested; two states drawn identically is a viewer who cannot find the
+   D-pad. The recommendation is the reference's; the ring is the requirement. */
 .card.rec{background:linear-gradient(180deg,rgba(58,34,124,.78) 0%,rgba(22,14,58,.74) 100%);
-  border-color:rgba(158,116,255,.34)}
+  border-color:rgba(178,132,255,.85);
+  box-shadow:0 0 0 1px rgba(178,132,255,.45), 0 0 30px rgba(150,90,255,.42),
+             var(--rim), var(--lift)}
 
 /* Focus is a STATE. Ring, lift, and nothing that could be mistaken for a
    label -- so the two can sit side by side and still be told apart. */
@@ -290,13 +305,13 @@ html[dir="ltr"] .chev svg{transform:scaleX(-1)}
 .cell .tx{min-width:0;display:flex;flex-direction:column;gap:2px}
 .cell .tx b{font-size:var(--fs-trust);line-height:1.3;font-weight:700;color:var(--white);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cell .tx span{font-size:var(--fs-trust2);line-height:1.35;color:var(--text-3);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell .tx span{font-size:var(--fs-trust2);line-height:1.3;color:var(--text-3);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 /* What the strip actually costs, stated rather than hidden: the television's
    card loses 16dp and with it the fourth line of its description, so the longer
    translations give up the "which one do I have" hint there. The phones keep
    three lines and lose 15 and 11dp of card. */
-html[data-trust="1"][data-frame="tv"]{--desc-lines:3}
+
 /* The terms sentence, which the shipped screen has and this drawing had lost.
    It is not decoration: it is the agreement, it is a navigation target, and it
    is the only pressable thing on the screen that is not one of the four cards.
@@ -340,22 +355,13 @@ html[data-trust="0"] .band{gap:0}
       <div class="back"><span data-icon="chevron"></span><span data-s="back">رجوع</span></div>
     </div>
 
+    <p class="sub" data-s="sub">أضف طريقة التشغيل المفضل لديك لبدء المشاهدة</p>
+
     <div class="band">
       <div class="grid">
-        <!-- Reading order, not drawing order: in Arabic the grid fills from the
-             right, so the first child is the first card the eye reaches. The
-             recommendation goes there. The reference puts it at the far left,
-             which in Arabic is the last card read. -->
-        <div class="card rec" id="m3u" style="--hue:var(--h-m3u)">
-          <span class="disc" data-icon="link"></span>
-          <span class="body">
-            <span class="head"><b data-s="m3uT">قائمة M3U</b>
-              <span class="badge"><span data-icon="spark"></span><span data-s="badge">الأسهل</span></span></span>
-            <span class="d" data-s="m3uD">أضف رابط قائمة التشغيل بصيغة M3U. <span class="hint">رابط واحد طويل يُرسل عادةً بالبريد.</span></span>
-          </span>
-          <span class="chev" data-icon="chevron"></span>
-        </div>
-
+        <!-- The reference's own arrangement, kept: in Arabic the grid fills
+             from the right, so Xtream leads and M3U sits beside it, exactly
+             as the reference draws them. -->
         <div class="card" id="xtream" style="--hue:var(--h-xtream)">
           <span class="disc" data-icon="server"></span>
           <span class="body">
@@ -365,11 +371,12 @@ html[data-trust="0"] .band{gap:0}
           <span class="chev" data-icon="chevron"></span>
         </div>
 
-        <div class="card" id="users" style="--hue:var(--h-users)">
-          <span class="disc" data-icon="users"></span>
+        <div class="card rec" id="m3u" style="--hue:var(--h-m3u)">
+          <span class="disc" data-icon="link"></span>
           <span class="body">
-            <span class="head"><b data-s="uT">قائمة المستخدمين</b></span>
-            <span class="d" data-s="uD">أضف وبدّل بين اشتراكات Xtream وM3U. <span class="hint">إدارة سهلة لجميع اشتراكاتك.</span></span>
+            <span class="head"><b data-s="m3uT">قائمة M3U</b>
+              <span class="badge"><span data-icon="spark"></span><span data-s="badge">الأسرع</span></span></span>
+            <span class="d" data-s="m3uD">أضف رابط قائمة التشغيل بصيغة M3U. <span class="hint">رابط واحد طويل يُرسل عادةً بالبريد.</span></span>
           </span>
           <span class="chev" data-icon="chevron"></span>
         </div>
@@ -382,17 +389,26 @@ html[data-trust="0"] .band{gap:0}
           </span>
           <span class="chev" data-icon="chevron"></span>
         </div>
+        <div class="card" id="users" style="--hue:var(--h-users)">
+          <span class="disc" data-icon="users"></span>
+          <span class="body">
+            <span class="head"><b data-s="uT">قائمة المستخدمين</b></span>
+            <span class="d" data-s="uD">أضف وبدّل بين اشتراكات Xtream وM3U. <span class="hint">إدارة سهلة لجميع اشتراكاتك.</span></span>
+          </span>
+          <span class="chev" data-icon="chevron"></span>
+        </div>
+
       </div>
 
       <div class="trust">
         <div class="cell" style="--hue:var(--h-m3u)"><span class="ic" data-icon="shield"></span>
-          <span class="tx"><b data-s="t1">بياناتك على جهازك</b><span data-s="t1b">لا تُرسل بيانات الاشتراك إلى خوادمنا.</span></span></div>
+          <span class="tx"><b data-s="t1">آمن وخاص</b><span data-s="t1b">لا نقوم بتخزين بياناتك أو مشاركتها.</span></span></div>
         <div class="cell" style="--hue:var(--h-xtream)"><span class="ic" data-icon="gauge"></span>
           <span class="tx"><b data-s="t2">سريع ومستقر</b><span data-s="t2b">أداء عالٍ وتجربة سلسة.</span></span></div>
         <div class="cell" style="--hue:var(--h-users)"><span class="ic" data-icon="lock"></span>
-          <span class="tx"><b data-s="t3">يعمل بلا حساب</b><span data-s="t3b">لا تسجيل ولا بريد إلكتروني.</span></span></div>
+          <span class="tx"><b data-s="t3">حماية كاملة</b><span data-s="t3b">خصوصيتك هي أولويتنا.</span></span></div>
         <div class="cell" style="--hue:var(--h-local)"><span class="ic" data-icon="gear"></span>
-          <span class="tx"><b data-s="t4">صيغ متعددة</b><span data-s="t4b">M3U وXtream والملفات المحلية.</span></span></div>
+          <span class="tx"><b data-s="t4">دعم متعدد</b><span data-s="t4b">جميع الصيغ مدعومة.</span></span></div>
       </div>
     </div>
 
@@ -428,42 +444,45 @@ var ICON = {
        '<path d="M12 2.8v2.4M12 18.8v2.4M21.2 12h-2.4M5.2 12H2.8M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7M18.5 18.5l-1.7-1.7M7.2 7.2 5.5 5.5"/></svg>'
 };
 
-var EN = {title:"Choose how to add", back:"Back", badge:"Simplest",
+var EN = {title:"Choose how to add", back:"Back", badge:"Fastest",
+  sub:"Add your preferred playback method to start watching",
   terms:'<u>Terms of Service</u> — by using the app, you agree to the terms of use.',
   m3uT:"M3U playlist", m3uD:'Add a playlist link in M3U format. <span class="hint">One long link, usually sent by email.</span>',
   xT:"Xtream Codes", xD:'A server address, a username and a password. <span class="hint">Full support for Xtream features.</span>',
   uT:"User list", uD:'Add and switch between Xtream and M3U subscriptions. <span class="hint">Easy management of all your subscriptions.</span>',
   lT:"Play a local video", lD:'Play a video file stored on the device. <span class="hint">All common formats supported.</span>',
-  t1:"Your data stays here", t1b:"Subscription details are never sent to our servers.",
+  t1:"Safe and private", t1b:"We do not store or share your data.",
   t2:"Fast and steady", t2b:"High performance, smooth playback.",
-  t3:"No account needed", t3b:"No sign-up, no email address.",
-  t4:"Many formats", t4b:"M3U, Xtream and local files."};
-var ES = {title:"Elige cómo añadir", back:"Atrás", badge:"Más sencillo",
+  t3:"Full protection", t3b:"Your privacy is our priority.",
+  t4:"Broad support", t4b:"All formats supported."};
+var ES = {title:"Elige cómo añadir", back:"Atrás", badge:"Más rápido",
+  sub:"Añade tu método de reproducción preferido para empezar",
   terms:'<u>Términos del servicio</u> — al usar la aplicación, aceptas las condiciones de uso.',
   m3uT:"Lista M3U", m3uD:'Añade un enlace de lista en formato M3U. <span class="hint">Un enlace largo, normalmente enviado por correo.</span>',
   xT:"Xtream Codes", xD:'Una dirección de servidor, un usuario y una contraseña. <span class="hint">Compatibilidad total con Xtream.</span>',
   uT:"Lista de usuarios", uD:'Añade y cambia entre suscripciones Xtream y M3U. <span class="hint">Gestión sencilla de todas tus suscripciones.</span>',
   lT:"Vídeo del dispositivo", lD:'Reproduce un archivo guardado en el dispositivo. <span class="hint">Compatible con los formatos habituales.</span>',
-  t1:"Tus datos se quedan aquí", t1b:"Los datos de suscripción nunca salen del dispositivo.",
+  t1:"Seguro y privado", t1b:"No almacenamos ni compartimos tus datos.",
   t2:"Rápido y estable", t2b:"Alto rendimiento y reproducción fluida.",
-  t3:"Sin cuenta", t3b:"Sin registro ni correo electrónico.",
-  t4:"Muchos formatos", t4b:"M3U, Xtream y archivos locales."};
-var PT = {title:"Escolha como adicionar", back:"Voltar", badge:"Mais simples",
+  t3:"Protección total", t3b:"Tu privacidad es nuestra prioridad.",
+  t4:"Soporte amplio", t4b:"Todos los formatos admitidos."};
+var PT = {title:"Escolha como adicionar", back:"Voltar", badge:"Mais rápido",
+  sub:"Adicione o seu método de reprodução preferido para começar",
   terms:'<u>Termos do serviço</u> — ao usar a aplicação, aceita as condições de utilização.',
   m3uT:"Lista M3U", m3uD:'Adicione uma ligação de lista em formato M3U. <span class="hint">Uma ligação longa, normalmente enviada por email.</span>',
   xT:"Xtream Codes", xD:'Um endereço de servidor, um utilizador e uma palavra-passe. <span class="hint">Suporte completo para o Xtream.</span>',
   uT:"Lista de utilizadores", uD:'Adicione e alterne entre subscrições Xtream e M3U. <span class="hint">Gestão simples de todas as suas subscrições.</span>',
   lT:"Vídeo do dispositivo", lD:'Reproduza um ficheiro guardado no dispositivo. <span class="hint">Compatível com os formatos comuns.</span>',
-  t1:"Os seus dados ficam aqui", t1b:"Os dados de subscrição nunca saem do dispositivo.",
+  t1:"Seguro e privado", t1b:"Não armazenamos nem partilhamos os seus dados.",
   t2:"Rápido e estável", t2b:"Alto desempenho e reprodução fluida.",
-  t3:"Sem conta", t3b:"Sem registo nem email.",
-  t4:"Vários formatos", t4b:"M3U, Xtream e ficheiros locais."};
+  t3:"Proteção total", t3b:"A sua privacidade é a nossa prioridade.",
+  t4:"Suporte amplo", t4b:"Todos os formatos suportados."};
 
 (function () {
   var q = new URLSearchParams(location.search);
   var root = document.documentElement;
   root.dataset.frame = q.get("frame") || "tv";
-  root.dataset.trust = q.get("trust") === "1" ? "1" : "0";
+  root.dataset.trust = q.get("trust") === "0" ? "0" : "1";
 
   var code = q.get("lang") || "ar";
   var en = code !== "ar";
@@ -530,8 +549,11 @@ var PT = {title:"Escolha como adicionar", back:"Voltar", badge:"Mais simples",
     var d = c.querySelector('.d');
     if (d.scrollHeight - d.clientHeight > 1) over.push(c.id + ' desc clamped');
   });
-  document.querySelectorAll('.trust .tx b, .trust .tx span').forEach(function (n) {
-    if (n.scrollWidth - n.clientWidth > 0.5) over.push('trust "' + n.textContent.slice(0, 14) + '" clipped');
+  document.querySelectorAll('.trust .tx b').forEach(function (n) {
+    if (n.scrollWidth - n.clientWidth > 0.5) over.push('trust head "' + n.textContent.slice(0, 12) + '" clipped');
+  });
+  document.querySelectorAll('.trust .tx span').forEach(function (n) {
+    if (n.scrollHeight - n.clientHeight > 1) over.push('trust "' + n.textContent.slice(0, 12) + '" clamped');
   });
   var tm = document.querySelector('.terms span');
   if (tm.scrollWidth - tm.parentElement.clientWidth > 0.5) over.push('terms clipped');
