@@ -80,7 +80,8 @@ internal fun ChooserHeader(
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                 CompositionLocalProvider(LocalLayoutDirection provides reading) {
                     CastivioBackChip(
-                        height = m.back,
+                        chip = m.back,
+                        touchTarget = m.frame.touchTarget,
                         pad = m.backPad,
                         fontSize = m.fsBack,
                         label = stringResource(R.string.action_back),

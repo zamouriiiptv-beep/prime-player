@@ -264,7 +264,7 @@ private fun LanguageRow(
     Row(
         modifier
             .fillMaxWidth()
-            .heightIn(min = frame.target)
+            .heightIn(min = frame.touchTarget)
             .castivioFocusScale(Motion.focusScaleIcon, interaction)
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
             .clip(shape)

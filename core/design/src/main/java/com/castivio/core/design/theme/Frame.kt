@@ -66,6 +66,13 @@ data class CastivioFrame(
     val header: Dp,
     val headGap: Dp,
     val brand: Dp,
+    /**
+     * The **drawn** height of a chip: the pill a reader sees.
+     *
+     * Deliberately below [touchTarget] on all four frames, and that is not an
+     * oversight — see the note on [touchTarget] for why the two are different
+     * numbers and must stay different.
+     */
     val chip: Dp,
     val chipPad: Dp,
     /* the gap between the header and whatever a screen puts under it */
@@ -79,16 +86,37 @@ data class CastivioFrame(
     val fsChip: Dp,
 ) {
     /**
-     * The floor a control may not go below on this frame: 56dp on a television,
-     * 48dp everywhere else.
+     * The floor a control's **interaction area** may not go below on this frame:
+     * 56dp on a television, 48dp everywhere else.
      *
-     * Derived rather than declared, and that is the point — it is
-     * [Sizing.minTarget] read through the frame, so there is one definition of the
-     * floor and no table entry anybody can edit it out of. A screen that asks the
-     * frame cannot ask the wrong device: the D-pad floor arrives with the
-     * television's numbers and the thumb's floor with everybody else's.
+     * ## It is not [chip], and the difference is the whole point
+     *
+     * A chip is 44dp on a television and 34dp on the shortest phone. The floor is 56
+     * and 48. Read as one number those two facts are a contradiction, and the
+     * contradiction has a wrong answer on each side: growing the pill to 56 rewrites
+     * an approved drawing to satisfy a rule about fingers, and growing the *row* to
+     * hold it costs the band 2 to 12dp on three frames — which on the licence screen's
+     * tightest case takes a reserved sentence from 5dp short to 17dp short.
+     *
+     * So they are two numbers describing two things. [chip] is what is **drawn**;
+     * this is the smallest box that may **receive a press or a D-pad landing**. The
+     * box is centred on the pill and overhangs it by `(touchTarget - header) / 2`
+     * where the row is the shorter of the two — 1dp on a television, 3 on a phone, 6
+     * on the shortest, 0 on a tablet. Every one of those overhangs lands in the
+     * stage's own margin: `stageTop` above the header and `bandTop` below it are
+     * 24/22, 160/24, 15/10 and 11/8, so the widest overhang is 6dp inside an 8dp gap.
+     * It never reaches content and never leaves the stage.
+     *
+     * `CastivioHeader` therefore measures its slots with an unbounded height. It used
+     * to clamp them to the row, which meant an interaction box taller than the row was
+     * silently cut back to it — the actual defect here, and not the numbers.
+     *
+     * Derived rather than declared, so there is one definition of the floor and no
+     * table entry anybody can edit it out of. A screen that asks the frame cannot ask
+     * the wrong device: the D-pad floor arrives with the television's numbers and the
+     * thumb's floor with everybody else's.
      */
-    val target: Dp get() = Sizing.minTarget(type == FrameType.Television)
+    val touchTarget: Dp get() = Sizing.minTarget(type == FrameType.Television)
 
     companion object {
         /** 960×540dp: what a 1080p set reports, which is the device and not an idea of it. */
@@ -135,7 +163,7 @@ data class CastivioFrame(
  * It exists so that the *choice* has a name and can be asserted on, not so that
  * screens can branch on it. A screen that writes `when (frame.type)` has written
  * a second frame table with different numbers in it, which is the thing this file
- * was created to end. The one legitimate reader is [CastivioFrame.target], and the
+ * was created to end. The one legitimate reader is [CastivioFrame.touchTarget], and the
  * tests, which iterate the four.
  */
 enum class FrameType { Television, Tablet, Phone, ShortPhone }

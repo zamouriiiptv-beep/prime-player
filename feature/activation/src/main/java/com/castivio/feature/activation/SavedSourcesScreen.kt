@@ -212,7 +212,7 @@ private fun SavedSourceRow(
         Row(
             Modifier
                 .fillMaxWidth()
-                .defaultMinSize(minHeight = m.frame.target)
+                .defaultMinSize(minHeight = m.frame.touchTarget)
                 .padding(horizontal = m.cardPad, vertical = m.cardPad * ROW_GAP),
             horizontalArrangement = Arrangement.spacedBy(m.cardGap),
             verticalAlignment = Alignment.CenterVertically,

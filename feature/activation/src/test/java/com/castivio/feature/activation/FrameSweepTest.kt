@@ -155,23 +155,59 @@ class FrameSweepTest {
     }
 
     /**
-     * Every frame's chip clears the floor for the device it is on.
+     * The pill is drawn at the frame's chip and pressed at the frame's floor.
      *
-     * The header's one control is [CastivioFrame.chip] tall, and on a television that
-     * has to clear the D-pad's 56dp rather than a thumb's 48. Asserting the phone floor
-     * everywhere is exactly what let a control ship 8dp short twice on this project.
+     * Two numbers, two claims. The drawing states a 44dp pill on a television and a
+     * 34dp one on the shortest phone; the rule states a 56dp and a 48dp interaction
+     * area. Read as one number they contradict, and both ways of collapsing them are
+     * wrong — growing the pill rewrites an approved drawing to satisfy a rule about
+     * fingers, growing the header row costs three frames 2 to 12dp of band.
+     *
+     * So this asserts the shape of the answer rather than either collapse: the pill
+     * stays under the floor on every frame (which is what makes the second box
+     * necessary), and the header row can hold the pill it draws. What the interaction
+     * box actually measures is asserted where it is laid out, in the header sweep
+     * below.
      */
     @Test
-    fun `the header's control clears the floor for its frame`() {
+    fun `the drawn pill and the pressable box are two different sizes`() {
         for (pass in passes) {
             val frame = pass.frame
             assertTrue(
-                "$pass: the chip is ${frame.chip}, below the ${frame.target} floor",
-                frame.chip >= frame.target,
+                "$pass: the header ${frame.header} cannot hold a ${frame.chip} pill",
+                frame.header >= frame.chip,
             )
             assertTrue(
-                "$pass: the header ${frame.header} cannot hold a ${frame.chip} chip",
-                frame.header >= frame.chip,
+                "$pass: the pill ${frame.chip} already clears the ${frame.touchTarget} " +
+                    "floor, so the interaction box around it is now dead weight -- " +
+                    "collapse the two rather than leaving a box nothing needs",
+                frame.chip < frame.touchTarget,
+            )
+        }
+    }
+
+    /**
+     * The interaction box overhangs the row, and the overhang fits the stage's margin.
+     *
+     * This is the arithmetic that makes the two-box answer safe rather than merely
+     * clever: the box is centred on a row shorter than itself, so it reaches
+     * `(touchTarget - header) / 2` above the header into `stageTop` and the same below
+     * into `bandTop`. If a frame ever tightens those margins past the overhang, the
+     * control starts reaching into content — or off the display — and that is the
+     * failure this states in numbers before anyone has to see it.
+     */
+    @Test
+    fun `the overhang fits the margin above and below the header`() {
+        for (pass in passes) {
+            val frame = pass.frame
+            val overhang = maxOf(0.dp, (frame.touchTarget - frame.header) / 2)
+            assertTrue(
+                "$pass: the box overhangs $overhang above a ${frame.stageTop} margin",
+                overhang <= frame.stageTop,
+            )
+            assertTrue(
+                "$pass: the box overhangs $overhang below a ${frame.bandTop} margin",
+                overhang <= frame.bandTop,
             )
         }
     }
@@ -262,23 +298,22 @@ class FrameSweepTest {
         val backs = compose.all(ActivationTags.SAVED_BACK)
 
         passes.forEachIndexed { i, pass ->
-            val edge = pass.frame.edge
-            // The column stacks the passes, so a pass's own left edge is the column's
-            // and its width is its frame's. Only the horizontal claim is made here,
-            // which is the one this screen's missing tag would otherwise cost.
-            val left = marks[i].left - edge
+            // The stage is untagged here, so the row's own span is the claim: the mark
+            // starts it, Back ends it, and the two are the frame's usable width apart.
+            val span = backs[i].right - marks[i].left
+            val usable = pass.width - pass.frame.edge * 2
             assertTrue(
-                "$pass: Back ends ${backs[i].right - left} into a ${pass.width} frame, " +
-                    "which is not ${pass.width - edge}",
-                abs(((backs[i].right - left) - (pass.width - edge)).value) <= 1f,
+                "$pass: the header spans $span, not the frame's usable $usable",
+                abs((span - usable).value) <= 1f,
             )
             assertTrue(
                 "$pass: the title is not between the mark and Back",
                 titles[i].left >= marks[i].right && titles[i].right <= backs[i].left,
             )
             assertTrue(
-                "$pass: Back is ${backs[i].height} tall, below the ${pass.frame.target} floor",
-                backs[i].height >= pass.frame.target,
+                "$pass: Back's box is ${backs[i].height}, below the " +
+                    "${pass.frame.touchTarget} floor",
+                backs[i].height >= pass.frame.touchTarget,
             )
         }
     }
@@ -319,13 +354,18 @@ class FrameSweepTest {
                     "| back ${backBox.left}..${backBox.right}",
             )
 
+            // The tag sits on the stage *inside* its own padding, so the stage's own
+            // edges already are the frame's margin -- the mark starts on the stage's
+            // leading edge and Back ends on its trailing one, with nothing between.
+            // Stated in physical coordinates and asserted in both directions, because
+            // the row does not mirror; only the text inside each slot does.
             assertTrue(
-                "$pass: the mark stands ${mark.left - panel.left} off the stage, not $edge",
-                abs(((mark.left - panel.left) - edge).value) <= 1f,
+                "$pass: the mark starts at ${mark.left}, the stage at ${panel.left}",
+                abs((mark.left - panel.left).value) <= 1f,
             )
             assertTrue(
-                "$pass: Back stands ${panel.right - backBox.right} off the stage, not $edge",
-                abs(((panel.right - backBox.right) - edge).value) <= 1f,
+                "$pass: Back ends at ${backBox.right}, the stage at ${panel.right}",
+                abs((backBox.right - panel.right).value) <= 1f,
             )
             assertTrue(
                 "$pass: the title ${title.left}..${title.right} is not between the mark " +
@@ -345,15 +385,28 @@ class FrameSweepTest {
                 backBox.top < mark.bottom && mark.top < backBox.bottom,
             )
 
-            // A control on every frame, not only on the ones somebody looked at. `chip`
-            // is the declared height; this is what the layout actually gave it.
+            // The claim the two-box answer exists to make: what the layout handed the
+            // control is the *floor*, not the pill. Measured rather than derived --
+            // a slot clamped back to the row would report the row's height here, and
+            // that is precisely how this shipped invisible before.
             assertTrue(
-                "$pass: Back is ${backBox.height} tall, below the ${pass.frame.target} floor",
-                backBox.height >= pass.frame.target,
+                "$pass: Back's box is ${backBox.height}, below the " +
+                    "${pass.frame.touchTarget} floor -- the header has clamped it",
+                backBox.height >= pass.frame.touchTarget,
             )
 
-            // And all three are inside the stage they belong to, in both axes.
-            for ((what, box) in listOf("the mark" to mark, "the title" to title, "Back" to backBox)) {
+            // And the box stays on the display, overhang included. The horizontal
+            // claim above is against the stage; this one is against the frame, because
+            // the overhang is deliberately *outside* the header's own bounds.
+            assertTrue(
+                "$pass: Back's box ${backBox.top}..${backBox.bottom} leaves the " +
+                    "${pass.height} frame",
+                backBox.top >= panel.top - pass.frame.stageTop &&
+                    backBox.bottom <= panel.bottom + pass.frame.stageBottom,
+            )
+
+            // The mark and the title are inside the stage they belong to, in both axes.
+            for ((what, box) in listOf("the mark" to mark, "the title" to title)) {
                 assertTrue(
                     "$pass: $what runs past the stage — ${box.left}..${box.right} of " +
                         "${panel.left}..${panel.right}",

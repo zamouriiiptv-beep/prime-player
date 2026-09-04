@@ -6,8 +6,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -130,8 +132,25 @@ fun CastivioHeader(
         // eight dp above a wordmark that was exactly where it should be, and no
         // amount of arithmetic further down could have moved it: it was already
         // as tall as the row, so `(rowH - height) / 2` was zero.
+        //
+        // ## The height is unbounded, and that is the second fault this fixes
+        //
+        // It was `maxHeight = rowH`, which reads as a safety and is the opposite.
+        // A chip is drawn at `CastivioFrame.chip` — 44dp on a television, 34 on the
+        // shortest phone — and its *interaction* box is `touchTarget`: 56 and 48.
+        // Clamped to the row, that box came back 54 and 36, and a control whose hit
+        // area has been quietly cut to the row is exactly the failure a floor exists
+        // to prevent. It is invisible, too: the pill still looks right.
+        //
+        // So a slot may exceed the row. What it may **not** do is change the row:
+        // this component still reports `rowH`, so nothing below the header moves,
+        // and an oversized slot is centred — overhanging by half the difference into
+        // the stage's own margins, which are 24/22 on a television down to 11/8 on
+        // the shortest phone against a widest overhang of 6dp. Nothing clips it,
+        // because nothing between here and the display draws a clip.
         fun slot(width: Int) = androidx.compose.ui.unit.Constraints(
-            minWidth = 0, maxWidth = width, minHeight = 0, maxHeight = rowH,
+            minWidth = 0, maxWidth = width,
+            minHeight = 0, maxHeight = androidx.compose.ui.unit.Constraints.Infinity,
         )
 
         // The two ends take what they need; the title takes what is between them
@@ -357,6 +376,23 @@ private const val CHIP_GAP = 0.55f
  * that the screen did not otherwise need. The chip is the same kind of thing on all
  * six, so it is one thing.
  *
+ * ## Two boxes, because a pill and a target are two different sizes
+ *
+ * The pill is [chip] tall — 44dp on a television, 34 on the shortest phone — and that
+ * is what the approved drawings state and what a reader sees. Around it sits a box at
+ * least [touchTarget] tall, and that is what a thumb presses and a remote lands on.
+ *
+ * Reading those as one number has a wrong answer on each side. Grow the pill and an
+ * approved drawing has been rewritten to satisfy a rule about fingers; grow the header
+ * row to hold it and three of the four frames lose 2 to 12dp of band, which on the
+ * licence screen's tightest case turns a reserved sentence from 5dp short into 17.
+ * Neither is necessary: the box overhangs the row by at most 6dp, into a margin that
+ * is 8dp at its narrowest, and no ancestor clips it.
+ *
+ * Everything that says *this is a control* is on the outer box — the click, the role,
+ * the label — so a screen reader and a D-pad both address the full target. Everything
+ * that says *this is what it looks like* is on the pill.
+ *
  * ## The chevron points the way the reader came from
  *
  * Auto-mirrored, so it is a left arrow in English and a right arrow in Arabic. That
@@ -367,18 +403,20 @@ private const val CHIP_GAP = 0.55f
  *
  * ## Round, by ratio
  *
- * `percent = 50` rather than the frame's radius: this is a pill, and a pill's
- * corner is half its height whatever the height is. The frame's `radius` is for the
- * surfaces on the stage, which are rectangles.
+ * `percent = 50` rather than the frame's radius: this is a pill, and a pill's corner
+ * is half its height whatever the height is. The frame's `radius` is for the surfaces
+ * on the stage, which are rectangles.
  *
- * @param height [com.castivio.core.design.theme.CastivioFrame.chip], which is at or
- *   above the frame's target floor on every frame.
+ * @param chip [com.castivio.core.design.theme.CastivioFrame.chip] — the drawn pill.
+ * @param touchTarget [com.castivio.core.design.theme.CastivioFrame.touchTarget] — the
+ *   floor for the interaction box around it.
  * @param label the word. Supplied by the caller because a shared component may not
  *   own copy — this one would otherwise carry a string in thirty-eight languages.
  */
 @Composable
 fun CastivioBackChip(
-    height: Dp,
+    chip: Dp,
+    touchTarget: Dp,
     pad: Dp,
     fontSize: Dp,
     label: String,
@@ -388,30 +426,36 @@ fun CastivioBackChip(
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(percent = 50)
 
-    Row(
+    Box(
         modifier
-            .height(height)
-            .clip(shape)
-            .background(colors.glassFill)
-            .border(BorderStroke(1.dp, Palette.EdgeQuiet), shape)
+            .heightIn(min = touchTarget)
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = pad)
             .semantics(mergeDescendants = true) { contentDescription = label },
-        horizontalArrangement = Arrangement.spacedBy(pad * CHIP_GAP),
-        verticalAlignment = Alignment.CenterVertically,
+        contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-            contentDescription = null,
-            tint = colors.onBackgroundVariant,
-            modifier = Modifier.size(fontSize * CHIP_ICON),
-        )
-        Text(
-            text = label,
-            style = castivioChipStyle(fontSize),
-            color = colors.onBackgroundVariant,
-            maxLines = 1,
-        )
+        Row(
+            Modifier
+                .height(chip)
+                .clip(shape)
+                .background(colors.glassFill)
+                .border(BorderStroke(1.dp, Palette.EdgeQuiet), shape)
+                .padding(horizontal = pad),
+            horizontalArrangement = Arrangement.spacedBy(pad * CHIP_GAP),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                contentDescription = null,
+                tint = colors.onBackgroundVariant,
+                modifier = Modifier.size(fontSize * CHIP_ICON),
+            )
+            Text(
+                text = label,
+                style = castivioChipStyle(fontSize),
+                color = colors.onBackgroundVariant,
+                maxLines = 1,
+            )
+        }
     }
 }
 
