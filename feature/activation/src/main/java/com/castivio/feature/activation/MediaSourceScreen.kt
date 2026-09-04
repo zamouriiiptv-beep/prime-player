@@ -1,9 +1,8 @@
 package com.castivio.feature.activation
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -17,31 +16,21 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.em
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
-import com.castivio.core.design.components.CastivioMark
-import com.castivio.core.design.components.GlassCard
 import com.castivio.core.design.components.InteractiveGlassCard
+import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.icons.CastivioIcons
 import com.castivio.core.design.theme.CastivioTheme
-import com.castivio.core.design.theme.CastivioType
-import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Sizing
-import com.castivio.core.design.theme.Spacing
 
 /**
  * "What would you like to play?" — the device's own media, four ways in.
@@ -61,23 +50,36 @@ import com.castivio.core.design.theme.Spacing
  * focusable, labelled and inert is honest; a card wired to a query written to make the
  * screen look finished is not.
  *
- * ## Its relationship to [SourceChoiceScreen]
+ * ## It is now the same screen as [SourceChoiceScreen], with different cards in it
  *
- * Every surface here is that screen's: the same glass container at [Radius.xl] over
- * cards at [Radius.lg], the same `glassFillStrong`, the same focus ring, the same type
- * scale, the same spacing at the same three frames. It is deliberately not a shared
- * composable — the two screens differ in their footer, their icon size and their
- * header, and a component taking three booleans to be both of them would be worse than
- * two screens that read the same tokens.
+ * It always claimed to be — "the same glass, the same type scale, the same spacing" —
+ * and it was not, because it said so in prose rather than by reading the same numbers.
+ * It drew its own heading from a title and a corner wordmark, its own footer with Back
+ * centred between two rules, and its spacing from `isTv ? lg : sm`, which is two
+ * frames where the design has four. A television and a handset were the only screens
+ * it had ever been asked about.
  *
- * Two things do differ, and both were decided at review:
+ * So the three things a screen does not own now come from where they are defined:
  *
- * **The icons are [Sizing.iconXl].** 20dp was unreadable on a television, so these are
- * drawn rather than Material — see [CastivioIcons] for why the family could not simply
+ * - the **stage** and the **type steps** from [com.castivio.core.design.theme.CastivioFrame],
+ *   chosen by the measured height of this surface;
+ * - the **header** from `CastivioHeader` — the lockup at the same physical edge in
+ *   every language, the question beside it, Back at the far end;
+ * - the **card geometry** from [SourceMetrics], because these four cards and the
+ *   source choice's four are drawn to one figure on each of the four frames, and two
+ *   tables that agree by hand agree until one of them is edited.
+ *
+ * What went with the local heading is the local footer. Back is one control and it now
+ * sits where the reader last saw it — in the header, at the row's outer end — rather
+ * than in a band at the bottom that existed only to hold it.
+ *
+ * ## What is still this screen's own
+ *
+ * The card: an icon leading a pair of lines, rather than the source choice's disc,
+ * description and chevron. The icons are [Sizing.iconXl] because 20dp was unreadable
+ * on a television, and they are drawn rather than Material — see
+ * [com.castivio.core.design.icons.CastivioIcons] for why the family could not simply
  * be scaled.
- *
- * **The footer is a rule, Back, a rule**, with Back on the container's true centre
- * rather than at the start. The source choice keeps its own.
  */
 @Composable
 internal fun MediaSourceScreen(
@@ -88,143 +90,64 @@ internal fun MediaSourceScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier
-            .fillMaxSize()
-            .padding(CastivioTheme.device.screenPadding),
-        verticalArrangement = Arrangement.Top,
-    ) {
-        MediaHeading()
-        Spacer(Modifier.height(TitleGap))
+    val tv = CastivioTheme.device.isTv
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val m = sourceMetricsFor(tv = tv, available = maxHeight)
 
-        // `weight(1f)` rather than a height: the container is whatever the title and
-        // the screen padding leave, so the cards divide a known box and overflow is
-        // structural rather than something a budget has to keep watching. There is no
-        // terms sentence on this screen, so the container is the taller for it.
-        MediaContainer(Modifier.weight(1f)) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(start = m.edge, end = m.edge, top = m.stageTop, bottom = m.stageBottom)
+                .testTag(ActivationTags.MEDIA_CONTAINER),
+        ) {
+            ChooserHeader(
+                m = m,
+                title = stringResource(R.string.media_source_title),
+                headingTag = ActivationTags.MEDIA_HEADING,
+                backTag = ActivationTags.MEDIA_BACK,
+                onBack = onBack,
+            )
+            Spacer(Modifier.height(m.bandTop))
+
+            // Weighted, so the grid is what the header leaves rather than what it asks
+            // for. A weighted child cannot push its siblings off the screen, which
+            // makes overflow structural instead of arithmetic.
             MediaGrid(
+                m = m,
                 modifier = Modifier.weight(1f),
                 onVideoLibrary = onVideoLibrary,
                 onPickVideo = onPickVideo,
                 onAudioLibrary = onAudioLibrary,
                 onPickAudio = onPickAudio,
             )
-            Spacer(Modifier.height(ContainerGap))
-            ChooserFooter(onBack, ActivationTags.MEDIA_BACK)
         }
-    }
-}
-
-/**
- * The title, with the mark in the opposite corner.
- *
- * The question takes the start of the row and the mark takes the end, so the two sit
- * in opposite corners in either direction — title right and mark left in Arabic, title
- * left and mark right in English. One rule, and it needs nothing direction-aware: the
- * last child of a row *is* the end, and the layout direction decides which physical
- * corner that is.
- *
- * A row rather than two stacked lines, and that is what keeps the mark free. The
- * container is `weight(1f)` and takes whatever the header leaves, so a line of its own
- * would have come out of the cards; sharing the title's 32sp line box costs nothing.
- */
-@Composable
-private fun MediaHeading() {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(MarkGap),
-    ) {
-        Text(
-            text = stringResource(R.string.media_source_title),
-            style = CastivioType.headlineMedium,
-            color = CastivioTheme.colors.onBackground,
-            modifier = Modifier
-                .weight(1f)
-                .alignByBaseline()
-                .testTag(ActivationTags.MEDIA_HEADING)
-                .semantics { heading() },
-        )
-        Wordmark(Modifier.alignByBaseline())
-    }
-}
-
-/**
- * Castivio, in the startup's own ink.
- *
- * The word, the violet-into-azure fill and the tracking all come from [CastivioMark],
- * which is where `Intro.kt` keeps them; only the size is local, because the size is the
- * only part that is. `lineHeight` equal to the font size so the mark contributes no
- * leading of its own — a baseline-aligned row is as tall as its deepest descender, and
- * a default line box around a 16sp glyph hangs further below the baseline than the
- * title's does. The mockup grew its header by 3dp exactly that way, and the container
- * paid for it.
- *
- * No `contentDescription`: the application's name is in the launcher and the window
- * title already, and a wordmark read aloud before every screen is noise.
- */
-@Composable
-private fun Wordmark(modifier: Modifier = Modifier) {
-    val size = MarkSize
-    Text(
-        text = CastivioMark.TEXT,
-        style = CastivioType.labelSmall.copy(
-            fontSize = size,
-            lineHeight = size,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = CastivioMark.TRACKING_RATIO.em,
-            // Left to right in pixels whatever the layout direction, which is what the
-            // startup draws: the violet end is on the left on every screen Castivio
-            // signs, in both languages.
-            brush = Brush.horizontalGradient(CastivioMark.colours),
-        ),
-        maxLines = 1,
-        modifier = modifier,
-    )
-}
-
-/** The glass the four choices and the way back sit inside. The source choice's. */
-@Composable
-private fun MediaContainer(
-    modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    GlassCard(
-        modifier = modifier
-            .fillMaxWidth()
-            .testTag(ActivationTags.MEDIA_CONTAINER),
-        shape = RoundedCornerShape(Radius.xl),
-    ) {
-        Column(
-            Modifier
-                .fillMaxHeight()
-                .padding(ContainerPadding),
-            content = content,
-        )
     }
 }
 
 /**
  * Two by two, equal in both directions.
  *
- * Bounded by the container, so the two rows divide a known height and come out equal
+ * Bounded by the stage, so the two rows divide a known height and come out equal
  * without an intrinsic pass. Reading order is source order, which is also focus order:
  * a D-pad moves along a row and then down between them, and the direction resolves
  * which physical way "along" is.
  */
 @Composable
 private fun MediaGrid(
+    m: SourceMetrics,
     modifier: Modifier,
     onVideoLibrary: () -> Unit,
     onPickVideo: () -> Unit,
     onAudioLibrary: () -> Unit,
     onPickAudio: () -> Unit,
 ) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(GridGap)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(m.gridGap)) {
         Row(
             Modifier.weight(1f).fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(GridGap),
+            horizontalArrangement = Arrangement.spacedBy(m.gridGap),
         ) {
             MediaCard(
+                m = m,
                 icon = CastivioIcons.VideoLibrary,
                 title = stringResource(R.string.media_video_library_title),
                 detail = stringResource(R.string.media_video_library_detail),
@@ -232,6 +155,7 @@ private fun MediaGrid(
                 tag = ActivationTags.MEDIA_VIDEO_LIBRARY,
             )
             MediaCard(
+                m = m,
                 icon = CastivioIcons.VideoFile,
                 title = stringResource(R.string.media_video_pick_title),
                 detail = stringResource(R.string.media_video_pick_detail),
@@ -241,9 +165,10 @@ private fun MediaGrid(
         }
         Row(
             Modifier.weight(1f).fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(GridGap),
+            horizontalArrangement = Arrangement.spacedBy(m.gridGap),
         ) {
             MediaCard(
+                m = m,
                 icon = CastivioIcons.AudioLibrary,
                 title = stringResource(R.string.media_audio_library_title),
                 detail = stringResource(R.string.media_audio_library_detail),
@@ -251,6 +176,7 @@ private fun MediaGrid(
                 tag = ActivationTags.MEDIA_AUDIO_LIBRARY,
             )
             MediaCard(
+                m = m,
                 icon = CastivioIcons.AudioFile,
                 title = stringResource(R.string.media_mp3_pick_title),
                 detail = stringResource(R.string.media_mp3_pick_detail),
@@ -266,9 +192,13 @@ private fun MediaGrid(
  *
  * The icon leads the pair of lines rather than sitting on the first of them, which is
  * the one structural difference from the source choice's card and follows from the
- * size: a 32dp glyph on a 24sp line box would have set the title's line height.
- * Centred on the text block instead, it costs the card nothing — the words are 48dp and
- * the glyph is 32.
+ * size: a 32dp glyph on the title's line box would have set that line's height.
+ * Centred on the text block instead, it costs the card nothing.
+ *
+ * The description wraps to [SourceMetrics.detailLines] and no further — four lines on
+ * a television, three elsewhere — and it wraps rather than being cut, because a
+ * sentence that ends in an ellipsis in one language and not in another is a layout
+ * that stopped being checked in the other thirty-six.
  *
  * One node, one label, one target: a screen reader announces the title and the
  * description as a single item, and the icon carries no description of its own because
@@ -276,6 +206,7 @@ private fun MediaGrid(
  */
 @Composable
 private fun RowScope.MediaCard(
+    m: SourceMetrics,
     icon: ImageVector,
     title: String,
     detail: String,
@@ -291,13 +222,14 @@ private fun RowScope.MediaCard(
             .fillMaxHeight()
             .testTag(tag)
             .semantics(mergeDescendants = true) { contentDescription = "$title. $detail" },
+        shape = RoundedCornerShape(m.radius),
         fill = SolidColor(colors.glassFillStrong),
     ) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .padding(CardPadding),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                .padding(m.cardPad),
+            horizontalArrangement = Arrangement.spacedBy(m.cardGap),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -308,61 +240,30 @@ private fun RowScope.MediaCard(
             )
             Column(
                 Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                verticalArrangement = Arrangement.spacedBy(m.cardPad * TEXT_GAP),
             ) {
-                Text(text = title, style = CastivioType.titleLarge, color = colors.onBackground)
+                Text(
+                    text = title,
+                    style = castivioChipStyle(m.fsCard),
+                    color = colors.onBackground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 Text(
                     text = detail,
-                    style = CastivioType.bodySmall,
+                    style = castivioChipStyle(m.fsDetail).copy(
+                        lineHeight = (m.fsDetail.value * DETAIL_LEADING).sp,
+                    ),
                     color = colors.onBackgroundVariant,
+                    maxLines = m.detailLines,
                 )
             }
         }
     }
 }
 
-/* ------------------------------------------------------------------------ tokens */
+/** A card's name against its description, as a fraction of the card's own padding. */
+private const val TEXT_GAP = 0.5f
 
-/**
- * The mark's size: 16sp on a handset, 19sp on a television.
- *
- * Larger than the source choice's, which is a difference the two screens carry on
- * purpose after review rather than by accident — the corner mark there was judged too
- * quiet to read. If the two are ever unified this is the figure to unify on.
- */
-private val MarkSize: TextUnit
-    @Composable @ReadOnlyComposable get() =
-        if (CastivioTheme.device.isTv) 19.sp else 16.sp
-
-/** Mark to title. */
-private val MarkGap: Dp
-    @Composable @ReadOnlyComposable get() =
-        if (CastivioTheme.device.isTv) Spacing.xl else Spacing.lg
-
-/** Title to container. */
-private val TitleGap: Dp
-    @Composable @ReadOnlyComposable get() =
-        if (CastivioTheme.device.isTv) Spacing.lg else Spacing.sm
-
-/** The container's own inset, all round. */
-private val ContainerPadding: Dp
-    @Composable @ReadOnlyComposable get() =
-        if (CastivioTheme.device.isTv) Spacing.lg else Spacing.sm
-
-/** Grid to the footer, inside the container. */
-private val ContainerGap: Dp
-    @Composable @ReadOnlyComposable get() =
-        if (CastivioTheme.device.isTv) Spacing.lg else Spacing.xs
-
-/** Between the cards, across and down alike — a grid spaced two ways is two rows. */
-private val GridGap: Dp
-    @Composable @ReadOnlyComposable get() =
-        if (CastivioTheme.device.isTv) Spacing.lg else Spacing.sm
-
-/** Inside a card. The source choice's figures, so the two sets of cards match. */
-private val CardPadding: PaddingValues
-    @Composable @ReadOnlyComposable get() = if (CastivioTheme.device.isTv) {
-        PaddingValues(horizontal = Spacing.xxl, vertical = Spacing.xl)
-    } else {
-        PaddingValues(horizontal = Spacing.lg, vertical = Spacing.sm)
-    }
+/** A description's leading. Prose, so looser than a chip's single line. */
+private const val DETAIL_LEADING = 1.5f

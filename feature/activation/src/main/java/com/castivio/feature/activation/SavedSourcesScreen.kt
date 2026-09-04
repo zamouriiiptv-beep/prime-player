@@ -1,14 +1,21 @@
 package com.castivio.feature.activation
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Icon
@@ -20,16 +27,15 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
 import com.castivio.core.design.components.ButtonWeight
 import com.castivio.core.design.components.CastivioButton
 import com.castivio.core.design.components.InteractiveGlassCard
+import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.theme.CastivioTheme
-import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Sizing
-import com.castivio.core.design.theme.Spacing
 import com.castivio.domain.ProviderSource
 
 /**
@@ -55,8 +61,16 @@ import com.castivio.domain.ProviderSource
  *
  * ## The frame
  *
- * A list, so it is the one step here that can be taller than the screen — and it is
- * given the *fixed* frame rather than the scrolling one. `ActivationSurface`'s
+ * The stage, the header and the four type steps are
+ * [com.castivio.core.design.theme.CastivioFrame]'s, chosen by the measured height of
+ * this surface. Before that this screen drew a bare title at `headlineMedium`, took
+ * its margins from `DeviceClass.screenPadding` — one number for every handset and
+ * tablet alike — and put Back in a full-width button under the list. A reader arriving
+ * from the source choice met a different brand, a different title size and a Back in a
+ * different place, on the screen that card had just opened.
+ *
+ * It is a list, so it is the one step here that can be taller than the screen, and it
+ * is given the *fixed* frame rather than the scrolling one. `ActivationSurface`'s
  * scrolling branch wraps its content in `verticalScroll`, and a `LazyColumn` inside an
  * unbounded height does not scroll, it crashes. Inside the fixed frame the list has a
  * bounded height and scrolls itself, which is what a list is supposed to do.
@@ -70,70 +84,95 @@ internal fun SavedSourcesScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier
-            .fillMaxSize()
-            .padding(CastivioTheme.device.screenPadding),
-        verticalArrangement = Arrangement.spacedBy(Spacing.lg),
-    ) {
-        Text(
-            text = stringResource(R.string.saved_sources_title),
-            style = CastivioType.headlineMedium,
-            color = CastivioTheme.colors.onBackground,
-            modifier = Modifier
-                .testTag(ActivationTags.SAVED_TITLE)
-                .semantics { heading() },
-        )
+    val tv = CastivioTheme.device.isTv
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val m = sourceMetricsFor(tv = tv, available = maxHeight)
 
-        when (state) {
-            // Nothing at all for one frame. The alternative is telling a returning
-            // user they have no subscriptions and correcting it a moment later.
-            SavedSourcesState.Loading -> Unit
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(start = m.edge, end = m.edge, top = m.stageTop, bottom = m.stageBottom),
+        ) {
+            ChooserHeader(
+                m = m,
+                title = stringResource(R.string.saved_sources_title),
+                headingTag = ActivationTags.SAVED_TITLE,
+                backTag = ActivationTags.SAVED_BACK,
+                onBack = onBack,
+            )
+            Spacer(Modifier.height(m.bandTop))
 
-            is SavedSourcesState.Ready -> if (state.isEmpty) {
+            // The band, weighted in all three states so the two add buttons keep their
+            // place while the list arrives. A `Column` whose children exceed its height
+            // hands zero to whatever it measured last, and here that would be the only
+            // two controls on the screen.
+            SavedBand(m, state, onChoose)
+
+            Spacer(Modifier.height(m.gridGap))
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(m.cardGap),
+            ) {
+                CastivioButton(
+                    text = stringResource(R.string.saved_sources_add_xtream),
+                    weight = ButtonWeight.Secondary,
+                    onClick = onAddXtream,
+                    modifier = Modifier.testTag(ActivationTags.SAVED_ADD_XTREAM),
+                )
+                CastivioButton(
+                    text = stringResource(R.string.saved_sources_add_m3u),
+                    weight = ButtonWeight.Secondary,
+                    onClick = onAddPlaylist,
+                    modifier = Modifier.testTag(ActivationTags.SAVED_ADD_M3U),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * What sits between the header and the two buttons, whichever of the three states
+ * this screen is in.
+ *
+ * All three take the same weighted band, so nothing above or below them moves as the
+ * repository answers. Loading shows nothing at all rather than telling a returning
+ * user they have no subscriptions and correcting it a moment later.
+ */
+@Composable
+private fun ColumnScope.SavedBand(
+    m: SourceMetrics,
+    state: SavedSourcesState,
+    onChoose: (String) -> Unit,
+) {
+    val band = Modifier.weight(1f).fillMaxWidth()
+
+    when (state) {
+        SavedSourcesState.Loading -> Spacer(band)
+
+        is SavedSourcesState.Ready -> if (state.isEmpty) {
+            Box(band.padding(m.cardPad), contentAlignment = Alignment.Center) {
                 Text(
                     text = stringResource(R.string.saved_sources_empty),
-                    style = CastivioType.bodyLarge,
+                    style = castivioChipStyle(m.fsCard),
                     color = CastivioTheme.colors.onBackgroundVariant,
                     modifier = Modifier.testTag(ActivationTags.SAVED_EMPTY),
                 )
-            } else {
-                LazyColumn(
-                    // `weight`, so the list takes what the title and the buttons leave
-                    // and no more. Given the rest it would push them off the screen.
-                    modifier = Modifier.weight(1f).testTag(ActivationTags.SAVED_LIST),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) {
-                    items(state.saved, key = { it.id }) { source ->
-                        SavedSourceRow(
-                            source = source,
-                            isActive = source.id == state.activeId,
-                            onClick = { onChoose(source.id) },
-                        )
-                    }
+            }
+        } else {
+            LazyColumn(
+                modifier = band.testTag(ActivationTags.SAVED_LIST),
+                verticalArrangement = Arrangement.spacedBy(m.cardGap * ROW_GAP),
+            ) {
+                items(state.saved, key = { it.id }) { source ->
+                    SavedSourceRow(
+                        m = m,
+                        source = source,
+                        isActive = source.id == state.activeId,
+                        onClick = { onChoose(source.id) },
+                    )
                 }
             }
         }
-
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-        ) {
-            CastivioButton(
-                text = stringResource(R.string.saved_sources_add_xtream),
-                weight = ButtonWeight.Secondary,
-                onClick = onAddXtream,
-                modifier = Modifier.testTag(ActivationTags.SAVED_ADD_XTREAM),
-            )
-            CastivioButton(
-                text = stringResource(R.string.saved_sources_add_m3u),
-                weight = ButtonWeight.Secondary,
-                onClick = onAddPlaylist,
-                modifier = Modifier.testTag(ActivationTags.SAVED_ADD_M3U),
-            )
-        }
-
-        BackButton(onBack, Modifier.testTag(ActivationTags.SAVED_BACK))
     }
 }
 
@@ -145,9 +184,14 @@ internal fun SavedSourcesScreen(
  * unbounded -- an Xtream host with a port and a path, or a playlist URL with a token
  * in it -- so it is the one place an ellipsis is right: a row that grows to fit a
  * 300-character URL is a row that pushes every other subscription off the screen.
+ *
+ * The row is at least the frame's own target tall before it is anything else, so a
+ * subscription with a short label and no address is still something a remote can land
+ * on and a thumb can hit.
  */
 @Composable
 private fun SavedSourceRow(
+    m: SourceMetrics,
     source: ProviderSource,
     isActive: Boolean,
     onClick: () -> Unit,
@@ -162,19 +206,21 @@ private fun SavedSourceRow(
             .semantics(mergeDescendants = true) {
                 contentDescription = if (isActive) "${source.label}. $inUse" else source.label
             },
+        shape = RoundedCornerShape(m.radius),
         fill = SolidColor(colors.glassFillStrong),
     ) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = Spacing.lg, vertical = Spacing.md),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                .defaultMinSize(minHeight = m.frame.target)
+                .padding(horizontal = m.cardPad, vertical = m.cardPad * ROW_GAP),
+            horizontalArrangement = Arrangement.spacedBy(m.cardGap),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
                 Text(
                     text = source.label,
-                    style = CastivioType.titleLarge,
+                    style = castivioChipStyle(m.fsCard),
                     color = colors.onBackground,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -182,7 +228,9 @@ private fun SavedSourceRow(
                 source.url?.let { url ->
                     Text(
                         text = url,
-                        style = CastivioType.bodySmall,
+                        style = castivioChipStyle(m.fsDetail).copy(
+                            lineHeight = (m.fsDetail.value * DETAIL_LEADING).sp,
+                        ),
                         color = colors.onBackgroundVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -193,7 +241,11 @@ private fun SavedSourceRow(
                 // A tick and the word, not a tick alone: on a 10-foot display a
                 // 20dp glyph is the whole difference between "this one" and "not
                 // this one", and it is the difference a user cannot afford to miss.
-                Text(text = inUse, style = CastivioType.labelMedium, color = colors.onBackground)
+                Text(
+                    text = inUse,
+                    style = castivioChipStyle(m.fsBadge),
+                    color = colors.onBackground,
+                )
                 Icon(
                     imageVector = Icons.Rounded.Check,
                     contentDescription = null,
@@ -204,3 +256,9 @@ private fun SavedSourceRow(
         }
     }
 }
+
+/** Between rows, and a row's own vertical padding — half the gap between cards. */
+private const val ROW_GAP = 0.5f
+
+/** An address's leading. */
+private const val DETAIL_LEADING = 1.5f

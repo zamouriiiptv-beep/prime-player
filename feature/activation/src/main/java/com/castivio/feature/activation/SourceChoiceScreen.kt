@@ -29,7 +29,6 @@ import androidx.compose.material.icons.rounded.VerifiedUser
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,7 +36,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -48,16 +46,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.castivio.core.design.components.CastivioBackChip
-import com.castivio.core.design.components.CastivioHeader
-import com.castivio.core.design.components.CastivioHeaderTitle
-import com.castivio.core.design.components.CastivioLockup
 import com.castivio.core.design.components.InteractiveGlassCard
 import com.castivio.core.design.components.castivioChipStyle
-import com.castivio.core.design.components.castivioTitleStyle
 import com.castivio.core.design.theme.CastivioFrame
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
@@ -240,7 +232,13 @@ internal fun SourceChoiceScreen(
                 .padding(start = m.edge, end = m.edge, top = m.stageTop, bottom = m.stageBottom)
                 .testTag(ActivationTags.SOURCE_CONTAINER),
         ) {
-            SourceHeader(m, onBack)
+            ChooserHeader(
+                m = m,
+                title = stringResource(R.string.source_choice_title),
+                headingTag = ActivationTags.SOURCE_HEADING,
+                backTag = ActivationTags.SOURCE_BACK,
+                onBack = onBack,
+            )
             Spacer(Modifier.height(m.bandTop))
 
             // Weighted, so the grid is what is left rather than what it asked for.
@@ -262,55 +260,6 @@ internal fun SourceChoiceScreen(
     }
 }
 
-/* --------------------------------------------------------------------- header */
-
-@Composable
-private fun SourceHeader(m: SourceMetrics, onBack: () -> Unit) {
-    CastivioHeader(
-        height = m.header,
-        gap = m.headGap,
-        modifier = Modifier.fillMaxWidth(),
-        lockup = { CastivioLockup(markSize = m.brand, wordSize = (m.fsTitle.value * WORD_RATIO).sp) },
-        title = {
-            CastivioHeaderTitle(
-                text = stringResource(R.string.source_choice_title),
-                style = castivioTitleStyle(m.fsTitle),
-                color = Palette.White,
-                modifier = Modifier.testTag(ActivationTags.SOURCE_HEADING),
-            )
-        },
-        chips = {
-            // Pinned left to right like the activation screen's chip pair, so the
-            // control keeps the row's outer end in every language; the words inside
-            // it take the reader's own direction back.
-            val reading = LocalLayoutDirection.current
-            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                CompositionLocalProvider(LocalLayoutDirection provides reading) {
-                    BackChip(m, onBack)
-                }
-            }
-        },
-    )
-}
-
-/**
- * Back, drawn as the activation screen draws its language control.
- *
- * The component is `:core:design`'s, because six screens want this chip and four of
- * them had built one each. The word is supplied from here: a shared component may
- * not own copy.
- */
-@Composable
-private fun BackChip(m: SourceMetrics, onClick: () -> Unit) {
-    CastivioBackChip(
-        height = m.back,
-        pad = m.backPad,
-        fontSize = m.fsBack,
-        label = stringResource(R.string.action_back),
-        onClick = onClick,
-        modifier = Modifier.testTag(ActivationTags.SOURCE_BACK),
-    )
-}
 
 
 /* ----------------------------------------------------------------------- grid */
@@ -578,8 +527,6 @@ private fun RowScope.StripCell(m: SourceMetrics, hue: Color, icon: ImageVector, 
 
 /* --------------------------------------------------------------------- ratios */
 
-/** The wordmark against the question — the activation screen's figure, unchanged. */
-private const val WORD_RATIO = 0.80f
 
 private const val TITLE_LEADING = 1.35f
 private const val BODY_LEADING = 1.5f

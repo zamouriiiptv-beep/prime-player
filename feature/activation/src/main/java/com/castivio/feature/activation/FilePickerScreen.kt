@@ -21,7 +21,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.castivio.core.design.icons.CastivioIcons
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
-import com.castivio.core.design.theme.Spacing
 
 /**
  * What the picker is looking for.
@@ -91,12 +90,13 @@ internal fun FilePickerScreen(
         containerTag = ActivationTags.PICKER_CONTAINER,
         headingTag = ActivationTags.PICKER_HEADING,
         modifier = modifier,
-    ) {
-        PathBand(path = path, filter = filter)
+    ) { m ->
+        PathBand(m = m, path = path, filter = filter)
         Spacer(Modifier.height(BrowseItemGap))
 
         if (entries.isEmpty()) {
             EmptyFolder(
+                m,
                 when (permission) {
                     MediaPermission.Granted -> stringResource(R.string.media_picker_empty)
                     MediaPermission.Denied -> stringResource(R.string.media_permission_denied)
@@ -139,13 +139,13 @@ internal fun FilePickerScreen(
  * the implementation and not about the choice being made.
  */
 @Composable
-private fun PathBand(path: String, filter: String) {
+private fun PathBand(m: SourceMetrics, path: String, filter: String) {
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = Spacing.md)
+            .padding(horizontal = m.cardPad)
             .testTag(ActivationTags.PICKER_PATH),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        horizontalArrangement = Arrangement.spacedBy(m.cardGap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -167,12 +167,12 @@ private fun PathBand(path: String, filter: String) {
 
 /** An empty folder is a fact, not a failure. */
 @Composable
-private fun ColumnScope.EmptyFolder(message: String) {
+private fun ColumnScope.EmptyFolder(m: SourceMetrics, message: String) {
     Box(
         Modifier
             .weight(1f)
             .fillMaxWidth()
-            .padding(Spacing.lg),
+            .padding(m.cardPad),
         contentAlignment = Alignment.Center,
     ) {
         Text(

@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -50,12 +51,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.castivio.core.common.locale.CastivioLanguage
 import com.castivio.core.design.components.CastivioIconButton
+import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioFocusScale
+import com.castivio.core.design.theme.CastivioFrame
 import com.castivio.core.design.theme.CastivioTheme
-import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Motion
-import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Spacing
+import com.castivio.core.design.theme.rememberFrame
 
 /**
  * Choosing one of the thirty-seven.
@@ -104,7 +106,6 @@ fun LanguagePicker(
     val languages = remember { CastivioLanguage.ordered }
     val gridState = rememberLazyGridState()
     val selectedFocus = remember { FocusRequester() }
-    val shape = RoundedCornerShape(if (tv) Radius.xxl else Radius.xl)
 
     // Opens on the language Castivio is in. With 37 entries and no search, the
     // one thing a returning user reliably wants is to see where they already are.
@@ -113,7 +114,7 @@ fun LanguagePicker(
         runCatching { selectedFocus.requestFocus() }
     }
 
-    Box(
+    BoxWithConstraints(
         modifier
             .fillMaxSize()
             .background(colors.scrim)
@@ -127,12 +128,23 @@ fun LanguagePicker(
             ),
         contentAlignment = Alignment.Center,
     ) {
+        // The panel sits on the stage's own margins, so it lines up with the screen it
+        // is drawn over instead of being inset by a pair of numbers chosen beside it.
+        // It used to be 92dp in from the sides of a handset and 12dp from its top and
+        // bottom -- an overlay narrower than the screen under it and taller than the
+        // frame allows, which is the shape a panel takes when nobody has asked what it
+        // is aligned to.
+        val frame = rememberFrame(maxHeight, tv)
+        val shape = RoundedCornerShape(frame.radius)
+
         Column(
             Modifier
                 .fillMaxSize()
                 .padding(
-                    horizontal = if (tv) TV_INSET_H else PHONE_INSET_H,
-                    vertical = if (tv) TV_INSET_V else PHONE_INSET_V,
+                    start = frame.edge,
+                    end = frame.edge,
+                    top = frame.stageTop,
+                    bottom = frame.stageBottom,
                 )
                 .clip(shape)
                 .background(colors.backgroundElevated)
@@ -144,15 +156,15 @@ fun LanguagePicker(
                     onClick = {},
                 ),
         ) {
-            PickerHeader(tv = tv, onDismiss = onDismiss)
+            PickerHeader(frame = frame, tv = tv, onDismiss = onDismiss)
 
             LazyVerticalGrid(
                 columns = GridCells.Fixed(columns),
                 state = gridState,
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 contentPadding = PaddingValues(
-                    horizontal = if (tv) Spacing.xl else Spacing.lg,
-                    vertical = Spacing.md,
+                    horizontal = frame.headGap,
+                    vertical = frame.bandTop,
                 ),
                 horizontalArrangement = Arrangement.spacedBy(if (tv) Spacing.md else Spacing.sm),
                 verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
@@ -161,6 +173,7 @@ fun LanguagePicker(
                     LanguageRow(
                         language = language,
                         isSelected = language == selected,
+                        frame = frame,
                         tv = tv,
                         onPick = { onPick(language) },
                         modifier = if (language == selected) {
@@ -176,28 +189,25 @@ fun LanguagePicker(
 }
 
 @Composable
-private fun PickerHeader(tv: Boolean, onDismiss: () -> Unit) {
+private fun PickerHeader(frame: CastivioFrame, tv: Boolean, onDismiss: () -> Unit) {
     val colors = CastivioTheme.colors
     Column {
         Row(
             Modifier
                 .fillMaxWidth()
-                .padding(
-                    horizontal = if (tv) Spacing.xl else Spacing.lg,
-                    vertical = Spacing.md,
-                ),
+                .padding(horizontal = frame.headGap, vertical = frame.bandTop),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = stringResource(R.string.language),
-                style = if (tv) CastivioType.titleLarge else CastivioType.bodyMedium,
+                style = castivioChipStyle(frame.fsLabel),
                 color = colors.onBackground,
                 modifier = Modifier.semantics { heading() },
             )
             Text(
                 text = stringResource(R.string.language_count, CastivioLanguage.COUNT),
-                style = CastivioType.bodySmall,
+                style = castivioChipStyle(frame.fsBody),
                 color = colors.onBackgroundVariant,
             )
             Box(Modifier.weight(1f))
@@ -208,7 +218,7 @@ private fun PickerHeader(tv: Boolean, onDismiss: () -> Unit) {
             if (tv) {
                 Text(
                     text = stringResource(R.string.language_back_hint),
-                    style = CastivioType.bodySmall,
+                    style = castivioChipStyle(frame.fsBody),
                     color = colors.onBackgroundVariant,
                 )
             } else {
@@ -227,12 +237,13 @@ private fun PickerHeader(tv: Boolean, onDismiss: () -> Unit) {
 private fun LanguageRow(
     language: CastivioLanguage,
     isSelected: Boolean,
+    frame: CastivioFrame,
     tv: Boolean,
     onPick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
-    val shape = RoundedCornerShape(Radius.sm)
+    val shape = RoundedCornerShape(frame.radius)
     val interaction = remember { MutableInteractionSource() }
     var focused by remember { mutableStateOf(false) }
     val selectedLabel = stringResource(R.string.language_selected)
@@ -253,7 +264,7 @@ private fun LanguageRow(
     Row(
         modifier
             .fillMaxWidth()
-            .heightIn(min = if (tv) TV_ROW else PHONE_ROW)
+            .heightIn(min = frame.target)
             .castivioFocusScale(Motion.focusScaleIcon, interaction)
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
             .clip(shape)
@@ -286,7 +297,7 @@ private fun LanguageRow(
         }
         Text(
             text = isolate(language.nativeName),
-            style = if (tv) CastivioType.titleMedium else CastivioType.bodyLarge,
+            style = castivioChipStyle(frame.fsLabel),
             color = if (isSelected) colors.onBackground else colors.onBackgroundVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -314,10 +325,12 @@ private fun isolate(name: String): String = "⁨$name⁩"
 
 private const val PHONE_COLUMNS = 3
 private const val TV_COLUMNS = 4
-private val PHONE_ROW = 48.dp
-private val TV_ROW = 56.dp
+
+/**
+ * The tick's box: reserved on every row, filled on one.
+ *
+ * A column that appears only on the selected row would move every name in the grid
+ * the moment a language is chosen. The box is the one figure this screen still owns —
+ * it is a glyph's own size, not a measure of the stage.
+ */
 private val TICK = 20.dp
-private val PHONE_INSET_H = 92.dp
-private val PHONE_INSET_V = 12.dp
-private val TV_INSET_H = 64.dp
-private val TV_INSET_V = 34.dp

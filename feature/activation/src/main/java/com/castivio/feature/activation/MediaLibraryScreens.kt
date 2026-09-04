@@ -33,7 +33,6 @@ import com.castivio.core.design.components.rememberThumbnail
 import com.castivio.core.design.icons.CastivioIcons
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
-import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Spacing
 
 /**
@@ -65,9 +64,9 @@ internal fun VideoLibraryScreen(
         containerTag = ActivationTags.LIBRARY_CONTAINER,
         headingTag = ActivationTags.LIBRARY_HEADING,
         modifier = modifier,
-    ) {
+    ) { m ->
         if (videos.isEmpty()) {
-            EmptyBand(emptyMessage(permission, R.string.media_video_library_empty))
+            EmptyBand(m, emptyMessage(permission, R.string.media_video_library_empty))
             return@MediaScaffold
         }
         LazyVerticalGrid(
@@ -86,7 +85,7 @@ internal fun VideoLibraryScreen(
                 // bottom" instead of a pixel offset that means different things on a
                 // handset and a television.
                 if (index >= videos.size - PREFETCH) NearEnd(onNearEnd)
-                VideoTile(videos[index], index) { onPlay(index) }
+                VideoTile(m, videos[index], index) { onPlay(index) }
             }
         }
     }
@@ -105,7 +104,7 @@ internal fun VideoLibraryScreen(
  * choice light up identically under a remote.
  */
 @Composable
-private fun VideoTile(tile: MediaTile, index: Int, onClick: () -> Unit) {
+private fun VideoTile(m: SourceMetrics, tile: MediaTile, index: Int, onClick: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         InteractiveGlassCard(
             onClick = onClick,
@@ -116,7 +115,7 @@ private fun VideoTile(tile: MediaTile, index: Int, onClick: () -> Unit) {
                 .semantics(mergeDescendants = true) {
                     contentDescription = "${tile.name}. ${tile.duration}"
                 },
-            shape = RoundedCornerShape(Radius.sm),
+            shape = RoundedCornerShape(m.radius),
             // The drawn placeholder is what the tile is *until* the platform produces a
             // frame, and for the files it never produces one for. It is a fill rather than
             // a grey box with a broken-image glyph because "no thumbnail yet" is the
@@ -135,7 +134,7 @@ private fun VideoTile(tile: MediaTile, index: Int, onClick: () -> Unit) {
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
-                DurationPill(tile.duration)
+                DurationPill(m, tile.duration)
             }
         }
         Text(
@@ -152,15 +151,18 @@ private fun VideoTile(tile: MediaTile, index: Int, onClick: () -> Unit) {
 /**
  * The duration, over the corner of the picture.
  *
- * `GlassCard` at [Radius.pill] rather than a coloured chip: the artwork underneath is
+ * A round `GlassCard` rather than a coloured chip: the artwork underneath is
  * a different colour on every tile, and the surface that stays readable over all of
  * them is the one the rest of the product already uses for exactly this.
  */
 @Composable
-private fun DurationPill(duration: String) {
+private fun DurationPill(m: SourceMetrics, duration: String) {
     GlassCard(
         modifier = Modifier.padding(Spacing.xs),
-        shape = RoundedCornerShape(Radius.pill),
+        // A pill, so half its own height whatever that height is -- the frame's
+        // `radius` is for the rectangles on the stage, not for a shape that is round
+        // by definition.
+        shape = RoundedCornerShape(percent = 50),
     ) {
         Text(
             text = duration,
@@ -199,9 +201,9 @@ internal fun AudioLibraryScreen(
         containerTag = ActivationTags.LIBRARY_CONTAINER,
         headingTag = ActivationTags.LIBRARY_HEADING,
         modifier = modifier,
-    ) {
+    ) { m ->
         if (tracks.isEmpty()) {
-            EmptyBand(emptyMessage(permission, R.string.media_audio_library_empty))
+            EmptyBand(m, emptyMessage(permission, R.string.media_audio_library_empty))
             return@MediaScaffold
         }
         LazyColumn(
@@ -239,12 +241,12 @@ internal fun AudioLibraryScreen(
  * up to meet the title.
  */
 @Composable
-private fun ColumnScope.EmptyBand(message: String) {
+private fun ColumnScope.EmptyBand(m: SourceMetrics, message: String) {
     Box(
         Modifier
             .weight(1f)
             .fillMaxWidth()
-            .padding(Spacing.lg),
+            .padding(m.cardPad),
         contentAlignment = Alignment.Center,
     ) {
         Text(

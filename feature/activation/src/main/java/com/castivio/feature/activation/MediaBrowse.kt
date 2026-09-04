@@ -2,12 +2,12 @@ package com.castivio.feature.activation
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -33,16 +33,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.em
-import androidx.compose.ui.unit.sp
-import com.castivio.core.design.components.CastivioMark
-import com.castivio.core.design.components.GlassCard
 import com.castivio.core.design.components.InteractiveGlassCard
 import com.castivio.core.design.components.rememberThumbnail
 import com.castivio.core.design.theme.CastivioTheme
@@ -121,11 +114,27 @@ internal data class MediaTile(
 )
 
 /**
- * The shell: title and mark, glass container, content, Back.
+ * The shell every library and picker wears: the shared header, then the content.
  *
- * [content] is given the container's `ColumnScope` and is expected to take
- * `Modifier.weight(1f)` — the footer is measured first and the content gets what is
- * left, which is what stops a list from pushing Back out of the container.
+ * [content] is given the stage's `ColumnScope` and the frame it was chosen on, and is
+ * expected to take `Modifier.weight(1f)` — the header is measured first and the content
+ * gets what is left, which is what stops a list of four hundred thousand items from
+ * pushing anything off the screen. The frame comes with it so a tile can take the
+ * stage's own corner instead of a radius chosen beside it.
+ *
+ * ## What it stopped doing
+ *
+ * It drew its own header — a title with a corner wordmark at a size only these
+ * screens used, no mark, and a `--mark-gap` and `--back-h` of its own — and its own
+ * footer, a rule and Back and a rule, inside a glass container that existed to hold
+ * the two. Three of those were a second implementation of `CastivioHeader`, and the
+ * container was a surface with nothing on it: the grid and the list already carry
+ * their own edges.
+ *
+ * So the shell is now the source choice's, exactly: the stage's margins from the
+ * frame, the shared header with Back at its outer end, and the content taking the
+ * rest. What these screens keep is what is genuinely theirs — the tile, the row, and
+ * the fade at the fold.
  */
 @Composable
 internal fun MediaScaffold(
@@ -135,68 +144,29 @@ internal fun MediaScaffold(
     containerTag: String,
     headingTag: String,
     modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit,
+    content: @Composable ColumnScope.(SourceMetrics) -> Unit,
 ) {
-    Column(
-        modifier
-            .fillMaxSize()
-            .padding(CastivioTheme.device.screenPadding),
-        verticalArrangement = Arrangement.Top,
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(BrowseMarkGap),
-        ) {
-            Text(
-                text = title,
-                style = CastivioType.headlineMedium,
-                color = CastivioTheme.colors.onBackground,
-                modifier = Modifier
-                    .weight(1f)
-                    .alignByBaseline()
-                    .testTag(headingTag)
-                    .semantics { heading() },
-            )
-            BrowseWordmark(Modifier.alignByBaseline())
-        }
-        Spacer(Modifier.height(BrowseTitleGap))
+    val tv = CastivioTheme.device.isTv
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val m = sourceMetricsFor(tv = tv, available = maxHeight)
 
-        GlassCard(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(start = m.edge, end = m.edge, top = m.stageTop, bottom = m.stageBottom)
                 .testTag(containerTag),
-            shape = RoundedCornerShape(Radius.xl),
         ) {
-            Column(
-                Modifier
-                    .fillMaxHeight()
-                    .padding(BrowseContainerPadding),
-            ) {
-                content()
-                Spacer(Modifier.height(BrowseContainerGap))
-                ChooserFooter(onBack, backTag)
-            }
+            ChooserHeader(
+                m = m,
+                title = title,
+                headingTag = headingTag,
+                backTag = backTag,
+                onBack = onBack,
+            )
+            Spacer(Modifier.height(m.bandTop))
+            content(m)
         }
     }
-}
-
-/** The corner mark, at the size and in the ink the two chooser screens use. */
-@Composable
-private fun BrowseWordmark(modifier: Modifier = Modifier) {
-    val size = BrowseMarkSize
-    Text(
-        text = CastivioMark.TEXT,
-        style = CastivioType.labelSmall.copy(
-            fontSize = size,
-            lineHeight = size,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = CastivioMark.TRACKING_RATIO.em,
-            brush = Brush.horizontalGradient(CastivioMark.colours),
-        ),
-        maxLines = 1,
-        modifier = modifier.testTag(ActivationTags.BROWSE_MARK),
-    )
 }
 
 /**
@@ -303,28 +273,6 @@ internal fun MediaListRow(
 }
 
 /* ------------------------------------------------------------------------ tokens */
-
-/** The mark's size, matching the two chooser screens exactly. */
-internal val BrowseMarkSize: TextUnit
-    @Composable @ReadOnlyComposable get() =
-        if (CastivioTheme.device.isTv) 19.sp else 16.sp
-
-internal val BrowseMarkGap: Dp
-    @Composable @ReadOnlyComposable get() =
-        if (CastivioTheme.device.isTv) Spacing.xl else Spacing.lg
-
-internal val BrowseTitleGap: Dp
-    @Composable @ReadOnlyComposable get() =
-        if (CastivioTheme.device.isTv) Spacing.lg else Spacing.sm
-
-internal val BrowseContainerPadding: Dp
-    @Composable @ReadOnlyComposable get() =
-        if (CastivioTheme.device.isTv) Spacing.lg else Spacing.sm
-
-/** Content to the footer, inside the container. */
-internal val BrowseContainerGap: Dp
-    @Composable @ReadOnlyComposable get() =
-        if (CastivioTheme.device.isTv) Spacing.lg else Spacing.xs
 
 /** Between rows, and between tiles across and down alike. */
 internal val BrowseItemGap: Dp

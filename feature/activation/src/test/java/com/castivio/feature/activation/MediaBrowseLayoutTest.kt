@@ -297,59 +297,65 @@ class MediaBrowseLayoutTest {
     /* ---------------------------------------------------------------- the direction */
 
     /**
-     * The mark is opposite the title, and it mirrors.
+     * The mark holds the same physical edge in both directions.
      *
-     * This is the assertion that exists because the placement was got wrong: the mark
-     * was pinned to one physical corner in both languages, which reads as correct in
-     * whichever language it is checked in. "Opposite the title" is a comparison, so it
-     * is asserted as one, in both directions, on the same composition.
+     * This assertion exists because the placement was got wrong, and it has now been
+     * got wrong in both directions: the mark was first pinned to one corner while the
+     * design called for it to mirror, and it was then still mirroring after the header
+     * became `CastivioHeader`, which pins the whole row and mirrors only what each
+     * element *says*. A signature that reassembles itself per locale is two signatures.
+     *
+     * So the claim is invariance rather than a comparison: the lockup starts at the
+     * stage's leading edge whatever the language. Stated per direction, because
+     * `setContent` may be called once per rule.
      */
     @Test
-    fun `right to left puts the mark left of the title`() {
+    fun `right to left leaves the mark on the stage's own edge`() {
         compose.showVideos(HANDSET, DeviceClass.Expanded, LayoutDirection.Rtl)
-
-        val heading = compose.bounds(ActivationTags.LIBRARY_HEADING)
-        val mark = compose.bounds(ActivationTags.BROWSE_MARK)
-
-        // The comparison is between the two leading edges rather than between the mark's
-        // trailing edge and the title's leading one. Robolectric's idea of how wide a
-        // string is has nothing to do with a device's, so a claim that leans on either
-        // box's *width* is a claim about the harness. Which box starts further along the
-        // row is a claim about the layout, and it is the one being made.
-        assertTrue(
-            "RTL: the mark at ${mark.left} is not left of the title at ${heading.left}",
-            mark.left < heading.left,
-        )
+        compose.assertMarkIsPinned("RTL")
         compose.assertShell(HANDSET, ActivationTags.LIBRARY_HEADING, ActivationTags.LIBRARY_CONTAINER, ActivationTags.LIBRARY_BACK)
     }
 
     @Test
-    fun `left to right puts the mark right of the title`() {
+    fun `left to right leaves the mark on the stage's own edge`() {
         compose.showVideos(HANDSET, DeviceClass.Expanded, LayoutDirection.Ltr)
-
-        val heading = compose.bounds(ActivationTags.LIBRARY_HEADING)
-        val mark = compose.bounds(ActivationTags.BROWSE_MARK)
-
-        assertTrue(
-            "LTR: the mark at ${mark.left} is not right of the title at ${heading.left}",
-            mark.left > heading.left,
-        )
+        compose.assertMarkIsPinned("LTR")
         compose.assertShell(HANDSET, ActivationTags.LIBRARY_HEADING, ActivationTags.LIBRARY_CONTAINER, ActivationTags.LIBRARY_BACK)
     }
 
     /**
-     * Back is centred on the container, in both directions.
+     * The mark's own edge and the stage's are the same edge — the *physical* left, in
+     * both languages, because `CastivioHeader` places the row left to right and lets
+     * the words inside each slot run in their own direction.
+     */
+    private fun ComposeContentTestRule.assertMarkIsPinned(direction: String) {
+        val stage = bounds(ActivationTags.LIBRARY_CONTAINER)
+        val mark = bounds(ActivationTags.HEADER_MARK)
+
+        assertTrue(
+            "$direction: the mark starts at ${mark.left}, the stage at ${stage.left}",
+            abs((mark.left - stage.left).value) <= 1f,
+        )
+    }
+
+    /**
+     * Back holds the row's outer end, in both directions.
      *
-     * The property the shared footer is built to have: two rules of `weight(1f)` put
-     * Back on the container's true centre rather than on the centre of what is left
-     * over, and those are the same point only when the two sides are equal. Asserted on
-     * a browse screen as well as on the chooser, because the footer is one composable
-     * and a change to it has to be caught wherever it is used.
+     * It used to be centred on the container, and that was a real property of a real
+     * footer: two rules of `weight(1f)` put it on the container's true centre rather
+     * than on the centre of what was left over. The footer is gone -- it was a band
+     * that existed to hold one control -- and Back is now the header's one chip, at
+     * the end of a row that does not mirror.
+     *
+     * So the property asserted is the one the new header is built to have, and it is
+     * the stronger of the two: the chip's far edge is the stage's far edge, in Arabic
+     * and in English alike. A control that drifts inward, or that swaps ends with the
+     * mark, fails here.
      */
     @Test
-    fun `Back is centred on the container in Arabic`() {
+    fun `Back holds the outer end in Arabic`() {
         compose.showTracks(HANDSET, DeviceClass.Expanded, LayoutDirection.Rtl)
-        compose.assertBackIsCentred("RTL")
+        compose.assertBackIsPinned("RTL")
     }
 
     /**
@@ -358,20 +364,23 @@ class MediaBrowseLayoutTest {
      * on its second turn rather than asserting anything.
      */
     @Test
-    fun `Back is centred on the container in English`() {
+    fun `Back holds the outer end in English`() {
         compose.showTracks(HANDSET, DeviceClass.Expanded, LayoutDirection.Ltr)
-        compose.assertBackIsCentred("LTR")
+        compose.assertBackIsPinned("LTR")
     }
 
-    private fun ComposeContentTestRule.assertBackIsCentred(direction: String) {
-        val panel = bounds(ActivationTags.LIBRARY_CONTAINER)
+    private fun ComposeContentTestRule.assertBackIsPinned(direction: String) {
+        val stage = bounds(ActivationTags.LIBRARY_CONTAINER)
         val back = bounds(ActivationTags.LIBRARY_BACK)
-        val leading = back.left - panel.left
-        val trailing = panel.right - back.right
+        val mark = bounds(ActivationTags.HEADER_MARK)
 
         assertTrue(
-            "$direction: Back is not centred — $leading leading, $trailing trailing",
-            abs((leading - trailing).value) <= 1f,
+            "$direction: Back ends at ${back.right}, the stage at ${stage.right}",
+            abs((back.right - stage.right).value) <= 1f,
+        )
+        assertTrue(
+            "$direction: Back at ${back.left} is not past the mark at ${mark.right}",
+            back.left >= mark.right,
         )
     }
 
@@ -430,8 +439,8 @@ class MediaBrowseLayoutTest {
     /* -------------------------------------------------------------------------- */
 
     /**
-     * The shell: heading above the container, container inside the frame, Back inside
-     * the container. Asserted on every screen and every frame in this file.
+     * The shell: the heading and Back share the header's row, both inside the stage,
+     * and the stage inside the frame. Asserted on every screen and every frame here.
      *
      * Back's containment is the whole point. It is the element a long list pushes out,
      * it is the only way off these screens, and it is the failure that shipped twice on
@@ -453,9 +462,20 @@ class MediaBrowseLayoutTest {
                 "| back ${back.left}..${back.right} x ${back.top}..${back.bottom}",
         )
 
+        // The heading is *inside* the stage rather than above a container: the glass
+        // pane the two used to bracket is gone, and the tag now marks the stage itself.
+        // Both of the old claims survive in the two that replace it -- the heading is
+        // within the stage, and it shares its band with Back, which is what "one header
+        // row" means and what a title pushed onto a second line would break.
         assertTrue(
-            "the heading ${heading.bottom} is not above the container ${panel.top}",
-            heading.bottom <= panel.top,
+            "the heading ${heading.top}..${heading.bottom} is not inside the stage " +
+                "${panel.top}..${panel.bottom}",
+            heading.top >= panel.top && heading.bottom <= panel.bottom,
+        )
+        assertTrue(
+            "the heading ${heading.top}..${heading.bottom} does not share a row with " +
+                "Back ${back.top}..${back.bottom}",
+            heading.top < back.bottom && back.top < heading.bottom,
         )
         assertTrue(
             "Back ${back.left}..${back.right} is not inside the container " +

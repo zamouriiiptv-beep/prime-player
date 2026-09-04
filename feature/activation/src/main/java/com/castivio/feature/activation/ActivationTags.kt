@@ -124,15 +124,16 @@ internal object ActivationTags {
     const val PICKER_BACK = "picker.back"
 
     /**
-     * The mark in the header's far corner, on the browse screens.
+     * The lockup in the shared header, on every screen that wears one.
      *
-     * Tagged because which corner it is in is the question: opposite the title, which
-     * means left in Arabic and right in English, and it got that way by being told to
-     * twice. "Opposite the title" is a comparison between two boxes, so both need a
-     * handle -- and a mark that stops mirroring looks perfectly correct in whichever
-     * language it was last read in.
+     * Tagged because *which* corner it sits in is the question, and the answer changed:
+     * it used to be told to mirror -- opposite the title, left in Arabic and right in
+     * English -- and it now holds the same physical edge in every language, because the
+     * brand is not language and a signature that reassembles itself per locale is two
+     * signatures. Both claims look perfectly correct in whichever language they were
+     * last read in, which is exactly why one of them has to be asserted.
      */
-    const val BROWSE_MARK = "browse.mark"
+    const val HEADER_MARK = "chooser.mark"
 
     /**
      * One tile, and one row, repeated.
