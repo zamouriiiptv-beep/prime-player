@@ -325,10 +325,16 @@ private fun BackChip(m: SourceMetrics, onClick: () -> Unit) {
     }
 }
 
-/** The line under the question, as the drawing has it. */
+/**
+ * The line under the question — under *the question*, which is the middle of the row.
+ *
+ * Aligned to the line's starting edge it sat beneath Back in Arabic and beneath the
+ * wordmark in English, and a caption under the wrong element reads as a caption for
+ * that element. The title is centred in the header, so this is centred too.
+ */
 @Composable
 private fun Subtitle(m: SourceMetrics) {
-    Box(Modifier.fillMaxWidth().height(m.subtitle), contentAlignment = Alignment.CenterStart) {
+    Box(Modifier.fillMaxWidth().height(m.subtitle), contentAlignment = Alignment.Center) {
         Text(
             text = stringResource(R.string.source_choice_subtitle),
             style = CastivioType.bodySmall.copy(
