@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Castivio — اختر طريقة الإضافة</title>
+<style>
+/* ============================================================================
+   Castivio — the second screen, where the way in is chosen.
+
+   ?frame=tv | p873 | p800      the three frames, at their real dp geometry
+   ?lang=en | es | pt           the same screen mirrored, and its two longest
+   ?trust=1                     with the assurance strip, to see what it costs
+   ?focus=xtream | m3u | none   where the D-pad is
+   ---------------------------------------------------------------------------
+
+   ## What this takes from the reference
+
+   The 2x2 grid, which is the real improvement: the shipped screen is a vertical
+   list on a frame twice as wide as it is tall, so it wastes the width and
+   crowds the height. The coloured discs, which is what makes four options tell
+   themselves apart across a room. And the second description line, which is the
+   most useful sentence in the whole reference -- it tells a reader which of
+   these they *have*, not what it is.
+
+   ## What it does not take
+
+   **The header.** The reference centres the wordmark and puts the title at the
+   edge, which would be the third different header in three consecutive screens.
+   The lockup sits at the same edge here as on the activation screen, the title
+   beside it, and the row's one control at the far end -- which is where the
+   language chip sits there and where Back sits here. One rule, two screens.
+
+   **"The fastest".** An M3U of four hundred thousand channels is slower to
+   parse than a paged Xtream call. A recommendation is worth having; this one is
+   a claim about the reader's provider rather than about us, so it is "the
+   simplest", which is true and does the same work.
+
+   ## Recommended and focused are not the same picture
+
+   The reference draws the suggested card with a violet glow. On a television
+   that is the same language as focus, and a D-pad whose position looks like a
+   recommendation is a D-pad the viewer has lost. So a recommendation is a
+   **badge and a tint** -- a label, which is what it is -- and focus is a
+   **bright ring and a lift** -- a state, which is what that is. Both are drawn
+   here at once, on two different cards, so the difference can be judged rather
+   than described.
+   ========================================================================= */
+@font-face{font-family:"Castivio Sans";font-weight:400;src:url("../../core/design/src/main/res/font/inter_regular.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:500;src:url("../../core/design/src/main/res/font/inter_medium.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:600;src:url("../../core/design/src/main/res/font/inter_semibold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:700;src:url("../../core/design/src/main/res/font/inter_bold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:400;src:url("../../core/design/src/main/res/font/plex_arabic_regular.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:500;src:url("../../core/design/src/main/res/font/plex_arabic_medium.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:600;src:url("../../core/design/src/main/res/font/plex_arabic_semibold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:700;src:url("../../core/design/src/main/res/font/plex_arabic_bold.ttf") format("truetype")}
+
+:root{
+  --word-ratio:.80;
+  --ink:#05040E;
+  --white:#FFFFFF;
+  --text:#EDEDF6;
+  --text-2:#CFCFE4;
+  --text-3:#A9A9C6;
+
+  /* One hue per option, so four cards tell themselves apart before a word of
+     them is read. They are the palette's own ramps, not four new colours. */
+  --h-m3u:#A86BFF;      /* Violet50-ish: the link       */
+  --h-xtream:#4C9BFF;   /* Azure50: the server          */
+  --h-users:#3FD9A0;    /* success: the people          */
+  --h-local:#FFA13A;    /* hint: the file on the device */
+
+  --edge-card:rgba(126,140,255,.28);
+  --edge-quiet:rgba(160,163,215,.20);
+  --rim:inset 0 1px 0 rgba(255,255,255,.12);
+  --lift:0 10px 26px rgba(3,2,12,.52);
+  --pane:linear-gradient(180deg,rgba(36,29,92,.80) 0%,rgba(15,11,44,.74) 100%);
+  --focus:#6FB2FF;      /* focusRing, and nothing else uses it */
+}
+
+/* ------------------------------------------------------------- the frames */
+html[data-frame="tv"]{
+  --W:960px; --H:540px;
+  --edge:46px; --top:24px; --bottom:22px;
+  --header:54px; --head-gap:26px; --brand:40px; --fs-title:26px;
+  --back:44px; --back-pad:14px; --fs-back:14px;
+  --band-top:20px; --grid-gap:18px; --card-max:176px;
+  --card-pad:22px; --card-gap:20px; --disc:84px; --chev:26px;
+  --fs-card:22px; --fs-desc:14.5px; --fs-badge:12.5px; --desc-lines:4;
+  --radius:22px;
+  --trust:64px; --trust-gap:18px; --trust-disc:38px;
+  --fs-trust:13.5px; --fs-trust2:12.5px;
+}
+html[data-frame="p873"]{
+  --W:873px; --H:393px;
+  --edge:32px; --top:15px; --bottom:11px;
+  --header:42px; --head-gap:24px; --brand:31px; --fs-title:20px;
+  --back:36px; --back-pad:12px; --fs-back:12.5px;
+  --band-top:12px; --grid-gap:14px; --card-max:132px;
+  --card-pad:16px; --card-gap:15px; --disc:62px; --chev:20px;
+  --fs-card:17px; --fs-desc:12.5px; --fs-badge:11px; --desc-lines:3;
+  --radius:18px;
+  --trust:54px; --trust-gap:12px; --trust-disc:30px;
+  --fs-trust:12.5px; --fs-trust2:11.5px;
+}
+html[data-frame="p800"]{
+  --W:800px; --H:360px;
+  --edge:26px; --top:11px; --bottom:8px;
+  --header:36px; --head-gap:20px; --brand:28px; --fs-title:19px;
+  --back:34px; --back-pad:11px; --fs-back:12px;
+  --band-top:10px; --grid-gap:12px; --card-max:124px;
+  --card-pad:14px; --card-gap:13px; --disc:56px; --chev:18px;
+  --fs-card:16px; --fs-desc:12px; --fs-badge:10.5px; --desc-lines:3;
+  --radius:16px;
+  --trust:48px; --trust-gap:10px; --trust-disc:27px;
+  --fs-trust:12px; --fs-trust2:11px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#000}
+body{font-family:"Castivio Sans","Castivio Arabic","Noto Sans",sans-serif;
+  color:var(--text);-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;
+  letter-spacing:0}
+
+.frame{position:relative;width:var(--W);height:var(--H);overflow:hidden;background:var(--ink)}
+.backdrop{position:absolute;inset:0;
+  background:
+    radial-gradient(74% 96% at 4% 116%, rgba(126,62,255,.60) 0%, rgba(102,48,220,.23) 38%, rgba(70,30,170,0) 70%),
+    radial-gradient(46% 60% at 100% 6%,  rgba(38,84,220,.28) 0%, rgba(38,84,220,0) 66%),
+    radial-gradient(38% 52% at 84% 92%,  rgba(88,46,210,.24) 0%, rgba(88,46,210,0) 68%),
+    linear-gradient(178deg, #05040E 0%, #07061A 26%, #0B0826 58%, #150C3C 100%);
+}
+.contours{position:absolute;left:0;right:0;bottom:0;height:62%;opacity:.8}
+
+.stage{position:absolute;inset:0;display:flex;flex-direction:column;
+  padding:var(--top) var(--edge) var(--bottom)}
+
+/* ----------------------------------------------------------------- header */
+/* The activation screen's row, unchanged: the lockup at the same physical edge
+   in every language, the page's name beside it, and the row's one control at
+   the far end. There the control is the language chip; here it is Back. */
+.header{flex:0 0 auto;height:var(--header);direction:ltr;
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;
+  column-gap:var(--head-gap)}
+html[dir="rtl"] .header .title,
+html[dir="rtl"] .header .back{direction:rtl}
+.wordmark{grid-column:1;grid-row:1;justify-self:start;direction:ltr;
+  display:flex;align-items:center;gap:calc(var(--brand) * .32)}
+.wordmark span{font-family:"Castivio Sans",sans-serif;font-weight:700;line-height:1;
+  font-size:calc(var(--fs-title) * var(--word-ratio));
+  letter-spacing:calc(var(--fs-title) * var(--word-ratio) * .25);
+  margin-inline-end:calc(var(--fs-title) * var(--word-ratio) * -.25);
+  background:linear-gradient(97deg,#A86BFF 0%,#7B4BEE 30%,#3D6BFF 70%,#3A9BFF 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 16px rgba(124,75,255,.42))}
+.brand{flex:0 0 auto;width:var(--brand);height:var(--brand);display:block;
+  filter:drop-shadow(0 2px 7px rgba(0,0,0,.5))}
+.title{grid-column:2;grid-row:1;justify-self:center;min-width:0;max-width:100%;
+  white-space:nowrap;overflow:hidden;
+  font-size:var(--fs-title);line-height:1.35;font-weight:700;color:var(--white)}
+
+/* Back takes the row's outer end -- the same slot the language chip takes on
+   the activation screen, drawn the same quiet way, because it is the same kind
+   of thing: the one control in a row that is otherwise a statement.
+
+   The chevron points the way the reader came from, so it mirrors: right in
+   Arabic, left in English. The reference draws it left in both, which is the
+   Latin convention applied to a right-to-left screen. */
+.back{grid-column:3;grid-row:1;justify-self:end;
+  display:flex;align-items:center;gap:8px;height:var(--back);
+  padding:0 var(--back-pad);border-radius:999px;flex:0 0 auto;white-space:nowrap;
+  font-size:var(--fs-back);line-height:1.45;color:var(--text-2);
+  background:rgba(255,255,255,.045);border:1px solid var(--edge-quiet)}
+.back svg{width:calc(var(--fs-back) * 1.25);height:calc(var(--fs-back) * 1.25);
+  flex:0 0 auto;color:var(--text-2)}
+html[dir="rtl"] .back svg{transform:scaleX(-1)}
+
+/* ------------------------------------------------------------------- grid */
+.band{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;
+  padding-top:var(--band-top);gap:var(--trust-gap)}
+.grid{flex:1 1 auto;min-height:0;display:grid;
+  grid-template-columns:1fr 1fr;gap:var(--grid-gap);
+  /* Capped and centred rather than stretched: a card twice as tall as its
+     content is not generous, it is empty. The cap is per frame; where the band
+     is shorter than the cap the rows simply take what there is. */
+  grid-template-rows:repeat(2, minmax(0, var(--card-max)));
+  align-content:center;justify-content:stretch}
+
+.card{position:relative;display:flex;align-items:center;gap:var(--card-gap);
+  min-width:0;padding:var(--card-pad);border-radius:var(--radius);
+  background:var(--pane);border:1px solid var(--edge-quiet);
+  box-shadow:var(--rim), var(--lift)}
+
+/* The disc: the hue is the card's, and it is the only place the hue is loud. */
+.disc{flex:0 0 auto;width:var(--disc);height:var(--disc);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;color:var(--hue);
+  background:radial-gradient(128% 128% at 30% 18%,
+    color-mix(in srgb, var(--hue) 34%, transparent),
+    color-mix(in srgb, var(--hue) 8%, rgba(10,8,30,.86)));
+  border:1px solid color-mix(in srgb, var(--hue) 46%, transparent);
+  box-shadow:0 0 22px color-mix(in srgb, var(--hue) 22%, transparent), var(--rim)}
+.disc svg{width:50%;height:50%}
+
+.body{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px}
+.head{display:flex;align-items:center;gap:9px;min-width:0}
+/* The title yields and the badge does not, which is the header's rule applied
+   one level down: a badge is a fixed fact and a title is the one thing here
+   whose full size is not load-bearing. It shrinks rather than being cut --
+   "Play a local video" ellipsised to "Play a local vi..." is not a shorter
+   label, it is a different one. */
+.head b{font-size:var(--fs-card);line-height:1.3;font-weight:700;color:var(--white);
+  min-width:0;white-space:nowrap}
+/* One block, not two lines.
+   The description and the "which one do I have" hint were separate elements, so
+   nothing bounded their *total* -- and Portuguese wraps the first to two lines
+   and overran the card by ten dp on both phone frames. A card that overruns does
+   not clip: it takes its row's height from whatever the grid measured after it.
+   One block clamped to a stated number of lines is bounded by construction, in
+   every language nobody has translated into yet. The number is per frame, not
+   global: a television's card is tall and its text column is narrow, so four
+   lines fit there and are needed; a phone's card is the other way round. The hint keeps its quieter ink, because that
+   is what separates a fact from an aside -- not the line break. */
+.d{font-size:var(--fs-desc);line-height:1.5;color:var(--text-2);
+  display:-webkit-box;-webkit-line-clamp:var(--desc-lines);-webkit-box-orient:vertical;overflow:hidden}
+.d .hint{color:var(--text-3)}
+.chev{flex:0 0 auto;width:var(--chev);height:var(--chev);color:var(--text-3);
+  display:flex;align-items:center;justify-content:center}
+/* Two chevrons, two directions, and they are not the same rule.
+   The card's chevron leads *onward*, so it follows the reading direction: left
+   in Arabic, right in English. Back points the way the reader came from, so it
+   is the opposite. Mirroring both together -- which is what a single blanket
+   rule does -- had the card's arrow pointing back toward the margin the eye had
+   just left. The glyph is drawn pointing left, so each is flipped in the one
+   direction where left is wrong. */
+html[dir="ltr"] .chev svg{transform:scaleX(-1)}
+
+/* A recommendation is a LABEL. It says something about the option and nothing
+   about where the remote is, so it is a badge and a tint -- and no ring. */
+.badge{flex:0 0 auto;display:flex;align-items:center;gap:5px;
+  padding:3px 9px;border-radius:999px;white-space:nowrap;
+  font-size:var(--fs-badge);font-weight:700;color:var(--white);
+  background:linear-gradient(180deg,rgba(146,90,255,.42),rgba(80,44,190,.30));
+  border:1px solid rgba(178,132,255,.46)}
+.badge svg{width:calc(var(--fs-badge) * 1.05);height:calc(var(--fs-badge) * 1.05);
+  color:#D9C3FF}
+.card.rec{background:linear-gradient(180deg,rgba(58,34,124,.78) 0%,rgba(22,14,58,.74) 100%);
+  border-color:rgba(158,116,255,.34)}
+
+/* Focus is a STATE. Ring, lift, and nothing that could be mistaken for a
+   label -- so the two can sit side by side and still be told apart. */
+.card.focus{border-color:var(--focus);
+  box-shadow:0 0 0 2px var(--focus), 0 0 26px rgba(111,178,255,.34),
+             var(--rim), 0 16px 34px rgba(3,2,12,.62)}
+
+/* ------------------------------------------------------------- trust strip */
+/* Off by default. It fits -- 116dp cards instead of 149 on the reference phone
+   -- so the question it raises is not whether there is room but whether a
+   screen whose whole job is one decision should spend a fifth of itself on
+   four sentences that do not help make it. The copy here is at least true:
+   "we do not store your data" is not, because the Xtream password is written
+   to Room on the device. */
+.trust{flex:0 0 var(--trust);display:flex;align-items:center;
+  border-radius:var(--radius);padding:0 calc(var(--trust) * .22);
+  background:rgba(255,255,255,.04);border:1px solid var(--edge-quiet)}
+.cell{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:10px;
+  padding:0 calc(var(--trust) * .16)}
+.cell + .cell{border-inline-start:1px solid rgba(160,163,215,.16)}
+.cell .ic{flex:0 0 auto;width:var(--trust-disc);height:var(--trust-disc);
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  color:var(--hue);
+  background:color-mix(in srgb, var(--hue) 14%, rgba(10,8,30,.6));
+  border:1px solid color-mix(in srgb, var(--hue) 38%, transparent)}
+.cell .ic svg{width:52%;height:52%}
+.cell .tx{min-width:0;display:flex;flex-direction:column;gap:2px}
+.cell .tx b{font-size:var(--fs-trust);line-height:1.3;font-weight:700;color:var(--white);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell .tx span{font-size:var(--fs-trust2);line-height:1.35;color:var(--text-3);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* What the strip actually costs, stated rather than hidden: the television's
+   card loses 16dp and with it the fourth line of its description, so the longer
+   translations give up the "which one do I have" hint there. The phones keep
+   three lines and lose 15 and 11dp of card. */
+html[data-trust="1"][data-frame="tv"]{--desc-lines:3}
+html[data-trust="0"] .trust{display:none}
+html[data-trust="0"] .band{gap:0}
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="backdrop"></div>
+  <svg class="contours" viewBox="0 0 960 330" preserveAspectRatio="none" fill="none">
+    <g stroke="#8E6BFF" stroke-width="1" opacity=".34">
+      <path d="M-20 236 C 120 198, 250 272, 386 244 C 512 218, 618 152, 760 150 C 852 149, 926 168, 990 190"/>
+      <path d="M-20 260 C 128 222, 258 294, 398 266 C 528 240, 630 174, 772 172 C 862 171, 932 190, 990 212"/>
+      <path d="M-20 284 C 136 246, 266 316, 410 288 C 544 262, 642 196, 784 194 C 872 193, 938 212, 990 234"/>
+      <path d="M-20 212 C 112 174, 242 250, 374 222 C 496 196, 606 130, 748 128 C 842 127, 920 146, 990 168"/>
+      <path d="M-20 188 C 104 150, 234 228, 362 200 C 480 174, 594 108, 736 106 C 832 105, 914 124, 990 146"/>
+    </g>
+    <g stroke="#5FA0FF" stroke-width="1" opacity=".20">
+      <path d="M-20 140 C  88 104, 218 186, 338 158 C 448 132, 570  68, 712  66 C 812  65, 902  84, 990 106"/>
+      <path d="M-20 116 C  80  80, 210 164, 326 136 C 432 110, 558  46, 700  44 C 802  43, 896  62, 990  84"/>
+    </g>
+  </svg>
+
+  <div class="stage">
+    <div class="header">
+      <div class="wordmark"><img class="brand" src="../../core/design/src/main/res/drawable-nodpi/castivio_mark.png" alt=""><span>CASTIVIO</span></div>
+      <h1 class="title" data-s="title">اختر طريقة الإضافة</h1>
+      <div class="back"><span data-icon="chevron"></span><span data-s="back">رجوع</span></div>
+    </div>
+
+    <div class="band">
+      <div class="grid">
+        <!-- Reading order, not drawing order: in Arabic the grid fills from the
+             right, so the first child is the first card the eye reaches. The
+             recommendation goes there. The reference puts it at the far left,
+             which in Arabic is the last card read. -->
+        <div class="card rec" id="m3u" style="--hue:var(--h-m3u)">
+          <span class="disc" data-icon="link"></span>
+          <span class="body">
+            <span class="head"><b data-s="m3uT">قائمة M3U</b>
+              <span class="badge"><span data-icon="spark"></span><span data-s="badge">الأسهل</span></span></span>
+            <span class="d" data-s="m3uD">أضف رابط قائمة التشغيل بصيغة M3U. <span class="hint">رابط واحد طويل يُرسل عادةً بالبريد.</span></span>
+          </span>
+          <span class="chev" data-icon="chevron"></span>
+        </div>
+
+        <div class="card" id="xtream" style="--hue:var(--h-xtream)">
+          <span class="disc" data-icon="server"></span>
+          <span class="body">
+            <span class="head"><b data-s="xT">Xtream Codes</b></span>
+            <span class="d" data-s="xD">عنوان سيرفر واسم مستخدم وكلمة مرور. <span class="hint">دعم كامل لميزات Xtream.</span></span>
+          </span>
+          <span class="chev" data-icon="chevron"></span>
+        </div>
+
+        <div class="card" id="users" style="--hue:var(--h-users)">
+          <span class="disc" data-icon="users"></span>
+          <span class="body">
+            <span class="head"><b data-s="uT">قائمة المستخدمين</b></span>
+            <span class="d" data-s="uD">أضف وبدّل بين اشتراكات Xtream وM3U. <span class="hint">إدارة سهلة لجميع اشتراكاتك.</span></span>
+          </span>
+          <span class="chev" data-icon="chevron"></span>
+        </div>
+
+        <div class="card" id="local" style="--hue:var(--h-local)">
+          <span class="disc" data-icon="screen"></span>
+          <span class="body">
+            <span class="head"><b data-s="lT">تشغيل فيديو من الجهاز</b></span>
+            <span class="d" data-s="lD">تشغيل ملف فيديو محفوظ على الجهاز. <span class="hint">دعم جميع الصيغ الشائعة.</span></span>
+          </span>
+          <span class="chev" data-icon="chevron"></span>
+        </div>
+      </div>
+
+      <div class="trust">
+        <div class="cell" style="--hue:var(--h-m3u)"><span class="ic" data-icon="shield"></span>
+          <span class="tx"><b data-s="t1">بياناتك على جهازك</b><span data-s="t1b">لا تغادر الجهاز</span></span></div>
+        <div class="cell" style="--hue:var(--h-xtream)"><span class="ic" data-icon="gauge"></span>
+          <span class="tx"><b data-s="t2">سريع ومستقر</b><span data-s="t2b">أداء عالٍ</span></span></div>
+        <div class="cell" style="--hue:var(--h-users)"><span class="ic" data-icon="lock"></span>
+          <span class="tx"><b data-s="t3">يعمل بلا حساب</b><span data-s="t3b">لا تسجيل</span></span></div>
+        <div class="cell" style="--hue:var(--h-local)"><span class="ic" data-icon="gear"></span>
+          <span class="tx"><b data-s="t4">صيغ متعددة</b><span data-s="t4b">M3U وXtream</span></span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var K = 'fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"';
+var ICON = {
+  chevron:'<svg viewBox="0 0 24 24" '+K+' stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg>',
+  link:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.9">'+
+       '<path d="M10.2 13.8a4.4 4.4 0 0 0 6.2 0l2.6-2.6a4.4 4.4 0 0 0-6.2-6.2l-1.3 1.3"/>'+
+       '<path d="M13.8 10.2a4.4 4.4 0 0 0-6.2 0L5 12.8a4.4 4.4 0 0 0 6.2 6.2l1.3-1.3"/></svg>',
+  server:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.8">'+
+       '<rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/>'+
+       '<path d="M7 7.5h.01"/><path d="M10.5 7.5h.01"/><path d="M7 16.5h.01"/><path d="M10.5 16.5h.01"/></svg>',
+  users:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.8">'+
+       '<circle cx="9.5" cy="8" r="3.4"/><path d="M3.4 19.4a6.1 6.1 0 0 1 12.2 0"/>'+
+       '<path d="M16.4 5.2a3.4 3.4 0 0 1 0 5.9"/><path d="M18 14.4a6.1 6.1 0 0 1 2.6 5"/></svg>',
+  screen:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.8">'+
+       '<rect x="2.6" y="4" width="18.8" height="13" rx="2.4"/><path d="M8.5 21h7"/>'+
+       '<path d="M10.4 8.4v4.2l3.8-2.1z"/></svg>',
+  spark:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.2 2 5 13h5l-1.2 9L19 11h-5.4z"/></svg>',
+  shield:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.9">'+
+       '<path d="M12 3l7 2.6v5.6c0 4.3-2.9 8.1-7 9.2-4.1-1.1-7-4.9-7-9.2V5.6z"/><path d="M9 12.2l2.1 2.1L15.2 10"/></svg>',
+  gauge:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.9">'+
+       '<path d="M4 18a9 9 0 1 1 16 0"/><path d="M12 18l4.2-5"/><circle cx="12" cy="18" r="1.1"/></svg>',
+  lock:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.9">'+
+       '<rect x="4.5" y="10" width="15" height="10.4" rx="2.4"/><path d="M8.2 10V7.6a3.8 3.8 0 0 1 7.6 0V10"/></svg>',
+  gear:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.8">'+
+       '<circle cx="12" cy="12" r="3.1"/>'+
+       '<path d="M12 2.8v2.4M12 18.8v2.4M21.2 12h-2.4M5.2 12H2.8M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7M18.5 18.5l-1.7-1.7M7.2 7.2 5.5 5.5"/></svg>'
+};
+
+var EN = {title:"Choose how to add", back:"Back", badge:"Simplest",
+  m3uT:"M3U playlist", m3uD:'Add a playlist link in M3U format. <span class="hint">One long link, usually sent by email.</span>',
+  xT:"Xtream Codes", xD:'A server address, a username and a password. <span class="hint">Full support for Xtream features.</span>',
+  uT:"User list", uD:'Add and switch between Xtream and M3U subscriptions. <span class="hint">Easy management of all your subscriptions.</span>',
+  lT:"Play a local video", lD:'Play a video file stored on the device. <span class="hint">All common formats supported.</span>',
+  t1:"Your data stays here", t1b:"Never leaves the device",
+  t2:"Fast and steady", t2b:"High performance",
+  t3:"No account needed", t3b:"No sign-up",
+  t4:"Many formats", t4b:"M3U, Xtream, local"};
+var ES = {title:"Elige cómo añadir", back:"Atrás", badge:"Más sencillo",
+  m3uT:"Lista M3U", m3uD:'Añade un enlace de lista en formato M3U. <span class="hint">Un enlace largo, normalmente enviado por correo.</span>',
+  xT:"Xtream Codes", xD:'Una dirección de servidor, un usuario y una contraseña. <span class="hint">Compatibilidad total con Xtream.</span>',
+  uT:"Lista de usuarios", uD:'Añade y cambia entre suscripciones Xtream y M3U. <span class="hint">Gestión sencilla de todas tus suscripciones.</span>',
+  lT:"Vídeo del dispositivo", lD:'Reproduce un archivo guardado en el dispositivo. <span class="hint">Compatible con los formatos habituales.</span>',
+  t1:"Tus datos se quedan aquí", t1b:"No salen del dispositivo",
+  t2:"Rápido y estable", t2b:"Alto rendimiento",
+  t3:"Sin cuenta", t3b:"Sin registro",
+  t4:"Muchos formatos", t4b:"M3U, Xtream, locales"};
+var PT = {title:"Escolha como adicionar", back:"Voltar", badge:"Mais simples",
+  m3uT:"Lista M3U", m3uD:'Adicione uma ligação de lista em formato M3U. <span class="hint">Uma ligação longa, normalmente enviada por email.</span>',
+  xT:"Xtream Codes", xD:'Um endereço de servidor, um utilizador e uma palavra-passe. <span class="hint">Suporte completo para o Xtream.</span>',
+  uT:"Lista de utilizadores", uD:'Adicione e alterne entre subscrições Xtream e M3U. <span class="hint">Gestão simples de todas as suas subscrições.</span>',
+  lT:"Vídeo do dispositivo", lD:'Reproduza um ficheiro guardado no dispositivo. <span class="hint">Compatível com os formatos comuns.</span>',
+  t1:"Os seus dados ficam aqui", t1b:"Não saem do dispositivo",
+  t2:"Rápido e estável", t2b:"Alto desempenho",
+  t3:"Sem conta", t3b:"Sem registo",
+  t4:"Vários formatos", t4b:"M3U, Xtream, locais"};
+
+(function () {
+  var q = new URLSearchParams(location.search);
+  var root = document.documentElement;
+  root.dataset.frame = q.get("frame") || "tv";
+  root.dataset.trust = q.get("trust") === "1" ? "1" : "0";
+
+  var code = q.get("lang") || "ar";
+  var en = code !== "ar";
+  var T = code === "pt" ? PT : code === "es" ? ES : EN;
+  if (en) {
+    root.lang = code; root.dir = "ltr";
+    document.querySelectorAll("[data-s]").forEach(function (n) {
+      if (T[n.dataset.s] != null) n.innerHTML = T[n.dataset.s];
+    });
+  }
+  document.querySelectorAll('[data-icon]').forEach(function (n) { n.innerHTML = ICON[n.dataset.icon]; });
+
+  // The D-pad is on Xtream by default, so the badge and the ring can be judged
+  // beside each other rather than one at a time.
+  var f = q.get("focus") || "xtream";
+  if (f !== "none") { var el = document.getElementById(f); if (el) el.classList.add('focus'); }
+
+  /* The title yields and nothing else does, exactly as on the activation
+     screen: the lockup is the brand and Back is a control, and a control
+     squeezed to make room for a caption is a control nobody can reach. */
+  (function fitTitle() {
+    var t = document.querySelector('.title');
+    var size = parseFloat(getComputedStyle(t).fontSize), floor = size * 0.55, guard = 0;
+    while (t.scrollWidth > t.clientWidth + 0.5 && size > floor && guard++ < 40) {
+      size *= 0.94; t.style.fontSize = size + 'px';
+    }
+  })();
+
+  /* Each card's title, at the largest size that fits beside its badge. */
+  document.querySelectorAll('.head b').forEach(function (b) {
+    var size = parseFloat(getComputedStyle(b).fontSize), floor = size * 0.78, guard = 0;
+    while (b.scrollWidth > b.clientWidth + 0.5 && size > floor && guard++ < 40) {
+      size *= 0.95; b.style.fontSize = size + 'px';
+    }
+  });
+
+  /* The strip's labels fit rather than ellipsise -- shown at its best, so the
+     question stays about whether it belongs and not about a fixable bug.
+     Spanish and Portuguese need it: "Tus datos se quedan aquí" does not fit a
+     quarter of a phone frame beside a disc at the drawn size. */
+  document.querySelectorAll('.trust .tx b, .trust .tx span').forEach(function (n) {
+    var size = parseFloat(getComputedStyle(n).fontSize), floor = size * 0.82, guard = 0;
+    while (n.scrollWidth > n.clientWidth + 0.5 && size > floor && guard++ < 40) {
+      size *= 0.95; n.style.fontSize = size + 'px';
+    }
+  });
+
+  /* One baseline for the title and the wordmark. CSS cannot state it here --
+     the lockup is a flex row and takes its baseline from the picture -- so it
+     is measured and applied, which is what `CastivioHeader` does with
+     `FirstBaseline`. One rule, written twice, in the two places it must hold. */
+  function baselineOf(el) {
+    var p = document.createElement('span');
+    p.style.cssText = 'display:inline-block;width:0;height:0;overflow:hidden';
+    el.appendChild(p); var y = p.getBoundingClientRect().bottom; el.removeChild(p);
+    return y;
+  }
+  var titleEl = document.querySelector('.title'), wordEl = document.querySelector('.wordmark span');
+  titleEl.style.position = 'relative';
+  titleEl.style.top = (baselineOf(wordEl) - baselineOf(titleEl)) + 'px';
+
+  /* Measured, not reasoned. A card that overflows its row does not clip here
+     and will not clip on the device -- it takes the row's height from whatever
+     was measured after it. */
+  function box(sel) { var n = document.querySelector(sel); return n ? n.getBoundingClientRect() : null; }
+  var band = box('.band'), grid = box('.grid'), card = box('#m3u'), trust = box('.trust');
+  var over = [];
+  document.querySelectorAll('.card').forEach(function (c) {
+    var body = c.querySelector('.body');
+    var need = body.scrollHeight + 2 * parseFloat(getComputedStyle(c).paddingTop);
+    var have = c.getBoundingClientRect().height;
+    if (need - have > 0.5) over.push(c.id + ' +' + Math.round(need - have));
+    var b = c.querySelector('.head b');
+    if (b.scrollWidth - b.clientWidth > 0.5) over.push(c.id + ' title clipped');
+    var d = c.querySelector('.d');
+    if (d.scrollHeight - d.clientHeight > 1) over.push(c.id + ' desc clamped');
+  });
+  document.querySelectorAll('.trust .tx b, .trust .tx span').forEach(function (n) {
+    if (n.scrollWidth - n.clientWidth > 0.5) over.push('trust "' + n.textContent.slice(0, 14) + '" clipped');
+  });
+  var H = box('.header'), tEl = box('.title'), lk = box('.wordmark'), bk = box('.back');
+  console.log(JSON.stringify({
+    frame: root.dataset.frame + '/' + code + (root.dataset.trust === '1' ? '/trust' : ''),
+    band: Math.round(band.height),
+    grid: Math.round(grid.height),
+    card: Math.round(card.height),
+    gridSpare: Math.round(band.height - grid.height -
+      (root.dataset.trust === '1' ? trust.height + parseFloat(getComputedStyle(document.querySelector('.band')).rowGap) : 0)),
+    trust: root.dataset.trust === '1' ? Math.round(trust.height) : 0,
+    overflow: over,
+    header: {
+      row: Math.round(H.width), title: Math.round(tEl.width),
+      lockup: Math.round(lk.width), back: Math.round(bk.width),
+      titleSize: +parseFloat(getComputedStyle(document.querySelector('.title')).fontSize).toFixed(1),
+      titleClipped: Math.max(0, Math.round(titleEl.scrollWidth - titleEl.clientWidth)),
+      baselineGap: +(baselineOf(titleEl) - baselineOf(wordEl)).toFixed(2)
+    }
+  }));
+})();
+</script>
+</body>
+</html>
