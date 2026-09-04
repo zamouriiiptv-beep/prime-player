@@ -737,7 +737,10 @@ var EN = {
   var idH = content(col, false), zoneH = content(zone, true);
   var capFs = parseFloat(getComputedStyle(cap).fontSize);
   console.log(JSON.stringify({
-    frame: document.documentElement.dataset.frame + (en ? "/en" : "/ar"),
+    // The language, not merely "not Arabic": three Latin translations were all
+    // reported as "en", so a Portuguese caption running to three lines read as an
+    // English one in the log.
+    frame: document.documentElement.dataset.frame + "/" + code,
     band: Math.round(bandH),
     identity: Math.round(idH),
     idSpare: Math.round(bandH - idH),
