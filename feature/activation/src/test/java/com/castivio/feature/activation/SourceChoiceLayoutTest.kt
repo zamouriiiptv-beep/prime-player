@@ -365,18 +365,26 @@ class SourceChoiceLayoutTest {
                     "${box.top}..${box.bottom} of ${panel.top}..${panel.bottom}",
                 box.top >= panel.top && box.bottom <= panel.bottom,
             )
+            // Nothing collides with the screen's own edge. This used to be stated
+            // against a glass container's inset; the cards are the outermost content
+            // now and fill the stage's measure exactly, so the inset that matters is
+            // the stage's own and the edge that matters is the frame's. Remove the
+            // screen padding tomorrow and this fails, which is the point of it.
             assertTrue(
-                "${frame.width}: $what touches the container edge",
-                box.left > panel.left && box.right < panel.right,
+                "${frame.width}: $what touches the frame edge — " +
+                    "${box.left}..${box.right} of ${frame.width}",
+                box.left > 0.dp && box.right < frame.width,
             )
         }
 
-        // And the sentence is outside it, below. This is the half of the composition
-        // the container is not allowed to swallow.
+        // And the sentence is the last thing in the stage. It used to be *outside* a
+        // container, below it; there is no container to be outside of now, so what is
+        // asserted is that nothing follows it — it is below every card, which is
+        // stated above, and it does not escape the stage.
         assertTrue(
-            "${frame.width}: the terms sentence is not below the container — " +
-                "${terms.top} against ${panel.bottom}",
-            terms.top >= panel.bottom,
+            "${frame.width}: the terms sentence escapes the stage — " +
+                "${terms.bottom} against ${panel.bottom}",
+            terms.bottom <= panel.bottom,
         )
 
         // The terms sentence is centred on the frame, not placed against Back: its
