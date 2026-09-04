@@ -196,7 +196,6 @@ fun ActivationRoute(
      * This module reads `MediaStore` and draws the result; `:app` owns what a press opens.
      */
     onPlay: (LocalMediaSelection) -> Unit = {},
-    onTerms: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val activation: ActivationViewModel = hiltViewModel()
@@ -265,7 +264,6 @@ fun ActivationRoute(
                 onCopied = identityModel::copied,
                 onOpenLanguage = { pickingLanguage = true },
                 onPlay = onPlay,
-                onTerms = onTerms,
             )
         }
     }
@@ -385,7 +383,6 @@ private fun Steps(
     onCopied: (Copied) -> Unit,
     onOpenLanguage: () -> Unit,
     onPlay: (LocalMediaSelection) -> Unit,
-    onTerms: () -> Unit,
 ) {
     // Read outside the transition: transitionSpec is not a composable lambda, so a
     // token fetched inside it would not compile -- and reading it once is what makes
@@ -431,7 +428,6 @@ private fun Steps(
                 // happens once there is something to reach for.
                 onLocalVideo = { onStep(ActivationStep.MediaSource) },
                 onSavedSources = { onStep(ActivationStep.SavedSources) },
-                onTerms = onTerms,
                 onBack = { onStep(ActivationStep.Mac) },
             )
 

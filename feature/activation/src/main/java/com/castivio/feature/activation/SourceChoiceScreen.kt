@@ -51,8 +51,6 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
@@ -72,20 +70,23 @@ import com.castivio.core.design.theme.Palette
  *
  * `design/mockups/source-choice.html` is the record, and these are transcribed from
  * it rather than approximated — the same discipline `MacActivationScreen` follows and
- * for the same reason: this screen stacks six things down a 393dp frame, and a
+ * for the same reason: this screen stacks five things down a 393dp frame, and a
  * `Column` that runs out of height hands **zero** to whatever it measured last.
  *
  * What the drawing measures, in all twelve frame-and-language combinations:
  *
- * | frame | card | strip | terms |
+ * | frame | card | strip | description lines |
  * |---|---|---|---|
- * | 960×540 TV | 128 | 64 | 24 |
- * | 873×393 | 94 | 54 | 19 |
- * | 800×360 | 91 | 50 | 18 |
+ * | 960×540 TV | 147 | 64 | 4 |
+ * | 873×393 | 107 | 54 | 3 |
+ * | 800×360 | 102 | 50 | 3 |
  *
- * Nothing overflows on any of them, and in Arabic nothing is cut at all. The card is
- * derived rather than declared — two weighted rows of what the header, the subtitle,
- * the strip and the sentence leave — so the number above is an outcome, and
+ * Nothing overflows on any of them and nothing is cut in any language, with one
+ * exception measured and left standing: the assurance strip's Portuguese sentence
+ * clamps to two lines, which is the longest sentence in the longest language inside a
+ * quarter of a phone's width. The card is
+ * derived rather than declared — two weighted rows of what the header, the subtitle
+ * and the strip leave — so the number above is an outcome, and
  * `SourceChoiceBudgetTest` is what asserts it stays positive.
  *
  * ## The type is the activation screen's
@@ -124,9 +125,6 @@ internal data class SourceMetrics(
     val stripDisc: Dp,
     val fsStrip: Dp,
     val fsStripDetail: Dp,
-    val terms: Dp,
-    val termsGap: Dp,
-    val fsTerms: Dp,
 )
 
 /** Below this height the frame is the short phone the drawing calls `p800`. */
@@ -140,11 +138,10 @@ internal fun sourceMetricsFor(tv: Boolean, available: Dp): SourceMetrics = when 
         subtitle = 26.dp, fsSubtitle = 13.5.dp,
         bandTop = 20.dp, gridGap = 18.dp,
         cardPad = 16.dp, cardGap = 16.dp, disc = 72.dp, chevron = 24.dp,
-        fsCard = 15.8.dp, fsDetail = 13.5.dp, fsBadge = 13.dp, detailLines = 3,
+        fsCard = 15.8.dp, fsDetail = 13.5.dp, fsBadge = 13.dp, detailLines = 4,
         radius = 22.dp,
         strip = 64.dp, stripGap = 18.dp, stripDisc = 38.dp,
         fsStrip = 13.5.dp, fsStripDetail = 13.dp,
-        terms = 24.dp, termsGap = 14.dp, fsTerms = 13.5.dp,
     )
     available < SHORT_SOURCE_PHONE -> SourceMetrics(
         edge = 26.dp, stageTop = 11.dp, stageBottom = 8.dp,
@@ -153,11 +150,10 @@ internal fun sourceMetricsFor(tv: Boolean, available: Dp): SourceMetrics = when 
         subtitle = 18.dp, fsSubtitle = 12.5.dp,
         bandTop = 10.dp, gridGap = 12.dp,
         cardPad = 9.dp, cardGap = 11.dp, disc = 50.dp, chevron = 17.dp,
-        fsCard = 14.1.dp, fsDetail = 12.5.dp, fsBadge = 11.5.dp, detailLines = 2,
+        fsCard = 14.1.dp, fsDetail = 12.5.dp, fsBadge = 11.5.dp, detailLines = 3,
         radius = 16.dp,
         strip = 50.dp, stripGap = 10.dp, stripDisc = 27.dp,
         fsStrip = 12.5.dp, fsStripDetail = 11.5.dp,
-        terms = 18.dp, termsGap = 5.dp, fsTerms = 12.5.dp,
     )
     else -> SourceMetrics(
         edge = 32.dp, stageTop = 15.dp, stageBottom = 11.dp,
@@ -166,18 +162,16 @@ internal fun sourceMetricsFor(tv: Boolean, available: Dp): SourceMetrics = when 
         subtitle = 20.dp, fsSubtitle = 13.dp,
         bandTop = 12.dp, gridGap = 14.dp,
         cardPad = 10.dp, cardGap = 12.dp, disc = 52.dp, chevron = 18.dp,
-        fsCard = 14.7.dp, fsDetail = 13.dp, fsBadge = 12.dp, detailLines = 2,
+        fsCard = 14.7.dp, fsDetail = 13.dp, fsBadge = 12.dp, detailLines = 3,
         radius = 18.dp,
         strip = 54.dp, stripGap = 12.dp, stripDisc = 30.dp,
         fsStrip = 13.dp, fsStripDetail = 12.dp,
-        terms = 19.dp, termsGap = 6.dp, fsTerms = 13.dp,
     )
 }
 
 /** What is left for the two rows of cards once everything fixed has been placed. */
 internal fun SourceMetrics.gridHeight(frame: Dp): Dp =
-    frame - stageTop - header - subtitle - bandTop -
-        strip - stripGap - terms - termsGap - stageBottom
+    frame - stageTop - header - subtitle - bandTop - strip - stripGap - stageBottom
 
 /** One card, which is half of that minus the gap between the rows. */
 internal fun SourceMetrics.cardHeight(frame: Dp): Dp = (gridHeight(frame) - gridGap) / 2
@@ -224,7 +218,6 @@ internal fun SourceChoiceScreen(
     onPlaylist: () -> Unit,
     onLocalVideo: () -> Unit,
     onSavedSources: () -> Unit,
-    onTerms: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -257,8 +250,6 @@ internal fun SourceChoiceScreen(
 
             Spacer(Modifier.height(m.stripGap))
             AssuranceStrip(m)
-            Spacer(Modifier.height(m.termsGap))
-            TermsLine(m, onTerms)
         }
     }
 }
@@ -643,45 +634,6 @@ private fun RowScope.StripCell(
     }
 }
 
-/* ---------------------------------------------------------------------- terms */
-
-/**
- * The agreement, on the bottom edge.
- *
- * One control, not two. "Terms of Service" is underlined and the rest is not, because
- * the underline is what tells a reader the line can be pressed — but the whole line is
- * the target, since a partly-pressable sentence is unusable with a D-pad: there is no
- * cursor to put on half a paragraph.
- */
-@Composable
-private fun TermsLine(m: SourceMetrics, onClick: () -> Unit) {
-    val lead = stringResource(R.string.source_terms)
-    val note = stringResource(R.string.source_terms_note)
-    val sentence = buildAnnotatedString {
-        withStyle(SpanStyle(textDecoration = TextDecoration.Underline)) { append(lead) }
-        append(note)
-    }
-
-    Text(
-        text = sentence,
-        style = CastivioType.bodySmall.copy(
-            fontSize = m.fsTerms.value.sp,
-            lineHeight = (m.fsTerms.value * BODY_LEADING).sp,
-            letterSpacing = 0.sp,
-        ),
-        color = CastivioTheme.colors.onBackgroundMuted,
-        textAlign = TextAlign.Center,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(m.terms)
-            .testTag(ActivationTags.SOURCE_TERMS)
-            .clip(RoundedCornerShape(m.radius * TERMS_CORNER))
-            .clickable(role = Role.Button, onClick = onClick),
-    )
-}
-
 /* --------------------------------------------------------------------- ratios */
 
 @Composable
@@ -703,10 +655,10 @@ private const val STRIP_LEADING = 1.3f
 private const val ICON_RATIO = 1.25f
 
 private const val CHIP_GAP = 0.55f
-private const val TEXT_GAP = 0.6f
+private const val TEXT_GAP = 0.5f
 private const val BADGE_GAP = 0.9f
 private const val BADGE_PAD = 0.62f
-private const val BADGE_PAD_Y = 0.24f
+private const val BADGE_PAD_Y = 0.17f
 private const val BADGE_ICON_GAP = 0.34f
 
 private const val DISC_ICON = 0.5f
@@ -718,8 +670,6 @@ private const val STRIP_PAD = 0.22f
 private const val CELL_PAD = 0.16f
 private const val CELL_GAP = 0.18f
 private const val CELL_FILL = 0.14f
-
-private const val TERMS_CORNER = 0.5f
 
 /**
  * The suggested card's edge and the light around it.

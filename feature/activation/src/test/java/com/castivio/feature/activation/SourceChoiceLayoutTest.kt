@@ -165,32 +165,27 @@ class SourceChoiceLayoutTest {
     }
 
     /**
-     * The footer reads the same in both directions, because it no longer has ends.
+     * Back reads the same in both directions, because the header does not mirror.
      *
-     * This has outlived two designs now and the claim has survived both. It once put
-     * Back at one end of a row and the terms sentence at the other and asserted the
-     * two swapped with the direction; the sentence left that row, and now Back has
-     * left it too — it is in the header, at the row's outer end, where the activation
-     * screen keeps its language control.
+     * This has now outlived three designs and the claim has survived all of them. It
+     * once put Back at one end of a row and the terms sentence at the other and
+     * asserted the two swapped with the direction; the sentence left that row, then
+     * left the screen, and Back moved up into the header.
      *
-     * What is being tested is unchanged: the footer is placed by containment and by
-     * symmetry rather than by side, so mirroring the screen must not move either
-     * element. The header does not mirror, so Back holds the same physical edge in
-     * both directions; the sentence spans the same measure as a row of cards and sits
-     * symmetrically on the frame. A `SpaceBetween` row reintroduced tomorrow fails
-     * this in whichever direction it was not written for — which is exactly the
-     * mistake the direction tests exist to catch.
+     * What is being tested is unchanged: the control is placed by rule rather than by
+     * side, so mirroring the screen must not move it. The header is pinned left to
+     * right — the lockup is a signature and does not change edges per locale — so Back
+     * holds the stage's trailing edge in Arabic and in English alike, and its distance
+     * from that edge is the same number in both. A row that mirrored would fail this
+     * in whichever direction it was not written for, which is exactly the mistake the
+     * direction tests exist to catch.
      */
     private fun ComposeContentTestRule.assertFooterSurvivesMirroring(frame: Frame, direction: String) {
         val stage = bounds(ActivationTags.SOURCE_CONTAINER)
         val back = bounds(ActivationTags.SOURCE_BACK)
-        val terms = bounds(ActivationTags.SOURCE_TERMS)
         val xtream = bounds(ActivationTags.SOURCE_XTREAM)
-        val m3u = bounds(ActivationTags.SOURCE_M3U)
-        val local = bounds(ActivationTags.SOURCE_LOCAL)
-        val users = bounds(ActivationTags.SOURCE_USERS)
 
-        // Back is inside the stage, in both axes and both directions.
+        // Inside the stage, in both axes and both directions.
         assertTrue(
             "$direction: Back ${back.left}..${back.right} is not inside the stage " +
                 "${stage.left}..${stage.right}",
@@ -202,37 +197,18 @@ class SourceChoiceLayoutTest {
             back.top >= stage.top && back.bottom <= stage.bottom,
         )
 
-        // And it is above the grid, because it is in the header now rather than under
-        // it. Stated so that putting it back below the cards fails rather than passes.
+        // On the stage's trailing edge, whichever direction the screen is read in.
+        // This is the half of the statement that mirroring would break.
+        assertTrue(
+            "$direction: Back is not on the stage's trailing edge — ${back.right} " +
+                "against ${stage.right}",
+            abs((back.right - stage.right).value) <= 1f,
+        )
+
+        // And above the grid, because it is in the header now rather than under it.
         assertTrue(
             "$direction: Back ${back.bottom} is not above the first row ${xtream.top}",
             back.bottom <= xtream.top,
-        )
-
-        // The sentence is below every card.
-        val lastRow = maxOf(local.bottom.value, users.bottom.value)
-        assertTrue(
-            "$direction: the terms sentence is not below the grid — " +
-                "${terms.top} against $lastRow",
-            terms.top.value >= lastRow,
-        )
-
-        // It takes the same measure as a row of cards rather than hugging its words --
-        // which is what makes `TextAlign.Center` centre it on the screen instead of on
-        // itself.
-        val row = maxOf(xtream.right.value, m3u.right.value) - minOf(xtream.left.value, m3u.left.value)
-        assertTrue(
-            "$direction: the terms line spans ${terms.width} against a card row's " +
-                "$row, so it is not filling the measure",
-            abs(terms.width.value - row) <= 1f,
-        )
-
-        // And that measure sits symmetrically on the frame, so the centring means equal
-        // margins in either direction rather than equal margins in one of them.
-        assertTrue(
-            "$direction: the terms line is not centred — ${terms.left} leading, " +
-                "${frame.width - terms.right} trailing",
-            abs((terms.left - (frame.width - terms.right)).value) <= 1f,
         )
     }
 
@@ -257,7 +233,6 @@ class SourceChoiceLayoutTest {
                             onPlaylist = { pressed += "m3u" },
                             onLocalVideo = { pressed += "local" },
                             onSavedSources = { pressed += "users" },
-                            onTerms = { pressed += "terms" },
                             onBack = { pressed += "back" },
                         )
                     }
@@ -270,7 +245,6 @@ class SourceChoiceLayoutTest {
             ActivationTags.SOURCE_M3U to "m3u",
             ActivationTags.SOURCE_LOCAL to "local",
             ActivationTags.SOURCE_USERS to "users",
-            ActivationTags.SOURCE_TERMS to "terms",
             ActivationTags.SOURCE_BACK to "back",
         )) {
             pressed.clear()
@@ -293,14 +267,13 @@ class SourceChoiceLayoutTest {
         val heading = bounds(ActivationTags.SOURCE_HEADING)
         val cards = CARD_TAGS.map { it to bounds(it) }
         val back = bounds(ActivationTags.SOURCE_BACK)
-        val terms = bounds(ActivationTags.SOURCE_TERMS)
 
         println(
             "source choice ${frame.width}x${frame.height} — " +
                 cards.joinToString(" | ") { (tag, b) ->
                     "${tag.substringAfterLast('.')} ${b.width}x${b.height} @${b.left},${b.top}"
                 } + " || heading ${heading.top}..${heading.bottom} " +
-                "back ${back.top}..${back.bottom} terms ${terms.left}..${terms.right}",
+                "back ${back.top}..${back.bottom}",
         )
 
         // Equal, to the dp, in both dimensions. This is the whole requirement: no card
@@ -348,7 +321,6 @@ class SourceChoiceLayoutTest {
         val panel = bounds(ActivationTags.SOURCE_CONTAINER)
         assertTrue("${frame.width}: the heading is not above the grid", heading.bottom <= xtream.top)
         assertTrue("${frame.width}: Back is not above the grid", back.bottom <= xtream.top)
-        assertTrue("${frame.width}: the sentence is not below the grid", terms.top >= local.bottom)
 
         // The stage really contains them: all four cards and Back inside its bounds,
         // none of them touching an edge. "Everything is on the screen" is otherwise
@@ -377,42 +349,20 @@ class SourceChoiceLayoutTest {
             )
         }
 
-        // And the sentence is the last thing in the stage. It used to be *outside* a
-        // container, below it; there is no container to be outside of now, so what is
-        // asserted is that nothing follows it — it is below every card, which is
-        // stated above, and it does not escape the stage.
+        // The grid is symmetric on the frame: the margin outside the first column
+        // equals the margin outside the last. It used to be the terms sentence that
+        // carried this claim -- it filled the measure and was centred in it -- and the
+        // grid is what fills the measure now.
+        val leadingGap = minOf(xtream.left.value, m3u.left.value)
+        val trailingGap = frame.width.value - maxOf(xtream.right.value, m3u.right.value)
         assertTrue(
-            "${frame.width}: the terms sentence escapes the stage — " +
-                "${terms.bottom} against ${panel.bottom}",
-            terms.bottom <= panel.bottom,
-        )
-
-        // The terms sentence is centred on the frame, not placed against Back: its
-        // margin from each edge is the same number. Asserted rather than trusted,
-        // because "centred" is the one property a `SpaceBetween` row also looks like
-        // at some widths, and because the two share a row and must not collide.
-        // `fillMaxWidth` makes the node the width of the row, so the node's own margins
-        // are the screen padding and say nothing about where the words sit. The
-        // sentence is centred by `TextAlign.Center` inside it, and what is asserted is
-        // that the node itself is symmetric on the frame -- which is the property that
-        // makes the centring mean equal margins.
-        val leadingGap = terms.left
-        val trailingGap = frame.width - terms.right
-        assertTrue(
-            "${frame.width}: the terms line is not centred — ${leadingGap} leading, " +
-                "${trailingGap} trailing",
-            abs((leadingGap - trailingGap).value) <= 1f,
-        )
-        // Back and the sentence are in different bands now, so the claim is vertical
-        // separation rather than horizontal clearance.
-        assertTrue(
-            "${frame.width}: Back ${back.top}..${back.bottom} runs into the terms line " +
-                "${terms.top}..${terms.bottom}",
-            terms.top >= back.bottom,
+            "${frame.width}: the grid is not centred — $leadingGap leading, " +
+                "$trailingGap trailing",
+            abs(leadingGap - trailingGap) <= 1f,
         )
 
         // Inside the width, every element. Widths Robolectric measures honestly.
-        for ((what, box) in named(heading, cards.map { it.second }, back, terms)) {
+        for ((what, box) in named(heading, cards.map { it.second }, back)) {
             assertTrue(
                 "${frame.width}: $what runs past a side — ${box.left}..${box.right} " +
                     "of ${frame.width}",
@@ -427,11 +377,10 @@ class SourceChoiceLayoutTest {
         heading: DpRect,
         cards: List<DpRect>,
         back: DpRect,
-        terms: DpRect,
     ): List<Pair<String, DpRect>> =
         listOf("the heading" to heading) +
             CARD_TAGS.map { it.substringAfterLast('.') }.zip(cards) +
-            listOf("Back" to back, "Terms" to terms)
+            listOf("Back" to back)
 
     private fun overlapVertically(a: DpRect, b: DpRect) = a.top < b.bottom && b.top < a.bottom
 
@@ -481,7 +430,6 @@ class SourceChoiceLayoutTest {
                         onPlaylist = {},
                         onLocalVideo = {},
                         onSavedSources = {},
-                        onTerms = {},
                         onBack = {},
                     )
                 }

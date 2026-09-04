@@ -99,10 +99,9 @@ html[data-frame="tv"]{
   --back:44px; --back-pad:11px; --fs-back:13px;
   --band-top:20px; --grid-gap:18px; --card-max:168px;
   --card-pad:16px; --card-gap:16px; --disc:72px; --chev:24px;
-  --fs-card:20px; --fs-desc:13.5px; --fs-badge:13px; --desc-lines:3;
+  --fs-card:20px; --fs-desc:13.5px; --fs-badge:13px; --desc-lines:4;
   --radius:22px;
   --sub:26px; --fs-sub:13.5px;
-  --terms:24px; --terms-gap:14px; --fs-terms:13.5px;
   --trust:64px; --trust-gap:18px; --trust-disc:38px;
   --fs-trust:13.5px; --fs-trust2:13px;
 }
@@ -113,10 +112,9 @@ html[data-frame="p873"]{
   --back:36px; --back-pad:12px; --fs-back:12px;
   --band-top:12px; --grid-gap:14px; --card-max:132px;
   --card-pad:10px; --card-gap:12px; --disc:52px; --chev:18px;
-  --fs-card:15.5px; --fs-desc:13px; --fs-badge:12px; --desc-lines:2;
+  --fs-card:15.5px; --fs-desc:13px; --fs-badge:12px; --desc-lines:3;
   --radius:18px;
   --sub:20px; --fs-sub:13px;
-  --terms:19px; --terms-gap:6px; --fs-terms:13px;
   --trust:54px; --trust-gap:12px; --trust-disc:30px;
   --fs-trust:13px; --fs-trust2:12px;
 }
@@ -127,10 +125,9 @@ html[data-frame="p800"]{
   --back:34px; --back-pad:11px; --fs-back:11.5px;
   --band-top:10px; --grid-gap:12px; --card-max:124px;
   --card-pad:9px; --card-gap:11px; --disc:50px; --chev:17px;
-  --fs-card:14.5px; --fs-desc:12.5px; --fs-badge:11.5px; --desc-lines:2;
+  --fs-card:14.5px; --fs-desc:12.5px; --fs-badge:11.5px; --desc-lines:3;
   --radius:16px;
   --sub:18px; --fs-sub:12.5px;
-  --terms:18px; --terms-gap:5px; --fs-terms:12.5px;
   --trust:48px; --trust-gap:10px; --trust-disc:27px;
   --fs-trust:12.5px; --fs-trust2:11.5px;
 }
@@ -225,7 +222,7 @@ html[dir="ltr"] .sub{justify-content:flex-start}
   box-shadow:0 0 22px color-mix(in srgb, var(--hue) 22%, transparent), var(--rim)}
 .disc svg{width:50%;height:50%}
 
-.body{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px}
+.body{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:5px}
 .head{display:flex;align-items:center;gap:9px;min-width:0}
 /* The title yields and the badge does not, which is the header's rule applied
    one level down: a badge is a fixed fact and a title is the one thing here
@@ -261,7 +258,7 @@ html[dir="ltr"] .chev svg{transform:scaleX(-1)}
 /* A recommendation is a LABEL. It says something about the option and nothing
    about where the remote is, so it is a badge and a tint -- and no ring. */
 .badge{flex:0 0 auto;display:flex;align-items:center;gap:5px;
-  padding:3px 9px;border-radius:999px;white-space:nowrap;
+  padding:2px 9px;border-radius:999px;white-space:nowrap;
   font-size:var(--fs-badge);font-weight:700;color:var(--white);
   background:linear-gradient(180deg,rgba(146,90,255,.42),rgba(80,44,190,.30));
   border:1px solid rgba(178,132,255,.46)}
@@ -311,21 +308,6 @@ html[dir="ltr"] .chev svg{transform:scaleX(-1)}
    card loses 16dp and with it the fourth line of its description, so the longer
    translations give up the "which one do I have" hint there. The phones keep
    three lines and lose 15 and 11dp of card. */
-
-/* The terms sentence, which the shipped screen has and this drawing had lost.
-   It is not decoration: it is the agreement, it is a navigation target, and it
-   is the only pressable thing on the screen that is not one of the four cards.
-   Dropping it was not a design decision, it was an omission -- and the kind that
-   is invisible in a picture, because nothing looks wrong where something used to
-   be. It sits on the bottom edge, a hair under the grid, as it does today.
-
-   One control, not two: the underline names the thing, the whole line is the
-   target. A partly-pressable sentence cannot be used with a D-pad -- there is no
-   cursor to put on half a paragraph. */
-.terms{flex:0 0 auto;margin-top:var(--terms-gap);height:var(--terms);
-  display:flex;align-items:center;justify-content:center;
-  font-size:var(--fs-terms);line-height:1.4;color:var(--text-3);text-align:center}
-.terms u{text-decoration:underline;text-underline-offset:2px}
 
 html[data-trust="0"] .trust{display:none}
 html[data-trust="0"] .band{gap:0}
@@ -412,7 +394,6 @@ html[data-trust="0"] .band{gap:0}
       </div>
     </div>
 
-    <div class="terms"><span data-s="terms"><u>شروط الخدمة</u> — باستخدام التطبيق، فإنك توافق على شروط الاستخدام.</span></div>
   </div>
 </div>
 
@@ -446,7 +427,6 @@ var ICON = {
 
 var EN = {title:"Choose how to add", back:"Back", badge:"Fastest",
   sub:"Add your preferred playback method to start watching",
-  terms:'<u>Terms of Service</u> — by using the app, you agree to the terms of use.',
   m3uT:"M3U playlist", m3uD:'Add a playlist link in M3U format. <span class="hint">One long link, usually sent by email.</span>',
   xT:"Xtream Codes", xD:'A server address, a username and a password. <span class="hint">Full support for Xtream features.</span>',
   uT:"User list", uD:'Add and switch between Xtream and M3U subscriptions. <span class="hint">Easy management of all your subscriptions.</span>',
@@ -457,7 +437,6 @@ var EN = {title:"Choose how to add", back:"Back", badge:"Fastest",
   t4:"Broad support", t4b:"All formats supported."};
 var ES = {title:"Elige cómo añadir", back:"Atrás", badge:"Más rápido",
   sub:"Añade tu método de reproducción preferido para empezar",
-  terms:'<u>Términos del servicio</u> — al usar la aplicación, aceptas las condiciones de uso.',
   m3uT:"Lista M3U", m3uD:'Añade un enlace de lista en formato M3U. <span class="hint">Un enlace largo, normalmente enviado por correo.</span>',
   xT:"Xtream Codes", xD:'Una dirección de servidor, un usuario y una contraseña. <span class="hint">Compatibilidad total con Xtream.</span>',
   uT:"Lista de usuarios", uD:'Añade y cambia entre suscripciones Xtream y M3U. <span class="hint">Gestión sencilla de todas tus suscripciones.</span>',
@@ -468,7 +447,6 @@ var ES = {title:"Elige cómo añadir", back:"Atrás", badge:"Más rápido",
   t4:"Soporte amplio", t4b:"Todos los formatos admitidos."};
 var PT = {title:"Escolha como adicionar", back:"Voltar", badge:"Mais rápido",
   sub:"Adicione o seu método de reprodução preferido para começar",
-  terms:'<u>Termos do serviço</u> — ao usar a aplicação, aceita as condições de utilização.',
   m3uT:"Lista M3U", m3uD:'Adicione uma ligação de lista em formato M3U. <span class="hint">Uma ligação longa, normalmente enviada por email.</span>',
   xT:"Xtream Codes", xD:'Um endereço de servidor, um utilizador e uma palavra-passe. <span class="hint">Suporte completo para o Xtream.</span>',
   uT:"Lista de utilizadores", uD:'Adicione e alterne entre subscrições Xtream e M3U. <span class="hint">Gestão simples de todas as suas subscrições.</span>',
@@ -555,8 +533,6 @@ var PT = {title:"Escolha como adicionar", back:"Voltar", badge:"Mais rápido",
   document.querySelectorAll('.trust .tx span').forEach(function (n) {
     if (n.scrollHeight - n.clientHeight > 1) over.push('trust "' + n.textContent.slice(0, 12) + '" clamped');
   });
-  var tm = document.querySelector('.terms span');
-  if (tm.scrollWidth - tm.parentElement.clientWidth > 0.5) over.push('terms clipped');
   var H = box('.header'), tEl = box('.title'), lk = box('.wordmark'), bk = box('.back');
   console.log(JSON.stringify({
     frame: root.dataset.frame + '/' + code + (root.dataset.trust === '1' ? '/trust' : ''),
@@ -566,7 +542,6 @@ var PT = {title:"Escolha como adicionar", back:"Voltar", badge:"Mais rápido",
     gridSpare: Math.round(band.height - grid.height -
       (root.dataset.trust === '1' ? trust.height + parseFloat(getComputedStyle(document.querySelector('.band')).rowGap) : 0)),
     trust: root.dataset.trust === '1' ? Math.round(trust.height) : 0,
-    terms: Math.round(box('.terms').height),
     overflow: over,
     header: {
       row: Math.round(H.width), title: Math.round(tEl.width),
