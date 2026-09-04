@@ -139,7 +139,6 @@
     <string name="licence_blocked_detail">This build has no licence service to ask, so it cannot let you in. The licence screen arrives in a later version.</string>
     <string name="licence_blocked_action">Close</string>
     <!-- The source chooser, redrawn as a grid. -->
-    <string name="source_choice_subtitle">Add your preferred playback method to start watching</string>
     <string name="source_badge_fastest">Fastest</string>
     <!-- The second line of each card: what the first one does not say, which is
          how a reader tells which of these they actually have. -->
@@ -150,6 +149,4 @@
     <!-- The assurance strip under the four choices. -->
     <string name="source_trust_private_title">Safe and private</string>
     <string name="source_trust_fast_title">Fast and steady</string>
-    <string name="source_trust_guard_title">Full protection</string>
-    <string name="source_trust_formats_title">Broad support</string>
 </resources>

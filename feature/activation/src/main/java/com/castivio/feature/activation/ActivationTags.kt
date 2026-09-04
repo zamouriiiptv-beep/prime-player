@@ -68,15 +68,6 @@ internal object ActivationTags {
     const val SOURCE_BACK = "activation.sourceBack"
 
     /**
-     * The Terms link in the footer.
-     *
-     * It shares its row with Back and sits at the opposite end, so "inside the safe
-     * area" is a real question for it and not a formality -- it is the element
-     * furthest into the corner the display cutout eats on a landscape handset.
-     */
-    const val SOURCE_TERMS = "activation.sourceTerms"
-
-    /**
      * The glass surface the grid and Back sit inside.
      *
      * Tagged because "the cards are in a container" is otherwise a claim only a

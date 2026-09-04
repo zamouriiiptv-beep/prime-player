@@ -1,5 +1,7 @@
 package com.castivio.core.design.theme
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -54,6 +56,8 @@ import androidx.compose.ui.unit.dp
  * put a control below it. The budget tests assert it per frame.
  */
 data class CastivioFrame(
+    /** Which of the four this is. A screen almost never needs it; see [FrameType]. */
+    val type: FrameType,
     /* the stage */
     val edge: Dp,
     val stageTop: Dp,
@@ -74,9 +78,22 @@ data class CastivioFrame(
     val fsBody: Dp,
     val fsChip: Dp,
 ) {
+    /**
+     * The floor a control may not go below on this frame: 56dp on a television,
+     * 48dp everywhere else.
+     *
+     * Derived rather than declared, and that is the point — it is
+     * [Sizing.minTarget] read through the frame, so there is one definition of the
+     * floor and no table entry anybody can edit it out of. A screen that asks the
+     * frame cannot ask the wrong device: the D-pad floor arrives with the
+     * television's numbers and the thumb's floor with everybody else's.
+     */
+    val target: Dp get() = Sizing.minTarget(type == FrameType.Television)
+
     companion object {
         /** 960×540dp: what a 1080p set reports, which is the device and not an idea of it. */
         val Television = CastivioFrame(
+            type = FrameType.Television,
             edge = 46.dp, stageTop = 24.dp, stageBottom = 22.dp,
             header = 54.dp, headGap = 26.dp, brand = 40.dp, chip = 44.dp, chipPad = 11.dp,
             bandTop = 22.dp, radius = 20.dp,
@@ -85,6 +102,7 @@ data class CastivioFrame(
 
         /** 1280×800dp, with a 1000×500 content block and the rest given to margin. */
         val Tablet = CastivioFrame(
+            type = FrameType.Tablet,
             edge = 140.dp, stageTop = 160.dp, stageBottom = 140.dp,
             header = 52.dp, headGap = 26.dp, brand = 34.dp, chip = 40.dp, chipPad = 12.dp,
             bandTop = 24.dp, radius = 20.dp,
@@ -93,6 +111,7 @@ data class CastivioFrame(
 
         /** 873×393dp: an ordinary handset turned sideways. */
         val Phone = CastivioFrame(
+            type = FrameType.Phone,
             edge = 32.dp, stageTop = 15.dp, stageBottom = 11.dp,
             header = 42.dp, headGap = 24.dp, brand = 31.dp, chip = 36.dp, chipPad = 12.dp,
             bandTop = 10.dp, radius = 17.dp,
@@ -101,6 +120,7 @@ data class CastivioFrame(
 
         /** 800×360dp: the shortest frame this project ships to. */
         val ShortPhone = CastivioFrame(
+            type = FrameType.ShortPhone,
             edge = 26.dp, stageTop = 11.dp, stageBottom = 8.dp,
             header = 36.dp, headGap = 20.dp, brand = 28.dp, chip = 34.dp, chipPad = 11.dp,
             bandTop = 8.dp, radius = 16.dp,
@@ -108,6 +128,17 @@ data class CastivioFrame(
         )
     }
 }
+
+/**
+ * Which of the four a screen is on.
+ *
+ * It exists so that the *choice* has a name and can be asserted on, not so that
+ * screens can branch on it. A screen that writes `when (frame.type)` has written
+ * a second frame table with different numbers in it, which is the thing this file
+ * was created to end. The one legitimate reader is [CastivioFrame.target], and the
+ * tests, which iterate the four.
+ */
+enum class FrameType { Television, Tablet, Phone, ShortPhone }
 
 /** At and above this height the frame is a tablet, not a large phone. */
 val TABLET_FRAME: Dp = 600.dp
@@ -128,3 +159,26 @@ fun castivioFrame(tv: Boolean, available: Dp): CastivioFrame = when {
     available < SHORT_FRAME -> CastivioFrame.ShortPhone
     else -> CastivioFrame.Phone
 }
+
+/**
+ * The frame for the surface this composable was handed, asking the device itself
+ * whether it is a television.
+ *
+ * The height must come from a `BoxWithConstraints` around the screen's own
+ * content — `maxHeight`, the surface — and not from `LocalConfiguration`, which
+ * describes a window this screen may only have part of. Reading the window is how
+ * the 873×393 handset once drew the 800×360 table.
+ *
+ * ```
+ * BoxWithConstraints(Modifier.fillMaxSize()) {
+ *     val frame = rememberFrame(maxHeight)
+ *     Column(Modifier.padding(horizontal = frame.edge, …)) { … }
+ * }
+ * ```
+ */
+@Composable
+@ReadOnlyComposable
+fun rememberFrame(
+    available: Dp,
+    isTv: Boolean = CastivioTheme.device.isTv,
+): CastivioFrame = castivioFrame(isTv, available)

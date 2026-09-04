@@ -27,8 +27,8 @@ import org.junit.Test
  * ## The question this file asks changed direction
  *
  * It used to add the content up and check it fitted the frame. The grid is sized from
- * the frame now — `weight(1f)` — and the cards take what the header, the subtitle and
- * the assurance strip leave, so overflow is structural: a weighted
+ * the frame now — `weight(1f)` — and the cards take what the header and the assurance
+ * strip leave, so overflow is structural: a weighted
  * child cannot push its siblings out, and the sum is the frame by construction.
  *
  * What can go wrong instead is the opposite. If the frame is short enough, the derived
@@ -156,8 +156,7 @@ class SourceChoiceBudgetTest {
     /**
      * Nothing on the screen is ever handed a negative height.
      *
-     * The grid is what is left once the header, the subtitle and the strip
-     * are placed, and "what is left" is the one number in this layout that
+     * The grid is what is left once the header and the strip are placed, and "what is left" is the one number in this layout that
      * can go below zero. A `Column` does not clip when it does -- it hands zero to
      * whatever it measured last, which here is the four cards.
      */
@@ -181,7 +180,7 @@ class SourceChoiceBudgetTest {
     @Test
     fun `stacking the four cards would not have fitted the handset`() {
         val m = metrics(HANDSET, tv = false)
-        val stacked = m.stageTop + m.header + m.subtitle + m.bandTop +
+        val stacked = m.stageTop + m.header + m.bandTop +
             (cardNeeds(HANDSET, false, 1) * 4 + m.gridGap * 3) +
             m.stripGap + m.strip + m.stageBottom
 

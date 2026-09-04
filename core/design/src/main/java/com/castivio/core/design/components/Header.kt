@@ -1,13 +1,30 @@
 package com.castivio.core.design.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.castivio.core.design.theme.CastivioTheme
+import com.castivio.core.design.theme.Palette
 import androidx.compose.ui.layout.AlignmentLine
 import androidx.compose.ui.layout.FirstBaseline
 import androidx.compose.ui.layout.Layout
@@ -284,6 +301,119 @@ private fun TextStyle.tightBox(): TextStyle = copy(
  * that looks right at the first is loose at the second.
  */
 private const val LOCKUP_GAP_RATIO = 0.32f
+
+/**
+ * The style the screen's name is set in, from the frame's own title step.
+ *
+ * Every screen was building this expression for itself — the same token, the same
+ * leading ratio, the same `letterSpacing = 0.sp` — which is three copies of one
+ * decision and a fourth screen away from disagreeing with itself.
+ *
+ * The tracking is zero and is stated rather than inherited. `headlineMedium`
+ * carries a small negative track, which is a sensible Latin display correction and
+ * wrong for Arabic at any size: the script joins, and pulling the letters together
+ * closes the joins rather than tightening the word.
+ *
+ * @param fsTitle [com.castivio.core.design.theme.CastivioFrame.fsTitle].
+ */
+@Composable
+@ReadOnlyComposable
+fun castivioTitleStyle(fsTitle: Dp): TextStyle = CastivioType.headlineMedium.copy(
+    fontSize = fsTitle.value.sp,
+    lineHeight = (fsTitle.value * TITLE_LEADING).sp,
+    letterSpacing = 0.sp,
+)
+
+/**
+ * The style a chip's own words are set in, from the frame's chip step.
+ *
+ * @param fsChip [com.castivio.core.design.theme.CastivioFrame.fsChip].
+ */
+@Composable
+@ReadOnlyComposable
+fun castivioChipStyle(fsChip: Dp): TextStyle = CastivioType.bodyMedium.copy(
+    fontSize = fsChip.value.sp,
+    lineHeight = (fsChip.value * CHIP_LEADING).sp,
+    letterSpacing = 0.sp,
+)
+
+/** A heading's leading, and a chip's. Ratios, because the sizes step per frame. */
+private const val TITLE_LEADING = 1.35f
+private const val CHIP_LEADING = 1.45f
+
+/** An icon beside type, as a multiple of that type's size. */
+private const val CHIP_ICON = 1.25f
+
+/** The gap inside a chip, as a fraction of its own horizontal padding. */
+private const val CHIP_GAP = 0.55f
+
+/**
+ * The way back, as the one control in a header that is otherwise a statement.
+ *
+ * ## Why it is here and not on a screen
+ *
+ * Six screens need it and four of them had built their own — a different height, a
+ * different glyph, a different corner, and on two of them a footer built to hold it
+ * that the screen did not otherwise need. The chip is the same kind of thing on all
+ * six, so it is one thing.
+ *
+ * ## The chevron points the way the reader came from
+ *
+ * Auto-mirrored, so it is a left arrow in English and a right arrow in Arabic. That
+ * is the opposite of the chevron on a card, which leads *onward* and therefore
+ * follows the reading direction — the two look like the same decision and are not,
+ * and drawing both the Latin way is the mistake a right-to-left screen makes most
+ * often.
+ *
+ * ## Round, by ratio
+ *
+ * `percent = 50` rather than the frame's radius: this is a pill, and a pill's
+ * corner is half its height whatever the height is. The frame's `radius` is for the
+ * surfaces on the stage, which are rectangles.
+ *
+ * @param height [com.castivio.core.design.theme.CastivioFrame.chip], which is at or
+ *   above the frame's target floor on every frame.
+ * @param label the word. Supplied by the caller because a shared component may not
+ *   own copy — this one would otherwise carry a string in thirty-eight languages.
+ */
+@Composable
+fun CastivioBackChip(
+    height: Dp,
+    pad: Dp,
+    fontSize: Dp,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = CastivioTheme.colors
+    val shape = RoundedCornerShape(percent = 50)
+
+    Row(
+        modifier
+            .height(height)
+            .clip(shape)
+            .background(colors.glassFill)
+            .border(BorderStroke(1.dp, Palette.EdgeQuiet), shape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = pad)
+            .semantics(mergeDescendants = true) { contentDescription = label },
+        horizontalArrangement = Arrangement.spacedBy(pad * CHIP_GAP),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+            contentDescription = null,
+            tint = colors.onBackgroundVariant,
+            modifier = Modifier.size(fontSize * CHIP_ICON),
+        )
+        Text(
+            text = label,
+            style = castivioChipStyle(fontSize),
+            color = colors.onBackgroundVariant,
+            maxLines = 1,
+        )
+    }
+}
 
 /**
  * The screen's name: a heading, one line, at whatever size that line allows.

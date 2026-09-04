@@ -112,7 +112,6 @@
     <string name="licence_blocked_detail">لا توجد في هذه النسخة خدمة ترخيص ليسألها، فلا يستطيع السماح بالدخول. شاشة الترخيص تأتي في نسخة لاحقة.</string>
     <string name="licence_blocked_action">إغلاق</string>
     <!-- شاشة اختيار طريقة الإضافة. -->
-    <string name="source_choice_subtitle">أضف طريقة التشغيل المفضل لديك لبدء المشاهدة</string>
     <string name="source_badge_fastest">الأسرع</string>
     <string name="source_xtream_hint">دعم كامل لميزات Xtream.</string>
     <string name="source_m3u_hint">رابط واحد طويل يُرسل عادةً بالبريد.</string>
@@ -120,6 +119,4 @@
     <string name="source_users_hint">إدارة سهلة لجميع اشتراكاتك.</string>
     <string name="source_trust_private_title">آمن وخاص</string>
     <string name="source_trust_fast_title">سريع ومستقر</string>
-    <string name="source_trust_guard_title">حماية كاملة</string>
-    <string name="source_trust_formats_title">دعم متعدد</string>
 </resources>

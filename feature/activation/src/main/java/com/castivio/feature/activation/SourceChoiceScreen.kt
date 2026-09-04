@@ -3,7 +3,6 @@ package com.castivio.feature.activation
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -19,16 +18,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Dns
 import androidx.compose.material.icons.rounded.Group
 import androidx.compose.material.icons.rounded.Link
-import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.OndemandVideo
 import androidx.compose.material.icons.rounded.Speed
-import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.VerifiedUser
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -44,11 +40,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -57,10 +51,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.castivio.core.design.components.CastivioBackChip
 import com.castivio.core.design.components.CastivioHeader
 import com.castivio.core.design.components.CastivioHeaderTitle
 import com.castivio.core.design.components.CastivioLockup
 import com.castivio.core.design.components.InteractiveGlassCard
+import com.castivio.core.design.components.castivioChipStyle
+import com.castivio.core.design.components.castivioTitleStyle
 import com.castivio.core.design.theme.CastivioFrame
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
@@ -85,16 +82,17 @@ import com.castivio.core.design.theme.TABLET_FRAME
  * | 800×360 | 114 | 30 | 3 |
  *
  * Nothing overflows and nothing is cut, in any frame or any language. The card is
- * derived rather than declared — two weighted rows of what the header, the subtitle
- * and the strip leave — so the number above is an outcome, and
- * `SourceChoiceBudgetTest` is what asserts it stays positive.
+ * derived rather than declared — two weighted rows of what the header and the strip
+ * leave — so the number above is an outcome, and `SourceChoiceBudgetTest` is what
+ * asserts it stays positive.
  *
- * ## The type is the activation screen's
+ * ## The type is not this screen's
  *
- * Every size here is a step that screen already sets: its `fsTitle` for the question,
- * `fsCaption` for a card's description, `fsChip` for the badge and Back. A screen that
- * invents its own scale beside the one before it is two products, and compressing type
- * to make content fit is how a layout hides that it is too small.
+ * Every size here is one of [CastivioFrame]'s four steps: `fsTitle` for the question,
+ * `fsLabel` for a card's name, `fsBody` for its description, `fsChip` for the badge,
+ * Back and the footnote. A screen that invents its own scale beside the one before it
+ * is two products, and compressing type to make content fit is how a layout hides that
+ * it is too small.
  */
 internal data class SourceMetrics(
     /**
@@ -103,22 +101,16 @@ internal data class SourceMetrics(
      * the same numbers twice agree only until the next edit.
      */
     val frame: CastivioFrame,
-    /* what this screen owns */
-    val subtitle: Dp,
-    val fsSubtitle: Dp,
+    /* what this screen owns: the geometry of a card, and of the footnote under it */
     val gridGap: Dp,
     val cardPad: Dp,
     val cardGap: Dp,
     val disc: Dp,
     val chevron: Dp,
-    val fsCard: Dp,
-    val fsDetail: Dp,
-    val fsBadge: Dp,
     val detailLines: Int,
     val strip: Dp,
     val stripGap: Dp,
     val stripDisc: Dp,
-    val fsStrip: Dp,
 ) {
     /* The frame's numbers, reachable as this screen's own. */
     val edge get() = frame.edge
@@ -131,44 +123,64 @@ internal data class SourceMetrics(
     val backPad get() = frame.chipPad
     val bandTop get() = frame.bandTop
     val radius get() = frame.radius
+
+    /* The four steps, named for what this screen puts on each of them. Named
+       rather than aliased away, because a call site that reads `m.fsCard` says
+       which step a card's name is on; one that reads `m.frame.fsLabel` says
+       only that somebody picked a token. They are getters, so there is still
+       exactly one number.
+
+       Four of these used to be table entries of their own. Three of the four
+       held the step's own value on every frame — a copy that agreed until
+       somebody edited one of them — and the fourth, the tablet's card name,
+       had drifted to 17dp: a fifth step, larger than the television's, on the
+       one frame whose whole rule is that extra room buys margin and not size. */
     val fsTitle get() = frame.fsTitle
+    val fsCard get() = frame.fsLabel
+    val fsDetail get() = frame.fsBody
+    val fsBadge get() = frame.fsChip
     val fsBack get() = frame.fsChip
+    val fsStrip get() = frame.fsChip
 }
 
 internal fun sourceMetricsFor(tv: Boolean, available: Dp): SourceMetrics = when {
     tv -> SourceMetrics(
         frame = CastivioFrame.Television,
-        subtitle = 26.dp, fsSubtitle = 13.5.dp,
         gridGap = 18.dp, cardPad = 16.dp, cardGap = 16.dp, disc = 72.dp, chevron = 24.dp,
-        fsCard = 15.8.dp, fsDetail = 13.5.dp, fsBadge = 13.dp, detailLines = 4,
-        strip = 40.dp, stripGap = 14.dp, stripDisc = 26.dp, fsStrip = 12.5.dp,
+        detailLines = 4,
+        strip = 40.dp, stripGap = 14.dp, stripDisc = 26.dp,
     )
     available >= TABLET_FRAME -> SourceMetrics(
         frame = CastivioFrame.Tablet,
-        subtitle = 22.dp, fsSubtitle = 13.dp,
         gridGap = 20.dp, cardPad = 20.dp, cardGap = 18.dp, disc = 72.dp, chevron = 22.dp,
-        fsCard = 17.dp, fsDetail = 13.dp, fsBadge = 12.5.dp, detailLines = 3,
-        strip = 36.dp, stripGap = 14.dp, stripDisc = 24.dp, fsStrip = 12.5.dp,
+        detailLines = 3,
+        strip = 36.dp, stripGap = 14.dp, stripDisc = 24.dp,
     )
     available < SHORT_FRAME -> SourceMetrics(
         frame = CastivioFrame.ShortPhone,
-        subtitle = 18.dp, fsSubtitle = 12.5.dp,
         gridGap = 12.dp, cardPad = 9.dp, cardGap = 11.dp, disc = 50.dp, chevron = 17.dp,
-        fsCard = 14.1.dp, fsDetail = 12.5.dp, fsBadge = 11.5.dp, detailLines = 3,
-        strip = 30.dp, stripGap = 8.dp, stripDisc = 19.dp, fsStrip = 11.dp,
+        detailLines = 3,
+        strip = 30.dp, stripGap = 8.dp, stripDisc = 19.dp,
     )
     else -> SourceMetrics(
         frame = CastivioFrame.Phone,
-        subtitle = 20.dp, fsSubtitle = 13.dp,
         gridGap = 14.dp, cardPad = 10.dp, cardGap = 12.dp, disc = 52.dp, chevron = 18.dp,
-        fsCard = 14.7.dp, fsDetail = 13.dp, fsBadge = 12.dp, detailLines = 3,
-        strip = 32.dp, stripGap = 10.dp, stripDisc = 20.dp, fsStrip = 11.5.dp,
+        detailLines = 3,
+        strip = 32.dp, stripGap = 10.dp, stripDisc = 20.dp,
     )
 }
 
-/** What is left for the two rows of cards once everything fixed has been placed. */
+/**
+ * What is left for the two rows of cards once everything fixed has been placed.
+ *
+ * The subtitle used to be one of the terms. It said *add your preferred playback
+ * method to start watching* under a heading that says *choose how to add* — the
+ * same sentence twice, one of them in smaller type — and a reader deciding between
+ * four cards got no help from either. Removing it gives the two rows 18–26dp back,
+ * which is where a third line of description on the short frame comes from.
+ */
 internal fun SourceMetrics.gridHeight(frame: Dp): Dp =
-    frame - stageTop - header - subtitle - bandTop - strip - stripGap - stageBottom
+    frame - stageTop - header - bandTop - strip - stripGap - stageBottom
 
 /** One card, which is half of that minus the gap between the rows. */
 internal fun SourceMetrics.cardHeight(frame: Dp): Dp = (gridHeight(frame) - gridGap) / 2
@@ -229,7 +241,6 @@ internal fun SourceChoiceScreen(
                 .testTag(ActivationTags.SOURCE_CONTAINER),
         ) {
             SourceHeader(m, onBack)
-            Subtitle(m)
             Spacer(Modifier.height(m.bandTop))
 
             // Weighted, so the grid is what is left rather than what it asked for.
@@ -263,11 +274,7 @@ private fun SourceHeader(m: SourceMetrics, onBack: () -> Unit) {
         title = {
             CastivioHeaderTitle(
                 text = stringResource(R.string.source_choice_title),
-                style = CastivioType.headlineMedium.copy(
-                    fontSize = m.fsTitle.value.sp,
-                    lineHeight = (m.fsTitle.value * TITLE_LEADING).sp,
-                    letterSpacing = 0.sp,
-                ),
+                style = castivioTitleStyle(m.fsTitle),
                 color = Palette.White,
                 modifier = Modifier.testTag(ActivationTags.SOURCE_HEADING),
             )
@@ -289,69 +296,22 @@ private fun SourceHeader(m: SourceMetrics, onBack: () -> Unit) {
 /**
  * Back, drawn as the activation screen draws its language control.
  *
- * The same height, the same quiet glass, the same slot — because it is the same kind
- * of thing: the one control in a row that is otherwise a statement. Its chevron is
- * auto-mirrored and therefore points the way the reader came from, which is right in
- * Arabic and left in English; the reference draws it left in both, which is the Latin
- * convention applied to a right-to-left screen.
+ * The component is `:core:design`'s, because six screens want this chip and four of
+ * them had built one each. The word is supplied from here: a shared component may
+ * not own copy.
  */
 @Composable
 private fun BackChip(m: SourceMetrics, onClick: () -> Unit) {
-    val colors = CastivioTheme.colors
-    val shape = RoundedCornerShape(percent = 50)
-    val label = stringResource(R.string.action_back)
-
-    Row(
-        Modifier
-            .height(m.back)
-            .clip(shape)
-            .background(colors.glassFill)
-            .border(BorderStroke(1.dp, Palette.EdgeQuiet), shape)
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = m.backPad)
-            .testTag(ActivationTags.SOURCE_BACK)
-            .semantics(mergeDescendants = true) { contentDescription = label },
-        horizontalArrangement = Arrangement.spacedBy(m.backPad * CHIP_GAP),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-            contentDescription = null,
-            tint = colors.onBackgroundVariant,
-            modifier = Modifier.size(m.fsBack * ICON_RATIO),
-        )
-        Text(
-            text = label,
-            style = chipStyle(m.fsBack),
-            color = colors.onBackgroundVariant,
-            maxLines = 1,
-        )
-    }
+    CastivioBackChip(
+        height = m.back,
+        pad = m.backPad,
+        fontSize = m.fsBack,
+        label = stringResource(R.string.action_back),
+        onClick = onClick,
+        modifier = Modifier.testTag(ActivationTags.SOURCE_BACK),
+    )
 }
 
-/**
- * The line under the question — under *the question*, which is the middle of the row.
- *
- * Aligned to the line's starting edge it sat beneath Back in Arabic and beneath the
- * wordmark in English, and a caption under the wrong element reads as a caption for
- * that element. The title is centred in the header, so this is centred too.
- */
-@Composable
-private fun Subtitle(m: SourceMetrics) {
-    Box(Modifier.fillMaxWidth().height(m.subtitle), contentAlignment = Alignment.Center) {
-        Text(
-            text = stringResource(R.string.source_choice_subtitle),
-            style = CastivioType.bodySmall.copy(
-                fontSize = m.fsSubtitle.value.sp,
-                lineHeight = (m.fsSubtitle.value * BODY_LEADING).sp,
-                letterSpacing = 0.sp,
-            ),
-            color = CastivioTheme.colors.onBackgroundMuted,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
 
 /* ----------------------------------------------------------------------- grid */
 
@@ -544,7 +504,7 @@ private fun Badge(m: SourceMetrics, text: String) {
         )
         Text(
             text = text,
-            style = chipStyle(m.fsBadge).copy(fontWeight = FontWeight.Bold),
+            style = castivioChipStyle(m.fsBadge).copy(fontWeight = FontWeight.Bold),
             color = Palette.White,
             maxLines = 1,
         )
@@ -554,16 +514,24 @@ private fun Badge(m: SourceMetrics, text: String) {
 /* ---------------------------------------------------------------------- strip */
 
 /**
- * The assurance strip, four cells across — a footnote, and drawn as one.
+ * The assurance strip — a footnote, and drawn as one.
  *
  * It says nothing a reader needs in order to choose, and this screen exists for one
  * choice, so it takes the least room that still lets it be read: one line per cell,
  * no second sentence, no pane and no border around it. A panel would make it a fifth
  * thing to look at beside the four that matter.
  *
- * Shrinking it is what let the cards grow to 119dp on the reference phone from 94 —
- * and with them the third line of description that Spanish and Portuguese were losing.
- * The four ways in are the screen; everything else on it is trim.
+ * ## Two cells, and it used to be four
+ *
+ * *Safe and private* and *full protection* were one claim written twice — half a
+ * footnote spent saying the same thing to the same reader — and *broad support*
+ * repeated the local-file card's own description from 100dp away, where the sentence
+ * actually means something because it is attached to the thing it describes.
+ *
+ * What the two survivors buy is width: a cell is now half the strip rather than a
+ * quarter, so the sentences read at [CastivioFrame.fsChip] instead of at a step
+ * invented locally to make four of them fit. Compressing type is how a layout hides
+ * that it is holding more than it should.
  */
 @Composable
 private fun AssuranceStrip(m: SourceMetrics) {
@@ -573,8 +541,6 @@ private fun AssuranceStrip(m: SourceMetrics) {
     ) {
         StripCell(m, Palette.Violet50, Icons.Rounded.VerifiedUser, R.string.source_trust_private_title)
         StripCell(m, Palette.Azure50, Icons.Rounded.Speed, R.string.source_trust_fast_title)
-        StripCell(m, Palette.Success, Icons.Rounded.Lock, R.string.source_trust_guard_title)
-        StripCell(m, Palette.Amber, Icons.Rounded.Tune, R.string.source_trust_formats_title)
     }
 }
 
@@ -601,7 +567,7 @@ private fun RowScope.StripCell(m: SourceMetrics, hue: Color, icon: ImageVector, 
         }
         Text(
             text = head,
-            style = chipStyle(m.fsStrip).copy(fontWeight = FontWeight.SemiBold),
+            style = castivioChipStyle(m.fsStrip).copy(fontWeight = FontWeight.SemiBold),
             color = CastivioTheme.colors.onBackgroundMuted,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -612,24 +578,15 @@ private fun RowScope.StripCell(m: SourceMetrics, hue: Color, icon: ImageVector, 
 
 /* --------------------------------------------------------------------- ratios */
 
-@Composable
-private fun chipStyle(size: Dp): TextStyle = CastivioType.bodyMedium.copy(
-    fontSize = size.value.sp,
-    lineHeight = (size.value * CHIP_LEADING).sp,
-    letterSpacing = 0.sp,
-)
-
 /** The wordmark against the question — the activation screen's figure, unchanged. */
 private const val WORD_RATIO = 0.80f
 
 private const val TITLE_LEADING = 1.35f
-private const val CHIP_LEADING = 1.45f
 private const val BODY_LEADING = 1.5f
 
 /** An icon beside type, as a multiple of that type's size. */
 private const val ICON_RATIO = 1.25f
 
-private const val CHIP_GAP = 0.55f
 private const val TEXT_GAP = 0.5f
 private const val BADGE_GAP = 0.9f
 private const val BADGE_PAD = 0.62f

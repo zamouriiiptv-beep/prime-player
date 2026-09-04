@@ -65,7 +65,9 @@ import com.castivio.core.design.components.CastivioLockup
 import com.castivio.core.design.components.IdentityCapsule
 import com.castivio.core.design.components.QrPlate
 import com.castivio.core.design.components.StatusLine
+import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioFocusScale
+import com.castivio.core.design.components.castivioTitleStyle
 import com.castivio.core.design.components.emphasiseNumber
 import com.castivio.core.design.theme.CastivioFrame
 import com.castivio.core.design.theme.CastivioTheme
@@ -147,9 +149,22 @@ internal data class Metrics(
     /* the three bands: this screen's own shape */
     val bandBottom: Dp,
     val footer: Dp,
-    /* type this screen owns, because no other screen sets a monospace identifier */
+    /**
+     * The four sizes this screen sets that are **not** one of the frame's four
+     * steps, and the reason each is allowed to exist.
+     *
+     * [macSize] and [keySize] are the sanctioned functional exception: the address
+     * is the one string here a user reads aloud to somebody else, and on a set that
+     * happens from three metres. [fsStatus] and [fsButton] sit between `fsLabel` and
+     * `fsTitle` because a button's label and a reserved status line are neither a
+     * field's name nor the screen's, and the composition is approved at these
+     * numbers.
+     *
+     * A fifth size that was *not* one of these has just been deleted: `fsFooter`
+     * held `fsBody`'s value on all four frames — a copy of a step, agreeing only
+     * until somebody edited one of the two.
+     */
     val fsStatus: Dp,
-    val fsFooter: Dp,
     val fsButton: Dp,
     val macSize: Dp,
     val keySize: Dp,
@@ -217,7 +232,7 @@ internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
     tv -> Metrics(
         frame = CastivioFrame.Television,
         bandBottom = 20.dp, footer = 54.dp,
-        fsStatus = 15.dp, fsFooter = 13.5.dp, fsButton = 15.5.dp,
+        fsStatus = 15.dp, fsButton = 15.5.dp,
         macSize = 30.dp, keySize = 27.dp, chipsGap = 6.dp,
         capsule = 72.dp, capsuleGap = 20.dp, cardPad = 17.dp, cardGap = 15.dp, labelWidth = 106.dp,
         actionsTop = 30.dp, actionsGap = 20.dp, button = 56.dp,
@@ -231,7 +246,7 @@ internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
     available >= TABLET_FRAME -> Metrics(
         frame = CastivioFrame.Tablet,
         bandBottom = 22.dp, footer = 52.dp,
-        fsStatus = 14.5.dp, fsFooter = 13.dp, fsButton = 16.dp,
+        fsStatus = 14.5.dp, fsButton = 16.dp,
         macSize = 26.dp, keySize = 23.dp, chipsGap = 6.dp,
         capsule = 76.dp, capsuleGap = 20.dp, cardPad = 18.dp, cardGap = 16.dp, labelWidth = 104.dp,
         actionsTop = 28.dp, actionsGap = 20.dp, button = 52.dp,
@@ -243,7 +258,7 @@ internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
     else -> Metrics(
         frame = CastivioFrame.Phone,
         bandBottom = 8.dp, footer = 40.dp,
-        fsStatus = 14.dp, fsFooter = 13.dp, fsButton = 14.5.dp,
+        fsStatus = 14.dp, fsButton = 14.5.dp,
         macSize = 28.dp, keySize = 25.dp, chipsGap = 6.dp,
         capsule = 60.dp, capsuleGap = 16.dp, cardPad = 15.dp, cardGap = 13.dp, labelWidth = 99.dp,
         actionsTop = 22.dp, actionsGap = 18.dp, button = 48.dp,
@@ -263,7 +278,7 @@ private fun shortPhone(available: Dp): Metrics {
     val drawn = Metrics(
         frame = CastivioFrame.ShortPhone,
         bandBottom = 6.dp, footer = 34.dp,
-        fsStatus = 13.5.dp, fsFooter = 12.5.dp, fsButton = 14.dp,
+        fsStatus = 13.5.dp, fsButton = 14.dp,
         macSize = 25.dp, keySize = 22.dp, chipsGap = 6.dp,
         capsule = 56.dp, capsuleGap = 14.dp, cardPad = 14.dp, cardGap = 12.dp, labelWidth = 95.dp,
         actionsTop = 18.dp, actionsGap = 16.dp, button = 48.dp,
@@ -418,16 +433,7 @@ private fun Header(m: Metrics, trialDays: Int?, onOpenLanguage: () -> Unit) {
         title = {
             CastivioHeaderTitle(
                 text = stringResource(R.string.activation_title),
-                style = CastivioType.headlineMedium.copy(
-                    fontSize = m.fsTitle.value.sp,
-                    lineHeight = (m.fsTitle.value * TITLE_LEADING).sp,
-                    // Zero, and stated rather than inherited. The token carries a
-                    // small negative track, which is a sensible Latin display
-                    // correction and wrong for Arabic at any size: the script
-                    // joins, and pulling the letters together closes the joins
-                    // rather than tightening the word.
-                    letterSpacing = 0.sp,
-                ),
+                style = castivioTitleStyle(m.fsTitle),
                 color = Palette.White,
             )
         },
@@ -530,12 +536,7 @@ private fun TrialChip(m: Metrics, badge: String, days: Int) {
         // device key are white, and they stay white.
         Text(
             text = emphasiseNumber(badge, days, Palette.Azure50, FontWeight.Bold),
-            style = CastivioType.bodyMedium.copy(
-                fontSize = m.fsChip.value.sp,
-                lineHeight = (m.fsChip.value * CHIP_LEADING).sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 0.sp,
-            ),
+            style = castivioChipStyle(m.fsChip).copy(fontWeight = FontWeight.SemiBold),
             color = Palette.White,
             maxLines = 1,
         )
@@ -578,11 +579,7 @@ private fun LanguageChip(m: Metrics, onClick: () -> Unit) {
     ) {
         Text(
             text = label,
-            style = CastivioType.bodyMedium.copy(
-                fontSize = m.fsChip.value.sp,
-                lineHeight = (m.fsChip.value * CHIP_LEADING).sp,
-                letterSpacing = 0.sp,
-            ),
+            style = castivioChipStyle(m.fsChip),
             color = colors.onBackgroundVariant,
             maxLines = 1,
             modifier = Modifier.clearAndSetSemantics { contentDescription = label },
@@ -915,8 +912,8 @@ private fun FooterBar(m: Metrics) {
         Text(
             text = stringResource(R.string.legal_player_only),
             style = CastivioType.bodySmall.copy(
-                fontSize = m.fsFooter.value.sp,
-                lineHeight = (m.fsFooter.value * CAPTION_LEADING).sp,
+                fontSize = m.fsCaption.value.sp,
+                lineHeight = (m.fsCaption.value * CAPTION_LEADING).sp,
                 letterSpacing = 0.sp,
             ),
             color = colors.onBackgroundMuted,
@@ -1058,7 +1055,6 @@ private const val WORD_RATIO = 0.80f
  * beside a 28dp one, and the frame table is long enough already.
  */
 
-private const val TITLE_LEADING = 1.35f
 private const val CHIP_LEADING = 1.45f
 private const val LABEL_LEADING = 1.4f
 private const val CAPTION_LEADING = 1.5f
