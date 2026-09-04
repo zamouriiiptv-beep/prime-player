@@ -49,9 +49,12 @@ class SourceChoiceBudgetTest {
     private val HANDSET = 393.dp
     private val TELEVISION = 540.dp
 
+    private val TABLET = 800.dp
+
     private val frames = listOf(
         Triple("shortest phone", false, SHORTEST),
         Triple("reference phone", false, HANDSET),
+        Triple("tablet", false, TABLET),
         Triple("television", true, TELEVISION),
     )
 

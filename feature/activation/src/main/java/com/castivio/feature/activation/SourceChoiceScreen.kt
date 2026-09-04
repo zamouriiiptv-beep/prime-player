@@ -61,9 +61,12 @@ import com.castivio.core.design.components.CastivioHeader
 import com.castivio.core.design.components.CastivioHeaderTitle
 import com.castivio.core.design.components.CastivioLockup
 import com.castivio.core.design.components.InteractiveGlassCard
+import com.castivio.core.design.theme.CastivioFrame
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Palette
+import com.castivio.core.design.theme.SHORT_FRAME
+import com.castivio.core.design.theme.TABLET_FRAME
 
 /**
  * The approved drawing's numbers, per frame.
@@ -94,19 +97,15 @@ import com.castivio.core.design.theme.Palette
  * to make content fit is how a layout hides that it is too small.
  */
 internal data class SourceMetrics(
-    val edge: Dp,
-    val stageTop: Dp,
-    val stageBottom: Dp,
-    val header: Dp,
-    val headGap: Dp,
-    val brand: Dp,
-    val fsTitle: Dp,
-    val back: Dp,
-    val backPad: Dp,
-    val fsBack: Dp,
+    /**
+     * The stage, the header and the shared type steps — from [CastivioFrame], the
+     * one table every screen reads. Two screens that agree because someone typed
+     * the same numbers twice agree only until the next edit.
+     */
+    val frame: CastivioFrame,
+    /* what this screen owns */
     val subtitle: Dp,
     val fsSubtitle: Dp,
-    val bandTop: Dp,
     val gridGap: Dp,
     val cardPad: Dp,
     val cardGap: Dp,
@@ -116,48 +115,53 @@ internal data class SourceMetrics(
     val fsDetail: Dp,
     val fsBadge: Dp,
     val detailLines: Int,
-    val radius: Dp,
     val strip: Dp,
     val stripGap: Dp,
     val stripDisc: Dp,
     val fsStrip: Dp,
-)
-
-/** Below this height the frame is the short phone the drawing calls `p800`. */
-internal val SHORT_SOURCE_PHONE = 380.dp
+) {
+    /* The frame's numbers, reachable as this screen's own. */
+    val edge get() = frame.edge
+    val stageTop get() = frame.stageTop
+    val stageBottom get() = frame.stageBottom
+    val header get() = frame.header
+    val headGap get() = frame.headGap
+    val brand get() = frame.brand
+    val back get() = frame.chip
+    val backPad get() = frame.chipPad
+    val bandTop get() = frame.bandTop
+    val radius get() = frame.radius
+    val fsTitle get() = frame.fsTitle
+    val fsBack get() = frame.fsChip
+}
 
 internal fun sourceMetricsFor(tv: Boolean, available: Dp): SourceMetrics = when {
     tv -> SourceMetrics(
-        edge = 46.dp, stageTop = 24.dp, stageBottom = 22.dp,
-        header = 54.dp, headGap = 26.dp, brand = 40.dp, fsTitle = 26.dp,
-        back = 44.dp, backPad = 11.dp, fsBack = 13.dp,
+        frame = CastivioFrame.Television,
         subtitle = 26.dp, fsSubtitle = 13.5.dp,
-        bandTop = 20.dp, gridGap = 18.dp,
-        cardPad = 16.dp, cardGap = 16.dp, disc = 72.dp, chevron = 24.dp,
+        gridGap = 18.dp, cardPad = 16.dp, cardGap = 16.dp, disc = 72.dp, chevron = 24.dp,
         fsCard = 15.8.dp, fsDetail = 13.5.dp, fsBadge = 13.dp, detailLines = 4,
-        radius = 22.dp,
         strip = 40.dp, stripGap = 14.dp, stripDisc = 26.dp, fsStrip = 12.5.dp,
     )
-    available < SHORT_SOURCE_PHONE -> SourceMetrics(
-        edge = 26.dp, stageTop = 11.dp, stageBottom = 8.dp,
-        header = 36.dp, headGap = 20.dp, brand = 28.dp, fsTitle = 19.dp,
-        back = 34.dp, backPad = 11.dp, fsBack = 11.5.dp,
+    available >= TABLET_FRAME -> SourceMetrics(
+        frame = CastivioFrame.Tablet,
+        subtitle = 22.dp, fsSubtitle = 13.dp,
+        gridGap = 20.dp, cardPad = 20.dp, cardGap = 18.dp, disc = 72.dp, chevron = 22.dp,
+        fsCard = 17.dp, fsDetail = 13.dp, fsBadge = 12.5.dp, detailLines = 3,
+        strip = 36.dp, stripGap = 14.dp, stripDisc = 24.dp, fsStrip = 12.5.dp,
+    )
+    available < SHORT_FRAME -> SourceMetrics(
+        frame = CastivioFrame.ShortPhone,
         subtitle = 18.dp, fsSubtitle = 12.5.dp,
-        bandTop = 10.dp, gridGap = 12.dp,
-        cardPad = 9.dp, cardGap = 11.dp, disc = 50.dp, chevron = 17.dp,
+        gridGap = 12.dp, cardPad = 9.dp, cardGap = 11.dp, disc = 50.dp, chevron = 17.dp,
         fsCard = 14.1.dp, fsDetail = 12.5.dp, fsBadge = 11.5.dp, detailLines = 3,
-        radius = 16.dp,
         strip = 30.dp, stripGap = 8.dp, stripDisc = 19.dp, fsStrip = 11.dp,
     )
     else -> SourceMetrics(
-        edge = 32.dp, stageTop = 15.dp, stageBottom = 11.dp,
-        header = 42.dp, headGap = 24.dp, brand = 31.dp, fsTitle = 20.dp,
-        back = 36.dp, backPad = 12.dp, fsBack = 12.dp,
+        frame = CastivioFrame.Phone,
         subtitle = 20.dp, fsSubtitle = 13.dp,
-        bandTop = 12.dp, gridGap = 14.dp,
-        cardPad = 10.dp, cardGap = 12.dp, disc = 52.dp, chevron = 18.dp,
+        gridGap = 14.dp, cardPad = 10.dp, cardGap = 12.dp, disc = 52.dp, chevron = 18.dp,
         fsCard = 14.7.dp, fsDetail = 13.dp, fsBadge = 12.dp, detailLines = 3,
-        radius = 18.dp,
         strip = 32.dp, stripGap = 10.dp, stripDisc = 20.dp, fsStrip = 11.5.dp,
     )
 }

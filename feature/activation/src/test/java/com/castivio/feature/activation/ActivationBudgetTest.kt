@@ -2,7 +2,9 @@ package com.castivio.feature.activation
 
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.castivio.core.design.theme.CastivioFrame
 import com.castivio.core.design.theme.Sizing
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -39,6 +41,35 @@ import org.junit.Test
  * disappearing, which is exactly what a user photographed.
  */
 class ActivationBudgetTest {
+
+    /**
+     * The two activation screens compose on the same stage.
+     *
+     * They did before this was written, because the numbers were typed twice and
+     * typed the same. That is not a property, it is a coincidence with a maintainer
+     * attached: the first edit to one table and the two screens stop being one
+     * product, a dp at a time, with nothing failing and no way to see it but memory.
+     *
+     * [CastivioFrame] is the table now and both screens read it, so this asserts what
+     * the refactor made true rather than hoping for it — and it fails the moment
+     * either screen grows a local frame of its own again.
+     */
+    @Test
+    fun `every screen composes on the same frame`() {
+        for ((name, tv, frame) in listOf(
+            Triple("shortest phone", false, 360.dp),
+            Triple("reference phone", false, 393.dp),
+            Triple("tablet", false, 800.dp),
+            Triple("television", true, 540.dp),
+        )) {
+            assertEquals(
+                "$name: the activation screen and the source choice are on different frames",
+                metricsFor(tv = tv, available = frame).frame,
+                sourceMetricsFor(tv = tv, available = frame).frame,
+            )
+        }
+    }
+
 
     /**
      * What a swiped-back navigation bar costs the tallest thing on screen.
@@ -117,6 +148,7 @@ class ActivationBudgetTest {
             Triple("shortest phone", false, 360.dp),
             Triple("reference phone", false, 393.dp),
             Triple("television", true, 540.dp),
+            Triple("tablet", false, 800.dp),
         )) {
             val margin = spare(frame, tv, inset = INSET_ALLOWANCE)
             assertTrue(
@@ -141,6 +173,7 @@ class ActivationBudgetTest {
             Triple("shortest phone", false, 360.dp),
             Triple("reference phone", false, 393.dp),
             Triple("television", true, 540.dp),
+            Triple("tablet", false, 800.dp),
         )) {
             for (inset in listOf(0.dp, INSET_ALLOWANCE)) {
                 val usable = frame - inset
@@ -169,6 +202,7 @@ class ActivationBudgetTest {
             Triple("shortest phone", false, 360.dp),
             Triple("reference phone", false, 393.dp),
             Triple("television", true, 540.dp),
+            Triple("tablet", false, 800.dp),
         )) {
             val m = metricsFor(tv = tv, available = frame)
 

@@ -67,12 +67,15 @@ import com.castivio.core.design.components.QrPlate
 import com.castivio.core.design.components.StatusLine
 import com.castivio.core.design.components.castivioFocusScale
 import com.castivio.core.design.components.emphasiseNumber
+import com.castivio.core.design.theme.CastivioFrame
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Motion
 import com.castivio.core.design.theme.Palette
+import com.castivio.core.design.theme.SHORT_FRAME
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.Spacing
+import com.castivio.core.design.theme.TABLET_FRAME
 
 /**
  * The approved screen's numbers, per frame.
@@ -136,31 +139,21 @@ import com.castivio.core.design.theme.Spacing
  * compute them, and `ActivationBudgetTest` fails if any of them goes negative.
  */
 internal data class Metrics(
-    /* the stage */
-    val edge: Dp,
-    val stageTop: Dp,
-    val stageBottom: Dp,
-    /* the three bands */
-    val header: Dp,
-    val bandTop: Dp,
+    /**
+     * The stage, the header and the shared type steps — from [CastivioFrame], which
+     * every screen reads, so two screens cannot drift a dp apart without one edit.
+     */
+    val frame: CastivioFrame,
+    /* the three bands: this screen's own shape */
     val bandBottom: Dp,
     val footer: Dp,
-    /* type, per frame rather than per token: three frames, three reading distances */
-    val fsTitle: Dp,
-    val fsChip: Dp,
-    val fsLabel: Dp,
-    val fsCaption: Dp,
+    /* type this screen owns, because no other screen sets a monospace identifier */
     val fsStatus: Dp,
     val fsFooter: Dp,
     val fsButton: Dp,
     val macSize: Dp,
     val keySize: Dp,
-    /* the header */
-    val headGap: Dp,
-    val chip: Dp,
-    val chipPad: Dp,
     val chipsGap: Dp,
-    val brand: Dp,
     /* the identity column */
     val capsule: Dp,
     val capsuleGap: Dp,
@@ -179,20 +172,28 @@ internal data class Metrics(
     val zoneGap: Dp,
     /* shared */
     val bandGap: Dp,
-    val radius: Dp,
     val zoneRadius: Dp,
     val mark: Dp,
     val target: Dp,
-)
+) {
+    /* The frame's numbers, reachable as this screen's own. Delegated rather than
+       copied: one table, one edit, and every call site below unchanged. */
+    val edge get() = frame.edge
+    val stageTop get() = frame.stageTop
+    val stageBottom get() = frame.stageBottom
+    val header get() = frame.header
+    val bandTop get() = frame.bandTop
+    val headGap get() = frame.headGap
+    val brand get() = frame.brand
+    val chip get() = frame.chip
+    val chipPad get() = frame.chipPad
+    val radius get() = frame.radius
+    val fsTitle get() = frame.fsTitle
+    val fsLabel get() = frame.fsLabel
+    val fsCaption get() = frame.fsBody
+    val fsChip get() = frame.fsChip
+}
 
-/**
- * Which frame this is, decided by the height the screen actually has.
- *
- * Height rather than width or a device class, because height is the dimension
- * that ran out. `DeviceClass` would call 800dp "Medium" and 873dp "Expanded",
- * which is a fact about width and says nothing about whether the band fits.
- */
-internal val SHORT_PHONE = 380.dp
 
 /**
  * Below this, the frame is not one of the three that were drawn.
@@ -214,33 +215,41 @@ internal val CRAMPED_PHONE = 345.dp
 
 internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
     tv -> Metrics(
-        edge = 46.dp, stageTop = 24.dp, stageBottom = 22.dp,
-        header = 54.dp, bandTop = 22.dp, bandBottom = 20.dp, footer = 54.dp,
-        fsTitle = 26.dp, fsChip = 13.dp, fsLabel = 15.8.dp, fsCaption = 13.5.dp,
+        frame = CastivioFrame.Television,
+        bandBottom = 20.dp, footer = 54.dp,
         fsStatus = 15.dp, fsFooter = 13.5.dp, fsButton = 15.5.dp,
-        macSize = 30.dp, keySize = 27.dp,
-        headGap = 26.dp, chip = 44.dp, chipPad = 11.dp, chipsGap = 6.dp, brand = 40.dp,
+        macSize = 30.dp, keySize = 27.dp, chipsGap = 6.dp,
         capsule = 72.dp, capsuleGap = 20.dp, cardPad = 17.dp, cardGap = 15.dp, labelWidth = 106.dp,
         actionsTop = 30.dp, actionsGap = 20.dp, button = 56.dp,
         statusTop = 16.dp, statusHeight = 24.dp,
         plate = 192.dp, zoneWidth = 244.dp, zonePad = 14.dp, zoneGap = 10.dp,
-        bandGap = 32.dp, radius = 20.dp, zoneRadius = 26.dp, mark = 32.dp,
-        target = 56.dp,
+        bandGap = 32.dp, zoneRadius = 26.dp, mark = 32.dp, target = 56.dp,
     )
-    available < SHORT_PHONE -> shortPhone(available)
+    // The tablet, which fell into the phone's branch until now: a phone-sized
+    // composition floating in twice the frame. Its type sits between the phone's
+    // and the set's, and the room the larger frame buys goes into margin.
+    available >= TABLET_FRAME -> Metrics(
+        frame = CastivioFrame.Tablet,
+        bandBottom = 22.dp, footer = 52.dp,
+        fsStatus = 14.5.dp, fsFooter = 13.dp, fsButton = 16.dp,
+        macSize = 26.dp, keySize = 23.dp, chipsGap = 6.dp,
+        capsule = 76.dp, capsuleGap = 20.dp, cardPad = 18.dp, cardGap = 16.dp, labelWidth = 104.dp,
+        actionsTop = 28.dp, actionsGap = 20.dp, button = 52.dp,
+        statusTop = 14.dp, statusHeight = 22.dp,
+        plate = 200.dp, zoneWidth = 250.dp, zonePad = 14.dp, zoneGap = 10.dp,
+        bandGap = 32.dp, zoneRadius = 24.dp, mark = 30.dp, target = 48.dp,
+    )
+    available < SHORT_FRAME -> shortPhone(available)
     else -> Metrics(
-        edge = 32.dp, stageTop = 15.dp, stageBottom = 11.dp,
-        header = 42.dp, bandTop = 10.dp, bandBottom = 8.dp, footer = 40.dp,
-        fsTitle = 20.dp, fsChip = 12.dp, fsLabel = 14.7.dp, fsCaption = 13.dp,
+        frame = CastivioFrame.Phone,
+        bandBottom = 8.dp, footer = 40.dp,
         fsStatus = 14.dp, fsFooter = 13.dp, fsButton = 14.5.dp,
-        macSize = 28.dp, keySize = 25.dp,
-        headGap = 24.dp, chip = 36.dp, chipPad = 12.dp, chipsGap = 6.dp, brand = 31.dp,
+        macSize = 28.dp, keySize = 25.dp, chipsGap = 6.dp,
         capsule = 60.dp, capsuleGap = 16.dp, cardPad = 15.dp, cardGap = 13.dp, labelWidth = 99.dp,
         actionsTop = 22.dp, actionsGap = 18.dp, button = 48.dp,
         statusTop = 12.dp, statusHeight = 22.dp,
         plate = 174.dp, zoneWidth = 234.dp, zonePad = 7.dp, zoneGap = 5.dp,
-        bandGap = 24.dp, radius = 17.dp, zoneRadius = 20.dp, mark = 26.dp,
-        target = 48.dp,
+        bandGap = 24.dp, zoneRadius = 20.dp, mark = 26.dp, target = 48.dp,
     )
 }
 
@@ -252,23 +261,20 @@ internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
  */
 private fun shortPhone(available: Dp): Metrics {
     val drawn = Metrics(
-        edge = 26.dp, stageTop = 11.dp, stageBottom = 8.dp,
-        header = 36.dp, bandTop = 8.dp, bandBottom = 6.dp, footer = 34.dp,
-        fsTitle = 19.dp, fsChip = 11.5.dp, fsLabel = 14.1.dp, fsCaption = 12.5.dp,
+        frame = CastivioFrame.ShortPhone,
+        bandBottom = 6.dp, footer = 34.dp,
         fsStatus = 13.5.dp, fsFooter = 12.5.dp, fsButton = 14.dp,
-        macSize = 25.dp, keySize = 22.dp,
-        headGap = 20.dp, chip = 34.dp, chipPad = 11.dp, chipsGap = 6.dp, brand = 28.dp,
+        macSize = 25.dp, keySize = 22.dp, chipsGap = 6.dp,
         capsule = 56.dp, capsuleGap = 14.dp, cardPad = 14.dp, cardGap = 12.dp, labelWidth = 95.dp,
         actionsTop = 18.dp, actionsGap = 16.dp, button = 48.dp,
         statusTop = 10.dp, statusHeight = 20.dp,
         plate = 164.dp, zoneWidth = 220.dp, zonePad = 6.dp, zoneGap = 5.dp,
-        bandGap = 20.dp, radius = 16.dp, zoneRadius = 18.dp, mark = 24.dp,
-        target = 48.dp,
+        bandGap = 20.dp, zoneRadius = 18.dp, mark = 24.dp, target = 48.dp,
     )
     if (available >= CRAMPED_PHONE) return drawn
 
     // A bar is on screen. Take it out of the panel's own padding first, then off
-    // the plate — twelve dp, which is what a gesture bar costs the panel once the
+    // the plate -- twelve dp, which is what a gesture bar costs the panel once the
     // padding has given what it can.
     return drawn.copy(plate = 144.dp, zonePad = 6.dp, zoneGap = 5.dp)
 }
