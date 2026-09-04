@@ -299,11 +299,16 @@ private const val LOCKUP_GAP_RATIO = 0.32f
  * squeezed out of the row.
  */
 @Composable
-fun CastivioHeaderTitle(text: String, style: TextStyle, color: androidx.compose.ui.graphics.Color) {
+fun CastivioHeaderTitle(
+    text: String,
+    style: TextStyle,
+    color: androidx.compose.ui.graphics.Color,
+    modifier: Modifier = Modifier,
+) {
     CastivioFittedText(
         text = text,
         style = style.tightBox(),
         color = color,
-        modifier = Modifier.semantics { heading() },
+        modifier = modifier.semantics { heading() },
     )
 }

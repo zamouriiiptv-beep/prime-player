@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -91,6 +92,19 @@ fun InteractiveGlassCard(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(Radius.lg),
     fill: Brush = CastivioTheme.colors.glassFillBrush,
+    /**
+     * The edge, and the light around it, while the card is **not** focused.
+     *
+     * A card that means something before anyone touches it — the suggested option
+     * on a chooser — has to say so at rest, and it cannot say so the way focus
+     * does. Two states drawn with the same ring is a viewer who cannot find the
+     * D-pad. So a recommendation gets a colour here and focus still overrides it,
+     * which keeps the ring meaning exactly one thing on every screen.
+     *
+     * Null on both leaves the glass card as it was.
+     */
+    restBorder: Color? = null,
+    restGlow: Color? = null,
     content: @Composable () -> Unit,
 ) {
     val colors = CastivioTheme.colors
@@ -101,9 +115,11 @@ fun InteractiveGlassCard(
         if (focused) Elevation.level3 else Elevation.level2, Motion.focusSpec(), label = "elev",
     )
     val border by animateColorAsState(
-        if (focused) colors.focusRing else colors.glassBorder, Motion.focusSpec(), label = "border",
+        if (focused) colors.focusRing else restBorder ?: colors.glassBorder,
+        Motion.focusSpec(),
+        label = "border",
     )
-    val glow = if (focused) colors.focusGlow else Elevation.spot
+    val glow = if (focused) colors.focusGlow else restGlow ?: Elevation.spot
 
     Box(
         modifier

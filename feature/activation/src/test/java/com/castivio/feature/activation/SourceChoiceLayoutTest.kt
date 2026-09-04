@@ -167,51 +167,64 @@ class SourceChoiceLayoutTest {
     /**
      * The footer reads the same in both directions, because it no longer has ends.
      *
-     * This replaces a pair of assertions that outlived the design they were written
-     * for. They put Back at one end of a row and the terms sentence at the other, and
-     * asserted the two swapped when the direction did. The sentence has left that row:
-     * it is `fillMaxWidth` with `TextAlign.Center` beneath the container now, so there
-     * is no end for it to be at, and the old claim held in RTL only because the
-     * container's padding puts Back 8dp inside the sentence's edge — an accident, not
-     * the property being tested.
+     * This has outlived two designs now and the claim has survived both. It once put
+     * Back at one end of a row and the terms sentence at the other and asserted the
+     * two swapped with the direction; the sentence left that row, and now Back has
+     * left it too — it is in the header, at the row's outer end, where the activation
+     * screen keeps its language control.
      *
-     * What is direction-sensitive here is the grid, and both callers assert that
-     * directly above. This is the other half of the same statement: the footer is
-     * placed by containment and by symmetry rather than by side, so mirroring the
-     * screen must not move either element. A `SpaceBetween` row reintroduced tomorrow
-     * fails this in whichever direction it was not written for -- which is exactly the
+     * What is being tested is unchanged: the footer is placed by containment and by
+     * symmetry rather than by side, so mirroring the screen must not move either
+     * element. The header does not mirror, so Back holds the same physical edge in
+     * both directions; the sentence spans the same measure as a row of cards and sits
+     * symmetrically on the frame. A `SpaceBetween` row reintroduced tomorrow fails
+     * this in whichever direction it was not written for — which is exactly the
      * mistake the direction tests exist to catch.
      */
     private fun ComposeContentTestRule.assertFooterSurvivesMirroring(frame: Frame, direction: String) {
-        val panel = bounds(ActivationTags.SOURCE_CONTAINER)
+        val stage = bounds(ActivationTags.SOURCE_CONTAINER)
         val back = bounds(ActivationTags.SOURCE_BACK)
         val terms = bounds(ActivationTags.SOURCE_TERMS)
+        val xtream = bounds(ActivationTags.SOURCE_XTREAM)
+        val m3u = bounds(ActivationTags.SOURCE_M3U)
+        val local = bounds(ActivationTags.SOURCE_LOCAL)
+        val users = bounds(ActivationTags.SOURCE_USERS)
 
-        // Back is inside the container, in both axes and both directions.
+        // Back is inside the stage, in both axes and both directions.
         assertTrue(
-            "$direction: Back ${back.left}..${back.right} is not inside the container " +
-                "${panel.left}..${panel.right}",
-            back.left >= panel.left && back.right <= panel.right,
+            "$direction: Back ${back.left}..${back.right} is not inside the stage " +
+                "${stage.left}..${stage.right}",
+            back.left >= stage.left && back.right <= stage.right,
         )
         assertTrue(
-            "$direction: Back ${back.top}..${back.bottom} is not inside the container " +
-                "${panel.top}..${panel.bottom}",
-            back.top >= panel.top && back.bottom <= panel.bottom,
+            "$direction: Back ${back.top}..${back.bottom} is not inside the stage " +
+                "${stage.top}..${stage.bottom}",
+            back.top >= stage.top && back.bottom <= stage.bottom,
         )
 
-        // The sentence is outside the container and below it.
+        // And it is above the grid, because it is in the header now rather than under
+        // it. Stated so that putting it back below the cards fails rather than passes.
         assertTrue(
-            "$direction: the terms sentence is not below the container — " +
-                "${terms.top} against ${panel.bottom}",
-            terms.top >= panel.bottom,
+            "$direction: Back ${back.bottom} is not above the first row ${xtream.top}",
+            back.bottom <= xtream.top,
         )
 
-        // It takes the whole measure rather than hugging its words -- which is what
-        // makes `TextAlign.Center` centre it on the screen instead of on itself.
+        // The sentence is below every card.
+        val lastRow = maxOf(local.bottom.value, users.bottom.value)
         assertTrue(
-            "$direction: the terms line spans ${terms.width} against the container's " +
-                "${panel.width}, so it is not filling the measure",
-            abs((terms.width - panel.width).value) <= 1f,
+            "$direction: the terms sentence is not below the grid — " +
+                "${terms.top} against $lastRow",
+            terms.top.value >= lastRow,
+        )
+
+        // It takes the same measure as a row of cards rather than hugging its words --
+        // which is what makes `TextAlign.Center` centre it on the screen instead of on
+        // itself.
+        val row = maxOf(xtream.right.value, m3u.right.value) - minOf(xtream.left.value, m3u.left.value)
+        assertTrue(
+            "$direction: the terms line spans ${terms.width} against a card row's " +
+                "$row, so it is not filling the measure",
+            abs(terms.width.value - row) <= 1f,
         )
 
         // And that measure sits symmetrically on the frame, so the centring means equal

@@ -3,7 +3,6 @@ package com.castivio.feature.activation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.castivio.core.design.theme.CastivioType
-import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.Spacing
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -21,16 +20,16 @@ import org.junit.Test
  * spare into a failing assertion about the harness. `ActivationBudgetTest` made the
  * same separation for the address screen and for the same reason.
  *
- * So fit is computed here, on the JVM, from the line heights [CastivioType] declares
- * and the tokens the screen is built from. Read rather than copied: a change to the
- * type scale or to [Spacing] reaches this budget instead of silently invalidating it.
+ * So fit is computed here, on the JVM, from [SourceMetrics] — the same table the
+ * screen is built from, read rather than copied, so a change to a frame's numbers
+ * reaches this budget instead of silently invalidating it.
  *
  * ## The question this file asks changed direction
  *
- * It used to add the content up and check it fitted the frame. The container is sized
- * from the frame now — `weight(1f)` — and the cards take what it leaves, so overflow is
- * structural: a weighted child cannot push its siblings out, and the sum is the frame
- * by construction.
+ * It used to add the content up and check it fitted the frame. The grid is sized from
+ * the frame now — `weight(1f)` — and the cards take what the header, the subtitle, the
+ * assurance strip and the terms sentence leave, so overflow is structural: a weighted
+ * child cannot push its siblings out, and the sum is the frame by construction.
  *
  * What can go wrong instead is the opposite. If the frame is short enough, the derived
  * card becomes smaller than the type inside it and the text clips rather than the
@@ -40,88 +39,60 @@ import org.junit.Test
  */
 class SourceChoiceBudgetTest {
 
-    /* Read off the type scale, at a font scale of one -- which is what the frames in
-     * `design/mockups/` are drawn at. A user-raised scale is the accessibility pass,
-     * not this one. */
-    private val title = CastivioType.headlineMedium.lineHeight.value.dp
-    private val cardTitle = CastivioType.titleLarge.lineHeight.value.dp
-    private val cardDetail = CastivioType.bodySmall.lineHeight.value.dp
+    /* Read off the frame table the screen is built from, at a font scale of one --
+     * which is what the drawings in `design/mockups/` are rendered at. A user-raised
+     * scale is the accessibility pass, not this one. */
 
-    /** The sentence under the container. One line, which is why it is that sentence. */
-    private val terms = CastivioType.bodySmall.lineHeight.value.dp
-
-    /* The tokens the screen is built from, read rather than copied so that a change
-     * there reaches this budget instead of silently invalidating it. */
-    private fun edge(tv: Boolean) = if (tv) Spacing.tvOverscan else Spacing.screen
-    private fun titleGap(tv: Boolean) = if (tv) Spacing.lg else Spacing.sm
-    private fun termsGap(tv: Boolean) = if (tv) Spacing.lg else Spacing.xs
-    private fun containerPad(tv: Boolean) = if (tv) Spacing.lg else Spacing.sm
-    private fun containerGap(tv: Boolean) = if (tv) Spacing.lg else Spacing.xs
-    private fun gridGap(tv: Boolean) = if (tv) Spacing.lg else Spacing.sm
-    private fun cardPad(tv: Boolean) = if (tv) Spacing.xl else Spacing.sm
-
-    /** What the container is given: everything the fixed parts leave. */
-    private fun container(frame: Dp, tv: Boolean): Dp =
-        frame - edge(tv) * 2 - title - titleGap(tv) - termsGap(tv) - terms
-
-    /** What one card is given, derived exactly as the layout derives it. */
-    private fun card(frame: Dp, tv: Boolean): Dp {
-        val grid = container(frame, tv) - containerPad(tv) * 2 -
-            containerGap(tv) - Sizing.minTarget(tv)
-        return (grid - gridGap(tv)) / 2
-    }
-
-    /**
-     * What a card must be at least, to hold what is in it without clipping.
-     *
-     * The icon shares the title's line box rather than sitting above it, and
-     * `Sizing.iconMd` is smaller than `titleLarge`'s line height, so it adds nothing —
-     * which is the reason it is beside the words and not over them.
-     */
-    private fun cardNeeds(tv: Boolean, detailLines: Int): Dp =
-        cardPad(tv) * 2 + maxOf(cardTitle, Sizing.iconMd) + Spacing.xs +
-            cardDetail * detailLines
-
-    /**
-     * What a landscape gesture bar costs, budgeted even though activation runs
-     * immersive: transient bars are one swipe away, and a layout that only fits while
-     * the system cooperates breaks in a photograph somebody sends us.
-     */
     private val INSET_ALLOWANCE = 24.dp
 
-    /**
-     * The frames this screen is drawn for, named once.
-     *
-     * The shortest is an 800x360 landscape window, which is an ordinary 360dp-wide
-     * phone turned sideways; the handset is the reference the design was approved at;
-     * the television is 960x540 inside its overscan.
-     */
     private val SHORTEST = 360.dp
     private val HANDSET = 393.dp
     private val TELEVISION = 540.dp
 
     private val frames = listOf(
         Triple("shortest phone", false, SHORTEST),
-        Triple("reference handset", false, HANDSET),
+        Triple("reference phone", false, HANDSET),
         Triple("television", true, TELEVISION),
     )
 
+    private fun metrics(frame: Dp, tv: Boolean) = sourceMetricsFor(tv = tv, available = frame)
+
+    /** The card the layout will derive, from the frame it is actually given. */
+    private fun card(frame: Dp, tv: Boolean): Dp = metrics(frame, tv).cardHeight(frame)
+
     /**
-     * The container reaches for the frame, which is the whole point of the shape.
+     * What one card needs to hold its own type.
      *
-     * The reference the design was approved against has the surface covering most of
-     * the screen rather than floating in the middle of it. Asserted as a proportion
-     * rather than a number of dp, because the frames differ and the *look* is the
-     * ratio.
+     * The disc and the text block sit side by side, so the taller of the two decides,
+     * and the padding is paid twice. Nothing here is a constant: every figure is the
+     * frame's own, which is what makes this a check on the table rather than a second
+     * opinion about it.
+     */
+    private fun cardNeeds(frame: Dp, tv: Boolean, detailLines: Int): Dp {
+        val m = metrics(frame, tv)
+        val title = m.fsCard * 1.35f
+        val gap = m.cardPad * 0.6f
+        val text = title + gap + m.fsDetail * 1.5f * detailLines
+        return m.cardPad * 2 + maxOf(m.disc, text)
+    }
+
+    /**
+     * The screen reaches for the frame, which is the whole point of the shape.
+     *
+     * The reference this was approved against fills the screen rather than floating in
+     * the middle of it. Asserted as a proportion rather than a number of dp, because
+     * the frames differ and the *look* is the ratio.
      */
     @Test
-    fun `the container fills most of the band on every frame`() {
+    fun `the content fills most of the band on every frame`() {
         for ((name, tv, frame) in frames) {
-            val band = frame - edge(tv) * 2
-            val share = container(frame, tv).value / band.value
-            println("source choice budget — $name container ${container(frame, tv)} of $band")
+            val m = metrics(frame, tv)
+            val band = frame - m.stageTop - m.stageBottom
+            val content = m.gridHeight(frame) + m.strip + m.terms
+            val share = content.value / band.value
+            println("source choice budget — $name content $content of $band")
             assertTrue(
-                "the $name container is only ${(share * 100).toInt()}% of the band",
+                "the $name content is only ${(share * 100).toInt()}% of the band",
                 share >= 0.70f,
             )
         }
@@ -137,25 +108,26 @@ class SourceChoiceBudgetTest {
     fun `the derived card is taller than the type inside it`() {
         for ((name, tv, frame) in frames) {
             val got = card(frame, tv)
-            val need = cardNeeds(tv, detailLines = 1)
+            val need = cardNeeds(frame, tv, detailLines = 1)
             println("source choice budget — $name card $got, needs $need for one line")
             assertTrue("the $name card is $got against $need needed", got > need)
         }
     }
 
     /**
-     * And it holds a description that wraps to two lines. This is the reserve.
+     * And it holds the description at the number of lines that frame draws.
      *
      * All four cards are the same height by construction, so a wrap in one language
-     * costs the same in all four — which is why the reserve is measured against two
-     * lines rather than one and a bit.
+     * costs the same in all four -- which is why the reserve is measured against the
+     * frame's full line count rather than against one line and a bit.
      */
     @Test
-    fun `the derived card still holds a description that wraps`() {
+    fun `the derived card still holds a description at its full line count`() {
         for ((name, tv, frame) in frames) {
+            val m = metrics(frame, tv)
             val got = card(frame, tv)
-            val need = cardNeeds(tv, detailLines = 2)
-            println("source choice budget — $name card $got, needs $need for two lines")
+            val need = cardNeeds(frame, tv, detailLines = m.detailLines)
+            println("source choice budget — $name card $got, needs $need for ${m.detailLines} lines")
             assertTrue("the $name card is $got against $need needed when wrapped", got >= need)
         }
     }
@@ -164,16 +136,35 @@ class SourceChoiceBudgetTest {
      * It still holds one line with the system bars back.
      *
      * Activation runs immersive, so on a settled screen the insets are zero and this is
-     * spent on nothing. A bar takes 24dp off the frame, which the container absorbs and
+     * spent on nothing. A bar takes 24dp off the frame, which the grid absorbs and
      * passes to the cards; what matters is that they stay above the floor.
      */
     @Test
     fun `every frame still holds its type when the navigation bar comes back`() {
         for ((name, tv, frame) in frames) {
-            val got = card(frame - INSET_ALLOWANCE, tv)
-            val need = cardNeeds(tv, detailLines = 1)
+            val short = frame - INSET_ALLOWANCE
+            val got = card(short, tv)
+            val need = cardNeeds(short, tv, detailLines = 1)
             println("source choice budget — $name with a bar: card $got, needs $need")
             assertTrue("the $name card falls to $got with a bar back", got > need)
+        }
+    }
+
+    /**
+     * Nothing on the screen is ever handed a negative height.
+     *
+     * The grid is what is left once the header, the subtitle, the strip and the
+     * sentence are placed, and "what is left" is the one number in this layout that
+     * can go below zero. A `Column` does not clip when it does -- it hands zero to
+     * whatever it measured last, which here is the four cards.
+     */
+    @Test
+    fun `the grid is never handed less than nothing`() {
+        for ((name, tv, frame) in frames) {
+            for (inset in listOf(0.dp, INSET_ALLOWANCE)) {
+                val grid = metrics(frame - inset, tv).gridHeight(frame - inset)
+                assertTrue("$name with a $inset bar: the grid is $grid", grid > 0.dp)
+            }
         }
     }
 
@@ -182,13 +173,14 @@ class SourceChoiceBudgetTest {
      * is two by two.
      *
      * Stated as a test rather than left in a comment so the premise is checked against
-     * the same tokens as the conclusion.
+     * the same table as the conclusion.
      */
     @Test
     fun `stacking the four cards would not have fitted the handset`() {
-        val stacked = Spacing.screen + title + titleGap(false) +
-            (cardNeeds(false, 1) * 4 + gridGap(false) * 3) + containerGap(false) +
-            Sizing.minTarget(false) + termsGap(false) + terms + Spacing.screen
+        val m = metrics(HANDSET, tv = false)
+        val stacked = m.stageTop + m.header + m.subtitle + m.bandTop +
+            (cardNeeds(HANDSET, false, 1) * 4 + m.gridGap * 3) +
+            m.stripGap + m.strip + m.termsGap + m.terms + m.stageBottom
 
         println("source choice budget — a single column would be $stacked")
 

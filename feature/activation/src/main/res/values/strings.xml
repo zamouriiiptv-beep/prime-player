@@ -21,7 +21,7 @@
     <string name="source_xtream_title">Xtream Codes</string>
     <string name="source_xtream_detail">A server address, a username and a password.</string>
     <string name="source_m3u_title">M3U playlist</string>
-    <string name="source_m3u_detail">A single long link, usually sent by e-mail.</string>
+    <string name="source_m3u_detail">Add a playlist link in M3U format.</string>
     <string name="source_local_title">Play a video from this device</string>
     <string name="source_local_detail">Play a video file stored on this device.</string>
     <string name="source_users_title">Saved users</string>
@@ -138,4 +138,22 @@
     <string name="licence_blocked_title">Castivio is not licensed on this device</string>
     <string name="licence_blocked_detail">This build has no licence service to ask, so it cannot let you in. The licence screen arrives in a later version.</string>
     <string name="licence_blocked_action">Close</string>
+    <!-- The source chooser, redrawn as a grid. -->
+    <string name="source_choice_subtitle">Add your preferred playback method to start watching</string>
+    <string name="source_badge_fastest">Fastest</string>
+    <!-- The second line of each card: what the first one does not say, which is
+         how a reader tells which of these they actually have. -->
+    <string name="source_xtream_hint">Full support for Xtream features.</string>
+    <string name="source_m3u_hint">One long link, usually sent by e-mail.</string>
+    <string name="source_local_hint">All common formats supported.</string>
+    <string name="source_users_hint">Easy management of all your subscriptions.</string>
+    <!-- The assurance strip under the four choices. -->
+    <string name="source_trust_private_title">Safe and private</string>
+    <string name="source_trust_private_detail">We do not store or share your data.</string>
+    <string name="source_trust_fast_title">Fast and steady</string>
+    <string name="source_trust_fast_detail">High performance, a smooth experience.</string>
+    <string name="source_trust_guard_title">Full protection</string>
+    <string name="source_trust_guard_detail">Your privacy is our priority.</string>
+    <string name="source_trust_formats_title">Broad support</string>
+    <string name="source_trust_formats_detail">All formats supported.</string>
 </resources>

@@ -1,12 +1,15 @@
 package com.castivio.feature.activation
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,106 +19,204 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Dns
+import androidx.compose.material.icons.rounded.Group
 import androidx.compose.material.icons.rounded.Link
-import androidx.compose.material.icons.rounded.PlayCircle
-import androidx.compose.material.icons.rounded.SwitchAccount
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.OndemandVideo
+import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.VerifiedUser
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ReadOnlyComposable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.castivio.core.design.components.CastivioMark
-import com.castivio.core.design.components.GlassCard
+import com.castivio.core.design.components.CastivioHeader
+import com.castivio.core.design.components.CastivioHeaderTitle
+import com.castivio.core.design.components.CastivioLockup
 import com.castivio.core.design.components.InteractiveGlassCard
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
-import com.castivio.core.design.theme.Radius
-import com.castivio.core.design.theme.Sizing
-import com.castivio.core.design.theme.Spacing
+import com.castivio.core.design.theme.Palette
 
 /**
- * "What did your provider give you?"
+ * The approved drawing's numbers, per frame.
  *
- * The question is asked in the user's terms rather than ours. Nobody arrives here
- * knowing they want "Xtream Codes"; they arrive holding an e-mail, and the two IPTV
- * options are described by what that e-mail looks like — a server and a password, or
- * one long link. The protocol names stay as titles because that is what the e-mail
- * calls them.
+ * `design/mockups/source-choice.html` is the record, and these are transcribed from
+ * it rather than approximated — the same discipline `MacActivationScreen` follows and
+ * for the same reason: this screen stacks six things down a 393dp frame, and a
+ * `Column` that runs out of height hands **zero** to whatever it measured last.
  *
- * Four destinations, in a two-by-two grid: the two ways to add a subscription, a video
- * file the device already holds, and the subscriptions already saved on it.
+ * What the drawing measures, in all twelve frame-and-language combinations:
  *
- * ## One layout, four identical cards, on every device
+ * | frame | card | strip | terms |
+ * |---|---|---|---|
+ * | 960×540 TV | 128 | 64 | 24 |
+ * | 873×393 | 94 | 54 | 19 |
+ * | 800×360 | 91 | 50 | 18 |
  *
- * Stacked in a single column the content came to 424dp against the 393dp a landscape
- * handset has, and the step was inside `verticalScroll`. So it scrolled: the title
- * clipped at the top or Back clipped at the bottom, depending on where the user had
- * left the page, and a remote pressing *down* moved the page rather than the focus.
+ * Nothing overflows on any of them, and in Arabic nothing is cut at all. The card is
+ * derived rather than declared — two weighted rows of what the header, the subtitle,
+ * the strip and the sentence leave — so the number above is an outcome, and
+ * `SourceChoiceBudgetTest` is what asserts it stays positive.
  *
- * There is no longer a condition anywhere in this file. Two earlier versions asked one
- * — `isTv` first, then `DeviceClass.Expanded`, which is `screenWidthDp >= 840` — and
- * both shipped a stacked, scrolling screen to a landscape handset. `screenWidthDp`
- * describes the *window*; this screen is drawn inside `safeDrawing`, so a display
- * cutout of 41dp is spent before the layout sees a pixel and 873 arrives as 827. Which
- * side of a bucket boundary that lands on varies by handset for reasons that have
- * nothing to do with whether four cards fit.
+ * ## The type is the activation screen's
  *
- * They fit at any width, because nothing here asks for a size: the cards divide what
- * they are given with `weight(1f)`, so the grid cannot overflow horizontally. The
- * activity is `screenOrientation="sensorLandscape"`, so the narrow portrait frame the
- * old column existed for never reaches a user at all.
+ * Every size here is a step that screen already sets: its `fsTitle` for the question,
+ * `fsCaption` for a card's description, `fsChip` for the badge and Back. A screen that
+ * invents its own scale beside the one before it is two products, and compressing type
+ * to make content fit is how a layout hides that it is too small.
+ */
+internal data class SourceMetrics(
+    val edge: Dp,
+    val stageTop: Dp,
+    val stageBottom: Dp,
+    val header: Dp,
+    val headGap: Dp,
+    val brand: Dp,
+    val fsTitle: Dp,
+    val back: Dp,
+    val backPad: Dp,
+    val fsBack: Dp,
+    val subtitle: Dp,
+    val fsSubtitle: Dp,
+    val bandTop: Dp,
+    val gridGap: Dp,
+    val cardPad: Dp,
+    val cardGap: Dp,
+    val disc: Dp,
+    val chevron: Dp,
+    val fsCard: Dp,
+    val fsDetail: Dp,
+    val fsBadge: Dp,
+    val detailLines: Int,
+    val radius: Dp,
+    val strip: Dp,
+    val stripGap: Dp,
+    val stripDisc: Dp,
+    val fsStrip: Dp,
+    val fsStripDetail: Dp,
+    val terms: Dp,
+    val termsGap: Dp,
+    val fsTerms: Dp,
+)
+
+/** Below this height the frame is the short phone the drawing calls `p800`. */
+internal val SHORT_SOURCE_PHONE = 380.dp
+
+internal fun sourceMetricsFor(tv: Boolean, available: Dp): SourceMetrics = when {
+    tv -> SourceMetrics(
+        edge = 46.dp, stageTop = 24.dp, stageBottom = 22.dp,
+        header = 54.dp, headGap = 26.dp, brand = 40.dp, fsTitle = 26.dp,
+        back = 44.dp, backPad = 11.dp, fsBack = 13.dp,
+        subtitle = 26.dp, fsSubtitle = 13.5.dp,
+        bandTop = 20.dp, gridGap = 18.dp,
+        cardPad = 16.dp, cardGap = 16.dp, disc = 72.dp, chevron = 24.dp,
+        fsCard = 15.8.dp, fsDetail = 13.5.dp, fsBadge = 13.dp, detailLines = 3,
+        radius = 22.dp,
+        strip = 64.dp, stripGap = 18.dp, stripDisc = 38.dp,
+        fsStrip = 13.5.dp, fsStripDetail = 13.dp,
+        terms = 24.dp, termsGap = 14.dp, fsTerms = 13.5.dp,
+    )
+    available < SHORT_SOURCE_PHONE -> SourceMetrics(
+        edge = 26.dp, stageTop = 11.dp, stageBottom = 8.dp,
+        header = 36.dp, headGap = 20.dp, brand = 28.dp, fsTitle = 19.dp,
+        back = 34.dp, backPad = 11.dp, fsBack = 11.5.dp,
+        subtitle = 18.dp, fsSubtitle = 12.5.dp,
+        bandTop = 10.dp, gridGap = 12.dp,
+        cardPad = 9.dp, cardGap = 11.dp, disc = 50.dp, chevron = 17.dp,
+        fsCard = 14.1.dp, fsDetail = 12.5.dp, fsBadge = 11.5.dp, detailLines = 2,
+        radius = 16.dp,
+        strip = 50.dp, stripGap = 10.dp, stripDisc = 27.dp,
+        fsStrip = 12.5.dp, fsStripDetail = 11.5.dp,
+        terms = 18.dp, termsGap = 5.dp, fsTerms = 12.5.dp,
+    )
+    else -> SourceMetrics(
+        edge = 32.dp, stageTop = 15.dp, stageBottom = 11.dp,
+        header = 42.dp, headGap = 24.dp, brand = 31.dp, fsTitle = 20.dp,
+        back = 36.dp, backPad = 12.dp, fsBack = 12.dp,
+        subtitle = 20.dp, fsSubtitle = 13.dp,
+        bandTop = 12.dp, gridGap = 14.dp,
+        cardPad = 10.dp, cardGap = 12.dp, disc = 52.dp, chevron = 18.dp,
+        fsCard = 14.7.dp, fsDetail = 13.dp, fsBadge = 12.dp, detailLines = 2,
+        radius = 18.dp,
+        strip = 54.dp, stripGap = 12.dp, stripDisc = 30.dp,
+        fsStrip = 13.dp, fsStripDetail = 12.dp,
+        terms = 19.dp, termsGap = 6.dp, fsTerms = 13.dp,
+    )
+}
+
+/** What is left for the two rows of cards once everything fixed has been placed. */
+internal fun SourceMetrics.gridHeight(frame: Dp): Dp =
+    frame - stageTop - header - subtitle - bandTop -
+        strip - stripGap - terms - termsGap - stageBottom
+
+/** One card, which is half of that minus the gap between the rows. */
+internal fun SourceMetrics.cardHeight(frame: Dp): Dp = (gridHeight(frame) - gridGap) / 2
+
+/**
+ * The four ways in, as a grid.
  *
- * ## Why the four are the same height, and how
+ * ## Why a grid and not a list
  *
- * The container is sized from the frame and the grid takes what it leaves, so the two
- * rows divide a *known* height: `weight(1f)` each makes them exactly equal, and
- * `fillMaxHeight` passes that to all four cards. Equality is structural — there is no
- * arrangement of content that can make one card taller than another, in any language.
+ * The frame is twice as wide as it is tall — this screen is only ever seen in
+ * landscape — so a column of four rows wastes the width and crowds the height. Two
+ * rows of two use the shape the screen actually has, and it is what lets a card be
+ * 94dp with a 52dp disc rather than 64dp of text.
  *
- * It was not always this way. While the cards were sized by their content the rows had
- * to be equalised with `height(IntrinsicSize.Min)`, which measures the subtree twice
- * and throws at runtime if anything inside it does not support intrinsics. Sizing the
- * container from the frame retired that pass along with its risk.
+ * ## The header is the activation screen's
  *
- * What replaces the risk is a floor rather than a ceiling: the derived card height has
- * to stay above what a title over two lines of description needs, or the text clips
- * instead of the layout overflowing. `SourceChoiceBudgetTest` computes the derived
- * height on every frame and asserts exactly that.
+ * Same row, same rule: the lockup at the same physical edge in every language, the
+ * question beside it, and the row's one control at the far end — the language chip
+ * there, Back here. A brand that moves between two screens a user sees one after the
+ * other is two brands, and a header that reassembles itself is the kind of fault
+ * nobody can point at and everybody feels.
+ *
+ * ## Recommended and focused are two pictures
+ *
+ * The suggested card carries a violet edge and a glow; focus carries the azure ring
+ * every focusable thing in this app carries. They must not be the same picture: a
+ * television has to say where the remote is, and a D-pad whose position looks like a
+ * recommendation is a D-pad the viewer has lost. [InteractiveGlassCard] takes the rest
+ * colour and lets focus override it, so the ring keeps meaning exactly one thing.
  *
  * ## Direction
  *
  * `Row` and `Column` resolve their own start and end, so Xtream leads on the right in
- * Arabic and on the left in English with no index, offset or coordinate written down
- * anywhere. The icon is the first child of the title line, which puts it on the
- * starting side in both directions for the same reason.
+ * Arabic and on the left in English with no coordinate written anywhere. The two
+ * chevrons are auto-mirrored and point opposite ways on purpose: a card's leads onward
+ * and follows the reading direction, Back points the way the reader came from.
  *
- * @param onBack what Back does. It lives inside this screen rather than beside it
- *   because it is part of the composition being fitted: the column that measures the
- *   header and the grid has to measure the footer too, or it is fitting two thirds of
- *   a screen.
+ * @param onBack what Back does. It is in the header now rather than under the grid,
+ *   which is where it was asked to go.
  */
 @Composable
 internal fun SourceChoiceScreen(
@@ -127,406 +228,210 @@ internal fun SourceChoiceScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier
-            .fillMaxSize()
-            // The screen owns the viewport, so it owns its edge inset too --
-            // `ActivationSurface` applies no padding in its fixed frame, for the same
-            // reason the address screen pads itself. `screenPadding` rather than a
-            // hard-coded figure: it is `Spacing.tvOverscan` on a television, which has
-            // overscan to clear, and `Spacing.screen` everywhere else, which does not.
-            .padding(CastivioTheme.device.screenPadding),
-        verticalArrangement = Arrangement.Top,
-    ) {
-        Heading()
-        Spacer(Modifier.height(TitleGap))
+    val tv = CastivioTheme.device.isTv
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val m = sourceMetricsFor(tv = tv, available = maxHeight)
 
-        // The container takes the height, and the cards take it from the container.
-        //
-        // This is the direction the whole screen was solved in until now, reversed.
-        // The cards used to be sized by their content and the container by the cards,
-        // which left the surface floating in the middle of the frame with the sentence
-        // adrift below it -- and it is why a 360dp handset could only afford a 64dp
-        // card. `weight(1f)` makes the container the size of what is left instead, so
-        // it reaches for the edges the way the approved reference does, and the space
-        // it gains lands inside the cards: 86dp on the shortest frame, 102 on the
-        // reference handset, 120 on a television.
-        //
-        // Two things follow that are worth naming. Overflow becomes structural rather
-        // than arithmetic -- a weighted child cannot push its siblings out, so the
-        // title, Back and the sentence are placed first and the grid absorbs whatever
-        // is left. And the equal-height problem stops needing an intrinsic pass: two
-        // rows of `weight(1f)` inside a bounded column are exactly equal, measured
-        // once. What has to be watched instead is the floor, and that is what
-        // `SourceChoiceBudgetTest` computes: the derived card must stay taller than a
-        // title over two lines of description, or the text inside it clips.
-        SourceContainer(Modifier.weight(1f)) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(start = m.edge, end = m.edge, top = m.stageTop, bottom = m.stageBottom)
+                .testTag(ActivationTags.SOURCE_CONTAINER),
+        ) {
+            SourceHeader(m, onBack)
+            Subtitle(m)
+            Spacer(Modifier.height(m.bandTop))
+
+            // Weighted, so the grid is what is left rather than what it asked for.
+            // A weighted child cannot push its siblings out, which makes overflow
+            // structural instead of arithmetic: the strip and the sentence are placed
+            // first and the cards absorb the remainder.
             SourceGrid(
+                m = m,
                 modifier = Modifier.weight(1f),
                 onXtream = onXtream,
                 onPlaylist = onPlaylist,
                 onLocalVideo = onLocalVideo,
                 onSavedSources = onSavedSources,
             )
-            Spacer(Modifier.height(ContainerGap))
-            ChooserFooter(onBack, ActivationTags.SOURCE_BACK)
+
+            Spacer(Modifier.height(m.stripGap))
+            AssuranceStrip(m)
+            Spacer(Modifier.height(m.termsGap))
+            TermsLine(m, onTerms)
         }
-
-        // At the bottom of the screen, a hair under the container, as the reference
-        // has it -- not floating in the middle of a leftover band.
-        Spacer(Modifier.height(TermsGap))
-        TermsLine(onTerms)
     }
 }
 
-/**
- * The container: one surface holding the four choices and the way back.
- *
- * `GlassCard` rather than a `Box` dressed up to look like one — it is the design
- * system's own glass surface, it already carries `glassFillBrush`, `glassBorderBrush`
- * and the elevation shadow, and building a second one here would be a shared component
- * declared twice, which the invariant script rejects for good reason.
- *
- * `Radius.xl` against the cards' `Radius.lg`, so the corners nest rather than trace
- * each other. The fill is the brush the system uses for every glass surface: 7.8%
- * fading to 3.9% down the card, under cards held flat at 7.8%. The cards keep their own
- * border, which is what stops the top pair flattening into the container where the two
- * fills momentarily agree.
- *
- * The inset is [ContainerPadding], and it is 8dp on a handset for a reason that is
- * arithmetic rather than taste — see that token.
- */
-@Composable
-private fun SourceContainer(
-    modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    GlassCard(
-        modifier = modifier
-            .fillMaxWidth()
-            .testTag(ActivationTags.SOURCE_CONTAINER),
-        shape = RoundedCornerShape(Radius.xl),
-    ) {
-        Column(
-            Modifier
-                .fillMaxHeight()
-                .padding(ContainerPadding),
-            content = content,
-        )
-    }
-}
+/* --------------------------------------------------------------------- header */
 
-/**
- * The title, and nothing under it.
- *
- * There was a subtitle — "both end up in the same place" — written when this screen
- * offered two options. Four named cards each carrying a description made it false and
- * then redundant, so it is deleted rather than reworded: a sentence explaining that
- * the options are alternatives tells the reader what the grid already shows.
- *
- * Deleting it also returned 32dp, which is the difference between a screen with 2.5dp
- * of slack and one that can absorb a description wrapping in a longer language.
- */
 @Composable
-private fun Heading() {
-    // The question takes the start of the row and the mark takes the end, so the two
-    // sit in opposite corners in either direction -- title right and mark left in
-    // Arabic, title left and mark right in English. One rule, and it needs nothing
-    // direction-aware: the last child of a row *is* the end, and the layout direction
-    // decides which physical corner that is.
-    //
-    // This used to hold the mark on the physical left in both, which put it under the
-    // English title's first word. Unified with the media source screen at review.
-    Row(
+private fun SourceHeader(m: SourceMetrics, onBack: () -> Unit) {
+    CastivioHeader(
+        height = m.header,
+        gap = m.headGap,
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(MarkGap),
-    ) {
-        Text(
-            text = stringResource(R.string.source_choice_title),
-            style = CastivioType.headlineMedium,
-            color = CastivioTheme.colors.onBackground,
-            modifier = Modifier
-                .weight(1f)
-                .alignByBaseline()
-                .testTag(ActivationTags.SOURCE_HEADING)
-                .semantics { heading() },
-        )
-        Wordmark(Modifier.alignByBaseline())
-    }
-}
-
-/**
- * Castivio, in the corner, in the startup's own ink.
- *
- * Everything here except the size comes from [CastivioMark], which is where the
- * startup keeps it: the word, the violet-into-azure fill, and the tracking as a
- * fraction of the size rather than a number of pixels. The size is 11sp against a
- * 22sp title, which is the whole of what makes this branding rather than a second
- * heading — it is read after the question, not before it.
- *
- * `lineHeight` equal to the size, so the mark contributes no leading of its own.
- * This is load-bearing rather than tidy: the row is baseline-aligned, a
- * baseline-aligned row is as tall as its deepest descender, and a default line box
- * around an 11sp glyph hangs further below the baseline than the title's does. The
- * mockup grew the header by 3dp exactly that way, which came out of the container
- * and took 1.5dp off every card. At `lineHeight = fontSize` the title's own 32sp
- * line box decides the height, as it did before this mark existed.
- *
- * No `contentDescription`, and `heading()` stays on the question. A wordmark read
- * aloud before every screen title is noise; the application's name is in the
- * launcher, the task switcher and the accessibility window title already.
- */
-@Composable
-private fun Wordmark(modifier: Modifier = Modifier) {
-    val size = MarkSize
-    Text(
-        text = CastivioMark.TEXT,
-        style = CastivioType.labelSmall.copy(
-            fontSize = size,
-            lineHeight = size,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = CastivioMark.TRACKING_RATIO.em,
-            // Left to right in pixels whatever the layout direction, which is what
-            // `Brush.horizontalGradient` does and what the startup draws: the violet
-            // end is on the left on every screen Castivio signs.
-            brush = Brush.horizontalGradient(CastivioMark.colours),
-        ),
-        maxLines = 1,
-        modifier = modifier,
+        lockup = { CastivioLockup(markSize = m.brand, wordSize = (m.fsTitle.value * WORD_RATIO).sp) },
+        title = {
+            CastivioHeaderTitle(
+                text = stringResource(R.string.source_choice_title),
+                style = CastivioType.headlineMedium.copy(
+                    fontSize = m.fsTitle.value.sp,
+                    lineHeight = (m.fsTitle.value * TITLE_LEADING).sp,
+                    letterSpacing = 0.sp,
+                ),
+                color = Palette.White,
+                modifier = Modifier.testTag(ActivationTags.SOURCE_HEADING),
+            )
+        },
+        chips = {
+            // Pinned left to right like the activation screen's chip pair, so the
+            // control keeps the row's outer end in every language; the words inside
+            // it take the reader's own direction back.
+            val reading = LocalLayoutDirection.current
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                CompositionLocalProvider(LocalLayoutDirection provides reading) {
+                    BackChip(m, onBack)
+                }
+            }
+        },
     )
 }
 
 /**
- * Two by two, equal in both directions.
+ * Back, drawn as the activation screen draws its language control.
  *
- * The reading order is the grid order — Xtream, M3U, then the device's own video and
- * the subscriptions already saved on it. Nothing is emphasised by being larger or
- * filled differently; an earlier draft gave the lower pair a lighter fill and no
- * description and it read as two designs rather than one set. Xtream leads because it
- * is first and holds the focus on entry, which is the only ranking this screen makes.
+ * The same height, the same quiet glass, the same slot — because it is the same kind
+ * of thing: the one control in a row that is otherwise a statement. Its chevron is
+ * auto-mirrored and therefore points the way the reader came from, which is right in
+ * Arabic and left in English; the reference draws it left in both, which is the Latin
+ * convention applied to a right-to-left screen.
  */
 @Composable
+private fun BackChip(m: SourceMetrics, onClick: () -> Unit) {
+    val colors = CastivioTheme.colors
+    val shape = RoundedCornerShape(percent = 50)
+    val label = stringResource(R.string.action_back)
+
+    Row(
+        Modifier
+            .height(m.back)
+            .clip(shape)
+            .background(colors.glassFill)
+            .border(BorderStroke(1.dp, Palette.EdgeQuiet), shape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = m.backPad)
+            .testTag(ActivationTags.SOURCE_BACK)
+            .semantics(mergeDescendants = true) { contentDescription = label },
+        horizontalArrangement = Arrangement.spacedBy(m.backPad * CHIP_GAP),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+            contentDescription = null,
+            tint = colors.onBackgroundVariant,
+            modifier = Modifier.size(m.fsBack * ICON_RATIO),
+        )
+        Text(
+            text = label,
+            style = chipStyle(m.fsBack),
+            color = colors.onBackgroundVariant,
+            maxLines = 1,
+        )
+    }
+}
+
+/** The line under the question, as the drawing has it. */
+@Composable
+private fun Subtitle(m: SourceMetrics) {
+    Box(Modifier.fillMaxWidth().height(m.subtitle), contentAlignment = Alignment.CenterStart) {
+        Text(
+            text = stringResource(R.string.source_choice_subtitle),
+            style = CastivioType.bodySmall.copy(
+                fontSize = m.fsSubtitle.value.sp,
+                lineHeight = (m.fsSubtitle.value * BODY_LEADING).sp,
+                letterSpacing = 0.sp,
+            ),
+            color = CastivioTheme.colors.onBackgroundMuted,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/* ----------------------------------------------------------------------- grid */
+
+@Composable
 private fun SourceGrid(
+    m: SourceMetrics,
     modifier: Modifier,
     onXtream: () -> Unit,
     onPlaylist: () -> Unit,
     onLocalVideo: () -> Unit,
     onSavedSources: () -> Unit,
 ) {
-    Column(
-        // Bounded by the container, so the two rows divide a known height and come out
-        // equal without an intrinsic pass. That pass used to be here and was the only
-        // way to equalise rows whose height came from their content; it measured the
-        // subtree twice and threw at runtime if anything in it did not support
-        // intrinsics. Sizing the container from the frame retired it.
-        modifier,
-        verticalArrangement = Arrangement.spacedBy(GridGap),
-    ) {
-        Row(
-            Modifier.weight(1f).fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(GridGap),
-        ) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(m.gridGap)) {
+        // Two rows of `weight(1f)` inside a bounded column are exactly equal, measured
+        // once — no intrinsic pass, and no way for one row to grow at the other's cost.
+        Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(m.gridGap)) {
             SourceCard(
-                icon = Icons.Rounded.Dns,
+                m = m, hue = Palette.Azure50, icon = Icons.Rounded.Dns,
                 title = stringResource(R.string.source_xtream_title),
                 detail = stringResource(R.string.source_xtream_detail),
-                onClick = onXtream,
-                tag = ActivationTags.SOURCE_XTREAM,
+                hint = stringResource(R.string.source_xtream_hint),
+                recommended = false, onClick = onXtream, tag = ActivationTags.SOURCE_XTREAM,
             )
             SourceCard(
-                icon = Icons.Rounded.Link,
+                m = m, hue = Palette.Violet50, icon = Icons.Rounded.Link,
                 title = stringResource(R.string.source_m3u_title),
                 detail = stringResource(R.string.source_m3u_detail),
-                onClick = onPlaylist,
-                tag = ActivationTags.SOURCE_M3U,
+                hint = stringResource(R.string.source_m3u_hint),
+                recommended = true, onClick = onPlaylist, tag = ActivationTags.SOURCE_M3U,
             )
         }
-        Row(
-            Modifier.weight(1f).fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(GridGap),
-        ) {
+        Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(m.gridGap)) {
             SourceCard(
-                icon = Icons.Rounded.PlayCircle,
+                m = m, hue = Palette.Amber, icon = Icons.Rounded.OndemandVideo,
                 title = stringResource(R.string.source_local_title),
                 detail = stringResource(R.string.source_local_detail),
-                onClick = onLocalVideo,
-                tag = ActivationTags.SOURCE_LOCAL,
+                hint = stringResource(R.string.source_local_hint),
+                recommended = false, onClick = onLocalVideo, tag = ActivationTags.SOURCE_LOCAL,
             )
             SourceCard(
-                icon = Icons.Rounded.SwitchAccount,
+                m = m, hue = Palette.Success, icon = Icons.Rounded.Group,
                 title = stringResource(R.string.source_users_title),
                 detail = stringResource(R.string.source_users_detail),
-                onClick = onSavedSources,
-                tag = ActivationTags.SOURCE_USERS,
+                hint = stringResource(R.string.source_users_hint),
+                recommended = false, onClick = onSavedSources, tag = ActivationTags.SOURCE_USERS,
             )
         }
     }
 }
 
 /**
- * The terms sentence, below the container and centred on the frame.
+ * One card. There is no second kind — the recommendation is a parameter, not a variant.
  *
- * `fillMaxWidth()` with `TextAlign.Center`, which is the plainest way to say "the same
- * distance from each edge" and is direction-agnostic by construction. It was not
- * available while Back shared this row -- a full-width text carries its click target
- * across the row and would have taken Back's presses. Back is inside the container
- * now, so the row is the sentence's alone and the simple thing is also the correct one.
- *
- * One control, not two. "Terms of Service" is underlined and the rest is not, because
- * the underline is what tells a reader the line can be pressed; but the whole line is
- * the target, since a partially-pressable sentence is unusable with a D-pad — there is
- * no cursor to put on half a paragraph.
- *
- * `ButtonWeight` has three values and none of them is a text link, and adding a fourth
- * is a change to `:core:design` that every screen would inherit for the sake of one
- * footer. So this is local, and it is the only element on this screen that is.
- */
-@Composable
-private fun TermsLine(onClick: () -> Unit) {
-    val lead = stringResource(R.string.source_terms)
-    val note = stringResource(R.string.source_terms_note)
-
-    // Underlined on the two words that name the thing, plain for the sentence that
-    // follows. One control, not two: the whole line is the target, because a
-    // partially-pressable line is unusable with a D-pad -- there is no cursor to put
-    // on the underlined half of a paragraph.
-    val sentence = remember(lead, note) {
-        buildAnnotatedString {
-            withStyle(SpanStyle(textDecoration = TextDecoration.Underline)) { append(lead) }
-            append(note)
-        }
-    }
-
-    Text(
-        text = sentence,
-        style = CastivioType.bodySmall,
-        color = CastivioTheme.colors.onBackgroundVariant,
-        textAlign = TextAlign.Center,
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag(ActivationTags.SOURCE_TERMS)
-            .clip(RoundedCornerShape(Radius.sm))
-            .clickable(role = Role.Button, onClick = onClick),
-    )
-}
-
-/**
- * The corner mark's size: 11sp on a handset, 13sp on a television.
- *
- * Half the title, near enough, and that ratio is the brief. A mark that competes with
- * the question is a mark that has to be read first, and nobody arriving on this screen
- * needs to be told which application they opened. The television gets two points more
- * for the same reason every other figure on this screen steps up there — it is read
- * from three metres, not thirty centimetres.
- */
-private val MarkSize: TextUnit
-    @Composable @ReadOnlyComposable get() =
-        if (CastivioTheme.device.isTv) 19.sp else 16.sp
-
-/** Mark to title. The same step the rest of the screen separates groups by. */
-private val MarkGap: Dp
-    @Composable @ReadOnlyComposable get() =
-        if (CastivioTheme.device.isTv) Spacing.xl else Spacing.lg
-
-/**
- * The gap between the four cards, across and down alike.
- *
- * One figure in both directions, because a grid whose columns and rows are spaced
- * differently reads as two rows that happen to be near each other. A television has
- * the room for the next step up and a handset does not: `Spacing.lg` there leaves
- * 10.5dp of margin, `Spacing.xl` would leave -6.
- */
-private val GridGap: Dp
-    @Composable @ReadOnlyComposable get() =
-        if (CastivioTheme.device.isTv) Spacing.lg else Spacing.sm
-
-/**
- * Title to container.
- *
- * The one fixed gap left in the column. Everything below the container is a computed
- * region rather than a spacer, so this is the only figure that has to be chosen.
- */
-private val TitleGap: Dp
-    @Composable @ReadOnlyComposable get() =
-        if (CastivioTheme.device.isTv) Spacing.lg else Spacing.sm
-
-/**
- * Container to the terms sentence.
- *
- * Small, and deliberately so: the reference puts the sentence on the bottom edge of
- * the screen, a hair under the surface, rather than floating in a band of its own. The
- * container is `weight(1f)`, so this gap is subtracted from what the container gets --
- * every dp here is a dp off the cards.
- */
-private val TermsGap: Dp
-    @Composable @ReadOnlyComposable get() =
-        if (CastivioTheme.device.isTv) Spacing.lg else Spacing.xs
-
-/** Grid to Back, inside the container. */
-private val ContainerGap: Dp
-    @Composable @ReadOnlyComposable get() =
-        if (CastivioTheme.device.isTv) Spacing.lg else Spacing.xs
-
-/**
- * The container's own inset.
- *
- * `Spacing.sm` on a handset and `Spacing.lg` on a television — enough that no card
- * touches the edge it sits in, and not a dp more, because on the short frame there is
- * not a dp more to give. See [CardPadding] for the arithmetic that sets all of these.
- */
-private val ContainerPadding: Dp
-    @Composable @ReadOnlyComposable get() =
-        if (CastivioTheme.device.isTv) Spacing.lg else Spacing.sm
-
-/**
- * The card's own inset, and the figure the whole screen is solved around.
- *
- * ## Why 8dp on a handset and not 16
- *
- * The requirement that sets it is not appearance, it is that a description which wraps
- * to two lines must still fit — on every frame, including the shortest one the project
- * ships to, an 800x360 landscape window that is an ordinary 360dp-wide phone turned
- * sideways.
- *
- * That frame gives the layout 312dp once `screenPadding` is taken. Three things in it
- * cannot move: a 32dp title, a 48dp Back at the touch-target floor, and a 20dp
- * sentence. 100dp gone, 212 left for two rows of cards, the container's inset twice
- * over, and four gaps. Two cards with a wrapped description are `4 * padY + 136`, so
- * every dp of card padding costs four.
- *
- * The token space was searched rather than guessed: of the combinations that fit both
- * one line and two on both 360 and 393, **none has a card taller than 64dp**. 8dp of
- * card padding is therefore not a preference, it is the maximum, and everything else
- * on the screen was set from what it left — which is the order the priorities asked
- * for: no overflow first, room for a wrap second, card size third, spacing last.
- *
- * A television has 444dp and none of this pressure, so it keeps `Spacing.xl` and a
- * 96dp card.
- */
-private val CardPadding: PaddingValues
-    @Composable @ReadOnlyComposable get() = if (CastivioTheme.device.isTv) {
-        PaddingValues(horizontal = Spacing.xxl, vertical = Spacing.xl)
-    } else {
-        PaddingValues(horizontal = Spacing.lg, vertical = Spacing.sm)
-    }
-
-/**
- * One card. There is no second kind.
- *
- * @param tag the handle the layout gates measure this card by. Passed rather than
- *   applied by the caller so that every card is built the same way and a future one
- *   cannot arrive with a different modifier chain — the four being structurally
- *   identical is the property `SourceChoiceLayoutTest` asserts.
+ * The description is **one block of two sentences**, capped at the frame's line count,
+ * rather than two lines nobody bounds the total of. Portuguese wraps the first to two
+ * lines and overran the card by ten dp when they were separate; a card that overruns
+ * does not clip, it takes its row's height from whatever was measured after it. The
+ * hint keeps a quieter ink, because that is what separates a fact from an aside — not
+ * the line break.
  */
 @Composable
 private fun RowScope.SourceCard(
+    m: SourceMetrics,
+    hue: Color,
     icon: ImageVector,
     title: String,
     detail: String,
+    hint: String,
+    recommended: Boolean,
     onClick: () -> Unit,
     tag: String,
 ) {
     val colors = CastivioTheme.colors
+    val badge = stringResource(R.string.source_badge_fastest)
 
     InteractiveGlassCard(
         onClick = onClick,
@@ -534,42 +439,297 @@ private fun RowScope.SourceCard(
             .weight(1f)
             .fillMaxHeight()
             .testTag(tag)
-            // One node, one label, one target: the card is the control, and a screen
-            // reader announces the title and the description as a single item. Without
-            // this the icon, the title and the detail are three focusable-looking
-            // fragments of one choice.
-            .semantics(mergeDescendants = true) { contentDescription = "$title. $detail" },
-        fill = SolidColor(colors.glassFillStrong),
+            // One node, one label, one target: a reader announces the whole choice as
+            // a single item. Without it the disc, the name and the two sentences are
+            // four focusable-looking fragments of one decision.
+            .semantics(mergeDescendants = true) {
+                contentDescription = if (recommended) "$title. $badge. $detail $hint"
+                else "$title. $detail $hint"
+            },
+        shape = RoundedCornerShape(m.radius),
+        fill = if (recommended) SolidColor(Palette.Violet10) else colors.glassFillBrush,
+        restBorder = if (recommended) RECOMMENDED_EDGE else null,
+        restGlow = if (recommended) RECOMMENDED_GLOW else null,
     ) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .padding(CardPadding),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        Row(
+            Modifier.fillMaxSize().padding(m.cardPad),
+            horizontalArrangement = Arrangement.spacedBy(m.cardGap),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = icon,
-                    // Null rather than a description: the card above already carries
-                    // the whole label, and an icon that names itself makes a screen
-                    // reader say the thing twice.
-                    contentDescription = null,
-                    tint = colors.onBackground,
-                    modifier = Modifier.size(Sizing.iconMd),
+            Disc(m, hue, icon)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(m.cardPad * TEXT_GAP)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(m.cardPad * BADGE_GAP),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = title,
+                        style = CastivioType.titleMedium.copy(
+                            fontSize = m.fsCard.value.sp,
+                            lineHeight = (m.fsCard.value * TITLE_LEADING).sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.sp,
+                        ),
+                        color = Palette.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    if (recommended) Badge(m, badge)
+                }
+                Text(
+                    text = buildAnnotatedString {
+                        append(detail)
+                        append(' ')
+                        withStyle(SpanStyle(color = colors.onBackgroundMuted)) { append(hint) }
+                    },
+                    style = CastivioType.bodySmall.copy(
+                        fontSize = m.fsDetail.value.sp,
+                        lineHeight = (m.fsDetail.value * BODY_LEADING).sp,
+                        letterSpacing = 0.sp,
+                    ),
+                    color = colors.onBackgroundVariant,
+                    maxLines = m.detailLines,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                // `titleLarge` over `bodySmall`. One point of size and no difference in
-                // weight is not a hierarchy -- only the colour was saying which line
-                // was the name of the thing.
-                Text(text = title, style = CastivioType.titleLarge, color = colors.onBackground)
             }
-            Text(
-                text = detail,
-                style = CastivioType.bodySmall,
-                color = colors.onBackgroundVariant,
+            Icon(
+                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                contentDescription = null,
+                tint = colors.onBackgroundMuted,
+                modifier = Modifier.size(m.chevron),
             )
         }
     }
 }
+
+/** The card's disc: the one place its hue is loud. */
+@Composable
+private fun Disc(m: SourceMetrics, hue: Color, icon: ImageVector) {
+    Box(
+        Modifier
+            .size(m.disc)
+            .clip(RoundedCornerShape(percent = 50))
+            .background(
+                Brush.radialGradient(
+                    listOf(hue.copy(alpha = DISC_TOP), hue.copy(alpha = DISC_FOOT)),
+                ),
+            )
+            .border(BorderStroke(1.dp, hue.copy(alpha = DISC_EDGE)), RoundedCornerShape(percent = 50)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, contentDescription = null, tint = hue, modifier = Modifier.size(m.disc * DISC_ICON))
+    }
+}
+
+/**
+ * The recommendation, as a badge.
+ *
+ * A label rather than a ring, so it cannot be read as focus. It keeps its intrinsic
+ * width and the name beside it yields, which is the header's rule one level down: a
+ * badge is a fixed fact and a name is the thing here whose full size is not
+ * load-bearing.
+ */
+@Composable
+private fun Badge(m: SourceMetrics, text: String) {
+    val shape = RoundedCornerShape(percent = 50)
+    Row(
+        Modifier
+            .clip(shape)
+            .background(Brush.verticalGradient(listOf(BADGE_TOP, BADGE_FOOT)))
+            .border(BorderStroke(1.dp, BADGE_EDGE), shape)
+            .padding(horizontal = m.fsBadge * BADGE_PAD, vertical = m.fsBadge * BADGE_PAD_Y),
+        horizontalArrangement = Arrangement.spacedBy(m.fsBadge * BADGE_ICON_GAP),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            Icons.Rounded.Bolt,
+            contentDescription = null,
+            tint = Palette.Violet60,
+            modifier = Modifier.size(m.fsBadge * ICON_RATIO),
+        )
+        Text(
+            text = text,
+            style = chipStyle(m.fsBadge).copy(fontWeight = FontWeight.Bold),
+            color = Palette.White,
+            maxLines = 1,
+        )
+    }
+}
+
+/* ---------------------------------------------------------------------- strip */
+
+/**
+ * The assurance strip, four cells across.
+ *
+ * Its second line **wraps** rather than ellipsising, and that is load-bearing: four
+ * cells across a phone leave about 130dp of text each once the disc is paid for, and
+ * these sentences do not fit one line at any frame this ships to — measured in all
+ * twelve. The line is what gives, not the sentence.
+ */
+@Composable
+private fun AssuranceStrip(m: SourceMetrics) {
+    val colors = CastivioTheme.colors
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(m.strip)
+            .clip(RoundedCornerShape(m.radius))
+            .background(colors.glassFill)
+            .border(BorderStroke(1.dp, Palette.EdgeQuiet), RoundedCornerShape(m.radius))
+            .padding(horizontal = m.strip * STRIP_PAD),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        StripCell(m, Palette.Violet50, Icons.Rounded.VerifiedUser,
+            R.string.source_trust_private_title, R.string.source_trust_private_detail)
+        StripCell(m, Palette.Azure50, Icons.Rounded.Speed,
+            R.string.source_trust_fast_title, R.string.source_trust_fast_detail)
+        StripCell(m, Palette.Success, Icons.Rounded.Lock,
+            R.string.source_trust_guard_title, R.string.source_trust_guard_detail)
+        StripCell(m, Palette.Amber, Icons.Rounded.Tune,
+            R.string.source_trust_formats_title, R.string.source_trust_formats_detail)
+    }
+}
+
+@Composable
+private fun RowScope.StripCell(
+    m: SourceMetrics,
+    hue: Color,
+    icon: ImageVector,
+    title: Int,
+    detail: Int,
+) {
+    val colors = CastivioTheme.colors
+    val head = stringResource(title)
+    val body = stringResource(detail)
+    Row(
+        Modifier
+            .weight(1f)
+            .padding(horizontal = m.strip * CELL_PAD)
+            .semantics(mergeDescendants = true) { contentDescription = "$head. $body" },
+        horizontalArrangement = Arrangement.spacedBy(m.strip * CELL_GAP),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier
+                .size(m.stripDisc)
+                .clip(RoundedCornerShape(percent = 50))
+                .background(hue.copy(alpha = CELL_FILL))
+                .border(BorderStroke(1.dp, hue.copy(alpha = DISC_EDGE)), RoundedCornerShape(percent = 50)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, contentDescription = null, tint = hue, modifier = Modifier.size(m.stripDisc * DISC_ICON))
+        }
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = head,
+                style = chipStyle(m.fsStrip).copy(fontWeight = FontWeight.Bold),
+                color = Palette.White,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = body,
+                style = CastivioType.bodySmall.copy(
+                    fontSize = m.fsStripDetail.value.sp,
+                    lineHeight = (m.fsStripDetail.value * STRIP_LEADING).sp,
+                    letterSpacing = 0.sp,
+                ),
+                color = colors.onBackgroundMuted,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+/* ---------------------------------------------------------------------- terms */
+
+/**
+ * The agreement, on the bottom edge.
+ *
+ * One control, not two. "Terms of Service" is underlined and the rest is not, because
+ * the underline is what tells a reader the line can be pressed — but the whole line is
+ * the target, since a partly-pressable sentence is unusable with a D-pad: there is no
+ * cursor to put on half a paragraph.
+ */
+@Composable
+private fun TermsLine(m: SourceMetrics, onClick: () -> Unit) {
+    val lead = stringResource(R.string.source_terms)
+    val note = stringResource(R.string.source_terms_note)
+    val sentence = buildAnnotatedString {
+        withStyle(SpanStyle(textDecoration = TextDecoration.Underline)) { append(lead) }
+        append(note)
+    }
+
+    Text(
+        text = sentence,
+        style = CastivioType.bodySmall.copy(
+            fontSize = m.fsTerms.value.sp,
+            lineHeight = (m.fsTerms.value * BODY_LEADING).sp,
+            letterSpacing = 0.sp,
+        ),
+        color = CastivioTheme.colors.onBackgroundMuted,
+        textAlign = TextAlign.Center,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(m.terms)
+            .testTag(ActivationTags.SOURCE_TERMS)
+            .clip(RoundedCornerShape(m.radius * TERMS_CORNER))
+            .clickable(role = Role.Button, onClick = onClick),
+    )
+}
+
+/* --------------------------------------------------------------------- ratios */
+
+@Composable
+private fun chipStyle(size: Dp): TextStyle = CastivioType.bodyMedium.copy(
+    fontSize = size.value.sp,
+    lineHeight = (size.value * CHIP_LEADING).sp,
+    letterSpacing = 0.sp,
+)
+
+/** The wordmark against the question — the activation screen's figure, unchanged. */
+private const val WORD_RATIO = 0.80f
+
+private const val TITLE_LEADING = 1.35f
+private const val CHIP_LEADING = 1.45f
+private const val BODY_LEADING = 1.5f
+private const val STRIP_LEADING = 1.3f
+
+/** An icon beside type, as a multiple of that type's size. */
+private const val ICON_RATIO = 1.25f
+
+private const val CHIP_GAP = 0.55f
+private const val TEXT_GAP = 0.6f
+private const val BADGE_GAP = 0.9f
+private const val BADGE_PAD = 0.62f
+private const val BADGE_PAD_Y = 0.24f
+private const val BADGE_ICON_GAP = 0.34f
+
+private const val DISC_ICON = 0.5f
+private const val DISC_TOP = 0.34f
+private const val DISC_FOOT = 0.08f
+private const val DISC_EDGE = 0.46f
+
+private const val STRIP_PAD = 0.22f
+private const val CELL_PAD = 0.16f
+private const val CELL_GAP = 0.18f
+private const val CELL_FILL = 0.14f
+
+private const val TERMS_CORNER = 0.5f
+
+/**
+ * The suggested card's edge and the light around it.
+ *
+ * Violet, and deliberately not the azure the focus ring uses: the two say different
+ * things and a viewer has to be able to tell which is which from across a room.
+ */
+private val RECOMMENDED_EDGE = Palette.Violet60.copy(alpha = 0.85f)
+private val RECOMMENDED_GLOW = Palette.Violet50.copy(alpha = 0.42f)
+
+private val BADGE_TOP = Palette.Violet50.copy(alpha = 0.42f)
+private val BADGE_FOOT = Palette.Violet40.copy(alpha = 0.30f)
+private val BADGE_EDGE = Palette.Violet60.copy(alpha = 0.46f)
