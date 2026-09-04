@@ -365,7 +365,15 @@ private fun RowScope.SourceCard(
                     horizontalArrangement = Arrangement.spacedBy(m.cardPad * BADGE_GAP),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
+                    // Fitted, not clipped. A card's name is one line by design -- it
+                    // sits beside a badge and above a description, and wrapping it
+                    // would change the card's whole shape in the languages that need
+                    // two lines. So it *shrinks* to the width it has, down to an 11sp
+                    // floor, which is the other half of the rule: text may reflow or
+                    // scale, and may never be cut. `maxLines = 1` with an ellipsis was
+                    // the third thing, and it is the one that is not allowed -- a
+                    // reader sees "Xtream Cod…" and cannot tell it is the same product.
+                    CastivioFittedText(
                         text = title,
                         style = CastivioType.titleMedium.copy(
                             fontSize = m.fsCard.value.sp,
@@ -374,8 +382,6 @@ private fun RowScope.SourceCard(
                             letterSpacing = 0.sp,
                         ),
                         color = Palette.White,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false),
                     )
                     if (recommended) Badge(m, badge)

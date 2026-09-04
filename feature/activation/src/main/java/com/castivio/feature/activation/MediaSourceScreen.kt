@@ -24,8 +24,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
+import com.castivio.core.design.components.CastivioFittedText
 import com.castivio.core.design.components.InteractiveGlassCard
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.icons.CastivioIcons
@@ -242,12 +242,13 @@ private fun RowScope.MediaCard(
                 Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(m.cardPad * TEXT_GAP),
             ) {
-                Text(
+                // Fitted rather than clipped, for the reason the source choice's card
+                // gives: a name that ends in an ellipsis is a name the reader cannot
+                // match to the thing it names.
+                CastivioFittedText(
                     text = title,
                     style = castivioChipStyle(m.fsCard),
                     color = colors.onBackground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = detail,
