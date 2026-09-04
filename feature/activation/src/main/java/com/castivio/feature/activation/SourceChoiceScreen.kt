@@ -77,14 +77,11 @@ import com.castivio.core.design.theme.Palette
  *
  * | frame | card | strip | description lines |
  * |---|---|---|---|
- * | 960×540 TV | 147 | 64 | 4 |
- * | 873×393 | 107 | 54 | 3 |
- * | 800×360 | 102 | 50 | 3 |
+ * | 960×540 TV | 161 | 40 | 4 |
+ * | 873×393 | 119 | 32 | 3 |
+ * | 800×360 | 114 | 30 | 3 |
  *
- * Nothing overflows on any of them and nothing is cut in any language, with one
- * exception measured and left standing: the assurance strip's Portuguese sentence
- * clamps to two lines, which is the longest sentence in the longest language inside a
- * quarter of a phone's width. The card is
+ * Nothing overflows and nothing is cut, in any frame or any language. The card is
  * derived rather than declared — two weighted rows of what the header, the subtitle
  * and the strip leave — so the number above is an outcome, and
  * `SourceChoiceBudgetTest` is what asserts it stays positive.
@@ -124,7 +121,6 @@ internal data class SourceMetrics(
     val stripGap: Dp,
     val stripDisc: Dp,
     val fsStrip: Dp,
-    val fsStripDetail: Dp,
 )
 
 /** Below this height the frame is the short phone the drawing calls `p800`. */
@@ -140,8 +136,7 @@ internal fun sourceMetricsFor(tv: Boolean, available: Dp): SourceMetrics = when 
         cardPad = 16.dp, cardGap = 16.dp, disc = 72.dp, chevron = 24.dp,
         fsCard = 15.8.dp, fsDetail = 13.5.dp, fsBadge = 13.dp, detailLines = 4,
         radius = 22.dp,
-        strip = 64.dp, stripGap = 18.dp, stripDisc = 38.dp,
-        fsStrip = 13.5.dp, fsStripDetail = 13.dp,
+        strip = 40.dp, stripGap = 14.dp, stripDisc = 26.dp, fsStrip = 12.5.dp,
     )
     available < SHORT_SOURCE_PHONE -> SourceMetrics(
         edge = 26.dp, stageTop = 11.dp, stageBottom = 8.dp,
@@ -152,8 +147,7 @@ internal fun sourceMetricsFor(tv: Boolean, available: Dp): SourceMetrics = when 
         cardPad = 9.dp, cardGap = 11.dp, disc = 50.dp, chevron = 17.dp,
         fsCard = 14.1.dp, fsDetail = 12.5.dp, fsBadge = 11.5.dp, detailLines = 3,
         radius = 16.dp,
-        strip = 50.dp, stripGap = 10.dp, stripDisc = 27.dp,
-        fsStrip = 12.5.dp, fsStripDetail = 11.5.dp,
+        strip = 30.dp, stripGap = 8.dp, stripDisc = 19.dp, fsStrip = 11.dp,
     )
     else -> SourceMetrics(
         edge = 32.dp, stageTop = 15.dp, stageBottom = 11.dp,
@@ -164,8 +158,7 @@ internal fun sourceMetricsFor(tv: Boolean, available: Dp): SourceMetrics = when 
         cardPad = 10.dp, cardGap = 12.dp, disc = 52.dp, chevron = 18.dp,
         fsCard = 14.7.dp, fsDetail = 13.dp, fsBadge = 12.dp, detailLines = 3,
         radius = 18.dp,
-        strip = 54.dp, stripGap = 12.dp, stripDisc = 30.dp,
-        fsStrip = 13.dp, fsStripDetail = 12.dp,
+        strip = 32.dp, stripGap = 10.dp, stripDisc = 20.dp, fsStrip = 11.5.dp,
     )
 }
 
@@ -551,53 +544,38 @@ private fun Badge(m: SourceMetrics, text: String) {
 /* ---------------------------------------------------------------------- strip */
 
 /**
- * The assurance strip, four cells across.
+ * The assurance strip, four cells across — a footnote, and drawn as one.
  *
- * Its second line **wraps** rather than ellipsising, and that is load-bearing: four
- * cells across a phone leave about 130dp of text each once the disc is paid for, and
- * these sentences do not fit one line at any frame this ships to — measured in all
- * twelve. The line is what gives, not the sentence.
+ * It says nothing a reader needs in order to choose, and this screen exists for one
+ * choice, so it takes the least room that still lets it be read: one line per cell,
+ * no second sentence, no pane and no border around it. A panel would make it a fifth
+ * thing to look at beside the four that matter.
+ *
+ * Shrinking it is what let the cards grow to 119dp on the reference phone from 94 —
+ * and with them the third line of description that Spanish and Portuguese were losing.
+ * The four ways in are the screen; everything else on it is trim.
  */
 @Composable
 private fun AssuranceStrip(m: SourceMetrics) {
-    val colors = CastivioTheme.colors
     Row(
-        Modifier
-            .fillMaxWidth()
-            .height(m.strip)
-            .clip(RoundedCornerShape(m.radius))
-            .background(colors.glassFill)
-            .border(BorderStroke(1.dp, Palette.EdgeQuiet), RoundedCornerShape(m.radius))
-            .padding(horizontal = m.strip * STRIP_PAD),
+        Modifier.fillMaxWidth().height(m.strip).padding(horizontal = m.strip * STRIP_PAD),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        StripCell(m, Palette.Violet50, Icons.Rounded.VerifiedUser,
-            R.string.source_trust_private_title, R.string.source_trust_private_detail)
-        StripCell(m, Palette.Azure50, Icons.Rounded.Speed,
-            R.string.source_trust_fast_title, R.string.source_trust_fast_detail)
-        StripCell(m, Palette.Success, Icons.Rounded.Lock,
-            R.string.source_trust_guard_title, R.string.source_trust_guard_detail)
-        StripCell(m, Palette.Amber, Icons.Rounded.Tune,
-            R.string.source_trust_formats_title, R.string.source_trust_formats_detail)
+        StripCell(m, Palette.Violet50, Icons.Rounded.VerifiedUser, R.string.source_trust_private_title)
+        StripCell(m, Palette.Azure50, Icons.Rounded.Speed, R.string.source_trust_fast_title)
+        StripCell(m, Palette.Success, Icons.Rounded.Lock, R.string.source_trust_guard_title)
+        StripCell(m, Palette.Amber, Icons.Rounded.Tune, R.string.source_trust_formats_title)
     }
 }
 
 @Composable
-private fun RowScope.StripCell(
-    m: SourceMetrics,
-    hue: Color,
-    icon: ImageVector,
-    title: Int,
-    detail: Int,
-) {
-    val colors = CastivioTheme.colors
+private fun RowScope.StripCell(m: SourceMetrics, hue: Color, icon: ImageVector, title: Int) {
     val head = stringResource(title)
-    val body = stringResource(detail)
     Row(
         Modifier
             .weight(1f)
             .padding(horizontal = m.strip * CELL_PAD)
-            .semantics(mergeDescendants = true) { contentDescription = "$head. $body" },
+            .semantics(mergeDescendants = true) { contentDescription = head },
         horizontalArrangement = Arrangement.spacedBy(m.strip * CELL_GAP),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -606,31 +584,19 @@ private fun RowScope.StripCell(
                 .size(m.stripDisc)
                 .clip(RoundedCornerShape(percent = 50))
                 .background(hue.copy(alpha = CELL_FILL))
-                .border(BorderStroke(1.dp, hue.copy(alpha = DISC_EDGE)), RoundedCornerShape(percent = 50)),
+                .border(BorderStroke(1.dp, hue.copy(alpha = CELL_EDGE)), RoundedCornerShape(percent = 50)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(icon, contentDescription = null, tint = hue, modifier = Modifier.size(m.stripDisc * DISC_ICON))
         }
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = head,
-                style = chipStyle(m.fsStrip).copy(fontWeight = FontWeight.Bold),
-                color = Palette.White,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = body,
-                style = CastivioType.bodySmall.copy(
-                    fontSize = m.fsStripDetail.value.sp,
-                    lineHeight = (m.fsStripDetail.value * STRIP_LEADING).sp,
-                    letterSpacing = 0.sp,
-                ),
-                color = colors.onBackgroundMuted,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+        Text(
+            text = head,
+            style = chipStyle(m.fsStrip).copy(fontWeight = FontWeight.SemiBold),
+            color = CastivioTheme.colors.onBackgroundMuted,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
@@ -649,7 +615,6 @@ private const val WORD_RATIO = 0.80f
 private const val TITLE_LEADING = 1.35f
 private const val CHIP_LEADING = 1.45f
 private const val BODY_LEADING = 1.5f
-private const val STRIP_LEADING = 1.3f
 
 /** An icon beside type, as a multiple of that type's size. */
 private const val ICON_RATIO = 1.25f
@@ -669,7 +634,8 @@ private const val DISC_EDGE = 0.46f
 private const val STRIP_PAD = 0.22f
 private const val CELL_PAD = 0.16f
 private const val CELL_GAP = 0.18f
-private const val CELL_FILL = 0.14f
+private const val CELL_FILL = 0.10f
+private const val CELL_EDGE = 0.26f
 
 /**
  * The suggested card's edge and the light around it.

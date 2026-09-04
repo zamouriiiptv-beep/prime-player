@@ -119,11 +119,7 @@
     <string name="source_local_hint">دعم جميع الصيغ الشائعة.</string>
     <string name="source_users_hint">إدارة سهلة لجميع اشتراكاتك.</string>
     <string name="source_trust_private_title">آمن وخاص</string>
-    <string name="source_trust_private_detail">لا نقوم بتخزين بياناتك أو مشاركتها.</string>
     <string name="source_trust_fast_title">سريع ومستقر</string>
-    <string name="source_trust_fast_detail">أداء عالٍ وتجربة سلسة.</string>
     <string name="source_trust_guard_title">حماية كاملة</string>
-    <string name="source_trust_guard_detail">خصوصيتك هي أولويتنا.</string>
     <string name="source_trust_formats_title">دعم متعدد</string>
-    <string name="source_trust_formats_detail">جميع الصيغ مدعومة.</string>
 </resources>

@@ -149,11 +149,7 @@
     <string name="source_users_hint">Easy management of all your subscriptions.</string>
     <!-- The assurance strip under the four choices. -->
     <string name="source_trust_private_title">Safe and private</string>
-    <string name="source_trust_private_detail">We do not store or share your data.</string>
     <string name="source_trust_fast_title">Fast and steady</string>
-    <string name="source_trust_fast_detail">High performance, a smooth experience.</string>
     <string name="source_trust_guard_title">Full protection</string>
-    <string name="source_trust_guard_detail">Your privacy is our priority.</string>
     <string name="source_trust_formats_title">Broad support</string>
-    <string name="source_trust_formats_detail">All formats supported.</string>
 </resources>
