@@ -99,11 +99,10 @@ html[data-frame="tv"]{
   --back:44px; --back-pad:11px; --fs-back:13px;
   --band-top:22px; --grid-gap:18px; --card-max:168px;
   --card-pad:16px; --card-gap:16px; --disc:72px; --chev:24px;
-  --fs-card:20px; --fs-desc:13.5px; --fs-badge:13px; --desc-lines:4;
+  --fs-card:15.8px; --fs-desc:13.5px; --fs-badge:13px; --desc-lines:4;
   --radius:20px;
-  --sub:26px; --fs-sub:13.5px;
   --trust:40px; --trust-gap:14px; --trust-disc:26px;
-  --fs-trust:12.5px;
+  --fs-trust:13px;
 }
 /* The tablet. One frame, shared with the activation screen: the same 140dp
    edge, the same 160/140 top and bottom, so a 1000dp content block sits in the
@@ -116,9 +115,8 @@ html[data-frame="tab"]{
   --back:40px; --back-pad:12px; --fs-back:12.5px;
   --band-top:24px; --grid-gap:20px; --card-max:180px;
   --card-pad:20px; --card-gap:18px; --disc:72px; --chev:22px;
-  --fs-card:17px; --fs-desc:13px; --fs-badge:12.5px; --desc-lines:3;
+  --fs-card:15px; --fs-desc:13px; --fs-badge:12.5px; --desc-lines:3;
   --radius:20px;
-  --sub:22px; --fs-sub:13px;
   --trust:36px; --trust-gap:14px; --trust-disc:24px;
   --fs-trust:12.5px;
 }
@@ -129,11 +127,10 @@ html[data-frame="p873"]{
   --back:36px; --back-pad:12px; --fs-back:12px;
   --band-top:10px; --grid-gap:14px; --card-max:132px;
   --card-pad:10px; --card-gap:12px; --disc:52px; --chev:18px;
-  --fs-card:15.5px; --fs-desc:13px; --fs-badge:12px; --desc-lines:3;
+  --fs-card:14.7px; --fs-desc:13px; --fs-badge:12px; --desc-lines:3;
   --radius:17px;
-  --sub:20px; --fs-sub:13px;
   --trust:32px; --trust-gap:10px; --trust-disc:20px;
-  --fs-trust:11.5px;
+  --fs-trust:12px;
 }
 html[data-frame="p800"]{
   --W:800px; --H:360px;
@@ -142,11 +139,10 @@ html[data-frame="p800"]{
   --back:34px; --back-pad:11px; --fs-back:11.5px;
   --band-top:8px; --grid-gap:12px; --card-max:124px;
   --card-pad:9px; --card-gap:11px; --disc:50px; --chev:17px;
-  --fs-card:14.5px; --fs-desc:12.5px; --fs-badge:11.5px; --desc-lines:3;
+  --fs-card:14.1px; --fs-desc:12.5px; --fs-badge:11.5px; --desc-lines:3;
   --radius:16px;
-  --sub:18px; --fs-sub:12.5px;
   --trust:30px; --trust-gap:8px; --trust-disc:19px;
-  --fs-trust:11px;
+  --fs-trust:11.5px;
 }
 
 *{box-sizing:border-box;margin:0;padding:0}
@@ -213,8 +209,6 @@ html[dir="rtl"] .back svg{transform:scaleX(-1)}
    whatever happens to sit at the line's starting edge. Aligned to the start it
    landed beneath Back in Arabic and beneath the wordmark in English, which
    reads as a caption for the wrong thing in both. */
-.sub{flex:0 0 auto;height:var(--sub);display:flex;align-items:center;
-  justify-content:center;font-size:var(--fs-sub);line-height:1.4;color:var(--text-3)}
 
 /* ------------------------------------------------------------------- grid */
 .band{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;
@@ -353,7 +347,6 @@ html[data-trust="0"] .band{gap:0}
       <div class="back"><span data-icon="chevron"></span><span data-s="back">رجوع</span></div>
     </div>
 
-    <p class="sub" data-s="sub">أضف طريقة التشغيل المفضل لديك لبدء المشاهدة</p>
 
     <div class="band">
       <div class="grid">
@@ -403,10 +396,6 @@ html[data-trust="0"] .band{gap:0}
           <span class="tx"><b data-s="t1">آمن وخاص</b></span></div>
         <div class="cell" style="--hue:var(--h-xtream)"><span class="ic" data-icon="gauge"></span>
           <span class="tx"><b data-s="t2">سريع ومستقر</b></span></div>
-        <div class="cell" style="--hue:var(--h-users)"><span class="ic" data-icon="lock"></span>
-          <span class="tx"><b data-s="t3">حماية كاملة</b></span></div>
-        <div class="cell" style="--hue:var(--h-local)"><span class="ic" data-icon="gear"></span>
-          <span class="tx"><b data-s="t4">دعم متعدد</b></span></div>
       </div>
     </div>
 
@@ -442,35 +431,26 @@ var ICON = {
 };
 
 var EN = {title:"Choose how to add", back:"Back", badge:"Fastest",
-  sub:"Add your preferred playback method to start watching",
   m3uT:"M3U playlist", m3uD:'Add a playlist link in M3U format. <span class="hint">One long link, usually sent by email.</span>',
   xT:"Xtream Codes", xD:'A server address, a username and a password. <span class="hint">Full support for Xtream features.</span>',
   uT:"User list", uD:'Add and switch between Xtream and M3U subscriptions. <span class="hint">Easy management of all your subscriptions.</span>',
   lT:"Play a local video", lD:'Play a video file stored on the device. <span class="hint">All common formats supported.</span>',
   t1:"Safe and private",
-  t2:"Fast and steady",
-  t3:"Full protection",
-  t4:"Broad support"};
+  t2:"Fast and steady"};
 var ES = {title:"Elige cómo añadir", back:"Atrás", badge:"Más rápido",
-  sub:"Añade tu método de reproducción preferido para empezar",
   m3uT:"Lista M3U", m3uD:'Añade un enlace de lista en formato M3U. <span class="hint">Un enlace largo, normalmente enviado por correo.</span>',
   xT:"Xtream Codes", xD:'Una dirección de servidor, un usuario y una contraseña. <span class="hint">Compatibilidad total con Xtream.</span>',
   uT:"Lista de usuarios", uD:'Añade y cambia entre suscripciones Xtream y M3U. <span class="hint">Gestión sencilla de todas tus suscripciones.</span>',
   lT:"Vídeo del dispositivo", lD:'Reproduce un archivo guardado en el dispositivo. <span class="hint">Compatible con los formatos habituales.</span>',
   t1:"Seguro y privado",
-  t2:"Rápido y estable",
-  t3:"Protección total",
-  t4:"Soporte amplio"};
+  t2:"Rápido y estable"};
 var PT = {title:"Escolha como adicionar", back:"Voltar", badge:"Mais rápido",
-  sub:"Adicione o seu método de reprodução preferido para começar",
   m3uT:"Lista M3U", m3uD:'Adicione uma ligação de lista em formato M3U. <span class="hint">Uma ligação longa, normalmente enviada por email.</span>',
   xT:"Xtream Codes", xD:'Um endereço de servidor, um utilizador e uma palavra-passe. <span class="hint">Suporte completo para o Xtream.</span>',
   uT:"Lista de utilizadores", uD:'Adicione e alterne entre subscrições Xtream e M3U. <span class="hint">Gestão simples de todas as suas subscrições.</span>',
   lT:"Vídeo do dispositivo", lD:'Reproduza um ficheiro guardado no dispositivo. <span class="hint">Compatível com os formatos comuns.</span>',
   t1:"Seguro e privado",
-  t2:"Rápido e estável",
-  t3:"Proteção total",
-  t4:"Suporte amplo"};
+  t2:"Rápido e estável"};
 
 (function () {
   var q = new URLSearchParams(location.search);
