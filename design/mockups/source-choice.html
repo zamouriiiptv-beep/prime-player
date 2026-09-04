@@ -55,6 +55,20 @@
 @font-face{font-family:"Castivio Arabic";font-weight:700;src:url("../../core/design/src/main/res/font/plex_arabic_bold.ttf") format("truetype")}
 
 :root{
+  /* ## One type scale, and it is the activation screen's
+     Every size on this screen is a step the activation screen already sets:
+     the title is its fsTitle, a card's name its fsLabel, a card's description
+     its fsCaption, the badge and Back its fsChip. Nothing here is a size chosen
+     for this screen.
+
+     It was, and that is what produced the note this pass answers. A second
+     scale invented locally -- 22/17/16 for a card's name, 14.5/12.5/12 for its
+     description -- is not just an inconsistency between two screens the user
+     sees one after the other. It is the thing that made the copy fit, so when
+     the assurance strip did not fit either, the sentences were cut down to
+     "does not leave the device" and "no sign-up" rather than the layout being
+     made to admit it could not hold them. Compressing the type is how a layout
+     hides that it is too small; the sentences pay for it. */
   --word-ratio:.80;
   --ink:#05040E;
   --white:#FFFFFF;
@@ -82,37 +96,37 @@ html[data-frame="tv"]{
   --W:960px; --H:540px;
   --edge:46px; --top:24px; --bottom:22px;
   --header:54px; --head-gap:26px; --brand:40px; --fs-title:26px;
-  --back:44px; --back-pad:14px; --fs-back:14px;
+  --back:44px; --back-pad:11px; --fs-back:13px;
   --band-top:20px; --grid-gap:18px; --card-max:176px;
   --card-pad:22px; --card-gap:20px; --disc:84px; --chev:26px;
-  --fs-card:22px; --fs-desc:14.5px; --fs-badge:12.5px; --desc-lines:4;
+  --fs-card:20px; --fs-desc:13.5px; --fs-badge:13px; --desc-lines:4;
   --radius:22px;
   --trust:64px; --trust-gap:18px; --trust-disc:38px;
-  --fs-trust:13.5px; --fs-trust2:12.5px;
+  --fs-trust:13.5px; --fs-trust2:13px;
 }
 html[data-frame="p873"]{
   --W:873px; --H:393px;
   --edge:32px; --top:15px; --bottom:11px;
   --header:42px; --head-gap:24px; --brand:31px; --fs-title:20px;
-  --back:36px; --back-pad:12px; --fs-back:12.5px;
+  --back:36px; --back-pad:12px; --fs-back:12px;
   --band-top:12px; --grid-gap:14px; --card-max:132px;
   --card-pad:16px; --card-gap:15px; --disc:62px; --chev:20px;
-  --fs-card:17px; --fs-desc:12.5px; --fs-badge:11px; --desc-lines:3;
+  --fs-card:15.5px; --fs-desc:13px; --fs-badge:12px; --desc-lines:3;
   --radius:18px;
   --trust:54px; --trust-gap:12px; --trust-disc:30px;
-  --fs-trust:12.5px; --fs-trust2:11.5px;
+  --fs-trust:13px; --fs-trust2:12px;
 }
 html[data-frame="p800"]{
   --W:800px; --H:360px;
   --edge:26px; --top:11px; --bottom:8px;
   --header:36px; --head-gap:20px; --brand:28px; --fs-title:19px;
-  --back:34px; --back-pad:11px; --fs-back:12px;
+  --back:34px; --back-pad:11px; --fs-back:11.5px;
   --band-top:10px; --grid-gap:12px; --card-max:124px;
   --card-pad:14px; --card-gap:13px; --disc:56px; --chev:18px;
-  --fs-card:16px; --fs-desc:12px; --fs-badge:10.5px; --desc-lines:3;
+  --fs-card:14.5px; --fs-desc:12.5px; --fs-badge:11.5px; --desc-lines:3;
   --radius:16px;
   --trust:48px; --trust-gap:10px; --trust-disc:27px;
-  --fs-trust:12px; --fs-trust2:11px;
+  --fs-trust:12.5px; --fs-trust2:11.5px;
 }
 
 *{box-sizing:border-box;margin:0;padding:0}
@@ -354,13 +368,13 @@ html[data-trust="0"] .band{gap:0}
 
       <div class="trust">
         <div class="cell" style="--hue:var(--h-m3u)"><span class="ic" data-icon="shield"></span>
-          <span class="tx"><b data-s="t1">بياناتك على جهازك</b><span data-s="t1b">لا تغادر الجهاز</span></span></div>
+          <span class="tx"><b data-s="t1">بياناتك على جهازك</b><span data-s="t1b">لا تُرسل بيانات الاشتراك إلى خوادمنا.</span></span></div>
         <div class="cell" style="--hue:var(--h-xtream)"><span class="ic" data-icon="gauge"></span>
-          <span class="tx"><b data-s="t2">سريع ومستقر</b><span data-s="t2b">أداء عالٍ</span></span></div>
+          <span class="tx"><b data-s="t2">سريع ومستقر</b><span data-s="t2b">أداء عالٍ وتجربة سلسة.</span></span></div>
         <div class="cell" style="--hue:var(--h-users)"><span class="ic" data-icon="lock"></span>
-          <span class="tx"><b data-s="t3">يعمل بلا حساب</b><span data-s="t3b">لا تسجيل</span></span></div>
+          <span class="tx"><b data-s="t3">يعمل بلا حساب</b><span data-s="t3b">لا تسجيل ولا بريد إلكتروني.</span></span></div>
         <div class="cell" style="--hue:var(--h-local)"><span class="ic" data-icon="gear"></span>
-          <span class="tx"><b data-s="t4">صيغ متعددة</b><span data-s="t4b">M3U وXtream</span></span></div>
+          <span class="tx"><b data-s="t4">صيغ متعددة</b><span data-s="t4b">M3U وXtream والملفات المحلية.</span></span></div>
       </div>
     </div>
   </div>
@@ -399,28 +413,28 @@ var EN = {title:"Choose how to add", back:"Back", badge:"Simplest",
   xT:"Xtream Codes", xD:'A server address, a username and a password. <span class="hint">Full support for Xtream features.</span>',
   uT:"User list", uD:'Add and switch between Xtream and M3U subscriptions. <span class="hint">Easy management of all your subscriptions.</span>',
   lT:"Play a local video", lD:'Play a video file stored on the device. <span class="hint">All common formats supported.</span>',
-  t1:"Your data stays here", t1b:"Never leaves the device",
-  t2:"Fast and steady", t2b:"High performance",
-  t3:"No account needed", t3b:"No sign-up",
-  t4:"Many formats", t4b:"M3U, Xtream, local"};
+  t1:"Your data stays here", t1b:"Subscription details are never sent to our servers.",
+  t2:"Fast and steady", t2b:"High performance, smooth playback.",
+  t3:"No account needed", t3b:"No sign-up, no email address.",
+  t4:"Many formats", t4b:"M3U, Xtream and local files."};
 var ES = {title:"Elige cómo añadir", back:"Atrás", badge:"Más sencillo",
   m3uT:"Lista M3U", m3uD:'Añade un enlace de lista en formato M3U. <span class="hint">Un enlace largo, normalmente enviado por correo.</span>',
   xT:"Xtream Codes", xD:'Una dirección de servidor, un usuario y una contraseña. <span class="hint">Compatibilidad total con Xtream.</span>',
   uT:"Lista de usuarios", uD:'Añade y cambia entre suscripciones Xtream y M3U. <span class="hint">Gestión sencilla de todas tus suscripciones.</span>',
   lT:"Vídeo del dispositivo", lD:'Reproduce un archivo guardado en el dispositivo. <span class="hint">Compatible con los formatos habituales.</span>',
-  t1:"Tus datos se quedan aquí", t1b:"No salen del dispositivo",
-  t2:"Rápido y estable", t2b:"Alto rendimiento",
-  t3:"Sin cuenta", t3b:"Sin registro",
-  t4:"Muchos formatos", t4b:"M3U, Xtream, locales"};
+  t1:"Tus datos se quedan aquí", t1b:"Los datos de suscripción nunca salen del dispositivo.",
+  t2:"Rápido y estable", t2b:"Alto rendimiento y reproducción fluida.",
+  t3:"Sin cuenta", t3b:"Sin registro ni correo electrónico.",
+  t4:"Muchos formatos", t4b:"M3U, Xtream y archivos locales."};
 var PT = {title:"Escolha como adicionar", back:"Voltar", badge:"Mais simples",
   m3uT:"Lista M3U", m3uD:'Adicione uma ligação de lista em formato M3U. <span class="hint">Uma ligação longa, normalmente enviada por email.</span>',
   xT:"Xtream Codes", xD:'Um endereço de servidor, um utilizador e uma palavra-passe. <span class="hint">Suporte completo para o Xtream.</span>',
   uT:"Lista de utilizadores", uD:'Adicione e alterne entre subscrições Xtream e M3U. <span class="hint">Gestão simples de todas as suas subscrições.</span>',
   lT:"Vídeo do dispositivo", lD:'Reproduza um ficheiro guardado no dispositivo. <span class="hint">Compatível com os formatos comuns.</span>',
-  t1:"Os seus dados ficam aqui", t1b:"Não saem do dispositivo",
-  t2:"Rápido e estável", t2b:"Alto desempenho",
-  t3:"Sem conta", t3b:"Sem registo",
-  t4:"Vários formatos", t4b:"M3U, Xtream, locais"};
+  t1:"Os seus dados ficam aqui", t1b:"Os dados de subscrição nunca saem do dispositivo.",
+  t2:"Rápido e estável", t2b:"Alto desempenho e reprodução fluida.",
+  t3:"Sem conta", t3b:"Sem registo nem email.",
+  t4:"Vários formatos", t4b:"M3U, Xtream e ficheiros locais."};
 
 (function () {
   var q = new URLSearchParams(location.search);
@@ -460,17 +474,6 @@ var PT = {title:"Escolha como adicionar", back:"Voltar", badge:"Mais simples",
     var size = parseFloat(getComputedStyle(b).fontSize), floor = size * 0.78, guard = 0;
     while (b.scrollWidth > b.clientWidth + 0.5 && size > floor && guard++ < 40) {
       size *= 0.95; b.style.fontSize = size + 'px';
-    }
-  });
-
-  /* The strip's labels fit rather than ellipsise -- shown at its best, so the
-     question stays about whether it belongs and not about a fixable bug.
-     Spanish and Portuguese need it: "Tus datos se quedan aquí" does not fit a
-     quarter of a phone frame beside a disc at the drawn size. */
-  document.querySelectorAll('.trust .tx b, .trust .tx span').forEach(function (n) {
-    var size = parseFloat(getComputedStyle(n).fontSize), floor = size * 0.82, guard = 0;
-    while (n.scrollWidth > n.clientWidth + 0.5 && size > floor && guard++ < 40) {
-      size *= 0.95; n.style.fontSize = size + 'px';
     }
   });
 
