@@ -336,14 +336,22 @@ class SourceChoiceLayoutTest {
             abs((xtream.left - local.left).value) <= 1f,
         )
 
-        // Heading above the container, container above the sentence. The sequence the
-        // scroll destroyed, now with the container in the middle of it.
+        // Heading above the grid, grid above the sentence — the sequence the scroll
+        // destroyed. It used to be stated against a glass container between the two;
+        // there is no such surface now, the cards sit on the ground, so the sequence
+        // is asserted against the grid itself. That is the claim that always
+        // mattered: this screen reads top to bottom and does not scroll.
+        //
+        // Back has moved to the top of that sequence rather than the bottom of it,
+        // which is what was asked for, so the assertion is inverted rather than
+        // dropped. Putting it back under the cards fails here.
         val panel = bounds(ActivationTags.SOURCE_CONTAINER)
-        assertTrue("${frame.width}: the heading is not above the container", heading.bottom <= panel.top)
-        assertTrue("${frame.width}: Back is not below the grid", back.top >= local.bottom)
+        assertTrue("${frame.width}: the heading is not above the grid", heading.bottom <= xtream.top)
+        assertTrue("${frame.width}: Back is not above the grid", back.bottom <= xtream.top)
+        assertTrue("${frame.width}: the sentence is not below the grid", terms.top >= local.bottom)
 
-        // The container really contains them: all four cards and Back inside its
-        // bounds, none of them touching an edge. "There is a container" is otherwise
+        // The stage really contains them: all four cards and Back inside its bounds,
+        // none of them touching an edge. "Everything is on the screen" is otherwise
         // a claim only a screenshot can settle.
         for ((what, box) in CARD_TAGS.map { it.substringAfterLast('.') }.zip(cards.map { it.second }) +
             listOf("Back" to back)) {
