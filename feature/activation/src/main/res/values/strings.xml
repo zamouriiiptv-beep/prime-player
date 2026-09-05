@@ -146,6 +146,11 @@
     <string name="source_m3u_hint">One long link, usually sent by e-mail.</string>
     <string name="source_local_hint">All common formats supported.</string>
     <string name="source_users_hint">Easy management of all your subscriptions.</string>
+    <!-- The local-media chooser: the line under its name, and its own footnote. -->
+    <string name="media_source_subtitle">Choose how you want to play your content</string>
+    <string name="media_trust_sources_title">Multiple sources</string>
+    <string name="media_trust_sync_title">Automatic sync</string>
+    <string name="media_trust_organised_title">Organised content</string>
     <!-- The assurance strip under the four choices. -->
     <string name="source_trust_private_title">Safe and private</string>
     <string name="source_trust_fast_title">Fast and steady</string>

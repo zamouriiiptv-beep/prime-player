@@ -104,9 +104,11 @@ internal data class SourceMetrics(
     val disc: Dp,
     val chevron: Dp,
     val detailLines: Int,
+    val subBand: Dp,
     val strip: Dp,
     val stripGap: Dp,
     val stripDisc: Dp,
+    val stripCells: Int,
 ) {
     /* The frame's numbers, reachable as this screen's own. */
     val edge get() = frame.edge
@@ -141,25 +143,25 @@ internal data class SourceMetrics(
 
 internal fun sourceMetricsFor(tv: Boolean, available: Dp): SourceMetrics = when {
     tv -> SourceMetrics(
-        frame = CastivioFrame.Television,
+        frame = CastivioFrame.Television, subBand = 26.dp, stripCells = 3,
         gridGap = 18.dp, cardPad = 16.dp, cardGap = 16.dp, disc = 72.dp, chevron = 24.dp,
         detailLines = 4,
         strip = 40.dp, stripGap = 14.dp, stripDisc = 26.dp,
     )
     available >= TABLET_FRAME -> SourceMetrics(
-        frame = CastivioFrame.Tablet,
+        frame = CastivioFrame.Tablet, subBand = 22.dp, stripCells = 3,
         gridGap = 20.dp, cardPad = 20.dp, cardGap = 18.dp, disc = 72.dp, chevron = 22.dp,
         detailLines = 3,
         strip = 36.dp, stripGap = 14.dp, stripDisc = 24.dp,
     )
     available < SHORT_FRAME -> SourceMetrics(
-        frame = CastivioFrame.ShortPhone,
+        frame = CastivioFrame.ShortPhone, subBand = 18.dp, stripCells = 2,
         gridGap = 12.dp, cardPad = 9.dp, cardGap = 11.dp, disc = 50.dp, chevron = 17.dp,
         detailLines = 3,
         strip = 30.dp, stripGap = 8.dp, stripDisc = 19.dp,
     )
     else -> SourceMetrics(
-        frame = CastivioFrame.Phone,
+        frame = CastivioFrame.Phone, subBand = 20.dp, stripCells = 2,
         gridGap = 14.dp, cardPad = 10.dp, cardGap = 12.dp, disc = 52.dp, chevron = 18.dp,
         detailLines = 3,
         strip = 32.dp, stripGap = 10.dp, stripDisc = 20.dp,
@@ -259,7 +261,7 @@ internal fun SourceChoiceScreen(
             )
 
             Spacer(Modifier.height(m.stripGap))
-            AssuranceStrip(m)
+            AssuranceStrip(m, SOURCE_CLAIMS)
         }
     }
 }
@@ -466,71 +468,6 @@ private fun Badge(m: SourceMetrics, text: String) {
     }
 }
 
-/* ---------------------------------------------------------------------- strip */
-
-/**
- * The assurance strip — a footnote, and drawn as one.
- *
- * It says nothing a reader needs in order to choose, and this screen exists for one
- * choice, so it takes the least room that still lets it be read: one line per cell,
- * no second sentence, no pane and no border around it. A panel would make it a fifth
- * thing to look at beside the four that matter.
- *
- * ## Two cells, and it used to be four
- *
- * *Safe and private* and *full protection* were one claim written twice — half a
- * footnote spent saying the same thing to the same reader — and *broad support*
- * repeated the local-file card's own description from 100dp away, where the sentence
- * actually means something because it is attached to the thing it describes.
- *
- * What the two survivors buy is width: a cell is now half the strip rather than a
- * quarter, so the sentences read at [CastivioFrame.fsChip] instead of at a step
- * invented locally to make four of them fit. Compressing type is how a layout hides
- * that it is holding more than it should.
- */
-@Composable
-private fun AssuranceStrip(m: SourceMetrics) {
-    Row(
-        Modifier.fillMaxWidth().height(m.strip).padding(horizontal = m.strip * STRIP_PAD),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        StripCell(m, Palette.Violet50, Icons.Rounded.VerifiedUser, R.string.source_trust_private_title)
-        StripCell(m, Palette.Azure50, Icons.Rounded.Speed, R.string.source_trust_fast_title)
-    }
-}
-
-@Composable
-private fun RowScope.StripCell(m: SourceMetrics, hue: Color, icon: ImageVector, title: Int) {
-    val head = stringResource(title)
-    Row(
-        Modifier
-            .weight(1f)
-            .padding(horizontal = m.strip * CELL_PAD)
-            .semantics(mergeDescendants = true) { contentDescription = head },
-        horizontalArrangement = Arrangement.spacedBy(m.strip * CELL_GAP),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            Modifier
-                .size(m.stripDisc)
-                .clip(RoundedCornerShape(percent = 50))
-                .background(hue.copy(alpha = CELL_FILL))
-                .border(BorderStroke(1.dp, hue.copy(alpha = CELL_EDGE)), RoundedCornerShape(percent = 50)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(icon, contentDescription = null, tint = hue, modifier = Modifier.size(m.stripDisc * DISC_ICON))
-        }
-        Text(
-            text = head,
-            style = castivioChipStyle(m.fsStrip).copy(fontWeight = FontWeight.SemiBold),
-            color = CastivioTheme.colors.onBackgroundMuted,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-    }
-}
-
 /* --------------------------------------------------------------------- ratios */
 
 
@@ -545,16 +482,36 @@ private const val BADGE_PAD = 0.62f
 private const val BADGE_PAD_Y = 0.17f
 private const val BADGE_ICON_GAP = 0.34f
 
-private const val DISC_ICON = 0.5f
+/**
+ * A glyph inside its disc, as a fraction of the disc.
+ *
+ * `internal` because the assurance strip draws the same relationship in its own
+ * file and must not hold a second opinion about it: 0.5 here and 0.52 there is
+ * the kind of difference nobody can point at and everybody sees.
+ */
+internal const val DISC_ICON = 0.5f
+
+/**
+ * What this screen's footnote says.
+ *
+ * Two claims, and it used to be four. *Safe and private* and *full protection* were
+ * one claim written twice — half a footnote spent saying the same thing to the same
+ * reader — and *broad support* repeated the local-file card's own description from
+ * 100dp away, where the sentence actually means something because it is attached to
+ * the thing it describes.
+ *
+ * What the two survivors buy is width: a cell is half the strip rather than a
+ * quarter, so the lines read at the frame's own chip step instead of at a step
+ * invented locally to make four of them fit.
+ */
+private val SOURCE_CLAIMS = listOf(
+    StripClaim(Palette.Violet50, Icons.Rounded.VerifiedUser, R.string.source_trust_private_title),
+    StripClaim(Palette.Azure50, Icons.Rounded.Speed, R.string.source_trust_fast_title),
+)
 private const val DISC_TOP = 0.34f
 private const val DISC_FOOT = 0.08f
 private const val DISC_EDGE = 0.46f
 
-private const val STRIP_PAD = 0.22f
-private const val CELL_PAD = 0.16f
-private const val CELL_GAP = 0.18f
-private const val CELL_FILL = 0.10f
-private const val CELL_EDGE = 0.26f
 
 /**
  * The suggested card's edge and the light around it.

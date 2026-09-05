@@ -84,6 +84,7 @@ class FrameSweepTest {
         val direction: LayoutDirection,
     ) {
         val frame: CastivioFrame get() = castivioFrame(tv, height)
+        val strip: Dp get() = sourceMetricsFor(tv, height).strip
         val device: DeviceClass get() = if (tv) DeviceClass.Television else DeviceClass.Expanded
         override fun toString() = "$name ${if (direction == LayoutDirection.Rtl) "RTL" else "LTR"}"
     }
@@ -232,6 +233,91 @@ class FrameSweepTest {
             heading = ActivationTags.MEDIA_HEADING,
             back = ActivationTags.MEDIA_BACK,
         )
+    }
+
+    /**
+     * The local-media chooser's second line, and the footnote under its cards.
+     *
+     * Two claims that only this screen makes, both of them about *where* things are
+     * rather than what they say — which is the half Robolectric can be trusted with.
+     *
+     * The sentence is measured against the heading it belongs to: below it, and on
+     * the same centre. Written as a sibling of the header it was neither — its own
+     * centring rules did nothing, so it sat at the reader's starting edge, under Back
+     * in Arabic, while the box it was measured in still spanned the stage and
+     * reported no offset at all. That is why this asserts the node's position
+     * against the *title* rather than against the container: a full-width box passes
+     * the container test by construction.
+     *
+     * The strip is measured against the stage's floor: it is the last thing on the
+     * screen, so nothing may be below it, and the grid above it must have given way
+     * rather than pushed it off.
+     */
+    @Test
+    fun `the media chooser carries its subtitle and its strip on every frame`() {
+        compose.sweep { MediaSourceScreen({}, {}, {}, {}, onBack = {}) }
+
+        val stages = compose.all(ActivationTags.MEDIA_CONTAINER)
+        val titles = compose.all(ActivationTags.MEDIA_HEADING)
+        val subs = compose.all(ActivationTags.MEDIA_SUBTITLE)
+        val strips = compose.all(ActivationTags.MEDIA_STRIP)
+        val cards = compose.all(ActivationTags.MEDIA_AUDIO_LIBRARY)
+
+        passes.forEachIndexed { i, pass ->
+            val panel = stages[i]
+            val title = titles[i]
+            val sub = subs[i]
+            val strip = strips[i]
+
+            assertTrue(
+                "$pass: the subtitle ${sub.top} is not under the title ${title.bottom}",
+                sub.top >= title.bottom,
+            )
+            val titleCentre = (title.left + title.right) / 2
+            val subCentre = (sub.left + sub.right) / 2
+            assertTrue(
+                "$pass: the subtitle is centred on $subCentre, the title on $titleCentre",
+                abs((subCentre - titleCentre).value) <= 1f,
+            )
+            assertTrue(
+                "$pass: the subtitle ${sub.left}..${sub.right} runs past the stage " +
+                    "${panel.left}..${panel.right}",
+                sub.left >= panel.left && sub.right <= panel.right,
+            )
+
+            assertTrue(
+                "$pass: the strip is ${strip.height}, not the frame's ${pass.strip}",
+                abs((strip.height - pass.strip).value) <= 1f,
+            )
+            assertTrue(
+                "$pass: the strip ends at ${strip.bottom}, past the stage's " +
+                    "${panel.bottom} -- the grid did not give way",
+                strip.bottom <= panel.bottom + 1.dp,
+            )
+            assertTrue(
+                "$pass: the bottom row of cards ${cards[i].bottom} overlaps the strip " +
+                    "${strip.top}",
+                cards[i].bottom <= strip.top,
+            )
+        }
+    }
+
+    /**
+     * How many claims a frame can hold, which is a number and not a picture.
+     *
+     * Three on a television and a tablet, two on the phones. Asserted here rather
+     * than in the sweep because Robolectric does not lay text out, so the thing that
+     * actually forces the count -- a label wider than a third of the stage -- cannot
+     * be seen in this harness at all. What can be checked is that the table says what
+     * the drawing measured, and the drawing is where the width was measured.
+     */
+    @Test
+    fun `the strip drops its last claim on a phone`() {
+        val counts = passes.associate { it.name to sourceMetricsFor(it.tv, it.height).stripCells }
+        assertEquals(3, counts.getValue("television 960x540"))
+        assertEquals(3, counts.getValue("tablet 1280x800"))
+        assertEquals(2, counts.getValue("reference phone 873x393"))
+        assertEquals(2, counts.getValue("shortest phone 800x360"))
     }
 
     @Test

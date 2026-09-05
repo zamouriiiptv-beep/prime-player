@@ -103,6 +103,10 @@ internal object ActivationTags {
      */
     const val MEDIA_BACK = "media.back"
 
+    /** The sentence under the heading, and the footnote under the four cards. */
+    const val MEDIA_SUBTITLE = "media.subtitle"
+    const val MEDIA_STRIP = "media.strip"
+
     /**
      * The two libraries and the two pickers.
      *

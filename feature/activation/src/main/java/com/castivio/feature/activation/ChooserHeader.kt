@@ -1,19 +1,23 @@
 package com.castivio.feature.activation
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.sp
 import com.castivio.core.design.components.CastivioBackChip
 import com.castivio.core.design.components.CastivioHeader
 import com.castivio.core.design.components.CastivioHeaderTitle
 import com.castivio.core.design.components.CastivioLockup
+import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioTitleStyle
+import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Palette
 
 /**
@@ -41,8 +45,23 @@ import com.castivio.core.design.theme.Palette
  *
  * @param m the frame's numbers. [SourceMetrics] rather than a bare frame because these
  *   screens already carry one, and it is the frame with delegating names on it.
+ * ## The sentence under the name
+ *
+ * Optional, and it goes through [CastivioHeader] rather than being placed after it.
+ * A sibling under the header is centred on its parent; the title is centred on the
+ * row and clamped off it when a translation is long. Those are the same point until
+ * they are not, and "the sentence is under the title" has to be true in both cases
+ * or it is not a rule, it is a coincidence that held while nobody translated the
+ * screen.
+ *
+ * It is set a step quieter than a card's description — the description ink is
+ * for prose attached to the thing it describes, and this is under all four of them.
+ * At the same weight it would compete with the four sentences it sits above, which
+ * is the opposite of what a subtitle is for.
+ *
  * @param headingTag tagged per screen, so a layout test can say *this* screen's title
  *   is above *this* screen's content rather than that some heading exists.
+ * @param subtitle the sentence, or nothing. The header grows only when there is one.
  */
 @Composable
 internal fun ChooserHeader(
@@ -52,11 +71,26 @@ internal fun ChooserHeader(
     backTag: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    subtitleTag: String? = null,
 ) {
     CastivioHeader(
         height = m.header,
         gap = m.headGap,
         modifier = modifier.fillMaxWidth(),
+        subtitleHeight = m.subBand,
+        subtitle = subtitle?.let { line ->
+            {
+                Text(
+                    text = line,
+                    style = castivioBodyStyle(m.fsDetail),
+                    color = CastivioTheme.colors.onBackgroundMuted,
+                    maxLines = 1,
+                    textAlign = TextAlign.Center,
+                    modifier = subtitleTag?.let { Modifier.testTag(it) } ?: Modifier,
+                )
+            }
+        },
         lockup = {
             CastivioLockup(
                 markSize = m.brand,

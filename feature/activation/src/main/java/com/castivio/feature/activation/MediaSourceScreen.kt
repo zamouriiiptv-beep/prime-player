@@ -13,6 +13,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Dashboard
+import androidx.compose.material.icons.rounded.Layers
+import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,6 +35,7 @@ import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioDescriptionColor
 import com.castivio.core.design.icons.CastivioIcons
 import com.castivio.core.design.theme.CastivioTheme
+import com.castivio.core.design.theme.Palette
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.castivioStage
 
@@ -108,6 +113,8 @@ internal fun MediaSourceScreen(
                 headingTag = ActivationTags.MEDIA_HEADING,
                 backTag = ActivationTags.MEDIA_BACK,
                 onBack = onBack,
+                subtitle = stringResource(R.string.media_source_subtitle),
+                subtitleTag = ActivationTags.MEDIA_SUBTITLE,
             )
             Spacer(Modifier.height(m.bandTop))
 
@@ -122,9 +129,35 @@ internal fun MediaSourceScreen(
                 onAudioLibrary = onAudioLibrary,
                 onPickAudio = onPickAudio,
             )
+
+            Spacer(Modifier.height(m.stripGap))
+            AssuranceStrip(
+                m = m,
+                claims = MEDIA_CLAIMS,
+                modifier = Modifier.testTag(ActivationTags.MEDIA_STRIP),
+            )
         }
     }
 }
+
+/**
+ * What this screen's footnote says, most important first.
+ *
+ * The order is the order a narrow frame keeps: the two phone frames draw two cells
+ * and the television and the tablet three, so *organised content* is the claim that
+ * goes where there is not room for all of them — see [AssuranceStrip] for why the
+ * last is dropped rather than all three being set smaller.
+ *
+ * Three and not four. There is room for a fourth on the television, and every
+ * candidate was either one of these three restated in other words or something this
+ * screen cannot claim honestly; a cell that says nothing new is the reason readers
+ * stop reading strips like this one.
+ */
+private val MEDIA_CLAIMS = listOf(
+    StripClaim(Palette.Azure50, Icons.Rounded.Layers, R.string.media_trust_sources_title),
+    StripClaim(Palette.Violet50, Icons.Rounded.Sync, R.string.media_trust_sync_title),
+    StripClaim(Palette.Amber, Icons.Rounded.Dashboard, R.string.media_trust_organised_title),
+)
 
 /**
  * Two by two, equal in both directions.

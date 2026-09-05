@@ -112,10 +112,30 @@ import kotlin.math.max
  * The chips stay centred, because a pill is a shape and not a word — its ink is
  * its own outline, and an outline is centred, not seated.
  *
+ * ## The second line, when a screen has one
+ *
+ * A screen may put one sentence under its name. It belongs **here**, not beside
+ * the header as a sibling, and that is structural rather than tidy: "under the
+ * title" is only true if the two are centred on the same span, and a sibling is
+ * centred on whatever its parent happens to be. The drawing found this the hard
+ * way — the sentence was written as a sibling, its own centring rules therefore
+ * did nothing, and it sat under Back in Arabic while every measurement of it
+ * reported zero, because the box it was measured in did span the stage.
+ *
+ * It is centred on the row for the same reason the title is, so the two agree in
+ * the ordinary case; where a long translation has pushed the title off centre
+ * against a neighbour, the sentence stays put rather than following it into the
+ * clamp, because a caption that leans with its heading reads as two mistakes.
+ *
  * @param height the row's height. The chips are centred in it and the lockup
  *   with them; the title is then seated on the lockup's baseline.
  * @param gap the one spacing value: between the lockup and the title, and
  *   between the title and the chips.
+ * @param subtitle the optional sentence under the name. The header grows by
+ *   [subtitleHeight] when there is one and by nothing when there is not.
+ * @param subtitleHeight the band the sentence is centred in — a little taller
+ *   than the line, which is where the air between the two comes from. Ignored
+ *   without a [subtitle], and never smaller than the line it has to hold.
  */
 @Composable
 fun CastivioHeader(
@@ -125,14 +145,23 @@ fun CastivioHeader(
     title: @Composable () -> Unit,
     chips: @Composable () -> Unit,
     modifier: Modifier = Modifier,
+    subtitle: (@Composable () -> Unit)? = null,
+    subtitleHeight: Dp = 0.dp,
 ) {
     Layout(
-        contents = listOf(lockup, title, chips),
-        modifier = modifier.height(height),
-    ) { (lockM, titleM, chipM), constraints ->
+        // Four slots always, the last of them empty when no sentence was given —
+        // `Layout`'s destructuring is positional, so a list whose length changed
+        // with an argument would re-index the other three.
+        contents = listOf(lockup, title, chips, subtitle ?: {}),
+        modifier = modifier,
+    ) { (lockM, titleM, chipM, subM), constraints ->
         val gapPx = gap.roundToPx()
         val total = constraints.maxWidth
-        val rowH = constraints.maxHeight
+        // The row's height is the parameter, not the incoming constraint. It was
+        // the constraint while `Modifier.height` pinned the whole component, and
+        // it cannot be now: the component is the row *plus* the sentence, so
+        // reading the height off the outside would make the row as tall as both.
+        val rowH = height.roundToPx()
 
         // **Every slot is measured loose in BOTH axes**, and the second half of
         // that is not a tidiness: `Modifier.height` arrives here as
@@ -199,12 +228,20 @@ fun CastivioHeader(
         val hi = total - chip.width - gapPx - titleP.width
         val titleX = ((total - titleP.width) / 2).coerceIn(lo, max(lo, hi))
 
-        layout(total, rowH) {
+        // The sentence, if the screen gave one. Measured across the whole row
+        // rather than into the title's column: it is a line of prose under a
+        // heading, not a third thing competing with the lockup and the chips for
+        // the same band.
+        val subP = subM.firstOrNull()?.measure(slot(total))
+        val band = if (subP == null) 0 else max(subtitleHeight.roundToPx(), subP.height)
+
+        layout(total, rowH + band) {
             // `place`, not `placeRelative`: the row is physical in both directions,
             // which is the exception this component takes and explains above.
             lock.place(0, lockY)
             titleP.place(titleX, titleY)
             chip.place(total - chip.width, centre(chip))
+            subP?.place((total - subP.width) / 2, rowH + (band - subP.height) / 2)
         }
     }
 }
