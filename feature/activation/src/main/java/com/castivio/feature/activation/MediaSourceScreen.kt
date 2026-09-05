@@ -31,6 +31,7 @@ import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.icons.CastivioIcons
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Sizing
+import com.castivio.core.design.theme.castivioStage
 
 /**
  * "What would you like to play?" — the device's own media, four ways in.
@@ -97,7 +98,7 @@ internal fun MediaSourceScreen(
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(start = m.edge, end = m.edge, top = m.stageTop, bottom = m.stageBottom)
+                .castivioStage(m.frame)
                 .testTag(ActivationTags.MEDIA_CONTAINER),
         ) {
             ChooserHeader(

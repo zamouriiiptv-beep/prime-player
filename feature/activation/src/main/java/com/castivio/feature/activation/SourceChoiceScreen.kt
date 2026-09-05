@@ -57,6 +57,7 @@ import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Palette
 import com.castivio.core.design.theme.SHORT_FRAME
 import com.castivio.core.design.theme.TABLET_FRAME
+import com.castivio.core.design.theme.castivioStage
 
 /**
  * The approved drawing's numbers, per frame.
@@ -230,7 +231,7 @@ internal fun SourceChoiceScreen(
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(start = m.edge, end = m.edge, top = m.stageTop, bottom = m.stageBottom)
+                .castivioStage(m.frame)
                 .testTag(ActivationTags.SOURCE_CONTAINER),
         ) {
             ChooserHeader(

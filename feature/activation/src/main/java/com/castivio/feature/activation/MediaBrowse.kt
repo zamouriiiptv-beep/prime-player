@@ -43,6 +43,7 @@ import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.Spacing
+import com.castivio.core.design.theme.castivioStage
 
 /* ===========================================================================
  * What the four cards open, as one shape.
@@ -153,7 +154,7 @@ internal fun MediaScaffold(
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(start = m.edge, end = m.edge, top = m.stageTop, bottom = m.stageBottom)
+                .castivioStage(m.frame)
                 .testTag(containerTag),
         ) {
             ChooserHeader(

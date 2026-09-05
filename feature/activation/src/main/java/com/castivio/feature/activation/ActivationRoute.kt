@@ -630,7 +630,16 @@ internal fun ActivationSurface(
                 // on a settled device these are zero. Applying them anyway is the
                 // difference between a layout that is correct and one that is
                 // correct while the system cooperates.
-                .windowInsetsPadding(WindowInsets.safeDrawing)
+                // **Vertical only.** The horizontal half moved to `castivioStage`,
+                // where it is combined with the frame's own `edge` by `max` rather
+                // than added to it. Applied here as well, the two stacked: a 37dp
+                // display cutout plus a 32dp edge put the composition 69dp from one
+                // side of a real handset and 33 from the other -- an outer margin
+                // twice as wide on one side as on the other, measured off the shipped
+                // build. The vertical half stays exactly where it was, because the
+                // frame is chosen from the height this measures and every budget in
+                // the project is written against that measurement.
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical))
                 .focusRequester(focus),
         ) { content() }
         return

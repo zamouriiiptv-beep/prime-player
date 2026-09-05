@@ -82,6 +82,7 @@ import com.castivio.core.design.theme.Motion
 import com.castivio.core.design.theme.MotionLevel
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.Spacing
+import com.castivio.core.design.theme.castivioStage
 import com.castivio.domain.entitlement.EntitlementState
 import com.castivio.domain.entitlement.Plan
 import com.castivio.domain.entitlement.PlanOffer
@@ -162,7 +163,7 @@ internal fun LicenceScreen(
             Modifier
                 .fillMaxSize()
                 .testTag(LicenceTags.STAGE)
-                .padding(start = m.edge, end = m.edge, top = m.stageTop, bottom = m.stageBottom),
+                .castivioStage(m.frame),
         ) {
             Header(m = m, state = state, onOpenLanguage = onOpenLanguage)
             Hairline()

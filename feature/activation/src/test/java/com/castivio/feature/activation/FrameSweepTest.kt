@@ -331,6 +331,16 @@ class FrameSweepTest {
      * fails on one of the two passes rather than looking correct in whichever language
      * it happened to be read in.
      */
+    /**
+     * Where pass *i*'s own box starts, horizontally.
+     *
+     * The passes are stacked in a column, so every one of them begins at the column's
+     * left edge — zero. Written as a function rather than as a literal because the
+     * number is a property of how the sweep is composed, and a reader should be able to
+     * see which it is.
+     */
+    private fun stageLeft(@Suppress("UNUSED_PARAMETER") pass: Int) = 0.dp
+
     private fun ComposeContentTestRule.assertHeaderEverywhere(
         stage: String,
         heading: String,
@@ -403,6 +413,19 @@ class FrameSweepTest {
                     "${pass.height} frame",
                 backBox.top >= panel.top - pass.frame.stageTop &&
                     backBox.bottom <= panel.bottom + pass.frame.stageBottom,
+            )
+
+            // The stage's own margin is the frame's `edge` and nothing added to it.
+            //
+            // With no system insets -- which is what this harness gives, and what a
+            // settled immersive device gives -- `castivioStage` must resolve to exactly
+            // the frame's number. It measured 69dp on one side of a real handset before
+            // that modifier existed, because the surface paid a 37dp display cutout and
+            // the screen then paid its 32dp edge inside it. `max`, not a sum: this is
+            // the half of that rule a test can see.
+            assertTrue(
+                "$pass: the stage starts ${panel.left - stageLeft(i)} in, not ${pass.frame.edge}",
+                abs(((panel.left - stageLeft(i)) - pass.frame.edge).value) <= 1f,
             )
 
             // The mark and the title are inside the stage they belong to, in both axes.

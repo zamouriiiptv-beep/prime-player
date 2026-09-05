@@ -57,6 +57,7 @@ import com.castivio.core.design.theme.CastivioFrame
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Motion
 import com.castivio.core.design.theme.Spacing
+import com.castivio.core.design.theme.castivioStage
 import com.castivio.core.design.theme.rememberFrame
 
 /**
@@ -140,12 +141,7 @@ fun LanguagePicker(
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(
-                    start = frame.edge,
-                    end = frame.edge,
-                    top = frame.stageTop,
-                    bottom = frame.stageBottom,
-                )
+                .castivioStage(frame)
                 .clip(shape)
                 .background(colors.backgroundElevated)
                 .border(BorderStroke(1.dp, colors.glassBorderSoft), shape)

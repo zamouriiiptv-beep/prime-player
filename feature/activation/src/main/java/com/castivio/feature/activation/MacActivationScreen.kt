@@ -78,6 +78,7 @@ import com.castivio.core.design.theme.SHORT_FRAME
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.Spacing
 import com.castivio.core.design.theme.TABLET_FRAME
+import com.castivio.core.design.theme.castivioStage
 
 /**
  * The approved screen's numbers, per frame.
@@ -381,7 +382,7 @@ internal fun MacActivationScreen(
             Modifier
                 .fillMaxSize()
                 .testTag(ActivationTags.STAGE)
-                .padding(start = m.edge, end = m.edge, top = m.stageTop, bottom = m.stageBottom),
+                .castivioStage(m.frame),
         ) {
             Header(m = m, trialDays = identity.trialDaysRemaining, onOpenLanguage = onOpenLanguage)
 

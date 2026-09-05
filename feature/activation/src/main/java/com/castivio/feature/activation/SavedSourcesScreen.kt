@@ -36,6 +36,7 @@ import com.castivio.core.design.components.InteractiveGlassCard
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Sizing
+import com.castivio.core.design.theme.castivioStage
 import com.castivio.domain.ProviderSource
 
 /**
@@ -91,7 +92,7 @@ internal fun SavedSourcesScreen(
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(start = m.edge, end = m.edge, top = m.stageTop, bottom = m.stageBottom),
+                .castivioStage(m.frame),
         ) {
             ChooserHeader(
                 m = m,

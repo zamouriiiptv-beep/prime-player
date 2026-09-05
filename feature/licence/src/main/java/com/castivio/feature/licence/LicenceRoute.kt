@@ -10,9 +10,11 @@ import android.view.Window
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -148,7 +150,13 @@ private fun LicenceSurface(modifier: Modifier = Modifier, content: @Composable (
             // is correct and one that is correct while the system cooperates —
             // and the budget in `LicenceMetrics` is written against the bar
             // being there.
-            .windowInsetsPadding(WindowInsets.safeDrawing),
+            // **Vertical only.** The horizontal half moved to `castivioStage`, where
+            // it is combined with the frame's own `edge` by `max` rather than added to
+            // it. Applied here too, the two stacked: a 37dp display cutout plus a 32dp
+            // edge put the composition 69dp from one side of a real handset and 33 from
+            // the other. The vertical half stays, because the frame is chosen from the
+            // height this measures and every budget is written against it.
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical)),
     ) { content() }
 }
 
