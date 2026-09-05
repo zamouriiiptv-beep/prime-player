@@ -67,10 +67,24 @@ import kotlin.math.max
  * ## The space
  *
  * The two ends take the width they need and the title takes what is between
- * them, centred in it. Both outer margins are therefore the stage's own edge —
- * the space is split evenly either side without anything having to be measured —
- * and the element that gives when a translation is long is the title, which is
- * the only one of the three whose full size is not load-bearing.
+ * them, and the element that gives when a translation is long is the title,
+ * which is the only one of the three whose full size is not load-bearing.
+ *
+ * **It is then centred on the row, not in that remainder.** Those are the same
+ * point only when the two ends are the same width, and here they are not: the
+ * lockup is a mark and a word, the chip is a word and an arrow, and on a
+ * television they measure 187dp against 77. Centring the title in what they
+ * leave over therefore put it 55dp right of the row's centre on the set, and
+ * 41, 34 and 32 on the other three frames — enough that the screen's name read
+ * as leaning towards Back, and enough that anything else centred on the stage
+ * below the header was visibly not under it.
+ *
+ * Centred, then clamped to clear both neighbours by [gap]. The clamp can only
+ * bite where the ideal position would collide, and it never bites at all while
+ * the title fits between the ends, because the title was measured into exactly
+ * that space. When it does, the title stops moving rather than shrinking: an
+ * off-centre name is a smaller fault than a name in smaller type, and smaller
+ * still than one that has pushed the language control out of the row.
  *
  * ## The level: a baseline, not a box
  *
@@ -177,9 +191,19 @@ fun CastivioHeader(
             (lockY + lockBase - titleBase).coerceIn(0, max(0, rowH - titleP.height))
         }
 
+        // On the row's centre, held off both neighbours by the gap. `lo` and `hi` are
+        // the first and last positions that keep it clear of them, and `hi >= lo` for
+        // as long as the title was measured into `middle` — which it was, two lines
+        // up — so the `max` is a guard against a future edit rather than a live case.
+        val lo = lock.width + gapPx
+        val hi = total - chip.width - gapPx - titleP.width
+        val titleX = ((total - titleP.width) / 2).coerceIn(lo, max(lo, hi))
+
         layout(total, rowH) {
+            // `place`, not `placeRelative`: the row is physical in both directions,
+            // which is the exception this component takes and explains above.
             lock.place(0, lockY)
-            titleP.place(lock.width + gapPx + (middle - titleP.width) / 2, titleY)
+            titleP.place(titleX, titleY)
             chip.place(total - chip.width, centre(chip))
         }
     }

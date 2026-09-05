@@ -310,6 +310,21 @@ class FrameSweepTest {
                 "$pass: the title is not between the mark and Back",
                 titles[i].left >= marks[i].right && titles[i].right <= backs[i].left,
             )
+            // The stage is untagged, so the row's own span stands in for it — the two
+            // are the same span, which is what the assertion above this one just
+            // established.
+            assertCentred(
+                pass = pass,
+                panel = DpRect(
+                    left = marks[i].left,
+                    top = marks[i].top,
+                    right = backs[i].right,
+                    bottom = marks[i].bottom,
+                ),
+                mark = marks[i],
+                title = titles[i],
+                back = backs[i],
+            )
             assertTrue(
                 "$pass: Back's box is ${backs[i].height}, below the " +
                     "${pass.frame.touchTarget} floor",
@@ -340,6 +355,52 @@ class FrameSweepTest {
      * see which it is.
      */
     private fun stageLeft(@Suppress("UNUSED_PARAMETER") pass: Int) = 0.dp
+
+    /**
+     * The screen's name sits on the row's centre, not in the middle of what the two
+     * ends leave over.
+     *
+     * ## Why the two are not the same point
+     *
+     * They would be if the lockup and the chip were the same width. They are nowhere
+     * near: the lockup is a mark and a wordmark, Back is an arrow and a short word, and
+     * on the television frame they measure 187dp against 77. Centring in the remainder
+     * therefore lands the title half that difference — 55dp — towards Back, and 41, 34
+     * and 32dp on the other three frames. The header looked deliberate and read as
+     * leaning, and anything centred on the stage below it was visibly not under the
+     * title it belonged to.
+     *
+     * ## What is asserted, and why it has an alternative
+     *
+     * Centred within a dp, *or* hard against one of the two clamps. Both are correct
+     * outcomes: a title long enough that its centred position would collide with a
+     * neighbour stops against that neighbour rather than shrinking or overlapping, and
+     * a test that demanded the centre unconditionally would be demanding the wrong
+     * behaviour in exactly the case the clamp exists for.
+     *
+     * This harness only ever renders one language, so the clamp is not expected to bite
+     * here — the branch is stated because the layout has it, not because it is reached.
+     */
+    private fun assertCentred(pass: Pass, panel: DpRect, mark: DpRect, title: DpRect, back: DpRect) {
+        val gap = pass.frame.headGap
+        val width = title.right - title.left
+        val stageCentre = (panel.left + panel.right) / 2
+        val titleCentre = (title.left + title.right) / 2
+
+        val centred = abs((titleCentre - stageCentre).value) <= 1f
+        val againstMark = abs((title.left - (mark.right + gap)).value) <= 1f
+        val againstBack = abs((title.right - (back.left - gap)).value) <= 1f
+
+        assertTrue(
+            "$pass: the title is centred on ${titleCentre}, the stage on $stageCentre — " +
+                "off by ${titleCentre - stageCentre}, and it is not against either clamp " +
+                "(mark ends ${mark.right}, Back starts ${back.left}, title is $width wide, " +
+                "gap $gap). A title centred in the remainder rather than on the row is the " +
+                "fault this states: the two ends are different widths, so those are " +
+                "different points.",
+            centred || againstMark || againstBack,
+        )
+    }
 
     private fun ComposeContentTestRule.assertHeaderEverywhere(
         stage: String,
@@ -382,6 +443,7 @@ class FrameSweepTest {
                     "(${mark.right}) and Back (${backBox.left})",
                 title.left >= mark.right && title.right <= backBox.left,
             )
+            assertCentred(pass, panel, mark, title, backBox)
 
             // One row: the three share a band. A title pushed onto a second line, or a
             // chip fallen below the lockup, breaks this and nothing else.
