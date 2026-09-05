@@ -217,8 +217,21 @@ html[dir="rtl"] .back svg{transform:scaleX(-1)}
    Under the title it describes, which is the middle of the row -- not under
    whatever happens to sit at the line's starting edge. Aligned to the start it
    would land beneath Back in Arabic and beneath the wordmark in English, which
-   reads as a caption for the wrong thing in both. */
+   reads as a caption for the wrong thing in both.
+
+   It is a child of `.header`, and that is the whole rule rather than a detail
+   of markup. Written as a sibling of the header it kept these three properties
+   and none of them applied -- `grid-row` and `justify-self` mean nothing to a
+   flex item -- so it was a full-width block with its text at the reader's
+   starting edge, sitting under Back in Arabic. The box's centre was the
+   stage's, so the measurement said 0 while the ink said otherwise: exactly the
+   failure `text-align` below is a second guard against.
+
+   `justify-self` shrinks the box to the line and centres it; `text-align`
+   centres the second line of a translation long enough to wrap inside that
+   box. Both, because they answer different cases. */
 .sub{grid-column:1 / -1;grid-row:2;display:none;justify-self:center;
+  text-align:center;max-width:100%;
   font-size:var(--fs-sub);line-height:1.4;color:var(--text-3)}
 html[data-sub="1"] .sub{display:block}
 html[dir="rtl"] .sub{direction:rtl}
@@ -359,10 +372,8 @@ html[data-legal="1"] .legal{display:flex}
       <div class="wordmark"><img class="brand" src="../../core/design/src/main/res/drawable-nodpi/castivio_mark.png" alt=""><span>CASTIVIO</span></div>
       <h1 class="title" data-s="title">اختر مصدر التشغيل</h1>
       <div class="back"><span data-icon="chevron"></span><span data-s="back">رجوع</span></div>
+      <p class="sub" data-s="sub">أختر الطريقة التي تريد من خلالها تشغيل المحتوى</p>
     </div>
-
-
-    <p class="sub" data-s="sub">أختر الطريقة التي تريد من خلالها تشغيل المحتوى</p>
 
     <div class="band">
       <div class="grid">
@@ -606,11 +617,25 @@ var PT = {title:"Escolha uma fonte de reprodução", back:"Voltar",
         var h = box('.header'), t = box('.title');
         return Math.round((t.left + t.width / 2) - (h.left + h.width / 2));
       })(),
+      // The **ink**, not the box. A full-width box centred on the stage reports
+      // zero however its text is aligned inside it, and that is precisely how
+      // this read 0 across thirty-two cases while the sentence sat under Back:
+      // the element was a sibling of the header, so its `justify-self` did
+      // nothing and its box spanned the stage. A Range measures where the
+      // glyphs actually are, which no amount of the wrong box can fake.
       subOffTitle: (function () {
         var sb = document.querySelector('.sub');
         if (root.dataset.sub !== '1') return null;
-        var s = sb.getBoundingClientRect(), t = box('.title');
+        var r = document.createRange(); r.selectNodeContents(sb);
+        var s = r.getBoundingClientRect(), t = box('.title');
         return Math.round((s.left + s.width / 2) - (t.left + t.width / 2));
+      })(),
+      subWidth: (function () {
+        var sb = document.querySelector('.sub');
+        if (root.dataset.sub !== '1') return null;
+        var r = document.createRange(); r.selectNodeContents(sb);
+        return Math.round(r.getBoundingClientRect().width) + '/' +
+          Math.round(sb.getBoundingClientRect().width);
       })(),
       baselineGap: +(baselineOf(titleEl) - baselineOf(wordEl)).toFixed(2)
     }
