@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.Sync
@@ -22,7 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -36,7 +37,6 @@ import com.castivio.core.design.components.castivioDescriptionColor
 import com.castivio.core.design.icons.CastivioIcons
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Palette
-import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.castivioStage
 
 /**
@@ -82,11 +82,24 @@ import com.castivio.core.design.theme.castivioStage
  *
  * ## What is still this screen's own
  *
- * The card: an icon leading a pair of lines, rather than the source choice's disc,
- * description and chevron. The icons are [Sizing.iconXl] because 20dp was unreadable
- * on a television, and they are drawn rather than Material — see
+ * The four glyphs, and nothing else about the card. It claimed a fourth difference
+ * for a long time — "an icon leading a pair of lines, rather than the source choice's
+ * disc, description and chevron" — and that was never a decision, it was the state
+ * the file happened to be in. The drawings of this screen have shown the disc, the
+ * hue and the chevron in every approved frame; the code drew a bare glyph and a row
+ * that did not fill the card, and on a device that came out as four grey rectangles
+ * with the text pressed to the top edge. It is the same card as the source choice's
+ * now, from the same declarations, with these four glyphs in it.
+ *
+ * The glyphs are drawn rather than Material — see
  * [com.castivio.core.design.icons.CastivioIcons] for why the family could not simply
- * be scaled.
+ * be scaled — and they sit at half the disc, which is [DISC_ICON], the figure the
+ * source choice's four already use.
+ *
+ * ## The footnote
+ *
+ * The strip under the cards is [AssuranceStrip], shared with the source choice, with
+ * this screen's own claims in it and a cell count that comes from the frame.
  */
 @Composable
 internal fun MediaSourceScreen(
@@ -183,6 +196,7 @@ private fun MediaGrid(
         ) {
             MediaCard(
                 m = m,
+                hue = Palette.Azure50,
                 icon = CastivioIcons.VideoLibrary,
                 title = stringResource(R.string.media_video_library_title),
                 detail = stringResource(R.string.media_video_library_detail),
@@ -191,6 +205,7 @@ private fun MediaGrid(
             )
             MediaCard(
                 m = m,
+                hue = Palette.Violet50,
                 icon = CastivioIcons.VideoFile,
                 title = stringResource(R.string.media_video_pick_title),
                 detail = stringResource(R.string.media_video_pick_detail),
@@ -204,6 +219,7 @@ private fun MediaGrid(
         ) {
             MediaCard(
                 m = m,
+                hue = Palette.Amber,
                 icon = CastivioIcons.AudioLibrary,
                 title = stringResource(R.string.media_audio_library_title),
                 detail = stringResource(R.string.media_audio_library_detail),
@@ -212,6 +228,7 @@ private fun MediaGrid(
             )
             MediaCard(
                 m = m,
+                hue = Palette.Success,
                 icon = CastivioIcons.AudioFile,
                 title = stringResource(R.string.media_mp3_pick_title),
                 detail = stringResource(R.string.media_mp3_pick_detail),
@@ -223,12 +240,40 @@ private fun MediaGrid(
 }
 
 /**
- * One card, drawn four times.
+ * One card, drawn four times — and it is the source choice's card, not a second
+ * kind of card that resembles it.
  *
- * The icon leads the pair of lines rather than sitting on the first of them, which is
- * the one structural difference from the source choice's card and follows from the
- * size: a 32dp glyph on the title's line box would have set that line's height.
- * Centred on the text block instead, it costs the card nothing.
+ * ## What it was, and what that looked like on a device
+ *
+ * A bare 32dp glyph in the foreground ink, no disc, no hue, no chevron, and a row
+ * that filled the card's width but not its height. Every part of that is visible in
+ * a photograph of the running application: four identical grey rectangles with their
+ * contents pressed against the top edge and two thirds of each card empty. The
+ * drawing had never said any of it — the disc, the hue and the chevron are in every
+ * approved frame of this screen — and the screen before this one in the same flow
+ * draws all three.
+ *
+ * So the card now takes the same three from the same declarations:
+ *
+ * - the **disc** from [Disc], which is where a card's hue is loud and nowhere else;
+ * - the **chevron**, auto-mirrored, which follows the reading direction because it
+ *   leads onward — the opposite of the header's Back arrow, which points the way the
+ *   reader came from;
+ * - [androidx.compose.foundation.layout.fillMaxSize] on the row, so the contents are
+ *   centred in the card rather than sitting at the top of it. `fillMaxWidth` was the
+ *   whole of the emptiness: a row is as tall as its tallest child, so it measured the
+ *   text and left the rest of a 120dp card blank.
+ *
+ * The fill is [com.castivio.core.design.theme.CastivioColors.glassFillBrush], which
+ * is what the source choice's card uses. It was a flat `glassFillStrong` here, a
+ * fourth difference between two cards that are one card.
+ *
+ * ## What is still this screen's own
+ *
+ * The four glyphs, which are drawn rather than Material — see
+ * [com.castivio.core.design.icons.CastivioIcons] for why the family could not simply
+ * be scaled — and the absence of a badge, because none of these four is recommended
+ * over the others.
  *
  * The description wraps to [SourceMetrics.detailLines] and no further — four lines on
  * a television, three elsewhere — and it wraps rather than being cut, because a
@@ -236,12 +281,13 @@ private fun MediaGrid(
  * that stopped being checked in the other thirty-six.
  *
  * One node, one label, one target: a screen reader announces the title and the
- * description as a single item, and the icon carries no description of its own because
- * the card above it already says the whole thing.
+ * description as a single item, and neither the disc nor the chevron carries a
+ * description of its own because the card already says the whole thing.
  */
 @Composable
 private fun RowScope.MediaCard(
     m: SourceMetrics,
+    hue: Color,
     icon: ImageVector,
     title: String,
     detail: String,
@@ -258,21 +304,16 @@ private fun RowScope.MediaCard(
             .testTag(tag)
             .semantics(mergeDescendants = true) { contentDescription = "$title. $detail" },
         shape = RoundedCornerShape(m.radius),
-        fill = SolidColor(colors.glassFillStrong),
+        fill = colors.glassFillBrush,
     ) {
         Row(
             Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
                 .padding(m.cardPad),
             horizontalArrangement = Arrangement.spacedBy(m.cardGap),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = colors.onBackground,
-                modifier = Modifier.size(Sizing.iconXl),
-            )
+            Disc(m, hue, icon, Modifier.testTag(ActivationTags.MEDIA_DISC))
             Column(
                 Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(m.cardPad * TEXT_GAP),
@@ -292,6 +333,12 @@ private fun RowScope.MediaCard(
                     maxLines = m.detailLines,
                 )
             }
+            Icon(
+                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                contentDescription = null,
+                tint = colors.onBackgroundMuted,
+                modifier = Modifier.size(m.chevron).testTag(ActivationTags.MEDIA_CHEVRON),
+            )
         }
     }
 }

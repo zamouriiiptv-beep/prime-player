@@ -303,6 +303,83 @@ class FrameSweepTest {
     }
 
     /**
+     * Every card wears its disc and its chevron, and its contents sit in the middle
+     * of it.
+     *
+     * ## Why this test exists
+     *
+     * All three were missing on a device and no test noticed, because every test this
+     * screen had asked whether the cards were *there*: present, labelled, focusable,
+     * the right size, in the right order. They were. What the photograph showed was
+     * four grey rectangles with their text pressed against the top edge — no disc, no
+     * hue, no chevron — because the card had been written before the drawing and never
+     * brought to it, and the row inside it filled the card's width but not its height.
+     *
+     * ## What each assertion catches
+     *
+     * The disc's presence and size catch the missing disc. Its **vertical centre
+     * against the card's** catches the other fault and is the load-bearing one: a row
+     * that fills only the width is as tall as its text, so it sits at the top of the
+     * card and its disc sits with it. On the phone frame that was a 52dp disc centred
+     * 26dp from the top of a 120dp card — off by 34dp, and unmistakable in a
+     * photograph. Containment catches a disc that grew past the padding.
+     *
+     * Read four per pass, in composition order: video library, pick a video, audio
+     * library, pick an MP3.
+     */
+    @Test
+    fun `every media card wears its disc and its chevron, centred in the card`() {
+        compose.sweep { MediaSourceScreen({}, {}, {}, {}, onBack = {}) }
+
+        val cards = listOf(
+            ActivationTags.MEDIA_VIDEO_LIBRARY,
+            ActivationTags.MEDIA_VIDEO_PICK,
+            ActivationTags.MEDIA_AUDIO_LIBRARY,
+            ActivationTags.MEDIA_MP3_PICK,
+        ).map { compose.all(it) }
+        val discs = compose.allGrouped(ActivationTags.MEDIA_DISC, cards.size)
+        val chevrons = compose.allGrouped(ActivationTags.MEDIA_CHEVRON, cards.size)
+
+        passes.forEachIndexed { i, pass ->
+            val m = sourceMetricsFor(pass.tv, pass.height)
+            for (k in cards.indices) {
+                val card = cards[k][i]
+                val disc = discs[i][k]
+                val chevron = chevrons[i][k]
+                val middle = (card.top + card.bottom) / 2
+
+                assertTrue(
+                    "$pass card $k: the disc is ${disc.height} tall, not the frame's ${m.disc}",
+                    abs((disc.height - m.disc).value) <= 1f,
+                )
+                assertTrue(
+                    "$pass card $k: the disc is centred at ${(disc.top + disc.bottom) / 2}, " +
+                        "the card at $middle -- the row filled the card's width and not " +
+                        "its height, so its contents are sitting at the top",
+                    abs(((disc.top + disc.bottom) / 2 - middle).value) <= 1f,
+                )
+                assertTrue(
+                    "$pass card $k: the chevron is centred at " +
+                        "${(chevron.top + chevron.bottom) / 2}, the card at $middle",
+                    abs(((chevron.top + chevron.bottom) / 2 - middle).value) <= 1f,
+                )
+                for ((what, box) in listOf("the disc" to disc, "the chevron" to chevron)) {
+                    assertTrue(
+                        "$pass card $k: $what ${box.left}..${box.right} runs past the card " +
+                            "${card.left}..${card.right}",
+                        box.left >= card.left && box.right <= card.right,
+                    )
+                    assertTrue(
+                        "$pass card $k: $what ${box.top}..${box.bottom} runs past the card " +
+                            "${card.top}..${card.bottom}",
+                        box.top >= card.top && box.bottom <= card.bottom,
+                    )
+                }
+            }
+        }
+    }
+
+    /**
      * How many claims a frame can hold, which is a number and not a picture.
      *
      * Three on a television and a tablet, two on the phones. Asserted here rather
@@ -634,6 +711,26 @@ class FrameSweepTest {
         return nodes.indices.map {
             onAllNodesWithTag(tag, useUnmergedTree = true)[it].getUnclippedBoundsInRoot()
         }
+    }
+
+    /**
+     * A tag that appears more than once per pass, grouped by pass.
+     *
+     * Composition order is the grid's source order, so group *i* is pass *i*'s and
+     * within it the cards read video library, pick a video, audio library, pick an
+     * MP3 — the order [MediaSourceScreen] composes them in.
+     */
+    private fun ComposeContentTestRule.allGrouped(tag: String, per: Int): List<List<DpRect>> {
+        val nodes = onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes()
+        assertEquals(
+            "$tag was found ${nodes.size} times, not $per on each of ${passes.size} passes",
+            passes.size * per,
+            nodes.size,
+        )
+        val all = nodes.indices.map {
+            onAllNodesWithTag(tag, useUnmergedTree = true)[it].getUnclippedBoundsInRoot()
+        }
+        return all.chunked(per)
     }
 
     private companion object {

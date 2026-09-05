@@ -4,7 +4,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -414,25 +413,6 @@ private fun RowScope.SourceCard(
     }
 }
 
-/** The card's disc: the one place its hue is loud. */
-@Composable
-private fun Disc(m: SourceMetrics, hue: Color, icon: ImageVector) {
-    Box(
-        Modifier
-            .size(m.disc)
-            .clip(RoundedCornerShape(percent = 50))
-            .background(
-                Brush.radialGradient(
-                    listOf(hue.copy(alpha = DISC_TOP), hue.copy(alpha = DISC_FOOT)),
-                ),
-            )
-            .border(BorderStroke(1.dp, hue.copy(alpha = DISC_EDGE)), RoundedCornerShape(percent = 50)),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(icon, contentDescription = null, tint = hue, modifier = Modifier.size(m.disc * DISC_ICON))
-    }
-}
-
 /**
  * The recommendation, as a badge.
  *
@@ -482,14 +462,6 @@ private const val BADGE_PAD = 0.62f
 private const val BADGE_PAD_Y = 0.17f
 private const val BADGE_ICON_GAP = 0.34f
 
-/**
- * A glyph inside its disc, as a fraction of the disc.
- *
- * `internal` because the assurance strip draws the same relationship in its own
- * file and must not hold a second opinion about it: 0.5 here and 0.52 there is
- * the kind of difference nobody can point at and everybody sees.
- */
-internal const val DISC_ICON = 0.5f
 
 /**
  * What this screen's footnote says.
@@ -508,9 +480,6 @@ private val SOURCE_CLAIMS = listOf(
     StripClaim(Palette.Violet50, Icons.Rounded.VerifiedUser, R.string.source_trust_private_title),
     StripClaim(Palette.Azure50, Icons.Rounded.Speed, R.string.source_trust_fast_title),
 )
-private const val DISC_TOP = 0.34f
-private const val DISC_FOOT = 0.08f
-private const val DISC_EDGE = 0.46f
 
 
 /**

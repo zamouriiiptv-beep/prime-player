@@ -108,6 +108,17 @@ internal object ActivationTags {
     const val MEDIA_STRIP = "media.strip"
 
     /**
+     * The two parts of a card that were missing from it, on all four of them.
+     *
+     * Tagged because their absence was invisible to every test this screen had: the
+     * cards were present, labelled, focusable and the right size, and what was wrong
+     * — no disc, no chevron, and contents pressed to the top of the card — could only
+     * be seen in a photograph of the running application.
+     */
+    const val MEDIA_DISC = "media.disc"
+    const val MEDIA_CHEVRON = "media.chevron"
+
+    /**
      * The two libraries and the two pickers.
      *
      * One set of handles for the two libraries and one for the two pickers, because
