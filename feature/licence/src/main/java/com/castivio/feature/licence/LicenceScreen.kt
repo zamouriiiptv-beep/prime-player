@@ -492,31 +492,43 @@ private fun LanguageChip(m: LicenceMetrics, onClick: () -> Unit) {
     )
     val label = stringResource(R.string.licence_language)
 
-    Row(
+    // Two boxes, the arrangement `CastivioBackChip` uses and for the same reason: the
+    // pill is what a reader sees and is the frame's `chip`; the box around it is what a
+    // thumb presses and a remote lands on, and is the frame's `touchTarget`. This chip
+    // was `m.target` tall before -- the licence screen's own field, which happens to
+    // hold the floor -- so it grew the *visual* to satisfy a rule about fingers. Now it
+    // draws what the frame draws and answers at what the frame requires.
+    Box(
         Modifier
-            .heightIn(min = m.chip)
-            .castivioFocusScale(Motion.focusScaleIcon, interaction)
+            .heightIn(min = m.frame.touchTarget)
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
-            .clip(shape)
-            .background(colors.glassFill)
-            .border(BorderStroke(1.dp, border), shape)
             .clickable(interaction, indication = null, onClick = onClick)
-            .padding(horizontal = m.chipPad),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-        verticalAlignment = Alignment.CenterVertically,
+            .clearAndSetSemantics { contentDescription = label },
+        contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = Icons.Rounded.Language,
-            contentDescription = null,
-            tint = colors.onBackgroundVariant,
-            modifier = Modifier.size(Sizing.iconSm),
-        )
-        Text(
-            text = label,
-            style = castivioChipStyle(m.fsChip),
-            color = colors.onBackground,
-            modifier = Modifier.clearAndSetSemantics { contentDescription = label },
-        )
+        Row(
+            Modifier
+                .heightIn(min = m.chip)
+                .castivioFocusScale(Motion.focusScaleIcon, interaction)
+                .clip(shape)
+                .background(colors.glassFill)
+                .border(BorderStroke(1.dp, border), shape)
+                .padding(horizontal = m.chipPad),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Language,
+                contentDescription = null,
+                tint = colors.onBackgroundVariant,
+                modifier = Modifier.size(Sizing.iconSm),
+            )
+            Text(
+                text = label,
+                style = castivioChipStyle(m.fsChip),
+                color = colors.onBackground,
+            )
+        }
     }
 }
 

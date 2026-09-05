@@ -545,11 +545,19 @@ private fun TrialChip(m: Metrics, badge: String, days: Int) {
 }
 
 /**
- * The language control.
+ * The language control: a pill at the frame's chip, pressed at the frame's floor.
  *
- * Drawn at the chip's height and answering at the frame's target: a chip that
- * looks like a button is a target that has to behave like one. The declared
- * minimum is the one enforced, never the drawn size.
+ * The doc above this used to say it was "drawn at the chip's height and answering at
+ * the frame's target". It was not — both the height and the minimum were `chip`, so on
+ * a television the control a viewer aims a remote at was 44dp against a 56dp floor. The
+ * sentence was true of the intent and false of the code, which is the worst of the two
+ * ways for a comment to be wrong.
+ *
+ * It is now two boxes, the same arrangement `CastivioBackChip` uses and for the same
+ * reason: the click, the focus and the label on the outer one, which is
+ * [CastivioFrame.touchTarget] tall; the fill, the border, the corner and the focus
+ * scale on the pill, which is [CastivioFrame.chip] and unchanged. Nothing looks
+ * different. What changed is what answers.
  */
 @Composable
 private fun LanguageChip(m: Metrics, onClick: () -> Unit) {
@@ -564,33 +572,38 @@ private fun LanguageChip(m: Metrics, onClick: () -> Unit) {
     )
     val label = stringResource(R.string.language)
 
-    Row(
+    Box(
         Modifier
-            .height(m.chip)
-            .heightIn(min = m.chip)
-            .castivioFocusScale(Motion.focusScaleIcon, interaction)
+            .heightIn(min = m.frame.touchTarget)
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
-            .clip(shape)
-            .background(colors.glassFill)
-            .border(BorderStroke(1.dp, border), shape)
             .clickable(interaction, indication = null, onClick = onClick)
-            .padding(horizontal = m.chipPad),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
+            .clearAndSetSemantics { contentDescription = label },
+        contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = label,
-            style = castivioChipStyle(m.fsChip),
-            color = colors.onBackgroundVariant,
-            maxLines = 1,
-            modifier = Modifier.clearAndSetSemantics { contentDescription = label },
-        )
-        Icon(
-            imageVector = Icons.Rounded.Language,
-            contentDescription = null,
-            tint = colors.onBackgroundMuted,
-            modifier = Modifier.size(Sizing.iconMd),
-        )
+        Row(
+            Modifier
+                .height(m.chip)
+                .castivioFocusScale(Motion.focusScaleIcon, interaction)
+                .clip(shape)
+                .background(colors.glassFill)
+                .border(BorderStroke(1.dp, border), shape)
+                .padding(horizontal = m.chipPad),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = label,
+                style = castivioChipStyle(m.fsChip),
+                color = colors.onBackgroundVariant,
+                maxLines = 1,
+            )
+            Icon(
+                imageVector = Icons.Rounded.Language,
+                contentDescription = null,
+                tint = colors.onBackgroundMuted,
+                modifier = Modifier.size(Sizing.iconMd),
+            )
+        }
     }
 }
 
