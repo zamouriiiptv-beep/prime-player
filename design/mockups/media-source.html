@@ -2,672 +2,575 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
-<title>Castivio — choosing what to play from this device</title>
+<title>Castivio — اختر مصدر التشغيل</title>
 <style>
 /* ============================================================================
-   Castivio — the media source choice.
+   Castivio — the local-media screen, where the device's own files are chosen.
 
+   ?frame=tv | tab | p873 | p800   the four frames, at their real dp geometry
+   ?lang=en | es | pt              the same screen mirrored, and its two longest
+   ?sub=1                          with the reference's subtitle, to see its cost
+   ?legal=1                        with the reference's disclaimer band, likewise
+   ?focus=pickVideo | none         where the D-pad is
    ---------------------------------------------------------------------------
-   What this screen is
 
-   Four ways into the device's own media, which are two questions rather than
-   four: *browse everything* or *pick one file*, for video and for audio. The
-   grid says so by its shape -- the libraries are the leading column in reading
-   order, the two pickers follow -- and nothing in the interface says
-   `MediaStore` or "storage access framework", because those are how it will be
-   built and not what the user is choosing between.
+   ## What this takes from the reference
 
-   ---------------------------------------------------------------------------
-   What it inherits, and why nothing here is new
+   Everything that is the screen. The 2x2 arrangement and the order within it —
+   the two libraries leading and the two pickers following, which in Arabic puts
+   the video library top-right and MP3 bottom-left, exactly as drawn. The four
+   hues, which turn out to map one-to-one onto the palette Castivio already has:
+   azure for the video library, violet for picking a video, amber for the audio
+   library, green for picking an MP3. And the glowing disc, which is what lets
+   four options tell themselves apart from across a room.
 
-   Every token, every measurement and every surface is `activation-source.html`.
-   Not "matching it": the same numbers, copied deliberately, because a second
-   screen that invents its own glass is how a product ends up with two glasses.
-   The mark, the container, the card, the focus ring, the hairline and Back are
-   the source choice's, at the same three frames.
+   ## What it does not take, and why each is a flag rather than a deletion
 
-   The one structural difference is that there is no terms sentence under the
-   container. That was the last fixed part of the band on the other screen, so
-   its height comes back here -- `.panel` is `flex:1` and absorbs it, and the
-   cards are correspondingly taller. That is the composition working as designed
-   rather than a decision: nothing was resized to fill the space.
+   **The header.** The reference centres the wordmark, puts the title at the
+   start edge and Back at the far one. That is a third header in a flow that now
+   has one: `CastivioHeader` is mark, title, control, pinned left to right, and
+   the previous two screens already wear it. A reader arriving here from the
+   source choice would watch the brand jump to the middle. So the header is the
+   system's, with no flag — this is the one conflict where the drawing loses.
 
-     band    827 x 393    inset 24 = Spacing.screen
-     head         32      the title's own line box, mark included
-     gap           8      Spacing.sm
-     panel       353      everything left, which is the container
-       pad         8      Spacing.sm all round
-       grid      ...      two rows of two, `1fr` in both directions
-       gap         4      Spacing.xs, grid to Back
-       back       48      Sizing.minTouchTarget
-     overflow      0
+   **The subtitle** — *choose the way you want to play content* under a heading
+   that says *choose a playback source*. The same sentence twice, one of them
+   smaller. It is behind `?sub=1` rather than deleted outright, because what it
+   costs is a measurement and the measurement should be visible: see the console.
 
-   ---------------------------------------------------------------------------
-   The parts that are deliberately *not* drawn
-
-   The reference sketch carried four things this does not: a chevron on every
-   card, a circular plate behind every icon, a dot on the hairline, and a
-   subtitle under the title. The chevron was drawn and then taken out again --
-   the card is obviously pressable and the arrow was a second way of saying so.
-   The plate would have added 24 and a gap to all four cards for decoration. The
-   dot marks a position on a line that measures nothing.
-
-   Back's ring *is* from the reference, and it is the one place this screen
-   parts company with the source choice on purpose. Its arrow mirrors, though:
-   it points at the start edge, which is right in Arabic and left in English.
-   The reference draws it pointing left over an Arabic layout, which is an
-   unmirrored asset rather than a decision -- on a D-pad an arrow that
-   contradicts the direction of travel is worse than no arrow at all.
-
-     ?lang=en   the same composition the other way round
-     ?frame=short   800x360, the shortest frame the project ships to
-     ?frame=tv      960x540 inside its overscan
-     ?spec=1    the band arithmetic, drawn
-     ?stress=1  every string doubled, to spend the headroom on purpose
+   **The disclaimer band.** Its first clause repeats the activation screen's
+   footer word for word; its second — *make sure you have the rights* — is new,
+   and this is the screen where a user opens their own files, so it is the one
+   place that sentence has somewhere to stand. Behind `?legal=1` for the same
+   reason: two lines and a disc are 17% of a television's frame, and that is a
+   trade to look at rather than to argue about.
    ========================================================================= */
-@font-face{font-family:"Castivio Sans";font-weight:400;font-style:normal;
-  src:url("../../core/design/src/main/res/font/inter_regular.ttf") format("truetype")}
-@font-face{font-family:"Castivio Sans";font-weight:500;font-style:normal;
-  src:url("../../core/design/src/main/res/font/inter_medium.ttf") format("truetype")}
-@font-face{font-family:"Castivio Sans";font-weight:600;font-style:normal;
-  src:url("../../core/design/src/main/res/font/inter_semibold.ttf") format("truetype")}
-@font-face{font-family:"Castivio Sans";font-weight:700;font-style:normal;
-  src:url("../../core/design/src/main/res/font/inter_bold.ttf") format("truetype")}
-@font-face{font-family:"Castivio Arabic";font-weight:400;font-style:normal;
-  src:url("../../core/design/src/main/res/font/plex_arabic_regular.ttf") format("truetype")}
-@font-face{font-family:"Castivio Arabic";font-weight:500;font-style:normal;
-  src:url("../../core/design/src/main/res/font/plex_arabic_medium.ttf") format("truetype")}
-@font-face{font-family:"Castivio Arabic";font-weight:700;font-style:normal;
-  src:url("../../core/design/src/main/res/font/plex_arabic_bold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:400;src:url("../../core/design/src/main/res/font/inter_regular.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:500;src:url("../../core/design/src/main/res/font/inter_medium.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:600;src:url("../../core/design/src/main/res/font/inter_semibold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:700;src:url("../../core/design/src/main/res/font/inter_bold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:400;src:url("../../core/design/src/main/res/font/plex_arabic_regular.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:500;src:url("../../core/design/src/main/res/font/plex_arabic_medium.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:600;src:url("../../core/design/src/main/res/font/plex_arabic_semibold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:700;src:url("../../core/design/src/main/res/font/plex_arabic_bold.ttf") format("truetype")}
 
 :root{
-  --void:#08071A; --deep:#141031; --violet10:#1B1038; --violet50:#9B6BFF;
-  --azure10:#0A1E3D; --azure40:#2E6BFF; --azure60:#6FB2FF;
-  --mist:#F2F2F8; --silver:#C9C9DA;
-  /* Colour.kt: GlassMid 0x14 is glassFillStrong, GlassLow 0x0A is glassFill,
-     GlassEdge 0x3D is glassBorder. */
-  --glass-strong:rgba(255,255,255,.078);
-  --glass:rgba(255,255,255,.039);
-  --glass-border:rgba(255,255,255,.239);
-  /* `CastivioMark` in Intro.kt, which is now where the wordmark's definition
-     lives: the word, this pair of colours, and 0.25 of the size as tracking.
-     Nothing here re-decides any of it. */
-  --mark-a:#9B6BFF; --mark-b:#4C9BFF;
-  --r-lg:20px;
-  --r-xl:24px;   /* Radius.xl -- one step up, so the container nests the cards */
+  /* ## One type scale, and it is the activation screen's
+     Every size on this screen is a step the activation screen already sets:
+     the title is its fsTitle, a card's name its fsLabel, a card's description
+     its fsCaption, the badge and Back its fsChip. Nothing here is a size chosen
+     for this screen.
 
-  --frame-w:827px; --frame-h:393px;
-  --inset:24px;        /* Spacing.screen */
-  --card-icon:32px;    /* the four card glyphs; Back's arrow is not this */
-  --card-pad-y:8px;    /* Spacing.sm */
-  --card-pad-x:20px;
-  --grid-gap:8px;      /* Spacing.sm, the same figure across and down */
-  --panel-pad:8px;     /* Spacing.sm */
-  --panel-gap:4px;     /* Spacing.xs, grid to Back inside the container */
-  --group-gap:8px;     /* Spacing.sm, title to container */
-  --back-h:48px;       /* Sizing.minTouchTarget */
-  --ring:36px;         /* the arrow's ring, inside Back's own height */
-  --mark-size:16px;
-  --mark-gap:16px;     /* Spacing.lg, mark to title */
-  --rule-gap:16px;     /* Spacing.lg, at both ends of the hairline */
+     It was, and that is what produced the note this pass answers. A second
+     scale invented locally -- 22/17/16 for a card's name, 14.5/12.5/12 for its
+     description -- is not just an inconsistency between two screens the user
+     sees one after the other. It is the thing that made the copy fit, so when
+     the assurance strip did not fit either, the sentences were cut down to
+     "does not leave the device" and "no sign-up" rather than the layout being
+     made to admit it could not hold them. Compressing the type is how a layout
+     hides that it is too small; the sentences pay for it. */
+  --word-ratio:.80;
+  --ink:#05040E;
+  --white:#FFFFFF;
+  --text:#EDEDF6;
+  --text-2:#CFCFE4;
+  --text-3:#A9A9C6;
+
+  /* One hue per option, so four cards tell themselves apart before a word of
+     them is read. They are the palette's own ramps, not four new colours. */
+  --h-pickV:#A86BFF;    /* Violet50-ish: choosing one video  */
+  --h-libV:#4C9BFF;     /* Azure50: the whole video library  */
+  --h-pickA:#3FD9A0;    /* success: choosing one MP3         */
+  --h-libA:#FFA13A;     /* hint: the whole audio library     */
+
+  --edge-card:rgba(126,140,255,.28);
+  --edge-quiet:rgba(160,163,215,.20);
+  --rim:inset 0 1px 0 rgba(255,255,255,.12);
+  --lift:0 10px 26px rgba(3,2,12,.52);
+  --pane:linear-gradient(180deg,rgba(36,29,92,.80) 0%,rgba(15,11,44,.74) 100%);
+  --focus:#6FB2FF;      /* focusRing, and nothing else uses it */
 }
-/* The shortest frame the project ships to: an ordinary 360dp phone sideways. */
-html[data-frame="short"]{--frame-w:800px; --frame-h:360px}
+
+/* ------------------------------------------------------------- the frames */
 html[data-frame="tv"]{
-  --frame-w:960px; --frame-h:540px;
-  --inset:48px;        /* Spacing.tvOverscan */
-  --card-pad-y:24px;   /* Spacing.xl */
-  --card-pad-x:32px;   /* Spacing.xxl */
-  --grid-gap:16px;     /* Spacing.lg */
-  --panel-pad:16px;    /* Spacing.lg */
-  --panel-gap:16px;    /* Spacing.lg */
-  --group-gap:16px;    /* Spacing.lg */
-  --back-h:56px;       /* Sizing.minTvTarget */
-  --ring:44px;
-  --mark-size:19px;
-  --mark-gap:24px;     /* Spacing.xl */
-  --rule-gap:24px;     /* Spacing.xl */
+  --W:960px; --H:540px;
+  --edge:46px; --top:24px; --bottom:22px;
+  --header:54px; --head-gap:26px; --brand:40px; --fs-title:26px;
+  --back:44px; --back-pad:11px; --fs-back:13px;
+  --band-top:22px; --grid-gap:18px; --card-max:168px;
+  --card-pad:16px; --card-gap:16px; --disc:72px; --chev:24px;
+  --fs-card:15.8px; --fs-desc:13.5px; --desc-lines:4;
+  --radius:20px;
+  --sub:26px; --fs-sub:13.5px;
+  --trust:40px; --trust-gap:14px; --trust-disc:26px;
+  --fs-trust:13px;
 }
+/* The tablet. One frame, shared with the activation screen: the same 140dp
+   edge, the same 160/140 top and bottom, so a 1000dp content block sits in the
+   same place on both. The type sits between the phone's and the set's, because
+   a tablet is held at about 45cm; what the larger frame buys is margin. */
+html[data-frame="tab"]{
+  --W:1280px; --H:800px;
+  --edge:140px; --top:160px; --bottom:140px;
+  --header:52px; --head-gap:26px; --brand:34px; --fs-title:22px;
+  --back:40px; --back-pad:12px; --fs-back:12.5px;
+  --band-top:24px; --grid-gap:20px; --card-max:180px;
+  --card-pad:20px; --card-gap:18px; --disc:72px; --chev:22px;
+  --fs-card:15px; --fs-desc:13px; --desc-lines:3;
+  --radius:20px;
+  --sub:22px; --fs-sub:13px;
+  --trust:36px; --trust-gap:14px; --trust-disc:24px;
+  --fs-trust:12.5px;
+}
+html[data-frame="p873"]{
+  --W:873px; --H:393px;
+  --edge:32px; --top:15px; --bottom:11px;
+  --header:42px; --head-gap:24px; --brand:31px; --fs-title:20px;
+  --back:36px; --back-pad:12px; --fs-back:12px;
+  --band-top:10px; --grid-gap:14px; --card-max:132px;
+  --card-pad:10px; --card-gap:12px; --disc:52px; --chev:18px;
+  --fs-card:14.7px; --fs-desc:13px; --desc-lines:3;
+  --radius:17px;
+  --sub:20px; --fs-sub:13px;
+  --trust:32px; --trust-gap:10px; --trust-disc:20px;
+  --fs-trust:12px;
+}
+html[data-frame="p800"]{
+  --W:800px; --H:360px;
+  --edge:26px; --top:11px; --bottom:8px;
+  --header:36px; --head-gap:20px; --brand:28px; --fs-title:19px;
+  --back:34px; --back-pad:11px; --fs-back:11.5px;
+  --band-top:8px; --grid-gap:12px; --card-max:124px;
+  --card-pad:9px; --card-gap:11px; --disc:50px; --chev:17px;
+  --fs-card:14.1px; --fs-desc:12.5px; --desc-lines:3;
+  --radius:16px;
+  --sub:18px; --fs-sub:12.5px;
+  --trust:30px; --trust-gap:8px; --trust-disc:19px;
+  --fs-trust:11.5px;
+}
+
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:#000}
-body{font-family:"Castivio Sans","Castivio Arabic","Noto Sans",sans-serif;color:var(--mist);
-  -webkit-font-smoothing:antialiased;text-rendering:geometricPrecision}
+body{font-family:"Castivio Sans","Castivio Arabic","Noto Sans",sans-serif;
+  color:var(--text);-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;
+  letter-spacing:0}
 
-#tv{position:relative;width:var(--frame-w);height:var(--frame-h);
-  overflow:hidden;background:var(--void)}
-
-/* The aurora `ActivationSurface` draws, unchanged, mirrored for RTL. */
+.frame{position:relative;width:var(--W);height:var(--H);overflow:hidden;background:var(--ink)}
 .backdrop{position:absolute;inset:0;
   background:
-    radial-gradient(44% 118% at 79% 54%, rgba(111,178,255,.14) 0%, rgba(111,178,255,0) 66%),
-    radial-gradient(58% 78% at 96% 108%, rgba(110,75,216,.30) 0%, rgba(110,75,216,0) 62%),
-    radial-gradient(54% 70% at 3% 20%, rgba(46,107,255,.26) 0%, rgba(46,107,255,0) 60%),
-    linear-gradient(225deg, var(--deep) 0%, var(--violet10) 48%, var(--azure10) 100%);
+    radial-gradient(74% 96% at 4% 116%, rgba(126,62,255,.60) 0%, rgba(102,48,220,.23) 38%, rgba(70,30,170,0) 70%),
+    radial-gradient(46% 60% at 100% 6%,  rgba(38,84,220,.28) 0%, rgba(38,84,220,0) 66%),
+    radial-gradient(38% 52% at 84% 92%,  rgba(88,46,210,.24) 0%, rgba(88,46,210,0) 68%),
+    linear-gradient(178deg, #05040E 0%, #07061A 26%, #0B0826 58%, #150C3C 100%);
 }
-html[dir="ltr"] .backdrop{
-  background:
-    radial-gradient(44% 118% at 21% 54%, rgba(111,178,255,.14) 0%, rgba(111,178,255,0) 66%),
-    radial-gradient(58% 78% at 4% 108%, rgba(110,75,216,.30) 0%, rgba(110,75,216,0) 62%),
-    radial-gradient(54% 70% at 97% 20%, rgba(46,107,255,.26) 0%, rgba(46,107,255,0) 60%),
-    linear-gradient(135deg, var(--deep) 0%, var(--violet10) 48%, var(--azure10) 100%);
-}
-.mesh{position:absolute;inset:0;opacity:.45}
+.contours{position:absolute;left:0;right:0;bottom:0;height:62%;opacity:.8}
 
-/* Type.kt */
-.t-headline-m{font-size:22px;line-height:32px;font-weight:700}
-.t-title-l   {font-size:17px;line-height:24px;font-weight:600}
-.t-body-s    {font-size:12.5px;line-height:20px;font-weight:500}
-.t-label-l   {font-size:14px;line-height:20px;font-weight:600}
+.stage{position:absolute;inset:0;display:flex;flex-direction:column;
+  padding:var(--top) var(--edge) var(--bottom)}
 
-.band{position:absolute;inset:var(--inset);display:flex;flex-direction:column;
-  justify-content:flex-start;gap:0}
-
-/* The title's row, carrying the mark. Identical to the source choice: a row, not
-   a band of its own, so the head is the title's own 32px line box and the mark
-   costs the container nothing. */
-.head{display:flex;flex-direction:row;align-items:baseline;gap:var(--mark-gap)}
-.head h1{flex:1 1 auto;min-width:0}
-
-/* Castivio, in the corner opposite the title, in Intro's ink.
-   ------------------------------------------------------------------------
-   The mark takes the *end* of the header row and the question takes the start,
-   so the two sit in opposite corners in either direction: title right and mark
-   left in Arabic, title left and mark right in English. That is one rule rather
-   than two, and it needs no `order` and nothing positioned absolutely -- being
-   the last child of a row is already "the end", and the direction decides which
-   physical corner that is.
-
-   `90deg` regardless, because `Brush.horizontalGradient` is left-to-right in
-   pixels whatever the layout direction: the violet end is on the left on every
-   screen Castivio signs, exactly as the startup draws it.
-
-   `line-height:1` because a baseline-aligned row is as tall as its deepest
-   descender, and a default line box around a 16px glyph hangs further below the
-   baseline than a 22px title does -- that grew the header by 3 on the source
-   choice and came straight out of the container. It is what lets the mark grow
-   without the container paying for it: 16 against the title's 22 still leaves
-   the title's own line box deciding the height. */
-.brand{flex:0 0 auto;direction:ltr;white-space:nowrap;
-  font-size:var(--mark-size);line-height:1;font-weight:700;
-  letter-spacing:.25em;
-  background:linear-gradient(90deg,var(--mark-a),var(--mark-b));
+/* ----------------------------------------------------------------- header */
+/* The activation screen's row, unchanged: the lockup at the same physical edge
+   in every language, the page's name beside it, and the row's one control at
+   the far end. There the control is the language chip; here it is Back. */
+.header{flex:0 0 auto;height:var(--header);direction:ltr;
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;
+  column-gap:var(--head-gap)}
+html[dir="rtl"] .header .title,
+html[dir="rtl"] .header .back{direction:rtl}
+.wordmark{grid-column:1;grid-row:1;justify-self:start;direction:ltr;
+  display:flex;align-items:center;gap:calc(var(--brand) * .32)}
+.wordmark span{font-family:"Castivio Sans",sans-serif;font-weight:700;line-height:1;
+  font-size:calc(var(--fs-title) * var(--word-ratio));
+  letter-spacing:calc(var(--fs-title) * var(--word-ratio) * .25);
+  margin-inline-end:calc(var(--fs-title) * var(--word-ratio) * -.25);
+  background:linear-gradient(97deg,#A86BFF 0%,#7B4BEE 30%,#3D6BFF 70%,#3A9BFF 100%);
   -webkit-background-clip:text;background-clip:text;color:transparent;
-  -webkit-text-fill-color:transparent;
-  user-select:none}
+  filter:drop-shadow(0 0 16px rgba(124,75,255,.42))}
+.brand{flex:0 0 auto;width:var(--brand);height:var(--brand);display:block;
+  filter:drop-shadow(0 2px 7px rgba(0,0,0,.5))}
+.title{grid-column:2;grid-row:1;justify-self:center;min-width:0;max-width:100%;
+  white-space:nowrap;overflow:hidden;
+  font-size:var(--fs-title);line-height:1.35;font-weight:700;color:var(--white)}
 
-/* The container. `glassFill` under cards that fill at `glassFillStrong`, same
-   `glassBorder`, `Radius.xl` against the cards' `Radius.lg` so the corners nest
-   rather than trace each other. */
-.panel{flex:1 1 auto;margin-top:var(--group-gap);border-radius:var(--r-xl);
-  background:var(--glass);
-  border:1px solid var(--glass-border);box-shadow:0 10px 30px rgba(0,0,0,.24);
-  padding:var(--panel-pad);
-  display:flex;flex-direction:column;gap:var(--panel-gap)}
+/* Back takes the row's outer end -- the same slot the language chip takes on
+   the activation screen, drawn the same quiet way, because it is the same kind
+   of thing: the one control in a row that is otherwise a statement.
 
-/* Two by two, one gap figure in both directions. `1fr` columns and
-   `grid-auto-rows:1fr` are what keep the four equal when one description wraps
-   in a longer language: the other three grow with it rather than one card
-   standing taller than its neighbours. */
-.choices{flex:1 1 auto;display:grid;grid-template-columns:1fr 1fr;
-  grid-auto-rows:1fr;gap:var(--grid-gap)}
-/* Two columns: the icon, then the words.
-   ------------------------------------------------------------------------
-   The source choice puts its icon on the title's line because those cards are
-   a name and a sentence. These are destinations -- two open a browser over the
-   device's own media, two open the system picker -- and the icon leads the pair
-   of lines rather than sitting on the first of them, which is what
-   `align-items:center` on the row buys.
+   The chevron points the way the reader came from, so it mirrors: right in
+   Arabic, left in English. The reference draws it left in both, which is the
+   Latin convention applied to a right-to-left screen. */
+.back{grid-column:3;grid-row:1;justify-self:end;
+  display:flex;align-items:center;gap:8px;height:var(--back);
+  padding:0 var(--back-pad);border-radius:999px;flex:0 0 auto;white-space:nowrap;
+  font-size:var(--fs-back);line-height:1.45;color:var(--text-2);
+  background:rgba(255,255,255,.045);border:1px solid var(--edge-quiet)}
+.back svg{width:calc(var(--fs-back) * 1.25);height:calc(var(--fs-back) * 1.25);
+  flex:0 0 auto;color:var(--text-2)}
+html[dir="rtl"] .back svg{transform:scaleX(-1)}
 
-   Nothing here changes the card's height: the words are 24 + 4 + 20 = 48 and
-   the glyph is 20, so the row is the height of the text either way. */
-.card{min-width:0;border-radius:var(--r-lg);
-  background:var(--glass-strong);border:1px solid var(--glass-border);
-  box-shadow:0 10px 30px rgba(0,0,0,.32);
-  padding:var(--card-pad-y) var(--card-pad-x);
-  display:flex;flex-direction:row;align-items:center;gap:12px}
-.card .text{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:4px}
-.card .detail{color:var(--silver)}
-.card .lead{flex:0 0 auto;display:flex;align-items:center}
-/* focusRing = Azure60, focusGlow = Azure40 at 45%. Drawn on the first pane so
-   the D-pad story is visible: along a row, then down between the rows. */
-.card.focused{border-color:var(--azure60);
-  box-shadow:0 0 0 1px var(--azure60), 0 14px 44px rgba(46,107,255,.45)}
+/* The reference's subtitle, off unless asked for.
+   Under the title it describes, which is the middle of the row -- not under
+   whatever happens to sit at the line's starting edge. Aligned to the start it
+   would land beneath Back in Arabic and beneath the wordmark in English, which
+   reads as a caption for the wrong thing in both. */
+.sub{flex:0 0 auto;display:none;justify-content:center;align-items:center;
+  height:var(--sub);font-size:var(--fs-sub);line-height:1.4;color:var(--text-3)}
+html[data-sub="1"] .sub{display:flex}
 
-/* The icon rides the title's line box at its cap height, so it costs the card
-   nothing -- the row is `t-title-l`'s own 24px either way. An icon block above
-   the title would have added 24 plus a gap to all four cards. */
-svg.g{flex:0 0 auto;width:20px;height:20px;stroke:currentColor;fill:none;
-  stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+/* ------------------------------------------------------------------- grid */
+.band{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;
+  padding-top:var(--band-top);gap:var(--trust-gap)}
+.grid{flex:1 1 auto;min-height:0;display:grid;
+  grid-template-columns:1fr 1fr;gap:var(--grid-gap);
+  /* Capped and centred rather than stretched: a card twice as tall as its
+     content is not generous, it is empty. The cap is per frame; where the band
+     is shorter than the cap the rows simply take what there is. */
+  grid-template-rows:repeat(2, minmax(0, var(--card-max)));
+  align-content:center;justify-content:stretch}
 
-/* The card icons alone, at 32.
-   ------------------------------------------------------------------------
-   20 is a phone figure. This screen is read from three metres on a television
-   as well, and at 20 the difference between a film frame and a folder is a few
-   pixels of outline -- the glyph stops carrying meaning and becomes a mark that
-   something is there. 32 is the top of the range that still leaves the words
-   leading: the text block beside it is 48 tall, so the icon is two thirds of it
-   and the title is still the first thing read.
+.card{position:relative;display:flex;align-items:center;gap:var(--card-gap);
+  min-width:0;padding:var(--card-pad);border-radius:var(--radius);
+  background:var(--pane);border:1px solid var(--edge-quiet);
+  box-shadow:var(--rim), var(--lift)}
 
-   The paths, the 24-unit grid, the caps and the joins are untouched. The one
-   other number is the stroke, and it is here to *undo* part of the scaling
-   rather than to restyle anything: a 24-unit box drawn at 32px multiplies every
-   length by 32/24, so a 1.5 stroke would have rendered at 2.0px and the glyphs
-   would have come out heavier than the 17px semibold title beside them. An icon
-   that outweighs its own label is a bigger problem than a small icon.
+/* The disc: the hue is the card's, and it is the only place the hue is loud. */
+.disc{flex:0 0 auto;width:var(--disc);height:var(--disc);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;color:var(--hue);
+  background:radial-gradient(128% 128% at 30% 18%,
+    color-mix(in srgb, var(--hue) 34%, transparent),
+    color-mix(in srgb, var(--hue) 8%, rgba(10,8,30,.86)));
+  border:1px solid color-mix(in srgb, var(--hue) 46%, transparent);
+  box-shadow:0 0 22px color-mix(in srgb, var(--hue) 22%, transparent), var(--rim)}
+.disc svg{width:50%;height:50%}
 
-   1.25 x 24/32 = 0.9375, which renders at exactly the 1.25px the 20px version
-   drew. So the icons are 60% larger and the line through them is the weight it
-   always was -- more glyph, same ink.
+.body{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:5px}
+.head{display:flex;align-items:center;gap:9px;min-width:0}
+/* The title yields and the badge does not, which is the header's rule applied
+   one level down: a badge is a fixed fact and a title is the one thing here
+   whose full size is not load-bearing. It shrinks rather than being cut --
+   "Play a local video" ellipsised to "Play a local vi..." is not a shorter
+   label, it is a different one. */
+.head b{font-size:var(--fs-card);line-height:1.3;font-weight:700;color:var(--white);
+  min-width:0;white-space:nowrap}
+/* One block, not two lines.
+   The description and the "which one do I have" hint were separate elements, so
+   nothing bounded their *total* -- and Portuguese wraps the first to two lines
+   and overran the card by ten dp on both phone frames. A card that overruns does
+   not clip: it takes its row's height from whatever the grid measured after it.
+   One block clamped to a stated number of lines is bounded by construction, in
+   every language nobody has translated into yet. The number is per frame, not
+   global: a television's card is tall and its text column is narrow, so four
+   lines fit there and are needed; a phone's card is the other way round. The hint keeps its quieter ink, because that
+   is what separates a fact from an aside -- not the line break. */
+.d{font-size:var(--fs-desc);line-height:1.5;color:var(--text-2);
+  display:-webkit-box;-webkit-line-clamp:var(--desc-lines);-webkit-box-orient:vertical;overflow:hidden}
+.d .hint{color:var(--text-3)}
+.chev{flex:0 0 auto;width:var(--chev);height:var(--chev);color:var(--text-3);
+  display:flex;align-items:center;justify-content:center}
+/* Two chevrons, two directions, and they are not the same rule.
+   The card's chevron leads *onward*, so it follows the reading direction: left
+   in Arabic, right in English. Back points the way the reader came from, so it
+   is the opposite. Mirroring both together -- which is what a single blanket
+   rule does -- had the card's arrow pointing back toward the margin the eye had
+   just left. The glyph is drawn pointing left, so each is flipped in the one
+   direction where left is wrong. */
+html[dir="ltr"] .chev svg{transform:scaleX(-1)}
 
-   Back's arrow is in neither rule: 20px at 1.5, rendering 1.25px, exactly as
-   before. It is a control on a button, not a subject. */
-.card .lead svg.g{width:var(--card-icon);height:var(--card-icon);
-  stroke-width:0.9375}
+/* Focus is a STATE. Ring, lift, and nothing that could be mistaken for a
+   label -- so the two can sit side by side and still be told apart. */
+.card.focus{border-color:var(--focus);
+  box-shadow:0 0 0 2px var(--focus), 0 0 26px rgba(111,178,255,.34),
+             var(--rim), 0 16px 34px rgba(3,2,12,.62)}
 
-/* A rule, Back, a rule -- and Back on the container's true centre.
-   ------------------------------------------------------------------------
-   The centring is the reason this is three flex children rather than a centred
-   button with decoration around it. Both rules are `flex:1 1 0` from a zero
-   basis, so they resolve to the same width whatever Back measures, and Back
-   lands on the middle of the container rather than on the middle of what is
-   left over. Those are the same point only when the two sides are equal, which
-   is exactly what is being asserted, so it is built that way instead of
-   arranged and hoped for. The row is Back's own height, so nothing above it
-   moves and Back's size and position do not depend on the rules at all. */
-.foot{display:flex;flex-direction:row;align-items:center;gap:0}
+/* ------------------------------------------------------------- trust strip */
+/* Off by default. It fits -- 116dp cards instead of 149 on the reference phone
+   -- so the question it raises is not whether there is room but whether a
+   screen whose whole job is one decision should spend a fifth of itself on
+   four sentences that do not help make it. The copy here is at least true:
+   "we do not store your data" is not, because the Xtream password is written
+   to Room on the device. */
+.trust{flex:0 0 var(--trust);display:flex;align-items:center;
+  border-radius:var(--radius);padding:0 calc(var(--trust) * .22);
+  /* No pane and no border. It is a footnote under the four things that matter,
+     and a panel around it makes it a fifth. */
+  background:transparent}
+.cell{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:10px;
+  padding:0 calc(var(--trust) * .16)}
+.cell + .cell{border-inline-start:1px solid rgba(160,163,215,.12)}
+.cell .ic{flex:0 0 auto;width:var(--trust-disc);height:var(--trust-disc);
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  color:var(--hue);
+  background:color-mix(in srgb, var(--hue) 10%, transparent);
+  border:1px solid color-mix(in srgb, var(--hue) 26%, transparent)}
+.cell .ic svg{width:52%;height:52%}
+.cell .tx{min-width:0;display:flex;align-items:center}
+.cell .tx b{font-size:var(--fs-trust);line-height:1.3;font-weight:600;color:var(--text-3);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* Back, in the shape the reference draws it: a ring around the arrow, with the
-   word beside it.
-   ------------------------------------------------------------------------
-   The ring is the whole of the change -- the label is `t-label-l` in `onSurface`
-   and the control is still `Sizing.minTouchTarget` tall, so the row, the
-   hairline and everything above them measure exactly what they measured before.
-   The ring is `glassBorder` at the same 23.9% as every other edge here and has
-   no fill, which keeps it a ghost button rather than making it a second primary.
+html[data-trust="0"] .trust{display:none}
+html[data-trust="0"] .band{gap:0}
 
-   The arrow points at the *start* edge, and mirrors: right in Arabic, left in
-   English. The reference draws it pointing left over an Arabic layout, which is
-   an unmirrored asset rather than a decision -- Android's own up-arrow flips in
-   RTL, and on a D-pad an arrow that contradicts the direction of travel is worse
-   than no arrow. Say the word and it goes back to the reference's exact glyph. */
-.back{display:inline-flex;align-items:center;gap:12px;
-  height:var(--back-h);padding:0 24px;color:var(--mist)}
-.back .ring{flex:0 0 auto;display:flex;align-items:center;justify-content:center;
-  width:var(--ring);height:var(--ring);border-radius:50%;
-  border:1px solid var(--glass-border)}
-html[dir="rtl"] .back .ring svg{transform:scaleX(-1)}
-
-/* The hairline. Decoration: no text, no icon, no target, `aria-hidden`.
-   ------------------------------------------------------------------------
-   `--glass-border`, the same 23.9% every edge here is drawn at, full in the
-   middle and gone at both ends. Symmetric because the thing under it is
-   centred: a rule that arrived at full strength and stopped at the container's
-   inner edge would need a reason to stop at that pixel, and a rule brightest
-   under the button it belongs to points at it without an arrow.
-
-   Symmetry also means it is the same line in both directions -- there is no
-   leading end to fade from, so nothing here reads the layout direction. */
-.rule{flex:1 1 0;min-width:0;height:1px}
-/* Each one is solid where it meets Back and gone by its far end, so the pair
-   reads as one line interrupted by the button rather than as two lines that
-   happen to be near it. `a` is the first child and `b` the last, which is the
-   start side and the end side -- so the direction decides which is physically
-   left, and each still fades *away from Back* either way. */
-.rule.a{background:linear-gradient(to right,rgba(255,255,255,0),var(--glass-border))}
-.rule.b{background:linear-gradient(to right,var(--glass-border),rgba(255,255,255,0))}
-html[dir="rtl"] .rule.a{
-  background:linear-gradient(to left,rgba(255,255,255,0),var(--glass-border))}
-html[dir="rtl"] .rule.b{
-  background:linear-gradient(to left,var(--glass-border),rgba(255,255,255,0))}
-
-.stress-flag{display:none;position:absolute;z-index:11;top:0;inset-inline:0;
-  height:26px;align-items:center;justify-content:center;direction:ltr;
-  font-family:"Liberation Mono",monospace;font-size:11px;font-weight:700;
-  letter-spacing:.6px;color:#08071A;background:#FFB020}
-html[data-stress="1"] .stress-flag{display:flex}
-html[data-stress="1"] #tv{outline:3px solid #FFB020;outline-offset:-3px}
-
-/* Presentation mode: `?fit=1` scales the frame to fill the window.
-   ------------------------------------------------------------------------
-   The frame is drawn at its dp size -- 960x540 is a television, and every
-   measurement in this file is a dp taken at that size. Opened in a browser that
-   is bigger than the frame, it therefore sits in the middle of the page with the
-   page's own background around it, which is not the screen and has never been
-   part of the design.
-   `?fit=1` scales the whole frame by the largest factor the window allows and
-   pins it to the corner. Nothing is re-laid-out and no measurement moves: it is
-   the same frame, magnified, the way a television magnifies 960dp to 1920px. */
-html[data-fit="1"],html[data-fit="1"] body{width:100%;height:100%;overflow:hidden;
-  background:var(--void)}
-html[data-fit="1"] #tv{position:absolute;top:50%;left:50%;
-  transform:translate(-50%,-50%) scale(var(--fit,1));transform-origin:center}
-
-.spec{display:none}
-html[data-spec="1"] .spec{display:block}
-.spec-safe{position:absolute;inset:var(--inset);z-index:8;pointer-events:none;
-  border:1px dashed rgba(255,176,32,.55)}
-.spec-note{position:absolute;z-index:9;left:6px;bottom:6px;direction:ltr;
-  font-family:"Liberation Mono",monospace;font-size:9px;line-height:13px;
-  color:#FFB020;background:rgba(8,7,26,.86);padding:3px 6px;border-radius:4px}
+/* ------------------------------------------------------------ legal band */
+/* The reference's disclaimer: a disc, then two lines of prose. Drawn as a pane
+   because unlike the source choice's footnote it is a statement the reader may
+   have to come back to, and a statement with a boundary is one a reader can
+   find again. Off unless asked for -- see the note at the top of this file. */
+.legal{flex:0 0 auto;display:none;align-items:center;gap:var(--card-gap);
+  border-radius:var(--radius);padding:calc(var(--card-pad) * .8) var(--card-pad);
+  background:rgba(255,255,255,.028);border:1px solid var(--edge-quiet)}
+html[data-legal="1"] .legal{display:flex}
+.legal .ic{flex:0 0 auto;width:var(--trust-disc);height:var(--trust-disc);
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  color:var(--h-pickV);
+  background:color-mix(in srgb, var(--h-pickV) 10%, transparent);
+  border:1px solid color-mix(in srgb, var(--h-pickV) 26%, transparent)}
+.legal .ic svg{width:52%;height:52%}
+.legal p{flex:1 1 auto;min-width:0;font-size:var(--fs-desc);line-height:1.5;
+  color:var(--text-3);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.legal p b{color:var(--text-2);font-weight:600}
 </style>
 </head>
 <body>
-
-<section id="tv">
+<div class="frame">
   <div class="backdrop"></div>
-  <svg class="mesh" viewBox="0 0 960 540" preserveAspectRatio="none">
-    <g fill="none" stroke="#9B6BFF" stroke-opacity=".07" stroke-width="1">
-      <path d="M0,392 C160,352 320,432 480,392 C640,352 800,432 960,392"/>
-      <path d="M0,428 C160,388 320,468 480,428 C640,388 800,468 960,428"/>
-      <path d="M0,464 C160,424 320,504 480,464 C640,424 800,504 960,464"/>
-      <path d="M0,500 C160,462 320,534 480,500 C640,462 800,534 960,500"/>
+  <svg class="contours" viewBox="0 0 960 330" preserveAspectRatio="none" fill="none">
+    <g stroke="#8E6BFF" stroke-width="1" opacity=".34">
+      <path d="M-20 236 C 120 198, 250 272, 386 244 C 512 218, 618 152, 760 150 C 852 149, 926 168, 990 190"/>
+      <path d="M-20 260 C 128 222, 258 294, 398 266 C 528 240, 630 174, 772 172 C 862 171, 932 190, 990 212"/>
+      <path d="M-20 284 C 136 246, 266 316, 410 288 C 544 262, 642 196, 784 194 C 872 193, 938 212, 990 234"/>
+      <path d="M-20 212 C 112 174, 242 250, 374 222 C 496 196, 606 130, 748 128 C 842 127, 920 146, 990 168"/>
+      <path d="M-20 188 C 104 150, 234 228, 362 200 C 480 174, 594 108, 736 106 C 832 105, 914 124, 990 146"/>
+    </g>
+    <g stroke="#5FA0FF" stroke-width="1" opacity=".20">
+      <path d="M-20 140 C  88 104, 218 186, 338 158 C 448 132, 570  68, 712  66 C 812  65, 902  84, 990 106"/>
+      <path d="M-20 116 C  80  80, 210 164, 326 136 C 432 110, 558  46, 700  44 C 802  43, 896  62, 990  84"/>
     </g>
   </svg>
 
-  <div class="band">
-    <div class="head">
-      <h1 class="t-headline-m" data-s="title"></h1>
-      <!-- Last in the row, so it lands on the end side: the left corner in
-           Arabic, the right corner in English. The title keeps the start. -->
-      <span class="brand" aria-hidden="true">CASTIVIO</span>
+  <div class="stage">
+    <div class="header">
+      <div class="wordmark"><img class="brand" src="../../core/design/src/main/res/drawable-nodpi/castivio_mark.png" alt=""><span>CASTIVIO</span></div>
+      <h1 class="title" data-s="title">اختر مصدر التشغيل</h1>
+      <div class="back"><span data-icon="chevron"></span><span data-s="back">رجوع</span></div>
     </div>
 
-    <!-- Source order, not visual order: a Row lays its children out start to
-         end, so the video library is on the right in Arabic and on the left in
-         English without either being written down. The two libraries lead and
-         the two pickers follow, in both directions. -->
-    <div class="panel" id="panel">
-      <div class="choices" id="grid">
-      <div class="card focused">
-        <span class="lead" aria-hidden="true">
-          <!-- A film frame: the rails and one image with a play mark. Everything
-               the device has shot or downloaded, not a folder. -->
-          <svg class="g" viewBox="0 0 24 24">
-            <rect x="3" y="5" width="18" height="14" rx="2"/>
-            <path d="M7.5 5v14M16.5 5v14"/>
-            <path d="M10.5 9.5v5l4-2.5z"/>
-          </svg>
-        </span>
-        <div class="text">
-          <div class="t-title-l" data-s="videoLib"></div>
-          <div class="detail t-body-s" data-s="videoLibDetail"></div>
-        </div>
-      </div>
-      <div class="card">
-        <span class="lead" aria-hidden="true">
-          <!-- A folder with a play mark: going and finding one, which is what a
-               picker is. -->
-          <svg class="g" viewBox="0 0 24 24">
-            <path d="M3 7a2 2 0 0 1 2-2h3.6l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-            <path d="M10.5 11.5v4l3.5-2z"/>
-          </svg>
-        </span>
-        <div class="text">
-          <div class="t-title-l" data-s="videoPick"></div>
-          <div class="detail t-body-s" data-s="videoPickDetail"></div>
-        </div>
-      </div>
-      <div class="card">
-        <span class="lead" aria-hidden="true">
-          <!-- Two notes on a beam: a collection of audio rather than one track. -->
-          <svg class="g" viewBox="0 0 24 24">
-            <path d="M9 17.5V5l11-2v12.5"/>
-            <circle cx="6.5" cy="17.5" r="2.5"/>
-            <circle cx="17.5" cy="15.5" r="2.5"/>
-          </svg>
-        </span>
-        <div class="text">
-          <div class="t-title-l" data-s="audioLib"></div>
-          <div class="detail t-body-s" data-s="audioLibDetail"></div>
-        </div>
-      </div>
-      <div class="card">
-        <span class="lead" aria-hidden="true">
-          <!-- The same sheet with a folded corner the source choice uses for a
-               file on this device, with a note in it instead of a play mark:
-               one file, chosen by hand. -->
-          <svg class="g" viewBox="0 0 24 24">
-            <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/>
-            <path d="M14 3v5h5"/>
-            <path d="M14.5 12.2l-4 .9v3.4"/>
-            <circle cx="9.3" cy="16.5" r="1.3"/>
-          </svg>
-        </span>
-        <div class="text">
-          <div class="t-title-l" data-s="mp3Pick"></div>
-          <div class="detail t-body-s" data-s="mp3PickDetail"></div>
-        </div>
-      </div>
-      </div>
 
-      <div class="foot">
-        <span class="rule a" aria-hidden="true"></span>
-        <span class="back t-label-l">
-          <span class="ring" aria-hidden="true">
-            <svg class="g" viewBox="0 0 24 24">
-              <path d="M20 12H5"/><path d="M11.5 5.5L5 12l6.5 6.5"/>
-            </svg>
+    <p class="sub" data-s="sub">أختر الطريقة التي تريد من خلالها تشغيل المحتوى</p>
+
+    <div class="band">
+      <div class="grid">
+        <!-- The reference's own order, kept: the two libraries lead and the two
+             pickers follow, so in Arabic the grid fills video-library top-right,
+             pick-video top-left, audio-library bottom-right, MP3 bottom-left --
+             which is exactly how the reference draws them, and exactly the order
+             `MediaSourceScreen` already composes. -->
+        <div class="card" id="libVideo" style="--hue:var(--h-libV)">
+          <span class="disc" data-icon="film"></span>
+          <span class="body">
+            <span class="head"><b data-s="lvT">مكتبة الفيديو</b></span>
+            <span class="d" data-s="lvD">جميع الفيديوهات الموجودة على الجهاز.</span>
           </span>
-          <span data-s="back"></span>
-        </span>
-        <span class="rule b" aria-hidden="true"></span>
+          <span class="chev" data-icon="chevron"></span>
+        </div>
+
+        <div class="card" id="pickVideo" style="--hue:var(--h-pickV)">
+          <span class="disc" data-icon="folderPlay"></span>
+          <span class="body">
+            <span class="head"><b data-s="pvT">اختيار فيديو</b></span>
+            <span class="d" data-s="pvD">اختيار ملف فيديو من الجهاز.</span>
+          </span>
+          <span class="chev" data-icon="chevron"></span>
+        </div>
+
+        <div class="card" id="libAudio" style="--hue:var(--h-libA)">
+          <span class="disc" data-icon="notes"></span>
+          <span class="body">
+            <span class="head"><b data-s="laT">مكتبة الصوت</b></span>
+            <span class="d" data-s="laD">جميع الملفات الصوتية الموجودة على الجهاز.</span>
+          </span>
+          <span class="chev" data-icon="chevron"></span>
+        </div>
+        <div class="card" id="pickAudio" style="--hue:var(--h-pickA)">
+          <span class="disc" data-icon="fileNote"></span>
+          <span class="body">
+            <span class="head"><b data-s="paT">اختيار MP3</b></span>
+            <span class="d" data-s="paD">اختيار ملف MP3 من الجهاز.</span>
+          </span>
+          <span class="chev" data-icon="chevron"></span>
+        </div>
+
+      </div>
+
+      <div class="legal">
+        <span class="ic" data-icon="info"></span>
+        <p data-s="legal"><b>إخلاء المسؤولية:</b> لا توفر Castivio أي محتوى أو وسائل إعلام. المستخدم مسؤول عن المحتوى الذي يقوم بتشغيله عبر هذا التطبيق. تأكد من أن لديك الحقوق القانونية أو الإذن من المالك قبل تشغيل أي محتوى.</p>
       </div>
     </div>
-  </div>
 
-  <div class="stress-flag">STRESS RENDER — EVERY STRING DOUBLED ON PURPOSE. NOT THE SCREEN.</div>
-
-  <div class="spec">
-    <div class="spec-safe"></div>
-    <div class="spec-note" id="note"></div>
   </div>
-</section>
+</div>
 
 <script>
-var S = {
-  ar: { dir:"rtl", title:"اختر مصدر التشغيل",
-        videoLib:"مكتبة الفيديو", videoLibDetail:"جميع الفيديوهات الموجودة على الجهاز.",
-        videoPick:"اختيار فيديو", videoPickDetail:"اختيار ملف فيديو من الجهاز.",
-        audioLib:"مكتبة الصوت", audioLibDetail:"جميع الملفات الصوتية الموجودة على الجهاز.",
-        mp3Pick:"اختيار MP3", mp3PickDetail:"اختيار ملف MP3 من الجهاز.",
-        back:"رجوع" },
-  en: { dir:"ltr", title:"What would you like to play?",
-        videoLib:"Video library", videoLibDetail:"Every video on this device.",
-        videoPick:"Choose a video", videoPickDetail:"Pick a video file from this device.",
-        audioLib:"Audio library", audioLibDetail:"Every audio file on this device.",
-        mp3Pick:"Choose an MP3", mp3PickDetail:"Pick an MP3 file from this device.",
-        back:"Back" },
+var K = 'fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"';
+var ICON = {
+  chevron:'<svg viewBox="0 0 24 24" '+K+' stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg>',
+  link:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.9">'+
+       '<path d="M10.2 13.8a4.4 4.4 0 0 0 6.2 0l2.6-2.6a4.4 4.4 0 0 0-6.2-6.2l-1.3 1.3"/>'+
+       '<path d="M13.8 10.2a4.4 4.4 0 0 0-6.2 0L5 12.8a4.4 4.4 0 0 0 6.2 6.2l1.3-1.3"/></svg>',
+  server:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.8">'+
+       '<rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/>'+
+       '<path d="M7 7.5h.01"/><path d="M10.5 7.5h.01"/><path d="M7 16.5h.01"/><path d="M10.5 16.5h.01"/></svg>',
+  users:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.8">'+
+       '<circle cx="9.5" cy="8" r="3.4"/><path d="M3.4 19.4a6.1 6.1 0 0 1 12.2 0"/>'+
+       '<path d="M16.4 5.2a3.4 3.4 0 0 1 0 5.9"/><path d="M18 14.4a6.1 6.1 0 0 1 2.6 5"/></svg>',
+  screen:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.8">'+
+       '<rect x="2.6" y="4" width="18.8" height="13" rx="2.4"/><path d="M8.5 21h7"/>'+
+       '<path d="M10.4 8.4v4.2l3.8-2.1z"/></svg>',
+  shield:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.9">'+
+       '<path d="M12 3l7 2.6v5.6c0 4.3-2.9 8.1-7 9.2-4.1-1.1-7-4.9-7-9.2V5.6z"/><path d="M9 12.2l2.1 2.1L15.2 10"/></svg>',
+  gauge:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.9">'+
+       '<path d="M4 18a9 9 0 1 1 16 0"/><path d="M12 18l4.2-5"/><circle cx="12" cy="18" r="1.1"/></svg>',
+  lock:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.9">'+
+       '<rect x="4.5" y="10" width="15" height="10.4" rx="2.4"/><path d="M8.2 10V7.6a3.8 3.8 0 0 1 7.6 0V10"/></svg>',
+  film:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.7">'+
+       '<rect x="2.6" y="4.4" width="18.8" height="15.2" rx="2.4"/>'+
+       '<path d="M7.2 4.4v15.2M16.8 4.4v15.2M2.6 12h18.8"/>'+
+       '<path d="M4.6 8.2h.9M4.6 15.8h.9M18.5 8.2h.9M18.5 15.8h.9"/></svg>',
+  folderPlay:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.7">'+
+       '<path d="M3 7.4a2 2 0 0 1 2-2h3.7l1.8 2.2H19a2 2 0 0 1 2 2v7.6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'+
+       '<path d="M10.6 10.8v4.2l3.9-2.1z"/></svg>',
+  notes:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.7">'+
+       '<path d="M9.4 17.6V5.6l9.2-1.9v11.6"/>'+
+       '<circle cx="7" cy="17.8" r="2.5"/><circle cx="16.2" cy="15.6" r="2.5"/></svg>',
+  fileNote:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.7">'+
+       '<path d="M6 3.4h7.4L19 8.9v11.7H6z"/><path d="M13.2 3.4v5.6H19"/>'+
+       '<path d="M11.4 17.4v-4.6l3.4-.8v4.2"/>'+
+       '<circle cx="10.1" cy="17.5" r="1.4"/><circle cx="13.5" cy="16.6" r="1.4"/></svg>',
+  info:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.9">'+
+       '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.4"/><path d="M12 7.6h.01"/></svg>'
 };
 
-var q = new URLSearchParams(location.search);
-var s = S[q.get("lang")] || S.ar;
-var f = q.get("frame");
-if (f === "tv" || f === "short") document.documentElement.dataset.frame = f;
-document.documentElement.dir = s.dir;
-document.documentElement.lang = s.dir === "rtl" ? "ar" : "en";
-if (q.get("spec")) document.documentElement.dataset.spec = "1";
-/* The scale, recomputed on resize: whichever of width or height runs out first. */
-if (q.get("fit")) {
-  document.documentElement.dataset.fit = "1";
-  var fit = function () {
-    var el = document.getElementById("tv");
-    var k = Math.min(window.innerWidth / el.offsetWidth,
-                     window.innerHeight / el.offsetHeight);
-    document.documentElement.style.setProperty("--fit", k);
-  };
-  fit();
-  window.addEventListener("resize", fit);
-}
-if (q.get("stress")) {
-  document.documentElement.dataset.stress = "1";
-  Object.keys(s).forEach(function (k) {
-    if (k !== "dir") s[k] = s[k] + " " + s[k];
-  });
-}
-document.querySelectorAll("[data-s]").forEach(function (n) {
-  n.textContent = s[n.getAttribute("data-s")];
-});
+var EN = {title:"Choose a playback source", back:"Back",
+  sub:"Choose how you want to play your content",
+  lvT:"Video library", lvD:"Every video on this device.",
+  pvT:"Choose a video", pvD:"Pick one video file from this device.",
+  laT:"Audio library", laD:"Every audio file on this device.",
+  paT:"Choose an MP3", paD:"Pick one MP3 file from this device.",
+  legal:'<b>Disclaimer:</b> Castivio provides no content or media. You are responsible for whatever you play through this application. Make sure you hold the rights, or the owner\'s permission, before playing anything.'};
+var ES = {title:"Elige una fuente de reproducción", back:"Atrás",
+  sub:"Elige cómo quieres reproducir tu contenido",
+  lvT:"Biblioteca de vídeo", lvD:"Todos los vídeos de este dispositivo.",
+  pvT:"Elegir un vídeo", pvD:"Selecciona un archivo de vídeo del dispositivo.",
+  laT:"Biblioteca de audio", laD:"Todos los archivos de audio de este dispositivo.",
+  paT:"Elegir un MP3", paD:"Selecciona un archivo MP3 del dispositivo.",
+  legal:'<b>Aviso legal:</b> Castivio no proporciona ningún contenido ni medio. Eres responsable de lo que reproduzcas con esta aplicación. Asegúrate de tener los derechos, o el permiso del propietario, antes de reproducir nada.'};
+var PT = {title:"Escolha uma fonte de reprodução", back:"Voltar",
+  sub:"Escolha como quer reproduzir o seu conteúdo",
+  lvT:"Biblioteca de vídeo", lvD:"Todos os vídeos deste dispositivo.",
+  pvT:"Escolher um vídeo", pvD:"Selecione um ficheiro de vídeo do dispositivo.",
+  laT:"Biblioteca de áudio", laD:"Todos os ficheiros de áudio deste dispositivo.",
+  paT:"Escolher um MP3", paD:"Selecione um ficheiro MP3 do dispositivo.",
+  legal:'<b>Aviso legal:</b> A Castivio não fornece qualquer conteúdo ou meio. É responsável por tudo o que reproduzir através desta aplicação. Certifique-se de que detém os direitos, ou a permissão do proprietário, antes de reproduzir seja o que for.'};
 
-/* The band's arithmetic, measured rather than asserted in a comment. If this
-   ever reports an overflow, the screen has started to clip -- the frame does not
-   scroll, so an overrun is not a scrollbar, it is a missing Back button. */
-window.addEventListener("load", function () {
-  var r1 = function (n) { return Math.round(n * 10) / 10; };
-  var band = document.querySelector(".band");
-  var r = band.getBoundingClientRect();
-  var head = document.querySelector(".head").getBoundingClientRect();
-  var brand = document.querySelector(".brand").getBoundingClientRect();
-  var title = document.querySelector(".head h1").getBoundingClientRect();
-  var panelEl = document.getElementById("panel");
-  var panel = panelEl.getBoundingClientRect();
-  var grid = document.getElementById("grid").getBoundingClientRect();
-  var foot = document.querySelector(".foot").getBoundingClientRect();
-  var back = document.querySelector(".back").getBoundingClientRect();
-  var ruleA = document.querySelector(".rule.a").getBoundingClientRect();
-  var ruleB = document.querySelector(".rule.b").getBoundingClientRect();
-  var frame = document.getElementById("tv").getBoundingClientRect();
-  var rtl = document.documentElement.dir === "rtl";
-  /* The inner edge is the padding *and* the 1px glass border: `panel` is a
-     border box, so a figure measured from `panel.left + padding` alone reads
-     one pixel short and every gap looks like 9 where the token says 8. */
-  var cs = getComputedStyle(panelEl);
-  var pad = parseFloat(cs.paddingLeft) + parseFloat(cs.borderLeftWidth);
+(function () {
+  var q = new URLSearchParams(location.search);
+  var root = document.documentElement;
+  root.dataset.frame = q.get("frame") || "tv";
+  root.dataset.trust = "0";                       // this screen has no footnote strip
+  root.dataset.sub   = q.get("sub")   === "1" ? "1" : "0";
+  root.dataset.legal = q.get("legal") === "1" ? "1" : "0";
 
-  var cards = [].map.call(document.querySelectorAll("#grid .card"), function (n) {
-    var b = n.getBoundingClientRect();
-    return { w: r1(b.width), h: r1(b.height), x: r1(b.left - frame.left),
-             y: r1(b.top - frame.top), right: b.right, left: b.left,
-             top: b.top, bottom: b.bottom };
-  });
-  /* The icon and the words, so "only the icon changed" is checkable and so a
-     description that started wrapping when the icon widened would show up as a
-     taller text block rather than as something noticed in a screenshot. */
-  /* The rendered stroke, computed the way the renderer computes it: the value on
-     the 24-unit grid times the box over the viewBox. Asserted as a number
-     because "looks the same weight" is exactly the claim a screenshot cannot
-     settle -- the icon got 60% bigger in the same breath. */
-  var iconEl = document.querySelector(".card .lead svg");
-  var icon = iconEl.getBoundingClientRect();
-  var inkOf = function (el) {
-    var b = el.getBoundingClientRect();
-    return r1(parseFloat(getComputedStyle(el).strokeWidth) * (b.width / 24) * 100) / 100;
-  };
-  var texts = [].map.call(document.querySelectorAll(".card .text"), function (n) {
-    return r1(n.getBoundingClientRect().height);
-  });
-  var w = cards.map(function (c) { return c.w; });
-  var h = cards.map(function (c) { return c.h; });
-
-  /* Overlap is checked rather than assumed: four rectangles that each measure
-     correctly can still be drawn on top of each other, and a grid is exactly
-     where that would go unnoticed. */
-  var overlaps = [];
-  for (var i = 0; i < cards.length; i++) {
-    for (var j = i + 1; j < cards.length; j++) {
-      var a = cards[i], b = cards[j];
-      if (a.left < b.right - 0.5 && b.left < a.right - 0.5 &&
-          a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5) overlaps.push(i + "/" + j);
-    }
-  }
-  /* Physically left and right, not first and last: the pair swaps ends with the
-     direction, and a check written against DOM order reports an overlap in RTL
-     for a layout that has none. It did, before this line was written this way. */
-  var ruleL = ruleA.left < ruleB.left ? ruleA : ruleB;
-  var ruleR = ruleA.left < ruleB.left ? ruleB : ruleA;
-  if (ruleL.right > back.left + 0.5 || back.right > ruleR.left + 0.5) {
-    overlaps.push("rule/back");
-  }
-
-  /* Clipping: any element wider or taller than the box it is drawn in. The
-     frame does not scroll, so this is the number that would become a cut-off
-     word on a device. */
-  var clipped = [];
-  [["band", band], ["panel", panelEl], ["grid", document.getElementById("grid")]]
-    .forEach(function (p) {
-      var n = p[1];
-      if (n.scrollWidth - n.clientWidth > 0.5 || n.scrollHeight - n.clientHeight > 0.5) {
-        clipped.push(p[0] + " " + (n.scrollWidth - n.clientWidth) + "x" +
-          (n.scrollHeight - n.clientHeight));
-      }
+  var code = q.get("lang") || "ar";
+  var en = code !== "ar";
+  var T = code === "pt" ? PT : code === "es" ? ES : EN;
+  if (en) {
+    root.lang = code; root.dir = "ltr";
+    document.querySelectorAll("[data-s]").forEach(function (n) {
+      if (T[n.dataset.s] != null) n.innerHTML = T[n.dataset.s];
     });
-  document.querySelectorAll(".card .text > div").forEach(function (n) {
-    if (n.scrollWidth - n.clientWidth > 0.5) clipped.push("text:" + n.textContent.slice(0, 12));
+  }
+  document.querySelectorAll('[data-icon]').forEach(function (n) { n.innerHTML = ICON[n.dataset.icon]; });
+
+  // The D-pad starts where the reference draws its glow: on "choose a video".
+  var f = q.get("focus") || "pickVideo";
+  if (f !== "none") { var el = document.getElementById(f); if (el) el.classList.add('focus'); }
+
+  /* The title yields and nothing else does, exactly as on the activation
+     screen: the lockup is the brand and Back is a control, and a control
+     squeezed to make room for a caption is a control nobody can reach. */
+  (function fitTitle() {
+    var t = document.querySelector('.title');
+    var size = parseFloat(getComputedStyle(t).fontSize), floor = size * 0.55, guard = 0;
+    while (t.scrollWidth > t.clientWidth + 0.5 && size > floor && guard++ < 40) {
+      size *= 0.94; t.style.fontSize = size + 'px';
+    }
+  })();
+
+  /* Each card's title, at the largest size that fits its column. */
+  document.querySelectorAll('.head b').forEach(function (b) {
+    var size = parseFloat(getComputedStyle(b).fontSize), floor = size * 0.78, guard = 0;
+    while (b.scrollWidth > b.clientWidth + 0.5 && size > floor && guard++ < 40) {
+      size *= 0.95; b.style.fontSize = size + 'px';
+    }
   });
 
-  window.__fit = {
-    frame: r1(frame.width) + "x" + r1(frame.height),
-    inset: r1(r.left - frame.left),
+  /* One baseline for the title and the wordmark. CSS cannot state it here --
+     the lockup is a flex row and takes its baseline from the picture -- so it
+     is measured and applied, which is what `CastivioHeader` does with
+     `FirstBaseline`. One rule, written twice, in the two places it must hold. */
+  function baselineOf(el) {
+    var p = document.createElement('span');
+    p.style.cssText = 'display:inline-block;width:0;height:0;overflow:hidden';
+    el.appendChild(p); var y = p.getBoundingClientRect().bottom; el.removeChild(p);
+    return y;
+  }
+  var titleEl = document.querySelector('.title'), wordEl = document.querySelector('.wordmark span');
+  titleEl.style.position = 'relative';
+  titleEl.style.top = (baselineOf(wordEl) - baselineOf(titleEl)) + 'px';
 
-    container: r1(panel.width) + "x" + r1(panel.height),
-    containerAt: r1(panel.left - frame.left) + "," + r1(panel.top - frame.top),
-    containerInFrame: panel.left >= frame.left - 0.5 && panel.right <= frame.right + 0.5 &&
-      panel.top >= frame.top - 0.5 && panel.bottom <= frame.bottom + 0.5,
-    padTop: r1(grid.top - panel.top),
-    padBottom: r1(panel.bottom - foot.bottom),
-    padStart: r1(rtl ? panel.right - grid.right : grid.left - panel.left),
-    padEnd: r1(rtl ? grid.left - panel.left : panel.right - grid.right),
-
-    head: r1(head.height),
-    headToGrid: r1(panel.top - head.bottom),
-    mark: r1(brand.width) + "x" + r1(brand.height),
-    markAtLeft: r1(brand.left - r.left),
-    titleAt: r1(rtl ? r.right - title.right : title.left - r.left),
-
-    grid: r1(grid.width) + "x" + r1(grid.height),
-    gridToBack: r1(foot.top - grid.bottom),
-    card: r1(Math.max.apply(null, w)) + "x" + r1(Math.max.apply(null, h)),
-    widthSpread: r1(Math.max.apply(null, w) - Math.min.apply(null, w)),
-    heightSpread: r1(Math.max.apply(null, h) - Math.min.apply(null, h)),
-    gapX: r1(cards[1].x > cards[0].x
-      ? cards[1].x - (cards[0].x + cards[0].w)
-      : cards[0].x - (cards[1].x + cards[1].w)),
-    gapY: r1(cards[2].y - (cards[0].y + cards[0].h)),
-    /* Both gaps measured twice: between the columns in each row, and between the
-       rows in each column. "The gaps are equal" is four numbers, not two. */
-    gapX2: r1(Math.abs(cards[3].x > cards[2].x
-      ? cards[3].x - (cards[2].x + cards[2].w)
-      : cards[2].x - (cards[3].x + cards[3].w))),
-    gapY2: r1(cards[3].y - (cards[1].y + cards[1].h)),
-
-    icon: r1(icon.width) + "x" + r1(icon.height),
-    iconInk: inkOf(iconEl),
-    backInk: inkOf(document.querySelector(".back svg")),
-    textBlocks: texts.join("/"),
-    backArrow: r1(document.querySelector(".back svg").getBoundingClientRect().width),
-    back: r1(back.width) + "x" + r1(back.height),
-    backAt: r1(back.left - frame.left) + "," + r1(back.top - frame.top),
-    /* Centred is two numbers that have to agree, not one that looks right: the
-       gap from the container's inner edge to Back, on each side. */
-    backLeadIn: r1(back.left - (panel.left + pad)),
-    backTrailIn: r1((panel.right - pad) - back.right),
-    /* Two rules, and the pair is only right if they are the same width -- that
-       is what puts Back on the container's centre rather than on the middle of
-       what is left over. Reported separately so the claim is checkable. */
-    ruleA: r1(ruleA.width) + "x" + r1(ruleA.height),
-    ruleB: r1(ruleB.width) + "x" + r1(ruleB.height),
-    ruleSpread: r1(Math.abs(ruleA.width - ruleB.width)),
-    ruleTouchesBack: r1(Math.max(Math.abs(back.left - ruleL.right),
-      Math.abs(ruleR.left - back.right))),
-    ruleFromEdge: r1(Math.max(Math.abs(ruleL.left - (panel.left + pad)),
-      Math.abs((panel.right - pad) - ruleR.right))),
-
-    overlaps: overlaps,
-    clipped: clipped,
-    overflow: band.scrollHeight - band.clientHeight,
-  };
-
-  document.getElementById("note").textContent =
-    "band " + window.__fit.frame + " | container " + window.__fit.container +
-    " @" + window.__fit.containerAt + " | head " + window.__fit.head +
-    " | gap " + window.__fit.headToGrid +
-    " | grid " + window.__fit.grid + " | card " + window.__fit.card +
-    " | spread " + window.__fit.widthSpread + "/" + window.__fit.heightSpread +
-    " | gaps " + window.__fit.gapX + "/" + window.__fit.gapY +
-    " | back " + window.__fit.back + " | rules " + window.__fit.ruleA + " / " +
-    window.__fit.ruleB +
-    " | OVERFLOW " + window.__fit.overflow;
-});
-document.fonts.ready.then(function () { window.__fontsReady = true; });
+  /* Measured, not reasoned. A card that overflows its row does not clip here
+     and will not clip on the device -- it takes the row's height from whatever
+     was measured after it. */
+  function box(sel) { var n = document.querySelector(sel); return n ? n.getBoundingClientRect() : null; }
+  var band = box('.band'), grid = box('.grid'), card = box('#pickVideo'),
+      trust = box('.legal'), sub = box('.sub');
+  var over = [];
+  document.querySelectorAll('.card').forEach(function (c) {
+    var body = c.querySelector('.body');
+    var need = body.scrollHeight + 2 * parseFloat(getComputedStyle(c).paddingTop);
+    var have = c.getBoundingClientRect().height;
+    if (need - have > 0.5) over.push(c.id + ' +' + Math.round(need - have));
+    var b = c.querySelector('.head b');
+    if (b.scrollWidth - b.clientWidth > 0.5) over.push(c.id + ' title clipped');
+    var d = c.querySelector('.d');
+    if (d.scrollHeight - d.clientHeight > 1) over.push(c.id + ' desc clamped');
+  });
+  var lp = document.querySelector('.legal p');
+  if (root.dataset.legal === '1' && lp.scrollHeight - lp.clientHeight > 1) over.push('legal clamped');
+  var sb = document.querySelector('.sub');
+  if (root.dataset.sub === '1' && sb.scrollWidth - sb.clientWidth > 0.5) over.push('subtitle clipped');
+  var H = box('.header'), tEl = box('.title'), lk = box('.wordmark'), bk = box('.back');
+  console.log(JSON.stringify({
+    frame: root.dataset.frame + '/' + code +
+      (root.dataset.sub === '1' ? '/sub' : '') + (root.dataset.legal === '1' ? '/legal' : ''),
+    band: Math.round(band.height),
+    grid: Math.round(grid.height),
+    card: Math.round(card.height),
+    gridSpare: Math.round(band.height - grid.height -
+      (root.dataset.legal === '1' ? trust.height + parseFloat(getComputedStyle(document.querySelector('.band')).rowGap) : 0)),
+    subtitle: root.dataset.sub === '1' ? Math.round(sub.height) : 0,
+    legal: root.dataset.legal === '1' ? Math.round(trust.height) : 0,
+    overflow: over,
+    header: {
+      row: Math.round(H.width), title: Math.round(tEl.width),
+      lockup: Math.round(lk.width), back: Math.round(bk.width),
+      titleSize: +parseFloat(getComputedStyle(document.querySelector('.title')).fontSize).toFixed(1),
+      titleClipped: Math.max(0, Math.round(titleEl.scrollWidth - titleEl.clientWidth)),
+      baselineGap: +(baselineOf(titleEl) - baselineOf(wordEl)).toFixed(2)
+    }
+  }));
+})();
 </script>
 </body>
 </html>
