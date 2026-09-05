@@ -29,11 +29,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.sp
 import com.castivio.core.design.components.ButtonWeight
 import com.castivio.core.design.components.CastivioButton
 import com.castivio.core.design.components.InteractiveGlassCard
 import com.castivio.core.design.components.castivioChipStyle
+import com.castivio.core.design.components.castivioBodyStyle
+import com.castivio.core.design.components.castivioDescriptionColor
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.castivioStage
@@ -154,8 +155,8 @@ private fun ColumnScope.SavedBand(
             Box(band.padding(m.cardPad), contentAlignment = Alignment.Center) {
                 Text(
                     text = stringResource(R.string.saved_sources_empty),
-                    style = castivioChipStyle(m.fsCard),
-                    color = CastivioTheme.colors.onBackgroundVariant,
+                    style = castivioBodyStyle(m.fsDetail),
+                    color = castivioDescriptionColor,
                     modifier = Modifier.testTag(ActivationTags.SAVED_EMPTY),
                 )
             }
@@ -229,10 +230,8 @@ private fun SavedSourceRow(
                 source.url?.let { url ->
                     Text(
                         text = url,
-                        style = castivioChipStyle(m.fsDetail).copy(
-                            lineHeight = (m.fsDetail.value * DETAIL_LEADING).sp,
-                        ),
-                        color = colors.onBackgroundVariant,
+                        style = castivioBodyStyle(m.fsDetail),
+                        color = castivioDescriptionColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -261,5 +260,3 @@ private fun SavedSourceRow(
 /** Between rows, and a row's own vertical padding — half the gap between cards. */
 private const val ROW_GAP = 0.5f
 
-/** An address's leading. */
-private const val DETAIL_LEADING = 1.5f

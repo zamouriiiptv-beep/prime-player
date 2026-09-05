@@ -53,6 +53,8 @@ import com.castivio.core.common.locale.CastivioLanguage
 import com.castivio.core.design.components.CastivioIconButton
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioFocusScale
+import com.castivio.core.design.components.castivioBodyStyle
+import com.castivio.core.design.components.castivioDescriptionColor
 import com.castivio.core.design.theme.CastivioFrame
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Motion
@@ -203,8 +205,8 @@ private fun PickerHeader(frame: CastivioFrame, tv: Boolean, onDismiss: () -> Uni
             )
             Text(
                 text = stringResource(R.string.language_count, CastivioLanguage.COUNT),
-                style = castivioChipStyle(frame.fsBody),
-                color = colors.onBackgroundVariant,
+                style = castivioBodyStyle(frame.fsBody),
+                color = castivioDescriptionColor,
             )
             Box(Modifier.weight(1f))
 
@@ -214,8 +216,8 @@ private fun PickerHeader(frame: CastivioFrame, tv: Boolean, onDismiss: () -> Uni
             if (tv) {
                 Text(
                     text = stringResource(R.string.language_back_hint),
-                    style = castivioChipStyle(frame.fsBody),
-                    color = colors.onBackgroundVariant,
+                    style = castivioBodyStyle(frame.fsBody),
+                    color = castivioDescriptionColor,
                 )
             } else {
                 CastivioIconButton(

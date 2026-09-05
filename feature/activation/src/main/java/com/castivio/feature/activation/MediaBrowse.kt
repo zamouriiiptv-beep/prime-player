@@ -37,6 +37,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.castivio.core.design.components.InteractiveGlassCard
+import com.castivio.core.design.components.castivioBodyStyle
+import com.castivio.core.design.components.castivioDescriptionColor
 import com.castivio.core.design.components.rememberThumbnail
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
@@ -208,6 +210,7 @@ internal fun Modifier.fadeAtBottom(height: Dp): Modifier = this
  */
 @Composable
 internal fun MediaListRow(
+    m: SourceMetrics,
     row: MediaRow,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -264,8 +267,8 @@ internal fun MediaListRow(
             if (row.detail.isNotEmpty()) {
                 Text(
                     text = row.detail,
-                    style = CastivioType.bodySmall,
-                    color = colors.onBackgroundVariant,
+                    style = castivioBodyStyle(m.fsDetail),
+                    color = castivioDescriptionColor,
                     maxLines = 1,
                 )
             }

@@ -29,6 +29,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.castivio.core.design.components.CastivioArtwork
 import com.castivio.core.design.components.GlassCard
 import com.castivio.core.design.components.InteractiveGlassCard
+import com.castivio.core.design.components.castivioBodyStyle
+import com.castivio.core.design.components.castivioDescriptionColor
 import com.castivio.core.design.components.rememberThumbnail
 import com.castivio.core.design.icons.CastivioIcons
 import com.castivio.core.design.theme.CastivioTheme
@@ -218,6 +220,7 @@ internal fun AudioLibraryScreen(
                 if (index >= tracks.size - PREFETCH) NearEnd(onNearEnd)
                 val track = tracks[index]
                 MediaListRow(
+                    m = m,
                     row = MediaRow(
                         name = track.name,
                         detail = track.duration,
@@ -251,8 +254,8 @@ private fun ColumnScope.EmptyBand(m: SourceMetrics, message: String) {
     ) {
         Text(
             text = message,
-            style = CastivioType.bodyLarge,
-            color = CastivioTheme.colors.onBackgroundVariant,
+            style = castivioBodyStyle(m.fsDetail),
+            color = castivioDescriptionColor,
             textAlign = TextAlign.Center,
         )
     }

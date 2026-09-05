@@ -17,14 +17,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Palette
 import androidx.compose.ui.layout.AlignmentLine
@@ -320,45 +318,6 @@ private fun TextStyle.tightBox(): TextStyle = copy(
  * that looks right at the first is loose at the second.
  */
 private const val LOCKUP_GAP_RATIO = 0.32f
-
-/**
- * The style the screen's name is set in, from the frame's own title step.
- *
- * Every screen was building this expression for itself — the same token, the same
- * leading ratio, the same `letterSpacing = 0.sp` — which is three copies of one
- * decision and a fourth screen away from disagreeing with itself.
- *
- * The tracking is zero and is stated rather than inherited. `headlineMedium`
- * carries a small negative track, which is a sensible Latin display correction and
- * wrong for Arabic at any size: the script joins, and pulling the letters together
- * closes the joins rather than tightening the word.
- *
- * @param fsTitle [com.castivio.core.design.theme.CastivioFrame.fsTitle].
- */
-@Composable
-@ReadOnlyComposable
-fun castivioTitleStyle(fsTitle: Dp): TextStyle = CastivioType.headlineMedium.copy(
-    fontSize = fsTitle.value.sp,
-    lineHeight = (fsTitle.value * TITLE_LEADING).sp,
-    letterSpacing = 0.sp,
-)
-
-/**
- * The style a chip's own words are set in, from the frame's chip step.
- *
- * @param fsChip [com.castivio.core.design.theme.CastivioFrame.fsChip].
- */
-@Composable
-@ReadOnlyComposable
-fun castivioChipStyle(fsChip: Dp): TextStyle = CastivioType.bodyMedium.copy(
-    fontSize = fsChip.value.sp,
-    lineHeight = (fsChip.value * CHIP_LEADING).sp,
-    letterSpacing = 0.sp,
-)
-
-/** A heading's leading, and a chip's. Ratios, because the sizes step per frame. */
-private const val TITLE_LEADING = 1.35f
-private const val CHIP_LEADING = 1.45f
 
 /** An icon beside type, as a multiple of that type's size. */
 private const val CHIP_ICON = 1.25f

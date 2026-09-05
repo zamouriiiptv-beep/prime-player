@@ -65,7 +65,10 @@ import com.castivio.core.design.components.CastivioLockup
 import com.castivio.core.design.components.IdentityCapsule
 import com.castivio.core.design.components.QrPlate
 import com.castivio.core.design.components.StatusLine
+import com.castivio.core.design.components.BODY_LEADING
+import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioChipStyle
+import com.castivio.core.design.components.castivioDescriptionColor
 import com.castivio.core.design.components.castivioFocusScale
 import com.castivio.core.design.components.castivioTitleStyle
 import com.castivio.core.design.components.emphasiseNumber
@@ -343,7 +346,7 @@ internal fun Metrics.identityHeight(): Dp =
  *   that fails the first time a translator is generous.
  */
 internal fun Metrics.codeHeight(captionLines: Int = CAPTION_LINES): Dp =
-    plate + zonePad * 2 + zoneGap + fsCaption * CAPTION_LEADING * captionLines
+    plate + zonePad * 2 + zoneGap + fsCaption * BODY_LEADING * captionLines
 
 /**
  * The first screen, where a subscription is added.
@@ -881,15 +884,8 @@ private fun CodeZone(identity: ActivationIdentityState, m: Metrics) {
             )
             Text(
                 text = stringResource(R.string.qr_caption),
-                style = CastivioType.bodySmall.copy(
-                    fontSize = m.fsCaption.value.sp,
-                    // Arabic hangs marks above the line and drops tails below it,
-                    // so leading that looks generous in a Latin face is tight
-                    // here. One and a half, on every frame.
-                    lineHeight = (m.fsCaption.value * CAPTION_LEADING).sp,
-                    letterSpacing = 0.sp,
-                ),
-                color = colors.onBackgroundVariant,
+                style = castivioBodyStyle(m.fsCaption),
+                color = castivioDescriptionColor,
                 textAlign = TextAlign.Center,
                 maxLines = CAPTION_LINES,
             )
@@ -925,11 +921,12 @@ private fun FooterBar(m: Metrics) {
     ) {
         Text(
             text = stringResource(R.string.legal_player_only),
-            style = CastivioType.bodySmall.copy(
-                fontSize = m.fsCaption.value.sp,
-                lineHeight = (m.fsCaption.value * CAPTION_LEADING).sp,
-                letterSpacing = 0.sp,
-            ),
+            // The size token, and deliberately not its colour. A legal line is
+            // present without asking to be read, which is what `onBackgroundMuted`
+            // is for; recolouring it to the description's ink would make the
+            // disclaimer louder, and that is a decision about the product rather
+            // than about typography.
+            style = castivioBodyStyle(m.fsCaption),
             color = colors.onBackgroundMuted,
             textAlign = TextAlign.Center,
             maxLines = 1,
@@ -1071,7 +1068,6 @@ private const val WORD_RATIO = 0.80f
 
 private const val CHIP_LEADING = 1.45f
 private const val LABEL_LEADING = 1.4f
-private const val CAPTION_LEADING = 1.5f
 private const val CODE_LEADING = 1.3f
 
 /** Between the six pairs, and between the six digits, which want more air. */

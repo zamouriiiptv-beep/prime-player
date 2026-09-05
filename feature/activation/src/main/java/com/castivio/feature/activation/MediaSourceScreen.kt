@@ -24,10 +24,11 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.sp
 import com.castivio.core.design.components.CastivioFittedText
 import com.castivio.core.design.components.InteractiveGlassCard
 import com.castivio.core.design.components.castivioChipStyle
+import com.castivio.core.design.components.castivioBodyStyle
+import com.castivio.core.design.components.castivioDescriptionColor
 import com.castivio.core.design.icons.CastivioIcons
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Sizing
@@ -253,10 +254,8 @@ private fun RowScope.MediaCard(
                 )
                 Text(
                     text = detail,
-                    style = castivioChipStyle(m.fsDetail).copy(
-                        lineHeight = (m.fsDetail.value * DETAIL_LEADING).sp,
-                    ),
-                    color = colors.onBackgroundVariant,
+                    style = castivioBodyStyle(m.fsDetail),
+                    color = castivioDescriptionColor,
                     maxLines = m.detailLines,
                 )
             }
@@ -267,5 +266,3 @@ private fun RowScope.MediaCard(
 /** A card's name against its description, as a fraction of the card's own padding. */
 private const val TEXT_GAP = 0.5f
 
-/** A description's leading. Prose, so looser than a chip's single line. */
-private const val DETAIL_LEADING = 1.5f

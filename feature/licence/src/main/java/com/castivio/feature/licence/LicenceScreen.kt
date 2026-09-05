@@ -73,7 +73,9 @@ import com.castivio.core.design.components.QrPlate
 import com.castivio.core.design.components.Skeleton
 import com.castivio.core.design.components.StatusChip
 import com.castivio.core.design.components.StatusLine
+import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioChipStyle
+import com.castivio.core.design.components.castivioDescriptionColor
 import com.castivio.core.design.components.castivioFocusScale
 import com.castivio.core.design.components.castivioTitleStyle
 import com.castivio.core.design.theme.CastivioTheme
@@ -1027,8 +1029,8 @@ private fun CodeZone(state: LicenceUiState, m: LicenceMetrics) {
         )
         Text(
             text = stringResource(R.string.licence_qr_caption),
-            style = CastivioType.bodySmall,
-            color = colors.onBackgroundVariant,
+            style = castivioBodyStyle(m.fsBody),
+            color = castivioDescriptionColor,
             textAlign = TextAlign.Center,
             modifier = Modifier.width(m.captionWidth),
         )

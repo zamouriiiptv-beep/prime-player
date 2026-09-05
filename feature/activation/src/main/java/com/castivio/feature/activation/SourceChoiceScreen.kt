@@ -51,6 +51,8 @@ import androidx.compose.ui.unit.sp
 import com.castivio.core.design.components.CastivioFittedText
 import com.castivio.core.design.components.InteractiveGlassCard
 import com.castivio.core.design.components.castivioChipStyle
+import com.castivio.core.design.components.castivioBodyStyle
+import com.castivio.core.design.components.castivioDescriptionColor
 import com.castivio.core.design.theme.CastivioFrame
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
@@ -394,12 +396,8 @@ private fun RowScope.SourceCard(
                         append(' ')
                         withStyle(SpanStyle(color = colors.onBackgroundMuted)) { append(hint) }
                     },
-                    style = CastivioType.bodySmall.copy(
-                        fontSize = m.fsDetail.value.sp,
-                        lineHeight = (m.fsDetail.value * BODY_LEADING).sp,
-                        letterSpacing = 0.sp,
-                    ),
-                    color = colors.onBackgroundVariant,
+                    style = castivioBodyStyle(m.fsDetail),
+                    color = castivioDescriptionColor,
                     maxLines = m.detailLines,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -537,7 +535,6 @@ private fun RowScope.StripCell(m: SourceMetrics, hue: Color, icon: ImageVector, 
 
 
 private const val TITLE_LEADING = 1.35f
-private const val BODY_LEADING = 1.5f
 
 /** An icon beside type, as a multiple of that type's size. */
 private const val ICON_RATIO = 1.25f

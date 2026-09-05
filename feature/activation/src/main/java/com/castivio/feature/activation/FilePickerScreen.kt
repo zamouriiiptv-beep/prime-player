@@ -18,9 +18,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import com.castivio.core.design.components.castivioBodyStyle
+import com.castivio.core.design.components.castivioDescriptionColor
 import com.castivio.core.design.icons.CastivioIcons
 import com.castivio.core.design.theme.CastivioTheme
-import com.castivio.core.design.theme.CastivioType
 
 /**
  * What the picker is looking for.
@@ -117,6 +118,7 @@ internal fun FilePickerScreen(
                 if (index >= entries.size - PICKER_PREFETCH) LaunchedEffect(Unit) { onNearEnd() }
                 val entry = entries[index]
                 MediaListRow(
+                    m = m,
                     row = MediaRow(
                         name = entry.name,
                         detail = entry.detail,
@@ -150,7 +152,10 @@ private fun PathBand(m: SourceMetrics, path: String, filter: String) {
     ) {
         Text(
             text = path,
-            style = CastivioType.bodySmall,
+            // The size token but not the colour: a path says *where you are*, which is
+            // a fact rather than an explanation, and it shares this line with the
+            // caption beside it -- two sizes on one line would read as a mistake.
+            style = castivioBodyStyle(m.fsDetail),
             color = CastivioTheme.colors.onBackground,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -158,8 +163,8 @@ private fun PathBand(m: SourceMetrics, path: String, filter: String) {
         )
         Text(
             text = filter,
-            style = CastivioType.bodySmall,
-            color = CastivioTheme.colors.onBackgroundVariant,
+            style = castivioBodyStyle(m.fsDetail),
+            color = castivioDescriptionColor,
             maxLines = 1,
         )
     }
@@ -177,7 +182,7 @@ private fun ColumnScope.EmptyFolder(m: SourceMetrics, message: String) {
     ) {
         Text(
             text = message,
-            style = CastivioType.bodyLarge,
+            style = castivioBodyStyle(m.fsDetail),
             color = CastivioTheme.colors.onBackgroundVariant,
             textAlign = TextAlign.Center,
         )
