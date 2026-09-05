@@ -482,10 +482,20 @@ class MediaBrowseLayoutTest {
                 "${panel.left}..${panel.right}",
             back.left >= panel.left && back.right <= panel.right,
         )
+        // Back's box is measured against the **display**, not the stage, and that is a
+        // decision rather than a loosening. What is tagged is the interaction box, and
+        // the interaction box is deliberately taller than the pill inside it: the pill
+        // is the frame's `chip`, 44dp on a television and 34 on the shortest phone, and
+        // the box is the frame's `touchTarget`, 56 and 48. Centred on a header row
+        // shorter than itself it overhangs by half the difference -- 1dp, 3dp, 6dp --
+        // into the stage's own top margin, which is empty by construction.
+        //
+        // Asserting it against the stage would therefore be asserting that the touch
+        // target had been clamped back to the row, which is the defect this arrangement
+        // exists to fix. What must still hold is that it stays on the screen.
         assertTrue(
-            "Back ${back.top}..${back.bottom} is not inside the container " +
-                "${panel.top}..${panel.bottom}",
-            back.top >= panel.top && back.bottom <= panel.bottom,
+            "Back ${back.top}..${back.bottom} leaves the ${frame.height} display",
+            back.top >= 0.dp && back.bottom <= frame.height,
         )
 
         // Inside the frame, every band of it. Widths and horizontal placement are

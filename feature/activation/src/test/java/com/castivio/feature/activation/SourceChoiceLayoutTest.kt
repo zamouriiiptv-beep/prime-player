@@ -191,10 +191,15 @@ class SourceChoiceLayoutTest {
                 "${stage.left}..${stage.right}",
             back.left >= stage.left && back.right <= stage.right,
         )
+        // Vertically the claim is against the display rather than the stage. The tagged
+        // node is Back's *interaction* box, which is the frame's `touchTarget` and so
+        // taller than the `chip` pill drawn inside it; centred on a shorter header row
+        // it overhangs 1 to 6dp into the stage's own empty top margin. Asserting it
+        // against the stage would assert that the target had been clamped to the row --
+        // the defect this arrangement exists to fix.
         assertTrue(
-            "$direction: Back ${back.top}..${back.bottom} is not inside the stage " +
-                "${stage.top}..${stage.bottom}",
-            back.top >= stage.top && back.bottom <= stage.bottom,
+            "$direction: Back ${back.top}..${back.bottom} leaves the ${frame.height} display",
+            back.top >= 0.dp && back.bottom <= frame.height,
         )
 
         // On the stage's trailing edge, whichever direction the screen is read in.
@@ -332,10 +337,17 @@ class SourceChoiceLayoutTest {
                     "${box.left}..${box.right} of ${panel.left}..${panel.right}",
                 box.left >= panel.left && box.right <= panel.right,
             )
+            // Back is measured against the display and the cards against the stage.
+            // Back's tagged node is its interaction box, which is `touchTarget` tall
+            // against a `chip`-tall pill, so it overhangs the header row by 1 to 6dp
+            // into the stage's empty top margin on purpose. Every other element here
+            // is content and belongs inside the stage.
+            val top = if (what == "Back") 0.dp else panel.top
+            val bottom = if (what == "Back") frame.height else panel.bottom
             assertTrue(
                 "${frame.width}: $what is not inside the container vertically — " +
-                    "${box.top}..${box.bottom} of ${panel.top}..${panel.bottom}",
-                box.top >= panel.top && box.bottom <= panel.bottom,
+                    "${box.top}..${box.bottom} of $top..$bottom",
+                box.top >= top && box.bottom <= bottom,
             )
             // Nothing collides with the screen's own edge. This used to be stated
             // against a glass container's inset; the cards are the outermost content
