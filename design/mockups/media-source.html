@@ -10,7 +10,6 @@
    ?frame=tv | tab | p873 | p800   the four frames, at their real dp geometry
    ?lang=en | es | pt              the same screen mirrored, and its two longest
    ?sub=1                          with the reference's subtitle, to see its cost
-   ?legal=1                        with the reference's disclaimer band, likewise
    ?focus=pickVideo | none         where the D-pad is
    ---------------------------------------------------------------------------
 
@@ -38,12 +37,22 @@
    smaller. It is behind `?sub=1` rather than deleted outright, because what it
    costs is a measurement and the measurement should be visible: see the console.
 
-   **The disclaimer band.** Its first clause repeats the activation screen's
-   footer word for word; its second — *make sure you have the rights* — is new,
-   and this is the screen where a user opens their own files, so it is the one
-   place that sentence has somewhere to stand. Behind `?legal=1` for the same
-   reason: two lines and a disc are 17% of a television's frame, and that is a
-   trade to look at rather than to argue about.
+   **The disclaimer band.** Gone, and not behind a flag. Its first clause
+   repeats the activation screen's footer word for word, and a legal notice
+   stated twice in one flow is a notice the reader stops reading; its second —
+   *make sure you have the rights* — belongs where a user is about to open a
+   file, which is the picker, not the menu that offers four of them.
+
+   ## What stands in its place
+
+   Two controls, described where they are drawn. They are not the reference's;
+   the reference has none. They exist because the four cards answer *which
+   kind* and leave two ordinary questions unanswered: a file downloaded a
+   minute ago that the libraries have not seen yet, and a file the libraries
+   will never see — a `.ts` recording, a folder on a stick plugged into a Fire
+   TV stick, anything the device's media index does not claim. Both are real
+   destinations in this module: the library screens re-query, and
+   `FilePickerScreen` already exists.
    ========================================================================= */
 @font-face{font-family:"Castivio Sans";font-weight:400;src:url("../../core/design/src/main/res/font/inter_regular.ttf") format("truetype")}
 @font-face{font-family:"Castivio Sans";font-weight:500;src:url("../../core/design/src/main/res/font/inter_medium.ttf") format("truetype")}
@@ -102,8 +111,7 @@ html[data-frame="tv"]{
   --fs-card:15.8px; --fs-desc:13.5px; --desc-lines:4;
   --radius:20px;
   --sub:26px; --fs-sub:13.5px;
-  --trust:40px; --trust-gap:14px; --trust-disc:26px;
-  --fs-trust:13px;
+  --btn:56px; --actions-top:18px;
 }
 /* The tablet. One frame, shared with the activation screen: the same 140dp
    edge, the same 160/140 top and bottom, so a 1000dp content block sits in the
@@ -119,8 +127,7 @@ html[data-frame="tab"]{
   --fs-card:15px; --fs-desc:13px; --desc-lines:3;
   --radius:20px;
   --sub:22px; --fs-sub:13px;
-  --trust:36px; --trust-gap:14px; --trust-disc:24px;
-  --fs-trust:12.5px;
+  --btn:48px; --actions-top:18px;
 }
 html[data-frame="p873"]{
   --W:873px; --H:393px;
@@ -132,8 +139,7 @@ html[data-frame="p873"]{
   --fs-card:14.7px; --fs-desc:13px; --desc-lines:3;
   --radius:17px;
   --sub:20px; --fs-sub:13px;
-  --trust:32px; --trust-gap:10px; --trust-disc:20px;
-  --fs-trust:12px;
+  --btn:48px; --actions-top:12px;
 }
 html[data-frame="p800"]{
   --W:800px; --H:360px;
@@ -145,8 +151,7 @@ html[data-frame="p800"]{
   --fs-card:14.1px; --fs-desc:12.5px; --desc-lines:3;
   --radius:16px;
   --sub:18px; --fs-sub:12.5px;
-  --trust:30px; --trust-gap:8px; --trust-disc:19px;
-  --fs-trust:11.5px;
+  --btn:48px; --actions-top:10px;
 }
 
 *{box-sizing:border-box;margin:0;padding:0}
@@ -238,7 +243,7 @@ html[dir="rtl"] .sub{direction:rtl}
 
 /* ------------------------------------------------------------------- grid */
 .band{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;
-  padding-top:var(--band-top);gap:var(--trust-gap)}
+  padding-top:var(--band-top);gap:var(--actions-top)}
 .grid{flex:1 1 auto;min-height:0;display:grid;
   grid-template-columns:1fr 1fr;gap:var(--grid-gap);
   /* Capped and centred rather than stretched: a card twice as tall as its
@@ -301,53 +306,47 @@ html[dir="ltr"] .chev svg{transform:scaleX(-1)}
   box-shadow:0 0 0 2px var(--focus), 0 0 26px rgba(111,178,255,.34),
              var(--rim), 0 16px 34px rgba(3,2,12,.62)}
 
-/* ------------------------------------------------------------- trust strip */
-/* Off by default. It fits -- 116dp cards instead of 149 on the reference phone
-   -- so the question it raises is not whether there is room but whether a
-   screen whose whole job is one decision should spend a fifth of itself on
-   four sentences that do not help make it. The copy here is at least true:
-   "we do not store your data" is not, because the Xtream password is written
-   to Room on the device. */
-.trust{flex:0 0 var(--trust);display:flex;align-items:center;
-  border-radius:var(--radius);padding:0 calc(var(--trust) * .22);
-  /* No pane and no border. It is a footnote under the four things that matter,
-     and a panel around it makes it a fifth. */
-  background:transparent}
-.cell{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:10px;
-  padding:0 calc(var(--trust) * .16)}
-.cell + .cell{border-inline-start:1px solid rgba(160,163,215,.12)}
-.cell .ic{flex:0 0 auto;width:var(--trust-disc);height:var(--trust-disc);
-  border-radius:50%;display:flex;align-items:center;justify-content:center;
-  color:var(--hue);
-  background:color-mix(in srgb, var(--hue) 10%, transparent);
-  border:1px solid color-mix(in srgb, var(--hue) 26%, transparent)}
-.cell .ic svg{width:52%;height:52%}
-.cell .tx{min-width:0;display:flex;align-items:center}
-.cell .tx b{font-size:var(--fs-trust);line-height:1.3;font-weight:600;color:var(--text-3);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ---------------------------------------------------------- the action row */
+/* Two controls under the four cards, in the shape the previous screen uses:
+   one band, equal halves, aligned with the grid's own two columns so the row
+   reads as a fifth and sixth thing in the same arrangement rather than as a
+   different kind of furniture.
 
-html[data-trust="0"] .trust{display:none}
-html[data-trust="0"] .band{gap:0}
+   ## Why both are secondary, and neither is filled
 
-/* ------------------------------------------------------------ legal band */
-/* The reference's disclaimer: a disc, then two lines of prose. Drawn as a pane
-   because unlike the source choice's footnote it is a statement the reader may
-   have to come back to, and a statement with a boundary is one a reader can
-   find again. Off unless asked for -- see the note at the top of this file. */
-.legal{flex:0 0 auto;display:none;align-items:center;gap:var(--card-gap);
-  border-radius:var(--radius);padding:calc(var(--card-pad) * .8) var(--card-pad);
-  background:rgba(255,255,255,.028);border:1px solid var(--edge-quiet)}
-html[data-legal="1"] .legal{display:flex}
-.legal .ic{flex:0 0 auto;width:var(--trust-disc);height:var(--trust-disc);
-  border-radius:50%;display:flex;align-items:center;justify-content:center;
-  color:var(--h-pickV);
-  background:color-mix(in srgb, var(--h-pickV) 10%, transparent);
-  border:1px solid color-mix(in srgb, var(--h-pickV) 26%, transparent)}
-.legal .ic svg{width:52%;height:52%}
-.legal p{flex:1 1 auto;min-width:0;font-size:var(--fs-desc);line-height:1.5;
-  color:var(--text-3);
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.legal p b{color:var(--text-2);font-weight:600}
+   The activation screen's row is a filled primary beside a quiet secondary,
+   because there one action is the reason the screen exists. Here the reason
+   the screen exists is the four cards. A filled button beneath them would be
+   the loudest thing on a screen whose job is to make four things equally easy
+   to choose, and the eye would go to it first. So the pair is drawn the way
+   `SavedSourcesScreen` draws its own two: both secondary, both the same
+   weight, both quieter than the thing above them.
+
+   ## The numbers are the code's, not this drawing's
+
+   `CastivioButton` is `Sizing.minTarget` tall -- 56 on a television, 48
+   everywhere else -- with `Radius.sm` corners, `Spacing.xl` of horizontal
+   padding, a `Sizing.iconMd` glyph `Spacing.sm` from the label, and
+   `labelLarge` for the words. None of those step per frame, so none of them is
+   written as a frame token here; writing them as one would invent a scale the
+   component does not have. Only the row's height and the space above it come
+   from the frame. */
+.actions{flex:0 0 auto;display:flex;align-items:stretch;gap:var(--grid-gap)}
+.btn{flex:1 1 0;min-width:0;height:var(--btn);
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  border-radius:12px;padding:0 24px;
+  font-size:14px;line-height:20px;font-weight:600;color:var(--text);
+  white-space:nowrap;
+  background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.035));
+  border:1px solid var(--edge-quiet);
+  box-shadow:var(--rim),0 6px 16px rgba(3,2,12,.34)}
+.btn svg{width:20px;height:20px;flex:0 0 auto;color:var(--text-2)}
+.btn.focus{border-color:var(--focus);
+  box-shadow:0 0 0 2px var(--focus),0 0 22px rgba(111,178,255,.30),var(--rim)}
+/* The label is the one part of a button that can outgrow it -- Portuguese runs
+   longest of the four -- so it is allowed to shrink inside the button rather
+   than push the button wider than its half of the row. */
+.btn span{min-width:0;overflow:hidden;text-overflow:ellipsis}
 </style>
 </head>
 <body>
@@ -419,9 +418,9 @@ html[data-legal="1"] .legal{display:flex}
 
       </div>
 
-      <div class="legal">
-        <span class="ic" data-icon="info"></span>
-        <p data-s="legal"><b>إخلاء المسؤولية:</b> لا توفر Castivio أي محتوى أو وسائل إعلام. المستخدم مسؤول عن المحتوى الذي يقوم بتشغيله عبر هذا التطبيق. تأكد من أن لديك الحقوق القانونية أو الإذن من المالك قبل تشغيل أي محتوى.</p>
+      <div class="actions">
+        <div class="btn" id="rescan"><span data-icon="refresh"></span><span data-s="rescan">تحديث المكتبة</span></div>
+        <div class="btn" id="browse"><span data-icon="folderOpen"></span><span data-s="browse">تصفّح كل الملفات</span></div>
       </div>
     </div>
 
@@ -464,6 +463,15 @@ var ICON = {
        '<path d="M6 3.4h7.4L19 8.9v11.7H6z"/><path d="M13.2 3.4v5.6H19"/>'+
        '<path d="M11.4 17.4v-4.6l3.4-.8v4.2"/>'+
        '<circle cx="10.1" cy="17.5" r="1.4"/><circle cx="13.5" cy="16.6" r="1.4"/></svg>',
+  // The two the action row needs. `refresh` is the circular arrow every media
+  // application uses for "look again"; `folderOpen` is a folder with its lid
+  // lifted, which is what distinguishes "browse everything" from the closed
+  // folder the pick-a-video card already carries.
+  refresh:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.9">'+
+       '<path d="M20 11.5A8 8 0 1 0 18.4 17"/><path d="M20 5.5V11h-5.5"/></svg>',
+  folderOpen:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.7">'+
+       '<path d="M3 8.5V6.2A1.2 1.2 0 0 1 4.2 5h4.3l2 2.4h5.3A1.2 1.2 0 0 1 17 8.6v1.4"/>'+
+       '<path d="M3.2 19.4 5.6 12a1.2 1.2 0 0 1 1.15-.85h13.1a1.2 1.2 0 0 1 1.15 1.55l-2.2 6.9A1.2 1.2 0 0 1 17.6 20H4.35a1.2 1.2 0 0 1-1.15-.6z"/></svg>',
   info:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.9">'+
        '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.4"/><path d="M12 7.6h.01"/></svg>'
 };
@@ -474,29 +482,27 @@ var EN = {title:"Choose a playback source", back:"Back",
   pvT:"Choose a video", pvD:"Pick one video file from this device.",
   laT:"Audio library", laD:"Every audio file on this device.",
   paT:"Choose an MP3", paD:"Pick one MP3 file from this device.",
-  legal:'<b>Disclaimer:</b> Castivio provides no content or media. You are responsible for whatever you play through this application. Make sure you hold the rights, or the owner\'s permission, before playing anything.'};
+  rescan:"Rescan library", browse:"Browse all files"};
 var ES = {title:"Elige una fuente de reproducción", back:"Atrás",
   sub:"Elige cómo quieres reproducir tu contenido",
   lvT:"Biblioteca de vídeo", lvD:"Todos los vídeos de este dispositivo.",
   pvT:"Elegir un vídeo", pvD:"Selecciona un archivo de vídeo del dispositivo.",
   laT:"Biblioteca de audio", laD:"Todos los archivos de audio de este dispositivo.",
   paT:"Elegir un MP3", paD:"Selecciona un archivo MP3 del dispositivo.",
-  legal:'<b>Aviso legal:</b> Castivio no proporciona ningún contenido ni medio. Eres responsable de lo que reproduzcas con esta aplicación. Asegúrate de tener los derechos, o el permiso del propietario, antes de reproducir nada.'};
+  rescan:"Volver a analizar", browse:"Explorar todos los archivos"};
 var PT = {title:"Escolha uma fonte de reprodução", back:"Voltar",
   sub:"Escolha como quer reproduzir o seu conteúdo",
   lvT:"Biblioteca de vídeo", lvD:"Todos os vídeos deste dispositivo.",
   pvT:"Escolher um vídeo", pvD:"Selecione um ficheiro de vídeo do dispositivo.",
   laT:"Biblioteca de áudio", laD:"Todos os ficheiros de áudio deste dispositivo.",
   paT:"Escolher um MP3", paD:"Selecione um ficheiro MP3 do dispositivo.",
-  legal:'<b>Aviso legal:</b> A Castivio não fornece qualquer conteúdo ou meio. É responsável por tudo o que reproduzir através desta aplicação. Certifique-se de que detém os direitos, ou a permissão do proprietário, antes de reproduzir seja o que for.'};
+  rescan:"Reanalisar biblioteca", browse:"Procurar todos os ficheiros"};
 
 (function () {
   var q = new URLSearchParams(location.search);
   var root = document.documentElement;
   root.dataset.frame = q.get("frame") || "tv";
-  root.dataset.trust = "0";                       // this screen has no footnote strip
   root.dataset.sub   = q.get("sub")   === "1" ? "1" : "0";
-  root.dataset.legal = q.get("legal") === "1" ? "1" : "0";
 
   var code = q.get("lang") || "ar";
   var en = code !== "ar";
@@ -580,7 +586,7 @@ var PT = {title:"Escolha uma fonte de reprodução", back:"Voltar",
      was measured after it. */
   function box(sel) { var n = document.querySelector(sel); return n ? n.getBoundingClientRect() : null; }
   var band = box('.band'), grid = box('.grid'), card = box('#pickVideo'),
-      trust = box('.legal'), sub = box('.sub');
+      acts = box('.actions'), sub = box('.sub');
   var over = [];
   document.querySelectorAll('.card').forEach(function (c) {
     var body = c.querySelector('.body');
@@ -592,21 +598,35 @@ var PT = {title:"Escolha uma fonte de reprodução", back:"Voltar",
     var d = c.querySelector('.d');
     if (d.scrollHeight - d.clientHeight > 1) over.push(c.id + ' desc clamped');
   });
-  var lp = document.querySelector('.legal p');
-  if (root.dataset.legal === '1' && lp.scrollHeight - lp.clientHeight > 1) over.push('legal clamped');
+  // A button's label is the one string on this screen that is allowed to
+  // shrink inside its box, so it is the one that has to be checked: Portuguese
+  // runs longest of the four, and a label that ellipsises is a control whose
+  // name the reader has to guess.
+  document.querySelectorAll('.btn span[data-s]').forEach(function (l) {
+    if (l.scrollWidth - l.clientWidth > 0.5) over.push(l.dataset.s + ' label clipped');
+  });
   var sb = document.querySelector('.sub');
   if (root.dataset.sub === '1' && sb.scrollWidth - sb.clientWidth > 0.5) over.push('subtitle clipped');
   var H = box('.header'), tEl = box('.title'), lk = box('.wordmark'), bk = box('.back');
   console.log(JSON.stringify({
-    frame: root.dataset.frame + '/' + code +
-      (root.dataset.sub === '1' ? '/sub' : '') + (root.dataset.legal === '1' ? '/legal' : ''),
+    frame: root.dataset.frame + '/' + code + (root.dataset.sub === '1' ? '/sub' : ''),
     band: Math.round(band.height),
     grid: Math.round(grid.height),
     card: Math.round(card.height),
-    gridSpare: Math.round(band.height - grid.height -
-      (root.dataset.legal === '1' ? trust.height + parseFloat(getComputedStyle(document.querySelector('.band')).rowGap) : 0)),
+    // What the grid has left after the action row and the gap above it have
+    // been paid for. Negative here is the whole failure mode this screen has:
+    // a `Column` hands zero to whatever it measured last, and last is the row
+    // holding the only two controls that are not cards.
+    gridSpare: (function () {
+      // The band's own top padding is inside `band.height`, so it has to come
+      // out or "spare" reports the margin as though it were room -- which is
+      // exactly what it did while the legal band was the thing being measured.
+      var cs = getComputedStyle(document.querySelector('.band'));
+      return Math.round(band.height - parseFloat(cs.paddingTop) -
+        grid.height - acts.height - parseFloat(cs.rowGap));
+    })(),
     subtitle: root.dataset.sub === '1' ? Math.round(sub.height) : 0,
-    legal: root.dataset.legal === '1' ? Math.round(trust.height) : 0,
+    actions: Math.round(acts.height),
     overflow: over,
     header: {
       row: Math.round(H.width), title: Math.round(tEl.width),
