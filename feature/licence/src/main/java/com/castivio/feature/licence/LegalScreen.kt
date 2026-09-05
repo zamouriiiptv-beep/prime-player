@@ -90,9 +90,14 @@ internal fun LegalScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
         modifier
             .fillMaxSize()
             .testTag(LicenceTags.LEGAL)
-            // Opaque, not a scrim. This is a page: the screen behind it is not
-            // partly visible and not partly available.
-            .background(colors.background)
+            // No background of its own, and that is not a relaxation of "opaque,
+            // not a scrim" — it is the same claim made structurally. This page
+            // *replaces* the licence screen rather than covering it (see the
+            // `return` at its call site), so there is nothing behind it to show
+            // through, and what it was painting over was the application's own
+            // backdrop. A flat `Palette.Void` on top of that is a second
+            // background nobody chose: it is simply what `colors.background` is
+            // when no aurora has been drawn over it.
             .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
         val edge = if (tv) TV_EDGE else PHONE_EDGE

@@ -24,6 +24,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.castivio.core.design.components.ChannelCard
 import com.castivio.core.design.components.EmptyState
 import com.castivio.core.design.components.SectionHeader
+import com.castivio.core.design.theme.castivioBackdrop
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Spacing
@@ -60,7 +61,10 @@ fun ShowScreen(
     Column(
         modifier
             .fillMaxSize()
-            .background(colors.background)
+            // This one *is* drawn over the destination underneath it, so it needs
+            // a background of its own — and the one it needs is the application's,
+            // not the flat colour underneath the application's.
+            .castivioBackdrop()
             .statusBarsPadding()
             .padding(horizontal = CastivioTheme.device.screenPadding, vertical = Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),

@@ -690,6 +690,32 @@ for module in $(find app core data domain feature playback benchmark -name build
   done
 done
 
+# --------------------------------------------------------------- one background
+# The Castivio backdrop is drawn once, by the theme, behind every screen. A screen
+# that paints `colors.background` over it has replaced the identity with the flat
+# colour that happens to sit underneath it -- and it does not look wrong on its own,
+# which is why three screens had done it and nobody had noticed until two of them
+# were photographed side by side.
+#
+# A screen drawn *over* another one does need a background, and it asks for the
+# backdrop by name: `Modifier.castivioBackdrop()`. The player is the single
+# exception and says why at the line itself -- letterbox is black, and an aurora
+# behind a film is the one place in an application where nothing else may move.
+hits=$(grep -rn --include='*.kt' -E '\.background\((CastivioTheme\.)?colors\.background\)' \
+         app core data domain feature playback 2>/dev/null \
+       | grep -v '/src/test/' \
+       | grep -v 'feature/player/src/main/java/com/castivio/feature/player/PlayerScreen.kt' \
+       || true)
+if [ -n "$hits" ]; then
+  fail "a screen paints a flat background over the Castivio backdrop" \
+       "$hits
+
+  The theme already draws the backdrop behind every screen, so a screen that is
+  not covering another one needs no background at all. One that is covering
+  another should use Modifier.castivioBackdrop(), which paints the same four
+  layers opaquely."
+fi
+
 # ------------------------------------------------------------------------ report
 if [ "$failures" -eq 0 ]; then
   echo "Design invariants: all mechanical checks pass."

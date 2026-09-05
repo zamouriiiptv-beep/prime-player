@@ -68,6 +68,16 @@ fun PlayerScreen(
     BoxWithConstraints(
         modifier
             .fillMaxSize()
+            // The one surface in Castivio that keeps a flat background, and it is
+            // a decision rather than an oversight.
+            //
+            // What surrounds a picture here is letterbox, and letterbox is black
+            // — an aurora in the bars would be a second thing moving beside a
+            // film, which is the one place in an application where nothing else
+            // may move. The backdrop is also a full-screen canvas redrawn every
+            // frame, and this is the screen with the least fill rate to spare on
+            // the sticks Castivio targets. Nothing of it would be visible in any
+            // case: the video covers the middle and the chrome covers the rest.
             .background(colors.background)
             .testTag(PlayerTags.ROOT),
         contentAlignment = Alignment.Center,

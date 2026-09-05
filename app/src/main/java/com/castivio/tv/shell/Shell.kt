@@ -50,6 +50,7 @@ import com.castivio.core.design.components.NavAction
 import com.castivio.core.design.components.SectionHeader
 import com.castivio.core.design.components.WatchState
 import com.castivio.core.design.components.WatchedTag
+import com.castivio.core.design.theme.castivioBackdrop
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.DeviceClass
@@ -482,7 +483,9 @@ private fun StateBoardOverlay(onBack: () -> Unit) {
     Column(
         Modifier
             .fillMaxSize()
-            .background(colors.background)
+            // An overlay over a destination, so it carries the backdrop rather
+            // than the flat colour that sits beneath it.
+            .castivioBackdrop()
             .statusBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(CastivioTheme.device.screenPadding),

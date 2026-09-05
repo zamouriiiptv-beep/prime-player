@@ -6,12 +6,12 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -30,9 +30,39 @@ import kotlin.random.Random
  * panel size: a deep navy gradient, two soft aurora glows, a slow mesh of
  * contour waves, and a scattering of drifting motes. Deliberately restrained:
  * every layer sits below 12% opacity so content always wins.
+ *
+ * [CastivioTheme] wraps the whole application in this, so every screen already
+ * has it behind them and almost none should say anything about a background.
  */
 @Composable
 fun CastivioBackdrop(content: @Composable () -> Unit) {
+    Box(Modifier.fillMaxSize().castivioBackdrop()) { content() }
+}
+
+/**
+ * The same four layers, painted behind whatever this modifier is applied to.
+ *
+ * ## Why this exists as well as [CastivioBackdrop]
+ *
+ * A handful of screens genuinely need a background of their own, because they
+ * are drawn *over* another screen rather than in place of it: an overlay that
+ * lets the destination underneath show through is not translucent, it is
+ * broken. Every one of them was painting `colors.background` — a flat
+ * `Palette.Void` — which is opaque and is not the Castivio backdrop. Two
+ * screens in one application with two different backgrounds is one background
+ * too many, and the flat one is the one nobody chose: it is what `background`
+ * happens to be when no aurora is drawn over it.
+ *
+ * So the layers are stated once, here, and an overlay asks for them rather
+ * than approximating them. The first thing drawn is an opaque gradient, so this
+ * covers what is behind it exactly as the flat colour did.
+ *
+ * A screen that is *not* drawn over another one should use neither: the theme
+ * has already put the backdrop behind it, and painting a second copy is a
+ * second full-screen canvas for a result that is pixel-identical.
+ */
+@Composable
+fun Modifier.castivioBackdrop(): Modifier {
     val colors = CastivioTheme.colors
     val profile = LocalPerformanceProfile.current
 
@@ -66,21 +96,18 @@ fun CastivioBackdrop(content: @Composable () -> Unit) {
         drift = 0.2f
     }
 
-    Box(Modifier.fillMaxSize()) {
-        Canvas(Modifier.fillMaxSize()) {
-            drawRect(
-                Brush.linearGradient(
-                    colors = listOf(Palette.Deep, Palette.Violet10, Palette.Azure10),
-                    start = Offset(0f, 0f),
-                    end = Offset(size.width, size.height),
-                )
+    return drawBehind {
+        drawRect(
+            Brush.linearGradient(
+                colors = listOf(Palette.Deep, Palette.Violet10, Palette.Azure10),
+                start = Offset(0f, 0f),
+                end = Offset(size.width, size.height),
             )
-            glow(Offset(size.width * 0.05f, size.height), size.width * 0.55f, Palette.Violet40, 0.30f)
-            glow(Offset(size.width * 0.95f, size.height * 0.30f), size.width * 0.52f, Palette.Azure40, 0.26f)
-            mesh(wave, colors.primary)
-            if (profile.backdropParticles) motes(drift)
-        }
-        content()
+        )
+        glow(Offset(size.width * 0.05f, size.height), size.width * 0.55f, Palette.Violet40, 0.30f)
+        glow(Offset(size.width * 0.95f, size.height * 0.30f), size.width * 0.52f, Palette.Azure40, 0.26f)
+        mesh(wave, colors.primary)
+        if (profile.backdropParticles) motes(drift)
     }
 }
 
