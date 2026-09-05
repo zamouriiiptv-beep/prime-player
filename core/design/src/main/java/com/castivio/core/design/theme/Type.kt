@@ -33,16 +33,46 @@ import androidx.compose.ui.unit.sp
 object CastivioType {
 
     /**
-     * The Latin face: Inter, at the four weights this product uses.
+     * The Latin face: IBM Plex Sans, at the four weights this product uses.
      *
-     * Chosen for a screen read at two distances. Inter's tall x-height and open
-     * apertures keep a MAC address legible on a television across a room, and its
-     * 400 is markedly less spindly than the platform sans it replaces -- the "too
-     * thin" the review reported was as much the face as the weights.
+     * ## It was Inter, and the reason it is not is one word: companion
+     *
+     * Inter is a fine face and it was never the problem on its own. The problem was
+     * that Arabic was set in IBM Plex Sans Arabic — because Inter has no Arabic
+     * coverage — so the interface was reading in two families drawn by different
+     * hands, and the difference showed exactly where a reader can least afford it:
+     * a heading that reads bold in English and a shade lighter in Arabic, a card
+     * whose title and description look like one family in one language and two in
+     * the other.
+     *
+     * Plex Sans and Plex Sans Arabic are one family. Their weights mean the same
+     * thing, their x-heights relate, their 400 has the same colour on the page. The
+     * hierarchy is then what it was always supposed to be — size, weight and ink —
+     * rather than partly an accident of which script a string happens to be in.
      *
      * Four static faces rather than the variable font: variable weight axes are
      * honoured from API 26 and Castivio's minSdk is 21. A file per weight is
      * bigger on disk and correct on every device.
+     */
+    val PlexSans: FontFamily = FontFamily(
+        Font(R.font.plex_sans_regular, FontWeight.Normal),
+        Font(R.font.plex_sans_medium, FontWeight.Medium),
+        Font(R.font.plex_sans_semibold, FontWeight.SemiBold),
+        Font(R.font.plex_sans_bold, FontWeight.Bold),
+    )
+
+    /**
+     * Inter, kept for one string: the wordmark.
+     *
+     * CASTIVIO is a logotype rather than a heading. It is the mark the product signs
+     * its name with, it is drawn at a tracking and a gradient nothing else uses, and
+     * changing the shapes of its letters changes the logo — which is a decision about
+     * the brand, not about the interface's typography. So the interface moved to Plex
+     * and the signature did not.
+     *
+     * Only [com.castivio.core.design.components.CastivioMark] and the header's
+     * wordmark name this. If the brand is ever redrawn in Plex, these four files and
+     * this property go with it.
      */
     val Inter: FontFamily = FontFamily(
         Font(R.font.inter_regular, FontWeight.Normal),
@@ -54,12 +84,11 @@ object CastivioType {
     /**
      * The Arabic face: IBM Plex Sans Arabic, at the same four weights.
      *
-     * Inter has no Arabic coverage, and leaving Arabic to the platform fallback is
-     * how an interface ends up with two typefaces that were never drawn together
-     * -- different weight, different colour on the page, a heading that reads bold
-     * in English and light in Arabic. Plex Sans Arabic is designed as a companion
-     * to a neo-grotesque, it shapes correctly, and it carries the same four
-     * weights, so a weight means the same thing in both scripts.
+     * The companion of [PlexSans], by the same designers and drawn against it, which
+     * is the whole reason the Latin side moved. Leaving Arabic to the platform
+     * fallback is how an interface ends up with two typefaces that were never drawn
+     * together — different weight, different colour on the page, a heading that reads
+     * bold in English and light in Arabic.
      */
     val PlexArabic: FontFamily = FontFamily(
         Font(R.font.plex_arabic_regular, FontWeight.Normal),
@@ -82,7 +111,7 @@ object CastivioType {
      * eight files, two families, one decision.
      */
     fun brandFor(language: String): FontFamily =
-        if (language in ARABIC_SCRIPT) PlexArabic else Inter
+        if (language in ARABIC_SCRIPT) PlexArabic else PlexSans
 
     /**
      * The languages Castivio ships that are written in Arabic script.

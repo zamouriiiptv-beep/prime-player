@@ -57,6 +57,17 @@ object Palette {
     val White = Color(0xFFFFFFFF)
     val Mist = Color(0xFFF2F2F8)
     val Silver = Color(0xFFC9C9DA)
+
+    /**
+     * The ink every description is set in — a step lighter than [Silver] and carrying
+     * a little of the violet the product is built on.
+     *
+     * Its own entry rather than a change to [Silver], because Silver is
+     * `onBackgroundVariant` and that role dresses more than descriptions: a tick, an
+     * icon tint, a status word. Moving Silver to move the descriptions would have
+     * moved all of them.
+     */
+    val Quartz = Color(0xFFD6D3E8)
     val Muted = Color(0xFFA6A6BF)
     val Faint = Color(0xFF6E6E8A)
 
@@ -108,6 +119,17 @@ class CastivioColors(
     val onBackground: Color,
     val onBackgroundVariant: Color,
     val onBackgroundMuted: Color,
+
+    /**
+     * The ink for a description: the secondary prose that explains the thing beside
+     * it, wherever it appears.
+     *
+     * A role of its own so the answer to "what colour is a description" lives in one
+     * place and can be changed there. It was `onBackgroundVariant` by hand on six
+     * screens, which is the same fact stated six times and therefore the same fact
+     * one edit away from being two.
+     */
+    val description: Color,
 
     // Brand
     val primary: Color,
@@ -332,6 +354,7 @@ fun castivioDarkColors() = CastivioColors(
     onBackground = Palette.White,
     onBackgroundVariant = Palette.Silver,
     onBackgroundMuted = Palette.Muted,
+    description = Palette.Quartz,
 
     primary = Palette.Azure50,
     onPrimary = Palette.White,

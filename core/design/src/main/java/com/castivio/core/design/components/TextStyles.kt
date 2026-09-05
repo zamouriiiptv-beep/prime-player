@@ -6,6 +6,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
+import com.castivio.core.design.theme.CastivioColors
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 
@@ -93,12 +94,12 @@ fun castivioBodyStyle(fsBody: Dp): TextStyle = CastivioType.bodySmall.copy(
 )
 
 /**
- * The ink a description is set in.
+ * The ink a description is set in: [CastivioColors.description], `Quartz`.
  *
- * One role, so no screen picks it. It is `onBackgroundVariant` — the palette's existing
- * secondary ink, not a new colour — and it is the value five of the six description
- * sites already used; the sixth had taken the chip helper's default and come out the
- * same by luck rather than by rule.
+ * One role, so no screen picks it, and one place to change it. Six screens had written
+ * `onBackgroundVariant` by hand — the same fact stated six times, and therefore one
+ * edit away from being two — and the role they were borrowing dresses more than
+ * descriptions, so it could not simply be moved.
  *
  * Deliberately **not** the ink of everything quiet. `onBackgroundMuted` is a step
  * further back and belongs to text that is present without asking to be read: the legal
@@ -107,7 +108,7 @@ fun castivioBodyStyle(fsBody: Dp): TextStyle = CastivioType.bodySmall.copy(
  * louder, which is a decision about the product rather than about typography.
  */
 val castivioDescriptionColor: Color
-    @Composable @ReadOnlyComposable get() = CastivioTheme.colors.onBackgroundVariant
+    @Composable @ReadOnlyComposable get() = CastivioTheme.colors.description
 
 /**
  * The leadings, as ratios, because the sizes step per frame.

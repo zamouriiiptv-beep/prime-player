@@ -10,7 +10,7 @@ import org.junit.Test
  *
  * ## Why this is not obvious
  *
- * Because the failure is silent and looks like a design choice. Inter has no
+ * Because the failure is silent and looks like a design choice. Plex Sans has no
  * Arabic coverage; ask it for Arabic and Android does not error, it substitutes
  * the platform's fallback — a different typeface, at a different weight, with a
  * different colour on the page. The screen still renders. It just stops being
@@ -24,7 +24,7 @@ class BrandFaceTest {
 
     /**
      * The six Arabic-script languages in the shipping set reach Plex, and every
-     * other language reaches Inter.
+     * other language reaches Plex Sans.
      *
      * Driven off [CastivioLanguage] rather than a list written here: a language
      * added to the product without a face to draw it should fail this test, and a
@@ -37,7 +37,7 @@ class BrandFaceTest {
             for (variant in language.variants) {
                 val code = variant.tag.substringBefore('-')
                 val expected =
-                    if (code in arabicScript) CastivioType.PlexArabic else CastivioType.Inter
+                    if (code in arabicScript) CastivioType.PlexArabic else CastivioType.PlexSans
                 assertEquals(
                     "${language.name} (${variant.tag}) resolved to the wrong face",
                     expected,
@@ -49,9 +49,9 @@ class BrandFaceTest {
 
     /** Arabic itself, called out, because it is the one the product ships to first. */
     @Test
-    fun `Arabic is drawn in Plex and English in Inter`() {
+    fun `both scripts are drawn in Plex, each in its own cut`() {
         assertEquals(CastivioType.PlexArabic, CastivioType.brandFor("ar"))
-        assertEquals(CastivioType.Inter, CastivioType.brandFor("en"))
+        assertEquals(CastivioType.PlexSans, CastivioType.brandFor("en"))
         assertNotEquals(CastivioType.brandFor("ar"), CastivioType.brandFor("en"))
     }
 
@@ -60,12 +60,12 @@ class BrandFaceTest {
      *
      * The lookup is asked for whatever the platform reports, which on a device in
      * a language Castivio has never heard of is not in the set. Falling back to
-     * Inter matches the resource fallback to English.
+     * Plex Sans matches the resource fallback to English.
      */
     @Test
     fun `an unknown language falls back to the Latin face`() {
-        assertEquals(CastivioType.Inter, CastivioType.brandFor(""))
-        assertEquals(CastivioType.Inter, CastivioType.brandFor("is"))
+        assertEquals(CastivioType.PlexSans, CastivioType.brandFor(""))
+        assertEquals(CastivioType.PlexSans, CastivioType.brandFor("is"))
     }
 
     /**
