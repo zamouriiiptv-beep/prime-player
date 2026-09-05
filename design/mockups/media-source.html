@@ -172,9 +172,14 @@ body{font-family:"Castivio Sans","Castivio Arabic","Noto Sans",sans-serif;
 /* The activation screen's row, unchanged: the lockup at the same physical edge
    in every language, the page's name beside it, and the row's one control at
    the far end. There the control is the language chip; here it is Back. */
-.header{flex:0 0 auto;height:var(--header);direction:ltr;
-  display:grid;grid-template-columns:auto 1fr auto;align-items:center;
+/* Two rows, one set of columns. The subtitle is not a sibling floating under
+   the header — it is the header's second row, in the title's own column, so
+   "under the title" is structural rather than something JS has to keep true. */
+.header{flex:0 0 auto;direction:ltr;
+  display:grid;grid-template-columns:auto 1fr auto;
+  grid-template-rows:var(--header) var(--sub);align-items:center;
   column-gap:var(--head-gap)}
+html[data-sub="0"] .header{grid-template-rows:var(--header)}
 html[dir="rtl"] .header .title,
 html[dir="rtl"] .header .back{direction:rtl}
 .wordmark{grid-column:1;grid-row:1;justify-self:start;direction:ltr;
@@ -213,9 +218,10 @@ html[dir="rtl"] .back svg{transform:scaleX(-1)}
    whatever happens to sit at the line's starting edge. Aligned to the start it
    would land beneath Back in Arabic and beneath the wordmark in English, which
    reads as a caption for the wrong thing in both. */
-.sub{flex:0 0 auto;display:none;justify-content:center;align-items:center;
-  height:var(--sub);font-size:var(--fs-sub);line-height:1.4;color:var(--text-3)}
-html[data-sub="1"] .sub{display:flex}
+.sub{grid-column:1 / -1;grid-row:2;display:none;justify-self:center;
+  font-size:var(--fs-sub);line-height:1.4;color:var(--text-3)}
+html[data-sub="1"] .sub{display:block}
+html[dir="rtl"] .sub{direction:rtl}
 
 /* ------------------------------------------------------------------- grid */
 .band{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;
@@ -507,6 +513,35 @@ var PT = {title:"Escolha uma fonte de reprodução", back:"Voltar",
     }
   })();
 
+  /* ## Centred on the row, not on what the ends leave over
+     The title used to be centred in the middle *column*, which is the space
+     between the lockup and the chip -- and those are 187dp and 77dp on a
+     television, so the column's centre sits 55dp from the row's. Nobody saw it
+     while the title was alone. Put a subtitle under it, centred on the stage,
+     and the 55dp is suddenly two things centred on two different centres.
+
+     So the title is placed on the row's true centre, and only gives that up
+     when keeping it would push it into a neighbour -- at which point it slides
+     to the nearest position that clears them, rather than shrinking. Measured
+     after the fit above, so a title that had to shrink is centred at the size
+     it ended up. The row is pinned left to right, so one formula serves both
+     scripts. */
+  (function centreTitle() {
+    var head = document.querySelector('.header').getBoundingClientRect();
+    var lk = document.querySelector('.wordmark').getBoundingClientRect();
+    var bk = document.querySelector('.back').getBoundingClientRect();
+    var t  = document.querySelector('.title');
+    var tb = t.getBoundingClientRect();
+    var gap = parseFloat(getComputedStyle(document.querySelector('.header')).columnGap);
+
+    var ideal = head.left + (head.width - tb.width) / 2;
+    var lo = lk.right + gap;
+    var hi = bk.left - gap - tb.width;
+    var x = hi < lo ? lo : Math.min(Math.max(ideal, lo), hi);
+    t.style.position = 'relative';
+    t.style.left = (x - tb.left) + 'px';
+  })();
+
   /* Each card's title, at the largest size that fits its column. */
   document.querySelectorAll('.head b').forEach(function (b) {
     var size = parseFloat(getComputedStyle(b).fontSize), floor = size * 0.78, guard = 0;
@@ -567,6 +602,16 @@ var PT = {title:"Escolha uma fonte de reprodução", back:"Voltar",
       lockup: Math.round(lk.width), back: Math.round(bk.width),
       titleSize: +parseFloat(getComputedStyle(document.querySelector('.title')).fontSize).toFixed(1),
       titleClipped: Math.max(0, Math.round(titleEl.scrollWidth - titleEl.clientWidth)),
+      titleOffCentre: (function () {
+        var h = box('.header'), t = box('.title');
+        return Math.round((t.left + t.width / 2) - (h.left + h.width / 2));
+      })(),
+      subOffTitle: (function () {
+        var sb = document.querySelector('.sub');
+        if (root.dataset.sub !== '1') return null;
+        var s = sb.getBoundingClientRect(), t = box('.title');
+        return Math.round((s.left + s.width / 2) - (t.left + t.width / 2));
+      })(),
       baselineGap: +(baselineOf(titleEl) - baselineOf(wordEl)).toFixed(2)
     }
   }));
