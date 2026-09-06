@@ -146,6 +146,7 @@
     <string name="source_m3u_hint">One long link, usually sent by e-mail.</string>
     <string name="source_local_hint">All common formats supported.</string>
     <string name="source_users_hint">Easy management of all your subscriptions.</string>
+    <string name="source_choice_subtitle">Choose how you want to add your content source</string>
     <!-- The local-media chooser: the line under its name, and its own footnote. -->
     <string name="media_source_subtitle">Choose how you want to play your content</string>
     <string name="media_trust_sources_title">Multiple sources</string>

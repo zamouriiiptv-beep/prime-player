@@ -243,6 +243,8 @@ internal fun SourceChoiceScreen(
                 headingTag = ActivationTags.SOURCE_HEADING,
                 backTag = ActivationTags.SOURCE_BACK,
                 onBack = onBack,
+                subtitle = stringResource(R.string.source_choice_subtitle),
+                subtitleTag = ActivationTags.SOURCE_SUBTITLE,
             )
             Spacer(Modifier.height(m.bandTop))
 
@@ -487,9 +489,13 @@ private val SOURCE_CLAIMS = listOf(
  *
  * Violet, and deliberately not the azure the focus ring uses: the two say different
  * things and a viewer has to be able to tell which is which from across a room.
+ *
+ * `internal` because the local-media chooser marks its own default the same way, and
+ * "the same way" has to mean the same two values. A second pair copied across is a
+ * pair that agrees until one of them is adjusted.
  */
-private val RECOMMENDED_EDGE = Palette.Violet60.copy(alpha = 0.85f)
-private val RECOMMENDED_GLOW = Palette.Violet50.copy(alpha = 0.42f)
+internal val RECOMMENDED_EDGE = Palette.Violet60.copy(alpha = 0.85f)
+internal val RECOMMENDED_GLOW = Palette.Violet50.copy(alpha = 0.42f)
 
 private val BADGE_TOP = Palette.Violet50.copy(alpha = 0.42f)
 private val BADGE_FOOT = Palette.Violet40.copy(alpha = 0.30f)

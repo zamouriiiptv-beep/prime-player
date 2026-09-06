@@ -222,6 +222,7 @@ class FrameSweepTest {
             stage = ActivationTags.SOURCE_CONTAINER,
             heading = ActivationTags.SOURCE_HEADING,
             back = ActivationTags.SOURCE_BACK,
+            subtitle = ActivationTags.SOURCE_SUBTITLE,
         )
     }
 
@@ -569,11 +570,21 @@ class FrameSweepTest {
         stage: String,
         heading: String,
         back: String,
+        /**
+         * The tag of the sentence under the name, on the two screens that have one.
+         *
+         * Checked against the *title* rather than the container, because a sentence
+         * that spans the stage passes a containment check by construction — which is
+         * how the drawing shipped one sitting under Back while every measurement of
+         * it reported no offset at all.
+         */
+        subtitle: String? = null,
     ) {
         val stages = all(stage)
         val marks = all(ActivationTags.HEADER_MARK)
         val titles = all(heading)
         val backs = all(back)
+        val subs = subtitle?.let { all(it) }
 
         passes.forEachIndexed { i, pass ->
             val panel = stages[i]
@@ -652,6 +663,24 @@ class FrameSweepTest {
                 "$pass: the stage starts ${panel.left - stageLeft(i)} in, not ${pass.frame.edge}",
                 abs(((panel.left - stageLeft(i)) - pass.frame.edge).value) <= 1f,
             )
+
+            subs?.get(i)?.let { sub ->
+                assertTrue(
+                    "$pass: the subtitle ${sub.top} is not under the title ${title.bottom}",
+                    sub.top >= title.bottom,
+                )
+                val titleCentre = (title.left + title.right) / 2
+                val subCentre = (sub.left + sub.right) / 2
+                assertTrue(
+                    "$pass: the subtitle is centred on $subCentre, the title on $titleCentre",
+                    abs((subCentre - titleCentre).value) <= 1f,
+                )
+                assertTrue(
+                    "$pass: the subtitle ${sub.left}..${sub.right} runs past the stage " +
+                        "${panel.left}..${panel.right}",
+                    sub.left >= panel.left && sub.right <= panel.right,
+                )
+            }
 
             // The mark and the title are inside the stage they belong to, in both axes.
             for ((what, box) in listOf("the mark" to mark, "the title" to title)) {

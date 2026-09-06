@@ -117,6 +117,7 @@
     <string name="source_m3u_hint">رابط واحد طويل يُرسل عادةً بالبريد.</string>
     <string name="source_local_hint">دعم جميع الصيغ الشائعة.</string>
     <string name="source_users_hint">إدارة سهلة لجميع اشتراكاتك.</string>
+    <string name="source_choice_subtitle">اختر الطريقة التي تريد من خلالها إضافة مصدر المحتوى</string>
     <string name="media_source_subtitle">أختر الطريقة التي تريد من خلالها تشغيل المحتوى</string>
     <string name="media_trust_sources_title">مصادر متعددة</string>
     <string name="media_trust_sync_title">مزامنة تلقائية</string>

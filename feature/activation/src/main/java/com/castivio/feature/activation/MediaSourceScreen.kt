@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -207,6 +208,7 @@ private fun MediaGrid(
                 m = m,
                 hue = Palette.Violet50,
                 icon = CastivioIcons.VideoFile,
+                featured = true,
                 title = stringResource(R.string.media_video_pick_title),
                 detail = stringResource(R.string.media_video_pick_detail),
                 onClick = onPickVideo,
@@ -293,6 +295,7 @@ private fun RowScope.MediaCard(
     detail: String,
     onClick: () -> Unit,
     tag: String,
+    featured: Boolean = false,
 ) {
     val colors = CastivioTheme.colors
 
@@ -304,7 +307,12 @@ private fun RowScope.MediaCard(
             .testTag(tag)
             .semantics(mergeDescendants = true) { contentDescription = "$title. $detail" },
         shape = RoundedCornerShape(m.radius),
-        fill = colors.glassFillBrush,
+        // The default option, marked the way the source choice marks its own:
+        // the same violet ground and the same two values for the edge and the
+        // light around it, reused rather than matched by eye.
+        fill = if (featured) SolidColor(Palette.Violet10) else colors.glassFillBrush,
+        restBorder = if (featured) RECOMMENDED_EDGE else null,
+        restGlow = if (featured) RECOMMENDED_GLOW else null,
     ) {
         Row(
             Modifier

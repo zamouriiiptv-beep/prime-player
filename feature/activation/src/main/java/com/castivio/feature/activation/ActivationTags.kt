@@ -187,6 +187,9 @@ internal object ActivationTags {
      */
     const val SOURCE_HEADING = "activation.sourceHeading"
 
+    /** The sentence under that heading, as the media chooser has under its own. */
+    const val SOURCE_SUBTITLE = "activation.sourceSubtitle"
+
     /**
      * The two bands that bracket the field, and the stage that holds all three.
      *
