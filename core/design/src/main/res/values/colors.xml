@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      The one colour the platform needs before Compose exists.
+
+      `android:windowBackground` is what a window is filled with before the first
+      frame is drawn, and what shows through while one is torn down and rebuilt —
+      a cold start, and every activity recreation. `LocaleController` documents
+      the second case from the other side: a language change used to produce two
+      teardowns, and what flashed through the aurora both times was this colour.
+
+      It was `#0B0620`, written into the application's theme, and that is not a
+      Castivio colour at all — no palette entry has that value. So the flash was
+      a fourth background: darker and more purple than anything the backdrop
+      draws, chosen once by hand and never compared with the thing it appears in
+      front of.
+
+      It is now `Palette.Deep`, the first stop of the backdrop's own gradient, so
+      the frame before the aurora is the colour the aurora starts from.
+
+      Stated twice, unavoidably: a Compose `Color` is a Kotlin value and a theme
+      attribute is a resource, and there is no way to share one between them. So
+      `check-invariants.sh` compares the two and fails if they drift, which is
+      the next best thing to having one.
+    -->
+    <color name="castivio_window_background">#FF141031</color>
+</resources>

@@ -24,15 +24,44 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 /**
- * The Castivio backdrop — the single most recognisable part of the identity.
+ * **The Castivio background. The only one.**
  *
- * Four layers, drawn in code so it costs nothing to ship and scales to any
- * panel size: a deep navy gradient, two soft aurora glows, a slow mesh of
- * contour waves, and a scattering of drifting motes. Deliberately restrained:
- * every layer sits below 12% opacity so content always wins.
+ * Four layers, drawn in code so it costs nothing to ship and scales to any panel
+ * size: a deep navy gradient, two soft aurora glows, a slow mesh of contour waves,
+ * and a scattering of drifting motes. Deliberately restrained — every layer sits
+ * below 12% opacity, so content always wins.
  *
- * [CastivioTheme] wraps the whole application in this, so every screen already
- * has it behind them and almost none should say anything about a background.
+ * ## The architecture, in one line
+ *
+ * [CastivioTheme] wraps the application in [CastivioBackdrop], which paints
+ * [castivioBackdrop], which is the four layers. There is one `setContent` in
+ * Castivio and one `CastivioTheme` call in it, so every screen in the product is
+ * already standing on this and almost none of them should say anything at all
+ * about a background.
+ *
+ * A screen drawn **over** another one is the exception that needs an entry point:
+ * an overlay whose destination shows through is not translucent, it is broken. It
+ * asks for [castivioBackdrop] by name rather than approximating it — three of them
+ * used to paint `colors.background`, a flat `Palette.Void`, which is not the
+ * Castivio background but the colour that happens to sit underneath it.
+ *
+ * ## Everything else in the product that fills a region, and why none of it is this
+ *
+ * Audited across `app`, `core`, `data`, `domain`, `feature`, `playback` and
+ * `benchmark`, over every mechanism: `setContent`, `Surface`, `Scaffold`,
+ * `Modifier.background`, `Canvas`, `drawBehind`, `drawWithCache`, `Modifier.paint`,
+ * a full-bleed `Image`, and the window itself.
+ *
+ * | What | Where | Why it is not a page background |
+ * |---|---|---|
+ * | The letterbox | `PlayerScreen` | What surrounds a picture is black, in every player ever made. An aurora beside a film is the one place in an application where nothing else may move — and this is the surface with the least fill rate to spare. |
+ * | A fade from black | `CastivioIntro` | A transition, not a ground: its alpha is `1 - appAlpha`, so it *is* the handover to this. |
+ * | Scrims and panels | `CastivioDialog`, `LanguagePicker`, `CrashReportSheet` | A dialog sits over a page. It dims what is behind it and lifts a panel above it; neither is a background. |
+ * | Badge and subtitle plates | `StateMarks`, `PlayerSubtitles` | A pill behind two words, so the words survive whatever is under them. |
+ * | `android:windowBackground` | `app/res/values/themes.xml` | Before Compose exists, and during every activity teardown. It cannot be a composable, so it is a colour resource in this module — and it is now this gradient's own first stop rather than the `#0B0620` nobody could trace. |
+ *
+ * Anything not in that table which paints a page is a defect, and
+ * `check-invariants.sh` fails the build on the shape it took last time.
  */
 @Composable
 fun CastivioBackdrop(content: @Composable () -> Unit) {
@@ -40,75 +69,80 @@ fun CastivioBackdrop(content: @Composable () -> Unit) {
 }
 
 /**
- * The same four layers, painted behind whatever this modifier is applied to.
+ * The same four layers, behind whatever this is applied to.
  *
- * ## Why this exists as well as [CastivioBackdrop]
+ * For an overlay drawn over a destination, which genuinely needs a ground of its
+ * own. The first thing painted is an opaque gradient, so this covers what is
+ * behind it exactly as a flat colour did.
  *
- * A handful of screens genuinely need a background of their own, because they
- * are drawn *over* another screen rather than in place of it: an overlay that
- * lets the destination underneath show through is not translucent, it is
- * broken. Every one of them was painting `colors.background` — a flat
- * `Palette.Void` — which is opaque and is not the Castivio backdrop. Two
- * screens in one application with two different backgrounds is one background
- * too many, and the flat one is the one nobody chose: it is what `background`
- * happens to be when no aurora is drawn over it.
- *
- * So the layers are stated once, here, and an overlay asks for them rather
- * than approximating them. The first thing drawn is an opaque gradient, so this
- * covers what is behind it exactly as the flat colour did.
- *
- * A screen that is *not* drawn over another one should use neither: the theme
- * has already put the backdrop behind it, and painting a second copy is a
- * second full-screen canvas for a result that is pixel-identical.
+ * A screen that is *not* covering another one should use neither this nor
+ * [CastivioBackdrop]: the theme has already put the backdrop behind it, and a
+ * second copy is a second full-screen canvas for a pixel-identical result.
  */
 @Composable
 fun Modifier.castivioBackdrop(): Modifier {
-    val colors = CastivioTheme.colors
+    val meshColour = CastivioTheme.colors.primary
     val profile = LocalPerformanceProfile.current
+    val (wave, drift) = backdropPhase(profile)
+    return drawBehind { paintBackdrop(wave, drift, meshColour, profile.backdropParticles) }
+}
 
-    // On a weak GPU this canvas competes with the scroll for fill rate, so the
-    // animation is a capability decision, not a taste one. The static fallback
-    // still reads as Castivio — it just costs one draw instead of sixty a second.
-    val wave: Float
-    val drift: Float
-    if (profile.animatedBackdrop) {
-        val transition = rememberInfiniteTransition(label = "backdrop")
-        val w by transition.animateFloat(
-            initialValue = 0f,
-            targetValue = (2f * PI).toFloat(),
-            animationSpec = infiniteRepeatable(
-                tween(Motion.ambientWave, easing = LinearEasing), RepeatMode.Restart,
-            ),
-            label = "wave",
+/**
+ * The four layers, stated once.
+ *
+ * Private, and the only place any of these numbers appears. Both entry points above
+ * are three lines of plumbing around this call — which is what makes "change the
+ * background in one place" a property of the code rather than a convention someone
+ * has to keep.
+ */
+private fun DrawScope.paintBackdrop(
+    wave: Float,
+    drift: Float,
+    meshColour: Color,
+    particles: Boolean,
+) {
+    drawRect(
+        Brush.linearGradient(
+            colors = listOf(Palette.Deep, Palette.Violet10, Palette.Azure10),
+            start = Offset(0f, 0f),
+            end = Offset(size.width, size.height),
         )
-        val d by transition.animateFloat(
-            initialValue = 0f,
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(
-                tween(Motion.ambientDrift, easing = LinearEasing), RepeatMode.Restart,
-            ),
-            label = "drift",
-        )
-        wave = w
-        drift = d
-    } else {
-        wave = 0f
-        drift = 0.2f
-    }
+    )
+    glow(Offset(size.width * 0.05f, size.height), size.width * 0.55f, Palette.Violet40, 0.30f)
+    glow(Offset(size.width * 0.95f, size.height * 0.30f), size.width * 0.52f, Palette.Azure40, 0.26f)
+    mesh(wave, meshColour)
+    if (particles) motes(drift)
+}
 
-    return drawBehind {
-        drawRect(
-            Brush.linearGradient(
-                colors = listOf(Palette.Deep, Palette.Violet10, Palette.Azure10),
-                start = Offset(0f, 0f),
-                end = Offset(size.width, size.height),
-            )
-        )
-        glow(Offset(size.width * 0.05f, size.height), size.width * 0.55f, Palette.Violet40, 0.30f)
-        glow(Offset(size.width * 0.95f, size.height * 0.30f), size.width * 0.52f, Palette.Azure40, 0.26f)
-        mesh(wave, colors.primary)
-        if (profile.backdropParticles) motes(drift)
-    }
+/**
+ * Where the wave and the drift are in their cycles.
+ *
+ * On a weak GPU this canvas competes with the scroll for fill rate, so the animation
+ * is a capability decision rather than a taste one. The static fallback still reads
+ * as Castivio — it just costs one draw instead of sixty a second.
+ */
+@Composable
+private fun backdropPhase(profile: PerformanceProfile): Pair<Float, Float> {
+    if (!profile.animatedBackdrop) return 0f to 0.2f
+
+    val transition = rememberInfiniteTransition(label = "backdrop")
+    val wave by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = (2f * PI).toFloat(),
+        animationSpec = infiniteRepeatable(
+            tween(Motion.ambientWave, easing = LinearEasing), RepeatMode.Restart,
+        ),
+        label = "wave",
+    )
+    val drift by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            tween(Motion.ambientDrift, easing = LinearEasing), RepeatMode.Restart,
+        ),
+        label = "drift",
+    )
+    return wave to drift
 }
 
 private fun DrawScope.glow(center: Offset, radius: Float, color: Color, alpha: Float) {

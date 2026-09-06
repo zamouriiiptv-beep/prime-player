@@ -17,7 +17,7 @@ import com.castivio.core.common.locale.ResolvedLocale
  * Every language change used to call `activity.recreate()`. On API 33 and up it
  * got a second one for free: `LocaleManager.applicationLocales` makes the
  * platform recreate the activity too. So one press of a language produced two
- * window teardowns — two flashes of the `#0B0620` window background through the
+ * window teardowns — two flashes of the window background through the
  * aurora, the backdrop's animation restarted from nothing twice, and every
  * screen rebuilt from its saved state. On a phone that reads as a flicker and on
  * a television it reads as a fault.

@@ -716,6 +716,63 @@ if [ -n "$hits" ]; then
   layers opaquely."
 fi
 
+# The window's own background is the other half of the same rule. It cannot be a
+# composable -- it is what fills the window before Compose exists and through every
+# activity teardown -- so it is a colour resource in :core:design. It was a literal
+# here, `#0B0620`, matching no palette entry: a background nobody could trace to a
+# decision, seen only as a flash and therefore never compared with the aurora it
+# flashes in front of.
+hits=$(grep -nE '>#[0-9A-Fa-f]{3,8}<|"#[0-9A-Fa-f]{3,8}"' \
+         app/src/main/res/values/themes.xml 2>/dev/null || true)
+if [ -n "$hits" ]; then
+  fail "the application theme names a colour literal" \
+       "app/src/main/res/values/themes.xml
+$hits
+
+  Theme colours come from :core:design like every other colour. The palette check
+  above reads Kotlin, so a literal in XML slips past it -- which is exactly how
+  this one survived."
+fi
+
+# ------------------------------------------- the window background before Compose
+# `android:windowBackground` is what fills a window before the first frame and
+# through every activity teardown -- a cold start, and a language change. It was
+# `#0B0620`, hand-written into the app's theme and matching no palette entry at
+# all: a fourth background, seen only as a flash, and therefore never compared
+# with the aurora it flashes in front of.
+#
+# It is now the backdrop's own first stop. A Compose Color is a Kotlin value and a
+# theme attribute is a resource, so the number has to exist twice; this is what
+# stops the two copies from drifting.
+kotlin_deep=$(grep -oE 'val Deep = Color\(0x([0-9A-Fa-f]{8})\)' \
+                core/design/src/main/java/com/castivio/core/design/theme/Color.kt \
+              | grep -oE '[0-9A-Fa-f]{8}' | tr 'a-f' 'A-F')
+xml_window=$(grep -oE '<color name="castivio_window_background">#([0-9A-Fa-f]{8})' \
+               core/design/src/main/res/values/colors.xml \
+             | grep -oE '[0-9A-Fa-f]{8}$' | tr 'a-f' 'A-F')
+if [ -z "$kotlin_deep" ] || [ -z "$xml_window" ]; then
+  fail "the window background and Palette.Deep could not both be read" \
+       "Palette.Deep: ${kotlin_deep:-<not found>}
+  castivio_window_background: ${xml_window:-<not found>}"
+elif [ "$kotlin_deep" != "$xml_window" ]; then
+  fail "the window background has drifted from the backdrop's first stop" \
+       "Palette.Deep is $kotlin_deep, castivio_window_background is $xml_window
+
+  They are the same colour stated in the two languages the platform needs it in.
+  Change both or neither."
+fi
+
+hits=$(grep -nE '>#[0-9A-Fa-f]{3,8}<|"#[0-9A-Fa-f]{3,8}"' app/src/main/res/values/themes.xml 2>/dev/null || true)
+if [ -n "$hits" ]; then
+  fail "the application theme names a colour literal" \
+       "app/src/main/res/values/themes.xml
+$hits
+
+  Theme colours come from :core:design like every other colour. A literal here
+  is outside the invariant that keeps the palette in one place, because that one
+  reads Kotlin and this file is XML."
+fi
+
 # ------------------------------------------------------------------------ report
 if [ "$failures" -eq 0 ]; then
   echo "Design invariants: all mechanical checks pass."

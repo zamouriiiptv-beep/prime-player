@@ -1,8 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!--
+      One background before Compose, and it is the backdrop's own first stop.
+      See core/design/res/values/colors.xml for why this is not a literal.
+
+      The two bar colours apply only below API 29: from 29 up `enableEdgeToEdge`
+      replaces them with a genuine transparent, which is what lets the gradient
+      run under the bars. Below it the platform paints its own translucent scrim
+      over whatever is set here, so the value that shows through should be the
+      same ground as everything else rather than a second dark.
+    -->
     <style name="Theme.CastivioTV" parent="android:Theme.Material.NoActionBar">
-        <item name="android:windowBackground">#0B0620</item>
-        <item name="android:statusBarColor">#0B0620</item>
-        <item name="android:navigationBarColor">#0B0620</item>
+        <item name="android:windowBackground">@color/castivio_window_background</item>
+        <item name="android:statusBarColor">@color/castivio_window_background</item>
+        <item name="android:navigationBarColor">@color/castivio_window_background</item>
     </style>
 </resources>
