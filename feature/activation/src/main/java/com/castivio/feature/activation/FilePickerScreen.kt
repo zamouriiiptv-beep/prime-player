@@ -74,10 +74,27 @@ internal fun FilePickerScreen(
     modifier: Modifier = Modifier,
     onNearEnd: () -> Unit = {},
     permission: MediaPermission = MediaPermission.Granted,
+    /**
+     * True at the top of the tree, where the list is folders and the screen is a
+     * folder chooser; false inside one, where it is a file chooser.
+     *
+     * The same screen does both jobs, and until now it announced only the second: a
+     * list of eight folders sat under "Choose an MP3", which is not what it is asking
+     * for at that moment. So the name and the sentence follow the level. Nothing else
+     * does -- the rows, the paging and the way back are the same at both.
+     */
+    atRoot: Boolean = false,
 ) {
-    val title = when (kind) {
-        PickerKind.Video -> stringResource(R.string.media_video_pick_title)
-        PickerKind.Audio -> stringResource(R.string.media_mp3_pick_title)
+    val title = when {
+        atRoot && kind == PickerKind.Video -> stringResource(R.string.media_video_folder_title)
+        atRoot -> stringResource(R.string.media_audio_folder_title)
+        kind == PickerKind.Video -> stringResource(R.string.media_video_pick_title)
+        else -> stringResource(R.string.media_mp3_pick_title)
+    }
+    val subtitle = when {
+        !atRoot -> null
+        kind == PickerKind.Video -> stringResource(R.string.media_video_folder_subtitle)
+        else -> stringResource(R.string.media_audio_folder_subtitle)
     }
     val filter = when (kind) {
         PickerKind.Video -> stringResource(R.string.media_picker_filter_video)
@@ -91,6 +108,8 @@ internal fun FilePickerScreen(
         containerTag = ActivationTags.PICKER_CONTAINER,
         headingTag = ActivationTags.PICKER_HEADING,
         modifier = modifier,
+        subtitle = subtitle,
+        subtitleTag = ActivationTags.PICKER_SUBTITLE,
     ) { m ->
         PathBand(m = m, path = path, filter = filter)
         Spacer(Modifier.height(BrowseItemGap))

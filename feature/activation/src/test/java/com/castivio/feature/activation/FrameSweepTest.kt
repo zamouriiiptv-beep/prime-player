@@ -437,6 +437,40 @@ class FrameSweepTest {
     }
 
     /**
+     * The same picker at the top of its tree, where it is a folder chooser.
+     *
+     * One screen with two jobs, and until now it announced only the second: eight
+     * folders sat under "Choose an MP3", which is not the question being asked at that
+     * moment. So the name and the sentence follow the level, and this is the pass that
+     * says the sentence is really there and really under the name — on four frames, in
+     * both directions, through the same three assertions the other two subtitled
+     * screens take.
+     *
+     * The rows are the folder presentation as well: the sweep composes a folder entry,
+     * so the yellow glyph, the count pill and the chevron are all measured for
+     * containment by the header sweep's own stage checks rather than merely compiled.
+     */
+    @Test
+    fun `the folder chooser names itself and carries its sentence on every frame`() {
+        compose.sweep {
+            FilePickerScreen(
+                kind = PickerKind.Audio,
+                path = "/storage/emulated/0",
+                entries = SWEEP_ENTRIES,
+                onOpen = {},
+                onBack = {},
+                atRoot = true,
+            )
+        }
+        compose.assertHeaderEverywhere(
+            stage = ActivationTags.PICKER_CONTAINER,
+            heading = ActivationTags.PICKER_HEADING,
+            back = ActivationTags.PICKER_BACK,
+            subtitle = ActivationTags.PICKER_SUBTITLE,
+        )
+    }
+
+    /**
      * The saved subscriptions, which are the one screen of the five whose stage carries
      * no tag of its own — nothing had needed one.
      *

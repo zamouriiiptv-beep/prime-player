@@ -38,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -473,11 +474,17 @@ private fun Steps(
                 FilePickerScreen(
                     kind = PickerKind.Video,
                     path = media.folder ?: stringResource(R.string.media_picker_root),
-                    entries = media.entries(stringResource(R.string.media_picker_parent)),
+                    entries = media.entries(
+                        parentLabel = stringResource(R.string.media_picker_parent),
+                        folderCount = { n ->
+                            pluralStringResource(R.plurals.media_folder_videos, n, n)
+                        },
+                    ),
                     onOpen = { index -> media.open(index, host, onPlay) },
                     onBack = { onStep(ActivationStep.MediaSource) },
                     onNearEnd = host.loadMore,
                     permission = host.permission,
+                    atRoot = media.folder == null,
                 )
             }
 
@@ -485,11 +492,17 @@ private fun Steps(
                 FilePickerScreen(
                     kind = PickerKind.Audio,
                     path = media.folder ?: stringResource(R.string.media_picker_root),
-                    entries = media.entries(stringResource(R.string.media_picker_parent)),
+                    entries = media.entries(
+                        parentLabel = stringResource(R.string.media_picker_parent),
+                        folderCount = { n ->
+                            pluralStringResource(R.plurals.media_folder_tracks, n, n)
+                        },
+                    ),
                     onOpen = { index -> media.open(index, host, onPlay) },
                     onBack = { onStep(ActivationStep.MediaSource) },
                     onNearEnd = host.loadMore,
                     permission = host.permission,
+                    atRoot = media.folder == null,
                 )
             }
 

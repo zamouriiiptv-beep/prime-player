@@ -1,6 +1,9 @@
 package com.castivio.feature.activation
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -14,6 +17,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,10 +43,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.castivio.core.design.components.InteractiveGlassCard
 import com.castivio.core.design.components.castivioBodyStyle
+import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioDescriptionColor
 import com.castivio.core.design.components.rememberThumbnail
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
+import com.castivio.core.design.theme.Palette
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.Spacing
@@ -90,8 +97,13 @@ internal data class MediaRow(
     /**
      * A place rather than a thing.
      *
-     * Only the ink changes — a folder's glyph takes the muted colour — so a glance
-     * separates the two halves of a picker's list without reading either.
+     * Three things change, and all three say the same word. The glyph takes the
+     * folder's own yellow rather than the muted ink it used to, because a picker's
+     * first job is to let the eye find the folders in a list that also holds files.
+     * The figure beside it becomes a pill — a folder's count is a fact about the
+     * place, and a duration is a property of the file, so drawing them identically
+     * made a list of both read as one kind of thing. And a chevron appears, because
+     * a place is somewhere you go and a file is something you pick.
      */
     val isPlace: Boolean = false,
 )
@@ -147,6 +159,8 @@ internal fun MediaScaffold(
     containerTag: String,
     headingTag: String,
     modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    subtitleTag: String? = null,
     content: @Composable ColumnScope.(SourceMetrics) -> Unit,
 ) {
     val tv = CastivioTheme.device.isTv
@@ -165,6 +179,8 @@ internal fun MediaScaffold(
                 headingTag = headingTag,
                 backTag = backTag,
                 onBack = onBack,
+                subtitle = subtitle,
+                subtitleTag = subtitleTag,
             )
             Spacer(Modifier.height(m.bandTop))
             content(m)
@@ -253,7 +269,11 @@ internal fun MediaListRow(
                 Icon(
                     imageVector = row.icon,
                     contentDescription = null,
-                    tint = if (row.isPlace) colors.onBackgroundVariant else colors.onBackground,
+                    // A folder is the one glyph in this list that carries a hue of
+                    // its own. `Palette.Amber` and not a new yellow: it is already
+                    // the audio library's hue, and a second yellow chosen to look
+                    // like the first is the beginning of two yellows.
+                    tint = if (row.isPlace) Palette.Amber else colors.onBackground,
                     modifier = Modifier.size(Sizing.iconXl),
                 )
             }
@@ -265,18 +285,57 @@ internal fun MediaListRow(
                 modifier = Modifier.weight(1f),
             )
             if (row.detail.isNotEmpty()) {
-                Text(
-                    text = row.detail,
-                    style = castivioBodyStyle(m.fsDetail),
-                    color = castivioDescriptionColor,
-                    maxLines = 1,
+                if (row.isPlace) CountPill(m, row.detail) else {
+                    Text(
+                        text = row.detail,
+                        style = castivioBodyStyle(m.fsDetail),
+                        color = castivioDescriptionColor,
+                        maxLines = 1,
+                    )
+                }
+            }
+            if (row.isPlace) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = colors.onBackgroundMuted,
+                    modifier = Modifier.size(m.chevron),
                 )
             }
         }
     }
 }
 
+/**
+ * How much a folder holds, as a pill.
+ *
+ * The same shape the rest of the flow uses for a small fixed fact — the pill corner,
+ * the glass fill, the chip step — rather than a shape of its own. It keeps its
+ * intrinsic width and the name beside it yields, which is the header's rule one level
+ * down: a count is a fact and a name is the thing here whose full size is not
+ * load-bearing.
+ */
+@Composable
+private fun CountPill(m: SourceMetrics, text: String) {
+    val shape = RoundedCornerShape(percent = 50)
+    Text(
+        text = text,
+        style = castivioChipStyle(m.fsBadge),
+        color = CastivioTheme.colors.onBackgroundVariant,
+        maxLines = 1,
+        modifier = Modifier
+            .clip(shape)
+            .background(CastivioTheme.colors.glassFill)
+            .border(BorderStroke(1.dp, Palette.EdgeQuiet), shape)
+            .padding(horizontal = m.fsBadge * PILL_PAD, vertical = m.fsBadge * PILL_PAD_Y),
+    )
+}
+
 /* ------------------------------------------------------------------------ tokens */
+
+/** A count pill's padding, as fractions of the step its words are set in. */
+private const val PILL_PAD = 0.62f
+private const val PILL_PAD_Y = 0.17f
 
 /** Between rows, and between tiles across and down alike. */
 internal val BrowseItemGap: Dp

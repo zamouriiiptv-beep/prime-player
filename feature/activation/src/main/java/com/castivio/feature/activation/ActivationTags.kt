@@ -133,6 +133,9 @@ internal object ActivationTags {
     const val LIBRARY_BACK = "library.back"
 
     const val PICKER_CONTAINER = "picker.container"
+    /** The sentence under a picker's name, which only the top of the tree has. */
+    const val PICKER_SUBTITLE = "picker.subtitle"
+
     const val PICKER_HEADING = "picker.heading"
     const val PICKER_PATH = "picker.path"
     const val PICKER_LIST = "picker.list"

@@ -157,16 +157,27 @@ internal fun LocalTrack.asSelection() = LocalMediaSelection(
  * Folders first because a picker is for walking somewhere, and a file list that buries its
  * folders under two hundred videos is a file list nobody can navigate.
  */
-internal fun LocalMediaState.entries(parentLabel: String): List<PickerEntry> = buildList {
+internal fun LocalMediaState.entries(
+    parentLabel: String,
+    /**
+     * How many a folder holds, in words.
+     *
+     * A lambda rather than a number, because "111 videos" is a plural in thirty-eight
+     * languages and none of that belongs in a mapping function. The screen resolves it
+     * against its own resources and hands the sentence down.
+     */
+    folderCount: (Int) -> String,
+): List<PickerEntry> = buildList {
     if (folder != null) add(PickerEntry(parentLabel, "", PickerEntry.EntryKind.Parent))
     if (folder == null) {
-        folders.forEach { add(it.asEntry()) }
+        folders.forEach { add(it.asEntry(folderCount)) }
     }
     videos.forEach { add(PickerEntry(it.name, formatDuration(it.durationMs), PickerEntry.EntryKind.File)) }
     tracks.forEach { add(PickerEntry(it.name, formatDuration(it.durationMs), PickerEntry.EntryKind.File)) }
 }
 
-private fun LocalFolder.asEntry() = PickerEntry(name, count.toString(), PickerEntry.EntryKind.Folder)
+private fun LocalFolder.asEntry(folderCount: (Int) -> String) =
+    PickerEntry(name, folderCount(count), PickerEntry.EntryKind.Folder)
 
 /**
  * What pressing row [index] in a picker means.
