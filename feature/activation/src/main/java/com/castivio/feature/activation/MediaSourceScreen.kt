@@ -20,6 +20,7 @@ import androidx.compose.material.icons.rounded.Layers
 import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,7 +38,6 @@ import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioDescriptionColor
 import com.castivio.core.design.icons.CastivioIcons
 import com.castivio.core.design.theme.CastivioTheme
-import com.castivio.core.design.theme.Palette
 import com.castivio.core.design.theme.castivioStage
 
 /**
@@ -167,11 +167,14 @@ internal fun MediaSourceScreen(
  * screen cannot claim honestly; a cell that says nothing new is the reason readers
  * stop reading strips like this one.
  */
-private val MEDIA_CLAIMS = listOf(
-    StripClaim(Palette.Azure50, Icons.Rounded.Layers, R.string.media_trust_sources_title),
-    StripClaim(Palette.Violet50, Icons.Rounded.Sync, R.string.media_trust_sync_title),
-    StripClaim(Palette.Amber, Icons.Rounded.Dashboard, R.string.media_trust_organised_title),
-)
+private val MEDIA_CLAIMS: List<StripClaim>
+    @Composable @ReadOnlyComposable get() = with(CastivioTheme.colors) {
+        listOf(
+            StripClaim(hueAzure, Icons.Rounded.Layers, R.string.media_trust_sources_title),
+            StripClaim(hueViolet, Icons.Rounded.Sync, R.string.media_trust_sync_title),
+            StripClaim(hueAmber, Icons.Rounded.Dashboard, R.string.media_trust_organised_title),
+        )
+    }
 
 /**
  * Two by two, equal in both directions.
@@ -190,6 +193,7 @@ private fun MediaGrid(
     onAudioLibrary: () -> Unit,
     onPickAudio: () -> Unit,
 ) {
+    val colors = CastivioTheme.colors
     Column(modifier, verticalArrangement = Arrangement.spacedBy(m.gridGap)) {
         Row(
             Modifier.weight(1f).fillMaxWidth(),
@@ -197,7 +201,7 @@ private fun MediaGrid(
         ) {
             MediaCard(
                 m = m,
-                hue = Palette.Azure50,
+                hue = colors.hueAzure,
                 icon = CastivioIcons.VideoLibrary,
                 title = stringResource(R.string.media_video_library_title),
                 detail = stringResource(R.string.media_video_library_detail),
@@ -206,7 +210,7 @@ private fun MediaGrid(
             )
             MediaCard(
                 m = m,
-                hue = Palette.Violet50,
+                hue = colors.hueViolet,
                 icon = CastivioIcons.VideoFile,
                 featured = true,
                 title = stringResource(R.string.media_video_pick_title),
@@ -221,7 +225,7 @@ private fun MediaGrid(
         ) {
             MediaCard(
                 m = m,
-                hue = Palette.Amber,
+                hue = colors.hueAmber,
                 icon = CastivioIcons.AudioLibrary,
                 title = stringResource(R.string.media_audio_library_title),
                 detail = stringResource(R.string.media_audio_library_detail),
@@ -230,7 +234,7 @@ private fun MediaGrid(
             )
             MediaCard(
                 m = m,
-                hue = Palette.Success,
+                hue = colors.hueGreen,
                 icon = CastivioIcons.AudioFile,
                 title = stringResource(R.string.media_mp3_pick_title),
                 detail = stringResource(R.string.media_mp3_pick_detail),

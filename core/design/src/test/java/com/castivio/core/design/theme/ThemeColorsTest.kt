@@ -131,12 +131,90 @@ class ThemeColorsTest {
         assertEquals(dark.logoTints, light.logoTints)
     }
 
+    /**
+     * The four card hues, at the values the screens used to name directly.
+     *
+     * They were `Palette.Azure50`, `Violet50`, `Amber` and `Success` written into two
+     * screens. Making them roles is what lets the light ground answer with the step
+     * that reads there — and it is also the move that could silently change the dark
+     * ground, which is what this pins.
+     */
+    @Test
+    fun `the dark card hues are the ones the screens used to name`() {
+        assertEquals(Palette.Azure50, dark.hueAzure)
+        assertEquals(Palette.Violet50, dark.hueViolet)
+        assertEquals(Palette.Success, dark.hueGreen)
+        assertEquals(Palette.Amber, dark.hueAmber)
+        assertEquals(0.34f, dark.discTop, 0f)
+        assertEquals(0.08f, dark.discFoot, 0f)
+        assertEquals(0.46f, dark.discEdge, 0f)
+        assertEquals(0.30f, dark.backdropGlowWarm, 0f)
+        assertEquals(0.26f, dark.backdropGlowCool, 0f)
+    }
+
+    /**
+     * A glyph is legible on its own disc, on the light ground.
+     *
+     * This is the failure the first light attempt actually had: the disc is a pale
+     * tint of the hue and the glyph was the hue itself, so four icons disappeared into
+     * four discs. 3:1 rather than 4.5 because these are glyphs and not words, which is
+     * the threshold WCAG sets for a graphical object.
+     *
+     * Composited by hand: the disc is the hue at [CastivioColors.discTop] over the
+     * page, and a ratio taken against the unblended hue would be measuring a colour
+     * that is never drawn.
+     */
+    @Test
+    fun `a glyph reads on its own disc in the light theme`() {
+        for ((name, hue) in listOf(
+            "azure" to light.hueAzure,
+            "violet" to light.hueViolet,
+            "green" to light.hueGreen,
+            "amber" to light.hueAmber,
+        )) {
+            val disc = over(hue, light.discTop, light.background)
+            val ratio = contrast(light.discGlyph(hue), disc)
+            assertTrue(
+                "light/$name: the glyph is ${"%.2f".format(ratio)}:1 on its disc, under 3",
+                ratio >= 3f,
+            )
+        }
+    }
+
+    /**
+     * The aurora is a tint of a light page, not a stain on it.
+     *
+     * The same two glows in the same two corners at the same radii on both grounds, so
+     * strength is the only thing that separates a bloom on black from a blot on white
+     * — and it is the number the first attempt left alone.
+     */
+    @Test
+    fun `the light glows are laid on more softly than the dark ones`() {
+        assertTrue(
+            "light's warm glow ${light.backdropGlowWarm} is not softer than dark's " +
+                "${dark.backdropGlowWarm}",
+            light.backdropGlowWarm < dark.backdropGlowWarm / 2f,
+        )
+        assertTrue(
+            "light's cool glow ${light.backdropGlowCool} is not softer than dark's " +
+                "${dark.backdropGlowCool}",
+            light.backdropGlowCool < dark.backdropGlowCool / 2f,
+        )
+    }
+
     /** The flag both palettes carry, since the derived brushes read it. */
     @Test
     fun `each palette knows which one it is`() {
         assertTrue(light.isLight)
         assertTrue(!dark.isLight)
     }
+
+    /** [fg] at [alpha] laid over [bg], which is what a disc actually is. */
+    private fun over(fg: Color, alpha: Float, bg: Color) = Color(
+        red = fg.red * alpha + bg.red * (1 - alpha),
+        green = fg.green * alpha + bg.green * (1 - alpha),
+        blue = fg.blue * alpha + bg.blue * (1 - alpha),
+    )
 
     /** WCAG's ratio, on opaque colours. */
     private fun contrast(a: Color, b: Color): Float {

@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 
 /**
  * Castivio colour palette.
@@ -111,23 +112,48 @@ object Palette {
      * The accents are untouched. Azure50, Violet50, Amber, Aqua and Ember are the brand
      * and they read on both grounds; re-picking them for light would be two brands. */
 
-    /** The page, violet corner to azure corner -- the dark ground's diagonal, inverted. */
-    val Cloud = Color(0xFFF7F5FD)
-    val Lilac = Color(0xFFEFEAFB)
-    val Sky = Color(0xFFE6EEFC)
+    /** The page, and the diagonal it runs: violet at one corner, azure at the other. */
+    val Cloud = Color(0xFFF6F4FC)
+    val CloudHigh = Color(0xFFFBFAFE)
+    val CloudLow = Color(0xFFEDEAF8)
 
-    /** A raised surface, and the three inks on it. */
+    /**
+     * A surface, and it is a surface rather than a film.
+     *
+     * The dark theme's glass is white at four per cent over near-black, and it
+     * separates. The same recipe inverted -- black at four per cent over near-white --
+     * does not, and that is precisely why the first light attempt came out washed:
+     * the cards were there and could not be seen. So a card on this ground takes its
+     * own value and a hairline, which is what a surface is.
+     */
+    val Surface = Color(0xFFF1EFF9)
     val Paper = Color(0xFFFFFFFF)
-    val Night = Color(0xFF171233)
-    val Dusk = Color(0xFF4A4370)
-    val Ash = Color(0xFF6E6890)
 
-    /** Glass, inverted: a dark film over a light ground rather than a light one over dark. */
-    val GlassDarkHigh = Color(0x14171233)
-    val GlassDarkMid = Color(0x0F171233)
-    val GlassDarkLow = Color(0x0A171233)
-    val GlassDarkEdge = Color(0x24171233)
-    val GlassDarkEdgeSoft = Color(0x0F171233)
+    /** The three inks, at 16.4:1, 6.0:1 and 4.8:1 on [Cloud]. */
+    val Night = Color(0xFF17152B)
+    val Dusk = Color(0xFF5F5A72)
+    val Ash = Color(0xFF6E6885)
+
+    /**
+     * The identity in daylight: the same four hues, further down their own ramps.
+     *
+     * Not different colours -- violet is still violet -- but the step that *reads*. A
+     * hue picked to glow on near-black is a pastel on near-white, which is the second
+     * thing the first attempt got wrong. Each carries an ink as well, because an icon
+     * drawn in its disc's own hue on a pale tint of that hue is invisible.
+     */
+    val VioletLit = Color(0xFF8B5CF6);  val VioletInk = Color(0xFF6D28D9)
+    val AzureLit = Color(0xFF4F8FEA);   val AzureInk = Color(0xFF1D63C4)
+    val GreenLit = Color(0xFF35B982);   val GreenInk = Color(0xFF0F7050)
+    val AmberLit = Color(0xFFE5A21A);   val AmberInk = Color(0xFF8F6205)
+
+    /** Edges on a light ground: visible, and soft. */
+    val EdgeDay = Color(0xFFC8C3D8)
+    val EdgeDayStrong = Color(0xFFB3ACCB)
+
+    /** A card's ground and its lift, as fills rather than as films. */
+    val SurfaceHigh = Color(0xF2F4F2FB)
+    val SurfaceLow = Color(0xF2ECEAF6)
 
     val Success = Color(0xFF3DD68C)
     val Warning = Amber
@@ -284,7 +310,60 @@ class CastivioColors(
 
     /** What a scrolling row bleeds into at its edge, so it reads as "continues". */
     val rowEdgeFade: Color,
+
+    /* --------------------------------------------------------------- the four hues
+     *
+     * One per option on a chooser, so four cards tell themselves apart from across a
+     * room before a word of them is read. Roles rather than palette entries, because
+     * the *step* that reads is not the same on the two grounds: a hue picked to glow
+     * on near-black is a pastel on near-white.
+     *
+     * The ink is the second half of the same problem. On the dark ground the glyph is
+     * its disc's own hue and that is legible, because the disc is a dark tint. On the
+     * light ground the disc is a pale tint of the hue and the same glyph disappears
+     * into it, so the ink is the hue carried further down its ramp.
+     */
+    val hueAzure: Color,
+    val hueViolet: Color,
+    val hueGreen: Color,
+    val hueAmber: Color,
+
+    /** How much of a hue a disc keeps: at the light, at the foot, in its edge, in its ink. */
+    val discTop: Float,
+    val discFoot: Float,
+    val discEdge: Float,
+    val discInk: Float,
+
+    /**
+     * How strongly the backdrop's two aurora glows are laid on.
+     *
+     * The same two circles in the same two corners at the same radii on both grounds —
+     * only the strength is asked for again, and it is the single number that decides
+     * whether a light page reads as tinted or as stained. Thirty per cent is a bloom
+     * on black and a blot on white.
+     */
+    val backdropGlowWarm: Float,
+    val backdropGlowCool: Float,
 ) {
+
+    /**
+     * A disc's fill, its edge and its glyph, from one hue.
+     *
+     * Here rather than at the two call sites, because "how a hue becomes a disc" is a
+     * palette decision and it is a *different* decision on each ground: a radial
+     * fall-off from a strong tint reads as a lit object on black, and as a smudge on
+     * white, where a flat tint with a firm edge is what reads.
+     */
+    fun discFill(hue: Color): Brush = Brush.radialGradient(
+        listOf(hue.copy(alpha = discTop), hue.copy(alpha = discFoot)),
+    )
+
+    fun discBorder(hue: Color): Color = hue.copy(alpha = discEdge)
+
+    /** The glyph: the hue itself on dark, and the hue pulled toward the ink on light. */
+    fun discGlyph(hue: Color): Color =
+        if (isLight) lerp(hue, onBackground, discInk) else hue
+
     /** The Castivio signature gradient — background washes and hero fills. */
     val auroraBrush: Brush
         get() = Brush.linearGradient(backdropStops)
@@ -508,6 +587,21 @@ fun castivioDarkColors() = CastivioColors(
     onBackgroundStrong = Palette.White,
     featuredFill = Palette.Violet10,
     rowEdgeFade = Palette.Void,
+
+    hueAzure = Palette.Azure50,
+    hueViolet = Palette.Violet50,
+    hueGreen = Palette.Success,
+    hueAmber = Palette.Amber,
+
+    discTop = 0.34f,
+    discFoot = 0.08f,
+    discEdge = 0.46f,
+    // Unused on this ground: the glyph is its own hue. Stated anyway so the two
+    // palettes answer the same set and neither can be read as "not applicable".
+    discInk = 0f,
+
+    backdropGlowWarm = 0.30f,
+    backdropGlowCool = 0.26f,
 )
 
 /**
@@ -529,38 +623,39 @@ fun castivioLightColors() = CastivioColors(
     isLight = true,
     background = Palette.Cloud,
     backgroundElevated = Palette.Paper,
-    // Lighter than the dark scrim and cooler: a veil over a bright page has to dim it
-    // without turning it grey, and pure black at 70% does exactly that.
+    // Cooler and lighter than the dark scrim: pure black at seventy per cent over a
+    // bright page dims it by turning it grey, which is not the same as dimming it.
     scrim = Color(0x99171233),
 
     onBackground = Palette.Night,
     onBackgroundVariant = Palette.Dusk,
     onBackgroundMuted = Palette.Ash,
-    // The description step, one rung quieter than the reading ink and one louder than
-    // the muted one -- the same relationship Quartz holds on the dark ground.
-    description = Color(0xFF3E3866),
+    description = Palette.Dusk,
 
-    primary = Palette.Azure40,
+    primary = Palette.AzureLit,
     onPrimary = Palette.White,
-    primaryContainer = Palette.Sky,
-    secondary = Palette.Violet40,
+    primaryContainer = Color(0xFFE6EEFC),
+    secondary = Palette.VioletLit,
     onSecondary = Palette.White,
-    secondaryContainer = Palette.Lilac,
+    secondaryContainer = Color(0xFFEFEAFB),
     accent = Palette.Ember,
 
-    glassFill = Palette.GlassDarkLow,
-    glassFillStrong = Palette.GlassDarkMid,
-    glassBorder = Palette.GlassDarkEdge,
-    glassBorderSoft = Palette.GlassDarkEdgeSoft,
+    // A surface, not a film. `glassFillBrush` reads these as its two stops, so a card
+    // comes out at its own value with a lit upper edge rather than at four per cent of
+    // an ink nobody can see.
+    glassFill = Palette.SurfaceLow,
+    glassFillStrong = Palette.SurfaceHigh,
+    glassBorder = Palette.EdgeDay,
+    glassBorderSoft = Color(0x66C8C3D8),
 
-    // Azure40 rather than Azure60: the ring has to separate from a pale ground, and the
-    // lighter step that reads on the void disappears on the cloud.
+    // Azure40 rather than the lighter step: a ring has to separate from a pale ground,
+    // and the step that reads on the void disappears on the cloud.
     focusRing = Palette.Azure40,
-    focusGlow = Palette.Azure40.copy(alpha = 0.34f),
+    focusGlow = Palette.Azure40.copy(alpha = 0.30f),
     divider = Color(0x1F171233),
-    selectedFill = Palette.Violet40.copy(alpha = 0.12f),
-    selectedBorder = Palette.Violet40.copy(alpha = 0.38f),
-    selectedGlow = Palette.Violet40.copy(alpha = 0.28f),
+    selectedFill = Palette.VioletLit.copy(alpha = 0.10f),
+    selectedBorder = Palette.VioletLit.copy(alpha = 0.42f),
+    selectedGlow = Palette.VioletInk.copy(alpha = 0.22f),
     live = Palette.Aqua,
 
     success = Palette.Success,
@@ -577,17 +672,39 @@ fun castivioLightColors() = CastivioColors(
         Palette.Violet50,
     ),
 
-    backdropStops = listOf(Palette.Lilac, Palette.Cloud, Palette.Sky),
-    backdropWarmGlow = Palette.Violet50,
-    backdropCoolGlow = Palette.Azure50,
-    backdropMote = Palette.Violet40,
+    backdropStops = listOf(Palette.CloudHigh, Palette.Cloud, Palette.CloudLow),
+    backdropWarmGlow = Palette.VioletLit,
+    backdropCoolGlow = Palette.AzureLit,
+    backdropMote = Palette.VioletLit,
 
-    edgeQuiet = Color(0x24171233),
-    edgeCard = Color(0x334C56C8),
-    edgeAccent = Color(0x476A4BD8),
+    edgeQuiet = Palette.EdgeDay,
+    edgeCard = Palette.EdgeDayStrong,
+    edgeAccent = Palette.VioletLit.copy(alpha = 0.42f),
     onBackgroundStrong = Palette.Night,
-    featuredFill = Palette.Lilac,
+    // White, not a lavender: the default card is the one surface that has to lift off
+    // a page which is itself lavender, and a tint of the ground cannot do that.
+    featuredFill = Palette.Paper,
     rowEdgeFade = Palette.Cloud,
+
+    hueAzure = Palette.AzureLit,
+    hueViolet = Palette.VioletLit,
+    hueGreen = Palette.GreenLit,
+    hueAmber = Palette.AmberLit,
+
+    // Flat and firm rather than a fall-off: on a light ground the dark theme's radial
+    // ramp reads as a smudge, and a level tint inside a definite edge reads as a disc.
+    discTop = 0.16f,
+    discFoot = 0.13f,
+    discEdge = 0.42f,
+    // The glyph, pulled a little over a third of the way toward the ink -- measured at
+    // 5.4, 4.5, 4.1 and 3.9 to one against its own disc, all past the 3:1 that applies
+    // to a glyph rather than to a word.
+    discInk = 0.38f,
+
+    // A tint of the page rather than a stain on it. The dark theme's own numbers here
+    // are what made the first light attempt look saturated.
+    backdropGlowWarm = 0.13f,
+    backdropGlowCool = 0.11f,
 )
 
 /**

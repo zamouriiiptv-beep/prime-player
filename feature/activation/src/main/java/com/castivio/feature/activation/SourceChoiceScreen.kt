@@ -27,6 +27,7 @@ import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.VerifiedUser
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -284,19 +285,20 @@ private fun SourceGrid(
     onLocalVideo: () -> Unit,
     onSavedSources: () -> Unit,
 ) {
+    val colors = CastivioTheme.colors
     Column(modifier, verticalArrangement = Arrangement.spacedBy(m.gridGap)) {
         // Two rows of `weight(1f)` inside a bounded column are exactly equal, measured
         // once — no intrinsic pass, and no way for one row to grow at the other's cost.
         Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(m.gridGap)) {
             SourceCard(
-                m = m, hue = Palette.Azure50, icon = Icons.Rounded.Dns,
+                m = m, hue = colors.hueAzure, icon = Icons.Rounded.Dns,
                 title = stringResource(R.string.source_xtream_title),
                 detail = stringResource(R.string.source_xtream_detail),
                 hint = stringResource(R.string.source_xtream_hint),
                 recommended = false, onClick = onXtream, tag = ActivationTags.SOURCE_XTREAM,
             )
             SourceCard(
-                m = m, hue = Palette.Violet50, icon = Icons.Rounded.Link,
+                m = m, hue = colors.hueViolet, icon = Icons.Rounded.Link,
                 title = stringResource(R.string.source_m3u_title),
                 detail = stringResource(R.string.source_m3u_detail),
                 hint = stringResource(R.string.source_m3u_hint),
@@ -305,14 +307,14 @@ private fun SourceGrid(
         }
         Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(m.gridGap)) {
             SourceCard(
-                m = m, hue = Palette.Amber, icon = Icons.Rounded.OndemandVideo,
+                m = m, hue = colors.hueAmber, icon = Icons.Rounded.OndemandVideo,
                 title = stringResource(R.string.source_local_title),
                 detail = stringResource(R.string.source_local_detail),
                 hint = stringResource(R.string.source_local_hint),
                 recommended = false, onClick = onLocalVideo, tag = ActivationTags.SOURCE_LOCAL,
             )
             SourceCard(
-                m = m, hue = Palette.Success, icon = Icons.Rounded.Group,
+                m = m, hue = colors.hueGreen, icon = Icons.Rounded.Group,
                 title = stringResource(R.string.source_users_title),
                 detail = stringResource(R.string.source_users_detail),
                 hint = stringResource(R.string.source_users_hint),
@@ -482,10 +484,13 @@ private const val BADGE_ICON_GAP = 0.34f
  * quarter, so the lines read at the frame's own chip step instead of at a step
  * invented locally to make four of them fit.
  */
-private val SOURCE_CLAIMS = listOf(
-    StripClaim(Palette.Violet50, Icons.Rounded.VerifiedUser, R.string.source_trust_private_title),
-    StripClaim(Palette.Azure50, Icons.Rounded.Speed, R.string.source_trust_fast_title),
-)
+private val SOURCE_CLAIMS: List<StripClaim>
+    @Composable @ReadOnlyComposable get() = with(CastivioTheme.colors) {
+        listOf(
+            StripClaim(hueViolet, Icons.Rounded.VerifiedUser, R.string.source_trust_private_title),
+            StripClaim(hueAzure, Icons.Rounded.Speed, R.string.source_trust_fast_title),
+        )
+    }
 
 
 /**

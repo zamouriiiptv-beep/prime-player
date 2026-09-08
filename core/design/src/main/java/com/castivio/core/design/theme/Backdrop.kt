@@ -111,8 +111,14 @@ private fun DrawScope.paintBackdrop(
     // The geometry is the theme's business, not the ground's: both glows keep their
     // corner, their radius and their alpha in either mode, and only the hue is asked
     // for again. A light page with the aurora somewhere else would be a second layout.
-    glow(Offset(size.width * 0.05f, size.height), size.width * 0.55f, colors.backdropWarmGlow, 0.30f)
-    glow(Offset(size.width * 0.95f, size.height * 0.30f), size.width * 0.52f, colors.backdropCoolGlow, 0.26f)
+    glow(
+        Offset(size.width * 0.05f, size.height), size.width * 0.55f,
+        colors.backdropWarmGlow, colors.backdropGlowWarm,
+    )
+    glow(
+        Offset(size.width * 0.95f, size.height * 0.30f), size.width * 0.52f,
+        colors.backdropCoolGlow, colors.backdropGlowCool,
+    )
     mesh(wave, colors.primary)
     if (particles) motes(drift, colors.backdropMote)
 }

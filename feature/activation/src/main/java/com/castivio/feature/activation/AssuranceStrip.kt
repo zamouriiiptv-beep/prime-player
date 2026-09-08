@@ -92,6 +92,7 @@ internal data class StripClaim(
 @Composable
 private fun RowScope.StripCell(m: SourceMetrics, claim: StripClaim) {
     val head = stringResource(claim.title)
+    val colors = CastivioTheme.colors
     val disc = RoundedCornerShape(percent = 50)
     Row(
         Modifier
@@ -112,7 +113,7 @@ private fun RowScope.StripCell(m: SourceMetrics, claim: StripClaim) {
             Icon(
                 imageVector = claim.icon,
                 contentDescription = null,
-                tint = claim.hue,
+                tint = colors.discGlyph(claim.hue),
                 modifier = Modifier.size(m.stripDisc * DISC_ICON),
             )
         }

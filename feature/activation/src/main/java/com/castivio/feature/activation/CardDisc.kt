@@ -11,9 +11,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.castivio.core.design.theme.CastivioTheme
 import androidx.compose.ui.unit.dp
 
 /**
@@ -45,35 +45,24 @@ internal fun Disc(
     icon: ImageVector,
     modifier: Modifier = Modifier,
 ) {
+    val colors = CastivioTheme.colors
     val round = RoundedCornerShape(percent = 50)
     Box(
         modifier
             .size(m.disc)
             .clip(round)
-            .background(Brush.radialGradient(listOf(hue.copy(alpha = DISC_TOP), hue.copy(alpha = DISC_FOOT))))
-            .border(BorderStroke(1.dp, hue.copy(alpha = DISC_EDGE)), round),
+            .background(colors.discFill(hue))
+            .border(BorderStroke(1.dp, colors.discBorder(hue)), round),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = hue,
+            tint = colors.discGlyph(hue),
             modifier = Modifier.size(m.disc * DISC_ICON),
         )
     }
 }
-
-/**
- * How much of its hue the disc keeps: at the light, at the foot, and in its edge.
- *
- * The gradient is a fall-off rather than a flat wash because a flat circle of colour
- * reads as a swatch and a lit one reads as an object — and on a television, where
- * the disc is 72dp and seen from three metres, that is the difference between four
- * icons and four buttons.
- */
-private const val DISC_TOP = 0.34f
-private const val DISC_FOOT = 0.08f
-private const val DISC_EDGE = 0.46f
 
 /**
  * A glyph inside its disc, as a fraction of the disc.
