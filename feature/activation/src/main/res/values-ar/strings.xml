@@ -139,6 +139,8 @@
         <item quantity="many">%1$d ملف صوتي</item>
         <item quantity="other">%1$d ملف صوتي</item>
     </plurals>
+    <string name="action_theme_light">التبديل إلى الوضع الفاتح</string>
+    <string name="action_theme_dark">التبديل إلى الوضع الداكن</string>
     <string name="source_choice_subtitle">اختر الطريقة التي تريد من خلالها إضافة مصدر المحتوى</string>
     <string name="media_source_subtitle">أختر الطريقة التي تريد من خلالها تشغيل المحتوى</string>
     <string name="media_trust_sources_title">مصادر متعددة</string>

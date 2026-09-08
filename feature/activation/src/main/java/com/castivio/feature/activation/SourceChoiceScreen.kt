@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.castivio.core.design.components.CastivioFittedText
+import com.castivio.core.design.components.CastivioChipsGap
 import com.castivio.core.design.components.InteractiveGlassCard
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioBodyStyle
@@ -120,6 +121,9 @@ internal data class SourceMetrics(
     val backPad get() = frame.chipPad
     val bandTop get() = frame.bandTop
     val radius get() = frame.radius
+
+    /** Between the theme chip and Back, from `:core:design`'s one value. */
+    val chipsGap get() = CastivioChipsGap
 
     /* The four steps, named for what this screen puts on each of them. Named
        rather than aliased away, because a call site that reads `m.fsCard` says

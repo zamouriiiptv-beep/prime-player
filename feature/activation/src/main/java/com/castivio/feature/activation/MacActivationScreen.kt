@@ -59,6 +59,7 @@ import com.castivio.core.design.components.CapsuleForm
 import com.castivio.core.design.components.CapsuleMetrics
 import com.castivio.core.design.components.CapsuleTint
 import com.castivio.core.design.components.CastivioButton
+import com.castivio.core.design.components.CastivioThemeSwitchChip
 import com.castivio.core.design.components.CastivioHeader
 import com.castivio.core.design.components.CastivioHeaderTitle
 import com.castivio.core.design.components.CastivioLockup
@@ -481,6 +482,18 @@ private fun Header(m: Metrics, trialDays: Int?, onOpenLanguage: () -> Unit) {
                             TrialChip(m, badge, trialDays)
                         }
                     }
+                    // Inboard of the language control, outboard of the trial: the
+                    // approved order is trial, theme, language, and it is the same
+                    // rule the other five screens follow -- the page's own control
+                    // keeps the outer end and the theme sits just inside it.
+                    CastivioThemeSwitchChip(
+                        chip = m.chip,
+                        touchTarget = m.frame.touchTarget,
+                        fontSize = m.fsChip,
+                        toLight = stringResource(R.string.action_theme_light),
+                        toDark = stringResource(R.string.action_theme_dark),
+                        modifier = Modifier.testTag(ActivationTags.HEADER_THEME),
+                    )
                     CompositionLocalProvider(LocalLayoutDirection provides reading) {
                         LanguageChip(m, onOpenLanguage)
                     }

@@ -161,6 +161,9 @@
         <item quantity="one">%1$d audio file</item>
         <item quantity="other">%1$d audio files</item>
     </plurals>
+    <!-- The theme control in every header. Named by what pressing it does. -->
+    <string name="action_theme_light">Switch to the light theme</string>
+    <string name="action_theme_dark">Switch to the dark theme</string>
     <string name="source_choice_subtitle">Choose how you want to add your content source</string>
     <!-- The local-media chooser: the line under its name, and its own footnote. -->
     <string name="media_source_subtitle">Choose how you want to play your content</string>

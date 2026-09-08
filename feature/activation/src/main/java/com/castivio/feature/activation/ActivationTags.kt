@@ -156,6 +156,9 @@ internal object ActivationTags {
      */
     const val HEADER_MARK = "chooser.mark"
 
+    /** The dark/light control, which every header in the flow carries. */
+    const val HEADER_THEME = "chooser.theme"
+
     /**
      * One tile, and one row, repeated.
      *

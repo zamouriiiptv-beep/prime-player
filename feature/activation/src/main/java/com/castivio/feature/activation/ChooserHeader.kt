@@ -11,7 +11,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.Alignment
 import com.castivio.core.design.components.CastivioBackChip
+import com.castivio.core.design.components.CastivioThemeSwitchChip
 import com.castivio.core.design.components.CastivioHeader
 import com.castivio.core.design.components.CastivioHeaderTitle
 import com.castivio.core.design.components.CastivioLockup
@@ -107,20 +111,38 @@ internal fun ChooserHeader(
         },
         chips = {
             // The row is pinned left to right so the control keeps its edge; the words
-            // inside the chip are handed the reader's own direction back, because what
+            // inside each chip are handed the reader's own direction back, because what
             // a chip *says* is language and where it sits is not.
+            //
+            // Two chips now, in the order the design settled on: the theme first and
+            // Back second, so Back keeps the outer end it holds on every screen in the
+            // product. A control that moves aside to make room for a new one is a
+            // control the reader has to look for.
             val reading = LocalLayoutDirection.current
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                CompositionLocalProvider(LocalLayoutDirection provides reading) {
-                    CastivioBackChip(
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(m.chipsGap),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    CastivioThemeSwitchChip(
                         chip = m.back,
                         touchTarget = m.frame.touchTarget,
-                        pad = m.backPad,
                         fontSize = m.fsBack,
-                        label = stringResource(R.string.action_back),
-                        onClick = onBack,
-                        modifier = Modifier.testTag(backTag),
+                        toLight = stringResource(R.string.action_theme_light),
+                        toDark = stringResource(R.string.action_theme_dark),
+                        modifier = Modifier.testTag(ActivationTags.HEADER_THEME),
                     )
+                    CompositionLocalProvider(LocalLayoutDirection provides reading) {
+                        CastivioBackChip(
+                            chip = m.back,
+                            touchTarget = m.frame.touchTarget,
+                            pad = m.backPad,
+                            fontSize = m.fsBack,
+                            label = stringResource(R.string.action_back),
+                            onClick = onBack,
+                            modifier = Modifier.testTag(backTag),
+                        )
+                    }
                 }
             }
         },

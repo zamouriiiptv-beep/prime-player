@@ -17,7 +17,9 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import com.castivio.core.design.theme.CastivioFrame
+import com.castivio.core.design.theme.CastivioThemeSwitch
 import com.castivio.core.design.theme.CastivioTheme
+import com.castivio.core.design.theme.LocalThemeSwitch
 import com.castivio.core.design.theme.DeviceClass
 import com.castivio.core.design.theme.LocalDeviceClass
 import com.castivio.core.design.theme.castivioFrame
@@ -621,6 +623,7 @@ class FrameSweepTest {
         val titles = all(heading)
         val backs = all(back)
         val subs = subtitle?.let { all(it) }
+        val themes = all(ActivationTags.HEADER_THEME)
 
         passes.forEachIndexed { i, pass ->
             val panel = stages[i]
@@ -629,10 +632,32 @@ class FrameSweepTest {
             val backBox = backs[i]
             val edge = pass.frame.edge
 
+            val theme = themes[i]
             println(
                 "frame sweep — $pass | stage ${panel.left}..${panel.right} " +
                     "| mark ${mark.left} | title ${title.left}..${title.right} " +
+                    "| theme ${theme.left}..${theme.right} (${theme.width}x${theme.height}) " +
                     "| back ${backBox.left}..${backBox.right}",
+            )
+
+            // The theme control: present on every screen, inboard of Back, on the same
+            // band, and pressable at the frame's own floor in *both* axes -- it is
+            // icon-only, so unlike Back it has no label to grow it, and 44dp of pill on
+            // a television is 12dp under the D-pad floor if nothing says otherwise.
+            assertTrue(
+                "$pass: the theme chip ${theme.left}..${theme.right} is not inboard of " +
+                    "Back ${backBox.left}..${backBox.right}",
+                theme.right <= backBox.left + 1.dp && theme.left >= title.right - 1.dp,
+            )
+            assertTrue(
+                "$pass: the theme chip ${theme.top}..${theme.bottom} does not share the " +
+                    "mark's band ${mark.top}..${mark.bottom}",
+                theme.top < mark.bottom && mark.top < theme.bottom,
+            )
+            assertTrue(
+                "$pass: the theme chip is ${theme.width}x${theme.height}, under the " +
+                    "${pass.frame.touchTarget} floor",
+                theme.width >= pass.frame.touchTarget && theme.height >= pass.frame.touchTarget,
             )
 
             // The tag sits on the stage *inside* its own padding, so the stage's own
@@ -736,7 +761,22 @@ class FrameSweepTest {
 
     /* ------------------------------------------------------------------- the harness */
 
+    /**
+     * A switch that reports dark and does nothing, so the header draws its theme chip.
+     *
+     * Without one `LocalThemeSwitch` is null and the chip is absent — which is correct
+     * for a preview and wrong for this file, whose whole job is to measure what a
+     * reader actually sees. Providing it here is what makes the existing assertions
+     * carry the new control: Back still has to end on the stage's trailing edge with a
+     * second chip beside it, and the title still has to fit between.
+     */
+    private val sweepSwitch = object : CastivioThemeSwitch {
+        override val isDark = true
+        override fun toggle() = Unit
+    }
+
     private fun ComposeContentTestRule.sweep(screen: @Composable () -> Unit) = setContent {
+        CompositionLocalProvider(LocalThemeSwitch provides sweepSwitch) {
         CastivioTheme {
             Column {
                 for (pass in passes) {
@@ -751,6 +791,7 @@ class FrameSweepTest {
                     }
                 }
             }
+        }
         }
     }
 

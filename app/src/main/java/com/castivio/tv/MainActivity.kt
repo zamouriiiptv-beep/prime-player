@@ -23,6 +23,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import com.castivio.core.design.components.CastivioIntro
+import com.castivio.core.design.theme.CastivioThemeSwitch
+import com.castivio.core.design.theme.LocalThemeSwitch
 import com.castivio.data.preferences.ThemeStore
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.platform.AndroidDeviceCapabilities
@@ -164,6 +166,21 @@ class MainActivity : ComponentActivity() {
             // pale page.
             LaunchedEffect(dark) { applyBarStyle(dark) }
 
+            // One object for the whole tree, so a header anywhere can offer the
+            // choice without six screens carrying a boolean that has nothing to do
+            // with what any of them is for. `remember` with no key: the object is
+            // stable and reads the state, so a press is one recomposition rather
+            // than a new switch handed to every header.
+            val switch = remember {
+                object : CastivioThemeSwitch {
+                    override val isDark: Boolean get() = dark
+                    override fun toggle() {
+                        dark = !dark
+                        themeStore.setDark(dark)
+                    }
+                }
+            }
+
             // The language, applied to the composition rather than by recreating
             // the activity.
             //
@@ -195,6 +212,7 @@ class MainActivity : ComponentActivity() {
                     } else {
                         LayoutDirection.Ltr
                     },
+                LocalThemeSwitch provides switch,
             ) {
                 CastivioTheme(
                     performance = performance,
