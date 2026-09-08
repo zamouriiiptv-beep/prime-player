@@ -38,7 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -471,13 +471,19 @@ private fun Steps(
             }
 
             ActivationStep.PickVideo -> LocalMediaHost(LocalMediaKind.VIDEO) { media, host ->
+                val resources = LocalContext.current.resources
                 FilePickerScreen(
                     kind = PickerKind.Video,
                     path = media.folder ?: stringResource(R.string.media_picker_root),
                     entries = media.entries(
                         parentLabel = stringResource(R.string.media_picker_parent),
+                        // Resolved through the resources rather than
+                        // `pluralStringResource`: this lambda is a plain
+                        // `(Int) -> String` handed to a mapping function, and a
+                        // composable cannot be called from one. The context is read
+                        // here, in composition, where it is allowed to be.
                         folderCount = { n ->
-                            pluralStringResource(R.plurals.media_folder_videos, n, n)
+                            resources.getQuantityString(R.plurals.media_folder_videos, n, n)
                         },
                     ),
                     onOpen = { index -> media.open(index, host, onPlay) },
@@ -489,13 +495,19 @@ private fun Steps(
             }
 
             ActivationStep.PickAudio -> LocalMediaHost(LocalMediaKind.AUDIO) { media, host ->
+                val resources = LocalContext.current.resources
                 FilePickerScreen(
                     kind = PickerKind.Audio,
                     path = media.folder ?: stringResource(R.string.media_picker_root),
                     entries = media.entries(
                         parentLabel = stringResource(R.string.media_picker_parent),
+                        // Resolved through the resources rather than
+                        // `pluralStringResource`: this lambda is a plain
+                        // `(Int) -> String` handed to a mapping function, and a
+                        // composable cannot be called from one. The context is read
+                        // here, in composition, where it is allowed to be.
                         folderCount = { n ->
-                            pluralStringResource(R.plurals.media_folder_tracks, n, n)
+                            resources.getQuantityString(R.plurals.media_folder_tracks, n, n)
                         },
                     ),
                     onOpen = { index -> media.open(index, host, onPlay) },
