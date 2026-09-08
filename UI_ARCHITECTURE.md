@@ -808,9 +808,17 @@ a state needs motion to be legible, the state is designed wrong.
 
 ### Theme
 
-Dark by default and designed for it. A light theme is a token swap, not a redesign.
+Dark by default and designed for it. A second ground is a token swap, not a redesign.
 Themes are per-platform-aware: on OLED televisions the darkest surface is true
 black, on desktops it is not.
+
+**There are two grounds and both of them are dark.** Deep is the near-black void every
+drawing in this project was made against; Slate is the same product on a page lifted
+five L* off it, for a lit room. A light theme was built, measured clean and shipped,
+and on a device it cost the product the thing it is for — a picture reads as a picture
+when the room around it is darker than the picture is, which is also why no player
+ships one. So the second ground answers "which darkness", not "dark or light", and a
+proposal to add a pale page is a proposal to change this paragraph first.
 
 ---
 

@@ -39,9 +39,9 @@
 
    The one derived thing that must move with the ground is the disc: a hue at
    34% over near-black reads, and the same 34% over a mid ground puts the azure
-   glyph at 2.95:1 and the violet at 2.57:1 inside their own discs. So the
+   glyph at 2.92:1 and the violet at 2.59:1 inside their own discs. So the
    slates draw the disc at 24% and pull the glyph 16% toward white, which
-   measures 4.21 / 3.72 / 5.23 / 5.28 -- all past the 3:1 a glyph owes.
+   measures 4.17 / 3.71 / 5.18 / 5.28 -- all past the 3:1 a glyph owes.
    ========================================================================= */
 @font-face{font-family:"Castivio Sans";font-weight:400;src:url("../../core/design/src/main/res/font/inter_regular.ttf") format("truetype")}
 @font-face{font-family:"Castivio Sans";font-weight:500;src:url("../../core/design/src/main/res/font/inter_medium.ttf") format("truetype")}
@@ -108,9 +108,13 @@
 .g-s235{
   --sky0:#111327; --sky1:#13152D; --sky2:#161933; --sky3:#1B1F3F;
   --glow-warm:.28; --glow-cool:.16; --glow-third:.12;
-  --card-hi:#262845; --card-lo:#22243D;
+  /* The shipped pair, spread to the void's own 4.56 L* about the same mean the
+     flat #242642 had: these two are a card's sheen AND focused-against-idle, and
+     at the 2.1 they were first drawn at the second job stopped working. */
+  --card-hi:#292B49; --card-lo:#20223A;
   --card-edge:rgba(172,180,214,.20);
-  --rec-hi:#33325F; --rec-lo:#28294A;
+  /* Flat, because `featuredFill` is one colour and the card takes `SolidColor`. */
+  --rec-hi:#2E2D55; --rec-lo:#2E2D55;
   --disc-top:24%; --disc-foot:9%; --disc-ink:16%;
   --mesh-a:.34; --mesh-b:.20;
 }
@@ -418,8 +422,8 @@ var GROUNDS = [
     '(‏L* 6.98 ← 16.78، ارتفاع 9.81).<br>' +
     'الألوان الأربعة والخطوط وكل مقاس في هذه الصفحة متطابقة في الإطارات الثلاثة. ' +
     'الشيء الوحيد المشتق الذي يتحرك مع الأرضية هو القرص: 34% على الأسود، و24% ' +
-    'مع سحب الأيقونة 16% نحو الأبيض على السليت — وإلا نزل الأزرق إلى 2.95:1 ' +
-    'والبنفسجي إلى 2.57:1 داخل قرصيهما.';
+    'مع سحب الأيقونة 16% نحو الأبيض على السليت — وإلا نزل الأزرق إلى 2.92:1 ' +
+    'والبنفسجي إلى 2.59:1 داخل قرصيهما.';
   out.appendChild(foot);
 
   /* Measured, not reasoned: if a card overflows here it overflows on a device. */

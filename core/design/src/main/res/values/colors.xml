@@ -18,6 +18,14 @@
       It is now `Palette.Deep`, the first stop of the backdrop's own gradient, so
       the frame before the aurora is the colour the aurora starts from.
 
+      One colour for both grounds, because a window has no theme yet at the moment
+      it is filled. That was a real cost while the second ground was a near-white
+      page — a dark frame ahead of a bright one, for one frame, on every launch in
+      that mode — and it is not one now: the slate's own first stop is `#111327`,
+      three L* from this, which is not a flash anybody can see. Reported as a
+      defect when the light theme shipped; closed by the ground changing rather
+      than by anything here.
+
       Stated twice, unavoidably: a Compose `Color` is a Kotlin value and a theme
       attribute is a resource, and there is no way to share one between them. So
       `check-invariants.sh` compares the two and fails if they drift, which is

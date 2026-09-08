@@ -509,9 +509,16 @@ fun CastivioBackChip(
  *
  * ## The glyph names the destination, not the state
  *
- * A sun on the dark ground and a moon on the light one, because a control is
- * labelled by what pressing it does. A moon meaning "you are in the dark" is the
- * control every reader has to press once to discover what it meant.
+ * A sun on the deep ground and a moon on the other, because a control is labelled by
+ * what pressing it does. A moon meaning "you are in the dark" is the control every
+ * reader has to press once to discover what it meant.
+ *
+ * Both grounds are dark since the second one stopped being a light theme, so the pair
+ * now reads as *lighter* and *darker* rather than as day and night — which is what the
+ * two grounds actually are, one step apart on the same ramp. The spoken labels say so
+ * in as many words; the glyphs are the same two, because a sun and a moon are the pair
+ * every reader already knows for that direction and inventing a third icon to be
+ * literal about five L* would cost more legibility than it buys.
  *
  * The same two boxes as [CastivioBackChip], for the same reason: the pill is what
  * the drawing states and the interaction box is what a thumb presses and a remote
@@ -577,8 +584,8 @@ fun CastivioThemeSwitchChip(
     chip: Dp,
     touchTarget: Dp,
     fontSize: Dp,
-    toLight: String,
-    toDark: String,
+    toLighter: String,
+    toDarker: String,
     modifier: Modifier = Modifier,
 ) {
     val switch = LocalThemeSwitch.current ?: return
@@ -587,7 +594,7 @@ fun CastivioThemeSwitchChip(
         chip = chip,
         touchTarget = touchTarget,
         fontSize = fontSize,
-        label = if (switch.isDark) toLight else toDark,
+        label = if (switch.isDark) toLighter else toDarker,
         onClick = switch::toggle,
         modifier = modifier,
     )

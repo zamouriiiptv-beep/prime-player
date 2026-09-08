@@ -11,7 +11,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -55,21 +54,21 @@ import javax.inject.Inject
 class MainActivity : ComponentActivity() {
 
     /**
-     * Transparent bars, with the icons told which ground they are on.
+     * Transparent bars with light icons, on both grounds.
      *
-     * `Color.TRANSPARENT` for both scrims in either mode: on API 29 and up the bars are
-     * genuinely transparent and the backdrop runs under them, which is the point of
-     * going edge to edge. What changes with the theme is only whether the platform
-     * draws its icons light or dark, and the bare `enableEdgeToEdge()` gets that from
-     * the *system* theme -- which is not Castivio's, and is exactly how a real-device
+     * `Color.TRANSPARENT` for both scrims: on API 29 and up the bars are genuinely
+     * transparent and the backdrop runs under them, which is the point of going edge
+     * to edge. The bare `enableEdgeToEdge()` would take the icon polarity from the
+     * *system* theme, which is not Castivio's, and that is exactly how a real-device
      * review found a white strip down the side of a landscape screen.
+     *
+     * No branch on the ground any more. It had one while the second ground was a
+     * near-white page and a dark clock was the only readable one; both grounds are
+     * dark now, so a light clock is right on both and a branch would only be a way
+     * for one of them to get it wrong.
      */
-    private fun applyBarStyle(dark: Boolean) {
-        val style = if (dark) {
-            SystemBarStyle.dark(Color.TRANSPARENT)
-        } else {
-            SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
-        }
+    private fun applyBarStyle() {
+        val style = SystemBarStyle.dark(Color.TRANSPARENT)
         enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
     }
 
@@ -142,7 +141,7 @@ class MainActivity : ComponentActivity() {
         // them, and that is `safeDrawing` on the screens themselves -- see
         // `ActivationSurface`. Hiding system UI and letting content be obscured
         // by it are different things, and only one of them is wanted here.
-        applyBarStyle(themeStore.isDark())
+        applyBarStyle()
 
         // Measure once, then let the design system do less on a weak box.
         val performance = AndroidDeviceCapabilities(this).toPerformanceProfile()
@@ -157,14 +156,6 @@ class MainActivity : ComponentActivity() {
             // frame keeps the switch free of I/O: one boolean written on a press, and
             // nothing on the composition's path touches the disc at all.
             var dark by remember { mutableStateOf(themeStore.isDark()) }
-
-            // The system bars carry no colour of their own -- they are transparent and
-            // the gradient runs under them -- but the platform still has to be told
-            // which way the *icons* go, and that is the one thing about them that is
-            // not the same in both grounds. Re-applied on the switch rather than only
-            // at startup, or a user who turns the lights on keeps a white clock on a
-            // pale page.
-            LaunchedEffect(dark) { applyBarStyle(dark) }
 
             // One object for the whole tree, so a header anywhere can offer the
             // choice without six screens carrying a boolean that has nothing to do

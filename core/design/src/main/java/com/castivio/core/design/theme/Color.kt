@@ -101,60 +101,86 @@ object Palette {
     val EdgeQuiet = Color(0x33A0A3D7)
     val EdgeAccent = Color(0x669E74FF)
 
+    /* -------------------------------------------------- the second ground: slate
+     *
+     * **Not a light theme, and that is the whole point of it.**
+     *
+     * The second ground was one -- a near-white page with dark ink, measured and AA
+     * clean -- and on a device it cost the product the thing it exists for. A picture
+     * reads as a picture when the room around it is darker than the picture is; a page
+     * brighter than its own content is a document. It is also why no player ships a
+     * light mode: measured off three of them, Hot Player stands on #0F172A and
+     * TiviMate on #121619.
+     *
+     * So the second ground is a *second darkness*. And measuring those players said
+     * something sharper than "go dark again". In L* -- perceptual lightness, which is
+     * the scale this decision is actually about -- the void is 2.51 and its card 6.69,
+     * a lift of 4.2. Hot Player is 7.96 -> 16.39 and TiviMate 6.98 -> 16.78, lifts of
+     * 8.4 and 9.8. Their ground sits three times higher on the ramp *and* their cards
+     * stand twice as far off it. What reads as solid there is a card that is an object
+     * rather than a shade of the page, and that is what this ground buys.
+     *
+     * Their hue does not come with it. Indigo at 235 degrees rather than Hot Player's
+     * 222 or the void's own 247: far enough that a viewer sees the ground change,
+     * still on the blue-violet axis the whole product is built on. Castivio in a lit
+     * room, not Hot Player.
+     *
+     * The accents are untouched, and on this ground that is not even a decision --
+     * it is dark, so azure, violet, amber, aqua and ember read here exactly as they
+     * read on the void. Which is why the four card hues below are *the same entries*
+     * rather than a second set: the pale ground needed its own steps, this one does
+     * not, and a duplicate that happens to hold the same value is a duplicate that
+     * will not hold it for long. */
+
+    /** The page: three stops, 7.81 L*, deliberately shallower than the void's ramp. */
+    val Steel = Color(0xFF13152D)
+    val SteelHigh = Color(0xFF111327)
+    val SteelLow = Color(0xFF1B1F3F)
+
+    /**
+     * A card, and it is an object rather than a film.
+     *
+     * The void's card is white at a few per cent over near-black -- a shade of the
+     * ground, which is exactly the 4.2 L* lift that made this product look hollow
+     * beside the references. Here a card takes its own value, 8.5 L* above the page,
+     * so it is a fill and not an alpha.
+     *
+     * Three entries because the pair does two jobs, and the second one nearly went
+     * wrong. [PanelHigh] and [PanelLow] are a card's sheen -- the top and bottom of
+     * `glassFillBrush` -- and they are *also* what a focused row is filled with against
+     * an unfocused one. On the void that pair is white at 8% and 4%, 4.33 L* apart, so
+     * both jobs work. Drawn as the flat card the mockup showed, they came out 2.1 apart
+     * and the second job quietly stopped: a selected chip and an idle one differed by
+     * an amount nobody can see.
+     *
+     * So they are spread to 4.56 -- the void's own separation -- about the mean the
+     * mockup was approved at. [Panel] is that mean, and it is what `backgroundElevated`
+     * takes: the card looks like the picture that was signed off, and focus gets the
+     * step it needs.
+     */
+    val Panel = Color(0xFF242642)
+    val PanelHigh = Color(0xFF292B49)
+    val PanelLow = Color(0xFF20223A)
+
+    /** The card marked as the default choice: the same panel, carrying the violet. */
+    val PanelChosen = Color(0xFF2E2D55)
+
+    /**
+     * A field: a pane sunk into the card, drawn the way the void's [PaneHigh] is.
+     *
+     * Below the panel rather than above it, because on a ground where a card is
+     * already a lifted solid, a field lit from the same direction as the card reads
+     * as a second card sitting on the first.
+     */
+    val PaneSteelHigh = Color(0xFF1B1D38)
+    val PaneSteelLow = Color(0xFF16182F)
+
+    /** Edges on this ground: the void's idea, one step firmer, because the ground is. */
+    val EdgeSteel = Color(0x33ACB4D6)
+    val EdgeSteelStrong = Color(0x4DACB4D6)
+    val EdgeSteelSoft = Color(0x1AACB4D6)
+
     // -- Status -------------------------------------------------------------
-    /* ------------------------------------------------------------- the light side
-     *
-     * The same identity in daylight, not a second identity. Every one of these is the
-     * dark ground's own hue carried up into the top of the ramp rather than a neutral
-     * grey: the page still runs violet at one corner and azure at the other, because
-     * that diagonal is what Castivio looks like and it does not belong to the dark.
-     *
-     * The accents are untouched. Azure50, Violet50, Amber, Aqua and Ember are the brand
-     * and they read on both grounds; re-picking them for light would be two brands. */
-
-    /** The page, and the diagonal it runs: violet at one corner, azure at the other. */
-    val Cloud = Color(0xFFF6F4FC)
-    val CloudHigh = Color(0xFFFBFAFE)
-    val CloudLow = Color(0xFFEDEAF8)
-
-    /**
-     * A surface, and it is a surface rather than a film.
-     *
-     * The dark theme's glass is white at four per cent over near-black, and it
-     * separates. The same recipe inverted -- black at four per cent over near-white --
-     * does not, and that is precisely why the first light attempt came out washed:
-     * the cards were there and could not be seen. So a card on this ground takes its
-     * own value and a hairline, which is what a surface is.
-     */
-    val Surface = Color(0xFFF1EFF9)
-    val Paper = Color(0xFFFFFFFF)
-
-    /** The three inks, at 16.4:1, 6.0:1 and 4.8:1 on [Cloud]. */
-    val Night = Color(0xFF17152B)
-    val Dusk = Color(0xFF5F5A72)
-    val Ash = Color(0xFF6E6885)
-
-    /**
-     * The identity in daylight: the same four hues, further down their own ramps.
-     *
-     * Not different colours -- violet is still violet -- but the step that *reads*. A
-     * hue picked to glow on near-black is a pastel on near-white, which is the second
-     * thing the first attempt got wrong. Each carries an ink as well, because an icon
-     * drawn in its disc's own hue on a pale tint of that hue is invisible.
-     */
-    val VioletLit = Color(0xFF8B5CF6);  val VioletInk = Color(0xFF6D28D9)
-    val AzureLit = Color(0xFF4F8FEA);   val AzureInk = Color(0xFF1D63C4)
-    val GreenLit = Color(0xFF35B982);   val GreenInk = Color(0xFF0F7050)
-    val AmberLit = Color(0xFFE5A21A);   val AmberInk = Color(0xFF8F6205)
-
-    /** Edges on a light ground: visible, and soft. */
-    val EdgeDay = Color(0xFFC8C3D8)
-    val EdgeDayStrong = Color(0xFFB3ACCB)
-
-    /** A card's ground and its lift, as fills rather than as films. */
-    val SurfaceHigh = Color(0xF2F4F2FB)
-    val SurfaceLow = Color(0xF2ECEAF6)
-
     val Success = Color(0xFF3DD68C)
     val Warning = Amber
     val Danger = Color(0xFFFF5A5A)
@@ -169,13 +195,18 @@ class CastivioColors(
     /**
      * Which of the two grounds this is.
      *
-     * A flag rather than two subclasses, and it is read in exactly one place: the
-     * derived brushes below, which are the only tokens whose *recipe* changes rather
-     * than their values. No screen reads it, and none should -- a screen that asks
-     * whether it is light is a screen with two designs in it, which is the thing this
-     * file exists to prevent.
+     * A flag rather than two subclasses, and it is read in exactly two places: the
+     * disc's glyph and the field pane, which are the only tokens whose *recipe*
+     * changes rather than their values. No screen reads it, and none should -- a
+     * screen that asks which ground it is on is a screen with two designs in it,
+     * which is the thing this file exists to prevent.
+     *
+     * Named for the ground it marks rather than `isLight`, because there is no light
+     * ground any more: both are dark and the question is which darkness. A boolean
+     * that still said `isLight` while holding a #13152D page is the first step of the
+     * decay this file's whole comment budget is spent preventing.
      */
-    val isLight: Boolean,
+    val isSlate: Boolean,
 
     // Backgrounds
     val background: Color,
@@ -360,9 +391,18 @@ class CastivioColors(
 
     fun discBorder(hue: Color): Color = hue.copy(alpha = discEdge)
 
-    /** The glyph: the hue itself on dark, and the hue pulled toward the ink on light. */
+    /**
+     * The glyph: the hue itself on the void, and the hue lifted toward the ink here.
+     *
+     * The disc is a tint of its hue over the page, so how far the glyph has to move
+     * off it depends entirely on how dark that page is. Over the void a disc at 34%
+     * is dark enough that the undiluted hue reads. Over this ground the same picture
+     * puts azure at 2.92:1 and violet at 2.59:1 inside their own discs -- so the disc
+     * drops to 24% and the glyph comes 16% toward the ink, which measures 4.17, 3.71,
+     * 5.18 and 5.28 on a card, all past the 3:1 a graphical object owes.
+     */
     fun discGlyph(hue: Color): Color =
-        if (isLight) lerp(hue, onBackground, discInk) else hue
+        if (isSlate) lerp(hue, onBackground, discInk) else hue
 
     /** The Castivio signature gradient — background washes and hero fills. */
     val auroraBrush: Brush
@@ -403,8 +443,8 @@ class CastivioColors(
      * a highlight on a solid rather than as a border drawn round a hole.
      */
     val paneBrush: Brush
-        get() = if (isLight) {
-            Brush.verticalGradient(listOf(Palette.Paper, Palette.Cloud))
+        get() = if (isSlate) {
+            Brush.verticalGradient(listOf(Palette.PaneSteelHigh, Palette.PaneSteelLow))
         } else {
             Brush.verticalGradient(listOf(Palette.PaneHigh, Palette.PaneLow))
         }
@@ -418,13 +458,14 @@ class CastivioColors(
      * brand and the control keeps the glass. A step apart, and still nowhere near
      * the filled button — a chip that competes with a call to action is a chip
      * that has been given the wrong job.
+     *
+     * One recipe for both grounds, unlike [paneBrush]. A translucent violet over a
+     * dark page is the same picture on either of them; the branch that used to be
+     * here answered a near-white page that no longer exists, and a branch whose two
+     * arms would now hold the same intent is a branch waiting to drift apart.
      */
     val trialChipBrush: Brush
-        get() = if (isLight) {
-            Brush.verticalGradient(listOf(Color(0x2E6A4BD8), Color(0x1F4C9BFF)))
-        } else {
-            Brush.verticalGradient(listOf(Color(0x47564AD6), Color(0x38281E6E)))
-        }
+        get() = Brush.verticalGradient(listOf(Color(0x47564AD6), Color(0x38281E6E)))
 
     /**
      * The one lit container on the identity screen.
@@ -432,20 +473,17 @@ class CastivioColors(
      * Diagonal rather than vertical, and violet at the corner the light comes
      * from, so the panel reads as catching the ground's own bloom instead of
      * carrying a colour of its own.
+     *
+     * One recipe on both grounds, for [trialChipBrush]'s reason: this is a violet
+     * wash over a dark page, and both pages are dark.
      */
     val codePanelBrush: Brush
-        get() = if (isLight) {
-            Brush.linearGradient(
-                listOf(Color(0x2E6A4BD8), Color(0x1F3D63F5), Color(0x14171233)),
-            )
-        } else {
-            Brush.linearGradient(
-                listOf(Color(0x8F2E1A74), Color(0x94100B2E), Color(0x9909071C)),
-            )
-        }
+        get() = Brush.linearGradient(
+            listOf(Color(0x8F2E1A74), Color(0x94100B2E), Color(0x9909071C)),
+        )
 
     /** The disc behind an information glyph: a tint, not a button. */
-    val infoMarkFill: Color get() = Palette.Violet40.copy(alpha = if (isLight) 0.14f else 0.20f)
+    val infoMarkFill: Color get() = Palette.Violet40.copy(alpha = 0.20f)
 
     /** Vertical sheen that gives a glass panel its lit top edge. */
     val glassFillBrush: Brush
@@ -531,7 +569,7 @@ class CastivioColors(
  * can answer them differently. Dark is byte-identical to what it was.
  */
 fun castivioDarkColors() = CastivioColors(
-    isLight = false,
+    isSlate = false,
     background = Palette.Void,
     backgroundElevated = Palette.Deep,
     scrim = Color(0xB3000000),
@@ -605,57 +643,68 @@ fun castivioDarkColors() = CastivioColors(
 )
 
 /**
- * The light theme: the same product in daylight.
+ * The second ground: the same product in a lit room.
  *
- * Built by answering each role again rather than by inverting the dark set, because
- * inversion produces a photograph negative and not a design — the brand hues would come
- * out as their complements, and Castivio would be orange.
+ * Answering each role again rather than inverting the void, for the reason the first
+ * attempt proved by failing: inversion is a photograph negative and not a design. That
+ * attempt inverted honestly and produced a near-white page which measured clean and,
+ * on a device, cost the product its whole reason for existing — a picture reads as a
+ * picture when the room is darker than the picture is.
  *
- * So the accents are **identical**: azure is still azure, violet still violet, amber,
- * aqua and ember unchanged. What moves is the ground and the ink on it, and the glass,
- * which flips from a light film over dark to a dark film over light. The backdrop keeps
- * its diagonal and its two glows in the same corners at the same radii — only the stops
- * are the top of the ramp instead of the bottom, so the page still runs violet at one
- * corner and azure at the other. It reads as the same screen with the lights on, which
- * is the whole requirement.
+ * So this is a *second darkness*, built at the band the reference players actually
+ * occupy: 7.81 L* for the page against the void's 2.51, and a card 8.5 L* above it
+ * against the void's 4.2. See [Palette.Steel] for the measurements and where they came
+ * from.
+ *
+ * What that buys is that most of this file is now the same on both grounds. The three
+ * inks are white, silver and quartz here exactly as they are on the void, because they
+ * read on a dark page and this is one; the accents are identical; the four card hues
+ * are the *same entries*, not a second set picked for a different lightness. What
+ * actually moves is four things: the page's three stops, the card (a fill rather than
+ * a film), the glow strengths, and the disc — and every one of those moves because the
+ * ground is lifted, not because the identity changed.
  */
-fun castivioLightColors() = CastivioColors(
-    isLight = true,
-    background = Palette.Cloud,
-    backgroundElevated = Palette.Paper,
-    // Cooler and lighter than the dark scrim: pure black at seventy per cent over a
-    // bright page dims it by turning it grey, which is not the same as dimming it.
-    scrim = Color(0x99171233),
+fun castivioSlateColors() = CastivioColors(
+    isSlate = true,
+    background = Palette.Steel,
+    // A card here is a solid with its own value, so "elevated" means the panel and not
+    // a second gradient stop of the page.
+    backgroundElevated = Palette.Panel,
+    scrim = Color(0xB3000000),
 
-    onBackground = Palette.Night,
-    onBackgroundVariant = Palette.Dusk,
-    onBackgroundMuted = Palette.Ash,
-    description = Palette.Dusk,
+    // The void's own three, unchanged. On this ground they measure 17.9:1, 11.0:1 and
+    // 12.2:1 against the page and 14.7, 9.0 and 10.0 against a card — well past AA on
+    // both surfaces, which is what a second dark ground gets for free and a pale one
+    // had to buy with three new entries.
+    onBackground = Palette.White,
+    onBackgroundVariant = Palette.Silver,
+    onBackgroundMuted = Palette.Muted,
+    description = Palette.Quartz,
 
-    primary = Palette.AzureLit,
+    primary = Palette.Azure50,
     onPrimary = Palette.White,
-    primaryContainer = Color(0xFFE6EEFC),
-    secondary = Palette.VioletLit,
+    primaryContainer = Palette.Azure10,
+    secondary = Palette.Violet50,
     onSecondary = Palette.White,
-    secondaryContainer = Color(0xFFEFEAFB),
+    secondaryContainer = Palette.Violet10,
     accent = Palette.Ember,
 
-    // A surface, not a film. `glassFillBrush` reads these as its two stops, so a card
-    // comes out at its own value with a lit upper edge rather than at four per cent of
-    // an ink nobody can see.
-    glassFill = Palette.SurfaceLow,
-    glassFillStrong = Palette.SurfaceHigh,
-    glassBorder = Palette.EdgeDay,
-    glassBorderSoft = Color(0x66C8C3D8),
+    // The one role that genuinely changes shape. `glassFillBrush` reads these as its
+    // two stops, and on the void they are white at 4% and 8% — a film. Here they are
+    // the panel's own two values, so a card comes out as a solid standing 8.5 L* off
+    // the page instead of as a slightly paler patch of it. That difference is the
+    // entire finding this ground was built from.
+    glassFill = Palette.PanelLow,
+    glassFillStrong = Palette.PanelHigh,
+    glassBorder = Palette.EdgeSteel,
+    glassBorderSoft = Palette.EdgeSteelSoft,
 
-    // Azure40 rather than the lighter step: a ring has to separate from a pale ground,
-    // and the step that reads on the void disappears on the cloud.
-    focusRing = Palette.Azure40,
-    focusGlow = Palette.Azure40.copy(alpha = 0.30f),
-    divider = Color(0x1F171233),
-    selectedFill = Palette.VioletLit.copy(alpha = 0.10f),
-    selectedBorder = Palette.VioletLit.copy(alpha = 0.42f),
-    selectedGlow = Palette.VioletInk.copy(alpha = 0.22f),
+    focusRing = Palette.Azure60,
+    focusGlow = Palette.Azure40.copy(alpha = 0.45f),
+    divider = Color(0x1FFFFFFF),
+    selectedFill = Palette.Violet50.copy(alpha = 0.16f),
+    selectedBorder = Palette.Violet50.copy(alpha = 0.34f),
+    selectedGlow = Palette.Violet50.copy(alpha = 0.38f),
     live = Palette.Aqua,
 
     success = Palette.Success,
@@ -672,39 +721,42 @@ fun castivioLightColors() = CastivioColors(
         Palette.Violet50,
     ),
 
-    backdropStops = listOf(Palette.CloudHigh, Palette.Cloud, Palette.CloudLow),
-    backdropWarmGlow = Palette.VioletLit,
-    backdropCoolGlow = Palette.AzureLit,
-    backdropMote = Palette.VioletLit,
+    backdropStops = listOf(Palette.SteelHigh, Palette.Steel, Palette.SteelLow),
+    backdropWarmGlow = Palette.Violet40,
+    backdropCoolGlow = Palette.Azure40,
+    backdropMote = Palette.Azure80,
 
-    edgeQuiet = Palette.EdgeDay,
-    edgeCard = Palette.EdgeDayStrong,
-    edgeAccent = Palette.VioletLit.copy(alpha = 0.42f),
-    onBackgroundStrong = Palette.Night,
-    // White, not a lavender: the default card is the one surface that has to lift off
-    // a page which is itself lavender, and a tint of the ground cannot do that.
-    featuredFill = Palette.Paper,
-    rowEdgeFade = Palette.Cloud,
+    edgeQuiet = Palette.EdgeSteel,
+    edgeCard = Palette.EdgeSteelStrong,
+    edgeAccent = Palette.EdgeAccent,
+    onBackgroundStrong = Palette.White,
+    // A violet panel rather than the void's Violet10, which is *darker* than this page
+    // and would sink the default card instead of lifting it.
+    featuredFill = Palette.PanelChosen,
+    rowEdgeFade = Palette.Steel,
 
-    hueAzure = Palette.AzureLit,
-    hueViolet = Palette.VioletLit,
-    hueGreen = Palette.GreenLit,
-    hueAmber = Palette.AmberLit,
+    // The same four entries the void names. Not a copy of its values — the entries
+    // themselves, so there is exactly one answer in the product to "what colour is the
+    // M3U card", and it cannot come to depend on which ground is showing.
+    hueAzure = Palette.Azure50,
+    hueViolet = Palette.Violet50,
+    hueGreen = Palette.Success,
+    hueAmber = Palette.Amber,
 
-    // Flat and firm rather than a fall-off: on a light ground the dark theme's radial
-    // ramp reads as a smudge, and a level tint inside a definite edge reads as a disc.
-    discTop = 0.16f,
-    discFoot = 0.13f,
-    discEdge = 0.42f,
-    // The glyph, pulled a little over a third of the way toward the ink -- measured at
-    // 5.4, 4.5, 4.1 and 3.9 to one against its own disc, all past the 3:1 that applies
-    // to a glyph rather than to a word.
-    discInk = 0.38f,
+    // A disc is a tint of its hue over the page, so a lifted page needs a lighter tint
+    // for the same picture — and a glyph that no longer disappears into it. See
+    // [CastivioColors.discGlyph] for the four measurements.
+    discTop = 0.24f,
+    discFoot = 0.09f,
+    discEdge = 0.46f,
+    discInk = 0.16f,
 
-    // A tint of the page rather than a stain on it. The dark theme's own numbers here
-    // are what made the first light attempt look saturated.
-    backdropGlowWarm = 0.13f,
-    backdropGlowCool = 0.11f,
+    // Softer than the void's, because the same two circles over a page five L* higher
+    // read as a wash rather than as a bloom. Both are still the same hue in the same
+    // corner at the same radius: strength is the only thing a ground is allowed to
+    // change about the aurora, or it becomes a second layout.
+    backdropGlowWarm = 0.14f,
+    backdropGlowCool = 0.15f,
 )
 
 /**

@@ -7,7 +7,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Whether Castivio is dark or light, between launches.
+ * Which of the two grounds Castivio stands on, between launches.
  *
  * ## Why `SharedPreferences`, next to [LanguageStore]
  *
@@ -32,13 +32,18 @@ class ThemeStore @Inject constructor(
         get() = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
     /**
-     * The stored choice, or dark.
+     * The stored choice, or the void.
      *
-     * **Dark is not a fallback here, it is the product.** Castivio is a dark
-     * application that offers a light mode, not an application that follows the
-     * system: a user who has never chosen gets the ground every drawing was made
-     * against, on a television as on a phone, and does not get switched to a pale
-     * interface at dusk by a setting they made for their mail client.
+     * **The deep ground is not a fallback here, it is the product.** Castivio offers a
+     * second ground; it does not follow the system. A user who has never chosen gets
+     * the ground every drawing was made against, on a television as on a phone, and is
+     * not switched at dusk by a setting they made for their mail client.
+     *
+     * True is the near-black void and false the lifted slate beside it — both dark, so
+     * this is which darkness rather than dark against light. The key on disc is still
+     * `"dark"` and stays that way: renaming it would read as unset on every device that
+     * already has a choice stored, which is a silent reset of a user's preference to
+     * make a string match a comment.
      */
     fun isDark(): Boolean = prefs.getBoolean(KEY, true)
 

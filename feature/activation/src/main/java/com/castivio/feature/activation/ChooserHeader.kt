@@ -128,8 +128,8 @@ internal fun ChooserHeader(
                         chip = m.back,
                         touchTarget = m.frame.touchTarget,
                         fontSize = m.fsBack,
-                        toLight = stringResource(R.string.action_theme_light),
-                        toDark = stringResource(R.string.action_theme_dark),
+                        toLighter = stringResource(R.string.action_theme_lighter),
+                        toDarker = stringResource(R.string.action_theme_darker),
                         modifier = Modifier.testTag(ActivationTags.HEADER_THEME),
                     )
                     CompositionLocalProvider(LocalLayoutDirection provides reading) {

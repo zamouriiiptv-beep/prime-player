@@ -490,8 +490,8 @@ private fun Header(m: Metrics, trialDays: Int?, onOpenLanguage: () -> Unit) {
                         chip = m.chip,
                         touchTarget = m.frame.touchTarget,
                         fontSize = m.fsChip,
-                        toLight = stringResource(R.string.action_theme_light),
-                        toDark = stringResource(R.string.action_theme_dark),
+                        toLighter = stringResource(R.string.action_theme_lighter),
+                        toDarker = stringResource(R.string.action_theme_darker),
                         modifier = Modifier.testTag(ActivationTags.HEADER_THEME),
                     )
                     CompositionLocalProvider(LocalLayoutDirection provides reading) {

@@ -5,7 +5,6 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.core.os.ConfigurationCompat
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.CompositionLocalProvider
@@ -95,12 +94,18 @@ fun CastivioTheme(
      */
     motionLevel: MotionLevel = performance.suggestedMotion,
     /**
-     * Which of the two grounds to stand on.
+     * Which of the two grounds to stand on: the void when true, the slate when false.
      *
-     * Dark by default, and that default is load-bearing rather than a preference:
-     * every screenshot, every drawing and every test in this project was made against
-     * it, so a caller that says nothing gets exactly what shipped. `:app` reads the
-     * user's stored choice and passes it; nothing else does.
+     * The name still says `dark` after the second ground stopped being a light one,
+     * and that is deliberate rather than left over. Both grounds are dark now; what
+     * this asks is whether to stand on *the* dark — the near-black void every drawing
+     * in this project was made against — or on the lifted indigo beside it. Renaming
+     * it would rename the stored preference and the switch and the two strings for a
+     * question whose true half is still true.
+     *
+     * Default true, and that default is load-bearing rather than a preference: a
+     * caller that says nothing gets exactly what shipped. `:app` reads the user's
+     * stored choice and passes it; nothing else does.
      */
     dark: Boolean = true,
     content: @Composable () -> Unit,
@@ -109,40 +114,31 @@ fun CastivioTheme(
     // recomposes off a new `staticCompositionLocalOf` value. No I/O, no resource load,
     // no view model, no navigation: the two palettes are two `CastivioColors` objects
     // and swapping them is the whole of what changing theme costs.
-    val colors = remember(dark) { if (dark) castivioDarkColors() else castivioLightColors() }
+    val colors = remember(dark) { if (dark) castivioDarkColors() else castivioSlateColors() }
     val device = rememberDeviceClass()
 
-    val material = if (dark) {
-        darkColorScheme(
-            primary = colors.primary,
-            onPrimary = colors.onPrimary,
-            primaryContainer = colors.primaryContainer,
-            secondary = colors.secondary,
-            onSecondary = colors.onSecondary,
-            secondaryContainer = colors.secondaryContainer,
-            background = colors.background,
-            onBackground = colors.onBackground,
-            surface = colors.backgroundElevated,
-            onSurface = colors.onBackground,
-            error = colors.danger,
-            outline = colors.divider,
-        )
-    } else {
-        lightColorScheme(
-            primary = colors.primary,
-            onPrimary = colors.onPrimary,
-            primaryContainer = colors.primaryContainer,
-            secondary = colors.secondary,
-            onSecondary = colors.onSecondary,
-            secondaryContainer = colors.secondaryContainer,
-            background = colors.background,
-            onBackground = colors.onBackground,
-            surface = colors.backgroundElevated,
-            onSurface = colors.onBackground,
-            error = colors.danger,
-            outline = colors.divider,
-        )
-    }
+    // `darkColorScheme` on both grounds, and not because one branch was tidier.
+    //
+    // Every value below is handed over explicitly, so the factory's own defaults only
+    // reach the roles Castivio does not name — and those defaults are what separate
+    // the two factories. `lightColorScheme` fills an unnamed surface or container with
+    // a near-white, which was right for the near-white page the second ground used to
+    // be and is a hole punched in a #13152D one. Both grounds are dark now, so both
+    // ask for the dark set.
+    val material = darkColorScheme(
+        primary = colors.primary,
+        onPrimary = colors.onPrimary,
+        primaryContainer = colors.primaryContainer,
+        secondary = colors.secondary,
+        onSecondary = colors.onSecondary,
+        secondaryContainer = colors.secondaryContainer,
+        background = colors.background,
+        onBackground = colors.onBackground,
+        surface = colors.backgroundElevated,
+        onSurface = colors.onBackground,
+        error = colors.danger,
+        outline = colors.divider,
+    )
 
     CompositionLocalProvider(
         LocalCastivioColors provides colors,

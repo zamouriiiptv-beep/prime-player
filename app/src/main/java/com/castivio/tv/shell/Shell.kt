@@ -383,14 +383,16 @@ private fun SettingsScreen(
         // reader meets one pattern rather than a switch here and chips there.
         Text("Appearance", style = CastivioType.titleMedium, color = colors.onBackground)
         Text(
-            "Castivio is a dark product with a light mode, not a product that follows " +
-                "the system. The choice is remembered.",
+            "Two dark grounds, not a dark mode and a light one: a picture reads as a " +
+                "picture when the room is darker than it is. Deep is the near-black the " +
+                "product is drawn on; Slate is lifted, for a lit room. The choice is " +
+                "remembered, and Castivio does not follow the system.",
             style = CastivioType.bodySmall,
             color = colors.onBackgroundMuted,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            CategoryChipPlain(label = "Dark", selected = dark, onClick = { onDark(true) })
-            CategoryChipPlain(label = "Light", selected = !dark, onClick = { onDark(false) })
+            CategoryChipPlain(label = "Deep", selected = dark, onClick = { onDark(true) })
+            CategoryChipPlain(label = "Slate", selected = !dark, onClick = { onDark(false) })
         }
 
         Text("Motion", style = CastivioType.titleMedium, color = colors.onBackground)
