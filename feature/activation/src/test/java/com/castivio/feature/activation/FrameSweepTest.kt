@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import com.castivio.core.design.theme.CastivioFrame
 import com.castivio.core.design.theme.CastivioThemeSwitch
 import com.castivio.core.design.theme.CastivioTheme
