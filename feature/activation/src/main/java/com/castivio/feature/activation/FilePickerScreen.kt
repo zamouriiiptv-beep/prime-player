@@ -47,6 +47,8 @@ internal data class PickerEntry(
     val name: String,
     val detail: String,
     val kind: EntryKind,
+    /** Where a folder is, when the platform says. Null for a file and for the way up. */
+    val path: String? = null,
 ) {
     internal enum class EntryKind { Parent, Folder, File }
 }
@@ -143,6 +145,7 @@ internal fun FilePickerScreen(
                         detail = entry.detail,
                         icon = glyphFor(entry.kind, kind),
                         isPlace = entry.kind != PickerEntry.EntryKind.File,
+                        path = entry.path,
                     ),
                     onClick = { onOpen(index) },
                 )

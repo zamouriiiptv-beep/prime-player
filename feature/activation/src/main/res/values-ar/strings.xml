@@ -117,6 +117,8 @@
     <string name="source_m3u_hint">رابط واحد طويل يُرسل عادةً بالبريد.</string>
     <string name="source_local_hint">دعم جميع الصيغ الشائعة.</string>
     <string name="source_users_hint">إدارة سهلة لجميع اشتراكاتك.</string>
+    <string name="media_video_library_subtitle">تصفّح وشغّل جميع الفيديوهات المحفوظة على جهازك</string>
+    <string name="media_audio_library_subtitle">تصفّح جميع الملفات الصوتية الموجودة على جهازك</string>
     <string name="media_video_folder_title">اختر مجلد الفيديو</string>
     <string name="media_video_folder_subtitle">اختر المجلد الذي تريد تصفح الفيديوهات الموجودة بداخله</string>
     <string name="media_audio_folder_title">اختر مجلد الصوت</string>

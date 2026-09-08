@@ -146,6 +146,8 @@
     <string name="source_m3u_hint">One long link, usually sent by e-mail.</string>
     <string name="source_local_hint">All common formats supported.</string>
     <string name="source_users_hint">Easy management of all your subscriptions.</string>
+    <string name="media_video_library_subtitle">Browse and play every video saved on your device</string>
+    <string name="media_audio_library_subtitle">Browse every audio file on your device</string>
     <!-- The two folder choosers: the top of each picker's tree. -->
     <string name="media_video_folder_title">Choose a video folder</string>
     <string name="media_video_folder_subtitle">Choose the folder whose videos you want to browse</string>

@@ -127,6 +127,9 @@ internal object ActivationTags {
      * footer, and the footer is inside it" is asking the same question of both.
      */
     const val LIBRARY_CONTAINER = "library.container"
+    /** The sentence under a library's name. */
+    const val LIBRARY_SUBTITLE = "library.subtitle"
+
     const val LIBRARY_HEADING = "library.heading"
     const val LIBRARY_GRID = "library.grid"
     const val LIBRARY_LIST = "library.list"

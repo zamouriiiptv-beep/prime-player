@@ -177,7 +177,7 @@ internal fun LocalMediaState.entries(
 }
 
 private fun LocalFolder.asEntry(folderCount: (Int) -> String) =
-    PickerEntry(name, folderCount(count), PickerEntry.EntryKind.Folder)
+    PickerEntry(name, folderCount(count), PickerEntry.EntryKind.Folder, path)
 
 /**
  * What pressing row [index] in a picker means.

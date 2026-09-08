@@ -39,6 +39,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.castivio.core.design.components.InteractiveGlassCard
@@ -94,6 +95,15 @@ internal data class MediaRow(
      */
     val uri: String? = null,
     val albumId: Long? = null,
+    /**
+     * Where a place is, under its name. Null for a file and for the way up.
+     *
+     * Two buckets can share a name on a real device — two applications both writing to
+     * "Audio" — and the path is the only thing that tells the reader which is which.
+     * Absent rather than blank where the platform will not say, so the row is one line
+     * instead of two with a hole in it.
+     */
+    val path: String? = null,
     /**
      * A place rather than a thing.
      *
@@ -277,13 +287,28 @@ internal fun MediaListRow(
                     modifier = Modifier.size(Sizing.iconXl),
                 )
             }
-            Text(
-                text = row.name,
-                style = CastivioType.bodyLarge,
-                color = colors.onBackground,
-                maxLines = 1,
-                modifier = Modifier.weight(1f),
-            )
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = row.name,
+                    style = CastivioType.bodyLarge,
+                    color = colors.onBackground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (row.path != null) {
+                    Text(
+                        text = row.path,
+                        style = castivioBodyStyle(m.fsDetail),
+                        color = castivioDescriptionColor,
+                        maxLines = 1,
+                        // The one string on this screen that is genuinely unbounded --
+                        // a nested path can be any length -- and the one place an
+                        // ellipsis is right: a row that grew to fit it would push every
+                        // other folder off the list.
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
             if (row.detail.isNotEmpty()) {
                 if (row.isPlace) CountPill(m, row.detail) else {
                     Text(

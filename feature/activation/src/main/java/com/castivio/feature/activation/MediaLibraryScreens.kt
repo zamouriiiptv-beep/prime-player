@@ -66,6 +66,8 @@ internal fun VideoLibraryScreen(
         containerTag = ActivationTags.LIBRARY_CONTAINER,
         headingTag = ActivationTags.LIBRARY_HEADING,
         modifier = modifier,
+        subtitle = stringResource(R.string.media_video_library_subtitle),
+        subtitleTag = ActivationTags.LIBRARY_SUBTITLE,
     ) { m ->
         if (videos.isEmpty()) {
             EmptyBand(m, emptyMessage(permission, R.string.media_video_library_empty))
@@ -203,6 +205,8 @@ internal fun AudioLibraryScreen(
         containerTag = ActivationTags.LIBRARY_CONTAINER,
         headingTag = ActivationTags.LIBRARY_HEADING,
         modifier = modifier,
+        subtitle = stringResource(R.string.media_audio_library_subtitle),
+        subtitleTag = ActivationTags.LIBRARY_SUBTITLE,
     ) { m ->
         if (tracks.isEmpty()) {
             EmptyBand(m, emptyMessage(permission, R.string.media_audio_library_empty))

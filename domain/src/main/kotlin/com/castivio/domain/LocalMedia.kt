@@ -110,4 +110,18 @@ data class LocalTrack(
 )
 
 /** A folder that has media in it, and how much. */
-data class LocalFolder(val name: String, val count: Int)
+data class LocalFolder(
+    val name: String,
+    val count: Int,
+    /**
+     * Where the folder is, as the platform reports it, or null where it will not say.
+     *
+     * A bucket's *name* is ambiguous on a real device — two apps both writing to a
+     * folder called "Audio" are two rows a chooser cannot tell apart — and the path is
+     * the only thing that separates them. Nullable because `RELATIVE_PATH` is API 29,
+     * and below that the column that carries it is not reliably populated: a row with
+     * no path is a row drawn with one line instead of two, never a row with a blank
+     * where a fact should be.
+     */
+    val path: String? = null,
+)

@@ -139,21 +139,35 @@ class MediaStoreLibrary @Inject constructor(
             MediaStore.Audio.Media.BUCKET_DISPLAY_NAME
         }
 
+        // Where each bucket lives, alongside how much it holds. `RELATIVE_PATH` is the
+        // column the platform maintains under scoped storage and it is API 29; below
+        // that it is not queried at all rather than guessed at, and the row simply
+        // draws one line. The first path seen for a bucket is kept -- they are the
+        // same folder, so any row of it answers the question.
+        val pathColumn = MediaStore.MediaColumns.RELATIVE_PATH
+            .takeIf { Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q }
+        val projection = listOfNotNull(bucket, pathColumn).toTypedArray()
+
         val counts = linkedMapOf<String, Int>()
+        val paths = linkedMapOf<String, String>()
         runCatching {
-            resolver.query(collection, arrayOf(bucket), null, null, "${MediaStore.MediaColumns.DATE_MODIFIED} DESC")
+            resolver.query(collection, projection, null, null, "${MediaStore.MediaColumns.DATE_MODIFIED} DESC")
                 ?.use { cursor ->
                     var seen = 0
                     while (cursor.moveToNext() && seen < FOLDER_SCAN) {
                         seen++
                         val name = cursor.getStringOrNull(0) ?: continue
                         counts[name] = (counts[name] ?: 0) + 1
+                        if (pathColumn != null && !paths.containsKey(name)) {
+                            cursor.getStringOrNull(1)?.takeIf { it.isNotBlank() }
+                                ?.let { paths[name] = it.trimEnd('/') }
+                        }
                     }
                 }
         }
         counts.entries
             .sortedByDescending { it.value }
-            .map { LocalFolder(name = it.key, count = it.value) }
+            .map { LocalFolder(name = it.key, count = it.value, path = paths[it.key]) }
     }
 
     /* -------------------------------------------------------------------- the read */

@@ -405,6 +405,7 @@ class FrameSweepTest {
             stage = ActivationTags.LIBRARY_CONTAINER,
             heading = ActivationTags.LIBRARY_HEADING,
             back = ActivationTags.LIBRARY_BACK,
+            subtitle = ActivationTags.LIBRARY_SUBTITLE,
         )
     }
 
@@ -415,6 +416,7 @@ class FrameSweepTest {
             stage = ActivationTags.LIBRARY_CONTAINER,
             heading = ActivationTags.LIBRARY_HEADING,
             back = ActivationTags.LIBRARY_BACK,
+            subtitle = ActivationTags.LIBRARY_SUBTITLE,
         )
     }
 
@@ -809,7 +811,12 @@ class FrameSweepTest {
         )
 
         val SWEEP_ENTRIES = listOf(
-            PickerEntry(name = "Movies", detail = "12", kind = PickerEntry.EntryKind.Folder),
+            PickerEntry(
+                name = "Movies",
+                detail = "12 videos",
+                kind = PickerEntry.EntryKind.Folder,
+                path = "Movies/Recorded/2026",
+            ),
             PickerEntry(
                 name = "Sintel.2010.1080p.mkv",
                 detail = "14:48",
