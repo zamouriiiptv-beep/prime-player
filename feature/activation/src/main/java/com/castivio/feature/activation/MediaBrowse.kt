@@ -351,7 +351,7 @@ private fun CountPill(m: SourceMetrics, text: String) {
         modifier = Modifier
             .clip(shape)
             .background(CastivioTheme.colors.glassFill)
-            .border(BorderStroke(1.dp, Palette.EdgeQuiet), shape)
+            .border(BorderStroke(1.dp, CastivioTheme.colors.edgeQuiet), shape)
             .padding(horizontal = m.fsBadge * PILL_PAD, vertical = m.fsBadge * PILL_PAD_Y),
     )
 }

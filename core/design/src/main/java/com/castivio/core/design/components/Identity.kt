@@ -299,7 +299,7 @@ private fun IdentityCard(
             .shadow(CARD_LIFT, shape)
             .clip(shape)
             .background(colors.paneBrush)
-            .border(BorderStroke(1.dp, Palette.EdgeCard), shape)
+            .border(BorderStroke(1.dp, CastivioTheme.colors.edgeCard), shape)
             .padding(horizontal = metrics.startPadding),
         horizontalArrangement = Arrangement.spacedBy(metrics.gap),
         verticalAlignment = Alignment.CenterVertically,
@@ -312,7 +312,7 @@ private fun IdentityCard(
             // step and there is nothing above it. What says which of the two
             // matters was never six percent of a near-white — it is 30dp of mono
             // against 15dp of sans, and that is untouched.
-            color = Palette.White,
+            color = CastivioTheme.colors.onBackgroundStrong,
             // Two lines, and only ever reached by a translation longer than the
             // column. Wrapping a field name is recoverable; widening the column
             // pushes the address out of the card, which is not.
@@ -330,7 +330,7 @@ private fun IdentityCard(
         CastivioFittedText(
             text = ltrIsolate(value),
             style = valueStyle,
-            color = Palette.White,
+            color = CastivioTheme.colors.onBackgroundStrong,
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .weight(1f)

@@ -18,7 +18,6 @@ import com.castivio.core.design.components.CastivioLockup
 import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioTitleStyle
 import com.castivio.core.design.theme.CastivioTheme
-import com.castivio.core.design.theme.Palette
 
 /**
  * The header every step of this flow wears: mark, name, question, and the way back.
@@ -102,7 +101,7 @@ internal fun ChooserHeader(
             CastivioHeaderTitle(
                 text = title,
                 style = castivioTitleStyle(m.fsTitle),
-                color = Palette.White,
+                color = CastivioTheme.colors.onBackgroundStrong,
                 modifier = Modifier.testTag(headingTag),
             )
         },

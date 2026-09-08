@@ -357,7 +357,7 @@ private fun RowScope.SourceCard(
                 else "$title. $detail $hint"
             },
         shape = RoundedCornerShape(m.radius),
-        fill = if (recommended) SolidColor(Palette.Violet10) else colors.glassFillBrush,
+        fill = if (recommended) SolidColor(colors.featuredFill) else colors.glassFillBrush,
         restBorder = if (recommended) RECOMMENDED_EDGE else null,
         restGlow = if (recommended) RECOMMENDED_GLOW else null,
     ) {
@@ -388,7 +388,7 @@ private fun RowScope.SourceCard(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.sp,
                         ),
-                        color = Palette.White,
+                        color = colors.onBackgroundStrong,
                         modifier = Modifier.weight(1f, fill = false),
                     )
                     if (recommended) Badge(m, badge)

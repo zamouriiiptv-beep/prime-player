@@ -11,6 +11,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -22,6 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import com.castivio.core.design.components.CastivioIntro
+import com.castivio.data.preferences.ThemeStore
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.platform.AndroidDeviceCapabilities
 import com.castivio.tv.gate.SplashGate
@@ -32,6 +34,7 @@ import com.castivio.tv.locale.LocaleController
 import com.castivio.tv.root.ExitGuard
 import com.castivio.tv.shell.ShellScreen
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 /**
  * Hosts the gate, which decides everything else.
@@ -48,6 +51,36 @@ import dagger.hilt.android.AndroidEntryPoint
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    /**
+     * Transparent bars, with the icons told which ground they are on.
+     *
+     * `Color.TRANSPARENT` for both scrims in either mode: on API 29 and up the bars are
+     * genuinely transparent and the backdrop runs under them, which is the point of
+     * going edge to edge. What changes with the theme is only whether the platform
+     * draws its icons light or dark, and the bare `enableEdgeToEdge()` gets that from
+     * the *system* theme -- which is not Castivio's, and is exactly how a real-device
+     * review found a white strip down the side of a landscape screen.
+     */
+    private fun applyBarStyle(dark: Boolean) {
+        val style = if (dark) {
+            SystemBarStyle.dark(Color.TRANSPARENT)
+        } else {
+            SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+        }
+        enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+    }
+
+    /**
+     * Where the dark-or-light choice lives between launches.
+     *
+     * Read synchronously, once, before the first composition -- see [ThemeStore] for
+     * why that is the requirement rather than a convenience. Injected rather than
+     * constructed so the single instance is the same one the rest of the process would
+     * see, exactly as the language store is.
+     */
+    @Inject
+    lateinit var themeStore: ThemeStore
 
     /**
      * The language is applied to the `Context` the activity is built on, before it
@@ -107,10 +140,7 @@ class MainActivity : ComponentActivity() {
         // them, and that is `safeDrawing` on the screens themselves -- see
         // `ActivationSurface`. Hiding system UI and letting content be obscured
         // by it are different things, and only one of them is wanted here.
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
-        )
+        applyBarStyle(themeStore.isDark())
 
         // Measure once, then let the design system do less on a weak box.
         val performance = AndroidDeviceCapabilities(this).toPerformanceProfile()
@@ -119,6 +149,20 @@ class MainActivity : ComponentActivity() {
             // The level the device can afford is the starting point; the user changes
             // it live in Settings, which is exactly what this build is here to validate.
             var motionLevel by remember { mutableStateOf(performance.suggestedMotion) }
+
+            // The stored choice is the starting value, and the state is what the tree
+            // reads. Writing to the store on change rather than reading from it on every
+            // frame keeps the switch free of I/O: one boolean written on a press, and
+            // nothing on the composition's path touches the disc at all.
+            var dark by remember { mutableStateOf(themeStore.isDark()) }
+
+            // The system bars carry no colour of their own -- they are transparent and
+            // the gradient runs under them -- but the platform still has to be told
+            // which way the *icons* go, and that is the one thing about them that is
+            // not the same in both grounds. Re-applied on the switch rather than only
+            // at startup, or a user who turns the lights on keeps a white clock on a
+            // pale page.
+            LaunchedEffect(dark) { applyBarStyle(dark) }
 
             // The language, applied to the composition rather than by recreating
             // the activity.
@@ -152,7 +196,11 @@ class MainActivity : ComponentActivity() {
                         LayoutDirection.Ltr
                     },
             ) {
-                CastivioTheme(performance = performance, motionLevel = motionLevel) {
+                CastivioTheme(
+                    performance = performance,
+                    motionLevel = motionLevel,
+                    dark = dark,
+                ) {
                     // Whether the mark has already played. `rememberSaveable`,
                     // so a rotation or a night-mode change does not replay it:
                     // the intro belongs to *starting Castivio*, and turning a
@@ -171,6 +219,11 @@ class MainActivity : ComponentActivity() {
                                     ShellScreen(
                                         motionLevel = motionLevel,
                                         onMotionLevel = { motionLevel = it },
+                                        dark = dark,
+                                        onDark = {
+                                            dark = it
+                                            themeStore.setDark(it)
+                                        },
                                         onExit = askToExit,
                                     )
                                 },

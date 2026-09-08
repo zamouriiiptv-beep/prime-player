@@ -24,7 +24,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import com.castivio.core.design.theme.CastivioTheme
-import com.castivio.core.design.theme.Palette
 import androidx.compose.ui.layout.AlignmentLine
 import androidx.compose.ui.layout.FirstBaseline
 import androidx.compose.ui.layout.Layout
@@ -458,7 +457,7 @@ fun CastivioBackChip(
                 .height(chip)
                 .clip(shape)
                 .background(colors.glassFill)
-                .border(BorderStroke(1.dp, Palette.EdgeQuiet), shape)
+                .border(BorderStroke(1.dp, colors.edgeQuiet), shape)
                 .padding(horizontal = pad),
             horizontalArrangement = Arrangement.spacedBy(pad * CHIP_GAP),
             verticalAlignment = Alignment.CenterVertically,

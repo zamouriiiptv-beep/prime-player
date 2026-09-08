@@ -1,5 +1,7 @@
 package com.castivio.core.design.theme
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
@@ -99,6 +101,34 @@ object Palette {
     val EdgeAccent = Color(0x669E74FF)
 
     // -- Status -------------------------------------------------------------
+    /* ------------------------------------------------------------- the light side
+     *
+     * The same identity in daylight, not a second identity. Every one of these is the
+     * dark ground's own hue carried up into the top of the ramp rather than a neutral
+     * grey: the page still runs violet at one corner and azure at the other, because
+     * that diagonal is what Castivio looks like and it does not belong to the dark.
+     *
+     * The accents are untouched. Azure50, Violet50, Amber, Aqua and Ember are the brand
+     * and they read on both grounds; re-picking them for light would be two brands. */
+
+    /** The page, violet corner to azure corner -- the dark ground's diagonal, inverted. */
+    val Cloud = Color(0xFFF7F5FD)
+    val Lilac = Color(0xFFEFEAFB)
+    val Sky = Color(0xFFE6EEFC)
+
+    /** A raised surface, and the three inks on it. */
+    val Paper = Color(0xFFFFFFFF)
+    val Night = Color(0xFF171233)
+    val Dusk = Color(0xFF4A4370)
+    val Ash = Color(0xFF6E6890)
+
+    /** Glass, inverted: a dark film over a light ground rather than a light one over dark. */
+    val GlassDarkHigh = Color(0x14171233)
+    val GlassDarkMid = Color(0x0F171233)
+    val GlassDarkLow = Color(0x0A171233)
+    val GlassDarkEdge = Color(0x24171233)
+    val GlassDarkEdgeSoft = Color(0x0F171233)
+
     val Success = Color(0xFF3DD68C)
     val Warning = Amber
     val Danger = Color(0xFFFF5A5A)
@@ -110,6 +140,17 @@ object Palette {
  */
 @Suppress("LongParameterList")
 class CastivioColors(
+    /**
+     * Which of the two grounds this is.
+     *
+     * A flag rather than two subclasses, and it is read in exactly one place: the
+     * derived brushes below, which are the only tokens whose *recipe* changes rather
+     * than their values. No screen reads it, and none should -- a screen that asks
+     * whether it is light is a screen with two designs in it, which is the thing this
+     * file exists to prevent.
+     */
+    val isLight: Boolean,
+
     // Backgrounds
     val background: Color,
     val backgroundElevated: Color,
@@ -200,10 +241,53 @@ class CastivioColors(
      * rather than leaking a `Color(0x…)` into a feature.
      */
     val logoTints: List<Color>,
+
+    /* ------------------------------------------------------------- the backdrop
+     *
+     * The signature ground, as tokens rather than as literals inside the canvas that
+     * draws it. It was three palette entries and two glow colours named directly in
+     * `Backdrop.kt` -- fine while there is one theme, and the whole problem the moment
+     * there are two. The dark values here are the same numbers that file used.
+     */
+
+    /** The diagonal, corner to corner: violet at the start, azure at the end. */
+    val backdropStops: List<Color>,
+
+    /** The two aurora glows -- the lower-leading one and the upper-trailing one. */
+    val backdropWarmGlow: Color,
+    val backdropCoolGlow: Color,
+
+    /** The drifting motes. */
+    val backdropMote: Color,
+
+    /* ----------------------------------------------------------------- the edges
+     *
+     * Three hairlines that were `Palette.EdgeQuiet`, `EdgeCard` and `EdgeAccent` at
+     * eleven call sites. They are all "a line drawn on the ground", so on a light
+     * ground they are all dark -- which a literal cannot express.
+     */
+    val edgeQuiet: Color,
+    val edgeCard: Color,
+    val edgeAccent: Color,
+
+    /**
+     * The ink for the loudest thing in its box: a screen's name, a card's name, a key.
+     *
+     * It was `Palette.White` at seven call sites, which is right on a dark ground and
+     * unreadable on a light one. [onBackground] is the ordinary reading ink; this is
+     * the step above it.
+     */
+    val onBackgroundStrong: Color,
+
+    /** The ground under a card marked as the default choice. */
+    val featuredFill: Color,
+
+    /** What a scrolling row bleeds into at its edge, so it reads as "continues". */
+    val rowEdgeFade: Color,
 ) {
     /** The Castivio signature gradient — background washes and hero fills. */
     val auroraBrush: Brush
-        get() = Brush.linearGradient(listOf(Palette.Deep, Palette.Violet10, Palette.Azure10))
+        get() = Brush.linearGradient(backdropStops)
 
     /** Primary action fill. Three stops so the ramp stays smooth on large buttons. */
     val primaryBrush: Brush
@@ -240,7 +324,11 @@ class CastivioColors(
      * a highlight on a solid rather than as a border drawn round a hole.
      */
     val paneBrush: Brush
-        get() = Brush.verticalGradient(listOf(Palette.PaneHigh, Palette.PaneLow))
+        get() = if (isLight) {
+            Brush.verticalGradient(listOf(Palette.Paper, Palette.Cloud))
+        } else {
+            Brush.verticalGradient(listOf(Palette.PaneHigh, Palette.PaneLow))
+        }
 
     /**
      * A chip that carries information rather than a control.
@@ -253,7 +341,11 @@ class CastivioColors(
      * that has been given the wrong job.
      */
     val trialChipBrush: Brush
-        get() = Brush.verticalGradient(listOf(Color(0x47564AD6), Color(0x38281E6E)))
+        get() = if (isLight) {
+            Brush.verticalGradient(listOf(Color(0x2E6A4BD8), Color(0x1F4C9BFF)))
+        } else {
+            Brush.verticalGradient(listOf(Color(0x47564AD6), Color(0x38281E6E)))
+        }
 
     /**
      * The one lit container on the identity screen.
@@ -263,12 +355,18 @@ class CastivioColors(
      * carrying a colour of its own.
      */
     val codePanelBrush: Brush
-        get() = Brush.linearGradient(
-            listOf(Color(0x8F2E1A74), Color(0x94100B2E), Color(0x9909071C)),
-        )
+        get() = if (isLight) {
+            Brush.linearGradient(
+                listOf(Color(0x2E6A4BD8), Color(0x1F3D63F5), Color(0x14171233)),
+            )
+        } else {
+            Brush.linearGradient(
+                listOf(Color(0x8F2E1A74), Color(0x94100B2E), Color(0x9909071C)),
+            )
+        }
 
     /** The disc behind an information glyph: a tint, not a button. */
-    val infoMarkFill: Color get() = Palette.Violet40.copy(alpha = 0.20f)
+    val infoMarkFill: Color get() = Palette.Violet40.copy(alpha = if (isLight) 0.14f else 0.20f)
 
     /** Vertical sheen that gives a glass panel its lit top edge. */
     val glassFillBrush: Brush
@@ -345,8 +443,16 @@ class CastivioColors(
     val subtitleShadow: Color get() = Palette.Void.copy(alpha = 0.95f)
 }
 
-/** The dark theme — Castivio's only theme. The brand is a dark product. */
+/**
+ * The dark theme, and the reference.
+ *
+ * Every value here is the value the product already shipped. The new arguments at the
+ * foot are not new colours: they are the literals that used to sit inside `Backdrop.kt`
+ * and at eleven `Palette.` call sites in the features, moved to where a second theme
+ * can answer them differently. Dark is byte-identical to what it was.
+ */
 fun castivioDarkColors() = CastivioColors(
+    isLight = false,
     background = Palette.Void,
     backgroundElevated = Palette.Deep,
     scrim = Color(0xB3000000),
@@ -390,6 +496,98 @@ fun castivioDarkColors() = CastivioColors(
         Palette.Azure50,
         Palette.Violet50,
     ),
+
+    backdropStops = listOf(Palette.Deep, Palette.Violet10, Palette.Azure10),
+    backdropWarmGlow = Palette.Violet40,
+    backdropCoolGlow = Palette.Azure40,
+    backdropMote = Palette.Azure80,
+
+    edgeQuiet = Palette.EdgeQuiet,
+    edgeCard = Palette.EdgeCard,
+    edgeAccent = Palette.EdgeAccent,
+    onBackgroundStrong = Palette.White,
+    featuredFill = Palette.Violet10,
+    rowEdgeFade = Palette.Void,
+)
+
+/**
+ * The light theme: the same product in daylight.
+ *
+ * Built by answering each role again rather than by inverting the dark set, because
+ * inversion produces a photograph negative and not a design — the brand hues would come
+ * out as their complements, and Castivio would be orange.
+ *
+ * So the accents are **identical**: azure is still azure, violet still violet, amber,
+ * aqua and ember unchanged. What moves is the ground and the ink on it, and the glass,
+ * which flips from a light film over dark to a dark film over light. The backdrop keeps
+ * its diagonal and its two glows in the same corners at the same radii — only the stops
+ * are the top of the ramp instead of the bottom, so the page still runs violet at one
+ * corner and azure at the other. It reads as the same screen with the lights on, which
+ * is the whole requirement.
+ */
+fun castivioLightColors() = CastivioColors(
+    isLight = true,
+    background = Palette.Cloud,
+    backgroundElevated = Palette.Paper,
+    // Lighter than the dark scrim and cooler: a veil over a bright page has to dim it
+    // without turning it grey, and pure black at 70% does exactly that.
+    scrim = Color(0x99171233),
+
+    onBackground = Palette.Night,
+    onBackgroundVariant = Palette.Dusk,
+    onBackgroundMuted = Palette.Ash,
+    // The description step, one rung quieter than the reading ink and one louder than
+    // the muted one -- the same relationship Quartz holds on the dark ground.
+    description = Color(0xFF3E3866),
+
+    primary = Palette.Azure40,
+    onPrimary = Palette.White,
+    primaryContainer = Palette.Sky,
+    secondary = Palette.Violet40,
+    onSecondary = Palette.White,
+    secondaryContainer = Palette.Lilac,
+    accent = Palette.Ember,
+
+    glassFill = Palette.GlassDarkLow,
+    glassFillStrong = Palette.GlassDarkMid,
+    glassBorder = Palette.GlassDarkEdge,
+    glassBorderSoft = Palette.GlassDarkEdgeSoft,
+
+    // Azure40 rather than Azure60: the ring has to separate from a pale ground, and the
+    // lighter step that reads on the void disappears on the cloud.
+    focusRing = Palette.Azure40,
+    focusGlow = Palette.Azure40.copy(alpha = 0.34f),
+    divider = Color(0x1F171233),
+    selectedFill = Palette.Violet40.copy(alpha = 0.12f),
+    selectedBorder = Palette.Violet40.copy(alpha = 0.38f),
+    selectedGlow = Palette.Violet40.copy(alpha = 0.28f),
+    live = Palette.Aqua,
+
+    success = Palette.Success,
+    warning = Palette.Warning,
+    danger = Palette.Danger,
+
+    logoTints = listOf(
+        Palette.Azure40,
+        Palette.Violet40,
+        Palette.Aqua,
+        Palette.Amber,
+        Palette.Ember,
+        Palette.Azure50,
+        Palette.Violet50,
+    ),
+
+    backdropStops = listOf(Palette.Lilac, Palette.Cloud, Palette.Sky),
+    backdropWarmGlow = Palette.Violet50,
+    backdropCoolGlow = Palette.Azure50,
+    backdropMote = Palette.Violet40,
+
+    edgeQuiet = Color(0x24171233),
+    edgeCard = Color(0x334C56C8),
+    edgeAccent = Color(0x476A4BD8),
+    onBackgroundStrong = Palette.Night,
+    featuredFill = Palette.Lilac,
+    rowEdgeFade = Palette.Cloud,
 )
 
 /**
@@ -412,5 +610,12 @@ fun posterPlaceholderBrush(index: Int): Brush {
     return Brush.linearGradient(listOf(top, bottom))
 }
 
-/** The soft edge-fade a scrollable row bleeds into, so it reads as "continues". */
-val rowEdgeFadeColor: Color get() = Palette.Void
+/**
+ * The soft edge-fade a scrollable row bleeds into, so it reads as "continues".
+ *
+ * Reads the theme rather than naming `Palette.Void`: what a row fades into is the page
+ * it is on, and there are two pages now. A composable rather than a bare `val` for the
+ * same reason -- the answer depends on the tree it is asked in.
+ */
+val rowEdgeFadeColor: Color
+    @Composable @ReadOnlyComposable get() = CastivioTheme.colors.rowEdgeFade

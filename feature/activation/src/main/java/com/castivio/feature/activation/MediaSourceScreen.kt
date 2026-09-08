@@ -310,7 +310,7 @@ private fun RowScope.MediaCard(
         // The default option, marked the way the source choice marks its own:
         // the same violet ground and the same two values for the edge and the
         // light around it, reused rather than matched by eye.
-        fill = if (featured) SolidColor(Palette.Violet10) else colors.glassFillBrush,
+        fill = if (featured) SolidColor(colors.featuredFill) else colors.glassFillBrush,
         restBorder = if (featured) RECOMMENDED_EDGE else null,
         restGlow = if (featured) RECOMMENDED_GLOW else null,
     ) {

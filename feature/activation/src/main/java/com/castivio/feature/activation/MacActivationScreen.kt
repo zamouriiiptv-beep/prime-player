@@ -438,7 +438,7 @@ private fun Header(m: Metrics, trialDays: Int?, onOpenLanguage: () -> Unit) {
             CastivioHeaderTitle(
                 text = stringResource(R.string.activation_title),
                 style = castivioTitleStyle(m.fsTitle),
-                color = Palette.White,
+                color = CastivioTheme.colors.onBackgroundStrong,
             )
         },
         chips = {
@@ -506,7 +506,7 @@ private fun TrialChip(m: Metrics, badge: String, days: Int) {
             .height(m.chip)
             .clip(RoundedCornerShape(percent = 50))
             .background(CastivioTheme.colors.trialChipBrush)
-            .border(BorderStroke(1.dp, Palette.EdgeCard), RoundedCornerShape(percent = 50))
+            .border(BorderStroke(1.dp, CastivioTheme.colors.edgeCard), RoundedCornerShape(percent = 50))
             .padding(horizontal = m.chipPad),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
@@ -569,7 +569,7 @@ private fun LanguageChip(m: Metrics, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(percent = 50)
     val border by animateColorAsState(
-        if (focused) colors.focusRing else Palette.EdgeQuiet,
+        if (focused) colors.focusRing else colors.edgeQuiet,
         Motion.focusSpec(),
         label = "languageChipBorder",
     )
@@ -860,7 +860,7 @@ private fun CodeZone(identity: ActivationIdentityState, m: Metrics) {
             .width(m.zoneWidth)
             .clip(shape)
             .background(colors.codePanelBrush)
-            .border(BorderStroke(1.dp, Palette.EdgeAccent), shape)
+            .border(BorderStroke(1.dp, colors.edgeAccent), shape)
             .padding(m.zonePad)
             .testTag(ActivationTags.CODE_ZONE),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -913,7 +913,7 @@ private fun FooterBar(m: Metrics) {
             .height(m.footer)
             .clip(shape)
             .background(colors.glassFill)
-            .border(BorderStroke(1.dp, Palette.EdgeQuiet), shape)
+            .border(BorderStroke(1.dp, colors.edgeQuiet), shape)
             .padding(horizontal = m.footer * FOOTER_PAD)
             .testTag(ActivationTags.FOOTER),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -937,7 +937,7 @@ private fun FooterBar(m: Metrics) {
                 .size(m.mark)
                 .clip(RoundedCornerShape(percent = 50))
                 .background(colors.infoMarkFill)
-                .border(BorderStroke(1.dp, Palette.EdgeAccent), RoundedCornerShape(percent = 50)),
+                .border(BorderStroke(1.dp, colors.edgeAccent), RoundedCornerShape(percent = 50)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(

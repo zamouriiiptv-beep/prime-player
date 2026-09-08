@@ -5,7 +5,9 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.core.os.ConfigurationCompat
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.ReadOnlyComposable
@@ -92,25 +94,55 @@ fun CastivioTheme(
      * against it with [resolveMotionLevel] and passes the result here.
      */
     motionLevel: MotionLevel = performance.suggestedMotion,
+    /**
+     * Which of the two grounds to stand on.
+     *
+     * Dark by default, and that default is load-bearing rather than a preference:
+     * every screenshot, every drawing and every test in this project was made against
+     * it, so a caller that says nothing gets exactly what shipped. `:app` reads the
+     * user's stored choice and passes it; nothing else does.
+     */
+    dark: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-    val colors = castivioDarkColors()
+    // Remembered on the flag, so a switch is one allocation and everything below it
+    // recomposes off a new `staticCompositionLocalOf` value. No I/O, no resource load,
+    // no view model, no navigation: the two palettes are two `CastivioColors` objects
+    // and swapping them is the whole of what changing theme costs.
+    val colors = remember(dark) { if (dark) castivioDarkColors() else castivioLightColors() }
     val device = rememberDeviceClass()
 
-    val material = darkColorScheme(
-        primary = colors.primary,
-        onPrimary = colors.onPrimary,
-        primaryContainer = colors.primaryContainer,
-        secondary = colors.secondary,
-        onSecondary = colors.onSecondary,
-        secondaryContainer = colors.secondaryContainer,
-        background = colors.background,
-        onBackground = colors.onBackground,
-        surface = colors.backgroundElevated,
-        onSurface = colors.onBackground,
-        error = colors.danger,
-        outline = colors.divider,
-    )
+    val material = if (dark) {
+        darkColorScheme(
+            primary = colors.primary,
+            onPrimary = colors.onPrimary,
+            primaryContainer = colors.primaryContainer,
+            secondary = colors.secondary,
+            onSecondary = colors.onSecondary,
+            secondaryContainer = colors.secondaryContainer,
+            background = colors.background,
+            onBackground = colors.onBackground,
+            surface = colors.backgroundElevated,
+            onSurface = colors.onBackground,
+            error = colors.danger,
+            outline = colors.divider,
+        )
+    } else {
+        lightColorScheme(
+            primary = colors.primary,
+            onPrimary = colors.onPrimary,
+            primaryContainer = colors.primaryContainer,
+            secondary = colors.secondary,
+            onSecondary = colors.onSecondary,
+            secondaryContainer = colors.secondaryContainer,
+            background = colors.background,
+            onBackground = colors.onBackground,
+            surface = colors.backgroundElevated,
+            onSurface = colors.onBackground,
+            error = colors.danger,
+            outline = colors.divider,
+        )
+    }
 
     CompositionLocalProvider(
         LocalCastivioColors provides colors,

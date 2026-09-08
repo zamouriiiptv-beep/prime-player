@@ -81,10 +81,10 @@ fun CastivioBackdrop(content: @Composable () -> Unit) {
  */
 @Composable
 fun Modifier.castivioBackdrop(): Modifier {
-    val meshColour = CastivioTheme.colors.primary
+    val colors = CastivioTheme.colors
     val profile = LocalPerformanceProfile.current
     val (wave, drift) = backdropPhase(profile)
-    return drawBehind { paintBackdrop(wave, drift, meshColour, profile.backdropParticles) }
+    return drawBehind { paintBackdrop(wave, drift, colors, profile.backdropParticles) }
 }
 
 /**
@@ -98,20 +98,23 @@ fun Modifier.castivioBackdrop(): Modifier {
 private fun DrawScope.paintBackdrop(
     wave: Float,
     drift: Float,
-    meshColour: Color,
+    colors: CastivioColors,
     particles: Boolean,
 ) {
     drawRect(
         Brush.linearGradient(
-            colors = listOf(Palette.Deep, Palette.Violet10, Palette.Azure10),
+            colors = colors.backdropStops,
             start = Offset(0f, 0f),
             end = Offset(size.width, size.height),
         )
     )
-    glow(Offset(size.width * 0.05f, size.height), size.width * 0.55f, Palette.Violet40, 0.30f)
-    glow(Offset(size.width * 0.95f, size.height * 0.30f), size.width * 0.52f, Palette.Azure40, 0.26f)
-    mesh(wave, meshColour)
-    if (particles) motes(drift)
+    // The geometry is the theme's business, not the ground's: both glows keep their
+    // corner, their radius and their alpha in either mode, and only the hue is asked
+    // for again. A light page with the aurora somewhere else would be a second layout.
+    glow(Offset(size.width * 0.05f, size.height), size.width * 0.55f, colors.backdropWarmGlow, 0.30f)
+    glow(Offset(size.width * 0.95f, size.height * 0.30f), size.width * 0.52f, colors.backdropCoolGlow, 0.26f)
+    mesh(wave, colors.primary)
+    if (particles) motes(drift, colors.backdropMote)
 }
 
 /**
@@ -179,7 +182,7 @@ private fun DrawScope.mesh(phase: Float, color: Color) {
 }
 
 /** A handful of slow motes that rise, wrap and twinkle. */
-private fun DrawScope.motes(drift: Float) {
+private fun DrawScope.motes(drift: Float, tint: Color) {
     val rng = Random(7)
     repeat(13) {
         val baseX = rng.nextFloat()
@@ -190,7 +193,7 @@ private fun DrawScope.motes(drift: Float) {
         val y = ((baseY - drift * speed) % 1f + 1f) % 1f
         val twinkle = 0.25f + 0.55f * abs(sin((drift + phase) * 2f * PI.toFloat()))
         drawCircle(
-            color = Palette.Azure80.copy(alpha = 0.20f * twinkle),
+            color = tint.copy(alpha = 0.20f * twinkle),
             radius = radius,
             center = Offset(size.width * baseX, size.height * y),
         )

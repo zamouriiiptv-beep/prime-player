@@ -115,6 +115,8 @@ private sealed interface Overlay {
 fun ShellScreen(
     motionLevel: MotionLevel,
     onMotionLevel: (MotionLevel) -> Unit,
+    dark: Boolean,
+    onDark: (Boolean) -> Unit,
     /**
      * Ask to leave Castivio.
      *
@@ -218,6 +220,8 @@ fun ShellScreen(
                 Dest.Settings -> SettingsScreen(
                     motionLevel = motionLevel,
                     onMotionLevel = onMotionLevel,
+                    dark = dark,
+                    onDark = onDark,
                     onShowStateBoard = { overlay = Overlay.StateBoard },
                     onShowLicence = { overlay = Overlay.Licence },
                 )
@@ -359,6 +363,8 @@ private fun LibraryScreen(onOpenSection: (Dest) -> Unit) {
 private fun SettingsScreen(
     motionLevel: MotionLevel,
     onMotionLevel: (MotionLevel) -> Unit,
+    dark: Boolean,
+    onDark: (Boolean) -> Unit,
     onShowStateBoard: () -> Unit,
     onShowLicence: () -> Unit,
 ) {
@@ -372,6 +378,20 @@ private fun SettingsScreen(
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
         SectionHeader(title = "Settings")
+
+        // Two chips and nothing else: the same control the motion level takes, so a
+        // reader meets one pattern rather than a switch here and chips there.
+        Text("Appearance", style = CastivioType.titleMedium, color = colors.onBackground)
+        Text(
+            "Castivio is a dark product with a light mode, not a product that follows " +
+                "the system. The choice is remembered.",
+            style = CastivioType.bodySmall,
+            color = colors.onBackgroundMuted,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            CategoryChipPlain(label = "Dark", selected = dark, onClick = { onDark(true) })
+            CategoryChipPlain(label = "Light", selected = !dark, onClick = { onDark(false) })
+        }
 
         Text("Motion", style = CastivioType.titleMedium, color = colors.onBackground)
         Text(
