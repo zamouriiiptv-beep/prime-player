@@ -214,6 +214,22 @@ html[dir="rtl"] .header .back{direction:rtl}
    The chevron points the way the reader came from, so it mirrors: right in
    Arabic, left in English. The reference draws it left in both, which is the
    Latin convention applied to a right-to-left screen. */
+/* ------------------------------------------------- the dark / light control
+   PROPOSAL, behind `?theme=1`. The same chip as the activation screen's, in the
+   same place by the same rule: inboard of the page's own control, never outboard
+   of it. There the row ends trial · theme · language; here it ends theme · Back.
+   Back keeps the outer edge it holds on every screen in the product. */
+.themeChip{grid-column:3;grid-row:1;justify-self:end;display:none;
+  align-items:center;justify-content:center;
+  width:var(--back);height:var(--back);border-radius:999px;flex:0 0 auto;
+  color:var(--text-2);background:rgba(255,255,255,.045);
+  border:1px solid var(--edge-quiet);
+  /* Sits immediately inboard of Back: Back's own width plus the row's chip gap,
+     which is the 6dp the activation header already uses between its chips. */
+  margin-inline-end:calc(var(--back-w, 0px) + 6px)}
+.themeChip svg{width:calc(var(--fs-back) * 1.35);height:calc(var(--fs-back) * 1.35)}
+html[data-theme-chip="1"] .themeChip{display:flex}
+
 .back{grid-column:3;grid-row:1;justify-self:end;
   display:flex;align-items:center;gap:8px;height:var(--back);
   padding:0 var(--back-pad);border-radius:999px;flex:0 0 auto;white-space:nowrap;
@@ -375,6 +391,7 @@ html[data-frame="p800"] .cell:nth-child(n+3){display:none}
     <div class="header">
       <div class="wordmark"><img class="brand" src="../../core/design/src/main/res/drawable-nodpi/castivio_mark.png" alt=""><span>CASTIVIO</span></div>
       <h1 class="title" data-s="title">اختر مصدر التشغيل</h1>
+      <div class="themeChip" data-icon="sun"></div>
       <div class="back"><span data-icon="chevron"></span><span data-s="back">رجوع</span></div>
       <p class="sub" data-s="sub">أختر الطريقة التي تريد من خلالها تشغيل المحتوى</p>
     </div>
@@ -440,6 +457,11 @@ html[data-frame="p800"] .cell:nth-child(n+3){display:none}
 var K = 'fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"';
 var ICON = {
   chevron:'<svg viewBox="0 0 24 24" '+K+' stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg>',
+  // The outcome, not the state: pressed on the dark ground it brings the light.
+  sun:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.9">'+
+       '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.2"/><path d="M12 19.2v2.2"/>'+
+       '<path d="M2.6 12h2.2"/><path d="M19.2 12h2.2"/><path d="M5.4 5.4 7 7"/>'+
+       '<path d="M17 17l1.6 1.6"/><path d="M18.6 5.4 17 7"/><path d="M7 17l-1.6 1.6"/></svg>',
   link:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.9">'+
        '<path d="M10.2 13.8a4.4 4.4 0 0 0 6.2 0l2.6-2.6a4.4 4.4 0 0 0-6.2-6.2l-1.3 1.3"/>'+
        '<path d="M13.8 10.2a4.4 4.4 0 0 0-6.2 0L5 12.8a4.4 4.4 0 0 0 6.2 6.2l1.3-1.3"/></svg>',
@@ -517,6 +539,7 @@ var PT = {title:"Escolha uma fonte de reprodução", back:"Voltar",
   var root = document.documentElement;
   root.dataset.frame = q.get("frame") || "tv";
   root.dataset.sub   = q.get("sub")   === "1" ? "1" : "0";
+  root.dataset.themeChip = q.get("theme") === "1" ? "1" : "0";
 
   var code = q.get("lang") || "ar";
   var en = code !== "ar";
@@ -557,7 +580,13 @@ var PT = {title:"Escolha uma fonte de reprodução", back:"Voltar",
      after the fit above, so a title that had to shrink is centred at the size
      it ended up. The row is pinned left to right, so one formula serves both
      scripts. */
-  (function centreTitle() {
+  (function placeThemeChip() {
+  if (document.documentElement.dataset.themeChip !== '1') return;
+  var bk = document.querySelector('.back').getBoundingClientRect();
+  document.querySelector('.themeChip').style.setProperty('--back-w', bk.width + 'px');
+})();
+
+(function centreTitle() {
     var head = document.querySelector('.header').getBoundingClientRect();
     var lk = document.querySelector('.wordmark').getBoundingClientRect();
     var bk = document.querySelector('.back').getBoundingClientRect();

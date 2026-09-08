@@ -326,6 +326,45 @@ html[dir="rtl"] .header .chips .chip{direction:rtl}
   background:rgba(255,255,255,.045);border:1px solid var(--edge-quiet)}
 .chip.lang svg{color:var(--text-2);flex:0 0 auto}
 
+/* ------------------------------------------------- the dark / light control
+   PROPOSAL, behind `?theme=1`. Nothing below is approved.
+
+   A chip, because the row already has chips and this is the same kind of thing:
+   a control the reader may touch, quiet, at the row's end. It takes the language
+   chip's exact dress -- the same `--chip` height, the same pill, the same glass
+   and the same quiet edge -- so it is not a new object, it is a third one of an
+   object the header already has.
+
+   ## Round, and that is the whole cost argument
+
+   It is icon-only, so its width is its height: 44dp on a television down to 34
+   on the shortest phone, plus the 6dp the chip gap already is. A labelled chip
+   would be 90 to 120dp depending on the language, and the header is a three
+   column grid whose side columns are `1fr` -- so every dp the chips take is a dp
+   the title's column loses, and the Arabic television header is already the case
+   where the chips (297dp) outrun the title (237dp). An icon-only chip is the
+   difference between "the title steps down one size in two languages" and "the
+   mark visibly drifts off the row's centre in all of them".
+
+   ## The glyph says where you are going, not where you are
+
+   Sun on the dark ground, moon on the light one: a control is labelled by its
+   outcome. The alternative -- a moon meaning "you are in the dark" -- is the
+   one every reader has to press once to find out.
+
+   ## Where it sits
+
+   Inboard of the page's own control, never outboard of it. Here: trial, theme,
+   language. Everywhere else: theme, Back. Back keeps the outer end it has on
+   every screen in the product, because that is where a thumb reaches and where
+   an eye returning to a screen lands, and a control that moves to make room for
+   a new one is a control the reader has to look for. */
+.chip.theme{width:var(--chip);padding:0;justify-content:center;color:var(--text-2);
+  background:rgba(255,255,255,.045);border:1px solid var(--edge-quiet)}
+.chip.theme svg{width:calc(var(--fs-chip) * 1.35);height:calc(var(--fs-chip) * 1.35);
+  flex:0 0 auto;color:var(--text-2)}
+html[data-theme-chip="0"] .chip.theme{display:none}
+
 /* ------------------------------------------------------------------- band */
 .band{flex:1 1 auto;display:flex;align-items:stretch;gap:var(--band-gap);
   padding:var(--band-top) 0 var(--band-bottom);min-height:0}
@@ -530,6 +569,7 @@ html[dir="rtl"] .header .chips .chip{direction:rtl}
       <h1 class="title" data-s="title">إضافة قائمة تشغيل</h1>
       <div class="chips">
         <div class="chip trial" data-s="trial"><span class="dot"></span>نسخة تجريبية لمدة <b>7</b> أيام</div>
+        <div class="chip theme" id="themeChip" data-icon="sun"></div>
         <div class="chip lang" id="lang"></div>
       </div>
     </div>
@@ -616,7 +656,14 @@ var ICON = {
   phone:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.9">'+
        '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>',
   info:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.9">'+
-       '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><path d="M12 7.6v.2"/></svg>'
+       '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><path d="M12 7.6v.2"/></svg>',
+  // The outcome, not the state: pressed on the dark ground it brings the light.
+  sun:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.9">'+
+       '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.6v2.2"/><path d="M12 19.2v2.2"/>'+
+       '<path d="M2.6 12h2.2"/><path d="M19.2 12h2.2"/><path d="M5.4 5.4 7 7"/>'+
+       '<path d="M17 17l1.6 1.6"/><path d="M18.6 5.4 17 7"/><path d="M7 17l-1.6 1.6"/></svg>',
+  moon:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.9">'+
+       '<path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1z"/></svg>'
 };
 
 /* English, only so the screen can be *shown* mirroring rather than claimed to. */
@@ -649,6 +696,8 @@ var EN = {
   // header was tuned against: Portuguese's title is two and a half times
   // English's, and it is the case that decides whether the language control
   // survives the row.
+  // PROPOSAL flag. Off by default, so the approved drawing is what renders.
+  document.documentElement.dataset.themeChip = q.get("theme") === "1" ? "1" : "0";
   var code = q.get("lang") || "ar";
   var en = code !== "ar";
   var T = code === "pt" ? PT : code === "es" ? ES : EN;
@@ -813,8 +862,11 @@ var EN = {
       var lock = document.querySelector('.wordmark');
       var kids = lock.children;
       var lw = Math.round(kids[kids.length-1].getBoundingClientRect().right - kids[0].getBoundingClientRect().left);
+      var themeOn = document.documentElement.dataset.themeChip === '1';
       return { row: Math.round(h.width), title: w('.title'), lockup: lw,
-               trial: w('.chip.trial'), lang: w('.chip.lang') };
+               trial: w('.chip.trial'), lang: w('.chip.lang'),
+               theme: themeOn ? w('.chip.theme') : 0,
+               chips: w('.chips') };
     })());
     })(),
     actions: (function () {
