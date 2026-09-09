@@ -4,21 +4,23 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.CheckCircle
@@ -53,70 +55,83 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.castivio.core.design.components.CastivioArtwork
 import com.castivio.core.design.components.CastivioLockup
 import com.castivio.core.design.components.EmptyState
 import com.castivio.core.design.components.InteractiveGlassCard
-import com.castivio.core.design.components.SkeletonRow
+import com.castivio.core.design.components.castivioBodyStyle
+import com.castivio.core.design.components.castivioChipStyle
+import com.castivio.core.design.components.castivioTitleStyle
 import com.castivio.core.design.components.formatCount
 import com.castivio.core.design.components.ltrIsolate
+import com.castivio.core.design.theme.CastivioFrame
 import com.castivio.core.design.theme.CastivioTheme
-import com.castivio.core.design.theme.CastivioType
-import com.castivio.core.design.theme.DeviceClass
-import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Sizing
-import com.castivio.core.design.theme.Spacing
-import com.castivio.domain.MediaItem
+import com.castivio.core.design.theme.rememberFrame
 import com.castivio.domain.MediaKind
 import com.castivio.domain.entitlement.EntitlementState
 import java.text.DateFormat
 import java.util.Date
 
 /**
- * Home: the dashboard the reference was signed off as, and nothing that is not on it.
+ * Home: the dashboard, composed to the frame it is handed rather than to a scroll.
  *
- * ## Six bands, in this order
+ * ## It fits, and that is a rule rather than a hope
  *
- * The lockup and what Castivio's licence says; four section cards in one row; the
- * actions that are not "open a section"; what this device is; the disclaimer. The
- * whole screen answers one question — *what have I got, and how do I change it* —
- * and it answers it in a single frame on a television, without a scroll.
+ * Every band on this screen is measured out of the stage before anything is drawn:
+ * the header, the four cards, the actions, the device strip and — only if what is
+ * left still gives a card a usable height — the disclaimer. Nothing scrolls, because
+ * a dashboard that scrolls has stopped answering its own question. That is the defect
+ * this revision exists to fix: fixed card heights meant a 393dp handset drew the
+ * television's card and pushed half the screen past the fold.
  *
- * ## Why there are no content rows any more
+ * ## Four across, or two by two
  *
- * There were three, one per kind, and they were a sample of a section rather than an
- * answer about it. On a set they pushed the four counts and every action below the
- * fold, so the screen's own question needed a scroll to read, and the rows themselves
- * were a picture of whatever happened to import first — an IPTV catalogue has no
- * editorial, so there is nothing for a row on Home to be *about*. The section screens
- * page properly and are one press away. What the rows read is still read: the first
- * items of each kind are what each card's artwork is drawn from.
+ * The set and the tablet get one row of four; the handset gets two rows of two. The
+ * choice is the *stage*, not a device name — a television because a reader three
+ * metres away needs the card large in angle, and any stage at least [WIDE_STAGE] wide
+ * because that is the content block the tablet frame is already built around. Both
+ * come out of numbers this project already holds; neither is a second frame table,
+ * which is what `CastivioFrame` exists to prevent.
+ *
+ * The card turns with the shape it is given: tall enough and it stacks plate over
+ * name; short and wide and it lays the plate beside the name. One card, two aspects,
+ * rather than two cards.
+ *
+ * ## The plate, and why it is not a picture
+ *
+ * A section card carried four coloured rectangles standing in for artwork. On a
+ * device they do not read as "artwork is still loading" — they read as four squares
+ * of colour presented as if they were covers, which is worse than admitting there is
+ * no picture. Castivio has no image loader in this build, so the card says what it
+ * *is* instead: the section's own glyph on the section's own hue, drawn with
+ * `discFill`/`discBorder`/`discGlyph` — the disc recipe already in the theme, at plate
+ * size. Nothing here invents a colour, and nothing pretends to be a cover.
  *
  * ## Two different nothings
  *
  * "No provider yet" and "a provider that carried nothing" look identical if you only
- * check whether the counts are zero, and they need opposite advice. [HomeState.hasSource]
- * separates them; [HomeState.carriesNothing] is only true once every section has
- * actually been asked for.
+ * check whether the counts are zero, and they need opposite advice.
+ * [HomeState.hasSource] separates them; [HomeState.carriesNothing] is only true once
+ * every section has actually been asked for.
  *
- * ## The clock, and why it is safe now
+ * ## The clock
  *
- * It was refused once, correctly: a `LaunchedEffect` with a `delay` loop is a
- * coroutine that never completes, and a composition that never goes idle is a Compose
- * test that hangs until CI kills it. `ACTION_TIME_TICK` is a system broadcast that
- * arrives once a minute; a `DisposableEffect` that registers a receiver and
- * unregisters it leaves nothing pending, and costs no timer of ours at all.
+ * `ACTION_TIME_TICK` through a `DisposableEffect`: a broadcast the platform already
+ * sends, a receiver unregistered when the screen goes away, and no coroutine of ours
+ * left running. The `LaunchedEffect` delay loop that was refused would hang a Compose
+ * test until CI killed it; this leaves nothing pending.
  *
  * ## What is deliberately not drawn
  *
  * The reference carries a *provider* subscription status and expiry. The validator
- * returns them and `ProviderSource` has no column to keep them in, so they are not
- * on this screen: a card reading "Active" that is read from nothing is worse than no
- * card. The two here are Castivio's own licence, which is a real stored answer, and
- * they say so. `Time Shift` is absent because catch-up has no engine yet.
+ * returns them and `ProviderSource` has no column to keep them in, so the two header
+ * cards carry Castivio's own licence — a real stored answer — and say so. `Time
+ * Shift` has no catch-up engine. Nothing on this screen fetches anything: the
+ * sections are still brought onto the device by the section that was opened.
  */
 @Composable
 fun HomeScreen(
@@ -133,63 +148,116 @@ fun HomeScreen(
     model: HomeViewModel = hiltViewModel(),
 ) {
     val state by model.state.collectAsStateWithLifecycle()
-    val padding = CastivioTheme.device.screenPadding
 
-    Column(
-        modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = padding, vertical = Spacing.md)
-            .padding(bottom = Spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-    ) {
-        DashboardHeader(state)
+    // `safeDrawing`, not `statusBars`: turned sideways the system's own navigation
+    // sits on one *side*, and a screen that pads only the top draws its trailing
+    // column underneath it.
+    BoxWithConstraints(modifier.fillMaxSize().safeDrawingPadding()) {
+        val frame = rememberFrame(maxHeight)
+        val plan = remember(maxHeight, maxWidth, frame, CastivioTheme.device.isTv) {
+            Plan.of(frame, maxHeight, maxWidth, CastivioTheme.device.isTv)
+        }
 
-        when {
-            state.loading -> SkeletonRow(cards = 4, label = null)
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = frame.edge)
+                .padding(top = frame.stageTop, bottom = frame.stageBottom),
+            verticalArrangement = Arrangement.spacedBy(frame.bandTop),
+        ) {
+            DashboardHeader(state, frame, plan.headerHeight, showLicence = plan.fourAcross)
 
-            !state.hasSource -> Box(
-                Modifier.fillMaxSize().padding(vertical = Spacing.xl),
-                contentAlignment = Alignment.Center,
-            ) {
-                EmptyState(
-                    title = stringResource(R.string.home_no_source_title),
-                    detail = stringResource(R.string.home_no_source_detail),
-                    actionLabel = stringResource(R.string.home_add_source),
-                    onAction = onAddSource,
-                    icon = Icons.Rounded.PlaylistAdd,
-                    secondaryActionLabel = stringResource(R.string.home_settings),
-                    onSecondaryAction = onSettings,
-                )
-            }
+            when {
+                state.loading -> Box(Modifier.fillMaxSize())
 
-            else -> {
-                SectionCards(state = state, onSeeSection = onSeeSection)
-
-                if (state.carriesNothing) {
-                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        EmptyState(
-                            title = stringResource(R.string.home_empty_title),
-                            detail = stringResource(R.string.home_empty_detail),
-                            actionLabel = stringResource(R.string.home_change_source),
-                            onAction = onAddSource,
-                        )
-                    }
+                !state.hasSource -> Box(
+                    Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    EmptyState(
+                        title = stringResource(R.string.home_no_source_title),
+                        detail = stringResource(R.string.home_no_source_detail),
+                        actionLabel = stringResource(R.string.home_add_source),
+                        onAction = onAddSource,
+                        icon = Icons.Rounded.PlaylistAdd,
+                        secondaryActionLabel = stringResource(R.string.home_settings),
+                        onSecondaryAction = onSettings,
+                    )
                 }
 
-                ActionRow(
-                    provider = state.provider,
-                    onAddSource = onAddSource,
-                    onSearch = onSearch,
-                    onLicence = onLicence,
-                    onSettings = onSettings,
-                )
+                state.carriesNothing -> Box(
+                    Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    EmptyState(
+                        title = stringResource(R.string.home_empty_title),
+                        detail = stringResource(R.string.home_empty_detail),
+                        actionLabel = stringResource(R.string.home_change_source),
+                        onAction = onAddSource,
+                    )
+                }
 
-                DeviceStrip(state = state, appVersion = appVersion)
-
-                Disclaimer()
+                else -> {
+                    SectionCards(state, frame, plan, onSeeSection)
+                    ActionRow(state.provider, frame, onAddSource, onSearch, onLicence, onSettings)
+                    DeviceStrip(state, frame, appVersion)
+                    if (plan.showDisclaimer) Disclaimer(frame)
+                }
             }
+        }
+    }
+}
+
+// ------------------------------------------------------------------ the plan
+
+/**
+ * How this stage is spent, decided once from what the surface actually measured.
+ *
+ * A value rather than a set of `if`s scattered through the composition: the bands
+ * have to add up to the stage, and an arithmetic that lives in one place can be read
+ * and checked. Everything it needs comes from [CastivioFrame] and the measured
+ * surface; it invents no size of its own beyond [MIN_CARD], which is a floor rather
+ * than a size.
+ */
+private data class Plan(
+    val fourAcross: Boolean,
+    val columns: Int,
+    /** The header band: the frame's row plus the strapline this screen sets under it. */
+    val headerHeight: Dp,
+    val cardHeight: Dp,
+    val showDisclaimer: Boolean,
+) {
+    /** A card taller than it is wide stacks; a wide, short one lays out sideways. */
+    val stacked: Boolean get() = fourAcross
+
+    companion object {
+        fun of(frame: CastivioFrame, height: Dp, width: Dp, isTv: Boolean): Plan {
+            val fourAcross = isTv || width >= WIDE_STAGE
+            val rows = if (fourAcross) 1 else 2
+            val gap = frame.bandTop
+            val stage = height - frame.stageTop - frame.stageBottom
+
+            // The frame's header is the lockup's row. This screen puts a strapline
+            // under it, so the band is that row plus one small line — stated here,
+            // where the arithmetic can see it, rather than discovered by clipping.
+            val header = frame.header + frame.fsChip
+
+            // Everything that is not the cards. The disclaimer is the one band that
+            // gives way, because it is the only one nothing is lost by reading later.
+            val fixed = header + frame.touchTarget + frame.chip
+            val withLine = stage - fixed - frame.chip - gap * 4
+            val withoutLine = stage - fixed - gap * 3
+
+            val showLine = (withLine - gap * (rows - 1)) / rows >= MIN_CARD
+            val band = if (showLine) withLine else withoutLine
+
+            return Plan(
+                fourAcross = fourAcross,
+                columns = if (fourAcross) 4 else 2,
+                headerHeight = header,
+                cardHeight = (band - gap * (rows - 1)) / rows,
+                showDisclaimer = showLine,
+            )
         }
     }
 }
@@ -199,90 +267,102 @@ fun HomeScreen(
 /**
  * The lockup, what the licence says, and the time.
  *
- * The two status cards are Castivio's licence and nothing else. The provider is
- * named on the button that changes it, which is where a user looking for it will
- * be anyway — and keeping the two systems on different bands is what stops them
- * from being read as one "status".
+ * The licence pair appears where the stage has the width for it. On a handset the
+ * header carries the lockup and the clock, and the licence is still answered — by
+ * "Device: activated" in the strip, which is the same fact in the place a short frame
+ * has room for.
  */
 @Composable
-private fun DashboardHeader(state: HomeState, modifier: Modifier = Modifier) {
+private fun DashboardHeader(
+    state: HomeState,
+    frame: CastivioFrame,
+    height: Dp,
+    showLicence: Boolean,
+    modifier: Modifier = Modifier,
+) {
     val colors = CastivioTheme.colors
-    val big = CastivioTheme.device.wide
-
     Row(
-        modifier.fillMaxWidth(),
+        modifier.fillMaxWidth().height(height),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        horizontalArrangement = Arrangement.spacedBy(frame.headGap),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+        Column(verticalArrangement = Arrangement.Center) {
             CastivioLockup(
-                markSize = if (big) MARK_WIDE else MARK_TIGHT,
-                wordSize = CastivioType.titleLarge.fontSize,
+                markSize = frame.brand,
+                wordSize = (frame.fsTitle.value * WORD_RATIO).sp,
             )
             Text(
                 text = stringResource(R.string.home_tagline),
-                style = CastivioType.overline,
+                style = castivioChipStyle(frame.fsChip),
                 color = colors.secondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
 
-        if (big) {
-            StatusCard(
+        if (showLicence) {
+            LicenceCard(
                 icon = Icons.Rounded.CheckCircle,
                 label = stringResource(R.string.home_status_licence),
                 value = stringResource(state.plan),
                 tint = if (state.licenceHolds) colors.success else colors.danger,
+                frame = frame,
             )
-            StatusCard(
+            LicenceCard(
                 icon = Icons.Rounded.CalendarMonth,
                 label = stringResource(R.string.home_status_expires),
                 value = expiryLabel(state.entitlement),
                 tint = colors.hueViolet,
+                frame = frame,
             )
         }
 
         Box(Modifier.weight(1f))
-        Clock()
+        Clock(frame)
     }
 }
 
 /** One fact about the licence: what it is called, and what it says. */
 @Composable
-private fun StatusCard(
+private fun LicenceCard(
     icon: ImageVector,
     label: String,
     value: String,
     tint: Color,
+    frame: CastivioFrame,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
     Row(
         modifier
-            .clip(RoundedCornerShape(Radius.md))
+            .height(frame.chip + frame.chipPad)
+            .clip(RoundedCornerShape(frame.radius / 2))
             .background(colors.glassFillBrush)
-            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            .padding(horizontal = frame.chipPad),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
     ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(Sizing.iconLg))
-        Column {
-            Text(label, style = CastivioType.labelSmall, color = colors.onBackgroundMuted, maxLines = 1)
-            Text(value, style = CastivioType.titleMedium, color = tint, maxLines = 1)
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(Sizing.iconMd))
+        Column(verticalArrangement = Arrangement.Center) {
+            Text(
+                label,
+                style = castivioChipStyle(frame.fsChip),
+                color = colors.onBackgroundMuted,
+                maxLines = 1,
+            )
+            Text(
+                value,
+                style = castivioChipStyle(frame.fsLabel),
+                color = tint,
+                maxLines = 1,
+            )
         }
     }
 }
 
-/**
- * The time, and the day under it.
- *
- * [rememberMinute] is the whole of the ticking: a broadcast the platform already
- * sends, a receiver that is unregistered when this leaves the composition, and no
- * coroutine of ours left running.
- */
+/** The time, and the day under it. */
 @Composable
-private fun Clock(modifier: Modifier = Modifier) {
+private fun Clock(frame: CastivioFrame, modifier: Modifier = Modifier) {
     val colors = CastivioTheme.colors
     val now = rememberMinute()
     val locale = LocalConfiguration.current
@@ -290,13 +370,18 @@ private fun Clock(modifier: Modifier = Modifier) {
         DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(now))
     }
     val day = remember(now, locale) {
-        DateFormat.getDateInstance(DateFormat.FULL).format(Date(now))
+        DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(now))
     }
     Column(modifier, horizontalAlignment = Alignment.End) {
-        Text(time, style = CastivioType.headlineMedium, color = colors.onBackgroundStrong, maxLines = 1)
+        Text(
+            time,
+            style = castivioTitleStyle(frame.fsTitle),
+            color = colors.onBackgroundStrong,
+            maxLines = 1,
+        )
         Text(
             day,
-            style = CastivioType.labelSmall,
+            style = castivioChipStyle(frame.fsChip),
             color = colors.onBackgroundMuted,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -307,11 +392,11 @@ private fun Clock(modifier: Modifier = Modifier) {
 /**
  * The wall clock, to the minute, without a timer.
  *
- * `ACTION_TIME_TICK` cannot be declared in a manifest — the platform only delivers
- * it to a receiver registered at runtime — which is exactly the lifetime a
+ * `ACTION_TIME_TICK` cannot be declared in a manifest — the platform only delivers it
+ * to a receiver registered at runtime, which is exactly the lifetime a
  * `DisposableEffect` has. `RECEIVER_NOT_EXPORTED` because nothing but the system
- * should ever be able to send this; on the API levels that have no such flag,
- * `ContextCompat` drops it.
+ * should be able to send it; on the API levels with no such flag `ContextCompat`
+ * drops it.
  */
 @Composable
 private fun rememberMinute(): Long {
@@ -350,51 +435,52 @@ private val HomeState.licenceHolds: Boolean
 /**
  * When the licence runs out.
  *
- * Lifetime says so rather than showing a date it does not have, and everything
- * without an expiry — an unknown state, a service outage — shows a dash instead of
- * a date invented from the clock.
+ * Lifetime says so rather than showing a date it does not have, and everything with
+ * no expiry shows a dash instead of a date invented from the clock.
  */
 @Composable
 private fun expiryLabel(state: EntitlementState?): String = when (state) {
-    is EntitlementState.TrialActive -> rememberStamp(state.expiresAtMs, withTime = false)
-    is EntitlementState.AnnualActive -> rememberStamp(state.expiresAtMs, withTime = false)
+    is EntitlementState.TrialActive -> rememberDate(state.expiresAtMs)
+    is EntitlementState.AnnualActive -> rememberDate(state.expiresAtMs)
     EntitlementState.Lifetime -> stringResource(R.string.home_expires_never)
     else -> stringResource(R.string.home_expires_none)
 }
 
 // ------------------------------------------------------------ the four cards
 
-/**
- * The four sections, in one row where there is width and two by two where there is not.
- *
- * Four across at 960dp gives a card about 210dp wide, which holds the longest section
- * name Castivio ships. On a handset the same four re-flow to a 2×2 — the same cards
- * at a smaller height, not a second design.
- */
+/** The four sections, in the grid the stage was measured for. */
 @Composable
 private fun SectionCards(
     state: HomeState,
+    frame: CastivioFrame,
+    plan: Plan,
     onSeeSection: (CatalogSection) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
-    val wide = CastivioTheme.device.wide
-
-    val cards = listOf(
-        Section(CatalogSection.Live, Icons.Rounded.LiveTv, colors.hueAzure, R.string.browse_live, state.liveCount, R.string.home_count_live, state.sections[MediaKind.LIVE], state.live),
-        Section(CatalogSection.Movies, Icons.Rounded.Movie, colors.hueViolet, R.string.browse_movies, state.movieCount, R.string.home_count_movies, state.sections[MediaKind.MOVIE], state.movies),
-        Section(CatalogSection.Series, Icons.Rounded.Tv, colors.hueGreen, R.string.browse_series, state.seriesCount, R.string.home_count_series, state.sections[MediaKind.SERIES], state.episodes),
-        Section(CatalogSection.Radio, Icons.Rounded.Radio, colors.hueAmber, R.string.browse_radio, state.radioCount, R.string.home_count_radio, state.sections[MediaKind.RADIO], emptyList()),
+    val sections = listOf(
+        Section(CatalogSection.Live, Icons.Rounded.LiveTv, colors.hueAzure, R.string.browse_live, state.liveCount, R.string.home_count_live, state.sections[MediaKind.LIVE]),
+        Section(CatalogSection.Movies, Icons.Rounded.Movie, colors.hueViolet, R.string.browse_movies, state.movieCount, R.string.home_count_movies, state.sections[MediaKind.MOVIE]),
+        Section(CatalogSection.Series, Icons.Rounded.Tv, colors.hueGreen, R.string.browse_series, state.seriesCount, R.string.home_count_series, state.sections[MediaKind.SERIES]),
+        Section(CatalogSection.Radio, Icons.Rounded.Radio, colors.hueAmber, R.string.browse_radio, state.radioCount, R.string.home_count_radio, state.sections[MediaKind.RADIO]),
     )
 
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        for (group in if (wide) listOf(cards) else cards.chunked(2)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                for (card in group) {
+    Column(
+        modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(frame.bandTop),
+    ) {
+        for (group in sections.chunked(plan.columns)) {
+            Row(
+                Modifier.fillMaxWidth().height(plan.cardHeight),
+                horizontalArrangement = Arrangement.spacedBy(frame.bandTop),
+            ) {
+                for (section in group) {
                     SectionCard(
-                        section = card,
-                        onClick = { onSeeSection(card.section) },
-                        modifier = Modifier.weight(1f),
+                        section = section,
+                        frame = frame,
+                        stacked = plan.stacked,
+                        onClick = { onSeeSection(section.section) },
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
                     )
                 }
             }
@@ -412,121 +498,110 @@ private data class Section(
     val unit: Int,
     /** When this section was brought onto the device, or null if it never has been. */
     val fetchedAtMs: Long?,
-    /** The head of the section, which is what its artwork is drawn from. */
-    val items: List<MediaItem>,
 )
 
 @Composable
-private fun SectionCard(section: Section, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val colors = CastivioTheme.colors
-    val wide = CastivioTheme.device.wide
-
+private fun SectionCard(
+    section: Section,
+    frame: CastivioFrame,
+    stacked: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     InteractiveGlassCard(
         onClick = onClick,
-        modifier = modifier.height(if (wide) CARD_WIDE else CARD_TIGHT),
-        shape = RoundedCornerShape(Radius.lg),
+        modifier = modifier,
+        shape = RoundedCornerShape(frame.radius),
     ) {
-        Column(
-            Modifier.fillMaxSize().padding(Spacing.sm),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Collage(
-                seeds = section.artworkSeeds,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(if (wide) ART_WIDE else ART_TIGHT),
-            )
-            Icon(
-                imageVector = section.icon,
-                contentDescription = null,
-                tint = colors.onBackgroundStrong,
-                modifier = Modifier
-                    .padding(top = Spacing.md)
-                    .size(if (wide) GLYPH_WIDE else GLYPH_TIGHT),
-            )
-            Text(
-                text = stringResource(section.name),
-                style = CastivioType.titleMedium,
-                color = colors.onBackgroundStrong,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = Spacing.sm),
-            )
-            // The difference between these two sentences is the whole point of the
-            // lazy fetch: "not downloaded yet" is an invitation, a count is a fact
-            // about this device. A count with no mark behind it cannot happen.
-            if (section.fetchedAtMs == null) {
-                Text(
-                    text = stringResource(R.string.home_not_fetched),
-                    style = CastivioType.labelSmall,
-                    color = colors.primary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                )
-            } else {
-                Text(
-                    text = stringResource(section.unit, formatCount(section.count)),
-                    style = CastivioType.labelSmall,
-                    color = section.hue,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                )
+        if (stacked) {
+            Column(
+                Modifier.fillMaxSize().padding(frame.chipPad),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
+            ) {
+                SectionPlate(section, frame, Modifier.fillMaxWidth().weight(1f))
+                SectionLabels(section, frame, TextAlign.Center, Modifier.fillMaxWidth())
+            }
+        } else {
+            Row(
+                Modifier.fillMaxSize().padding(frame.chipPad),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(frame.chipPad),
+            ) {
+                SectionPlate(section, frame, Modifier.fillMaxHeight().aspectRatio(1f))
+                SectionLabels(section, frame, TextAlign.Start, Modifier.weight(1f))
             }
         }
     }
 }
 
 /**
- * Four covers, or as many as the section has.
+ * What the card carries instead of a picture.
  *
- * These are [CastivioArtwork] placeholders, which is what every tile in this app
- * shows until an image arrives — a provider's own artwork needs a loader this build
- * does not ship, and a grey rectangle with a broken-image glyph reads as a fault.
- * The seeds come from the items themselves, so the same section redraws the same
- * collage and a screenshot stays comparable.
+ * The section's glyph on the section's hue, from the theme's own disc recipe. It is
+ * plainly a plate and not a cover, which is the point: this build has no image
+ * loader, and four coloured rectangles arranged like posters claim otherwise.
  */
 @Composable
-private fun Collage(seeds: List<Int>, modifier: Modifier = Modifier) {
-    Column(
-        modifier.clip(RoundedCornerShape(Radius.sm)),
-        verticalArrangement = Arrangement.spacedBy(COLLAGE_GAP),
+private fun SectionPlate(section: Section, frame: CastivioFrame, modifier: Modifier = Modifier) {
+    val colors = CastivioTheme.colors
+    val shape = RoundedCornerShape(frame.radius / 2)
+    Box(
+        modifier
+            .clip(shape)
+            .background(colors.discFill(section.hue))
+            .border(BorderStroke(1.dp, colors.discBorder(section.hue)), shape),
+        contentAlignment = Alignment.Center,
     ) {
-        for (row in 0 until 2) {
-            Row(
-                Modifier.fillMaxWidth().weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(COLLAGE_GAP),
-            ) {
-                for (column in 0 until 2) {
-                    val seed = seeds[(row * 2 + column) % seeds.size]
-                    Box(
-                        Modifier
-                            .fillMaxSize()
-                            .weight(1f)
-                            .background(CastivioArtwork.placeholder(seed)),
-                    )
-                }
-            }
-        }
+        Icon(
+            imageVector = section.icon,
+            contentDescription = null,
+            tint = colors.discGlyph(section.hue),
+            modifier = Modifier.size(frame.brand),
+        )
     }
 }
 
 /**
- * Four numbers to draw the collage from.
+ * The section's name, and the one sentence under it.
  *
- * The section's own items where it has them, and the section's position where it has
- * none — so an unfetched card still carries artwork rather than four empty squares,
- * and two unfetched cards do not carry the *same* artwork.
+ * The difference between those two sentences is the whole point of the lazy fetch:
+ * "not downloaded yet" is an invitation, a count is a fact about this device. A count
+ * with no mark behind it cannot happen.
  */
-private val Section.artworkSeeds: List<Int>
-    get() = if (items.isEmpty()) {
-        val base = section.ordinal * 4
-        listOf(base, base + 1, base + 2, base + 3)
-    } else {
-        items.take(4).map { it.id.hashCode() }
+@Composable
+private fun SectionLabels(
+    section: Section,
+    frame: CastivioFrame,
+    align: TextAlign,
+    modifier: Modifier = Modifier,
+) {
+    val colors = CastivioTheme.colors
+    Column(modifier, verticalArrangement = Arrangement.Center) {
+        Text(
+            text = stringResource(section.name),
+            style = castivioChipStyle(frame.fsLabel),
+            color = colors.onBackgroundStrong,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = align,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(
+            text = if (section.fetchedAtMs == null) {
+                stringResource(R.string.home_not_fetched)
+            } else {
+                stringResource(section.unit, formatCount(section.count))
+            },
+            style = castivioBodyStyle(frame.fsBody),
+            color = if (section.fetchedAtMs == null) colors.primary else section.hue,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = align,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
+}
 
 // --------------------------------------------------------------- the actions
 
@@ -540,6 +615,7 @@ private val Section.artworkSeeds: List<Int>
 @Composable
 private fun ActionRow(
     provider: String?,
+    frame: CastivioFrame,
     onAddSource: () -> Unit,
     onSearch: () -> Unit,
     onLicence: () -> Unit,
@@ -547,37 +623,13 @@ private fun ActionRow(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        modifier.fillMaxWidth().height(frame.touchTarget),
+        horizontalArrangement = Arrangement.spacedBy(frame.bandTop),
     ) {
-        Action(
-            icon = Icons.Rounded.PlaylistAdd,
-            title = stringResource(R.string.home_change_source),
-            detail = provider,
-            onClick = onAddSource,
-            modifier = Modifier.weight(1f),
-        )
-        Action(
-            icon = Icons.Rounded.Search,
-            title = stringResource(R.string.search_label),
-            detail = null,
-            onClick = onSearch,
-            modifier = Modifier.weight(1f),
-        )
-        Action(
-            icon = Icons.Rounded.VerifiedUser,
-            title = stringResource(R.string.home_action_licence),
-            detail = null,
-            onClick = onLicence,
-            modifier = Modifier.weight(1f),
-        )
-        Action(
-            icon = Icons.Rounded.Settings,
-            title = stringResource(R.string.home_settings),
-            detail = null,
-            onClick = onSettings,
-            modifier = Modifier.weight(1f),
-        )
+        Action(Icons.Rounded.PlaylistAdd, stringResource(R.string.home_change_source), provider, frame, onAddSource, Modifier.weight(1f))
+        Action(Icons.Rounded.Search, stringResource(R.string.search_label), null, frame, onSearch, Modifier.weight(1f))
+        Action(Icons.Rounded.VerifiedUser, stringResource(R.string.home_action_licence), null, frame, onLicence, Modifier.weight(1f))
+        Action(Icons.Rounded.Settings, stringResource(R.string.home_settings), null, frame, onSettings, Modifier.weight(1f))
     }
 }
 
@@ -586,30 +638,31 @@ private fun Action(
     icon: ImageVector,
     title: String,
     detail: String?,
+    frame: CastivioFrame,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
     InteractiveGlassCard(
         onClick = onClick,
-        modifier = modifier.heightIn(min = Sizing.minTvTarget),
-        shape = RoundedCornerShape(Radius.md),
+        modifier = modifier.fillMaxHeight(),
+        shape = RoundedCornerShape(frame.radius / 2),
     ) {
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            Modifier.fillMaxSize().padding(horizontal = frame.chipPad),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
         ) {
             Icon(
                 icon,
                 contentDescription = null,
                 tint = colors.hueViolet,
-                modifier = Modifier.size(Sizing.iconLg),
+                modifier = Modifier.size(Sizing.iconMd),
             )
-            Column {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
                 Text(
                     title,
-                    style = CastivioType.labelLarge,
+                    style = castivioChipStyle(frame.fsChip),
                     color = colors.onBackground,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -617,7 +670,7 @@ private fun Action(
                 if (detail != null) {
                     Text(
                         detail,
-                        style = CastivioType.labelSmall,
+                        style = castivioBodyStyle(frame.fsBody),
                         color = colors.onBackgroundMuted,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -635,61 +688,76 @@ private fun Action(
  * build is running.
  *
  * The address is the one a user reads out to a provider who activates by MAC, so it
- * belongs where it can be read without hunting — and it is isolated for direction,
- * because a colon-separated hex address reordered by an Arabic paragraph is not the
- * address any more.
+ * belongs where it can be read without hunting — isolated for direction, because a
+ * colon-separated hex address reordered by an Arabic paragraph is not the address any
+ * more.
  */
 @Composable
-private fun DeviceStrip(state: HomeState, appVersion: String, modifier: Modifier = Modifier) {
+private fun DeviceStrip(
+    state: HomeState,
+    frame: CastivioFrame,
+    appVersion: String,
+    modifier: Modifier = Modifier,
+) {
     val colors = CastivioTheme.colors
     Row(
         modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(Radius.md))
+            .height(frame.chip)
+            .clip(RoundedCornerShape(frame.radius / 2))
             .background(colors.glassFillBrush)
-            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            .padding(horizontal = frame.chipPad),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(frame.headGap),
     ) {
         Fact(
-            icon = Icons.Rounded.Memory,
-            text = stringResource(R.string.home_device_mac, ltrIsolate(state.mac)),
-            tint = colors.onBackgroundMuted,
-            modifier = Modifier.weight(1f),
+            Icons.Rounded.Memory,
+            stringResource(R.string.home_device_mac, ltrIsolate(state.mac)),
+            colors.onBackgroundMuted,
+            frame,
+            Modifier.weight(1f),
         )
         Fact(
-            icon = Icons.Rounded.Lock,
-            text = stringResource(
+            Icons.Rounded.Lock,
+            stringResource(
                 R.string.home_device_state,
                 stringResource(
                     if (state.licenceHolds) R.string.home_device_activated
                     else R.string.home_device_locked,
                 ),
             ),
-            tint = if (state.licenceHolds) colors.success else colors.danger,
-            modifier = Modifier.weight(1f),
+            if (state.licenceHolds) colors.success else colors.danger,
+            frame,
+            Modifier.weight(1f),
         )
         Fact(
-            icon = Icons.Rounded.Shield,
-            text = stringResource(R.string.home_device_version, ltrIsolate(appVersion)),
-            tint = colors.onBackgroundMuted,
-            modifier = Modifier.weight(1f),
+            Icons.Rounded.Shield,
+            stringResource(R.string.home_device_version, ltrIsolate(appVersion)),
+            colors.onBackgroundMuted,
+            frame,
+            Modifier.weight(1f),
         )
     }
 }
 
 @Composable
-private fun Fact(icon: ImageVector, text: String, tint: Color, modifier: Modifier = Modifier) {
+private fun Fact(
+    icon: ImageVector,
+    text: String,
+    tint: Color,
+    frame: CastivioFrame,
+    modifier: Modifier = Modifier,
+) {
     val colors = CastivioTheme.colors
     Row(
         modifier,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
     ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(Sizing.iconMd))
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(Sizing.iconSm))
         Text(
             text,
-            style = CastivioType.labelSmall,
+            style = castivioBodyStyle(frame.fsBody),
             color = colors.onBackgroundVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -698,23 +766,25 @@ private fun Fact(icon: ImageVector, text: String, tint: Color, modifier: Modifie
 }
 
 @Composable
-private fun Disclaimer(modifier: Modifier = Modifier) {
+private fun Disclaimer(frame: CastivioFrame, modifier: Modifier = Modifier) {
     val colors = CastivioTheme.colors
     Row(
-        modifier.fillMaxWidth(),
+        modifier.fillMaxWidth().height(frame.chip),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
     ) {
         Icon(
             Icons.Rounded.Shield,
             contentDescription = null,
             tint = colors.hueViolet,
-            modifier = Modifier.size(Sizing.iconMd),
+            modifier = Modifier.size(Sizing.iconSm),
         )
         Text(
             text = stringResource(R.string.home_disclaimer),
-            style = CastivioType.bodySmall,
+            style = castivioBodyStyle(frame.fsBody),
             color = colors.onBackgroundMuted,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
@@ -722,40 +792,35 @@ private fun Disclaimer(modifier: Modifier = Modifier) {
 // ----------------------------------------------------------------- utilities
 
 /**
- * An instant, in the reader's own locale, formatted once.
+ * A date, in the reader's own locale, formatted once.
  *
  * `remember` keyed on the value, because building a `DateFormat` and running it is
- * real work and composition runs whenever anything on this screen moves — a count
- * arriving from an import behind the screen would otherwise reformat several dates
- * on every emission, which is the per-frame work the performance budget bans.
+ * real work and composition runs whenever anything on this screen moves.
  */
 @Composable
-private fun rememberStamp(atMs: Long, withTime: Boolean = true): String {
+private fun rememberDate(atMs: Long): String {
     val locale = LocalConfiguration.current
-    return remember(atMs, locale, withTime) {
-        val format =
-            if (withTime) DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
-            else DateFormat.getDateInstance(DateFormat.MEDIUM)
-        format.format(Date(atMs))
+    return remember(atMs, locale) {
+        DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(atMs))
     }
 }
 
-/** Where four cards fit across, and where they have to fold to two by two. */
-private val DeviceClass.wide: Boolean
-    get() = this == DeviceClass.Television || this == DeviceClass.Expanded
+/**
+ * The stage at which four cards abreast are worth more than two rows of two.
+ *
+ * The tablet frame is built around a 1000dp content block — see `CastivioFrame` — so
+ * this is that block, not a new number. Below it the handset gets two by two, which
+ * keeps each card wide enough for its name at the height a landscape phone has.
+ */
+private val WIDE_STAGE: Dp = 1000.dp
 
 /**
- * Fixed heights rather than intrinsic ones.
+ * The shortest a section card may be before the disclaimer gives up its band.
  *
- * Four cards of three different heights is what a row of `wrapContentHeight` cards
- * produces the first time a translation is longer than English.
+ * A floor, not a size: every other height on this screen is measured out of the
+ * stage, and this is the one number that says when the arithmetic has taken too much.
  */
-private val CARD_WIDE: Dp = 232.dp
-private val CARD_TIGHT: Dp = 188.dp
-private val ART_WIDE: Dp = 108.dp
-private val ART_TIGHT: Dp = 76.dp
-private val GLYPH_WIDE: Dp = 40.dp
-private val GLYPH_TIGHT: Dp = 32.dp
-private val COLLAGE_GAP: Dp = 2.dp
-private val MARK_WIDE: Dp = 44.dp
-private val MARK_TIGHT: Dp = 34.dp
+private val MIN_CARD: Dp = 92.dp
+
+/** The wordmark's share of the frame's title step, as the licence screen sets it. */
+private const val WORD_RATIO = 0.8f

@@ -3,9 +3,7 @@ package com.castivio.feature.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.castivio.domain.CatalogRepository
-import com.castivio.domain.MediaItem
 import com.castivio.domain.MediaKind
-import com.castivio.domain.PageRequest
 import com.castivio.domain.ProviderSource
 import com.castivio.domain.SectionCatalogue
 import com.castivio.domain.SourceKind
@@ -21,7 +19,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
@@ -42,9 +39,6 @@ data class HomeState(
     val sourceKind: SourceKind? = null,
     /** What the last import wrote, which is not the sum of the four counts below. */
     val importedCount: Int = 0,
-    val live: List<MediaItem> = emptyList(),
-    val movies: List<MediaItem> = emptyList(),
-    val episodes: List<MediaItem> = emptyList(),
     val liveCount: Int = 0,
     val movieCount: Int = 0,
     val seriesCount: Int = 0,
@@ -113,14 +107,17 @@ private data class Counts(
  *
  * The counts are flows, so an import finishing behind this screen moves the numbers
  * without anyone asking — which is the whole of what "the content appears after the
- * subscription succeeds" needs to be. The rows are one-shot window reads keyed off
- * those counts: `mapLatest` cancels a read that a newer count has already superseded,
- * which is what stops a slow first import from painting stale rows over fresh ones.
+ * subscription succeeds" needs to be.
+ *
+ * It reads no rows. It used to read twenty items of each kind to draw a sample row on
+ * Home, and those rows are gone: three bounded queries on every visit to a screen that
+ * now shows counts, not content. The section screens page properly and are one press
+ * away, which is where a row belongs.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val catalog: CatalogRepository,
+    catalog: CatalogRepository,
     sources: SourceRepository,
     entitlement: EntitlementRepository,
     marks: SectionCatalogue,
@@ -168,36 +165,9 @@ class HomeViewModel @Inject constructor(
             mac = mac,
             loading = false,
         )
-    }.mapLatest { counted ->
-        counted.copy(
-            live = row(MediaKind.LIVE, counted.liveCount),
-            movies = row(MediaKind.MOVIE, counted.movieCount),
-            episodes = row(MediaKind.SERIES, counted.seriesCount),
-        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_GRACE_MS), HomeState())
 
-    /**
-     * One row's worth, or nothing when the section is empty.
-     *
-     * The count is checked first so an empty kind costs no query at all — on a
-     * provider with no radio and no series that is two round trips to SQLite saved on
-     * every visit to Home.
-     */
-    private suspend fun row(kind: MediaKind, count: Int): List<MediaItem> {
-        if (count == 0) return emptyList()
-        return catalog.page(PageRequest(kind = kind, limit = ROW)).items
-    }
-
     private companion object {
-        /**
-         * How many cards a row holds.
-         *
-         * A row is a sample, not a section: the section is one press away and pages
-         * properly. Twenty is about three screens of scroll on a television and costs
-         * one bounded query.
-         */
-        const val ROW = 20
-
         const val SUBSCRIPTION_GRACE_MS = 5_000L
     }
 }

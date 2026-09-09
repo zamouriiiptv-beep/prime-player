@@ -1,9 +1,5 @@
 package com.castivio.core.design.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,31 +12,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import com.castivio.core.common.AppError
 import com.castivio.core.common.EmptyReason
 import com.castivio.core.common.ScreenState
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
-import com.castivio.core.design.theme.DeviceClass
 import com.castivio.core.design.theme.Motion
-import com.castivio.core.design.theme.Radius
-import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.Spacing
 
 /**
@@ -182,12 +168,23 @@ private fun errorCopy(error: AppError): StateCopy = when (error) {
 // ------------------------------------------------------------------ the shell
 
 /**
- * The adaptive shell chrome: a navigation rail on a television or tablet, a bottom
- * bar on a phone. One shell, chosen by [DeviceClass] — design invariant 4.
+ * The shell chrome: one navigation rail, on every frame.
+ *
+ * ## Why there is no bottom bar any more
+ *
+ * There were two — a rail on a set and a tall bottom bar on a phone — and the bar was
+ * the wrong instrument for this app twice over. Castivio is locked to landscape, so
+ * *height* is the dimension that runs out; a 393dp-tall handset was giving about a
+ * sixth of it to five icons with labels under them, on a screen whose whole job is to
+ * show a dashboard in one frame. And the bar is a phone-app idiom on a product that
+ * is a television first: the rail is what a viewer three metres away can find with a
+ * D-pad, and it costs width, which is the dimension this app has to spare.
+ *
+ * One chrome also means one selection language rather than two that have to be kept
+ * in step by hand — the same reason `CastivioFrame` exists.
  *
  * The rail expands over content on focus rather than pushing it, so nothing moves
- * under the cursor. The bar is fixed and touch-first. Both speak the same selection
- * language: the active destination takes the violet indicator.
+ * under the cursor, and the active destination takes the violet indicator.
  */
 @Composable
 fun CastivioShell(
@@ -196,106 +193,19 @@ fun CastivioShell(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    val device = CastivioTheme.device
     Box(modifier.fillMaxSize()) {
-        if (device == DeviceClass.Television || device == DeviceClass.Expanded) {
-            Row(Modifier.fillMaxSize()) {
-                CastivioNavRail(
-                    destinations = destinations,
-                    selectedIndex = selectedIndex,
-                    expanded = false,
-                    modifier = Modifier
-                        .statusBarsPadding()
-                        .navigationBarsPadding()
-                        .padding(Spacing.sm),
-                )
-                Box(Modifier.weight(1f).fillMaxSize()) { content() }
-            }
-        } else {
-            Column(Modifier.fillMaxSize()) {
-                Box(Modifier.weight(1f).fillMaxWidth()) { content() }
-                CastivioBottomBar(destinations, selectedIndex)
-            }
-        }
-    }
-}
-
-/**
- * The phone navigation bar: fixed five, Material's active indicator on the
- * selected one. Content scrolls under it, so it carries its own opaque ground.
- */
-@Composable
-fun CastivioBottomBar(
-    destinations: List<NavAction>,
-    selectedIndex: Int,
-    modifier: Modifier = Modifier,
-) {
-    val colors = CastivioTheme.colors
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(colors.backgroundElevated.copy(alpha = 0.96f))
-            .border(
-                width = 1.dp,
-                color = colors.divider,
-                shape = RoundedCornerShape(0.dp),
+        Row(Modifier.fillMaxSize()) {
+            CastivioNavRail(
+                destinations = destinations,
+                selectedIndex = selectedIndex,
+                expanded = false,
+                modifier = Modifier
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .padding(Spacing.sm),
             )
-            .navigationBarsPadding()
-            .padding(vertical = Spacing.xs),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        destinations.forEachIndexed { index, d ->
-            BottomBarItem(
-                action = d,
-                selected = index == selectedIndex,
-                modifier = Modifier.weight(1f),
-            )
+            Box(Modifier.weight(1f).fillMaxSize()) { content() }
         }
-    }
-}
-
-@Composable
-private fun BottomBarItem(
-    action: NavAction,
-    selected: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val colors = CastivioTheme.colors
-    val interaction = remember { MutableInteractionSource() }
-    var focused by remember { mutableStateOf(false) }
-    val tint = when {
-        selected -> colors.secondary
-        focused -> colors.onBackground
-        else -> colors.onBackgroundMuted
-    }
-    Column(
-        modifier = modifier
-            .onFocusChanged { focused = it.isFocused || it.hasFocus }
-            .clickable(interaction, indication = null, onClick = action.onClick)
-            .padding(vertical = Spacing.xs)
-            .semantics {
-                this.selected = selected
-                contentDescription = action.label
-            },
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
-    ) {
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(Radius.pill))
-                .then(
-                    if (selected) {
-                        Modifier.background(colors.secondaryContainer.copy(alpha = 0.55f))
-                    } else {
-                        Modifier
-                    },
-                )
-                .padding(horizontal = Spacing.lg, vertical = Spacing.xxs),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(action.icon, null, tint = tint, modifier = Modifier.size(Sizing.iconMd))
-        }
-        Text(action.label, style = CastivioType.labelSmall, color = tint)
     }
 }
 
