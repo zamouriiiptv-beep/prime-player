@@ -72,4 +72,12 @@
 
     <string name="home_disclaimer">Castivio is a media player. It does not provide channels, films or subscriptions — you add your own.</string>
 
+
+    <!-- The order a section is read in. %1$s is one of the four below. -->
+    <string name="browse_sort">Sort: %1$s</string>
+    <string name="browse_sort_provider">Provider</string>
+    <string name="browse_sort_name_asc">A to Z</string>
+    <string name="browse_sort_name_desc">Z to A</string>
+    <string name="browse_sort_recent">Recent</string>
+
 </resources>

@@ -11,6 +11,7 @@ import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaItem
 import com.castivio.domain.Season
 import com.castivio.domain.SeriesSummary
+import com.castivio.domain.SortOrder
 import com.castivio.domain.SourceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -43,6 +44,14 @@ data class BrowseState(
      */
     val categoryNames: Map<String, String> = emptyMap(),
     val selectedGroup: String? = null,
+    /**
+     * The order the rows are read in.
+     *
+     * Part of the state rather than kept in the screen, because it is half of the
+     * query: a control that owned it locally would be a control whose value and the
+     * rows on screen could disagree for a frame after a section change.
+     */
+    val sort: SortOrder = SortOrder.PROVIDER,
     /** From an indexed `COUNT`, never from measuring a list. */
     val total: Int = 0,
     val providerLabel: String? = null,
@@ -73,6 +82,16 @@ class BrowseViewModel @Inject constructor(
     private val section = MutableStateFlow(CatalogSection.Live)
     private val chosen = MutableStateFlow<String?>(null)
 
+    /**
+     * The order, which the provider's own is the default for.
+     *
+     * A playlist arrives in the order the provider wrote it, and for live television
+     * that order *is* the channel numbering — the thing every remote user navigates
+     * by. Sorting it alphabetically by default would throw away the one piece of
+     * structure an IPTV catalogue reliably has.
+     */
+    private val order = MutableStateFlow(SortOrder.PROVIDER)
+
     private val groups: Flow<List<MediaGroup>> =
         section.flatMapLatest { catalog.groups(it.kind) }
 
@@ -84,25 +103,33 @@ class BrowseViewModel @Inject constructor(
      * querying a group id that no longer exists.
      */
     private val query: Flow<CatalogQuery> =
-        combine(section, chosen, groups) { current, selected, available ->
-            CatalogQuery(kind = current.kind, groupId = surviving(selected, available))
+        combine(section, chosen, groups, order) { current, selected, available, sort ->
+            CatalogQuery(
+                kind = current.kind,
+                groupId = surviving(selected, available),
+                sort = sort,
+            )
         }
 
     val state: StateFlow<BrowseState> = combine(
         section,
-        chosen,
         groups,
+        // The query rather than the raw selection: it has already resolved a category
+        // that did not survive a re-import, and it carries the order, so the control
+        // and the rows cannot disagree about either.
+        query,
         // A count per section and category, answered by SQL. It is a flow because an
         // import running behind the screen changes it, and a number that only
         // refreshes when the user navigates away and back is a number nobody trusts.
         query.flatMapLatest { catalog.count(it.kind, it.groupId) },
         sources.active().map { it?.label },
-    ) { current, selected, available, total, provider ->
+    ) { current, available, asked, total, provider ->
         BrowseState(
             section = current,
             groups = available,
             categoryNames = available.associate { it.id to it.name },
-            selectedGroup = surviving(selected, available),
+            selectedGroup = asked.groupId,
+            sort = asked.sort,
             total = total,
             providerLabel = provider,
             loading = false,
@@ -132,6 +159,17 @@ class BrowseViewModel @Inject constructor(
     /** Null is the "all" pseudo-category, which is a selection like any other. */
     fun choose(groupId: String?) {
         chosen.value = groupId
+    }
+
+    /**
+     * Re-reads the section in another order.
+     *
+     * Changes the query, so the pager starts a new stream and the list returns to the
+     * top — which is what a re-sort means, and is why this is not a client-side sort
+     * of the rows that happen to be loaded.
+     */
+    fun sortBy(value: SortOrder) {
+        order.value = value
     }
 
     /** One show's seasons, small enough to read whole because it is bounded by the show. */

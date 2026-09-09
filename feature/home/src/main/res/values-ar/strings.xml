@@ -62,4 +62,11 @@
 
     <string name="home_disclaimer">Castivio مشغّل وسائط. لا يوفّر قنوات ولا أفلامًا ولا اشتراكات — أنت من يضيفها.</string>
 
+
+    <string name="browse_sort">الترتيب: %1$s</string>
+    <string name="browse_sort_provider">حسب المزوّد</string>
+    <string name="browse_sort_name_asc">أ إلى ي</string>
+    <string name="browse_sort_name_desc">ي إلى أ</string>
+    <string name="browse_sort_recent">الأحدث</string>
+
 </resources>

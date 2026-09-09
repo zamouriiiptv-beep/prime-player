@@ -6,6 +6,7 @@ import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaKind
 import com.castivio.domain.Movie
 import com.castivio.domain.Series
+import com.castivio.domain.SortOrder
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -175,5 +176,30 @@ class CatalogTest {
         val show = Series(id = "s1", title = "Chernobyl", artworkUrl = null)
 
         assertNull(show.asSelection())
+    }
+
+    // ------------------------------------------------------------- the sort cycle
+
+    /**
+     * Every order is reachable, and pressing the chip enough times gets back.
+     *
+     * A cycling control has exactly one way to be wrong, and it is not a typo in a
+     * label: a branch that maps two values to the same successor silently strands one
+     * of them, and the user finds out by pressing a button four times and never seeing
+     * the order they wanted. That is invisible in review and trivial to assert.
+     */
+    @Test
+    fun `the sort cycle reaches every order and returns to where it started`() {
+        val start = SortOrder.PROVIDER
+        val visited = mutableListOf(start)
+        var current = start
+        repeat(SortOrder.entries.size - 1) {
+            current = current.next()
+            visited += current
+        }
+
+        assertEquals(SortOrder.entries.toSet(), visited.toSet())
+        assertEquals(SortOrder.entries.size, visited.distinct().size)
+        assertEquals(start, current.next())
     }
 }

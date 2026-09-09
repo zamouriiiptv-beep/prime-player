@@ -41,6 +41,7 @@ import androidx.compose.material3.Text
 import com.castivio.core.common.EmptyReason
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Sort
 import com.castivio.core.design.components.CardShape
 import com.castivio.core.design.components.CastivioChip
 import com.castivio.core.design.components.ChannelCard
@@ -57,6 +58,7 @@ import com.castivio.core.design.theme.Spacing
 import com.castivio.domain.Channel
 import com.castivio.domain.MediaItem
 import com.castivio.domain.SeriesSummary
+import com.castivio.domain.SortOrder
 import androidx.paging.LoadState
 
 /**
@@ -116,11 +118,24 @@ fun BrowseScreen(
             title = stringResource(section.label),
             count = state.total,
             trailing = {
-                CastivioChip(
-                    text = stringResource(R.string.search_label),
-                    onClick = onSearch,
-                    icon = Icons.Rounded.Search,
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    // Not on Series. That section pages *shows*, aggregated by SQL from
+                    // their episodes, and `CatalogPager.series` reads one fixed order —
+                    // so a control here would be a control that does nothing. An
+                    // affordance that lies is worse than one that is absent.
+                    if (section != CatalogSection.Series) {
+                        CastivioChip(
+                            text = stringResource(R.string.browse_sort, stringResource(state.sort.label)),
+                            onClick = { model.sortBy(state.sort.next()) },
+                            icon = Icons.Rounded.Sort,
+                        )
+                    }
+                    CastivioChip(
+                        text = stringResource(R.string.search_label),
+                        onClick = onSearch,
+                        icon = Icons.Rounded.Search,
+                    )
+                }
             },
         )
 
@@ -451,6 +466,30 @@ private const val SKELETON_ROWS = 8
 
 /** A channel row's height, so the skeleton and the content occupy the same space. */
 private val SKELETON_HEIGHT = 46.dp
+
+/**
+ * The next order in the cycle.
+ *
+ * A cycling chip rather than a menu, because this is a television first: a menu is
+ * open, move, choose, close — four presses for a choice between four values, three of
+ * which a viewer will try in order anyway. The chip states the order it is in, so no
+ * press is a guess.
+ */
+internal fun SortOrder.next(): SortOrder = when (this) {
+    SortOrder.PROVIDER -> SortOrder.NAME_ASC
+    SortOrder.NAME_ASC -> SortOrder.NAME_DESC
+    SortOrder.NAME_DESC -> SortOrder.RECENTLY_ADDED
+    SortOrder.RECENTLY_ADDED -> SortOrder.PROVIDER
+}
+
+/** How an order reads on the chip. */
+private val SortOrder.label: Int
+    get() = when (this) {
+        SortOrder.PROVIDER -> R.string.browse_sort_provider
+        SortOrder.NAME_ASC -> R.string.browse_sort_name_asc
+        SortOrder.NAME_DESC -> R.string.browse_sort_name_desc
+        SortOrder.RECENTLY_ADDED -> R.string.browse_sort_recent
+    }
 
 /** Its own name, as the user reads it. */
 internal val CatalogSection.label: Int
