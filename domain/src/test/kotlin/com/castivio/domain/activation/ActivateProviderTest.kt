@@ -588,4 +588,62 @@ class ActivateProviderTest {
         assertEquals(1, sources.stored.size)
     }
 
+
+    // ------------------------------------------- connecting without downloading
+
+    /**
+     * What activation does now, for every source kind that has one.
+     *
+     * `fetchCatalogue = false` is what the screen asks for, and the guarantee it needs
+     * is narrow and absolute: the provider is checked, saved and made active, and the
+     * importer is never touched. Asserted per kind rather than once, because the two
+     * kinds take different paths through the importer and "M3U starts downloading the
+     * moment you add it" is a real thing that happened — from a *validator* that read
+     * the whole file, which is why `HttpStreamSourceTest` now measures that too.
+     */
+    @Test
+    fun `connecting an xtream provider saves it and imports nothing`() = runTest {
+        val sources = Sources()
+        val importer = importOf(ImportProgress.Done(21_874, 9_000))
+
+        val phases = activateProvider(Validator(usable()), importer, sources)
+            .activate(xtream, "Nova", t0, fetchCatalogue = false)
+            .toList()
+
+        assertEquals(0, importer.started)
+        assertTrue("${phases.last()}", phases.last() is ActivationPhase.Succeeded)
+        assertEquals(1, sources.registrations)
+        assertEquals("src-1", sources.activeId)
+    }
+
+    @Test
+    fun `connecting an m3u playlist saves it and parses nothing`() = runTest {
+        val sources = Sources()
+        val importer = importOf(ImportProgress.Done(40_000, 9_000))
+
+        val phases = activateProvider(Validator(usable()), importer, sources)
+            .activate(m3u, "Playlist", t0, fetchCatalogue = false)
+            .toList()
+
+        assertEquals(0, importer.started)
+        assertTrue("${phases.last()}", phases.last() is ActivationPhase.Succeeded)
+        assertEquals("src-1", sources.activeId)
+    }
+
+    /** A provider that says no is still refused. Connecting cannot save bad details. */
+    @Test
+    fun `connecting still refuses a provider that says no`() = runTest {
+        val sources = Sources()
+        val importer = importOf(ImportProgress.Done(1, 1))
+
+        val refused = Outcome.Success(ProviderStatus(usable = false, statusLabel = "Banned"))
+        val phases = activateProvider(Validator(refused), importer, sources)
+            .activate(xtream, null, t0, fetchCatalogue = false)
+            .toList()
+
+        assertTrue("${phases.last()}", phases.last() is ActivationPhase.Failed)
+        assertEquals(0, importer.started)
+        assertEquals(0, sources.registrations)
+        assertNull(sources.activeId)
+    }
 }

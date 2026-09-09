@@ -4,16 +4,21 @@ import com.castivio.core.common.AppError
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.ResponseBody
 import okio.Buffer
+import okio.BufferedSource
+import okio.ForwardingSource
 import okio.GzipSink
 import okio.buffer
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Against a real server, because none of this is verifiable by inspection:
@@ -194,7 +199,7 @@ class HttpStreamSourceTest {
     }
 
     @Test
-    fun `a change probe asks the server and reads almost nothing`() {
+    fun `a change probe asks with a range header and no cache`() {
         server.enqueue(MockResponse().setBody("#EXTM3U\n" + "x".repeat(100_000)))
 
         val result = source.hasChanged(RemoteRequest(server.url("/p.m3u").toString(), noCache = true))
@@ -203,6 +208,62 @@ class HttpStreamSourceTest {
         val request = server.takeRequest()
         assertEquals("no-cache", request.getHeader("Cache-Control"))
         assertEquals("bytes=0-4095", request.getHeader("Range"))
+    }
+
+    /**
+     * The regression, and the reason the test above is no longer called "reads almost
+     * nothing": it never checked that it did.
+     *
+     * `Range` is a request, not an instruction. Plenty of playlist endpoints ignore it
+     * and answer `200` with the whole file, and the probe used to drain whatever
+     * arrived — so validating an M3U link downloaded the entire playlist before a
+     * single row had been asked for, and timed out on a slow line before activation
+     * could finish. The header assertion above passed the whole time.
+     *
+     * So this one measures the bytes off the wire. The bound is generous on purpose:
+     * the reader buffers 64 KB, so the floor is a buffer rather than the 4 KB probe,
+     * and what is being proved is "a page, not a file".
+     */
+    @Test
+    fun `a change probe stops reading when the server ignores the range header`() {
+        val read = AtomicLong()
+        val counting = HttpStreamSource(
+            OkHttpClient.Builder()
+                .connectTimeout(2, TimeUnit.SECONDS)
+                .readTimeout(2, TimeUnit.SECONDS)
+                .addNetworkInterceptor { chain ->
+                    val response = chain.proceed(chain.request())
+                    val body = response.body!!
+                    response.newBuilder().body(CountingBody(body, read)).build()
+                }
+                .build(),
+        )
+        // A megabyte, answered 200 with no regard for the Range header — which is
+        // what MockWebServer does by default, and what these providers do in the field.
+        server.enqueue(MockResponse().setBody("#EXTM3U\n" + "x".repeat(1_000_000)))
+
+        val result = counting.hasChanged(
+            RemoteRequest(server.url("/p.m3u").toString(), noCache = true),
+        )
+
+        assertTrue(result is RemoteResult.Success)
+        assertTrue("the probe read ${read.get()} bytes of a 1 MB body", read.get() < 256 * 1024)
+    }
+
+    /**
+     * A fingerprint of the first page is not the file's fingerprint.
+     *
+     * Recorded as one it would make the next refresh believe a changed playlist was
+     * unchanged, and skip an import that was needed. The validators are the only
+     * freshness signal a probe is entitled to produce.
+     */
+    @Test
+    fun `a change probe reports no content hash`() {
+        server.enqueue(MockResponse().setBody("#EXTM3U\n" + "x".repeat(100_000)))
+
+        val result = source.hasChanged(RemoteRequest(server.url("/p.m3u").toString(), noCache = true))
+
+        assertNull((result as RemoteResult.Success).contentHash)
     }
 
     @Test
@@ -237,5 +298,23 @@ class HttpStreamSourceTest {
         val result = Buffer()
         GzipSink(result).buffer().use { it.writeUtf8(content) }
         return result
+    }
+
+    /** Counts the bytes actually pulled off the socket, so "bounded" is a number. */
+    private class CountingBody(
+        private val delegate: ResponseBody,
+        private val counter: AtomicLong,
+    ) : ResponseBody() {
+        override fun contentType() = delegate.contentType()
+
+        override fun contentLength() = delegate.contentLength()
+
+        override fun source(): BufferedSource = object : ForwardingSource(delegate.source()) {
+            override fun read(sink: Buffer, byteCount: Long): Long {
+                val n = super.read(sink, byteCount)
+                if (n > 0) counter.addAndGet(n)
+                return n
+            }
+        }.buffer()
     }
 }

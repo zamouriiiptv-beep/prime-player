@@ -1,7 +1,6 @@
 package com.castivio.domain.entitlement
 
 import com.castivio.domain.ProviderSource
-import com.castivio.domain.RefreshPolicy
 
 /**
  * Where the app starts, decided by two independent gates in a fixed order.
@@ -80,14 +79,26 @@ fun startDestination(
     // Gate 1. The licence decides whether the app may be used at all.
     !entitlement.allowsUse -> StartDestination.Licence(licenceReason(entitlement))
 
-    // Gate 2. A usable catalogue decides whether there is anything to show.
+    // Gate 2. A configured provider decides whether there is anything to show.
     //
-    // Note what is *not* consulted here: whether the provider is reachable, whether
+    // **A provider, not a catalogue.** This asked `RefreshPolicy.needsFirstImport`
+    // until sections became something the app fetches when they are opened, and that
+    // question is now answered "yes" by every provider that has just been added —
+    // activation registers credentials and imports nothing. The gate sent the user
+    // straight back to the screen they had just completed, which read as "Connect
+    // does nothing" and as "Home never opens", and both were this line.
+    //
+    // The rule it replaces was right for an app that imported everything up front:
+    // opening Home on an empty database would have been opening a dead end. It is
+    // wrong for one that fetches per section, because the empty database is now the
+    // normal state of a working provider and Home is where the user goes to fill it.
+    //
+    // Note what is still *not* consulted: whether the provider is reachable, whether
     // its subscription has lapsed, or when it was last refreshed. An expired provider
     // does not make a committed catalogue disappear, so it does not change where the
     // app starts — it changes what Home says. Keeping the entry rule free of those
     // exceptions is what keeps it a rule.
-    source == null || RefreshPolicy.needsFirstImport(source) -> StartDestination.Activation
+    source == null -> StartDestination.Activation
 
     else -> StartDestination.Home
 }

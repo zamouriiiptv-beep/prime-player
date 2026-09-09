@@ -87,12 +87,33 @@ class HttpStreamSource(private val client: OkHttpClient) {
      * Uses GET with validators rather than HEAD: some Xtream panels answer HEAD
      * with 405 or with a 200 and no validators, which would make every check look
      * like a change.
+     *
+     * ## The read is bounded, and that is the whole point of the method
+     *
+     * `Range: bytes=0-4095` asks for four kilobytes, and a provider that honours it
+     * sends four kilobytes. Plenty do not: an IPTV playlist endpoint that ignores the
+     * header answers `200` with the entire file, and the loop that used to drain the
+     * body "so the connection is used as intended" then read every byte of a 100 MB
+     * playlist in order to throw it away.
+     *
+     * That is not a slow probe, it is the download this request exists to avoid — and
+     * it is what made adding an M3U link start a full transfer at the moment of
+     * *validating* it, and time out on a slow line before activation could finish.
+     * Nothing downstream had asked for a single row.
+     *
+     * So it reads at most the probe and stops. Closing a response early discards the
+     * connection instead of returning it to the pool, which is the correct trade when
+     * the alternative is the rest of the file.
      */
     fun hasChanged(request: RemoteRequest): RemoteResult<Boolean> =
         when (val result = stream(request.copy(rangeFirstBytes = PROBE_BYTES)) { reader ->
-            // Read a little so the connection is used as intended, and discard it.
-            val buffer = CharArray(1024)
-            while (reader.read(buffer) > 0) Unit
+            val buffer = CharArray(PROBE_BYTES)
+            var read = 0
+            while (read < PROBE_BYTES) {
+                val n = reader.read(buffer, read, PROBE_BYTES - read)
+                if (n <= 0) break
+                read += n
+            }
             true
         }) {
             is RemoteResult.NotModified -> RemoteResult.NotModified
@@ -100,7 +121,12 @@ class HttpStreamSource(private val client: OkHttpClient) {
                 value = true,
                 etag = result.etag,
                 lastModified = result.lastModified,
-                contentHash = result.contentHash,
+                // Never the hash. It is computed from the bytes that passed through,
+                // and only a few thousand of them did — a fingerprint of the first
+                // page recorded as the file's would make every later refresh believe
+                // a changed playlist was unchanged. The validators above are the
+                // freshness signal a probe is entitled to produce.
+                contentHash = null,
             )
             is RemoteResult.Failure -> result
         }

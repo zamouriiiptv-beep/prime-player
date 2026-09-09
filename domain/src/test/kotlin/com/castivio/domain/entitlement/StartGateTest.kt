@@ -79,23 +79,31 @@ class StartGateTest {
         assertEquals(StartDestination.Activation, startDestination(entitled, source = null))
     }
 
+    /**
+     * The regression this gate was sending users into a loop over.
+     *
+     * A provider that has just been added has imported nothing — activation checks
+     * credentials and saves them, and the sections are fetched when they are opened.
+     * While this gate asked `needsFirstImport` it answered "no catalogue, go back to
+     * activation" for exactly that provider, so completing the form returned the user
+     * to the form. On a device it read as "Connect does nothing" and as "Home never
+     * opens"; both were this one condition.
+     *
+     * A provider is the gate now. Home is where an empty catalogue gets filled, so
+     * an empty catalogue is a reason to *open* Home rather than to refuse it.
+     */
     @Test
-    fun `entitled with an import that never completed goes to activation`() {
+    fun `entitled with a provider that has imported nothing opens home`() {
         assertEquals(
-            StartDestination.Activation,
-            startDestination(entitled, source(lastImportAtMs = null)),
+            StartDestination.Home,
+            startDestination(entitled, source(lastImportAtMs = null, itemCount = 0)),
         )
     }
 
-    /**
-     * An import that committed nothing is not success. Landing on an empty app reads
-     * as broken, and this is the one case where "the import worked" and "the user has
-     * something" disagree.
-     */
     @Test
-    fun `entitled with a zero-item catalogue goes to activation`() {
+    fun `entitled with a zero-item catalogue opens home`() {
         assertEquals(
-            StartDestination.Activation,
+            StartDestination.Home,
             startDestination(entitled, source(itemCount = 0)),
         )
     }
@@ -144,15 +152,15 @@ class StartGateTest {
             StartDestination.Licence(LicenceReason.TRIAL_EXPIRED),
             startDestination(EntitlementState.TrialExpired, source()),
         )
-        // Licence good, catalogue bad  → Activation
+        // Licence good, no provider    → Activation
         assertEquals(
             StartDestination.Activation,
-            startDestination(entitled, source(itemCount = 0)),
+            startDestination(entitled, source = null),
         )
         // Both bad                     → Licence, because gate one comes first
         assertEquals(
             StartDestination.Licence(LicenceReason.TRIAL_EXPIRED),
-            startDestination(EntitlementState.TrialExpired, source(itemCount = 0)),
+            startDestination(EntitlementState.TrialExpired, source = null),
         )
     }
 
