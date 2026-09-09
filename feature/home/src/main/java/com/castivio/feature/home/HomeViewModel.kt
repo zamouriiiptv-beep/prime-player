@@ -12,6 +12,7 @@ import com.castivio.domain.SourceKind
 import com.castivio.domain.SourceRepository
 import com.castivio.domain.entitlement.EntitlementRepository
 import com.castivio.domain.entitlement.EntitlementState
+import com.castivio.domain.identity.DeviceIdentity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -64,6 +65,15 @@ data class HomeState(
      * the count would collapse the two and re-download an empty section forever.
      */
     val sections: Map<MediaKind, Long> = emptyMap(),
+    /**
+     * This device's address, which is what a provider activating by MAC asks for.
+     *
+     * Read once and carried in the state rather than looked up where it is drawn: it
+     * is derived from a seed the operating system keeps and cannot change while the
+     * app is running, so re-deriving it per composition would be work with a
+     * guaranteed identical answer.
+     */
+    val mac: String = "",
     val loading: Boolean = true,
 ) {
     /** True once a provider has been configured, whatever it did or did not carry. */
@@ -114,7 +124,10 @@ class HomeViewModel @Inject constructor(
     sources: SourceRepository,
     entitlement: EntitlementRepository,
     marks: SectionCatalogue,
+    identity: DeviceIdentity,
 ) : ViewModel() {
+
+    private val mac: String = identity.current().macAddress.value
 
     private val counts: Flow<Counts> = combine(
         catalog.count(MediaKind.LIVE),
@@ -152,6 +165,7 @@ class HomeViewModel @Inject constructor(
             radioCount = tally.radio,
             entitlement = licence,
             sections = fetched,
+            mac = mac,
             loading = false,
         )
     }.mapLatest { counted ->

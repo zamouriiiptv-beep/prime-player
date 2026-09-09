@@ -93,6 +93,31 @@
     <string name="browse_fetch_retry">Try again</string>
 
 
+    <!-- ============================================ the dashboard's own two cards
+
+         Castivio's licence, not the provider's subscription. The provider's status
+         and expiry are returned by the validator and have nowhere to be stored, so
+         they are not shown at all rather than shown from nothing. -->
+    <string name="home_status_licence">Licence</string>
+    <string name="home_status_expires">Expires on</string>
+    <string name="home_plan_trial">Trial</string>
+    <string name="home_plan_annual">Annual</string>
+    <string name="home_plan_lifetime">Lifetime</string>
+    <string name="home_plan_inactive">Inactive</string>
+    <string name="home_expires_never">Never</string>
+    <!-- No expiry is known: an unknown licence, or our service being unreachable. -->
+    <string name="home_expires_none">—</string>
+
+    <!-- Castivio's licence, and the language chooser that lives on the same screen. -->
+    <string name="home_action_licence">Licence &amp; language</string>
+
+    <!-- What this device is. %1$s is the address a MAC-activating provider asks for. -->
+    <string name="home_device_mac">MAC: %1$s</string>
+    <string name="home_device_state">Device: %1$s</string>
+    <string name="home_device_activated">Activated</string>
+    <string name="home_device_locked">Locked</string>
+    <string name="home_device_version">Version %1$s</string>
+
     <!-- A tile whose section has never been brought onto this device. -->
     <string name="home_not_fetched">Not downloaded yet</string>
     <!-- %1$s is a date and time. Shown under the count on a downloaded section. -->

@@ -82,4 +82,22 @@
     <string name="home_not_fetched">لم يُحمَّل بعد</string>
     <string name="home_fetched_at">محفوظ محليًا · %1$s</string>
 
+
+    <string name="home_status_licence">الترخيص</string>
+    <string name="home_status_expires">ينتهي في</string>
+    <string name="home_plan_trial">تجربة</string>
+    <string name="home_plan_annual">سنوي</string>
+    <string name="home_plan_lifetime">مدى الحياة</string>
+    <string name="home_plan_inactive">غير مفعّل</string>
+    <string name="home_expires_never">لا ينتهي</string>
+    <string name="home_expires_none">—</string>
+
+    <string name="home_action_licence">الترخيص واللغة</string>
+
+    <string name="home_device_mac">MAC: %1$s</string>
+    <string name="home_device_state">الجهاز: %1$s</string>
+    <string name="home_device_activated">مُفعَّل</string>
+    <string name="home_device_locked">مقفل</string>
+    <string name="home_device_version">الإصدار %1$s</string>
+
 </resources>
