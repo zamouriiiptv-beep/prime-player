@@ -60,6 +60,7 @@ import com.castivio.core.design.theme.Spacing
 import com.castivio.core.navigation.BackPolicy
 import com.castivio.core.navigation.ShellBack
 import com.castivio.domain.SeriesSummary
+import com.castivio.feature.activation.ActivationRoute
 import com.castivio.feature.home.BrowseScreen
 import com.castivio.feature.home.CatalogSearchScreen
 import com.castivio.feature.home.CatalogSection
@@ -72,6 +73,8 @@ import com.castivio.feature.player.PlayerRequest
 import com.castivio.feature.player.PlayerRoute
 import com.castivio.playback.api.MediaKind
 import com.castivio.tv.licence.LicenceWithLanguage
+import com.castivio.tv.locale.LocalLocaleController
+import com.castivio.tv.player.PlayerHost
 
 /** The top-level destinations the shell can be on. */
 private enum class Dest { Home, Live, Movies, Series, Radio, Favourites, Library, Search, Settings }
@@ -85,6 +88,25 @@ private sealed interface Overlay {
     data class Play(val request: PlayerRequest) : Overlay
 
     data object StateBoard : Overlay
+
+    /**
+     * The subscription flow, over the shell.
+     *
+     * The same `ActivationRoute` the gate shows before there is a catalogue, opened
+     * here by a working app to add a second provider or replace the one showing. It
+     * is an overlay rather than a rail destination for the reason the licence screen
+     * is: the flow owns the whole viewport — its own header, its own back ladder, its
+     * own immersive mode — and drawing it inside the rail would be a different
+     * composition from the one that was designed and measured.
+     *
+     * Nothing about the flow changed to make this work. It already reported success
+     * through `onActivated` and exhaustion of its back stack through `onExit`; the
+     * gate turns those into "re-ask where the app should open" and the shell turns
+     * both into "close me". What makes the new content appear afterwards is not a
+     * callback at all — Home reads Room through flows, so the counts move on their
+     * own while this is still on screen.
+     */
+    data object AddSource : Overlay
 
     /**
      * Castivio's own licence, reached from Settings.
@@ -193,26 +215,33 @@ fun ShellScreen(
                 Dest.Home -> HomeScreen(
                     onPlay = play,
                     onSeeSection = { dest = it.destination },
+                    onAddSource = { overlay = Overlay.AddSource },
+                    onSearch = { dest = Dest.Search },
+                    onSettings = { dest = Dest.Settings },
                 )
                 Dest.Live -> BrowseScreen(
                     section = CatalogSection.Live,
                     onPlay = play,
                     onOpenShow = { overlay = Overlay.Show(it) },
+                    onSearch = { dest = Dest.Search },
                 )
                 Dest.Movies -> BrowseScreen(
                     section = CatalogSection.Movies,
                     onPlay = play,
                     onOpenShow = { overlay = Overlay.Show(it) },
+                    onSearch = { dest = Dest.Search },
                 )
                 Dest.Series -> BrowseScreen(
                     section = CatalogSection.Series,
                     onPlay = play,
                     onOpenShow = { overlay = Overlay.Show(it) },
+                    onSearch = { dest = Dest.Search },
                 )
                 Dest.Radio -> BrowseScreen(
                     section = CatalogSection.Radio,
                     onPlay = play,
                     onOpenShow = { overlay = Overlay.Show(it) },
+                    onSearch = { dest = Dest.Search },
                 )
                 Dest.Favourites -> FavouritesScreen()
                 Dest.Library -> LibraryScreen(onOpenSection = { dest = it })
@@ -241,6 +270,25 @@ fun ShellScreen(
             // that difference is the caller's -- the screen itself has no
             // opinion about where back goes.
             is Overlay.Licence -> LicenceWithLanguage(onLeave = { overlay = null })
+            // Both seams mean the same thing from here. `onActivated` fires when an
+            // import succeeds and `onExit` when the flow runs out of back stack, and
+            // in a working app either one is "put me back where I was".
+            //
+            // `PlayerHost` for the same reason the gate wraps it: the flow lists the
+            // device's own media and a press on one of those is a press on a file, not
+            // on a subscription. Without it, that press would be swallowed.
+            is Overlay.AddSource -> {
+                val locale = LocalLocaleController.current
+                PlayerHost { onPlayLocal ->
+                    ActivationRoute(
+                        onActivated = { overlay = null },
+                        onExit = { overlay = null },
+                        language = locale.current.language,
+                        onLanguage = locale::choose,
+                        onPlay = onPlayLocal,
+                    )
+                }
+            }
             null -> {}
         }
     }

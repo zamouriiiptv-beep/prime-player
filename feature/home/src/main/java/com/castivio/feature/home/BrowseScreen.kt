@@ -39,7 +39,10 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
 import androidx.compose.material3.Text
 import com.castivio.core.common.EmptyReason
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Search
 import com.castivio.core.design.components.CardShape
+import com.castivio.core.design.components.CastivioChip
 import com.castivio.core.design.components.ChannelCard
 import com.castivio.core.design.components.EmptyState
 import com.castivio.core.design.components.MediaCard
@@ -74,6 +77,17 @@ fun BrowseScreen(
     section: CatalogSection,
     onPlay: (CatalogSelection) -> Unit,
     onOpenShow: (SeriesSummary) -> Unit,
+    /**
+     * Leave for search, from inside a section.
+     *
+     * The reference players put a search field in this header, and a field here would
+     * be a second search — a second query, a second debounce, a second set of empty
+     * states — beside the one `CatalogSearchScreen` already runs across the whole
+     * catalogue. So the header carries the *way in* rather than the field: one press,
+     * one search, and the results still span every section, which is what someone
+     * typing a film name in Live TV actually wanted.
+     */
+    onSearch: () -> Unit = {},
     modifier: Modifier = Modifier,
     /**
      * Keyed by section, which is what gives each one its own selection.
@@ -98,7 +112,17 @@ fun BrowseScreen(
             .padding(horizontal = device.screenPadding, vertical = Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        SectionHeader(title = stringResource(section.label), count = state.total)
+        SectionHeader(
+            title = stringResource(section.label),
+            count = state.total,
+            trailing = {
+                CastivioChip(
+                    text = stringResource(R.string.search_label),
+                    onClick = onSearch,
+                    icon = Icons.Rounded.Search,
+                )
+            },
+        )
 
         if (twoPane) {
             Row(

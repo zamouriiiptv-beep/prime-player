@@ -36,4 +36,30 @@
     <string name="search_none_detail">جرّب حروفًا أقل، أو جزءًا من الاسم بدل الاسم كاملًا.</string>
     <string name="search_clear">مسح</string>
 
+
+    <!-- ============================================================ لوحة البداية -->
+    <string name="home_tagline">مشغّل IPTV متميّز</string>
+
+    <string name="home_no_source_title">لا يوجد اشتراك بعد</string>
+    <string name="home_no_source_detail">أضف مزوّدك ليستورد Castivio قنواته وأفلامه ومسلسلاته إلى هذا الجهاز. عبر Xtream Codes أو رابط M3U أو التفعيل بعنوان MAC.</string>
+    <string name="home_add_source">إضافة اشتراك</string>
+    <string name="home_change_source">إضافة أو تغيير الاشتراك</string>
+    <string name="home_settings">الإعدادات</string>
+
+    <string name="home_count_live">%1$s قناة</string>
+    <string name="home_count_movies">%1$s فيلم</string>
+    <string name="home_count_series">%1$s مسلسل</string>
+    <string name="home_count_radio">%1$s محطة</string>
+
+    <string name="home_source_m3u">M3U</string>
+    <string name="home_source_file">ملف</string>
+    <string name="home_source_xtream">Xtream</string>
+    <string name="home_source_portal">بوابة</string>
+
+    <string name="home_licence_trial">تجربة · %1$d أيام</string>
+    <string name="home_licence_days">%1$d يومًا</string>
+    <string name="home_licence_lifetime">مدى الحياة</string>
+
+    <string name="home_disclaimer">Castivio مشغّل وسائط. لا يوفّر قنوات ولا أفلامًا ولا اشتراكات — أنت من يضيفها.</string>
+
 </resources>

@@ -41,4 +41,35 @@
     <string name="search_none_detail">Try fewer letters, or part of the name instead of all of it.</string>
     <string name="search_clear">Clear</string>
 
+
+    <!-- ============================================================ the dashboard -->
+    <string name="home_tagline">Premium IPTV player</string>
+
+    <!-- Shown before any provider is configured: the one screen that has to lead
+         somewhere, because nothing else on Home can work until it does. -->
+    <string name="home_no_source_title">No subscription yet</string>
+    <string name="home_no_source_detail">Add your provider and Castivio imports its channels, films and series onto this device. Xtream Codes, an M3U link, or activation by MAC address.</string>
+    <string name="home_add_source">Add a subscription</string>
+    <string name="home_change_source">Add or change subscription</string>
+    <string name="home_settings">Settings</string>
+
+    <!-- %1$s is an already-grouped number: "1,661 channels". -->
+    <string name="home_count_live">%1$s channels</string>
+    <string name="home_count_movies">%1$s films</string>
+    <string name="home_count_series">%1$s series</string>
+    <string name="home_count_radio">%1$s stations</string>
+
+    <!-- Which kind of provider is showing, for a user who has several saved. -->
+    <string name="home_source_m3u">M3U</string>
+    <string name="home_source_file">File</string>
+    <string name="home_source_xtream">Xtream</string>
+    <string name="home_source_portal">Portal</string>
+
+    <!-- Castivio own licence, which is not the provider subscription. -->
+    <string name="home_licence_trial">Trial · %1$d days</string>
+    <string name="home_licence_days">%1$d days</string>
+    <string name="home_licence_lifetime">Lifetime</string>
+
+    <string name="home_disclaimer">Castivio is a media player. It does not provide channels, films or subscriptions — you add your own.</string>
+
 </resources>
