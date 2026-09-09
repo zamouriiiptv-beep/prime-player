@@ -100,7 +100,14 @@ class ActivationViewModel @Inject constructor(
         val source = current.form.source ?: return
 
         running = viewModelScope.launch {
-            activate.activate(source, current.form.label, clock.nowMs())
+            // Checked and saved, not downloaded.
+            //
+            // Activation used to bring the whole catalogue with it, and on a real
+            // provider that is a four-minute wait before the app opens — most of it
+            // spent on a film library the user may never open. Each section is
+            // fetched when it is first opened instead, by `LoadSection`, so what this
+            // screen now proves is only that the credentials work.
+            activate.activate(source, current.form.label, clock.nowMs(), fetchCatalogue = false)
                 .collect { phase -> _state.update { it.copy(phase = phase) } }
         }
     }

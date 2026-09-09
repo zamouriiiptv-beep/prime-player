@@ -68,6 +68,17 @@ class XtreamImportEngine(
         kinds: Set<MediaKind> = DEFAULT_KINDS,
         onProgress: (ImportProgress) -> Unit = {},
         isCancelled: () -> Boolean = { false },
+        /**
+         * How this write relates to what is already stored.
+         *
+         * [ImportMode.REPLACE] for a whole catalogue, which is what a refresh is and
+         * what the default has always been. [ImportMode.APPEND] when [kinds] is a
+         * subset: a section fetched on its own must not prune the sections fetched
+         * before it, and a replacing write would do exactly that at `finish()` —
+         * every row of another generation, which after a per-kind import means every
+         * row of every other kind.
+         */
+        mode: ImportMode = ImportMode.REPLACE,
     ): ImportSummary {
         val started = clock()
         val batch = ArrayList<CatalogItem>(batchSize)
@@ -77,7 +88,7 @@ class XtreamImportEngine(
         var groups = 0
         var cancelled = false
 
-        writer.begin(sourceId)
+        writer.begin(sourceId, mode)
         try {
             for (requested in kinds) {
                 if (cancelled) break

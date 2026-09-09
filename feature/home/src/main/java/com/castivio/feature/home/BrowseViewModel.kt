@@ -11,7 +11,12 @@ import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaItem
 import com.castivio.domain.Season
 import com.castivio.domain.SeriesSummary
+import com.castivio.domain.LoadSection
+import com.castivio.domain.SectionLoad
 import com.castivio.domain.SortOrder
+import com.castivio.domain.time.TrustedTime
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import com.castivio.domain.SourceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -57,6 +62,14 @@ data class BrowseState(
     val providerLabel: String? = null,
     /** True only until the first answer arrives; a category change is not a reload. */
     val loading: Boolean = true,
+    /**
+     * Whether this section is on the device yet, and how far along if it is arriving.
+     *
+     * Null before the question has been asked. Distinct from [loading], which is
+     * about this screen's own queries: a section can have answered every query it has
+     * and still be empty because nobody has fetched it.
+     */
+    val fetch: SectionLoad? = null,
 )
 
 /**
@@ -76,8 +89,13 @@ data class BrowseState(
 class BrowseViewModel @Inject constructor(
     private val catalog: CatalogRepository,
     private val pager: CatalogPager,
+    private val loadSection: LoadSection,
+    private val clock: TrustedTime,
     sources: SourceRepository,
 ) : ViewModel() {
+
+    private val fetch = MutableStateFlow<SectionLoad?>(null)
+    private var fetching: Job? = null
 
     private val section = MutableStateFlow(CatalogSection.Live)
     private val chosen = MutableStateFlow<String?>(null)
@@ -121,9 +139,10 @@ class BrowseViewModel @Inject constructor(
         // A count per section and category, answered by SQL. It is a flow because an
         // import running behind the screen changes it, and a number that only
         // refreshes when the user navigates away and back is a number nobody trusts.
+        // It is also how a section being fetched right now fills in front of the user.
         query.flatMapLatest { catalog.count(it.kind, it.groupId) },
-        sources.active().map { it?.label },
-    ) { current, available, asked, total, provider ->
+        combine(sources.active().map { it?.label }, fetch) { provider, state -> provider to state },
+    ) { current, available, asked, total, providerAndFetch ->
         BrowseState(
             section = current,
             groups = available,
@@ -131,8 +150,9 @@ class BrowseViewModel @Inject constructor(
             selectedGroup = asked.groupId,
             sort = asked.sort,
             total = total,
-            providerLabel = provider,
+            providerLabel = providerAndFetch.first,
             loading = false,
+            fetch = providerAndFetch.second,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_GRACE_MS), BrowseState())
 
@@ -151,9 +171,39 @@ class BrowseViewModel @Inject constructor(
      * the category the user has open.
      */
     fun show(current: CatalogSection) {
-        if (section.value == current) return
-        section.value = current
-        chosen.value = null
+        if (section.value != current) {
+            section.value = current
+            chosen.value = null
+            fetch.value = null
+        }
+        ensureFetched(current, force = false)
+    }
+
+    /**
+     * Fetch this section if it is not already on the device.
+     *
+     * Guarded by the running job rather than by the state, because composition calls
+     * [show] again for reasons that are not a navigation — a rotation, a theme switch,
+     * a recomposition after the count moved — and a second import of the same kind
+     * racing the first would interleave writes to the same rows.
+     *
+     * `LoadSection` decides whether there is anything to do; this only decides not to
+     * ask twice at once.
+     */
+    private fun ensureFetched(current: CatalogSection, force: Boolean) {
+        if (fetching?.isActive == true) return
+        fetching = viewModelScope.launch {
+            loadSection.load(current.kind, clock.nowMs(), force = force)
+                .collect { fetch.value = it }
+        }
+    }
+
+    /** After a failure, or when the user asks for this section again deliberately. */
+    fun retryFetch(force: Boolean = false) {
+        fetching?.cancel()
+        fetching = null
+        fetch.value = null
+        ensureFetched(section.value, force = force)
     }
 
     /** Null is the "all" pseudo-category, which is a selection like any other. */

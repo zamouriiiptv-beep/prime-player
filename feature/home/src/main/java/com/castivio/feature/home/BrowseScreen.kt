@@ -45,7 +45,9 @@ import androidx.compose.material.icons.rounded.Sort
 import com.castivio.core.design.components.CardShape
 import com.castivio.core.design.components.CastivioChip
 import com.castivio.core.design.components.ChannelCard
+import com.castivio.core.design.components.DelayedSpinner
 import com.castivio.core.design.components.EmptyState
+import com.castivio.core.design.components.ErrorState
 import com.castivio.core.design.components.MediaCard
 import com.castivio.core.design.components.SectionHeader
 import com.castivio.core.design.components.Skeleton
@@ -57,6 +59,7 @@ import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Spacing
 import com.castivio.domain.Channel
 import com.castivio.domain.MediaItem
+import com.castivio.domain.SectionLoad
 import com.castivio.domain.SeriesSummary
 import com.castivio.domain.SortOrder
 import androidx.paging.LoadState
@@ -150,13 +153,13 @@ fun BrowseScreen(
                     modifier = Modifier.width(CATEGORY_PANE),
                 )
                 Box(Modifier.weight(1f).fillMaxHeight()) {
-                    Content(section, state, model, onPlay, onOpenShow)
+                    Pane(section, state, model, onPlay, onOpenShow)
                 }
             }
         } else {
             CategoryChips(state = state, onChoose = model::choose)
             Box(Modifier.fillMaxSize()) {
-                Content(section, state, model, onPlay, onOpenShow)
+                Pane(section, state, model, onPlay, onOpenShow)
             }
         }
     }
@@ -264,6 +267,89 @@ private fun CategoryEntry(
         if (count != null) {
             Text(formatCount(count), style = CastivioType.labelSmall, color = colors.onBackgroundMuted)
         }
+    }
+}
+
+/**
+ * The section, or the reason it is not here yet.
+ *
+ * The fetch outranks the rows, and it has to: a section being downloaded for the
+ * first time has no rows, and the pager cannot tell that apart from a provider that
+ * carries none. Before this existed the two rendered the same sentence — "your
+ * provider carries no Movies" — over a section that was thirty seconds from arriving.
+ */
+@Composable
+private fun Pane(
+    section: CatalogSection,
+    state: BrowseState,
+    model: BrowseViewModel,
+    onPlay: (CatalogSelection) -> Unit,
+    onOpenShow: (SeriesSummary) -> Unit,
+) {
+    when (val fetch = state.fetch) {
+        is SectionLoad.Loading -> Fetching(section, fetch)
+        is SectionLoad.Failed -> FetchFailed(section, fetch, onRetry = { model.retryFetch() })
+        // Ready, Done, NoSource and "not asked yet" all mean: draw what is stored.
+        // NoSource included -- a section with no provider behind it is empty for a
+        // reason the section's own empty state already explains.
+        else -> Content(section, state, model, onPlay, onOpenShow)
+    }
+}
+
+/**
+ * A section arriving, with the numbers it is arriving at.
+ *
+ * Counts rather than a percentage, because there is no denominator: the provider does
+ * not say how many films it has until it has sent them. A rising count is honest and
+ * a fake progress bar is not.
+ */
+@Composable
+private fun Fetching(section: CatalogSection, fetch: SectionLoad.Loading) {
+    val colors = CastivioTheme.colors
+    Column(
+        Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        DelayedSpinner()
+        Text(
+            text = stringResource(R.string.browse_fetch_title, stringResource(section.label)),
+            style = CastivioType.titleMedium,
+            color = colors.onBackgroundStrong,
+            modifier = Modifier.padding(top = Spacing.lg),
+        )
+        Text(
+            text = stringResource(
+                R.string.browse_fetch_progress,
+                formatCount(fetch.items),
+                formatCount(fetch.groups),
+            ),
+            style = CastivioType.bodySmall,
+            color = colors.onBackgroundVariant,
+            modifier = Modifier.padding(top = Spacing.xs),
+        )
+        Text(
+            text = stringResource(R.string.browse_fetch_once),
+            style = CastivioType.bodySmall,
+            color = colors.onBackgroundMuted,
+            modifier = Modifier.padding(top = Spacing.sm),
+        )
+    }
+}
+
+/** A section that did not arrive, and whether asking again is worth anything. */
+@Composable
+private fun FetchFailed(section: CatalogSection, fetch: SectionLoad.Failed, onRetry: () -> Unit) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        ErrorState(
+            title = stringResource(R.string.browse_fetch_failed, stringResource(section.label)),
+            detail = stringResource(
+                if (fetch.retryable) R.string.browse_fetch_failed_retryable
+                else R.string.browse_fetch_failed_final,
+            ),
+            actionLabel = stringResource(R.string.browse_fetch_retry),
+            onAction = onRetry,
+        )
     }
 }
 

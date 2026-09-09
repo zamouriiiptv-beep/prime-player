@@ -46,6 +46,23 @@ class ActivateProvider(
         source: PlaylistSource,
         label: String? = null,
         nowMs: Long,
+        /**
+         * Whether to bring the catalogue down as part of activating.
+         *
+         * False is what the app does now, and it changes what activation *means*:
+         * the credentials are checked, the provider is saved and made active, and
+         * the app opens. Each section is fetched when it is first opened, by
+         * [com.castivio.domain.LoadSection].
+         *
+         * The reason is a number. A provider with 180,000 films makes someone who
+         * only watches television wait four minutes for a library they will never
+         * open, on this box and on the next one. Fetching per section turns one
+         * unavoidable wait into three optional ones, two of which are never taken.
+         *
+         * True keeps the original sequence, which is still what a caller that
+         * genuinely wants everything now should ask for.
+         */
+        fetchCatalogue: Boolean = true,
     ): Flow<ActivationPhase> = flow {
         emit(ActivationPhase.Checking)
 
@@ -63,7 +80,34 @@ class ActivateProvider(
             return@flow
         }
 
-        importCatalogue(source, label, status)
+        if (fetchCatalogue) {
+            importCatalogue(source, label, status)
+        } else {
+            connect(source, label, status)
+        }
+    }
+
+    /**
+     * Registered, active, and nothing downloaded.
+     *
+     * The two guarantees at the top of this file survive it. Nothing that already
+     * worked is lost, because registering a provider writes no catalogue rows and
+     * `register` preserves the sync state of a source that was already there. And
+     * the provider was asked first, so this cannot save credentials that do not
+     * work — which is the whole reason it is a separate branch here rather than a
+     * screen skipping the use case.
+     *
+     * The `finally` clause the importing path needs has no counterpart, and that is
+     * deliberate rather than an omission: there is no import to be cancelled halfway,
+     * so the registration is never scaffolding for something that did not happen.
+     */
+    private suspend fun kotlinx.coroutines.flow.FlowCollector<ActivationPhase>.connect(
+        source: PlaylistSource,
+        label: String?,
+        status: ProviderStatus,
+    ) {
+        val registered = sources.register(source, label)
+        succeed(registered.id, registered.sync.itemCount, status)
     }
 
     private suspend fun kotlinx.coroutines.flow.FlowCollector<ActivationPhase>.importCatalogue(

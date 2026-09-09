@@ -30,6 +30,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -58,8 +59,11 @@ import com.castivio.core.design.theme.DeviceClass
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Spacing
 import com.castivio.domain.MediaItem
+import com.castivio.domain.MediaKind
 import com.castivio.domain.SourceKind
 import com.castivio.domain.entitlement.EntitlementState
+import java.text.DateFormat
+import java.util.Date
 
 /**
  * Home: the four sections, how much is in each, and a taste of what arrived.
@@ -154,7 +158,7 @@ fun HomeScreen(
                     modifier = Modifier.padding(horizontal = padding),
                 )
 
-                if (state.isEmpty) {
+                if (state.carriesNothing) {
                     Box(
                         Modifier.fillMaxWidth().padding(horizontal = padding),
                         contentAlignment = Alignment.Center,
@@ -283,10 +287,10 @@ private fun SectionTiles(
     val wide = device == DeviceClass.Television || device == DeviceClass.Expanded
 
     val tiles = listOf(
-        Tile(CatalogSection.Live, Icons.Rounded.LiveTv, colors.hueAzure, R.string.browse_live, state.liveCount, R.string.home_count_live),
-        Tile(CatalogSection.Movies, Icons.Rounded.Movie, colors.hueViolet, R.string.browse_movies, state.movieCount, R.string.home_count_movies),
-        Tile(CatalogSection.Series, Icons.Rounded.Tv, colors.hueGreen, R.string.browse_series, state.seriesCount, R.string.home_count_series),
-        Tile(CatalogSection.Radio, Icons.Rounded.Radio, colors.hueAmber, R.string.browse_radio, state.radioCount, R.string.home_count_radio),
+        Tile(CatalogSection.Live, Icons.Rounded.LiveTv, colors.hueAzure, R.string.browse_live, state.liveCount, R.string.home_count_live, state.sections[MediaKind.LIVE]),
+        Tile(CatalogSection.Movies, Icons.Rounded.Movie, colors.hueViolet, R.string.browse_movies, state.movieCount, R.string.home_count_movies, state.sections[MediaKind.MOVIE]),
+        Tile(CatalogSection.Series, Icons.Rounded.Tv, colors.hueGreen, R.string.browse_series, state.seriesCount, R.string.home_count_series, state.sections[MediaKind.SERIES]),
+        Tile(CatalogSection.Radio, Icons.Rounded.Radio, colors.hueAmber, R.string.browse_radio, state.radioCount, R.string.home_count_radio, state.sections[MediaKind.RADIO]),
     )
 
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
@@ -315,6 +319,8 @@ private data class Tile(
     val name: Int,
     val count: Int,
     val unit: Int,
+    /** When this section was brought onto the device, or null if it never has been. */
+    val fetchedAtMs: Long?,
 )
 
 @Composable
@@ -354,14 +360,36 @@ private fun SectionTile(tile: Tile, onClick: () -> Unit, modifier: Modifier = Mo
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = Spacing.sm),
             )
-            Text(
-                text = stringResource(tile.unit, formatCount(tile.count)),
-                style = CastivioType.labelSmall,
-                color = colors.onBackgroundMuted,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-            )
+            // Three sentences, and the difference between them is the point of the
+            // whole lazy fetch. "Not downloaded yet" is an invitation; a count with a
+            // date is a fact about this device; a count without one cannot happen.
+            if (tile.fetchedAtMs == null) {
+                Text(
+                    text = stringResource(R.string.home_not_fetched),
+                    style = CastivioType.labelSmall,
+                    color = colors.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                )
+            } else {
+                Text(
+                    text = stringResource(tile.unit, formatCount(tile.count)),
+                    style = CastivioType.labelSmall,
+                    color = colors.onBackgroundMuted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                )
+                Text(
+                    text = stringResource(R.string.home_fetched_at, rememberStamp(tile.fetchedAtMs)),
+                    style = CastivioType.labelSmall,
+                    color = colors.live,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                )
+            }
         }
     }
 }
@@ -440,6 +468,25 @@ private fun PosterRow(
             artworkSeed = item.id.hashCode(),
             onClick = { onPlay(selection) },
         )
+    }
+}
+
+/**
+ * An instant, in the reader's own locale, formatted once.
+ *
+ * `remember` keyed on the value, because building a `DateFormat` and running it is
+ * real work and composition runs whenever anything on this screen moves — a count
+ * arriving from an import behind the screen would otherwise reformat four dates on
+ * every emission, which is exactly the per-frame work the performance budget bans.
+ *
+ * The locale comes from the configuration rather than the default, so the date
+ * follows the language Castivio is in and not the one the box was set up in.
+ */
+@Composable
+private fun rememberStamp(atMs: Long): String {
+    val locale = androidx.compose.ui.platform.LocalConfiguration.current
+    return remember(atMs, locale) {
+        DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(atMs))
     }
 }
 

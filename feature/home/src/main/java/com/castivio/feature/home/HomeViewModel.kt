@@ -6,6 +6,8 @@ import com.castivio.domain.CatalogRepository
 import com.castivio.domain.MediaItem
 import com.castivio.domain.MediaKind
 import com.castivio.domain.PageRequest
+import com.castivio.domain.ProviderSource
+import com.castivio.domain.SectionCatalogue
 import com.castivio.domain.SourceKind
 import com.castivio.domain.SourceRepository
 import com.castivio.domain.entitlement.EntitlementRepository
@@ -16,6 +18,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
@@ -52,14 +56,38 @@ data class HomeState(
      * arrives; the gate has already established one by the time Home is drawn.
      */
     val entitlement: EntitlementState? = null,
+    /**
+     * Which sections are on this device, and when each arrived.
+     *
+     * A tile with no entry here has never been fetched, which is a different thing
+     * from a section that was fetched and turned out to be empty. Deriving it from
+     * the count would collapse the two and re-download an empty section forever.
+     */
+    val sections: Map<MediaKind, Long> = emptyMap(),
     val loading: Boolean = true,
 ) {
     /** True once a provider has been configured, whatever it did or did not carry. */
     val hasSource: Boolean get() = provider != null
 
-    /** True when the provider imported, and carried nothing at all. */
+    /** True when nothing has been counted — which is the normal state before any
+     * section has been opened, and says nothing about the provider. */
     val isEmpty: Boolean get() =
         liveCount == 0 && movieCount == 0 && seriesCount == 0 && radioCount == 0
+
+    /** True once every section has been asked for at least once. */
+    val everySectionFetched: Boolean get() = MediaKind.entries.all { it in sections }
+
+    /**
+     * The provider really does carry nothing, as opposed to nothing having been
+     * fetched yet.
+     *
+     * Both look like four zeroes, and before sections were fetched lazily they could
+     * not be told apart — so Home said "nothing imported" to every user who had just
+     * activated and not yet opened a section. The marks are what separate them:
+     * four zeroes *after* all four sections have been asked for is a genuinely empty
+     * provider, and four zeroes before that is a user who has not pressed anything.
+     */
+    val carriesNothing: Boolean get() = everySectionFetched && isEmpty
 }
 
 /** The four `COUNT`s, carried together so the outer combine stays within its arity. */
@@ -85,6 +113,7 @@ class HomeViewModel @Inject constructor(
     private val catalog: CatalogRepository,
     sources: SourceRepository,
     entitlement: EntitlementRepository,
+    marks: SectionCatalogue,
 ) : ViewModel() {
 
     private val counts: Flow<Counts> = combine(
@@ -94,11 +123,25 @@ class HomeViewModel @Inject constructor(
         catalog.count(MediaKind.RADIO),
     ) { live, movies, series, radio -> Counts(live, movies, series, radio) }
 
+    private val provider: Flow<ProviderSource?> = sources.active()
+
+    /**
+     * The marks belonging to whichever provider is active.
+     *
+     * `flatMapLatest` rather than a join, because the marks are keyed by source: on a
+     * box with three subscriptions, switching provider must not leave the tiles
+     * showing the previous one's dates for a frame.
+     */
+    private val sections: Flow<Map<MediaKind, Long>> = provider.flatMapLatest { active ->
+        if (active == null) flowOf(emptyMap()) else marks.loaded(active.id)
+    }
+
     val state: StateFlow<HomeState> = combine(
-        sources.active(),
+        provider,
         counts,
         entitlement.state,
-    ) { source, tally, licence ->
+        sections,
+    ) { source, tally, licence, fetched ->
         HomeState(
             provider = source?.label,
             sourceKind = source?.kind,
@@ -108,6 +151,7 @@ class HomeViewModel @Inject constructor(
             seriesCount = tally.series,
             radioCount = tally.radio,
             entitlement = licence,
+            sections = fetched,
             loading = false,
         )
     }.mapLatest { counted ->

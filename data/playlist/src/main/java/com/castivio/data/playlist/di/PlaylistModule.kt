@@ -10,6 +10,8 @@ import com.castivio.data.playlist.DefaultCatalogImporter
 import com.castivio.data.playlist.LocalPlaylistReader
 import com.castivio.domain.CatalogImporter
 import com.castivio.domain.CatalogWriter
+import com.castivio.domain.LoadSection
+import com.castivio.domain.SectionCatalogue
 import com.castivio.domain.PlaylistSource
 import com.castivio.domain.ProviderValidator
 import com.castivio.domain.SourceRepository
@@ -64,6 +66,18 @@ object PlaylistModule {
         importer: CatalogImporter,
         sources: SourceRepository,
     ): ActivateProvider = ActivateProvider(validator, importer, sources)
+
+    /**
+     * Fetching one section, assembled where the importer it needs is already bound —
+     * the same reason [activateProvider] lives here rather than in a feature.
+     */
+    @Provides
+    @Singleton
+    fun loadSection(
+        sources: SourceRepository,
+        importer: CatalogImporter,
+        marks: SectionCatalogue,
+    ): LoadSection = LoadSection(sources, importer, marks)
 
     private fun PlaylistSource.Xtream.toApi(client: OkHttpClient): XtreamImportEngine.Api =
         XtreamHttpApi(client, host, username, password)

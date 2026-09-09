@@ -69,4 +69,17 @@
     <string name="browse_sort_name_desc">ي إلى أ</string>
     <string name="browse_sort_recent">الأحدث</string>
 
+
+    <string name="browse_fetch_title">جارٍ تحميل %1$s…</string>
+    <string name="browse_fetch_progress">%1$s عنصرًا · %2$s تصنيفًا</string>
+    <string name="browse_fetch_once">يحدث هذا مرة واحدة. في المرة القادمة يُفتح القسم فورًا.</string>
+    <string name="browse_fetch_failed">تعذّر تحميل %1$s</string>
+    <string name="browse_fetch_failed_retryable">لم يردّ مزوّدك في الوقت المتاح. غالبًا يكون مشغولًا لا معطّلًا.</string>
+    <string name="browse_fetch_failed_final">رفض مزوّدك الطلب. تحقّق من الاشتراك، أو أضفه من جديد من الصفحة الرئيسية.</string>
+    <string name="browse_fetch_retry">حاول مرة أخرى</string>
+
+
+    <string name="home_not_fetched">لم يُحمَّل بعد</string>
+    <string name="home_fetched_at">محفوظ محليًا · %1$s</string>
+
 </resources>

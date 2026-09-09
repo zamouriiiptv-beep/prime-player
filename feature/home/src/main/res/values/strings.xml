@@ -80,4 +80,22 @@
     <string name="browse_sort_name_desc">Z to A</string>
     <string name="browse_sort_recent">Recent</string>
 
+
+    <!-- A section being brought onto the device the first time it is opened.
+         %1$s is the section name. -->
+    <string name="browse_fetch_title">Loading %1$s…</string>
+    <!-- %1$s items so far, %2$s categories. Both already grouped for reading. -->
+    <string name="browse_fetch_progress">%1$s items · %2$s categories</string>
+    <string name="browse_fetch_once">This runs once. Next time this section opens straight away.</string>
+    <string name="browse_fetch_failed">Could not load %1$s</string>
+    <string name="browse_fetch_failed_retryable">Your provider did not answer in time. It is usually busy rather than down.</string>
+    <string name="browse_fetch_failed_final">Your provider refused the request. Check the subscription, or add it again from Home.</string>
+    <string name="browse_fetch_retry">Try again</string>
+
+
+    <!-- A tile whose section has never been brought onto this device. -->
+    <string name="home_not_fetched">Not downloaded yet</string>
+    <!-- %1$s is a date and time. Shown under the count on a downloaded section. -->
+    <string name="home_fetched_at">On this device · %1$s</string>
+
 </resources>

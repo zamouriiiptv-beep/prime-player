@@ -70,6 +70,22 @@ enum class SortOrder { PROVIDER, NAME_ASC, NAME_DESC, RECENTLY_ADDED }
 interface CatalogImporter {
     fun import(source: PlaylistSource): Flow<ImportProgress>
 
+    /**
+     * One kind of the catalogue, for a screen that was just opened.
+     *
+     * Defaulted to [import] rather than left abstract, and that is the honest answer
+     * for most sources rather than a convenience: an M3U playlist is a single file
+     * holding channels, films and episodes together, so "just the films" is not a
+     * request that exists. Only an implementation that can address a kind on its own
+     * — Xtream does, with three separate endpoints — has anything to override this
+     * with, and only it should.
+     *
+     * An implementation that does override it must append rather than replace: this
+     * is called once per section, and a replacing write would prune the sections
+     * fetched before it. See [ImportMode].
+     */
+    fun importKind(source: PlaylistSource, kind: MediaKind): Flow<ImportProgress> = import(source)
+
     /** True when the provider's content is unchanged and import can be skipped. */
     suspend fun isUpToDate(source: PlaylistSource): Boolean
 }

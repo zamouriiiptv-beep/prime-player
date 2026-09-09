@@ -10,6 +10,8 @@ import com.castivio.data.parsing.SourceIds
 import com.castivio.data.parsing.XtreamImportEngine
 import com.castivio.domain.CatalogImporter
 import com.castivio.domain.CatalogWriter
+import com.castivio.domain.ImportMode
+import com.castivio.domain.MediaKind
 import com.castivio.domain.ImportProgress
 import com.castivio.domain.ImportSummary
 import com.castivio.domain.PlaylistSource
@@ -66,6 +68,48 @@ class DefaultCatalogImporter(
         // must complete when it returns. Keeping the channel open would leave every
         // collector waiting forever for a "done" that already happened.
     }.flowOn(dispatchers.io)
+
+    /**
+     * One kind, for a section that was just opened for the first time.
+     *
+     * Only Xtream can honour it. Live, VOD and series are three separate endpoints
+     * there, so asking for one is a smaller *download* and not merely a smaller
+     * write — which is the whole point of fetching a section when it is opened.
+     *
+     * Everything else falls through to [import], and that is not a shortcut: an M3U
+     * playlist is one file holding all three kinds, and there is no request that asks
+     * it for only the films. The caller is told as much by
+     * [com.castivio.domain.carriesEveryKind], so the first section opened marks the
+     * others as fetched too instead of downloading the same file three times.
+     *
+     * [ImportMode.APPEND], necessarily. A replacing write prunes every row of another
+     * generation at `finish()`, which after a per-kind import is every row of every
+     * other kind — the films would delete the channels.
+     */
+    override fun importKind(source: PlaylistSource, kind: MediaKind): Flow<ImportProgress> =
+        when (source) {
+            is PlaylistSource.Xtream -> channelFlow {
+                val sourceId = SourceIds.of(source)
+                val writer = writerFactory()
+                try {
+                    val summary = XtreamImportEngine(writer, clock = clock).importCatalogue(
+                        sourceId = sourceId,
+                        api = xtreamApiFactory(source),
+                        kinds = setOf(kind),
+                        onProgress = { trySend(it) },
+                        isCancelled = { !isActive },
+                        mode = ImportMode.APPEND,
+                    )
+                    // No validators for Xtream, and none to preserve: `record` reads
+                    // the stored row and writes back what this pass learned.
+                    record(sourceId, summary, etag = null, lastModified = null, contentHash = null)
+                } catch (e: Exception) {
+                    trySend(ImportProgress.Failed(e.toAppError()))
+                }
+            }.flowOn(dispatchers.io)
+
+            else -> import(source)
+        }
 
     /**
      * Whether a refresh can be skipped entirely.
