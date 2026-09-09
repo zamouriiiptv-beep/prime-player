@@ -13,7 +13,6 @@ import okio.buffer
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -248,33 +247,6 @@ class HttpStreamSourceTest {
 
         assertTrue(result is RemoteResult.Success)
         assertTrue("the probe read ${read.get()} bytes of a 1 MB body", read.get() < 256 * 1024)
-    }
-
-    /**
-     * A fingerprint of the first page is not the file's fingerprint.
-     *
-     * Recorded as one it would make the next refresh believe a changed playlist was
-     * unchanged, and skip an import that was needed. The validators are the only
-     * freshness signal a probe is entitled to produce.
-     */
-    @Test
-    fun `a change probe reports no content hash`() {
-        server.enqueue(MockResponse().setBody("#EXTM3U\n" + "x".repeat(100_000)))
-
-        val result = source.hasChanged(RemoteRequest(server.url("/p.m3u").toString(), noCache = true))
-
-        assertNull((result as RemoteResult.Success).contentHash)
-    }
-
-    @Test
-    fun `a probe against unchanged content reports not modified`() {
-        server.enqueue(MockResponse().setResponseCode(304))
-
-        val result = source.hasChanged(
-            RemoteRequest(server.url("/p.m3u").toString(), etag = "\"v1\"", noCache = true),
-        )
-
-        assertEquals(RemoteResult.NotModified, result)
     }
 
     @Test

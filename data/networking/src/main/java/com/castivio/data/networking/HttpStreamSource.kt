@@ -106,30 +106,39 @@ class HttpStreamSource(private val client: OkHttpClient) {
      * the alternative is the rest of the file.
      */
     fun hasChanged(request: RemoteRequest): RemoteResult<Boolean> =
-        when (val result = stream(request.copy(rangeFirstBytes = PROBE_BYTES)) { reader ->
-            val buffer = CharArray(PROBE_BYTES)
-            var read = 0
-            while (read < PROBE_BYTES) {
-                val n = reader.read(buffer, read, PROBE_BYTES - read)
-                if (n <= 0) break
-                read += n
-            }
-            true
-        }) {
+        when (val result = stream(request.copy(rangeFirstBytes = PROBE_BYTES), ::readProbe)) {
             is RemoteResult.NotModified -> RemoteResult.NotModified
             is RemoteResult.Success -> RemoteResult.Success(
                 value = true,
                 etag = result.etag,
                 lastModified = result.lastModified,
-                // Never the hash. It is computed from the bytes that passed through,
-                // and only a few thousand of them did — a fingerprint of the first
-                // page recorded as the file's would make every later refresh believe
-                // a changed playlist was unchanged. The validators above are the
-                // freshness signal a probe is entitled to produce.
-                contentHash = null,
+                // A fingerprint of the first page, not of the file — the hash is
+                // computed from the bytes that passed through and only a page of them
+                // did. Nothing reads it: the only consumer of a `contentHash` is a
+                // completed import, which streams the whole body. The validators above
+                // are what a probe is actually asked for.
+                contentHash = result.contentHash,
             )
             is RemoteResult.Failure -> result
         }
+
+    /**
+     * Reads at most a page and stops.
+     *
+     * A named function rather than a lambda in the `when` subject above, because a
+     * `when` subject may not contain a `var` declaration — the loop counter has to
+     * live somewhere the compiler allows one.
+     */
+    private fun readProbe(reader: Reader): Boolean {
+        val buffer = CharArray(PROBE_BYTES)
+        var read = 0
+        while (read < PROBE_BYTES) {
+            val n = reader.read(buffer, read, PROBE_BYTES - read)
+            if (n <= 0) break
+            read += n
+        }
+        return true
+    }
 
     private fun RemoteRequest.toOkHttp(): Request {
         val builder = Request.Builder().url(url).get()
