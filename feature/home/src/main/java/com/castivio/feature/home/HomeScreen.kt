@@ -67,6 +67,7 @@ import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.DeviceClass
 import com.castivio.core.design.theme.Radius
+import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.Spacing
 import com.castivio.domain.MediaItem
 import com.castivio.domain.MediaKind
@@ -265,7 +266,7 @@ private fun StatusCard(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(Spacing.iconLg))
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(Sizing.iconLg))
         Column {
             Text(label, style = CastivioType.labelSmall, color = colors.onBackgroundMuted, maxLines = 1)
             Text(value, style = CastivioType.titleMedium, color = tint, maxLines = 1)
@@ -591,7 +592,7 @@ private fun Action(
     val colors = CastivioTheme.colors
     InteractiveGlassCard(
         onClick = onClick,
-        modifier = modifier.heightIn(min = Spacing.minTvTarget),
+        modifier = modifier.heightIn(min = Sizing.minTvTarget),
         shape = RoundedCornerShape(Radius.md),
     ) {
         Row(
@@ -603,7 +604,7 @@ private fun Action(
                 icon,
                 contentDescription = null,
                 tint = colors.hueViolet,
-                modifier = Modifier.size(Spacing.iconLg),
+                modifier = Modifier.size(Sizing.iconLg),
             )
             Column {
                 Text(
@@ -685,7 +686,7 @@ private fun Fact(icon: ImageVector, text: String, tint: Color, modifier: Modifie
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(Spacing.iconMd))
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(Sizing.iconMd))
         Text(
             text,
             style = CastivioType.labelSmall,
@@ -708,7 +709,7 @@ private fun Disclaimer(modifier: Modifier = Modifier) {
             Icons.Rounded.Shield,
             contentDescription = null,
             tint = colors.hueViolet,
-            modifier = Modifier.size(Spacing.iconMd),
+            modifier = Modifier.size(Sizing.iconMd),
         )
         Text(
             text = stringResource(R.string.home_disclaimer),
