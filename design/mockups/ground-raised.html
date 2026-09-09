@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Castivio — الأرضية المرفوعة</title>
+<style>
+/* ============================================================================
+   Castivio — Deep against a raised Slate, on one screen, side by side.
+
+   ## Why this file exists and `ground-slate.html` was not enough
+
+   Because that one lied, and the device proved it. Its backdrop was the CSS
+   approximation the mockups have always used -- a near-vertical four-stop ramp
+   from #05040E -- and the *code* paints something else: three stops starting at
+   `Palette.Deep` (#141031, L* 6.69) on a corner-to-corner diagonal. So the
+   picture showed a page at L* ~2 where the device shows L* 9, and a comparison
+   drawn on a page two thirds too dark cannot answer a question about how light
+   a page should be. Measured off the two device screenshots, Deep reads #1B123D
+   (L* 9.01) at the top and the shipped Slate #131731 (L* 8.76) -- the same, which
+   is exactly what this file was needed to have predicted.
+
+   So the backdrop here is not CSS. It is `Backdrop.kt` transcribed into canvas:
+   the same three stops on the same (0,0)->(w,h) axis, the same two glows at the
+   same centres and radii, the same seventeen contour lines at the same
+   amplitudes and alphas, the same thirteen motes. Only the mote *positions*
+   differ -- `Random(7)` is Kotlin's sequence and cannot be reproduced here --
+   and thirteen dots at a fifth of an alpha are not what this decision turns on.
+
+   ## What is being asked
+
+   Whether raising the second ground's three stops to #1B1E38 / #1E2240 / #262B52
+   gives a difference an eye cannot miss, while the cards stay separate.
+
+   ## What had to move with it, and what did not
+
+   The stops alone do not work, and the arithmetic says so before the eye does:
+   the shipped card #242642 is L* 16.28 and the raised page's middle stop is
+   14.35, so the card would stand 1.93 L* off its page -- gone. To keep the 8.47
+   the approved picture had, the card goes to L* 22.86, and the recommended card
+   above it. The disc follows for the third time and for the same reason it did
+   twice before: it is a tint of its hue over what it sits on, so a lighter card
+   needs a lighter tint and a glyph pulled further toward the ink.
+
+   Nothing else. No frame, no layout, no spacing, no type, no size, and the glow
+   geometry is untouched -- same corners, same radii, same falloff. Their two
+   alphas come down, which is strength and not shape: the same circle over a page
+   seven L* higher is a wash rather than a bloom, and that number is the one
+   thing on this page best judged by eye rather than by arithmetic.
+
+   ## The numbers
+
+   | | stops (L*) | card | lift | disc |
+   |---|---|---|---|---|
+   | Deep    | 6.69 / 8.03 / 11.48  | 14.38 | 6.35 | 34%, glyph = hue |
+   | Slate   | 12.27 / 14.35 / 19.01 | 22.86 | 8.42 | 20%, glyph 24% to ink |
+
+   Glyphs on the raised card: azure 4.08, violet 3.71, green 4.96, amber 5.12 --
+   all past the 3:1 a graphical object owes. Inks on it: white 11.99, quartz 8.19,
+   muted 5.04, all past AA.
+   ========================================================================= */
+@font-face{font-family:"Castivio Sans";font-weight:400;src:url("../../core/design/src/main/res/font/inter_regular.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:500;src:url("../../core/design/src/main/res/font/inter_medium.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:600;src:url("../../core/design/src/main/res/font/inter_semibold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:700;src:url("../../core/design/src/main/res/font/inter_bold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:400;src:url("../../core/design/src/main/res/font/plex_arabic_regular.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:500;src:url("../../core/design/src/main/res/font/plex_arabic_medium.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:600;src:url("../../core/design/src/main/res/font/plex_arabic_semibold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:700;src:url("../../core/design/src/main/res/font/plex_arabic_bold.ttf") format("truetype")}
+
+:root{
+  --word-ratio:.80;
+  --white:#FFFFFF;
+  --text:#EDEDF6;      /* not a role: the mockups' own body ink */
+  --text-2:#D6D3E8;    /* description  = Quartz */
+  --text-3:#A6A6BF;    /* onBackgroundMuted = Muted */
+
+  /* The four hues, identical on both grounds. This is the point. */
+  --h-m3u:#9B6BFF;      /* Violet50 */
+  --h-xtream:#4C9BFF;   /* Azure50  */
+  --h-users:#3DD68C;    /* Success  */
+  --h-local:#FFB020;    /* Amber    */
+
+  --rim:inset 0 1px 0 rgba(255,255,255,.12);
+  --lift:0 10px 26px rgba(3,2,12,.52);
+  --focus:#6FB2FF;      /* focusRing */
+
+  /* the set frame, at its real dp geometry — identical in both frames */
+  --W:960px; --H:540px;
+  --edge:46px; --top:24px; --bottom:22px;
+  --header:54px; --head-gap:26px; --brand:40px; --fs-title:26px;
+  --back:44px; --back-pad:11px; --fs-back:13px;
+  --band-top:22px; --grid-gap:18px; --card-max:168px;
+  --card-pad:16px; --card-gap:16px; --disc:72px; --chev:24px;
+  --fs-card:15.8px; --fs-desc:13.5px; --fs-badge:13px; --desc-lines:4;
+  --radius:20px;
+  --trust:40px; --trust-gap:14px; --trust-disc:26px;
+  --fs-trust:13px;
+}
+
+/* ------------------------------------------------------------ the grounds */
+/* Only what a ground owns. The stops, the glows and the motes are the canvas's
+   business (see GROUNDS in the script); these are the surfaces drawn over it. */
+
+.g-deep{
+  --card-hi:rgba(255,255,255,.078);   /* GlassMid */
+  --card-lo:rgba(255,255,255,.039);   /* GlassLow */
+  --card-edge:rgba(255,255,255,.24);  /* GlassEdge */
+  --rec-fill:#1B1038;                 /* featuredFill = Violet10 */
+  --chip-fill:rgba(255,255,255,.039);
+  --chip-edge:rgba(160,163,215,.20);  /* EdgeQuiet */
+  --cell-rule:rgba(160,163,215,.12);
+  --disc-top:34%; --disc-foot:8%; --disc-ink:0%;
+}
+.g-slate{
+  /* PanelHigh / PanelLow, spread 4.72 L* about a mean of L* 22.77 — the void's
+     own sheen separation, because this pair is also focused-against-idle. */
+  --card-hi:#353862; --card-lo:#2C2E52;
+  --card-edge:rgba(172,180,214,.20);  /* EdgeSteel */
+  --rec-fill:#423267;                 /* above the card, and still violet */
+  --chip-fill:#2C2E52;
+  --chip-edge:rgba(172,180,214,.20);
+  --cell-rule:rgba(172,180,214,.12);
+  --disc-top:20%; --disc-foot:8%; --disc-ink:24%;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#0A0A10}
+body{font-family:"Castivio Sans","Castivio Arabic","Noto Sans",sans-serif;
+  color:var(--text);-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision}
+
+.pair{display:flex;gap:24px;justify-content:center;padding:20px 20px 0}
+.col{width:var(--W)}
+.rail{direction:rtl;padding:0 0 10px}
+.rail h2{font-size:17px;font-weight:700;color:#F2F0FF;line-height:1.4}
+.rail p{font-size:12.5px;line-height:1.65;color:#9C9CBC;margin-top:3px;
+  font-variant-numeric:tabular-nums}
+.rail .sw{display:inline-block;width:11px;height:11px;border-radius:3px;
+  margin-inline-end:8px;vertical-align:-1px;border:1px solid rgba(255,255,255,.22)}
+.foot{max-width:1944px;margin:0 auto;padding:26px 20px 56px;direction:rtl;
+  font-size:12.5px;line-height:1.8;color:#77779A}
+.foot b{color:#B9B9D4}
+
+/* ------------------------------------------------------------- the screen */
+.frame{position:relative;width:var(--W);height:var(--H);overflow:hidden}
+.frame canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+.stage{position:absolute;inset:0;display:flex;flex-direction:column;
+  padding:var(--top) var(--edge) var(--bottom)}
+
+.header{flex:0 0 auto;height:var(--header);direction:ltr;
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;
+  column-gap:var(--head-gap)}
+.header .title,.header .back{direction:rtl}
+.wordmark{grid-column:1;grid-row:1;justify-self:start;direction:ltr;
+  display:flex;align-items:center;gap:calc(var(--brand) * .32)}
+.wordmark span{font-family:"Castivio Sans",sans-serif;font-weight:700;line-height:1;
+  font-size:calc(var(--fs-title) * var(--word-ratio));
+  letter-spacing:calc(var(--fs-title) * var(--word-ratio) * .25);
+  margin-inline-end:calc(var(--fs-title) * var(--word-ratio) * -.25);
+  background-image:linear-gradient(97deg,#A86BFF 0%,#7B4BEE 30%,#3D6BFF 70%,#3A9BFF 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 16px rgba(124,75,255,.42))}
+.brand{flex:0 0 auto;width:var(--brand);height:var(--brand);display:block;
+  filter:drop-shadow(0 2px 7px rgba(0,0,0,.5))}
+.title{grid-column:2;grid-row:1;justify-self:center;min-width:0;max-width:100%;
+  white-space:nowrap;overflow:hidden;
+  font-size:var(--fs-title);line-height:1.35;font-weight:700;color:var(--white)}
+.chips{grid-column:3;grid-row:1;justify-self:end;display:flex;align-items:center;gap:6px}
+.theme{width:var(--back);height:var(--back);border-radius:999px;flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--chip-fill);border:1px solid var(--chip-edge);color:var(--text-2)}
+.theme svg{width:calc(var(--fs-back) * 1.25);height:calc(var(--fs-back) * 1.25)}
+.back{display:flex;align-items:center;gap:8px;height:var(--back);
+  padding:0 var(--back-pad);border-radius:999px;flex:0 0 auto;white-space:nowrap;
+  font-size:var(--fs-back);line-height:1.45;color:var(--text-2);
+  background:var(--chip-fill);border:1px solid var(--chip-edge)}
+.back svg{width:calc(var(--fs-back) * 1.25);height:calc(var(--fs-back) * 1.25);
+  flex:0 0 auto;transform:scaleX(-1)}
+
+.band{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;
+  padding-top:var(--band-top);gap:var(--trust-gap)}
+.grid{flex:1 1 auto;min-height:0;display:grid;
+  grid-template-columns:1fr 1fr;gap:var(--grid-gap);
+  grid-template-rows:repeat(2, minmax(0, var(--card-max)));
+  align-content:center;justify-content:stretch}
+
+.card{position:relative;display:flex;align-items:center;gap:var(--card-gap);
+  min-width:0;padding:var(--card-pad);border-radius:var(--radius);
+  background:linear-gradient(180deg,var(--card-hi) 0%,var(--card-lo) 100%);
+  border:1px solid var(--card-edge);
+  box-shadow:var(--rim), var(--lift)}
+
+.disc{flex:0 0 auto;width:var(--disc);height:var(--disc);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  color:color-mix(in srgb, #FFFFFF var(--disc-ink), var(--hue));
+  background:radial-gradient(128% 128% at 30% 18%,
+    color-mix(in srgb, var(--hue) var(--disc-top), transparent),
+    color-mix(in srgb, var(--hue) var(--disc-foot), transparent));
+  border:1px solid color-mix(in srgb, var(--hue) 46%, transparent);
+  box-shadow:0 0 22px color-mix(in srgb, var(--hue) 22%, transparent), var(--rim)}
+.disc svg{width:50%;height:50%}
+
+.body{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:5px}
+.head{display:flex;align-items:center;gap:9px;min-width:0}
+.head b{font-size:var(--fs-card);line-height:1.3;font-weight:700;color:var(--white);
+  min-width:0;white-space:nowrap}
+.d{font-size:var(--fs-desc);line-height:1.5;color:var(--text-2);
+  display:-webkit-box;-webkit-line-clamp:var(--desc-lines);-webkit-box-orient:vertical;overflow:hidden}
+.d .hint{color:var(--text-3)}
+.chev{flex:0 0 auto;width:var(--chev);height:var(--chev);color:var(--text-3);
+  display:flex;align-items:center;justify-content:center}
+
+.badge{flex:0 0 auto;display:flex;align-items:center;gap:5px;
+  padding:2px 9px;border-radius:999px;white-space:nowrap;
+  font-size:var(--fs-badge);font-weight:700;color:var(--white);
+  background:linear-gradient(180deg,rgba(155,107,255,.42),rgba(110,75,216,.30));
+  border:1px solid rgba(182,148,255,.46)}
+.badge svg{width:calc(var(--fs-badge) * 1.05);height:calc(var(--fs-badge) * 1.05);
+  color:#DCCBFF}
+/* featuredFill + RECOMMENDED_EDGE (Violet60 @ .85) + RECOMMENDED_GLOW (Violet50 @ .42) */
+.card.rec{background:var(--rec-fill);
+  border-color:rgba(182,148,255,.85);
+  box-shadow:0 0 0 1px rgba(182,148,255,.45), 0 0 30px rgba(155,107,255,.42),
+             var(--rim), var(--lift)}
+/* focusRing (Azure60) + focusGlow (Azure40 @ .45) */
+.card.focus{border-color:var(--focus);
+  box-shadow:0 0 0 2px var(--focus), 0 0 26px rgba(46,107,255,.45),
+             var(--rim), 0 16px 34px rgba(3,2,12,.62)}
+
+.trust{flex:0 0 var(--trust);display:flex;align-items:center;
+  border-radius:var(--radius);padding:0 calc(var(--trust) * .22);background:transparent}
+.cell{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:10px;
+  padding:0 calc(var(--trust) * .16)}
+.cell + .cell{border-inline-start:1px solid var(--cell-rule)}
+.cell .ic{flex:0 0 auto;width:var(--trust-disc);height:var(--trust-disc);
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  color:color-mix(in srgb, #FFFFFF var(--disc-ink), var(--hue));
+  background:color-mix(in srgb, var(--hue) 10%, transparent);
+  border:1px solid color-mix(in srgb, var(--hue) 26%, transparent)}
+.cell .ic svg{width:52%;height:52%}
+.cell .tx{min-width:0;display:flex;align-items:center}
+.cell .tx b{font-size:var(--fs-trust);line-height:1.3;font-weight:600;color:var(--text-3);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+
+<div class="pair" id="pair"></div>
+<div class="foot" id="foot"></div>
+
+<template id="screen">
+  <div class="frame">
+    <canvas></canvas>
+    <div class="stage">
+      <div class="header">
+        <div class="wordmark"><img class="brand" src="../../core/design/src/main/res/drawable-nodpi/castivio_mark.png" alt=""><span>CASTIVIO</span></div>
+        <h1 class="title">اختر طريقة الإضافة</h1>
+        <div class="chips">
+          <div class="theme" data-icon="sun"></div>
+          <div class="back"><span data-icon="chevron"></span><span>رجوع</span></div>
+        </div>
+      </div>
+
+      <div class="band">
+        <div class="grid">
+          <div class="card focus" style="--hue:var(--h-xtream)">
+            <span class="disc" data-icon="server"></span>
+            <span class="body">
+              <span class="head"><b>Xtream Codes</b></span>
+              <span class="d">عنوان سيرفر واسم مستخدم وكلمة مرور. <span class="hint">دعم كامل لميزات Xtream.</span></span>
+            </span>
+            <span class="chev" data-icon="chevron"></span>
+          </div>
+
+          <div class="card rec" style="--hue:var(--h-m3u)">
+            <span class="disc" data-icon="link"></span>
+            <span class="body">
+              <span class="head"><b>قائمة M3U</b>
+                <span class="badge"><span data-icon="spark"></span><span>الأسرع</span></span></span>
+              <span class="d">أضف رابط قائمة التشغيل بصيغة M3U. <span class="hint">رابط واحد طويل يُرسل عادةً بالبريد.</span></span>
+            </span>
+            <span class="chev" data-icon="chevron"></span>
+          </div>
+
+          <div class="card" style="--hue:var(--h-local)">
+            <span class="disc" data-icon="screen"></span>
+            <span class="body">
+              <span class="head"><b>تشغيل فيديو من الجهاز</b></span>
+              <span class="d">تشغيل ملف فيديو محفوظ على الجهاز. <span class="hint">دعم جميع الصيغ الشائعة.</span></span>
+            </span>
+            <span class="chev" data-icon="chevron"></span>
+          </div>
+
+          <div class="card" style="--hue:var(--h-users)">
+            <span class="disc" data-icon="users"></span>
+            <span class="body">
+              <span class="head"><b>قائمة المستخدمين</b></span>
+              <span class="d">أضف وبدّل بين اشتراكات Xtream وM3U. <span class="hint">إدارة سهلة لجميع اشتراكاتك.</span></span>
+            </span>
+            <span class="chev" data-icon="chevron"></span>
+          </div>
+        </div>
+
+        <div class="trust">
+          <div class="cell" style="--hue:var(--h-m3u)"><span class="ic" data-icon="shield"></span>
+            <span class="tx"><b>آمن وخاص</b></span></div>
+          <div class="cell" style="--hue:var(--h-xtream)"><span class="ic" data-icon="gauge"></span>
+            <span class="tx"><b>سريع ومستقر</b></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+var K = 'fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"';
+var ICON = {
+  chevron:'<svg viewBox="0 0 24 24" '+K+' stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg>',
+  link:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.9">'+
+       '<path d="M10.2 13.8a4.4 4.4 0 0 0 6.2 0l2.6-2.6a4.4 4.4 0 0 0-6.2-6.2l-1.3 1.3"/>'+
+       '<path d="M13.8 10.2a4.4 4.4 0 0 0-6.2 0L5 12.8a4.4 4.4 0 0 0 6.2 6.2l1.3-1.3"/></svg>',
+  server:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.8">'+
+       '<rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/>'+
+       '<path d="M7 7.5h.01"/><path d="M10.5 7.5h.01"/><path d="M7 16.5h.01"/><path d="M10.5 16.5h.01"/></svg>',
+  users:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.8">'+
+       '<circle cx="9.5" cy="8" r="3.4"/><path d="M3.4 19.4a6.1 6.1 0 0 1 12.2 0"/>'+
+       '<path d="M16.4 5.2a3.4 3.4 0 0 1 0 5.9"/><path d="M18 14.4a6.1 6.1 0 0 1 2.6 5"/></svg>',
+  screen:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.8">'+
+       '<rect x="2.6" y="4" width="18.8" height="13" rx="2.4"/><path d="M8.5 21h7"/>'+
+       '<path d="M10.4 8.4v4.2l3.8-2.1z"/></svg>',
+  spark:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.2 2 5 13h5l-1.2 9L19 11h-5.4z"/></svg>',
+  shield:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.9">'+
+       '<path d="M12 3l7 2.6v5.6c0 4.3-2.9 8.1-7 9.2-4.1-1.1-7-4.9-7-9.2V5.6z"/><path d="M9 12.2l2.1 2.1L15.2 10"/></svg>',
+  gauge:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.9">'+
+       '<path d="M4 18a9 9 0 1 1 16 0"/><path d="M12 18l4.2-5"/><circle cx="12" cy="18" r="1.1"/></svg>',
+  sun:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.9"><circle cx="12" cy="12" r="4"/>'+
+      '<path d="M12 2.6v2.2M12 19.2v2.2M21.4 12h-2.2M4.8 12H2.6M18.6 5.4l-1.6 1.6'+
+      'M7 17l-1.6 1.6M18.6 18.6 17 17M7 7 5.4 5.4"/></svg>',
+  moon:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.9">'+
+       '<path d="M20 14.4A8.4 8.4 0 0 1 9.6 4a8.4 8.4 0 1 0 10.4 10.4z"/></svg>'
+};
+
+/* --------------------------------------------------------------- the two grounds
+ *
+ * Exactly what `castivioDarkColors()` and the proposal hand to `Backdrop.kt`:
+ * three stops, two glow hues and their two alphas, and the mote tint. The mesh
+ * takes `colors.primary`, which is Azure50 on both.
+ */
+var GROUNDS = [
+  { cls:'g-deep', icon:'sun', sw:'#141031',
+    name:'Deep — بدون أي تغيير',
+    note:'المحطات #141031 · #1B1038 · #0A1E3D — ‏L* 6.69 / 8.03 / 11.48 · البطاقة L* 14.38 · الارتفاع 6.35',
+    stops:['#141031','#1B1038','#0A1E3D'],
+    warm:'#6E4BD8', warmA:0.30, cool:'#2E6BFF', coolA:0.26,
+    mote:'#B4D6FF', mesh:'#4C9BFF' },
+  { cls:'g-slate', icon:'moon', sw:'#1E2240',
+    name:'Slate المرفوع — المقترح',
+    note:'المحطات #1B1E38 · #1E2240 · #262B52 — ‏L* 12.27 / 14.35 / 19.01 · البطاقة L* 22.86 · الارتفاع 8.42',
+    stops:['#1B1E38','#1E2240','#262B52'],
+    warm:'#6E4BD8', warmA:0.11, cool:'#2E6BFF', coolA:0.12,
+    mote:'#B4D6FF', mesh:'#4C9BFF' }
+];
+
+/* ---------------------------------------------------------------- the backdrop
+ *
+ * `paintBackdrop` from `Backdrop.kt`, line for line. Static: `backdropPhase`
+ * returns 0f to 0.2f when the profile does not animate, so wave = 0, drift = 0.2.
+ */
+function paintBackdrop(cv, g) {
+  var dpr = 2, w = 960, h = 540;
+  cv.width = w * dpr; cv.height = h * dpr;
+  var c = cv.getContext('2d');
+  c.scale(dpr, dpr);
+
+  // drawRect(linearGradient(stops, start = (0,0), end = (w,h)))
+  var lin = c.createLinearGradient(0, 0, w, h);
+  g.stops.forEach(function (s, i) { lin.addColorStop(i / (g.stops.length - 1), s); });
+  c.fillStyle = lin; c.fillRect(0, 0, w, h);
+
+  glow(c, w * 0.05, h,        w * 0.55, g.warm, g.warmA);
+  glow(c, w * 0.95, h * 0.30, w * 0.52, g.cool, g.coolA);
+  mesh(c, w, h, 0, g.mesh);
+  motes(c, w, h, 0.2, g.mote);
+}
+
+function rgba(hex, a) {
+  var n = parseInt(hex.slice(1), 16);
+  return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')';
+}
+
+function glow(c, cx, cy, r, color, alpha) {
+  var g = c.createRadialGradient(cx, cy, 0, cx, cy, r);
+  g.addColorStop(0, rgba(color, alpha));
+  g.addColorStop(1, rgba(color, 0));
+  c.fillStyle = g;
+  c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.fill();
+}
+
+/** Perspective contour waves across the lower half. */
+function mesh(c, w, h, phase, color) {
+  var horizon = h * 0.40, lines = 16;
+  c.lineWidth = 1.2;
+  for (var i = 0; i <= lines; i++) {
+    var t = i / lines;
+    var y = horizon + (h - horizon) * (t * t);
+    var amp = 7 + 44 * t;
+    c.strokeStyle = rgba(color, 0.025 + 0.07 * t);
+    c.beginPath();
+    for (var s = 0; s <= 64; s++) {
+      var p = s / 64, x = w * p;
+      var yy = y + amp * Math.sin(p * 11 + i * 0.6 + phase);
+      if (s === 0) c.moveTo(x, yy); else c.lineTo(x, yy);
+    }
+    c.stroke();
+  }
+}
+
+/**
+ * Thirteen slow motes.
+ *
+ * The one place this is not the Kotlin: `Random(7)` is a Java sequence and this
+ * is a small LCG, so the dots land elsewhere. Same count, same radii band, same
+ * alpha law — and thirteen dots at a fifth of an alpha are not what is being
+ * judged here.
+ */
+function motes(c, w, h, drift, tint) {
+  var seed = 7;
+  function rnd() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
+  for (var i = 0; i < 13; i++) {
+    var baseX = rnd(), baseY = rnd();
+    var speed = 0.5 + rnd(), radius = 1.4 + rnd() * 2.2, phase = rnd();
+    var y = ((baseY - drift * speed) % 1 + 1) % 1;
+    var twinkle = 0.25 + 0.55 * Math.abs(Math.sin((drift + phase) * 2 * Math.PI));
+    c.fillStyle = rgba(tint, 0.20 * twinkle);
+    c.beginPath(); c.arc(w * baseX, h * y, radius, 0, Math.PI * 2); c.fill();
+  }
+}
+
+(function () {
+  var pair = document.getElementById('pair');
+  var tpl = document.getElementById('screen');
+
+  GROUNDS.forEach(function (g) {
+    var col = document.createElement('div');
+    col.className = 'col';
+    var rail = document.createElement('div');
+    rail.className = 'rail';
+    rail.innerHTML = '<h2><span class="sw" style="background:' + g.sw + '"></span>' +
+      g.name + '</h2><p>' + g.note + '</p>';
+    col.appendChild(rail);
+
+    var node = tpl.content.cloneNode(true);
+    var frame = node.querySelector('.frame');
+    frame.classList.add(g.cls);
+    frame.querySelector('.theme').dataset.icon = g.icon;
+    col.appendChild(node);
+    pair.appendChild(col);
+    paintBackdrop(col.querySelector('canvas'), g);
+  });
+
+  document.querySelectorAll('[data-icon]').forEach(function (n) {
+    n.innerHTML = ICON[n.dataset.icon];
+  });
+
+  /* The header's own rule, per frame, so both measure the same and the ground
+     stays the only variable on the page. */
+  document.querySelectorAll('.frame').forEach(function (f) {
+    var t = f.querySelector('.title');
+    var size = parseFloat(getComputedStyle(t).fontSize), floor = size * 0.55, guard = 0;
+    while (t.scrollWidth > t.clientWidth + 0.5 && size > floor && guard++ < 40) {
+      size *= 0.94; t.style.fontSize = size + 'px';
+    }
+    f.querySelectorAll('.head b').forEach(function (b) {
+      var s = parseFloat(getComputedStyle(b).fontSize), fl = s * 0.78, g2 = 0;
+      while (b.scrollWidth > b.clientWidth + 0.5 && s > fl && g2++ < 40) {
+        s *= 0.95; b.style.fontSize = s + 'px';
+      }
+    });
+    function baselineOf(el) {
+      var p = document.createElement('span');
+      p.style.cssText = 'display:inline-block;width:0;height:0;overflow:hidden';
+      el.appendChild(p); var y = p.getBoundingClientRect().bottom; el.removeChild(p);
+      return y;
+    }
+    var wm = f.querySelector('.wordmark span');
+    t.style.position = 'relative';
+    t.style.top = (baselineOf(wm) - baselineOf(t)) + 'px';
+  });
+
+  document.getElementById('foot').innerHTML =
+    'الخلفية هنا مرسومة على <b>canvas</b> بنسخ <b>Backdrop.kt</b> سطرًا بسطر — نفس ' +
+    'المحطات الثلاث على نفس القطر ‏(0,0)→(w,h)، ونفس الومضتين في نفس الزاويتين ' +
+    'بنفس نصفي القطر، ونفس خطوط الأفق السبعة عشر. الـMockup السابق استعمل تقريب ' +
+    'CSS يبدأ من ‏#05040E، فأظهر صفحةً عند ‏L* 2 بينما الجهاز يعرض ‏L* 9 — وهذا ' +
+    'بالضبط سبب عدم تنبّؤه بالنتيجة.<br>' +
+    '<b>ما تحرّك مع الأرضية، ولماذا:</b> البطاقة، لأن ‏#242642 المشحونة تقف ‏1.93 ‏L* ' +
+    'فقط فوق الصفحة المرفوعة — أي تختفي؛ فرُفعت إلى ‏L* 22.86 لتحتفظ بـ‏8.42. ' +
+    'والقرص، للسبب نفسه للمرة الثالثة: ‏20% بدل 24% مع سحب الأيقونة 24% نحو الحبر ' +
+    '(‏4.08 / 3.71 / 4.96 / 5.12).<br>' +
+    '<b>ما لم يتحرّك:</b> الإطار، التخطيط، التباعد، الخطوط، المقاسات، وشكل الومضتين ' +
+    '— نفس الزاويتين ونفس نصفي القطر ونفس التلاشي. شدّتاهما فقط نزلتا إلى ‏0.11 و0.12، ' +
+    'وهذا الرقم وحده هو ما يُحكم عليه بالعين لا بالحساب.';
+
+  /* Measured, not reasoned. */
+  var over = [];
+  document.querySelectorAll('.card').forEach(function (c, i) {
+    var body = c.querySelector('.body');
+    var need = body.scrollHeight + 2 * parseFloat(getComputedStyle(c).paddingTop);
+    if (need - c.getBoundingClientRect().height > 0.5) over.push('card ' + i + ' overflows');
+    var d = c.querySelector('.d');
+    if (d.scrollHeight - d.clientHeight > 1) over.push('card ' + i + ' desc clamped');
+  });
+  console.log(JSON.stringify({ frames: document.querySelectorAll('.frame').length, overflow: over }));
+})();
+</script>
+</body>
+</html>
