@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>Castivio — Home</title>
+<style>
+/* ============================================================================
+   Castivio — Home, matched to the approved reference.
+
+   This is the reference screen transcribed, band for band, at real 960x540 dp
+   geometry. Frame 1 is the reference itself, in English, LTR. Frame 2 is the
+   same screen in Arabic, RTL — the app ships in both and a layout that has only
+   ever been drawn in one direction is a layout that has not been checked.
+
+   ## The six bands
+
+   1. **Header** — the lockup on the lead edge, two status cards beside it, the
+      clock on the trailing edge.
+   2. **Divider** — a hairline with a lit centre, above and below the card row.
+   3. **Four cards in one row**, each: artwork, a large glyph, the name in caps,
+      the count under it. The focused card is ringed and lifted, and it is the
+      only thing on this screen that is ringed — the ring is where the remote is,
+      never "this is recommended".
+   4. **The action row** — six named buttons, each with its current value under
+      its name where it has one.
+   5. **The device strip** — connection, MAC, activation, version.
+   6. **The disclaimer**.
+
+   ## What each element is filled from, today
+
+   | Element | Source | State |
+   |---|---|---|
+   | The four counts | indexed `COUNT` per `MediaKind` | ready |
+   | Artwork | first page of each kind, `posterPlaceholderBrush` until images land | ready |
+   | `Playlist 1` | `ProviderSource.label` | ready |
+   | `Language` | the app's own locale | ready |
+   | MAC, `Version` | `DeviceClass` / build config | ready |
+   | `Device: Activated` | `EntitlementState` | ready |
+   | `Account Status`, `Expires On` | `ProviderStatus` — **thrown away today** | needs one stored field |
+   | `Connection: Good` | nothing measures this yet | needs a probe |
+   | `Time Shift` | catch-up is not implemented | drawn, not to be built yet |
+
+   The two "needs" are drawn because they are in the reference, and named here so
+   neither gets built as a lie: a status card showing "Active" that is not read
+   from anything is worse than no card.
+
+   ## The clock
+
+   Home has no clock today because a `LaunchedEffect` with a `delay` loop never
+   lets the composition go idle, and a Compose test then hangs until CI kills it
+   — this repository has paid for that once. `ACTION_TIME_TICK` through a
+   `DisposableEffect` ticks once a minute, leaves nothing pending, and costs no
+   timer of our own.
+
+   ## No colour or type literal here is a licence to write one in Kotlin
+
+   Everything below maps to `:core:design` tokens; the hex values in this file
+   exist because a mockup is an HTML page, not a Compose tree. `check-invariants`
+   still rejects `Color(0x` outside `:core:design`, and this page does not change
+   that.
+   ========================================================================= */
+@font-face{font-family:"Castivio Sans";font-weight:400;src:url("../../core/design/src/main/res/font/inter_regular.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:500;src:url("../../core/design/src/main/res/font/inter_medium.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:600;src:url("../../core/design/src/main/res/font/inter_semibold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:700;src:url("../../core/design/src/main/res/font/inter_bold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:400;src:url("../../core/design/src/main/res/font/plex_arabic_regular.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:500;src:url("../../core/design/src/main/res/font/plex_arabic_medium.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:600;src:url("../../core/design/src/main/res/font/plex_arabic_semibold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:700;src:url("../../core/design/src/main/res/font/plex_arabic_bold.ttf") format("truetype")}
+
+:root{
+  --white:#FFFFFF;
+  --text:#E8E8F4;
+  --text-2:#C6C6DC;
+  --text-3:#8E8EAE;
+
+  --violet:#A78BFA;    /* Violet50  */
+  --azure:#7DA9FF;     /* Azure50   */
+  --green:#4ADE80;     /* Success   */
+  --amber:#FB923C;     /* Amber     */
+  --focus:#B06BFF;     /* the ring  */
+
+  --panel:rgba(255,255,255,.030);
+  --panel-2:rgba(255,255,255,.045);
+  --edge:rgba(138,150,232,.20);
+  --edge-2:rgba(150,160,240,.28);
+  --rim:inset 0 1px 0 rgba(255,255,255,.07);
+
+  /* 960x540 dp — the geometry every number below is stated in */
+  --W:960px; --H:540px;
+  --pad:18px; --gutter:16px;
+  --header:56px;
+  --band:262px; --card-gap:12px; --card-radius:18px;
+  --art:132px; --glyph:46px;
+  --actions:54px; --strip:40px; --legal:32px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#07070E}
+body{font-family:"Castivio Sans","Castivio Arabic","Noto Sans",sans-serif;
+  color:var(--text);-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision}
+
+.page{padding:22px 20px 34px}
+.rail{width:960px;margin:0 auto 10px}
+.rail h2{font-size:17px;font-weight:700;color:#F2F0FF;line-height:1.4}
+.rail p{font-size:12.5px;line-height:1.65;color:#9C9CBC;margin-top:3px}
+.foot{max-width:960px;margin:26px auto 0;direction:rtl;
+  font-size:12.5px;line-height:1.9;color:#77779A}
+.foot b{color:#B9B9D4}
+.foot .miss{color:var(--amber)}
+
+.frame{position:relative;width:var(--W);height:var(--H);overflow:hidden;
+  margin:0 auto 26px;border-radius:6px}
+.frame canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.stage{position:absolute;inset:0;display:flex;flex-direction:column;
+  padding:var(--pad) calc(var(--pad) + var(--gutter))}
+
+/* ------------------------------------------------------------- 1. header */
+.header{flex:0 0 var(--header);display:flex;align-items:center;gap:22px}
+.lockup{display:flex;align-items:center;gap:13px;flex:0 0 auto;direction:ltr}
+.mark{width:52px;height:52px;display:block;
+  filter:drop-shadow(0 3px 12px rgba(96,72,255,.55))}
+.word{display:flex;flex-direction:column;gap:1px}
+.word b{font-family:"Castivio Sans",sans-serif;font-weight:700;line-height:1;
+  font-size:29px;letter-spacing:.055em;
+  background-image:linear-gradient(180deg,#FFFFFF 0%,#D8D8EC 52%,#9C9CC4 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.word span{font-size:11.5px;letter-spacing:.155em;color:var(--violet);
+  font-weight:600;line-height:1.1}
+/* The lockup is LTR because the wordmark is; the strapline under it is not, and
+   inheriting the wordmark's direction reorders its words. */
+.frame[dir="rtl"] .word span{direction:rtl;letter-spacing:0}
+
+.stat{flex:0 0 auto;height:52px;display:flex;align-items:center;gap:11px;
+  padding:0 17px;border-radius:13px;background:var(--panel);
+  border:1px solid var(--edge);box-shadow:var(--rim)}
+.stat svg{width:26px;height:26px;flex:0 0 auto}
+.stat.ok svg{color:var(--green)}
+.stat.exp svg{color:var(--violet)}
+.stat .tx{display:flex;flex-direction:column;gap:2px;line-height:1.15;white-space:nowrap}
+.stat .k{font-size:12.5px;color:var(--text-2);font-weight:400}
+.stat .v{font-size:15px;font-weight:700}
+.stat.ok .v{color:var(--green)}
+.stat.exp .v{color:var(--violet)}
+
+.clock{margin-inline-start:auto;text-align:end;direction:ltr}
+.clock b{display:block;font-size:30px;font-weight:700;line-height:1;
+  color:var(--white);letter-spacing:.01em;font-variant-numeric:tabular-nums}
+.clock span{display:block;font-size:12px;color:var(--text-2);margin-top:5px;
+  white-space:nowrap}
+
+/* ------------------------------------------------------------ 2. dividers */
+.rule{flex:0 0 auto;height:1px;margin:5px 0;position:relative;
+  background:linear-gradient(90deg,transparent,rgba(150,160,240,.22) 12%,
+    rgba(150,160,240,.22) 88%,transparent)}
+.rule::after{content:"";position:absolute;inset-inline-start:50%;top:-1px;
+  width:120px;height:3px;transform:translateX(-50%);border-radius:2px;
+  background:radial-gradient(closest-side,rgba(180,160,255,.75),transparent)}
+
+/* ------------------------------------------------------- 3. the four cards */
+.cards{flex:0 0 var(--band);display:grid;grid-template-columns:repeat(4,1fr);
+  gap:var(--card-gap);overflow:visible}
+.card{position:relative;border-radius:var(--card-radius);overflow:hidden;
+  background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.018));
+  border:1px solid var(--edge);box-shadow:var(--rim);
+  display:flex;flex-direction:column;align-items:center;padding:0 10px 12px}
+/* the ring is where the remote is, and it means nothing else here */
+.card.focus{border-color:var(--focus);transform:scale(1.022);
+  background:linear-gradient(180deg,rgba(150,90,255,.14),rgba(90,60,190,.06));
+  box-shadow:0 0 0 1px var(--focus),0 0 34px rgba(150,80,255,.34),
+             0 14px 38px rgba(4,2,16,.55),var(--rim)}
+
+/* artwork: what the app draws from the first page of each kind, and what
+   `posterPlaceholderBrush` draws until those images arrive */
+.art{flex:0 0 var(--art);width:100%;position:relative;overflow:hidden;
+  border-radius:12px;margin-top:8px}
+/* `align-self` and not `width:auto`: the canvas is absolutely positioned, so an
+   auto-width box in a centred column collapses to nothing and the artwork
+   silently disappears. */
+.card.focus .art{margin:10px 6px 0;width:auto;align-self:stretch;
+  box-shadow:0 8px 22px rgba(3,2,12,.6);border:1px solid rgba(180,160,255,.22)}
+.art canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.art .live{position:absolute;top:7px;inset-inline-end:7px;z-index:3;
+  display:inline-flex;align-items:center;height:19px;
+  padding:0 9px;border-radius:6px;font-size:11px;font-weight:700;
+  letter-spacing:.07em;color:#fff;background:#7C3AED;
+  box-shadow:0 3px 12px rgba(124,58,237,.7)}
+
+.glyph{flex:0 0 auto;width:var(--glyph);height:var(--glyph);margin-top:12px}
+.glyph svg{width:100%;height:100%;display:block}
+/* fixed line boxes: neither line may depend on a parent's leftover space */
+.name{flex:0 0 auto;margin-top:8px;font-size:19px;font-weight:700;
+  line-height:1.2;height:23px;letter-spacing:.045em;color:var(--white);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.count{flex:0 0 auto;margin-top:5px;font-size:13.5px;line-height:1.2;height:17px;
+  color:var(--tint);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.chev{position:absolute;top:calc(var(--pad) + var(--header) + 9px);
+  height:calc(var(--band) + 2px);display:flex;align-items:center;
+  color:#6F6F92;font-size:30px;line-height:1;font-weight:300;user-select:none}
+.chev.lead{inset-inline-start:6px}
+.chev.trail{inset-inline-end:6px}
+
+/* ---------------------------------------------------------- 4. the actions */
+/* The buttons are sized by their words, not by an equal share: "Logout" is a
+   short word and a button padded out to the width of "Change Playlist" reads as
+   a gap in the row. `space-between` spends the slack in the gutters instead. */
+.actions{flex:0 0 var(--actions);display:flex;gap:8px;margin-top:7px;
+  justify-content:space-between}
+.act{flex:0 1 auto;min-width:0;display:flex;align-items:center;gap:11px;
+  padding:0 14px;border-radius:13px;background:var(--panel);
+  border:1px solid var(--edge);box-shadow:var(--rim)}
+.act svg{width:25px;height:25px;flex:0 0 auto;color:var(--violet)}
+.act.warm svg{color:var(--amber)}
+.act .tx{min-width:0;display:flex;flex-direction:column;gap:2px;line-height:1.15}
+.act b{font-size:13.5px;font-weight:600;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.act span{font-size:12px;color:var(--text-3);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* drawn from the reference; catch-up has no engine yet — see the note below */
+.act.unbuilt{border-style:dashed}
+
+/* ------------------------------------------------------ 5. the device strip */
+.strip{flex:0 0 var(--strip);display:flex;align-items:center;margin-top:7px;
+  border-radius:13px;background:var(--panel);border:1px solid var(--edge);
+  box-shadow:var(--rim)}
+.strip .cell{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:10px;
+  justify-content:center;padding:0 10px}
+.strip .cell + .cell{border-inline-start:1px solid rgba(138,150,232,.16)}
+.strip svg{width:19px;height:19px;flex:0 0 auto;color:var(--text-2)}
+.strip .cell.good svg{color:var(--green)}
+.strip b{font-size:13px;font-weight:400;color:var(--text-2);white-space:nowrap}
+.strip em{font-style:normal;font-weight:600;color:var(--green)}
+.strip .mono{color:var(--white);font-weight:500;direction:ltr;
+  font-variant-numeric:tabular-nums;letter-spacing:.02em}
+
+/* ------------------------------------------------------- 6. the disclaimer */
+.legal{flex:0 0 var(--legal);display:flex;align-items:center;gap:12px;
+  margin-top:6px;padding:0 15px;border-radius:13px;background:var(--panel);
+  border:1px solid var(--edge);box-shadow:var(--rim)}
+.legal svg{width:21px;height:21px;flex:0 0 auto;color:var(--violet)}
+.legal b{font-size:12.5px;font-weight:400;color:var(--text-2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+
+<div class="page" id="out"></div>
+<div class="foot" id="foot"></div>
+
+<template id="screen">
+  <div class="frame">
+    <canvas class="bg"></canvas>
+    <div class="stage">
+
+      <div class="header">
+        <div class="lockup">
+          <img class="mark" src="../../core/design/src/main/res/drawable-nodpi/castivio_mark.png" alt="">
+          <div class="word"><b>CASTIVIO</b><span data-t="tag">PREMIUM IPTV PLAYER</span></div>
+        </div>
+
+        <div class="stat ok">
+          <span data-icon="check"></span>
+          <span class="tx"><span class="k" data-t="accountK">Account Status</span><span class="v" data-t="accountV">Active</span></span>
+        </div>
+
+        <div class="stat exp">
+          <span data-icon="calendar"></span>
+          <span class="tx"><span class="k" data-t="expiresK">Expires On</span><span class="v">13/05/2027</span></span>
+        </div>
+
+        <div class="clock"><b>13:51</b><span data-t="date">Wednesday, 02 Sep 2026</span></div>
+      </div>
+
+      <div class="rule"></div>
+
+      <div class="cards">
+        <div class="card focus" style="--tint:var(--violet)">
+          <div class="art"><canvas data-art="live"></canvas><span class="live">LIVE</span></div>
+          <span class="glyph" data-icon="tower"></span>
+          <span class="name" data-t="live">LIVE TV</span>
+          <span class="count" data-t="liveN">1661 Channels</span>
+        </div>
+
+        <div class="card" style="--tint:var(--violet)">
+          <div class="art"><canvas data-art="movies"></canvas></div>
+          <span class="glyph" data-icon="film"></span>
+          <span class="name" data-t="movies">MOVIES</span>
+          <span class="count" data-t="moviesN">178490 Movies</span>
+        </div>
+
+        <div class="card" style="--tint:var(--azure)">
+          <div class="art"><canvas data-art="series"></canvas></div>
+          <span class="glyph" data-icon="tv"></span>
+          <span class="name" data-t="series">SERIES</span>
+          <span class="count" data-t="seriesN">46960 Series</span>
+        </div>
+
+        <div class="card" style="--tint:var(--azure)">
+          <div class="art"><canvas data-art="radio"></canvas></div>
+          <span class="glyph" data-icon="waves"></span>
+          <span class="name" data-t="radios">RADIOS</span>
+          <span class="count" data-t="radiosN">5600 Stations</span>
+        </div>
+      </div>
+
+      <div class="rule"></div>
+
+      <div class="actions">
+        <div class="act">
+          <span data-icon="globe"></span>
+          <span class="tx"><b data-t="lang">Language</b><span data-t="langV">English (EN)</span></span>
+        </div>
+        <div class="act">
+          <span data-icon="list"></span>
+          <span class="tx"><b data-t="playlist">Change Playlist</b><span>Playlist 1</span></span>
+        </div>
+        <div class="act">
+          <span data-icon="info"></span>
+          <span class="tx"><b data-t="device">Device Info</b></span>
+        </div>
+        <div class="act warm unbuilt">
+          <span data-icon="rewind"></span>
+          <span class="tx"><b data-t="shift">Time Shift</b></span>
+        </div>
+        <div class="act">
+          <span data-icon="gear"></span>
+          <span class="tx"><b data-t="settings">Settings</b></span>
+        </div>
+        <div class="act">
+          <span data-icon="exit"></span>
+          <span class="tx"><b data-t="logout">Logout</b></span>
+        </div>
+      </div>
+
+      <div class="strip">
+        <div class="cell good"><span data-icon="wifi"></span><b data-t="conn">Connection: <em>Good</em></b></div>
+        <div class="cell"><span data-icon="chip"></span><b>MAC: <span class="mono">LT:19:F3:85:92:89</span></b></div>
+        <div class="cell good"><span data-icon="lock"></span><b data-t="dev">Device: <em>Activated</em></b></div>
+        <div class="cell"><span data-icon="spark"></span><b data-t="ver">Version: <span class="mono">1.0.0</span></b></div>
+      </div>
+
+      <div class="legal">
+        <span data-icon="shield"></span>
+        <b data-t="legal">Disclaimer: This application does not include or provide any media or content. Users must add their own playlist.</b>
+      </div>
+
+    </div>
+
+    <span class="chev lead">&#10094;</span>
+    <span class="chev trail">&#10095;</span>
+  </div>
+</template>
+
+<script>
+var K = 'fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"';
+var ICON = {
+  check:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.9"><circle cx="12" cy="12" r="9.2"/><path d="M7.9 12.3l2.8 2.8L16.2 9.6"/></svg>',
+  calendar:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.8"><rect x="3.2" y="5" width="17.6" height="15.8" rx="3"/><path d="M8 2.8v4.4M16 2.8v4.4M3.2 10.4h17.6"/></svg>',
+  tower:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.7"><circle cx="12" cy="7.4" r="1.9"/><path d="M7.9 3.3a5.8 5.8 0 0 0 0 8.2M16.1 3.3a5.8 5.8 0 0 1 0 8.2"/><path d="M5.2 1a9.6 9.6 0 0 0 0 12.8M18.8 1a9.6 9.6 0 0 1 0 12.8"/><path d="M12 9.6L6.6 22h10.8z"/><path d="M8.9 17.2h6.2"/></svg>',
+  film:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.7"><rect x="4.4" y="2.6" width="15.2" height="18.8" rx="2.2"/><path d="M9.2 2.6v18.8M14.8 2.6v18.8"/><path d="M4.4 8.2h4.8M4.4 15.8h4.8M14.8 8.2h4.8M14.8 15.8h4.8"/></svg>',
+  tv:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.7"><rect x="2.4" y="6.6" width="19.2" height="13.2" rx="2.6"/><path d="M8.2 2.8L12 6.6l3.8-3.8"/><path d="M9.4 13.4l1.9 1.9 3.5-3.9"/></svg>',
+  waves:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.7"><circle cx="12" cy="7.4" r="1.9"/><path d="M7.9 3.3a5.8 5.8 0 0 0 0 8.2M16.1 3.3a5.8 5.8 0 0 1 0 8.2"/><path d="M5.2 1a9.6 9.6 0 0 0 0 12.8M18.8 1a9.6 9.6 0 0 1 0 12.8"/><path d="M12 9.6L6.6 22h10.8z"/></svg>',
+  globe:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.7"><circle cx="12" cy="12" r="9.2"/><path d="M2.8 12h18.4M12 2.8a15 15 0 0 1 0 18.4a15 15 0 0 1 0-18.4z"/></svg>',
+  list:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.9"><path d="M9 6.6h11M9 12h11M9 17.4h11"/><path d="M4.4 6.6h.01M4.4 12h.01M4.4 17.4h.01"/></svg>',
+  info:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.8"><circle cx="12" cy="12" r="9.2"/><path d="M12 11.2v5.6M12 7.6h.01"/></svg>',
+  rewind:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.8"><path d="M3.4 12a8.6 8.6 0 1 0 2.9-6.4"/><path d="M3 3.6v4.6h4.6"/><path d="M12 8.2V12l2.8 1.7"/></svg>',
+  gear:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.6"><circle cx="12" cy="12" r="3.1"/><path d="M19.1 14.6a1.5 1.5 0 0 0 .3 1.7l.1.1a1.9 1.9 0 1 1-2.6 2.6l-.1-.1a1.5 1.5 0 0 0-1.7-.3 1.5 1.5 0 0 0-.9 1.4v.2a1.9 1.9 0 0 1-3.8 0V20a1.5 1.5 0 0 0-1-1.4 1.5 1.5 0 0 0-1.7.3l-.1.1a1.9 1.9 0 1 1-2.6-2.6l.1-.1a1.5 1.5 0 0 0 .3-1.7 1.5 1.5 0 0 0-1.4-.9H4a1.9 1.9 0 0 1 0-3.8h.2a1.5 1.5 0 0 0 1.4-1 1.5 1.5 0 0 0-.3-1.7l-.1-.1a1.9 1.9 0 1 1 2.6-2.6l.1.1a1.5 1.5 0 0 0 1.7.3h.1a1.5 1.5 0 0 0 .9-1.4V4a1.9 1.9 0 0 1 3.8 0v.2a1.5 1.5 0 0 0 .9 1.4 1.5 1.5 0 0 0 1.7-.3l.1-.1a1.9 1.9 0 1 1 2.6 2.6l-.1.1a1.5 1.5 0 0 0-.3 1.7v.1a1.5 1.5 0 0 0 1.4.9h.2a1.9 1.9 0 0 1 0 3.8H20a1.5 1.5 0 0 0-1.4.9z"/></svg>',
+  exit:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.8"><path d="M14.6 3.4H6.8a2.4 2.4 0 0 0-2.4 2.4v12.4a2.4 2.4 0 0 0 2.4 2.4h7.8"/><path d="M17.4 8.4L21 12l-3.6 3.6M21 12H9.6"/></svg>',
+  wifi:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.9"><path d="M3.6 9.2a12.4 12.4 0 0 1 16.8 0M6.8 12.9a7.8 7.8 0 0 1 10.4 0M10 16.6a3.1 3.1 0 0 1 4 0"/><path d="M12 20h.01"/></svg>',
+  chip:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.7"><rect x="6.6" y="6.6" width="10.8" height="10.8" rx="2"/><path d="M9.6 3v3.6M14.4 3v3.6M9.6 17.4V21M14.4 17.4V21M3 9.6h3.6M3 14.4h3.6M17.4 9.6H21M17.4 14.4H21"/></svg>',
+  lock:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.8"><rect x="4.6" y="10.2" width="14.8" height="10.2" rx="2.4"/><path d="M8.2 10.2V7.8a3.8 3.8 0 0 1 7.6 0v2.4"/></svg>',
+  spark:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.4l1.9 5.6 5.7 1.9-5.7 2 -1.9 5.6-1.9-5.6-5.7-2 5.7-1.9z"/></svg>',
+  shield:'<svg viewBox="0 0 24 24" '+K+' stroke-width="1.8"><path d="M12 2.8l7.4 2.8v5.9c0 4.5-3.1 8.6-7.4 9.7-4.3-1.1-7.4-5.2-7.4-9.7V5.6z"/><path d="M12 8.6v4.4M12 16.2h.01"/></svg>'
+};
+
+/* --------------------------------------------------------------- the backdrop
+ *
+ * `paintBackdrop` from `Backdrop.kt`, transcribed. Static: `backdropPhase`
+ * returns 0f..0.2f when the profile does not animate.
+ */
+var DEEP = { stops:['#141031','#1B1038','#0A1E3D'], warm:'#6E4BD8', warmA:0.30,
+             cool:'#2E6BFF', coolA:0.26, mote:'#B4D6FF', mesh:'#4C9BFF' };
+
+function rgba(hex, a) {
+  var n = parseInt(hex.slice(1), 16);
+  return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')';
+}
+
+function paintBackdrop(cv, w, h) {
+  var c = fit(cv, w, h);
+  var lin = c.createLinearGradient(0, 0, w, h);
+  DEEP.stops.forEach(function (s, i) { lin.addColorStop(i / (DEEP.stops.length - 1), s); });
+  c.fillStyle = lin; c.fillRect(0, 0, w, h);
+  glow(c, w * 0.05, h,        w * 0.55, DEEP.warm, DEEP.warmA);
+  glow(c, w * 0.95, h * 0.30, w * 0.52, DEEP.cool, DEEP.coolA);
+  mesh(c, w, h, 0, DEEP.mesh);
+  motes(c, w, h, 0.2, DEEP.mote);
+}
+
+function fit(cv, w, h) {
+  var dpr = 2;
+  cv.width = w * dpr; cv.height = h * dpr;
+  var c = cv.getContext('2d');
+  c.scale(dpr, dpr);
+  return c;
+}
+
+function glow(c, cx, cy, r, color, alpha) {
+  var g = c.createRadialGradient(cx, cy, 0, cx, cy, r);
+  g.addColorStop(0, rgba(color, alpha));
+  g.addColorStop(1, rgba(color, 0));
+  c.fillStyle = g;
+  c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.fill();
+}
+
+function mesh(c, w, h, phase, color) {
+  var horizon = h * 0.40, lines = 16;
+  c.lineWidth = 1.2;
+  for (var i = 0; i <= lines; i++) {
+    var t = i / lines;
+    var y = horizon + (h - horizon) * (t * t);
+    var amp = 7 + 44 * t;
+    c.strokeStyle = rgba(color, 0.025 + 0.07 * t);
+    c.beginPath();
+    for (var s = 0; s <= 64; s++) {
+      var p = s / 64, x = w * p;
+      var yy = y + amp * Math.sin(p * 11 + i * 0.6 + phase);
+      if (s === 0) c.moveTo(x, yy); else c.lineTo(x, yy);
+    }
+    c.stroke();
+  }
+}
+
+function motes(c, w, h, drift, tint) {
+  var seed = 7;
+  function rnd() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
+  for (var i = 0; i < 13; i++) {
+    var baseX = rnd(), baseY = rnd();
+    var speed = 0.5 + rnd(), radius = 1.4 + rnd() * 2.2, phase = rnd();
+    var y = ((baseY - drift * speed) % 1 + 1) % 1;
+    var twinkle = 0.25 + 0.55 * Math.abs(Math.sin((drift + phase) * 2 * Math.PI));
+    c.fillStyle = rgba(tint, 0.20 * twinkle);
+    c.beginPath(); c.arc(w * baseX, h * y, radius, 0, Math.PI * 2); c.fill();
+  }
+}
+
+/* ----------------------------------------------------------------- artwork
+ *
+ * `posterPlaceholderBrush`, four ways. This is what the card carries before the
+ * provider's images arrive — and on a provider that ships none, forever. Real
+ * artwork replaces the canvas; the card's geometry does not change.
+ */
+var TONES = [['#1B1038','#6E4BD8'],['#0A1E3D','#2E6BFF'],['#1C1840','#2FBF9F'],
+             ['#141031','#FF3B5C'],['#272253','#FFB020'],['#0D0B22','#9B6BFF']];
+
+function seeded(n) {
+  var s = n;
+  return function () { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; };
+}
+
+function tile(c, x, y, w, h, tone, alpha) {
+  var g = c.createLinearGradient(x, y, x + w, y + h);
+  g.addColorStop(0, tone[0]); g.addColorStop(1, tone[1]);
+  c.globalAlpha = alpha === undefined ? 1 : alpha;
+  c.fillStyle = g; c.fillRect(x, y, w, h);
+  c.globalAlpha = 1;
+}
+
+function paintArt(cv, kind, w, h) {
+  var c = fit(cv, w, h);
+  var rnd = seeded(kind.length * 31 + 11);
+  c.fillStyle = '#0B0920'; c.fillRect(0, 0, w, h);
+
+  if (kind === 'live') {
+    /* one frame, because a channel has a picture and not a cover: a lit
+       background, figures against it, and a title block in the corner — the
+       shape of key art, without pretending to be a particular programme */
+    tile(c, 0, 0, w, h, ['#0E1A18', '#1D3A32']);
+    glow(c, w * 0.66, h * 0.30, h * 1.05, '#8FE0C0', 0.30);
+    glow(c, w * 0.20, h * 0.85, h * 0.80, '#2A1840', 0.55);
+    c.fillStyle = 'rgba(5,10,10,.66)';
+    [0.44, 0.58, 0.72].forEach(function (fx, i) {
+      var fh = h * (0.52 - i * 0.05), fw = w * 0.085, fy = h - fh - h * 0.06;
+      round(c, w * fx, fy, fw, fh, fw * 0.5); c.fill();
+      c.beginPath(); c.arc(w * fx + fw / 2, fy - fw * 0.32, fw * 0.42, 0, Math.PI * 2); c.fill();
+    });
+    c.fillStyle = 'rgba(240,244,255,.92)';
+    [[0.30, 0.30], [0.24, 0.40], [0.34, 0.50]].forEach(function (bar) {
+      round(c, w * 0.07, h * bar[1], w * bar[0], h * 0.075, 2); c.fill();
+    });
+  } else if (kind === 'movies') {
+    /* a montage: panels behind, a lit centre, and cover corners at the edges */
+    for (var m = 0; m < 5; m++) {
+      tile(c, w * (m * 0.2 - 0.02), 0, w * 0.24, h, TONES[m % TONES.length], 0.85);
+    }
+    c.fillStyle = 'rgba(6,4,20,.42)'; c.fillRect(0, 0, w, h);
+    glow(c, w * 0.5, h * 0.56, h * 0.98, '#5B7BFF', 0.40);
+    glow(c, w * 0.5, h * 0.48, h * 0.34, '#FFD9A0', 0.24);
+    /* a figure at the centre, which is what a film montage always has */
+    c.fillStyle = 'rgba(8,5,22,.72)';
+    var cw = w * 0.15, ch2 = h * 0.60, cx2 = (w - cw) / 2, cy2 = h - ch2 - h * 0.04;
+    round(c, cx2, cy2, cw, ch2, cw * 0.42); c.fill();
+    c.beginPath(); c.arc(w / 2, cy2 - cw * 0.26, cw * 0.36, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = 'rgba(255,214,160,.45)'; c.lineWidth = 1.4;
+    round(c, cx2, cy2, cw, ch2, cw * 0.42); c.stroke();
+  } else if (kind === 'series') {
+    /* a grid of covers, which is what a series library looks like */
+    var cols = 5, rows = 3, gx = 2;
+    var cw = (w - gx * (cols + 1)) / cols, ch = (h - gx * (rows + 1)) / rows;
+    for (var r = 0; r < rows; r++) {
+      for (var col = 0; col < cols; col++) {
+        tile(c, gx + col * (cw + gx), gx + r * (ch + gx), cw, ch,
+             TONES[Math.floor(rnd() * TONES.length)], 0.78 + rnd() * 0.22);
+      }
+    }
+  } else {
+    /* a receiver, drawn: a radio station has no poster at all */
+    tile(c, 0, 0, w, h, TONES[5]);
+    glow(c, w * 0.5, h * 0.62, h * 0.8, '#9B6BFF', 0.34);
+    var bw = w * 0.60, bh = h * 0.42, bx = (w - bw) / 2, by = h * 0.44;
+    c.fillStyle = '#2A2350';
+    round(c, bx, by, bw, bh, 8); c.fill();
+    c.strokeStyle = 'rgba(200,190,255,.35)'; c.lineWidth = 1.2;
+    round(c, bx, by, bw, bh, 8); c.stroke();
+    var dw = bw * 0.52, dh = bh * 0.42;
+    var g2 = c.createLinearGradient(bx, by, bx, by + dh);
+    g2.addColorStop(0, '#FFD27A'); g2.addColorStop(1, '#B4761E');
+    c.fillStyle = g2;
+    round(c, bx + bw * 0.07, by + bh * 0.16, dw, dh, 4); c.fill();
+    c.strokeStyle = 'rgba(20,14,6,.5)'; c.lineWidth = 1;
+    for (var l = 1; l < 7; l++) {
+      var lx = bx + bw * 0.07 + dw * (l / 7);
+      c.beginPath(); c.moveTo(lx, by + bh * 0.18); c.lineTo(lx, by + bh * 0.16 + dh - 2); c.stroke();
+    }
+    c.strokeStyle = 'rgba(210,200,255,.55)'; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(bx + bw * 0.86, by); c.lineTo(bx + bw * 1.02, by - h * 0.26); c.stroke();
+    c.fillStyle = 'rgba(220,210,255,.75)';
+    c.beginPath(); c.arc(bx + bw * 0.74, by + bh * 0.62, bh * 0.13, 0, Math.PI * 2); c.fill();
+  }
+
+  /* the scrim the card draws under its glyph, so white type stays legible */
+  var s = c.createLinearGradient(0, h * 0.45, 0, h);
+  s.addColorStop(0, 'rgba(8,6,22,0)'); s.addColorStop(1, 'rgba(8,6,22,.72)');
+  c.fillStyle = s; c.fillRect(0, h * 0.45, w, h * 0.55);
+}
+
+function round(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r);
+  c.arcTo(x, y, x + w, y, r); c.closePath();
+}
+
+/* ------------------------------------------------------------------ frames */
+var AR = {
+  tag:'مشغّل IPTV متميّز',
+  accountK:'حالة الاشتراك', accountV:'نشط', expiresK:'ينتهي في',
+  date:'الأربعاء، 2 سبتمبر 2026',
+  live:'البث المباشر', liveN:'1٬661 قناة',
+  movies:'الأفلام', moviesN:'178٬490 فيلمًا',
+  series:'المسلسلات', seriesN:'46٬960 مسلسلًا',
+  radios:'الراديو', radiosN:'5٬600 محطة',
+  lang:'اللغة', langV:'العربية (AR)', playlist:'تغيير الاشتراك',
+  device:'معلومات الجهاز', shift:'تشغيل مؤجَّل', settings:'الإعدادات',
+  logout:'خروج',
+  conn:'الاتصال: <em>جيّد</em>', dev:'الجهاز: <em>مُفعَّل</em>',
+  ver:'الإصدار: <span class="mono">1.0.0</span>',
+  legal:'تنويه: هذا التطبيق لا يتضمّن ولا يوفّر أي محتوى — على المستخدم إضافة اشتراكه بنفسه.'
+};
+
+var FRAMES = [
+  { id:'ltr', dir:'ltr', lang:'en', name:'التلفاز — 960×540 · مطابقة المرجع',
+    note:'الترويسة · بطاقتا الحالة · الساعة · أربع بطاقات بصفّ واحد والأولى مركَّزة · صفّ الإجراءات · شريط الجهاز · التنويه' },
+  { id:'rtl', dir:'rtl', lang:'ar', name:'الشاشة نفسها بالعربية — RTL',
+    note:'الانعكاس الكامل: الشعار يمين، الساعة يسار، ترتيب البطاقات معكوس، والأسهم تنقلب' },
+];
+
+(function () {
+  var out = document.getElementById('out');
+  var tpl = document.getElementById('screen');
+
+  FRAMES.forEach(function (f) {
+    var rail = document.createElement('div');
+    rail.className = 'rail';
+    rail.innerHTML = '<h2>' + f.name + '</h2><p>' + f.note + '</p>';
+    out.appendChild(rail);
+
+    var node = tpl.content.cloneNode(true);
+    var frame = node.querySelector('.frame');
+    frame.id = f.id;
+    frame.setAttribute('dir', f.dir);
+    frame.setAttribute('lang', f.lang);
+
+    frame.querySelectorAll('[data-icon]').forEach(function (n) { n.innerHTML = ICON[n.dataset.icon]; });
+    if (f.dir === 'rtl') {
+      frame.querySelectorAll('[data-t]').forEach(function (n) {
+        var t = AR[n.dataset.t];
+        if (t) n.innerHTML = t;
+      });
+    }
+    out.appendChild(node);
+
+    var live = document.getElementById(f.id);
+    paintBackdrop(live.querySelector('canvas.bg'), 960, 540);
+    live.querySelectorAll('[data-art]').forEach(function (cv) {
+      var r = cv.parentNode.getBoundingClientRect();
+      paintArt(cv, cv.dataset.art, Math.round(r.width), Math.round(r.height));
+    });
+  });
+
+  document.getElementById('foot').innerHTML =
+    '<b>هذه هي صورتك، مرسومة بهندسة حقيقية 960×540 dp:</b> الترويسة بالشعار والشعار الفرعي، ' +
+    'بطاقتا «حالة الاشتراك» و«ينتهي في»، الساعة والتاريخ، خطّا الفصل المضيئان، أربع بطاقات في صفّ ' +
+    'واحد بالأعمال الفنية والأيقونة الكبيرة والاسم والعدد، البطاقة الأولى مركَّزة بحلقة بنفسجية، ' +
+    'الأسهم على الجانبين، ستة أزرار إجراءات، شريط الجهاز الرباعي، وسطر التنويه.<br>' +
+    '<b>الإطار الثاني هو نفسه بالعربية RTL</b> — التطبيق يشحن بالاتجاهين، وتخطيط رُسم باتجاه واحد ' +
+    'فقط هو تخطيط لم يُفحص.<br>' +
+    '<b>ما يُملأ اليوم بلا أي تغيير في طبقة البيانات:</b> الأعداد الأربعة (‏COUNT مفهرس لكل نوع)، ' +
+    'الأعمال الفنية (أول صفحة من كل نوع، وقبلها <b>posterPlaceholderBrush</b> كما هي مرسومة هنا)، ' +
+    'اسم الاشتراك، اللغة، الـMAC، رقم الإصدار، و«الجهاز: مُفعَّل» من <b>EntitlementState</b>.<br>' +
+    '<b class="miss">ما يحتاج حقلًا واحدًا مخزَّنًا:</b> «حالة الاشتراك» و«ينتهي في». ' +
+    '<b>ProviderStatus.expiresAtMs</b> يعيده المتحقِّق ثم يُرمى — لا عمود له في <b>ProviderSource</b>. ' +
+    'بطاقة تقول «نشط» دون أن تقرأها من شيء أسوأ من غياب البطاقة.<br>' +
+    '<b class="miss">ما يحتاج فاحصًا:</b> «الاتصال: جيّد» — لا شيء يقيسه في الطبقة الحالية.<br>' +
+    '<b class="miss">مرسوم ولا يُبنى بعد:</b> «المشاهدة المؤجَّلة» (‏Time Shift) — بحدّ متقطّع هنا. ' +
+    'موجود في المرجع فرُسم، لكن الـcatch-up بلا محرّك، وزرّ لا يفعل شيئًا أسوأ من زرّ غير موجود.<br>' +
+    '<b>الساعة</b> مرسومة: رُفضت سابقًا بسبب <b>LaunchedEffect</b> بحلقة تأخير لا تنتهي فتُعلّق اختبار ' +
+    'Compose. البديل <b>ACTION_TIME_TICK</b> عبر <b>DisposableEffect</b> — لا يترك شيئًا معلّقًا ولا يكلّف مؤقّتًا.';
+
+  /* Measured, not reasoned: nothing overflows, nothing clips, nothing collapses. */
+  var bad = [];
+  document.querySelectorAll('.frame').forEach(function (f) {
+    var stage = f.querySelector('.stage');
+    if (stage.scrollHeight - stage.clientHeight > 1) {
+      bad.push(f.id + ' overflows by ' + Math.round(stage.scrollHeight - stage.clientHeight));
+    }
+    f.querySelectorAll('.name,.count,.act b,.act span,.strip b,.stat .v,.legal b').forEach(function (n) {
+      if (n.scrollWidth - n.clientWidth > 0.5) bad.push(f.id + ' clipped: ' + n.textContent.trim().slice(0, 22));
+      if (n.getBoundingClientRect().height < 4) bad.push(f.id + ' collapsed: ' + n.textContent.trim().slice(0, 22));
+    });
+  });
+  console.log(JSON.stringify({ frames: document.querySelectorAll('.frame').length, problems: bad }));
+})();
+</script>
+</body>
+</html>
