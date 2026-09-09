@@ -4,7 +4,6 @@ import com.castivio.core.common.AppError
 import com.castivio.core.common.Outcome
 import com.castivio.domain.CatalogImporter
 import com.castivio.domain.ImportProgress
-import com.castivio.domain.MediaKind
 import com.castivio.domain.PlaylistSource
 import com.castivio.domain.ProviderSource
 import com.castivio.domain.ProviderStatus
@@ -44,7 +43,13 @@ import org.junit.Test
  * Everything the sequence *decides* is proved in `ActivateProviderTest` without a
  * device. What is left to prove here is the part a view model is actually for — that
  * the running job belongs to the screen, that leaving cancels it, and that a repeated
- * keypress on a remote cannot start two imports of the same provider.
+ * keypress on a remote cannot start two checks of the same provider.
+ *
+ * Five of these asserted an import until sections became something the app fetches
+ * when they are opened. They were not deleted for being inconvenient: each one still
+ * describes a real guarantee, and each is rewritten against the step that guarantee
+ * now hangs off — the provider check rather than the download. What the download does
+ * is still asserted, in `ActivateProviderTest`, over the path that still performs one.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ActivationViewModelTest {
@@ -102,19 +107,39 @@ class ActivationViewModelTest {
         override suspend fun isUpToDate(source: PlaylistSource): Boolean = false
     }
 
-    private class StallingImporter : CatalogImporter {
-        var starts = 0
-        val reachedMiddle = CompletableDeferred<Unit>()
+    /**
+     * A check that starts and never finishes.
+     *
+     * The stall moved here from the importer, and the move is the whole change in
+     * this file. Activation no longer downloads anything, so "while it is busy" now
+     * means "while the provider is being asked" — and a test that stalled the
+     * importer to observe busy would be observing a step the screen no longer runs.
+     */
+    private class StallingValidator : ProviderValidator {
+        var calls = 0
+        val reached = CompletableDeferred<Unit>()
         private val never = CompletableDeferred<Unit>()
 
-        override fun import(source: PlaylistSource): Flow<ImportProgress> = flow {
-            starts++
-            emit(ImportProgress.Importing(12_000, 3, MediaKind.LIVE))
-            reachedMiddle.complete(Unit)
+        override suspend fun validate(source: PlaylistSource): Outcome<ProviderStatus> {
+            calls++
+            reached.complete(Unit)
             never.await()
+            return Outcome.Success(ProviderStatus(usable = true))
         }
+    }
 
-        override suspend fun isUpToDate(source: PlaylistSource): Boolean = false
+    /** Unreachable once, then fine. What a retry is actually for. */
+    private class FlakyValidator : ProviderValidator {
+        var calls = 0
+
+        override suspend fun validate(source: PlaylistSource): Outcome<ProviderStatus> {
+            calls++
+            return if (calls == 1) {
+                Outcome.Failure(AppError.NETWORK_UNAVAILABLE)
+            } else {
+                Outcome.Success(ProviderStatus(usable = true))
+            }
+        }
     }
 
     private class FixedClock(private val nowMs: Long) : TrustedTime {
@@ -195,10 +220,25 @@ class ActivationViewModelTest {
 
     // --------------------------------------------------------------- submitting
 
+    /**
+     * What activating means now: the credentials work, the provider is saved, and the
+     * app opens.
+     *
+     * This asserted an item count until sections became something the app fetches when
+     * they are opened. Downloading a provider's whole catalogue behind one progress bar
+     * made everybody wait for the parts they do not use — 180,000 films for someone who
+     * only watches television — so the wait moved to the sections, and the count this
+     * used to assert is not a thing activation produces any more.
+     *
+     * The count is still asserted, in `ActivateProviderTest`, over the path that still
+     * imports. Nothing about that path changed; what changed is which one this screen
+     * asks for.
+     */
     @Test
-    fun `submitting runs the sequence and ends in success`() = runTest {
+    fun `submitting checks the provider, saves it, and downloads nothing`() = runTest {
+        val importer = Importer(listOf(ImportProgress.Done(21_874, 9_000)))
         val sources = Sources()
-        val model = viewModel(sources = sources)
+        val model = viewModel(importer, sources = sources)
         model.fillXtream()
 
         model.submit()
@@ -206,8 +246,8 @@ class ActivationViewModelTest {
 
         val phase = model.state.value.phase
         assertTrue("$phase", phase is ActivationPhase.Succeeded)
-        assertEquals(21_874, (phase as ActivationPhase.Succeeded).itemCount)
         assertEquals("src-1", sources.activeId)
+        assertEquals("activation started an import", 0, importer.starts)
     }
 
     @Test
@@ -227,29 +267,29 @@ class ActivationViewModelTest {
      * imports of the same provider racing would interleave writes to the same rows.
      */
     @Test
-    fun `pressing submit twice starts one import`() = runTest {
-        val importer = StallingImporter()
-        val model = viewModel(importer)
+    fun `pressing submit twice asks the provider once`() = runTest {
+        val validator = StallingValidator()
+        val model = viewModel(validator = validator)
         model.fillXtream()
 
         model.submit()
-        importer.reachedMiddle.await()
+        validator.reached.await()
         model.submit()
         model.submit()
         advanceUntilIdle()
 
-        assertEquals(1, importer.starts)
+        assertEquals(1, validator.calls)
         model.cancel()
     }
 
     @Test
-    fun `the fields are frozen while an import runs`() = runTest {
-        val importer = StallingImporter()
-        val model = viewModel(importer)
+    fun `the fields are frozen while the check runs`() = runTest {
+        val validator = StallingValidator()
+        val model = viewModel(validator = validator)
         model.fillXtream()
 
         model.submit()
-        importer.reachedMiddle.await()
+        validator.reached.await()
         model.username("someone-else")
 
         assertEquals("bob", (model.state.value.form as ActivationForm.Xtream).username)
@@ -266,15 +306,15 @@ class ActivationViewModelTest {
      * reached for it would be testing a stub rather than the guarantee.
      */
     @Test
-    fun `cancelling stops the import and returns to the form`() = runTest {
-        val importer = StallingImporter()
+    fun `cancelling stops the check and returns to the form`() = runTest {
+        val validator = StallingValidator()
         val sources = Sources()
-        val model = viewModel(importer, sources = sources)
+        val model = viewModel(validator = validator, sources = sources)
         model.fillXtream()
 
         model.submit()
-        importer.reachedMiddle.await()
-        assertEquals(ActivationPhase.Importing(12_000, 3), model.state.value.phase)
+        validator.reached.await()
+        assertEquals(ActivationPhase.Checking, model.state.value.phase)
 
         model.cancel()
         advanceUntilIdle()
@@ -287,12 +327,17 @@ class ActivationViewModelTest {
 
     // ------------------------------------------------------------------ retrying
 
+    /**
+     * The failure a retry is for, and it comes from the check now.
+     *
+     * It used to be scripted into the importer, which activation no longer runs — so
+     * the same scenario is the same sentence with the unreachable host moved one step
+     * earlier: the provider does not answer, the user presses again, it does.
+     */
     @Test
     fun `a transient failure can be retried and can succeed`() = runTest {
-        val importer = Importer(
-            listOf(ImportProgress.Failed(AppError.NETWORK_UNAVAILABLE)),
-        )
-        val model = viewModel(importer)
+        val validator = FlakyValidator()
+        val model = viewModel(validator = validator)
         model.fillXtream()
 
         model.submit()
@@ -305,7 +350,8 @@ class ActivationViewModelTest {
         model.retry()
         advanceUntilIdle()
 
-        assertEquals(2, importer.starts)
+        assertEquals(2, validator.calls)
+        assertTrue("${model.state.value.phase}", model.state.value.phase is ActivationPhase.Succeeded)
     }
 
     @Test
