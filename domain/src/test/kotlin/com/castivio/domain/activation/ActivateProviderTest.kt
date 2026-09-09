@@ -613,7 +613,7 @@ class ActivateProviderTest {
         assertEquals(0, importer.started)
         assertTrue("${phases.last()}", phases.last() is ActivationPhase.Succeeded)
         assertEquals(1, sources.registrations)
-        assertEquals("src-1", sources.activeId)
+        assertEquals("xtream-1", sources.activeId)
     }
 
     @Test
@@ -627,7 +627,7 @@ class ActivateProviderTest {
 
         assertEquals(0, importer.started)
         assertTrue("${phases.last()}", phases.last() is ActivationPhase.Succeeded)
-        assertEquals("src-1", sources.activeId)
+        assertEquals("m3u-1", sources.activeId)
     }
 
     /** A provider that says no is still refused. Connecting cannot save bad details. */
