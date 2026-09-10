@@ -722,11 +722,12 @@ already broken.**
 | 1 | **One visual language across the whole application.** Every surface uses the same focus, selection, playing, loading, progress and history marks defined in §5.1. | CI: no colour, type or shape literal outside `:core:design`. Review: a new mark must be added to §5.1 first. |
 | 2 | **One meaning for each colour, everywhere.** Violet is navigation, aqua is now, amber is working, neutral is the past, danger is failure. A colour never means two things. | CI: literals blocked; semantic token names only. Review: a new meaning requires a new token, not a reused hue. |
 | 3 | **One primary action per screen.** Exactly one — the thing the user came to do. Everything else is secondary or in a menu. | Review, and the component API: `ErrorState` and `EmptyState` take one required action and at most one secondary. |
-| 4 | **No duplicate navigation patterns.** One rail, one bottom bar, one back rule. A feature does not invent its own way to move between screens. | Compiler: `Route` is a sealed type in `:core:navigation`; a feature cannot declare a destination the shell does not know. |
+| 4 | **No duplicate navigation patterns.** One way to move between screens, the same on every device, and one back rule. Navigation lives on Home — the four section cards and the action row under them — and back returns a section to Home and only asks at Home. There is no standing rail and no bottom bar; a feature does not invent its own way to move. | Compiler: `Route` is a sealed type in `:core:navigation`; a feature cannot declare a destination the shell does not know. Test: `BackPolicyTest` pins the ladder. |
 | 5 | **Three navigation levels from Home to playback, at most.** Live is two, movies is three, and detail is skippable. | Test: a route-graph test asserts the depth budget for every leaf that ends in `Route.Player`. |
 | 6 | **No component exists in two inconsistent variants.** One `MediaCard` with variants as parameters, never a second card that is nearly the same. | CI: shared component names may be declared exactly once in the repository. |
 | 7 | **Reuse before addition.** A new feature composes existing components; a new component is added to `:core:design` only when no combination of the existing ones expresses it — and then it is added *there*, not in the feature. | CI: `@Composable` public UI primitives outside `:core:design` are flagged. Review: the burden is on the addition. |
 | 8 | **Performance is a feature.** No unnecessary recomposition, no allocation in a scroll, no animation that competes with a list, no work in composition. | CI: the existing performance budgets stay blocking. Review: every screen is profiled before it is called done. |
+| 9a | **One composition on every device.** The same components in the same order with the same hierarchy on a phone, a tablet and a television; sizes are responsive and bounded, and only interaction adapts. See §13. | Test: `MetricsTest` pins the floors, the ceilings, the reference numbers and that four cards fit across every surface. Review: a branch that changes a column count or a component set is refused. |
 | 9 | **Accessibility and RTL are not optional.** Every component ships with a content description, a 3:1 contrast minimum on UI and 4.5:1 on text, a focus state that is not colour alone, and correct behaviour under `rtl`. | CI: direction-absolute APIs (`absolutePadding`, `Arrangement.Absolute`, `Alignment.Absolute`) are blocked outright. Review: the component is checked in both directions. |
 | 10 | **Four states before implementation.** Every screen defines loading, empty, error and success *before* a line of it is written — in the mockup, then in the state holder's sealed type. | Compiler: a screen renders a sealed `ScreenState`, so the `when` is exhaustive and a missing state does not compile. |
 
@@ -822,38 +823,95 @@ proposal to add a pale page is a proposal to change this paragraph first.
 
 ---
 
-## 13. Layout rules by form factor
+## 13. Sizing: one composition, bounded responsive dimensions
 
-### TV (10-foot)
+**This section replaces the per-form-factor layout rules that stood here.** Those
+rules described a phone layout, a tablet layout, a television layout and a desktop
+layout — four drawings of one product, kept in step by hand. They drifted, exactly as
+that arrangement always does: Home folded its four section cards to two by two below a
+width, grew a bottom bar the television never had, and stopped reading as the same
+application. What follows is the system that ended that, and it is the official and
+permanent one. A change request that contradicts it is answered by changing this
+section deliberately, in a commit of its own, or not at all.
 
-- Safe area: 5% inset on all sides. Nothing interactive outside it.
-- Navigation rail on the leading edge, collapsed to icons, expanding on focus.
-- Rows of 6 posters or 4 landscape cards at 1080p; scaled, not re-laid-out, at 4K.
-- Minimum focusable size 64 dp; minimum text 16 sp.
-- No hover, no scrollbars, no drag. Every action reachable in ≤3 keypresses from
-  Home.
+### The formula
 
-### Phone
+> **One design system + one composition + bounded responsive sizing + functional
+> adaptation.**
 
-- Bottom navigation with five destinations: Home, Live, Library, Search, Settings.
-  Fixed — the five do not vary with what the provider carries, for the reason in
-  §3.4. Material's active indicator marks the selection, not a top rule.
-- Grids of 2 posters portrait, 3 landscape.
-- The player is fullscreen with a swipe-down dismiss; picture-in-picture where the
-  platform supports it.
+The device adapts to the design. The design does not rebuild itself per device.
 
-### Tablet
+### The reference
 
-- Navigation rail plus content, and a two-pane layout in landscape: categories
-  beside the grid, series beside its episodes.
-- Grids of 4–6 posters depending on width.
-- Keyboard and pointer supported as first-class, not as phone-with-extra-space.
+**1280 × 720, 16:9.** It is the geometry every screen is designed at and judged
+against, and the fractions in `castivioMetrics` are read off it. It is **not** a
+canvas that gets scaled onto the device, and there is no transform over the tree.
 
-### Desktop
+### What is fixed, on every surface
 
-- Resizable window with a real minimum (960×600), multi-window later.
-- Menu bar and keyboard shortcuts; the rail persists.
-- The player supports fullscreen, always-on-top and external display.
+The *composition*: which components exist, in what order, in what hierarchy, with what
+relationships. Concretely, and as the first case of the rule:
+
+- **Home is four section cards in one row — Live TV, Movies, Series, Radio — on a
+  phone, a tablet, a television, a stick and a box.** Never two by two, never three,
+  never five.
+- One shell. No navigation pattern that exists on one device and not another.
+- One set of components per screen, in one order.
+
+### What is responsive, and how
+
+Sizes, and only sizes. `castivioMetrics(width, height, isTv)` in `:core:design`
+returns every stage, header, furniture and type token for a **measured surface**:
+
+- each token is a fraction of the axis it actually spends — horizontal things off the
+  width, vertical things and type off the height;
+- **each token is clamped between a floor and a ceiling**, so the shortest surface
+  this ships to stays legible and a 4K set stays proportionate rather than magnified;
+- dimensions are `dp` and text is `sp`. Never `px`, for either.
+
+A 960×540 television lands on the numbers the television drawing was approved at —
+edge 46, header 54, chip 44, band 22, title 26 — because the fractions were read off
+that drawing. This is asserted in `MetricsTest`, not claimed.
+
+### What may adapt by device, and what may not
+
+Only **interaction** adapts. `touchTarget` is the single token that asks what the
+device is: 48dp for a thumb, 56dp for a remote. Everything a reader *sees* is
+responsive; nothing a finger *hits* is allowed to shrink.
+
+That distinction is the whole reason a global scale was rejected. A `graphicsLayer`
+over the tree gives correct proportions on every screen and renders a 48dp control at
+26dp on a 393dp handset: a correct-looking drawing of a button nobody can press.
+
+### Aspect ratios
+
+Artwork keeps its ratio, always — posters, thumbnails, hero images, channel frames,
+section plates, logos. `CASTIVIO_ARTWORK_ASPECT` is 16:9 and artwork is *contained*
+inside the space it is given, never stretched to fill it. Responsive sizing decides
+how large a picture is; it never decides how shaped it is.
+
+### Breakpoints
+
+Permitted **only** for a real functional difference — touch versus D-pad, focus
+behaviour, remote navigation. Never to produce a different visual composition. A
+branch that returns a different column count, a different order, or a different set of
+components is forbidden, and `castivioMetrics` is shaped so that it could not express
+one: it returns sizes, not layouts.
+
+### What this does not touch
+
+Responsive UI is the presentation layer's business. It is never a reason to change the
+data layer, the repositories, paging, caching, lazy loading or the activation flow.
+
+### Before changing any screen
+
+Settle, in this order: the master composition; the component hierarchy; the grid; the
+artwork aspect ratios; the type hierarchy; the spacing; the minimum and maximum of
+every responsive dimension; and which differences are functional rather than visual.
+Then apply responsive behaviour without touching the composition or the identity.
+
+**If a solution appears to require a separate layout for phone or for television,
+stop and re-evaluate the solution.**
 
 ---
 
