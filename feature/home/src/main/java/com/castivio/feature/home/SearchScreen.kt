@@ -2,11 +2,11 @@ package com.castivio.feature.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,9 +23,11 @@ import com.castivio.core.design.components.CastivioTextField
 import com.castivio.core.design.components.ChannelCard
 import com.castivio.core.design.components.EmptyState
 import com.castivio.core.design.components.SectionHeader
+import com.castivio.core.design.components.castivioBodyStyle
+import com.castivio.core.design.components.castivioChipStyle
+import com.castivio.core.design.components.castivioTitleStyle
 import com.castivio.core.design.theme.CastivioTheme
-import com.castivio.core.design.theme.CastivioType
-import com.castivio.core.design.theme.Spacing
+import com.castivio.core.design.theme.castivioStage
 
 /**
  * Search over the imported catalogue.
@@ -43,12 +45,14 @@ fun CatalogSearchScreen(
     val state by model.state.collectAsStateWithLifecycle()
     val colors = CastivioTheme.colors
 
+    BoxWithConstraints(modifier.fillMaxSize().statusBarsPadding()) {
+    val m = catalogMetricsFor(tv = CastivioTheme.device.isTv, width = maxWidth, height = maxHeight)
+
     Column(
-        modifier
+        Modifier
             .fillMaxSize()
-            .statusBarsPadding()
-            .padding(horizontal = CastivioTheme.device.screenPadding, vertical = Spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(Spacing.lg),
+            .castivioStage(m.frame),
+        verticalArrangement = Arrangement.spacedBy(m.bandGap),
     ) {
         CastivioTextField(
             value = state.query,
@@ -62,7 +66,7 @@ fun CatalogSearchScreen(
         when {
             !state.asked -> Text(
                 stringResource(R.string.search_prompt),
-                style = CastivioType.bodyMedium,
+                style = castivioBodyStyle(m.frame.fsBody),
                 color = colors.onBackgroundMuted,
             )
 
@@ -76,13 +80,16 @@ fun CatalogSearchScreen(
             }
 
             else -> LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                contentPadding = PaddingValues(bottom = Spacing.xxl),
+                verticalArrangement = Arrangement.spacedBy(m.rowGap),
+                contentPadding = PaddingValues(bottom = m.listBottom),
             ) {
                 item(key = "header") {
                     SectionHeader(
                         title = stringResource(R.string.search_results),
                         count = state.results.size,
+                        titleStyle = castivioTitleStyle(m.frame.fsTitle),
+                        countStyle = castivioBodyStyle(m.frame.fsBody),
+                        gap = m.rowGap,
                     )
                 }
                 items(state.results, key = { it.id }) { item ->
@@ -98,9 +105,15 @@ fun CatalogSearchScreen(
                         seed = item.id.hashCode(),
                         onClick = { onPlay(selection) },
                         modifier = Modifier.fillMaxWidth(),
+                        logo = m.logo,
+                        pad = m.cardPad,
+                        minHeight = m.rowMin,
+                        nameStyle = castivioChipStyle(m.frame.fsLabel),
+                        captionStyle = castivioBodyStyle(m.frame.fsBody),
                     )
                 }
             }
         }
+    }
     }
 }

@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,10 +25,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.castivio.core.design.components.ChannelCard
 import com.castivio.core.design.components.EmptyState
 import com.castivio.core.design.components.SectionHeader
+import com.castivio.core.design.components.castivioBodyStyle
+import com.castivio.core.design.components.castivioChipStyle
+import com.castivio.core.design.components.castivioTitleStyle
 import com.castivio.core.design.theme.castivioBackdrop
 import com.castivio.core.design.theme.CastivioTheme
-import com.castivio.core.design.theme.CastivioType
-import com.castivio.core.design.theme.Spacing
+import com.castivio.core.design.theme.castivioStage
 import com.castivio.domain.Episode
 import com.castivio.domain.SeriesSummary
 
@@ -58,18 +61,30 @@ fun ShowScreen(
     val query = remember(show.seriesId) { model.seasons(show.seriesId) }
     val seasons by query.collectAsStateWithLifecycle(initialValue = emptyList())
 
-    Column(
+    BoxWithConstraints(
         modifier
             .fillMaxSize()
             // This one *is* drawn over the destination underneath it, so it needs
             // a background of its own — and the one it needs is the application's,
             // not the flat colour underneath the application's.
             .castivioBackdrop()
-            .statusBarsPadding()
-            .padding(horizontal = CastivioTheme.device.screenPadding, vertical = Spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            .statusBarsPadding(),
     ) {
-        SectionHeader(title = show.title, count = show.episodeCount)
+    val m = catalogMetricsFor(tv = CastivioTheme.device.isTv, width = maxWidth, height = maxHeight)
+
+    Column(
+        Modifier
+            .fillMaxSize()
+            .castivioStage(m.frame),
+        verticalArrangement = Arrangement.spacedBy(m.bandGap),
+    ) {
+        SectionHeader(
+            title = show.title,
+            count = show.episodeCount,
+            titleStyle = castivioTitleStyle(m.frame.fsTitle),
+            countStyle = castivioBodyStyle(m.frame.fsBody),
+            gap = m.rowGap,
+        )
 
         if (seasons.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -82,29 +97,37 @@ fun ShowScreen(
             }
         } else {
             LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                contentPadding = PaddingValues(bottom = Spacing.xxl),
+                verticalArrangement = Arrangement.spacedBy(m.rowGap),
+                contentPadding = PaddingValues(bottom = m.listBottom),
             ) {
                 seasons.forEach { season ->
                     item(key = "season-${season.number}") {
                         Text(
                             stringResource(R.string.show_season, season.number),
-                            style = CastivioType.titleMedium,
+                            // The title face at the step below the screen's own name:
+                            // a season is a heading inside the list, not a second
+                            // title for the page.
+                            style = castivioTitleStyle(m.frame.fsLabel),
                             color = colors.onBackground,
-                            modifier = Modifier.padding(top = Spacing.md, bottom = Spacing.xs),
+                            modifier = Modifier.padding(top = m.bandGap, bottom = m.entryGap),
                         )
                     }
                     items(season.episodes, key = { it.id }) { episode ->
-                        EpisodeRow(episode, onPlay)
+                        EpisodeRow(episode, m, onPlay)
                     }
                 }
             }
         }
     }
+    }
 }
 
 @Composable
-private fun EpisodeRow(episode: Episode, onPlay: (CatalogSelection) -> Unit) {
+private fun EpisodeRow(
+    episode: Episode,
+    m: CatalogMetrics,
+    onPlay: (CatalogSelection) -> Unit,
+) {
     val selection = episode.asSelection() ?: return
     ChannelCard(
         name = episode.title,
@@ -113,5 +136,10 @@ private fun EpisodeRow(episode: Episode, onPlay: (CatalogSelection) -> Unit) {
         seed = episode.episodeNumber,
         onClick = { onPlay(selection) },
         modifier = Modifier.fillMaxWidth(),
+        logo = m.logo,
+        pad = m.cardPad,
+        minHeight = m.rowMin,
+        nameStyle = castivioChipStyle(m.frame.fsLabel),
+        captionStyle = castivioBodyStyle(m.frame.fsBody),
     )
 }
