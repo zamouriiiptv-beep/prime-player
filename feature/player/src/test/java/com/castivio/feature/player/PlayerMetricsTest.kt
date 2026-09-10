@@ -113,7 +113,9 @@ class PlayerMetricsTest {
             height = CastivioReference.Height,
         )
         assertEquals("barGapLarge", 32f, m.barGapLarge.value, 0.2f)
-        assertEquals("progress width", 128f, m.progressWidth.value, 0.2f)
+        // 140.8, because the progress readout is one of the eleven read off the
+        // handset rather than the television — see `PlayerMetrics` for the split.
+        assertEquals("progress width", 140.8f, m.progressWidth.value, 0.2f)
     }
 
     /**
