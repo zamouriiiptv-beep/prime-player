@@ -209,8 +209,9 @@ function railWidth(f) {
 /* `Plan.of`, transcribed. */
 function plan(f, isTv) {
   var width = f.W - railWidth(f);
-  var fourAcross = isTv || width >= WIDE_STAGE;
-  var rows = fourAcross ? 1 : 2;
+  var fourAcross = true;                       /* four in a row, on every frame */
+  var showLicence = isTv || width >= WIDE_STAGE;
+  var rows = 1;
   var gap = f.bandTop;
   var stage = f.H - f.top - f.bot;
   var header = f.header + f.fsChip;
@@ -220,7 +221,7 @@ function plan(f, isTv) {
   var showLine = (withLine - gap * (rows - 1)) / rows >= MIN_CARD;
   var band = showLine ? withLine : without;
   return {
-    width: width, fourAcross: fourAcross, columns: fourAcross ? 4 : 2, rows: rows,
+    width: width, fourAcross: fourAcross, showLicence: showLicence, columns: 4, rows: rows,
     header: header, card: (band - gap * (rows - 1)) / rows, showLine: showLine,
     stage: stage,
   };
@@ -343,7 +344,7 @@ function build(key, isTv) {
   head.className = 'head';
   head.style.height = px(p.header);
   head.style.gap = px(f.headGap);
-  var lic = p.fourAcross ? [
+  var lic = p.showLicence ? [
     { i:P.check, k:'الترخيص',  v:'تجربة',      c:'--green'  },
     { i:P.cal,   k:'ينتهي في', v:'16 سبتمبر 2026', c:'--violet' }
   ] : [];

@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -88,18 +87,14 @@ import java.util.Date
  * this revision exists to fix: fixed card heights meant a 393dp handset drew the
  * television's card and pushed half the screen past the fold.
  *
- * ## Four across, or two by two
+ * ## Four across, on every frame
  *
- * The set and the tablet get one row of four; the handset gets two rows of two. The
- * choice is the *stage*, not a device name — a television because a reader three
- * metres away needs the card large in angle, and any stage at least [WIDE_STAGE] wide
- * because that is the content block the tablet frame is already built around. Both
- * come out of numbers this project already holds; neither is a second frame table,
- * which is what `CastivioFrame` exists to prevent.
- *
- * The card turns with the shape it is given: tall enough and it stacks plate over
- * name; short and wide and it lays the plate beside the name. One card, two aspects,
- * rather than two cards.
+ * The approved screen is four cards in one row, and it stays four cards in one row on
+ * a handset: 873dp gives each about 185, which is wider than the longest of the four
+ * names needs. A revision of this screen folded them to two by two below a width
+ * threshold, and the result was a phone that looked like a different product from the
+ * set. What changes with the frame is the *height* each card is given, which is
+ * measured out of the stage, not the number of them in a row.
  *
  * ## The plate, and why it is not a picture
  *
@@ -168,7 +163,7 @@ fun HomeScreen(
                 .padding(top = frame.stageTop, bottom = frame.stageBottom),
             verticalArrangement = Arrangement.spacedBy(frame.bandTop),
         ) {
-            DashboardHeader(state, frame, plan.headerHeight, showLicence = plan.fourAcross)
+            DashboardHeader(state, frame, plan.headerHeight, plan.showLicence)
 
             when {
                 state.loading -> Box(Modifier.fillMaxSize())
@@ -223,20 +218,15 @@ fun HomeScreen(
  * than a size.
  */
 private data class Plan(
-    val fourAcross: Boolean,
-    val columns: Int,
+    /** Whether the header has the width for the licence pair beside the lockup. */
+    val showLicence: Boolean,
     /** The header band: the frame's row plus the strapline this screen sets under it. */
     val headerHeight: Dp,
     val cardHeight: Dp,
     val showDisclaimer: Boolean,
 ) {
-    /** A card taller than it is wide stacks; a wide, short one lays out sideways. */
-    val stacked: Boolean get() = fourAcross
-
     companion object {
         fun of(frame: CastivioFrame, height: Dp, width: Dp, isTv: Boolean): Plan {
-            val fourAcross = isTv || width >= WIDE_STAGE
-            val rows = if (fourAcross) 1 else 2
             val gap = frame.bandTop
             val stage = height - frame.stageTop - frame.stageBottom
 
@@ -251,14 +241,11 @@ private data class Plan(
             val withLine = stage - fixed - frame.chip - gap * 4
             val withoutLine = stage - fixed - gap * 3
 
-            val showLine = (withLine - gap * (rows - 1)) / rows >= MIN_CARD
-            val band = if (showLine) withLine else withoutLine
-
+            val showLine = withLine >= MIN_CARD
             return Plan(
-                fourAcross = fourAcross,
-                columns = if (fourAcross) 4 else 2,
+                showLicence = isTv || width >= WIDE_STAGE,
                 headerHeight = header,
-                cardHeight = (band - gap * (rows - 1)) / rows,
+                cardHeight = if (showLine) withLine else withoutLine,
                 showDisclaimer = showLine,
             )
         }
@@ -451,7 +438,14 @@ private fun expiryLabel(state: EntitlementState?): String = when (state) {
 
 // ------------------------------------------------------------ the four cards
 
-/** The four sections, in the grid the stage was measured for. */
+/**
+ * The four sections, in one row, on every frame.
+ *
+ * One row and not a grid that folds: four abreast is what the approved screen is,
+ * and a handset has the width for it — 873dp gives each card about 185, which is
+ * wider than the tallest of the four names needs. Folding to two by two was a
+ * layout this screen invented, and it made a phone look like a different product.
+ */
 @Composable
 private fun SectionCards(
     state: HomeState,
@@ -472,20 +466,17 @@ private fun SectionCards(
         modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(frame.bandTop),
     ) {
-        for (group in sections.chunked(plan.columns)) {
-            Row(
-                Modifier.fillMaxWidth().height(plan.cardHeight),
-                horizontalArrangement = Arrangement.spacedBy(frame.bandTop),
-            ) {
-                for (section in group) {
-                    SectionCard(
-                        section = section,
-                        frame = frame,
-                        stacked = plan.stacked,
-                        onClick = { onSeeSection(section.section) },
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
-                    )
-                }
+        Row(
+            Modifier.fillMaxWidth().height(plan.cardHeight),
+            horizontalArrangement = Arrangement.spacedBy(frame.bandTop),
+        ) {
+            for (section in sections) {
+                SectionCard(
+                    section = section,
+                    frame = frame,
+                    onClick = { onSeeSection(section.section) },
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                )
             }
         }
     }
@@ -507,7 +498,6 @@ private data class Section(
 private fun SectionCard(
     section: Section,
     frame: CastivioFrame,
-    stacked: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -516,24 +506,13 @@ private fun SectionCard(
         modifier = modifier,
         shape = RoundedCornerShape(frame.radius),
     ) {
-        if (stacked) {
-            Column(
-                Modifier.fillMaxSize().padding(frame.chipPad),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
-            ) {
-                SectionPlate(section, frame, Modifier.fillMaxWidth().weight(1f))
-                SectionLabels(section, frame, TextAlign.Center, Modifier.fillMaxWidth())
-            }
-        } else {
-            Row(
-                Modifier.fillMaxSize().padding(frame.chipPad),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(frame.chipPad),
-            ) {
-                SectionPlate(section, frame, Modifier.fillMaxHeight().aspectRatio(1f))
-                SectionLabels(section, frame, TextAlign.Start, Modifier.weight(1f))
-            }
+        Column(
+            Modifier.fillMaxSize().padding(frame.chipPad),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
+        ) {
+            SectionPlate(section, frame, Modifier.fillMaxWidth().weight(1f))
+            SectionLabels(section, frame, Modifier.fillMaxWidth())
         }
     }
 }
@@ -576,7 +555,6 @@ private fun SectionPlate(section: Section, frame: CastivioFrame, modifier: Modif
 private fun SectionLabels(
     section: Section,
     frame: CastivioFrame,
-    align: TextAlign,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
@@ -587,7 +565,7 @@ private fun SectionLabels(
             color = colors.onBackgroundStrong,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            textAlign = align,
+            textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),
         )
         Text(
@@ -600,7 +578,7 @@ private fun SectionLabels(
             color = if (section.fetchedAtMs == null) colors.primary else section.hue,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            textAlign = align,
+            textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),
         )
     }
@@ -809,11 +787,12 @@ private fun rememberDate(atMs: Long): String {
 }
 
 /**
- * The stage at which four cards abreast are worth more than two rows of two.
+ * The stage at which the header has room for the licence pair beside the lockup.
  *
  * The tablet frame is built around a 1000dp content block — see `CastivioFrame` — so
- * this is that block, not a new number. Below it the handset gets two by two, which
- * keeps each card wide enough for its name at the height a landscape phone has.
+ * this is that block, not a new number. On a narrower stage the two cards would take
+ * the clock's room, and the same fact is still answered by "Device: activated" in the
+ * strip below.
  */
 private val WIDE_STAGE: Dp = 1000.dp
 
