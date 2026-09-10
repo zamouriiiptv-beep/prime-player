@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -77,10 +78,11 @@ import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioTitleStyle
 import com.castivio.core.design.components.formatCount
 import com.castivio.core.design.components.ltrIsolate
-import com.castivio.core.design.theme.CastivioFrame
+import com.castivio.core.design.theme.CASTIVIO_ARTWORK_ASPECT
+import com.castivio.core.design.theme.CastivioMetrics
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Sizing
-import com.castivio.core.design.theme.rememberFrame
+import com.castivio.core.design.theme.rememberMetrics
 import com.castivio.domain.MediaKind
 import com.castivio.domain.Recorded
 import java.text.DateFormat
@@ -157,12 +159,13 @@ fun HomeScreen(
 ) {
     val state by model.state.collectAsStateWithLifecycle()
 
-    // `safeDrawing`, not `statusBars`: turned sideways the system's own navigation
-    // sits on one *side*, and a screen that pads only the top draws its trailing
-    // column underneath it.
+    // `safeDrawing`, and the metrics are read from what is left after it: turned
+    // sideways the system's own navigation sits on one *side*, so a screen that
+    // measured the display would size itself to room it does not have and draw its
+    // trailing column underneath the navigation.
     BoxWithConstraints(modifier.fillMaxSize().safeDrawingPadding()) {
-        val frame = rememberFrame(maxHeight)
-        val plan = remember(maxHeight, frame) { Plan.of(frame, maxHeight) }
+        val frame = rememberMetrics(maxWidth, maxHeight)
+        val plan = Plan.of(frame, maxHeight)
 
         Column(
             Modifier
@@ -215,7 +218,7 @@ fun HomeScreen(
                         onExit = onExit,
                     )
                     DeviceStrip(state, frame)
-                    if (plan.showDisclaimer) Disclaimer(frame)
+                    Disclaimer(frame)
                 }
             }
         }
@@ -225,22 +228,22 @@ fun HomeScreen(
 // ------------------------------------------------------------------ the plan
 
 /**
- * How this stage is spent, decided once from what the surface actually measured.
+ * How the canvas is spent: the two bands whose height is not a frame token.
  *
- * A value rather than a set of `if`s scattered through the composition: the bands
- * have to add up to the stage, and an arithmetic that lives in one place can be read
- * and checked. Everything it needs comes from [CastivioFrame] and the measured
- * surface; it invents no size of its own beyond [MIN_CARD], which is a floor rather
- * than a size.
+ * There is nothing conditional left in it. On the reference canvas the stage is
+ * always 720dp tall, so every band is the same on every device and this arithmetic
+ * produces one answer — which is the point of the canvas rather than a simplification
+ * of it. What it still does is make the bands *add up*: the cards take what the
+ * header, the actions, the strip, the disclaimer and the five gaps between them
+ * leave, so a change to any token moves the cards instead of overflowing the stage.
  */
 private data class Plan(
     /** The header band: the frame's row plus the strapline this screen sets under it. */
     val headerHeight: Dp,
     val cardHeight: Dp,
-    val showDisclaimer: Boolean,
 ) {
     companion object {
-        fun of(frame: CastivioFrame, height: Dp): Plan {
+        fun of(frame: CastivioMetrics, height: Dp): Plan {
             val gap = frame.bandTop
             val stage = height - frame.stageTop - frame.stageBottom
 
@@ -249,17 +252,16 @@ private data class Plan(
             // where the arithmetic can see it, rather than discovered by clipping.
             val header = frame.header + frame.fsChip
 
-            // Everything that is not the cards. The disclaimer is the one band that
-            // gives way, because it is the only one nothing is lost by reading later.
-            val fixed = header + frame.touchTarget + frame.chip
-            val withLine = stage - fixed - frame.chip - gap * 4
-            val withoutLine = stage - fixed - gap * 3
-
-            val showLine = withLine >= MIN_CARD
+            // Everything that is not the cards: the header, the actions, the device
+            // strip, the disclaimer, and the four gaps between those five bands.
+            val fixed = header + frame.touchTarget + frame.chip + frame.chip
             return Plan(
                 headerHeight = header,
-                cardHeight = if (showLine) withLine else withoutLine,
-                showDisclaimer = showLine,
+                // A floor as well as a share: on the shortest surface this project
+                // ships to the arithmetic still has to leave a card somebody can
+                // read, and a band that has been squeezed past that is a sign the
+                // tokens above need their ceilings looked at — not a card to draw.
+                cardHeight = (stage - fixed - gap * 4).coerceAtLeast(CARD_MIN),
             )
         }
     }
@@ -296,7 +298,7 @@ private data class Plan(
 @Composable
 private fun DashboardHeader(
     state: HomeState,
-    frame: CastivioFrame,
+    frame: CastivioMetrics,
     height: Dp,
     onLanguage: () -> Unit,
     modifier: Modifier = Modifier,
@@ -369,7 +371,7 @@ private fun StatusCard(
     label: String,
     value: String,
     tint: Color,
-    frame: CastivioFrame,
+    frame: CastivioMetrics,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
@@ -419,7 +421,7 @@ private fun StatusCard(
  * switch — is shared because it carries state, not because it is a pill.
  */
 @Composable
-private fun LanguageChip(frame: CastivioFrame, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun LanguageChip(frame: CastivioMetrics, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val colors = CastivioTheme.colors
     val label = stringResource(R.string.home_language)
     val shape = RoundedCornerShape(percent = 50)
@@ -459,7 +461,7 @@ private fun LanguageChip(frame: CastivioFrame, onClick: () -> Unit, modifier: Mo
 
 /** The time, and the day under it. */
 @Composable
-private fun Clock(frame: CastivioFrame, modifier: Modifier = Modifier) {
+private fun Clock(frame: CastivioMetrics, modifier: Modifier = Modifier) {
     val colors = CastivioTheme.colors
     val now = rememberMinute()
     val locale = LocalConfiguration.current
@@ -572,7 +574,7 @@ private fun expiryLabel(status: Recorded?): String {
 @Composable
 private fun SectionCards(
     state: HomeState,
-    frame: CastivioFrame,
+    frame: CastivioMetrics,
     plan: Plan,
     onSeeSection: (CatalogSection) -> Unit,
     modifier: Modifier = Modifier,
@@ -620,7 +622,7 @@ private data class Section(
 @Composable
 private fun SectionCard(
     section: Section,
-    frame: CastivioFrame,
+    frame: CastivioMetrics,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -648,7 +650,7 @@ private fun SectionCard(
  * loader, and four coloured rectangles arranged like posters claim otherwise.
  */
 @Composable
-private fun SectionPlate(section: Section, frame: CastivioFrame, modifier: Modifier = Modifier) {
+private fun SectionPlate(section: Section, frame: CastivioMetrics, modifier: Modifier = Modifier) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(frame.radius / 2)
     Box(
@@ -677,7 +679,7 @@ private fun SectionPlate(section: Section, frame: CastivioFrame, modifier: Modif
 @Composable
 private fun SectionLabels(
     section: Section,
-    frame: CastivioFrame,
+    frame: CastivioMetrics,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
@@ -750,7 +752,7 @@ private fun SectionLabels(
  */
 @Composable
 private fun ActionRow(
-    frame: CastivioFrame,
+    frame: CastivioMetrics,
     onRefresh: () -> Unit,
     onAddSource: () -> Unit,
     onTimeShift: () -> Unit,
@@ -779,7 +781,7 @@ private fun ActionRow(
 private fun Action(
     icon: ImageVector,
     label: String,
-    frame: CastivioFrame,
+    frame: CastivioMetrics,
     onClick: () -> Unit,
 ) {
     val colors = CastivioTheme.colors
@@ -827,7 +829,7 @@ private fun Action(
 @Composable
 private fun DeviceStrip(
     state: HomeState,
-    frame: CastivioFrame,
+    frame: CastivioMetrics,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
@@ -869,7 +871,7 @@ private fun Fact(
     icon: ImageVector,
     text: String,
     tint: Color,
-    frame: CastivioFrame,
+    frame: CastivioMetrics,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
@@ -890,7 +892,7 @@ private fun Fact(
 }
 
 @Composable
-private fun Disclaimer(frame: CastivioFrame, modifier: Modifier = Modifier) {
+private fun Disclaimer(frame: CastivioMetrics, modifier: Modifier = Modifier) {
     val colors = CastivioTheme.colors
     Row(
         modifier.fillMaxWidth().height(frame.chip),
@@ -933,12 +935,13 @@ private fun rememberDate(atMs: Long): String {
 }
 
 /**
- * The shortest a section card may be before the disclaimer gives up its band.
+ * The shortest a section card may be drawn.
  *
- * A floor, not a size: every other height on this screen is measured out of the
- * stage, and this is the one number that says when the arithmetic has taken too much.
+ * A floor, not a size. Every other height on this screen is measured out of the
+ * stage; this is the one number that says the arithmetic has taken too much, and on
+ * the surfaces this project ships to it is never reached.
  */
-private val MIN_CARD: Dp = 92.dp
+private val CARD_MIN: Dp = 96.dp
 
 /** The wordmark's share of the frame's title step, as the licence screen sets it. */
 private const val WORD_RATIO = 0.8f

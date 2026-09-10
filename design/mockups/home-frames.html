@@ -69,8 +69,10 @@ body{font-family:"Castivio Sans","Castivio Arabic","Noto Sans",sans-serif;
 .foot .miss{color:var(--amber)}
 
 .frame{position:relative;overflow:hidden;margin:0 auto 28px;border-radius:6px}
+/* the canvas, transformed as one; the ground around it is the letterbox */
+.shell{position:absolute}
 .frame canvas.bg{position:absolute;inset:0;width:100%;height:100%;display:block}
-.shell{position:absolute;inset:0;display:flex}
+.shell{display:flex}
 
 /* --------------------------------------------------------------- the rail */
 .rail{flex:0 0 auto;align-self:flex-start;
@@ -128,7 +130,7 @@ body{font-family:"Castivio Sans","Castivio Arabic","Noto Sans",sans-serif;
 .card.stack{flex-direction:column;align-items:center}
 .card.wide{flex-direction:row;align-items:center}
 .plate{flex:0 0 auto;display:flex;align-items:center;justify-content:center}
-.card.stack .plate{width:100%;flex:1 1 auto}
+.card.stack .plate{flex:1 1 auto;aspect-ratio:16/9;width:auto;max-width:100%;align-self:center}
 .labels{min-width:0;display:flex;flex-direction:column;justify-content:center}
 .card.stack .labels{width:100%;text-align:center}
 .card.wide .labels{flex:1 1 auto;text-align:start}
@@ -203,12 +205,40 @@ var P = {
  * `CastivioFrame.Television/Tablet/Phone/ShortPhone`, transcribed. No number
  * here is chosen by this page; changing one means changing `Frame.kt`.
  */
+/* `castivioMetrics`, transcribed: a fraction of the axis a token belongs to, and a
+   floor and a ceiling on every one of them. No global scale, no transform. */
+var REF = { W:1280, H:720 };
+function clamp(v, lo, hi) { return Math.min(Math.max(v, lo), hi); }
+function metrics(W, H, isTv) {
+  return {
+    W: W, H: H,
+    edge:     clamp(W * 61.3 / 1280, 24, 72),
+    top:      clamp(H * 32   / 720,  12, 40),
+    bot:      clamp(H * 29.3 / 720,  12, 40),
+    header:   clamp(H * 72   / 720,  40, 88),
+    headGap:  clamp(W * 34.7 / 1280, 12, 40),
+    brand:    clamp(H * 53.3 / 720,  28, 60),
+    chip:     clamp(H * 58.7 / 720,  32, 64),
+    chipPad:  clamp(W * 14.7 / 1280,  8, 18),
+    bandTop:  clamp(H * 29.3 / 720,   8, 32),
+    radius:   clamp(H * 26.7 / 720,  14, 28),
+    target:   isTv ? 56 : 48,
+    fsTitle:  clamp(H * 34.7 / 720,  18, 36),
+    fsLabel:  clamp(H * 21.1 / 720,  13, 22),
+    fsBody:   clamp(H * 18   / 720,  12, 19),
+    fsChip:   clamp(H * 17.3 / 720,  11, 18),
+  };
+}
+
+/* The surfaces it is fitted into. */
 var FRAMES = {
-  tv:    { name:'Television', W:960,  H:540, edge:46,  top:24,  bot:22,  header:54, headGap:26, brand:40, chip:44, chipPad:11, bandTop:22, radius:20, fsTitle:26, fsLabel:15.8, fsBody:13.5, fsChip:13,   target:56, rail:8 },
-  tab:   { name:'Tablet',     W:1280, H:800, edge:140, top:160, bot:140, header:52, headGap:26, brand:34, chip:40, chipPad:12, bandTop:24, radius:20, fsTitle:22, fsLabel:15,   fsBody:13,   fsChip:12.5, target:48, rail:8 },
-  phone: { name:'Phone',      W:873,  H:393, edge:32,  top:15,  bot:11,  header:42, headGap:24, brand:31, chip:36, chipPad:12, bandTop:10, radius:17, fsTitle:20, fsLabel:14.7, fsBody:13,   fsChip:12,   target:48, rail:8 },
-  short: { name:'ShortPhone', W:800,  H:360, edge:26,  top:11,  bot:8,   header:36, headGap:20, brand:28, chip:34, chipPad:11, bandTop:8,  radius:16, fsTitle:19, fsLabel:14.1, fsBody:12.5, fsChip:11.5, target:48, rail:8 }
+  tv:    { name:'Television',  W:960,  H:540 },
+  tab:   { name:'Tablet',      W:1280, H:800 },
+  phone: { name:'Phone',       W:873,  H:393 },
+  short: { name:'ShortPhone',  W:800,  H:360 }
 };
+
+
 
 var WIDE_STAGE = 1000;   // the tablet frame's own content block
 var MIN_CARD = 92;       // the floor the disclaimer gives way to
@@ -223,7 +253,7 @@ function railWidth(f) { return 0; }
 
 /* `Plan.of`, transcribed. */
 function plan(f, isTv) {
-  var width = f.W - railWidth(f);
+  var width = f.W;
   var fourAcross = true;                       /* four in a row, on every frame */
   var showLicence = true;                      /* and the status pair, on every frame */
   var rows = 1;
@@ -315,23 +345,26 @@ var RAIL_PH = [P.home, P.live, P.lib, P.search, P.gear];
 function px(v) { return v + 'px'; }
 
 function build(key, isTv) {
-  var f = FRAMES[key], p = plan(f, isTv);
+  var device = FRAMES[key];
+  var f = metrics(device.W, device.H, isTv);
+  var p = plan(f, isTv);
 
   var frame = document.createElement('div');
   frame.className = 'frame';
   frame.id = 'f-' + key;
-  frame.style.width = px(f.W);
-  frame.style.height = px(f.H);
+  frame.style.width = px(device.W);
+  frame.style.height = px(device.H);
 
   var cv = document.createElement('canvas');
   cv.className = 'bg';
   frame.appendChild(cv);
 
+  /* No transform anywhere: the tree is laid out at the device's own size, in the
+     device's own dp, with every token bounded. */
   var shell = document.createElement('div');
   shell.className = 'shell';
-  /* `CastivioShell` pads the rail, not the content box — the stage gets the
-     whole height. Padding the shell instead is what made this page report an
-     overflow the screen does not have. */
+  shell.style.position = 'absolute';
+  shell.style.inset = '0';
   frame.appendChild(shell);
 
   /* the stage */
@@ -458,7 +491,7 @@ function build(key, isTv) {
     stage.appendChild(legal);
   }
 
-  return { frame: frame, f: f, p: p };
+  return { frame: frame, f: f, p: p, device: device };
 }
 
 /* ------------------------------------------------------------------- page */
@@ -471,18 +504,19 @@ function build(key, isTv) {
     var b = build(o[0], o[1]);
     var note = document.createElement('div');
     note.className = 'rail-note';
-    note.style.width = px(b.f.W);
-    note.innerHTML = '<h2>' + b.f.name + ' — ' + b.f.W + '×' + b.f.H + 'dp</h2>' +
-      '<p>' + (b.p.fourAcross ? 'أربع بطاقات في صفّ واحد' : 'بطاقتان × صفّان') +
-      ' · ارتفاع البطاقة ' + b.p.card.toFixed(1) + 'dp · عرض المسرح ' + b.p.width + 'dp · ' +
-      (b.p.showLine ? 'سطر التنويه ظاهر' : 'سطر التنويه يسقط — الحساب لم يترك له مكانًا') + '</p>';
+    note.style.width = px(b.device.W);
+    note.innerHTML = '<h2>' + b.device.name + ' — ' + b.device.W + '×' + b.device.H + 'dp</h2>' +
+      '<p>أربع بطاقات في صفّ واحد · البطاقة ' +
+      ((b.device.W - b.f.edge * 2 - b.f.bandTop * 3) / 4).toFixed(0) + '×' +
+      b.p.card.toFixed(0) + 'dp · الحافة ' + b.f.edge.toFixed(0) +
+      ' · العنوان ' + b.f.fsTitle.toFixed(0) + 'sp · مساحة الضغط ' + b.f.target + 'dp</p>';
     out.appendChild(note);
     out.appendChild(b.frame);
     built.push(b);
   });
 
   built.forEach(function (b) {
-    paintBackdrop(b.frame.querySelector('canvas.bg'), b.f.W, b.f.H);
+    paintBackdrop(b.frame.querySelector('canvas.bg'), b.device.W, b.device.H);
   });
 
   /* Measured, not reasoned. */
@@ -490,13 +524,13 @@ function build(key, isTv) {
   built.forEach(function (b) {
     var stage = b.frame.querySelector('.stage');
     var over = stage.scrollHeight - stage.clientHeight;
-    if (over > 1) bad.push(b.f.name + ' overflows by ' + Math.round(over));
+    if (over > 1) bad.push(b.device.name + ' overflows by ' + Math.round(over));
     b.frame.querySelectorAll('.n,.c,.act b,.act span,.fact span,.legal span,.lic .v').forEach(function (n) {
       if (n.scrollWidth - n.clientWidth > 0.5) {
-        bad.push(b.f.name + ' clipped: ' + n.textContent.trim().slice(0, 22));
+        bad.push(b.device.name + ' clipped: ' + n.textContent.trim().slice(0, 22));
       }
       if (n.getBoundingClientRect().height < 4) {
-        bad.push(b.f.name + ' collapsed: ' + n.textContent.trim().slice(0, 22));
+        bad.push(b.device.name + ' collapsed: ' + n.textContent.trim().slice(0, 22));
       }
     });
   });
@@ -513,7 +547,7 @@ function build(key, isTv) {
 
   console.log(JSON.stringify({
     frames: built.map(function (b) {
-      return { name: b.f.name, four: b.p.fourAcross, card: +b.p.card.toFixed(1),
+      return { name: b.device.name, four: b.p.fourAcross, card: +b.p.card.toFixed(1),
                width: b.p.width, legal: b.p.showLine };
     }),
     problems: bad,
