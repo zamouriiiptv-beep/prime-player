@@ -185,6 +185,9 @@ var P = {
   lock:'<rect x="4.6" y="10.2" width="14.8" height="10.2" rx="2.4"/><path d="M8.2 10.2V7.8a3.8 3.8 0 0 1 7.6 0v2.4"/>',
   shield:'<path d="M12 2.8l7.4 2.8v5.9c0 4.5-3.1 8.6-7.4 9.7-4.3-1.1-7.4-5.2-7.4-9.7V5.6z"/><path d="M12 8.6v4.4M12 16.2h.01"/>',
   home:'<path d="M3.6 10.4 12 3.4l8.4 7v9.2a1.4 1.4 0 0 1-1.4 1.4H5a1.4 1.4 0 0 1-1.4-1.4z"/>',
+  refresh:'<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20.4 4.2v4.6h-4.6"/>',
+  globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18z"/>',
+  power:'<path d="M12 3.4v8.2"/><path d="M6.8 6.6a7.6 7.6 0 1 0 10.4 0"/>',
   sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2.4v2.2M12 19.4v2.2M21.6 12h-2.2M4.6 12H2.4M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6M18.8 18.8l-1.6-1.6M6.8 6.8 5.2 5.2"/>',
   lib:'<rect x="3" y="6" width="14" height="12" rx="2"/><path d="M20 8v10a2 2 0 0 1-2 2H7"/>'
 };
@@ -292,10 +295,12 @@ var SECTIONS = [
 ];
 var GLYPH = { live:P.live, movie:P.movie, series:P.series, radio:P.radio };
 var ACTIONS = [
-  { i:P.add,    t:'تغيير الاشتراك', d:'Salmimaroc' },
-  { i:P.search, t:'بحث',            d:null },
-  { i:P.badge,  t:'الترخيص واللغة', d:null },
-  { i:P.gear,   t:'الإعدادات',      d:null }
+  { i:P.refresh, t:'تحديث',           d:null },
+  { i:P.add,     t:'تغيير الاشتراك',  d:'Salmimaroc' },
+  { i:P.globe,   t:'اللغة',           d:'العربية' },
+  { i:P.search,  t:'بحث',             d:null },
+  { i:P.gear,    t:'الإعدادات',       d:null },
+  { i:P.power,   t:'خروج',            d:null }
 ];
 var RAIL_TV = [P.home, P.live, P.movie, P.series, P.radio, P.lib, P.search, P.gear];
 var RAIL_PH = [P.home, P.live, P.lib, P.search, P.gear];

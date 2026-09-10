@@ -90,7 +90,9 @@
     <string name="home_theme_lighter">التبديل إلى الوضع الأفتح</string>
     <string name="home_theme_darker">التبديل إلى الوضع الأغمق</string>
 
-    <string name="home_action_licence">الترخيص واللغة</string>
+    <string name="home_refresh">تحديث</string>
+    <string name="home_language">اللغة</string>
+    <string name="home_exit">خروج</string>
 
     <string name="home_device_mac">MAC: %1$s</string>
     <string name="home_device_state">الجهاز: %1$s</string>

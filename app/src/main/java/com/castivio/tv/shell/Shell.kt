@@ -57,6 +57,7 @@ import com.castivio.core.navigation.BackPolicy
 import com.castivio.core.navigation.ShellBack
 import com.castivio.domain.SeriesSummary
 import com.castivio.feature.activation.ActivationRoute
+import com.castivio.feature.activation.LanguagePicker
 import com.castivio.feature.home.BrowseScreen
 import com.castivio.feature.home.CatalogSearchScreen
 import com.castivio.feature.home.CatalogSection
@@ -116,6 +117,15 @@ private sealed interface Overlay {
      * Settings, which is where it was opened from.
      */
     data object Licence : Overlay
+
+    /**
+     * The language chooser, over the shell.
+     *
+     * The same picker the licence screen opens, hosted here because Home now offers
+     * the choice too. An overlay and not a destination for the reason the others are:
+     * the grid owns the viewport and dismisses back to whatever opened it.
+     */
+    data object Language : Overlay
 }
 
 /**
@@ -190,7 +200,11 @@ fun ShellScreen(
                     onAddSource = { overlay = Overlay.AddSource },
                     onSearch = { dest = Dest.Search },
                     onSettings = { dest = Dest.Settings },
-                    onLicence = { overlay = Overlay.Licence },
+                    onLanguage = { overlay = Overlay.Language },
+                    // The language's own name in its own script, which is what a chooser
+                    // shows and what a reader looking for their own language scans for.
+                    language = LocalLocaleController.current.current.language.nativeName,
+                    onExit = onExit,
                     // The version belongs to the build, and `BuildConfig` belongs to
                     // `:app`. Passing it keeps `:feature:home` free of one.
                     appVersion = BuildConfig.VERSION_NAME,
@@ -246,6 +260,19 @@ fun ShellScreen(
             // that difference is the caller's -- the screen itself has no
             // opinion about where back goes.
             is Overlay.Licence -> LicenceWithLanguage(onLeave = { overlay = null })
+            is Overlay.Language -> {
+                val locale = LocalLocaleController.current
+                LanguagePicker(
+                    selected = locale.current.language,
+                    onPick = { language ->
+                        overlay = null
+                        // No `recreate()`: the controller records the choice and the
+                        // composition re-reads its strings in place. See its own note.
+                        locale.choose(language)
+                    },
+                    onDismiss = { overlay = null },
+                )
+            }
             // Both seams mean the same thing from here. `onActivated` fires when an
             // import succeeds and `onExit` when the flow runs out of back stack, and
             // in a working app either one is "put me back where I was".

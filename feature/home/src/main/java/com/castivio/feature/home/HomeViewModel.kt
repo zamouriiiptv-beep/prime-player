@@ -7,12 +7,14 @@ import com.castivio.domain.MediaKind
 import com.castivio.domain.ProviderSource
 import com.castivio.domain.ProviderStatusCatalogue
 import com.castivio.domain.Recorded
+import com.castivio.domain.RefreshProvider
 import com.castivio.domain.SectionCatalogue
 import com.castivio.domain.SourceKind
 import com.castivio.domain.SourceRepository
 import com.castivio.domain.entitlement.EntitlementRepository
 import com.castivio.domain.entitlement.EntitlementState
 import com.castivio.domain.identity.DeviceIdentity
+import com.castivio.domain.time.TrustedTime
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -22,6 +24,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
@@ -130,9 +133,26 @@ class HomeViewModel @Inject constructor(
     marks: SectionCatalogue,
     statuses: ProviderStatusCatalogue,
     identity: DeviceIdentity,
+    private val refresher: RefreshProvider,
+    private val clock: TrustedTime,
 ) : ViewModel() {
 
     private val mac: String = identity.current().macAddress.value
+
+    /**
+     * Ask the provider again, and let the recorded answer move the header.
+     *
+     * Nothing is returned and nothing is held: the store is a flow this screen is
+     * already collecting, so a new answer arrives the same way an import's counts do
+     * — the numbers simply change. A result carried back through the state would be a
+     * second path to the same fact, and the two would drift.
+     *
+     * It downloads no catalogue. See [RefreshProvider] for why that is the point
+     * rather than a limitation.
+     */
+    fun refresh() {
+        viewModelScope.launch { refresher.refresh(clock.nowMs()) }
+    }
 
     private val counts: Flow<Counts> = combine(
         catalog.count(MediaKind.LIVE),

@@ -14,6 +14,7 @@ import com.castivio.domain.LoadSection
 import com.castivio.domain.SectionCatalogue
 import com.castivio.domain.PlaylistSource
 import com.castivio.domain.ProviderStatusCatalogue
+import com.castivio.domain.RefreshProvider
 import com.castivio.domain.ProviderValidator
 import com.castivio.domain.SourceRepository
 import com.castivio.domain.activation.ActivateProvider
@@ -68,6 +69,19 @@ object PlaylistModule {
         sources: SourceRepository,
         statuses: ProviderStatusCatalogue,
     ): ActivateProvider = ActivateProvider(validator, importer, sources, statuses)
+
+    /**
+     * Asking the active provider again what it says, which is the only thing that can
+     * move the two facts Home states about the subscription. No importer, because it
+     * downloads nothing — see [com.castivio.domain.RefreshProvider].
+     */
+    @Provides
+    @Singleton
+    fun refreshProvider(
+        sources: SourceRepository,
+        validator: ProviderValidator,
+        statuses: ProviderStatusCatalogue,
+    ): RefreshProvider = RefreshProvider(sources, validator, statuses)
 
     /**
      * Fetching one section, assembled where the importer it needs is already bound —

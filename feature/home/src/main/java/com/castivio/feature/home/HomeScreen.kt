@@ -23,17 +23,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.LiveTv
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.material.icons.rounded.PlaylistAdd
+import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material.icons.rounded.Radio
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.Tv
-import androidx.compose.material.icons.rounded.VerifiedUser
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -138,8 +140,12 @@ fun HomeScreen(
     onAddSource: () -> Unit,
     onSearch: () -> Unit,
     onSettings: () -> Unit,
-    /** Castivio's own licence, and the language chooser that lives with it. */
-    onLicence: () -> Unit,
+    /** Opens the language chooser. */
+    onLanguage: () -> Unit,
+    /** What Castivio is set to, shown under the language button. */
+    language: String,
+    /** Ask to leave. The confirmation is the application's, not this screen's. */
+    onExit: () -> Unit,
     /** The build's version name. Passed in because `:feature:home` has no BuildConfig. */
     appVersion: String,
     modifier: Modifier = Modifier,
@@ -195,7 +201,17 @@ fun HomeScreen(
 
                 else -> {
                     SectionCards(state, frame, plan, onSeeSection)
-                    ActionRow(state.provider, frame, onAddSource, onSearch, onLicence, onSettings)
+                    ActionRow(
+                        provider = state.provider,
+                        language = language,
+                        frame = frame,
+                        onRefresh = model::refresh,
+                        onAddSource = onAddSource,
+                        onLanguage = onLanguage,
+                        onSearch = onSearch,
+                        onSettings = onSettings,
+                        onExit = onExit,
+                    )
                     DeviceStrip(state, frame, appVersion)
                     if (plan.showDisclaimer) Disclaimer(frame)
                 }
@@ -633,28 +649,50 @@ private fun SectionLabels(
 /**
  * What a viewer does from Home that is not "open a section".
  *
- * Four, and every one of them goes somewhere that exists. The reference's `Time
- * Shift` and `Logout` are not here: catch-up has no engine, and there is no account
- * to log out of — back already leaves, with a confirmation.
+ * ## Six, and every one of them goes somewhere that exists
+ *
+ * The approved row has seven. Two of them are not here and one that is not on it is,
+ * and each of those three is a deliberate answer rather than an oversight:
+ *
+ *  - **Time Shift** is absent. Catch-up has no engine in this build, and a control
+ *    that does nothing is worse than a control that is not there — a user presses it
+ *    once, nothing happens, and from then on they do not trust the row.
+ *  - **About** is absent. What an about screen would say — the version, the address,
+ *    the disclaimer — is already on this screen, in the strip and the line under it.
+ *    A second place to read the same three facts is a second place to keep correct.
+ *  - **Search** is here, and it is not on the approved row. Removing the standing
+ *    navigation left this as its only entry point, and a search a user cannot reach
+ *    is a feature that has been deleted by accident.
+ *
+ * ## Refresh downloads nothing
+ *
+ * It re-asks the provider the one cheap question and records the answer, which is
+ * what moves the two facts in the header. Sections are still fetched by the section
+ * that was opened. See [com.castivio.domain.RefreshProvider].
  */
 @Composable
 private fun ActionRow(
     provider: String?,
+    language: String,
     frame: CastivioFrame,
+    onRefresh: () -> Unit,
     onAddSource: () -> Unit,
+    onLanguage: () -> Unit,
     onSearch: () -> Unit,
-    onLicence: () -> Unit,
     onSettings: () -> Unit,
+    onExit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
         modifier.fillMaxWidth().height(frame.touchTarget),
         horizontalArrangement = Arrangement.spacedBy(frame.bandTop),
     ) {
+        Action(Icons.Rounded.Refresh, stringResource(R.string.home_refresh), null, frame, onRefresh, Modifier.weight(1f))
         Action(Icons.Rounded.PlaylistAdd, stringResource(R.string.home_change_source), provider, frame, onAddSource, Modifier.weight(1f))
+        Action(Icons.Rounded.Language, stringResource(R.string.home_language), language, frame, onLanguage, Modifier.weight(1f))
         Action(Icons.Rounded.Search, stringResource(R.string.search_label), null, frame, onSearch, Modifier.weight(1f))
-        Action(Icons.Rounded.VerifiedUser, stringResource(R.string.home_action_licence), null, frame, onLicence, Modifier.weight(1f))
         Action(Icons.Rounded.Settings, stringResource(R.string.home_settings), null, frame, onSettings, Modifier.weight(1f))
+        Action(Icons.Rounded.PowerSettingsNew, stringResource(R.string.home_exit), null, frame, onExit, Modifier.weight(1f))
     }
 }
 

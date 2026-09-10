@@ -112,8 +112,13 @@
     <string name="home_theme_lighter">Switch to the lighter theme</string>
     <string name="home_theme_darker">Switch to the darker theme</string>
 
-    <!-- Castivio's licence, and the language chooser that lives on the same screen. -->
-    <string name="home_action_licence">Licence &amp; language</string>
+    <!-- The action row under the section cards. -->
+    <!-- Asks the provider again what it says. It downloads no catalogue — sections
+         are still fetched by the section that was opened. -->
+    <string name="home_refresh">Refresh</string>
+    <string name="home_language">Language</string>
+    <!-- Leaves Castivio. The confirmation belongs to the application, not to Home. -->
+    <string name="home_exit">Exit</string>
 
     <!-- What this device is. %1$s is the address a MAC-activating provider asks for. -->
     <string name="home_device_mac">MAC: %1$s</string>
