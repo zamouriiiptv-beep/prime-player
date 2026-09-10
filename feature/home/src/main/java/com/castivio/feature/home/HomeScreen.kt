@@ -533,11 +533,17 @@ private val HomeState.licenceHolds: Boolean
  * provider, and translating it into ours would make the two disagree.
  */
 @Composable
-private fun subscriptionLabel(status: Recorded?): String = when {
-    status == null -> stringResource(R.string.home_account_unknown)
-    !status.label.isNullOrBlank() -> status.label
-    status.usable -> stringResource(R.string.home_account_active)
-    else -> stringResource(R.string.home_account_inactive)
+private fun subscriptionLabel(status: Recorded?): String {
+    if (status == null) return stringResource(R.string.home_account_unknown)
+    // Bound to a local first: `label` is a property of a class in another module, so
+    // the compiler will not carry a null check across the dot however plainly the
+    // check reads.
+    val panel = status.label
+    return when {
+        !panel.isNullOrBlank() -> panel
+        status.usable -> stringResource(R.string.home_account_active)
+        else -> stringResource(R.string.home_account_inactive)
+    }
 }
 
 /**
