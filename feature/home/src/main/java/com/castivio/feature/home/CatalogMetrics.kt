@@ -125,13 +125,37 @@ internal fun catalogMetricsFor(tv: Boolean, width: Dp, height: Dp): CatalogMetri
  * posters, on the device watched from three metres.
  *
  * So the question asked is the one that decides the answer: how many cells of at least
- * `minimum` fit in `available`, with a `gutter` between each pair. Bounded at both
- * ends — under three a grid reads as a list and over ten a poster is a thumbnail —
- * and the cells then take an equal share of whatever is left, so the row always fills
- * the width exactly.
+ * `minimum` fit in `available`, with a `gutter` between each pair. The cells then take
+ * an equal share of whatever is left, so the row always fills the width exactly.
+ *
+ * ## Why there is a floor and deliberately no ceiling
+ *
+ * The floor is real: under three cells a grid reads as a list, and on a surface too
+ * narrow to hold three at `minimum` the cells give way instead — which is the one case
+ * where a poster may come out under its floor, and the only place it can happen.
+ *
+ * A **ceiling on the count is the opposite of a bound**, and this had one. Capping the
+ * count does not cap anything a reader sees: the width the cells were going to divide
+ * does not go away, so every dp the missing columns would have taken is handed to the
+ * cells that remain. At 3840dp the natural count is 13 and the cap said 10, which drew
+ * a 293dp poster — 47% over the ceiling the arithmetic otherwise guarantees, and the
+ * only unbounded dimension left anywhere in the system.
+ *
+ * Uncapped, the cell is bounded by construction and provably so. Taking `c` as the
+ * count, `p` as the minimum and `g` as the gutter, `c = ⌊(A+g)/(p+g)⌋` gives
+ * `(A+g)/(c+1) < p+g`, and therefore:
+ *
+ * ```
+ * poster = (A+g)/c − g  <  p + (p+g)/c
+ * ```
+ *
+ * So a cell is never below `p` and never more than one gutter-and-a-bit above it,
+ * whatever the surface — 1.03× on the reference handset, 1.08× on a television, 1.08×
+ * at 3840dp with 13 columns. That is a tighter bound than any constant here, and it is
+ * `CatalogMetricsTest` that asserts it rather than this comment.
  */
 private fun columnsFor(available: Dp, gutter: Dp, minimum: Dp): Int =
-    ((available + gutter) / (minimum + gutter)).toInt().coerceIn(MIN_COLUMNS, MAX_COLUMNS)
+    ((available + gutter) / (minimum + gutter)).toInt().coerceAtLeast(MIN_COLUMNS)
 
 /**
  * Where the categories stop being a strip above the content and become a pane beside
@@ -177,8 +201,8 @@ private const val ROW_MIN = 84f / 720f
 /** The narrowest a poster may be drawn before a grid of them stops being readable. */
 private const val POSTER = 160f / 1280f
 
+/** Under three cells a grid reads as a list. There is deliberately no ceiling. */
 private const val MIN_COLUMNS = 3
-private const val MAX_COLUMNS = 10
 
 /**
  * A poster's shape, which responsive sizing decides the size of and never the shape of.

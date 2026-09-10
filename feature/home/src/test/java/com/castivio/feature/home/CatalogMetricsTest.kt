@@ -4,6 +4,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.castivio.core.design.theme.CastivioReference
 import com.castivio.core.design.theme.Sizing
+import com.castivio.core.design.theme.boundedFraction
 import com.castivio.core.design.theme.castivioMetrics
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -137,7 +138,41 @@ class CatalogMetricsTest {
                 "$surface: ${m.columns} columns give a $poster poster",
                 poster >= POSTER_FLOOR,
             )
-            assertTrue("$surface: ${m.columns} columns", m.columns in 3..10)
+            assertTrue("$surface: ${m.columns} columns", m.columns >= 3)
+        }
+    }
+
+    /**
+     * **A poster has a ceiling, and it is the count that guarantees it.**
+     *
+     * The design system's second rule is that every responsive dimension is bounded,
+     * and a poster is the one dimension here that is *derived* rather than declared —
+     * it is whatever is left after the gutters, divided by the count. So its bound is
+     * the count's, and it was broken by a `MAX_COLUMNS = 10` that read like a safety
+     * and was the opposite of one: capping the count does not remove the width the
+     * missing columns would have taken, it hands that width to the cells that remain.
+     * At 3840dp the natural count is 13; capped at 10 the poster came out 293dp,
+     * against a guaranteed ceiling of 224.
+     *
+     * With no cap the ceiling holds by construction. From `c = ⌊(A+g)/(p+g)⌋` we get
+     * `(A+g)/(c+1) < p+g`, hence `poster = (A+g)/c − g < p + (p+g)/c`.
+     *
+     * This asserts that inequality directly, which is a strictly tighter statement than
+     * any constant would be — and it is the assertion that fails the moment somebody
+     * reintroduces a ceiling on the count.
+     */
+    @Test
+    fun `a poster is never drawn above the ceiling its count guarantees`() {
+        for (surface in surfaces) {
+            val m = surface.metrics
+            val minimum = surface.width.boundedFraction(160f / 1280f, 112.dp, 200.dp)
+            val poster = posterWidth(surface, m)
+            val ceiling = minimum + (minimum + m.gutter) / m.columns
+            assertTrue(
+                "$surface: ${m.columns} columns give a $poster poster against a " +
+                    "$ceiling ceiling — a cap on the count is not a bound on the cell",
+                poster <= ceiling,
+            )
         }
     }
 
@@ -234,6 +269,8 @@ class CatalogMetricsTest {
         var worstRowAt = ""
         var fewest = Int.MAX_VALUE
         var fewestAt = ""
+        var worstOverrun = 0f
+        var worstOverrunAt = ""
 
         var height = shortest
         while (height <= tallest) {
@@ -257,6 +294,14 @@ class CatalogMetricsTest {
                         fewest = m.columns
                         fewestAt = "$surface tv=$tv"
                     }
+                    // The ceiling, swept: a cell may never rise more than one
+                    // gutter-and-a-bit above the floor it was counted against.
+                    val minimum = width.boundedFraction(160f / 1280f, 112.dp, 200.dp)
+                    val over = (poster - (minimum + (minimum + m.gutter) / m.columns)).value
+                    if (over > worstOverrun) {
+                        worstOverrun = over
+                        worstOverrunAt = "$surface tv=$tv (${m.columns} columns, $poster)"
+                    }
                 }
             }
             height += 1.dp
@@ -265,12 +310,18 @@ class CatalogMetricsTest {
         println(
             "catalogue sweep — narrowest poster $worstPoster at $worstPosterAt | " +
                 "tightest row $worstRow over the floor at $worstRowAt | " +
-                "fewest columns $fewest at $fewestAt",
+                "fewest columns $fewest at $fewestAt | " +
+                "widest overrun of the ceiling ${worstOverrun}dp" +
+                if (worstOverrunAt.isEmpty()) "" else " at $worstOverrunAt",
         )
 
         assertTrue("a $worstPoster poster at $worstPosterAt", worstPoster >= POSTER_FLOOR)
         assertTrue("a row $worstRow under the floor at $worstRowAt", worstRow >= 0.dp)
         assertTrue("$fewest columns at $fewestAt", fewest >= 3)
+        assertTrue(
+            "a poster ${worstOverrun}dp over its ceiling at $worstOverrunAt",
+            worstOverrun <= 0f,
+        )
     }
 
     /** What one cell comes out at, derived the way the grid derives it. */
