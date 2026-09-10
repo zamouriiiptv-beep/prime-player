@@ -54,38 +54,49 @@ import com.castivio.core.design.components.InteractiveGlassCard
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioDescriptionColor
-import com.castivio.core.design.theme.CastivioFrame
+import com.castivio.core.design.theme.CastivioMetrics
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Palette
-import com.castivio.core.design.theme.SHORT_FRAME
-import com.castivio.core.design.theme.TABLET_FRAME
+import com.castivio.core.design.theme.boundedFraction
+import com.castivio.core.design.theme.castivioMetrics
 import com.castivio.core.design.theme.castivioStage
 
 /**
- * The approved drawing's numbers, per frame.
+ * What the three chooser screens are drawn from: the shared metrics, plus the handful
+ * of sizes a card and its footnote own.
  *
- * `design/mockups/source-choice.html` is the record, and these are transcribed from
- * it rather than approximated — the same discipline `MacActivationScreen` follows and
- * for the same reason: this screen stacks five things down a 393dp frame, and a
- * `Column` that runs out of height hands **zero** to whatever it measured last.
+ * ## It was a table of four devices, and now it is arithmetic
  *
- * What the drawing measures, in all twelve frame-and-language combinations:
+ * `design/mockups/source-choice.html` is still the record and the drawing is unchanged.
+ * What changed is how the numbers get to a device. There used to be four rows here —
+ * television, tablet, phone, short phone — each stating a value for every gap, and the
+ * three screens that read them looked right on the four surfaces somebody had drawn and
+ * were guesses everywhere else. A tablet, in particular, got the phone's row.
  *
- * | frame | card | strip | description lines |
+ * Every size below is now a share of the axis it spends, clamped at both ends, through
+ * the one expression the whole product uses:
+ * [com.castivio.core.design.theme.boundedFraction]. The shares are read off the 1280×720
+ * reference, which is three quarters of the 960×540 television — so the television
+ * still lands on the numbers its drawing was approved at, to the dp, and every surface
+ * between and beyond is interpolated rather than rounded to the nearest drawing.
+ *
+ * What that produces on the four surfaces that used to be rows:
+ *
+ * | surface | card | strip | disc |
  * |---|---|---|---|
- * | 960×540 TV | 161 | 40 | 4 |
- * | 873×393 | 119 | 32 | 3 |
- * | 800×360 | 114 | 30 | 3 |
+ * | 960×540 TV | 173 | 40 | 72 |
+ * | 1280×800 tablet | 267 | 44 | 76 |
+ * | 873×393 | 125 | 30 | 52 |
+ * | 800×360 | 112 | 30 | 50 |
  *
- * Nothing overflows and nothing is cut, in any frame or any language. The card is
- * derived rather than declared — two weighted rows of what the header and the strip
- * leave — so the number above is an outcome, and `SourceChoiceBudgetTest` is what
- * asserts it stays positive.
+ * The card is still derived rather than declared — two weighted rows of what the header
+ * and the strip leave — so those are outcomes, and `SourceChoiceBudgetTest` is what
+ * asserts they stay positive on every surface rather than on four of them.
  *
  * ## The type is not this screen's
  *
- * Every size here is one of [CastivioFrame]'s four steps: `fsTitle` for the question,
+ * Every size here is one of [CastivioMetrics]' four steps: `fsTitle` for the question,
  * `fsLabel` for a card's name, `fsBody` for its description, `fsChip` for the badge,
  * Back and the footnote. A screen that invents its own scale beside the one before it
  * is two products, and compressing type to make content fit is how a layout hides that
@@ -93,11 +104,11 @@ import com.castivio.core.design.theme.castivioStage
  */
 internal data class SourceMetrics(
     /**
-     * The stage, the header and the shared type steps — from [CastivioFrame], the
-     * one table every screen reads. Two screens that agree because someone typed
+     * The stage, the header and the shared type steps — from [CastivioMetrics], the
+     * one system every screen reads. Two screens that agree because someone typed
      * the same numbers twice agree only until the next edit.
      */
-    val frame: CastivioFrame,
+    val frame: CastivioMetrics,
     /* what this screen owns: the geometry of a card, and of the footnote under it */
     val gridGap: Dp,
     val cardPad: Dp,
@@ -145,32 +156,81 @@ internal data class SourceMetrics(
     val fsStrip get() = frame.fsChip
 }
 
-internal fun sourceMetricsFor(tv: Boolean, available: Dp): SourceMetrics = when {
-    tv -> SourceMetrics(
-        frame = CastivioFrame.Television, subBand = 26.dp, stripCells = 3,
-        gridGap = 18.dp, cardPad = 16.dp, cardGap = 16.dp, disc = 72.dp, chevron = 24.dp,
-        detailLines = 4,
-        strip = 40.dp, stripGap = 14.dp, stripDisc = 26.dp,
-    )
-    available >= TABLET_FRAME -> SourceMetrics(
-        frame = CastivioFrame.Tablet, subBand = 22.dp, stripCells = 3,
-        gridGap = 20.dp, cardPad = 20.dp, cardGap = 18.dp, disc = 72.dp, chevron = 22.dp,
-        detailLines = 3,
-        strip = 36.dp, stripGap = 14.dp, stripDisc = 24.dp,
-    )
-    available < SHORT_FRAME -> SourceMetrics(
-        frame = CastivioFrame.ShortPhone, subBand = 18.dp, stripCells = 2,
-        gridGap = 12.dp, cardPad = 9.dp, cardGap = 11.dp, disc = 50.dp, chevron = 17.dp,
-        detailLines = 3,
-        strip = 30.dp, stripGap = 8.dp, stripDisc = 19.dp,
-    )
-    else -> SourceMetrics(
-        frame = CastivioFrame.Phone, subBand = 20.dp, stripCells = 2,
-        gridGap = 14.dp, cardPad = 10.dp, cardGap = 12.dp, disc = 52.dp, chevron = 18.dp,
-        detailLines = 3,
-        strip = 32.dp, stripGap = 10.dp, stripDisc = 20.dp,
+/**
+ * The chooser's numbers for a measured surface.
+ *
+ * `width` and `height` are what a `BoxWithConstraints` around the screen's own content
+ * reports — the surface, not the window and not the display. Horizontal things are read
+ * off the width and vertical things off the height, because those are the axes they
+ * actually spend.
+ */
+internal fun sourceMetricsFor(tv: Boolean, width: Dp, height: Dp): SourceMetrics {
+    val frame = castivioMetrics(width, height, tv)
+    return SourceMetrics(
+        frame = frame,
+        subBand = height.boundedFraction(SUB_BAND, 18.dp, 34.dp),
+        gridGap = height.boundedFraction(GRID_GAP, 12.dp, 26.dp),
+        cardPad = height.boundedFraction(CARD_PAD, 9.dp, 22.dp),
+        cardGap = height.boundedFraction(CARD_GAP, 11.dp, 22.dp),
+        disc = height.boundedFraction(DISC, 50.dp, 76.dp),
+        chevron = height.boundedFraction(CHEVRON, 17.dp, 26.dp),
+        strip = height.boundedFraction(STRIP, 30.dp, 44.dp),
+        stripGap = height.boundedFraction(STRIP_GAP, 8.dp, 16.dp),
+        stripDisc = height.boundedFraction(STRIP_DISC, 19.dp, 28.dp),
+        detailLines = if (height >= FOURTH_LINE) 4 else 3,
+        stripCells = stripCellsFor(width - frame.edge * 2),
     )
 }
+
+/**
+ * How many claims the footnote shows, from the width it has.
+ *
+ * ## Not a device rule, though it used to look like one
+ *
+ * The table said three cells on a television and a tablet and two on a phone, and the
+ * reason was never the device: a cell holds a disc and one line of type, and a line
+ * that does not fit is a line set smaller than the description above it — which is a
+ * footnote nobody reads. What decides is how much width there is to divide.
+ *
+ * So the last claim is dropped when there is no room for it, which is why a screen
+ * hands its claims over most-important-first, and the outcome on the four surfaces
+ * that used to be table rows is identical to what the table said. See [AssuranceStrip].
+ */
+private fun stripCellsFor(available: Dp): Int =
+    (available / STRIP_CELL).toInt().coerceIn(MIN_CELLS, MAX_CELLS)
+
+/* ------------------------------------------------------------------ the shares
+ *
+ * Read off the 1280×720 reference, which is the 960×540 television drawing at 4/3 —
+ * so a television reproduces its approved numbers exactly and nothing else has to be
+ * drawn to be right.
+ */
+
+private const val SUB_BAND = 34.67f / 720f
+private const val GRID_GAP = 24f / 720f
+private const val CARD_PAD = 21.33f / 720f
+private const val CARD_GAP = 21.33f / 720f
+private const val DISC = 96f / 720f
+private const val CHEVRON = 32f / 720f
+private const val STRIP = 53.33f / 720f
+private const val STRIP_GAP = 18.67f / 720f
+private const val STRIP_DISC = 34.67f / 720f
+
+/**
+ * Where a card's description gets a fourth line.
+ *
+ * The one threshold on this screen, and it is a *content* rule rather than a layout
+ * one: the card is taller than three lines of body type need from here up, so a
+ * fourth line is room the sentence can use instead of white space. Below it the
+ * fourth line would be the card overrunning its row.
+ */
+private val FOURTH_LINE = 480.dp
+
+/** The narrowest a claim's disc and its line may be squeezed into. */
+private val STRIP_CELL = 280.dp
+
+private const val MIN_CELLS = 2
+private const val MAX_CELLS = 3
 
 /**
  * What is left for the two rows of cards once everything fixed has been placed.
@@ -234,7 +294,7 @@ internal fun SourceChoiceScreen(
 ) {
     val tv = CastivioTheme.device.isTv
     BoxWithConstraints(modifier.fillMaxSize()) {
-        val m = sourceMetricsFor(tv = tv, available = maxHeight)
+        val m = sourceMetricsFor(tv = tv, width = maxWidth, height = maxHeight)
 
         Column(
             Modifier

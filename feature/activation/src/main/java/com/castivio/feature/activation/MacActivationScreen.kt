@@ -73,84 +73,83 @@ import com.castivio.core.design.components.castivioDescriptionColor
 import com.castivio.core.design.components.castivioFocusScale
 import com.castivio.core.design.components.castivioTitleStyle
 import com.castivio.core.design.components.emphasiseNumber
-import com.castivio.core.design.theme.CastivioFrame
+import com.castivio.core.design.theme.CastivioMetrics
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Motion
 import com.castivio.core.design.theme.Palette
-import com.castivio.core.design.theme.SHORT_FRAME
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.Spacing
-import com.castivio.core.design.theme.TABLET_FRAME
+import com.castivio.core.design.theme.boundedFraction
+import com.castivio.core.design.theme.castivioMetrics
 import com.castivio.core.design.theme.castivioStage
 
 /**
- * The approved screen's numbers, per frame.
+ * What this screen is drawn from: the shared metrics, plus the sizes only an
+ * activation screen has — a QR plate, two field cards, a reserved status line.
  *
- * `design/mockups/activation-mac.html` does not use one spacing scale for all
- * three frames — it states a different value for nearly every gap on each — and
- * an earlier Compose pass approximated all three with generic tokens. On the
- * tallest frame that was close enough to look right; on the shortest it was not.
- * So the mockup's values are transcribed rather than approximated.
+ * ## It was a table of four devices, and now it is arithmetic
  *
- * The margins are thin, and thin means the arithmetic has to be right. A `Column`
+ * `design/mockups/activation-mac.html` is still the record and the drawing is
+ * unchanged. What changed is how its numbers reach a device. There used to be four
+ * rows here — television, tablet, phone, short phone — each stating a value for
+ * nearly every gap. That is exactly as many drawings as somebody had made, and a
+ * device between two of them got whichever row it fell into: a 1280×800 tablet drew
+ * a phone-sized composition until a late fix gave it a row of its own, and every
+ * surface outside the four was a guess nobody had looked at.
+ *
+ * Every size below is now a share of the axis it spends, clamped at both ends,
+ * through the one expression the whole product uses:
+ * [com.castivio.core.design.theme.boundedFraction]. The shares are read off the
+ * 1280×720 reference, which is the 960×540 television drawing at 4/3 — so the
+ * television still lands on the numbers its drawing was approved at, to the dp, and
+ * everything between and beyond is interpolated rather than rounded to the nearest
+ * drawing.
+ *
+ * ## The arithmetic still has to be right, and now it is checked everywhere
+ *
+ * The margins are thin, and thin means the fit is not a matter of taste. A `Column`
  * whose children exceed the height it is given hands **zero** to the ones measured
- * last — not a scrollbar, not a clip, zero — so eight dp of overrun is not eight
- * dp of crowding, it is Add playlist and Refresh disappearing. That is the failure
- * mode `ActivationLayoutTest` exists to catch and `ActivationBudgetTest` to
- * predict.
+ * last — not a scrollbar, not a clip, zero — so eight dp of overrun is not eight dp
+ * of crowding, it is Add playlist and Refresh disappearing. That is the failure mode
+ * `ActivationLayoutTest` exists to catch and `ActivationBudgetTest` to predict, and
+ * the budget test now sweeps the whole range of surfaces rather than four points in
+ * it, which is the thing a table could never be asked.
  *
- * The heights below are the **whole display**: `:app` calls `enableEdgeToEdge`, so
+ * The heights are the **whole display**: `:app` calls `enableEdgeToEdge`, so
  * activation is given every dp of it.
  *
- * The margins that result, measured in the drawing at the type this screen
- * actually sets:
+ * What the shares produce where the table used to have rows:
  *
- * | frame | band | identity column | code panel | spare |
+ * | surface | band | identity column | code panel | spare |
  * |---|---|---|---|---|
- * | 960×540 TV | 344 | 290 | 270 | 54 / 74 |
- * | 873×393 | 267 | 240 | 232 | 27 / 35 |
- * | 800×360 | 257 | 222 | 218 | 35 / 39 |
+ * | 960×540 TV | 344 | 290 | 291 | 54 / 53 |
+ * | 1280×800 tablet | 534 | 322 | 344 | 212 / 190 |
+ * | 873×393 | 250 | 218 | 221 | 31 / 28 |
+ * | 800×360 | 225 | 204 | 211 | 21 / 14 |
  *
- * Measured in the drawing across four languages — Arabic, English, and the two
- * longest Latin translations, Spanish and Portuguese — because the header and the
- * caption are where a translation actually costs something. All twelve
- * combinations hold the caption to three lines at worst, clear the address by 30
- * to 35dp, and set the title at full size in every language but Portuguese and
- * Spanish on the television.
+ * The television's row is the approved drawing's, unchanged. The phones come out a
+ * few dp tighter than the hand-drawn rows did and stay clear, because the shares
+ * give a short surface slightly more outer margin than the drawings did and the
+ * content pays for it — which is the trade the floors below are chosen to survive.
  *
- * The identity column's margins went up by half again in an earlier pass without
- * anything on it getting smaller to look at: the field cards gave 8dp of frame
- * each and the two buttons 6dp, and it was spent on the space between them rather
- * than taken back into the band. A screen is not crowded because its parts are
- * large; it is crowded because they are close.
+ * ## What is a floor and what is a ceiling
  *
- * Some of it has since been spent on the outer margin, at both ends. The phone
- * frames stand off the glass by 15/11 and 11/8 rather than the 10/6 and 8/6 they
- * had: the screen runs edge to edge, so there is no status bar holding the header
- * away from the top of the display, and 10dp of padding read as a header glued
- * to it.
- *
- * **Both ends, and that is the part worth writing down.** Raising the top alone
- * did fix the header, and left 18 above against 6 below — a three-to-one outer
- * frame that read worse than the glued header had, because the eye judges a
- * composition by its margins and not by any one element's. A near-even 15/11
- * costs the band two dp more than 18/6 did and answers both. The two buttons
- * repaid some of it by coming down to their touch floors exactly.
- *
- * The television keeps its 24/22. It was already even, and it is not against an
- * edge in any sense that matters — a set is watched from three metres and most of
- * them overscan.
+ * A floor is what the shortest surface this ships to needs to stay usable: a
+ * pressable button, a legible caption, a scannable code. A ceiling is what keeps a
+ * 4K set proportionate instead of magnified. Nothing here is allowed to be a bare
+ * fraction — an unbounded share is how a control ends up at 26dp on a handset and
+ * the size of a card on a television.
  *
  * Those rows are not a comment: [bandHeight], [identityHeight] and [codeHeight]
  * compute them, and `ActivationBudgetTest` fails if any of them goes negative.
  */
 internal data class Metrics(
     /**
-     * The stage, the header and the shared type steps — from [CastivioFrame], which
-     * every screen reads, so two screens cannot drift a dp apart without one edit.
+     * The stage, the header and the shared type steps — from [CastivioMetrics],
+     * which every screen reads, so two screens cannot drift a dp apart.
      */
-    val frame: CastivioFrame,
+    val frame: CastivioMetrics,
     /* the three bands: this screen's own shape */
     val bandBottom: Dp,
     val footer: Dp,
@@ -216,7 +215,7 @@ internal data class Metrics(
 
 
 /**
- * Below this, the frame is not one of the three that were drawn.
+ * Below this, a system bar has taken height the composition was counting on.
  *
  * It is reached one way only: a transient system bar coming back on the shortest
  * phone. Activation runs immersive, so on a settled screen the insets are zero —
@@ -224,80 +223,99 @@ internal data class Metrics(
  * that only fits while the system is cooperating is a layout that breaks in the
  * photograph somebody sends us.
  *
- * What gives when it happens is stated rather than left to chance, and it is not
- * the plate: the panel's padding goes first, and only then the code, by the
- * height the bar actually took. The alternative is worse in both directions —
- * letting the panel overrun hands the caption zero height, and shrinking the
- * plate on the drawn frame would pay a bar's cost on every device that never
- * shows one.
+ * What gives when it happens is stated rather than left to chance, and it is the
+ * plate's **floor** rather than the plate: everything on this screen is already a
+ * share of the height, so a bar shrinks all of it proportionally on its own. The
+ * one thing that does not shrink is a floor, and the plate's is the largest floor
+ * on the screen — so below this height it steps down to what a camera can still
+ * resolve, and nothing else is touched. Letting the panel overrun instead hands the
+ * caption zero height, which is the failure this replaced.
  */
 internal val CRAMPED_PHONE = 345.dp
 
-internal fun metricsFor(tv: Boolean, available: Dp): Metrics = when {
-    tv -> Metrics(
-        frame = CastivioFrame.Television,
-        bandBottom = 20.dp, footer = 54.dp,
-        fsStatus = 15.dp, fsButton = 15.5.dp,
-        macSize = 30.dp, keySize = 27.dp, chipsGap = 6.dp,
-        capsule = 72.dp, capsuleGap = 20.dp, cardPad = 17.dp, cardGap = 15.dp, labelWidth = 106.dp,
-        actionsTop = 30.dp, actionsGap = 20.dp, button = 56.dp,
-        statusTop = 16.dp, statusHeight = 24.dp,
-        plate = 192.dp, zoneWidth = 244.dp, zonePad = 14.dp, zoneGap = 10.dp,
-        bandGap = 32.dp, zoneRadius = 26.dp, mark = 32.dp, target = 56.dp,
-    )
-    // The tablet, which fell into the phone's branch until now: a phone-sized
-    // composition floating in twice the frame. Its type sits between the phone's
-    // and the set's, and the room the larger frame buys goes into margin.
-    available >= TABLET_FRAME -> Metrics(
-        frame = CastivioFrame.Tablet,
-        bandBottom = 22.dp, footer = 52.dp,
-        fsStatus = 14.5.dp, fsButton = 16.dp,
-        macSize = 26.dp, keySize = 23.dp, chipsGap = 6.dp,
-        capsule = 76.dp, capsuleGap = 20.dp, cardPad = 18.dp, cardGap = 16.dp, labelWidth = 104.dp,
-        actionsTop = 28.dp, actionsGap = 20.dp, button = 52.dp,
-        statusTop = 14.dp, statusHeight = 22.dp,
-        plate = 200.dp, zoneWidth = 250.dp, zonePad = 14.dp, zoneGap = 10.dp,
-        bandGap = 32.dp, zoneRadius = 24.dp, mark = 30.dp, target = 48.dp,
-    )
-    available < SHORT_FRAME -> shortPhone(available)
-    else -> Metrics(
-        frame = CastivioFrame.Phone,
-        bandBottom = 8.dp, footer = 40.dp,
-        fsStatus = 14.dp, fsButton = 14.5.dp,
-        macSize = 28.dp, keySize = 25.dp, chipsGap = 6.dp,
-        capsule = 60.dp, capsuleGap = 16.dp, cardPad = 15.dp, cardGap = 13.dp, labelWidth = 99.dp,
-        actionsTop = 22.dp, actionsGap = 18.dp, button = 48.dp,
-        statusTop = 12.dp, statusHeight = 22.dp,
-        plate = 174.dp, zoneWidth = 234.dp, zonePad = 7.dp, zoneGap = 5.dp,
-        bandGap = 24.dp, zoneRadius = 20.dp, mark = 26.dp, target = 48.dp,
-    )
-}
+/**
+ * The screen's numbers for a measured surface.
+ *
+ * `width` and `height` are what a `BoxWithConstraints` around the screen's own
+ * content reports — the surface, not the window and not the display. Horizontal
+ * things are read off the width and vertical things off the height, because those
+ * are the axes they actually spend: the code panel's width and the gap beside it
+ * come off one, and everything stacked down the stage off the other.
+ */
+internal fun metricsFor(tv: Boolean, width: Dp, height: Dp): Metrics = Metrics(
+    frame = castivioMetrics(width, height, tv),
+    bandBottom = height.boundedFraction(BAND_BOTTOM, 6.dp, 26.dp),
+    footer = height.boundedFraction(FOOTER, 34.dp, 60.dp),
+    fsStatus = height.boundedFraction(FS_STATUS, 13.dp, 20.dp),
+    fsButton = height.boundedFraction(FS_BUTTON, 14.dp, 21.dp),
+    macSize = height.boundedFraction(MAC_SIZE, 24.dp, 40.dp),
+    keySize = height.boundedFraction(KEY_SIZE, 21.dp, 36.dp),
+    chipsGap = height.boundedFraction(CHIPS_GAP, 6.dp, 10.dp),
+    capsule = height.boundedFraction(CAPSULE, 48.dp, 80.dp),
+    capsuleGap = height.boundedFraction(CAPSULE_GAP, 10.dp, 24.dp),
+    cardPad = height.boundedFraction(CARD_PAD, 13.dp, 20.dp),
+    cardGap = height.boundedFraction(CARD_GAP, 11.dp, 18.dp),
+    labelWidth = width.boundedFraction(LABEL_WIDTH, 92.dp, 140.dp),
+    actionsTop = height.boundedFraction(ACTIONS_TOP, 14.dp, 34.dp),
+    actionsGap = width.boundedFraction(ACTIONS_GAP, 14.dp, 24.dp),
+    // The floor is the device's own, so a button can never be drawn below what a
+    // thumb or a D-pad needs however short the surface gets. It is the one value
+    // on this screen whose floor asks what kind of device this is.
+    button = height.boundedFraction(BUTTON, Sizing.minTarget(tv), 60.dp),
+    statusTop = height.boundedFraction(STATUS_TOP, 8.dp, 18.dp),
+    statusHeight = height.boundedFraction(STATUS_HEIGHT, 16.dp, 26.dp),
+    plate = height.boundedFraction(PLATE, plateFloor(height), 210.dp),
+    zoneWidth = width.boundedFraction(ZONE_WIDTH, 190.dp, 330.dp),
+    zonePad = height.boundedFraction(ZONE_PAD, 6.dp, 18.dp),
+    zoneGap = height.boundedFraction(ZONE_GAP, 5.dp, 12.dp),
+    bandGap = width.boundedFraction(BAND_GAP, 20.dp, 40.dp),
+    zoneRadius = height.boundedFraction(ZONE_RADIUS, 16.dp, 28.dp),
+    mark = height.boundedFraction(MARK, 22.dp, 34.dp),
+    target = Sizing.minTarget(tv),
+)
 
 /**
- * The 800x360 drawing, and what a system bar takes off it.
+ * The smallest plate a camera can still resolve, and what a system bar does to it.
  *
- * The panel's padding yields first and the plate only after that, because the
- * plate is the one thing on this screen a camera has to resolve.
+ * The quiet zone scales with the plate, so a smaller plate is a smaller symbol and
+ * not a crowded one; what a floor protects is the number of pixels a phone's camera
+ * gets per module from arm's length. 132dp holds that on every surface this ships
+ * to. Under [CRAMPED_PHONE] it is the one figure allowed to go lower, because the
+ * alternative is the caption underneath it measuring zero.
  */
-private fun shortPhone(available: Dp): Metrics {
-    val drawn = Metrics(
-        frame = CastivioFrame.ShortPhone,
-        bandBottom = 6.dp, footer = 34.dp,
-        fsStatus = 13.5.dp, fsButton = 14.dp,
-        macSize = 25.dp, keySize = 22.dp, chipsGap = 6.dp,
-        capsule = 56.dp, capsuleGap = 14.dp, cardPad = 14.dp, cardGap = 12.dp, labelWidth = 95.dp,
-        actionsTop = 18.dp, actionsGap = 16.dp, button = 48.dp,
-        statusTop = 10.dp, statusHeight = 20.dp,
-        plate = 164.dp, zoneWidth = 220.dp, zonePad = 6.dp, zoneGap = 5.dp,
-        bandGap = 20.dp, zoneRadius = 18.dp, mark = 24.dp, target = 48.dp,
-    )
-    if (available >= CRAMPED_PHONE) return drawn
+private fun plateFloor(height: Dp): Dp = if (height >= CRAMPED_PHONE) 132.dp else 112.dp
 
-    // A bar is on screen. Take it out of the panel's own padding first, then off
-    // the plate -- twelve dp, which is what a gesture bar costs the panel once the
-    // padding has given what it can.
-    return drawn.copy(plate = 144.dp, zonePad = 6.dp, zoneGap = 5.dp)
-}
+/* ------------------------------------------------------------------ the shares
+ *
+ * Read off the 1280×720 reference, which is the 960×540 television drawing at 4/3 —
+ * so the television reproduces its approved numbers exactly. Nothing here was
+ * chosen twice: each is one drawing's value divided by the axis it was drawn on.
+ */
+
+private const val BAND_BOTTOM = 26.67f / 720f
+private const val FOOTER = 72f / 720f
+private const val FS_STATUS = 20f / 720f
+private const val FS_BUTTON = 20.67f / 720f
+private const val MAC_SIZE = 40f / 720f
+private const val KEY_SIZE = 36f / 720f
+private const val CHIPS_GAP = 8f / 720f
+private const val CAPSULE = 96f / 720f
+private const val CAPSULE_GAP = 26.67f / 720f
+private const val CARD_PAD = 22.67f / 720f
+private const val CARD_GAP = 20f / 720f
+private const val LABEL_WIDTH = 141.3f / 1280f
+private const val ACTIONS_TOP = 40f / 720f
+private const val ACTIONS_GAP = 26.67f / 1280f
+private const val BUTTON = 74.67f / 720f
+private const val STATUS_TOP = 21.33f / 720f
+private const val STATUS_HEIGHT = 32f / 720f
+private const val PLATE = 256f / 720f
+private const val ZONE_WIDTH = 325.3f / 1280f
+private const val ZONE_PAD = 18.67f / 720f
+private const val ZONE_GAP = 13.33f / 720f
+private const val BAND_GAP = 42.67f / 1280f
+private const val ZONE_RADIUS = 34.67f / 720f
+private const val MARK = 42.67f / 720f
 
 /**
  * How much of the frame is left for the middle band.
@@ -381,7 +399,7 @@ internal fun MacActivationScreen(
     val tv = CastivioTheme.device.isTv
 
     BoxWithConstraints(modifier.fillMaxSize()) {
-        val m = metricsFor(tv, maxHeight)
+        val m = metricsFor(tv, maxWidth, maxHeight)
         Column(
             Modifier
                 .fillMaxSize()
@@ -571,8 +589,8 @@ private fun TrialChip(m: Metrics, badge: String, days: Int) {
  *
  * It is now two boxes, the same arrangement `CastivioBackChip` uses and for the same
  * reason: the click, the focus and the label on the outer one, which is
- * [CastivioFrame.touchTarget] tall; the fill, the border, the corner and the focus
- * scale on the pill, which is [CastivioFrame.chip] and unchanged. Nothing looks
+ * [CastivioMetrics.touchTarget] tall; the fill, the border, the corner and the focus
+ * scale on the pill, which is [CastivioMetrics.chip] and unchanged. Nothing looks
  * different. What changed is what answers.
  */
 @Composable

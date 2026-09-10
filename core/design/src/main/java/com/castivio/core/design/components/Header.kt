@@ -180,7 +180,7 @@ fun CastivioHeader(
         // ## The height is unbounded, and that is the second fault this fixes
         //
         // It was `maxHeight = rowH`, which reads as a safety and is the opposite.
-        // A chip is drawn at `CastivioFrame.chip` — 44dp on a television, 34 on the
+        // A chip is drawn at `CastivioMetrics.chip` — 44dp on a television, 34 on the
         // shortest phone — and its *interaction* box is `touchTarget`: 56 and 48.
         // Clamped to the row, that box came back 54 and 36, and a control whose hit
         // area has been quietly cut to the row is exactly the failure a floor exists
@@ -430,8 +430,8 @@ private const val CHIP_GAP = 0.55f
  * is half its height whatever the height is. The frame's `radius` is for the surfaces
  * on the stage, which are rectangles.
  *
- * @param chip [com.castivio.core.design.theme.CastivioFrame.chip] — the drawn pill.
- * @param touchTarget [com.castivio.core.design.theme.CastivioFrame.touchTarget] — the
+ * @param chip [com.castivio.core.design.theme.CastivioMetrics.chip] — the drawn pill.
+ * @param touchTarget [com.castivio.core.design.theme.CastivioMetrics.touchTarget] — the
  *   floor for the interaction box around it.
  * @param label the word. Supplied by the caller because a shared component may not
  *   own copy — this one would otherwise carry a string in thirty-eight languages.
@@ -524,9 +524,9 @@ fun CastivioBackChip(
  * the drawing states and the interaction box is what a thumb presses and a remote
  * lands on, and those are two different sizes on all four frames.
  *
- * @param chip [com.castivio.core.design.theme.CastivioFrame.chip] — the drawn pill,
+ * @param chip [com.castivio.core.design.theme.CastivioMetrics.chip] — the drawn pill,
  *   round, so this is its diameter.
- * @param touchTarget [com.castivio.core.design.theme.CastivioFrame.touchTarget].
+ * @param touchTarget [com.castivio.core.design.theme.CastivioMetrics.touchTarget].
  * @param label what a screen reader announces. Supplied by the caller, because a
  *   shared component may not own copy.
  */

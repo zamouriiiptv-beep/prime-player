@@ -64,7 +64,7 @@ import com.castivio.domain.ProviderSource
  * ## The frame
  *
  * The stage, the header and the four type steps are
- * [com.castivio.core.design.theme.CastivioFrame]'s, chosen by the measured height of
+ * [com.castivio.core.design.theme.CastivioMetrics]', computed from the measured size of
  * this surface. Before that this screen drew a bare title at `headlineMedium`, took
  * its margins from `DeviceClass.screenPadding` — one number for every handset and
  * tablet alike — and put Back in a full-width button under the list. A reader arriving
@@ -88,7 +88,7 @@ internal fun SavedSourcesScreen(
 ) {
     val tv = CastivioTheme.device.isTv
     BoxWithConstraints(modifier.fillMaxSize()) {
-        val m = sourceMetricsFor(tv = tv, available = maxHeight)
+        val m = sourceMetricsFor(tv = tv, width = maxWidth, height = maxHeight)
 
         Column(
             Modifier

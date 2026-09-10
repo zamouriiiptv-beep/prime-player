@@ -175,7 +175,7 @@ internal fun MediaScaffold(
 ) {
     val tv = CastivioTheme.device.isTv
     BoxWithConstraints(modifier.fillMaxSize()) {
-        val m = sourceMetricsFor(tv = tv, available = maxHeight)
+        val m = sourceMetricsFor(tv = tv, width = maxWidth, height = maxHeight)
 
         Column(
             Modifier

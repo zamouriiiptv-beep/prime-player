@@ -69,8 +69,8 @@ import com.castivio.core.design.theme.castivioStage
  *
  * So the three things a screen does not own now come from where they are defined:
  *
- * - the **stage** and the **type steps** from [com.castivio.core.design.theme.CastivioFrame],
- *   chosen by the measured height of this surface;
+ * - the **stage** and the **type steps** from [com.castivio.core.design.theme.CastivioMetrics],
+ *   computed from the measured size of this surface;
  * - the **header** from `CastivioHeader` — the lockup at the same physical edge in
  *   every language, the question beside it, Back at the far end;
  * - the **card geometry** from [SourceMetrics], because these four cards and the
@@ -113,7 +113,7 @@ internal fun MediaSourceScreen(
 ) {
     val tv = CastivioTheme.device.isTv
     BoxWithConstraints(modifier.fillMaxSize()) {
-        val m = sourceMetricsFor(tv = tv, available = maxHeight)
+        val m = sourceMetricsFor(tv = tv, width = maxWidth, height = maxHeight)
 
         Column(
             Modifier

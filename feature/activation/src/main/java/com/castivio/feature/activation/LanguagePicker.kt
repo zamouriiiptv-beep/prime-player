@@ -48,6 +48,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.castivio.core.common.locale.CastivioLanguage
 import com.castivio.core.design.components.CastivioIconButton
@@ -55,12 +56,12 @@ import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioFocusScale
 import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioDescriptionColor
-import com.castivio.core.design.theme.CastivioFrame
+import com.castivio.core.design.theme.CastivioMetrics
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Motion
 import com.castivio.core.design.theme.Spacing
 import com.castivio.core.design.theme.castivioStage
-import com.castivio.core.design.theme.rememberFrame
+import com.castivio.core.design.theme.rememberMetrics
 
 /**
  * Choosing one of the thirty-seven.
@@ -105,17 +106,9 @@ fun LanguagePicker(
 ) {
     val colors = CastivioTheme.colors
     val tv = CastivioTheme.device.isTv
-    val columns = if (tv) TV_COLUMNS else PHONE_COLUMNS
     val languages = remember { CastivioLanguage.ordered }
     val gridState = rememberLazyGridState()
     val selectedFocus = remember { FocusRequester() }
-
-    // Opens on the language Castivio is in. With 37 entries and no search, the
-    // one thing a returning user reliably wants is to see where they already are.
-    LaunchedEffect(selected) {
-        gridState.scrollToItem(languages.indexOf(selected).coerceAtLeast(0) / columns)
-        runCatching { selectedFocus.requestFocus() }
-    }
 
     BoxWithConstraints(
         modifier
@@ -137,8 +130,16 @@ fun LanguagePicker(
         // bottom -- an overlay narrower than the screen under it and taller than the
         // frame allows, which is the shape a panel takes when nobody has asked what it
         // is aligned to.
-        val frame = rememberFrame(maxHeight, tv)
+        val frame = rememberMetrics(maxWidth, maxHeight, tv)
         val shape = RoundedCornerShape(frame.radius)
+        val columns = columnsFor(maxWidth - frame.edge * 2)
+
+        // Opens on the language Castivio is in. With 37 entries and no search, the
+        // one thing a returning user reliably wants is to see where they already are.
+        LaunchedEffect(selected, columns) {
+            gridState.scrollToItem(languages.indexOf(selected).coerceAtLeast(0) / columns)
+            runCatching { selectedFocus.requestFocus() }
+        }
 
         Column(
             Modifier
@@ -187,7 +188,7 @@ fun LanguagePicker(
 }
 
 @Composable
-private fun PickerHeader(frame: CastivioFrame, tv: Boolean, onDismiss: () -> Unit) {
+private fun PickerHeader(frame: CastivioMetrics, tv: Boolean, onDismiss: () -> Unit) {
     val colors = CastivioTheme.colors
     Column {
         Row(
@@ -235,7 +236,7 @@ private fun PickerHeader(frame: CastivioFrame, tv: Boolean, onDismiss: () -> Uni
 private fun LanguageRow(
     language: CastivioLanguage,
     isSelected: Boolean,
-    frame: CastivioFrame,
+    frame: CastivioMetrics,
     tv: Boolean,
     onPick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -321,8 +322,34 @@ private fun LanguageRow(
  */
 private fun isolate(name: String): String = "⁨$name⁩"
 
-private const val PHONE_COLUMNS = 3
-private const val TV_COLUMNS = 4
+/**
+ * How many names fit across, from the width the panel actually has.
+ *
+ * ## Why this is not `if (tv) 4 else 3` any more
+ *
+ * It was, and that is a device table with two rows in it — the thing the sizing system
+ * exists to end. It also asked the wrong question: a column has to be wide enough for
+ * the longest of thirty-seven names beside a tick, and how wide that is depends on the
+ * panel, not on what kind of box it is running on. The old rule gave a 1280dp tablet
+ * three columns of 385dp each, because a tablet is not a television.
+ *
+ * So the rule is the one every grid uses: as many columns as fit at [NAME_COLUMN], and
+ * then bounded, because a grid of thirty-seven names is unreadable at two columns and
+ * a wall at eight. It reproduces both approved drawings exactly — a 960dp set still
+ * draws four and an 873dp handset still draws three — and the tablet stops drawing the
+ * handset's.
+ *
+ * This is a *sizing* rule and not a composition one: the same grid, in the same order,
+ * with the same rows in it, laid into the width it was given.
+ */
+private fun columnsFor(available: Dp): Int =
+    (available / NAME_COLUMN).toInt().coerceIn(MIN_COLUMNS, MAX_COLUMNS)
+
+/** The narrowest a name-and-tick column may be before the names start to clip. */
+private val NAME_COLUMN = 216.dp
+
+private const val MIN_COLUMNS = 3
+private const val MAX_COLUMNS = 4
 
 /**
  * The tick's box: reserved on every row, filled on one.

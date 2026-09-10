@@ -338,6 +338,17 @@ private fun restingIdentity() = ActivationIdentityState(
 private val MIN_TARGET = 48.dp
 
 /**
+ * The surface both `@Config` qualifiers in this file declare.
+ *
+ * Stated once and used by the assertions that need to know how large the screen was
+ * composed, because every size on the screen is now derived from it. If a qualifier
+ * above changes, this changes with it — a mismatch is a test comparing a screen drawn
+ * at one size against numbers computed for another, which is the exact fault that once
+ * put the 873dp handset on the 800dp drawing.
+ */
+private val HARNESS_SURFACE = 1280.dp to 800.dp
+
+/**
  * Everything §14 of the approved contract requires, present and at a real size.
  *
  * Collected rather than asserted one at a time, so a failure names every missing
@@ -416,9 +427,15 @@ private fun ComposeContentTestRule.assertActivationIsWhole(television: Boolean =
     // harness can be trusted on: a capsule is `Modifier.height(m.capsule)`, not a
     // line of text, so 56 here means 56 on a device. A pill that came back short
     // would mean the band squeezed it, which is the failure this file is for.
-    // The frame's own pill height, not a constant: 52dp on a phone and 64 on a
-    // television, because a 56dp D-pad target does not fit in a 52dp pill.
-    val pill = metricsFor(tv = television, available = 0.dp).capsule
+    // The surface's own pill height, not a constant: the capsule is a share of the
+    // measured height with the device's touch floor under it, so it is computed from
+    // the surface this test configures rather than from a table row picked by hand.
+    // One dp of slack, because the rendered height goes through pixels and back.
+    val pill = metricsFor(
+        tv = television,
+        width = HARNESS_SURFACE.first,
+        height = HARNESS_SURFACE.second,
+    ).capsule - 1.dp
     byTag("the MAC capsule", ActivationTags.MAC_CAPSULE, min = pill)
     byTag("the device key capsule", ActivationTags.KEY_CAPSULE, min = pill)
 

@@ -20,8 +20,8 @@ import org.junit.Test
  * spare into a failing assertion about the harness. `ActivationBudgetTest` made the
  * same separation for the address screen and for the same reason.
  *
- * So fit is computed here, on the JVM, from [SourceMetrics] — the same table the
- * screen is built from, read rather than copied, so a change to a frame's numbers
+ * So fit is computed here, on the JVM, from [SourceMetrics] — the same declarations
+ * the screen is built from, read rather than copied, so a change to a share or a bound
  * reaches this budget instead of silently invalidating it.
  *
  * ## The question this file asks changed direction
@@ -39,29 +39,38 @@ import org.junit.Test
  */
 class SourceChoiceBudgetTest {
 
-    /* Read off the frame table the screen is built from, at a font scale of one --
+    /* Read off the sizing system the screen is built from, at a font scale of one --
      * which is what the drawings in `design/mockups/` are rendered at. A user-raised
      * scale is the accessibility pass, not this one. */
 
     private val INSET_ALLOWANCE = 24.dp
 
-    private val SHORTEST = 360.dp
-    private val HANDSET = 393.dp
-    private val TELEVISION = 540.dp
+    /**
+     * The surfaces, each with the width it actually has.
+     *
+     * The width used to be absent, because the numbers came from a table chosen by
+     * height alone. They are shares of both axes now — a card's disc off the height,
+     * the footnote's cell count off the width — so a surface is a size and not a
+     * number, and the four here are real devices rather than four rows.
+     */
+    private data class Surface(val name: String, val width: Dp, val height: Dp, val tv: Boolean) {
+        override fun toString() = name
+    }
 
-    private val TABLET = 800.dp
+    private val SHORTEST = Surface("shortest phone", 800.dp, 360.dp, tv = false)
+    private val HANDSET = Surface("reference phone", 873.dp, 393.dp, tv = false)
+    private val TABLET = Surface("tablet", 1280.dp, 800.dp, tv = false)
+    private val TELEVISION = Surface("television", 960.dp, 540.dp, tv = true)
 
-    private val frames = listOf(
-        Triple("shortest phone", false, SHORTEST),
-        Triple("reference phone", false, HANDSET),
-        Triple("tablet", false, TABLET),
-        Triple("television", true, TELEVISION),
-    )
+    private val frames = listOf(SHORTEST, HANDSET, TABLET, TELEVISION)
 
-    private fun metrics(frame: Dp, tv: Boolean) = sourceMetricsFor(tv = tv, available = frame)
+    /** The same surface with a navigation bar on it: shorter, and exactly as wide. */
+    private fun Surface.lessBar(inset: Dp) = copy(height = height - inset)
 
-    /** The card the layout will derive, from the frame it is actually given. */
-    private fun card(frame: Dp, tv: Boolean): Dp = metrics(frame, tv).cardHeight(frame)
+    private fun metrics(s: Surface) = sourceMetricsFor(tv = s.tv, width = s.width, height = s.height)
+
+    /** The card the layout will derive, from the surface it is actually given. */
+    private fun card(s: Surface): Dp = metrics(s).cardHeight(s.height)
 
     /**
      * What one card needs to hold its own type.
@@ -71,8 +80,8 @@ class SourceChoiceBudgetTest {
      * frame's own, which is what makes this a check on the table rather than a second
      * opinion about it.
      */
-    private fun cardNeeds(frame: Dp, tv: Boolean, detailLines: Int): Dp {
-        val m = metrics(frame, tv)
+    private fun cardNeeds(s: Surface, detailLines: Int): Dp {
+        val m = metrics(s)
         val title = m.fsCard * 1.35f
         val gap = m.cardPad * 0.6f
         val text = title + gap + m.fsDetail * 1.5f * detailLines
@@ -88,14 +97,14 @@ class SourceChoiceBudgetTest {
      */
     @Test
     fun `the content fills most of the band on every frame`() {
-        for ((name, tv, frame) in frames) {
-            val m = metrics(frame, tv)
-            val band = frame - m.stageTop - m.stageBottom
-            val content = m.gridHeight(frame) + m.strip
+        for (s in frames) {
+            val m = metrics(s)
+            val band = s.height - m.stageTop - m.stageBottom
+            val content = m.gridHeight(s.height) + m.strip
             val share = content.value / band.value
-            println("source choice budget — $name content $content of $band")
+            println("source choice budget — $s content $content of $band")
             assertTrue(
-                "the $name content is only ${(share * 100).toInt()}% of the band",
+                "the $s content is only ${(share * 100).toInt()}% of the band",
                 share >= 0.70f,
             )
         }
@@ -109,11 +118,11 @@ class SourceChoiceBudgetTest {
      */
     @Test
     fun `the derived card is taller than the type inside it`() {
-        for ((name, tv, frame) in frames) {
-            val got = card(frame, tv)
-            val need = cardNeeds(frame, tv, detailLines = 1)
-            println("source choice budget — $name card $got, needs $need for one line")
-            assertTrue("the $name card is $got against $need needed", got > need)
+        for (s in frames) {
+            val got = card(s)
+            val need = cardNeeds(s, detailLines = 1)
+            println("source choice budget — $s card $got, needs $need for one line")
+            assertTrue("the $s card is $got against $need needed", got > need)
         }
     }
 
@@ -126,12 +135,12 @@ class SourceChoiceBudgetTest {
      */
     @Test
     fun `the derived card still holds a description at its full line count`() {
-        for ((name, tv, frame) in frames) {
-            val m = metrics(frame, tv)
-            val got = card(frame, tv)
-            val need = cardNeeds(frame, tv, detailLines = m.detailLines)
-            println("source choice budget — $name card $got, needs $need for ${m.detailLines} lines")
-            assertTrue("the $name card is $got against $need needed when wrapped", got >= need)
+        for (s in frames) {
+            val m = metrics(s)
+            val got = card(s)
+            val need = cardNeeds(s, detailLines = m.detailLines)
+            println("source choice budget — $s card $got, needs $need for ${m.detailLines} lines")
+            assertTrue("the $s card is $got against $need needed when wrapped", got >= need)
         }
     }
 
@@ -144,12 +153,12 @@ class SourceChoiceBudgetTest {
      */
     @Test
     fun `every frame still holds its type when the navigation bar comes back`() {
-        for ((name, tv, frame) in frames) {
-            val short = frame - INSET_ALLOWANCE
-            val got = card(short, tv)
-            val need = cardNeeds(short, tv, detailLines = 1)
-            println("source choice budget — $name with a bar: card $got, needs $need")
-            assertTrue("the $name card falls to $got with a bar back", got > need)
+        for (s in frames) {
+            val short = s.lessBar(INSET_ALLOWANCE)
+            val got = card(short)
+            val need = cardNeeds(short, detailLines = 1)
+            println("source choice budget — $s with a bar: card $got, needs $need")
+            assertTrue("the $s card falls to $got with a bar back", got > need)
         }
     }
 
@@ -162,10 +171,11 @@ class SourceChoiceBudgetTest {
      */
     @Test
     fun `the grid is never handed less than nothing`() {
-        for ((name, tv, frame) in frames) {
+        for (s in frames) {
             for (inset in listOf(0.dp, INSET_ALLOWANCE)) {
-                val grid = metrics(frame - inset, tv).gridHeight(frame - inset)
-                assertTrue("$name with a $inset bar: the grid is $grid", grid > 0.dp)
+                val shorter = s.lessBar(inset)
+                val grid = metrics(shorter).gridHeight(shorter.height)
+                assertTrue("$s with a $inset bar: the grid is $grid", grid > 0.dp)
             }
         }
     }
@@ -179,13 +189,16 @@ class SourceChoiceBudgetTest {
      */
     @Test
     fun `stacking the four cards would not have fitted the handset`() {
-        val m = metrics(HANDSET, tv = false)
+        val m = metrics(HANDSET)
         val stacked = m.stageTop + m.header + m.bandTop +
-            (cardNeeds(HANDSET, false, 1) * 4 + m.gridGap * 3) +
+            (cardNeeds(HANDSET, 1) * 4 + m.gridGap * 3) +
             m.stripGap + m.strip + m.stageBottom
 
         println("source choice budget — a single column would be $stacked")
 
-        assertTrue("a column of four was $stacked, which fits 393 after all", stacked > HANDSET)
+        assertTrue(
+            "a column of four was $stacked, which fits ${HANDSET.height} after all",
+            stacked > HANDSET.height,
+        )
     }
 }

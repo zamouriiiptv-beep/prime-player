@@ -17,13 +17,13 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
-import com.castivio.core.design.theme.CastivioFrame
+import com.castivio.core.design.theme.CastivioMetrics
 import com.castivio.core.design.theme.CastivioThemeSwitch
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.LocalThemeSwitch
 import com.castivio.core.design.theme.DeviceClass
 import com.castivio.core.design.theme.LocalDeviceClass
-import com.castivio.core.design.theme.castivioFrame
+import com.castivio.core.design.theme.castivioMetrics
 import com.castivio.domain.ProviderSource
 import com.castivio.domain.SourceKind
 import org.junit.Assert.assertEquals
@@ -86,8 +86,8 @@ class FrameSweepTest {
         val tv: Boolean,
         val direction: LayoutDirection,
     ) {
-        val frame: CastivioFrame get() = castivioFrame(tv, height)
-        val strip: Dp get() = sourceMetricsFor(tv, height).strip
+        val frame: CastivioMetrics get() = castivioMetrics(width, height, tv)
+        val strip: Dp get() = sourceMetricsFor(tv, width, height).strip
         val device: DeviceClass get() = if (tv) DeviceClass.Television else DeviceClass.Expanded
         override fun toString() = "$name ${if (direction == LayoutDirection.Rtl) "RTL" else "LTR"}"
     }
@@ -111,84 +111,123 @@ class FrameSweepTest {
         }
     }
 
-    /* ------------------------------------------------- the frame table, on its own */
+    /* ------------------------------------------------- the sizing system, on its own */
 
     /**
-     * Each surface reaches the frame it was drawn for.
+     * Each surface is drawn from its own measurements.
      *
      * First, because everything below is only meaningful if it is. The equivalent was
      * wrong once on the activation screen and nothing caught it: the gate read a height
      * 48dp short of the display, the 873dp phone fell under the threshold, and it drew
-     * the short phone's table. It looked fine. It was the wrong drawing.
-     */
-    @Test
-    fun `each surface reaches the frame it was drawn for`() {
-        val reached = passes.associate { it.name to it.frame }
-        assertEquals(CastivioFrame.Television, reached.getValue("television 960x540"))
-        assertEquals(CastivioFrame.Tablet, reached.getValue("tablet 1280x800"))
-        assertEquals(CastivioFrame.Phone, reached.getValue("reference phone 873x393"))
-        assertEquals(CastivioFrame.ShortPhone, reached.getValue("shortest phone 800x360"))
-    }
-
-    /**
-     * The tablet buys margin and not size, which is the whole rule in one assertion.
+     * the short phone's row of a table that no longer exists. It looked fine. It was the
+     * wrong drawing.
      *
-     * Its frame is the largest and its type sits *between* the phone's and the set's. A
-     * change that grows tablet type because the screen is bigger fails here, and it is
-     * the change this system was built to prevent.
+     * There is no table to land in the wrong row of now — but the same fault is still
+     * available in a different shape, which is a screen measuring the window instead of
+     * its own surface. So this asserts what makes the rest honest: every pass's numbers
+     * are the ones the system computes from that pass's width and height, and no two
+     * differently sized surfaces come out identical.
      */
     @Test
-    fun `the tablet's extra room goes into margin, not into type`() {
-        val tablet = CastivioFrame.Tablet
-        val tv = CastivioFrame.Television
-        val phone = CastivioFrame.Phone
-
-        assertTrue(
-            "the tablet's edge ${tablet.edge} is not the largest of the four",
-            tablet.edge > tv.edge && tablet.edge > phone.edge,
-        )
-        assertTrue(
-            "the tablet's title ${tablet.fsTitle} is not between the phone's " +
-                "${phone.fsTitle} and the set's ${tv.fsTitle}",
-            tablet.fsTitle >= phone.fsTitle && tablet.fsTitle <= tv.fsTitle,
-        )
-        assertTrue(
-            "the tablet's body ${tablet.fsBody} is larger than the television's ${tv.fsBody}",
-            tablet.fsBody <= tv.fsBody,
+    fun `each surface is drawn from its own measurements`() {
+        for (pass in passes) {
+            assertEquals(
+                "$pass: the metrics did not come from this surface",
+                castivioMetrics(pass.width, pass.height, pass.tv),
+                pass.frame,
+            )
+        }
+        val distinct = passes.distinctBy { it.name }.map { it.frame }.distinct()
+        assertEquals(
+            "two of the four surfaces produced identical metrics",
+            4,
+            distinct.size,
         )
     }
 
     /**
-     * The pill is drawn at the frame's chip and pressed at the frame's floor.
+     * A larger surface never draws smaller, and never draws without a ceiling.
+     *
+     * ## What this replaced
+     *
+     * It used to assert that *the tablet buys margin and not size* — that its type sat
+     * between the phone's and the television's rather than above both. That was the rule
+     * of the four-frame table, where a tablet was a named device with a row of its own,
+     * and it is not the rule any more: sizes are a bounded share of the surface, so a
+     * 1280×800 tablet draws larger type than a 960×540 television because it has more
+     * room, and stops at the ceiling. Deleting the assertion would have left the ladder
+     * unguarded, so it asserts the property that replaced it.
+     *
+     * Two claims, and both are what makes this *bounded* responsive sizing rather than
+     * a scale: it only ever moves one way as the surface grows — a token that got
+     * smaller on a larger screen is a share read off the wrong axis, which looks like a
+     * rendering bug and is arithmetic — and it stops, so a 4K set is proportionate
+     * instead of magnified.
+     */
+    @Test
+    fun `sizes only grow with the surface, and stop`() {
+        val ladder = listOf(
+            800.dp to 360.dp,
+            873.dp to 393.dp,
+            960.dp to 540.dp,
+            1280.dp to 800.dp,
+            1920.dp to 1080.dp,
+            3840.dp to 2160.dp,
+        ).map { (w, h) -> castivioMetrics(w, h, isTv = false) }
+
+        for ((smaller, larger) in ladder.zipWithNext()) {
+            assertTrue("edge shrank: ${larger.edge} after ${smaller.edge}", larger.edge >= smaller.edge)
+            assertTrue("header shrank", larger.header >= smaller.header)
+            assertTrue("chip shrank", larger.chip >= smaller.chip)
+            assertTrue("title shrank", larger.fsTitle >= smaller.fsTitle)
+            assertTrue("body shrank", larger.fsBody >= smaller.fsBody)
+        }
+
+        val huge = ladder.last()
+        assertTrue("the 4K edge ${huge.edge} is unbounded", huge.edge <= 72.dp)
+        assertTrue("the 4K chip ${huge.chip} is unbounded", huge.chip <= 64.dp)
+        assertTrue("the 4K title ${huge.fsTitle} is unbounded", huge.fsTitle <= 36.dp)
+    }
+
+    /**
+     * The pill is drawn at the surface's chip and pressed at the device's floor.
      *
      * Two numbers, two claims. The drawing states a 44dp pill on a television and a
-     * 34dp one on the shortest phone; the rule states a 56dp and a 48dp interaction
+     * 32dp one on the shortest phone; the rule states a 56dp and a 48dp interaction
      * area. Read as one number they contradict, and both ways of collapsing them are
      * wrong — growing the pill rewrites an approved drawing to satisfy a rule about
-     * fingers, growing the header row costs three frames 2 to 12dp of band.
+     * fingers, growing the header row costs a short surface band it does not have.
      *
-     * So this asserts the shape of the answer rather than either collapse: the pill
-     * stays under the floor on every frame (which is what makes the second box
-     * necessary), and the header row can hold the pill it draws. What the interaction
-     * box actually measures is asserted where it is laid out, in the header sweep
-     * below.
+     * So this asserts the shape of the answer rather than either collapse: the header
+     * row can hold the pill it draws, and the pill can hold the line it is drawn
+     * around. What the interaction box actually measures is asserted where it is laid
+     * out, in the header sweep below — the two are separate because the box is allowed
+     * to overhang the row and the pill is not.
+     *
+     * The floor itself is no longer stated as *the pill is smaller than the target*.
+     * That was true of every row of the four-frame table and it is not a property of
+     * the design: on a 1280×800 tablet the pill is drawn at 64dp and clears the 48dp
+     * floor on its own. Asserting the old inequality would have been asserting that
+     * large surfaces do not exist.
      */
     @Test
-    fun `the drawn pill and the pressable box are two different sizes`() {
+    fun `the pill is drawn to the surface and holds its own line`() {
         for (pass in passes) {
             val frame = pass.frame
             assertTrue(
                 "$pass: the header ${frame.header} cannot hold a ${frame.chip} pill",
                 frame.header >= frame.chip,
             )
+            val line = frame.fsChip * CHIP_LEADING
             assertTrue(
-                "$pass: the pill ${frame.chip} already clears the ${frame.touchTarget} " +
-                    "floor, so the interaction box around it is now dead weight -- " +
-                    "collapse the two rather than leaving a box nothing needs",
-                frame.chip < frame.touchTarget,
+                "$pass: a ${frame.chip} pill cannot hold a $line line of type",
+                frame.chip >= line,
             )
         }
     }
+
+    /** What `castivioChipStyle` sets a chip's line at. */
+    private val CHIP_LEADING = 1.45f
 
     /**
      * The interaction box overhangs the row, and the overhang fits the stage's margin.
@@ -345,7 +384,7 @@ class FrameSweepTest {
         val chevrons = compose.allGrouped(ActivationTags.MEDIA_CHEVRON, cards.size)
 
         passes.forEachIndexed { i, pass ->
-            val m = sourceMetricsFor(pass.tv, pass.height)
+            val m = sourceMetricsFor(pass.tv, pass.width, pass.height)
             for (k in cards.indices) {
                 val card = cards[k][i]
                 val disc = discs[i][k]
@@ -394,7 +433,9 @@ class FrameSweepTest {
      */
     @Test
     fun `the strip drops its last claim on a phone`() {
-        val counts = passes.associate { it.name to sourceMetricsFor(it.tv, it.height).stripCells }
+        val counts = passes.associate {
+            it.name to sourceMetricsFor(it.tv, it.width, it.height).stripCells
+        }
         assertEquals(3, counts.getValue("television 960x540"))
         assertEquals(3, counts.getValue("tablet 1280x800"))
         assertEquals(2, counts.getValue("reference phone 873x393"))
@@ -480,7 +521,7 @@ class FrameSweepTest {
      * no tag of its own — nothing had needed one.
      *
      * So the header is measured against the pass's own frame rather than against a
-     * tagged stage: the mark stands off the leading edge by exactly [CastivioFrame.edge]
+     * tagged stage: the mark stands off the leading edge by exactly [CastivioMetrics.edge]
      * and Back off the trailing edge by the same, which is the same claim stated from
      * the display instead of from the container.
      */

@@ -124,8 +124,25 @@ fun rememberMetrics(
  * The whole of "bounded responsive sizing" in one expression, and the reason it is an
  * expression rather than a table: a table of four device sizes is four things to keep
  * in step, which is what drifted.
+ *
+ * ## Why it is public
+ *
+ * [CastivioMetrics] carries what *every* screen shares — the stage, the header, the
+ * four type steps. A screen still has sizes of its own that nothing else has an
+ * opinion about: activation's QR plate, a source card's disc, the strip under it. Those
+ * are not tokens and must not become tokens, but they have to obey the same rule, and
+ * a screen writing `(height * f).coerceIn(a, b)` by hand is a screen one edit away from
+ * writing `height * f` instead. So the rule is one function and every size in Castivio
+ * goes through it — which is also what makes "is this dimension bounded?" a question
+ * grep can answer.
+ *
+ * @param of the share of the axis, read off the 1280×720 reference.
+ * @param min the floor. Never below what the shortest surface needs to stay usable.
+ * @param max the ceiling. Never above what keeps the largest surface proportionate.
  */
-private fun Dp.fraction(of: Float, min: Dp, max: Dp): Dp = (this * of).coerceIn(min, max)
+fun Dp.boundedFraction(of: Float, min: Dp, max: Dp): Dp = (this * of).coerceIn(min, max)
+
+private fun Dp.fraction(of: Float, min: Dp, max: Dp): Dp = boundedFraction(of, min, max)
 
 /* --------------------------------------------------------------- the fractions
  *

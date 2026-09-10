@@ -13,7 +13,7 @@ import com.castivio.core.design.theme.CastivioType
 /*
  * The four type steps, as the three expressions that set them.
  *
- * `CastivioFrame` says how large each step is on each frame. These say what a step
+ * `CastivioMetrics` says how large each step is on a given surface. These say what a step
  * *is* — which face it sits on, how much leading it takes, and what tracking. A screen
  * that copies those three lines has made a fourth opinion about the same step, and the
  * copies had already begun to disagree: a card's description was written five times
@@ -28,7 +28,7 @@ import com.castivio.core.design.theme.CastivioType
  * Arabic at any size: the script joins, and pulling the letters together closes the
  * joins rather than tightening the word.
  *
- * @param fsTitle [com.castivio.core.design.theme.CastivioFrame.fsTitle].
+ * @param fsTitle [com.castivio.core.design.theme.CastivioMetrics.fsTitle].
  */
 @Composable
 @ReadOnlyComposable
@@ -41,7 +41,7 @@ fun castivioTitleStyle(fsTitle: Dp): TextStyle = CastivioType.headlineMedium.cop
 /**
  * The style a chip's own words are set in, from the frame's chip step.
  *
- * @param fsChip [com.castivio.core.design.theme.CastivioFrame.fsChip].
+ * @param fsChip [com.castivio.core.design.theme.CastivioMetrics.fsChip].
  */
 @Composable
 @ReadOnlyComposable
@@ -83,7 +83,7 @@ fun castivioChipStyle(fsChip: Dp): TextStyle = CastivioType.bodyMedium.copy(
  * the one step that regularly runs to three and four lines, where the difference
  * compounds.
  *
- * @param fsBody [com.castivio.core.design.theme.CastivioFrame.fsBody].
+ * @param fsBody [com.castivio.core.design.theme.CastivioMetrics.fsBody].
  */
 @Composable
 @ReadOnlyComposable

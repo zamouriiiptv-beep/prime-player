@@ -2,21 +2,23 @@ package com.castivio.feature.activation
 
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.castivio.core.design.theme.CastivioFrame
+import com.castivio.core.design.theme.CastivioMetrics
+import com.castivio.core.design.theme.CastivioReference
 import com.castivio.core.design.theme.Sizing
+import com.castivio.core.design.theme.castivioMetrics
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The activation screen fits, on every frame it is drawn for.
+ * The activation screen fits — on every surface, not on the four somebody drew.
  *
  * ## Why this is not part of the layout gate
  *
  * Because the layout gate cannot answer it. Robolectric does not lay text out —
  * every `Text` measures 35dp tall there whatever its declared style, and
  * `GraphicsMode.NATIVE` does not change that — which inflates the identity column
- * by roughly 40dp. On a frame whose whole margin is nine, an assertion about fit
+ * by roughly 40dp. On a surface whose whole margin is twenty, an assertion about fit
  * made in that harness is an assertion about the harness.
  *
  * So the two claims are separated, and each is made where it can be made
@@ -25,12 +27,19 @@ import org.junit.Test
  * - `ActivationLayoutTest` asks Compose what it **placed**. That is the bug that
  *   shipped — a band that measured zero — and only Compose can answer it.
  * - This asks whether the places add up, from the same [Metrics] the screen is
- *   built from and the line heights `CastivioType` declares. No runtime, no
- *   emulator, and the numbers are the device's.
+ *   built from. No runtime, no emulator, and the numbers are the device's.
  *
  * Neither is sufficient. A column that fits on paper but is composed into an
- * unbounded height still vanishes; a screen that is placed correctly on a frame
+ * unbounded height still vanishes; a screen that is placed correctly on a surface
  * with 40dp of phantom text still tells you nothing about the real one.
+ *
+ * ## What changed when the device table went
+ *
+ * The screen used to be built from four rows of hand-written numbers, so this file
+ * could only ever ask about those four rows. Every size is now a bounded share of the
+ * measured surface, which means the question *"does it fit?"* finally has a domain —
+ * and the last test in this file asserts the answer across the whole of it, one dp at
+ * a time, rather than at four points with the space between them taken on trust.
  *
  * ## What "fits" has to mean
  *
@@ -43,6 +52,37 @@ import org.junit.Test
 class ActivationBudgetTest {
 
     /**
+     * The shortest surface Castivio composes activation for.
+     *
+     * Below this the identity column cannot hold two field cards, two buttons at their
+     * touch floor and a reserved line, however the space is divided — the floors are
+     * what a thumb and a camera need and they are not negotiable. The old device table
+     * had the same limit at 325dp and nothing stated it; this states it, and the sweep
+     * below proves everything above it holds.
+     *
+     * No landscape Android surface is this short. 360dp is the shortest this project
+     * ships to and 344 is that with a transient navigation bar on screen.
+     */
+    private val SHORTEST = 330.dp
+
+    /** The tallest thing anyone will run this on: a 4K set. */
+    private val TALLEST = 2160.dp
+
+    private data class Surface(val name: String, val width: Dp, val height: Dp, val tv: Boolean) {
+        val metrics: Metrics get() = metricsFor(tv = tv, width = width, height = height)
+        override fun toString() = name
+    }
+
+    private val surfaces = listOf(
+        Surface("shortest phone 800x360", 800.dp, 360.dp, tv = false),
+        Surface("reference phone 873x393", 873.dp, 393.dp, tv = false),
+        Surface("tablet 1280x800", 1280.dp, 800.dp, tv = false),
+        Surface("television 960x540", 960.dp, 540.dp, tv = true),
+        Surface("1080p set 1920x1080", 1920.dp, 1080.dp, tv = true),
+        Surface("4K set 3840x2160", 3840.dp, 2160.dp, tv = true),
+    )
+
+    /**
      * The two activation screens compose on the same stage.
      *
      * They did before this was written, because the numbers were typed twice and
@@ -50,26 +90,60 @@ class ActivationBudgetTest {
      * attached: the first edit to one table and the two screens stop being one
      * product, a dp at a time, with nothing failing and no way to see it but memory.
      *
-     * [CastivioFrame] is the table now and both screens read it, so this asserts what
+     * [CastivioMetrics] is the system now and both screens read it, so this asserts what
      * the refactor made true rather than hoping for it — and it fails the moment
      * either screen grows a local frame of its own again.
      */
     @Test
-    fun `every screen composes on the same frame`() {
-        for ((name, tv, frame) in listOf(
-            Triple("shortest phone", false, 360.dp),
-            Triple("reference phone", false, 393.dp),
-            Triple("tablet", false, 800.dp),
-            Triple("television", true, 540.dp),
-        )) {
+    fun `every screen composes on the same metrics`() {
+        for (surface in surfaces) {
             assertEquals(
-                "$name: the activation screen and the source choice are on different frames",
-                metricsFor(tv = tv, available = frame).frame,
-                sourceMetricsFor(tv = tv, available = frame).frame,
+                "$surface: the activation screen and the source choice are on different metrics",
+                surface.metrics.frame,
+                sourceMetricsFor(tv = surface.tv, width = surface.width, height = surface.height).frame,
+            )
+            assertEquals(
+                "$surface: the metrics did not come from the system",
+                castivioMetrics(surface.width, surface.height, surface.tv),
+                surface.metrics.frame,
             )
         }
     }
 
+    /**
+     * The television still lands on the drawing that was approved for it.
+     *
+     * This is the whole claim that the migration reproduced the design rather than
+     * replacing it: 960×540 is three quarters of the reference, so every share read
+     * off the reference has to come back at three quarters — the television row of
+     * the table that used to be here, to the dp.
+     */
+    @Test
+    fun `the television reproduces its approved numbers`() {
+        val m = metricsFor(tv = true, width = 960.dp, height = 540.dp)
+        assertEquals("plate", 192f, m.plate.value, 0.5f)
+        assertEquals("zoneWidth", 244f, m.zoneWidth.value, 0.5f)
+        assertEquals("capsule", 72f, m.capsule.value, 0.5f)
+        assertEquals("footer", 54f, m.footer.value, 0.5f)
+        assertEquals("bandGap", 32f, m.bandGap.value, 0.5f)
+        assertEquals("mark", 32f, m.mark.value, 0.5f)
+        assertEquals("labelWidth", 106f, m.labelWidth.value, 0.5f)
+        assertEquals("macSize", 30f, m.macSize.value, 0.5f)
+    }
+
+    /** And the reference gives back the numbers the shares were read off. */
+    @Test
+    fun `the reference gives back the numbers it was read off`() {
+        val m = metricsFor(
+            tv = true,
+            width = CastivioReference.Width,
+            height = CastivioReference.Height,
+        )
+        assertEquals("plate", 210f, m.plate.value, 0.5f) // at its ceiling by then
+        assertEquals("capsule", 80f, m.capsule.value, 0.5f) // at its ceiling too
+        assertEquals("footer", 60f, m.footer.value, 0.5f)
+        assertEquals("labelWidth", 140f, m.labelWidth.value, 0.5f)
+    }
 
     /**
      * What a swiped-back navigation bar costs the tallest thing on screen.
@@ -83,57 +157,61 @@ class ActivationBudgetTest {
      */
     private val INSET_ALLOWANCE = 24.dp
 
-    private fun spare(frame: Dp, tv: Boolean, inset: Dp = 0.dp): Dp {
-        val usable = frame - inset
-        val m = metricsFor(tv = tv, available = usable)
+    private fun spare(surface: Surface, inset: Dp = 0.dp): Dp {
+        val usable = surface.height - inset
+        val m = metricsFor(tv = surface.tv, width = surface.width, height = usable)
         return m.bandHeight(usable) - m.identityHeight()
     }
 
     /**
-     * Every frame, with the margin each one has.
+     * Every surface, with the margin each one has.
      *
      * The margins are asserted as a floor rather than an equality: pinning them
      * exactly would make every deliberate spacing change a two-file edit, and the
      * number that matters is whether it is positive.
      */
     @Test
-    fun `the identity column fits the band it is given, on every frame`() {
-        val short = spare(360.dp, tv = false)
-        val phone = spare(393.dp, tv = false)
-        val tv = spare(540.dp, tv = true)
-
+    fun `the identity column fits the band it is given, on every surface`() {
         // Unconditional, because "it fits" is worth reading in a green log too --
-        // the interesting number is how close the shortest frame is running.
+        // the interesting number is how close the shortest surface is running.
         println(
-            "activation budget — 800x360 $short | 873x393 $phone | TV 960x540 $tv | " +
-                "with a $INSET_ALLOWANCE bar: ${spare(360.dp, false, INSET_ALLOWANCE)}",
+            "activation budget — " +
+                surfaces.joinToString(" | ") { "$it ${spare(it)}" } +
+                " | shortest with a $INSET_ALLOWANCE bar: ${spare(surfaces.first(), INSET_ALLOWANCE)}",
         )
 
-        assertTrue("the shortest phone overruns its band by ${-short}", short > 0.dp)
-        assertTrue("the reference phone overruns its band by ${-phone}", phone > 0.dp)
-        assertTrue("the television overruns its band by ${-tv}", tv > 0.dp)
+        for (surface in surfaces) {
+            val margin = spare(surface)
+            assertTrue("$surface overruns its band by ${-margin}", margin > 0.dp)
+        }
     }
 
     /**
-     * The shortest frame is the one that decides everything, so its margin is
+     * The shortest surface is the one that decides everything, so its margin is
      * stated rather than left to be rediscovered.
+     *
+     * ## The number moved, and it is worth saying why
+     *
+     * It was 34dp and it is now 21. Nothing grew: the shares give a 360dp-tall surface
+     * slightly more *outer* margin than the hand-drawn short-phone row did — 16/15
+     * against 11/8 — because that row was drawn tight enough that the header looked
+     * glued to the glass, and the composition pays the difference. What the 34dp was
+     * really protecting is asserted directly now, one test down: the screen still fits
+     * with a navigation bar on it. Under a bounded share a shorter surface shrinks its
+     * own content, which is exactly what a fixed table could not do.
      *
      * If this fails upward the design got roomier and the number should be
      * updated. If it fails downward something grew, and the next thing to grow
      * takes Add playlist off the screen.
      */
     @Test
-    fun `the shortest phone keeps the margin the capsules bought it`() {
-        val short = spare(360.dp, tv = false)
-        assertTrue(
-            "the shortest phone is down to $short of margin; the field cards left " +
-                "it 40dp and the inset budget needs most of that",
-            short >= 34.dp,
-        )
+    fun `the shortest phone keeps a margin worth having`() {
+        val short = spare(surfaces.first())
+        assertTrue("the shortest phone is down to $short of margin", short >= 16.dp)
     }
 
     /**
-     * The frame still fits with the system bars back.
+     * Every surface still fits with the system bars back.
      *
      * This is the assertion the capsules were for. Before them the shortest frame
      * had 9dp of margin, so any vertical inset at all pushed the column past the
@@ -143,16 +221,11 @@ class ActivationBudgetTest {
      * same defect committed knowingly.
      */
     @Test
-    fun `every frame still fits when the navigation bar comes back`() {
-        for ((name, tv, frame) in listOf(
-            Triple("shortest phone", false, 360.dp),
-            Triple("reference phone", false, 393.dp),
-            Triple("television", true, 540.dp),
-            Triple("tablet", false, 800.dp),
-        )) {
-            val margin = spare(frame, tv, inset = INSET_ALLOWANCE)
+    fun `every surface still fits when the navigation bar comes back`() {
+        for (surface in surfaces) {
+            val margin = spare(surface, inset = INSET_ALLOWANCE)
             assertTrue(
-                "$name overruns by ${-margin} once a $INSET_ALLOWANCE navigation " +
+                "$surface overruns by ${-margin} once a $INSET_ALLOWANCE navigation " +
                     "bar is on screen",
                 margin > 0.dp,
             )
@@ -162,29 +235,44 @@ class ActivationBudgetTest {
     /**
      * The QR side fits too, which stopped being obvious when the plate grew.
      *
-     * The identity column is the taller of the two zones on every frame at
-     * today's numbers, so the band has always been sized by it — and a gate that
-     * measured only the column would keep passing while a 6% larger plate pushed
-     * the QR past the hairline. Measured rather than assumed.
+     * The identity column is the taller of the two zones on most surfaces, so the band
+     * has always been sized by it — and a gate that measured only the column would keep
+     * passing while a 6% larger plate pushed the QR past the hairline. Measured rather
+     * than assumed.
      */
     @Test
-    fun `the QR zone fits its band on every frame, bars back or not`() {
-        for ((name, tv, frame) in listOf(
-            Triple("shortest phone", false, 360.dp),
-            Triple("reference phone", false, 393.dp),
-            Triple("television", true, 540.dp),
-            Triple("tablet", false, 800.dp),
-        )) {
+    fun `the QR zone fits its band on every surface, bars back or not`() {
+        for (surface in surfaces) {
             for (inset in listOf(0.dp, INSET_ALLOWANCE)) {
-                val usable = frame - inset
-                val m = metricsFor(tv = tv, available = usable)
+                val usable = surface.height - inset
+                val m = metricsFor(tv = surface.tv, width = surface.width, height = usable)
                 val band = m.bandHeight(usable)
                 val code = m.codeHeight()
                 assertTrue(
-                    "$name with a $inset bar: the QR zone is $code in a $band band",
+                    "$surface with a $inset bar: the QR zone is $code in a $band band",
                     band - code > 0.dp,
                 )
             }
+        }
+    }
+
+    /**
+     * The plate never fits its panel by overflowing it.
+     *
+     * The plate is a share of the height and the panel a share of the width, so on a
+     * surface wide enough or short enough the two could in principle disagree — and a
+     * QR wider than the panel holding it is not a crowded drawing, it is a symbol with
+     * its quiet zone cut off, which is a symbol a camera cannot read.
+     */
+    @Test
+    fun `the plate always fits inside its panel`() {
+        for (surface in surfaces) {
+            val m = surface.metrics
+            val inner = m.zoneWidth - m.zonePad * 2
+            assertTrue(
+                "$surface: a ${m.plate} plate in a $inner panel",
+                m.plate <= inner,
+            )
         }
     }
 
@@ -198,49 +286,86 @@ class ActivationBudgetTest {
      */
     @Test
     fun `nothing in the column is smaller than a touch target`() {
-        for ((name, tv, frame) in listOf(
-            Triple("shortest phone", false, 360.dp),
-            Triple("reference phone", false, 393.dp),
-            Triple("television", true, 540.dp),
-            Triple("tablet", false, 800.dp),
-        )) {
-            val m = metricsFor(tv = tv, available = frame)
+        for (surface in surfaces) {
+            val m = surface.metrics
 
-            // The frame's own floor, not one floor for all frames. A television
+            // The device's own floor, not one floor for every device. A television
             // is driven by a D-pad and `Sizing.minTvTarget` is 56dp; asserting
             // the 48dp phone minimum here is what let the TV copy control ship
             // 8dp short. The one number that was wrong was the one number
             // nothing checked.
-            val floor = Sizing.minTarget(tv)
+            val floor = Sizing.minTarget(surface.tv)
             assertTrue(
-                "$name: the copy control is ${m.target}, below the $floor floor",
+                "$surface: the copy control is ${m.target}, below the $floor floor",
                 m.target >= floor,
             )
             assertTrue(
-                "$name: the capsule is ${m.capsule} and cannot hold a $floor target",
+                "$surface: the capsule is ${m.capsule} and cannot hold a $floor target",
                 m.capsule >= floor,
+            )
+            assertTrue(
+                "$surface: the button is ${m.button}, below the $floor floor",
+                m.button >= floor,
             )
             // The column is measured with full-size targets in it, so a positive
             // margin is the statement that nothing had to be crushed to fit.
-            assertTrue("$name: the column does not fit at full size", spare(frame, tv) > 0.dp)
+            assertTrue("$surface: the column does not fit at full size", spare(surface) > 0.dp)
         }
     }
 
     /**
-     * The frame threshold picks the set the design drew for each frame.
+     * Every surface between the shortest and the largest fits.
      *
-     * Worth its own assertion because it was wrong once in a way nothing caught:
-     * the gate was reading a height 48dp short of the display, which put the
-     * 873×393 phone below the threshold and gave it the short phone's tighter
-     * numbers. It looked fine, and it was the wrong drawing.
+     * ## The test the device table could not have
+     *
+     * The old gate asked four questions because there were four rows of numbers to ask
+     * about, and a device that fell between two rows got whichever one it landed in
+     * with nobody having looked at the result. There are no rows now — every size is a
+     * bounded share of the measured surface — so "does it fit?" can be asked of the
+     * whole domain, and it is: every height a dp apart, at three aspect ratios, with
+     * and without a navigation bar.
+     *
+     * Both zones and both device kinds, because the identity column is the taller of
+     * the two on a short surface and the code panel on a tall one, and a floor that
+     * only one of them clears is a floor that has not been checked.
      */
     @Test
-    fun `each frame gets the metric set the mockup drew for it`() {
-        val short = metricsFor(tv = false, available = 360.dp)
-        val phone = metricsFor(tv = false, available = 393.dp)
+    fun `every surface between the shortest and the largest fits`() {
+        var worst = Dp.Infinity
+        var worstAt = ""
 
-        assertTrue("the 800x360 frame is not on the short set", short.edge == 26.dp)
-        assertTrue("the 873x393 frame is not on the tall set", phone.edge == 32.dp)
-        assertTrue("the two phone frames share a metric set", short != phone)
+        var height = SHORTEST
+        while (height <= TALLEST) {
+            for (aspect in ASPECTS) {
+                val width = height * aspect
+                // A television never reports a short surface; asserting one would be
+                // asserting about a device that does not exist, at the 56dp floor no
+                // handset pays.
+                val kinds = if (height >= TV_SHORTEST) listOf(false, true) else listOf(false)
+                for (tv in kinds) {
+                    for (inset in listOf(0.dp, INSET_ALLOWANCE)) {
+                        val usable = height - inset
+                        if (usable < SHORTEST) continue
+                        val m = metricsFor(tv = tv, width = width, height = usable)
+                        val band = m.bandHeight(usable)
+                        val margin = minOf(band - m.identityHeight(), band - m.codeHeight())
+                        if (margin < worst) {
+                            worst = margin
+                            worstAt = "${width.value.toInt()}x${usable.value.toInt()} tv=$tv"
+                        }
+                    }
+                }
+            }
+            height += 1.dp
+        }
+
+        println("activation sweep — tightest margin $worst at $worstAt")
+        assertTrue("the tightest surface overruns by ${-worst}, at $worstAt", worst > 0.dp)
     }
+
+    /** The shortest surface any television reports. Below it there are only handsets. */
+    private val TV_SHORTEST = 480.dp
+
+    /** Landscape, from a squat tablet to the widest handset anyone ships. */
+    private val ASPECTS = listOf(16f / 9f, 1.85f, 2f, 2.2f, 2.4f)
 }

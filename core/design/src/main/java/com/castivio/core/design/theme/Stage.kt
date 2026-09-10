@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.Dp
 
 /**
  * The stage's margins: the frame's, or what the system takes at the sides, whichever
@@ -62,14 +63,28 @@ import androidx.compose.ui.platform.LocalLayoutDirection
  * The insets resolve per edge rather than per direction, so it is already right in both
  * scripts; on a television both are zero and the frame's own numbers stand unaltered.
  */
-fun Modifier.castivioStage(frame: CastivioFrame): Modifier = composed {
+fun Modifier.castivioStage(frame: CastivioFrame): Modifier =
+    castivioStage(frame.edge, frame.stageTop, frame.stageBottom)
+
+/**
+ * The same rule, from the sizing system every screen is being moved onto.
+ *
+ * [CastivioMetrics] and [CastivioFrame] name the stage's three margins identically, so
+ * this is the same modifier reading the same three numbers from the system that
+ * computes them rather than from the table that listed them. Both overloads exist only
+ * while the migration runs; the frame's goes when the last screen leaves it.
+ */
+fun Modifier.castivioStage(metrics: CastivioMetrics): Modifier =
+    castivioStage(metrics.edge, metrics.stageTop, metrics.stageBottom)
+
+private fun Modifier.castivioStage(edge: Dp, top: Dp, bottom: Dp): Modifier = composed {
     val insets = WindowInsets.safeDrawing.asPaddingValues()
     val direction = LocalLayoutDirection.current
 
     padding(
-        start = maxOf(frame.edge, insets.calculateStartPadding(direction)),
-        end = maxOf(frame.edge, insets.calculateEndPadding(direction)),
-        top = frame.stageTop,
-        bottom = frame.stageBottom,
+        start = maxOf(edge, insets.calculateStartPadding(direction)),
+        end = maxOf(edge, insets.calculateEndPadding(direction)),
+        top = top,
+        bottom = bottom,
     )
 }

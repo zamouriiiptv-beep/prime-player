@@ -903,6 +903,25 @@ one: it returns sizes, not layouts.
 Responsive UI is the presentation layer's business. It is never a reason to change the
 data layer, the repositories, paging, caching, lazy loading or the activation flow.
 
+### Where it is applied
+
+The system is the product's, not one screen's, and it is being brought to the screens
+in stages — each stage its own commit, built and gated before the next begins. Nothing
+below is a design difference; it is only how far the migration has reached.
+
+| stage | screens | state |
+|---|---|---|
+| — | Home | on `castivioMetrics` |
+| 1 | Activation (MAC), source choice, media source, saved subscriptions, the local-media browsers, the language picker | on `castivioMetrics` |
+| 2 | Browse, Show, Search | not started |
+| 3 | Licence, Legal | on `CastivioFrame` |
+| 4 | Settings, player controls | fixed tokens only |
+| 5 | remove `CastivioFrame`, `FrameType`, `TABLET_FRAME`, `SHORT_FRAME` and the `castivioStage(CastivioFrame)` overload | blocked on 2–4 |
+
+`CastivioFrame` — the four-row device table this replaced — is deliberately still
+compiled and still correct for the screens that have not moved. It goes in one piece
+when the last of them leaves it, and not before: a table half-deleted is two systems.
+
 ### Before changing any screen
 
 Settle, in this order: the master composition; the component hierarchy; the grid; the
