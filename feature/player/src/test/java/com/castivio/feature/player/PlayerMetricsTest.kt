@@ -214,7 +214,7 @@ class PlayerMetricsTest {
         val huge = ladder.last()
         assertTrue("the 4K play control ${huge.play} is unbounded", huge.play <= 88.dp)
         assertTrue("the 4K strip ${huge.strip} is unbounded", huge.strip <= 64.dp)
-        assertTrue("the 4K thumb ${huge.thumb} is unbounded", huge.thumb <= 20.dp)
+        assertTrue("the 4K thumb ${huge.thumb} is unbounded", huge.thumb <= 22.dp)
         // The clearance is a sum of bounded parts rather than a bounded share, so its
         // ceiling is theirs: 72 of inset, 64 of strip, 22 of gap, 56 of target and 30
         // of air. Asserted against that sum rather than a number typed beside it.

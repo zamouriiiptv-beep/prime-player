@@ -110,21 +110,21 @@ internal fun playerMetricsFor(tv: Boolean, width: Dp, height: Dp): PlayerMetrics
         // its floor is well above the device's own target rather than equal to it.
         play = maxOf(height.boundedFraction(PLAY, 64.dp, 88.dp), target),
         strip = strip,
-        track = height.boundedFraction(TRACK, 3.dp, 6.dp),
-        thumb = height.boundedFraction(THUMB, 12.dp, 20.dp),
-        progressWidth = width.boundedFraction(PROGRESS_WIDTH, 80.dp, 140.dp),
-        progressHeight = height.boundedFraction(PROGRESS_HEIGHT, 2.dp, 5.dp),
-        skeletonTitle = width.boundedFraction(SKELETON_TITLE, 120.dp, 220.dp),
-        skeletonWindow = width.boundedFraction(SKELETON_WINDOW, 76.dp, 140.dp),
-        spinner = height.boundedFraction(SPINNER, 44.dp, 76.dp),
-        reportHeight = height.boundedFraction(REPORT_HEIGHT, 140.dp, 260.dp),
-        captionSide = width.boundedFraction(CAPTION_SIDE, 24.dp, 48.dp),
-        captionEdge = height.boundedFraction(CAPTION_EDGE, 20.dp, 40.dp),
+        track = height.boundedFraction(TRACK, 3.dp, 8.dp),
+        thumb = height.boundedFraction(THUMB, 12.dp, 22.dp),
+        progressWidth = width.boundedFraction(PROGRESS_WIDTH, 80.dp, 160.dp),
+        progressHeight = height.boundedFraction(PROGRESS_HEIGHT, 2.dp, 6.dp),
+        skeletonTitle = width.boundedFraction(SKELETON_TITLE, 120.dp, 240.dp),
+        skeletonWindow = width.boundedFraction(SKELETON_WINDOW, 76.dp, 150.dp),
+        spinner = height.boundedFraction(SPINNER, 44.dp, 84.dp),
+        reportHeight = height.boundedFraction(REPORT_HEIGHT, 140.dp, 280.dp),
+        captionSide = width.boundedFraction(CAPTION_SIDE, 24.dp, 52.dp),
+        captionEdge = height.boundedFraction(CAPTION_EDGE, 22.dp, 44.dp),
         // Derived from the chrome it has to clear rather than declared beside it —
         // see [CAPTION_AIR] for why that stopped being a detail.
         captionClearance = inset + strip + barGap + target +
             height.boundedFraction(CAPTION_AIR, 12.dp, 30.dp),
-        captionRaise = height.boundedFraction(CAPTION_RAISE, 56.dp, 100.dp),
+        captionRaise = height.boundedFraction(CAPTION_RAISE, 56.dp, 110.dp),
         sheetFraction = (sheet / width).coerceIn(0f, 1f),
     )
 }
@@ -152,16 +152,32 @@ private const val BAR_GAP = 21.3f / 1280f
 private const val BAR_GAP_LARGE = 32f / 1280f
 private const val PLAY = 106.7f / 720f
 private const val STRIP = 74.7f / 720f
-private const val TRACK = 5.3f / 720f
-private const val THUMB = 18.7f / 720f
-private const val PROGRESS_WIDTH = 128f / 1280f
-private const val PROGRESS_HEIGHT = 4f / 720f
-private const val SKELETON_TITLE = 197.3f / 1280f
-private const val SKELETON_WINDOW = 122.7f / 1280f
-private const val SPINNER = 69.3f / 720f
-private const val REPORT_HEIGHT = 240f / 720f
-private const val CAPTION_SIDE = 42.7f / 1280f
-private const val CAPTION_EDGE = 37.3f / 720f
+/*
+ * ## The eleven below are read off the *handset*, and that distinction is the fix
+ *
+ * The four above — the bar gaps, the play control, the strip — were drawn twice, at
+ * 960×540 and at 873×393, so the television's drawing is the reference and the handset
+ * comes out interpolated, exactly as in phases 1 to 3.
+ *
+ * These eleven were **one constant for every device**, which means the handset is the
+ * only surface anybody drew them for. Deriving them from the television as if the
+ * television's copy were a drawing invents a smaller handset value with nothing behind
+ * it — and it did: a caption's edge margin came out at 20dp where the drawing says 28,
+ * on the reference handset. So the share is whatever reproduces the constant at
+ * 873×393, and the television — which the constant was always wrong for — is the
+ * surface that moves.
+ */
+
+private const val TRACK = 7.3f / 720f
+private const val THUMB = 25.6f / 720f
+private const val PROGRESS_WIDTH = 140.8f / 1280f
+private const val PROGRESS_HEIGHT = 5.5f / 720f
+private const val SKELETON_TITLE = 217f / 1280f
+private const val SKELETON_WINDOW = 134.9f / 1280f
+private const val SPINNER = 95.3f / 720f
+private const val REPORT_HEIGHT = 329.8f / 720f
+private const val CAPTION_SIDE = 46.9f / 1280f
+private const val CAPTION_EDGE = 51.3f / 720f
 
 /**
  * The air above the chrome that a caption keeps, and the reason the clearance is a sum.
@@ -187,7 +203,7 @@ private const val CAPTION_EDGE = 37.3f / 720f
 private const val CAPTION_AIR = 29.3f / 720f
 
 /** How much higher Raised sits: above a film's own burnt-in text along the bottom edge. */
-private const val CAPTION_RAISE = 90.7f / 720f
+private const val CAPTION_RAISE = 124.6f / 720f
 
 /**
  * The side sheet, as a share of the width with a ceiling on the result.
