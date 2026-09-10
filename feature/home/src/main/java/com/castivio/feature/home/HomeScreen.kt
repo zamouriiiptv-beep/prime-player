@@ -797,7 +797,7 @@ private fun Action(
             Icon(
                 icon,
                 contentDescription = null,
-                tint = colors.onBackgroundVariant,
+                tint = colors.hueViolet,
                 modifier = Modifier.size(Sizing.iconMd),
             )
         }
