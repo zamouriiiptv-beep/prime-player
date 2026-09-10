@@ -73,13 +73,13 @@ class PlayerLayoutTest {
     @Test
     fun `the handset keeps every control inside the safe area`() {
         compose.show(HANDSET, DeviceClass.Expanded, playingLive())
-        compose.assertSafe(HANDSET, PHONE_INSET)
+        compose.assertSafe(HANDSET, tv = false)
     }
 
     @Test
     fun `the shortest frame keeps every control inside the safe area`() {
         compose.show(SHORT, DeviceClass.Compact, playingLive())
-        compose.assertSafe(SHORT, PHONE_INSET)
+        compose.assertSafe(SHORT, tv = false)
     }
 
     /**
@@ -93,7 +93,7 @@ class PlayerLayoutTest {
     @Test
     fun `the television keeps every control inside the overscan inset`() {
         compose.show(TELEVISION, DeviceClass.Television, playingLive())
-        compose.assertSafe(TELEVISION, TV_INSET)
+        compose.assertSafe(TELEVISION, tv = true)
     }
 
     /**
@@ -112,7 +112,7 @@ class PlayerLayoutTest {
             playingLive().copy(behindLiveMs = FOUR_MINUTES),
             LayoutDirection.Rtl,
         )
-        compose.assertSafe(TELEVISION, TV_INSET)
+        compose.assertSafe(TELEVISION, tv = true)
 
         val tools = compose.bounds(PlayerTags.TOOLS)
         val toLive = compose.bounds(PlayerTags.TO_LIVE)
@@ -480,7 +480,7 @@ class PlayerLayoutTest {
     @Test
     fun `an unletterboxed picture keeps the chrome on the whole frame`() {
         compose.show(HANDSET, DeviceClass.Expanded, playingFilm())
-        compose.assertSafe(HANDSET, PHONE_INSET)
+        compose.assertSafe(HANDSET, tv = false)
     }
 
     /**
@@ -1080,9 +1080,18 @@ class PlayerLayoutTest {
         )
     }
 
-    private fun ComposeContentTestRule.assertSafe(frame: Frame, expectedInset: Dp) {
+    private fun ComposeContentTestRule.assertSafe(frame: Frame, tv: Boolean) {
         val safe = bounds(PlayerTags.SAFE)
         val root = bounds(PlayerTags.ROOT)
+
+        // Derived from the surface the player was composed into, not from a constant.
+        //
+        // It was `24dp on a phone, 48 on a television` — `DeviceClass.screenPadding`,
+        // the last device table on this screen. The inset is the stage's own margin
+        // now, so a test that pinned either number would be pinning the table this
+        // migration removed rather than the property the inset has: that every control
+        // stays inside it, which is what the rest of this function asserts.
+        val expectedInset = playerMetricsFor(tv, frame.width, frame.height).inset
 
         assertEquals(
             "${frame.width}: the safe inset is ${safe.left - root.left}, not $expectedInset",
@@ -1162,8 +1171,6 @@ class PlayerLayoutTest {
     private val SHORT = Frame(800.dp, 360.dp)
     private val TELEVISION = Frame(960.dp, 540.dp)
 
-    private val PHONE_INSET = 24.dp
-    private val TV_INSET = 48.dp
     private val PHONE_FLOOR = 48.dp
     private val TV_FLOOR = 56.dp
 

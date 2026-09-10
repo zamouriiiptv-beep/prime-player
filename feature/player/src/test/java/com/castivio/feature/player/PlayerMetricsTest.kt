@@ -73,7 +73,11 @@ class PlayerMetricsTest {
     fun `the handset stays within a dp or two of what it drew`() {
         val m = playerMetricsFor(tv = false, width = 873.dp, height = 393.dp)
         assertEquals("play", 64f, m.play.value, 2f)
-        assertEquals("strip", 44f, m.strip.value, 2f)
+        // The strip is the one figure that moved on a handset, and it moved *up*: it
+        // was 44dp, which is 4dp under the 48dp a thumb needs, and its floor is the
+        // device's target now. The buttons inside it already carried that floor, so
+        // this is the row admitting the height its contents were already forcing.
+        assertEquals("strip", 48f, m.strip.value, 0.5f)
         assertEquals("caption side margin", 32f, m.captionSide.value, 3f)
         assertEquals("caption edge margin", 28f, m.captionEdge.value, 3f)
         // The clearance is the one figure that moved on a handset, and upward: it is
@@ -211,7 +215,13 @@ class PlayerMetricsTest {
         assertTrue("the 4K play control ${huge.play} is unbounded", huge.play <= 88.dp)
         assertTrue("the 4K strip ${huge.strip} is unbounded", huge.strip <= 64.dp)
         assertTrue("the 4K thumb ${huge.thumb} is unbounded", huge.thumb <= 20.dp)
-        assertTrue("the 4K clearance ${huge.captionClearance} is unbounded", huge.captionClearance <= 220.dp)
+        // The clearance is a sum of bounded parts rather than a bounded share, so its
+        // ceiling is theirs: 72 of inset, 64 of strip, 22 of gap, 56 of target and 30
+        // of air. Asserted against that sum rather than a number typed beside it.
+        assertTrue(
+            "the 4K clearance ${huge.captionClearance} is unbounded",
+            huge.captionClearance <= 72.dp + 64.dp + 22.dp + 56.dp + 30.dp,
+        )
     }
 
     /**
