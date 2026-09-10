@@ -438,8 +438,7 @@ function build(key, isTv) {
   strip.style.gap = px(f.headGap);
   var facts = [
     { i:P.chip,   t:'MAC: BE:DB:CA:CC:A2:4B', c:'--muted' },
-    { i:P.lock,   t:'الجهاز: مُفعَّل',        c:'--green' },
-    { i:P.shield, t:'الإصدار 1.0.0',          c:'--muted' }
+    { i:P.lock,   t:'الجهاز: مُفعَّل',        c:'--green' }
   ];
   strip.innerHTML = facts.map(function (x) {
     return '<span class="fact" style="gap:' + px(f.chipPad / 2) + '">' +

@@ -129,7 +129,6 @@
     <string name="home_device_state">Device: %1$s</string>
     <string name="home_device_activated">Activated</string>
     <string name="home_device_locked">Locked</string>
-    <string name="home_device_version">Version %1$s</string>
 
     <!-- A tile whose section has never been brought onto this device. -->
     <string name="home_not_fetched">Not downloaded yet</string>

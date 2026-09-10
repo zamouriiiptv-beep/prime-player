@@ -153,8 +153,6 @@ fun HomeScreen(
     onLanguage: () -> Unit,
     /** Ask to leave. The confirmation is the application's, not this screen's. */
     onExit: () -> Unit,
-    /** The build's version name. Passed in because `:feature:home` has no BuildConfig. */
-    appVersion: String,
     modifier: Modifier = Modifier,
     model: HomeViewModel = hiltViewModel(),
 ) {
@@ -217,7 +215,7 @@ fun HomeScreen(
                         onAbout = onAbout,
                         onExit = onExit,
                     )
-                    DeviceStrip(state, frame, appVersion)
+                    DeviceStrip(state, frame)
                     if (plan.showDisclaimer) Disclaimer(frame)
                 }
             }
@@ -806,8 +804,11 @@ private fun RowScope.Action(
 // ---------------------------------------------------------------- the device
 
 /**
- * What this device is: its address, whether Castivio is unlocked on it, and which
- * build is running.
+ * What this device is: its address, and whether Castivio is unlocked on it.
+ *
+ * The build's version was a third cell here and has gone to Settings, which is where
+ * a number nobody reads twice belongs — Home answers "what have I got and how do I
+ * change it", and a version string answers neither.
  *
  * The address is the one a user reads out to a provider who activates by MAC, so it
  * belongs where it can be read without hunting — isolated for direction, because a
@@ -818,7 +819,6 @@ private fun RowScope.Action(
 private fun DeviceStrip(
     state: HomeState,
     frame: CastivioFrame,
-    appVersion: String,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
@@ -849,13 +849,6 @@ private fun DeviceStrip(
                 ),
             ),
             if (state.licenceHolds) colors.success else colors.danger,
-            frame,
-            Modifier.weight(1f),
-        )
-        Fact(
-            Icons.Rounded.Shield,
-            stringResource(R.string.home_device_version, ltrIsolate(appVersion)),
-            colors.onBackgroundMuted,
             frame,
             Modifier.weight(1f),
         )

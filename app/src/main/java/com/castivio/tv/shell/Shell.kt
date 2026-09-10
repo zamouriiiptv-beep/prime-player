@@ -72,7 +72,6 @@ import com.castivio.feature.licence.R as LicenceStrings
 import com.castivio.feature.player.PlayerRequest
 import com.castivio.feature.player.PlayerRoute
 import com.castivio.playback.api.MediaKind
-import com.castivio.tv.BuildConfig
 import com.castivio.tv.licence.LicenceWithLanguage
 import com.castivio.tv.locale.LocalLocaleController
 import com.castivio.tv.player.PlayerHost
@@ -219,9 +218,6 @@ fun ShellScreen(
                     // device it is bound to, and its version. That screen exists.
                     onAbout = { overlay = Overlay.Licence },
                     onExit = onExit,
-                    // The version belongs to the build, and `BuildConfig` belongs to
-                    // `:app`. Passing it keeps `:feature:home` free of one.
-                    appVersion = BuildConfig.VERSION_NAME,
                 )
                 Dest.Live -> BrowseScreen(
                     section = CatalogSection.Live,
