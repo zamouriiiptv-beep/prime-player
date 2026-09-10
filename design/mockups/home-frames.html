@@ -133,8 +133,8 @@ body{font-family:"Castivio Sans","Castivio Arabic","Noto Sans",sans-serif;
 .labels .c{line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* ------------------------------------------------------------ the actions */
-.acts{flex:0 0 auto;display:flex}
-.act{flex:1 1 0;min-width:0;display:flex;align-items:center;
+.acts{flex:0 0 auto;display:flex;justify-content:space-between}
+.act{flex:0 1 auto;min-width:0;display:flex;align-items:center;justify-content:center;
   background:linear-gradient(180deg,var(--glass-hi),var(--glass-lo));
   border:1px solid var(--edge);box-shadow:var(--rim)}
 .act svg{flex:0 0 auto;display:block;color:var(--violet)}
@@ -188,6 +188,8 @@ var P = {
   refresh:'<path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20.4 4.2v4.6h-4.6"/>',
   globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18z"/>',
   power:'<path d="M12 3.4v8.2"/><path d="M6.8 6.6a7.6 7.6 0 1 0 10.4 0"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 6.8V12l3.4 2"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5.4M12 7.8h.01"/>',
   sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2.4v2.2M12 19.4v2.2M21.6 12h-2.2M4.6 12H2.4M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6M18.8 18.8l-1.6-1.6M6.8 6.8 5.2 5.2"/>',
   lib:'<rect x="3" y="6" width="14" height="12" rx="2"/><path d="M20 8v10a2 2 0 0 1-2 2H7"/>'
 };
@@ -295,12 +297,13 @@ var SECTIONS = [
 ];
 var GLYPH = { live:P.live, movie:P.movie, series:P.series, radio:P.radio };
 var ACTIONS = [
-  { i:P.refresh, t:'تحديث',           d:null },
-  { i:P.add,     t:'تغيير الاشتراك',  d:'Salmimaroc' },
-  { i:P.globe,   t:'اللغة',           d:'العربية' },
-  { i:P.search,  t:'بحث',             d:null },
-  { i:P.gear,    t:'الإعدادات',       d:null },
-  { i:P.power,   t:'خروج',            d:null }
+  { i:P.refresh, t:'تحديث' },
+  { i:P.add,     t:'تغيير الاشتراك' },
+  { i:P.globe,   t:'اللغة (العربية)' },
+  { i:P.clock,   t:'المشاهدة المؤجَّلة' },
+  { i:P.gear,    t:'الإعدادات' },
+  { i:P.info,    t:'حول' },
+  { i:P.power,   t:'خروج' }
 ];
 var RAIL_TV = [P.home, P.live, P.movie, P.series, P.radio, P.lib, P.search, P.gear];
 var RAIL_PH = [P.home, P.live, P.lib, P.search, P.gear];
@@ -409,14 +412,13 @@ function build(key, isTv) {
   acts.className = 'acts';
   acts.style.height = px(f.target);
   acts.style.gap = px(f.bandTop);
+  /* Sized by their words, one line each — the approved row. */
   acts.innerHTML = ACTIONS.map(function (a) {
     return '<div class="act" style="border-radius:' + px(f.radius / 2) +
            ';padding:0 ' + px(f.chipPad) + ';gap:' + px(f.chipPad / 2) + '">' +
+             '<b style="font-size:' + px(f.fsChip) + '">' + a.t + '</b>' +
              svg(a.i, ICON_MD) +
-             '<span class="tx">' +
-               '<b style="font-size:' + px(f.fsChip) + '">' + a.t + '</b>' +
-               (a.d ? '<span style="font-size:' + px(f.fsBody) + '">' + a.d + '</span>' : '') +
-             '</span></div>';
+           '</div>';
   }).join('');
   stage.appendChild(acts);
 

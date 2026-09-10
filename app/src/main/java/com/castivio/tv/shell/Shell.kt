@@ -38,12 +38,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
+import com.castivio.core.common.AppError
+import com.castivio.core.common.ScreenState
 import com.castivio.core.design.components.CastivioShell
 import com.castivio.core.design.components.EmptyState
 import com.castivio.core.design.components.IconLabel
 import com.castivio.core.design.components.MediaCard
 import com.castivio.core.design.components.CardShape
 import com.castivio.core.design.components.NowPlayingBadge
+import com.castivio.core.design.components.ScreenScaffold
 import com.castivio.core.design.components.SectionHeader
 import com.castivio.core.design.components.WatchState
 import com.castivio.core.design.components.WatchedTag
@@ -126,6 +129,17 @@ private sealed interface Overlay {
      * the grid owns the viewport and dismisses back to whatever opened it.
      */
     data object Language : Overlay
+
+    /**
+     * Catch-up, which this build does not have.
+     *
+     * The control is on Home because the approved row has it. What it opens is the
+     * app's own sentence for a part of Castivio that is not ready yet — the same
+     * `NOT_CONFIGURED` copy every other screen uses — rather than nothing at all. A
+     * button that does nothing when pressed teaches a user that the row is decorative;
+     * one that explains itself teaches them the feature is coming.
+     */
+    data object TimeShift : Overlay
 }
 
 /**
@@ -198,9 +212,12 @@ fun ShellScreen(
                 Dest.Home -> HomeScreen(
                     onSeeSection = { dest = it.destination },
                     onAddSource = { overlay = Overlay.AddSource },
-                    onSearch = { dest = Dest.Search },
                     onSettings = { dest = Dest.Settings },
                     onLanguage = { overlay = Overlay.Language },
+                    onTimeShift = { overlay = Overlay.TimeShift },
+                    // What "about" means here is what this build is: its licence, the
+                    // device it is bound to, and its version. That screen exists.
+                    onAbout = { overlay = Overlay.Licence },
                     // The language's own name in its own script, which is what a chooser
                     // shows and what a reader looking for their own language scans for.
                     language = LocalLocaleController.current.current.language.nativeName,
@@ -260,6 +277,7 @@ fun ShellScreen(
             // that difference is the caller's -- the screen itself has no
             // opinion about where back goes.
             is Overlay.Licence -> LicenceWithLanguage(onLeave = { overlay = null })
+            is Overlay.TimeShift -> NotReadyOverlay(onBack = { overlay = null })
             is Overlay.Language -> {
                 val locale = LocalLocaleController.current
                 LanguagePicker(
@@ -326,6 +344,34 @@ private val CatalogSection.destination: Dest
         CatalogSection.Series -> Dest.Series
         CatalogSection.Radio -> Dest.Radio
     }
+
+/**
+ * A part of Castivio that is not ready in this build, said in the app's own words.
+ *
+ * `ScreenState.Failed(NOT_CONFIGURED)` and not a bespoke dialog: the scaffold already
+ * owns that sentence — "Not available yet · This part of Castivio isn't ready in this
+ * build" — and it already offers Back rather than a retry, because retrying is not
+ * what fixes it. A second copy of the same message is a second copy to translate.
+ */
+@Composable
+private fun NotReadyOverlay(onBack: () -> Unit) {
+    BackHandler(enabled = true, onBack = onBack)
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(CastivioTheme.colors.scrim)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onBack,
+            ),
+    ) {
+        ScreenScaffold<Unit>(
+            state = ScreenState.Failed(AppError.NOT_CONFIGURED, retryable = false),
+            onAction = onBack,
+        ) { _, _ -> }
+    }
+}
 
 // -------------------------------------------------------------------- sections
 

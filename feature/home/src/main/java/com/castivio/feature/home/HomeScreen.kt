@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,6 +24,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.LiveTv
 import androidx.compose.material.icons.rounded.Lock
@@ -32,7 +35,6 @@ import androidx.compose.material.icons.rounded.PlaylistAdd
 import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material.icons.rounded.Radio
 import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.Tv
@@ -138,8 +140,11 @@ fun HomeScreen(
     onSeeSection: (CatalogSection) -> Unit,
     /** Add a first subscription, or change the one showing. Opens the activation flow. */
     onAddSource: () -> Unit,
-    onSearch: () -> Unit,
     onSettings: () -> Unit,
+    /** Catch-up, which has no engine yet: the caller says so rather than doing nothing. */
+    onTimeShift: () -> Unit,
+    /** What this build is: its licence, its device, its version. */
+    onAbout: () -> Unit,
     /** Opens the language chooser. */
     onLanguage: () -> Unit,
     /** What Castivio is set to, shown under the language button. */
@@ -202,14 +207,14 @@ fun HomeScreen(
                 else -> {
                     SectionCards(state, frame, plan, onSeeSection)
                     ActionRow(
-                        provider = state.provider,
                         language = language,
                         frame = frame,
                         onRefresh = model::refresh,
                         onAddSource = onAddSource,
                         onLanguage = onLanguage,
-                        onSearch = onSearch,
+                        onTimeShift = onTimeShift,
                         onSettings = onSettings,
+                        onAbout = onAbout,
                         onExit = onExit,
                     )
                     DeviceStrip(state, frame, appVersion)
@@ -647,39 +652,50 @@ private fun SectionLabels(
 // --------------------------------------------------------------- the actions
 
 /**
- * What a viewer does from Home that is not "open a section".
+ * What a viewer does from Home that is not "open a section": seven controls, in the
+ * approved order.
  *
- * ## Six, and every one of them goes somewhere that exists
+ * ## Sized by their words
  *
- * The approved row has seven. Two of them are not here and one that is not on it is,
- * and each of those three is a deliberate answer rather than an oversight:
+ * Not an equal share each. "Exit" is one short word and "Change playlist" is three,
+ * and padding the first out to the width of the second leaves a hole in the row where
+ * a button should be. `weight(fill = false)` gives each pill what its label needs and
+ * takes width back only when the row runs out, so the failure mode on the shortest
+ * frame is an ellipsis rather than a control pushed off the edge.
  *
- *  - **Time Shift** is absent. Catch-up has no engine in this build, and a control
- *    that does nothing is worse than a control that is not there — a user presses it
- *    once, nothing happens, and from then on they do not trust the row.
- *  - **About** is absent. What an about screen would say — the version, the address,
- *    the disclaimer — is already on this screen, in the strip and the line under it.
- *    A second place to read the same three facts is a second place to keep correct.
- *  - **Search** is here, and it is not on the approved row. Removing the standing
- *    navigation left this as its only entry point, and a search a user cannot reach
- *    is a feature that has been deleted by accident.
+ * ## One line each
  *
- * ## Refresh downloads nothing
+ * The language's code rides inside its own label — "Language (AR)" — rather than
+ * sitting on a second line under it. A row where one button is two lines tall and the
+ * rest are one is a row with a step in it, and the step reads as an error.
  *
- * It re-asks the provider the one cheap question and records the answer, which is
- * what moves the two facts in the header. Sections are still fetched by the section
- * that was opened. See [com.castivio.domain.RefreshProvider].
+ * ## Search is not here, and that is checked rather than assumed
+ *
+ * Every section screen carries its own search chip, so this row dropping it strands
+ * nothing. It was here only while the standing navigation was gone and nothing else
+ * offered it.
+ *
+ * ## Two of these needed something built behind them
+ *
+ * **Refresh** re-asks the provider the one cheap question and records the answer,
+ * which is what moves the two facts in the header. It downloads no catalogue — see
+ * [com.castivio.domain.RefreshProvider].
+ *
+ * **Time Shift** has no catch-up engine in this build, and it is on the row anyway
+ * because it was asked for twice. What it must not be is silent: pressing it says so,
+ * in the app's own words for a part of Castivio that is not ready yet, rather than
+ * doing nothing and teaching the user that the row cannot be trusted.
  */
 @Composable
 private fun ActionRow(
-    provider: String?,
     language: String,
     frame: CastivioFrame,
     onRefresh: () -> Unit,
     onAddSource: () -> Unit,
     onLanguage: () -> Unit,
-    onSearch: () -> Unit,
+    onTimeShift: () -> Unit,
     onSettings: () -> Unit,
+    onAbout: () -> Unit,
     onExit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -687,59 +703,48 @@ private fun ActionRow(
         modifier.fillMaxWidth().height(frame.touchTarget),
         horizontalArrangement = Arrangement.spacedBy(frame.bandTop),
     ) {
-        Action(Icons.Rounded.Refresh, stringResource(R.string.home_refresh), null, frame, onRefresh, Modifier.weight(1f))
-        Action(Icons.Rounded.PlaylistAdd, stringResource(R.string.home_change_source), provider, frame, onAddSource, Modifier.weight(1f))
-        Action(Icons.Rounded.Language, stringResource(R.string.home_language), language, frame, onLanguage, Modifier.weight(1f))
-        Action(Icons.Rounded.Search, stringResource(R.string.search_label), null, frame, onSearch, Modifier.weight(1f))
-        Action(Icons.Rounded.Settings, stringResource(R.string.home_settings), null, frame, onSettings, Modifier.weight(1f))
-        Action(Icons.Rounded.PowerSettingsNew, stringResource(R.string.home_exit), null, frame, onExit, Modifier.weight(1f))
+        Action(Icons.Rounded.Refresh, stringResource(R.string.home_refresh), frame, onRefresh)
+        Action(Icons.Rounded.PlaylistAdd, stringResource(R.string.home_change_source), frame, onAddSource)
+        Action(Icons.Rounded.Language, stringResource(R.string.home_language, language), frame, onLanguage)
+        Action(Icons.Rounded.History, stringResource(R.string.home_time_shift), frame, onTimeShift)
+        Action(Icons.Rounded.Settings, stringResource(R.string.home_settings), frame, onSettings)
+        Action(Icons.Rounded.Info, stringResource(R.string.home_about), frame, onAbout)
+        Action(Icons.Rounded.PowerSettingsNew, stringResource(R.string.home_exit), frame, onExit)
     }
 }
 
 @Composable
-private fun Action(
+private fun RowScope.Action(
     icon: ImageVector,
-    title: String,
-    detail: String?,
+    label: String,
     frame: CastivioFrame,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
     InteractiveGlassCard(
         onClick = onClick,
-        modifier = modifier.fillMaxHeight(),
+        modifier = Modifier.weight(1f, fill = false).fillMaxHeight(),
         shape = RoundedCornerShape(frame.radius / 2),
     ) {
         Row(
-            Modifier.fillMaxSize().padding(horizontal = frame.chipPad),
+            Modifier.fillMaxHeight().padding(horizontal = frame.chipPad),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
         ) {
+            Text(
+                label,
+                style = castivioChipStyle(frame.fsChip),
+                color = colors.onBackground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
             Icon(
                 icon,
                 contentDescription = null,
-                tint = colors.hueViolet,
+                tint = colors.onBackgroundVariant,
                 modifier = Modifier.size(Sizing.iconMd),
             )
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
-                Text(
-                    title,
-                    style = castivioChipStyle(frame.fsChip),
-                    color = colors.onBackground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (detail != null) {
-                    Text(
-                        detail,
-                        style = castivioBodyStyle(frame.fsBody),
-                        color = colors.onBackgroundMuted,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
         }
     }
 }
