@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -708,13 +707,14 @@ private fun SectionLabels(
  * What a viewer does from Home that is not "open a section": seven controls, in the
  * approved order.
  *
- * ## An equal share each, and one gap between them
+ * ## Small pills, one gap, packed together
  *
- * They were sized by their words, which left the leftover width to collect between
- * the pills as gaps of three different sizes — a row that reads as broken rather than
- * as spaced. Equal shares spend that width inside the buttons instead: every gap is
- * the frame's own `bandTop` and every pill is the same size, with its label centred
- * and ellipsized if a translation ever outgrows its share.
+ * Each is as wide as its own label and no wider, and the gap between any two is the
+ * frame's own `chipPad`. Two other arrangements were tried and both were worse:
+ * `space-between` pushed the leftover width *between* the buttons as gaps of three
+ * different sizes, and equal shares spent it by inflating every pill to the width of
+ * the longest label. The spare width belongs at the end of the row, where it is
+ * simply the edge of the stage.
  *
  * ## One line each
  *
@@ -754,7 +754,7 @@ private fun ActionRow(
 ) {
     Row(
         modifier.fillMaxWidth().height(frame.touchTarget),
-        horizontalArrangement = Arrangement.spacedBy(frame.bandTop),
+        horizontalArrangement = Arrangement.spacedBy(frame.chipPad),
     ) {
         Action(Icons.Rounded.Refresh, stringResource(R.string.home_refresh), frame, onRefresh)
         Action(Icons.Rounded.PlaylistAdd, stringResource(R.string.home_change), frame, onAddSource)
@@ -766,7 +766,7 @@ private fun ActionRow(
 }
 
 @Composable
-private fun RowScope.Action(
+private fun Action(
     icon: ImageVector,
     label: String,
     frame: CastivioFrame,
@@ -775,13 +775,13 @@ private fun RowScope.Action(
     val colors = CastivioTheme.colors
     InteractiveGlassCard(
         onClick = onClick,
-        modifier = Modifier.weight(1f).fillMaxHeight(),
+        modifier = Modifier.fillMaxHeight(),
         shape = RoundedCornerShape(frame.radius / 2),
     ) {
         Row(
-            Modifier.fillMaxSize().padding(horizontal = frame.chipPad),
+            Modifier.fillMaxHeight().padding(horizontal = frame.chipPad),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2, Alignment.CenterHorizontally),
+            horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
         ) {
             Text(
                 label,
@@ -789,7 +789,6 @@ private fun RowScope.Action(
                 color = colors.onBackground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false),
             )
             Icon(
                 icon,

@@ -138,7 +138,7 @@ body{font-family:"Castivio Sans","Castivio Arabic","Noto Sans",sans-serif;
 
 /* ------------------------------------------------------------ the actions */
 .acts{flex:0 0 auto;display:flex}
-.act{flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center;
+.act{flex:0 0 auto;display:flex;align-items:center;
   background:linear-gradient(180deg,var(--glass-hi),var(--glass-lo));
   border:1px solid var(--edge);box-shadow:var(--rim)}
 .act svg{flex:0 0 auto;display:block;color:var(--violet)}
@@ -418,7 +418,7 @@ function build(key, isTv) {
   var acts = document.createElement('div');
   acts.className = 'acts';
   acts.style.height = px(f.target);
-  acts.style.gap = px(f.bandTop);
+  acts.style.gap = px(f.chipPad);
   /* Sized by their words, one line each — the approved row. */
   acts.innerHTML = ACTIONS.map(function (a) {
     return '<div class="act" style="border-radius:' + px(f.radius / 2) +
