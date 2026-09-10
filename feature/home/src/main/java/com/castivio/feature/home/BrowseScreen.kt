@@ -6,12 +6,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
@@ -51,12 +53,13 @@ import com.castivio.core.design.components.ErrorState
 import com.castivio.core.design.components.MediaCard
 import com.castivio.core.design.components.SectionHeader
 import com.castivio.core.design.components.Skeleton
+import com.castivio.core.design.components.castivioBodyStyle
+import com.castivio.core.design.components.castivioChipStyle
+import com.castivio.core.design.components.castivioTitleStyle
 import com.castivio.core.design.components.formatCount
 import com.castivio.core.design.theme.CastivioTheme
-import com.castivio.core.design.theme.CastivioType
-import com.castivio.core.design.theme.DeviceClass
 import com.castivio.core.design.theme.Radius
-import com.castivio.core.design.theme.Spacing
+import com.castivio.core.design.theme.castivioStage
 import com.castivio.domain.Channel
 import com.castivio.domain.MediaItem
 import com.castivio.domain.SectionLoad
@@ -107,21 +110,29 @@ fun BrowseScreen(
     LaunchedEffect(section) { model.show(section) }
 
     val state by model.state.collectAsStateWithLifecycle()
-    val device = CastivioTheme.device
-    val twoPane = device == DeviceClass.Television || device == DeviceClass.Expanded
+    val tv = CastivioTheme.device.isTv
+
+    // The surface, measured, and every size on this screen derived from it. It used to
+    // be `DeviceClass`: two numbers chosen by what kind of box this is -- a screen
+    // padding and a column count -- with every other size a fixed token shared by a
+    // 360dp handset and a 55-inch television.
+    BoxWithConstraints(modifier.fillMaxSize().statusBarsPadding()) {
+    val m = catalogMetricsFor(tv = tv, width = maxWidth, height = maxHeight)
 
     Column(
-        modifier
+        Modifier
             .fillMaxSize()
-            .statusBarsPadding()
-            .padding(horizontal = device.screenPadding, vertical = Spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            .castivioStage(m.frame),
+        verticalArrangement = Arrangement.spacedBy(m.bandGap),
     ) {
         SectionHeader(
             title = stringResource(section.label),
             count = state.total,
+            titleStyle = castivioTitleStyle(m.frame.fsTitle),
+            countStyle = castivioBodyStyle(m.frame.fsBody),
+            gap = m.rowGap,
             trailing = {
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(m.rowGap)) {
                     // Not on Series. That section pages *shows*, aggregated by SQL from
                     // their episodes, and `CatalogPager.series` reads one fixed order —
                     // so a control here would be a control that does nothing. An
@@ -131,37 +142,45 @@ fun BrowseScreen(
                             text = stringResource(R.string.browse_sort, stringResource(state.sort.label)),
                             onClick = { model.sortBy(state.sort.next()) },
                             icon = Icons.Rounded.Sort,
+                            labelStyle = castivioChipStyle(m.frame.fsChip),
+                            padH = m.entryPadH,
+                            padV = m.entryPadV,
                         )
                     }
                     CastivioChip(
                         text = stringResource(R.string.search_label),
                         onClick = onSearch,
                         icon = Icons.Rounded.Search,
+                        labelStyle = castivioChipStyle(m.frame.fsChip),
+                        padH = m.entryPadH,
+                        padV = m.entryPadV,
                     )
                 }
             },
         )
 
-        if (twoPane) {
+        if (m.twoPane) {
             Row(
                 Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xl),
+                horizontalArrangement = Arrangement.spacedBy(m.paneGap),
             ) {
                 CategoryColumn(
                     state = state,
+                    m = m,
                     onChoose = model::choose,
-                    modifier = Modifier.width(CATEGORY_PANE),
+                    modifier = Modifier.width(m.pane),
                 )
                 Box(Modifier.weight(1f).fillMaxHeight()) {
-                    Pane(section, state, model, onPlay, onOpenShow)
+                    Pane(section, state, m, model, onPlay, onOpenShow)
                 }
             }
         } else {
-            CategoryChips(state = state, onChoose = model::choose)
+            CategoryChips(state = state, m = m, onChoose = model::choose)
             Box(Modifier.fillMaxSize()) {
-                Pane(section, state, model, onPlay, onOpenShow)
+                Pane(section, state, m, model, onPlay, onOpenShow)
             }
         }
+    }
     }
 }
 
@@ -174,6 +193,7 @@ fun BrowseScreen(
 @Composable
 private fun CategoryColumn(
     state: BrowseState,
+    m: CatalogMetrics,
     onChoose: (String?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -181,14 +201,15 @@ private fun CategoryColumn(
     LazyColumn(
         state = listState,
         modifier = modifier.fillMaxHeight(),
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-        contentPadding = PaddingValues(bottom = Spacing.xxl),
+        verticalArrangement = Arrangement.spacedBy(m.entryGap),
+        contentPadding = PaddingValues(bottom = m.listBottom),
     ) {
         item(key = ALL_CATEGORIES) {
             CategoryEntry(
                 label = stringResource(R.string.browse_all_categories),
                 count = state.total,
                 selected = state.selectedGroup == null,
+                m = m,
                 onClick = { onChoose(null) },
             )
         }
@@ -197,6 +218,7 @@ private fun CategoryColumn(
                 label = group.name,
                 count = null,
                 selected = group.id == state.selectedGroup,
+                m = m,
                 onClick = { onChoose(group.id) },
             )
         }
@@ -210,13 +232,14 @@ private fun CategoryColumn(
  * in this screen, and putting it behind a button costs two presses every time.
  */
 @Composable
-private fun CategoryChips(state: BrowseState, onChoose: (String?) -> Unit) {
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+private fun CategoryChips(state: BrowseState, m: CatalogMetrics, onChoose: (String?) -> Unit) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(m.rowGap)) {
         item(key = ALL_CATEGORIES) {
             CategoryEntry(
                 label = stringResource(R.string.browse_all_categories),
                 count = state.total,
                 selected = state.selectedGroup == null,
+                m = m,
                 pill = true,
                 onClick = { onChoose(null) },
             )
@@ -226,6 +249,7 @@ private fun CategoryChips(state: BrowseState, onChoose: (String?) -> Unit) {
                 label = group.name,
                 count = null,
                 selected = group.id == state.selectedGroup,
+                m = m,
                 pill = true,
                 onClick = { onChoose(group.id) },
             )
@@ -238,6 +262,7 @@ private fun CategoryEntry(
     label: String,
     count: Int?,
     selected: Boolean,
+    m: CatalogMetrics,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     pill: Boolean = false,
@@ -247,25 +272,34 @@ private fun CategoryEntry(
     val shape = RoundedCornerShape(if (pill) Radius.pill else Radius.md)
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(m.rowGap),
         modifier = modifier
             .then(if (pill) Modifier else Modifier.fillMaxWidth())
+            // A category is the most frequently pressed thing on this screen and it
+            // was sized by its own padding alone -- which on a short surface put it
+            // under the floor a thumb needs, and on every surface under the one a
+            // remote needs. The padding still decides the width.
+            .heightIn(min = m.rowMin)
             .clip(shape)
             .background(if (selected) colors.glassFillStrong else colors.glassFill)
             .border(1.dp, if (selected) colors.glassBorder else colors.glassBorderSoft, shape)
             .clickable(interaction, indication = null, onClick = onClick)
-            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            .padding(horizontal = m.entryPadH, vertical = m.entryPadV),
     ) {
         Text(
             label,
-            style = CastivioType.labelLarge,
+            style = castivioChipStyle(m.frame.fsLabel),
             color = if (selected) colors.onBackground else colors.onBackgroundVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = if (pill) Modifier else Modifier.weight(1f),
         )
         if (count != null) {
-            Text(formatCount(count), style = CastivioType.labelSmall, color = colors.onBackgroundMuted)
+            Text(
+                formatCount(count),
+                style = castivioBodyStyle(m.frame.fsBody),
+                color = colors.onBackgroundMuted,
+            )
         }
     }
 }
@@ -282,17 +316,18 @@ private fun CategoryEntry(
 private fun Pane(
     section: CatalogSection,
     state: BrowseState,
+    m: CatalogMetrics,
     model: BrowseViewModel,
     onPlay: (CatalogSelection) -> Unit,
     onOpenShow: (SeriesSummary) -> Unit,
 ) {
     when (val fetch = state.fetch) {
-        is SectionLoad.Loading -> Fetching(section, fetch)
+        is SectionLoad.Loading -> Fetching(section, fetch, m)
         is SectionLoad.Failed -> FetchFailed(section, fetch, onRetry = { model.retryFetch() })
         // Ready, Done, NoSource and "not asked yet" all mean: draw what is stored.
         // NoSource included -- a section with no provider behind it is empty for a
         // reason the section's own empty state already explains.
-        else -> Content(section, state, model, onPlay, onOpenShow)
+        else -> Content(section, state, m, model, onPlay, onOpenShow)
     }
 }
 
@@ -304,7 +339,7 @@ private fun Pane(
  * a fake progress bar is not.
  */
 @Composable
-private fun Fetching(section: CatalogSection, fetch: SectionLoad.Loading) {
+private fun Fetching(section: CatalogSection, fetch: SectionLoad.Loading, m: CatalogMetrics) {
     val colors = CastivioTheme.colors
     Column(
         Modifier.fillMaxSize(),
@@ -314,9 +349,9 @@ private fun Fetching(section: CatalogSection, fetch: SectionLoad.Loading) {
         DelayedSpinner()
         Text(
             text = stringResource(R.string.browse_fetch_title, stringResource(section.label)),
-            style = CastivioType.titleMedium,
+            style = castivioChipStyle(m.frame.fsLabel),
             color = colors.onBackgroundStrong,
-            modifier = Modifier.padding(top = Spacing.lg),
+            modifier = Modifier.padding(top = m.bandGap),
         )
         Text(
             text = stringResource(
@@ -324,15 +359,15 @@ private fun Fetching(section: CatalogSection, fetch: SectionLoad.Loading) {
                 formatCount(fetch.items),
                 formatCount(fetch.groups),
             ),
-            style = CastivioType.bodySmall,
+            style = castivioBodyStyle(m.frame.fsBody),
             color = colors.onBackgroundVariant,
-            modifier = Modifier.padding(top = Spacing.xs),
+            modifier = Modifier.padding(top = m.entryGap),
         )
         Text(
             text = stringResource(R.string.browse_fetch_once),
-            style = CastivioType.bodySmall,
+            style = castivioBodyStyle(m.frame.fsBody),
             color = colors.onBackgroundMuted,
-            modifier = Modifier.padding(top = Spacing.sm),
+            modifier = Modifier.padding(top = m.rowGap),
         )
     }
 }
@@ -368,20 +403,21 @@ private fun FetchFailed(section: CatalogSection, fetch: SectionLoad.Failed, onRe
 private fun Content(
     section: CatalogSection,
     state: BrowseState,
+    m: CatalogMetrics,
     model: BrowseViewModel,
     onPlay: (CatalogSelection) -> Unit,
     onOpenShow: (SeriesSummary) -> Unit,
 ) {
     if (section == CatalogSection.Series) {
         val shows = model.shows.collectAsLazyPagingItems()
-        Paged(shows, section, state) { ShowGrid(shows, onOpenShow) }
+        Paged(shows, section, state, m) { ShowGrid(shows, m, onOpenShow) }
     } else {
         val rows = model.items.collectAsLazyPagingItems()
-        Paged(rows, section, state) {
+        Paged(rows, section, state, m) {
             if (section == CatalogSection.Live || section == CatalogSection.Radio) {
-                ChannelList(rows, state.categoryNames, onPlay)
+                ChannelList(rows, state.categoryNames, m, onPlay)
             } else {
-                ItemGrid(rows, onPlay)
+                ItemGrid(rows, m, onPlay)
             }
         }
     }
@@ -393,12 +429,13 @@ private fun <T : Any> Paged(
     paged: LazyPagingItems<T>,
     section: CatalogSection,
     state: BrowseState,
+    m: CatalogMetrics,
     rows: @Composable () -> Unit,
 ) {
     when {
         paged.itemCount > 0 -> rows()
 
-        paged.loadState.refresh is LoadState.Loading -> LoadingRows()
+        paged.loadState.refresh is LoadState.Loading -> LoadingRows(m)
 
         else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             SectionEmpty(section = section, state = state, onRetry = paged::refresh)
@@ -414,12 +451,12 @@ private fun <T : Any> Paged(
  * the moment the query answers.
  */
 @Composable
-private fun LoadingRows() {
+private fun LoadingRows(m: CatalogMetrics) {
     Column(
         Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(m.rowGap),
     ) {
-        repeat(SKELETON_ROWS) { Skeleton(height = SKELETON_HEIGHT, modifier = Modifier.fillMaxWidth()) }
+        repeat(SKELETON_ROWS) { Skeleton(height = m.skeleton, modifier = Modifier.fillMaxWidth()) }
     }
 }
 
@@ -441,11 +478,12 @@ private fun ChannelList(
      * rather than a blank line where "now playing" will go.
      */
     categories: Map<String, String>,
+    m: CatalogMetrics,
     onPlay: (CatalogSelection) -> Unit,
 ) {
     LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        contentPadding = PaddingValues(bottom = Spacing.xxl),
+        verticalArrangement = Arrangement.spacedBy(m.rowGap),
+        contentPadding = PaddingValues(bottom = m.listBottom),
     ) {
         items(rows.itemCount, key = rows.itemKey { it.id }) { index ->
             val item = rows[index] ?: return@items
@@ -457,18 +495,27 @@ private fun ChannelList(
                 seed = index,
                 onClick = { onPlay(selection) },
                 modifier = Modifier.fillMaxWidth(),
+                logo = m.logo,
+                pad = m.cardPad,
+                minHeight = m.rowMin,
+                nameStyle = castivioChipStyle(m.frame.fsLabel),
+                captionStyle = castivioBodyStyle(m.frame.fsBody),
             )
         }
     }
 }
 
 @Composable
-private fun ItemGrid(rows: LazyPagingItems<MediaItem>, onPlay: (CatalogSelection) -> Unit) {
+private fun ItemGrid(
+    rows: LazyPagingItems<MediaItem>,
+    m: CatalogMetrics,
+    onPlay: (CatalogSelection) -> Unit,
+) {
     LazyVerticalGrid(
-        columns = GridCells.Fixed(CastivioTheme.device.gridColumns),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.gridGutter),
-        verticalArrangement = Arrangement.spacedBy(Spacing.gridGutter),
-        contentPadding = PaddingValues(bottom = Spacing.xxl),
+        columns = GridCells.Fixed(m.columns),
+        horizontalArrangement = Arrangement.spacedBy(m.gutter),
+        verticalArrangement = Arrangement.spacedBy(m.gutter),
+        contentPadding = PaddingValues(bottom = m.listBottom),
     ) {
         items(rows.itemCount, key = rows.itemKey { it.id }) { index ->
             val item = rows[index] ?: return@items
@@ -480,18 +527,25 @@ private fun ItemGrid(rows: LazyPagingItems<MediaItem>, onPlay: (CatalogSelection
                 artworkSeed = index,
                 onClick = { onPlay(selection) },
                 modifier = Modifier.fillMaxWidth(),
+                gap = m.entryGap,
+                titleStyle = castivioChipStyle(m.frame.fsLabel),
+                captionStyle = castivioBodyStyle(m.frame.fsBody),
             )
         }
     }
 }
 
 @Composable
-private fun ShowGrid(shows: LazyPagingItems<SeriesSummary>, onOpenShow: (SeriesSummary) -> Unit) {
+private fun ShowGrid(
+    shows: LazyPagingItems<SeriesSummary>,
+    m: CatalogMetrics,
+    onOpenShow: (SeriesSummary) -> Unit,
+) {
     LazyVerticalGrid(
-        columns = GridCells.Fixed(CastivioTheme.device.gridColumns),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.gridGutter),
-        verticalArrangement = Arrangement.spacedBy(Spacing.gridGutter),
-        contentPadding = PaddingValues(bottom = Spacing.xxl),
+        columns = GridCells.Fixed(m.columns),
+        horizontalArrangement = Arrangement.spacedBy(m.gutter),
+        verticalArrangement = Arrangement.spacedBy(m.gutter),
+        contentPadding = PaddingValues(bottom = m.listBottom),
     ) {
         items(shows.itemCount, key = shows.itemKey { it.seriesId }) { index ->
             val show = shows[index] ?: return@items
@@ -502,6 +556,9 @@ private fun ShowGrid(shows: LazyPagingItems<SeriesSummary>, onOpenShow: (SeriesS
                 artworkSeed = index,
                 onClick = { onOpenShow(show) },
                 modifier = Modifier.fillMaxWidth(),
+                gap = m.entryGap,
+                titleStyle = castivioChipStyle(m.frame.fsLabel),
+                captionStyle = castivioBodyStyle(m.frame.fsBody),
             )
         }
     }
@@ -539,19 +596,8 @@ private fun SectionEmpty(section: CatalogSection, state: BrowseState, onRetry: (
 /** Stable across a re-import, unlike any group id, so the "all" row never re-animates. */
 private const val ALL_CATEGORIES = "castivio.all"
 
-/**
- * The category pane, sized to the approved layout.
- *
- * Wide enough for a real provider's category names — "Sports | Premium HD" rather than
- * "Sports" — and narrow enough to leave the content pane the majority of a 1920 screen.
- */
-private val CATEGORY_PANE = 240.dp
-
 /** Enough placeholder rows to fill a television without pretending to know the count. */
 private const val SKELETON_ROWS = 8
-
-/** A channel row's height, so the skeleton and the content occupy the same space. */
-private val SKELETON_HEIGHT = 46.dp
 
 /**
  * The next order in the cycle.

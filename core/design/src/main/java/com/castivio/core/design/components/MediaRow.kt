@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -40,18 +41,25 @@ fun SectionHeader(
     modifier: Modifier = Modifier,
     count: Int? = null,
     trailing: (@Composable () -> Unit)? = null,
+    /*
+     * The two styles and the gap a responsive caller sets, defaulted to what this
+     * header has always drawn so every existing call site is unchanged.
+     */
+    titleStyle: TextStyle = CastivioType.titleLarge,
+    countStyle: TextStyle = CastivioType.bodyMedium,
+    gap: Dp = Spacing.sm,
 ) {
     val colors = CastivioTheme.colors
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(gap),
     ) {
-        Text(title, style = CastivioType.titleLarge, color = colors.onBackground)
+        Text(title, style = titleStyle, color = colors.onBackground)
         if (count != null) {
             Text(
                 "· ${formatCount(count)}",
-                style = CastivioType.bodyMedium,
+                style = countStyle,
                 color = colors.onBackgroundMuted,
             )
         }

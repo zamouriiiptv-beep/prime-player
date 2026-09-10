@@ -112,6 +112,7 @@ jobs:
             :data:localmedia:testDebugUnitTest \
             :data:subtitles:testDebugUnitTest \
             :feature:activation:testDebugUnitTest \
+            :feature:home:testDebugUnitTest \
             :feature:licence:testDebugUnitTest \
             :feature:player:testDebugUnitTest \
             :playback:engine-media3:testDebugUnitTest \

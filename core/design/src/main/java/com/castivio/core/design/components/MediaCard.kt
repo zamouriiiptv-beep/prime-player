@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -28,6 +30,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -65,6 +68,18 @@ fun MediaCard(
     badge: (@Composable BoxScope.() -> Unit)? = null,
     /** A single line under the artwork: now/next, or "42 min left". */
     caption: String? = null,
+    /*
+     * The three sizes a responsive caller sets, defaulted to what this card has always
+     * drawn so every existing call site is unchanged.
+     *
+     * A card in a grid is sized by the grid, and a grid is sized by the surface. The
+     * component still owns the *shape* — the aspect ratio, the order, the marks — and
+     * the caller owns how large it is drawn, which is the division the sizing system
+     * makes everywhere: a screen decides sizes, a component decides what it is.
+     */
+    gap: Dp = Spacing.sm,
+    titleStyle: TextStyle = CastivioType.bodyMedium,
+    captionStyle: TextStyle = CastivioType.bodySmall,
 ) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
@@ -118,19 +133,19 @@ fun MediaCard(
         }
         Text(
             title,
-            style = CastivioType.bodyMedium,
+            style = titleStyle,
             color = colors.onBackgroundVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier
-                .padding(top = Spacing.sm)
+                .padding(top = gap)
                 .clearAndSetSemantics {},
         )
         val under = caption ?: subtitle
         if (under != null) {
             Text(
                 under,
-                style = CastivioType.bodySmall,
+                style = captionStyle,
                 color = colors.onBackgroundMuted,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -157,6 +172,20 @@ fun ChannelCard(
     number: String? = null,
     watchState: WatchState = WatchState.None,
     width: Dp = 200.dp,
+    /*
+     * What a responsive caller sets, defaulted to what this row has always drawn.
+     *
+     * [minHeight] is the one that matters and the one that was missing: this row was
+     * 50dp on every device — logo 34, inset 8 each side — which is 6dp under what a
+     * D-pad needs, on the device that has one. A floor cannot be a default the caller
+     * forgets, so it is a parameter the catalogue screens pass from
+     * `Sizing.minTarget`, and the value here is what the row already measured.
+     */
+    logo: Dp = 34.dp,
+    pad: Dp = Spacing.sm,
+    minHeight: Dp = 50.dp,
+    nameStyle: TextStyle = CastivioType.bodyMedium,
+    captionStyle: TextStyle = CastivioType.bodySmall,
 ) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
@@ -181,6 +210,7 @@ fun ChannelCard(
         modifier = Modifier
             .width(width)
             .then(modifier)
+            .defaultMinSize(minHeight = minHeight)
             .castivioFocusScale(Motion.focusScaleButton, interaction)
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
             .clip(shape)
@@ -204,29 +234,29 @@ fun ChannelCard(
             )
         }
         Row(
-            modifier = Modifier.padding(Spacing.sm),
+            modifier = Modifier.fillMaxHeight().padding(pad),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             LogoTile(
                 initials = name.take(2).uppercase(),
                 seed = seed,
-                modifier = Modifier.size(34.dp),
+                modifier = Modifier.size(logo),
             )
             Column(
                 Modifier
-                    .padding(start = Spacing.sm)
+                    .padding(start = pad)
                     .weight(1f),
             ) {
                 Text(
                     name,
-                    style = CastivioType.bodyMedium,
+                    style = nameStyle,
                     color = colors.onBackground,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     nowPlaying,
-                    style = CastivioType.bodySmall,
+                    style = captionStyle,
                     color = colors.onBackgroundMuted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

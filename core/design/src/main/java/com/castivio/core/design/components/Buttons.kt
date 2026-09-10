@@ -223,6 +223,17 @@ fun CastivioChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
+    /*
+     * What a responsive caller sets, defaulted to what this chip has always drawn.
+     *
+     * The height floor is not among them and never will be: it is
+     * `Sizing.minTarget` below, asked of the device, because a pill a remote cannot
+     * land on is a pill that is not there. What the caller decides is how large the
+     * *drawing* is inside that floor.
+     */
+    labelStyle: TextStyle = CastivioType.labelLarge,
+    padH: Dp = Spacing.lg,
+    padV: Dp = Spacing.sm,
 ) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
@@ -246,12 +257,12 @@ fun CastivioChip(
             .background(colors.glassFillBrush)
             .border(BorderStroke(1.dp, border), shape)
             .clickable(interaction, indication = null, onClick = onClick)
-            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+            .padding(horizontal = padH, vertical = padV),
     ) {
         if (icon != null) {
             Icon(icon, null, tint = colors.onBackground, modifier = Modifier.size(Sizing.iconSm))
         }
-        Text(text, color = colors.onBackground, style = CastivioType.labelLarge)
+        Text(text, color = colors.onBackground, style = labelStyle)
     }
 }
 
