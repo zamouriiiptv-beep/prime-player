@@ -7,10 +7,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -168,45 +166,30 @@ private fun errorCopy(error: AppError): StateCopy = when (error) {
 // ------------------------------------------------------------------ the shell
 
 /**
- * The shell chrome: one navigation rail, on every frame.
+ * The shell: the screen, and nothing around it.
  *
- * ## Why there is no bottom bar any more
+ * ## No standing navigation, on any frame
  *
- * There were two — a rail on a set and a tall bottom bar on a phone — and the bar was
- * the wrong instrument for this app twice over. Castivio is locked to landscape, so
- * *height* is the dimension that runs out; a 393dp-tall handset was giving about a
- * sixth of it to five icons with labels under them, on a screen whose whole job is to
- * show a dashboard in one frame. And the bar is a phone-app idiom on a product that
- * is a television first: the rail is what a viewer three metres away can find with a
- * D-pad, and it costs width, which is the dimension this app has to spare.
+ * There was a rail on a set and a tall bottom bar on a phone, and then one rail
+ * everywhere. Both were chrome standing permanently between the viewer and the
+ * picture, on a product whose approved design puts navigation *on Home*: the four
+ * sections are the four cards, and everything else is the action row under them.
  *
- * One chrome also means one selection language rather than two that have to be kept
- * in step by hand — the same reason `CastivioFrame` exists.
+ * That makes Home the hub and every other screen a spoke, which is what back already
+ * encoded — `BackPolicy` returns a section to the root and only asks at the root. A
+ * standing rail was a second way to say the same thing, permanently occupying the
+ * width the cards are drawn in.
  *
- * The rail expands over content on focus rather than pushing it, so nothing moves
- * under the cursor, and the active destination takes the violet indicator.
+ * So this is a frame around content and nothing else. It stays a composable rather
+ * than disappearing entirely because the shell is where chrome would go if a screen
+ * ever needs it again, and one place to put it is worth keeping.
  */
 @Composable
 fun CastivioShell(
-    destinations: List<NavAction>,
-    selectedIndex: Int,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    Box(modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxSize()) {
-            CastivioNavRail(
-                destinations = destinations,
-                selectedIndex = selectedIndex,
-                expanded = false,
-                modifier = Modifier
-                    .statusBarsPadding()
-                    .navigationBarsPadding()
-                    .padding(Spacing.sm),
-            )
-            Box(Modifier.weight(1f).fillMaxSize()) { content() }
-        }
-    }
+    Box(modifier.fillMaxSize()) { content() }
 }
 
 /** A minimal top bar for a content screen: title on the leading edge, one action. */

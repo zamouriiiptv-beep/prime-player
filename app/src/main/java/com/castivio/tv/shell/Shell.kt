@@ -19,12 +19,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Radio
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material.icons.filled.VideoLibrary
@@ -46,14 +44,12 @@ import com.castivio.core.design.components.IconLabel
 import com.castivio.core.design.components.MediaCard
 import com.castivio.core.design.components.CardShape
 import com.castivio.core.design.components.NowPlayingBadge
-import com.castivio.core.design.components.NavAction
 import com.castivio.core.design.components.SectionHeader
 import com.castivio.core.design.components.WatchState
 import com.castivio.core.design.components.WatchedTag
 import com.castivio.core.design.theme.castivioBackdrop
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
-import com.castivio.core.design.theme.DeviceClass
 import com.castivio.core.design.theme.MotionLevel
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Spacing
@@ -151,8 +147,6 @@ fun ShellScreen(
 ) {
     var dest by remember { mutableStateOf(Dest.Home) }
     var overlay by remember { mutableStateOf<Overlay?>(null) }
-    val device = CastivioTheme.device
-    val phone = device == DeviceClass.Compact || device == DeviceClass.Medium
 
     // ## Back, and the one place it asks before it acts
     //
@@ -188,30 +182,8 @@ fun ShellScreen(
         overlay = Overlay.Play(selection.asPlayerRequest())
     }
 
-    val destinations = if (phone) {
-        listOf(
-            navAction(Icons.Filled.Home, "Home") { dest = Dest.Home },
-            navAction(Icons.Filled.LiveTv, stringResource(CatalogStrings.string.browse_live)) { dest = Dest.Live },
-            navAction(Icons.Filled.VideoLibrary, "Library") { dest = Dest.Library },
-            navAction(Icons.Filled.Search, stringResource(CatalogStrings.string.search_label)) { dest = Dest.Search },
-            navAction(Icons.Filled.Settings, "Settings") { dest = Dest.Settings },
-        )
-    } else {
-        listOf(
-            navAction(Icons.Filled.Home, "Home") { dest = Dest.Home },
-            navAction(Icons.Filled.LiveTv, stringResource(CatalogStrings.string.browse_live)) { dest = Dest.Live },
-            navAction(Icons.Filled.Movie, stringResource(CatalogStrings.string.browse_movies)) { dest = Dest.Movies },
-            navAction(Icons.Filled.Tv, stringResource(CatalogStrings.string.browse_series)) { dest = Dest.Series },
-            navAction(Icons.Filled.Radio, stringResource(CatalogStrings.string.browse_radio)) { dest = Dest.Radio },
-            navAction(Icons.Filled.Favorite, "Favourites") { dest = Dest.Favourites },
-            navAction(Icons.Filled.Search, stringResource(CatalogStrings.string.search_label)) { dest = Dest.Search },
-            navAction(Icons.Filled.Settings, "Settings") { dest = Dest.Settings },
-        )
-    }
-    val selectedIndex = if (phone) phoneIndex(dest) else railIndex(dest)
-
     Box(Modifier.fillMaxSize()) {
-        CastivioShell(destinations = destinations, selectedIndex = selectedIndex) {
+        CastivioShell {
             when (dest) {
                 Dest.Home -> HomeScreen(
                     onSeeSection = { dest = it.destination },
@@ -327,31 +299,6 @@ private val CatalogSection.destination: Dest
         CatalogSection.Series -> Dest.Series
         CatalogSection.Radio -> Dest.Radio
     }
-
-private fun navAction(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    onClick: () -> Unit,
-) = NavAction(icon = icon, label = label, onClick = onClick)
-
-private fun phoneIndex(dest: Dest): Int = when (dest) {
-    Dest.Home -> 0
-    Dest.Live -> 1
-    Dest.Movies, Dest.Series, Dest.Radio, Dest.Favourites, Dest.Library -> 2
-    Dest.Search -> 3
-    Dest.Settings -> 4
-}
-
-private fun railIndex(dest: Dest): Int = when (dest) {
-    Dest.Home, Dest.Library -> 0
-    Dest.Live -> 1
-    Dest.Movies -> 2
-    Dest.Series -> 3
-    Dest.Radio -> 4
-    Dest.Favourites -> 5
-    Dest.Search -> 6
-    Dest.Settings -> 7
-}
 
 // -------------------------------------------------------------------- sections
 

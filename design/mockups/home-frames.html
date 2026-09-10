@@ -201,10 +201,9 @@ var ICON_MD = 20, ICON_SM = 16, ICON_LG = 26;
 
 /* The rail, measured the way `CastivioNavRail` builds it: an indicator, a gap,
    an icon, the item's padding, then the card's. */
-function railWidth(f) {
-  var item = 3 + 12 + ICON_LG + 12 * 2;      /* bar + gap + icon + padding */
-  return item + 12 * 2 + f.rail * 2;          /* + card padding + shell padding */
-}
+/* Nothing stands beside the stage any more: `CastivioShell` is a frame around
+   content, and navigation lives on Home itself. */
+function railWidth(f) { return 0; }
 
 /* `Plan.of`, transcribed. */
 function plan(f, isTv) {
@@ -299,7 +298,6 @@ function px(v) { return v + 'px'; }
 
 function build(key, isTv) {
   var f = FRAMES[key], p = plan(f, isTv);
-  var railIcons = isTv ? RAIL_TV : RAIL_PH;
 
   var frame = document.createElement('div');
   frame.className = 'frame';
@@ -317,20 +315,6 @@ function build(key, isTv) {
      whole height. Padding the shell instead is what made this page report an
      overflow the screen does not have. */
   frame.appendChild(shell);
-
-  /* the rail */
-  var rail = document.createElement('div');
-  rail.className = 'rail';
-  rail.style.borderRadius = px(24);
-  rail.style.padding = '16px 12px';
-  rail.style.margin = px(f.rail);
-  rail.innerHTML = railIcons.map(function (d, i) {
-    return '<div class="item' + (i === 0 ? ' on' : '') + '" style="padding:12px">' +
-             '<span class="bar" style="width:3px;height:' + px(ICON_LG) + '"></span>' +
-             '<span style="width:12px"></span>' + svg(d, ICON_LG, 1.7) +
-           '</div>';
-  }).join('');
-  shell.appendChild(rail);
 
   /* the stage */
   var stage = document.createElement('div');
@@ -484,10 +468,6 @@ function build(key, isTv) {
     var stage = b.frame.querySelector('.stage');
     var over = stage.scrollHeight - stage.clientHeight;
     if (over > 1) bad.push(b.f.name + ' overflows by ' + Math.round(over));
-    var rail = b.frame.querySelector('.rail');
-    if (rail.getBoundingClientRect().height > b.f.H - b.f.rail * 2 + 1) {
-      bad.push(b.f.name + ' rail is taller than the frame');
-    }
     b.frame.querySelectorAll('.n,.c,.act b,.act span,.fact span,.legal span,.lic .v').forEach(function (n) {
       if (n.scrollWidth - n.clientWidth > 0.5) {
         bad.push(b.f.name + ' clipped: ' + n.textContent.trim().slice(0, 22));
