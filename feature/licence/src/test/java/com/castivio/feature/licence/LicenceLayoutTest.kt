@@ -201,7 +201,11 @@ class LicenceLayoutTest {
         val loading = uiFor(EntitlementState.TrialExpired).copy(licence = null)
         compose.setContent { Screen(Frame.Phone, mutableStateOf(loading)) }
 
-        val reserved = licenceMetricsFor(tv = false, available = Frame.Phone.height).statusHeight
+        val reserved = licenceMetricsFor(
+            tv = false,
+            width = Frame.Phone.width,
+            height = Frame.Phone.height,
+        ).statusHeight
         val actual = compose.onNodeWithTag(LicenceTags.STATUS).getUnclippedBoundsInRoot().height
 
         assertTrue(
@@ -231,9 +235,10 @@ class LicenceLayoutTest {
      * composition at two frame heights and compared to each other — the
      * inflation cancels, and what is left is the ordering, which is real.
      *
-     * Both heights are on the **same metric set**, deliberately. Crossing
-     * [SHORT_FRAME] would change the card's padding and the comparison would be
-     * measuring the metric table rather than the squeeze.
+     * The two heights are close together, deliberately. Every size on this screen is
+     * a share of the height now, so a large difference would change the card's padding
+     * along with everything else and the comparison would be measuring the sizing
+     * system rather than the squeeze.
      */
     @Test
     fun `a squeezed band takes it out of the status line, not the controls`() {
@@ -315,12 +320,12 @@ class LicenceLayoutTest {
  * for 360.
  */
 /**
- * Two heights on the short metric set: one with room, one without.
+ * Two heights a few dp apart: one with room, one without.
  *
- * Both under [SHORT_FRAME], so the squeeze test compares like with like. The
- * squeezed one is chosen to be short by less than the status line's reservation
- * and more than nothing — enough that the sentence has to give, not so much that
- * the plans do.
+ * Close together so the squeeze test compares like with like — the sizes are shares of
+ * the height, so a wide gap would move the card's padding too. The squeezed one is
+ * chosen to be short by less than the status line's reservation and more than nothing:
+ * enough that the sentence has to give, not so much that the plans do.
  */
 private val ROOMY = 375.dp
 private val SQUEEZED = 340.dp

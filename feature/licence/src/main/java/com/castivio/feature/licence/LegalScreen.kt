@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -34,9 +35,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.castivio.core.design.components.ButtonWeight
 import com.castivio.core.design.components.CastivioButton
+import com.castivio.core.design.components.castivioBodyStyle
+import com.castivio.core.design.components.castivioTitleStyle
+import com.castivio.core.design.theme.CastivioMetrics
 import com.castivio.core.design.theme.CastivioTheme
-import com.castivio.core.design.theme.CastivioType
-import com.castivio.core.design.theme.Spacing
+import com.castivio.core.design.theme.boundedFraction
+import com.castivio.core.design.theme.castivioStage
+import com.castivio.core.design.theme.rememberMetrics
 
 /**
  * Castivio's legal information, as a page rather than a paragraph.
@@ -86,7 +91,7 @@ internal fun LegalScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
     // remarkable way to fail a store review.
     LaunchedEffect(Unit) { runCatching { body.requestFocus() } }
 
-    Box(
+    BoxWithConstraints(
         modifier
             .fillMaxSize()
             .testTag(LicenceTags.LEGAL)
@@ -100,9 +105,15 @@ internal fun LegalScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
             // when no aurora has been drawn over it.
             .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
-        val edge = if (tv) TV_EDGE else PHONE_EDGE
-        Column(Modifier.fillMaxSize().padding(horizontal = edge, vertical = edge / 2)) {
-            Header(tv = tv, onClose = onClose)
+        // The same stage every other Castivio screen composes on, from the surface
+        // this page was actually given. It used to be `if (tv) 56 else 30` with half
+        // of that above and below — two numbers chosen beside this file, which is the
+        // arrangement the sizing system exists to end.
+        val frame = rememberMetrics(maxWidth, maxHeight, tv)
+        val sectionGap = maxHeight.boundedFraction(SECTION_GAP, 14.dp, 40.dp)
+
+        Column(Modifier.fillMaxSize().castivioStage(frame)) {
+            Header(frame = frame, onClose = onClose)
             Hairline()
 
             Column(
@@ -112,19 +123,23 @@ internal fun LegalScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
                     // Bounded so a line of legal text is not 900dp wide on a
                     // television. Reading is the only thing this page is for and
                     // a line nobody can track back is not readable.
-                    .widthIn(max = MEASURE)
+                    .widthIn(max = measureFor(frame))
                     .align(Alignment.CenterHorizontally)
                     .verticalScroll(rememberScrollState())
                     .focusRequester(body)
                     .focusable(),
-                verticalArrangement = Arrangement.spacedBy(if (tv) TV_SECTION_GAP else SECTION_GAP),
+                verticalArrangement = Arrangement.spacedBy(sectionGap),
             ) {
                 for ((heading, text) in LEGAL_SECTIONS) {
-                    Section(heading = stringResource(heading), body = stringResource(text), tv = tv)
+                    Section(
+                        heading = stringResource(heading),
+                        body = stringResource(text),
+                        frame = frame,
+                    )
                 }
                 // The scroll ends on air rather than on the last full stop, so
                 // the final section is not read as clipped.
-                Box(Modifier.height(if (tv) TV_SECTION_GAP else SECTION_GAP))
+                Box(Modifier.height(sectionGap))
             }
         }
     }
@@ -139,25 +154,28 @@ internal fun LegalScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
  * than making them find out.
  */
 @Composable
-private fun Header(tv: Boolean, onClose: () -> Unit) {
+private fun Header(frame: CastivioMetrics, onClose: () -> Unit) {
     val colors = CastivioTheme.colors
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(bottom = if (tv) TV_HEAD_BOTTOM else HEAD_BOTTOM),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            .padding(bottom = frame.bandTop),
+        horizontalArrangement = Arrangement.spacedBy(frame.headGap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+        Column(
+            Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(frame.fsChip * HINT_GAP),
+        ) {
             Text(
                 text = stringResource(R.string.licence_legal_title),
-                style = if (tv) CastivioType.headlineLarge else CastivioType.headlineMedium,
+                style = castivioTitleStyle(frame.fsTitle),
                 color = colors.onBackground,
                 modifier = Modifier.semantics { heading() },
             )
             Text(
                 text = stringResource(R.string.licence_legal_back_hint),
-                style = CastivioType.bodySmall,
+                style = castivioBodyStyle(frame.fsChip),
                 color = colors.onBackgroundMuted,
             )
         }
@@ -181,18 +199,18 @@ private fun Header(tv: Boolean, onClose: () -> Unit) {
  * in scripts that have no case.
  */
 @Composable
-private fun Section(heading: String, body: String, tv: Boolean) {
+private fun Section(heading: String, body: String, frame: CastivioMetrics) {
     val colors = CastivioTheme.colors
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+    Column(verticalArrangement = Arrangement.spacedBy(frame.fsBody * HEADING_GAP)) {
         Text(
             text = heading,
-            style = if (tv) CastivioType.titleLarge else CastivioType.titleMedium,
+            style = castivioTitleStyle(frame.fsLabel),
             color = colors.onBackground,
             modifier = Modifier.semantics { heading() },
         )
         Text(
             text = body,
-            style = if (tv) CastivioType.bodyLarge else CastivioType.bodyMedium,
+            style = castivioBodyStyle(frame.fsBody),
             color = colors.onBackgroundVariant,
         )
     }
@@ -238,16 +256,26 @@ private val LEGAL_SECTIONS: List<Pair<Int, Int>> = listOf(
 )
 
 /**
- * Roughly seventy characters of `bodyMedium`.
+ * Roughly seventy characters of the body step, bounded.
  *
- * Not the width of the screen. A 960dp television line is about 150 characters
- * and the eye loses the start of the next line somewhere around ninety.
+ * Not the width of the screen. A 960dp television line is about 150 characters and the
+ * eye loses the start of the next line somewhere around ninety.
+ *
+ * It was a flat 720dp, which is a measure in dp rather than in characters: correct
+ * while the body step was one size everywhere, and wrong the moment it stopped being.
+ * A measure belongs to the *type*, so it is derived from the type — and then bounded,
+ * because 70 characters of a 19dp step is 855dp and there is a width past which a
+ * column stops reading as a column whatever the arithmetic says.
  */
-private val MEASURE: Dp = 720.dp
+private fun measureFor(frame: CastivioMetrics): Dp =
+    (frame.fsBody * MEASURE_CHARS).coerceIn(700.dp, 900.dp)
 
-private val PHONE_EDGE: Dp = 30.dp
-private val TV_EDGE: Dp = 56.dp
-private val HEAD_BOTTOM: Dp = 12.dp
-private val TV_HEAD_BOTTOM: Dp = 20.dp
-private val SECTION_GAP: Dp = 20.dp
-private val TV_SECTION_GAP: Dp = 28.dp
+/** Roughly how many body-step widths make seventy characters of prose. */
+private const val MEASURE_CHARS = 45f
+
+/** Between two sections of the notice. 28dp on the television, as it was drawn. */
+private const val SECTION_GAP = 37.3f / 720f
+
+/** A hint under its title, and a paragraph under its heading, as ratios of their type. */
+private const val HINT_GAP = 0.18f
+private const val HEADING_GAP = 0.33f

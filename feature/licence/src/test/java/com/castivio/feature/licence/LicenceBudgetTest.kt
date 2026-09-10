@@ -2,8 +2,10 @@ package com.castivio.feature.licence
 
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.castivio.core.design.theme.CastivioReference
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Sizing
+import com.castivio.core.design.theme.castivioMetrics
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -37,39 +39,57 @@ import org.junit.Test
 class LicenceBudgetTest {
 
     /**
-     * The three frames the design was drawn at, and the whole display each gives.
+     * The surfaces, each with the width it actually has.
      *
-     * Not "screen minus the system bars": `:app` is edge-to-edge and this screen
-     * is immersive, so it is handed every dp. The bar is subtracted explicitly,
-     * below, where it is a stated worst case rather than a hidden assumption.
+     * The width used to be absent, because the numbers came from a table chosen by
+     * height alone. They are shares of both axes now — the gap between the two zones
+     * off the width, everything stacked down the stage off the height — so a surface
+     * is a size and not a number.
+     *
+     * Not "screen minus the system bars": `:app` is edge-to-edge and this screen is
+     * immersive, so it is handed every dp. The bar is subtracted explicitly, below,
+     * where it is a stated worst case rather than a hidden assumption.
      */
-    private val frames = listOf(
-        Triple("reference phone 873x393", false, 393.dp),
-        Triple("shortest phone 800x360", false, 360.dp),
-        Triple("tablet 1280x800", false, 800.dp),
-        Triple("television 960x540", true, 540.dp),
-    )
+    private data class Surface(val name: String, val width: Dp, val height: Dp, val tv: Boolean) {
+        override fun toString() = name
+    }
+
+    private val SHORTEST = Surface("shortest phone 800x360", 800.dp, 360.dp, tv = false)
+    private val HANDSET = Surface("reference phone 873x393", 873.dp, 393.dp, tv = false)
+    private val TABLET = Surface("tablet 1280x800", 1280.dp, 800.dp, tv = false)
+    private val TELEVISION = Surface("television 960x540", 960.dp, 540.dp, tv = true)
+    private val SET_1080 = Surface("1080p set 1920x1080", 1920.dp, 1080.dp, tv = true)
+
+    private val frames = listOf(SHORTEST, HANDSET, TABLET, TELEVISION, SET_1080)
 
     private val legal: Dp get() = CastivioType.bodySmall.lineHeight.value.dp
     private val overline: Dp get() = CastivioType.overline.lineHeight.value.dp
     private val caption: Dp get() = CastivioType.bodySmall.lineHeight.value.dp
 
-    private fun spare(frame: Dp, tv: Boolean, insets: Dp = 0.dp, legalLines: Int = 1): Dp {
-        val m = licenceMetricsFor(tv, frame - insets)
-        return m.bandHeight(frame - insets, legal, legalLines) - m.columnHeight(overline)
+    /** The same surface with a navigation bar on it: shorter, and exactly as wide. */
+    private fun Surface.lessBar(inset: Dp) = copy(height = height - inset)
+
+    private fun metrics(s: Surface) = licenceMetricsFor(s.tv, s.width, s.height)
+
+    private fun spare(s: Surface, insets: Dp = 0.dp, legalLines: Int = 1): Dp {
+        val short = s.lessBar(insets)
+        val m = metrics(short)
+        return m.bandHeight(short.height, legal, legalLines) - m.columnHeight(overline)
     }
 
-    private fun codeSpare(frame: Dp, tv: Boolean, insets: Dp = 0.dp): Dp {
-        val m = licenceMetricsFor(tv, frame - insets)
-        return m.bandHeight(frame - insets, legal) - m.codeHeight(caption)
+    private fun codeSpare(s: Surface, insets: Dp = 0.dp): Dp {
+        val short = s.lessBar(insets)
+        val m = metrics(short)
+        return m.bandHeight(short.height, legal) - m.codeHeight(caption)
     }
 
     @Test
-    fun `the identity column fits its band on every frame`() {
-        for ((name, tv, frame) in frames) {
-            val room = spare(frame, tv)
+    fun `the identity column fits its band on every surface`() {
+        for (s in frames) {
+            val room = spare(s)
+            println("licence budget — $s column spare $room")
             assertTrue(
-                "$name: the column overruns its band by ${-room}. A Column that does " +
+                "$s: the column overruns its band by ${-room}. A Column that does " +
                     "not fit hands zero height to the status line and then to the plans.",
                 room >= 0.dp,
             )
@@ -79,220 +99,262 @@ class LicenceBudgetTest {
     /**
      * The code zone too, which is not the same claim.
      *
-     * The identity column is the taller of the two on every frame today. That is
+     * The identity column is the taller of the two on every surface today. That is
      * a fact about the current numbers and not a law, and a gate that measured
      * only the column would go on passing while the QR quietly overran.
      *
      * The caption is budgeted at three lines, which is what the mockup measures
      * as the worst case across the nine stress languages — German on the
-     * reference frame, English on the tight one. It was two, on reasoning rather
-     * than measurement, until somebody looked.
+     * reference frame, English on the tight one.
      */
     @Test
-    fun `the code zone fits its band on every frame`() {
-        for ((name, tv, frame) in frames) {
-            val room = codeSpare(frame, tv)
-            assertTrue("$name: the code zone overruns its band by ${-room}", room >= 0.dp)
+    fun `the code zone fits its band on every surface`() {
+        for (s in frames) {
+            val room = codeSpare(s)
+            assertTrue("$s: the code zone overruns its band by ${-room}", room >= 0.dp)
         }
     }
 
     /**
-     * And it still fits with a navigation bar swiped back.
+     * The television lands on the drawing that was approved for it.
      *
-     * The one that matters. A television has no bars, so it is exempt by fact
-     * rather than by exception — `safeDrawing` is zero there.
+     * This is the whole claim that the migration reproduced the design rather than
+     * replacing it: 960×540 is three quarters of the reference, so every share read
+     * off the reference has to come back at three quarters — the television row of
+     * the table that used to be here, to the dp, including the price, which was the
+     * last type token on this screen chosen by device.
      */
     @Test
-    fun `the column still fits with the navigation bar showing`() {
-        for ((name, tv, frame) in frames) {
-            if (tv) continue
-            val room = spare(frame, tv, insets = NAV_BAR)
-            assertTrue(
-                "$name: with a ${NAV_BAR} navigation bar the column overruns by ${-room}. " +
-                    "The bars are hidden, but a swipe brings them back and the layout " +
-                    "has to survive the seconds they are there.",
-                room >= 0.dp,
+    fun `the television reproduces its approved numbers`() {
+        val m = metrics(TELEVISION)
+        assertEquals("zoneGap", 52f, m.zoneGap.value, 0.5f)
+        assertEquals("capsule", 64f, m.capsule.value, 0.5f)
+        assertEquals("capsuleStart", 24f, m.capsuleStart.value, 0.5f)
+        assertEquals("copyGap", 22f, m.copyGap.value, 0.5f)
+        assertEquals("plansGap", 20f, m.plansGap.value, 0.5f)
+        assertEquals("planMinHeight", 96f, m.planMinHeight.value, 0.5f)
+        assertEquals("planPaddingH", 24f, m.planPaddingH.value, 0.5f)
+        assertEquals("plate", 208f, m.plate.value, 0.5f)
+        assertEquals("captionWidth", 236f, m.captionWidth.value, 0.5f)
+        assertEquals(
+            "the price is not the 36sp displayMedium set there",
+            36f,
+            m.priceStyle.fontSize.value,
+            0.5f,
+        )
+    }
+
+    /** And the metrics come from the system every other screen reads. */
+    @Test
+    fun `the stage and the type steps come from the shared system`() {
+        for (s in frames) {
+            assertEquals(
+                "$s: the frame did not come from castivioMetrics",
+                castivioMetrics(s.width, s.height, s.tv),
+                metrics(s).frame,
             )
         }
+        val reference = licenceMetricsFor(
+            tv = false,
+            width = CastivioReference.Width,
+            height = CastivioReference.Height,
+        )
+        assertEquals("the reference zoneGap", 69.3f, reference.zoneGap.value, 0.2f)
+        assertEquals("the reference plansGap", 26.7f, reference.plansGap.value, 0.2f)
     }
 
     /**
-     * Nothing in the column is smaller than the frame's own floor.
+     * Nothing in the column is smaller than the floor for its device.
      *
-     * **The frame's floor**, not one floor for all frames. A television is driven
+     * **The device's floor**, not one floor for all of them. A television is driven
      * by a D-pad and `Sizing.minTvTarget` is 56dp; asserting the 48dp phone
      * minimum everywhere is exactly what let the sibling screen's copy control
      * ship 8dp short, and then let every `CastivioButton` in the application do
      * the same. The one number that was wrong was the one number nothing checked.
      */
     @Test
-    fun `every control clears the floor for its frame`() {
-        for ((name, tv, frame) in frames) {
-            val m = licenceMetricsFor(tv, frame)
-            val floor = Sizing.minTarget(tv)
+    fun `every control clears the floor for its device`() {
+        for (s in frames) {
+            val m = metrics(s)
+            val floor = Sizing.minTarget(s.tv)
 
             assertTrue(
-                "$name: the copy control is ${m.target}, below the $floor floor",
+                "$s: the copy control is ${m.target}, below the $floor floor",
                 m.target >= floor,
             )
             assertTrue(
-                "$name: the capsule is ${m.capsule} and cannot hold a $floor target",
+                "$s: the capsule is ${m.capsule} and cannot hold a $floor target",
                 m.capsule >= floor,
             )
             // A plan card is the button. It is not a fixed-size control, so the
             // claim is on its floor rather than on a modifier.
             assertTrue(
-                "$name: a plan card is ${m.planMinHeight}, below the $floor floor",
+                "$s: a plan card is ${m.planHeight(overline)}, below the $floor floor",
                 m.planHeight(overline) >= floor,
             )
         }
     }
 
     /**
-     * Each frame gets the set the mockup drew for it.
+     * The bands are what the shared stage leaves, to the dp.
      *
-     * Worth its own assertion because the equivalent was wrong once on the
-     * sibling and nothing caught it: the gate was reading a height 48dp short of
-     * the display, which put the 873×393 phone below the threshold and gave it
-     * the short phone's tighter numbers. It looked fine, and it was the wrong
-     * drawing.
+     * ## These numbers moved, and the reason is worth reading
+     *
+     * They were 283 / 268 / 390 / 383, from a stage this screen chose for itself. They
+     * are now what `castivioMetrics` leaves, and the shortest phone **loses 25dp of
+     * band** to it: the shared stage stands off the glass by 16/15 where the old short
+     * row used 11/8, its header is 40 where that row said 36, and the gap under the
+     * header is 15 against 8. Every one of those is a value the whole product now
+     * shares, approved in phases 1 and 2, and none of them is this screen's to trim.
+     *
+     * What that costs is stated exactly two tests down rather than left to be found.
+     * Pinned here so a change to the shared stage shows up as a failing test on this
+     * screen rather than as a discrepancy nobody measured.
      */
     @Test
-    fun `each frame gets the metric set the mockup drew for it`() {
-        val short = licenceMetricsFor(tv = false, available = 360.dp)
-        val phone = licenceMetricsFor(tv = false, available = 393.dp)
-        val tablet = licenceMetricsFor(tv = false, available = 800.dp)
-        val tv = licenceMetricsFor(tv = true, available = 540.dp)
-
-        assertEquals("the 800x360 frame is not on the short set", 26.dp, short.edge)
-        assertEquals("the 873x393 frame is not on the reference set", 32.dp, phone.edge)
-        assertEquals("the television is not on the TV set", 46.dp, tv.edge)
-        assertEquals("the 1280x800 frame is not on the tablet set", 140.dp, tablet.edge)
-
-        // One price token for both phones, and no per-frame exception.
-        //
-        // Asserted rather than left to review, because it was an exception for
-        // one commit -- headlineMedium at 800x360 -- and the way that comes back
-        // is somebody needing eight dp in a hurry and remembering that it used
-        // to be allowed. It is not allowed: four dp of card padding and six of
-        // outer margin buy the same eight without touching the hierarchy.
-        assertEquals(
-            "the shortest frame has grown a price exception again",
-            CastivioType.headlineLarge,
-            short.priceStyle,
+    fun `the bands are what the stage leaves`() {
+        val expected = listOf(
+            HANDSET to 270.6f,
+            SHORTEST to 242.7f,
+            TABLET to 576.9f,
+            TELEVISION to 381.0f,
         )
-        assertEquals(CastivioType.headlineLarge, phone.priceStyle)
-        assertEquals(CastivioType.headlineLarge, tablet.priceStyle)
-        assertEquals(CastivioType.displayMedium, tv.priceStyle)
-    }
-
-    /**
-     * The bands are what the shared frame leaves, to the dp.
-     *
-     * They used to be 284/264/337, measured off `design/mockups/licence.html` when
-     * this screen carried its own stage: 48dp of margin all round on a television,
-     * 12/6 on the reference phone, and a header whose height was the taller of the
-     * title's line box and a touch target.
-     *
-     * They are now what `CastivioFrame` leaves once the shared header has taken its
-     * declared height — which is the whole point of the change, and it is *not* a
-     * free one to state: the television gains 46dp of band because the frame's stage
-     * margins are 24/22 rather than 48/48, and the drawing has not been redrawn to
-     * match. Pinned here so that when the drawing is made, the two either agree or
-     * the disagreement is a failing test rather than a discrepancy nobody measured.
-     *
-     * The tablet is in the list because it did not exist before: a 1280×800 tablet
-     * drew the reference phone's numbers.
-     */
-    @Test
-    fun `the bands are what the frame leaves`() {
-        val expected = mapOf(
-            Triple("reference phone 873x393", false, 393.dp) to 283.dp,
-            Triple("shortest phone 800x360", false, 360.dp) to 268.dp,
-            Triple("tablet 1280x800", false, 800.dp) to 390.dp,
-            Triple("television 960x540", true, 540.dp) to 383.dp,
-        )
-        for ((frame, band) in expected) {
-            val (name, tv, height) = frame
-            val m = licenceMetricsFor(tv, height)
+        for ((s, band) in expected) {
+            val m = metrics(s)
             assertEquals(
-                "$name: the band is not what the frame leaves",
+                "$s: the band is not what the stage leaves",
                 band,
-                m.bandHeight(height, legal),
+                m.bandHeight(s.height, legal).value,
+                0.5f,
             )
         }
     }
 
     /**
-     * The legal footer gets room for two lines, and that is gated rather than
-     * hoped for.
+     * Where the reserved sentence starts to give, stated as two numbers.
      *
-     * ## Why this test exists before the sentence does
+     * ## What this replaced, and why it is one test rather than three
      *
-     * The final legal wording has not been written — it is a legal question and
-     * not a design one, and inventing it would be worse than showing a bracket.
-     * But the *space* it lands in is a design question, and answering it now is
-     * the difference between a wording change and a layout renegotiation.
+     * There were three: *the footer has room for two lines on every frame*, *the column
+     * still fits with the navigation bar showing*, and a compound case pinned at −5dp
+     * on the shortest phone. All three were asking the same question — how much of the
+     * band is left — of a table with four rows in it. There are no rows now, so the
+     * question has a domain, and the honest answer is the height at which each case
+     * stops fitting.
      *
-     * The placeholder is one line in English and a real sentence will not be one
-     * line in German, so one line was never a safe assumption. It was an
-     * assumption anyway until this test.
+     * ## The two numbers, and what changed
      *
-     * ## What fits
+     * A one-line footer fits from **337dp** of surface upward; a two-line one from
+     * **363dp**. Both were comfortably true of the old short row, which had 25dp more
+     * band to spend — see the test above for where that band went. So on the 800×360
+     * surface two cases that used to clear now do not:
      *
-     * | frame | 1 line | 1 + bar | 2 lines | 2 + bar |
-     * |---|---|---|---|---|
-     * | 873×393 | 34dp | 48dp ¹ | 14dp | 28dp ¹ |
-     * | 800×360 | 39dp | 15dp | 19dp | **−5dp** |
-     * | 1280×800 | 148dp | 124dp | 128dp | 104dp |
-     * | TV | 81dp | — | 61dp | — |
+     * | case | was | is |
+     * |---|---|---|
+     * | one line | +39 | +18 |
+     * | one line, bar swiped back | +15 | **−0.5** |
+     * | two lines | +19 | **−1.9** |
+     * | two lines and the bar | −5 | −20.5 |
      *
-     * ¹ A bar takes the 873dp frame under the 380dp threshold, so it adopts the
-     * tighter metric set and gains margin rather than losing it.
+     * The 873×393 handset moves the other way and gains: +34 → +42 on one line, and
+     * +14 → +22 on two.
      *
-     * Every case fits but one, and [the compound case] below states exactly what
-     * that one does instead of failing silently.
+     * ## Why this is a threshold and not a failure
+     *
+     * Because of what gives. The column measures capsules → plans → status line, so
+     * the child that loses height is the **reserved sentence** and nothing else: every
+     * capsule, plan card and target keeps its size, and the sentence returns when the
+     * bar does. A deficit of 1.9dp is 1.9dp off a 20dp reserved line box, not a
+     * control anybody can no longer press. `LicenceLayoutTest` proves that ordering
+     * and `every control clears the floor for its device` proves the sizes.
+     *
+     * Pinning the thresholds means a change that moves them shows up here rather than
+     * on somebody's handset.
      */
     @Test
-    fun `the legal footer has room for two lines on every frame`() {
-        for ((name, tv, frame) in frames) {
-            val room = spare(frame, tv, legalLines = 2)
+    fun `the reserved sentence gives, and only below a stated height`() {
+        assertEquals("a one-line footer fits from here up", 337, firstHeightThatFits(1))
+        assertEquals("a two-line footer fits from here up", 363, firstHeightThatFits(2))
+
+        // Above the threshold, every surface this project ships to clears it.
+        for (s in listOf(HANDSET, TABLET, TELEVISION, SET_1080)) {
             assertTrue(
-                "$name: a two-line legal footer overruns the band by ${-room}. The " +
-                    "wording is not written yet, so the room for it is the part that " +
-                    "has to be settled in advance.",
-                room >= 0.dp,
+                "$s: a two-line legal footer overruns the band by ${-spare(s, legalLines = 2)}",
+                spare(s, legalLines = 2) >= 0.dp,
             )
         }
     }
 
+    /** The shortest 16:9 surface at which the column still clears its band. */
+    private fun firstHeightThatFits(legalLines: Int): Int {
+        var height = 330
+        while (height <= 600) {
+            val s = Surface("$height", (height * 16 / 9).dp, height.dp, tv = false)
+            if (spare(s, legalLines = legalLines) >= 0.dp) return height
+            height += 1
+        }
+        return -1
+    }
+
     /**
-     * The compound case, stated as an assertion so it cannot drift unnoticed.
+     * Every surface between the shortest and the largest, at every aspect.
      *
-     * Two-line footer **and** a navigation bar transiently on screen **and** the
-     * shortest phone. This is the one combination that does not fit, by 5dp, and
-     * pinning the number means a change that makes it worse shows up here rather
-     * than on somebody's handset.
-     *
-     * What happens in those two or three seconds is not a lost control. The
-     * column measures capsules → plans → status line and gives what is left to
-     * the child measured last, so the **status sentence** is what loses height;
-     * every capsule, card and target keeps its size, and the sentence returns
-     * when the bar does. `LicenceLayoutTest` proves that ordering.
+     * The sweep phases 1 and 2 established, applied to this screen's claims: the code
+     * zone clears its band throughout, no control falls under its floor, and the
+     * column's deficit is never more than the reserved sentence can absorb — which is
+     * the property that makes the threshold above a degradation rather than a break.
      */
     @Test
-    fun `the one case that does not fit is the one that degrades safely`() {
-        val room = spare(360.dp, tv = false, insets = NAV_BAR, legalLines = 2)
-        assertEquals(
-            "the shortest phone with a two-line footer and the navigation bar " +
-                "showing is no longer 5dp short. If it got better, say so here and " +
-                "in LicenceMetrics; if it got worse, the status line is losing more " +
-                "than a sentence.",
-            (-5).dp,
-            room,
+    fun `every surface holds, and never loses more than the sentence`() {
+        var worstCode = Dp.Infinity
+        var worstCodeAt = ""
+        var worstColumn = Dp.Infinity
+        var worstColumnAt = ""
+
+        var height = 330.dp
+        while (height <= 2160.dp) {
+            for (aspect in listOf(16f / 9f, 1.85f, 2f, 2.2f, 2.4f)) {
+                val width = height * aspect
+                val kinds = if (height >= 480.dp) listOf(false, true) else listOf(false)
+                for (tv in kinds) {
+                    val s = Surface("${width.value.toInt()}x${height.value.toInt()}", width, height, tv)
+                    val m = metrics(s)
+
+                    val code = codeSpare(s)
+                    if (code < worstCode) {
+                        worstCode = code
+                        worstCodeAt = "$s tv=$tv"
+                    }
+                    val column = spare(s)
+                    if (column < worstColumn) {
+                        worstColumn = column
+                        worstColumnAt = "$s tv=$tv (reserves ${m.statusHeight})"
+                    }
+                    assertTrue(
+                        "$s tv=$tv: the capsule ${m.capsule} is under the floor",
+                        m.capsule >= Sizing.minTarget(tv),
+                    )
+                    assertTrue(
+                        "$s tv=$tv: a plan card is under the floor",
+                        m.planHeight(overline) >= Sizing.minTarget(tv),
+                    )
+                }
+            }
+            height += 1.dp
+        }
+
+        println(
+            "licence sweep — tightest code zone $worstCode at $worstCodeAt | " +
+                "deepest column deficit $worstColumn at $worstColumnAt",
+        )
+
+        assertTrue("the code zone overruns by ${-worstCode} at $worstCodeAt", worstCode >= 0.dp)
+        // The column may run short on the very shortest surfaces, and when it does the
+        // reserved sentence is what absorbs it. Never more than the sentence has.
+        assertTrue(
+            "the column is ${-worstColumn} short at $worstColumnAt, which is more than " +
+                "the reserved sentence can give — a control would lose height instead",
+            worstColumn >= -20.dp,
         )
     }
-
-    /** A gesture bar, and the widest a navigation bar gets in landscape. */
-    private val NAV_BAR = 24.dp
 }

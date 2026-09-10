@@ -3,67 +3,65 @@ package com.castivio.feature.licence
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.castivio.core.design.theme.CastivioFrame
+import androidx.compose.ui.unit.sp
+import com.castivio.core.design.theme.CastivioMetrics
 import com.castivio.core.design.theme.CastivioType
-import com.castivio.core.design.theme.SHORT_FRAME
-import com.castivio.core.design.theme.TABLET_FRAME
+import com.castivio.core.design.theme.Sizing
+import com.castivio.core.design.theme.boundedFraction
+import com.castivio.core.design.theme.castivioMetrics
 
 /**
- * The approved screen's numbers, per frame, transcribed from the mockup.
+ * What the licence screen is drawn from: the shared metrics, plus the sizes only an
+ * activation-and-billing screen has — two capsules, two plan cards, a QR plate and a
+ * reserved status line.
  *
- * ## Why a table and not a spacing scale
+ * ## It was a table of four devices, and now it is arithmetic
  *
- * `design/mockups/licence.html` states a different value for nearly every gap on
- * each of the three frames. Approximating all three with generic tokens is what
- * the sibling screen did first: close enough to look right on the reference
- * frame, and not on the shortest one. So the drawing's values are transcribed.
+ * `design/mockups/licence.html` is still the record and the drawing is unchanged. What
+ * changed is how its numbers reach a device. There used to be four rows here —
+ * television, tablet, phone, short phone — each stating a value for nearly every gap,
+ * chosen by a height threshold. That is as many drawings as somebody had made, and a
+ * surface between two of them took whichever row it fell into.
  *
- * ## What the numbers have to clear
+ * Every size below is now a share of the axis it spends, clamped at both ends, through
+ * the one expression the whole product uses:
+ * [com.castivio.core.design.theme.boundedFraction]. The shares are read off the
+ * 1280×720 reference, which is the 960×540 television drawing at 4/3 — so the
+ * television reproduces its approved numbers **exactly**: zoneGap 52, capsule 64,
+ * plate 208, plan 96, price 36, caption 236.
  *
- * The heights are the **whole display**. `:app` is edge-to-edge and this screen
- * runs immersive, so it is given every dp — which is also why the mockup's own
- * status bar and gesture bar are overlays there rather than flex children, and
- * why the bands below match the sibling's exactly.
+ * ## What the numbers still have to clear
  *
- * | frame | band | column | spare | with a 24dp bar |
- * |---|---|---|---|---|
- * | 873×393 | 284dp | 249dp | 35dp | 11dp |
- * | 800×360 | 264dp | 229dp | 35dp | 11dp |
- * | TV 960×540 | 337dp | 302dp | 35dp | — ¹ |
+ * The heights are the **whole display**. `:app` is edge-to-edge and this screen runs
+ * immersive, so it is given every dp — which is also why the mockup's own status bar
+ * and gesture bar are overlays there rather than flex children.
  *
- * ¹ A television has no system bars; `safeDrawing` is zero there.
+ * `BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE` means a swipe brings the navigation bar back
+ * for a few seconds, `safeDrawing` padding appears, and the band loses 24dp. A `Column`
+ * that no longer fits does not clip or scroll — it hands **zero** height to whatever it
+ * measured last. So the budget is written against the bar being there, and
+ * `LicenceBudgetTest` asserts it across the whole range of surfaces rather than at four
+ * points in it.
  *
- * The last column is the one that matters. This screen runs immersive, but
- * `BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE` means a swipe brings the navigation
- * bar back for a few seconds, `safeDrawing` padding appears, and the band loses
- * 24dp. A `Column` that no longer fits does not clip or scroll — it hands
- * **zero** height to whatever it measured last. So the budget is written against
- * the bar being there, and `LicenceBudgetTest` asserts it.
+ * The ordering of the column is load-bearing and is the last line of defence. Children
+ * are measured capsules → plans → status line, so if a surface is ever squeezed past
+ * its budget the thing that loses height is the reserved sentence and not a control.
+ * That is a designed property, not a happy accident, and `LicenceLayoutTest` proves the
+ * ordering.
  *
- * ## The typography exception that is no longer here
+ * ## The price is a size now, not a token
  *
- * For one commit [priceStyle] stepped down a token on the 800×360 frame, because
- * the column stood 16dp proud of its band and eight of the sixteen were that
- * line's leading. It was defensible — the title, the address and the device key
- * all step per frame — and it was still an exception, and the arithmetic did not
- * require it.
- *
- * Four dp of card padding and six of outer margin pay for the same eight, and
- * they are the thing §10 of the specification already sanctions for this frame:
- * *tighter card padding, same structure*. The price is now `headlineLarge` on
- * both phones, `displayMedium` on the television, and the three frames have the
- * **same** 35dp of margin — which is a better answer than the one that worked,
- * because a uniform number is one somebody can check at a glance.
- *
- * The ordering of the column is load-bearing and is the last line of defence.
- * Children are measured capsules → plans → status line, so if a frame is ever
- * squeezed past its budget the thing that loses height is the reserved sentence
- * and not a control. That is a designed property, not a happy accident.
+ * It was `displayMedium` on a television and `headlineLarge` everywhere else — a
+ * two-row type table, and the last device branch on this screen. It is a bounded share
+ * of the height built on `headlineLarge`'s own face and leading, so the television
+ * still sets 36sp and the relationship the drawing has — the price is the largest thing
+ * on the screen, about 1.38× the screen's own title — holds at every size rather than
+ * at two.
  */
 internal data class LicenceMetrics(
     /**
-     * The stage, the header and the four type steps — from [CastivioFrame], the one
-     * table every screen in Castivio reads.
+     * The stage, the header and the four type steps — from [CastivioMetrics], the one
+     * system every screen in Castivio reads.
      *
      * This screen used to hold its own copy of five of them: `edge`, `stageTop`,
      * `stageBottom`, `headBottom` and a `target` beside them, on three frames, behind
@@ -71,13 +69,18 @@ internal data class LicenceMetrics(
      * tables that agree because somebody typed the same number twice agree until one
      * of the two is edited.
      */
-    val frame: CastivioFrame,
+    val frame: CastivioMetrics,
     /** Between the identity column and the code. */
     val zoneGap: Dp,
     /** Between the two capsules. */
     val rowGap: Dp,
     val capsuleStart: Dp,
-    /** The pill's height: 52 on a phone, 64 on a television. See [target]. */
+    /**
+     * The pill's drawn height — 64 on a television, and never below [target].
+     *
+     * The capsule grows to hold the target rather than the target shrinking to fit the
+     * capsule. That inversion is a defect this project has shipped twice.
+     */
     val capsule: Dp,
     /** Between a capsule's label, value and control. */
     val copyGap: Dp,
@@ -89,6 +92,22 @@ internal data class LicenceMetrics(
     val planPaddingH: Dp,
     val planPaddingV: Dp,
     val priceStyle: TextStyle,
+    /**
+     * The address and the device key, at the size this surface earns them.
+     *
+     * They were `codeHero` or `codeCompact` and `codeKeyTv` or `codeKey`, chosen by
+     * `if (tv)` inside the screen — four tokens that differ from their pair only in
+     * size and, for the key, in the tracking that goes with a size. That is a device
+     * table for type, in the one place on this screen where a table is least
+     * defensible: the address is the string a user reads aloud to somebody else, and
+     * how large it needs to be is a question about the surface and the distance, not
+     * about what the box calls itself.
+     *
+     * The **face** is not responsive and is not a table either: both members of each
+     * pair are the same monospace at the same weight, so there is nothing to choose.
+     */
+    val addressStyle: TextStyle,
+    val keyStyle: TextStyle,
     val statusTop: Dp,
     val statusHeight: Dp,
     /**
@@ -113,11 +132,11 @@ internal data class LicenceMetrics(
     val captionTop: Dp,
     val captionWidth: Dp,
     /**
-     * The minimum a control may be on this frame.
+     * The smallest box that may receive a press or a D-pad landing.
      *
-     * 48 on a phone, 56 on a television, and the capsule grows to hold it rather
-     * than the target shrinking to fit the capsule. That inversion is a defect
-     * this project has now shipped twice.
+     * 48 for a thumb, 56 for a remote, and the one value on this type that asks what
+     * kind of device this is — the functional adaptation the design system permits.
+     * Everything else here is a share of the surface.
      */
     val target: Dp,
 ) {
@@ -139,69 +158,131 @@ internal data class LicenceMetrics(
 }
 
 /**
- * Which frame this is, decided by the height the screen actually has.
+ * The screen's numbers for a measured surface.
  *
- * Height rather than width or a device class, for the reason the sibling gives:
- * height is the dimension that runs out, and `DeviceClass` would call 800dp
- * "Medium" and 873dp "Expanded", which is a fact about width.
+ * `width` and `height` are what a `BoxWithConstraints` around the screen's own content
+ * reports — the surface, not the window and not the display. Horizontal things are read
+ * off the width and vertical things off the height, because those are the axes they
+ * actually spend: the gap between the two zones and a capsule's inner padding come off
+ * one, and everything stacked down the stage off the other.
  *
- * The thresholds are [TABLET_FRAME] and [SHORT_FRAME], from `:core:design`. This file
- * declared a `SHORT_FRAME` of its own at the same 380dp, and the tablet had no branch
- * at all — a 1280×800 tablet drew the reference phone's numbers, which is a phone-sized
- * composition floating in twice the frame.
+ * There is no threshold here and nothing in this function could express one. It used to
+ * be four branches chosen by height, with `TABLET_FRAME` and `SHORT_FRAME` as the
+ * cut-offs; a 1280×800 tablet drew the reference phone's numbers until a late fix gave
+ * it a row, and every surface outside the four was a guess nobody had looked at.
  */
-internal fun licenceMetricsFor(tv: Boolean, available: Dp): LicenceMetrics = when {
-    tv -> LicenceMetrics(
-        frame = CastivioFrame.Television,
-        zoneGap = 52.dp, rowGap = 14.dp, capsuleStart = 24.dp, capsule = 64.dp, copyGap = 22.dp,
-        plansTop = 24.dp, plansGap = 20.dp,
-        planMinHeight = 96.dp, planPaddingH = 24.dp, planPaddingV = 12.dp,
-        priceStyle = CastivioType.displayMedium,
-        statusTop = 16.dp, statusHeight = 24.dp, expiryTop = 3.dp,
-        footTop = 13.dp, footBottom = 0.dp,
-        plate = 208.dp, platePadding = 12.dp, captionTop = 15.dp, captionWidth = 236.dp,
-        target = 56.dp,
-    )
-    // The tablet: its extra room goes into the stage's margins, which the frame
-    // already holds, and everything on the stage keeps the reference phone's
-    // proportions at the tablet's own type steps. A tablet is held at 45cm, so the
-    // one thing it does not get is larger content.
-    available >= TABLET_FRAME -> LicenceMetrics(
-        frame = CastivioFrame.Tablet,
-        zoneGap = 44.dp, rowGap = 13.dp, capsuleStart = 22.dp, capsule = 56.dp, copyGap = 18.dp,
-        plansTop = 22.dp, plansGap = 16.dp,
-        planMinHeight = 82.dp, planPaddingH = 20.dp, planPaddingV = 11.dp,
-        priceStyle = CastivioType.headlineLarge,
-        statusTop = 13.dp, statusHeight = 22.dp, expiryTop = 2.dp,
-        footTop = 10.dp, footBottom = 2.dp,
-        plate = 170.dp, platePadding = 10.dp, captionTop = 12.dp, captionWidth = 196.dp,
-        target = 48.dp,
-    )
-    available < SHORT_FRAME -> LicenceMetrics(
-        frame = CastivioFrame.ShortPhone,
-        zoneGap = 34.dp, rowGap = 11.dp, capsuleStart = 18.dp, capsule = 52.dp, copyGap = 14.dp,
-        plansTop = 12.dp, plansGap = 12.dp,
-        planMinHeight = 74.dp, planPaddingH = 16.dp, planPaddingV = 8.dp,
-        // The same token as the reference phone. See the note on the class for
-        // why this was a step down for one commit and is not any more.
-        priceStyle = CastivioType.headlineLarge,
-        statusTop = 8.dp, statusHeight = 20.dp, expiryTop = 1.dp,
-        footTop = 6.dp, footBottom = 1.dp,
-        plate = 138.dp, platePadding = 8.dp, captionTop = 9.dp, captionWidth = 162.dp,
-        target = 48.dp,
-    )
-    else -> LicenceMetrics(
-        frame = CastivioFrame.Phone,
-        zoneGap = 40.dp, rowGap = 13.dp, capsuleStart = 20.dp, capsule = 52.dp, copyGap = 16.dp,
-        plansTop = 22.dp, plansGap = 14.dp,
-        planMinHeight = 76.dp, planPaddingH = 18.dp, planPaddingV = 10.dp,
-        priceStyle = CastivioType.headlineLarge,
-        statusTop = 12.dp, statusHeight = 20.dp, expiryTop = 2.dp,
-        footTop = 8.dp, footBottom = 2.dp,
-        plate = 157.dp, platePadding = 9.dp, captionTop = 11.dp, captionWidth = 180.dp,
-        target = 48.dp,
+internal fun licenceMetricsFor(tv: Boolean, width: Dp, height: Dp): LicenceMetrics {
+    val target = Sizing.minTarget(tv)
+    val price = height.boundedFraction(PRICE, 26.dp, 40.dp)
+    return LicenceMetrics(
+        frame = castivioMetrics(width, height, tv),
+        zoneGap = width.boundedFraction(ZONE_GAP, 30.dp, 72.dp),
+        rowGap = height.boundedFraction(ROW_GAP, 10.dp, 20.dp),
+        capsuleStart = width.boundedFraction(CAPSULE_START, 16.dp, 32.dp),
+        capsule = maxOf(height.boundedFraction(CAPSULE, 48.dp, 72.dp), target),
+        copyGap = width.boundedFraction(COPY_GAP, 12.dp, 30.dp),
+        plansTop = height.boundedFraction(PLANS_TOP, 10.dp, 32.dp),
+        plansGap = width.boundedFraction(PLANS_GAP, 11.dp, 28.dp),
+        // A plan card is the button on this screen, so its floor is a control's.
+        planMinHeight = maxOf(height.boundedFraction(PLAN_MIN, 72.dp, 108.dp), target),
+        planPaddingH = width.boundedFraction(PLAN_PAD_H, 14.dp, 32.dp),
+        planPaddingV = height.boundedFraction(PLAN_PAD_V, 8.dp, 16.dp),
+        priceStyle = priceStyle(price),
+        addressStyle = addressStyle(height.boundedFraction(ADDRESS, 26.dp, 44.dp)),
+        keyStyle = keyStyle(height.boundedFraction(KEY, 20.dp, 34.dp)),
+        statusTop = height.boundedFraction(STATUS_TOP, 8.dp, 20.dp),
+        statusHeight = height.boundedFraction(STATUS_HEIGHT, 20.dp, 28.dp),
+        expiryTop = height.boundedFraction(EXPIRY_TOP, 1.dp, 5.dp),
+        footTop = height.boundedFraction(FOOT_TOP, 6.dp, 18.dp),
+        footBottom = height.boundedFraction(FOOT_BOTTOM, 0.dp, 4.dp),
+        plate = height.boundedFraction(PLATE, 130.dp, 230.dp),
+        platePadding = height.boundedFraction(PLATE_PAD, 7.dp, 16.dp),
+        captionTop = height.boundedFraction(CAPTION_TOP, 8.dp, 20.dp),
+        captionWidth = width.boundedFraction(CAPTION_WIDTH, 155.dp, 330.dp),
+        target = target,
     )
 }
+
+/**
+ * The price, at the size this surface earns it.
+ *
+ * Built from `headlineLarge` rather than declared, so the face, the weight and the
+ * tracking are the design system's decision and only the size is the surface's — and
+ * the leading is `headlineLarge`'s own ratio, which is what keeps [planHeight]
+ * answering with the same arithmetic it did when the style was a token.
+ *
+ * The television lands on 36sp, which is what `displayMedium` set there, so the
+ * approved drawing is reproduced rather than approximated.
+ */
+private fun priceStyle(size: Dp): TextStyle = CastivioType.headlineLarge.copy(
+    fontSize = size.value.sp,
+    lineHeight = (size.value * PRICE_LEADING).sp,
+)
+
+/**
+ * The address, built from the shipped token rather than declared here.
+ *
+ * The family, the weight and the tracking are the design system's decision and only the
+ * size is the surface's. The television lands on 42sp — `codeHero` — and the shortest
+ * phone on 28, which is `codeCompact`, so both drawings are reproduced rather than
+ * approximated.
+ */
+private fun addressStyle(size: Dp): TextStyle = CastivioType.codeHero.copy(
+    fontSize = size.value.sp,
+    lineHeight = (size.value * CODE_LEADING).sp,
+)
+
+/**
+ * The device key, which is the one of the two whose tracking is part of its size.
+ *
+ * `codeKey` sets 24sp at 2.5 and `codeKeyTv` 32 at 3.5 — the same ratio twice, because
+ * six groups of hexadecimal need proportionally more air between them as they grow. So
+ * the tracking is that ratio rather than a third number, and the television still lands
+ * on 32sp at 3.5.
+ */
+private fun keyStyle(size: Dp): TextStyle = CastivioType.codeKeyTv.copy(
+    fontSize = size.value.sp,
+    lineHeight = (size.value * KEY_LEADING).sp,
+    letterSpacing = (size.value * KEY_TRACKING).sp,
+)
+
+/* ------------------------------------------------------------------ the shares
+ *
+ * Read off the 1280×720 reference, which is the 960×540 television drawing at 4/3 —
+ * so the television reproduces its approved numbers exactly. Nothing here was chosen
+ * twice: each is one drawing's value divided by the axis it was drawn on.
+ */
+
+private const val ZONE_GAP = 69.3f / 1280f
+private const val ROW_GAP = 18.7f / 720f
+private const val CAPSULE_START = 32f / 1280f
+private const val CAPSULE = 85.3f / 720f
+private const val COPY_GAP = 29.3f / 1280f
+private const val PLANS_TOP = 32f / 720f
+private const val PLANS_GAP = 26.7f / 1280f
+private const val PLAN_MIN = 128f / 720f
+private const val PLAN_PAD_H = 32f / 1280f
+private const val PLAN_PAD_V = 16f / 720f
+private const val PRICE = 48f / 720f
+private const val ADDRESS = 56f / 720f
+private const val KEY = 42.7f / 720f
+private const val STATUS_TOP = 21.3f / 720f
+private const val STATUS_HEIGHT = 32f / 720f
+private const val EXPIRY_TOP = 4f / 720f
+private const val FOOT_TOP = 17.3f / 720f
+private const val FOOT_BOTTOM = 2.7f / 720f
+private const val PLATE = 277.3f / 720f
+private const val PLATE_PAD = 16f / 720f
+private const val CAPTION_TOP = 20f / 720f
+private const val CAPTION_WIDTH = 314.7f / 1280f
+
+/** `headlineLarge`'s own leading, kept so the price's line box scales with its size. */
+private const val PRICE_LEADING = 40f / 28f
+
+/** `codeHero`'s and `codeKeyTv`'s own leadings, and the key's own tracking ratio. */
+private const val CODE_LEADING = 52f / 42f
+private const val KEY_LEADING = 42f / 32f
+private const val KEY_TRACKING = 3.5f / 32f
 
 /**
  * How much of the frame is left for the middle band.

@@ -160,7 +160,7 @@ internal fun LicenceScreen(
             return@BoxWithConstraints
         }
 
-        val m = licenceMetricsFor(tv, maxHeight)
+        val m = licenceMetricsFor(tv, maxWidth, maxHeight)
         Column(
             Modifier
                 .fillMaxSize()
@@ -187,7 +187,6 @@ internal fun LicenceScreen(
                     modifier = Modifier.testTag(LicenceTags.IDENTITY),
                     state = state,
                     m = m,
-                    tv = tv,
                     onPlan = onPlan,
                     onRetry = onRetry,
                     onSupport = onSupport,
@@ -546,7 +545,6 @@ private fun LanguageChip(m: LicenceMetrics, onClick: () -> Unit) {
 private fun IdentityColumn(
     state: LicenceUiState,
     m: LicenceMetrics,
-    tv: Boolean,
     onPlan: (PlanOffer) -> Unit,
     onRetry: () -> Unit,
     onSupport: () -> Unit,
@@ -568,7 +566,7 @@ private fun IdentityColumn(
             metrics = capsule,
             label = stringResource(R.string.licence_mac_label),
             value = address ?: ADDRESS_PLACEHOLDER,
-            valueStyle = if (tv) CastivioType.codeHero else CastivioType.codeCompact,
+            valueStyle = m.addressStyle,
             copyLabel = stringResource(R.string.licence_copy_mac),
             isCopied = state.addressCopied,
             onCopy = {
@@ -590,7 +588,7 @@ private fun IdentityColumn(
                 metrics = capsule,
                 label = stringResource(R.string.licence_key_label),
                 value = key,
-                valueStyle = if (tv) CastivioType.codeKeyTv else CastivioType.codeKey,
+                valueStyle = m.keyStyle,
                 copyLabel = stringResource(R.string.licence_copy_key),
                 isCopied = state.keyCopied,
                 onCopy = {
