@@ -37,6 +37,7 @@ import androidx.compose.material.icons.rounded.VerifiedUser
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -49,10 +50,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -257,6 +260,22 @@ private data class Plan(
 /**
  * The lockup, what the licence says, and the time.
  *
+ * ## The row is physical, and that is on purpose
+ *
+ * `CastivioHeader` — the header every other screen in the app uses — places its
+ * slots with `place` rather than `placeRelative`, so the mark and the name sit on
+ * the same physical edge in both text directions. A signature that swaps sides per
+ * locale is two signatures, and Home disagreeing with every other screen about
+ * where the brand lives is the worse kind of inconsistency: one nobody can point at,
+ * that just feels unfinished.
+ *
+ * Home said the opposite until now. It was an ordinary `Row`, so in Arabic the
+ * lockup went to the right and the clock to the left — the mirror image of the same
+ * band on the activation screen, the licence screen and the pickers. Declaring this
+ * subtree's own direction pins it, which is the mechanism the platform provides and
+ * the one `CastivioLockup` already uses internally. Invariant 4 forbids a
+ * direction-absolute *API*, not a subtree that states its direction.
+ *
  * The licence pair appears where the stage has the width for it. On a handset the
  * header carries the lockup and the clock, and the licence is still answered — by
  * "Device: activated" in the strip, which is the same fact in the place a short frame
@@ -271,44 +290,46 @@ private fun DashboardHeader(
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
-    Row(
-        modifier.fillMaxWidth().height(height),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(frame.headGap),
-    ) {
-        Column(verticalArrangement = Arrangement.Center) {
-            CastivioLockup(
-                markSize = frame.brand,
-                wordSize = (frame.fsTitle.value * WORD_RATIO).sp,
-            )
-            Text(
-                text = stringResource(R.string.home_tagline),
-                style = castivioChipStyle(frame.fsChip),
-                color = colors.secondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+        Row(
+            modifier.fillMaxWidth().height(height),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(frame.headGap),
+        ) {
+            Column(verticalArrangement = Arrangement.Center) {
+                CastivioLockup(
+                    markSize = frame.brand,
+                    wordSize = (frame.fsTitle.value * WORD_RATIO).sp,
+                )
+                Text(
+                    text = stringResource(R.string.home_tagline),
+                    style = castivioChipStyle(frame.fsChip),
+                    color = colors.secondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
 
-        if (showLicence) {
-            LicenceCard(
-                icon = Icons.Rounded.CheckCircle,
-                label = stringResource(R.string.home_status_licence),
-                value = stringResource(state.plan),
-                tint = if (state.licenceHolds) colors.success else colors.danger,
-                frame = frame,
-            )
-            LicenceCard(
-                icon = Icons.Rounded.CalendarMonth,
-                label = stringResource(R.string.home_status_expires),
-                value = expiryLabel(state.entitlement),
-                tint = colors.hueViolet,
-                frame = frame,
-            )
-        }
+            if (showLicence) {
+                LicenceCard(
+                    icon = Icons.Rounded.CheckCircle,
+                    label = stringResource(R.string.home_status_licence),
+                    value = stringResource(state.plan),
+                    tint = if (state.licenceHolds) colors.success else colors.danger,
+                    frame = frame,
+                )
+                LicenceCard(
+                    icon = Icons.Rounded.CalendarMonth,
+                    label = stringResource(R.string.home_status_expires),
+                    value = expiryLabel(state.entitlement),
+                    tint = colors.hueViolet,
+                    frame = frame,
+                )
+            }
 
-        Box(Modifier.weight(1f))
-        Clock(frame)
+            Box(Modifier.weight(1f))
+            Clock(frame)
+        }
     }
 }
 
