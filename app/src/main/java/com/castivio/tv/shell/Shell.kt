@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -51,10 +52,12 @@ import com.castivio.core.design.components.SectionHeader
 import com.castivio.core.design.components.WatchState
 import com.castivio.core.design.components.WatchedTag
 import com.castivio.core.design.theme.castivioBackdrop
+import com.castivio.core.design.theme.CastivioMetrics
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.MotionLevel
 import com.castivio.core.design.theme.Radius
+import com.castivio.core.design.theme.rememberMetrics
 import com.castivio.core.design.theme.Spacing
 import com.castivio.core.navigation.BackPolicy
 import com.castivio.core.navigation.ShellBack
@@ -378,13 +381,12 @@ private fun NotReadyOverlay(onBack: () -> Unit) {
  * something to fake here.
  */
 @Composable
-private fun FavouritesScreen() {
+private fun FavouritesScreen() = PlaceholderStage { frame ->
     Column(
         Modifier
             .fillMaxSize()
-            .statusBarsPadding()
-            .padding(CastivioTheme.device.screenPadding),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            .padding(frame.edge),
+        verticalArrangement = Arrangement.spacedBy(frame.bandTop),
     ) {
         SectionHeader(title = "Favourites", count = 0)
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -408,17 +410,18 @@ private fun LibraryScreen(onOpenSection: (Dest) -> Unit) {
         Triple(Icons.Filled.Radio, stringResource(CatalogStrings.string.browse_radio), Dest.Radio),
         Triple(Icons.Filled.Favorite, "Favourites", Dest.Favourites),
     )
+    PlaceholderStage { frame ->
     Column(
         Modifier
             .fillMaxSize()
-            .statusBarsPadding()
-            .padding(CastivioTheme.device.screenPadding),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            .padding(frame.edge),
+        verticalArrangement = Arrangement.spacedBy(frame.bandTop),
     ) {
         SectionHeader(title = "Library")
         entries.forEach { (icon, label, target) ->
             SettingRow(icon = icon, label = label, onClick = { onOpenSection(target) })
         }
+    }
     }
 }
 
@@ -434,13 +437,13 @@ private fun SettingsScreen(
     onShowLicence: () -> Unit,
 ) {
     val colors = CastivioTheme.colors
+    PlaceholderStage { frame ->
     Column(
         Modifier
             .fillMaxSize()
-            .statusBarsPadding()
             .verticalScroll(rememberScrollState())
-            .padding(CastivioTheme.device.screenPadding),
-        verticalArrangement = Arrangement.spacedBy(Spacing.lg),
+            .padding(frame.edge),
+        verticalArrangement = Arrangement.spacedBy(frame.bandTop),
     ) {
         SectionHeader(title = "Settings")
 
@@ -499,6 +502,7 @@ private fun SettingsScreen(
         SettingRow(icon = Icons.Filled.Settings, label = "Device class", value = CastivioTheme.device.name)
         SettingRow(icon = Icons.Filled.Settings, label = "Version", value = "1.0.0")
     }
+    }
 }
 
 @Composable
@@ -552,6 +556,25 @@ private fun CategoryChipPlain(label: String, selected: Boolean, onClick: () -> U
             .clickable(interaction, indication = null, onClick = onClick)
             .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
     )
+}
+
+/**
+ * The measured stage the shell's placeholder screens compose on.
+ *
+ * These three are UX-validation screens, not product ones, and they were the last
+ * consumers of `DeviceClass.screenPadding` — a margin chosen by what kind of box this
+ * is, 24dp or 48. They take the product's own stage now, from the surface each is
+ * actually given, so a placeholder does not sit differently from the screen that will
+ * replace it.
+ *
+ * `statusBarsPadding` stays here rather than in each screen: it is an inset the system
+ * demands, and the margin inside it is the design's.
+ */
+@Composable
+private fun PlaceholderStage(content: @Composable (CastivioMetrics) -> Unit) {
+    BoxWithConstraints(Modifier.fillMaxSize().statusBarsPadding()) {
+        content(rememberMetrics(maxWidth, maxHeight))
+    }
 }
 
 // ------------------------------------------------------------------ overlays

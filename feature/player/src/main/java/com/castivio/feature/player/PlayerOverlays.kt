@@ -92,7 +92,7 @@ internal fun OpeningSpinner(state: PlayerState, modifier: Modifier = Modifier) {
         CircularProgressIndicator(
             color = colors.focusRing,
             trackColor = colors.glassFillStrong,
-            modifier = Modifier.size(SPINNER),
+            modifier = Modifier.size(LocalPlayerMetrics.current.spinner),
         )
         Text(
             // "Switching to the backup" while it is happening, "Opening…" otherwise. One
@@ -213,7 +213,7 @@ private fun BoxScope.CentredSpinner(label: String) {
         CircularProgressIndicator(
             color = colors.focusRing,
             trackColor = colors.glassFillStrong,
-            modifier = Modifier.size(SPINNER),
+            modifier = Modifier.size(LocalPlayerMetrics.current.spinner),
         )
         Text(label, style = CastivioType.labelMedium, color = colors.onBackgroundVariant)
     }
@@ -319,7 +319,7 @@ private fun ColumnScope.DiagnosisBlock(diagnosis: PlaybackDiagnosis?) {
         modifier = Modifier
             .padding(top = Spacing.sm)
             .fillMaxWidth()
-            .heightIn(max = REPORT_HEIGHT)
+            .heightIn(max = LocalPlayerMetrics.current.reportHeight)
             .verticalScroll(rememberScrollState())
             .testTag(PlayerTags.DIAGNOSIS),
     )
@@ -332,7 +332,7 @@ private fun ColumnScope.DiagnosisBlock(diagnosis: PlaybackDiagnosis?) {
 }
 
 /** Tall enough for a decoder failure with its chain, short enough to leave the card a card. */
-private val REPORT_HEIGHT = 180.dp
+
 
 /** Which sentences the card carries. One place, so the three stay distinguishable. */
 private data class FailureCopy(val title: Int, val detail: Int)
@@ -566,13 +566,14 @@ private fun StatRow(label: Int, value: String) {
 @Composable
 internal fun BoxScope.PlayerSheet(sheet: Sheet, state: PlayerState, actions: PlayerActions) {
     val colors = CastivioTheme.colors
-    val inset = CastivioTheme.device.screenPadding
+    val m = LocalPlayerMetrics.current
+    val inset = m.inset
 
     Column(
         Modifier
             .align(Alignment.CenterEnd)
             .fillMaxHeight()
-            .fillMaxWidth(sheetWidth())
+            .fillMaxWidth(m.sheetFraction)
             .background(colors.overVideo)
             .testTag(PlayerTags.SHEET),
     ) {
@@ -1172,12 +1173,8 @@ private fun nextSpeed(current: Float): Float {
 
 private const val SPEED_EPSILON = 0.01f
 
-private val SPINNER = 52.dp
 private const val CARD_WIDTH = 0.62f
 private const val STATS_WIDTH = 0.42f
-
-@Composable
-private fun sheetWidth(): Float = if (CastivioTheme.device.isTv) 0.40f else 0.52f
 
 /**
  * The four fits offered, in the order the row steps through them.

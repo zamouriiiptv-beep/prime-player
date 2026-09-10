@@ -85,7 +85,7 @@ internal fun BoxScope.SubtitleLayer(state: PlayerState) {
         Modifier
             .align(style.place.alignment())
             .fillMaxWidth()
-            .padding(horizontal = SIDE_MARGIN, vertical = inset(state))
+            .padding(horizontal = LocalPlayerMetrics.current.captionSide, vertical = inset(state))
             .testTag(PlayerTags.CAPTIONS),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
@@ -121,13 +121,16 @@ internal fun BoxScope.SubtitleLayer(state: PlayerState) {
  */
 @Composable
 private fun inset(state: PlayerState): Dp {
-    // What the chrome takes at the bottom, which is not one figure: a television's controls
-    // are built on a 56dp target and a handset's on 48dp, and the row heights follow.
-    val chrome = if (CastivioTheme.device.isTv) CLEAR_OF_TV_CHROME else CLEAR_OF_CHROME
+    // What the chrome takes at the bottom. It was two figures chosen by device -- 148 on
+    // a handset, 196 on a television -- on the argument that the rows follow the target,
+    // 48 against 56. True, and not the whole of it: the rows also follow the strip, which
+    // is a share of the height. So it is one share now and it lands on both drawings.
+    val m = LocalPlayerMetrics.current
     return when (state.subtitleStyle.place) {
-        SubtitlePlace.Top -> EDGE_MARGIN
-        SubtitlePlace.Raised -> if (state.controls) chrome + RAISE else RAISE
-        SubtitlePlace.Bottom -> if (state.controls) chrome else EDGE_MARGIN
+        SubtitlePlace.Top -> m.captionEdge
+        SubtitlePlace.Raised ->
+            if (state.controls) m.captionClearance + m.captionRaise else m.captionRaise
+        SubtitlePlace.Bottom -> if (state.controls) m.captionClearance else m.captionEdge
     }
 }
 
@@ -154,25 +157,5 @@ internal fun SubtitleSize.type(): TextStyle = when (this) {
 /** A dark halo around the glyphs, so a bright frame cannot swallow them. */
 private fun TextStyle.withOutline(outlined: Boolean, colour: Color): TextStyle =
     if (!outlined) this else copy(shadow = Shadow(colour, Offset.Zero, HALO))
-
-private val SIDE_MARGIN = 32.dp
-
-/** The ordinary resting place: a caption's own margin from the edge of the picture. */
-private val EDGE_MARGIN = 28.dp
-
-/**
- * Clear of the timeline and the tools row, with air above them.
- *
- * The two rows are a touch target each plus the gap between them and the safe inset below
- * — about 128dp on a handset — and a caption resting exactly on that would touch the
- * timeline. The figure has room in it on purpose.
- */
-private val CLEAR_OF_CHROME = 148.dp
-
-/** The same on a television, where every row is built on a 56dp target rather than 48. */
-private val CLEAR_OF_TV_CHROME = 196.dp
-
-/** How much higher Raised sits: above a film's own burnt-in text along the bottom edge. */
-private val RAISE = 68.dp
 
 private const val HALO = 6f

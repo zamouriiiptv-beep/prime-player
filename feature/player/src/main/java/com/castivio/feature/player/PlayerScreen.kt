@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -63,7 +64,7 @@ fun PlayerScreen(
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
-    val inset = CastivioTheme.device.screenPadding
+    val tv = CastivioTheme.device.isTv
 
     BoxWithConstraints(
         modifier
@@ -82,9 +83,18 @@ fun PlayerScreen(
             .testTag(PlayerTags.ROOT),
         contentAlignment = Alignment.Center,
     ) {
+        // Every size the chrome uses, from the surface the player was actually given.
+        // Provided once here rather than threaded through twenty private composables —
+        // see `PlayerMetrics` for why, and for what the eight device branches this
+        // replaces were choosing.
+        val m = playerMetricsFor(tv = tv, width = maxWidth, height = maxHeight)
+        val inset = m.inset
+
         // Where the film actually is. Computed once, here, and used twice: the surface is
         // drawn at this size and the chrome is laid out inside it.
         val picture = surfaceSize(maxWidth, maxHeight, state)
+
+        CompositionLocalProvider(LocalPlayerMetrics provides m) {
 
         VideoSurface(state, actions, picture)
 
@@ -141,6 +151,7 @@ fun PlayerScreen(
         state.sheet?.let { PlayerSheet(it, state, actions) }
 
         if (state.statistics) StatisticsPanel(state, actions, inset)
+        }
     }
 }
 

@@ -320,13 +320,13 @@ private fun ProgrammeStrip(state: PlayerState) {
                 text = programme?.now,
                 style = CastivioType.bodyLarge,
                 colour = colors.onBackground,
-                width = SKELETON_TITLE,
+                width = LocalPlayerMetrics.current.skeletonTitle,
             )
             SkeletonText(
                 text = programme?.window,
                 style = CastivioType.bodySmall,
                 colour = colors.onBackgroundVariant,
-                width = SKELETON_WINDOW,
+                width = LocalPlayerMetrics.current.skeletonWindow,
             )
         }
 
@@ -334,8 +334,8 @@ private fun ProgrammeStrip(state: PlayerState) {
         // that appears with the words would be a second thing moving.
         Box(
             Modifier
-                .width(PROGRESS_WIDTH)
-                .height(PROGRESS_HEIGHT)
+                .width(LocalPlayerMetrics.current.progressWidth)
+                .height(LocalPlayerMetrics.current.progressHeight)
                 .clip(RoundedCornerShape(Radius.pill))
                 .background(colors.glassFillStrong),
         ) {
@@ -509,6 +509,9 @@ private fun Timeline(state: PlayerState, actions: PlayerActions) {
                 ((state.positionMs + state.bufferedMs).toFloat() / duration).coerceIn(0f, 1f)
             else -> played
         }
+        // Read outside the measure scope: `BoxWithConstraints`'s content lambda is not a
+        // `@ReadOnlyComposable` context for an ambient read placed inside a modifier chain.
+        val thumb = thumbSize()
 
         BoxWithConstraints(
             Modifier
@@ -554,7 +557,7 @@ private fun Timeline(state: PlayerState, actions: PlayerActions) {
             Box(
                 Modifier
                     .fillMaxWidth()
-                    .height(TRACK_HEIGHT)
+                    .height(trackHeight())
                     .clip(RoundedCornerShape(Radius.pill))
                     .background(colors.glassFillStrong),
             ) {
@@ -580,8 +583,8 @@ private fun Timeline(state: PlayerState, actions: PlayerActions) {
                 // direction-absolute one, and this is exactly the reason it does.
                 Box(
                     Modifier
-                        .offset(x = (maxWidth - THUMB) * played)
-                        .size(THUMB)
+                        .offset(x = (maxWidth - thumb) * played)
+                        .size(thumb)
                         .clip(CircleShape)
                         .background(colors.primaryBrush)
                         .testTag(PlayerTags.THUMB),
@@ -794,10 +797,14 @@ private const val JUMP_MS = 10_000L
 
 
 
-private val TRACK_HEIGHT = 4.dp
+@Composable
+@ReadOnlyComposable
+private fun trackHeight(): Dp = LocalPlayerMetrics.current.track
 
 /** The head on the bar. Large enough to see against a bright frame, small enough not to hide it. */
-private val THUMB = 14.dp
+@Composable
+@ReadOnlyComposable
+private fun thumbSize(): Dp = LocalPlayerMetrics.current.thumb
 
 /**
  * How often the picture catches up with the finger during a drag.
@@ -808,34 +815,43 @@ private val THUMB = 14.dp
  * screen permanently blank, which is the worse of the two failures.
  */
 private const val SCRUB_PREVIEW_MS = 250L
-private val PROGRESS_WIDTH = 96.dp
-private val PROGRESS_HEIGHT = 3.dp
-private val SKELETON_TITLE = 148.dp
-private val SKELETON_WINDOW = 92.dp
+
 private const val NEXT_WEIGHT = 0.9f
 
-@Composable
-@ReadOnlyComposable
-internal fun barGap(): Dp = if (CastivioTheme.device.isTv) Spacing.lg else Spacing.sm
+/*
+ * The four sizes the transport bar is built on.
+ *
+ * They were `if (CastivioTheme.device.isTv)` — 16 against 8, 24 against 16, 80 against
+ * 64, 56 against 44 — which is a two-row device table asked of an ambient. They are
+ * shares of the measured surface now, from the same ambient with the surface in it; a
+ * television still draws 16, 24, 80 and 56, and every size between the two rows is
+ * interpolated rather than rounded to whichever row the box falls into.
+ */
 
 @Composable
 @ReadOnlyComposable
-internal fun barGapLarge(): Dp = if (CastivioTheme.device.isTv) Spacing.xl else Spacing.lg
+internal fun barGap(): Dp = LocalPlayerMetrics.current.barGap
+
+@Composable
+@ReadOnlyComposable
+internal fun barGapLarge(): Dp = LocalPlayerMetrics.current.barGapLarge
 
 /**
  * The play control, larger than its neighbours on purpose.
  *
  * The drawing puts it at 64dp on a handset and 80 on a television — the one control a thumb
- * finds without looking, and the one a remote lands on first.
+ * finds without looking, and the one a remote lands on first. Its floor is 64 rather than
+ * the device's own target, because "larger than its neighbours" is the design and a
+ * control that shrank to the floor would stop being it.
  */
 @Composable
 @ReadOnlyComposable
-private fun playSize(): Dp = if (CastivioTheme.device.isTv) 80.dp else 64.dp
+private fun playSize(): Dp = LocalPlayerMetrics.current.play
 
-/** The strip's reserved height. A constant, because "reserved" means it cannot vary. */
+/** The strip's reserved height, and never below what this device can land on. */
 @Composable
 @ReadOnlyComposable
-private fun stripHeight(): Dp = if (CastivioTheme.device.isTv) 56.dp else 44.dp
+private fun stripHeight(): Dp = LocalPlayerMetrics.current.strip
 
 /**
  * A duration as digits.
