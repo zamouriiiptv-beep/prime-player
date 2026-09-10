@@ -154,8 +154,11 @@ fun HomeScreen(
     // column underneath it.
     BoxWithConstraints(modifier.fillMaxSize().safeDrawingPadding()) {
         val frame = rememberFrame(maxHeight)
-        val plan = remember(maxHeight, maxWidth, frame, CastivioTheme.device.isTv) {
-            Plan.of(frame, maxHeight, maxWidth, CastivioTheme.device.isTv)
+        // Read outside the lambda: `remember` takes an ordinary function, so a
+        // composable getter cannot be called inside it — only passed into it.
+        val isTv = CastivioTheme.device.isTv
+        val plan = remember(maxHeight, maxWidth, frame, isTv) {
+            Plan.of(frame, maxHeight, maxWidth, isTv)
         }
 
         Column(
