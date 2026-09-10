@@ -8,7 +8,9 @@ import com.castivio.domain.MediaKind
 import com.castivio.domain.PlaylistSource
 import com.castivio.domain.ProviderSource
 import com.castivio.domain.ProviderStatus
+import com.castivio.domain.ProviderStatusCatalogue
 import com.castivio.domain.ProviderValidator
+import com.castivio.domain.Recorded
 import com.castivio.domain.SourceKind
 import com.castivio.domain.SourceRepository
 import com.castivio.domain.SyncState
@@ -17,6 +19,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.yield
@@ -160,9 +163,99 @@ class ActivateProviderTest {
         validator: ProviderValidator,
         importer: CatalogImporter,
         sources: Sources,
-    ) = ActivateProvider(validator, importer, sources)
+        statuses: Statuses = Statuses(),
+    ) = ActivateProvider(validator, importer, sources, statuses)
+
+    /**
+     * What the provider said, kept in memory.
+     *
+     * A record and not a mock: the tests below assert on the *answer that was
+     * stored*, because "the validator returned an expiry" and "the app can still
+     * tell you that expiry tomorrow" are two different guarantees and only the
+     * second one is what a dashboard needs.
+     */
+    private class Statuses : ProviderStatusCatalogue {
+        val stored = mutableMapOf<String, Recorded>()
+
+        override suspend fun record(sourceId: String, status: ProviderStatus, atMs: Long) {
+            stored[sourceId] = Recorded(
+                usable = status.usable,
+                expiresAtMs = status.expiresAtMs,
+                label = status.statusLabel,
+                atMs = atMs,
+            )
+        }
+
+        override fun of(sourceId: String): Flow<Recorded?> = flowOf(stored[sourceId])
+
+        override suspend fun forget(sourceId: String) {
+            stored.remove(sourceId)
+        }
+    }
 
     private fun importOf(vararg progress: ImportProgress) = Importer(progress.toList())
+
+    // ------------------------------------------------ what the provider said, kept
+
+    /**
+     * The defect this exists to prevent, and it shipped: every field of
+     * [ProviderStatus] was read once to decide whether activation could proceed and
+     * then dropped, so a screen could not say when a subscription runs out without
+     * asking the provider again.
+     */
+    @Test
+    fun `a successful connection keeps what the provider said`() = runTest {
+        val statuses = Statuses()
+        val expiry = t0 + 300 * day
+        val activate = activateProvider(
+            Validator(usable(expiresAtMs = expiry)),
+            importOf(),
+            Sources(),
+            statuses,
+        )
+
+        activate.activate(xtream, "Nova", t0, fetchCatalogue = false).toList()
+
+        val kept = statuses.stored.getValue("xtream-1")
+        assertEquals(expiry, kept.expiresAtMs)
+        assertEquals("Active", kept.label)
+        assertEquals(t0, kept.atMs)
+        assertTrue(kept.usable)
+    }
+
+    /** The same guarantee on the path that also downloads, which is a different branch. */
+    @Test
+    fun `an import that succeeds keeps it too`() = runTest {
+        val statuses = Statuses()
+        val expiry = t0 + 90 * day
+        val activate = activateProvider(
+            Validator(usable(expiresAtMs = expiry)),
+            importOf(ImportProgress.Done(1_200, 40)),
+            Sources(),
+            statuses,
+        )
+
+        activate.activate(m3u, "Playlist", t0).toList()
+
+        assertEquals(expiry, statuses.stored.getValue("m3u-1").expiresAtMs)
+    }
+
+    /**
+     * A refusal records nothing, because nothing was activated.
+     *
+     * Recording it would leave an answer attached to a provider the app never saved,
+     * and the next registration of the same id would inherit somebody else's expiry.
+     */
+    @Test
+    fun `a refused provider records nothing`() = runTest {
+        val statuses = Statuses()
+        val refused = Outcome.Success(ProviderStatus(usable = false, statusLabel = "Banned"))
+        val activate = activateProvider(Validator(refused), importOf(), Sources(), statuses)
+
+        activate.activate(xtream, "Nova", t0, fetchCatalogue = false).toList()
+
+        assertTrue(statuses.stored.isEmpty())
+    }
 
     // ------------------------------------------------------------- the happy path
 

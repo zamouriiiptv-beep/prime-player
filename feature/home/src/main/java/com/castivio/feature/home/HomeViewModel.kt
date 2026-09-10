@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.castivio.domain.CatalogRepository
 import com.castivio.domain.MediaKind
 import com.castivio.domain.ProviderSource
+import com.castivio.domain.ProviderStatusCatalogue
+import com.castivio.domain.Recorded
 import com.castivio.domain.SectionCatalogue
 import com.castivio.domain.SourceKind
 import com.castivio.domain.SourceRepository
@@ -51,6 +53,11 @@ data class HomeState(
      * arrives; the gate has already established one by the time Home is drawn.
      */
     val entitlement: EntitlementState? = null,
+    /**
+     * What the provider last said about the subscription, or null if it has never
+     * been asked — which is a different fact from "expired" and reads differently.
+     */
+    val subscription: Recorded? = null,
     /**
      * Which sections are on this device, and when each arrived.
      *
@@ -121,6 +128,7 @@ class HomeViewModel @Inject constructor(
     sources: SourceRepository,
     entitlement: EntitlementRepository,
     marks: SectionCatalogue,
+    statuses: ProviderStatusCatalogue,
     identity: DeviceIdentity,
 ) : ViewModel() {
 
@@ -146,12 +154,18 @@ class HomeViewModel @Inject constructor(
         if (active == null) flowOf(emptyMap()) else marks.loaded(active.id)
     }
 
+    /** The active provider's own last answer, keyed the same way and for the same reason. */
+    private val subscription: Flow<Recorded?> = provider.flatMapLatest { active ->
+        if (active == null) flowOf(null) else statuses.of(active.id)
+    }
+
     val state: StateFlow<HomeState> = combine(
         provider,
         counts,
         entitlement.state,
         sections,
-    ) { source, tally, licence, fetched ->
+        subscription,
+    ) { source, tally, licence, fetched, status ->
         HomeState(
             provider = source?.label,
             sourceKind = source?.kind,
@@ -162,6 +176,7 @@ class HomeViewModel @Inject constructor(
             radioCount = tally.radio,
             entitlement = licence,
             sections = fetched,
+            subscription = status,
             mac = mac,
             loading = false,
         )

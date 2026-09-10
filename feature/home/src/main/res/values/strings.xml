@@ -65,11 +65,6 @@
     <string name="home_source_xtream">Xtream</string>
     <string name="home_source_portal">Portal</string>
 
-    <!-- Castivio own licence, which is not the provider subscription. -->
-    <string name="home_licence_trial">Trial · %1$d days</string>
-    <string name="home_licence_days">%1$d days</string>
-    <string name="home_licence_lifetime">Lifetime</string>
-
     <string name="home_disclaimer">Castivio is a media player. It does not provide channels, films or subscriptions — you add your own.</string>
 
 
@@ -98,14 +93,16 @@
          Castivio's licence, not the provider's subscription. The provider's status
          and expiry are returned by the validator and have nowhere to be stored, so
          they are not shown at all rather than shown from nothing. -->
-    <string name="home_status_licence">Licence</string>
+    <string name="home_status_account">Account status</string>
     <string name="home_status_expires">Expires on</string>
-    <string name="home_plan_trial">Trial</string>
-    <string name="home_plan_annual">Annual</string>
-    <string name="home_plan_lifetime">Lifetime</string>
-    <string name="home_plan_inactive">Inactive</string>
-    <string name="home_expires_never">Never</string>
-    <!-- No expiry is known: an unknown licence, or our service being unreachable. -->
+    <!-- Used only where the provider gave no word of its own. Its own word is
+         preferred, untranslated, because that is what the user sees on their
+         provider's panel and ours disagreeing with theirs helps nobody. -->
+    <string name="home_account_active">Active</string>
+    <string name="home_account_inactive">Inactive</string>
+    <!-- Never asked, which is not the same as refused. -->
+    <string name="home_account_unknown">Not checked</string>
+    <!-- The provider stated no expiry, or was never asked for one. -->
     <string name="home_expires_none">—</string>
 
     <!-- The theme control in the header. Two sentences rather than one, because a

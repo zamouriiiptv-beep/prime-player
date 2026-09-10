@@ -75,7 +75,7 @@ import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.rememberFrame
 import com.castivio.domain.MediaKind
-import com.castivio.domain.entitlement.EntitlementState
+import com.castivio.domain.Recorded
 import java.text.DateFormat
 import java.util.Date
 
@@ -126,11 +126,10 @@ import java.util.Date
  *
  * ## What is deliberately not drawn
  *
- * The reference carries a *provider* subscription status and expiry. The validator
- * returns them and `ProviderSource` has no column to keep them in, so the two header
- * cards carry Castivio's own licence — a real stored answer — and say so. `Time
- * Shift` has no catch-up engine. Nothing on this screen fetches anything: the
- * sections are still brought onto the device by the section that was opened.
+ * `Time Shift` has no catch-up engine, so there is no button for it. Nothing on this
+ * screen fetches anything: the sections are still brought onto the device by the
+ * section that was opened, and the subscription pair in the header is what the
+ * provider said when it was last asked rather than a fresh call.
  */
 @Composable
 fun HomeScreen(
@@ -153,12 +152,7 @@ fun HomeScreen(
     // column underneath it.
     BoxWithConstraints(modifier.fillMaxSize().safeDrawingPadding()) {
         val frame = rememberFrame(maxHeight)
-        // Read outside the lambda: `remember` takes an ordinary function, so a
-        // composable getter cannot be called inside it — only passed into it.
-        val isTv = CastivioTheme.device.isTv
-        val plan = remember(maxHeight, maxWidth, frame, isTv) {
-            Plan.of(frame, maxHeight, maxWidth, isTv)
-        }
+        val plan = remember(maxHeight, frame) { Plan.of(frame, maxHeight) }
 
         Column(
             Modifier
@@ -167,7 +161,7 @@ fun HomeScreen(
                 .padding(top = frame.stageTop, bottom = frame.stageBottom),
             verticalArrangement = Arrangement.spacedBy(frame.bandTop),
         ) {
-            DashboardHeader(state, frame, plan.headerHeight, plan.showLicence)
+            DashboardHeader(state, frame, plan.headerHeight)
 
             when {
                 state.loading -> Box(Modifier.fillMaxSize())
@@ -222,15 +216,13 @@ fun HomeScreen(
  * than a size.
  */
 private data class Plan(
-    /** Whether the header has the width for the licence pair beside the lockup. */
-    val showLicence: Boolean,
     /** The header band: the frame's row plus the strapline this screen sets under it. */
     val headerHeight: Dp,
     val cardHeight: Dp,
     val showDisclaimer: Boolean,
 ) {
     companion object {
-        fun of(frame: CastivioFrame, height: Dp, width: Dp, isTv: Boolean): Plan {
+        fun of(frame: CastivioFrame, height: Dp): Plan {
             val gap = frame.bandTop
             val stage = height - frame.stageTop - frame.stageBottom
 
@@ -247,7 +239,6 @@ private data class Plan(
 
             val showLine = withLine >= MIN_CARD
             return Plan(
-                showLicence = isTv || width >= WIDE_STAGE,
                 headerHeight = header,
                 cardHeight = if (showLine) withLine else withoutLine,
                 showDisclaimer = showLine,
@@ -277,17 +268,18 @@ private data class Plan(
  * the one `CastivioLockup` already uses internally. Invariant 4 forbids a
  * direction-absolute *API*, not a subtree that states its direction.
  *
- * The licence pair appears where the stage has the width for it. On a handset the
- * header carries the lockup and the clock, and the licence is still answered — by
- * "Device: activated" in the strip, which is the same fact in the place a short frame
- * has room for.
+ * The subscription pair is on every frame, and it shrinks rather than disappearing.
+ * A handset is where a user is most likely to be checking whether their subscription
+ * is still good, so hiding the two facts there would drop them from the one frame
+ * that wanted them. `weight(fill = false)` is what makes that safe: each card takes
+ * what its words need and no more, and gives width back when the row is tight, so
+ * the failure mode is an ellipsis rather than a card pushed off the edge.
  */
 @Composable
 private fun DashboardHeader(
     state: HomeState,
     frame: CastivioFrame,
     height: Dp,
-    showLicence: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
@@ -311,22 +303,26 @@ private fun DashboardHeader(
                 )
             }
 
-            if (showLicence) {
-                LicenceCard(
-                    icon = Icons.Rounded.CheckCircle,
-                    label = stringResource(R.string.home_status_licence),
-                    value = stringResource(state.plan),
-                    tint = if (state.licenceHolds) colors.success else colors.danger,
-                    frame = frame,
-                )
-                LicenceCard(
-                    icon = Icons.Rounded.CalendarMonth,
-                    label = stringResource(R.string.home_status_expires),
-                    value = expiryLabel(state.entitlement),
-                    tint = colors.hueViolet,
-                    frame = frame,
-                )
-            }
+            StatusCard(
+                icon = Icons.Rounded.CheckCircle,
+                label = stringResource(R.string.home_status_account),
+                value = subscriptionLabel(state.subscription),
+                tint = when (state.subscription?.usable) {
+                    null -> colors.onBackgroundMuted
+                    true -> colors.success
+                    false -> colors.danger
+                },
+                frame = frame,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            StatusCard(
+                icon = Icons.Rounded.CalendarMonth,
+                label = stringResource(R.string.home_status_expires),
+                value = expiryLabel(state.subscription),
+                tint = colors.hueViolet,
+                frame = frame,
+                modifier = Modifier.weight(1f, fill = false),
+            )
 
             Box(Modifier.weight(1f))
             Clock(frame)
@@ -345,9 +341,9 @@ private fun DashboardHeader(
     }
 }
 
-/** One fact about the licence: what it is called, and what it says. */
+/** One fact about the subscription: what it is called, and what it says. */
 @Composable
-private fun LicenceCard(
+private fun StatusCard(
     icon: ImageVector,
     label: String,
     value: String,
@@ -366,18 +362,23 @@ private fun LicenceCard(
         horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
     ) {
         Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(Sizing.iconMd))
-        Column(verticalArrangement = Arrangement.Center) {
+        // The words give way, not the card: the row above hands this a share it may
+        // be smaller than, and a line that cannot fit its share ellipsizes inside it
+        // rather than pushing the clock off the edge.
+        Column(Modifier.weight(1f, fill = false), verticalArrangement = Arrangement.Center) {
             Text(
                 label,
                 style = castivioChipStyle(frame.fsChip),
                 color = colors.onBackgroundMuted,
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 value,
                 style = castivioChipStyle(frame.fsLabel),
                 color = tint,
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -442,31 +443,41 @@ private fun rememberMinute(): Long {
     return now
 }
 
-/** Which plan this is, in one word, or that there is not one. */
-private val HomeState.plan: Int
-    get() = when (entitlement) {
-        is EntitlementState.TrialActive -> R.string.home_plan_trial
-        is EntitlementState.AnnualActive -> R.string.home_plan_annual
-        EntitlementState.Lifetime -> R.string.home_plan_lifetime
-        else -> R.string.home_plan_inactive
-    }
-
-/** Whether the licence currently permits use, which is the only question the card asks. */
+/** Whether Castivio's own licence permits use. Read by the device strip, not the header. */
 private val HomeState.licenceHolds: Boolean
     get() = entitlement?.allowsUse == true
 
 /**
- * When the licence runs out.
+ * What the provider said about the subscription.
  *
- * Lifetime says so rather than showing a date it does not have, and everything with
- * no expiry shows a dash instead of a date invented from the clock.
+ * Three answers and not two. A provider that has never been asked is not the same as
+ * one that answered "no": the first is a blank the user can fill by refreshing, the
+ * second is a fact about their subscription, and a card that showed "Inactive" for
+ * both would be accusing a working provider of being dead.
+ *
+ * The panel's own word is preferred where it gave one — "Active", "Expired",
+ * "Banned" — because that is the word the user will see if they log into their
+ * provider, and translating it into ours would make the two disagree.
  */
 @Composable
-private fun expiryLabel(state: EntitlementState?): String = when (state) {
-    is EntitlementState.TrialActive -> rememberDate(state.expiresAtMs)
-    is EntitlementState.AnnualActive -> rememberDate(state.expiresAtMs)
-    EntitlementState.Lifetime -> stringResource(R.string.home_expires_never)
-    else -> stringResource(R.string.home_expires_none)
+private fun subscriptionLabel(status: Recorded?): String = when {
+    status == null -> stringResource(R.string.home_account_unknown)
+    !status.label.isNullOrBlank() -> status.label
+    status.usable -> stringResource(R.string.home_account_active)
+    else -> stringResource(R.string.home_account_inactive)
+}
+
+/**
+ * When the subscription runs out.
+ *
+ * A dash where the provider stated no date, and the same dash where it was never
+ * asked — the difference between those two is carried by the card beside this one,
+ * and putting it in both would say it twice.
+ */
+@Composable
+private fun expiryLabel(status: Recorded?): String {
+    val at = status?.expiresAtMs ?: return stringResource(R.string.home_expires_none)
+    return rememberDate(at)
 }
 
 // ------------------------------------------------------------ the four cards
@@ -818,16 +829,6 @@ private fun rememberDate(atMs: Long): String {
         DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(atMs))
     }
 }
-
-/**
- * The stage at which the header has room for the licence pair beside the lockup.
- *
- * The tablet frame is built around a 1000dp content block — see `CastivioFrame` — so
- * this is that block, not a new number. On a narrower stage the two cards would take
- * the clock's room, and the same fact is still answered by "Device: activated" in the
- * strip below.
- */
-private val WIDE_STAGE: Dp = 1000.dp
 
 /**
  * The shortest a section card may be before the disclaimer gives up its band.

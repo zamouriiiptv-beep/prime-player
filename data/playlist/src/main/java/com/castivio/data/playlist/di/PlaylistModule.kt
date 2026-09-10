@@ -13,6 +13,7 @@ import com.castivio.domain.CatalogWriter
 import com.castivio.domain.LoadSection
 import com.castivio.domain.SectionCatalogue
 import com.castivio.domain.PlaylistSource
+import com.castivio.domain.ProviderStatusCatalogue
 import com.castivio.domain.ProviderValidator
 import com.castivio.domain.SourceRepository
 import com.castivio.domain.activation.ActivateProvider
@@ -55,7 +56,7 @@ object PlaylistModule {
     )
 
     /**
-     * The whole activation sequence, assembled from three contracts it does not know
+     * The whole activation sequence, assembled from four contracts it does not know
      * the implementations of. Lives here rather than in the feature because this is
      * where the importer it needs is already bound.
      */
@@ -65,7 +66,8 @@ object PlaylistModule {
         validator: ProviderValidator,
         importer: CatalogImporter,
         sources: SourceRepository,
-    ): ActivateProvider = ActivateProvider(validator, importer, sources)
+        statuses: ProviderStatusCatalogue,
+    ): ActivateProvider = ActivateProvider(validator, importer, sources, statuses)
 
     /**
      * Fetching one section, assembled where the importer it needs is already bound —

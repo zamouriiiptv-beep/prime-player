@@ -56,9 +56,6 @@
     <string name="home_source_xtream">Xtream</string>
     <string name="home_source_portal">بوابة</string>
 
-    <string name="home_licence_trial">تجربة · %1$d أيام</string>
-    <string name="home_licence_days">%1$d يومًا</string>
-    <string name="home_licence_lifetime">مدى الحياة</string>
 
     <string name="home_disclaimer">Castivio مشغّل وسائط. لا يوفّر قنوات ولا أفلامًا ولا اشتراكات — أنت من يضيفها.</string>
 
@@ -83,13 +80,11 @@
     <string name="home_fetched_at">محفوظ محليًا · %1$s</string>
 
 
-    <string name="home_status_licence">الترخيص</string>
+    <string name="home_status_account">حالة الاشتراك</string>
     <string name="home_status_expires">ينتهي في</string>
-    <string name="home_plan_trial">تجربة</string>
-    <string name="home_plan_annual">سنوي</string>
-    <string name="home_plan_lifetime">مدى الحياة</string>
-    <string name="home_plan_inactive">غير مفعّل</string>
-    <string name="home_expires_never">لا ينتهي</string>
+    <string name="home_account_active">نشط</string>
+    <string name="home_account_inactive">غير نشط</string>
+    <string name="home_account_unknown">لم يُفحص</string>
     <string name="home_expires_none">—</string>
 
     <string name="home_theme_lighter">التبديل إلى الوضع الأفتح</string>
