@@ -111,21 +111,21 @@ class ActivationLayoutTest {
     @Test
     fun `every mandatory element is placed on a landscape phone`() {
         compose.setContent { Screen(Frame.Phone) }
-        compose.assertActivationIsWhole()
+        compose.assertActivationIsWhole(Frame.Phone)
     }
 
     @Config(qualifiers = "w1280dp-h800dp-land-television")
     @Test
     fun `every mandatory element is placed on a television`() {
         compose.setContent { Screen(Frame.Television) }
-        compose.assertActivationIsWhole(television = true)
+        compose.assertActivationIsWhole(Frame.Television, television = true)
     }
 
     /** The shortest phone Castivio ships to, where the band has least to spare. */
     @Test
     fun `every mandatory element is placed on the shortest phone`() {
         compose.setContent { Screen(Frame.ShortPhone) }
-        compose.assertActivationIsWhole()
+        compose.assertActivationIsWhole(Frame.ShortPhone)
     }
 
     /**
@@ -235,7 +235,7 @@ class ActivationLayoutTest {
                 }
             }
         }
-        val failed = runCatching { compose.assertActivationIsWhole() }.isFailure
+        val failed = runCatching { compose.assertActivationIsWhole(Frame.Phone) }.isFailure
         if (!failed) {
             fail(
                 "The screen was composed in the scrolling form frame -- the exact " +
@@ -338,24 +338,27 @@ private fun restingIdentity() = ActivationIdentityState(
 private val MIN_TARGET = 48.dp
 
 /**
- * The surface both `@Config` qualifiers in this file declare.
- *
- * Stated once and used by the assertions that need to know how large the screen was
- * composed, because every size on the screen is now derived from it. If a qualifier
- * above changes, this changes with it — a mismatch is a test comparing a screen drawn
- * at one size against numbers computed for another, which is the exact fault that once
- * put the 873dp handset on the 800dp drawing.
- */
-private val HARNESS_SURFACE = 1280.dp to 800.dp
-
-/**
  * Everything §14 of the approved contract requires, present and at a real size.
  *
  * Collected rather than asserted one at a time, so a failure names every missing
  * element instead of the first one — when a whole band goes, that is the
  * difference between "the QR is missing" and "the band is missing".
  */
-private fun ComposeContentTestRule.assertActivationIsWhole(television: Boolean = false) {
+private fun ComposeContentTestRule.assertActivationIsWhole(
+    /**
+     * The surface the screen was actually composed into — the `requiredSize` box, not
+     * the `@Config` qualifier, which configures only the resource table.
+     *
+     * It has to be a parameter now. Every size on this screen is derived from the
+     * surface, so an assertion about a drawn size has to be computed from the same
+     * surface the drawing was given; taking it from the qualifier compares a screen
+     * drawn at 393dp against numbers computed for 800, which is the same class of
+     * fault as reading a height 48dp short of the display and landing on the wrong
+     * row of a table.
+     */
+    frame: Frame,
+    television: Boolean = false,
+) {
     val missing = mutableListOf<String>()
 
     fun check(what: String, finder: () -> Unit) {
@@ -431,11 +434,8 @@ private fun ComposeContentTestRule.assertActivationIsWhole(television: Boolean =
     // measured height with the device's touch floor under it, so it is computed from
     // the surface this test configures rather than from a table row picked by hand.
     // One dp of slack, because the rendered height goes through pixels and back.
-    val pill = metricsFor(
-        tv = television,
-        width = HARNESS_SURFACE.first,
-        height = HARNESS_SURFACE.second,
-    ).capsule - 1.dp
+    val pill = metricsFor(tv = television, width = frame.width, height = frame.height)
+        .capsule - 1.dp
     byTag("the MAC capsule", ActivationTags.MAC_CAPSULE, min = pill)
     byTag("the device key capsule", ActivationTags.KEY_CAPSULE, min = pill)
 
