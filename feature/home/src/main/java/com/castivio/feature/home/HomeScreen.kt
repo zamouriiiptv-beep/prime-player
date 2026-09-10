@@ -707,14 +707,15 @@ private fun SectionLabels(
  * What a viewer does from Home that is not "open a section": seven controls, in the
  * approved order.
  *
- * ## Small pills, one gap, packed together
+ * ## Small pills, one gap, centred
  *
- * Each is as wide as its own label and no wider, and the gap between any two is the
- * frame's own `chipPad`. Two other arrangements were tried and both were worse:
- * `space-between` pushed the leftover width *between* the buttons as gaps of three
- * different sizes, and equal shares spent it by inflating every pill to the width of
- * the longest label. The spare width belongs at the end of the row, where it is
- * simply the edge of the stage.
+ * Each is as wide as its own label and no wider, the gap between any two is the
+ * frame's own `chipPad`, and the row is centred so what is left over is the same
+ * margin on each side. Three arrangements were tried before this one and each spent
+ * the spare width somewhere worse: `space-between` pushed it *between* the buttons as
+ * gaps of three different sizes, equal shares spent it by inflating every pill to the
+ * width of the longest label, and packing at the leading edge left the whole
+ * remainder against one margin.
  *
  * ## One line each
  *
@@ -754,7 +755,10 @@ private fun ActionRow(
 ) {
     Row(
         modifier.fillMaxWidth().height(frame.touchTarget),
-        horizontalArrangement = Arrangement.spacedBy(frame.chipPad),
+        // Centred, so the spare width is the same on both sides. Packed at the
+        // leading edge it left the whole remainder against one margin, which reads
+        // as a row that failed to fill rather than as one that is the size it is.
+        horizontalArrangement = Arrangement.spacedBy(frame.chipPad, Alignment.CenterHorizontally),
     ) {
         Action(Icons.Rounded.Refresh, stringResource(R.string.home_refresh), frame, onRefresh)
         Action(Icons.Rounded.PlaylistAdd, stringResource(R.string.home_change), frame, onAddSource)
@@ -885,7 +889,10 @@ private fun Disclaimer(frame: CastivioFrame, modifier: Modifier = Modifier) {
     Row(
         modifier.fillMaxWidth().height(frame.chip),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
+        horizontalArrangement = Arrangement.spacedBy(
+            frame.chipPad / 2,
+            Alignment.CenterHorizontally,
+        ),
     ) {
         Icon(
             Icons.Rounded.Shield,
