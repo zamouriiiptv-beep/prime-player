@@ -137,8 +137,8 @@ body{font-family:"Castivio Sans","Castivio Arabic","Noto Sans",sans-serif;
 .labels .c{line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* ------------------------------------------------------------ the actions */
-.acts{flex:0 0 auto;display:flex;justify-content:space-between}
-.act{flex:0 1 auto;min-width:0;display:flex;align-items:center;justify-content:center;
+.acts{flex:0 0 auto;display:flex}
+.act{flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center;
   background:linear-gradient(180deg,var(--glass-hi),var(--glass-lo));
   border:1px solid var(--edge);box-shadow:var(--rim)}
 .act svg{flex:0 0 auto;display:block;color:var(--violet)}
@@ -303,7 +303,7 @@ var GLYPH = { live:P.live, movie:P.movie, series:P.series, radio:P.radio };
 var ACTIONS = [
   { i:P.refresh, t:'تحديث' },
   { i:P.add,     t:'تغيير الاشتراك' },
-  { i:P.clock,   t:'المشاهدة المؤجَّلة' },
+  { i:P.clock,   t:'Time Shift' },
   { i:P.gear,    t:'الإعدادات' },
   { i:P.info,    t:'حول' },
   { i:P.power,   t:'خروج' }

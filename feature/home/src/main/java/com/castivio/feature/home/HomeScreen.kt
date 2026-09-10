@@ -708,13 +708,13 @@ private fun SectionLabels(
  * What a viewer does from Home that is not "open a section": seven controls, in the
  * approved order.
  *
- * ## Sized by their words
+ * ## An equal share each, and one gap between them
  *
- * Not an equal share each. "Exit" is one short word and "Change playlist" is three,
- * and padding the first out to the width of the second leaves a hole in the row where
- * a button should be. `weight(fill = false)` gives each pill what its label needs and
- * takes width back only when the row runs out, so the failure mode on the shortest
- * frame is an ellipsis rather than a control pushed off the edge.
+ * They were sized by their words, which left the leftover width to collect between
+ * the pills as gaps of three different sizes — a row that reads as broken rather than
+ * as spaced. Equal shares spend that width inside the buttons instead: every gap is
+ * the frame's own `bandTop` and every pill is the same size, with its label centred
+ * and ellipsized if a translation ever outgrows its share.
  *
  * ## One line each
  *
@@ -757,7 +757,7 @@ private fun ActionRow(
         horizontalArrangement = Arrangement.spacedBy(frame.bandTop),
     ) {
         Action(Icons.Rounded.Refresh, stringResource(R.string.home_refresh), frame, onRefresh)
-        Action(Icons.Rounded.PlaylistAdd, stringResource(R.string.home_change_source), frame, onAddSource)
+        Action(Icons.Rounded.PlaylistAdd, stringResource(R.string.home_change), frame, onAddSource)
         Action(Icons.Rounded.History, stringResource(R.string.home_time_shift), frame, onTimeShift)
         Action(Icons.Rounded.Settings, stringResource(R.string.home_settings), frame, onSettings)
         Action(Icons.Rounded.Info, stringResource(R.string.home_about), frame, onAbout)
@@ -775,13 +775,13 @@ private fun RowScope.Action(
     val colors = CastivioTheme.colors
     InteractiveGlassCard(
         onClick = onClick,
-        modifier = Modifier.weight(1f, fill = false).fillMaxHeight(),
+        modifier = Modifier.weight(1f).fillMaxHeight(),
         shape = RoundedCornerShape(frame.radius / 2),
     ) {
         Row(
-            Modifier.fillMaxHeight().padding(horizontal = frame.chipPad),
+            Modifier.fillMaxSize().padding(horizontal = frame.chipPad),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
+            horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2, Alignment.CenterHorizontally),
         ) {
             Text(
                 label,

@@ -91,8 +91,11 @@
     <string name="home_theme_darker">التبديل إلى الوضع الأغمق</string>
 
     <string name="home_refresh">تحديث</string>
+    <string name="home_change">تغيير الاشتراك</string>
     <string name="home_language">اللغة</string>
-    <string name="home_time_shift">المشاهدة المؤجَّلة</string>
+    <!-- Untranslated, as the approved row has it: the feature is known by its
+         English name and the Arabic rendering is three times as wide. -->
+    <string name="home_time_shift">Time Shift</string>
     <string name="home_about">حول</string>
     <string name="home_exit">خروج</string>
 

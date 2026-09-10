@@ -116,6 +116,9 @@
     <!-- Asks the provider again what it says. It downloads no catalogue — sections
          are still fetched by the section that was opened. -->
     <string name="home_refresh">Refresh</string>
+    <!-- The row wants a short label; the empty state, which has the width for a
+         sentence, keeps `home_change_source`. -->
+    <string name="home_change">Change subscription</string>
     <!-- The header chip, worded as the other screens word theirs. -->
     <string name="home_language">Language</string>
     <!-- Catch-up. There is no engine for it in this build, and pressing it says so. -->
