@@ -108,6 +108,13 @@
     <!-- No expiry is known: an unknown licence, or our service being unreachable. -->
     <string name="home_expires_none">—</string>
 
+    <!-- The theme control in the header. Two sentences rather than one, because a
+         screen reader should announce what the press will do, and that is a
+         different sentence on each ground. Copy lives with the screen: a shared
+         component may not own it. -->
+    <string name="home_theme_lighter">Switch to the lighter theme</string>
+    <string name="home_theme_darker">Switch to the darker theme</string>
+
     <!-- Castivio's licence, and the language chooser that lives on the same screen. -->
     <string name="home_action_licence">Licence &amp; language</string>
 

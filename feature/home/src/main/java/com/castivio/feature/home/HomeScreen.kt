@@ -62,6 +62,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.castivio.core.design.components.CastivioLockup
+import com.castivio.core.design.components.CastivioThemeSwitchChip
 import com.castivio.core.design.components.EmptyState
 import com.castivio.core.design.components.InteractiveGlassCard
 import com.castivio.core.design.components.castivioBodyStyle
@@ -329,6 +330,17 @@ private fun DashboardHeader(
 
             Box(Modifier.weight(1f))
             Clock(frame)
+            // The trailing end of the header, which is where every other screen
+            // puts it. `CastivioThemeSwitchChip` draws nothing where no switch has
+            // been provided, so a preview or a test measuring something else does
+            // not have to know whether to ask for one.
+            CastivioThemeSwitchChip(
+                chip = frame.chip,
+                touchTarget = frame.touchTarget,
+                fontSize = frame.fsChip,
+                toLighter = stringResource(R.string.home_theme_lighter),
+                toDarker = stringResource(R.string.home_theme_darker),
+            )
         }
     }
 }

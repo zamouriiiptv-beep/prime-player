@@ -92,6 +92,9 @@
     <string name="home_expires_never">لا ينتهي</string>
     <string name="home_expires_none">—</string>
 
+    <string name="home_theme_lighter">التبديل إلى الوضع الأفتح</string>
+    <string name="home_theme_darker">التبديل إلى الوضع الأغمق</string>
+
     <string name="home_action_licence">الترخيص واللغة</string>
 
     <string name="home_device_mac">MAC: %1$s</string>
