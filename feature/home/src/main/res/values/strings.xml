@@ -116,9 +116,8 @@
     <!-- Asks the provider again what it says. It downloads no catalogue — sections
          are still fetched by the section that was opened. -->
     <string name="home_refresh">Refresh</string>
-    <!-- %1$s is the language's own name. Inside the label rather than under it: a
-         row with one two-line button among six single-line ones has a step in it. -->
-    <string name="home_language">Language (%1$s)</string>
+    <!-- The header chip, worded as the other screens word theirs. -->
+    <string name="home_language">Language</string>
     <!-- Catch-up. There is no engine for it in this build, and pressing it says so. -->
     <string name="home_time_shift">Time Shift</string>
     <string name="home_about">About</string>

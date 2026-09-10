@@ -91,7 +91,7 @@
     <string name="home_theme_darker">التبديل إلى الوضع الأغمق</string>
 
     <string name="home_refresh">تحديث</string>
-    <string name="home_language">اللغة (%1$s)</string>
+    <string name="home_language">اللغة</string>
     <string name="home_time_shift">المشاهدة المؤجَّلة</string>
     <string name="home_about">حول</string>
     <string name="home_exit">خروج</string>

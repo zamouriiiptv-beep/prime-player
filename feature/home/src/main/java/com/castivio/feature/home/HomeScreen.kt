@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
@@ -50,6 +52,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
@@ -147,8 +151,6 @@ fun HomeScreen(
     onAbout: () -> Unit,
     /** Opens the language chooser. */
     onLanguage: () -> Unit,
-    /** What Castivio is set to, shown under the language button. */
-    language: String,
     /** Ask to leave. The confirmation is the application's, not this screen's. */
     onExit: () -> Unit,
     /** The build's version name. Passed in because `:feature:home` has no BuildConfig. */
@@ -172,7 +174,7 @@ fun HomeScreen(
                 .padding(top = frame.stageTop, bottom = frame.stageBottom),
             verticalArrangement = Arrangement.spacedBy(frame.bandTop),
         ) {
-            DashboardHeader(state, frame, plan.headerHeight)
+            DashboardHeader(state, frame, plan.headerHeight, onLanguage)
 
             when {
                 state.loading -> Box(Modifier.fillMaxSize())
@@ -207,11 +209,9 @@ fun HomeScreen(
                 else -> {
                     SectionCards(state, frame, plan, onSeeSection)
                     ActionRow(
-                        language = language,
                         frame = frame,
                         onRefresh = model::refresh,
                         onAddSource = onAddSource,
-                        onLanguage = onLanguage,
                         onTimeShift = onTimeShift,
                         onSettings = onSettings,
                         onAbout = onAbout,
@@ -301,6 +301,7 @@ private fun DashboardHeader(
     state: HomeState,
     frame: CastivioFrame,
     height: Dp,
+    onLanguage: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
@@ -347,10 +348,11 @@ private fun DashboardHeader(
 
             Box(Modifier.weight(1f))
             Clock(frame)
-            // The trailing end of the header, which is where every other screen
-            // puts it. `CastivioThemeSwitchChip` draws nothing where no switch has
-            // been provided, so a preview or a test measuring something else does
-            // not have to know whether to ask for one.
+            // The trailing end of the header, in the order the other five screens
+            // use: the page's own control keeps the outer end and the theme sits
+            // just inside it. `CastivioThemeSwitchChip` draws nothing where no
+            // switch has been provided, so a preview or a test measuring something
+            // else does not have to know whether to ask for one.
             CastivioThemeSwitchChip(
                 chip = frame.chip,
                 touchTarget = frame.touchTarget,
@@ -358,6 +360,7 @@ private fun DashboardHeader(
                 toLighter = stringResource(R.string.home_theme_lighter),
                 toDarker = stringResource(R.string.home_theme_darker),
             )
+            LanguageChip(frame, onLanguage)
         }
     }
 }
@@ -400,6 +403,58 @@ private fun StatusCard(
                 color = tint,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+/**
+ * The language, in the corner the rest of the app keeps it in.
+ *
+ * The same pill the activation and licence screens draw: the word, then the globe,
+ * at the outer end of the header with the theme control just inside it. It says
+ * "Language" rather than naming the current one, because that is what the other
+ * screens say and a header that disagreed with them about its own furniture would be
+ * the kind of inconsistency nobody can point at.
+ *
+ * Local to this screen rather than shared, which is the same call the other screens
+ * made: a chip is a screen's own furniture, and the one shared piece here — the theme
+ * switch — is shared because it carries state, not because it is a pill.
+ */
+@Composable
+private fun LanguageChip(frame: CastivioFrame, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = CastivioTheme.colors
+    val label = stringResource(R.string.home_language)
+    val shape = RoundedCornerShape(percent = 50)
+
+    Box(
+        modifier
+            .heightIn(min = frame.touchTarget)
+            .clickable(onClick = onClick)
+            .clearAndSetSemantics { contentDescription = label },
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(
+            Modifier
+                .height(frame.chip)
+                .clip(shape)
+                .background(colors.glassFill)
+                .border(BorderStroke(1.dp, colors.edgeQuiet), shape)
+                .padding(horizontal = frame.chipPad),
+            horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = label,
+                style = castivioChipStyle(frame.fsChip),
+                color = colors.onBackgroundVariant,
+                maxLines = 1,
+            )
+            Icon(
+                imageVector = Icons.Rounded.Language,
+                contentDescription = null,
+                tint = colors.onBackgroundMuted,
+                modifier = Modifier.size(Sizing.iconMd),
             )
         }
     }
@@ -665,9 +720,11 @@ private fun SectionLabels(
  *
  * ## One line each
  *
- * The language's code rides inside its own label — "Language (AR)" — rather than
- * sitting on a second line under it. A row where one button is two lines tall and the
- * rest are one is a row with a step in it, and the step reads as an error.
+ * No button carries a second line. A row where one is two lines tall and the rest are
+ * one has a step in it, and the step reads as an error.
+ *
+ * The language is not on this row: it sits in the header, at the outer end, with the
+ * theme control just inside it — the corner the other five screens keep it in.
  *
  * ## Search is not here, and that is checked rather than assumed
  *
@@ -688,11 +745,9 @@ private fun SectionLabels(
  */
 @Composable
 private fun ActionRow(
-    language: String,
     frame: CastivioFrame,
     onRefresh: () -> Unit,
     onAddSource: () -> Unit,
-    onLanguage: () -> Unit,
     onTimeShift: () -> Unit,
     onSettings: () -> Unit,
     onAbout: () -> Unit,
@@ -705,7 +760,6 @@ private fun ActionRow(
     ) {
         Action(Icons.Rounded.Refresh, stringResource(R.string.home_refresh), frame, onRefresh)
         Action(Icons.Rounded.PlaylistAdd, stringResource(R.string.home_change_source), frame, onAddSource)
-        Action(Icons.Rounded.Language, stringResource(R.string.home_language, language), frame, onLanguage)
         Action(Icons.Rounded.History, stringResource(R.string.home_time_shift), frame, onTimeShift)
         Action(Icons.Rounded.Settings, stringResource(R.string.home_settings), frame, onSettings)
         Action(Icons.Rounded.Info, stringResource(R.string.home_about), frame, onAbout)

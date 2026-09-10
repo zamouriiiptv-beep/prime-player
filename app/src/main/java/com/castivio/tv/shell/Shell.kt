@@ -218,9 +218,6 @@ fun ShellScreen(
                     // What "about" means here is what this build is: its licence, the
                     // device it is bound to, and its version. That screen exists.
                     onAbout = { overlay = Overlay.Licence },
-                    // The language's own name in its own script, which is what a chooser
-                    // shows and what a reader looking for their own language scans for.
-                    language = LocalLocaleController.current.current.language.nativeName,
                     onExit = onExit,
                     // The version belongs to the build, and `BuildConfig` belongs to
                     // `:app`. Passing it keeps `:feature:home` free of one.
