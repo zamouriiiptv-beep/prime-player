@@ -17,6 +17,13 @@ import org.junit.Test
  * `headlineSmall` against `titleMedium`. A test against those would have asserted only
  * that somebody typed the same two numbers twice.
  *
+ * The title's branch is the one that is only **half** gone, deliberately. Those two
+ * tokens differ in weight as well as in size; the size is [DialogMetrics.title] now and
+ * the weight is still chosen by the device, because re-weighting one device's dialog
+ * title is a typography decision and not the residue of a sizing migration. So what is
+ * asserted below is the step, which this file owns, and not the face, which it does
+ * not.
+ *
  * A share can be wrong in ways a table cannot: a panel wider than the surface it is
  * centred in, a corner that keeps growing on a 4K set until the panel reads as a
  * lozenge, a title under the step a dialog has to be legible at from three metres. Those

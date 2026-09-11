@@ -199,6 +199,7 @@ private fun DialogPanel(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val colors = CastivioTheme.colors
+    val tv = CastivioTheme.device.isTv
 
     BoxWithConstraints(
         modifier
@@ -241,10 +242,16 @@ private fun DialogPanel(
         ) {
             Text(
                 text = title,
-                style = CastivioType.headlineSmall.copy(
-                    fontSize = m.title.value.sp,
-                    lineHeight = (m.title.value * TITLE_LEADING).sp,
-                ),
+                // **Weight is the device's; only the size is the surface's.**
+                //
+                // This picks the same two tokens it always picked, and overwrites the
+                // one thing it is allowed to: the step. See [TITLE] for why the weight
+                // stayed behind.
+                style = (if (tv) CastivioType.headlineSmall else CastivioType.titleMedium)
+                    .copy(
+                        fontSize = m.title.value.sp,
+                        lineHeight = (m.title.value * TITLE_LEADING).sp,
+                    ),
                 color = colors.onBackground,
                 modifier = Modifier.semantics { heading() },
             )
@@ -310,14 +317,24 @@ private val R_MIN: Dp = 20.dp
 private val R_MAX: Dp = 32.dp
 
 /**
- * The title's step, and the one place this file changes a **typeface** decision.
+ * The title's step — and **only** its step.
  *
- * It was `if (tv) headlineSmall else titleMedium` — two tokens for one role, which is
- * a device table with a second thing wrong with it: the two differ in weight as well as
- * in size, so a dialog title was semibold across a room and medium in the hand for no
- * reason either token could state. One token now, at a bounded step, and the bounds are
- * chosen so both drawn sizes come back exactly: 18dp at 960×540 and 15 on every handset
- * frame. What moves is the phone's weight, medium to semibold — one dialog, one title.
+ * The title was `if (tv) headlineSmall else titleMedium`, and those two tokens differ in
+ * exactly three properties: `fontWeight`, `fontSize` and `lineHeight`. Two of the three
+ * are a size, and a size chosen by the device's name is what this migration removes, so
+ * they come off this share instead — bounded so both drawn steps come back exactly, 18dp
+ * at 960×540 and 15 on every handset frame.
+ *
+ * The third is not a size, and it stays where it was. Collapsing the pair to one token
+ * would have decided a **weight** by side effect: whichever token was kept, one of the
+ * two devices would have had its dialog title re-weighted — semibold in the hand, or
+ * medium across a room — and neither is a decision this migration was asked to make.
+ * Typography is not in its remit, so the branch that selects the weight is left intact
+ * and the branch that selected a size is gone. That is the whole distinction the phase
+ * is about, in one expression.
+ *
+ * If the two weights should become one, that is a typography decision, taken on its own
+ * and in its own commit, against both devices rather than as the residue of a refactor.
  */
 private const val TITLE = 24f / 720f
 private val TITLE_MIN: Dp = 15.dp
