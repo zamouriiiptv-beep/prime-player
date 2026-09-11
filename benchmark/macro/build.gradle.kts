@@ -44,6 +44,11 @@ android {
         create("benchmark") {
             isDebuggable = true
             signingConfig = signingConfigs.getByName("debug")
+            // `:core:platform` is an ordinary Android library and has only `debug` and
+            // `release`. Without a fallback, resolving `benchmark` against it fails at
+            // configuration time -- the same requirement, and the same one-line answer,
+            // as the `benchmark` type in `:app`.
+            matchingFallbacks += listOf("debug")
         }
     }
 
