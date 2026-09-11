@@ -48,7 +48,7 @@ object HttpClientProvider {
         // is when a saved handshake is actually worth something.
         .connectionPool(ConnectionPool(MAX_IDLE_CONNECTIONS, KEEP_ALIVE_MINUTES, TimeUnit.MINUTES))
         .apply {
-            if (eventListenerFactory != null) eventListener(eventListenerFactory)
+            if (eventListenerFactory != null) eventListenerFactory(eventListenerFactory)
             // The cache budget comes from the device's own capabilities: a Fire
             // Stick has a few gigabytes of storage in total, a Shield has a disk.
             if (cacheDirectory != null && cacheBytes > 0) {
