@@ -60,6 +60,7 @@ import com.castivio.core.design.theme.CastivioMetrics
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Motion
 import com.castivio.core.design.theme.Spacing
+import com.castivio.core.design.theme.boundedFraction
 import com.castivio.core.design.theme.castivioStage
 import com.castivio.core.design.theme.rememberMetrics
 
@@ -133,6 +134,13 @@ fun LanguagePicker(
         val frame = rememberMetrics(maxWidth, maxHeight, tv)
         val shape = RoundedCornerShape(frame.radius)
         val columns = columnsFor(maxWidth - frame.edge * 2)
+        // The last two sizes on this screen that were chosen by the device's name:
+        // `if (tv) Spacing.md else Spacing.sm` between and inside the cells, and
+        // `if (tv) Spacing.sm else Spacing.xs` between a tick and the name beside it.
+        // Shares of the axis each spends now, bounded, reproducing the television's
+        // 12 and 8 exactly. See [CELL_GAP] and [TICK_GAP].
+        val cellGap = cellGapFor(maxWidth)
+        val tickGap = tickGapFor(maxHeight)
 
         // Opens on the language Castivio is in. With 37 entries and no search, the
         // one thing a returning user reliably wants is to see where they already are.
@@ -165,7 +173,7 @@ fun LanguagePicker(
                     horizontal = frame.headGap,
                     vertical = frame.bandTop,
                 ),
-                horizontalArrangement = Arrangement.spacedBy(if (tv) Spacing.md else Spacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(cellGap),
                 verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
             ) {
                 items(languages, key = { it.name }) { language ->
@@ -174,6 +182,8 @@ fun LanguagePicker(
                         isSelected = language == selected,
                         frame = frame,
                         tv = tv,
+                        cellGap = cellGap,
+                        tickGap = tickGap,
                         onPick = { onPick(language) },
                         modifier = if (language == selected) {
                             Modifier.focusRequester(selectedFocus)
@@ -237,7 +247,10 @@ private fun LanguageRow(
     language: CastivioLanguage,
     isSelected: Boolean,
     frame: CastivioMetrics,
+    /** Only for the focus ring's weight, which is a legibility rule -- see below. */
     tv: Boolean,
+    cellGap: Dp,
+    tickGap: Dp,
     onPick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -268,9 +281,16 @@ private fun LanguageRow(
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
             .clip(shape)
             .background(if (isSelected) colors.selectedFill else Color.Transparent)
+            // **Retained, and the one `if (tv)` left on this screen.** Not a margin: it
+            // is how thick the focus ring is drawn, and a ring is the only thing on a
+            // television telling a viewer where the remote is. A hairline that reads
+            // in the hand at 30cm does not read across a room, and the answer is not a
+            // share of the surface -- a fractional-dp border is a border that
+            // disappears on some densities and doubles on others. Two weights, chosen
+            // by whether there is a remote, which is a capability and not a size.
             .border(BorderStroke(if (tv) 2.dp else 1.dp, border), shape)
             .clickable(interaction, indication = null, onClick = onPick)
-            .padding(horizontal = if (tv) Spacing.md else Spacing.sm)
+            .padding(horizontal = cellGap)
             // One announcement for the row, carrying the name and whether this is
             // the current language. Two children announcing separately is how a
             // reader ends up saying "check mark, English".
@@ -282,7 +302,7 @@ private fun LanguageRow(
                 }
                 selected = isSelected
             },
-        horizontalArrangement = Arrangement.spacedBy(if (tv) Spacing.sm else Spacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(tickGap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.size(TICK), contentAlignment = Alignment.Center) {
@@ -347,6 +367,25 @@ private fun columnsFor(available: Dp): Int =
 
 /** The narrowest a name-and-tick column may be before the names start to clip. */
 private val NAME_COLUMN = 216.dp
+
+/* ------------------------------------------------------------------ the shares
+ *
+ * Read off the 1280x720 reference, which is the 960x540 television drawing at 4/3, so
+ * the television reproduces the 12dp and 8dp it was drawn with and the handset is
+ * interpolated instead of handed the other row of a two-row table.
+ *
+ * The cell gap spends width -- it is the space between columns of the grid and the
+ * inset inside a row -- and the tick gap spends height, because what it separates is a
+ * glyph from a line of type.
+ */
+private const val CELL_GAP = 16f / 1280f
+private const val TICK_GAP = 10.67f / 720f
+
+/** Between the grid's columns, and inside a row, from the width the panel has. */
+internal fun cellGapFor(width: Dp): Dp = width.boundedFraction(CELL_GAP, 8.dp, 18.dp)
+
+/** Between a tick and the name beside it, from the height a line of type lives in. */
+internal fun tickGapFor(height: Dp): Dp = height.boundedFraction(TICK_GAP, 4.dp, 12.dp)
 
 private const val MIN_COLUMNS = 3
 private const val MAX_COLUMNS = 4
