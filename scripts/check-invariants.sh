@@ -30,6 +30,13 @@ fail() {
 # there is nothing left to grandfather.
 LEGACY=''
 
+# Drops `path:line: // ...` and `path:line:  * ...` from a grep -rn stream, so a
+# name can be *explained* in a comment without being *used* in code. Everything
+# these checks are about is what the compiler sees.
+no_comments() {
+  grep -vE '^[^:]*:[0-9]+: *(\*|//|/\*)'
+}
+
 not_legacy() {
   # Reads paths on stdin. Nothing is exempt any more; kept as a seam so a future
   # migration has somewhere to put a temporary exemption, deliberately empty.
@@ -110,6 +117,58 @@ for name in $TARGETED; do
   reliably land on, and 48dp is the *thumb* floor, not the D-pad one."
   fi
 done
+
+# ------------------------------------------------ no sizing by the device's name
+# The sizing system's first rule, mechanised now that the last table is gone.
+#
+# `CastivioFrame` was a four-row table -- television, tablet, phone, short phone --
+# that handed a screen a set of dimensions chosen by what kind of box it was on. Every
+# screen has been moved onto `castivioMetrics`, which derives each dimension from the
+# measured surface and clamps it, and the table and its two thresholds were deleted.
+#
+# A deletion holds until somebody reintroduces it, usually in good faith and usually
+# because a single screen needed one number. So the names are banned rather than
+# merely absent: the check costs a grep and it is the only thing standing between
+# "there is one system" and "there is one system and an exception".
+#
+# Prose is exempt, and deliberately: half this repository's value is the record of
+# what was replaced and why, and a check that forbade naming the dead table would
+# force every one of those explanations to be deleted or paraphrased into
+# uselessness. `no_comments` drops lines that are a comment and keeps lines that are
+# code, which is the distinction that actually matters here.
+GONE='CastivioFrame FrameType TABLET_FRAME SHORT_FRAME castivioFrame rememberFrame'
+for name in $GONE; do
+  hits=$(grep -rn --include='*.kt' -E "\b$name\b" \
+          app core feature playback data domain 2>/dev/null | no_comments | not_legacy)
+  if [ -n "$hits" ]; then
+    fail "The frame table is back: '$name'" \
+         "$hits
+
+  Dimensions come from castivioMetrics(width, height, isTv) and are bounded with
+  boundedFraction(share, min, max). A device table is what they replaced."
+  fi
+done
+
+# `DeviceClass` still exists and still answers a functional question -- is this a
+# D-pad or a thumb -- which `Sizing.minTarget(isTv)` is the one legitimate reader of.
+# Its two *sizing* properties are not: `screenPadding` is a margin chosen by device
+# name and `gridColumns` is a composition chosen by device name.
+#
+# The debug crash sheet is exempt and stays exempt. It is behind `BuildConfig.DEBUG`,
+# it is not a product surface, and giving it the design system's stage would be
+# dressing a developer tool as a screen to satisfy a grep.
+hits=$(grep -rn --include='*.kt' -E 'device\.(screenPadding|gridColumns)|DeviceClass\.(screenPadding|gridColumns)' \
+        app core feature playback data domain 2>/dev/null \
+        | grep -v '/tv/debug/' | grep -v '^core/design/src/main/java/com/castivio/core/design/theme/DeviceClass.kt' \
+        | no_comments | not_legacy)
+if [ -n "$hits" ]; then
+  fail "A dimension chosen by the device's name" \
+       "$hits
+
+  screenPadding and gridColumns pick a margin and a column count from what kind
+  of box this is. Read the surface instead: castivioMetrics(...).edge for the
+  margin, and a bounded minimum for the grid so the count follows the width."
+fi
 
 # -------------------------------------------------- cross-platform independence
 # Not one of the ten, but the reason the ten are affordable: the layers below the

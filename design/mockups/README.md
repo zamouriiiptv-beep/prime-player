@@ -12,6 +12,24 @@ re-rendered when a token changes.
 | `activation-mac.html` | The first screen, where a subscription is added — phone landscape 873x393 and 800x360, television 960x540, in nine stress languages |
 | `tv-sections.html` | Live TV, Movies and Series on a television — the browse screens a remote drives, categories then content |
 
+## What a mockup is, after the sizing migration
+
+A mockup is **a drawing at one device geometry**, and that is still exactly what it
+should be. The runtime no longer holds a table of device geometries, but the shares in
+`castivioMetrics` are *read off* the 1280×720 reference — which is the 960×540
+television drawing at 4/3 — so a file rendered at 873×393 or 960×540 still shows what
+Compose lays out there, to the dp. Nothing in this directory had to change for the
+migration, and the numbers in these files are still the record the code is judged
+against.
+
+`home-frames.html` is the one exception, and it is kept **as a historical record
+rather than a specification**. It exists to demonstrate the four-row `CastivioFrame`
+table — it transcribes that table and says so on the page — and that table was deleted
+in stage 5 of the migration (see `UI_ARCHITECTURE.md`, "Where it is applied"). Read it
+as a drawing of what was replaced. It is not a description of how any Castivio screen
+is sized today, and a number taken out of it and put into code would be a device table
+coming back through a picture.
+
 ## Rendering
 
 Each file renders one frame at a time, chosen by `?frame=`, at exactly the logical

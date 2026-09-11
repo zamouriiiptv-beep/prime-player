@@ -22,7 +22,6 @@ import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -255,7 +254,7 @@ internal fun MediaListRow(
         Row(
             Modifier
                 .fillMaxWidth()
-                .defaultMinSize(minHeight = Sizing.minTarget(CastivioTheme.device.isTv))
+                .defaultMinSize(minHeight = m.frame.touchTarget)
                 .padding(horizontal = Spacing.md),
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
@@ -362,27 +361,17 @@ private fun CountPill(m: SourceMetrics, text: String) {
 private const val PILL_PAD = 0.62f
 private const val PILL_PAD_Y = 0.17f
 
-/** Between rows, and between tiles across and down alike. */
-internal val BrowseItemGap: Dp
-    @Composable @ReadOnlyComposable get() =
-        if (CastivioTheme.device.isTv) Spacing.sm else Spacing.xs
-
-internal val BrowseTileGap: Dp
-    @Composable @ReadOnlyComposable get() =
-        if (CastivioTheme.device.isTv) Spacing.lg else Spacing.sm
-
 /**
- * The narrowest a 16:9 tile may be before the picture stops carrying meaning.
+ * How much of the content the fold eats into.
  *
- * A minimum rather than a column count, so the grid keeps its tile size and changes
- * how many fit — which is what makes one figure serve a 800dp phone and a 960dp
- * television instead of a table of breakpoints.
+ * The three figures that used to sit here — the gap between rows, the gap between
+ * tiles, and the narrowest a tile may be — were the feature's last device branches and
+ * they are [SourceMetrics.itemGap], [SourceMetrics.tileGap] and [SourceMetrics.tileMin]
+ * now, read off the surface like everything else the browsers draw. This one stays a
+ * constant because it is not a size: it is how far a mask fades, and a fade that
+ * scaled with the screen would say "there is more below" more loudly on a television
+ * than on a phone for no reason anybody could name.
  */
-internal val BrowseTileMin: Dp
-    @Composable @ReadOnlyComposable get() =
-        if (CastivioTheme.device.isTv) 240.dp else 150.dp
-
-/** How much of the content the fold eats into. */
 internal val BrowseFade = 24.dp
 
 /**

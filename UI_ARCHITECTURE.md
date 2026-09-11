@@ -905,22 +905,33 @@ data layer, the repositories, paging, caching, lazy loading or the activation fl
 
 ### Where it is applied
 
-The system is the product's, not one screen's, and it is being brought to the screens
-in stages — each stage its own commit, built and gated before the next begins. Nothing
-below is a design difference; it is only how far the migration has reached.
+The system is the product's, not one screen's, and it was brought to the screens in
+stages — each its own commit, built and gated before the next began. Nothing below was a
+design difference; it is only the record of how the migration reached every screen.
 
 | stage | screens | state |
 |---|---|---|
 | — | Home | on `castivioMetrics` |
 | 1 | Activation (MAC), source choice, media source, saved subscriptions, the local-media browsers, the language picker | on `castivioMetrics` |
-| 2 | Browse, Show, Search | not started |
-| 3 | Licence, Legal | on `CastivioFrame` |
-| 4 | Settings, player controls | fixed tokens only |
-| 5 | remove `CastivioFrame`, `FrameType`, `TABLET_FRAME`, `SHORT_FRAME` and the `castivioStage(CastivioFrame)` overload | blocked on 2–4 |
+| 2 | Browse, Show, Search | on `castivioMetrics` |
+| 3 | Licence, Legal | on `castivioMetrics` |
+| 4 | the player's chrome, the shell's placeholders | on `castivioMetrics` |
+| 5 | the modal, the activation forms, the browse grid — and `CastivioFrame` itself | **removed** |
 
-`CastivioFrame` — the four-row device table this replaced — is deliberately still
-compiled and still correct for the screens that have not moved. It goes in one piece
-when the last of them leaves it, and not before: a table half-deleted is two systems.
+**There is no second sizing system.** `CastivioFrame` — the four-row device table, its
+`FrameType`, its `TABLET_FRAME` and `SHORT_FRAME` thresholds and the
+`castivioStage(CastivioFrame)` overload — is deleted, and `scripts/check-invariants.sh`
+fails the build if any of those names reappears in code. A dimension comes from
+`castivioMetrics(width, height, isTv)`, is bounded with `boundedFraction(share, min,
+max)`, and is derived from the surface that was measured rather than from what kind of
+box it is.
+
+`DeviceClass` survives, and only for what it is actually evidence of: whether the user
+is holding this or pointing a remote at it. `Sizing.minTarget(isTv)` — 48dp for a thumb,
+56 for a D-pad — is the one legitimate reader, and it is a **floor on an interaction
+area**, never an appearance. The same invariant script fails on `device.screenPadding`
+and `device.gridColumns`, which were the two properties that chose a margin and a column
+count by device name.
 
 ### Before changing any screen
 

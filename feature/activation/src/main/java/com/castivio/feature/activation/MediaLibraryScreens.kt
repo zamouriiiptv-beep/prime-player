@@ -74,14 +74,14 @@ internal fun VideoLibraryScreen(
             return@MediaScaffold
         }
         LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = BrowseTileMin),
+            columns = GridCells.Adaptive(minSize = m.tileMin),
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
                 .fadeAtBottom(BrowseFade)
                 .testTag(ActivationTags.LIBRARY_GRID),
-            horizontalArrangement = Arrangement.spacedBy(BrowseTileGap),
-            verticalArrangement = Arrangement.spacedBy(BrowseTileGap),
+            horizontalArrangement = Arrangement.spacedBy(m.tileGap),
+            verticalArrangement = Arrangement.spacedBy(m.tileGap),
         ) {
             items(count = videos.size) { index ->
                 // The next page is asked for from the item that is nearing the end rather
@@ -129,7 +129,7 @@ private fun VideoTile(m: SourceMetrics, tile: MediaTile, index: Int, onClick: ()
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomEnd) {
                 // The real frame, when it arrives. Drawn over the placeholder rather than
                 // instead of it, so the tile never flickers through a blank on the swap.
-                val frame by rememberThumbnail(tile.uri, BrowseTileMin, BrowseTileMin)
+                val frame by rememberThumbnail(tile.uri, m.tileMin, m.tileMin)
                 frame?.let { picture ->
                     Image(
                         bitmap = picture,
@@ -218,7 +218,7 @@ internal fun AudioLibraryScreen(
                 .fillMaxWidth()
                 .fadeAtBottom(BrowseFade)
                 .testTag(ActivationTags.LIBRARY_LIST),
-            verticalArrangement = Arrangement.spacedBy(BrowseItemGap),
+            verticalArrangement = Arrangement.spacedBy(m.itemGap),
         ) {
             items(count = tracks.size) { index ->
                 if (index >= tracks.size - PREFETCH) NearEnd(onNearEnd)

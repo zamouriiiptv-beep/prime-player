@@ -114,7 +114,7 @@ internal fun FilePickerScreen(
         subtitleTag = ActivationTags.PICKER_SUBTITLE,
     ) { m ->
         PathBand(m = m, path = path, filter = filter)
-        Spacer(Modifier.height(BrowseItemGap))
+        Spacer(Modifier.height(m.itemGap))
 
         if (entries.isEmpty()) {
             EmptyFolder(
@@ -133,7 +133,7 @@ internal fun FilePickerScreen(
                 .fillMaxWidth()
                 .fadeAtBottom(BrowseFade)
                 .testTag(ActivationTags.PICKER_LIST),
-            verticalArrangement = Arrangement.spacedBy(BrowseItemGap),
+            verticalArrangement = Arrangement.spacedBy(m.itemGap),
         ) {
             items(count = entries.size) { index ->
                 if (index >= entries.size - PICKER_PREFETCH) LaunchedEffect(Unit) { onNearEnd() }

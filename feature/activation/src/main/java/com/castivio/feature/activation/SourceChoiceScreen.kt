@@ -121,6 +121,10 @@ internal data class SourceMetrics(
     val stripGap: Dp,
     val stripDisc: Dp,
     val stripCells: Int,
+    /* what the local-media browsers own: the grid of tiles and the list of rows */
+    val itemGap: Dp,
+    val tileGap: Dp,
+    val tileMin: Dp,
 ) {
     /* The frame's numbers, reachable as this screen's own. */
     val edge get() = frame.edge
@@ -179,6 +183,9 @@ internal fun sourceMetricsFor(tv: Boolean, width: Dp, height: Dp): SourceMetrics
         stripDisc = height.boundedFraction(STRIP_DISC, 19.dp, 28.dp),
         detailLines = if (height >= FOURTH_LINE) 4 else 3,
         stripCells = stripCellsFor(width - frame.edge * 2),
+        itemGap = height.boundedFraction(ITEM_GAP, 4.dp, 12.dp),
+        tileGap = height.boundedFraction(TILE_GAP, 8.dp, 24.dp),
+        tileMin = width.boundedFraction(TILE_MIN, 150.dp, 240.dp),
     )
 }
 
@@ -215,6 +222,25 @@ private const val CHEVRON = 32f / 720f
 private const val STRIP = 53.33f / 720f
 private const val STRIP_GAP = 18.67f / 720f
 private const val STRIP_DISC = 34.67f / 720f
+
+/* ------------------------------------------------- what the browsers draw with
+ *
+ * The last three device branches in this feature: `if (tv) 8 else 4` between rows,
+ * `if (tv) 16 else 8` between tiles, and `if (tv) 240 else 150` for the narrowest a
+ * tile may be. All three were drawn twice, so the share is read off the reference —
+ * the television's drawing at 4/3 — and the television reproduces 8, 16 and 240
+ * exactly while every other surface is interpolated instead of assigned.
+ *
+ * The minimum is a **width** share because a grid spends width, and it is a minimum
+ * rather than a column count for the reason [stripCellsFor] gives: the tile keeps its
+ * size and the grid changes how many fit. What that costs is written down in the
+ * Phase 5 report — a 873dp handset draws three tiles of 255dp where it drew five of
+ * 150, and a 1280dp tablet four of 273 where it drew seven of 157. Larger tiles on
+ * both, and one rule instead of a table.
+ */
+private const val ITEM_GAP = 10.67f / 720f
+private const val TILE_GAP = 21.33f / 720f
+private const val TILE_MIN = 320f / 1280f
 
 /**
  * Where a card's description gets a fourth line.

@@ -590,15 +590,24 @@ private fun PlaceholderStage(content: @Composable (CastivioMetrics) -> Unit) {
 private fun StateBoardOverlay(onBack: () -> Unit) {
     val colors = CastivioTheme.colors
     BackHandler(onBack = onBack)
+    // The backdrop is on the box rather than the column so it still runs under the
+    // status bar, and the margin inside it is measured rather than looked up: this
+    // was the application's last reader of `DeviceClass.screenPadding`, a margin
+    // chosen by what kind of box this is.
+    BoxWithConstraints(
+        Modifier
+            // An overlay over a destination, so it carries the backdrop rather
+            // than the flat colour that sits beneath it.
+            .fillMaxSize()
+            .castivioBackdrop(),
+    ) {
+    val m = rememberMetrics(maxWidth, maxHeight)
     Column(
         Modifier
             .fillMaxSize()
-            // An overlay over a destination, so it carries the backdrop rather
-            // than the flat colour that sits beneath it.
-            .castivioBackdrop()
             .statusBarsPadding()
             .verticalScroll(rememberScrollState())
-            .padding(CastivioTheme.device.screenPadding),
+            .padding(horizontal = m.edge, vertical = m.stageTop),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
         Text("State language", style = CastivioType.headlineSmall, color = colors.onBackground)
@@ -634,5 +643,6 @@ private fun StateBoardOverlay(onBack: () -> Unit) {
             )
         }
         IconLabel(Icons.Filled.LiveTv, "Aqua is now · violet is navigation · neutral is the past")
+    }
     }
 }

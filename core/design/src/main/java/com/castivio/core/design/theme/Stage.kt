@@ -12,8 +12,8 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 
 /**
- * The stage's margins: the frame's, or what the system takes at the sides, whichever
- * is larger.
+ * The stage's margins: the sizing system's, or what the window takes at the sides,
+ * whichever is larger.
  *
  * ## The fault this ends, measured off a real handset
  *
@@ -32,9 +32,9 @@ import androidx.compose.ui.unit.Dp
  *
  * A **floor**, not an addition. `edge = 32` says *no content closer than 32dp to the
  * display's edge*; a 37dp cutout already satisfies that, and asking for 32 more is
- * asking twice. So each side takes `max(frame, inset)`:
+ * asking twice. So each side takes `max(edge, inset)`:
  *
- * | side | frame | cutout | was | now |
+ * | side | edge | cutout | was | now |
  * |---|---|---|---|---|
  * | leading | 32 | 37 | 69 | 37 |
  * | trailing | 32 | 0 | 32 | 32 |
@@ -47,9 +47,9 @@ import androidx.compose.ui.unit.Dp
  * ## Only the sides
  *
  * The vertical insets are still paid by the surface, above this, and that is deliberate:
- * the frame is chosen from the height the composition actually has, and every budget in
- * the project is written against that measurement. Paying them here instead would move
- * the frame threshold and silently rewrite what the budget tests are asserting.
+ * the metrics are computed from the height the composition actually has, and every budget
+ * in the project is written against that measurement. Paying them here instead would
+ * change what a screen measures and silently rewrite what the budget tests are asserting.
  *
  * A cutout at the side says nothing about how much composition fits down the screen, so
  * the two halves belong in different places.
@@ -58,21 +58,10 @@ import androidx.compose.ui.unit.Dp
  *
  * Seven screens wrote `padding(start = edge, end = edge, top = stageTop, …)` by hand.
  * Seven copies of a rule is a rule that holds until one of them is edited — the same
- * failure the frame table itself was created to end. This is the rule, once.
+ * failure the device table itself was created to end. This is the rule, once.
  *
  * The insets resolve per edge rather than per direction, so it is already right in both
- * scripts; on a television both are zero and the frame's own numbers stand unaltered.
- */
-fun Modifier.castivioStage(frame: CastivioFrame): Modifier =
-    castivioStage(frame.edge, frame.stageTop, frame.stageBottom)
-
-/**
- * The same rule, from the sizing system every screen is being moved onto.
- *
- * [CastivioMetrics] and [CastivioFrame] name the stage's three margins identically, so
- * this is the same modifier reading the same three numbers from the system that
- * computes them rather than from the table that listed them. Both overloads exist only
- * while the migration runs; the frame's goes when the last screen leaves it.
+ * scripts; on a television both are zero and the measured margins stand unaltered.
  */
 fun Modifier.castivioStage(metrics: CastivioMetrics): Modifier =
     castivioStage(metrics.edge, metrics.stageTop, metrics.stageBottom)

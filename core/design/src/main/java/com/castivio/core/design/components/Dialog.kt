@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -32,10 +33,11 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
-import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Spacing
+import com.castivio.core.design.theme.boundedFraction
 
 /**
  * A question the user has to answer before anything else happens.
@@ -44,9 +46,10 @@ import com.castivio.core.design.theme.Spacing
  *
  * The language picker, which was Castivio's only modal until this existed and is
  * therefore the design: a full-bleed scrim that absorbs presses, a raised panel
- * on `backgroundElevated` with a soft hairline, and the same corner radius the
- * picker uses — one step larger on a television, because a panel that reads as
- * generous across a room reads as bloated in the hand.
+ * on `backgroundElevated` with a soft hairline, and a corner that grows with the
+ * surface — a panel that reads as generous across a room reads as bloated in the
+ * hand, and the share it is cut with says that once instead of a table saying it
+ * per device.
  *
  * This is the general form of that, so the next modal is a call rather than a
  * second opinion about scrims.
@@ -86,7 +89,6 @@ fun CastivioDialog(
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
-    val tv = CastivioTheme.device.isTv
     val safe = remember { FocusRequester() }
 
     // The safe action takes focus once, when the dialog appears. Not on every
@@ -197,8 +199,6 @@ private fun DialogPanel(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val colors = CastivioTheme.colors
-    val tv = CastivioTheme.device.isTv
-    val shape = RoundedCornerShape(if (tv) Radius.xxl else Radius.xl)
 
     BoxWithConstraints(
         modifier
@@ -217,9 +217,12 @@ private fun DialogPanel(
             .semantics(mergeDescendants = false) { dialog() },
         contentAlignment = Alignment.Center,
     ) {
+        val m = dialogMetricsFor(maxWidth, maxHeight)
+        val shape = RoundedCornerShape(m.radius)
+
         Column(
             Modifier
-                .widthIn(max = if (tv) TV_WIDTH else PHONE_WIDTH)
+                .widthIn(max = m.width)
                 // Never taller than most of the screen. On the 360dp frame that
                 // is 288dp, which is the number that makes the notice scroll
                 // rather than push its own close button off the bottom.
@@ -233,12 +236,15 @@ private fun DialogPanel(
                     indication = null,
                     onClick = {},
                 )
-                .padding(if (tv) TV_PADDING else PHONE_PADDING),
+                .padding(m.padding),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             Text(
                 text = title,
-                style = if (tv) CastivioType.headlineSmall else CastivioType.titleMedium,
+                style = CastivioType.headlineSmall.copy(
+                    fontSize = m.title.value.sp,
+                    lineHeight = (m.title.value * TITLE_LEADING).sp,
+                ),
                 color = colors.onBackground,
                 modifier = Modifier.semantics { heading() },
             )
@@ -247,12 +253,73 @@ private fun DialogPanel(
     }
 }
 
+/**
+ * What a modal is drawn from, for the surface it was handed.
+ *
+ * The four numbers that used to be `if (CastivioTheme.device.isTv)` — a panel width, its
+ * padding, its corner and its title's step. They are a type of their own rather than four
+ * locals so the claims worth gating can be asserted without an emulator: a panel that
+ * still fits the shortest surface, a corner that stops growing, a title that never drops
+ * under the step a dialog has to be read at across a room.
+ */
+@Immutable
+internal data class DialogMetrics(
+    val width: Dp,
+    val padding: Dp,
+    val radius: Dp,
+    val title: Dp,
+)
+
+/** [DialogMetrics] for a measured surface. */
+internal fun dialogMetricsFor(width: Dp, height: Dp): DialogMetrics = DialogMetrics(
+    width = width.boundedFraction(PANEL, PANEL_MIN, PANEL_MAX),
+    padding = width.boundedFraction(PANEL_PAD, PAD_MIN, PAD_MAX),
+    radius = height.boundedFraction(PANEL_RADIUS, R_MIN, R_MAX),
+    title = height.boundedFraction(TITLE, TITLE_MIN, TITLE_MAX),
+)
+
 /** Most of the screen, never all of it — a modal has to read as one. */
 private const val PANEL_MAX_FRACTION = 0.8f
 
-/** Wide enough for two lines of a question, narrow enough to read as a dialog. */
-private val PHONE_WIDTH: Dp = 420.dp
-private val TV_WIDTH: Dp = 560.dp
+/* ------------------------------------------------------------------ the shares
+ *
+ * Read off the 1280×720 reference, which is the 960×540 television drawing at 4/3, so
+ * a television reproduces the panel it was approved at exactly: 560 wide, 32 of
+ * padding, a 30dp corner. Every other surface is interpolated between the bounds
+ * instead of being handed the phone's copy of the table.
+ */
 
-private val PHONE_PADDING: Dp = Spacing.xl
-private val TV_PADDING: Dp = Spacing.xxl
+/** Wide enough for two lines of a question, narrow enough to read as a dialog. */
+private const val PANEL = 746.7f / 1280f
+private val PANEL_MIN: Dp = 400.dp
+private val PANEL_MAX: Dp = 560.dp
+
+private const val PANEL_PAD = 42.7f / 1280f
+private val PAD_MIN: Dp = 20.dp
+private val PAD_MAX: Dp = 36.dp
+
+/**
+ * The panel's own corner, not the stage's.
+ *
+ * `CastivioMetrics.radius` is what a *card* on the stage is cut with — 14 to 28 — and a
+ * modal is the largest surface in the product, so it takes the step above it. One share
+ * with its own bounds rather than a second reading of somebody else's.
+ */
+private const val PANEL_RADIUS = 40f / 720f
+private val R_MIN: Dp = 20.dp
+private val R_MAX: Dp = 32.dp
+
+/**
+ * The title's step, and the one place this file changes a **typeface** decision.
+ *
+ * It was `if (tv) headlineSmall else titleMedium` — two tokens for one role, which is
+ * a device table with a second thing wrong with it: the two differ in weight as well as
+ * in size, so a dialog title was semibold across a room and medium in the hand for no
+ * reason either token could state. One token now, at a bounded step, and the bounds are
+ * chosen so both drawn sizes come back exactly: 18dp at 960×540 and 15 on every handset
+ * frame. What moves is the phone's weight, medium to semibold — one dialog, one title.
+ */
+private const val TITLE = 24f / 720f
+private val TITLE_MIN: Dp = 15.dp
+private val TITLE_MAX: Dp = 20.dp
+private const val TITLE_LEADING = 1.44f

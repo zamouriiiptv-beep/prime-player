@@ -428,7 +428,6 @@ internal fun MacActivationScreen(
                     modifier = Modifier.weight(1f).testTag(ActivationTags.IDENTITY),
                     identity = identity,
                     m = m,
-                    tv = tv,
                     onAddPlaylist = onAddPlaylist,
                     onRefresh = onRefresh,
                     onCopied = onCopied,
@@ -647,7 +646,6 @@ private fun LanguageChip(m: Metrics, onClick: () -> Unit) {
 private fun IdentityZone(
     identity: ActivationIdentityState,
     m: Metrics,
-    tv: Boolean,
     onAddPlaylist: () -> Unit,
     onRefresh: () -> Unit,
     onCopied: (Copied) -> Unit,
@@ -663,7 +661,7 @@ private fun IdentityZone(
             label = stringResource(R.string.mac_label),
             value = address ?: ADDRESS_PLACEHOLDER,
             spoken = address?.let { stringResource(R.string.mac_spoken, spaced(it)) },
-            style = codeStyle(tv, m.macSize),
+            style = codeStyle(m.macSize),
             copyLabel = stringResource(R.string.copy_mac),
             isCopied = identity.addressCopied,
             enabled = address != null,
@@ -686,7 +684,7 @@ private fun IdentityZone(
                 label = stringResource(R.string.key_label),
                 value = key,
                 spoken = null,
-                style = codeStyle(tv, m.keySize, KEY_TRACKING),
+                style = codeStyle(m.keySize, KEY_TRACKING),
                 copyLabel = stringResource(R.string.copy_key),
                 isCopied = identity.keyCopied,
                 enabled = true,
@@ -984,22 +982,30 @@ private fun FooterBar(m: Metrics) {
 /* --------------------------------------------------------------------- type */
 
 /**
- * The code, at this frame's size.
+ * The code, at this surface's size.
  *
  * Built from the shipped token rather than declared here: the family, the weight
  * and the numeral behaviour are the design system's decision and only the size is
- * the frame's. Tracking is the one place on this screen that keeps a positive
+ * the surface's. Tracking is the one place on this screen that keeps a positive
  * value — between six pairs of hexadecimal it is the difference between an
  * address and a word.
+ *
+ * ## It used to ask whether this was a television, and the answer never mattered
+ *
+ * The base was `if (tv) codeHero else codeCompact`. Those two tokens differ in exactly
+ * two properties — `fontSize` and `lineHeight` — and both are overwritten by the `copy`
+ * below, from a size the metrics already derived from the surface; `letterSpacing` is
+ * overwritten too, and everything else about them is identical. So the two branches
+ * produced the same `TextStyle`, field for field, on every surface Castivio has ever
+ * drawn. Removing it changes no pixel. What it removes is a branch that looked like it
+ * decided something, which is the more expensive of the two things it was.
  */
-private fun codeStyle(tv: Boolean, size: Dp, tracking: Float = CODE_TRACKING): TextStyle {
-    val base = if (tv) CastivioType.codeHero else CastivioType.codeCompact
-    return base.copy(
+private fun codeStyle(size: Dp, tracking: Float = CODE_TRACKING): TextStyle =
+    CastivioType.codeHero.copy(
         fontSize = size.value.sp,
         lineHeight = (size.value * CODE_LEADING).sp,
         letterSpacing = tracking.sp,
     )
-}
 
 private fun buttonStyle(size: Dp): TextStyle = CastivioType.labelLarge.copy(
     fontSize = size.value.sp,

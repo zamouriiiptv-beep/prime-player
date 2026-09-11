@@ -13,15 +13,15 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -37,9 +37,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -48,11 +50,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.castivio.core.common.locale.CastivioLanguage
 import com.castivio.core.design.components.ButtonWeight
 import com.castivio.core.design.components.CastivioButton
+import com.castivio.core.design.theme.CastivioMetrics
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Motion
 import com.castivio.core.design.theme.MotionLevel
-import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.Spacing
+import com.castivio.core.design.theme.castivioStage
+import com.castivio.core.design.theme.rememberMetrics
 import com.castivio.domain.LocalMediaKind
 import com.castivio.domain.LocalTrack
 import com.castivio.domain.LocalVideo
@@ -617,7 +621,7 @@ internal fun ActivationSurface(
     fixedViewport: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    val device = CastivioTheme.device
+    val tv = CastivioTheme.device.isTv
     val focus = remember { FocusRequester() }
 
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
@@ -670,19 +674,33 @@ internal fun ActivationSurface(
         return
     }
 
-    Box(
+    // The scrolling half of the surface, on the stage every other screen composes on.
+    //
+    // It used to read its three numbers off `DeviceClass`: `screenPadding` at the
+    // sides (24, or 48 as overscan), `Spacing.xl` above and below, and a measure of
+    // `maxContentWidth / 2` on a television against `maxContentWidth` everywhere else.
+    // That last pair was the shape of the fault — 1440dp is a cap no shipped handset
+    // or tablet ever reaches, so the rule was really "720 on a set, uncapped on
+    // everything else", and a text field on a 1280dp tablet was 1232dp wide.
+    //
+    // The four screens this frame carries — the two provider forms, the import and
+    // the failure — are the last in the application that had never been measured
+    // against the reference. Their margins are the stage's now and their measure is
+    // the type's, bounded, which is the rule `LegalScreen` already reads by.
+    BoxWithConstraints(
         modifier
             .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.safeDrawing)
-            .padding(
-                horizontal = if (device.isTv) Spacing.tvOverscan else device.screenPadding,
-                vertical = if (device.isTv) Spacing.tvOverscan else Spacing.xl,
-            ),
+            // Vertical only, for the reason the fixed viewport gives above: the
+            // horizontal half is `castivioStage`'s, where it is combined with the
+            // stage's own margin by `max` rather than stacked on top of it.
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical)),
         contentAlignment = Alignment.TopCenter,
     ) {
+        val m = rememberMetrics(maxWidth, maxHeight, tv)
         Column(
             Modifier
-                .widthIn(max = if (device.isTv) TV_MEASURE else Sizing.maxContentWidth)
+                .castivioStage(m)
+                .widthIn(max = formMeasure(m))
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .focusRequester(focus),
@@ -693,7 +711,18 @@ internal fun ActivationSurface(
 }
 
 /**
- * Wide enough for an address at hero size, narrow enough that a paragraph beside it is
- * still one comfortable measure rather than a line the eye has to track across a room.
+ * How wide a form column may get: about fifty characters of the body step, bounded.
+ *
+ * A measure belongs to the type rather than to the screen, which is what
+ * `LegalScreen.measureFor` established and what this borrows. The ceiling reproduces
+ * the 720dp a television was drawn at exactly, and the floor is the narrowest a server
+ * address and its label still read as one field rather than two lines of one.
+ *
+ * A form is not prose, so it is a shorter measure than the legal page's: what has to
+ * fit on a line here is a URL and a label, not a sentence somebody reads eight of.
  */
-private val TV_MEASURE = Sizing.maxContentWidth / 2
+internal fun formMeasure(m: CastivioMetrics): Dp =
+    (m.fsBody * FORM_CHARS).coerceIn(600.dp, 720.dp)
+
+/** Roughly how many body-step widths make a comfortable field. */
+private const val FORM_CHARS = 53.33f
