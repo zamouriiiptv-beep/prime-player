@@ -20,4 +20,8 @@ dependencies {
     ksp(libs.hilt.compiler)
     implementation(libs.coroutines.android)
     testImplementation(libs.junit)
+    // `PerformanceLog` reads `SystemClock`, which is Android's. The stopwatch
+    // that produces Castivio's baseline is not going to be the one thing in
+    // this repository that nothing tests.
+    testImplementation(libs.robolectric)
 }

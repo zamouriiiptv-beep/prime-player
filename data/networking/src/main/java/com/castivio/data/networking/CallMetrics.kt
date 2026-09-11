@@ -75,6 +75,25 @@ object CallMetrics {
     fun totalCalls(): Long = tallies.values.sumOf { it.count }
 
     /**
+     * How long the provider took, summed across every call.
+     *
+     * The number to set beside "time to first content": one is how long the server
+     * spent, the other is how long the viewer waited, and a report that gives only the
+     * second cannot say whose fault it is.
+     */
+    fun callTimeMs(): Long = (tallies.values.sumOf { it.totalNanos.get() } / 1_000_000)
+
+    /**
+     * How many of those calls OkHttp answered without going to the network.
+     *
+     * Counted from the events OkHttp raises per call, so "this was served from the
+     * cache" is something the client **said**, not something inferred from a timing
+     * that happened to be short. That distinction is why a cache hit can be reported
+     * at all: an inferred one would be a guess dressed as a measurement.
+     */
+    fun cacheHits(): Long = cacheServed.get()
+
+    /**
      * How long the whole window took, first request opened to last one finished.
      *
      * Not the sum of the calls. Sequential requests sum to roughly the span and
@@ -92,6 +111,13 @@ object CallMetrics {
         tallies.clear()
         firstCallAtNanos.set(0)
         lastCallAtNanos.set(0)
+        cacheServed.set(0)
+    }
+
+    private val cacheServed = AtomicLong()
+
+    internal fun recordCacheHit() {
+        cacheServed.incrementAndGet()
     }
 
     /**
@@ -105,6 +131,7 @@ object CallMetrics {
         val calls = totalCalls()
         add("── $title ──")
         add("total: $calls call(s) over %.0f ms of wall clock".format(spanMs()))
+        add("served from cache: ${cacheHits()} of $calls")
         val sum = tallies.values.sumOf { it.totalNanos.get() } / 1_000_000.0
         add("time in calls: %.0f ms (sum) against %.0f ms (span)".format(sum, spanMs()))
         if (spanMs() > 0) {
@@ -212,6 +239,19 @@ class CallMetricsListener : EventListener() {
     override fun responseBodyEnd(call: Call, byteCount: Long) {
         bytesRead = byteCount
     }
+
+    /**
+     * OkHttp answered this call from its own cache and never opened a socket.
+     *
+     * One of three cache events OkHttp raises. `cacheConditionalHit` counts too: the
+     * client asked the server whether its copy was still good and was told yes, so the
+     * body was not transferred. `cacheMiss` is the ordinary case and is not counted,
+     * because it is what every uncached call already is.
+     */
+    override fun cacheHit(call: Call, response: Response) = CallMetrics.recordCacheHit()
+
+    override fun cacheConditionalHit(call: Call, cachedResponse: Response) =
+        CallMetrics.recordCacheHit()
 
     override fun responseHeadersEnd(call: Call, response: Response) {
         // A cached response has no body event, so the declared length is the only size

@@ -125,6 +125,7 @@ jobs:
         run: |
           ./gradlew --no-daemon --console=plain \
             :core:design:testDebugUnitTest \
+            :core:platform:testDebugUnitTest \
             :data:database:testDebugUnitTest \
             :data:networking:testDebugUnitTest \
             :data:playlist:testDebugUnitTest \

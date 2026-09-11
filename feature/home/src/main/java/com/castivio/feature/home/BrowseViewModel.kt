@@ -6,6 +6,8 @@ import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.tracing.Trace
 import com.castivio.core.platform.CastivioTrace
+import com.castivio.core.platform.PerfMode
+import com.castivio.core.platform.PerformanceLog
 import com.castivio.domain.CatalogPager
 import com.castivio.domain.CatalogQuery
 import com.castivio.domain.CatalogRepository
@@ -99,6 +101,9 @@ class BrowseViewModel @Inject constructor(
     private val fetch = MutableStateFlow<SectionLoad?>(null)
     private var fetching: Job? = null
 
+    /** Whether this holder has already started a measurement. See [show]. */
+    private var timed = false
+
     private val section = MutableStateFlow(CatalogSection.Live)
     private val chosen = MutableStateFlow<String?>(null)
 
@@ -178,6 +183,17 @@ class BrowseViewModel @Inject constructor(
             chosen.value = null
             fetch.value = null
         }
+        // A new run of the stopwatch, once per entry into this section. The holder is
+        // keyed by section in the composition, so leaving Channels and coming back is a
+        // new holder and therefore a new measurement -- which is the point: the second
+        // visit reads from the database and the first did not, and a panel showing the
+        // first visit's numbers over the second would be the most misleading thing on
+        // the screen. `timed` is the guard, because composition calls this again for a
+        // rotation or a recomposition, and neither is a new open.
+        if (!timed) {
+            timed = true
+            PerformanceLog.begin(current.perf)
+        }
         ensureFetched(current, force = false)
     }
 
@@ -202,10 +218,45 @@ class BrowseViewModel @Inject constructor(
             Trace.beginSection(CastivioTrace.FETCH)
             try {
                 loadSection.load(current.kind, clock.nowMs(), force = force)
-                    .collect { fetch.value = it }
+                    .collect {
+                        fetch.value = it
+                        report(it)
+                    }
             } finally {
                 Trace.endSection()
             }
+        }
+    }
+
+    /**
+     * Tells the stopwatch how this load ended, from what the loader actually said.
+     *
+     * Nothing is inferred. `Ready` means `LoadSection` found a mark for this source and
+     * kind and returned without fetching, so the rows were already here -- warm, and
+     * with no import to have an end time for. `Done` means the importer reached the end
+     * of the provider's categories and committed, which is a genuine full load. The
+     * counts come from `CallMetrics`, which the importer resets at the start of the same
+     * window, so they belong to this section and not to the app's whole session.
+     *
+     * A cache hit is only claimed when OkHttp said so for **every** call. A partly
+     * cached import is a download.
+     */
+    private fun report(load: SectionLoad) {
+        when (load) {
+            // Nothing was imported, so there is no import to have finished. The honest
+            // report is the first frame and nothing beside it.
+            is SectionLoad.Ready -> PerformanceLog.settled(PerfMode.WARM, fullLoad = false)
+
+            // COLD here is a claim about *this* screen: a fetch ran. Whether the
+            // provider or its cache answered is the network layer's fact, and
+            // `PerformanceLog` turns it into CACHE_HIT from the counts the importer
+            // published -- which is why that is not decided in a view model.
+            is SectionLoad.Done -> PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
+
+            is SectionLoad.Failed, is SectionLoad.NoSource ->
+                PerformanceLog.settled(PerfMode.UNKNOWN, fullLoad = false)
+
+            is SectionLoad.Loading -> Unit
         }
     }
 
@@ -214,6 +265,9 @@ class BrowseViewModel @Inject constructor(
         fetching?.cancel()
         fetching = null
         fetch.value = null
+        // A deliberate retry is a new experiment, so it gets a new run rather than
+        // overwriting the failed one's numbers into the same row.
+        PerformanceLog.begin(section.value.perf)
         ensureFetched(section.value, force = force)
     }
 

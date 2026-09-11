@@ -1,5 +1,6 @@
 package com.castivio.feature.home
 
+import com.castivio.core.platform.PerfSection
 import com.castivio.domain.Channel
 import com.castivio.domain.Episode
 import com.castivio.domain.MediaGroup
@@ -21,6 +22,24 @@ enum class CatalogSection(val kind: MediaKind) {
     Series(MediaKind.SERIES),
     Radio(MediaKind.RADIO),
 }
+
+/**
+ * What the performance panel files this section's measurement under.
+ *
+ * Radio is worth a note, because its name suggests a small section and its cost is not.
+ * Xtream has no radio endpoint: `XtreamImportEngine` sends a **live** categories request
+ * for it and sorts stations out of the result by category name. So opening Radio for the
+ * first time downloads the live catalogue again, and the number the panel shows for it is
+ * a real measurement of that rather than of anything smaller. Phase B measures what the
+ * architecture does; it does not change it.
+ */
+internal val CatalogSection.perf: PerfSection
+    get() = when (this) {
+        CatalogSection.Live -> PerfSection.CHANNELS
+        CatalogSection.Movies -> PerfSection.MOVIES
+        CatalogSection.Series -> PerfSection.SERIES
+        CatalogSection.Radio -> PerfSection.RADIO
+    }
 
 /**
  * A chosen category that survived a re-import, or none.

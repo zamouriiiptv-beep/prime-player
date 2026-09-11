@@ -11,6 +11,9 @@ android {
 dependencies {
     implementation(project(":core:common"))
     implementation(project(":domain"))
+    // For `PerformanceLog` only: the importer owns the measurement window and
+    // publishes its counts, rather than a screen reaching into `:data:networking`.
+    implementation(project(":core:platform"))
     api(project(":data:networking"))
     implementation(project(":data:parsing"))
     implementation(libs.androidx.core.ktx)

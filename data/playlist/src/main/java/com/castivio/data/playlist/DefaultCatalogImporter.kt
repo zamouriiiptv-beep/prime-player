@@ -2,6 +2,7 @@ package com.castivio.data.playlist
 
 import com.castivio.core.common.AppError
 import com.castivio.core.common.AppDispatchers
+import com.castivio.core.platform.PerformanceLog
 import com.castivio.data.networking.CallMetrics
 import com.castivio.data.networking.HttpStreamSource
 import com.castivio.data.networking.RemoteRequest
@@ -120,6 +121,15 @@ class DefaultCatalogImporter(
                     // managed to ask for -- which is the interesting case for a user
                     // whose first open times out.
                     CallMetrics.logSummary("import $kind")
+                    // And the same figures to the on-device panel. Published from
+                    // here rather than read from a screen because this is what owns
+                    // the window: the counters were reset above, and this is where
+                    // they stop being about this section.
+                    PerformanceLog.network(
+                        requests = CallMetrics.totalCalls().toInt(),
+                        serverMs = CallMetrics.callTimeMs(),
+                        cacheHits = CallMetrics.cacheHits().toInt(),
+                    )
                 }
             }.flowOn(dispatchers.io)
 
