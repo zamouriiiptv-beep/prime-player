@@ -99,7 +99,14 @@ jobs:
           OPENSUBTITLES_API_KEY: ${{ secrets.OPENSUBTITLES_API_KEY }}
           OPENSUBTITLES_USERNAME: ${{ secrets.OPENSUBTITLES_USERNAME }}
           OPENSUBTITLES_PASSWORD: ${{ secrets.OPENSUBTITLES_PASSWORD }}
-        run: ./gradlew :benchmark:macro:assembleBenchmark --no-daemon --console=plain
+        # Piped through `tail` on purpose. Gradle prints a line per task and the
+        # interesting part -- "What went wrong" -- ends up thousands of lines into a
+        # log that is read from the end. Forty lines is the failure and nothing else.
+        # `pipefail` keeps the step failing when Gradle does; without it `tail`'s exit
+        # code would hide the build's.
+        run: |
+          set -o pipefail
+          ./gradlew :benchmark:macro:assembleBenchmark --no-daemon --console=plain 2>&1 | tail -40
 
       # Android-module unit tests need the SDK, so they run here rather than in
       # the pure-JVM "Unit tests" job. The database module's queries are verified
