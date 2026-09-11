@@ -95,13 +95,6 @@ jobs:
       # Assembling it also assembles `:app:assembleBenchmark`, so a break in either is
       # caught here.
       - name: Assemble the device benchmark (compile only -- no device on this runner)
-        # Reported, not gating. The APK, the production instrumentation and every unit
-        # test are what this job exists to gate; the benchmark module is a harness that
-        # can only be *run* on hardware this runner does not have. A configuration
-        # problem in it must be visible without blocking a build whose real subject is
-        # green -- and must be fixed on a machine where the error can be read, rather
-        # than by pushing guesses at a log that is truncated before the message.
-        continue-on-error: true
         env:
           OPENSUBTITLES_API_KEY: ${{ secrets.OPENSUBTITLES_API_KEY }}
           OPENSUBTITLES_USERNAME: ${{ secrets.OPENSUBTITLES_USERNAME }}
