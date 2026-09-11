@@ -76,12 +76,36 @@ class DialogMetricsTest {
         }
     }
 
-    /** The reference gives back the numbers the shares were read off. */
+    /**
+     * **The reference is where all four stop growing, and the television is inside it.**
+     *
+     * Every other screen's test asserts that 1280×720 gives back the number its share
+     * was read off. This one cannot, and the reason is worth stating rather than
+     * asserting around. A dialog is the one component whose largest real surface is
+     * *smaller* than the reference: the biggest panel Castivio draws is on a 960dp
+     * television, and 1280×720 is a geometry a drawing is judged at rather than a size
+     * any device reports. So the four shares run past their ceilings before the
+     * reference — 746.7 against 560, 42.7 against 36, 40 against 32, 24 against 20 —
+     * and every one of them is clamped there.
+     *
+     * That is the design. A panel, a corner and a heading that kept climbing would read
+     * as a lozenge with a title four steps above the body it introduces, on a 4K set
+     * nobody sits close to. What the test gates is that the ceilings bind **at** the
+     * reference and not before it: the television is strictly inside all four, so the
+     * approved 560/32/30/18 is untouched, and the reference sits exactly on them.
+     */
     @Test
-    fun `the reference gives back the numbers it was read off`() {
+    fun `all four reach their ceilings at the reference, and the television is inside them`() {
         val m = dialogMetricsFor(CastivioReference.Width, CastivioReference.Height)
-        assertEquals("panel corner", 40f, m.radius.value, 0.2f)
-        assertEquals("title step", 24f, m.title.value, 0.2f)
+        assertEquals("panel width", 560f, m.width.value, 0.01f)
+        assertEquals("panel padding", 36f, m.padding.value, 0.01f)
+        assertEquals("panel corner", 32f, m.radius.value, 0.01f)
+        assertEquals("title step", 20f, m.title.value, 0.01f)
+
+        val tv = dialogMetricsFor(960.dp, 540.dp)
+        assertTrue("the television is on the padding's ceiling", tv.padding < m.padding)
+        assertTrue("the television is on the corner's ceiling", tv.radius < m.radius)
+        assertTrue("the television is on the title's ceiling", tv.title < m.title)
     }
 
     /**

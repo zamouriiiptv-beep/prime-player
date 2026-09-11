@@ -58,11 +58,24 @@ class FormMeasureTest {
         }
     }
 
-    /** The reference gives back the number the share was read off. */
+    /**
+     * The reference sits on the ceiling, which is where the 720 comes from.
+     *
+     * Fifty-three characters of the reference's own 18dp body step is 960dp, and the
+     * ceiling is 720. The share is not wrong and the ceiling is not arbitrary: 720 is
+     * the measure the television was drawn with, and the reference is a geometry a
+     * drawing is judged at rather than a surface a form is ever filled in on. So every
+     * surface from the television upward is capped here, and only the handsets — whose
+     * body step is on *its* floor — come out narrower.
+     */
     @Test
-    fun `the reference gives back the number it was read off`() {
+    fun `the reference sits on the ceiling the television was drawn with`() {
         val m = castivioMetrics(CastivioReference.Width, CastivioReference.Height, isTv = false)
-        assertEquals("the measure", 720f, formMeasure(m).value, 0.5f)
+        assertEquals("the measure", 720f, formMeasure(m).value, 0.01f)
+        assertTrue(
+            "the reference is not capped",
+            m.fsBody.value * 53.33f > 720f,
+        )
     }
 
     /** Bounded at both ends, on every surface, which the rule it replaced was not. */

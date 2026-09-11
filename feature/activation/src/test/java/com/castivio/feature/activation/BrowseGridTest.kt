@@ -61,9 +61,18 @@ class BrowseGridTest {
         assertEquals("tiles across", 3, columns(m, 960.dp))
     }
 
-    /** The reference gives back the numbers the shares were read off. */
+    /**
+     * The two gaps give back what they were read off; the minimum is already capped.
+     *
+     * The gaps are shares of the height and 720 is inside their bounds, so the reference
+     * returns 21.3 and 10.7 — the numbers the television's 16 and 8 were scaled from.
+     * The minimum is not: a quarter of 1280 is 320 and its ceiling is 240, so the
+     * reference sits above it. That is the ceiling doing its job rather than a share
+     * being wrong — a 16:9 tile wider than 240dp stops being a grid cell and starts
+     * being a hero, and the television is the largest surface the 240 was drawn for.
+     */
     @Test
-    fun `the reference gives back the numbers it was read off`() {
+    fun `the reference gives back the gaps, and the minimum is on its ceiling`() {
         val m = sourceMetricsFor(
             tv = false,
             width = CastivioReference.Width,
