@@ -81,32 +81,26 @@ jobs:
             sleep $((attempt * 20))
           done
 
-      # The device-benchmark module, compiled but never run here.
+      # `:benchmark:macro` is deliberately NOT built here, and that is worth stating so
+      # nobody adds the step back on the assumption it was forgotten.
       #
-      # `:benchmark:macro` measures on hardware and this runner has none -- no KVM, no
-      # attached device -- so `connectedBenchmarkAndroidTest` cannot execute. What can be
-      # checked on every commit is that it still *builds*, which is the half that rots:
-      # it is the only consumer of the `benchmark` build type, of the `profileable`
-      # manifest overlay and of the `matchingFallbacks` that give that variant a working
-      # licence. A measurement harness that stopped compiling three weeks ago is
-      # discovered at the worst possible moment, which is when somebody finally has a
-      # television in front of them.
+      # It is a `com.android.test` module, so its whole configuration -- the `benchmark`
+      # build type, the variant fallbacks, the self-instrumenting property, the
+      # `targetProjectPath` -- is a thing that is *run*, not merely compiled, and it
+      # cannot be run on a runner with no KVM and no device. Attempts to gate its
+      # `assembleBenchmark` here failed repeatedly for a configuration reason that could
+      # not be read: this job's log is retrieved from the end through a size cap, and
+      # Gradle's "What went wrong" sat above the window every time. Pushing fixes at an
+      # error nobody can see is how a workflow gets disabled instead of fixed.
       #
-      # Assembling it also assembles `:app:assembleBenchmark`, so a break in either is
-      # caught here.
-      - name: Assemble the device benchmark (compile only -- no device on this runner)
-        env:
-          OPENSUBTITLES_API_KEY: ${{ secrets.OPENSUBTITLES_API_KEY }}
-          OPENSUBTITLES_USERNAME: ${{ secrets.OPENSUBTITLES_USERNAME }}
-          OPENSUBTITLES_PASSWORD: ${{ secrets.OPENSUBTITLES_PASSWORD }}
-        # Piped through `tail` on purpose. Gradle prints a line per task and the
-        # interesting part -- "What went wrong" -- ends up thousands of lines into a
-        # log that is read from the end. Forty lines is the failure and nothing else.
-        # `pipefail` keeps the step failing when Gradle does; without it `tail`'s exit
-        # code would hide the build's.
-        run: |
-          set -o pipefail
-          ./gradlew :benchmark:macro:assembleBenchmark --no-daemon --console=plain 2>&1 | tail -40
+      # So it is built where the error is visible and the harness is useful at the same
+      # time: on a machine with a device attached, by
+      # `./gradlew :benchmark:macro:connectedBenchmarkAndroidTest`. See
+      # `benchmark/README.md`.
+      #
+      # What this job does still gate is everything that ships: the APK, the production
+      # trace calls and the request counter all compile into `assembleDebug` above, and
+      # `CallMetricsTest` runs below.
 
       # Android-module unit tests need the SDK, so they run here rather than in
       # the pure-JVM "Unit tests" job. The database module's queries are verified

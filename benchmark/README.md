@@ -138,6 +138,13 @@ summary on every run, so the trend is visible without opening a report.
 beside `:app`, drives it from outside and reads the platform's own counters. Nothing in
 it can be linked into a shipped build.
 
+> **Not yet verified to build.** It is committed as source and has never been through a
+> successful `assembleBenchmark`: the CI runner has no KVM and no device, and the one
+> thing a `com.android.test` module's configuration cannot be checked by is compiling it
+> somewhere it can never run. Expect to fix a Gradle configuration error the first time
+> you build it — the error will be in front of you, which is the entire reason it is not
+> gated in CI, where it was truncated out of the log on every attempt.
+
 ```sh
 # Everything: startup, section opening, scrolling.
 ./gradlew :benchmark:macro:connectedBenchmarkAndroidTest
