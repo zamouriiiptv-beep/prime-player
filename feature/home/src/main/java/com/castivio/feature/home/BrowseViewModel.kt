@@ -4,22 +4,24 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
+import androidx.tracing.Trace
+import com.castivio.core.platform.CastivioTrace
 import com.castivio.domain.CatalogPager
 import com.castivio.domain.CatalogQuery
 import com.castivio.domain.CatalogRepository
+import com.castivio.domain.LoadSection
 import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaItem
 import com.castivio.domain.Season
-import com.castivio.domain.SeriesSummary
-import com.castivio.domain.LoadSection
 import com.castivio.domain.SectionLoad
+import com.castivio.domain.SeriesSummary
 import com.castivio.domain.SortOrder
-import com.castivio.domain.time.TrustedTime
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
 import com.castivio.domain.SourceRepository
+import com.castivio.domain.time.TrustedTime
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -28,7 +30,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import javax.inject.Inject
+import kotlinx.coroutines.launch
 
 /**
  * What the category pane and the header need, which is everything except the rows.
@@ -193,8 +195,17 @@ class BrowseViewModel @Inject constructor(
     private fun ensureFetched(current: CatalogSection, force: Boolean) {
         if (fetching?.isActive == true) return
         fetching = viewModelScope.launch {
-            loadSection.load(current.kind, clock.nowMs(), force = force)
-                .collect { fetch.value = it }
+            // The outermost boundary Phase A named. `LoadSection` itself is pure Kotlin
+            // and may not import `androidx` -- the invariant script fails the build on
+            // that -- so the section is opened around its collection, which begins and
+            // ends at the same two instants the loader does.
+            Trace.beginSection(CastivioTrace.FETCH)
+            try {
+                loadSection.load(current.kind, clock.nowMs(), force = force)
+                    .collect { fetch.value = it }
+            } finally {
+                Trace.endSection()
+            }
         }
     }
 

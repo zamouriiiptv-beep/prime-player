@@ -29,6 +29,8 @@ dependencies {
     implementation(project(":core:common"))
     implementation(project(":domain"))
     implementation(project(":core:design"))
+    // For `CastivioTrace` only: the fetch boundary and the first-content marker.
+    implementation(project(":core:platform"))
     implementation(project(":core:navigation"))
 
     implementation(libs.androidx.core.ktx)

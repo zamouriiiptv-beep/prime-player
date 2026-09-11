@@ -3,6 +3,7 @@ package com.castivio.data.networking.di
 import android.content.Context
 import com.castivio.core.common.AppDispatchers
 import com.castivio.core.platform.DeviceCapabilities
+import com.castivio.data.networking.CallMetricsListener
 import com.castivio.data.networking.HttpClientProvider
 import com.castivio.data.networking.HttpProviderValidator
 import com.castivio.data.networking.HttpStreamSource
@@ -36,6 +37,12 @@ object NetworkingModule {
         cacheDirectory = context.cacheDir,
         cacheBytes = capabilities.recommendedCacheBytes,
         userAgent = USER_AGENT,
+        // Counts and times what the app asks for, and can do nothing else -- see
+        // `CallMetrics`. It is attached in every build rather than behind a debug flag
+        // because the number it exists to establish, how many requests one section
+        // costs, is a property of the user's provider and not of ours: it can only be
+        // learned on a real subscription, on the build that user is running.
+        eventListenerFactory = CallMetricsListener.FACTORY,
     )
 
     @Provides

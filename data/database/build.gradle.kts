@@ -21,6 +21,8 @@ ksp {
 dependencies {
     implementation(project(":core:common"))
     api(project(":domain"))
+    // For `CastivioTrace` only: the writer emits one section per commit.
+    implementation(project(":core:platform"))
     implementation(project(":data:parsing"))
 
     api(libs.room.runtime)

@@ -24,10 +24,16 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Sort
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,14 +42,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
-import androidx.compose.material3.Text
 import com.castivio.core.common.EmptyReason
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.Sort
 import com.castivio.core.design.components.CardShape
 import com.castivio.core.design.components.CastivioChip
 import com.castivio.core.design.components.ChannelCard
@@ -60,12 +63,12 @@ import com.castivio.core.design.components.formatCount
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.castivioStage
+import com.castivio.core.platform.CastivioTrace
 import com.castivio.domain.Channel
 import com.castivio.domain.MediaItem
 import com.castivio.domain.SectionLoad
 import com.castivio.domain.SeriesSummary
 import com.castivio.domain.SortOrder
-import androidx.paging.LoadState
 
 /**
  * One section of the catalogue, categories first.
@@ -432,6 +435,22 @@ private fun <T : Any> Paged(
     m: CatalogMetrics,
     rows: @Composable () -> Unit,
 ) {
+    // The instant this screen first has something a viewer can act on -- the metric
+    // Phase A called *time to first useful content*, and the one it could not derive
+    // from any other. Emitted once per section: `remember` is keyed by the composable's
+    // position, so leaving Movies and coming back is a new screen and a new first row.
+    //
+    // A `LaunchedEffect` draws nothing and returns no value. The composition below is
+    // the composition that was there before it.
+    var contentSeen by remember { mutableStateOf(false) }
+    val hasContent = paged.itemCount > 0
+    LaunchedEffect(hasContent) {
+        if (hasContent && !contentSeen) {
+            contentSeen = true
+            CastivioTrace.instant(CastivioTrace.FIRST_CONTENT)
+        }
+    }
+
     when {
         paged.itemCount > 0 -> rows()
 

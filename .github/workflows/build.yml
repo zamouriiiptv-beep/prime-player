@@ -81,6 +81,26 @@ jobs:
             sleep $((attempt * 20))
           done
 
+      # The device-benchmark module, compiled but never run here.
+      #
+      # `:benchmark:macro` measures on hardware and this runner has none -- no KVM, no
+      # attached device -- so `connectedBenchmarkAndroidTest` cannot execute. What can be
+      # checked on every commit is that it still *builds*, which is the half that rots:
+      # it is the only consumer of the `benchmark` build type, of the `profileable`
+      # manifest overlay and of the `matchingFallbacks` that give that variant a working
+      # licence. A measurement harness that stopped compiling three weeks ago is
+      # discovered at the worst possible moment, which is when somebody finally has a
+      # television in front of them.
+      #
+      # Assembling it also assembles `:app:assembleBenchmark`, so a break in either is
+      # caught here.
+      - name: Assemble the device benchmark (compile only -- no device on this runner)
+        env:
+          OPENSUBTITLES_API_KEY: ${{ secrets.OPENSUBTITLES_API_KEY }}
+          OPENSUBTITLES_USERNAME: ${{ secrets.OPENSUBTITLES_USERNAME }}
+          OPENSUBTITLES_PASSWORD: ${{ secrets.OPENSUBTITLES_PASSWORD }}
+        run: ./gradlew :benchmark:macro:assembleBenchmark --no-daemon --console=plain
+
       # Android-module unit tests need the SDK, so they run here rather than in
       # the pure-JVM "Unit tests" job. The database module's queries are verified
       # against real SQLite through Robolectric — a Room query that only gets

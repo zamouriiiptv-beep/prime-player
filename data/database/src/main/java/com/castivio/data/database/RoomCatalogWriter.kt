@@ -2,6 +2,8 @@ package com.castivio.data.database
 
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteStatement
+import androidx.tracing.trace
+import com.castivio.core.platform.CastivioTrace
 import com.castivio.domain.CatalogItem
 import com.castivio.domain.CatalogWriter
 import com.castivio.domain.ImportMode
@@ -131,7 +133,20 @@ class RoomCatalogWriter(
         }
     }
 
-    override fun commit() {
+    /**
+     * Ends one batch's transaction and opens the next, inside a trace section.
+     *
+     * The section is where SQLite's share of an import lives. Phase A measured our own
+     * parse-and-build half on the JVM and found it to be under a second for 400,000
+     * rows; this is the half that measurement deliberately stubbed out, and the only
+     * place a device can report it from.
+     *
+     * Once per batch -- never per row. A section inside the write loop would cost more
+     * than the write and would fill the trace buffer before the import finished.
+     */
+    override fun commit() = trace(CastivioTrace.COMMIT) { commitNow() }
+
+    private fun commitNow() {
         if (!inTransaction) return
         val db = database.openHelper.writableDatabase
         db.setTransactionSuccessful()

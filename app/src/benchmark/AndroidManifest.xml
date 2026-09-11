@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The one thing the benchmark build needs that the shipped one must never have.
+
+  `profileable` lets the platform's own sampling profiler and `perfetto` attach to a
+  non-debuggable process. That combination is the whole point: a macrobenchmark has to
+  measure a build compiled the way a shipped build is compiled, and it cannot measure a
+  process it is not allowed to look inside.
+
+  It is scoped to the `benchmark` build type by living in `src/benchmark/`, so it is
+  merged into that variant's manifest and no other. Neither `debug` nor `release`
+  carries it.
+
+  `shell="true"` grants the shell user — which is what `adb` and the benchmark runner
+  are — and nothing else. API 29 and above; older devices ignore the tag, which is the
+  correct outcome rather than a build failure, since they cannot be profiled this way at
+  all.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application>
+        <profileable
+            android:shell="true"
+            tools:targetApi="q" />
+    </application>
+</manifest>

@@ -27,6 +27,18 @@ object HttpClientProvider {
         connectTimeoutSeconds: Long = CONNECT_TIMEOUT_SECONDS,
         readTimeoutSeconds: Long = READ_TIMEOUT_SECONDS,
         userAgent: String? = null,
+        /**
+         * Told what happened, never asked what should happen.
+         *
+         * An `EventListener` cannot alter a request, a response, the cache or a
+         * timeout — the API gives it nowhere to do so. That is why counting the calls
+         * is safe in a phase whose first rule is to change no behaviour, and why this
+         * is a parameter rather than an interceptor.
+         *
+         * Null by default so every existing caller and every test builds the client it
+         * always built.
+         */
+        eventListenerFactory: okhttp3.EventListener.Factory? = null,
     ): OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(connectTimeoutSeconds, TimeUnit.SECONDS)
         .readTimeout(readTimeoutSeconds, TimeUnit.SECONDS)
@@ -36,6 +48,7 @@ object HttpClientProvider {
         // is when a saved handshake is actually worth something.
         .connectionPool(ConnectionPool(MAX_IDLE_CONNECTIONS, KEEP_ALIVE_MINUTES, TimeUnit.MINUTES))
         .apply {
+            if (eventListenerFactory != null) eventListener(eventListenerFactory)
             // The cache budget comes from the device's own capabilities: a Fire
             // Stick has a few gigabytes of storage in total, a Shield has a disk.
             if (cacheDirectory != null && cacheBytes > 0) {

@@ -54,3 +54,6 @@ include(":feature:settings")
 
 // performance gates — run on every commit
 include(":benchmark:jvm")
+// Measurement on real hardware. A `com.android.test` module: it is never part of
+// the app, and its metrics come from the platform rather than from our own clocks.
+include(":benchmark:macro")

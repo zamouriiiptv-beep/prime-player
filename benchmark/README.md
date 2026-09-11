@@ -94,6 +94,10 @@ Measured with `androidx.benchmark.macro` (`StartupTimingMetric`,
 `FrameTimingMetric`, `MemoryUsageMetric`), plus a Baseline Profile — worth
 20–30% of cold start on its own, and the cheapest win available.
 
+**This tier now exists.** `:benchmark:macro` was added in Phase B; see *Running the
+device tier* below. The Baseline Profile has not been added and is deliberately out of
+scope — it is an optimisation, and Phase B measures rather than optimises.
+
 ### Tier 3 — telemetry, from real use
 
 Two of the requested metrics genuinely cannot be measured in CI:
@@ -125,3 +129,104 @@ build at 2am should say what to look at, not just that a number moved.
 
 Measurements are printed as `[budget] name: value` and collected into the CI job
 summary on every run, so the trend is visible without opening a report.
+
+---
+
+## Running the device tier
+
+`:benchmark:macro` is a `com.android.test` module: it builds its own APK, installs
+beside `:app`, drives it from outside and reads the platform's own counters. Nothing in
+it can be linked into a shipped build.
+
+```sh
+# Everything: startup, section opening, scrolling.
+./gradlew :benchmark:macro:connectedBenchmarkAndroidTest
+
+# Startup alone.
+./gradlew :benchmark:macro:connectedBenchmarkAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.castivio.benchmark.macro.StartupBenchmark
+```
+
+Results print to the console and are written as JSON under
+`benchmark/macro/build/outputs/connected_android_test_additional_output/`.
+
+**Do not read absolute numbers off an emulator.** An emulator's timings are the host
+machine's, and the device this product is judged on is a 2 GB stick. The module runs
+there and the numbers are real; they are real about the wrong hardware.
+
+### Why a `benchmark` build type exists
+
+Neither existing type can be measured. **Debug** carries the debuggable flag, which turns
+off ART's optimising compiler and inflates every timing by a device-dependent amount.
+**Release** fails closed on purpose — `Licensing.Production` is bound with no
+`EntitlementSource` (see `RELEASE_CHECKLIST.md`), so a startup benchmark would be timing
+the licence screen saying no.
+
+So the `benchmark` type takes release's runtime characteristics and debug's licensing:
+`matchingFallbacks = ["debug"]` makes every library module compile its debug variant,
+which puts `BuildConfig.DEBUG == true` in front of `EntitlementModule.licensing` and
+gives the build a working local trial. The app's own `BuildConfig.DEBUG` stays false, so
+StrictMode and the crash sheet stay out of the measurement.
+`<profileable android:shell="true"/>` in `app/src/benchmark/AndroidManifest.xml` is what
+lets the platform sample a non-debuggable process.
+
+### The trace sections
+
+Five boundaries, named once in `CastivioTrace` and read from there by both the app and
+the benchmark — so a rename cannot leave a benchmark asking for a section nobody emits
+and reporting zero occurrences as though that were a measurement.
+
+| section | what it answers |
+|---|---|
+| `Castivio.Fetch` | a first open of a section, end to end |
+| `Castivio.Api.<action>` | the `1 + N` round trips, timed and separated by action |
+| `Castivio.Commit` | SQLite's share, which the JVM tier deliberately stubs out |
+| `Castivio.FirstPage` | when the pager answered |
+| `Castivio.FirstContent` | when a viewer first had something to act on |
+
+`Trace.beginSection` is a flag check when nothing is recording, which is every run that
+is not a benchmark.
+
+## Counting a real provider's requests
+
+Opening a section costs `1 + N` sequential round trips, where `N` is how many categories
+the provider has. **`N` cannot be learned from this repository**: it is a property of one
+subscription, not of the code, and no fixture can stand in for it.
+
+`CallMetrics` counts it. It is an OkHttp `EventListener` — told what happened, given no
+way to change it, which is why it is safe to add during a phase forbidden to optimise. No
+URL, host, username or password reaches a counter or a log line; `CallMetricsTest`
+asserts that, and asserts the labelling in both directions.
+
+```sh
+adb logcat -c
+adb logcat -s CastivioNet:I
+```
+
+Then on the device: add your provider, open **Live** for the first time, and wait.
+
+```
+── import LIVE ──
+total: <n> call(s) over <ms> ms of wall clock
+time in calls: <ms> ms (sum) against <ms> ms (span)
+overlap factor: 1.00 — 1.00 is fully sequential
+  get_live_streams: <n> calls, 0 failed, mean <ms> ms, slowest <ms> ms, <n> KB
+  get_live_categories: 1 calls, 0 failed, mean <ms> ms, slowest <ms> ms, <n> KB
+```
+
+`get_live_categories` is the `1`; `get_live_streams` is the `N`. The **overlap factor**
+is the sum of the call durations over the wall clock they occupy: at 1.00 the requests
+were strictly serial, above it they overlapped. Repeat for Movies and Series — the counts
+differ per kind, sometimes by an order of magnitude.
+
+**Credentials stay on your device.** Not in this repository, not in a workflow, not in a
+message.
+
+## What is deliberately not measured
+
+- **First image.** There is no image loading in Castivio: `MediaCard` draws a generated
+  placeholder and `artwork_url` is stored but never read. The metric has no subject, so
+  no number is reported for it rather than a zero that would look like success.
+- **A single database query, in isolation.** Room is measured through `Castivio.Commit`
+  and `Castivio.FirstPage`, which are what a user waits for. A microbenchmark of one
+  `SELECT` would be a number about SQLite rather than about the app.

@@ -4,12 +4,15 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.map
+import com.castivio.core.platform.CastivioTrace
+import com.castivio.data.database.dao.FavoriteDao
 import com.castivio.data.database.dao.GroupDao
 import com.castivio.data.database.dao.MediaDao
+import com.castivio.data.database.dao.ProgressDao
 import com.castivio.domain.CatalogPager
-import com.castivio.domain.ChannelRef
 import com.castivio.domain.CatalogQuery
 import com.castivio.domain.CatalogRepository
+import com.castivio.domain.ChannelRef
 import com.castivio.domain.Episode
 import com.castivio.domain.InProgressItem
 import com.castivio.domain.MediaGroup
@@ -20,10 +23,9 @@ import com.castivio.domain.PageRequest
 import com.castivio.domain.Season
 import com.castivio.domain.SeriesSummary
 import com.castivio.domain.SortOrder
-import com.castivio.data.database.dao.FavoriteDao
-import com.castivio.data.database.dao.ProgressDao
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 
 /**
  * The catalogue, read from SQLite.
@@ -158,7 +160,27 @@ class RoomCatalogRepository(
     override fun history(): Flow<PagingData<InProgressItem>> =
         pager { progressDao.pageHistory() }.map { data -> data.map { it.toDomain() } }
 
+    /**
+     * The pager, with a marker on the first page of every new stream.
+     *
+     * `Castivio.FirstPage` is emitted once per query -- the load a screen is waiting on
+     * -- and never for the prefetches behind it, which nobody is waiting for and which
+     * would turn an opening measurement into a scrolling one. The flag is per call to
+     * this function, so a new query gets a new flag exactly as it gets a new stream.
+     *
+     * The `onEach` observes; it changes no page, no size and no ordering. `PagingConfig`
+     * below is untouched.
+     */
     private fun <T : Any> pager(source: () -> androidx.paging.PagingSource<Int, T>) =
+        rawPager(source).onEach {
+            if (firstPageSeen.compareAndSet(false, true)) {
+                CastivioTrace.instant(CastivioTrace.FIRST_PAGE)
+            }
+        }
+
+    private val firstPageSeen = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    private fun <T : Any> rawPager(source: () -> androidx.paging.PagingSource<Int, T>) =
         Pager(config = PagingConfig(
             pageSize = PAGE_SIZE,
             prefetchDistance = PREFETCH,

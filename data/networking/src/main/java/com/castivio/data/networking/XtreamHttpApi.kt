@@ -7,6 +7,8 @@ import com.castivio.data.parsing.XtreamEpgEntry
 import com.castivio.data.parsing.XtreamImportEngine
 import com.castivio.data.parsing.XtreamParser
 import com.castivio.data.parsing.XtreamUrls
+import androidx.tracing.trace
+import com.castivio.core.platform.CastivioTrace
 import com.castivio.domain.MediaKind
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -113,7 +115,19 @@ class XtreamHttpApi(
     /** The provider's own XMLTV endpoint, for a full guide import. */
     fun xmltvUrl(): String = XtreamUrls.xmltv(base, username, password)
 
-    private fun open(url: String): Reader {
+    /**
+     * Opens one Xtream call, inside a trace section named for its action.
+     *
+     * The section is the request *and* the handshake: `execute()` is where a sequential
+     * import actually spends its time, and Phase A could only reason about that from the
+     * shape of the loop. Named by the provider's own `action` so a trace separates the
+     * single categories call from the N stream calls that follow without counting
+     * anything -- and without a credential reaching the trace, which is why the name is
+     * built from one query parameter rather than from the URL.
+     */
+    private fun open(url: String): Reader = trace(traceName(url)) { openNow(url) }
+
+    private fun openNow(url: String): Reader {
         val builder = Request.Builder().url(url).get()
         if (userAgent != null) builder.header("User-Agent", userAgent)
         val response = client.newCall(builder.build()).execute()
@@ -141,6 +155,12 @@ class XtreamHttpApi(
         MediaKind.MOVIE -> "get_vod_streams"
         MediaKind.SERIES -> "get_series"
         MediaKind.LIVE, MediaKind.RADIO -> "get_live_streams"
+    }
+
+    /** `Castivio.Api.get_live_streams`, and never the host, the user or the password. */
+    private fun traceName(url: String): String {
+        val action = url.substringAfter("action=", "").substringBefore('&')
+        return if (action.isEmpty()) "${CastivioTrace.API}.account" else "${CastivioTrace.API}.$action"
     }
 
     private companion object {

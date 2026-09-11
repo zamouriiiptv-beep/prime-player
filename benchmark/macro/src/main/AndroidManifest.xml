@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      The benchmark drives the app from outside its own process, so on API 30 and above
+      it has to declare that it can see it. Without this the runner reports "package not
+      found" for an app that is installed and running.
+    -->
+    <queries>
+        <package android:name="com.castivio.tv" />
+    </queries>
+</manifest>

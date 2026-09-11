@@ -12,6 +12,9 @@ dependencies {
     // `api`, not `implementation`: SystemLocales returns LocaleQuery, so every
     // caller needs the type.
     api(project(":core:common"))
+    // The trace vocabulary lives here, so the dependency does too. `api` because
+    // `CastivioTrace.instant` is inline and its callers link against `trace`.
+    api(libs.androidx.tracing)
     implementation(libs.androidx.core.ktx)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)

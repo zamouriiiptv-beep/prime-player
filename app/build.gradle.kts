@@ -37,6 +37,35 @@ android {
         release {
             isMinifyEnabled = false
         }
+
+        /**
+         * The build a macrobenchmark measures, and the only one it can.
+         *
+         * Neither existing type works. A **debug** build carries the debuggable flag,
+         * which disables ART's optimising compiler and inflates every timing by an
+         * amount that varies by device -- Google's own guidance is that debug numbers
+         * are not measurements. A **release** build is worse for the opposite reason:
+         * `Licensing.Production` is bound with no `EntitlementSource`, so it fails
+         * closed on purpose (see `RELEASE_CHECKLIST.md`) and a startup benchmark would
+         * be timing how fast the licence screen says no.
+         *
+         * So: release's runtime characteristics, debug's licensing.
+         * `matchingFallbacks = ["debug"]` makes every library module compile its debug
+         * variant, which is what puts `BuildConfig.DEBUG == true` in front of
+         * `EntitlementModule.licensing` and gives the build a working local trial. The
+         * app's own `BuildConfig.DEBUG` is false, so StrictMode and the crash sheet stay
+         * out of the measurement.
+         *
+         * `profileable` rather than `debuggable` is what lets the platform sample it:
+         * see this module's manifest.
+         */
+        create("benchmark") {
+            initWith(buildTypes.getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("debug")
+            isDebuggable = false
+            isMinifyEnabled = false
+        }
     }
 
     compileOptions {

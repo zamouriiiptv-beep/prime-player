@@ -2,6 +2,7 @@ package com.castivio.data.playlist
 
 import com.castivio.core.common.AppError
 import com.castivio.core.common.AppDispatchers
+import com.castivio.data.networking.CallMetrics
 import com.castivio.data.networking.HttpStreamSource
 import com.castivio.data.networking.RemoteRequest
 import com.castivio.data.networking.RemoteResult
@@ -91,6 +92,15 @@ class DefaultCatalogImporter(
             is PlaylistSource.Xtream -> channelFlow {
                 val sourceId = SourceIds.of(source)
                 val writer = writerFactory()
+                // Phase B instrumentation, and the only reason these two lines exist:
+                // how many requests one section costs is a property of the *user's*
+                // provider, so it cannot be learned from this repository or from a
+                // fixture -- only from a real subscription on a real device. The window
+                // is this import; the tally is printed at the end of it.
+                //
+                // Nothing here changes what is requested, in what order, or with what
+                // headers. See `CallMetrics`.
+                CallMetrics.reset()
                 try {
                     val summary = XtreamImportEngine(writer, clock = clock).importCatalogue(
                         sourceId = sourceId,
@@ -105,6 +115,11 @@ class DefaultCatalogImporter(
                     record(sourceId, summary, etag = null, lastModified = null, contentHash = null)
                 } catch (e: Exception) {
                     trySend(ImportProgress.Failed(e.toAppError()))
+                } finally {
+                    // `finally`, so a cancelled or failed section still reports what it
+                    // managed to ask for -- which is the interesting case for a user
+                    // whose first open times out.
+                    CallMetrics.logSummary("import $kind")
                 }
             }.flowOn(dispatchers.io)
 
