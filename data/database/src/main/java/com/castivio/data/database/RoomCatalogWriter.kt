@@ -4,6 +4,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteStatement
 import androidx.tracing.trace
 import com.castivio.core.platform.CastivioTrace
+import com.castivio.core.platform.PerformanceLog
 import com.castivio.domain.CatalogItem
 import com.castivio.domain.CatalogWriter
 import com.castivio.domain.ImportMode
@@ -144,7 +145,18 @@ class RoomCatalogWriter(
      * Once per batch -- never per row. A section inside the write loop would cost more
      * than the write and would fill the trace buffer before the import finished.
      */
-    override fun commit() = trace(CastivioTrace.COMMIT) { commitNow() }
+    override fun commit() = trace(CastivioTrace.COMMIT) {
+        // Timed as well as traced, and at the same instant, so the on-device panel and a
+        // perfetto capture cannot disagree about what "database" cost. `System.nanoTime`
+        // rather than the wall clock for the reason `PerformanceLog` states at length:
+        // NTP corrects the wall clock during exactly the minute a first import runs in.
+        val startedAt = System.nanoTime()
+        try {
+            commitNow()
+        } finally {
+            PerformanceLog.addDatabaseNanos(System.nanoTime() - startedAt)
+        }
+    }
 
     private fun commitNow() {
         if (!inTransaction) return

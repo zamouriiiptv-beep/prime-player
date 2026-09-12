@@ -212,14 +212,33 @@ private fun Board(
             .border(1.dp, colors.glassBorderSoft, shape)
             .padding(m.panelPad),
     ) {
+        // Debug builds only, and drawn before anything else so its own first
+        // composition is the board's first frame -- which is what TTID means.
+        PerformancePanel()
+
         Toolbar(state = state, m = m, onSearch = onSearch)
 
         Spacer(Modifier.height(m.toolbarGap))
 
-        when (val fetch = state.fetch) {
-            is SectionLoad.Loading -> Fetching(fetch, m, Modifier.weight(1f))
+        // **A failed fetch does not hide rows that are already on the device.**
+        //
+        // This took the whole board before, and it was wrong in the way that matters:
+        // a viewer with 7,622 channels in SQLite, whose provider then failed to answer
+        // a re-import, was shown "Live TV could not be downloaded" over a catalogue
+        // that was sitting right there. The count in the toolbar said 7,622 while the
+        // panel under it said nothing had arrived -- the screen contradicting itself
+        // about the same database.
+        //
+        // So the fetch's state decides what is said *about* the fetch, and the rows
+        // decide what is *drawn*. A full-screen state is reserved for the one case
+        // where it is the whole truth: nothing on the device and nothing incoming.
+        val fetch = state.fetch
+        val hasRows = state.total > 0
 
-            is SectionLoad.Failed -> Box(
+        when {
+            fetch is SectionLoad.Loading && !hasRows -> Fetching(fetch, m, Modifier.weight(1f))
+
+            fetch is SectionLoad.Failed && !hasRows -> Box(
                 Modifier.weight(1f).fillMaxWidth(),
                 contentAlignment = Alignment.Center,
             ) {
@@ -234,14 +253,79 @@ private fun Board(
                 )
             }
 
-            else -> Columns(
-                state = state,
-                shown = shown,
-                m = m,
-                model = model,
-                previewModel = previewModel,
-                onPlay = onPlay,
-                modifier = Modifier.weight(1f),
+            else -> Column(Modifier.weight(1f)) {
+                // The failure still gets said, as a line rather than as a wall. A
+                // refresh that did not work is worth knowing about; it is not worth
+                // the catalogue.
+                FetchNotice(fetch = fetch, m = m, onRetry = { model.retryFetch() })
+
+                Columns(
+                    state = state,
+                    shown = shown,
+                    m = m,
+                    model = model,
+                    previewModel = previewModel,
+                    onPlay = onPlay,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * One line about a fetch that is running or has failed, over a board that has rows.
+ *
+ * Drawn only when there is something to say and something already on screen to say it
+ * over. It is deliberately not a dialog and not a full-screen state: the catalogue
+ * behind it is usable, and interrupting a working screen to report a background refresh
+ * is how a user learns to dismiss messages without reading them.
+ */
+@Composable
+private fun FetchNotice(
+    fetch: SectionLoad?,
+    m: ChannelsMetrics,
+    onRetry: () -> Unit,
+) {
+    val colors = CastivioTheme.colors
+    val shape = RoundedCornerShape(m.previewRadius)
+
+    val text = when (fetch) {
+        is SectionLoad.Loading -> stringResource(
+            R.string.channels_notice_refreshing,
+            formatCount(fetch.items),
+        )
+        is SectionLoad.Failed -> stringResource(R.string.channels_notice_failed)
+        else -> return
+    }
+    val failed = fetch is SectionLoad.Failed
+
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(bottom = m.toolbarGap)
+            .clip(shape)
+            .background(colors.glassFill)
+            .border(1.dp, if (failed) colors.selectedBorder else colors.glassBorderSoft, shape)
+            .then(if (failed) Modifier.clickable(onClick = onRetry) else Modifier)
+            .padding(horizontal = m.rowPadH, vertical = m.badgePadV * 2),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(m.factGap),
+    ) {
+        Text(
+            text = text,
+            style = castivioBodyStyle(m.frame.fsBody),
+            color = if (failed) colors.onBackground else colors.onBackgroundMuted,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        if (failed) {
+            Text(
+                text = stringResource(R.string.browse_fetch_retry),
+                style = castivioBodyStyle(m.frame.fsBody),
+                color = colors.primary,
+                maxLines = 1,
             )
         }
     }

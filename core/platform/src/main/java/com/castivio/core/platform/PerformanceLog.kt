@@ -58,12 +58,47 @@ object PerformanceLog {
     fun begin(section: PerfSection) {
         runs += 1
         lastNetwork = null
+        databaseNanos.set(0)
         _current.value = SectionReport(
             section = section,
             run = runs,
             startedAtNanos = SystemClock.elapsedRealtimeNanos(),
         )
     }
+
+    /**
+     * The screen's own first frame: its furniture is on screen, with no rows in it yet.
+     *
+     * **TTID** — time to initial display. The pair to [firstContent], and the reason
+     * both exist: TTID is when the viewer stops looking at the previous screen, TTFC is
+     * when they can act. A section that reaches TTID in 200ms and TTFC in nine seconds
+     * feels broken in a way neither number alone describes, and that gap is precisely
+     * what Fast Content Loading has to close.
+     *
+     * Recorded once per run, like [firstContent]: composition runs again for reasons
+     * that are not a first frame.
+     */
+    fun firstFrame() {
+        val report = _current.value ?: return
+        if (report.ttidMs != null) return
+        _current.value = report.copy(ttidMs = report.sinceStartMs())
+    }
+
+    /**
+     * How long SQLite has held the import so far, accumulated.
+     *
+     * Added to rather than set, because a streaming import commits once per batch and
+     * the number worth knowing is the total the database cost across all of them. The
+     * caller is `RoomCatalogWriter.commit`, which already owns that boundary for the
+     * trace section — so this is the same measurement reported to a second place, not a
+     * second definition of it.
+     */
+    fun addDatabaseNanos(nanos: Long) {
+        databaseNanos.addAndGet(nanos)
+    }
+
+    /** Cleared with every [begin], so one section's commits never land on another's. */
+    private val databaseNanos = java.util.concurrent.atomic.AtomicLong()
 
     /**
      * The first row a viewer can act on is on screen.
@@ -121,6 +156,9 @@ object PerformanceLog {
             // did not take the server no time, it did not ask it anything.
             serverMs = window?.serverMs?.takeIf { requests > 0 },
             fullLoadMs = if (fullLoad) report.sinceStartMs() else null,
+            // Same rule: a warm open writes nothing, so it has no database time. Zero
+            // here would read as "SQLite was instant" rather than "SQLite was not asked".
+            databaseMs = (databaseNanos.get() / 1_000_000).takeIf { it > 0 || fullLoad },
         )
     }
 
@@ -196,7 +234,15 @@ data class SectionReport(
     val startedAtNanos: Long,
     val mode: PerfMode = PerfMode.RUNNING,
     /**
-     * From the section opening to the first row on screen.
+     * **TTID** — from the section opening to its first frame, rows or no rows.
+     *
+     * When the viewer stops looking at the previous screen. Read against
+     * [firstContentMs]: the gap between the two is the whole of the wait Fast Content
+     * Loading exists to close, and neither number shows it alone.
+     */
+    val ttidMs: Long? = null,
+    /**
+     * **TTFC** — from the section opening to the first row on screen.
      *
      * The number a viewer experiences as "how long until something happened".
      */
@@ -212,6 +258,14 @@ data class SectionReport(
     val fullLoadMs: Long? = null,
     /** How long the provider took, in total, across every call this section made. */
     val serverMs: Long? = null,
+    /**
+     * How long SQLite held the import, summed across every batch commit.
+     *
+     * Measured at `RoomCatalogWriter.commit` — the same boundary the `Castivio.Commit`
+     * trace section marks, so a perfetto capture and this panel cannot disagree about
+     * what "database" means.
+     */
+    val databaseMs: Long? = null,
     /** How many HTTP calls this section cost. `1 + N` in Phase A's terms, measured. */
     val requests: Int? = null,
 ) {

@@ -174,8 +174,12 @@
 
     <string name="channels_empty_title">No channels here</string>
     <string name="channels_empty_detail">This category has nothing in it yet. Try another, or download the section again.</string>
-    <!-- %1$s is the section name, supplied by the caller. -->
     <string name="channels_fetch_failed">Live TV could not be downloaded</string>
+
+    <!-- Said over a board that already has channels on it, so it is a line rather
+         than a wall: the catalogue behind it is usable. %1$s is a running count. -->
+    <string name="channels_notice_refreshing">Refreshing from your provider · %1$s channels so far</string>
+    <string name="channels_notice_failed">Your provider did not answer. Showing the channels already on this device.</string>
 
     <!-- The remote legend along the foot of the board. These name what the *remote\'s*
          keys do; only Back is pressable, because a thumb has no key for it. -->

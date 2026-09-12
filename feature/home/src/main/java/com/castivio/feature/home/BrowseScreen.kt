@@ -37,8 +37,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -63,9 +61,7 @@ import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioTitleStyle
 import com.castivio.core.design.components.formatCount
 import com.castivio.core.design.theme.CastivioTheme
-import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Radius
-import com.castivio.core.design.theme.Spacing
 import com.castivio.core.design.theme.castivioStage
 import com.castivio.core.platform.CastivioTrace
 import com.castivio.core.platform.PerformanceLog
@@ -74,7 +70,6 @@ import com.castivio.domain.MediaItem
 import com.castivio.domain.SectionLoad
 import com.castivio.domain.SeriesSummary
 import com.castivio.domain.SortOrder
-import kotlinx.coroutines.delay
 
 /**
  * One section of the catalogue, categories first.
@@ -661,103 +656,3 @@ internal val CatalogSection.label: Int
         CatalogSection.Series -> R.string.browse_series
         CatalogSection.Radio -> R.string.browse_radio
     }
-
-/* ------------------------------------------------------ the measurement panel */
-
-/**
- * What this section cost, on this device, in this run — **debug builds only**.
- *
- * ## Why it is on the screen rather than in a log
- *
- * Because the person who needs the number is holding the television. The numbers that
- * matter are about one real subscription on one real box, and neither exists on a CI
- * runner or in a benchmark harness. A logcat line would need a cable and a computer; a
- * panel needs a remote.
- *
- * ## Why a release build cannot draw it
- *
- * [PerformanceLog.isVisibleIn] asks the platform whether this package is debuggable, and
- * returns before anything is composed when it is not. That is a property of the
- * installed APK rather than a flag anybody can set, so there is no build where this is
- * on by accident. It is read once and remembered: it cannot change while the app runs.
- *
- * ## What the four lines mean
- *
- * | line | boundary |
- * |---|---|
- * | `Server` | how long the provider took, summed over every call this section made |
- * | `First Content` | from opening the section to the first row on screen |
- * | `Full Load` | from opening the section to the import committing |
- * | `Requests` | how many HTTP calls it cost — Phase A's `1 + N`, counted |
- *
- * `Server` and `First Content` are deliberately separate and must not be added: one is
- * the provider's time and the other is the viewer's wait, and the whole point of taking
- * a baseline is to find out which of them a change moved.
- *
- * A line whose moment was never reached is **absent**, never zero. A warm open has no
- * `Full Load` because nothing was imported — reporting the first frame twice under two
- * names would be inventing a measurement.
- */
-@Composable
-private fun PerformancePanel() {
-    val context = LocalContext.current
-    val visible = remember(context) { PerformanceLog.isVisibleIn(context) }
-    if (!visible) return
-
-    val report by PerformanceLog.current.collectAsStateWithLifecycle()
-    val current = report ?: return
-    val colors = CastivioTheme.colors
-
-    // A running clock rather than a frozen one: a first open takes long enough that a
-    // blank panel would read as broken. 250ms is slow enough to cost nothing and fast
-    // enough to look like a stopwatch.
-    var elapsed by remember(current.run) { mutableStateOf(0L) }
-    LaunchedEffect(current.run, current.running) {
-        while (current.running) {
-            elapsed = current.sinceStartMs()
-            delay(TICK_MS)
-        }
-    }
-
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .background(colors.glassFill)
-            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-        verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
-    ) {
-        Text(
-            text = "${current.section.name} · run ${current.run} · ${current.mode.name}",
-            style = CastivioType.overline,
-            color = colors.onBackgroundVariant,
-        )
-        if (current.running) {
-            PerformanceRow("Elapsed", seconds(elapsed), colors.onBackgroundMuted)
-        }
-        current.serverMs?.let { PerformanceRow("Server", seconds(it), colors.onBackgroundVariant) }
-        current.firstContentMs?.let {
-            PerformanceRow("First Content", seconds(it), colors.onBackground)
-        }
-        current.fullLoadMs?.let { PerformanceRow("Full Load", seconds(it), colors.onBackground) }
-        current.requests?.let {
-            PerformanceRow("Requests", it.toString(), colors.onBackgroundVariant)
-        }
-    }
-}
-
-@Composable
-private fun PerformanceRow(label: String, value: String, ink: Color) {
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(text = label, style = CastivioType.bodySmall, color = ink)
-        Text(text = value, style = CastivioType.codeSmall, color = ink)
-    }
-}
-
-/** `8.37 s`, from milliseconds. Two decimals is the precision the clock actually has. */
-private fun seconds(ms: Long): String = "%.2f s".format(ms / 1000.0)
-
-/** How often the running clock redraws. Not a measurement; only how it is displayed. */
-private const val TICK_MS = 250L

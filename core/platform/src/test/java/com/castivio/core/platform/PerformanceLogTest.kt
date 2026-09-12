@@ -161,6 +161,63 @@ class PerformanceLogTest {
         assertNull(report.fullLoadMs)
     }
 
+    /**
+     * **TTID and TTFC are two measurements, and the gap between them is the point.**
+     *
+     * A board whose furniture appears in 200ms and whose first row appears in nine
+     * seconds is the exact shape Fast Content Loading exists to fix, and neither number
+     * alone shows it. Recorded once, like first content: composition runs again for
+     * reasons that are not a first frame, and a later one would erase the wait.
+     */
+    @Test
+    fun `the first frame and the first row are recorded separately and once`() {
+        PerformanceLog.firstFrame()
+        val ttid = PerformanceLog.current.value!!.ttidMs
+        assertNotNull("the first frame was not recorded", ttid)
+
+        Thread.sleep(SETTLE_MS)
+        PerformanceLog.firstFrame()
+        assertEquals("a later frame overwrote TTID", ttid, PerformanceLog.current.value!!.ttidMs)
+
+        PerformanceLog.firstContent()
+        val report = PerformanceLog.current.value!!
+        assertNotNull(report.firstContentMs)
+        assertTrue(
+            "the first row cannot precede the first frame",
+            report.firstContentMs!! >= report.ttidMs!!,
+        )
+    }
+
+    /**
+     * The database's share is summed across the import's batches, and belongs to one run.
+     *
+     * A streaming import commits once per batch, so the number worth reporting is the
+     * total -- and it must not survive into the next section, or Movies would be blamed
+     * for the time Channels spent in SQLite.
+     */
+    @Test
+    fun `database time accumulates across batches and does not outlive its run`() {
+        PerformanceLog.addDatabaseNanos(40_000_000)
+        PerformanceLog.addDatabaseNanos(60_000_000)
+        PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
+        assertEquals(100L, PerformanceLog.current.value!!.databaseMs)
+
+        PerformanceLog.begin(PerfSection.MOVIES)
+        PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
+        assertEquals(
+            "the previous section's commits leaked",
+            0L,
+            PerformanceLog.current.value!!.databaseMs,
+        )
+    }
+
+    /** A warm open writes nothing, so it reports no database time rather than zero. */
+    @Test
+    fun `a warm open has no database time`() {
+        PerformanceLog.settled(PerfMode.WARM, fullLoad = false)
+        assertNull("a warm open wrote nothing", PerformanceLog.current.value!!.databaseMs)
+    }
+
     /** Every section this phase was asked to time has a name of its own. */
     @Test
     fun `the four sections are distinct`() {
