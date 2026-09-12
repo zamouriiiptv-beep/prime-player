@@ -131,6 +131,26 @@ internal fun PerformancePanel(modifier: Modifier = Modifier) {
         }
         current.fullLoadMs?.let { PerformanceRow("Full Load", seconds(it), colors.onBackground) }
 
+        // The import window. Shown only once the import has reported, so a warm open --
+        // which imports nothing -- draws none of these rather than a column of zeroes.
+        current.categories?.let { categories ->
+            PerformanceRow(
+                "Categories · Records",
+                "$categories  ·  ${current.records ?: 0}",
+                colors.onBackgroundVariant,
+            )
+        }
+        current.requestsStarted?.let { started ->
+            PerformanceRow(
+                "Requests  (fail · retry)",
+                "$started  (${current.requestsFailed ?: 0} · ${current.retries ?: 0})",
+                colors.onBackgroundVariant,
+            )
+        }
+        current.concurrency?.takeIf { it > 0 }?.let {
+            PerformanceRow("Concurrency", "$it in flight", colors.onBackgroundMuted)
+        }
+
         // Parsing has no row because nothing measures it yet, and a row reading "--"
         // beside five real numbers is the kind of blank somebody eventually fills with a
         // guess. `XtreamImportEngine` is in :data:parsing, which may not import the

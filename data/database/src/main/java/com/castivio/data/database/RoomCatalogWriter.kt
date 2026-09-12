@@ -26,10 +26,11 @@ import com.castivio.domain.MediaGroup
  *    be marginally faster and show nothing for twenty seconds.
  *  - **Generations.** Rows are written under a new generation and the previous
  *    one is deleted at the end, so a refresh never shows a half-empty library.
- *  - **Fast pragmas during import only.** `synchronous = OFF` and an in-memory
- *    journal are worth 3–5x on cheap flash. The risk is losing an *in-flight
- *    import* to a power cut, which costs a re-download and nothing else, so the
- *    trade is clearly worth it — and both are restored afterwards.
+ *  - **Fast pragmas during import only.** `synchronous = OFF` is worth 3–5x on cheap
+ *    flash. The risk is losing an *in-flight import* to a power cut, which costs a
+ *    re-download and nothing else, so the trade is clearly worth it — and it is
+ *    restored afterwards. The journal deliberately stays WAL throughout: see
+ *    `applyImportPragmas` for why that one line decided time-to-first-content.
  *
  * Blocking, like the interface it implements. Call it on an IO dispatcher.
  */
@@ -274,12 +275,38 @@ class RoomCatalogWriter(
     /**
      * Import-only tuning. Every statement is wrapped: a device whose SQLite
      * refuses one of these should import slowly, not fail.
+     *
+     * ## The journal stays WAL, and that is the whole of "first content"
+     *
+     * This used to set `journal_mode = MEMORY` as well, and that one line is what made
+     * time-to-first-content equal time-to-full-import. WAL is the mode in which a
+     * reader and a writer can hold the database at the same time; in *any* rollback
+     * journal — MEMORY included — the writer takes an exclusive lock and readers wait.
+     * This writer keeps a transaction open continuously, reopening it inside `commit`,
+     * so for the whole import there is effectively always a writer holding that lock.
+     *
+     * The rows were being committed all along. Nothing could read them. `count()` — the
+     * query the section header and the empty-state check both wait on — blocked until
+     * the import ended, so the screen showed its "fetching" state for the full duration
+     * and first content landed at 175s on a real provider instead of at the first
+     * category.
+     *
+     * `synchronous = OFF` stays: it is the half of the tuning that actually bought the
+     * 3–5x on cheap flash, and it costs an in-flight import in a power cut, which is a
+     * re-download and nothing else. The journal mode bought far less and cost the
+     * feature this whole phase exists to deliver.
      */
     private fun SupportSQLiteDatabase.applyImportPragmas() {
         runCatching { execSQL("PRAGMA synchronous = OFF") }
-        runCatching { execSQL("PRAGMA journal_mode = MEMORY") }
     }
 
+    /**
+     * Restores durability afterwards.
+     *
+     * The WAL statement is left in even though the import no longer leaves the journal
+     * anywhere else: it is a repair for a connection some other writer moved, and it
+     * costs one no-op statement per import.
+     */
     private fun SupportSQLiteDatabase.restoreNormalPragmas() {
         runCatching { execSQL("PRAGMA synchronous = NORMAL") }
         runCatching { execSQL("PRAGMA journal_mode = WAL") }

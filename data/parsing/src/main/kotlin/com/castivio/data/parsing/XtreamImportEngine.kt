@@ -8,6 +8,14 @@ import com.castivio.domain.ImportSummary
 import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaKind
 import java.io.Reader
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.channels.trySendBlocking
 
 /**
  * Imports an Xtream catalogue, category by category.
@@ -34,9 +42,20 @@ class XtreamImportEngine(
     private val writer: CatalogWriter,
     private val batchSize: Int = CatalogImportEngine.DEFAULT_BATCH,
     private val clock: () -> Long = System::currentTimeMillis,
+    /**
+     * How many category requests may be in flight at once.
+     *
+     * Four, and a constructor parameter rather than a constant, so the number can be
+     * moved from measurements instead of from opinion. It is deliberately small: the
+     * thing on the other end is usually one PHP host serving every customer of the
+     * subscription, and the failure mode of getting this wrong is not a slow app but a
+     * provider that starts refusing the user.
+     */
+    private val concurrency: Int = DEFAULT_CONCURRENCY,
 ) {
     init {
         require(batchSize in 1..CatalogImportEngine.MAX_BATCH) { "batchSize $batchSize out of range" }
+        require(concurrency in 1..MAX_CONCURRENCY) { "concurrency $concurrency out of range" }
     }
 
     /**
@@ -84,9 +103,9 @@ class XtreamImportEngine(
         val batch = ArrayList<CatalogItem>(batchSize)
         val perKind = IntArray(MediaKind.entries.size)
         var imported = 0
-        var order = 0
         var groups = 0
         var cancelled = false
+        val failures = ArrayList<Pair<String, Throwable>>()
 
         writer.begin(sourceId, mode)
         try {
@@ -103,46 +122,95 @@ class XtreamImportEngine(
                     list
                 }
 
-                for (category in categories) {
-                    if (cancelled) break
-                    // A category named "RADIO" holds stations, not channels; they
-                    // get their own kind so no live query has to exclude them.
-                    val kind = if (endpointKind == MediaKind.LIVE && MediaClassifier.isRadioLabel(category.name)) {
-                        MediaKind.RADIO
-                    } else {
-                        endpointKind
-                    }
-                    val groupId = StableIds.group(sourceId, kind, category.name)
-                    writer.writeGroups(listOf(MediaGroup(groupId, category.name, kind)))
-                    groups++
+                // ------------------------------------------------ bounded concurrency
+                //
+                // This was a strictly sequential `for (category in categories)`, one
+                // round trip at a time, and on a real subscription that is 497 calls at
+                // ~0.4s each before the first row could be read. It is replaced by a
+                // fixed number of workers pulling from the same list, never by
+                // `async` per category: 497 sockets opened at once is a denial of
+                // service aimed at the user's own provider, and the panel it talks to
+                // is usually a single PHP host.
+                //
+                // The writer is untouched by all of this. It is one SQLite transaction
+                // and is not thread-safe, so workers only ever *parse*; every write
+                // happens on this thread, draining the channel below. That is also what
+                // keeps memory O(batch) rather than O(category): a worker hands over
+                // batches as it parses them and blocks when the channel is full, so the
+                // most that is ever in flight is the channel's capacity plus one batch
+                // per worker.
+                val ordered = categories.withIndex().toList()
+                val events = Channel<CategoryEvent>(capacity = concurrency)
 
-                    when (kind) {
-                        MediaKind.SERIES -> api.series(category.id).use { reader ->
-                            XtreamParser.parseSeries(reader) { series ->
-                                perKind[MediaKind.SERIES.ordinal]++
-                                batch.add(seriesShell(sourceId, series, groupId, order++))
-                                if (batch.size >= batchSize) {
-                                    imported += flush(batch)
-                                    onProgress(ImportProgress.Importing(imported, groups, kind))
+                runBlocking {
+                    val producers = launch {
+                        val gate = Semaphore(concurrency)
+                        coroutineScope {
+                            for ((index, category) in ordered) {
+                                launch(Dispatchers.IO) {
+                                    gate.withPermit {
+                                        if (!isCancelled()) {
+                                            fetchCategory(
+                                                sourceId, api, endpointKind, category,
+                                                index, events,
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
+                        events.close()
+                    }
 
-                        else -> api.streams(kind, category.id).use { reader ->
-                            XtreamParser.parseStreams(reader) { stream ->
-                                perKind[kind.ordinal]++
-                                batch.add(item(sourceId, api, kind, stream, groupId, order++))
-                                if (batch.size >= batchSize) {
-                                    imported += flush(batch)
-                                    onProgress(ImportProgress.Importing(imported, groups, kind))
-                                }
+                    for (event in events) {
+                        when (event) {
+                            is CategoryEvent.Group -> {
+                                writer.writeGroups(listOf(event.group))
+                                groups++
                             }
+
+                            is CategoryEvent.Items -> {
+                                for (item in event.items) {
+                                    perKind[event.kind.ordinal]++
+                                    batch.add(item)
+                                    if (batch.size >= batchSize) {
+                                        imported += flush(batch)
+                                        onProgress(ImportProgress.Importing(imported, groups, event.kind))
+                                    }
+                                }
+                                // Committed as each category arrives rather than at the
+                                // end, so the rows are readable while the rest is still
+                                // downloading. This is what "first content" means here.
+                                imported += flush(batch)
+                                onProgress(ImportProgress.Importing(imported, groups, event.kind))
+                            }
+
+                            // ----------------------------------------- partial failure
+                            //
+                            // One category that would not load no longer takes the
+                            // catalogue with it. Before this, the whole import threw and
+                            // `writer.abort` ended it, so a single bad request after 400
+                            // good ones left the user with an activation screen. The
+                            // failure is counted and named; the other categories carry on.
+                            is CategoryEvent.Failed -> failures.add(event.category to event.cause)
+                        }
+                        if (isCancelled()) {
+                            cancelled = true
+                            break
                         }
                     }
 
-                    imported += flush(batch)
-                    onProgress(ImportProgress.Importing(imported, groups, kind))
-                    if (isCancelled()) cancelled = true
+                    // The channel is cancelled *before* the producers, and the order is
+                    // load-bearing rather than tidy. A worker hands batches over with
+                    // `trySendBlocking`, which parks the OS thread rather than
+                    // suspending the coroutine — so `producers.cancel()` cannot reach a
+                    // worker that is waiting for room, and the `join()` below would wait
+                    // for a thread that is waiting for a consumer that has already
+                    // stopped consuming. Cancelling the channel first makes those sends
+                    // throw, which releases the thread and lets the cancel land.
+                    events.cancel()
+                    if (cancelled) producers.cancel()
+                    producers.join()
                 }
             }
 
@@ -292,6 +360,93 @@ class XtreamImportEngine(
         episodeNumber = null,
     )
 
+    /**
+     * One category, fetched and parsed off the writer's thread.
+     *
+     * Everything here is read-only with respect to the database: the worker produces
+     * [CategoryEvent]s and the single consumer performs every write. Batches are handed
+     * over as they fill rather than at the end, so a category with 20,000 channels never
+     * exists in memory as 20,000 objects — the channel's backpressure blocks the worker
+     * instead, which is the same O(batch) guarantee the sequential loop gave.
+     *
+     * A failure is *reported*, never thrown. That is the whole of requirement 5: this
+     * used to propagate out of the loop into `writer.abort` and end the import, so one
+     * unlucky request discarded every category that had already succeeded.
+     */
+    private suspend fun fetchCategory(
+        sourceId: String,
+        api: Api,
+        endpointKind: MediaKind,
+        category: XtreamCategory,
+        index: Int,
+        events: kotlinx.coroutines.channels.SendChannel<CategoryEvent>,
+    ) {
+        // A category named "RADIO" holds stations, not channels; they get their own
+        // kind so no live query has to exclude them.
+        val kind = if (endpointKind == MediaKind.LIVE && MediaClassifier.isRadioLabel(category.name)) {
+            MediaKind.RADIO
+        } else {
+            endpointKind
+        }
+        val groupId = StableIds.group(sourceId, kind, category.name)
+
+        try {
+            events.send(CategoryEvent.Group(MediaGroup(groupId, category.name, kind)))
+
+            // Provider order, preserved under concurrency.
+            //
+            // The sequential loop used one counter incremented across the whole import,
+            // which is the provider's own ordering and — for live television — the
+            // channel numbering every remote navigates by. Categories now finish out of
+            // order, so a shared counter would shuffle the channel list differently on
+            // every import. The position is derived from the category's index instead,
+            // which gives the same ordering the sequential loop produced and gives it
+            // deterministically.
+            var position = index * CATEGORY_STRIDE
+            val batch = ArrayList<CatalogItem>(batchSize)
+
+            when (kind) {
+                MediaKind.SERIES -> api.series(category.id).use { reader ->
+                    XtreamParser.parseSeries(reader) { series ->
+                        batch.add(seriesShell(sourceId, series, groupId, position++))
+                        if (batch.size >= batchSize) {
+                            events.trySendBlocking(CategoryEvent.Items(kind, ArrayList(batch)))
+                            batch.clear()
+                        }
+                    }
+                }
+
+                else -> api.streams(kind, category.id).use { reader ->
+                    XtreamParser.parseStreams(reader) { stream ->
+                        batch.add(item(sourceId, api, kind, stream, groupId, position++))
+                        if (batch.size >= batchSize) {
+                            events.trySendBlocking(CategoryEvent.Items(kind, ArrayList(batch)))
+                            batch.clear()
+                        }
+                    }
+                }
+            }
+            if (batch.isNotEmpty()) events.send(CategoryEvent.Items(kind, batch))
+        } catch (t: Throwable) {
+            // Rethrown only for cancellation, which is not a failure of the category:
+            // swallowing it would leave a worker running after the import was stopped.
+            if (t is kotlinx.coroutines.CancellationException) throw t
+            events.send(CategoryEvent.Failed(category.name, t))
+        }
+    }
+
+    /**
+     * What a worker hands to the writer's thread.
+     *
+     * Deliberately three cases and no "finished": the consumer stops when the channel
+     * closes, which happens exactly once, after every worker has returned.
+     */
+    private sealed interface CategoryEvent {
+        data class Group(val group: MediaGroup) : CategoryEvent
+        data class Items(val kind: MediaKind, val items: List<CatalogItem>) : CategoryEvent
+        data class Failed(val category: String, val cause: Throwable) : CategoryEvent
+    }
+
     private fun flush(batch: MutableList<CatalogItem>): Int {
         if (batch.isEmpty()) return 0
         val size = batch.size
@@ -312,5 +467,35 @@ class XtreamImportEngine(
 
     companion object {
         val DEFAULT_KINDS: Set<MediaKind> = setOf(MediaKind.LIVE, MediaKind.MOVIE, MediaKind.SERIES)
+
+        /**
+         * Requests in flight at once, by default.
+         *
+         * Four is a starting point chosen to be obviously safe rather than optimal: it
+         * is four times fewer round trips end to end than the sequential loop it
+         * replaces, and it is far below the point at which a single-host Xtream panel
+         * starts refusing a subscription. Raise it from measurements on a real
+         * provider, never from the fact that a bigger number sounds faster.
+         */
+        const val DEFAULT_CONCURRENCY = 4
+
+        /**
+         * The ceiling, which exists so nobody can turn this into 497 parallel requests.
+         *
+         * Above this, the thing being optimised stops being the user's wait and starts
+         * being someone else's server.
+         */
+        const val MAX_CONCURRENCY = 8
+
+        /**
+         * How much ordering space each category is given.
+         *
+         * Categories are parsed concurrently and therefore finish out of order, so a
+         * row's position is derived from its category's index rather than from a shared
+         * counter — see `fetchCategory`. The stride has to exceed the largest category
+         * a provider can ship, or two categories would interleave; 100,000 is well past
+         * anything observed and still leaves room for 21,000 categories inside an Int.
+         */
+        const val CATEGORY_STRIDE = 100_000
     }
 }

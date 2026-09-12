@@ -102,12 +102,23 @@ class DefaultCatalogImporter(
                 // Nothing here changes what is requested, in what order, or with what
                 // headers. See `CallMetrics`.
                 CallMetrics.reset()
+                // The limit actually in force, read from the engine rather than restated,
+                // so the panel cannot claim a concurrency the import is not using.
+                PerformanceLog.importConcurrency(XtreamImportEngine.DEFAULT_CONCURRENCY)
                 try {
                     val summary = XtreamImportEngine(writer, clock = clock).importCatalogue(
                         sourceId = sourceId,
                         api = xtreamApiFactory(source),
                         kinds = setOf(kind),
-                        onProgress = { trySend(it) },
+                        onProgress = { progress ->
+                            // The importer's own running totals, forwarded to the panel
+                            // as they arrive. Counting them a second time here is how
+                            // the progress line and the panel end up disagreeing.
+                            if (progress is ImportProgress.Importing) {
+                                PerformanceLog.importProgress(progress.groupsReady, progress.itemsImported)
+                            }
+                            trySend(progress)
+                        },
                         isCancelled = { !isActive },
                         mode = ImportMode.APPEND,
                     )

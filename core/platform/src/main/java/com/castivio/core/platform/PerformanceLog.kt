@@ -59,6 +59,9 @@ object PerformanceLog {
         runs += 1
         lastNetwork = null
         databaseNanos.set(0)
+        requestsStarted.set(0)
+        requestsFailed.set(0)
+        retries.set(0)
         _current.value = SectionReport(
             section = section,
             run = runs,
@@ -131,6 +134,63 @@ object PerformanceLog {
 
     /** Cleared with every [begin], so a warm open cannot inherit a cold one's counts. */
     private var lastNetwork: NetworkWindow? = null
+
+    /* ------------------------------------------------------------ the import window
+     *
+     * Counted where they happen and read here, so the panel states what the import
+     * actually did rather than what the loop was written to do. Every one of these is
+     * an event somebody incremented; none is derived, and none is displayed unless it
+     * was incremented at least once.
+     */
+
+    private val requestsStarted = java.util.concurrent.atomic.AtomicInteger()
+    private val requestsFailed = java.util.concurrent.atomic.AtomicInteger()
+    private val retries = java.util.concurrent.atomic.AtomicInteger()
+
+    /** One HTTP call is about to be made. Called by the Xtream client, per attempt. */
+    fun requestStarted() {
+        requestsStarted.incrementAndGet()
+    }
+
+    /** A call gave up after its retries. A category may survive this; see the engine. */
+    fun requestFailed() {
+        requestsFailed.incrementAndGet()
+    }
+
+    /** A call failed transiently and is being tried again. */
+    fun requestRetried() {
+        retries.incrementAndGet()
+    }
+
+    /**
+     * What the import reached, published by the importer as its progress arrives.
+     *
+     * `categories` and `records` are the importer's own running totals rather than a
+     * second count kept here, so the panel and the progress line cannot disagree.
+     */
+    fun importProgress(categories: Int, records: Int) {
+        val report = _current.value ?: return
+        _current.value = report.copy(
+            categories = categories,
+            records = records,
+            requestsStarted = requestsStarted.get(),
+            requestsFailed = requestsFailed.get(),
+            retries = retries.get(),
+            concurrency = concurrencyLimit,
+        )
+    }
+
+    /**
+     * How many requests the import is allowed to have in flight at once.
+     *
+     * Set by the importer from the engine's own limit rather than restated here, so the
+     * panel reports the number actually in force.
+     */
+    fun importConcurrency(limit: Int) {
+        concurrencyLimit = limit
+    }
+
+    private var concurrencyLimit = 0
 
     /**
      * The section stopped loading: either the import committed, or there was nothing
@@ -268,6 +328,30 @@ data class SectionReport(
     val databaseMs: Long? = null,
     /** How many HTTP calls this section cost. `1 + N` in Phase A's terms, measured. */
     val requests: Int? = null,
+
+    /* --------------------------------------------------------- the import window
+     *
+     * Null until the import reports for the first time, so a warm open -- which
+     * imports nothing -- shows none of these rather than a row of zeroes.
+     */
+
+    /** Categories the provider declared and the import has written a group for. */
+    val categories: Int? = null,
+
+    /** Rows committed to SQLite so far. Rises while the import runs. */
+    val records: Int? = null,
+
+    /** HTTP attempts begun, retries included. */
+    val requestsStarted: Int? = null,
+
+    /** Attempts that gave up after their retries. A category can survive one. */
+    val requestsFailed: Int? = null,
+
+    /** Attempts made again after a transient failure. */
+    val retries: Int? = null,
+
+    /** How many requests the import may have in flight at once. */
+    val concurrency: Int? = null,
 ) {
     /** Milliseconds since this run began, on the monotonic clock. */
     fun sinceStartMs(): Long = (SystemClock.elapsedRealtimeNanos() - startedAtNanos) / 1_000_000
