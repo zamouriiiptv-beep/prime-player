@@ -212,9 +212,22 @@ class XtreamImportEngine(
                     if (cancelled) producers.cancel()
                     producers.join()
                 }
+
+                // Asked again outside the consumer loop, because a run cancelled before
+                // any event arrived would otherwise finish and report itself successful:
+                // the only place `cancelled` was set is inside a loop that never ran.
+                if (isCancelled()) cancelled = true
             }
 
             imported += flush(batch)
+
+            // Partial failure survives; total failure does not pretend to be success.
+            // If not one category yielded a row and at least one of them failed, the
+            // honest outcome is that first failure -- reported with its own cause, so
+            // the caller still shows "timed out" or "unreachable" rather than the
+            // "your provider carries nothing" that an empty success would produce.
+            if (imported == 0 && failures.isNotEmpty() && !cancelled) throw failures.first().second
+
             val summary = ImportSummary(
                 sourceId = sourceId,
                 items = imported,

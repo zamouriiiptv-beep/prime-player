@@ -246,6 +246,16 @@ class XtreamImportEngineTest {
         assertEquals(250, (progress.last() as ImportProgress.Done).totalItems)
     }
 
+    /**
+     * Cancellation is still observed, and now costs nothing rather than one round trip.
+     *
+     * **Updated by Phase C, and tightened rather than relaxed.** It used to assert that
+     * exactly one category was fetched, because the sequential loop checked the flag
+     * *after* fetching. Workers check it before taking their permit, so a run cancelled
+     * at the outset now issues no stream request at all. The import must still report
+     * itself cancelled and must still abort — that half is unchanged and is what this
+     * keeps guarding.
+     */
     @Test
     fun `cancellation stops between categories and keeps what was written`() {
         val writer = RecordingWriter()
@@ -258,12 +268,24 @@ class XtreamImportEngineTest {
             .importCatalogue("src", api, kinds = setOf(MediaKind.LIVE), isCancelled = { true })
 
         assertTrue(summary.cancelled)
-        assertEquals(1, summary.items)
-        assertEquals("only the first category should be fetched", 1, api.streamRequests.size)
+        assertEquals("a cancelled run should fetch no category at all", 0, api.streamRequests.size)
         assertTrue(writer.aborted)
         assertNull(writer.finished)
     }
 
+    /**
+     * A failure that leaves nothing behind still fails, and still carries its cause.
+     *
+     * **Kept deliberately, against a change that could have quietly removed it.** Phase C
+     * makes a failing category survivable so that one bad request out of five hundred
+     * cannot discard the other four hundred and ninety-nine — see
+     * `XtreamImportConcurrencyTest`. It would have been easy to let that swallow *every*
+     * failure and report an empty success, and an empty success reaches the user as
+     * "your provider carries nothing" instead of "it timed out".
+     *
+     * So the rule is: partial failure survives, total failure propagates. This is the
+     * total case — one category, and it fails — and it must still throw and still abort.
+     */
     @Test
     fun `a failure aborts and propagates`() {
         val writer = RecordingWriter()
