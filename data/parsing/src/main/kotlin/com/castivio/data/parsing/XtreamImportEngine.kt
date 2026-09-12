@@ -139,21 +139,42 @@ class XtreamImportEngine(
                 // batches as it parses them and blocks when the channel is full, so the
                 // most that is ever in flight is the channel's capacity plus one batch
                 // per worker.
-                val ordered = categories.withIndex().toList()
+                // Groups are written here, in the provider's own order, before a single
+                // worker starts — not emitted by the workers as they finish.
+                //
+                // They arrive out of order otherwise, and `RoomCatalogWriter` numbers
+                // them by insertion, so the category rail would come out in a different
+                // order after every import. That is the same defect as scrambled channel
+                // numbers and it is fixed the same way: order comes from the provider's
+                // list, never from whichever reply landed first. Affordable because the
+                // category list is one small request already held in memory — the
+                // repository's own contract calls it safe to hold.
+                val ordered = categories.withIndex().map { (index, category) ->
+                    // A category named "RADIO" holds stations, not channels; they get
+                    // their own kind so no live query has to exclude them.
+                    val kind = if (endpointKind == MediaKind.LIVE && MediaClassifier.isRadioLabel(category.name)) {
+                        MediaKind.RADIO
+                    } else {
+                        endpointKind
+                    }
+                    CategoryPlan(index, category, kind, StableIds.group(sourceId, kind, category.name))
+                }
+                for (plan in ordered) {
+                    writer.writeGroups(listOf(MediaGroup(plan.groupId, plan.category.name, plan.kind)))
+                    groups++
+                }
+
                 val events = Channel<CategoryEvent>(capacity = concurrency)
 
                 runBlocking {
                     val producers = launch {
                         val gate = Semaphore(concurrency)
                         coroutineScope {
-                            for ((index, category) in ordered) {
+                            for (plan in ordered) {
                                 launch(Dispatchers.IO) {
                                     gate.withPermit {
                                         if (!isCancelled()) {
-                                            fetchCategory(
-                                                sourceId, api, endpointKind, category,
-                                                index, events,
-                                            )
+                                            fetchCategory(sourceId, api, plan, events)
                                         }
                                     }
                                 }
@@ -164,11 +185,6 @@ class XtreamImportEngine(
 
                     for (event in events) {
                         when (event) {
-                            is CategoryEvent.Group -> {
-                                writer.writeGroups(listOf(event.group))
-                                groups++
-                            }
-
                             is CategoryEvent.Items -> {
                                 for (item in event.items) {
                                     perKind[event.kind.ordinal]++
@@ -389,23 +405,14 @@ class XtreamImportEngine(
     private suspend fun fetchCategory(
         sourceId: String,
         api: Api,
-        endpointKind: MediaKind,
-        category: XtreamCategory,
-        index: Int,
+        plan: CategoryPlan,
         events: kotlinx.coroutines.channels.SendChannel<CategoryEvent>,
     ) {
-        // A category named "RADIO" holds stations, not channels; they get their own
-        // kind so no live query has to exclude them.
-        val kind = if (endpointKind == MediaKind.LIVE && MediaClassifier.isRadioLabel(category.name)) {
-            MediaKind.RADIO
-        } else {
-            endpointKind
-        }
-        val groupId = StableIds.group(sourceId, kind, category.name)
+        val kind = plan.kind
+        val groupId = plan.groupId
+        val category = plan.category
 
         try {
-            events.send(CategoryEvent.Group(MediaGroup(groupId, category.name, kind)))
-
             // Provider order, preserved under concurrency.
             //
             // The sequential loop used one counter incremented across the whole import,
@@ -415,7 +422,7 @@ class XtreamImportEngine(
             // every import. The position is derived from the category's index instead,
             // which gives the same ordering the sequential loop produced and gives it
             // deterministically.
-            var position = index * CATEGORY_STRIDE
+            var position = plan.index * CATEGORY_STRIDE
             val batch = ArrayList<CatalogItem>(batchSize)
 
             when (kind) {
@@ -448,6 +455,14 @@ class XtreamImportEngine(
         }
     }
 
+    /** One category, with everything decided about it before any request is made. */
+    private data class CategoryPlan(
+        val index: Int,
+        val category: XtreamCategory,
+        val kind: MediaKind,
+        val groupId: String,
+    )
+
     /**
      * What a worker hands to the writer's thread.
      *
@@ -455,7 +470,6 @@ class XtreamImportEngine(
      * closes, which happens exactly once, after every worker has returned.
      */
     private sealed interface CategoryEvent {
-        data class Group(val group: MediaGroup) : CategoryEvent
         data class Items(val kind: MediaKind, val items: List<CatalogItem>) : CategoryEvent
         data class Failed(val category: String, val cause: Throwable) : CategoryEvent
     }
