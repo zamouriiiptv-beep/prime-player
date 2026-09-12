@@ -190,9 +190,20 @@ class DefaultCatalogImporterTest {
         val progress = importer(xtreamApi = FakeXtreamApi()).import(source).toList()
 
         assertEquals(2, writer.items.size)
-        assertEquals(listOf("Nova Sports", "Radio Mars"), writer.items.map { it.title })
+
+        // Sorted by `providerOrder` rather than taken in arrival order.
+        //
+        // Phase C fetches categories concurrently, so the sequence in which rows reach
+        // the writer is whatever the network returned first and asserting it would be
+        // asserting nothing real. What the user actually sees is unchanged and is what
+        // is checked here: `providerOrder` is derived from the category's position in
+        // the provider's own list, so the catalogue still reads in the provider's order
+        // -- which for live television is the channel numbering -- however the replies
+        // happened to land.
+        val inProviderOrder = writer.items.sortedBy { it.providerOrder }
+        assertEquals(listOf("Nova Sports", "Radio Mars"), inProviderOrder.map { it.title })
         // The radio category is recognised as radio, not as live TV.
-        assertEquals(MediaKind.RADIO, writer.items.last().kind)
+        assertEquals(MediaKind.RADIO, inProviderOrder.last().kind)
         assertEquals(2, (progress.last() as ImportProgress.Done).totalItems)
 
         val recorded = sources.get(SourceIds.of(source))!!.sync
