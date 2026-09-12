@@ -138,4 +138,55 @@
     <!-- %1$s is a date and time. Shown under the count on a downloaded section. -->
     <string name="home_fetched_at">On this device · %1$s</string>
 
+    <!-- ============================================================ Channels
+         The Live TV board, drawn from the approved Channels reference. -->
+
+    <!-- The breadcrumb: "LIVE TV / ALL CHANNELS". The separator is its own string
+         because it is punctuation between two translated words, and a language that
+         writes it differently must be able to say so. -->
+    <string name="channels_crumb_separator">/</string>
+    <!-- Also the rail's first entry, which is a category like any other. The
+         reference draws the breadcrumb uppercase; English carries that here rather
+         than code uppercasing it, because the same slot also holds a provider's own
+         category names and not every language has case at all. -->
+    <string name="channels_all">ALL CHANNELS</string>
+    <!-- The same list, named as the rail names it. -->
+    <string name="channels_all_rail">All Channels</string>
+    <string name="channels_favorites">Favorites</string>
+    <string name="channels_recent">Recently Watched</string>
+
+    <string name="channels_search_hint">Search channels</string>
+    <string name="channels_sort_by">Sort by:</string>
+    <!-- The provider\'s own order, which for live television *is* the channel
+         numbering — so on this board it is named by what a viewer sees, not by
+         where it came from. -->
+    <string name="channels_sort_number">Number</string>
+    <!-- %1$s is a formatted count. -->
+    <string name="channels_total">Total: %1$s Channels</string>
+
+    <!-- On the preview plate, over the channel currently under the remote. -->
+    <string name="channels_live">LIVE</string>
+    <!-- The guide has nothing for this channel: no guide id, no import, or the
+         programme has ended. All three are honestly this sentence. -->
+    <string name="channels_no_information">No Information</string>
+    <!-- Before any row has been focused, and where a row is not a channel. -->
+    <string name="channels_preview_none">No channel selected</string>
+
+    <string name="channels_empty_title">No channels here</string>
+    <string name="channels_empty_detail">This category has nothing in it yet. Try another, or download the section again.</string>
+    <!-- %1$s is the section name, supplied by the caller. -->
+    <string name="channels_fetch_failed">Live TV could not be downloaded</string>
+
+    <!-- The remote legend along the foot of the board. These name what the *remote\'s*
+         keys do; only Back is pressable, because a thumb has no key for it. -->
+    <string name="channels_key_back">Back</string>
+    <string name="channels_key_options">Options</string>
+    <string name="channels_key_sort">Sort</string>
+    <string name="channels_key_favorite">Favorites</string>
+    <string name="channels_key_unfavorite">Remove favorite</string>
+    <string name="channels_key_info_name">INFO</string>
+    <string name="channels_key_info">Channel Info</string>
+    <string name="channels_key_menu_name">MENU</string>
+    <string name="channels_key_menu">Categories</string>
+
 </resources>

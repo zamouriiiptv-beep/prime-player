@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -174,7 +175,21 @@ fun HomeScreen(
                 .padding(top = frame.stageTop, bottom = frame.stageBottom),
             verticalArrangement = Arrangement.spacedBy(frame.bandTop),
         ) {
-            DashboardHeader(state, frame, plan.headerHeight, onLanguage)
+            DashboardHeader(state, frame, plan.headerHeight) {
+                // The trailing end of the header, in the order the other five screens
+                // use: the page's own control keeps the outer end and the theme sits
+                // just inside it. `CastivioThemeSwitchChip` draws nothing where no
+                // switch has been provided, so a preview or a test measuring something
+                // else does not have to know whether to ask for one.
+                CastivioThemeSwitchChip(
+                    chip = frame.chip,
+                    touchTarget = frame.touchTarget,
+                    fontSize = frame.fsChip,
+                    toLighter = stringResource(R.string.home_theme_lighter),
+                    toDarker = stringResource(R.string.home_theme_darker),
+                )
+                LanguageChip(frame, onLanguage)
+            }
 
             when {
                 state.loading -> Box(Modifier.fillMaxSize())
@@ -294,14 +309,24 @@ private data class Plan(
  * that wanted them. `weight(fill = false)` is what makes that safe: each card takes
  * what its words need and no more, and gives width back when the row is tight, so
  * the failure mode is an ellipsis rather than a card pushed off the edge.
+ *
+ * ## Why it is `internal` and takes a slot
+ *
+ * The Channels board draws this same band — the same lockup, the same two subscription
+ * cards, the same clock — and a second declaration of it would be two headers that
+ * agree today and disagree after the first edit to either. What differs is only what
+ * hangs off the trailing end: Home keeps its theme and language controls there, and the
+ * reference Channels page keeps that end clear. So the difference is a parameter, which
+ * is invariant 6's rule rather than an exception to it.
  */
 @Composable
-private fun DashboardHeader(
+internal fun DashboardHeader(
     state: HomeState,
     frame: CastivioMetrics,
     height: Dp,
-    onLanguage: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The trailing controls. Home fills it; the Channels board leaves it empty. */
+    trailing: @Composable RowScope.() -> Unit = {},
 ) {
     val colors = CastivioTheme.colors
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
@@ -347,19 +372,7 @@ private fun DashboardHeader(
 
             Box(Modifier.weight(1f))
             Clock(frame)
-            // The trailing end of the header, in the order the other five screens
-            // use: the page's own control keeps the outer end and the theme sits
-            // just inside it. `CastivioThemeSwitchChip` draws nothing where no
-            // switch has been provided, so a preview or a test measuring something
-            // else does not have to know whether to ask for one.
-            CastivioThemeSwitchChip(
-                chip = frame.chip,
-                touchTarget = frame.touchTarget,
-                fontSize = frame.fsChip,
-                toLighter = stringResource(R.string.home_theme_lighter),
-                toDarker = stringResource(R.string.home_theme_darker),
-            )
-            LanguageChip(frame, onLanguage)
+            trailing()
         }
     }
 }

@@ -65,6 +65,7 @@ import com.castivio.domain.SeriesSummary
 import com.castivio.feature.activation.ActivationRoute
 import com.castivio.feature.activation.LanguagePicker
 import com.castivio.feature.home.BrowseScreen
+import com.castivio.feature.home.ChannelsScreen
 import com.castivio.feature.home.CatalogSearchScreen
 import com.castivio.feature.home.CatalogSection
 import com.castivio.feature.home.CatalogSelection
@@ -222,10 +223,13 @@ fun ShellScreen(
                     onAbout = { overlay = Overlay.Licence },
                     onExit = onExit,
                 )
-                Dest.Live -> BrowseScreen(
-                    section = CatalogSection.Live,
+                // Live has its own board rather than the generic section screen: the
+                // approved reference is three columns whose third is a preview of the
+                // channel the remote is on, which the other three sections have no
+                // equivalent of. They keep `BrowseScreen` exactly as it was.
+                Dest.Live -> ChannelsScreen(
                     onPlay = play,
-                    onOpenShow = { overlay = Overlay.Show(it) },
+                    onBack = { dest = Dest.Home },
                     onSearch = { dest = Dest.Search },
                 )
                 Dest.Movies -> BrowseScreen(
