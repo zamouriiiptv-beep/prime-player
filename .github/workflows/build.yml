@@ -64,6 +64,28 @@ jobs:
       # where anyone holding the file can read them back out. That is the accepted cost of
       # installing CI builds rather than building locally, and the reason these credentials
       # should be an account kept for this and rotated when it leaks.
+      # The debug signing key, which decides whether a new APK can be installed *over*
+      # the last one. It is pinned in the repository so consecutive builds share a
+      # certificate; before that, AGP invented a fresh key on each throwaway runner,
+      # every build refused to install over its predecessor, and the only way in was to
+      # uninstall -- which deletes the Room database, the provider record and the whole
+      # imported catalogue. That was read as a data-layer regression for two releases.
+      #
+      # A `DEBUG_KEYSTORE_BASE64` secret overrides the committed key for anyone who
+      # would rather not have one in the tree. It is optional on purpose: unset, the
+      # job is identical to a local build, which is the property that makes the pinned
+      # key worth having.
+      - name: Use the CI debug keystore, if one is configured
+        env:
+          DEBUG_KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$DEBUG_KEYSTORE_BASE64" ]; then
+            printf '%s' "$DEBUG_KEYSTORE_BASE64" | base64 -d > keystore/ci-debug.keystore
+            echo "Signing with the keystore supplied by DEBUG_KEYSTORE_BASE64."
+          else
+            echo "No DEBUG_KEYSTORE_BASE64 secret; signing with the pinned keystore in the repository."
+          fi
+
       - name: Build debug APK
         env:
           OPENSUBTITLES_API_KEY: ${{ secrets.OPENSUBTITLES_API_KEY }}
@@ -165,6 +187,22 @@ jobs:
           name: android-test-reports
           path: "**/build/reports/tests/**"
           if-no-files-found: warn
+
+      # Printed rather than asserted, and printed for the APK rather than the keystore:
+      # what matters is the certificate that actually ended up on the file a device will
+      # be asked to install. Comparing this line between any two runs is the whole test
+      # -- identical SHA-256 means the second APK installs over the first without an
+      # uninstall, and therefore without losing the catalogue.
+      - name: Print the APK signing certificate
+        run: |
+          APK=$(ls app/build/outputs/apk/debug/*.apk | head -1)
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)
+          echo "APK: $APK"
+          if [ -n "$APKSIGNER" ]; then
+            "$APKSIGNER" verify --print-certs "$APK" | grep -Ei "SHA-256 digest|SHA-1 digest|DN:"
+          else
+            keytool -printcert -jarfile "$APK" | grep -Ei "SHA256:|SHA1:|Owner:"
+          fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
