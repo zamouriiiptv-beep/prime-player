@@ -163,10 +163,22 @@ class ChannelsMetricsTest {
         assertEquals("rail entry is the D-pad floor", Sizing.minTvTarget, m.railMin)
     }
 
-    /** The preview plate keeps the reference's shape, which is not 16:9 and not square. */
+    /**
+     * The preview plate is 16:9, because what sits in it is a picture.
+     *
+     * It was 430:312 — the plate of the first reference, a still whose third column held
+     * a channel *identity* rather than a frame of video, and the squarer box was right
+     * for that. The approved design shows the picture itself, and a picture has one
+     * shape: anything else letterboxes live television inside a panel built to avoid
+     * letterboxing.
+     *
+     * Kept as a test rather than deleted, and deliberately: this is the one number on the
+     * board that a later tidy-up would be tempted to "round" to whatever the column
+     * happens to be, and the whole point is that the column follows the picture.
+     */
     @Test
-    fun `the preview plate keeps the reference's aspect`() {
-        assertEquals(430f / 312f, CHANNELS_PREVIEW_ASPECT, 0.001f)
+    fun `the preview plate is sixteen by nine`() {
+        assertEquals(16f / 9f, CHANNELS_PREVIEW_ASPECT, 0.001f)
     }
 
     /* ------------------------------------------------------------------ helpers */
