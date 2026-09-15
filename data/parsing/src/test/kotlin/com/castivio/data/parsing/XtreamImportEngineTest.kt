@@ -323,6 +323,87 @@ class XtreamImportEngineTest {
 
     private data class Episode(val id: String, val title: String, val season: Int, val number: Int)
 
+    /**
+     * **A transaction per category was costing more than the content it revealed.**
+     *
+     * Writing a batch and committing it used to be one call, which was right while a
+     * batch and a category were the same size. On the measured provider they are not:
+     * 19,003 channels across 495 categories is 38 rows each, so the import opened and
+     * closed 495 transactions — 23.98s of commit time against 2.39s to first content.
+     * Every one of those commits after the first was paid so that rows nobody was
+     * waiting for could become visible 38 at a time.
+     *
+     * The two assertions are the two halves of the rule, and they pull in opposite
+     * directions on purpose: commit far less often, and still commit the first rows
+     * immediately. A change that satisfies one by breaking the other fails here.
+     *
+     * The clock is frozen, so [XtreamImportEngine.COMMIT_INTERVAL_MS] cannot fire and
+     * the count is decided by the row rule alone. That makes the assertion a statement
+     * about the policy rather than about how fast the machine running it is.
+     */
+    @Test
+    fun `commits are far fewer than categories, and the first one is immediate`() {
+        val categories = (1..60).map { it.toString() to "Category $it" }
+        val writer = CommitCountingWriter()
+        val api = FakeApi(
+            liveCategories = categories,
+            liveStreams = categories.associate { (id, _) ->
+                id to (1..40).map { n -> stream("$id-$n", "Channel $id-$n") }
+            },
+        )
+
+        XtreamImportEngine(writer, clock = { FROZEN_MS }).importCatalogue(
+            sourceId = "src",
+            api = api,
+            kinds = setOf(MediaKind.LIVE),
+        )
+
+        assertEquals(2_400, writer.items)
+
+        // Row-driven: 2,400 rows at a 2,000 ceiling is one forced commit, plus the
+        // first and the final one. Nothing like 60.
+        assertTrue(
+            "committed ${writer.commits} times for 60 categories: still one per category",
+            writer.commits <= 6,
+        )
+
+        // And the first content is not held back for any of that. The first commit
+        // carries the first category and nothing more, which is what TTFC measures.
+        assertEquals(
+            "the first commit waited for more than the first category",
+            40,
+            writer.itemsAtFirstCommit,
+        )
+    }
+
+    /** Counts transactions, and remembers how much the first one carried. */
+    private class CommitCountingWriter : CatalogWriter {
+        var items = 0
+        var commits = 0
+        var itemsAtFirstCommit = -1
+        var finished = false
+
+        override fun begin(sourceId: String, mode: ImportMode) = Unit
+        override fun writeGroups(groups: List<MediaGroup>) = Unit
+        override fun writeItems(items: List<CatalogItem>) {
+            this.items += items.size
+        }
+
+        override fun commit() {
+            commits++
+            if (itemsAtFirstCommit < 0) itemsAtFirstCommit = items
+        }
+
+        override fun finish(summary: ImportSummary) {
+            finished = true
+        }
+
+        override fun abort(cause: Throwable?) = Unit
+    }
+
+    /** Any instant; only its constancy matters. */
+    private val FROZEN_MS = 1_700_000_000_000L
+
     private fun stream(id: String, name: String, extension: String? = null): String =
         """{"num":0,"name":"$name","stream_id":"$id","stream_icon":"http://cdn/$id.png",""" +
             """"epg_channel_id":"epg.$id","category_id":"1"""" +

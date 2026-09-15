@@ -107,6 +107,39 @@ class XtreamImportEngine(
         var cancelled = false
         val failures = ArrayList<Pair<String, Throwable>>()
 
+        // ------------------------------------------------------ the commit policy
+        //
+        // Rows written into the open transaction but not yet committed, and when the
+        // last commit was. Together with [committedOnce] these are the whole of the
+        // rule in [commitDue] -- kept as locals rather than fields because they belong
+        // to one import and an engine instance is used for exactly one.
+        var pending = 0
+        var lastCommitAt = started
+        var committedOnce = false
+
+        /**
+         * Ends the batch's transaction, but only when the policy says so.
+         *
+         * `force` is the end of the import, where everything written has to become
+         * durable whatever the counters say.
+         */
+        fun commitIfDue(force: Boolean = false) {
+            if (pending == 0) return
+            val now = clock()
+            val due = force ||
+                // The first content on the screen, and the reason this is the first
+                // clause rather than one of the others: TTFC is measured from the
+                // moment the count query can see a row, and that moment is this commit.
+                !committedOnce ||
+                pending >= COMMIT_ROWS ||
+                now - lastCommitAt >= COMMIT_INTERVAL_MS
+            if (!due) return
+            writer.commit()
+            committedOnce = true
+            pending = 0
+            lastCommitAt = now
+        }
+
         writer.begin(sourceId, mode)
         try {
             for (requested in kinds) {
@@ -190,14 +223,29 @@ class XtreamImportEngine(
                                     perKind[event.kind.ordinal]++
                                     batch.add(item)
                                     if (batch.size >= batchSize) {
-                                        imported += flush(batch)
+                                        val written = flush(batch)
+                                        imported += written
+                                        pending += written
+                                        commitIfDue()
                                         onProgress(ImportProgress.Importing(imported, groups, event.kind))
                                     }
                                 }
-                                // Committed as each category arrives rather than at the
-                                // end, so the rows are readable while the rest is still
-                                // downloading. This is what "first content" means here.
-                                imported += flush(batch)
+                                // Written as each category arrives, and *committed* on the
+                                // policy above rather than here. Both halves matter and
+                                // they are no longer the same decision.
+                                //
+                                // Writing per category is what keeps memory O(batch) and
+                                // what lets the first rows be committed the instant they
+                                // exist. Committing per category is what made a 495-category
+                                // section pay for 495 transactions -- 19,003 rows across
+                                // them is a full commit every 38 rows, measured at 23.98s
+                                // on a real provider, against 2.39s to first content. The
+                                // rows were being made durable 38 at a time for the benefit
+                                // of a reader that only needed the first batch.
+                                val written = flush(batch)
+                                imported += written
+                                pending += written
+                                commitIfDue()
                                 onProgress(ImportProgress.Importing(imported, groups, event.kind))
                             }
 
@@ -235,7 +283,15 @@ class XtreamImportEngine(
                 if (isCancelled()) cancelled = true
             }
 
-            imported += flush(batch)
+            val tail = flush(batch)
+            imported += tail
+            pending += tail
+            // Forced: everything written has to be durable before the summary claims it
+            // was imported. This is what the old unconditional commit in `flush` did at
+            // this point, kept explicitly so the guarantee does not depend on `finish`
+            // happening to commit -- which is a property of one writer, not of the
+            // interface.
+            commitIfDue(force = true)
 
             // Partial failure survives; total failure does not pretend to be success.
             // If not one category yielded a row and at least one of them failed, the
@@ -474,12 +530,20 @@ class XtreamImportEngine(
         data class Failed(val category: String, val cause: Throwable) : CategoryEvent
     }
 
+    /**
+     * Hands one batch to the writer and empties it. **Does not commit.**
+     *
+     * It used to, and the two were one decision for as long as a batch and a commit
+     * were the same thing. They are not: writing is what bounds memory, committing is
+     * what makes rows visible and durable, and a section of 495 small categories needs
+     * the first far more often than the second. The commit rule lives at the call site,
+     * in `commitIfDue`, where it can see the clock and the running total.
+     */
     private fun flush(batch: MutableList<CatalogItem>): Int {
         if (batch.isEmpty()) return 0
         val size = batch.size
         writer.writeItems(batch)
         batch.clear()
-        writer.commit()
         return size
     }
 
@@ -524,5 +588,31 @@ class XtreamImportEngine(
          * anything observed and still leaves room for 21,000 categories inside an Int.
          */
         const val CATEGORY_STRIDE = 100_000
+
+        /**
+         * Rows written since the last commit that force the next one.
+         *
+         * The ceiling on how much a failure or a cancellation rolls back, and on how
+         * far the counted progress can run ahead of what a reader can see. Neither is
+         * a loss: a section that did not finish is never marked loaded
+         * (`LoadSection` writes the mark only on success), so the next open re-imports
+         * it, and ids are stable under `INSERT OR REPLACE` so the rows that did land
+         * are rewritten rather than duplicated.
+         */
+        const val COMMIT_ROWS = 2_000
+
+        /**
+         * And the longest a row waits to become visible when they arrive slowly.
+         *
+         * Half a second, because the number this protects is time-to-first-content and
+         * the number it reduces is transaction count. A section whose categories are
+         * tiny -- 38 rows each on the measured provider -- would otherwise commit on
+         * every one of them; with this it commits on the clock instead, and a viewer
+         * cannot perceive the difference between a row arriving now and 500ms from now
+         * inside a load that runs for forty seconds.
+         *
+         * The first commit is exempt. See `commitIfDue`.
+         */
+        const val COMMIT_INTERVAL_MS = 500L
     }
 }
