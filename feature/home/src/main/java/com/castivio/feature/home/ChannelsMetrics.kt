@@ -65,7 +65,11 @@ internal data class ChannelsMetrics(
     val toolbarGap: Dp,
     val search: Dp,
 
-    /* the three columns */
+    /* the four columns */
+    /** The vertical strip of actions at the leading edge. See `ActionRail`. */
+    val actions: Dp,
+    val actionsGap: Dp,
+    val actionDot: Dp,
     val rail: Dp,
     val railGap: Dp,
     val player: Dp,
@@ -82,6 +86,8 @@ internal data class ChannelsMetrics(
     val rowMin: Dp,
     val rowPadH: Dp,
     val numberWidth: Dp,
+    /** The number's plate. A pill, because the reference makes the number a *token*. */
+    val numberHeight: Dp,
     val logoWidth: Dp,
     val scrollbar: Dp,
 
@@ -97,6 +103,12 @@ internal data class ChannelsMetrics(
     val factGap: Dp,
     val badgePadH: Dp,
     val badgePadV: Dp,
+
+    /* the on-screen display over the preview, and the guide under it */
+    val osdPad: Dp,
+    val osdGap: Dp,
+    val guideGap: Dp,
+    val guidePad: Dp,
 
     /* the remote bar */
     val remoteDot: Dp,
@@ -142,6 +154,11 @@ internal fun channelsMetricsFor(tv: Boolean, width: Dp, height: Dp): ChannelsMet
         toolbarGap = height.boundedFraction(TOOLBAR_GAP, 4.dp, 16.dp),
         search = width.boundedFraction(SEARCH, 180.dp, 420.dp),
 
+        // Floored at the D-pad target for the reason every other control here is: the
+        // strip is seven buttons, and a button a remote cannot land on is decoration.
+        actions = maxOf(width.boundedFraction(ACTIONS, 40.dp, 72.dp), target),
+        actionsGap = height.boundedFraction(ACTIONS_GAP, 3.dp, 12.dp),
+        actionDot = maxOf(width.boundedFraction(ACTION_DOT, 30.dp, 54.dp), target * ACTION_OF_TARGET),
         rail = width.boundedFraction(RAIL, 190.dp, 340.dp),
         railGap = width.boundedFraction(RAIL_GAP, 10.dp, 32.dp),
         player = width.boundedFraction(PLAYER, 260.dp, 520.dp),
@@ -157,6 +174,7 @@ internal fun channelsMetricsFor(tv: Boolean, width: Dp, height: Dp): ChannelsMet
         rowMin = maxOf(height.boundedFraction(ROW, 40.dp, 88.dp), target),
         rowPadH = width.boundedFraction(ROW_PAD_H, 8.dp, 24.dp),
         numberWidth = width.boundedFraction(NUMBER, 36.dp, 76.dp),
+        numberHeight = height.boundedFraction(NUMBER_H, 18.dp, 38.dp),
         logoWidth = width.boundedFraction(LOGO, 56.dp, 132.dp),
         scrollbar = width.boundedFraction(SCROLLBAR, 3.dp, 8.dp),
 
@@ -172,6 +190,11 @@ internal fun channelsMetricsFor(tv: Boolean, width: Dp, height: Dp): ChannelsMet
         badgePadH = width.boundedFraction(BADGE_PAD_H, 4.dp, 12.dp),
         badgePadV = height.boundedFraction(BADGE_PAD_V, 2.dp, 7.dp),
 
+        osdPad = width.boundedFraction(OSD_PAD, 5.dp, 14.dp),
+        osdGap = width.boundedFraction(OSD_GAP, 4.dp, 12.dp),
+        guideGap = height.boundedFraction(GUIDE_GAP, 4.dp, 12.dp),
+        guidePad = width.boundedFraction(GUIDE_PAD, 6.dp, 16.dp),
+
         remoteDot = height.boundedFraction(REMOTE_DOT, 10.dp, 24.dp),
         remoteGapInner = width.boundedFraction(REMOTE_GAP_INNER, 10.dp, 34.dp),
         remoteKeyPadH = width.boundedFraction(REMOTE_KEY_PAD_H, 5.dp, 14.dp),
@@ -182,12 +205,15 @@ internal fun channelsMetricsFor(tv: Boolean, width: Dp, height: Dp): ChannelsMet
 /**
  * How wide the preview plate is relative to its height.
  *
- * The reference's plate is 430×312. It is deliberately **not** 16:9: what sits in it is
- * a channel identity rather than a frame of video, and the reference gives it the
- * squarer box a logo actually fills. Stated once here because two places need it — the
- * plate itself, and the arithmetic that checks the well fits.
+ * **16:9 now.** The first reference was a still whose plate was 430×312, and the squarer
+ * box was right for what that drawing put in it — a channel identity rather than a frame
+ * of video. The approved design shows the picture itself, and a picture has one shape.
+ * Anything else letterboxes live television inside a panel built to avoid letterboxing.
+ *
+ * Stated once here because two places need it: the plate, and the arithmetic that checks
+ * the well fits.
  */
-internal const val CHANNELS_PREVIEW_ASPECT = 430f / 312f
+internal const val CHANNELS_PREVIEW_ASPECT = 16f / 9f
 
 /* ------------------------------------------------------------------ the shares
  *
@@ -210,6 +236,16 @@ private const val TOOLBAR = 54f / 1024f
 private const val TOOLBAR_GAP = 10f / 1024f
 private const val SEARCH = 326f / 1536f
 
+/* The action strip, read off the video reference rather than the still: 62 of its
+ * 1568 width, which is the same share this product's 1536 reference would have given. */
+private const val ACTIONS = 62f / 1536f
+private const val ACTIONS_GAP = 6f / 1024f
+private const val ACTION_DOT = 44f / 1536f
+
+/** How much of the D-pad floor a dot inside the strip may be, the strip itself carrying
+ *  the rest as padding: the *row* is the control, the circle is only its mark. */
+private const val ACTION_OF_TARGET = 0.62f
+
 private const val RAIL = 302f / 1536f
 private const val RAIL_GAP = 24f / 1536f
 private const val PLAYER = 444f / 1536f
@@ -222,6 +258,7 @@ private const val RAIL_MIN = 55f / 1024f
 private const val ROW = 68f / 1024f
 private const val ROW_PAD_H = 16f / 1536f
 private const val NUMBER = 58f / 1536f
+private const val NUMBER_H = 30f / 1024f
 private const val LOGO = 108f / 1536f
 private const val SCROLLBAR = 6f / 1536f
 
@@ -236,6 +273,11 @@ private const val FACT_CHIP = 34f / 1024f
 private const val FACT_GAP = 10f / 1536f
 private const val BADGE_PAD_H = 9f / 1536f
 private const val BADGE_PAD_V = 4f / 1024f
+
+private const val OSD_PAD = 10f / 1536f
+private const val OSD_GAP = 8f / 1536f
+private const val GUIDE_GAP = 8f / 1024f
+private const val GUIDE_PAD = 11f / 1536f
 
 private const val REMOTE_DOT = 22f / 1024f
 private const val REMOTE_GAP_INNER = 36f / 1536f

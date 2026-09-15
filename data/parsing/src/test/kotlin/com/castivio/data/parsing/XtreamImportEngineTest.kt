@@ -39,9 +39,20 @@ class XtreamImportEngineTest {
         assertEquals(2, summary.groups)
         assertEquals(3, summary.count(MediaKind.LIVE))
         assertEquals(listOf("Sports", "News"), writer.groups.map { it.name })
+        // Sorted by `providerOrder`, not by the order rows reached the writer.
+        //
+        // Categories are fetched four at a time, so arrival order is whichever reply
+        // landed first -- this assertion was written against the sequential engine and
+        // has been failing about one run in twelve ever since, silently, because a flake
+        // that rare reads as an unlucky CI run. `XtreamImportConcurrencyTest` was moved
+        // onto `providerOrder` when the concurrency landed; this one was missed.
+        //
+        // The sorted assertion is the *stronger* claim: it says the catalogue reads in
+        // the provider's own order -- for live television, the channel numbering -- which
+        // is the guarantee a viewer actually has, and it holds however the replies land.
         assertEquals(
             listOf("Nova Sports 1", "Atlas Sport", "Atlas News"),
-            writer.items.map { it.title },
+            writer.items.sortedBy { it.providerOrder }.map { it.title },
         )
         assertEquals(summary, writer.finished)
         assertEquals(ImportMode.REPLACE, writer.mode)

@@ -163,6 +163,10 @@
     <string name="channels_sort_number">Number</string>
     <!-- %1$s is a formatted count. -->
     <string name="channels_total">Total: %1$s Channels</string>
+    <!-- The second line of a category in the rail. %1$s is a formatted count, read
+         from the group\'s stored item_count rather than counted per row. Deliberately
+         shorter than channels_total: it sits under a name in a narrow column. -->
+    <string name="channels_rail_total">Total: %1$s</string>
 
     <!-- On the preview plate, over the channel currently under the remote. -->
     <string name="channels_live">LIVE</string>

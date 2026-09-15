@@ -35,15 +35,19 @@ import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Newspaper
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Public
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SportsSoccer
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material.icons.rounded.TheaterComedy
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,8 +60,10 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -82,6 +88,7 @@ import com.castivio.domain.Channel
 import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaItem
 import com.castivio.domain.NowNext
+import com.castivio.domain.Programme
 import com.castivio.domain.SectionLoad
 import com.castivio.domain.SortOrder
 import java.text.DateFormat
@@ -101,25 +108,27 @@ import java.util.Date
  *
  * ## Where the data comes from
  *
- * Every number and every row on this board is real except the four marked
- * [PLACEHOLDER_STREAM_FACTS], which are stated below and nowhere else:
+ * **Every element on this board is real.** The four placeholder stream facts the first
+ * version carried — `1080p`, `16:9`, `H.264`, `Dolby Audio` — are gone, and the approved
+ * design puts the guide in the space they occupied.
  *
- * | reference element | source |
+ * | element | source |
  * |---|---|
  * | channel number, name, stream | `Channel` from the paged reader |
+ * | the quality tag beside a name | the provider's own name — see `ChannelTitle.kt` |
  * | the category rail | `CatalogRepository.groups` |
+ * | `Total: n` per category | `MediaGroup.itemCount`, the denormalised column |
  * | `Total: n Channels` | an indexed `COUNT`, never a list measured |
- * | the programme and its timeline | `EpgRepository.nowNext` for the selected channel |
+ * | the guide, and the bar over the picture | `EpgRepository.programmes` for the selection |
  * | the star, and `Favorites` | `FavoritesRepository` |
  * | the header's two cards and clock | the same `DashboardHeader` Home draws |
  *
- * ## Two things the reference shows that this deliberately does not invent
+ * ## Two things the design shows that this deliberately does not invent
  *
- *  1. **A per-category count.** `MediaGroup` carries no count and the schema has no
- *     denormalised one, so there is nothing to read. Counting each category would be a
- *     query per row of the rail, re-run on every write during an import — which is the
- *     specific shape `CLAUDE.md` forbids. The rail therefore shows a count only where
- *     one exists, and no digit where one does not.
+ *  1. **The stream's resolution.** The design prints `1920 × 1080` beside the channel
+ *     number. That is a property of a *decoded* stream, known to the engine after the
+ *     player has opened it and to nothing on a board that has opened nothing, so `Osd`
+ *     prints the number alone.
  *  2. **The channel's logo.** `artwork_url` is imported and stored, but Castivio loads
  *     no images anywhere yet. [LogoTile] draws the deterministic placeholder the rest of
  *     the app already uses, so the same channel is always the same colour.
@@ -172,6 +181,7 @@ fun ChannelsScreen(
                 previewModel = previewModel,
                 onPlay = onPlay,
                 onSearch = onSearch,
+                onBack = onBack,
                 modifier = Modifier.weight(1f),
             )
 
@@ -199,6 +209,7 @@ private fun Board(
     previewModel: ChannelsViewModel,
     onPlay: (CatalogSelection) -> Unit,
     onSearch: () -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
@@ -266,6 +277,8 @@ private fun Board(
                     model = model,
                     previewModel = previewModel,
                     onPlay = onPlay,
+                    onSearch = onSearch,
+                    onBack = onBack,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -455,6 +468,24 @@ private fun SearchField(m: ChannelsMetrics, onClick: () -> Unit) {
 }
 
 /** The rail, the list and the player well, in the reference's proportions. */
+/**
+ * The four tracks, in one physical order in every language.
+ *
+ * ## Why this board does not mirror
+ *
+ * The fourth track is **video**, and video does not mirror. A viewer who switches the
+ * interface to Arabic has not moved their television, and finding the picture on the
+ * other side of the screen is a worse answer than reading a channel list left to right.
+ * The approved design says so explicitly and shows both directions side by side.
+ *
+ * So the arrangement is pinned to [LayoutDirection.Ltr] and the reading direction is
+ * carried past it in [LocalReadingDirection], which every cell restores before it draws
+ * anything. Names right-align, rows reverse, the selected row's edge bar moves to the
+ * trailing side — and the columns stay where they are.
+ *
+ * This is a deliberate, single exception to invariant 9, scoped to this composable.
+ * Nothing else in Castivio opts out of mirroring and nothing here makes it easier to.
+ */
 @Composable
 private fun Columns(
     state: BrowseState,
@@ -463,36 +494,142 @@ private fun Columns(
     model: BrowseViewModel,
     previewModel: ChannelsViewModel,
     onPlay: (CatalogSelection) -> Unit,
+    onSearch: () -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val rows = model.items.collectAsLazyPagingItems()
 
-    Row(modifier.fillMaxWidth()) {
-        CategoryRail(
-            state = state,
+    CompositionLocalProvider(
+        LocalReadingDirection provides LocalLayoutDirection.current,
+        LocalLayoutDirection provides LayoutDirection.Ltr,
+    ) {
+        Row(modifier.fillMaxWidth()) {
+            ActionRail(
+                favorite = shown.favorite,
+                m = m,
+                onSearch = onSearch,
+                onFavorite = previewModel::toggleFavorite,
+                onBack = onBack,
+                modifier = Modifier.width(m.actions).fillMaxHeight(),
+            )
+
+            Spacer(Modifier.width(m.railGap))
+
+            CategoryRail(
+                state = state,
+                m = m,
+                onChoose = model::choose,
+                modifier = Modifier.width(m.rail).fillMaxHeight(),
+            )
+
+            Spacer(Modifier.width(m.railGap))
+
+            ChannelList(
+                rows = rows,
+                state = state,
+                m = m,
+                onSelect = previewModel::select,
+                onPlay = onPlay,
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+            )
+
+            Spacer(Modifier.width(m.playerGap))
+
+            PlayerWell(
+                shown = shown,
+                state = state,
+                m = m,
+                modifier = Modifier.width(m.player).fillMaxHeight(),
+            )
+        }
+    }
+}
+
+/**
+ * The app's real reading direction, carried past the board's pinned arrangement.
+ *
+ * Read in [Columns] *before* the arrangement is pinned, and restored by [Reading] inside
+ * every cell. A cell that forgets to restore it draws Arabic left-aligned, which is the
+ * one way this exception could leak into the product.
+ */
+private val LocalReadingDirection = compositionLocalOf { LayoutDirection.Ltr }
+
+/** Restores the reading direction for one cell's contents. See [Columns]. */
+@Composable
+private fun Reading(content: @Composable () -> Unit) =
+    CompositionLocalProvider(LocalLayoutDirection provides LocalReadingDirection.current, content = content)
+
+/* --------------------------------------------------------------- the actions */
+
+/**
+ * The strip of actions at the leading edge, from the approved design.
+ *
+ * **Only the four that do something.** The design sketched seven; search, favourites and
+ * back are wired to real behaviour and the remaining three would have been circles that
+ * answer a press with nothing. A control that does nothing teaches a viewer the strip is
+ * decorative, and then they stop pressing the ones that work.
+ */
+@Composable
+private fun ActionRail(
+    favorite: Boolean,
+    m: ChannelsMetrics,
+    onSearch: () -> Unit,
+    onFavorite: () -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = CastivioTheme.colors
+    Column(
+        modifier
+            .clip(RoundedCornerShape(m.wellRadius))
+            .background(colors.glassFill)
+            .padding(vertical = m.actionsGap),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(m.actionsGap),
+    ) {
+        ActionDot(Icons.Rounded.Search, stringResource(R.string.channels_search_hint), m, false, onSearch)
+        ActionDot(
+            icon = if (favorite) Icons.Rounded.Star else Icons.Rounded.StarBorder,
+            label = stringResource(
+                if (favorite) R.string.channels_key_unfavorite else R.string.channels_key_favorite,
+            ),
             m = m,
-            onChoose = model::choose,
-            modifier = Modifier.width(m.rail).fillMaxHeight(),
+            on = favorite,
+            onClick = onFavorite,
         )
+        Spacer(Modifier.weight(1f))
+        ActionDot(Icons.Rounded.KeyboardArrowDown, stringResource(R.string.channels_key_back), m, false, onBack)
+    }
+}
 
-        Spacer(Modifier.width(m.railGap))
+@Composable
+private fun ActionDot(
+    icon: ImageVector,
+    label: String,
+    m: ChannelsMetrics,
+    on: Boolean,
+    onClick: () -> Unit,
+) {
+    val colors = CastivioTheme.colors
+    val (focused, focusModifier) = rememberFocusFlag()
+    val interaction = remember { MutableInteractionSource() }
 
-        ChannelList(
-            rows = rows,
-            state = state,
-            m = m,
-            onSelect = previewModel::select,
-            onPlay = onPlay,
-            modifier = Modifier.weight(1f).fillMaxHeight(),
-        )
-
-        Spacer(Modifier.width(m.playerGap))
-
-        PlayerWell(
-            shown = shown,
-            state = state,
-            m = m,
-            modifier = Modifier.width(m.player).fillMaxHeight(),
+    Box(
+        Modifier
+            .size(m.actionDot)
+            .clip(RoundedCornerShape(Radius.pill))
+            .background(if (on) colors.secondary else colors.glassFill)
+            .border(1.dp, if (focused) colors.focusRing else colors.glassBorderSoft, RoundedCornerShape(Radius.pill))
+            .then(focusModifier)
+            .clickable(interaction, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            icon,
+            contentDescription = label,
+            tint = if (on) colors.onSecondary else colors.onBackgroundVariant,
+            modifier = Modifier.size(Sizing.iconMd),
         )
     }
 }
@@ -559,9 +696,13 @@ private fun CategoryRail(
             RailEntry(
                 icon = group.icon(),
                 label = group.name,
-                // No count: nothing in the schema holds one, and a query per rail row
-                // re-run on every import write is exactly what the data rules forbid.
-                count = null,
+                // The denormalised column, read rather than counted. `RoomCatalogWriter`
+                // has filled `item_count` at the end of every import since the schema
+                // existed, and until `MediaGroup` carried it the rail had nowhere to
+                // read it from -- so the value was written for nobody and the reference's
+                // "Total: N" could not be drawn. It is one field on a list of hundreds,
+                // not a query per row.
+                count = group.itemCount,
                 selected = group.id == state.selectedGroup,
                 m = m,
                 onClick = { onChoose(group.id) },
@@ -611,21 +752,29 @@ private fun RailEntry(
         horizontalArrangement = Arrangement.spacedBy(m.rowPadH),
     ) {
         Icon(icon, contentDescription = null, tint = ink, modifier = Modifier.size(Sizing.iconMd))
-        Text(
-            text = label,
-            style = castivioChipStyle(m.frame.fsLabel),
-            color = ink,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-        if (count != null) {
-            Text(
-                text = formatCount(count),
-                style = castivioBodyStyle(m.frame.fsBody),
-                color = ink,
-                maxLines = 1,
-            )
+        Reading {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = label,
+                    style = castivioChipStyle(m.frame.fsLabel),
+                    color = ink,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                // The reference's second line. Absent rather than zero for the entries
+                // that are not categories -- "Favourites: 0" before anything has been
+                // favourited is a true sentence nobody needs, and the count for those
+                // comes from a different store anyway.
+                if (count != null) {
+                    Text(
+                        text = stringResource(R.string.channels_rail_total, formatCount(count)),
+                        style = castivioBodyStyle(m.frame.fsBody),
+                        color = if (selected) ink else colors.onBackgroundMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
         }
     }
 }
@@ -716,7 +865,6 @@ private fun ChannelList(
                 val channel = item as? Channel ?: return@items
                 ChannelRow(
                     channel = channel,
-                    category = channel.groupId?.let { state.categoryNames[it] },
                     seed = index,
                     m = m,
                     onFocused = { onSelect(channel) },
@@ -731,7 +879,6 @@ private fun ChannelList(
 @Composable
 private fun ChannelRow(
     channel: Channel,
-    category: String?,
     seed: Int,
     m: ChannelsMetrics,
     onFocused: () -> Unit,
@@ -762,50 +909,80 @@ private fun ChannelRow(
     ) {
         val ink = if (focused) colors.onSecondary else colors.onBackground
 
-        Text(
-            text = channel.numberLabel(),
-            style = castivioChipStyle(m.frame.fsLabel),
-            color = if (focused) colors.onSecondary else colors.onBackgroundVariant,
-            maxLines = 1,
-            modifier = Modifier.width(m.numberWidth),
-        )
+        Reading {
+            Row(
+                Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(m.rowPadH),
+            ) {
+                LogoTile(
+                    initials = initialsOf(channel.title),
+                    seed = seed,
+                    modifier = Modifier.width(m.logoWidth).height(m.rowMin * LOGO_OF_ROW),
+                )
 
-        LogoTile(
-            initials = initialsOf(channel.title),
-            seed = seed,
-            modifier = Modifier.width(m.logoWidth).height(m.rowMin * LOGO_OF_ROW),
-        )
+                Text(
+                    // Without the tag, because the tag is drawn beside it. `|FR| TF1 HD`
+                    // reads as `|FR| TF1  ᴴᴰ` rather than repeating itself.
+                    text = titleWithoutQuality(channel.title),
+                    style = castivioChipStyle(m.frame.fsLabel),
+                    color = ink,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
 
-        Text(
-            text = channel.title,
-            style = castivioChipStyle(m.frame.fsLabel),
-            color = ink,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
+                // The reference's quality tag, read out of the name the provider wrote.
+                // Absent when the provider wrote none -- never inferred, and never a
+                // default. See `ChannelTitle.kt`.
+                qualityOf(channel.title)?.let { quality ->
+                    Text(
+                        text = quality.label,
+                        style = castivioBodyStyle(m.frame.fsBody * QUALITY_OF_BODY),
+                        color = when {
+                            focused -> colors.onSecondary
+                            quality == StreamQuality.SD -> colors.onBackgroundMuted
+                            else -> colors.secondary
+                        },
+                        maxLines = 1,
+                    )
+                }
 
-        // The reference's quality tag. `Channel` carries no such field and the schema
-        // has no column for one -- a stream's resolution is something the decoder learns
-        // when it opens the stream, which has not happened for a row nobody pressed. So
-        // the category the provider filed the channel under goes here instead: a fact
-        // the app already holds, in the place the reference puts a fact.
-        if (category != null) {
-            Text(
-                text = category,
-                style = castivioBodyStyle(m.frame.fsBody),
-                color = if (focused) colors.onSecondary else colors.secondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.width(m.rail * CATEGORY_OF_RAIL),
-            )
+                Spacer(Modifier.weight(1f))
+            }
         }
 
-        Icon(
-            Icons.Rounded.StarBorder,
-            contentDescription = null,
-            tint = if (focused) colors.onSecondary else colors.onBackgroundMuted,
-            modifier = Modifier.size(Sizing.iconMd),
+        // The number, on a plate. It is what a remote dials, so it is a token rather
+        // than a column of text -- and it keeps the trailing edge in every language,
+        // because the row is what mirrors and this is the row's end.
+        NumberPlate(label = channel.numberLabel(), focused = focused, m = m)
+    }
+}
+
+/**
+ * The channel number, as the reference draws it: a pill, not a column.
+ *
+ * `----` for a provider that numbered nothing, which is what [Channel.numberLabel]
+ * already said and is kept — a blank plate would read as a number that failed to load.
+ */
+@Composable
+private fun NumberPlate(label: String, focused: Boolean, m: ChannelsMetrics) {
+    val colors = CastivioTheme.colors
+    val shape = RoundedCornerShape(m.previewRadius / 2)
+    Box(
+        Modifier
+            .width(m.numberWidth)
+            .height(m.numberHeight)
+            .clip(shape)
+            .background(if (focused) colors.secondary else colors.glassFill)
+            .border(1.dp, if (focused) Color.Transparent else colors.glassBorderSoft, shape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            style = castivioBodyStyle(m.frame.fsBody),
+            color = if (focused) colors.onSecondary else colors.secondary,
+            maxLines = 1,
         )
     }
 }
@@ -849,14 +1026,13 @@ private fun PlayerWell(
                     seed = channel.id.hashCode(),
                     modifier = Modifier.fillMaxSize(),
                 )
-                Badge(
-                    text = stringResource(R.string.channels_live),
-                    fill = colors.live,
-                    ink = colors.onPrimary,
+                Osd(
+                    channel = channel,
+                    guide = shown.guide,
                     m = m,
                     modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(m.wellPad),
+                        .align(Alignment.BottomCenter)
+                        .padding(m.osdPad),
                 )
             } else {
                 Box(
@@ -872,41 +1048,43 @@ private fun PlayerWell(
             }
         }
 
-        Text(
-            text = channel?.title ?: stringResource(R.string.channels_preview_none),
-            style = castivioTitleStyle(m.fsChannelName),
-            color = colors.onBackgroundStrong,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = m.nameGap * 2),
-        )
+        Spacer(Modifier.height(m.guideGap))
 
-        Text(
-            // The guide's own title where there is one, and the reference's own
-            // sentence where there is not. Three different absences reach this line --
-            // a channel with no guide id, a guide never imported, a programme that has
-            // ended -- and all three are honestly "no information".
-            text = shown.guide?.now?.title ?: stringResource(R.string.channels_no_information),
-            style = castivioBodyStyle(m.frame.fsBody),
-            color = colors.onBackgroundMuted,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = m.nameGap),
-        )
+        // The guide, where the reference puts it. Three rows at most -- what is on, and
+        // what follows it. More would be the guide screen, which this is not.
+        if (shown.schedule.isEmpty()) {
+            Text(
+                // Three different absences reach this line -- a channel with no guide
+                // id, a guide never imported, a schedule that has run out -- and all
+                // three are honestly "no information". None of them is an empty panel.
+                text = stringResource(R.string.channels_no_information),
+                style = castivioBodyStyle(m.frame.fsBody),
+                color = colors.onBackgroundMuted,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = m.nameGap),
+            )
+        } else {
+            val nowId = shown.guide?.now?.let { it.startMs }
+            Column(
+                Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(m.guideGap),
+            ) {
+                shown.schedule.forEach { programme ->
+                    GuideEntry(
+                        programme = programme,
+                        now = programme.startMs == nowId,
+                        m = m,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+        }
 
-        Spacer(Modifier.height(m.timelineGap))
+        Spacer(Modifier.height(m.guideGap))
 
-        Timeline(guide = shown.guide, m = m)
-
-        Spacer(Modifier.height(m.nameGap * 2))
-
-        StreamFacts(m)
-
-        Spacer(Modifier.weight(1f))
-
-        // The provider, where the reference leaves the well's lower area empty. It is
-        // the one fact this column has room for that the board does not state anywhere
-        // else, and it is real.
+        // The provider. It is the one fact this column has room for that the board does
+        // not state anywhere else, and it is real.
         state.providerLabel?.let { provider ->
             Text(
                 text = provider,
@@ -920,52 +1098,182 @@ private fun PlayerWell(
 }
 
 /**
- * The programme's start, its end, and how far through it is.
+ * The bar over the picture: which channel, what is on, and how far through it is.
  *
- * Drawn only when there is a programme. A rail with no times under it would be a
- * control implying a seek on a stream nobody has opened.
+ * ## What it does not say
+ *
+ * The reference prints a resolution here — `1920 × 1080`. Castivio does not know it. A
+ * stream's real geometry comes from the decoder after the player has opened it, and this
+ * board has opened nothing; printing the tag from the channel's *name* in a slot that
+ * looks like a measurement would be the one dishonest pixel on the screen. The number
+ * and the tag are enough, and both are things the provider actually said.
  */
 @Composable
-private fun Timeline(guide: NowNext?, m: ChannelsMetrics) {
+private fun Osd(
+    channel: Channel,
+    guide: NowNext?,
+    m: ChannelsMetrics,
+    modifier: Modifier = Modifier,
+) {
     val colors = CastivioTheme.colors
+    val shape = RoundedCornerShape(m.previewRadius)
     val programme = guide?.now
 
-    Column(Modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(
-                text = programme?.startMs?.let(::clockLabel).orEmpty(),
-                style = castivioBodyStyle(m.frame.fsBody),
-                color = colors.onBackgroundVariant,
-                maxLines = 1,
-            )
-            Text(
-                text = programme?.stopMs?.let(::clockLabel).orEmpty(),
-                style = castivioBodyStyle(m.frame.fsBody),
-                color = colors.onBackgroundVariant,
-                maxLines = 1,
-            )
+    Row(
+        modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(colors.scrim)
+            .border(1.dp, colors.glassBorderSoft, shape)
+            .padding(horizontal = m.osdPad, vertical = m.osdPad / 2),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(m.osdGap),
+    ) {
+        Reading {
+            Column(Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(m.osdGap / 2),
+                ) {
+                    Text(
+                        text = titleWithoutQuality(channel.title),
+                        style = castivioTitleStyle(m.fsChannelName),
+                        color = colors.onBackgroundStrong,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    qualityOf(channel.title)?.let {
+                        Text(
+                            text = it.label,
+                            style = castivioBodyStyle(m.frame.fsBody * QUALITY_OF_BODY),
+                            color = colors.secondary,
+                            maxLines = 1,
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(m.nameGap / 2))
+                Track(fraction = guide?.progressAt(System.currentTimeMillis()), m = m)
+                Spacer(Modifier.height(m.nameGap / 2))
+
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(
+                        text = programme?.startMs?.let(::clockLabel).orEmpty(),
+                        style = castivioBodyStyle(m.frame.fsBody),
+                        color = colors.onBackgroundVariant,
+                        maxLines = 1,
+                    )
+                    Text(
+                        text = programme?.title ?: stringResource(R.string.channels_no_information),
+                        style = castivioBodyStyle(m.frame.fsBody),
+                        color = colors.onBackgroundVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false).padding(horizontal = m.osdGap),
+                    )
+                    Text(
+                        text = programme?.stopMs?.let(::clockLabel).orEmpty(),
+                        style = castivioBodyStyle(m.frame.fsBody),
+                        color = colors.onBackgroundVariant,
+                        maxLines = 1,
+                    )
+                }
+            }
         }
 
-        Spacer(Modifier.height(m.nameGap))
+        Text(
+            text = channel.numberLabel(),
+            style = castivioTitleStyle(m.fsChannelName),
+            color = colors.secondary,
+            maxLines = 1,
+        )
+    }
+}
 
-        // The elapsed share is read once, from the guide's own timestamps. It does not
-        // tick: a bar that animated would be a second clock disagreeing with the header's.
-        val fraction = guide?.progressAt(System.currentTimeMillis())
+/**
+ * One programme in the guide: what it is, what it is about, and when it runs.
+ *
+ * The current one carries the fill and the marker; the rest are quiet. That difference
+ * is the whole grammar of this panel — a viewer arriving mid-scroll should be able to
+ * tell what is on *now* without reading a clock.
+ */
+@Composable
+private fun GuideEntry(
+    programme: Programme,
+    now: Boolean,
+    m: ChannelsMetrics,
+    modifier: Modifier = Modifier,
+) {
+    val colors = CastivioTheme.colors
+    val shape = RoundedCornerShape(m.previewRadius)
 
-        Box(
-            Modifier
+    Reading {
+        Column(
+            modifier
                 .fillMaxWidth()
-                .height(m.trackHeight)
-                .clip(RoundedCornerShape(Radius.pill))
-                .background(colors.divider),
+                .clip(shape)
+                .background(if (now) colors.secondaryContainer else colors.glassFill)
+                .border(1.dp, if (now) colors.selectedBorder else colors.glassBorderSoft, shape)
+                .padding(horizontal = m.guidePad, vertical = m.guidePad / 2),
+            verticalArrangement = Arrangement.Center,
         ) {
-            if (fraction != null) {
-                Box(
-                    Modifier
-                        .fillMaxWidth(fraction)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(Radius.pill))
-                        .background(colors.secondary),
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(m.osdGap / 2),
+            ) {
+                Icon(
+                    if (now) Icons.Rounded.PlayArrow else Icons.Rounded.History,
+                    contentDescription = null,
+                    tint = if (now) colors.live else colors.onBackgroundMuted,
+                    modifier = Modifier.size(Sizing.iconSm),
+                )
+                Text(
+                    text = programme.title,
+                    style = castivioChipStyle(m.frame.fsLabel),
+                    color = if (now) colors.onBackgroundStrong else colors.onBackground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+
+            programme.description?.takeIf { it.isNotBlank() }?.let { detail ->
+                Text(
+                    text = detail,
+                    style = castivioBodyStyle(m.frame.fsBody),
+                    color = colors.onBackgroundMuted,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = m.nameGap / 2),
+                )
+            }
+
+            Spacer(Modifier.height(m.nameGap / 2))
+
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(m.osdGap),
+            ) {
+                Text(
+                    text = clockLabel(programme.startMs),
+                    style = castivioBodyStyle(m.frame.fsBody),
+                    color = colors.onBackgroundVariant,
+                    maxLines = 1,
+                )
+                Track(
+                    // Only the programme that is on has a share to show. A bar under a
+                    // future programme would be a progress claim about something that
+                    // has not begun.
+                    fraction = if (now) programme.progressAt(System.currentTimeMillis()) else null,
+                    m = m,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = clockLabel(programme.stopMs),
+                    style = castivioBodyStyle(m.frame.fsBody),
+                    color = colors.onBackgroundVariant,
+                    maxLines = 1,
                 )
             }
         }
@@ -973,43 +1281,45 @@ private fun Timeline(guide: NowNext?, m: ChannelsMetrics) {
 }
 
 /**
- * The reference's four stream facts — **placeholders, and the only ones on this board**.
+ * How far through a programme we are, as a bar.
  *
- * `1080p`, `16:9`, `H.264` and `Dolby Audio` are properties of a decoded stream. Nothing
- * in Castivio knows any of them for a channel nobody has pressed: they arrive from the
- * engine's `Format` after the player has opened the stream, and this board has not
- * opened one. They are drawn in the muted ink rather than the live one and are named by
- * [PLACEHOLDER_STREAM_FACTS] so there is exactly one place to delete when the player
- * starts reporting them.
+ * One declaration for the two places the board shows elapsed time — the bar over the
+ * picture and the bar under the programme that is on — because two copies of "red means
+ * what has already gone" is two chances for them to stop agreeing.
+ *
+ * The share is read once, from the guide's own timestamps. It does not tick: a bar that
+ * animated would be a second clock disagreeing with the header's. Null draws the empty
+ * track, which is the honest shape for a programme that has not started.
  */
 @Composable
-private fun StreamFacts(m: ChannelsMetrics) {
-    Row(horizontalArrangement = Arrangement.spacedBy(m.factGap)) {
-        PLACEHOLDER_STREAM_FACTS.forEach { fact -> FactChip(text = fact, m = m) }
+private fun Track(fraction: Float?, m: ChannelsMetrics, modifier: Modifier = Modifier) {
+    val colors = CastivioTheme.colors
+    Box(
+        modifier
+            .fillMaxWidth()
+            .height(m.trackHeight)
+            .clip(RoundedCornerShape(Radius.pill))
+            .background(colors.divider),
+    ) {
+        if (fraction != null) {
+            Box(
+                Modifier
+                    .fillMaxWidth(fraction)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(Radius.pill))
+                    .background(colors.live),
+            )
+        }
     }
 }
 
-@Composable
-private fun FactChip(text: String, m: ChannelsMetrics) {
-    val colors = CastivioTheme.colors
-    val shape = RoundedCornerShape(m.previewRadius / 2)
-    Box(
-        Modifier
-            .height(m.factChip)
-            .clip(shape)
-            .background(colors.glassFill)
-            .border(1.dp, colors.glassBorderSoft, shape)
-            .padding(horizontal = m.badgePadH * 2),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = text,
-            style = castivioBodyStyle(m.frame.fsBody),
-            color = colors.onBackgroundMuted,
-            maxLines = 1,
-        )
-    }
-}
+/* The four stream facts -- `1080p`, `16:9`, `H.264`, `Dolby Audio` -- are gone.
+ *
+ * They were the only placeholders on this board, and the approved design puts the
+ * guide in the space they occupied. Every one of them is a property of a *decoded*
+ * stream, known to the engine's `Format` after the player has opened it and to nothing
+ * on a screen that has opened nothing. Where the reference prints a resolution, `Osd`
+ * now prints the channel number instead -- a fact the provider actually gave us. */
 
 @Composable
 private fun Badge(
@@ -1259,7 +1569,6 @@ private val SortOrder.channelsLabel: Int
  * Here as one list so that "what on this board is not real" is a question grep answers
  * in one hit, and so the day the engine reports a `Format` there is one place to delete.
  */
-private val PLACEHOLDER_STREAM_FACTS = listOf("1080p", "16:9", "H.264", "Dolby Audio")
 
 /** Shown where a provider numbered nothing. */
 private const val NO_NUMBER = "----"
@@ -1277,4 +1586,12 @@ private const val SEARCH_OF_TOOLBAR = 40f / 54f
 private const val LOGO_OF_ROW = 28f / 68f
 
 /** How much of the rail's width the row's category line is allowed — 120 of 302. */
-private const val CATEGORY_OF_RAIL = 120f / 302f
+/**
+ * The quality tag, as a share of the body step.
+ *
+ * Smaller than the name it sits beside, which is what makes it read as a tag rather than
+ * as part of the channel's title. The reference sets it as a superscript; a smaller step
+ * on the same baseline is the same claim without a typographic trick that Compose would
+ * have to fake.
+ */
+private const val QUALITY_OF_BODY = 0.84f

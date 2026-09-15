@@ -154,6 +154,9 @@ internal fun GroupEntity.toDomain(): MediaGroup = MediaGroup(
     id = id,
     name = name,
     kind = runCatching { MediaKind.valueOf(kind) }.getOrDefault(MediaKind.LIVE),
+    // Read, not counted. `RoomCatalogWriter.finish` fills this column at the end of
+    // every import for exactly this reader.
+    itemCount = itemCount,
 )
 
 internal fun MediaGroup.toEntity(

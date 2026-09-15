@@ -56,7 +56,26 @@ data class Episode(
 ) : MediaItem
 
 /** A group as the provider defined it (a "category" in Xtream, a group-title in M3U). */
-data class MediaGroup(val id: String, val name: String, val kind: MediaKind)
+data class MediaGroup(
+    val id: String,
+    val name: String,
+    val kind: MediaKind,
+    /**
+     * How many rows the provider filed under this category.
+     *
+     * The denormalised column, carried rather than counted. The storage layer has
+     * written it since the schema existed and wrote a comment saying why —
+     * "the category rail shows a count next to every name; computing it with
+     * `COUNT(*) GROUP BY group_id` over 400,000 rows on every observation is a visible
+     * stall on a weak box" — and then no domain type had anywhere to put it, so the
+     * rail drew no count and the value was written for nobody.
+     *
+     * Zero by default, which is also what a category genuinely holding nothing reports.
+     * The two are not distinguished here because nothing on this screen needs them to
+     * be: a rail entry showing `0` and one showing nothing are the same sentence.
+     */
+    val itemCount: Int = 0,
+)
 
 /**
  * What a row is, decided at import time.

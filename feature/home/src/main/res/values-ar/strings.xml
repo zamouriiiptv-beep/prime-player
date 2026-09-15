@@ -104,4 +104,7 @@
     <string name="home_device_activated">مُفعَّل</string>
     <string name="home_device_locked">مقفل</string>
 
+    <!-- The second line of a category in the Channels rail. %1$s is a formatted count. -->
+    <string name="channels_rail_total">المجموع: %1$s</string>
+
 </resources>

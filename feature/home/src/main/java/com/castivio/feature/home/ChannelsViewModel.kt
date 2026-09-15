@@ -6,6 +6,7 @@ import com.castivio.domain.Channel
 import com.castivio.domain.EpgRepository
 import com.castivio.domain.FavoritesRepository
 import com.castivio.domain.NowNext
+import com.castivio.domain.Programme
 import com.castivio.domain.time.TrustedTime
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -56,6 +57,20 @@ class ChannelsViewModel @Inject constructor(
     private val guide = MutableStateFlow<NowNext?>(null)
 
     /**
+     * What is on next, and after that.
+     *
+     * [NowNext] carries exactly two programmes and the approved board draws three rows,
+     * so the schedule is read with [EpgRepository.programmes] over a bounded window
+     * instead. One query, not two: `now` and `next` are the first entries of the same
+     * list, so the panel and the guide cannot disagree about what is on.
+     *
+     * Bounded by [SCHEDULE_HORIZON_MS] rather than unbounded, because this is a preview
+     * beside a list and not the guide screen: reading a channel's whole week to draw
+     * three rows is the kind of query the data rules exist to prevent.
+     */
+    private val schedule = MutableStateFlow<List<Programme>>(emptyList())
+
+    /**
      * What the preview panel shows, as one value.
      *
      * Combined here rather than collected as three flows in the composition, because a
@@ -65,14 +80,15 @@ class ChannelsViewModel @Inject constructor(
     val preview: StateFlow<ChannelPreview> = combine(
         _selected,
         guide,
+        schedule,
         _selected.flatMapLatest { channel ->
             // `isFavorite` is an indexed EXISTS, and it is a flow because the remote's
             // blue key toggles it from this very screen: a star that only refreshed on
             // navigation would be a star that lies for as long as the user stays.
             channel?.let { favorites.isFavorite(it.id) } ?: flowOf(false)
         },
-    ) { channel, nowNext, favorite ->
-        ChannelPreview(channel = channel, guide = nowNext, favorite = favorite)
+    ) { channel, nowNext, coming, favorite ->
+        ChannelPreview(channel = channel, guide = nowNext, schedule = coming, favorite = favorite)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(GRACE_MS), ChannelPreview())
 
     /**
@@ -89,17 +105,33 @@ class ChannelsViewModel @Inject constructor(
         // be left under the new channel's name, not even for the frame it takes to read
         // the guide. An absent programme is a sentence the panel already has.
         guide.value = null
+        schedule.value = emptyList()
         loadGuide(channel)
     }
 
     private fun loadGuide(channel: Channel) {
         val epgId = channel.epgChannelId ?: return
         viewModelScope.launch {
-            val answer = runCatching { epg.nowNext(listOf(epgId), clock.nowMs()) }.getOrNull()
+            val nowMs = clock.nowMs()
+            val coming = runCatching {
+                epg.programmes(epgId, nowMs, nowMs + SCHEDULE_HORIZON_MS)
+            }.getOrDefault(emptyList())
+
             // Checked against the current selection rather than assumed: a viewer
             // holding the down key moves faster than a query returns, and without this
             // a slow read for row 4 would overwrite the panel showing row 11.
-            if (_selected.value?.id == channel.id) guide.value = answer?.get(epgId)
+            if (_selected.value?.id != channel.id) return@launch
+
+            schedule.value = coming.take(SCHEDULE_ROWS)
+            // `now` is whichever entry actually contains this instant -- asked of the
+            // programme rather than assumed of the first row, because a channel with a
+            // gap in its schedule has a next without having a now, and drawing the
+            // upcoming programme as the current one is the kind of small lie a viewer
+            // catches immediately.
+            guide.value = NowNext(
+                now = coming.firstOrNull { it.isLiveAt(nowMs) },
+                next = coming.firstOrNull { it.startMs > nowMs },
+            )
         }
     }
 
@@ -112,6 +144,12 @@ class ChannelsViewModel @Inject constructor(
     private companion object {
         /** Matches `BrowseViewModel`: long enough to survive a rotation, short enough to let go. */
         const val GRACE_MS = 5_000L
+
+        /** Far enough ahead to fill three rows on any channel that has a guide at all. */
+        const val SCHEDULE_HORIZON_MS = 8 * 60 * 60 * 1000L
+
+        /** What the board draws. More would be the guide screen, which this is not. */
+        const val SCHEDULE_ROWS = 3
     }
 }
 
@@ -126,6 +164,8 @@ class ChannelsViewModel @Inject constructor(
 data class ChannelPreview(
     val channel: Channel? = null,
     val guide: NowNext? = null,
+    /** What is on, then what follows, in order. Empty when the guide has nothing. */
+    val schedule: List<Programme> = emptyList(),
     val favorite: Boolean = false,
 )
 
