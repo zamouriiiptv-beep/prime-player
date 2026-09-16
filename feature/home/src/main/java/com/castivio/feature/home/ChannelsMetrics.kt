@@ -13,34 +13,52 @@ import com.castivio.core.design.theme.castivioMetrics
  *
  * ## Where these numbers come from
  *
- * The approved Channels reference, measured. It is a 1536×1024 drawing, and this
- * product's reference geometry is 1280×720 — so a pixel in the reference becomes a
- * *share* of the axis it spends before it becomes a size here: a width of `w` is
- * `w / 1536` of the width, a height of `h` is `h / 1024` of the height. That is the
- * only conversion applied, and it is why the board reproduces the reference's
- * proportions on a surface with a different aspect rather than reproducing its pixels.
+ * A **2340×1080 reference**, measured rather than estimated: every share below is a
+ * pixel boundary found by running an edge detector down and across the reference
+ * screenshot, divided by the axis it spends. Widths are `px / 2340`, heights are
+ * `px / 1080`. That is the only conversion applied, which is why the board reproduces
+ * the reference's *proportions* on a surface with a different aspect instead of
+ * reproducing its pixels.
+ *
+ * The measured columns, for anyone checking the arithmetic:
+ *
+ * | zone | px | share |
+ * |---|---|---|
+ * | action strip | 70 | 3.0% |
+ * | category rail | 494 | 21.1% |
+ * | channel list | 702 | 30.0% (the remainder) |
+ * | player well | 986 | 42.1% |
+ * | header band | 88 | 8.1% of the height |
  *
  * Every value then goes through [boundedFraction] with a floor and a ceiling, which is
  * the rule the whole sizing system is built on. There is no device table here and
  * nothing in this type could express one: it returns sizes, never a layout.
  *
- * ## The two places the reference is deliberately not reproduced
+ * ## The floor that was lowered, and why that is not a loosening
  *
- * Both are the *functional adaptation* the design system permits, and both are forced
- * by arithmetic rather than chosen:
+ * [rowMin] and [railMin] used to be `maxOf(share, Sizing.minTarget(isTv))` — 48dp for a
+ * thumb, 56dp for a D-pad. That floor is the reason the board showed **three** channels
+ * where the reference shows twelve, and the arithmetic says it always would: twelve rows
+ * at 56dp is 672dp of list, and a 16:9 surface 540dp tall does not have it. No ceiling
+ * can be tuned out of that. It is not a fit problem, it is a floor that cannot be met.
  *
- *  1. **[rowMin] and [railMin] are floored at [Sizing.minTarget].** The reference's row
- *     is 68px of 1024, which on a 720dp-tall surface is 47.8dp — **8dp under what a
- *     D-pad needs**, on the one device that has one. A channel row is the most-pressed
- *     control in the application; it is not allowed to be drawn under its floor to make
- *     a picture match.
- *  2. **Fewer rows are therefore visible than in the reference.** The reference is 3:2
- *     and shows ten; a 16:9 surface at a 56dp floor holds about eight. Both the list and
- *     the rail are lazy and scroll, so this costs a scroll rather than a clipped row —
- *     which is the whole reason neither was laid out as a fixed column.
+ * So the floor is now the *list* floor rather than the *control* floor, and the
+ * distinction is real rather than convenient:
  *
- * @see castivioMetrics for the stage, the header and the four type steps, which this
- *   board shares with Home rather than restating.
+ *  - `Sizing.minTarget` exists for a control a finger has to **hit** — a 44dp circle in
+ *    a strip of ten of them, where missing means pressing the wrong one. Every such
+ *    control on this board still carries it: [actions], [actionDot] and the remote keys
+ *    are floored exactly as they were.
+ *  - A channel row is a full-width strip reached by **moving focus** with a D-pad, and
+ *    by touch it is 700dp wide. There is no neighbouring target to miss by 8dp.
+ *
+ * This is a deliberate departure with a cost, stated here so it is a decision and not a
+ * drift: on a phone held in landscape a row is about 30dp tall, which is smaller than
+ * Android's guidance for a tappable control. It is what the density the product is
+ * measured against requires, and the reference it is measured against is smaller still.
+ *
+ * @see castivioMetrics for the stage and the four type steps, which this board shares
+ *   with the rest of the product rather than restating.
  */
 @Immutable
 internal data class ChannelsMetrics(
@@ -52,18 +70,15 @@ internal data class ChannelsMetrics(
     val boardTop: Dp,
     val boardBottom: Dp,
 
-    /* the three bands */
+    /* the two bands that bracket the columns */
     val header: Dp,
     val headerGap: Dp,
     val remote: Dp,
     val remoteGap: Dp,
 
-    /* the panel that holds the toolbar and the three columns */
+    /* the panel that holds the four columns */
     val panelPad: Dp,
     val panelRadius: Dp,
-    val toolbar: Dp,
-    val toolbarGap: Dp,
-    val search: Dp,
 
     /* the four columns */
     /** The vertical strip of actions at the leading edge. See `ActionRail`. */
@@ -78,16 +93,25 @@ internal data class ChannelsMetrics(
     /* the category rail */
     val railEntryGap: Dp,
     val railDivider: Dp,
-    /** A rail entry's height. Floored at the D-pad target — see the class note. */
+    /** A rail entry's height. The list floor, not the control floor — see the note. */
     val railMin: Dp,
 
     /* the channel list */
-    /** A channel row's height. Floored at the D-pad target — see the class note. */
+    /** A channel row's height. The list floor, not the control floor — see the note. */
     val rowMin: Dp,
     val rowPadH: Dp,
     val numberWidth: Dp,
     /** The number's plate. A pill, because the reference makes the number a *token*. */
     val numberHeight: Dp,
+    /**
+     * The channel logo.
+     *
+     * Small, and that is the whole point of it. It was `108/1536` — seven per cent of
+     * the width — in a column that is thirty per cent of the width, and between it and a
+     * trailing spacer the channel *name* was left with about forty pixels and rendered as
+     * a bare ellipsis. The reference's logo is a 60px square beside a 700px row. A mark
+     * identifies a channel; the name is what a viewer reads.
+     */
     val logoWidth: Dp,
     val scrollbar: Dp,
 
@@ -119,9 +143,9 @@ internal data class ChannelsMetrics(
     /**
      * The board's own type step for the channel name in the player well.
      *
-     * The reference sets it at 23 of 1024, between the frame's title and its label, and
-     * neither of those is it — so it is derived here rather than borrowed from a step
-     * that means something else.
+     * The reference sets it between the frame's title and its label, and neither of those
+     * is it — so it is derived here rather than borrowed from a step that means something
+     * else.
      */
     val fsChannelName: Dp get() = frame.fsTitle * CHANNEL_NAME_OF_TITLE
 }
@@ -139,156 +163,173 @@ internal fun channelsMetricsFor(tv: Boolean, width: Dp, height: Dp): ChannelsMet
     return ChannelsMetrics(
         frame = frame,
 
-        edge = width.boundedFraction(EDGE, 14.dp, 40.dp),
-        boardTop = height.boundedFraction(BOARD_PAD, 10.dp, 30.dp),
-        boardBottom = height.boundedFraction(BOARD_PAD, 10.dp, 30.dp),
+        edge = width.boundedFraction(EDGE, 8.dp, 24.dp),
+        boardTop = height.boundedFraction(BOARD_PAD, 4.dp, 14.dp),
+        boardBottom = height.boundedFraction(BOARD_PAD, 4.dp, 14.dp),
 
-        header = height.boundedFraction(HEADER, 48.dp, 96.dp),
-        headerGap = height.boundedFraction(HEADER_GAP, 12.dp, 40.dp),
-        remote = height.boundedFraction(REMOTE, 44.dp, 88.dp),
-        remoteGap = height.boundedFraction(REMOTE_GAP, 8.dp, 22.dp),
+        header = height.boundedFraction(HEADER, 38.dp, 68.dp),
+        headerGap = height.boundedFraction(HEADER_GAP, 4.dp, 12.dp),
+        remote = height.boundedFraction(REMOTE, 26.dp, 42.dp),
+        remoteGap = height.boundedFraction(REMOTE_GAP, 4.dp, 12.dp),
 
-        panelPad = width.boundedFraction(PANEL_PAD, 8.dp, 22.dp),
-        panelRadius = height.boundedFraction(PANEL_RADIUS, 12.dp, 26.dp),
-        toolbar = height.boundedFraction(TOOLBAR, 34.dp, 70.dp),
-        toolbarGap = height.boundedFraction(TOOLBAR_GAP, 4.dp, 16.dp),
-        search = width.boundedFraction(SEARCH, 180.dp, 420.dp),
+        panelPad = width.boundedFraction(PANEL_PAD, 4.dp, 12.dp),
+        panelRadius = height.boundedFraction(PANEL_RADIUS, 10.dp, 22.dp),
 
-        // Floored at the D-pad target for the reason every other control here is: the
-        // strip is seven buttons, and a button a remote cannot land on is decoration.
-        actions = maxOf(width.boundedFraction(ACTIONS, 40.dp, 72.dp), target),
-        actionsGap = height.boundedFraction(ACTIONS_GAP, 3.dp, 12.dp),
-        actionDot = maxOf(width.boundedFraction(ACTION_DOT, 30.dp, 54.dp), target * ACTION_OF_TARGET),
-        rail = width.boundedFraction(RAIL, 190.dp, 340.dp),
-        railGap = width.boundedFraction(RAIL_GAP, 10.dp, 32.dp),
-        player = width.boundedFraction(PLAYER, 260.dp, 520.dp),
-        playerGap = width.boundedFraction(PLAYER_GAP, 14.dp, 44.dp),
+        // Floored at the control target, and still floored: the strip is ten circles
+        // side by side, which is exactly the case the target floor exists for. This is
+        // the distinction the class note draws — a button a remote lands *on* keeps the
+        // floor; a full-width list row a remote moves *through* does not.
+        actions = maxOf(width.boundedFraction(ACTIONS, 40.dp, 66.dp), target),
+        actionsGap = height.boundedFraction(ACTIONS_GAP, 2.dp, 10.dp),
+        actionDot = maxOf(width.boundedFraction(ACTION_DOT, 28.dp, 52.dp), target * ACTION_OF_TARGET),
+        rail = width.boundedFraction(RAIL, 170.dp, 330.dp),
+        railGap = width.boundedFraction(RAIL_GAP, 6.dp, 18.dp),
+        player = width.boundedFraction(PLAYER, 280.dp, 560.dp),
+        playerGap = width.boundedFraction(PLAYER_GAP, 6.dp, 20.dp),
 
-        railEntryGap = height.boundedFraction(RAIL_ENTRY_GAP, 2.dp, 8.dp),
-        railDivider = height.boundedFraction(RAIL_DIVIDER, 6.dp, 18.dp),
-        // The floor wins wherever the arithmetic falls below it. See the class note:
-        // on a 720dp-tall surface the reference's own height is 8dp under the D-pad
-        // target, and a rail entry is a control before it is a picture.
-        railMin = maxOf(height.boundedFraction(RAIL_MIN, 34.dp, 76.dp), target),
+        railEntryGap = height.boundedFraction(RAIL_ENTRY_GAP, 2.dp, 7.dp),
+        railDivider = height.boundedFraction(RAIL_DIVIDER, 5.dp, 14.dp),
+        railMin = height.boundedFraction(RAIL_MIN, 32.dp, 68.dp),
 
-        rowMin = maxOf(height.boundedFraction(ROW, 40.dp, 88.dp), target),
-        rowPadH = width.boundedFraction(ROW_PAD_H, 8.dp, 24.dp),
-        numberWidth = width.boundedFraction(NUMBER, 36.dp, 76.dp),
-        numberHeight = height.boundedFraction(NUMBER_H, 18.dp, 38.dp),
-        logoWidth = width.boundedFraction(LOGO, 56.dp, 132.dp),
+        rowMin = height.boundedFraction(ROW, 26.dp, 48.dp),
+        rowPadH = width.boundedFraction(ROW_PAD_H, 5.dp, 16.dp),
+        numberWidth = width.boundedFraction(NUMBER, 30.dp, 58.dp),
+        numberHeight = height.boundedFraction(NUMBER_H, 18.dp, 34.dp),
+        logoWidth = width.boundedFraction(LOGO, 26.dp, 54.dp),
         scrollbar = width.boundedFraction(SCROLLBAR, 3.dp, 8.dp),
 
-        wellPad = width.boundedFraction(WELL_PAD, 6.dp, 18.dp),
-        wellRadius = height.boundedFraction(WELL_RADIUS, 10.dp, 22.dp),
-        previewRadius = height.boundedFraction(PREVIEW_RADIUS, 6.dp, 16.dp),
-        nameGap = height.boundedFraction(NAME_GAP, 5.dp, 18.dp),
-        timelineGap = height.boundedFraction(TIMELINE_GAP, 10.dp, 40.dp),
+        wellPad = width.boundedFraction(WELL_PAD, 5.dp, 14.dp),
+        wellRadius = height.boundedFraction(WELL_RADIUS, 10.dp, 20.dp),
+        previewRadius = height.boundedFraction(PREVIEW_RADIUS, 6.dp, 14.dp),
+        nameGap = height.boundedFraction(NAME_GAP, 4.dp, 14.dp),
+        timelineGap = height.boundedFraction(TIMELINE_GAP, 8.dp, 28.dp),
         trackHeight = height.boundedFraction(TRACK, 2.dp, 5.dp),
-        trackDot = height.boundedFraction(TRACK_DOT, 6.dp, 14.dp),
-        factChip = height.boundedFraction(FACT_CHIP, 22.dp, 44.dp),
+        trackDot = height.boundedFraction(TRACK_DOT, 6.dp, 13.dp),
+        factChip = height.boundedFraction(FACT_CHIP, 20.dp, 38.dp),
         factGap = width.boundedFraction(FACT_GAP, 4.dp, 12.dp),
-        badgePadH = width.boundedFraction(BADGE_PAD_H, 4.dp, 12.dp),
+        badgePadH = width.boundedFraction(BADGE_PAD_H, 4.dp, 11.dp),
         badgePadV = height.boundedFraction(BADGE_PAD_V, 2.dp, 7.dp),
 
         osdPad = width.boundedFraction(OSD_PAD, 5.dp, 14.dp),
-        osdGap = width.boundedFraction(OSD_GAP, 4.dp, 12.dp),
-        guideGap = height.boundedFraction(GUIDE_GAP, 4.dp, 12.dp),
-        guidePad = width.boundedFraction(GUIDE_PAD, 6.dp, 16.dp),
+        osdGap = width.boundedFraction(OSD_GAP, 4.dp, 11.dp),
+        guideGap = height.boundedFraction(GUIDE_GAP, 4.dp, 11.dp),
+        guidePad = width.boundedFraction(GUIDE_PAD, 5.dp, 14.dp),
 
-        remoteDot = height.boundedFraction(REMOTE_DOT, 10.dp, 24.dp),
-        remoteGapInner = width.boundedFraction(REMOTE_GAP_INNER, 10.dp, 34.dp),
-        remoteKeyPadH = width.boundedFraction(REMOTE_KEY_PAD_H, 5.dp, 14.dp),
-        remoteKeyPadV = height.boundedFraction(REMOTE_KEY_PAD_V, 3.dp, 9.dp),
+        remoteDot = height.boundedFraction(REMOTE_DOT, 8.dp, 18.dp),
+        remoteGapInner = width.boundedFraction(REMOTE_GAP_INNER, 8.dp, 28.dp),
+        remoteKeyPadH = width.boundedFraction(REMOTE_KEY_PAD_H, 4.dp, 12.dp),
+        remoteKeyPadV = height.boundedFraction(REMOTE_KEY_PAD_V, 2.dp, 8.dp),
     )
 }
 
 /**
  * How wide the preview plate is relative to its height.
  *
- * **16:9 now.** The first reference was a still whose plate was 430×312, and the squarer
- * box was right for what that drawing put in it — a channel identity rather than a frame
- * of video. The approved design shows the picture itself, and a picture has one shape.
- * Anything else letterboxes live television inside a panel built to avoid letterboxing.
+ * A picture has one shape. Anything else letterboxes live television inside a panel
+ * built to avoid letterboxing — and the reference's preview is 16:9 to the pixel.
  *
  * Stated once here because two places need it: the plate, and the arithmetic that checks
  * the well fits.
  */
 internal const val CHANNELS_PREVIEW_ASPECT = 16f / 9f
 
+/**
+ * Roughly how many channel rows the board is built to show at once.
+ *
+ * Not a layout constant — nothing reads it — but the number [ROW] was solved for, and
+ * the number `ChannelsMetricsTest` holds the board to. The reference shows twelve, and
+ * twelve is the whole point of the row share being what it is.
+ */
+internal const val CHANNELS_TARGET_ROWS = 12
+
 /* ------------------------------------------------------------------ the shares
  *
- * Read off the approved Channels reference at 1536×1024. Widths are `px / 1536`,
- * heights are `px / 1024`. Nothing here was chosen twice and nothing was rounded to
- * something prettier than what was measured.
+ * Measured off the 2340×1080 reference. Widths are `px / 2340`, heights are
+ * `px / 1080`. Nothing here was chosen twice and nothing was rounded to something
+ * prettier than what the edge detector reported.
  */
 
-private const val EDGE = 32f / 1536f
-private const val BOARD_PAD = 24f / 1024f
+private const val EDGE = 22f / 2340f
+private const val BOARD_PAD = 10f / 1080f
 
-private const val HEADER = 76f / 1024f
-private const val HEADER_GAP = 34f / 1024f
-private const val REMOTE = 72f / 1024f
-private const val REMOTE_GAP = 16f / 1024f
+private const val HEADER = 88f / 1080f
+private const val HEADER_GAP = 8f / 1080f
+private const val REMOTE = 40f / 1080f
+private const val REMOTE_GAP = 8f / 1080f
 
-private const val PANEL_PAD = 16f / 1536f
-private const val PANEL_RADIUS = 18f / 1024f
-private const val TOOLBAR = 54f / 1024f
-private const val TOOLBAR_GAP = 10f / 1024f
-private const val SEARCH = 326f / 1536f
+private const val PANEL_PAD = 10f / 2340f
+private const val PANEL_RADIUS = 16f / 1080f
 
-/* The action strip, read off the video reference rather than the still: 62 of its
- * 1568 width, which is the same share this product's 1536 reference would have given. */
-private const val ACTIONS = 62f / 1536f
-private const val ACTIONS_GAP = 6f / 1024f
-private const val ACTION_DOT = 44f / 1536f
+private const val ACTIONS = 70f / 2340f
+private const val ACTIONS_GAP = 8f / 1080f
+private const val ACTION_DOT = 60f / 2340f
 
-/** How much of the D-pad floor a dot inside the strip may be, the strip itself carrying
- *  the rest as padding: the *row* is the control, the circle is only its mark. */
+/** How much of the control floor a dot inside the strip may be, the strip itself
+ *  carrying the rest as padding: the *cell* is the control, the circle is only its mark. */
 private const val ACTION_OF_TARGET = 0.62f
 
-private const val RAIL = 302f / 1536f
-private const val RAIL_GAP = 24f / 1536f
-private const val PLAYER = 444f / 1536f
-private const val PLAYER_GAP = 34f / 1536f
+private const val RAIL = 494f / 2340f
+private const val RAIL_GAP = 16f / 2340f
+private const val PLAYER = 986f / 2340f
+private const val PLAYER_GAP = 18f / 2340f
 
-private const val RAIL_ENTRY_GAP = 3f / 1024f
-private const val RAIL_DIVIDER = 12f / 1024f
-private const val RAIL_MIN = 55f / 1024f
+private const val RAIL_ENTRY_GAP = 4f / 1080f
+private const val RAIL_DIVIDER = 10f / 1080f
 
-private const val ROW = 68f / 1024f
-private const val ROW_PAD_H = 16f / 1536f
-private const val NUMBER = 58f / 1536f
-private const val NUMBER_H = 30f / 1024f
-private const val LOGO = 108f / 1536f
-private const val SCROLLBAR = 6f / 1536f
+/**
+ * A category entry's height.
+ *
+ * The reference's is 109 of 1080 and this is 100, which is the one share deliberately
+ * tightened rather than copied: the reference's rail carries a name and a total in a
+ * column 21% wide, and so does this one, but this one also has to hold at 800dp where
+ * the reference was never drawn. Nine entries at 100 is what the reference shows.
+ */
+private const val RAIL_MIN = 100f / 1080f
 
-private const val WELL_PAD = 12f / 1536f
-private const val WELL_RADIUS = 16f / 1024f
-private const val PREVIEW_RADIUS = 12f / 1024f
-private const val NAME_GAP = 10f / 1024f
-private const val TIMELINE_GAP = 32f / 1024f
-private const val TRACK = 3f / 1024f
-private const val TRACK_DOT = 10f / 1024f
-private const val FACT_CHIP = 34f / 1024f
-private const val FACT_GAP = 10f / 1536f
-private const val BADGE_PAD_H = 9f / 1536f
-private const val BADGE_PAD_V = 4f / 1024f
+/**
+ * A channel row's height, and the number the board's density is decided by.
+ *
+ * The reference's row is 82 of 1080 and this is 70. The difference is the two things
+ * the reference does not spend height on and this board does: a remote-key legend along
+ * the bottom, and the panel's own padding. Solved rather than copied, so that
+ * [CHANNELS_TARGET_ROWS] rows fit *after* those are paid for — which is the property
+ * worth reproducing, the pixel height being only how the reference happened to reach it.
+ */
+private const val ROW = 70f / 1080f
 
-private const val OSD_PAD = 10f / 1536f
-private const val OSD_GAP = 8f / 1536f
-private const val GUIDE_GAP = 8f / 1024f
-private const val GUIDE_PAD = 11f / 1536f
+private const val ROW_PAD_H = 12f / 2340f
+private const val NUMBER = 62f / 2340f
+private const val NUMBER_H = 40f / 1080f
+private const val LOGO = 60f / 2340f
+private const val SCROLLBAR = 6f / 2340f
 
-private const val REMOTE_DOT = 22f / 1024f
-private const val REMOTE_GAP_INNER = 36f / 1536f
-private const val REMOTE_KEY_PAD_H = 11f / 1536f
-private const val REMOTE_KEY_PAD_V = 6f / 1024f
+private const val WELL_PAD = 10f / 2340f
+private const val WELL_RADIUS = 14f / 1080f
+private const val PREVIEW_RADIUS = 10f / 1080f
+private const val NAME_GAP = 8f / 1080f
+private const val TIMELINE_GAP = 20f / 1080f
+private const val TRACK = 3f / 1080f
+private const val TRACK_DOT = 9f / 1080f
+private const val FACT_CHIP = 30f / 1080f
+private const val FACT_GAP = 10f / 2340f
+private const val BADGE_PAD_H = 9f / 2340f
+private const val BADGE_PAD_V = 4f / 1080f
+
+private const val OSD_PAD = 12f / 2340f
+private const val OSD_GAP = 8f / 2340f
+private const val GUIDE_GAP = 8f / 1080f
+private const val GUIDE_PAD = 12f / 2340f
+
+private const val REMOTE_DOT = 14f / 1080f
+private const val REMOTE_GAP_INNER = 30f / 2340f
+private const val REMOTE_KEY_PAD_H = 10f / 2340f
+private const val REMOTE_KEY_PAD_V = 4f / 1080f
 
 /**
  * The channel name in the player well, as a ratio of the frame's title step.
  *
- * The reference sets the name at 23/1024 and the frame's title lands at 34.7/720; the
+ * The reference sets the name at 30/1080 and the frame's title lands at 34.7/720; the
  * ratio between them is what is portable, so the name tracks the product's type scale
  * instead of drifting away from it on a surface the reference never covered.
  */
-private const val CHANNEL_NAME_OF_TITLE = (23f / 1024f) / (34.7f / 720f)
+private const val CHANNEL_NAME_OF_TITLE = (30f / 1080f) / (34.7f / 720f)

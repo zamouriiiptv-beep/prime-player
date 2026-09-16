@@ -27,26 +27,37 @@ import org.junit.Test
 class ChannelsMetricsTest {
 
     /**
-     * A channel row and a rail entry are the two most-pressed controls on the board,
-     * and the reference draws both **under** the D-pad floor once its 3:2 geometry is
-     * mapped onto 16:9 — 47.8dp and 38.7dp against a 56dp target.
+     * **The controls keep the target floor; the list rows are allowed under it.**
      *
-     * This is the assertion that stops the picture winning. It failed by 8dp and 17dp
-     * before the floors were applied, on the one device the board is designed for.
+     * This assertion used to say the opposite, and it was the reason the board showed
+     * three channels where its reference shows twelve. The arithmetic is not close:
+     * twelve rows at a 56dp D-pad floor is 672dp of list, and a 16:9 surface 540dp tall
+     * does not have it at any ceiling.
+     *
+     * So the floor moved to where it belongs. A circle in a strip of ten is a control a
+     * remote lands *on* and a finger can miss by 8dp, and it still carries
+     * `Sizing.minTarget`. A full-width channel row is moved *through*, and carries the
+     * list floor instead. Both halves are asserted here so neither can drift: the
+     * controls may not go under the target, and the rows may not silently climb back
+     * over it and take the density with them.
      */
     @Test
-    fun `a row and a rail entry are never under the device's target`() {
+    fun `the strip keeps the target floor and the rows keep the list floor`() {
         sweep { tv, width, height ->
             val m = channelsMetricsFor(tv, width, height)
             val floor = Sizing.minTarget(tv)
             assertTrue(
-                "row ${m.rowMin} under the ${if (tv) "D-pad" else "thumb"} floor $floor " +
-                    "at ${width}x$height",
-                m.rowMin >= floor,
+                "the action strip ${m.actions} is under the ${if (tv) "D-pad" else "thumb"} " +
+                    "floor $floor at ${width}x$height",
+                m.actions >= floor,
             )
             assertTrue(
-                "rail entry ${m.railMin} under $floor at ${width}x$height",
-                m.railMin >= floor,
+                "a channel row is ${m.rowMin} at ${width}x$height, under the list floor",
+                m.rowMin >= LIST_ROW_FLOOR,
+            )
+            assertTrue(
+                "a rail entry is ${m.railMin} at ${width}x$height, under the list floor",
+                m.railMin >= LIST_ROW_FLOOR,
             )
         }
     }
@@ -97,20 +108,82 @@ class ChannelsMetricsTest {
     }
 
     /**
-     * At least this many channels are visible without scrolling, everywhere.
+     * **Twelve channels are visible without scrolling, everywhere this ships.**
      *
-     * The reference shows ten, on a 3:2 drawing. A 16:9 surface at a 56dp floor holds
-     * about eight, and a 360dp handset fewer — but a list showing one row at a time is
-     * not a list, so the floor is asserted rather than left to whatever the ceilings
-     * happen to allow.
+     * The assertion the whole redesign exists for, and the one that would have caught
+     * the defect it fixes: the board showed three rows on a 2340x1080 handset against a
+     * reference showing twelve on the same glass. It asserted `rows >= 2` at the time,
+     * and passed.
+     *
+     * Checked at every surface and both input models rather than at the one that was
+     * photographed, because "it fits on the device I have" is what the old number meant.
      */
     @Test
-    fun `enough rows are visible to read the list`() {
+    fun `the reference's twelve rows are visible`() {
+        sweep(from = SHIPPING_WIDTH, aspects = TELEVISION_ASPECTS) { tv, width, height ->
+            val m = channelsMetricsFor(tv, width, height)
+            val rows = (columnHeight(m, height) / m.rowMin).toInt()
+            assertTrue(
+                "only $rows rows visible at ${width}x$height, against a reference of " +
+                    "$CHANNELS_TARGET_ROWS",
+                rows >= CHANNELS_TARGET_ROWS,
+            )
+        }
+    }
+
+    /**
+     * And a usable list survives the shapes the reference was never drawn at.
+     *
+     * 21:9 at 800dp wide is 343dp tall — a surface where twelve rows would mean a row
+     * of 28dp with the bands already at their floors, and no arrangement of the numbers
+     * produces it. Rather than quietly weaken the assertion above to whatever the worst
+     * aspect allows, the two are separate: the shapes this product is *designed* for
+     * hold the reference's density, and the shapes it merely has to *survive* hold a
+     * floor of their own.
+     */
+    @Test
+    fun `every other shape still shows a usable list`() {
         sweep(from = SHIPPING_WIDTH) { tv, width, height ->
             val m = channelsMetricsFor(tv, width, height)
-            val columns = height - fixedHeight(m)
-            val rows = (columns / m.rowMin).toInt()
-            assertTrue("only $rows rows visible at ${width}x$height", rows >= MIN_VISIBLE_ROWS)
+            val rows = (columnHeight(m, height) / m.rowMin).toInt()
+            assertTrue("only $rows rows visible at ${width}x$height", rows >= MIN_ROWS_ANYWHERE)
+        }
+    }
+
+    /**
+     * **The bands never take a third of the screen again.**
+     *
+     * The measured defect, as arithmetic. A full-height dashboard header with a toolbar
+     * under it took 295 of 1080 pixels before a channel was drawn — twenty-seven per
+     * cent — and the reference spends eight. Counting rows alone would not have caught
+     * it, because a short enough row hides a tall enough header; this asserts the split
+     * directly, so neither band can grow back at the list's expense.
+     */
+    @Test
+    fun `the bands leave the columns most of the screen`() {
+        sweep(from = SHIPPING_WIDTH) { tv, width, height ->
+            val m = channelsMetricsFor(tv, width, height)
+            val share = columnHeight(m, height) / height
+            assertTrue(
+                "the columns get ${(share * 100).toInt()}% of the height at ${width}x$height",
+                share >= COLUMN_SHARE_OF_HEIGHT,
+            )
+        }
+    }
+
+    /**
+     * The category rail shows what the reference shows, for the same reason.
+     *
+     * Nine entries, and the rail is the column a viewer picks a bouquet from — a rail
+     * showing three of a provider's four hundred categories is a scroll bar with a
+     * decoration attached.
+     */
+    @Test
+    fun `the rail shows as many categories as the reference`() {
+        sweep(from = SHIPPING_WIDTH) { tv, width, height ->
+            val m = channelsMetricsFor(tv, width, height)
+            val entries = (columnHeight(m, height) / (m.railMin + m.railEntryGap)).toInt()
+            assertTrue("only $entries categories visible at ${width}x$height", entries >= MIN_RAIL_ENTRIES)
         }
     }
 
@@ -122,8 +195,8 @@ class ChannelsMetricsTest {
             listOf(
                 "edge" to m.edge, "boardTop" to m.boardTop, "header" to m.header,
                 "headerGap" to m.headerGap, "remote" to m.remote, "remoteGap" to m.remoteGap,
-                "panelPad" to m.panelPad, "panelRadius" to m.panelRadius, "toolbar" to m.toolbar,
-                "search" to m.search, "rail" to m.rail, "railGap" to m.railGap,
+                "panelPad" to m.panelPad, "panelRadius" to m.panelRadius,
+                "rail" to m.rail, "railGap" to m.railGap,
                 "player" to m.player, "playerGap" to m.playerGap, "rowPadH" to m.rowPadH,
                 "numberWidth" to m.numberWidth, "logoWidth" to m.logoWidth,
                 "wellPad" to m.wellPad, "factChip" to m.factChip, "remoteDot" to m.remoteDot,
@@ -137,30 +210,63 @@ class ChannelsMetricsTest {
     /**
      * **The reference reproduces itself.**
      *
-     * The shares were read off a 1536×1024 drawing and the product's reference geometry
-     * is 1280×720, so this is the one test that says the conversion was done and not
-     * merely described. A width of `w` in the reference must land on `w / 1536` of 1280,
-     * and a height of `h` on `h / 1024` of 720.
+     * The shares were measured off a 2340x1080 screenshot, so this is the one test that
+     * says the conversion was done and not merely described. A width of `w` in the
+     * reference must land on `w / 2340` of the surface's width, and a height of `h` on
+     * `h / 1080` of its height.
+     *
+     * Checked at 1280x720, which is the product's own reference geometry and a surface
+     * where none of the bounds bind — so a cap quietly swallowing a share would show up
+     * here rather than hide behind a clamp.
      */
     @Test
     fun `the reference geometry lands on the reference's own proportions`() {
         val m = channelsMetricsFor(tv = true, width = 1280.dp, height = 720.dp)
 
-        assertNear("rail", 1280f * 302f / 1536f, m.rail)
-        assertNear("player", 1280f * 444f / 1536f, m.player)
-        assertNear("railGap", 1280f * 24f / 1536f, m.railGap)
-        assertNear("playerGap", 1280f * 34f / 1536f, m.playerGap)
-        assertNear("edge", 1280f * 32f / 1536f, m.edge)
+        // `actions` is deliberately absent: it is floored at the control target and at
+        // 1280dp the floor wins (38.3dp of share against a 56dp D-pad floor). It is a
+        // strip of circles a remote lands on, and that is the one column on this board
+        // still held to the target — see `ChannelsMetrics`.
+        assertNear("rail", 1280f * 494f / 2340f, m.rail)
+        assertNear("player", 1280f * 986f / 2340f, m.player)
+        assertNear("railGap", 1280f * 16f / 2340f, m.railGap)
+        assertNear("playerGap", 1280f * 18f / 2340f, m.playerGap)
+        assertNear("edge", 1280f * 22f / 2340f, m.edge)
+        assertNear("logoWidth", 1280f * 60f / 2340f, m.logoWidth)
 
-        assertNear("header", 720f * 76f / 1024f, m.header)
-        assertNear("remote", 720f * 72f / 1024f, m.remote)
-        assertNear("toolbar", 720f * 54f / 1024f, m.toolbar)
-        assertNear("headerGap", 720f * 34f / 1024f, m.headerGap)
+        assertNear("header", 720f * 88f / 1080f, m.header)
+        assertNear("remote", 720f * 40f / 1080f, m.remote)
+        assertNear("headerGap", 720f * 8f / 1080f, m.headerGap)
+        assertNear("railMin", 720f * 100f / 1080f, m.railMin)
+        assertNear("rowMin", 720f * 70f / 1080f, m.rowMin)
+    }
 
-        // The two that do not reproduce the reference, and must not: both are floored
-        // at the D-pad target, and the reference's own value is under it.
-        assertEquals("row is the D-pad floor", Sizing.minTvTarget, m.rowMin)
-        assertEquals("rail entry is the D-pad floor", Sizing.minTvTarget, m.railMin)
+    /**
+     * **The logo never takes the name's room again.**
+     *
+     * The defect this board shipped with, in one line of arithmetic. The logo was
+     * `108/1536` of the width — seven per cent — inside a list column that is thirty per
+     * cent of it, and with the number plate and the row's own padding beside it the
+     * channel *name* was left with about forty pixels. It rendered as a bare ellipsis on
+     * every row, and the list was unreadable.
+     *
+     * So what is asserted is not the logo's size but the **name's**: whatever else the
+     * row spends, more than half of it is left for the thing a viewer is reading.
+     */
+    @Test
+    fun `the channel name keeps the majority of its row`() {
+        sweep(from = SHIPPING_WIDTH) { tv, width, height ->
+            val m = channelsMetricsFor(tv, width, height)
+            val list = width - (m.edge * 2 + m.panelPad * 2 + m.actions + m.rail + m.railGap + m.player + m.playerGap)
+            // Everything in the row that is not the name: the padding at both ends, the
+            // logo, the number plate, and a gap on each side of the name.
+            val furniture = m.rowPadH * 4 + m.logoWidth + m.numberWidth
+            val name = list - furniture
+            assertTrue(
+                "the name gets $name of a ${list} row at ${width}x$height",
+                name >= list * NAME_SHARE_OF_ROW,
+            )
+        }
     }
 
     /**
@@ -183,10 +289,20 @@ class ChannelsMetricsTest {
 
     /* ------------------------------------------------------------------ helpers */
 
-    /** Everything on the board whose height is fixed before the columns take the rest. */
+    /**
+     * Everything on the board whose height is fixed before the columns take the rest.
+     *
+     * The toolbar band is absent from this sum because it is absent from the board. It
+     * was a row of its own holding a search field, a sort control and a total, above
+     * three columns that between them already had somewhere for all three — and it cost
+     * a tenth of the height to say so twice.
+     */
     private fun fixedHeight(m: ChannelsMetrics): Dp =
         m.boardTop + m.boardBottom + m.header + m.headerGap +
-            m.remoteGap + m.remote + m.panelPad * 2 + m.toolbar + m.toolbarGap
+            m.remoteGap + m.remote + m.panelPad * 2
+
+    /** What is left for the columns once [fixedHeight] is paid. */
+    private fun columnHeight(m: ChannelsMetrics, height: Dp): Dp = height - fixedHeight(m)
 
     private fun assertNear(name: String, expected: Float, actual: Dp) {
         assertEquals(name, expected, actual.value, 0.01f)
@@ -200,9 +316,13 @@ class ChannelsMetricsTest {
      * suite. The aspects are the ones real hardware reports — a television, a tablet, a
      * handset in landscape, and the two extremes of a folding device.
      */
-    private fun sweep(from: Int = MIN_WIDTH, check: (tv: Boolean, width: Dp, height: Dp) -> Unit) {
+    private fun sweep(
+        from: Int = MIN_WIDTH,
+        aspects: List<Float> = ASPECTS,
+        check: (tv: Boolean, width: Dp, height: Dp) -> Unit,
+    ) {
         for (tv in listOf(true, false)) {
-            for (aspect in ASPECTS) {
+            for (aspect in aspects) {
                 var w = from
                 while (w <= MAX_WIDTH) {
                     check(tv, w.dp, (w / aspect).dp)
@@ -238,7 +358,29 @@ class ChannelsMetricsTest {
         /** Shorter than this and the panel is a frame around nothing. */
         val COLUMNS_MIN = 100.dp
 
-        /** A list showing fewer than this is not a list. */
-        const val MIN_VISIBLE_ROWS = 2
+        /**
+         * The smallest a list row may be drawn, control floor or not.
+         *
+         * Below this a row is a line of text with no box around it and focus has nothing
+         * to land on visibly. It is the floor the class note calls the *list* floor, and
+         * it is deliberately not `Sizing.minTarget` -- see the note for why those are
+         * two different numbers.
+         */
+        val LIST_ROW_FLOOR = 26.dp
+
+        /** The reference shows nine categories at once; the tightest shape holds seven. */
+        const val MIN_RAIL_ENTRIES = 7
+
+        /** A list this product has to survive on, where the reference's density cannot fit. */
+        const val MIN_ROWS_ANYWHERE = 9
+
+        /** How much of the height belongs to the columns rather than to the bands. */
+        const val COLUMN_SHARE_OF_HEIGHT = 0.70f
+
+        /** The shapes the board is designed for, as opposed to the ones it survives. */
+        val TELEVISION_ASPECTS = listOf(16f / 9f, 16f / 10f)
+
+        /** How much of a channel row belongs to the channel's name. */
+        const val NAME_SHARE_OF_ROW = 0.5f
     }
 }

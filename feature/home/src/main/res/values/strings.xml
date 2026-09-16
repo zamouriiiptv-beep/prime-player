@@ -186,6 +186,11 @@
          from the group\'s stored item_count rather than counted per row. Deliberately
          shorter than channels_total: it sits under a name in a narrow column. -->
     <string name="channels_rail_total">Total: %1$s</string>
+    <!-- Said in the rail when the catalogue holds channels but no categories. Two
+         causes reach it and the screen cannot tell them apart: a playlist that
+         carries no group-title at all, and a catalogue that has lost its groups. A
+         forced re-import settles both, so the line is pressable. -->
+    <string name="channels_rail_empty">This playlist lists no categories.</string>
 
     <!-- On the preview plate, over the channel currently under the remote. -->
     <string name="channels_live">LIVE</string>
@@ -205,6 +210,15 @@
 
     <!-- The remote legend along the foot of the board. These name what the *remote\'s*
          keys do; only Back is pressable, because a thumb has no key for it. -->
+    <!-- The action strip at the leading edge. -->
+    <string name="channels_playlist">Current playlist</string>
+    <string name="channels_action_fullscreen">Full screen</string>
+    <string name="channels_action_sort">Sort</string>
+    <string name="channels_action_refresh">Refresh</string>
+    <!-- On the display over the picture. Uppercase in English because the reference
+         draws it so; a language without case renders its own word. -->
+    <string name="channels_live_badge">LIVE</string>
+
     <string name="channels_key_back">Back</string>
     <string name="channels_key_options">Options</string>
     <string name="channels_key_sort">Sort</string>

@@ -114,4 +114,43 @@
     <!-- The second line of a category in the Channels rail. %1$s is a formatted count. -->
     <string name="channels_rail_total">المجموع: %1$s</string>
 
+    <!-- ===================================================== لوحة القنوات
+         كانت هذه المجموعة كاملة بالإنجليزية داخل واجهة عربية: عناوين من تأليفنا،
+         لا أسماء قنوات ولا باقات من المزوّد. أسماء المزوّد تبقى كما كتبها. -->
+    <string name="channels_all">كل القنوات</string>
+    <string name="channels_all_rail">كل القنوات</string>
+    <string name="channels_favorites">المفضلة</string>
+    <string name="channels_recent">شوهدت مؤخرًا</string>
+    <string name="channels_rail_empty">لا يعرض هذا الاشتراك أي باقات.</string>
+
+    <string name="channels_search_hint">ابحث في القنوات</string>
+    <string name="channels_sort_by">الترتيب حسب:</string>
+    <string name="channels_sort_number">الرقم</string>
+    <string name="channels_total">المجموع: %1$s قناة</string>
+
+    <string name="channels_live">مباشر</string>
+    <string name="channels_live_badge">مباشر</string>
+    <string name="channels_no_information">لا توجد معلومات</string>
+    <string name="channels_preview_none">لم تُختَر أي قناة</string>
+
+    <string name="channels_empty_title">لا توجد قنوات هنا</string>
+    <string name="channels_empty_detail">هذه الباقة فارغة حتى الآن. جرّب باقة أخرى، أو حمّل القسم من جديد.</string>
+    <string name="channels_fetch_failed">تعذّر تحميل البث المباشر</string>
+    <string name="channels_notice_failed">لم يردّ مزوّدك. تُعرض القنوات الموجودة على هذا الجهاز.</string>
+
+    <string name="channels_playlist">الاشتراك الحالي</string>
+    <string name="channels_action_fullscreen">ملء الشاشة</string>
+    <string name="channels_action_sort">الترتيب</string>
+    <string name="channels_action_refresh">تحديث</string>
+
+    <string name="channels_key_back">رجوع</string>
+    <string name="channels_key_options">خيارات</string>
+    <string name="channels_key_sort">ترتيب</string>
+    <string name="channels_key_favorite">المفضلة</string>
+    <string name="channels_key_unfavorite">إزالة من المفضلة</string>
+    <string name="channels_key_info_name">INFO</string>
+    <string name="channels_key_info">معلومات القناة</string>
+    <string name="channels_key_menu_name">MENU</string>
+    <string name="channels_key_menu">الباقات</string>
+
 </resources>

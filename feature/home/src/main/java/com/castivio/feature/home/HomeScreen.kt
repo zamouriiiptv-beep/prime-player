@@ -478,11 +478,14 @@ private fun Clock(frame: CastivioMetrics, modifier: Modifier = Modifier) {
     val colors = CastivioTheme.colors
     val now = rememberMinute()
     val locale = LocalConfiguration.current
+    // Isolated, both of them. A clock and a date are fixed-shape tokens: drawn
+    // unisolated in an Arabic composition, `16/09/2026` is reordered into
+    // `162026/09/` by the bidirectional algorithm. See [ltrIsolate].
     val time = remember(now, locale) {
-        DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(now))
+        ltrIsolate(DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(now)))
     }
     val day = remember(now, locale) {
-        DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(now))
+        ltrIsolate(DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(now)))
     }
     Column(modifier, horizontalAlignment = Alignment.End) {
         Text(
@@ -511,7 +514,7 @@ private fun Clock(frame: CastivioMetrics, modifier: Modifier = Modifier) {
  * drops it.
  */
 @Composable
-private fun rememberMinute(): Long {
+internal fun rememberMinute(): Long {
     val context = LocalContext.current
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     DisposableEffect(context) {
@@ -548,7 +551,7 @@ private val HomeState.licenceHolds: Boolean
  * provider, and translating it into ours would make the two disagree.
  */
 @Composable
-private fun subscriptionLabel(status: Recorded?): String {
+internal fun subscriptionLabel(status: Recorded?): String {
     if (status == null) return stringResource(R.string.home_account_unknown)
     // Bound to a local first: `label` is a property of a class in another module, so
     // the compiler will not carry a null check across the dot however plainly the
@@ -569,7 +572,7 @@ private fun subscriptionLabel(status: Recorded?): String {
  * and putting it in both would say it twice.
  */
 @Composable
-private fun expiryLabel(status: Recorded?): String {
+internal fun expiryLabel(status: Recorded?): String {
     val at = status?.expiresAtMs ?: return stringResource(R.string.home_expires_none)
     return rememberDate(at)
 }
@@ -943,7 +946,7 @@ private fun Disclaimer(frame: CastivioMetrics, modifier: Modifier = Modifier) {
 private fun rememberDate(atMs: Long): String {
     val locale = LocalConfiguration.current
     return remember(atMs, locale) {
-        DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(atMs))
+        ltrIsolate(DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(atMs)))
     }
 }
 

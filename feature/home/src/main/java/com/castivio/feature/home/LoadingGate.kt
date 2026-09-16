@@ -440,7 +440,7 @@ private fun Fact(
  * module is a library, and its `BuildConfig.VERSION_NAME` is the *library's*, which is
  * empty. The number a viewer is owed is the one on the APK they installed.
  */
-private fun Context.versionName(): String? = runCatching {
+internal fun Context.versionName(): String? = runCatching {
     packageManager.getPackageInfo(packageName, 0).versionName
 }.getOrNull()
 
