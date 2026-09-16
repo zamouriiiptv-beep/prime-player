@@ -155,20 +155,33 @@ internal fun PerformancePanel(modifier: Modifier = Modifier) {
         }
     }
 
-    Popup(
-        // Direction-aware, so this is the trailing corner in both scripts. On the
-        // Channels board that is the preview column's corner rather than the rail's or
-        // the list's, which is the one of the three a reading can afford to cover.
-        alignment = Alignment.TopEnd,
-        properties = PopupProperties(focusable = false),
-    ) {
-        Readout(
-            report = current,
-            elapsed = elapsed,
-            expanded = expanded,
-            onToggle = { expanded = !expanded },
-            modifier = modifier,
-        )
+    // **The right-hand corner, in every language.**
+    //
+    // This was `TopEnd` resolved against the reading direction, which put it on the left
+    // in Arabic -- and the Channels board does not mirror, so its left is the action
+    // strip and the bouquets. A debug overlay sitting on the two columns a viewer
+    // navigates by is the same defect this file was rewritten to remove, arrived at from
+    // the other side.
+    //
+    // Pinning the direction rather than reaching for one of the direction-absolute
+    // alignment APIs keeps invariant 9 intact -- those are banned outright, and the ban
+    // is right. This is the same override `Columns` uses, for the same reason: the
+    // corner this has to stay clear of is fixed, so the corner it sits in is fixed too.
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+        Popup(
+            // The board's preview corner: of the four columns, the one a reading can
+            // afford to cover.
+            alignment = Alignment.TopEnd,
+            properties = PopupProperties(focusable = false),
+        ) {
+            Readout(
+                report = current,
+                elapsed = elapsed,
+                expanded = expanded,
+                onToggle = { expanded = !expanded },
+                modifier = modifier,
+            )
+        }
     }
 }
 
