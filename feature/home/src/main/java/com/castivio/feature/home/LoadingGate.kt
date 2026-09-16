@@ -116,6 +116,11 @@ internal fun LoadingGate(
         val m = castivioMetrics(maxWidth, maxHeight, tv)
         val logo = maxHeight.boundedFraction(LOGO, 48.dp, 132.dp)
         val gap = maxHeight.boundedFraction(GAP, 6.dp, 20.dp)
+        // Read out here, not inside the column. `ColumnScope` and `BoxWithConstraints`
+        // are both `@LayoutScopeMarker`, so the inner scope hides the outer one's
+        // `maxWidth` -- which is the marker doing its job: a size read through two
+        // nested scopes is rarely the size the author meant.
+        val track = maxWidth * TRACK_OF_WIDTH
 
         Column(
             Modifier
@@ -139,7 +144,7 @@ internal fun LoadingGate(
 
             Tally(fetch = fetch, m = m)
 
-            Track(fetch = fetch, width = maxWidth * TRACK_OF_WIDTH, height = gap / 2)
+            Track(fetch = fetch, width = track, height = gap / 2)
 
             Spacer(Modifier.height(gap / 2))
 
