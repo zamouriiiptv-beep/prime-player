@@ -113,8 +113,37 @@ sealed interface ImportProgress {
     /** [groupsReady] lets the UI show finished groups while the rest imports. */
     data class Importing(
         val itemsImported: Int,
+        /**
+         * How many categories this source has, in total.
+         *
+         * Known from the first event onward: the Xtream engine writes every group before
+         * a single worker starts, so this is the denominator rather than a running
+         * count. [categoriesDone] is the numerator.
+         */
         val groupsReady: Int,
         val kind: MediaKind,
+        /**
+         * Categories that have finished — succeeded or failed — out of [groupsReady].
+         *
+         * The pair is what a determinate progress bar needs, and what the loading screen
+         * shows as `120 / 834`.
+         *
+         * **Null, not zero, for an importer that cannot say.** An M3U playlist is a
+         * single file: its groups are discovered as the parser walks it, and not one of
+         * them is ever "finished" before the whole file is. Reporting zero there would be
+         * indistinguishable from an Xtream import that has not finished its first
+         * category yet, and the loading screen would draw a bar that never moved for the
+         * entire download. Null says *ask a different question*, and the screen does —
+         * it counts rows instead.
+         */
+        val categoriesDone: Int? = null,
+        /**
+         * Bytes the provider has actually sent for this import so far.
+         *
+         * Filled in by the layer that owns the HTTP counters, not by the parser — see
+         * `DefaultCatalogImporter`. Zero where nothing counts them.
+         */
+        val bytes: Long = 0,
     ) : ImportProgress
     data class Done(val totalItems: Int, val durationMs: Long) : ImportProgress
     data class Failed(val error: com.castivio.core.common.AppError) : ImportProgress

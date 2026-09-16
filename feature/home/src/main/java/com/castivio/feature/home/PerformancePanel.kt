@@ -2,13 +2,10 @@ package com.castivio.feature.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,9 +15,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -29,14 +24,11 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
 import androidx.compose.material3.Text
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Radius
-import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.Spacing
 import com.castivio.core.platform.PerformanceLog
 import com.castivio.core.platform.SectionReport
@@ -46,42 +38,28 @@ import kotlinx.coroutines.delay
 /**
  * What this section cost, on this device, in this run — **debug builds only**.
  *
- * ## Why it lives in its own file now
+ * ## Where it is drawn, and why that moved
  *
- * It was private inside `BrowseScreen`, which is why Live TV lost it the moment Live
- * stopped being a `BrowseScreen`. A measurement the product depends on is not a
- * screen's private furniture: it is a component, it has one declaration, and every
- * screen that loads a section draws it. That is invariant 6's rule applied to the one
- * thing that had been quietly exempt from it.
+ * On the loading screen, and nowhere else.
  *
- * ## Why it is a [Popup] and not a row in the screen's column
+ * It began as private furniture inside `BrowseScreen`, which is why Live TV lost it the
+ * moment Live stopped being a `BrowseScreen`. It then became a `Popup` over the board,
+ * because as a row in the board's column it took eight lines of height from the rail,
+ * the list and the preview. Both were answers to the same question asked in the wrong
+ * place: *where does a readout go on a screen that is trying to show a catalogue?*
  *
- * Because it was a row in the screen's column, and on a real board that cost the user
- * the screen. Both callers invoke this as a `Column` child — `ChannelsScreen` inside
- * the panel's padded column, `BrowseScreen` inside one with `Arrangement.spacedBy` —
- * so eight lines of readout took eight lines of *height*, the categories rail, the
- * channel list and the preview divided what was left, and the measured board that the
- * reference describes was drawn into a strip. A debug instrument had become a term in
- * the responsive composition.
+ * It goes on the screen the waiting happens on. The loading gate has a viewer's whole
+ * attention and nothing else competing for the space, the numbers are about the load
+ * that gate is running, and the board gets its four columns back with nothing floating
+ * over them. No popup, no corner, no expand control — the gate has room for every row.
  *
- * A `Popup` node measures to zero in its parent and places its content in a window of
- * its own. That is the whole of the fix and it is why neither screen changed: the
- * column now allots this nothing, the metrics that size the rail, the rows and the
- * preview see exactly the surface they saw before the panel existed, and no dimension
- * here can ever reach them again. Pinning it to a corner by hand would not have done
- * that — an overlay inside the column is still measured by the column.
+ * ## Why a release build cannot draw it
  *
- * `focusable = false` deliberately: the window takes no key events, so a remote keeps
- * arrowing down the channel list with the panel on screen. The consequence is stated
- * rather than hidden — the expand control answers a tap and not a D-pad — and the
- * compact card is sized so the three numbers a test is judged by need no expanding.
- *
- * ## Compact by default, and bounded either way
- *
- * Collapsed it is the run's identity and the two numbers that say whether content
- * arrived: TTID and TTFC. Expanded it adds the import window. Both are capped at
- * [READOUT_MAX_WIDTH] and sit in the top corner, which on this board is the preview's
- * corner rather than the rail's or the list's.
+ * [PerformanceLog.isVisibleIn] asks the platform whether this package is debuggable and
+ * returns before anything is composed when it is not. That is a property of the
+ * installed APK rather than a flag anybody can set, so there is no build where this is
+ * on by accident, and no debug build where it is off. It is read once and remembered:
+ * it cannot change while the app runs.
  *
  * ## Why its own layout direction
  *
@@ -93,19 +71,11 @@ import kotlinx.coroutines.delay
  * content has one direction, and [Locale.ROOT] is the same decision for the decimal
  * separator.
  *
- * ## Why a release build cannot draw it
- *
- * [PerformanceLog.isVisibleIn] asks the platform whether this package is debuggable and
- * returns before anything is composed when it is not. That is a property of the
- * installed APK rather than a flag anybody can set, so there is no build where this is
- * on by accident, and no debug build where it is off. It is read once and remembered:
- * it cannot change while the app runs.
- *
  * ## What each line means, and what it is measured at
  *
  * | line | boundary | measured at |
  * |---|---|---|
- * | `TTID` | section opened → first frame drawn | the screen's own composition |
+ * | `TTID` | section opened → first frame drawn | the gate's own composition |
  * | `TTFC` | section opened → first row on screen | the pager's first non-empty window |
  * | `Network` | the provider's total time, and the call count | OkHttp's `EventListener` |
  * | `Database` | SQLite's total, summed over every batch | `RoomCatalogWriter.commit` |
@@ -132,17 +102,10 @@ internal fun PerformancePanel(modifier: Modifier = Modifier) {
     val report by PerformanceLog.current.collectAsStateWithLifecycle()
     val current = report ?: return
 
-    // The screen's furniture is on screen the first time this composes, which is what
+    // The section's furniture is on screen the first time this composes, which is what
     // TTID means. Reported from here rather than from each screen so the four sections
-    // cannot end up with four slightly different definitions of "first frame" -- and
-    // from *outside* the popup, so moving the readout into its own window did not move
-    // the instant TTID is taken at.
+    // cannot end up with four slightly different definitions of "first frame".
     LaunchedEffect(current.run) { PerformanceLog.firstFrame() }
-
-    // Survives rotation and the screen being left and re-entered; the measurement does
-    // not, and that asymmetry is right. Which numbers somebody wants to see is a
-    // preference, and each open is a new experiment.
-    var expanded by rememberSaveable { mutableStateOf(false) }
 
     // A running clock rather than a frozen one: a first open takes long enough that a
     // blank panel would read as broken. 250ms is slow enough to cost nothing and fast
@@ -155,145 +118,80 @@ internal fun PerformancePanel(modifier: Modifier = Modifier) {
         }
     }
 
-    // **The right-hand corner, in every language.**
-    //
-    // This was `TopEnd` resolved against the reading direction, which put it on the left
-    // in Arabic -- and the Channels board does not mirror, so its left is the action
-    // strip and the bouquets. A debug overlay sitting on the two columns a viewer
-    // navigates by is the same defect this file was rewritten to remove, arrived at from
-    // the other side.
-    //
-    // Pinning the direction rather than reaching for one of the direction-absolute
-    // alignment APIs keeps invariant 9 intact -- those are banned outright, and the ban
-    // is right. This is the same override `Columns` uses, for the same reason: the
-    // corner this has to stay clear of is fixed, so the corner it sits in is fixed too.
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-        Popup(
-            // The board's preview corner: of the four columns, the one a reading can
-            // afford to cover.
-            alignment = Alignment.TopEnd,
-            properties = PopupProperties(focusable = false),
-        ) {
-            Readout(
-                report = current,
-                elapsed = elapsed,
-                expanded = expanded,
-                onToggle = { expanded = !expanded },
-                modifier = modifier,
-            )
-        }
-    }
+    Readout(report = current, elapsed = elapsed, modifier = modifier)
 }
 
-/**
- * The card itself: the run's identity, two numbers, and the rest behind a tap.
- *
- * Every size here is the card's own and reaches nothing outside the popup window.
- */
+/** The card: the run's identity, then every reading that has a moment behind it. */
 @Composable
-private fun Readout(
-    report: SectionReport,
-    elapsed: Long,
-    expanded: Boolean,
-    onToggle: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+private fun Readout(report: SectionReport, elapsed: Long, modifier: Modifier = Modifier) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(Radius.sm)
-    val interaction = remember { MutableInteractionSource() }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Column(
             modifier
-                // Clear of the window's own edge, and of a status bar drawn over it.
-                .padding(Spacing.sm)
-                // Bounded, always. The one rule this file exists to keep is that no
-                // dimension of the readout is decided by how much room the screen has.
                 .widthIn(max = READOUT_MAX_WIDTH)
-                // The whole card is the control, which is what makes the target the
-                // card's size rather than a glyph's. `Sizing.minTarget` because a
-                // remote lands on 56dp and a thumb on 48.
-                .heightIn(min = Sizing.minTarget(CastivioTheme.device.isTv))
                 .clip(shape)
-                // Opaque rather than glass: this is read over a moving list of channel
-                // rows, and a translucent fill puts artwork behind the digits.
-                .background(colors.backgroundElevated)
-                .border(1.dp, colors.glassBorder, shape)
-                .clickable(interaction, indication = null, onClick = onToggle)
-                .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+                .background(colors.glassFill)
+                .border(1.dp, colors.glassBorderSoft, shape)
+                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
             verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
         ) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    text = "${report.section.name} · run ${report.run} · ${report.mode.name}",
-                    style = CastivioType.overline,
-                    color = colors.onBackgroundVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                Text(
-                    text = if (expanded) "PERF $COLLAPSE" else "PERF $EXPAND",
-                    style = CastivioType.labelSmall,
-                    color = colors.secondary,
-                    maxLines = 1,
-                )
-            }
+            Text(
+                text = "${report.section.name} · run ${report.run} · ${report.mode.name}",
+                style = CastivioType.overline,
+                color = colors.onBackgroundVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
 
             if (report.running) {
                 PerformanceRow("Elapsed", seconds(elapsed), colors.onBackgroundMuted)
             }
 
             // TTID and TTFC together, in that order, because the gap between them is the
-            // measurement Fast Content Loading is judged by. They are the two the
-            // collapsed card keeps: TTFC against Full Load is the whole verdict, and
-            // TTFC alone already says whether content arrived before the import ended.
+            // measurement Fast Content Loading is judged by.
             report.ttidMs?.let { PerformanceRow("TTID", seconds(it), colors.onBackground) }
             report.firstContentMs?.let {
                 PerformanceRow("TTFC · First Content", seconds(it), colors.onBackground)
             }
 
-            if (expanded) {
-                report.serverMs?.let {
-                    val calls = report.requests ?: 0
-                    PerformanceRow("Network", "${seconds(it)}  ·  $calls req", colors.onBackgroundVariant)
-                }
-                report.databaseMs?.let {
-                    PerformanceRow("Database", seconds(it), colors.onBackgroundVariant)
-                }
-                report.fullLoadMs?.let { PerformanceRow("Full Load", seconds(it), colors.onBackground) }
-
-                // The import window. Shown only once the import has reported, so a warm
-                // open -- which imports nothing -- draws none of these rather than a
-                // column of zeroes.
-                report.categories?.let { categories ->
-                    PerformanceRow(
-                        "Categories · Records",
-                        "$categories  ·  ${report.records ?: 0}",
-                        colors.onBackgroundVariant,
-                    )
-                }
-                report.requestsStarted?.let { started ->
-                    PerformanceRow(
-                        "Requests  (fail · retry)",
-                        "$started  (${report.requestsFailed ?: 0} · ${report.retries ?: 0})",
-                        colors.onBackgroundVariant,
-                    )
-                }
-                report.concurrency?.takeIf { it > 0 }?.let {
-                    PerformanceRow("Concurrency", "$it in flight", colors.onBackgroundMuted)
-                }
-
-                // Parsing has no row because nothing measures it yet, and a row reading
-                // "--" beside five real numbers is the kind of blank somebody eventually
-                // fills with a guess. `XtreamImportEngine` is in :data:parsing, which may
-                // not import the platform clock -- the invariant script fails the build on
-                // it -- so timing it needs a pure seam rather than a call. Stated here so
-                // the absence is a known gap with a named cause instead of an oversight.
+            report.serverMs?.let {
+                val calls = report.requests ?: 0
+                PerformanceRow("Network", "${seconds(it)}  ·  $calls req", colors.onBackgroundVariant)
             }
+            report.databaseMs?.let {
+                PerformanceRow("Database", seconds(it), colors.onBackgroundVariant)
+            }
+            report.fullLoadMs?.let { PerformanceRow("Full Load", seconds(it), colors.onBackground) }
+
+            // The import window. Shown only once the import has reported, so a warm open
+            // -- which imports nothing -- draws none of these rather than a column of
+            // zeroes.
+            report.categories?.let { categories ->
+                PerformanceRow(
+                    "Categories · Records",
+                    "$categories  ·  ${report.records ?: 0}",
+                    colors.onBackgroundVariant,
+                )
+            }
+            report.requestsStarted?.let { started ->
+                PerformanceRow(
+                    "Requests  (fail · retry)",
+                    "$started  (${report.requestsFailed ?: 0} · ${report.retries ?: 0})",
+                    colors.onBackgroundVariant,
+                )
+            }
+            report.concurrency?.takeIf { it > 0 }?.let {
+                PerformanceRow("Concurrency", "$it in flight", colors.onBackgroundMuted)
+            }
+
+            // Parsing has no row because nothing measures it yet, and a row reading "--"
+            // beside five real numbers is the kind of blank somebody eventually fills with
+            // a guess. `XtreamImportEngine` is in :data:parsing, which may not import the
+            // platform clock -- the invariant script fails the build on it -- so timing it
+            // needs a pure seam rather than a call. Stated here so the absence is a known
+            // gap with a named cause instead of an oversight.
         }
     }
 }
@@ -322,12 +220,5 @@ private fun seconds(ms: Long): String = String.format(Locale.ROOT, "%.2f s", ms 
 /** How often the running clock redraws. Not a measurement; only how it is displayed. */
 private const val TICK_MS = 250L
 
-/** Wide enough for the longest row, narrow enough to stay a corner of the board. */
-private val READOUT_MAX_WIDTH = 260.dp
-
-private const val EXPAND = "▾"
-private const val COLLAPSE = "▴"
-
-/** True when this run has something worth showing beside its own clock. */
-internal val SectionReport.hasReadings: Boolean
-    get() = ttidMs != null || firstContentMs != null || fullLoadMs != null || serverMs != null
+/** Wide enough for the longest row, narrow enough to stay a panel on the gate. */
+private val READOUT_MAX_WIDTH = 340.dp

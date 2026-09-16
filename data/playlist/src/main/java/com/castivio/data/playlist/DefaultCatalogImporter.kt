@@ -114,10 +114,19 @@ class DefaultCatalogImporter(
                             // The importer's own running totals, forwarded to the panel
                             // as they arrive. Counting them a second time here is how
                             // the progress line and the panel end up disagreeing.
+                            //
+                            // The byte count is added *here* rather than in the engine,
+                            // and that is the layering rather than a convenience: the
+                            // engine is pure Kotlin and takes plain `Reader`s, so it has
+                            // no idea how much came down the socket. This class is the
+                            // one place that sees both the parser's progress and the
+                            // HTTP counters, so it is where the two meet.
                             if (progress is ImportProgress.Importing) {
                                 PerformanceLog.importProgress(progress.groupsReady, progress.itemsImported)
+                                trySend(progress.copy(bytes = CallMetrics.totalBytes()))
+                            } else {
+                                trySend(progress)
                             }
-                            trySend(progress)
                         },
                         isCancelled = { !isActive },
                         mode = ImportMode.APPEND,

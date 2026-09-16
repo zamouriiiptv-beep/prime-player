@@ -258,6 +258,57 @@ class XtreamImportEngineTest {
     }
 
     /**
+     * The loading screen's `120 / 834` is a real fraction, and it reaches its end.
+     *
+     * Three things this pins, each of which was wrong at some point while it was written:
+     *
+     *  1. **The denominator is the total, from the first report.** Every category is
+     *     written before any worker starts, so `groupsReady` is the whole set rather than
+     *     a second running count. A bar whose denominator grows is a bar that goes
+     *     backwards.
+     *  2. **The numerator reaches the denominator.** Finishing a category *reports*
+     *     rather than merely counting. It counted silently first, which left the last
+     *     category's completion unannounced — the bar resting at two of three until the
+     *     import ended.
+     *  3. **An empty category still counts.** It sends no rows, so there is no `Items`
+     *     event to report against, and a numerator driven only by rows would never move
+     *     for it.
+     */
+    @Test
+    fun `progress counts every category that finishes, including an empty one`() {
+        val writer = RecordingWriter()
+        val api = FakeApi(
+            liveCategories = listOf("1" to "News", "2" to "Empty", "3" to "Sport"),
+            liveStreams = mapOf(
+                "1" to listOf(stream("11", "Nova")),
+                "2" to emptyList(),
+                "3" to listOf(stream("31", "Arena")),
+            ),
+        )
+        val progress = mutableListOf<ImportProgress>()
+
+        XtreamImportEngine(writer)
+            .importCatalogue("src", api, kinds = setOf(MediaKind.LIVE), onProgress = progress::add)
+
+        val reports = progress.filterIsInstance<ImportProgress.Importing>()
+        assertTrue("the import should report progress at all", reports.isNotEmpty())
+        assertTrue(
+            "the denominator is the whole set from the first report",
+            reports.all { it.groupsReady == 3 },
+        )
+
+        // Non-null throughout: Xtream addresses categories one at a time, so it can
+        // always answer the question. Null is reserved for the importers that cannot.
+        val counted = reports.map { it.categoriesDone ?: error("Xtream must report a count") }
+        assertEquals("every category should be counted done by the end", 3, counted.last())
+        // Never backwards, and never past the end: the two ways a fraction stops being
+        // believed. Categories finish out of order under four workers, so this is a
+        // property of the counter rather than of the arrival order.
+        assertEquals(counted, counted.sorted())
+        assertTrue(reports.all { (it.categoriesDone ?: 0) <= it.groupsReady })
+    }
+
+    /**
      * Cancellation is still observed, and now costs nothing rather than one round trip.
      *
      * **Updated by Phase C, and tightened rather than relaxed.** It used to assert that

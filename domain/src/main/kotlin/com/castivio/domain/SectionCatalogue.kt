@@ -60,9 +60,20 @@ sealed interface SectionLoad {
 
     /**
      * @param items how many rows have been committed so far. Rising, never resetting.
-     * @param groups categories finished, which fill before the rows do.
+     * @param groups how many categories this source has in total — the denominator.
+     * @param groupsDone how many of them have finished, succeeded or failed. With
+     *   [groups] this is what a determinate progress bar needs. **Null** where the
+     *   importer cannot answer it at all — see [ImportProgress.Importing.categoriesDone]
+     *   — and the screen counts rows instead of drawing a bar that cannot move.
+     * @param bytes what the provider has actually sent so far. Zero where nothing
+     *   counts them — a local file has no socket to measure.
      */
-    data class Loading(val items: Int, val groups: Int) : SectionLoad
+    data class Loading(
+        val items: Int,
+        val groups: Int,
+        val groupsDone: Int? = null,
+        val bytes: Long = 0,
+    ) : SectionLoad
 
     /** Reached the end and committed. The screen can read its rows. */
     data class Done(val items: Int) : SectionLoad
@@ -138,7 +149,14 @@ class LoadSection(
                     // passes through, and a counter that drops when the parser moves
                     // from films to series reads as a fault rather than as progress.
                     items = maxOf(items, progress.itemsImported)
-                    emit(SectionLoad.Loading(items, progress.groupsReady))
+                    emit(
+                        SectionLoad.Loading(
+                            items = items,
+                            groups = progress.groupsReady,
+                            groupsDone = progress.categoriesDone,
+                            bytes = progress.bytes,
+                        ),
+                    )
                 }
 
                 // Nothing changed upstream, so nothing was downloaded. For a section

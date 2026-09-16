@@ -77,15 +77,34 @@
 
 
     <!-- A section being brought onto the device the first time it is opened.
-         %1$s is the section name. -->
+         %1$s is the section name. Shown on the loading gate, which is the whole
+         screen a section is fetched on; see LoadingGate.kt. -->
     <string name="browse_fetch_title">Loading %1$s…</string>
-    <!-- %1$s items so far, %2$s categories. Both already grouped for reading. -->
-    <string name="browse_fetch_progress">%1$s items · %2$s categories</string>
     <string name="browse_fetch_once">This runs once. Next time this section opens straight away.</string>
     <string name="browse_fetch_failed">Could not load %1$s</string>
     <string name="browse_fetch_failed_retryable">Your provider did not answer in time. It is usually busy rather than down.</string>
     <string name="browse_fetch_failed_final">Your provider refused the request. Check the subscription, or add it again from Home.</string>
     <string name="browse_fetch_retry">Try again</string>
+
+
+    <!-- ================================================== the loading gate
+         The screen a section is fetched on, before the section itself. Every
+         figure on it comes from a real counter; see LoadingGate.kt. -->
+    <string name="gate_wordmark">Castivio</string>
+    <!-- %1$s is the installed APK's own version name, read from the platform. -->
+    <string name="gate_version">Version %1$s</string>
+    <!-- %1$s categories finished of %2$s, and %3$s received so far, already
+         formatted, e.g. “7.2 MB”. Categories rather than channels because the
+         channel total is not known until the last one has arrived. -->
+    <string name="gate_tally">%1$s / %2$s categories · %3$s</string>
+    <!-- The same line for an importer with no addressable categories: an M3U
+         playlist is one file, so what rises honestly is the row count.
+         %1$s rows committed so far, %2$s received. -->
+    <string name="gate_items">%1$s items · %2$s</string>
+    <!-- Before the provider's first reply there is no denominator to print. -->
+    <string name="gate_starting">Contacting your provider…</string>
+    <string name="gate_mac">MAC address</string>
+    <string name="gate_provider">Provider</string>
 
 
     <!-- ============================================ the dashboard's own two cards
@@ -182,7 +201,6 @@
 
     <!-- Said over a board that already has channels on it, so it is a line rather
          than a wall: the catalogue behind it is usable. %1$s is a running count. -->
-    <string name="channels_notice_refreshing">Refreshing from your provider · %1$s channels so far</string>
     <string name="channels_notice_failed">Your provider did not answer. Showing the channels already on this device.</string>
 
     <!-- The remote legend along the foot of the board. These name what the *remote\'s*

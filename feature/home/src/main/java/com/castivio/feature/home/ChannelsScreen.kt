@@ -160,6 +160,28 @@ fun ChannelsScreen(
     val homeState by home.state.collectAsStateWithLifecycle()
     val tv = CastivioTheme.device.isTv
 
+    // **The wait happens on the gate, and the board opens finished.**
+    //
+    // It used to happen here: the board drew itself around an import, filling in under
+    // the viewer's cursor while they tried to use it. Live TV is the screen where that
+    // was worst, because the preview column follows the selection and the selection kept
+    // being overtaken by rows arriving underneath it.
+    //
+    // `SectionLoad.Loading` is only ever emitted for a section that is not on the device
+    // -- `LoadSection` answers `Ready` without fetching for one that is -- so this cannot
+    // put a gate in front of a warm open, which is every open after the first.
+    val fetch = state.fetch
+    if (fetch is SectionLoad.Loading) {
+        LoadingGate(
+            section = CatalogSection.Live,
+            fetch = fetch,
+            mac = state.mac,
+            provider = state.providerLabel,
+            modifier = modifier,
+        )
+        return
+    }
+
     BoxWithConstraints(modifier.fillMaxSize().safeDrawingPadding()) {
         val m = channelsMetricsFor(tv = tv, width = maxWidth, height = maxHeight)
 
@@ -195,10 +217,10 @@ fun ChannelsScreen(
 /**
  * The panel: a toolbar, then the three columns.
  *
- * The fetch outranks the columns for the same reason it does in `BrowseScreen` — a
- * section being downloaded for the first time has no rows, and a board that drew its
- * empty state over that would tell a user their provider carries no television while
- * their television was arriving.
+ * It is never composed against a running import — [LoadingGate] holds the screen until
+ * the section has arrived — so the only fetch state it has to answer for is a failed
+ * one, and the question it answers is whether the failure is the whole truth or a line
+ * over a catalogue that is already here.
  */
 @Composable
 private fun Board(
@@ -223,10 +245,6 @@ private fun Board(
             .border(1.dp, colors.glassBorderSoft, shape)
             .padding(m.panelPad),
     ) {
-        // Debug builds only, and drawn before anything else so its own first
-        // composition is the board's first frame -- which is what TTID means.
-        PerformancePanel()
-
         Toolbar(state = state, m = m, onSearch = onSearch)
 
         Spacer(Modifier.height(m.toolbarGap))
@@ -247,8 +265,6 @@ private fun Board(
         val hasRows = state.total > 0
 
         when {
-            fetch is SectionLoad.Loading && !hasRows -> Fetching(fetch, m, Modifier.weight(1f))
-
             fetch is SectionLoad.Failed && !hasRows -> Box(
                 Modifier.weight(1f).fillMaxWidth(),
                 contentAlignment = Alignment.Center,
@@ -287,12 +303,16 @@ private fun Board(
 }
 
 /**
- * One line about a fetch that is running or has failed, over a board that has rows.
+ * One line about a fetch that failed, over a board that has rows.
  *
  * Drawn only when there is something to say and something already on screen to say it
  * over. It is deliberately not a dialog and not a full-screen state: the catalogue
- * behind it is usable, and interrupting a working screen to report a background refresh
- * is how a user learns to dismiss messages without reading them.
+ * behind it is usable, and taking a working screen away to report a failed refresh is
+ * how a user learns to dismiss messages without reading them.
+ *
+ * It carried a second line for a fetch that was *running*, and that line is gone with
+ * the state that produced it: a running fetch is drawn by [LoadingGate] now, on its own
+ * screen, and this board is never composed while one is in flight.
  */
 @Composable
 private fun FetchNotice(
@@ -300,18 +320,10 @@ private fun FetchNotice(
     m: ChannelsMetrics,
     onRetry: () -> Unit,
 ) {
+    if (fetch !is SectionLoad.Failed) return
+
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(m.previewRadius)
-
-    val text = when (fetch) {
-        is SectionLoad.Loading -> stringResource(
-            R.string.channels_notice_refreshing,
-            formatCount(fetch.items),
-        )
-        is SectionLoad.Failed -> stringResource(R.string.channels_notice_failed)
-        else -> return
-    }
-    val failed = fetch is SectionLoad.Failed
 
     Row(
         Modifier
@@ -319,28 +331,26 @@ private fun FetchNotice(
             .padding(bottom = m.toolbarGap)
             .clip(shape)
             .background(colors.glassFill)
-            .border(1.dp, if (failed) colors.selectedBorder else colors.glassBorderSoft, shape)
-            .then(if (failed) Modifier.clickable(onClick = onRetry) else Modifier)
+            .border(1.dp, colors.selectedBorder, shape)
+            .clickable(onClick = onRetry)
             .padding(horizontal = m.rowPadH, vertical = m.badgePadV * 2),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(m.factGap),
     ) {
         Text(
-            text = text,
+            text = stringResource(R.string.channels_notice_failed),
             style = castivioBodyStyle(m.frame.fsBody),
-            color = if (failed) colors.onBackground else colors.onBackgroundMuted,
+            color = colors.onBackground,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
-        if (failed) {
-            Text(
-                text = stringResource(R.string.browse_fetch_retry),
-                style = castivioBodyStyle(m.frame.fsBody),
-                color = colors.primary,
-                maxLines = 1,
-            )
-        }
+        Text(
+            text = stringResource(R.string.browse_fetch_retry),
+            style = castivioBodyStyle(m.frame.fsBody),
+            color = colors.primary,
+            maxLines = 1,
+        )
     }
 }
 
@@ -1448,40 +1458,6 @@ private fun NamedKey(name: String, label: String, m: ChannelsMetrics) {
             style = castivioChipStyle(m.frame.fsChip),
             color = colors.onBackground,
             maxLines = 1,
-        )
-    }
-}
-
-/* --------------------------------------------------------------- the states */
-
-/** A section arriving, with the counts it is arriving at. Same wording `BrowseScreen` uses. */
-@Composable
-private fun Fetching(fetch: SectionLoad.Loading, m: ChannelsMetrics, modifier: Modifier = Modifier) {
-    val colors = CastivioTheme.colors
-    Column(
-        modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        DelayedSpinner()
-        Text(
-            text = stringResource(
-                R.string.browse_fetch_title,
-                stringResource(R.string.browse_live),
-            ),
-            style = castivioChipStyle(m.frame.fsLabel),
-            color = colors.onBackgroundStrong,
-            modifier = Modifier.padding(top = m.headerGap),
-        )
-        Text(
-            text = stringResource(
-                R.string.browse_fetch_progress,
-                formatCount(fetch.items),
-                formatCount(fetch.groups),
-            ),
-            style = castivioBodyStyle(m.frame.fsBody),
-            color = colors.onBackgroundVariant,
-            modifier = Modifier.padding(top = m.nameGap),
         )
     }
 }

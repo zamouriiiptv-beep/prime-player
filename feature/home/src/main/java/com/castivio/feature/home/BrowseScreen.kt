@@ -50,7 +50,6 @@ import com.castivio.core.common.EmptyReason
 import com.castivio.core.design.components.CardShape
 import com.castivio.core.design.components.CastivioChip
 import com.castivio.core.design.components.ChannelCard
-import com.castivio.core.design.components.DelayedSpinner
 import com.castivio.core.design.components.EmptyState
 import com.castivio.core.design.components.ErrorState
 import com.castivio.core.design.components.MediaCard
@@ -116,6 +115,21 @@ fun BrowseScreen(
     val state by model.state.collectAsStateWithLifecycle()
     val tv = CastivioTheme.device.isTv
 
+    // The wait belongs to the gate, not to this screen. See [LoadingGate]: a section
+    // that is already on the device answers `Ready` without fetching, so this cannot
+    // stand in front of a warm open.
+    val fetch = state.fetch
+    if (fetch is SectionLoad.Loading) {
+        LoadingGate(
+            section = section,
+            fetch = fetch,
+            mac = state.mac,
+            provider = state.providerLabel,
+            modifier = modifier,
+        )
+        return
+    }
+
     // The surface, measured, and every size on this screen derived from it. It used to
     // be `DeviceClass`: two numbers chosen by what kind of box this is -- a screen
     // padding and a column count -- with every other size a fixed token shared by a
@@ -129,8 +143,6 @@ fun BrowseScreen(
             .castivioStage(m.frame),
         verticalArrangement = Arrangement.spacedBy(m.bandGap),
     ) {
-        PerformancePanel()
-
         SectionHeader(
             title = stringResource(section.label),
             count = state.total,
@@ -313,10 +325,11 @@ private fun CategoryEntry(
 /**
  * The section, or the reason it is not here yet.
  *
- * The fetch outranks the rows, and it has to: a section being downloaded for the
- * first time has no rows, and the pager cannot tell that apart from a provider that
- * carries none. Before this existed the two rendered the same sentence — "your
- * provider carries no Movies" — over a section that was thirty seconds from arriving.
+ * A *running* fetch never reaches here — [LoadingGate] holds the whole screen while one
+ * is in flight, so by the time this pane is composed the section has either arrived or
+ * failed. What is left is the failure, which still outranks the rows: the pager cannot
+ * tell "nothing arrived" apart from "your provider carries no films", and before this
+ * existed both rendered the second sentence.
  */
 @Composable
 private fun Pane(
@@ -328,53 +341,11 @@ private fun Pane(
     onOpenShow: (SeriesSummary) -> Unit,
 ) {
     when (val fetch = state.fetch) {
-        is SectionLoad.Loading -> Fetching(section, fetch, m)
         is SectionLoad.Failed -> FetchFailed(section, fetch, onRetry = { model.retryFetch() })
         // Ready, Done, NoSource and "not asked yet" all mean: draw what is stored.
         // NoSource included -- a section with no provider behind it is empty for a
         // reason the section's own empty state already explains.
         else -> Content(section, state, m, model, onPlay, onOpenShow)
-    }
-}
-
-/**
- * A section arriving, with the numbers it is arriving at.
- *
- * Counts rather than a percentage, because there is no denominator: the provider does
- * not say how many films it has until it has sent them. A rising count is honest and
- * a fake progress bar is not.
- */
-@Composable
-private fun Fetching(section: CatalogSection, fetch: SectionLoad.Loading, m: CatalogMetrics) {
-    val colors = CastivioTheme.colors
-    Column(
-        Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        DelayedSpinner()
-        Text(
-            text = stringResource(R.string.browse_fetch_title, stringResource(section.label)),
-            style = castivioChipStyle(m.frame.fsLabel),
-            color = colors.onBackgroundStrong,
-            modifier = Modifier.padding(top = m.bandGap),
-        )
-        Text(
-            text = stringResource(
-                R.string.browse_fetch_progress,
-                formatCount(fetch.items),
-                formatCount(fetch.groups),
-            ),
-            style = castivioBodyStyle(m.frame.fsBody),
-            color = colors.onBackgroundVariant,
-            modifier = Modifier.padding(top = m.entryGap),
-        )
-        Text(
-            text = stringResource(R.string.browse_fetch_once),
-            style = castivioBodyStyle(m.frame.fsBody),
-            color = colors.onBackgroundMuted,
-            modifier = Modifier.padding(top = m.rowGap),
-        )
     }
 }
 

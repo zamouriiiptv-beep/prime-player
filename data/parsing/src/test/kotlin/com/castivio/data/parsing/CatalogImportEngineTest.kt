@@ -63,6 +63,17 @@ class CatalogImportEngineTest {
         assertEquals(listOf(100, 200), importing.map { it.itemsImported })
         assertTrue("groups must be reported as they are discovered", importing.all { it.groupsReady > 0 })
 
+        // **Null, and it has to stay null.** A playlist is one file: its groups are
+        // discovered while it is read and not one of them is finished before the whole
+        // file is, so there is no "120 of 834" to report. Zero here would be
+        // indistinguishable from an Xtream import that has not finished its first
+        // category, and the loading screen would draw a bar that never moved for the
+        // whole download. See `ImportProgress.Importing.categoriesDone`.
+        assertTrue(
+            "a single-file import must not claim a category count",
+            importing.all { it.categoriesDone == null },
+        )
+
         val done = progress.last() as ImportProgress.Done
         assertEquals(250, done.totalItems)
         assertEquals(clock.elapsed, done.durationMs)

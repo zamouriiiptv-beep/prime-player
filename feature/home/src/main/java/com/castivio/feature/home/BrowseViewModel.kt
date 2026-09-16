@@ -19,6 +19,7 @@ import com.castivio.domain.SectionLoad
 import com.castivio.domain.SeriesSummary
 import com.castivio.domain.SortOrder
 import com.castivio.domain.SourceRepository
+import com.castivio.domain.identity.DeviceIdentity
 import com.castivio.domain.time.TrustedTime
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -64,6 +65,14 @@ data class BrowseState(
     /** From an indexed `COUNT`, never from measuring a list. */
     val total: Int = 0,
     val providerLabel: String? = null,
+    /**
+     * This device's address, for the loading gate to print while the section arrives.
+     *
+     * Derived once per holder rather than asked for per frame: [DeviceIdentity.current]
+     * is a pure function of a seed the operating system keeps, so it is the same six
+     * octets on every read and there is nothing to observe.
+     */
+    val mac: String = "",
     /** True only until the first answer arrives; a category change is not a reload. */
     val loading: Boolean = true,
     /**
@@ -96,7 +105,11 @@ class BrowseViewModel @Inject constructor(
     private val loadSection: LoadSection,
     private val clock: TrustedTime,
     sources: SourceRepository,
+    identity: DeviceIdentity,
 ) : ViewModel() {
+
+    /** Read once, for the reason [BrowseState.mac] gives. */
+    private val mac: String = identity.current().macAddress.value
 
     private val fetch = MutableStateFlow<SectionLoad?>(null)
     private var fetching: Job? = null
@@ -160,6 +173,7 @@ class BrowseViewModel @Inject constructor(
             providerLabel = providerAndFetch.first,
             loading = false,
             fetch = providerAndFetch.second,
+            mac = mac,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_GRACE_MS), BrowseState())
 

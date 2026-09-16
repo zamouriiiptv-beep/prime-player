@@ -105,6 +105,7 @@ class XtreamImportEngine(
         var imported = 0
         var groups = 0
         var cancelled = false
+        var done = 0
         val failures = ArrayList<Pair<String, Throwable>>()
 
         // ------------------------------------------------------ the commit policy
@@ -227,7 +228,7 @@ class XtreamImportEngine(
                                         imported += written
                                         pending += written
                                         commitIfDue()
-                                        onProgress(ImportProgress.Importing(imported, groups, event.kind))
+                                        onProgress(ImportProgress.Importing(imported, groups, event.kind, done))
                                     }
                                 }
                                 // Written as each category arrives, and *committed* on the
@@ -246,7 +247,7 @@ class XtreamImportEngine(
                                 imported += written
                                 pending += written
                                 commitIfDue()
-                                onProgress(ImportProgress.Importing(imported, groups, event.kind))
+                                onProgress(ImportProgress.Importing(imported, groups, event.kind, done))
                             }
 
                             // ----------------------------------------- partial failure
@@ -256,7 +257,29 @@ class XtreamImportEngine(
                             // `writer.abort` ended it, so a single bad request after 400
                             // good ones left the user with an activation screen. The
                             // failure is counted and named; the other categories carry on.
-                            is CategoryEvent.Failed -> failures.add(event.category to event.cause)
+                            is CategoryEvent.Failed -> {
+                                // A failure ends a category as surely as a success does,
+                                // so the bar counts it. One that stalled at 833 of 834
+                                // because a single request was refused would be a bar
+                                // that lies about being stuck.
+                                done++
+                                failures.add(event.category to event.cause)
+                                onProgress(
+                                    ImportProgress.Importing(imported, groups, event.kind, done),
+                                )
+                            }
+
+                            // Reported, not merely counted. Counting it silently would
+                            // leave the last category's completion unannounced -- the bar
+                            // sitting at 833 of 834 until the whole import ended -- and
+                            // an empty category would never move it at all, because a
+                            // category with no rows sends no `Items` to report against.
+                            is CategoryEvent.Finished -> {
+                                done++
+                                onProgress(
+                                    ImportProgress.Importing(imported, groups, event.kind, done),
+                                )
+                            }
                         }
                         if (isCancelled()) {
                             cancelled = true
@@ -503,11 +526,12 @@ class XtreamImportEngine(
                 }
             }
             if (batch.isNotEmpty()) events.send(CategoryEvent.Items(kind, batch))
+            events.send(CategoryEvent.Finished(kind))
         } catch (t: Throwable) {
             // Rethrown only for cancellation, which is not a failure of the category:
             // swallowing it would leave a worker running after the import was stopped.
             if (t is kotlinx.coroutines.CancellationException) throw t
-            events.send(CategoryEvent.Failed(category.name, t))
+            events.send(CategoryEvent.Failed(kind, category.name, t))
         }
     }
 
@@ -527,7 +551,24 @@ class XtreamImportEngine(
      */
     private sealed interface CategoryEvent {
         data class Items(val kind: MediaKind, val items: List<CatalogItem>) : CategoryEvent
-        data class Failed(val category: String, val cause: Throwable) : CategoryEvent
+        data class Failed(
+            val kind: MediaKind,
+            val category: String,
+            val cause: Throwable,
+        ) : CategoryEvent
+
+        /**
+         * One category is done, having sent everything it had.
+         *
+         * Separate from [Items] because a category sends as many `Items` as it has
+         * batches and exactly one of these, which is what makes it countable. The
+         * loading screen's `120 / 834` is this counter over `groups`, and without it
+         * the only honest bar would be an indeterminate one.
+         *
+         * It carries the kind for the same reason [Failed] now does: finishing a
+         * category is a progress event, and `ImportProgress.Importing` names a kind.
+         */
+        data class Finished(val kind: MediaKind) : CategoryEvent
     }
 
     /**

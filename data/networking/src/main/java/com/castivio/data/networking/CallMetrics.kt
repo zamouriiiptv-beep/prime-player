@@ -84,6 +84,16 @@ object CallMetrics {
     fun callTimeMs(): Long = (tallies.values.sumOf { it.totalNanos.get() } / 1_000_000)
 
     /**
+     * How much came back, across every call in the window.
+     *
+     * Counted per call from `responseBodyEnd` since this object existed, and summed here
+     * because the loading screen says it out loud: a viewer watching a progress bar for
+     * four minutes is owed the size of what is arriving. Bytes rather than a formatted
+     * string — how to spell `7.2 MB` is a presentation decision, and this is a counter.
+     */
+    fun totalBytes(): Long = tallies.values.sumOf { it.bytes.get() }
+
+    /**
      * How many of those calls OkHttp answered without going to the network.
      *
      * Counted from the events OkHttp raises per call, so "this was served from the
