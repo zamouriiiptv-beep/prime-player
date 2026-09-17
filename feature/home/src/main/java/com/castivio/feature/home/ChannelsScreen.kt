@@ -58,6 +58,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -85,6 +87,7 @@ import com.castivio.domain.MediaItem
 import com.castivio.domain.NowNext
 import com.castivio.domain.Programme
 import com.castivio.domain.SectionLoad
+import com.castivio.domain.isProviderHeading
 import com.castivio.domain.entitlement.EntitlementState
 import com.castivio.domain.SortOrder
 import java.text.DateFormat
@@ -240,7 +243,10 @@ private fun BoardHeader(home: HomeState, state: BrowseState, m: ChannelsMetrics,
             Row(
                 Modifier.width(m.rail + m.railGap),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(m.osdGap),
+                // Centred in the cell rather than pushed against its leading edge. The
+                // cell is exactly the rail's width, so the mark now sits over the middle
+                // of the bouquet column instead of over its corner.
+                horizontalArrangement = Arrangement.spacedBy(m.osdGap, Alignment.CenterHorizontally),
             ) {
                 Image(
                     painter = painterResource(DesignR.drawable.castivio_logo),
@@ -250,7 +256,7 @@ private fun BoardHeader(home: HomeState, state: BrowseState, m: ChannelsMetrics,
                 )
                 Text(
                     text = stringResource(R.string.gate_wordmark),
-                    style = castivioTitleStyle(m.frame.fsLabel),
+                    style = castivioTitleStyle(m.frame.fsLabel * WORDMARK_OF_LABEL),
                     color = colors.onBackgroundStrong,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -278,11 +284,24 @@ private fun BoardHeader(home: HomeState, state: BrowseState, m: ChannelsMetrics,
                 )
             }
 
-            // A weighted gap on each side of the field, which is what centres it: the
-            // field keeps the middle of the band whatever the mark and the dates take.
-            Spacer(Modifier.weight(1f))
-            SearchField(m = m, onClick = onSearch)
-            Spacer(Modifier.weight(1f))
+            // **The field is the only child of this band that may shrink,** and that is
+            // the fix for the defect the device showed: the dates were being squeezed
+            // until they dropped their value.
+            //
+            // A `Row` measures its unweighted children first, each with what the ones
+            // before it left, and only then hands the remainder to the weighted ones. So
+            // making this the sole weighted child inverts the old order of sacrifice:
+            // the mark, the breadcrumb, the clock and the dates all take their declared
+            // widths first, and whatever is left is the field's. It shrinks, and it is
+            // the right thing to shrink — a way in to the search screen shows its icon
+            // and less of its hint and still does its whole job, where a narrower date
+            // column simply stops saying the date.
+            //
+            // Centring it in that remainder is also what keeps it in the middle of the
+            // band, which two weighted spacers used to do.
+            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                SearchField(m = m, onClick = onSearch)
+            }
 
             // **The clock belongs beside the expiry dates, not beside the mark.**
             //
@@ -309,7 +328,13 @@ private fun BoardHeader(home: HomeState, state: BrowseState, m: ChannelsMetrics,
                 // for the defect this ends: in Arabic the pair was measured with what
                 // the rest of the band had left, came up short, and dropped the date.
                 Modifier.width(m.dates),
-                horizontalAlignment = Alignment.Start,
+                // **Against the band's trailing edge.** `Start` left the two lines at
+                // the leading edge of their reserved column with the reserve showing as
+                // a gap after them, so the cluster read as floating in the middle of
+                // nowhere rather than as the corner of the screen it belongs to. `End`
+                // also lines the two dates up under each other, which is the comparison
+                // a viewer is making when they look here at all.
+                horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(m.badgePadV / 2),
             ) {
                 ExpiryLine(
@@ -351,7 +376,7 @@ private fun ExpiryLine(text: String, color: Color, m: ChannelsMetrics) {
     Text(
         text = text,
         style = castivioBodyStyle(m.frame.fsBody * EXPIRY_OF_BODY)
-            .copy(textDirection = TextDirection.Ltr, textAlign = TextAlign.Start),
+            .copy(textDirection = TextDirection.Ltr, textAlign = TextAlign.End),
         color = color,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
@@ -869,7 +894,12 @@ private fun RailEntry(
     // Selection is the surface and focus is the ring around it — the design system's
     // rule, and on this board both are true of a row at once while a viewer arrows past
     // the category that is currently applied.
-    val ink = if (selected) colors.onSecondary else colors.onBackgroundVariant
+    //
+    // `onBackground`, the channel list's own ink, and not the variant this used to take.
+    // The two columns sit side by side and carry the same kind of thing — a name the
+    // provider wrote — so a bouquet reading a shade dimmer than a channel made the rail
+    // look like furniture around the list rather than half of the same board.
+    val ink = if (selected) colors.onSecondary else colors.onBackground
 
     Row(
         Modifier
@@ -1090,12 +1120,30 @@ private fun ChannelRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(m.rowPadH),
     ) {
-        val ink = if (focused) colors.onSecondary else colors.onBackground
+        // **A provider's own heading is not a channel.**
+        //
+        // `##### UHD 3840P #####` is a rule drawn in text, written as a row because an
+        // M3U playlist has only one row type -- see `isProviderHeading`. Numbering it
+        // says it is the category's first channel, which it is not, so it gets no plate
+        // and no logo; the plate's width is held open so that every name on the column
+        // still starts at the same place. Muted and spaced, because a heading that looks
+        // exactly like a channel is a channel that does not play.
+        val heading = remember(channel.title) { isProviderHeading(channel.title) }
+
+        val ink = when {
+            focused -> colors.onSecondary
+            heading -> colors.onBackgroundMuted
+            else -> colors.onBackground
+        }
 
         // The number, on a plate, and it opens the row. It is what a remote dials, so
         // it is the first thing on the line a viewer reads down -- a column of numbers
         // is scanned, and a column of numbers behind two other things is not a column.
-        NumberPlate(label = numberPlate(number), focused = focused, m = m)
+        if (heading) {
+            Spacer(Modifier.width(m.numberWidth))
+        } else {
+            NumberPlate(label = numberPlate(number), focused = focused, m = m)
+        }
 
         // **The channel's own logo, from the provider.**
         //
@@ -1104,13 +1152,17 @@ private fun ChannelRow(
         // logo, and one whose logo is still arriving, both draw an empty box of exactly
         // this size -- see `ProviderArtwork`. Reserved rather than collapsed, so that a
         // list settling does not move the names beside it.
-        ProviderArtwork(
-            url = channel.artworkUrl,
-            // Null: the name is drawn immediately after it, and a screen reader that
-            // announced the logo as well would say the channel twice.
-            description = null,
-            modifier = Modifier.width(m.logoWidth).height(m.rowMin * LOGO_OF_ROW),
-        )
+        if (heading) {
+            Spacer(Modifier.width(m.logoWidth))
+        } else {
+            ProviderArtwork(
+                url = channel.artworkUrl,
+                // Null: the name is drawn immediately after it, and a screen reader that
+                // announced the logo as well would say the channel twice.
+                description = null,
+                modifier = Modifier.width(m.logoWidth).height(m.rowMin * LOGO_OF_ROW),
+            )
+        }
 
         // **The name takes the row.**
         //
@@ -1128,8 +1180,9 @@ private fun ChannelRow(
         Text(
             // Without the tag, because the tag is drawn beside it. `|FR| TF1 HD`
             // reads as `|FR| TF1  ᴴᴰ` rather than repeating itself.
-            text = titleWithoutQuality(channel.title),
-            style = castivioChipStyle(m.frame.fsLabel),
+            text = if (heading) channel.title else titleWithoutQuality(channel.title),
+            style = castivioChipStyle(m.frame.fsLabel)
+                .copy(letterSpacing = if (heading) HEADING_TRACKING else TextUnit.Unspecified),
             color = ink,
             maxLines = 1,
             // **A name too long for the row scrolls, but only the one under the remote.**
@@ -1152,8 +1205,9 @@ private fun ChannelRow(
 
         // The reference's quality tag, read out of the name the provider wrote.
         // Absent when the provider wrote none -- never inferred, and never a
-        // default. See `ChannelTitle.kt`.
-        qualityOf(channel.title)?.let { quality ->
+        // default. See `ChannelTitle.kt`. A heading is decoration rather than a
+        // stream, so nothing is read out of it.
+        qualityOf(channel.title).takeIf { !heading }?.let { quality ->
             Text(
                 text = quality.label,
                 style = castivioBodyStyle(m.frame.fsBody * QUALITY_OF_BODY),
@@ -1657,8 +1711,13 @@ private const val LOGO_OF_ROW = 28f / 68f
  */
 private const val QUALITY_OF_BODY = 0.84f
 
-/** The mark's height inside the band. Nearly the whole of it: it is the mark. */
-private const val MARK_OF_HEADER = 0.92f
+/**
+ * The mark's height inside the band. Nearly the whole of it: it is the mark.
+ *
+ * Raised with the wordmark beside it — see [WORDMARK_OF_LABEL]. The pair has the rail's
+ * full width to itself and was the smallest confident thing on the screen.
+ */
+private const val MARK_OF_HEADER = 0.98f
 
 /** The header's and the rail's second line, against the frame's body step. */
 private const val LEGEND_OF_BODY = 0.88f
@@ -1674,6 +1733,25 @@ private const val EXPIRY_OF_BODY = 0.74f
 
 /** The hairline between the clock and the dates, as a share of the band. */
 private const val RULE_OF_HEADER = 0.56f
+
+/**
+ * The wordmark, against the frame's label step.
+ *
+ * The mark and the name sit over the category rail with the whole of its width to
+ * themselves and were drawn at the step a chip uses, which made the product's own name
+ * the smallest confident thing on the screen. This is the one place on the board that
+ * can afford to be larger than the type scale's own answer.
+ */
+private const val WORDMARK_OF_LABEL = 1.18f
+
+/**
+ * A heading's letter spacing.
+ *
+ * The one typographic difference between a provider's heading and a channel, beyond the
+ * colour: tracking is what a reader's eye reads as *a label* rather than *a name*, and it
+ * costs no height on a row whose height is already spent.
+ */
+private val HEADING_TRACKING = 0.06.em
 
 /** The field's height inside the band. */
 private const val FIELD_OF_HEADER = 0.62f

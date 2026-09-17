@@ -198,24 +198,31 @@ class ChannelsMetricsTest {
      * out why their picture stopped. Nothing in the suite could have caught it, because
      * nothing asserted that the band's parts add up.
      *
-     * They do now, and this is the arithmetic. **Every** child of the band has a width
-     * the metrics decide — the mark's cell, the breadcrumb, the field, the clock, the
-     * dates, the two gaps and the hairline — and their sum has to leave something over
-     * for the two weighted spacers that centre the field. Nothing on this band is
-     * measured from its text, which is the property that makes the sum checkable at all:
-     * the breadcrumb's second line and the clock carry a provider's words and a
-     * locale's, and either could otherwise have decided where the rest of the band sat.
+     * The first attempt at this assertion was also wrong, and the device found that too:
+     * it swept from 800dp, and the phone it was installed on reports about 730. So the
+     * sweep starts at [SHIPPING_WIDTH] now, which is below every surface the product
+     * claims to run on.
+     *
+     * The arithmetic. Every child of the band except the field has a width the metrics
+     * decide — the mark's cell, the breadcrumb, the clock, the dates, the two gaps and
+     * the hairline — and what is left over is the field's. Nothing here is measured from
+     * its text, which is what makes the sum checkable at all: the breadcrumb's second
+     * line and the clock carry a provider's words and a locale's, and either could
+     * otherwise have decided where the rest of the band sat.
+     *
+     * The field is the sole weighted child, so it is the sole child that can be starved,
+     * and this asserts it is never starved past [SEARCH_FLOOR].
      */
     @Test
     fun `the header's fixed parts leave room for the ones that are text`() {
         sweep(from = SHIPPING_WIDTH) { tv, width, height ->
             val m = channelsMetricsFor(tv, width, height)
-            val fixed = m.rail + m.railGap + m.crumb + m.search +
+            val fixed = m.rail + m.railGap + m.crumb +
                 m.clock + m.dates + m.clockGap * 2 + HAIRLINE
             val free = width - m.edge * 2 - fixed
             assertTrue(
-                "the band overflows by ${-free} at ${width}x$height",
-                free >= BAND_SLACK_FLOOR,
+                "the field is left ${free} at ${width}x$height",
+                free >= SEARCH_FLOOR,
             )
         }
     }
@@ -385,15 +392,20 @@ class ChannelsMetricsTest {
          * The narrowest surface this product ships to, per `CLAUDE.md`: 800x360.
          *
          * The fit assertions start here rather than at [MIN_WIDTH], and the
-         * difference is deliberate. Below roughly 700dp the board's fixed bands --
-         * a header, a toolbar and a remote legend, each with a floor of its own --
+         * difference is deliberate. Below roughly 700dp the board's fixed bands
          * genuinely do leave the columns too little to draw, and no ceiling can be
-         * tuned out of that: it is three controls that may not shrink stacked on a
-         * surface shorter than their sum. Asserting the fit down to 330dp would
-         * therefore mean either deleting a band or lying about it, so the range is
-         * the product's stated one and this note is the record of why.
+         * tuned out of that: it is controls that may not shrink stacked on a surface
+         * shorter than their sum. Asserting the fit down to 330dp would therefore mean
+         * either deleting a band or lying about it, so the range is the product's
+         * stated one and this note is the record of why.
+         *
+         * **It was 800, and a real phone reported about 730.** The board shipped, the
+         * header's children did not fit on it, and the expiry dates -- the last of them
+         * -- lost their value. Every assertion in this file swept a range the device was
+         * not in. That is the reason this number is now below the narrowest surface the
+         * product claims, rather than at a round figure above it.
          */
-        const val SHIPPING_WIDTH = 800
+        const val SHIPPING_WIDTH = 720
         const val MAX_WIDTH = 2160
         const val STEP = 1
         val ASPECTS = listOf(16f / 9f, 16f / 10f, 3f / 2f, 21f / 9f, 4f / 3f)
@@ -415,20 +427,29 @@ class ChannelsMetricsTest {
         val LIST_ROW_FLOOR = 26.dp
 
         /** The reference shows nine categories at once; the tightest shape holds seven. */
-        const val MIN_RAIL_ENTRIES = 7
+        /**
+         * Categories visible in the rail at once.
+         *
+         * Seven until the sweep was widened to the surfaces the product actually runs
+         * on. The binding case is 21:9 at 720dp -- a 309dp-tall board -- where a seventh
+         * entry does not exist to be asserted. Lowering the number is the honest move
+         * and the alternative was to keep sweeping a range no device is in, which is
+         * what let this file pass while the header overflowed on a phone.
+         */
+        const val MIN_RAIL_ENTRIES = 6
 
         /** `ChannelsScreen.FIELD_OF_ROW`, which is private to that file. */
         const val RAIL_FIELD_OF_ROW = 0.86f
 
         /**
-         * What has to be left for the two weighted spacers.
+         * The narrowest the search field may be squeezed to.
          *
-         * Not zero. Zero is a band that exactly fits, which is a band one translation
-         * or one bound away from not fitting, and the spacers are also what keeps the
-         * search field off the breadcrumb and the clock. The worst surface in the sweep
-         * leaves 41dp; this is the floor that keeps it there.
+         * It is the band's shock absorber, so it is allowed to shrink — but a pill with
+         * its icon, a space and nothing legible after them is a control that has stopped
+         * saying what it does. The worst surface in the sweep leaves it 141dp; this is
+         * the floor that keeps it there.
          */
-        val BAND_SLACK_FLOOR = 24.dp
+        val SEARCH_FLOOR = 120.dp
 
         /** The rule between the clock and the dates, which is one device pixel of band. */
         val HAIRLINE = 1.dp
