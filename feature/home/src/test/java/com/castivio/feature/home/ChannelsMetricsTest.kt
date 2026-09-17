@@ -187,7 +187,7 @@ class ChannelsMetricsTest {
             val m = channelsMetricsFor(tv, width, height)
             listOf(
                 "edge" to m.edge, "boardTop" to m.boardTop, "header" to m.header,
-                "headerGap" to m.headerGap, "remote" to m.remote, "remoteGap" to m.remoteGap,
+                "headerGap" to m.headerGap,
                 "panelPad" to m.panelPad, "panelRadius" to m.panelRadius,
                 "rail" to m.rail, "railGap" to m.railGap,
                 "player" to m.player, "playerGap" to m.playerGap, "rowPadH" to m.rowPadH,
@@ -286,14 +286,14 @@ class ChannelsMetricsTest {
     /**
      * Everything on the board whose height is fixed before the columns take the rest.
      *
-     * The toolbar band is absent from this sum because it is absent from the board. It
-     * was a row of its own holding a search field, a sort control and a total, above
-     * three columns that between them already had somewhere for all three — and it cost
-     * a tenth of the height to say so twice.
+     * Two bands are absent from this sum because they are absent from the board. The
+     * toolbar was a row of its own holding a search field, a sort control and a total,
+     * above three columns that between them already had somewhere for all three. The
+     * remote legend was a strip of colour keys along the foot. Both were removed, and
+     * the height they were spending is what the list gained.
      */
     private fun fixedHeight(m: ChannelsMetrics): Dp =
-        m.boardTop + m.boardBottom + m.header + m.headerGap +
-            m.remoteGap + m.remote + m.panelPad * 2
+        m.boardTop + m.boardBottom + m.header + m.headerGap + m.panelPad * 2
 
     /** What is left for the columns once [fixedHeight] is paid. */
     private fun columnHeight(m: ChannelsMetrics, height: Dp): Dp = height - fixedHeight(m)
