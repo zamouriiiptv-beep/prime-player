@@ -21,6 +21,9 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.castivio.core.design.components.CastivioIntro
 import com.castivio.core.design.theme.CastivioThemeSwitch
 import com.castivio.core.design.theme.LocalThemeSwitch
@@ -70,6 +73,37 @@ class MainActivity : ComponentActivity() {
     private fun applyBarStyle() {
         val style = SystemBarStyle.dark(Color.TRANSPARENT)
         enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+
+        // **And then hide them.**
+        //
+        // Edge to edge decides what is *behind* the bars; this decides whether they
+        // are drawn at all, and for Castivio they are not. A full-screen video player
+        // showing the phone's clock, its battery and its signal strength across the top
+        // of a television interface is the one thing that makes it look like a phone
+        // app running on a television, and the strip costs real height on a 16:9
+        // surface that the catalogue needs.
+        //
+        // `BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE` rather than hiding them for good: a
+        // swipe from the edge brings them back for a few seconds and they leave again.
+        // The system's own way out stays available -- a viewer who needs the clock or
+        // the back gesture is one swipe from it -- which is what separates this from
+        // trapping somebody in a window with no exit.
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            hide(WindowInsetsCompat.Type.systemBars())
+        }
+    }
+
+    /**
+     * The bars come back when another window takes focus, so they are hidden again.
+     *
+     * A permission dialog, the notification shade, a call screen: each of them shows
+     * the system UI, and on return the decor is left as that window had it. Without
+     * this the strip reappears after the first interruption and stays.
+     */
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) applyBarStyle()
     }
 
     /**

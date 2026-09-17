@@ -586,6 +586,42 @@ fun QrPlate(
 fun ltrIsolate(value: String): String = "⁦$value⁩"
 
 /**
+ * A formatted token — a date, a clock time — made safe to draw in any language.
+ *
+ * ## Why [ltrIsolate] alone is not enough
+ *
+ * `16/09/2026` was still rendering as `162026/09/` in Arabic *after* it was isolated,
+ * and the reason is inside the string rather than around it. Android's Arabic date
+ * format does not return `17/9/2026`; it returns
+ *
+ * ```
+ * ١٧  U+200F  /  ٩  U+200F  /  ٢٠٢٦
+ * ```
+ *
+ * with a **RIGHT-TO-LEFT MARK between every field**. An isolate says "do not let the
+ * paragraph reorder what is inside me". It does not say "ignore the strong directional
+ * characters that are inside me" — and it must not, or it would break real bidirectional
+ * text. So the marks went on doing exactly what they are for: forcing the separators
+ * right-to-left, and splitting `17`, `9` and `2026` into three runs laid out in the
+ * paragraph's own order.
+ *
+ * The marks are removed first, then the whole token is isolated. What is left is the
+ * locale's own field order — Arabic keeps day/month/year, German keeps its dots — drawn
+ * as one left-to-right object. Nothing is reformatted and no locale's convention is
+ * overridden; only the formatter's directional hinting is dropped, which was hinting for
+ * a layout this token is no longer part of.
+ */
+fun ltrToken(value: String): String = ltrIsolate(value.filterNot { it in DIRECTIONAL_MARKS })
+
+/**
+ * `LEFT-TO-RIGHT MARK`, `RIGHT-TO-LEFT MARK`, `ARABIC LETTER MARK`.
+ *
+ * The three zero-width characters a formatter inserts to steer a token's neighbours.
+ * Inside an isolate they have nothing left to steer and only do damage.
+ */
+private val DIRECTIONAL_MARKS = charArrayOf('‎', '‏', '؜')
+
+/**
  * The card's well, its rim and its glyph.
  *
  * Brighter than [capsuleWell], which the pill uses: the pill's control sits in a

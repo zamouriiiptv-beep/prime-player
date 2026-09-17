@@ -28,7 +28,7 @@ import com.castivio.core.design.theme.castivioMetrics
  * | category rail | 494 | 21.1% |
  * | channel list | 702 | 30.0% (the remainder) |
  * | player well | 986 | 42.1% |
- * | header band | 88 | 8.1% of the height |
+ * | header band | 88 | 8.1% of the height (this board spends 76 — see HEADER) |
  *
  * Every value then goes through [boundedFraction] with a floor and a ceiling, which is
  * the rule the whole sizing system is built on. There is no device table here and
@@ -167,7 +167,7 @@ internal fun channelsMetricsFor(tv: Boolean, width: Dp, height: Dp): ChannelsMet
         boardTop = height.boundedFraction(BOARD_PAD, 4.dp, 14.dp),
         boardBottom = height.boundedFraction(BOARD_PAD, 4.dp, 14.dp),
 
-        header = height.boundedFraction(HEADER, 38.dp, 68.dp),
+        header = height.boundedFraction(HEADER, 34.dp, 60.dp),
         headerGap = height.boundedFraction(HEADER_GAP, 4.dp, 12.dp),
         remote = height.boundedFraction(REMOTE, 26.dp, 42.dp),
         remoteGap = height.boundedFraction(REMOTE_GAP, 4.dp, 12.dp),
@@ -252,7 +252,15 @@ internal const val CHANNELS_TARGET_ROWS = 12
 private const val EDGE = 22f / 2340f
 private const val BOARD_PAD = 10f / 1080f
 
-private const val HEADER = 88f / 1080f
+/**
+ * The header band.
+ *
+ * Thinner than the reference's 88, and deliberately: the reference draws a clock, a
+ * playlist name and a status chip in that band and this one draws neither the clock nor
+ * the chip. Four things need less height than six, and the height they give back goes to
+ * the category rail and the channel list, which is what the band was taking it from.
+ */
+private const val HEADER = 76f / 1080f
 private const val HEADER_GAP = 8f / 1080f
 private const val REMOTE = 40f / 1080f
 private const val REMOTE_GAP = 8f / 1080f

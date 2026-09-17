@@ -138,7 +138,10 @@
     <string name="channels_fetch_failed">تعذّر تحميل البث المباشر</string>
     <string name="channels_notice_failed">لم يردّ مزوّدك. تُعرض القنوات الموجودة على هذا الجهاز.</string>
 
-    <string name="channels_playlist">الاشتراك الحالي</string>
+    <string name="channels_server_expires">ينتهي الاشتراك</string>
+    <string name="channels_app_expires">تنتهي الرخصة</string>
+    <string name="channels_licence_expired">منتهية</string>
+    <string name="channels_licence_lifetime">مدى الحياة</string>
     <string name="channels_action_fullscreen">ملء الشاشة</string>
     <string name="channels_action_sort">الترتيب</string>
     <string name="channels_action_refresh">تحديث</string>

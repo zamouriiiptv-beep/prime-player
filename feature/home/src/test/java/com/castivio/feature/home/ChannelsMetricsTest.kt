@@ -234,7 +234,7 @@ class ChannelsMetricsTest {
         assertNear("edge", 1280f * 22f / 2340f, m.edge)
         assertNear("logoWidth", 1280f * 60f / 2340f, m.logoWidth)
 
-        assertNear("header", 720f * 88f / 1080f, m.header)
+        assertNear("header", 720f * 76f / 1080f, m.header)
         assertNear("remote", 720f * 40f / 1080f, m.remote)
         assertNear("headerGap", 720f * 8f / 1080f, m.headerGap)
         assertNear("railMin", 720f * 100f / 1080f, m.railMin)

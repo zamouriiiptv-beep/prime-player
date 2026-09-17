@@ -79,6 +79,7 @@ import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioTitleStyle
 import com.castivio.core.design.components.formatCount
 import com.castivio.core.design.components.ltrIsolate
+import com.castivio.core.design.components.ltrToken
 import com.castivio.core.design.theme.CASTIVIO_ARTWORK_ASPECT
 import com.castivio.core.design.theme.CastivioMetrics
 import com.castivio.core.design.theme.CastivioTheme
@@ -482,10 +483,10 @@ private fun Clock(frame: CastivioMetrics, modifier: Modifier = Modifier) {
     // unisolated in an Arabic composition, `16/09/2026` is reordered into
     // `162026/09/` by the bidirectional algorithm. See [ltrIsolate].
     val time = remember(now, locale) {
-        ltrIsolate(DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(now)))
+        ltrToken(DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(now)))
     }
     val day = remember(now, locale) {
-        ltrIsolate(DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(now)))
+        ltrToken(DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(now)))
     }
     Column(modifier, horizontalAlignment = Alignment.End) {
         Text(
@@ -943,10 +944,10 @@ private fun Disclaimer(frame: CastivioMetrics, modifier: Modifier = Modifier) {
  * real work and composition runs whenever anything on this screen moves.
  */
 @Composable
-private fun rememberDate(atMs: Long): String {
+internal fun rememberDate(atMs: Long): String {
     val locale = LocalConfiguration.current
     return remember(atMs, locale) {
-        ltrIsolate(DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(atMs)))
+        ltrToken(DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(atMs)))
     }
 }
 

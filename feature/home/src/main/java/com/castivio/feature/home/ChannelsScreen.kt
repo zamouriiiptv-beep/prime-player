@@ -28,7 +28,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CalendarMonth
-import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ChildCare
 import androidx.compose.material.icons.rounded.Fullscreen
 import androidx.compose.material.icons.rounded.FormatListBulleted
@@ -45,6 +44,7 @@ import androidx.compose.material.icons.rounded.Public
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.Sort
 import androidx.compose.material.icons.rounded.SportsSoccer
 import androidx.compose.material.icons.rounded.Star
@@ -71,7 +71,6 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
@@ -93,7 +92,7 @@ import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioTitleStyle
 import com.castivio.core.design.components.formatCount
-import com.castivio.core.design.components.ltrIsolate
+import com.castivio.core.design.components.ltrToken
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Sizing
@@ -105,6 +104,7 @@ import com.castivio.domain.MediaItem
 import com.castivio.domain.NowNext
 import com.castivio.domain.Programme
 import com.castivio.domain.SectionLoad
+import com.castivio.domain.entitlement.EntitlementState
 import com.castivio.domain.SortOrder
 import java.text.DateFormat
 import java.util.Date
@@ -231,22 +231,34 @@ fun ChannelsScreen(
 /* ---------------------------------------------------------------- the header */
 
 /**
- * One band across the top, and everything the reference puts in it.
+ * One thin band across the top, holding four things and nothing else.
  *
- * ## Why this is not `DashboardHeader`
+ * ## What is on it, and what came off
  *
- * Because that one is Home's, and Home is a screen whose whole job is the subscription:
- * two stacked cards, a brand lockup and a clock, 76dp of height and worth every pixel
- * *there*. On this board it was the first of two full-width bands above a catalogue —
- * with the toolbar under it, the two together took **295 of 1080 pixels**, twenty-seven
- * per cent of the screen, before a single channel was drawn. The reference spends 88.
+ * The mark and its version, which section and which category, when the **provider's**
+ * subscription runs out, and when **Castivio's own licence** does. That is the list.
  *
- * So the facts are the same facts, laid along one line instead of stacked: the clock,
- * the mark and its version, which section and which category, the provider and when it
- * expires, and whether it is active. Nothing was dropped to make it fit; it was the
- * stacking that cost the height, not the content.
+ * Off it: a clock, the provider's hostname, and an Active/Inactive chip. The clock went
+ * because the app hides the system bars and then has no business drawing a second one —
+ * this is a screen for watching television, and the time is not one of the four facts a
+ * viewer opened it for. The hostname went because it is not a fact anybody reads; it is
+ * a credential, it is long enough to push the dates off the band, and the licence and
+ * subscription dates already say everything about the subscription's health that a chip
+ * reading "Active" said less precisely.
  *
- * Left to right in every language, like the columns under it and for the same reason —
+ * ## The two dates are two different things
+ *
+ * They are easy to conflate and are not the same:
+ *
+ *  - **Subscription** is the provider's. It is what the provider's own panel shows, it
+ *    is `Recorded.expiresAtMs`, and when it lapses the streams stop.
+ *  - **Licence** is Castivio's. It is `EntitlementState`, it is what the trial and the
+ *    annual plan are counted against, and when it lapses the app stops.
+ *
+ * A viewer whose picture has gone needs to know which of the two ran out, and a header
+ * showing one date cannot tell them.
+ *
+ * Left to right in every language, like the columns under it and for the same reason:
  * this band is a row of instruments, and each value inside it still reads in its own
  * direction.
  */
@@ -262,33 +274,26 @@ private fun BoardHeader(home: HomeState, state: BrowseState, m: ChannelsMetrics)
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(m.railGap),
         ) {
-            BoardClock(m)
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(m.osdGap),
-            ) {
-                Image(
-                    painter = painterResource(DesignR.drawable.castivio_logo),
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.height(m.header * MARK_OF_HEADER),
+            Image(
+                painter = painterResource(DesignR.drawable.castivio_logo),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.height(m.header * MARK_OF_HEADER),
+            )
+            Column {
+                Text(
+                    text = stringResource(R.string.gate_wordmark),
+                    style = castivioTitleStyle(m.frame.fsLabel),
+                    color = colors.onBackgroundStrong,
+                    maxLines = 1,
                 )
-                Column {
+                if (version != null) {
                     Text(
-                        text = stringResource(R.string.gate_wordmark),
-                        style = castivioTitleStyle(m.frame.fsLabel),
-                        color = colors.onBackgroundStrong,
+                        text = stringResource(R.string.gate_version, ltrToken(version)),
+                        style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
+                        color = colors.onBackgroundMuted,
                         maxLines = 1,
                     )
-                    if (version != null) {
-                        Text(
-                            text = stringResource(R.string.gate_version, ltrIsolate(version)),
-                            style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
-                            color = colors.onBackgroundMuted,
-                            maxLines = 1,
-                        )
-                    }
                 }
             }
 
@@ -297,7 +302,7 @@ private fun BoardHeader(home: HomeState, state: BrowseState, m: ChannelsMetrics)
             // thing in that band the header could not already say.
             //
             // Weighted, so it is this that gives way when the band runs out of width
-            // rather than the three facts at the end -- a category name ellipsised is
+            // rather than the two dates at the end -- a category name ellipsised is
             // still a category name, and it is the one string here that can be long.
             Column(Modifier.weight(1f)) {
                 Text(
@@ -316,38 +321,21 @@ private fun BoardHeader(home: HomeState, state: BrowseState, m: ChannelsMetrics)
                 )
             }
 
-            state.providerLabel?.let { provider ->
-                HeaderCard(
-                    icon = Icons.Rounded.FormatListBulleted,
-                    caption = stringResource(R.string.channels_playlist),
-                    value = provider,
-                    tint = colors.secondary,
-                    m = m,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-            }
-
             HeaderCard(
                 icon = Icons.Rounded.CalendarMonth,
-                caption = stringResource(R.string.home_status_expires),
-                // Home's own, not a second opinion about the same date. It is already
-                // isolated by `rememberDate`, which is where the `162026/09/` this
-                // header used to draw was actually coming from.
+                caption = stringResource(R.string.channels_server_expires),
+                // Home's own label, not a second opinion about the same date.
                 value = expiryLabel(home.subscription),
-                tint = colors.hueViolet,
+                tint = colors.secondary,
                 m = m,
                 modifier = Modifier.weight(1f, fill = false),
             )
 
             HeaderCard(
-                icon = Icons.Rounded.CheckCircle,
-                caption = stringResource(R.string.home_status_account),
-                value = subscriptionLabel(home.subscription),
-                tint = when (home.subscription?.usable) {
-                    null -> colors.onBackgroundMuted
-                    true -> colors.success
-                    false -> colors.danger
-                },
+                icon = Icons.Rounded.Shield,
+                caption = stringResource(R.string.channels_app_expires),
+                value = licenceExpiryLabel(home.entitlement),
+                tint = colors.hueViolet,
                 m = m,
                 modifier = Modifier.weight(1f, fill = false),
             )
@@ -355,30 +343,26 @@ private fun BoardHeader(home: HomeState, state: BrowseState, m: ChannelsMetrics)
     }
 }
 
-/** The time, and the day under it — both isolated. See [ltrIsolate]. */
+/**
+ * When Castivio's own licence runs out, from the state the policy decided.
+ *
+ * Every case is answered from a real field. A lifetime purchase never expires and says
+ * so; an expired annual that was restored without its date says that it expired and not
+ * when, because [EntitlementState.AnnualExpired] genuinely may not carry one. Nothing
+ * here invents a date, and nothing prints a zero where a question was never asked.
+ */
 @Composable
-private fun BoardClock(m: ChannelsMetrics) {
-    val colors = CastivioTheme.colors
-    val now = rememberMinute()
-    val locale = LocalConfiguration.current
-    val time = remember(now, locale) {
-        ltrIsolate(DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(now)))
-    }
-    val day = remember(now, locale) {
-        ltrIsolate(DateFormat.getDateInstance(DateFormat.SHORT).format(Date(now)))
-    }
-    Column {
-        Text(time, style = castivioTitleStyle(m.frame.fsLabel), color = colors.onBackgroundStrong, maxLines = 1)
-        Text(
-            day,
-            style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
-            color = colors.onBackgroundMuted,
-            maxLines = 1,
-        )
-    }
+private fun licenceExpiryLabel(state: EntitlementState?): String = when (state) {
+    is EntitlementState.TrialActive -> rememberDate(state.expiresAtMs)
+    is EntitlementState.AnnualActive -> rememberDate(state.expiresAtMs)
+    is EntitlementState.AnnualExpired ->
+        state.expiredAtMs?.let { rememberDate(it) } ?: stringResource(R.string.channels_licence_expired)
+    EntitlementState.TrialExpired -> stringResource(R.string.channels_licence_expired)
+    EntitlementState.Lifetime -> stringResource(R.string.channels_licence_lifetime)
+    else -> stringResource(R.string.home_expires_none)
 }
 
-/** One of the header's two facts: a caption over a value, behind glass. */
+/** One of the header's two dates: a caption over a value, behind glass. */
 @Composable
 private fun HeaderCard(
     icon: ImageVector,
@@ -1711,14 +1695,14 @@ private fun rememberFocusFlag(): Pair<Boolean, Modifier> {
  * `0001`, from the provider's own numbering, or the row's id where it numbered nothing.
  *
  * Plain digits, because that is what the reference draws: its badges read 1, 2, 3 down
- * the visible order, not a zero-padded field. [ltrIsolate] so the figure keeps its shape
+ * the visible order, not a zero-padded field. [ltrToken] so the figure keeps its shape
  * in an Arabic composition, like every other number on this board.
  *
  * [NO_NUMBER] survives for the one case that is still honest: a plate asked to draw a
  * position nothing has given it, which is the display before any row has been focused.
  */
 private fun numberPlate(number: Int?): String =
-    number?.let { ltrIsolate(it.toString()) } ?: NO_NUMBER
+    number?.let { ltrToken(it.toString()) } ?: NO_NUMBER
 
 /**
  * Which icon a category gets.

@@ -211,7 +211,14 @@
     <!-- The remote legend along the foot of the board. These name what the *remote\'s*
          keys do; only Back is pressable, because a thumb has no key for it. -->
     <!-- The action strip at the leading edge. -->
-    <string name="channels_playlist">Current playlist</string>
+    <!-- The header's two dates. They are two different things and the captions have
+         to keep them apart: one is the provider's subscription, the other is
+         Castivio's own licence, and a viewer whose picture has gone needs to know
+         which of the two ran out. -->
+    <string name="channels_server_expires">Subscription ends</string>
+    <string name="channels_app_expires">Licence ends</string>
+    <string name="channels_licence_expired">Expired</string>
+    <string name="channels_licence_lifetime">Lifetime</string>
     <string name="channels_action_fullscreen">Full screen</string>
     <string name="channels_action_sort">Sort</string>
     <string name="channels_action_refresh">Refresh</string>
