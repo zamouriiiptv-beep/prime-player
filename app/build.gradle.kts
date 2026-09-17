@@ -192,6 +192,10 @@ dependencies {
 
     implementation(libs.coroutines.android)
 
+    // Only to configure the loader's budgets once, in `CastivioApp`. No screen in
+    // this module draws an image; `:core:design` owns that.
+    implementation(libs.coil.compose)
+
     // The startup gate needs the real activity, the real Hilt graph and real
     // resources. Nothing in this repository has ever composed MainActivity, and
     // a regression that killed the app before its first frame reached a device

@@ -76,6 +76,35 @@ internal data class ChannelsMetrics(
     val headerGap: Dp,
     /** The search field in the middle of the band. */
     val search: Dp,
+    /**
+     * The breadcrumb: which section, and which category under it.
+     *
+     * Bounded, and it has to be. The category line carries a *provider's* words, and
+     * providers ship names like `US| SPECTRUM NETWORK SPORTS AND ENTERTAINMENT`. An
+     * unbounded cell takes its text's intrinsic width, so one such name would have
+     * pushed the field, the clock and the dates along the band until they ran off the
+     * end of it — the band's width decided by whichever category happened to be open.
+     */
+    val crumb: Dp,
+    /** The clock's own cell, so the time never decides where the dates sit either. */
+    val clock: Dp,
+    /**
+     * The two expiry dates, at the band's trailing end.
+     *
+     * **Reserved, not left over,** and that distinction was a real defect. The dates
+     * were the last child of an unweighted row, so they were measured with whatever the
+     * mark, the breadcrumb, the field and the clock had not taken. In English that was
+     * enough; in Arabic the captions are wider, the box came up short, and a right-to-
+     * left line that does not fit loses its *left* end — which is where the date sits.
+     * The screen showed `ينتهي الاشتراك:` and no date at all, in the one place a viewer
+     * looks to find out why their picture stopped.
+     *
+     * So the column is measured first and to a fixed width, and the two weighted gaps
+     * around the search field absorb the difference instead.
+     */
+    val dates: Dp,
+    /** Between the clock and the dates: a gap, a hairline, a gap. */
+    val clockGap: Dp,
 
     /* the panel that holds the three columns */
     val panelPad: Dp,
@@ -159,7 +188,11 @@ internal fun channelsMetricsFor(tv: Boolean, width: Dp, height: Dp): ChannelsMet
 
         header = height.boundedFraction(HEADER, 34.dp, 60.dp),
         headerGap = height.boundedFraction(HEADER_GAP, 4.dp, 12.dp),
-        search = width.boundedFraction(SEARCH, 220.dp, 620.dp),
+        search = width.boundedFraction(SEARCH, 180.dp, 620.dp),
+        crumb = width.boundedFraction(CRUMB, 90.dp, 260.dp),
+        clock = width.boundedFraction(CLOCK, 66.dp, 150.dp),
+        dates = width.boundedFraction(DATES, 210.dp, 400.dp),
+        clockGap = width.boundedFraction(CLOCK_GAP, 10.dp, 30.dp),
 
         panelPad = width.boundedFraction(PANEL_PAD, 4.dp, 12.dp),
         panelRadius = height.boundedFraction(PANEL_RADIUS, 10.dp, 22.dp),
@@ -247,8 +280,40 @@ private const val HEADER_GAP = 8f / 1080f
  * Wide enough to read a placeholder, and bounded so it stays a field in the middle of
  * the band rather than a second panel: the weighted gaps on either side of it are what
  * centre it, and a field with no ceiling would eat them.
+ *
+ * The floor came down from 220 to 180 when the dates were given a reserved column. Both
+ * cannot have what they want on an 800dp surface, and of the two this is the one that
+ * degrades gracefully: it is a *way in* to the search screen rather than an input, so a
+ * narrower one shows its icon and less of its hint and still does its whole job. A
+ * narrower date column, by contrast, drops the date — which is the defect the reserved
+ * width exists to end.
  */
 private const val SEARCH = 520f / 2340f
+
+/**
+ * The expiry pair's own column.
+ *
+ * Solved for the widest of the thirty-seven languages rather than measured off the
+ * reference, which does not draw this pair at all: the longest caption plus a
+ * `dd-MM-yyyy` token has to fit on one line, because the alternative — the line that
+ * does not fit — is the Arabic defect this field exists to end. The floor is what the
+ * English pair needs; the ceiling stops a wide surface from spending width on two short
+ * lines that the channel list would use better.
+ */
+private const val DATES = 360f / 2340f
+
+/**
+ * The breadcrumb's cell, and the clock's.
+ *
+ * Both are text, and the band's rule is that nothing whose width is text gets to decide
+ * where the rest of the band sits. These are what each is allowed; the line inside
+ * ellipsises rather than growing.
+ */
+private const val CRUMB = 240f / 2340f
+private const val CLOCK = 140f / 2340f
+
+/** Clock, gap, hairline, gap, dates. Spent twice, so it is stated once. */
+private const val CLOCK_GAP = 26f / 2340f
 
 private const val PANEL_PAD = 10f / 2340f
 private const val PANEL_RADIUS = 16f / 1080f

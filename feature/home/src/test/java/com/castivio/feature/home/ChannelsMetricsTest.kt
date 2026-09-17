@@ -186,6 +186,40 @@ class ChannelsMetricsTest {
         }
     }
 
+    /**
+     * **The header's fixed children fit on the band, at every width.**
+     *
+     * The regression this exists for reached a device. The two expiry dates were the
+     * last child of an unweighted row and were measured with whatever the mark, the
+     * breadcrumb, the search field and the clock had not taken. In English that was
+     * enough. In Arabic the captions are wider, the box came up short, and a right-to-
+     * left line that does not fit loses its *left* end — so the screen showed
+     * `ينتهي الاشتراك:` with no date after it, in the one place a viewer looks to find
+     * out why their picture stopped. Nothing in the suite could have caught it, because
+     * nothing asserted that the band's parts add up.
+     *
+     * They do now, and this is the arithmetic. **Every** child of the band has a width
+     * the metrics decide — the mark's cell, the breadcrumb, the field, the clock, the
+     * dates, the two gaps and the hairline — and their sum has to leave something over
+     * for the two weighted spacers that centre the field. Nothing on this band is
+     * measured from its text, which is the property that makes the sum checkable at all:
+     * the breadcrumb's second line and the clock carry a provider's words and a
+     * locale's, and either could otherwise have decided where the rest of the band sat.
+     */
+    @Test
+    fun `the header's fixed parts leave room for the ones that are text`() {
+        sweep(from = SHIPPING_WIDTH) { tv, width, height ->
+            val m = channelsMetricsFor(tv, width, height)
+            val fixed = m.rail + m.railGap + m.crumb + m.search +
+                m.clock + m.dates + m.clockGap * 2 + HAIRLINE
+            val free = width - m.edge * 2 - fixed
+            assertTrue(
+                "the band overflows by ${-free} at ${width}x$height",
+                free >= BAND_SLACK_FLOOR,
+            )
+        }
+    }
+
     /** Every dimension is bounded at both ends, everywhere. That is the system's rule. */
     @Test
     fun `every dimension stays inside its bounds`() {
@@ -197,7 +231,8 @@ class ChannelsMetricsTest {
                 "panelPad" to m.panelPad, "panelRadius" to m.panelRadius,
                 "rail" to m.rail, "railGap" to m.railGap,
                 "player" to m.player, "playerGap" to m.playerGap, "rowPadH" to m.rowPadH,
-                "search" to m.search,
+                "search" to m.search, "crumb" to m.crumb, "clock" to m.clock,
+                "dates" to m.dates, "clockGap" to m.clockGap,
                 "numberWidth" to m.numberWidth, "logoWidth" to m.logoWidth,
                 "wellPad" to m.wellPad, "factChip" to m.factChip,
             ).forEach { (name, value) ->
@@ -384,6 +419,19 @@ class ChannelsMetricsTest {
 
         /** `ChannelsScreen.FIELD_OF_ROW`, which is private to that file. */
         const val RAIL_FIELD_OF_ROW = 0.86f
+
+        /**
+         * What has to be left for the two weighted spacers.
+         *
+         * Not zero. Zero is a band that exactly fits, which is a band one translation
+         * or one bound away from not fitting, and the spacers are also what keeps the
+         * search field off the breadcrumb and the clock. The worst surface in the sweep
+         * leaves 41dp; this is the floor that keeps it there.
+         */
+        val BAND_SLACK_FLOOR = 24.dp
+
+        /** The rule between the clock and the dates, which is one device pixel of band. */
+        val HAIRLINE = 1.dp
 
         /** A list this product has to survive on, where the reference's density cannot fit. */
         const val MIN_ROWS_ANYWHERE = 9

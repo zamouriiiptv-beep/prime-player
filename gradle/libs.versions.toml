@@ -20,6 +20,10 @@ datastore = "1.1.1"
 # Room 2.6.x is the last line that supports compileSdk 34; 2.7 requires 35.
 room = "2.6.1"
 paging = "3.3.2"
+# 2.x rather than 3.x: 3 targets Kotlin Multiplatform and raises the toolchain
+# floor, and Castivio has one platform today. 2.7.0 is the last 2.x line and runs
+# on minSdk 21, which is ours.
+coil = "2.7.0"
 zxing = "3.5.3"
 junit = "4.13.2"
 robolectric = "4.13"
@@ -74,6 +78,11 @@ okhttp-mockwebserver = { module = "com.squareup.okhttp3:mockwebserver", version.
 coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
+
+# The image loader. It reaches exactly one file -- `core/design/.../Artwork.kt` --
+# so that swapping it is a change to one component and not to every screen that
+# draws a picture. See that file.
+coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
 
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }

@@ -17,5 +17,9 @@ dependencies {
     api(libs.compose.material.icons.extended)
     api(libs.androidx.core.ktx)
     implementation(libs.coroutines.android)
+    // Kept `implementation`, not `api`: the artwork component is the only thing
+    // that may see it, and a feature module that imports Coil directly will not
+    // compile. That is the seam, enforced by the build rather than by review.
+    implementation(libs.coil.compose)
     testImplementation(libs.junit)
 }

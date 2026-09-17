@@ -2,6 +2,8 @@ package com.castivio.feature.home
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -52,6 +54,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -65,6 +69,7 @@ import com.castivio.core.design.components.DelayedSpinner
 import com.castivio.core.design.components.EmptyState
 import com.castivio.core.design.components.ErrorState
 import com.castivio.core.design.components.LogoTile
+import com.castivio.core.design.components.ProviderArtwork
 import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioTitleStyle
@@ -252,12 +257,16 @@ private fun BoardHeader(home: HomeState, state: BrowseState, m: ChannelsMetrics,
                 )
             }
 
-            Column {
+            // Bounded, because the second line is a *provider's* words — see
+            // `ChannelsMetrics.crumb`. An unbounded cell let one long category name
+            // decide where everything after it on the band sat.
+            Column(Modifier.width(m.crumb)) {
                 Text(
                     text = stringResource(R.string.browse_live),
                     style = castivioChipStyle(m.frame.fsLabel),
                     color = colors.secondary,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = state.selectedGroup?.let { state.categoryNames[it] }
@@ -283,27 +292,70 @@ private fun BoardHeader(home: HomeState, state: BrowseState, m: ChannelsMetrics,
             // a viewer the time now.
             BoardClock(m)
 
-            Spacer(Modifier.width(m.railGap))
+            // The clock was against the dates and read as a third expiry. A gap, a
+            // hairline and a gap say what the spacing alone could not: these are two
+            // different kinds of fact that happen to share a corner.
+            Spacer(Modifier.width(m.clockGap))
+            Box(
+                Modifier
+                    .width(1.dp)
+                    .height(m.header * RULE_OF_HEADER)
+                    .background(colors.glassBorderSoft),
+            )
+            Spacer(Modifier.width(m.clockGap))
 
-            Column(horizontalAlignment = Alignment.Start) {
-                Text(
+            Column(
+                // **A reserved width, not the remainder.** See `ChannelsMetrics.dates`
+                // for the defect this ends: in Arabic the pair was measured with what
+                // the rest of the band had left, came up short, and dropped the date.
+                Modifier.width(m.dates),
+                horizontalAlignment = Alignment.Start,
+                verticalArrangement = Arrangement.spacedBy(m.badgePadV / 2),
+            ) {
+                ExpiryLine(
                     text = stringResource(
                         R.string.channels_server_expires,
                         shortDate(home.subscription?.expiresAtMs),
                     ),
-                    style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
                     color = colors.secondary,
-                    maxLines = 1,
+                    m = m,
                 )
-                Text(
+                ExpiryLine(
                     text = stringResource(R.string.channels_app_expires, licenceExpiry(home.entitlement)),
-                    style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
                     color = colors.live,
-                    maxLines = 1,
+                    m = m,
                 )
             }
         }
     }
+}
+
+/**
+ * One expiry: a caption and its date, in one order in every language.
+ *
+ * [TextDirection.Ltr] rather than the default, which resolves the paragraph from its
+ * first strong character and would therefore lay an Arabic caption out right to left
+ * inside a band that is pinned left to right. That produced a third layout — not the
+ * mirrored screen the platform would give and not the screen every other language gets —
+ * and it is the reason the two lines did not sit under each other at the same place.
+ * Pinned here, the caption starts at the column's leading edge and the date follows it,
+ * in Arabic exactly as in English; the glyphs of the caption are still shaped by their
+ * own script, which is the text engine's business and not the layout's.
+ *
+ * `Ellipsis` rather than the default clip, so that a translation this column cannot hold
+ * degrades into something a reader can see is cut rather than into a caption whose value
+ * silently disappeared.
+ */
+@Composable
+private fun ExpiryLine(text: String, color: Color, m: ChannelsMetrics) {
+    Text(
+        text = text,
+        style = castivioBodyStyle(m.frame.fsBody * EXPIRY_OF_BODY)
+            .copy(textDirection = TextDirection.Ltr, textAlign = TextAlign.Start),
+        color = color,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
 }
 
 /**
@@ -323,18 +375,22 @@ private fun BoardClock(m: ChannelsMetrics) {
     val day = remember(now) {
         ltrToken(SimpleDateFormat(SHORT_DATE, Locale.ROOT).format(Date(now)))
     }
-    Column(horizontalAlignment = Alignment.End) {
+    // Its own bounded cell, for the reason the breadcrumb has one: nothing whose width
+    // is text may decide where the rest of the band sits.
+    Column(Modifier.width(m.clock), horizontalAlignment = Alignment.End) {
         Text(
             text = time,
             style = castivioTitleStyle(m.frame.fsLabel),
             color = colors.onBackgroundStrong,
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
         Text(
             text = day,
-            style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
+            style = castivioBodyStyle(m.frame.fsBody * EXPIRY_OF_BODY),
             color = colors.onBackgroundMuted,
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
@@ -940,10 +996,15 @@ private fun ChannelList(
         }
     }
 
+    // **No fill.** The column used to paint `backgroundElevated`, a solid, over the
+    // app's own gradient -- so the one part of the board a viewer spends their time
+    // reading was a flat dark slab cut out of a lit page, and it looked like a hole. It
+    // is a *frame* around the list, not a surface under it: the hairline says where the
+    // column is and the page shows through. The rail beside it has never had a fill and
+    // never needed one.
     Box(
         modifier
             .clip(shape)
-            .background(colors.backgroundElevated)
             .border(1.dp, colors.glassBorderSoft, shape),
     ) {
         if (rows.itemCount == 0) {
@@ -994,6 +1055,10 @@ private fun ChannelList(
     }
 }
 
+// `basicMarquee` is stable from Compose Foundation 1.7, which is the line this BOM
+// pins. Declared anyway: an opt-in that turns out to be unnecessary costs a warning,
+// and one that turns out to be necessary costs a red CI run.
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ChannelRow(
     channel: Channel,
@@ -1027,21 +1092,25 @@ private fun ChannelRow(
     ) {
         val ink = if (focused) colors.onSecondary else colors.onBackground
 
-        // **The logo's slot, held open and drawn empty.**
+        // The number, on a plate, and it opens the row. It is what a remote dials, so
+        // it is the first thing on the line a viewer reads down -- a column of numbers
+        // is scanned, and a column of numbers behind two other things is not a column.
+        NumberPlate(label = numberPlate(number), focused = focused, m = m)
+
+        // **The channel's own logo, from the provider.**
         //
-        // This was a coloured tile carrying the channel's initials, and the tile was
-        // standing in for something real: every provider ships a `tvg-logo` per channel
-        // and `Channel.logoUrl` already carries it. A generated square is not that
-        // picture, and leaving it there would have meant shipping a placeholder — so it
-        // is gone, and the space it occupied is reserved rather than reclaimed.
-        //
-        // Reserved, because the row's geometry has to be the one the logos will land in.
-        // If the name took this width now, every row on the board would shift sideways
-        // the day the images start loading, and the column widths, the plate's position
-        // and the metrics' assertions would all be measuring a layout that is about to
-        // change. An empty slot of exactly the right size is what makes loading the
-        // images an image change rather than a layout change.
-        Spacer(Modifier.width(m.logoWidth).height(m.rowMin * LOGO_OF_ROW))
+        // `artwork_url` has been imported and stored since the schema existed and was
+        // drawn by nothing; this is where it lands. A channel whose provider shipped no
+        // logo, and one whose logo is still arriving, both draw an empty box of exactly
+        // this size -- see `ProviderArtwork`. Reserved rather than collapsed, so that a
+        // list settling does not move the names beside it.
+        ProviderArtwork(
+            url = channel.artworkUrl,
+            // Null: the name is drawn immediately after it, and a screen reader that
+            // announced the logo as well would say the channel twice.
+            description = null,
+            modifier = Modifier.width(m.logoWidth).height(m.rowMin * LOGO_OF_ROW),
+        )
 
         // **The name takes the row.**
         //
@@ -1063,8 +1132,22 @@ private fun ChannelRow(
             style = castivioChipStyle(m.frame.fsLabel),
             color = ink,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
+            // **A name too long for the row scrolls, but only the one under the remote.**
+            //
+            // Providers ship names like `4K| SKY SPORTS ULTRA HD MAIN EVENT 1`, and a
+            // list column this wide ends most of them in an ellipsis -- which is the one
+            // complaint a viewer cannot work around, because the part that is cut is the
+            // part that tells two similar channels apart.
+            //
+            // Scrolling every row at once would make the screen unreadable and would
+            // animate twelve texts on a stick that has to hold 60fps while paging a
+            // catalogue, so it is the focused row and no other. An unfocused row keeps
+            // its ellipsis, which is also the honest cue that there is more to see:
+            // arrow onto it and the rest arrives.
+            overflow = if (focused) TextOverflow.Clip else TextOverflow.Ellipsis,
+            modifier = Modifier
+                .weight(1f)
+                .then(if (focused) Modifier.basicMarquee(iterations = Int.MAX_VALUE) else Modifier),
         )
 
         // The reference's quality tag, read out of the name the provider wrote.
@@ -1082,11 +1165,6 @@ private fun ChannelRow(
                 maxLines = 1,
             )
         }
-
-        // The number, on a plate. It is what a remote dials, so it is a token rather
-        // than a column of text, and it sits at the row's trailing edge in every
-        // language -- the board does not mirror, and this is the board's own edge.
-        NumberPlate(label = numberPlate(number), focused = focused, m = m)
     }
 }
 
@@ -1144,10 +1222,11 @@ private fun PlayerWell(
     val shape = RoundedCornerShape(m.wellRadius)
     val channel = shown.channel
 
+    // The same frame as the channel list, for the same reason and so that the two
+    // columns are one thing seen twice rather than two slabs of different darkness.
     Column(
         modifier
             .clip(shape)
-            .background(colors.backgroundElevated)
             .border(1.dp, colors.glassBorderSoft, shape)
             .padding(m.wellPad),
     ) {
@@ -1584,6 +1663,18 @@ private const val MARK_OF_HEADER = 0.92f
 /** The header's and the rail's second line, against the frame's body step. */
 private const val LEGEND_OF_BODY = 0.88f
 
+/**
+ * The expiry pair, smaller again.
+ *
+ * Two lines of caption-and-date is the densest thing on the band, and at the legend's
+ * own step it read as loud as the section name. This is the step that makes it what it
+ * is: a fact available when looked for, not an announcement.
+ */
+private const val EXPIRY_OF_BODY = 0.74f
+
+/** The hairline between the clock and the dates, as a share of the band. */
+private const val RULE_OF_HEADER = 0.56f
+
 /** The field's height inside the band. */
 private const val FIELD_OF_HEADER = 0.62f
 
@@ -1595,8 +1686,14 @@ private const val FIELD_OF_HEADER = 0.62f
  */
 private const val FIELD_OF_ROW = 0.86f
 
-/** `16-09-25`: two digits a field, hyphens, shortest year. */
-private const val SHORT_DATE = "dd-MM-yy"
+/**
+ * `16-09-2026`: two digits a field, hyphens, and the year in full.
+ *
+ * It was `yy`. Two digits are ambiguous in exactly the place this token is read -- a
+ * subscription that ends in `26` is a date a viewer has to do arithmetic on -- and the
+ * four characters it costs are four the reserved column was widened to hold.
+ */
+private const val SHORT_DATE = "dd-MM-yyyy"
 
 /**
  * The clock: twenty-four hours, in every language.
