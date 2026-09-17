@@ -33,24 +33,29 @@ import androidx.compose.material.icons.rounded.ChildCare
 import androidx.compose.material.icons.rounded.Fullscreen
 import androidx.compose.material.icons.rounded.FormatListBulleted
 import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Newspaper
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material.icons.rounded.Public
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Sort
 import androidx.compose.material.icons.rounded.SportsSoccer
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material.icons.rounded.TheaterComedy
+import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
@@ -144,12 +149,31 @@ import com.castivio.core.design.R as DesignR
  *     no images anywhere yet. [LogoTile] draws the deterministic placeholder the rest of
  *     the app already uses, so the same channel is always the same colour.
  */
+/**
+ * Where the board's action strip can send a viewer.
+ *
+ * A holder rather than eight parameters threaded through three composables. Every one of
+ * these is a destination the shell already owns and Home already opens — the strip was
+ * drawing six circles because these four had never been passed *here*, not because they
+ * did not exist.
+ */
+@Immutable
+data class BoardActions(
+    val onHome: () -> Unit,
+    val onSearch: () -> Unit,
+    val onSettings: () -> Unit,
+    val onLanguage: () -> Unit,
+    val onAbout: () -> Unit,
+    val onExit: () -> Unit,
+)
+
 @Composable
 fun ChannelsScreen(
     onPlay: (CatalogSelection) -> Unit,
     /** The red key, and the back chevron beside the breadcrumb. */
     onBack: () -> Unit,
     onSearch: () -> Unit,
+    actions: BoardActions,
     modifier: Modifier = Modifier,
     /**
      * Keyed to match `BrowseScreen`'s Live holder.
@@ -212,6 +236,7 @@ fun ChannelsScreen(
                 m = m,
                 model = model,
                 previewModel = previewModel,
+                actions = actions,
                 onPlay = onPlay,
                 onSearch = onSearch,
                 onBack = onBack,
@@ -430,6 +455,7 @@ private fun Board(
     m: ChannelsMetrics,
     model: BrowseViewModel,
     previewModel: ChannelsViewModel,
+    actions: BoardActions,
     onPlay: (CatalogSelection) -> Unit,
     onSearch: () -> Unit,
     onBack: () -> Unit,
@@ -489,6 +515,7 @@ private fun Board(
                     m = m,
                     model = model,
                     previewModel = previewModel,
+                    actions = actions,
                     onPlay = onPlay,
                     onSearch = onSearch,
                     onBack = onBack,
@@ -577,6 +604,7 @@ private fun Columns(
     m: ChannelsMetrics,
     model: BrowseViewModel,
     previewModel: ChannelsViewModel,
+    actions: BoardActions,
     onPlay: (CatalogSelection) -> Unit,
     onSearch: () -> Unit,
     onBack: () -> Unit,
@@ -592,13 +620,12 @@ private fun Columns(
             ActionRail(
                 favorite = shown.favorite,
                 canPlay = shown.channel != null,
+                actions = actions,
                 m = m,
-                onHome = onBack,
                 // The same conversion a press on the row uses, not a second one. A
                 // channel the catalogue cannot turn into a stream opens nothing here for
                 // exactly the reason it opens nothing there.
                 onFullscreen = { shown.channel?.asSelection()?.let(onPlay) },
-                onSearch = onSearch,
                 onFavorite = previewModel::toggleFavorite,
                 onSort = { model.sortBy(state.sort.next()) },
                 onRefresh = { model.retryFetch(force = true) },
@@ -655,41 +682,48 @@ private fun Reading(content: @Composable () -> Unit) =
 /* --------------------------------------------------------------- the actions */
 
 /**
- * The strip of actions at the leading edge, in the reference's shape.
+ * The strip of actions at the leading edge, in the reference's order.
  *
- * ## Six circles, where the reference draws ten
+ * ## Nine circles, where the reference draws ten
  *
- * The reference's strip is home, fullscreen, favourites, lock, search, settings, list,
- * language, information and power. Six of those have behaviour in Castivio today and are
- * here. The other four — a parental lock, a settings route out of this board, an
- * in-screen language switch and an exit — have none, and drawing them would put four
- * circles on the most prominent strip of the screen that answer a press with nothing.
+ * Home, full screen, favourites, search, sort, settings, language, information and exit.
+ * Every one of them goes somewhere the shell already owns and Home already opens — the
+ * strip drew six for a while because the last four had never been passed to *this*
+ * screen, which is a wiring gap and not a missing feature.
  *
- * That is not a smaller design. It is the same strip with the same geometry and the same
- * spacing; the cells that would be dishonest are simply not drawn, and the day any of the
- * four gets an implementation it takes its place without the strip moving. A control that
- * does nothing teaches a viewer the strip is decorative, and then they stop pressing the
- * ones that work.
+ * The tenth is a **parental lock**, and it is the one that is genuinely not here: nothing
+ * in Castivio locks a channel, a category or the app, so the circle would answer a press
+ * with nothing. It is left unspent rather than drawn. A control that does nothing teaches
+ * a viewer the strip is decorative, and then they stop pressing the ones that work — and
+ * a lock in particular is a promise about somebody's children that this app cannot keep.
+ * The cell takes its place the day there is something behind it, without the strip
+ * moving.
  *
- * ## What each one does, so none of them is a guess
+ * ## What each one does
  *
  * | circle | behaviour |
  * |---|---|
  * | home | leaves the board, the same event the red key sends |
- * | fullscreen | opens the focused channel in the player |
- * | search | the catalogue-wide search screen |
+ * | full screen | opens the focused channel in the player |
  * | favourites | toggles the focused channel, from `FavoritesRepository` |
+ * | search | the catalogue-wide search screen |
  * | sort | cycles `SortOrder`, which re-reads the pager |
- * | refresh | a forced re-import of this section |
+ * | settings | the settings screen |
+ * | language | the language picker |
+ * | information | the licence and device screen, as Home's About opens |
+ * | exit | leaves Castivio, through the shell's own confirmation |
+ *
+ * Refresh sits alone at the foot, away from the nine: it is the only one that changes
+ * the catalogue rather than where the viewer is, and a forced re-import pressed by
+ * accident costs a real wait.
  */
 @Composable
 private fun ActionRail(
     favorite: Boolean,
     canPlay: Boolean,
+    actions: BoardActions,
     m: ChannelsMetrics,
-    onHome: () -> Unit,
     onFullscreen: () -> Unit,
-    onSearch: () -> Unit,
     onFavorite: () -> Unit,
     onSort: () -> Unit,
     onRefresh: () -> Unit,
@@ -704,10 +738,9 @@ private fun ActionRail(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(m.actionsGap),
     ) {
-        ActionDot(Icons.Rounded.Menu, stringResource(R.string.channels_key_back), m, false, onHome)
+        ActionDot(Icons.Rounded.Menu, stringResource(R.string.channels_key_back), m, false, actions.onHome)
         // Absent rather than inert while nothing is focused: there is no channel to
-        // open, and a circle that is drawn but ignores a press is the thing the note
-        // above is about.
+        // open, and a circle drawn but ignoring a press is what the note above is about.
         if (canPlay) {
             ActionDot(
                 Icons.Rounded.Fullscreen,
@@ -726,8 +759,18 @@ private fun ActionRail(
             on = favorite,
             onClick = onFavorite,
         )
-        ActionDot(Icons.Rounded.Search, stringResource(R.string.channels_search_hint), m, false, onSearch)
+        ActionDot(Icons.Rounded.Search, stringResource(R.string.channels_search_hint), m, false, actions.onSearch)
         ActionDot(Icons.Rounded.Sort, stringResource(R.string.channels_action_sort), m, false, onSort)
+        ActionDot(Icons.Rounded.Settings, stringResource(R.string.home_settings), m, false, actions.onSettings)
+        ActionDot(Icons.Rounded.Translate, stringResource(R.string.home_language), m, false, actions.onLanguage)
+        ActionDot(Icons.Rounded.Info, stringResource(R.string.home_about), m, false, actions.onAbout)
+        ActionDot(
+            Icons.Rounded.PowerSettingsNew,
+            stringResource(R.string.home_exit),
+            m,
+            false,
+            actions.onExit,
+        )
         Spacer(Modifier.weight(1f))
         ActionDot(Icons.Rounded.Refresh, stringResource(R.string.channels_action_refresh), m, false, onRefresh)
     }
@@ -985,7 +1028,7 @@ private fun ChannelList(
     rows: LazyPagingItems<MediaItem>,
     state: BrowseState,
     m: ChannelsMetrics,
-    onSelect: (Channel) -> Unit,
+    onSelect: (Channel, Int) -> Unit,
     onPlay: (CatalogSelection) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -1045,9 +1088,13 @@ private fun ChannelList(
                 val channel = item as? Channel ?: return@items
                 ChannelRow(
                     channel = channel,
+                    // The reference's badge: where this row is in the list as ordered,
+                    // one-based. See `ChannelsViewModel.position` for why it is not read
+                    // off the channel.
+                    number = index + 1,
                     seed = index,
                     m = m,
-                    onFocused = { onSelect(channel) },
+                    onFocused = { onSelect(channel, index + 1) },
                     onClick = { channel.asSelection()?.let(onPlay) },
                     modifier = if (index == 0) Modifier.focusRequester(first) else Modifier,
                 )
@@ -1059,6 +1106,7 @@ private fun ChannelList(
 @Composable
 private fun ChannelRow(
     channel: Channel,
+    number: Int,
     seed: Int,
     m: ChannelsMetrics,
     onFocused: () -> Unit,
@@ -1138,15 +1186,15 @@ private fun ChannelRow(
         // The number, on a plate. It is what a remote dials, so it is a token rather
         // than a column of text, and it sits at the row's trailing edge in every
         // language -- the board does not mirror, and this is the board's own edge.
-        NumberPlate(label = channel.numberLabel(), focused = focused, m = m)
+        NumberPlate(label = numberPlate(number), focused = focused, m = m)
     }
 }
 
 /**
  * The channel number, as the reference draws it: a pill, not a column.
  *
- * `----` for a provider that numbered nothing, which is what [Channel.numberLabel]
- * already said and is kept — a blank plate would read as a number that failed to load.
+ * `----` only where there is no position to draw — before any row has been focused. A
+ * blank plate would read as a number that failed to load.
  */
 @Composable
 private fun NumberPlate(label: String, focused: Boolean, m: ChannelsMetrics) {
@@ -1211,6 +1259,7 @@ private fun PlayerWell(
                 )
                 Osd(
                     channel = channel,
+                    number = shown.number,
                     guide = shown.guide,
                     m = m,
                     modifier = Modifier
@@ -1295,12 +1344,13 @@ private fun PlayerWell(
  * The reference prints a resolution here — `1920 × 1080`. Castivio does not know it. A
  * stream's real geometry comes from the decoder after the player has opened it, and this
  * board has opened nothing; printing the tag from the channel's *name* in a slot that
- * looks like a measurement would be the one dishonest pixel on the screen. The number
- * and the tag are enough, and both are things the provider actually said.
+ * looks like a measurement would be the one dishonest pixel on the screen. The quality
+ * tag says what the provider wrote, and the number says where the row is — both true.
  */
 @Composable
 private fun Osd(
     channel: Channel,
+    number: Int?,
     guide: NowNext?,
     m: ChannelsMetrics,
     modifier: Modifier = Modifier,
@@ -1378,7 +1428,7 @@ private fun Osd(
         }
 
         Text(
-            text = channel.numberLabel(),
+            text = numberPlate(number),
             style = castivioTitleStyle(m.fsChannelName),
             color = colors.secondary,
             maxLines = 1,
@@ -1682,12 +1732,15 @@ private fun rememberFocusFlag(): Pair<Boolean, Modifier> {
 /**
  * `0001`, from the provider's own numbering, or the row's id where it numbered nothing.
  *
- * Four digits because that is what the reference shows and what a `Goto Number` entry
- * expects; a provider that numbers past 9999 keeps its own digits rather than being
- * truncated into somebody else's channel.
+ * Plain digits, because that is what the reference draws: its badges read 1, 2, 3 down
+ * the visible order, not a zero-padded field. [ltrIsolate] so the figure keeps its shape
+ * in an Arabic composition, like every other number on this board.
+ *
+ * [NO_NUMBER] survives for the one case that is still honest: a plate asked to draw a
+ * position nothing has given it, which is the display before any row has been focused.
  */
-private fun Channel.numberLabel(): String =
-    number?.let { "%04d".format(it) } ?: NO_NUMBER
+private fun numberPlate(number: Int?): String =
+    number?.let { ltrIsolate(it.toString()) } ?: NO_NUMBER
 
 /**
  * Which icon a category gets.

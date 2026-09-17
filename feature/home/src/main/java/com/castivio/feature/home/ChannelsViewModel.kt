@@ -71,6 +71,20 @@ class ChannelsViewModel @Inject constructor(
     private val schedule = MutableStateFlow<List<Programme>>(emptyList())
 
     /**
+     * Where the focused channel sits in the list as it is currently ordered.
+     *
+     * Held here rather than read off [Channel], because a channel does not carry one.
+     * `Channel.number` is `null` for every row from every provider -- `Mappers.kt` wrote
+     * the literal -- so the plate on the board and the figure on the display were `----`
+     * by construction rather than because a provider had numbered nothing.
+     *
+     * The list's own position is the honest answer and the one the reference shows: its
+     * badges run 1, 2, 3 down the visible order. It follows the sort, which is correct --
+     * re-ordered A to Z, the number is where the channel now is.
+     */
+    private val position = MutableStateFlow<Int?>(null)
+
+    /**
      * What the preview panel shows, as one value.
      *
      * Combined here rather than collected as three flows in the composition, because a
@@ -81,14 +95,21 @@ class ChannelsViewModel @Inject constructor(
         _selected,
         guide,
         schedule,
+        position,
         _selected.flatMapLatest { channel ->
             // `isFavorite` is an indexed EXISTS, and it is a flow because the remote's
             // blue key toggles it from this very screen: a star that only refreshed on
             // navigation would be a star that lies for as long as the user stays.
             channel?.let { favorites.isFavorite(it.id) } ?: flowOf(false)
         },
-    ) { channel, nowNext, coming, favorite ->
-        ChannelPreview(channel = channel, guide = nowNext, schedule = coming, favorite = favorite)
+    ) { channel, nowNext, coming, number, favorite ->
+        ChannelPreview(
+            channel = channel,
+            guide = nowNext,
+            schedule = coming,
+            number = number,
+            favorite = favorite,
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(GRACE_MS), ChannelPreview())
 
     /**
@@ -98,7 +119,10 @@ class ChannelsViewModel @Inject constructor(
      * not a move — a recomposition, a window regaining focus — and re-reading the guide
      * for each of those would be a query per frame on the list a D-pad is held down on.
      */
-    fun select(channel: Channel) {
+    fun select(channel: Channel, number: Int?) {
+        // Outside the guard, because this one *can* change without the channel
+        // changing: a re-sort moves every row without moving the selection.
+        position.value = number
         if (_selected.value?.id == channel.id) return
         _selected.value = channel
         // Cleared first, and deliberately: the previous channel's programme must never
@@ -166,6 +190,8 @@ data class ChannelPreview(
     val guide: NowNext? = null,
     /** What is on, then what follows, in order. Empty when the guide has nothing. */
     val schedule: List<Programme> = emptyList(),
+    /** The channel's position in the list as ordered. See `ChannelsViewModel.position`. */
+    val number: Int? = null,
     val favorite: Boolean = false,
 )
 
