@@ -195,28 +195,6 @@ fun ChannelsScreen(
     val homeState by home.state.collectAsStateWithLifecycle()
     val tv = CastivioTheme.device.isTv
 
-    // **The wait happens on the gate, and the board opens finished.**
-    //
-    // It used to happen here: the board drew itself around an import, filling in under
-    // the viewer's cursor while they tried to use it. Live TV is the screen where that
-    // was worst, because the preview column follows the selection and the selection kept
-    // being overtaken by rows arriving underneath it.
-    //
-    // `SectionLoad.Loading` is only ever emitted for a section that is not on the device
-    // -- `LoadSection` answers `Ready` without fetching for one that is -- so this cannot
-    // put a gate in front of a warm open, which is every open after the first.
-    val fetch = state.fetch
-    if (fetch is SectionLoad.Loading) {
-        LoadingGate(
-            section = CatalogSection.Live,
-            fetch = fetch,
-            mac = state.mac,
-            provider = state.providerLabel,
-            modifier = modifier,
-        )
-        return
-    }
-
     BoxWithConstraints(modifier.fillMaxSize().safeDrawingPadding()) {
         val m = channelsMetricsFor(tv = tv, width = maxWidth, height = maxHeight)
 

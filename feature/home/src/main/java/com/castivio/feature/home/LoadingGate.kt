@@ -25,7 +25,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,8 +54,11 @@ import com.castivio.core.design.theme.MotionLevel
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.boundedFraction
 import com.castivio.core.design.theme.castivioMetrics
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.castivio.domain.SectionLoad
 import java.util.Locale
+import kotlinx.coroutines.delay
 import com.castivio.core.design.R as DesignR
 
 /**
@@ -482,3 +489,90 @@ private const val WORD_OF_TITLE = 1.5f
 private const val SAY_OF_BODY = 1.15f
 private const val TALLY_OF_BODY = 1.1f
 private const val LEGAL_OF_BODY = 0.82f
+
+/**
+ * The gate, as a screen in front of a section rather than a branch inside one.
+ *
+ * ## Why this is a wrapper and not an `if` in the screen
+ *
+ * It was an `if`, at the top of `ChannelsScreen` and `BrowseScreen`, and that was wrong
+ * in a way a reading of the code does not show but a device does.
+ *
+ * A section screen composes, *then* asks the loader what it should show. So the order a
+ * viewer actually saw on the first press of **Channels** was: the board — its header, its
+ * four empty columns, its "no channels here" — and then, a frame or two later, the gate
+ * replacing it. The wait was still being drawn inside the section, and the section was
+ * still the first thing on screen. Pressing Channels showed Channels and then took it
+ * away, which is the opposite of what a loading screen is for.
+ *
+ * Here the gate is outside. The shell enters *this*, and [content] is not composed at all
+ * until the section has an answer — so the board's first frame is its finished frame, and
+ * there is no frame of it before that.
+ *
+ * ## What counts as "has an answer"
+ *
+ * Null counts as not having one. That is the state a holder is in before the loader has
+ * been asked anything, it is the state on the very first frame after a press, and treating
+ * it as "settled" is exactly what let the board draw first. Everything else — ready, done,
+ * failed, no provider — is an answer, and the section draws itself.
+ *
+ * ## The grace, and the flicker it removes
+ *
+ * A section already on the device answers `Ready` from an indexed lookup of its mark —
+ * two suspending reads, tens of milliseconds. Drawing the gate the instant the answer is
+ * *unknown* would therefore flash it on every warm open: three frames of a loading screen
+ * in front of a catalogue that was already there.
+ *
+ * So an unknown answer waits [UNKNOWN_GRACE_MS] before it is drawn as one. A real fetch
+ * reports `Loading` long before the grace expires and the gate appears immediately; a
+ * warm section reports `Ready` inside it and the gate is never drawn at all. Nothing is
+ * delayed by this: the grace only decides how a *pause* is rendered, and the only thing
+ * on screen during it is the theme's own backdrop.
+ *
+ * It is the same reasoning `DelayedSpinner` is built on, applied a level up.
+ */
+@Composable
+fun SectionGate(
+    section: CatalogSection,
+    modifier: Modifier = Modifier,
+    model: BrowseViewModel = hiltViewModel(key = section.name),
+    content: @Composable () -> Unit,
+) {
+    // Told here rather than in the screen, because the screen is not composed yet. It is
+    // the same idempotent call the screen makes, on the same holder -- `hiltViewModel`
+    // with the same key resolves to the same instance -- so the section is asked for
+    // once whichever of the two runs first.
+    LaunchedEffect(section) { model.show(section) }
+
+    val state by model.state.collectAsStateWithLifecycle()
+
+    var graceExpired by remember(section) { mutableStateOf(false) }
+    LaunchedEffect(section) {
+        delay(UNKNOWN_GRACE_MS)
+        graceExpired = true
+    }
+
+    when (val fetch = state.fetch) {
+        is SectionLoad.Loading ->
+            LoadingGate(section, fetch, state.mac, state.providerLabel, modifier)
+
+        // Not "settled": this is the state before the loader has been asked anything,
+        // and treating it as an answer is exactly what let the section draw its own
+        // first frame and then have the gate replace it.
+        null -> if (graceExpired) {
+            LoadingGate(section, null, state.mac, state.providerLabel, modifier)
+        } else {
+            Box(modifier.fillMaxSize())
+        }
+
+        else -> content()
+    }
+}
+
+/**
+ * How long an unknown answer is given before it is drawn as a wait.
+ *
+ * Long enough for a warm section's mark lookup, short enough that nobody perceives it in
+ * front of a load measured in minutes.
+ */
+private const val UNKNOWN_GRACE_MS = 140L

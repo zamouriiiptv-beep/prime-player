@@ -71,6 +71,7 @@ import com.castivio.feature.home.CatalogSearchScreen
 import com.castivio.feature.home.CatalogSection
 import com.castivio.feature.home.CatalogSelection
 import com.castivio.feature.home.HomeScreen
+import com.castivio.feature.home.SectionGate
 import com.castivio.feature.home.ShowScreen
 import com.castivio.feature.home.R as CatalogStrings
 import com.castivio.feature.licence.R as LicenceStrings
@@ -228,7 +229,15 @@ fun ShellScreen(
                 // approved reference is three columns whose third is a preview of the
                 // channel the remote is on, which the other three sections have no
                 // equivalent of. They keep `BrowseScreen` exactly as it was.
-                Dest.Live -> ChannelsScreen(
+                //
+                // **The gate is entered before the section, not inside it.**
+                //
+                // `SectionGate` composes the screen only once the loader has answered,
+                // so the first press of a section shows the loading screen and nothing
+                // else. It was an `if` at the top of each screen, which meant the screen
+                // composed first and the gate replaced it a frame later -- pressing
+                // Channels showed Channels and then took it away.
+                Dest.Live -> SectionGate(CatalogSection.Live) { ChannelsScreen(
                     onPlay = play,
                     onBack = { dest = Dest.Home },
                     onSearch = { dest = Dest.Search },
@@ -244,25 +253,25 @@ fun ShellScreen(
                         onAbout = { overlay = Overlay.Licence },
                         onExit = onExit,
                     ),
-                )
-                Dest.Movies -> BrowseScreen(
+                ) }
+                Dest.Movies -> SectionGate(CatalogSection.Movies) { BrowseScreen(
                     section = CatalogSection.Movies,
                     onPlay = play,
                     onOpenShow = { overlay = Overlay.Show(it) },
                     onSearch = { dest = Dest.Search },
-                )
-                Dest.Series -> BrowseScreen(
+                ) }
+                Dest.Series -> SectionGate(CatalogSection.Series) { BrowseScreen(
                     section = CatalogSection.Series,
                     onPlay = play,
                     onOpenShow = { overlay = Overlay.Show(it) },
                     onSearch = { dest = Dest.Search },
-                )
-                Dest.Radio -> BrowseScreen(
+                ) }
+                Dest.Radio -> SectionGate(CatalogSection.Radio) { BrowseScreen(
                     section = CatalogSection.Radio,
                     onPlay = play,
                     onOpenShow = { overlay = Overlay.Show(it) },
                     onSearch = { dest = Dest.Search },
-                )
+                ) }
                 Dest.Favourites -> FavouritesScreen()
                 Dest.Library -> LibraryScreen(onOpenSection = { dest = it })
                 Dest.Search -> CatalogSearchScreen(onPlay = play)

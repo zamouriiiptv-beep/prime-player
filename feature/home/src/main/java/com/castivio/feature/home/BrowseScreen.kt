@@ -115,21 +115,6 @@ fun BrowseScreen(
     val state by model.state.collectAsStateWithLifecycle()
     val tv = CastivioTheme.device.isTv
 
-    // The wait belongs to the gate, not to this screen. See [LoadingGate]: a section
-    // that is already on the device answers `Ready` without fetching, so this cannot
-    // stand in front of a warm open.
-    val fetch = state.fetch
-    if (fetch is SectionLoad.Loading) {
-        LoadingGate(
-            section = section,
-            fetch = fetch,
-            mac = state.mac,
-            provider = state.providerLabel,
-            modifier = modifier,
-        )
-        return
-    }
-
     // The surface, measured, and every size on this screen derived from it. It used to
     // be `DeviceClass`: two numbers chosen by what kind of box this is -- a screen
     // padding and a column count -- with every other size a fixed token shared by a
