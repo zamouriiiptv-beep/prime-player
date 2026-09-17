@@ -168,20 +168,17 @@
          reference draws the breadcrumb uppercase; English carries that here rather
          than code uppercasing it, because the same slot also holds a provider's own
          category names and not every language has case at all. -->
-    <string name="channels_all">ALL CHANNELS</string>
     <!-- The same list, named as the rail names it. -->
     <string name="channels_all_rail">All Channels</string>
     <string name="channels_favorites">Favorites</string>
     <string name="channels_recent">Recently Watched</string>
 
     <string name="channels_search_hint">Search channels</string>
-    <string name="channels_sort_by">Sort by:</string>
     <!-- The provider\'s own order, which for live television *is* the channel
          numbering — so on this board it is named by what a viewer sees, not by
          where it came from. -->
     <string name="channels_sort_number">Number</string>
     <!-- %1$s is a formatted count. -->
-    <string name="channels_total">Total: %1$s Channels</string>
     <!-- The second line of a category in the rail. %1$s is a formatted count, read
          from the group\'s stored item_count rather than counted per row. Deliberately
          shorter than channels_total: it sits under a name in a narrow column. -->
@@ -193,7 +190,6 @@
     <string name="channels_rail_empty">This playlist lists no categories.</string>
 
     <!-- On the preview plate, over the channel currently under the remote. -->
-    <string name="channels_live">LIVE</string>
     <!-- The guide has nothing for this channel: no guide id, no import, or the
          programme has ended. All three are honestly this sentence. -->
     <string name="channels_no_information">No Information</string>
@@ -215,25 +211,18 @@
          to keep them apart: one is the provider's subscription, the other is
          Castivio's own licence, and a viewer whose picture has gone needs to know
          which of the two ran out. -->
-    <string name="channels_server_expires">Subscription ends</string>
-    <string name="channels_app_expires">Licence ends</string>
+    <!-- One string each, caption and value together. Two composables side by side
+         pin their physical order, and in Arabic that put the date before its own
+         caption; a single string lets the text engine place them and it places them
+         correctly in both directions. %1$s is a dd-MM-yy token. -->
+    <string name="channels_server_expires">Subscription ends: %1$s</string>
+    <string name="channels_app_expires">Licence ends: %1$s</string>
     <string name="channels_licence_expired">Expired</string>
     <string name="channels_licence_lifetime">Lifetime</string>
-    <string name="channels_action_fullscreen">Full screen</string>
-    <string name="channels_action_sort">Sort</string>
     <string name="channels_action_refresh">Refresh</string>
     <!-- On the display over the picture. Uppercase in English because the reference
          draws it so; a language without case renders its own word. -->
     <string name="channels_live_badge">LIVE</string>
 
-    <string name="channels_key_back">Back</string>
-    <string name="channels_key_options">Options</string>
-    <string name="channels_key_sort">Sort</string>
-    <string name="channels_key_favorite">Favorites</string>
-    <string name="channels_key_unfavorite">Remove favorite</string>
-    <string name="channels_key_info_name">INFO</string>
-    <string name="channels_key_info">Channel Info</string>
-    <string name="channels_key_menu_name">MENU</string>
-    <string name="channels_key_menu">Categories</string>
 
 </resources>

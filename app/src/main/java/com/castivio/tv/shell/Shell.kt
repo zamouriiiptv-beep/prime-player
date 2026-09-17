@@ -64,7 +64,6 @@ import com.castivio.core.navigation.ShellBack
 import com.castivio.domain.SeriesSummary
 import com.castivio.feature.activation.ActivationRoute
 import com.castivio.feature.activation.LanguagePicker
-import com.castivio.feature.home.BoardActions
 import com.castivio.feature.home.BrowseScreen
 import com.castivio.feature.home.ChannelsScreen
 import com.castivio.feature.home.CatalogSearchScreen
@@ -239,20 +238,7 @@ fun ShellScreen(
                 // Channels showed Channels and then took it away.
                 Dest.Live -> SectionGate(CatalogSection.Live) { ChannelsScreen(
                     onPlay = play,
-                    onBack = { dest = Dest.Home },
                     onSearch = { dest = Dest.Search },
-                    // The same four destinations Home's action row opens, given to the
-                    // board's strip. They are wired identically on purpose: two screens
-                    // that reach the same place by two different routes is how the two
-                    // quietly stop agreeing about what "About" means.
-                    actions = BoardActions(
-                        onHome = { dest = Dest.Home },
-                        onSearch = { dest = Dest.Search },
-                        onSettings = { dest = Dest.Settings },
-                        onLanguage = { overlay = Overlay.Language },
-                        onAbout = { overlay = Overlay.Licence },
-                        onExit = onExit,
-                    ),
                 ) }
                 Dest.Movies -> SectionGate(CatalogSection.Movies) { BrowseScreen(
                     section = CatalogSection.Movies,

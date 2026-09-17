@@ -4,7 +4,6 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.castivio.core.design.theme.CastivioMetrics
-import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.boundedFraction
 import com.castivio.core.design.theme.castivioMetrics
 
@@ -24,7 +23,6 @@ import com.castivio.core.design.theme.castivioMetrics
  *
  * | zone | px | share |
  * |---|---|---|
- * | action strip | 70 | 3.0% |
  * | category rail | 494 | 21.1% |
  * | channel list | 702 | 30.0% (the remainder) |
  * | player well | 986 | 42.1% |
@@ -45,12 +43,15 @@ import com.castivio.core.design.theme.castivioMetrics
  * So the floor is now the *list* floor rather than the *control* floor, and the
  * distinction is real rather than convenient:
  *
- *  - `Sizing.minTarget` exists for a control a finger has to **hit** — a 44dp circle in
- *    a strip of ten of them, where missing means pressing the wrong one. Every such
- *    control on this board still carries it: [actions], [actionDot] and the remote keys
- *    are floored exactly as they were.
+ *  - `Sizing.minTarget` exists for a control a finger has to **hit** — a small circle
+ *    among others, where missing means pressing the wrong one.
  *  - A channel row is a full-width strip reached by **moving focus** with a D-pad, and
  *    by touch it is 700dp wide. There is no neighbouring target to miss by 8dp.
+ *
+ * The board carries no such circles any more: the action strip and the remote legend
+ * were both removed at the owner's request, pending a decision about where their
+ * controls belong. The distinction is kept in this note because it is the reason the
+ * rows are the height they are, and because those controls are coming back.
  *
  * This is a deliberate departure with a cost, stated here so it is a decision and not a
  * drift: on a phone held in landscape a row is about 30dp tall, which is smaller than
@@ -70,21 +71,17 @@ internal data class ChannelsMetrics(
     val boardTop: Dp,
     val boardBottom: Dp,
 
-    /* the two bands that bracket the columns */
+    /* the band above the columns */
     val header: Dp,
     val headerGap: Dp,
-    val remote: Dp,
-    val remoteGap: Dp,
+    /** The search field in the middle of the band. */
+    val search: Dp,
 
-    /* the panel that holds the four columns */
+    /* the panel that holds the three columns */
     val panelPad: Dp,
     val panelRadius: Dp,
 
-    /* the four columns */
-    /** The vertical strip of actions at the leading edge. See `ActionRail`. */
-    val actions: Dp,
-    val actionsGap: Dp,
-    val actionDot: Dp,
+    /* the three columns */
     val rail: Dp,
     val railGap: Dp,
     val player: Dp,
@@ -133,12 +130,6 @@ internal data class ChannelsMetrics(
     val osdGap: Dp,
     val guideGap: Dp,
     val guidePad: Dp,
-
-    /* the remote bar */
-    val remoteDot: Dp,
-    val remoteGapInner: Dp,
-    val remoteKeyPadH: Dp,
-    val remoteKeyPadV: Dp,
 ) {
     /**
      * The board's own type step for the channel name in the player well.
@@ -158,7 +149,6 @@ internal data class ChannelsMetrics(
  */
 internal fun channelsMetricsFor(tv: Boolean, width: Dp, height: Dp): ChannelsMetrics {
     val frame = castivioMetrics(width, height, tv)
-    val target = Sizing.minTarget(tv)
 
     return ChannelsMetrics(
         frame = frame,
@@ -169,19 +159,11 @@ internal fun channelsMetricsFor(tv: Boolean, width: Dp, height: Dp): ChannelsMet
 
         header = height.boundedFraction(HEADER, 34.dp, 60.dp),
         headerGap = height.boundedFraction(HEADER_GAP, 4.dp, 12.dp),
-        remote = height.boundedFraction(REMOTE, 26.dp, 42.dp),
-        remoteGap = height.boundedFraction(REMOTE_GAP, 4.dp, 12.dp),
+        search = width.boundedFraction(SEARCH, 220.dp, 620.dp),
 
         panelPad = width.boundedFraction(PANEL_PAD, 4.dp, 12.dp),
         panelRadius = height.boundedFraction(PANEL_RADIUS, 10.dp, 22.dp),
 
-        // Floored at the control target, and still floored: the strip is ten circles
-        // side by side, which is exactly the case the target floor exists for. This is
-        // the distinction the class note draws — a button a remote lands *on* keeps the
-        // floor; a full-width list row a remote moves *through* does not.
-        actions = maxOf(width.boundedFraction(ACTIONS, 40.dp, 66.dp), target),
-        actionsGap = height.boundedFraction(ACTIONS_GAP, 2.dp, 10.dp),
-        actionDot = maxOf(width.boundedFraction(ACTION_DOT, 28.dp, 52.dp), target * ACTION_OF_TARGET),
         rail = width.boundedFraction(RAIL, 170.dp, 330.dp),
         railGap = width.boundedFraction(RAIL_GAP, 6.dp, 18.dp),
         player = width.boundedFraction(PLAYER, 280.dp, 560.dp),
@@ -215,10 +197,6 @@ internal fun channelsMetricsFor(tv: Boolean, width: Dp, height: Dp): ChannelsMet
         guideGap = height.boundedFraction(GUIDE_GAP, 4.dp, 11.dp),
         guidePad = width.boundedFraction(GUIDE_PAD, 5.dp, 14.dp),
 
-        remoteDot = height.boundedFraction(REMOTE_DOT, 8.dp, 18.dp),
-        remoteGapInner = width.boundedFraction(REMOTE_GAP_INNER, 8.dp, 28.dp),
-        remoteKeyPadH = width.boundedFraction(REMOTE_KEY_PAD_H, 4.dp, 12.dp),
-        remoteKeyPadV = height.boundedFraction(REMOTE_KEY_PAD_V, 2.dp, 8.dp),
     )
 }
 
@@ -262,19 +240,19 @@ private const val BOARD_PAD = 10f / 1080f
  */
 private const val HEADER = 76f / 1080f
 private const val HEADER_GAP = 8f / 1080f
-private const val REMOTE = 40f / 1080f
-private const val REMOTE_GAP = 8f / 1080f
+
+/**
+ * The search field's width.
+ *
+ * Wide enough to read a placeholder, and bounded so it stays a field in the middle of
+ * the band rather than a second panel: the weighted gaps on either side of it are what
+ * centre it, and a field with no ceiling would eat them.
+ */
+private const val SEARCH = 520f / 2340f
 
 private const val PANEL_PAD = 10f / 2340f
 private const val PANEL_RADIUS = 16f / 1080f
 
-private const val ACTIONS = 70f / 2340f
-private const val ACTIONS_GAP = 8f / 1080f
-private const val ACTION_DOT = 60f / 2340f
-
-/** How much of the control floor a dot inside the strip may be, the strip itself
- *  carrying the rest as padding: the *cell* is the control, the circle is only its mark. */
-private const val ACTION_OF_TARGET = 0.62f
 
 private const val RAIL = 494f / 2340f
 private const val RAIL_GAP = 16f / 2340f
@@ -298,8 +276,9 @@ private const val RAIL_MIN = 100f / 1080f
  * A channel row's height, and the number the board's density is decided by.
  *
  * The reference's row is 82 of 1080 and this is 70. The difference is the two things
- * the reference does not spend height on and this board does: a remote-key legend along
- * the bottom, and the panel's own padding. Solved rather than copied, so that
+ * the reference does not spend height on and this board did: a remote-key legend along
+ * the bottom, and the panel's own padding. The legend is gone now and the room it took
+ * went to the list. Solved rather than copied, so that
  * [CHANNELS_TARGET_ROWS] rows fit *after* those are paid for — which is the property
  * worth reproducing, the pixel height being only how the reference happened to reach it.
  */
@@ -328,10 +307,6 @@ private const val OSD_GAP = 8f / 2340f
 private const val GUIDE_GAP = 8f / 1080f
 private const val GUIDE_PAD = 12f / 2340f
 
-private const val REMOTE_DOT = 14f / 1080f
-private const val REMOTE_GAP_INNER = 30f / 2340f
-private const val REMOTE_KEY_PAD_H = 10f / 2340f
-private const val REMOTE_KEY_PAD_V = 4f / 1080f
 
 /**
  * The channel name in the player well, as a ratio of the frame's title step.

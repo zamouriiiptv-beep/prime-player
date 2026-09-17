@@ -27,35 +27,25 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.ChildCare
-import androidx.compose.material.icons.rounded.Fullscreen
 import androidx.compose.material.icons.rounded.FormatListBulleted
 import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Newspaper
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material.icons.rounded.Public
-import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Shield
-import androidx.compose.material.icons.rounded.Sort
 import androidx.compose.material.icons.rounded.SportsSoccer
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material.icons.rounded.TheaterComedy
-import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
@@ -107,7 +97,9 @@ import com.castivio.domain.SectionLoad
 import com.castivio.domain.entitlement.EntitlementState
 import com.castivio.domain.SortOrder
 import java.text.DateFormat
+import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 import com.castivio.core.design.R as DesignR
 
 /**
@@ -149,31 +141,10 @@ import com.castivio.core.design.R as DesignR
  *     no images anywhere yet. [LogoTile] draws the deterministic placeholder the rest of
  *     the app already uses, so the same channel is always the same colour.
  */
-/**
- * Where the board's action strip can send a viewer.
- *
- * A holder rather than eight parameters threaded through three composables. Every one of
- * these is a destination the shell already owns and Home already opens — the strip was
- * drawing six circles because these four had never been passed *here*, not because they
- * did not exist.
- */
-@Immutable
-data class BoardActions(
-    val onHome: () -> Unit,
-    val onSearch: () -> Unit,
-    val onSettings: () -> Unit,
-    val onLanguage: () -> Unit,
-    val onAbout: () -> Unit,
-    val onExit: () -> Unit,
-)
-
 @Composable
 fun ChannelsScreen(
     onPlay: (CatalogSelection) -> Unit,
-    /** The red key, and the back chevron beside the breadcrumb. */
-    onBack: () -> Unit,
     onSearch: () -> Unit,
-    actions: BoardActions,
     modifier: Modifier = Modifier,
     /**
      * Keyed to match `BrowseScreen`'s Live holder.
@@ -204,7 +175,7 @@ fun ChannelsScreen(
                 .padding(horizontal = m.edge)
                 .padding(top = m.boardTop, bottom = m.boardBottom),
         ) {
-            BoardHeader(home = homeState, state = state, m = m)
+            BoardHeader(home = homeState, state = state, m = m, onSearch = onSearch)
 
             Spacer(Modifier.height(m.headerGap))
 
@@ -214,16 +185,10 @@ fun ChannelsScreen(
                 m = m,
                 model = model,
                 previewModel = previewModel,
-                actions = actions,
                 onPlay = onPlay,
                 onSearch = onSearch,
-                onBack = onBack,
                 modifier = Modifier.weight(1f),
             )
-
-            Spacer(Modifier.height(m.remoteGap))
-
-            RemoteBar(m = m, favorite = shown.favorite, onBack = onBack)
         }
     }
 }
@@ -231,42 +196,43 @@ fun ChannelsScreen(
 /* ---------------------------------------------------------------- the header */
 
 /**
- * One thin band across the top, holding four things and nothing else.
+ * One thin band, in the order the approved drawing sets: mark, breadcrumb, search,
+ * dates.
  *
- * ## What is on it, and what came off
+ * ## What it carries, and what came off it
  *
- * The mark and its version, which section and which category, when the **provider's**
- * subscription runs out, and when **Castivio's own licence** does. That is the list.
+ * The mark, which section and which category, a way into search, and the two dates that
+ * decide whether anything on this screen still works.
  *
- * Off it: a clock, the provider's hostname, and an Active/Inactive chip. The clock went
- * because the app hides the system bars and then has no business drawing a second one —
- * this is a screen for watching television, and the time is not one of the four facts a
- * viewer opened it for. The hostname went because it is not a fact anybody reads; it is
- * a credential, it is long enough to push the dates off the band, and the licence and
- * subscription dates already say everything about the subscription's health that a chip
- * reading "Active" said less precisely.
+ * Off it went a clock, the provider's hostname, an Active/Inactive chip and the version
+ * number. The clock went with the system bars — this is a screen for watching television
+ * and neither the phone's time nor a second copy of it is one of the facts a viewer
+ * opened it for. The hostname is a credential rather than a fact anybody reads, and it
+ * was long enough on its own to push the dates off the band.
  *
  * ## The two dates are two different things
  *
- * They are easy to conflate and are not the same:
+ *  - **Subscription** is the provider's. When it lapses the streams stop.
+ *  - **Licence** is Castivio's. When it lapses the app stops.
  *
- *  - **Subscription** is the provider's. It is what the provider's own panel shows, it
- *    is `Recorded.expiresAtMs`, and when it lapses the streams stop.
- *  - **Licence** is Castivio's. It is `EntitlementState`, it is what the trial and the
- *    annual plan are counted against, and when it lapses the app stops.
+ * A viewer whose picture has gone needs to know which of the two ran out, so both are
+ * drawn and both are captioned.
  *
- * A viewer whose picture has gone needs to know which of the two ran out, and a header
- * showing one date cannot tell them.
+ * ## Each date is one string, and that is load-bearing
  *
- * Left to right in every language, like the columns under it and for the same reason:
- * this band is a row of instruments, and each value inside it still reads in its own
- * direction.
+ * The caption and the value were two composables side by side, which pins their physical
+ * order: in Arabic the value ended up *before* its caption and the line read `2026/09/17
+ * ينتهي الاشتراك`. One `Text` holding `"caption: value"` lets the text engine place them,
+ * and it places them correctly in both directions from the same source — caption first,
+ * value after it, in Arabic and in English alike.
+ *
+ * The band is laid out left to right in every language, like the columns under it. That
+ * is the whole of the difference between languages on this screen: none of these boxes
+ * moves, and only the glyphs inside them are shaped by their own script.
  */
 @Composable
-private fun BoardHeader(home: HomeState, state: BrowseState, m: ChannelsMetrics) {
+private fun BoardHeader(home: HomeState, state: BrowseState, m: ChannelsMetrics, onSearch: () -> Unit) {
     val colors = CastivioTheme.colors
-    val context = LocalContext.current
-    val version = remember(context) { context.versionName() }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Row(
@@ -280,31 +246,17 @@ private fun BoardHeader(home: HomeState, state: BrowseState, m: ChannelsMetrics)
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.height(m.header * MARK_OF_HEADER),
             )
-            Column {
-                Text(
-                    text = stringResource(R.string.gate_wordmark),
-                    style = castivioTitleStyle(m.frame.fsLabel),
-                    color = colors.onBackgroundStrong,
-                    maxLines = 1,
-                )
-                if (version != null) {
-                    Text(
-                        text = stringResource(R.string.gate_version, ltrToken(version)),
-                        style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
-                        color = colors.onBackgroundMuted,
-                        maxLines = 1,
-                    )
-                }
-            }
+            Text(
+                text = stringResource(R.string.gate_wordmark),
+                style = castivioTitleStyle(m.frame.fsLabel),
+                color = colors.onBackgroundStrong,
+                maxLines = 1,
+            )
 
-            // Which section, and which category inside it. The reference's own
-            // breadcrumb, and the reason this board has no toolbar: it was the only
-            // thing in that band the header could not already say.
-            //
-            // Weighted, so it is this that gives way when the band runs out of width
-            // rather than the two dates at the end -- a category name ellipsised is
-            // still a category name, and it is the one string here that can be long.
-            Column(Modifier.weight(1f)) {
+            // Which section, and which category inside it — the reference's breadcrumb,
+            // and the reason this board has no toolbar: it was the only thing in that
+            // band the header could not already say.
+            Column {
                 Text(
                     text = stringResource(R.string.browse_live),
                     style = castivioChipStyle(m.frame.fsLabel),
@@ -321,25 +273,95 @@ private fun BoardHeader(home: HomeState, state: BrowseState, m: ChannelsMetrics)
                 )
             }
 
-            HeaderCard(
-                icon = Icons.Rounded.CalendarMonth,
-                caption = stringResource(R.string.channels_server_expires),
-                // Home's own label, not a second opinion about the same date.
-                value = expiryLabel(home.subscription),
-                tint = colors.secondary,
-                m = m,
-                modifier = Modifier.weight(1f, fill = false),
-            )
+            // A weighted gap on each side of the field, which is what centres it: the
+            // field keeps the middle of the band whatever the mark and the dates take.
+            Spacer(Modifier.weight(1f))
+            SearchField(m = m, onClick = onSearch)
+            Spacer(Modifier.weight(1f))
 
-            HeaderCard(
-                icon = Icons.Rounded.Shield,
-                caption = stringResource(R.string.channels_app_expires),
-                value = licenceExpiryLabel(home.entitlement),
-                tint = colors.hueViolet,
-                m = m,
-                modifier = Modifier.weight(1f, fill = false),
+            Text(
+                text = stringResource(R.string.channels_server_expires, shortDate(home.subscription?.expiresAtMs)),
+                style = castivioChipStyle(m.frame.fsBody),
+                color = colors.secondary,
+                maxLines = 1,
+            )
+            Text(
+                text = "·",
+                style = castivioBodyStyle(m.frame.fsBody),
+                color = colors.onBackgroundMuted,
+                maxLines = 1,
+            )
+            Text(
+                text = stringResource(R.string.channels_app_expires, licenceExpiry(home.entitlement)),
+                style = castivioChipStyle(m.frame.fsBody),
+                color = colors.live,
+                maxLines = 1,
             )
         }
+    }
+}
+
+/**
+ * The way into search, from the middle of the band.
+ *
+ * A way in rather than a field. Pressing it opens the catalogue-wide search screen that
+ * already exists; a real input here would be a second query, a second debounce and a
+ * second set of empty states beside the one that already spans every section — and on a
+ * remote, a text field that takes focus is a trap a viewer has to press back to escape.
+ */
+@Composable
+private fun SearchField(m: ChannelsMetrics, onClick: () -> Unit) {
+    val colors = CastivioTheme.colors
+    val (focused, focusModifier) = rememberFocusFlag()
+    val shape = RoundedCornerShape(Radius.pill)
+
+    Row(
+        Modifier
+            .width(m.search)
+            .height(m.header * FIELD_OF_HEADER)
+            .clip(shape)
+            .background(colors.glassFill)
+            .border(1.dp, if (focused) colors.focusRing else colors.glassBorderSoft, shape)
+            .then(focusModifier)
+            .clickable(onClick = onClick)
+            .padding(horizontal = m.rowPadH),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(m.factGap),
+    ) {
+        Icon(
+            Icons.Rounded.Search,
+            contentDescription = null,
+            tint = colors.onBackgroundMuted,
+            modifier = Modifier.size(Sizing.iconSm),
+        )
+        Text(
+            text = stringResource(R.string.channels_search_hint),
+            style = castivioBodyStyle(m.frame.fsBody),
+            color = colors.onBackgroundMuted,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/**
+ * `16-09-25`, or an em dash where there is no date.
+ *
+ * Digits and hyphens in one fixed order, in every language: this is the header's most
+ * compressed fact and a month spelled out in Arabic is three times as wide as the band
+ * can spare. [ltrToken] keeps it one left-to-right object — see the helper for the
+ * directional marks that made the last attempt at this read backwards.
+ *
+ * `Locale.ROOT` deliberately, and it is the one place in the product where a date does
+ * not follow the reader's own convention. What is drawn is a *token*, not a sentence,
+ * and the alternative is a band whose width changes with the interface language.
+ */
+@Composable
+private fun shortDate(atMs: Long?): String {
+    val none = stringResource(R.string.home_expires_none)
+    if (atMs == null) return none
+    return remember(atMs) {
+        ltrToken(SimpleDateFormat(SHORT_DATE, Locale.ROOT).format(Date(atMs)))
     }
 }
 
@@ -347,59 +369,19 @@ private fun BoardHeader(home: HomeState, state: BrowseState, m: ChannelsMetrics)
  * When Castivio's own licence runs out, from the state the policy decided.
  *
  * Every case is answered from a real field. A lifetime purchase never expires and says
- * so; an expired annual that was restored without its date says that it expired and not
- * when, because [EntitlementState.AnnualExpired] genuinely may not carry one. Nothing
- * here invents a date, and nothing prints a zero where a question was never asked.
+ * so; an expired annual restored without its date says that it expired and not when,
+ * because [EntitlementState.AnnualExpired] genuinely may not carry one. Nothing here
+ * invents a date, and nothing prints a zero where a question was never asked.
  */
 @Composable
-private fun licenceExpiryLabel(state: EntitlementState?): String = when (state) {
-    is EntitlementState.TrialActive -> rememberDate(state.expiresAtMs)
-    is EntitlementState.AnnualActive -> rememberDate(state.expiresAtMs)
+private fun licenceExpiry(state: EntitlementState?): String = when (state) {
+    is EntitlementState.TrialActive -> shortDate(state.expiresAtMs)
+    is EntitlementState.AnnualActive -> shortDate(state.expiresAtMs)
     is EntitlementState.AnnualExpired ->
-        state.expiredAtMs?.let { rememberDate(it) } ?: stringResource(R.string.channels_licence_expired)
+        state.expiredAtMs?.let { shortDate(it) } ?: stringResource(R.string.channels_licence_expired)
     EntitlementState.TrialExpired -> stringResource(R.string.channels_licence_expired)
     EntitlementState.Lifetime -> stringResource(R.string.channels_licence_lifetime)
     else -> stringResource(R.string.home_expires_none)
-}
-
-/** One of the header's two dates: a caption over a value, behind glass. */
-@Composable
-private fun HeaderCard(
-    icon: ImageVector,
-    caption: String,
-    value: String,
-    tint: Color,
-    m: ChannelsMetrics,
-    modifier: Modifier = Modifier,
-) {
-    val colors = CastivioTheme.colors
-    val shape = RoundedCornerShape(m.previewRadius)
-    Row(
-        modifier
-            .clip(shape)
-            .background(colors.glassFill)
-            .border(1.dp, colors.glassBorderSoft, shape)
-            .padding(horizontal = m.rowPadH, vertical = m.badgePadV),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(m.osdGap),
-    ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(Sizing.iconSm))
-        Column {
-            Text(
-                text = caption,
-                style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
-                color = colors.onBackgroundMuted,
-                maxLines = 1,
-            )
-            Text(
-                text = value,
-                style = castivioChipStyle(m.frame.fsBody),
-                color = tint,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
 }
 
 /**
@@ -417,10 +399,8 @@ private fun Board(
     m: ChannelsMetrics,
     model: BrowseViewModel,
     previewModel: ChannelsViewModel,
-    actions: BoardActions,
     onPlay: (CatalogSelection) -> Unit,
     onSearch: () -> Unit,
-    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
@@ -477,11 +457,9 @@ private fun Board(
                     m = m,
                     model = model,
                     previewModel = previewModel,
-                    actions = actions,
-                    onPlay = onPlay,
+                        onPlay = onPlay,
                     onSearch = onSearch,
-                    onBack = onBack,
-                    modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f),
                 )
             }
         }
@@ -566,10 +544,8 @@ private fun Columns(
     m: ChannelsMetrics,
     model: BrowseViewModel,
     previewModel: ChannelsViewModel,
-    actions: BoardActions,
     onPlay: (CatalogSelection) -> Unit,
     onSearch: () -> Unit,
-    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val rows = model.items.collectAsLazyPagingItems()
@@ -579,23 +555,6 @@ private fun Columns(
         LocalLayoutDirection provides LayoutDirection.Ltr,
     ) {
         Row(modifier.fillMaxWidth()) {
-            ActionRail(
-                favorite = shown.favorite,
-                canPlay = shown.channel != null,
-                actions = actions,
-                m = m,
-                // The same conversion a press on the row uses, not a second one. A
-                // channel the catalogue cannot turn into a stream opens nothing here for
-                // exactly the reason it opens nothing there.
-                onFullscreen = { shown.channel?.asSelection()?.let(onPlay) },
-                onFavorite = previewModel::toggleFavorite,
-                onSort = { model.sortBy(state.sort.next()) },
-                onRefresh = { model.retryFetch(force = true) },
-                modifier = Modifier.width(m.actions).fillMaxHeight(),
-            )
-
-            Spacer(Modifier.width(m.railGap))
-
             CategoryRail(
                 state = state,
                 m = m,
@@ -642,132 +601,6 @@ private fun Reading(content: @Composable () -> Unit) =
     CompositionLocalProvider(LocalLayoutDirection provides LocalReadingDirection.current, content = content)
 
 /* --------------------------------------------------------------- the actions */
-
-/**
- * The strip of actions at the leading edge, in the reference's order.
- *
- * ## Nine circles, where the reference draws ten
- *
- * Home, full screen, favourites, search, sort, settings, language, information and exit.
- * Every one of them goes somewhere the shell already owns and Home already opens — the
- * strip drew six for a while because the last four had never been passed to *this*
- * screen, which is a wiring gap and not a missing feature.
- *
- * The tenth is a **parental lock**, and it is the one that is genuinely not here: nothing
- * in Castivio locks a channel, a category or the app, so the circle would answer a press
- * with nothing. It is left unspent rather than drawn. A control that does nothing teaches
- * a viewer the strip is decorative, and then they stop pressing the ones that work — and
- * a lock in particular is a promise about somebody's children that this app cannot keep.
- * The cell takes its place the day there is something behind it, without the strip
- * moving.
- *
- * ## What each one does
- *
- * | circle | behaviour |
- * |---|---|
- * | home | leaves the board, the same event the red key sends |
- * | full screen | opens the focused channel in the player |
- * | favourites | toggles the focused channel, from `FavoritesRepository` |
- * | search | the catalogue-wide search screen |
- * | sort | cycles `SortOrder`, which re-reads the pager |
- * | settings | the settings screen |
- * | language | the language picker |
- * | information | the licence and device screen, as Home's About opens |
- * | exit | leaves Castivio, through the shell's own confirmation |
- *
- * Refresh sits alone at the foot, away from the nine: it is the only one that changes
- * the catalogue rather than where the viewer is, and a forced re-import pressed by
- * accident costs a real wait.
- */
-@Composable
-private fun ActionRail(
-    favorite: Boolean,
-    canPlay: Boolean,
-    actions: BoardActions,
-    m: ChannelsMetrics,
-    onFullscreen: () -> Unit,
-    onFavorite: () -> Unit,
-    onSort: () -> Unit,
-    onRefresh: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val colors = CastivioTheme.colors
-    Column(
-        modifier
-            .clip(RoundedCornerShape(m.wellRadius))
-            .background(colors.glassFill)
-            .padding(vertical = m.actionsGap),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(m.actionsGap),
-    ) {
-        ActionDot(Icons.Rounded.Menu, stringResource(R.string.channels_key_back), m, false, actions.onHome)
-        // Absent rather than inert while nothing is focused: there is no channel to
-        // open, and a circle drawn but ignoring a press is what the note above is about.
-        if (canPlay) {
-            ActionDot(
-                Icons.Rounded.Fullscreen,
-                stringResource(R.string.channels_action_fullscreen),
-                m,
-                false,
-                onFullscreen,
-            )
-        }
-        ActionDot(
-            icon = if (favorite) Icons.Rounded.Star else Icons.Rounded.StarBorder,
-            label = stringResource(
-                if (favorite) R.string.channels_key_unfavorite else R.string.channels_key_favorite,
-            ),
-            m = m,
-            on = favorite,
-            onClick = onFavorite,
-        )
-        ActionDot(Icons.Rounded.Search, stringResource(R.string.channels_search_hint), m, false, actions.onSearch)
-        ActionDot(Icons.Rounded.Sort, stringResource(R.string.channels_action_sort), m, false, onSort)
-        ActionDot(Icons.Rounded.Settings, stringResource(R.string.home_settings), m, false, actions.onSettings)
-        ActionDot(Icons.Rounded.Translate, stringResource(R.string.home_language), m, false, actions.onLanguage)
-        ActionDot(Icons.Rounded.Info, stringResource(R.string.home_about), m, false, actions.onAbout)
-        ActionDot(
-            Icons.Rounded.PowerSettingsNew,
-            stringResource(R.string.home_exit),
-            m,
-            false,
-            actions.onExit,
-        )
-        Spacer(Modifier.weight(1f))
-        ActionDot(Icons.Rounded.Refresh, stringResource(R.string.channels_action_refresh), m, false, onRefresh)
-    }
-}
-
-@Composable
-private fun ActionDot(
-    icon: ImageVector,
-    label: String,
-    m: ChannelsMetrics,
-    on: Boolean,
-    onClick: () -> Unit,
-) {
-    val colors = CastivioTheme.colors
-    val (focused, focusModifier) = rememberFocusFlag()
-    val interaction = remember { MutableInteractionSource() }
-
-    Box(
-        Modifier
-            .size(m.actionDot)
-            .clip(RoundedCornerShape(Radius.pill))
-            .background(if (on) colors.secondary else colors.glassFill)
-            .border(1.dp, if (focused) colors.focusRing else colors.glassBorderSoft, RoundedCornerShape(Radius.pill))
-            .then(focusModifier)
-            .clickable(interaction, indication = null, onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            icon,
-            contentDescription = label,
-            tint = if (on) colors.onSecondary else colors.onBackgroundVariant,
-            modifier = Modifier.size(Sizing.iconMd),
-        )
-    }
-}
 
 /* ----------------------------------------------------------------- the rail */
 
@@ -1563,118 +1396,6 @@ private fun Badge(
     }
 }
 
-/* --------------------------------------------------------------- the remote */
-
-/**
- * What the coloured keys do, as the reference states them.
- *
- * A legend rather than a control strip: these are what the **remote's** keys do, and a
- * legend that also accepted focus would put four more stops between a viewer and the
- * list. The one exception is back, which a thumb has no key for — so it is pressable
- * and nothing else here is.
- */
-@Composable
-private fun RemoteBar(m: ChannelsMetrics, favorite: Boolean, onBack: () -> Unit) {
-    val colors = CastivioTheme.colors
-    val shape = RoundedCornerShape(m.wellRadius)
-
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .height(m.remote)
-            .clip(shape)
-            .background(colors.glassFill)
-            .border(1.dp, colors.glassBorderSoft, shape)
-            .padding(horizontal = m.remoteGapInner),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(m.remoteGapInner),
-    ) {
-        RemoteKey(
-            dot = colors.danger,
-            label = stringResource(R.string.channels_key_back),
-            m = m,
-            onClick = onBack,
-        )
-        RemoteKey(dot = colors.success, label = stringResource(R.string.channels_key_options), m = m)
-        RemoteKey(dot = colors.warning, label = stringResource(R.string.channels_key_sort), m = m)
-        RemoteKey(
-            dot = colors.primary,
-            label = stringResource(
-                if (favorite) R.string.channels_key_unfavorite else R.string.channels_key_favorite,
-            ),
-            m = m,
-        )
-
-        NamedKey(name = stringResource(R.string.channels_key_info_name),
-            label = stringResource(R.string.channels_key_info), m = m)
-        NamedKey(name = stringResource(R.string.channels_key_menu_name),
-            label = stringResource(R.string.channels_key_menu), m = m)
-
-        Spacer(Modifier.weight(1f))
-
-        Icon(
-            Icons.Rounded.Menu,
-            contentDescription = null,
-            tint = colors.onBackgroundMuted,
-            modifier = Modifier.size(Sizing.iconMd),
-        )
-    }
-}
-
-@Composable
-private fun RemoteKey(
-    dot: Color,
-    label: String,
-    m: ChannelsMetrics,
-    onClick: (() -> Unit)? = null,
-) {
-    val colors = CastivioTheme.colors
-    Row(
-        Modifier
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(vertical = m.badgePadV),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(m.factGap),
-    ) {
-        Box(Modifier.size(m.remoteDot).clip(RoundedCornerShape(Radius.pill)).background(dot))
-        Text(
-            text = label,
-            style = castivioChipStyle(m.frame.fsChip),
-            color = colors.onBackground,
-            maxLines = 1,
-        )
-    }
-}
-
-@Composable
-private fun NamedKey(name: String, label: String, m: ChannelsMetrics) {
-    val colors = CastivioTheme.colors
-    val shape = RoundedCornerShape(m.previewRadius / 2)
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(m.factGap),
-    ) {
-        Box(
-            Modifier
-                .clip(shape)
-                .border(1.dp, colors.edgeQuiet, shape)
-                .padding(horizontal = m.remoteKeyPadH, vertical = m.remoteKeyPadV),
-        ) {
-            Text(
-                text = name,
-                style = castivioBodyStyle(m.frame.fsBody),
-                color = colors.onBackground,
-                maxLines = 1,
-            )
-        }
-        Text(
-            text = label,
-            style = castivioChipStyle(m.frame.fsChip),
-            color = colors.onBackground,
-            maxLines = 1,
-        )
-    }
-}
 
 /* --------------------------------------------------------------- the pieces */
 
@@ -1788,8 +1509,14 @@ private const val LOGO_OF_ROW = 28f / 68f
  */
 private const val QUALITY_OF_BODY = 0.84f
 
-/** The mark's height inside the header band. */
-private const val MARK_OF_HEADER = 0.68f
+/** The mark's height inside the band. Nearly the whole of it: it is the mark. */
+private const val MARK_OF_HEADER = 0.92f
 
 /** The header's and the rail's second line, against the frame's body step. */
 private const val LEGEND_OF_BODY = 0.88f
+
+/** The field's height inside the band. */
+private const val FIELD_OF_HEADER = 0.62f
+
+/** `16-09-25`: two digits a field, hyphens, shortest year. */
+private const val SHORT_DATE = "dd-MM-yy"

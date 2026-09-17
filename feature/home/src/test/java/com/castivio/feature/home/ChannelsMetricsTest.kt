@@ -2,7 +2,6 @@ package com.castivio.feature.home
 
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.castivio.core.design.theme.Sizing
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -42,15 +41,9 @@ class ChannelsMetricsTest {
      * over it and take the density with them.
      */
     @Test
-    fun `the strip keeps the target floor and the rows keep the list floor`() {
+    fun `the rows keep the list floor`() {
         sweep { tv, width, height ->
             val m = channelsMetricsFor(tv, width, height)
-            val floor = Sizing.minTarget(tv)
-            assertTrue(
-                "the action strip ${m.actions} is under the ${if (tv) "D-pad" else "thumb"} " +
-                    "floor $floor at ${width}x$height",
-                m.actions >= floor,
-            )
             assertTrue(
                 "a channel row is ${m.rowMin} at ${width}x$height, under the list floor",
                 m.rowMin >= LIST_ROW_FLOOR,
@@ -198,8 +191,9 @@ class ChannelsMetricsTest {
                 "panelPad" to m.panelPad, "panelRadius" to m.panelRadius,
                 "rail" to m.rail, "railGap" to m.railGap,
                 "player" to m.player, "playerGap" to m.playerGap, "rowPadH" to m.rowPadH,
+                "search" to m.search,
                 "numberWidth" to m.numberWidth, "logoWidth" to m.logoWidth,
-                "wellPad" to m.wellPad, "factChip" to m.factChip, "remoteDot" to m.remoteDot,
+                "wellPad" to m.wellPad, "factChip" to m.factChip,
             ).forEach { (name, value) ->
                 assertTrue("$name is $value at ${width}x$height", value > 0.dp)
                 assertTrue("$name is $value, wider than the surface", value <= width)
@@ -235,7 +229,7 @@ class ChannelsMetricsTest {
         assertNear("logoWidth", 1280f * 60f / 2340f, m.logoWidth)
 
         assertNear("header", 720f * 76f / 1080f, m.header)
-        assertNear("remote", 720f * 40f / 1080f, m.remote)
+        assertNear("search", 1280f * 520f / 2340f, m.search)
         assertNear("headerGap", 720f * 8f / 1080f, m.headerGap)
         assertNear("railMin", 720f * 100f / 1080f, m.railMin)
         assertNear("rowMin", 720f * 70f / 1080f, m.rowMin)
@@ -257,7 +251,7 @@ class ChannelsMetricsTest {
     fun `the channel name keeps the majority of its row`() {
         sweep(from = SHIPPING_WIDTH) { tv, width, height ->
             val m = channelsMetricsFor(tv, width, height)
-            val list = width - (m.edge * 2 + m.panelPad * 2 + m.actions + m.rail + m.railGap + m.player + m.playerGap)
+            val list = width - (m.edge * 2 + m.panelPad * 2 + m.rail + m.railGap + m.player + m.playerGap)
             // Everything in the row that is not the name: the padding at both ends, the
             // logo, the number plate, and a gap on each side of the name.
             val furniture = m.rowPadH * 4 + m.logoWidth + m.numberWidth
