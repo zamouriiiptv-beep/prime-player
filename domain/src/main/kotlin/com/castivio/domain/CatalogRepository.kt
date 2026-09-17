@@ -23,6 +23,21 @@ interface CatalogRepository {
     /** Full-text search over an FTS index — never a LIKE scan. */
     suspend fun search(query: String, limit: Int = 60): List<MediaItem>
 
+    /**
+     * The same search, restricted to one kind.
+     *
+     * Not a filter applied to the result of the unrestricted search: the limit is part
+     * of the query, so searching everything and discarding the films afterwards returns
+     * whatever handful of channels happened to be in the first sixty rows. The
+     * restriction belongs in the index, and `media_fts` is already joined against
+     * `media.kind` for exactly this.
+     *
+     * It exists because the Channels board's field says **Search channels** and has to
+     * mean it: a viewer who types "sport" there is looking for a channel, and answering
+     * with films is answering a question they did not ask.
+     */
+    suspend fun search(query: String, kind: MediaKind, limit: Int = 60): List<MediaItem>
+
     /** Row counts for headers, answered by SQL COUNT rather than by loading. */
     fun count(kind: MediaKind, groupId: String? = null): Flow<Int>
 

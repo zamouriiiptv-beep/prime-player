@@ -95,8 +95,12 @@ fun BrowseScreen(
      * be a second search — a second query, a second debounce, a second set of empty
      * states — beside the one `CatalogSearchScreen` already runs across the whole
      * catalogue. So the header carries the *way in* rather than the field: one press,
-     * one search, and the results still span every section, which is what someone
-     * typing a film name in Live TV actually wanted.
+     * one search, and the results span every section, which is what someone typing an
+     * actor's name in Movies wanted.
+     *
+     * Unrestricted, unlike the Channels board's field. That one is labelled **Search
+     * channels** and is answered with channels only; these three say **Search**, and a
+     * search that says nothing about its scope should not quietly have one.
      */
     onSearch: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -192,6 +196,12 @@ fun BrowseScreen(
  *
  * "All" is first and is a category like any other — a pane whose first entry is a
  * real group leaves no way back to the whole section without a second control.
+ *
+ * Its count is the *section's*, not the open category's: the row says "All", so the
+ * figure beside it has to be all of them — all the films in Movies, all the series in
+ * Series — and stay that figure while a category is chosen. It read `total`, which is the
+ * count the grid under it is showing, so choosing a category made the All row report that
+ * category's size. See `BrowseState.sectionTotal`.
  */
 @Composable
 private fun CategoryColumn(
@@ -210,7 +220,7 @@ private fun CategoryColumn(
         item(key = ALL_CATEGORIES) {
             CategoryEntry(
                 label = stringResource(R.string.browse_all_categories),
-                count = state.total,
+                count = state.sectionTotal,
                 selected = state.selectedGroup == null,
                 m = m,
                 onClick = { onChoose(null) },
@@ -240,7 +250,7 @@ private fun CategoryChips(state: BrowseState, m: CatalogMetrics, onChoose: (Stri
         item(key = ALL_CATEGORIES) {
             CategoryEntry(
                 label = stringResource(R.string.browse_all_categories),
-                count = state.total,
+                count = state.sectionTotal,
                 selected = state.selectedGroup == null,
                 m = m,
                 pill = true,

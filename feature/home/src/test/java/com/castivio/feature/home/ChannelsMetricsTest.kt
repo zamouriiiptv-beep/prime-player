@@ -170,12 +170,18 @@ class ChannelsMetricsTest {
      * Nine entries, and the rail is the column a viewer picks a bouquet from — a rail
      * showing three of a provider's four hundred categories is a scroll bar with a
      * decoration attached.
+     *
+     * The rail's own search field is paid for before the entries are counted. It sits
+     * above the list and costs about one entry, and counting from the whole column would
+     * report a rail one taller than the one that reaches the device — the same class of
+     * mistake as the header this file was rewritten over.
      */
     @Test
     fun `the rail shows as many categories as the reference`() {
         sweep(from = SHIPPING_WIDTH) { tv, width, height ->
             val m = channelsMetricsFor(tv, width, height)
-            val entries = (columnHeight(m, height) / (m.railMin + m.railEntryGap)).toInt()
+            val list = columnHeight(m, height) - railFieldHeight(m)
+            val entries = (list / (m.railMin + m.railEntryGap)).toInt()
             assertTrue("only $entries categories visible at ${width}x$height", entries >= MIN_RAIL_ENTRIES)
         }
     }
@@ -298,6 +304,17 @@ class ChannelsMetricsTest {
     /** What is left for the columns once [fixedHeight] is paid. */
     private fun columnHeight(m: ChannelsMetrics, height: Dp): Dp = height - fixedHeight(m)
 
+    /**
+     * What the rail spends above its list: the field, and the gap under it.
+     *
+     * The two shares here are `ChannelsScreen`'s own — `FIELD_OF_ROW` and the doubled
+     * `railEntryGap` — restated because they are private to that file. If either moves
+     * there and not here this test starts measuring a rail the screen no longer draws,
+     * which is the reason the numbers are named rather than inlined.
+     */
+    private fun railFieldHeight(m: ChannelsMetrics): Dp =
+        m.railMin * RAIL_FIELD_OF_ROW + m.railEntryGap * 2
+
     private fun assertNear(name: String, expected: Float, actual: Dp) {
         assertEquals(name, expected, actual.value, 0.01f)
     }
@@ -364,6 +381,9 @@ class ChannelsMetricsTest {
 
         /** The reference shows nine categories at once; the tightest shape holds seven. */
         const val MIN_RAIL_ENTRIES = 7
+
+        /** `ChannelsScreen.FIELD_OF_ROW`, which is private to that file. */
+        const val RAIL_FIELD_OF_ROW = 0.86f
 
         /** A list this product has to survive on, where the reference's density cannot fit. */
         const val MIN_ROWS_ANYWHERE = 9

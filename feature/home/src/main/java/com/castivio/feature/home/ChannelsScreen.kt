@@ -26,28 +26,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ChildCare
-import androidx.compose.material.icons.rounded.FormatListBulleted
 import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.Menu
-import androidx.compose.material.icons.rounded.MenuBook
-import androidx.compose.material.icons.rounded.Movie
-import androidx.compose.material.icons.rounded.MusicNote
-import androidx.compose.material.icons.rounded.Newspaper
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.Public
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.SportsSoccer
-import androidx.compose.material.icons.rounded.Star
-import androidx.compose.material.icons.rounded.StarBorder
-import androidx.compose.material.icons.rounded.TheaterComedy
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -59,9 +47,8 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -89,7 +76,6 @@ import com.castivio.core.design.theme.Sizing
 import com.castivio.core.platform.CastivioTrace
 import com.castivio.core.platform.PerformanceLog
 import com.castivio.domain.Channel
-import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaItem
 import com.castivio.domain.NowNext
 import com.castivio.domain.Programme
@@ -128,8 +114,7 @@ import com.castivio.core.design.R as DesignR
  * | `Total: n` per category | `MediaGroup.itemCount`, the denormalised column |
  * | `Total: n Channels` | an indexed `COUNT`, never a list measured |
  * | the guide, and the bar over the picture | `EpgRepository.programmes` for the selection |
- * | the star, and `Favorites` | `FavoritesRepository` |
- * | the header's clock, provider and status | `HomeViewModel`, as Home reads them |
+ * | the header's two expiry dates | `HomeViewModel`, as Home reads them |
  *
  * ## Two things the design shows that this deliberately does not invent
  *
@@ -138,8 +123,11 @@ import com.castivio.core.design.R as DesignR
  *     player has opened it and to nothing on a board that has opened nothing, so `Osd`
  *     prints the number alone.
  *  2. **The channel's logo.** `artwork_url` is imported and stored, but Castivio loads
- *     no images anywhere yet. [LogoTile] draws the deterministic placeholder the rest of
- *     the app already uses, so the same channel is always the same colour.
+ *     no images anywhere yet. So each row *reserves* the slot and draws nothing in it:
+ *     the geometry is already the geometry the pictures will land in, and a generated
+ *     coloured square is not the channel's logo — see `ChannelRow`. [LogoTile] still
+ *     stands in for the preview's own picture, where the alternative is an empty third
+ *     of the screen.
  */
 @Composable
 fun ChannelsScreen(
@@ -186,7 +174,6 @@ fun ChannelsScreen(
                 model = model,
                 previewModel = previewModel,
                 onPlay = onPlay,
-                onSearch = onSearch,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -238,24 +225,33 @@ private fun BoardHeader(home: HomeState, state: BrowseState, m: ChannelsMetrics,
         Row(
             Modifier.fillMaxWidth().height(m.header),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(m.railGap),
         ) {
-            Image(
-                painter = painterResource(DesignR.drawable.castivio_logo),
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.height(m.header * MARK_OF_HEADER),
-            )
-            Text(
-                text = stringResource(R.string.gate_wordmark),
-                style = castivioTitleStyle(m.frame.fsLabel),
-                color = colors.onBackgroundStrong,
-                maxLines = 1,
-            )
+            // **Exactly as wide as the rail column beneath it.**
+            //
+            // Which is what puts the breadcrumb after it at the channel list's own
+            // leading edge -- directly above the slot each row reserves for a channel
+            // logo. It was sitting against the wordmark, and `Live TV` read as part of
+            // the product's name rather than as which section is open.
+            Row(
+                Modifier.width(m.rail + m.railGap),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(m.osdGap),
+            ) {
+                Image(
+                    painter = painterResource(DesignR.drawable.castivio_logo),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.height(m.header * MARK_OF_HEADER),
+                )
+                Text(
+                    text = stringResource(R.string.gate_wordmark),
+                    style = castivioTitleStyle(m.frame.fsLabel),
+                    color = colors.onBackgroundStrong,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
 
-            // Which section, and which category inside it — the reference's breadcrumb,
-            // and the reason this board has no toolbar: it was the only thing in that
-            // band the header could not already say.
             Column {
                 Text(
                     text = stringResource(R.string.browse_live),
@@ -279,25 +275,124 @@ private fun BoardHeader(home: HomeState, state: BrowseState, m: ChannelsMetrics,
             SearchField(m = m, onClick = onSearch)
             Spacer(Modifier.weight(1f))
 
-            Text(
-                text = stringResource(R.string.channels_server_expires, shortDate(home.subscription?.expiresAtMs)),
-                style = castivioChipStyle(m.frame.fsBody),
-                color = colors.secondary,
-                maxLines = 1,
-            )
-            Text(
-                text = "·",
-                style = castivioBodyStyle(m.frame.fsBody),
-                color = colors.onBackgroundMuted,
-                maxLines = 1,
-            )
-            Text(
-                text = stringResource(R.string.channels_app_expires, licenceExpiry(home.entitlement)),
-                style = castivioChipStyle(m.frame.fsBody),
-                color = colors.live,
-                maxLines = 1,
-            )
+            // **The clock belongs beside the expiry dates, not beside the mark.**
+            //
+            // All three answer *when*, and reading them as one cluster is easier than
+            // hunting for the time at the other end of the band. It exists again at all
+            // because the app hides the system bars: nothing else on the screen can tell
+            // a viewer the time now.
+            BoardClock(m)
+
+            Spacer(Modifier.width(m.railGap))
+
+            Column(horizontalAlignment = Alignment.Start) {
+                Text(
+                    text = stringResource(
+                        R.string.channels_server_expires,
+                        shortDate(home.subscription?.expiresAtMs),
+                    ),
+                    style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
+                    color = colors.secondary,
+                    maxLines = 1,
+                )
+                Text(
+                    text = stringResource(R.string.channels_app_expires, licenceExpiry(home.entitlement)),
+                    style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
+                    color = colors.live,
+                    maxLines = 1,
+                )
+            }
         }
+    }
+}
+
+/**
+ * The time, and today's date under it.
+ *
+ * Both isolated and both in the header's own fixed shape — see [shortDate] for why a
+ * token on this band does not follow the reader's date convention, and [ltrToken] for
+ * the directional marks that made an earlier attempt at this read backwards.
+ */
+@Composable
+private fun BoardClock(m: ChannelsMetrics) {
+    val colors = CastivioTheme.colors
+    val now = rememberMinute()
+    val time = remember(now) {
+        ltrToken(SimpleDateFormat(CLOCK_TIME, Locale.ROOT).format(Date(now)))
+    }
+    val day = remember(now) {
+        ltrToken(SimpleDateFormat(SHORT_DATE, Locale.ROOT).format(Date(now)))
+    }
+    Column(horizontalAlignment = Alignment.End) {
+        Text(
+            text = time,
+            style = castivioTitleStyle(m.frame.fsLabel),
+            color = colors.onBackgroundStrong,
+            maxLines = 1,
+        )
+        Text(
+            text = day,
+            style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
+            color = colors.onBackgroundMuted,
+            maxLines = 1,
+        )
+    }
+}
+
+/**
+ * The rail's own field: a real one, because it filters a list already in memory.
+ *
+ * Unlike the header's — which is a way in to the search screen because a text field a
+ * remote can focus is a trap, and because searching 400,000 rows belongs on a screen of
+ * its own — this one types into a few hundred names the holder is already holding. There
+ * is nothing to navigate to and nothing to debounce against a database, so it is the
+ * field itself.
+ */
+@Composable
+private fun RailSearch(text: String, m: ChannelsMetrics, onType: (String) -> Unit) {
+    val colors = CastivioTheme.colors
+    val (focused, focusModifier) = rememberFocusFlag()
+    val shape = RoundedCornerShape(Radius.pill)
+
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(m.railMin * FIELD_OF_ROW)
+            .clip(shape)
+            .background(colors.glassFill)
+            .border(1.dp, if (focused) colors.focusRing else colors.glassBorderSoft, shape)
+            .padding(horizontal = m.rowPadH),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(m.factGap),
+    ) {
+        Icon(
+            Icons.Rounded.Search,
+            contentDescription = null,
+            tint = colors.onBackgroundMuted,
+            modifier = Modifier.size(Sizing.iconSm),
+        )
+        BasicTextField(
+            value = text,
+            onValueChange = onType,
+            singleLine = true,
+            textStyle = castivioBodyStyle(m.frame.fsBody).copy(color = colors.onBackground),
+            cursorBrush = SolidColor(colors.secondary),
+            modifier = Modifier.weight(1f).then(focusModifier),
+            decorationBox = { field ->
+                // The placeholder is drawn under the field rather than inside it, so an
+                // empty box says what it is for without the hint becoming the value.
+                if (text.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.channels_rail_search),
+                        style = castivioBodyStyle(m.frame.fsBody),
+                        color = colors.onBackgroundMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                field()
+            },
+        )
     }
 }
 
@@ -400,7 +495,6 @@ private fun Board(
     model: BrowseViewModel,
     previewModel: ChannelsViewModel,
     onPlay: (CatalogSelection) -> Unit,
-    onSearch: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
@@ -457,9 +551,8 @@ private fun Board(
                     m = m,
                     model = model,
                     previewModel = previewModel,
-                        onPlay = onPlay,
-                    onSearch = onSearch,
-                        modifier = Modifier.weight(1f),
+                    onPlay = onPlay,
+                    modifier = Modifier.weight(1f),
                 )
             }
         }
@@ -518,21 +611,29 @@ private fun FetchNotice(
     }
 }
 
-/** The rail, the list and the player well, in the reference's proportions. */
 /**
- * The four tracks, in one physical order in every language.
+ * The three columns, in one physical order in every language — and so is everything
+ * inside them.
  *
  * ## Why this board does not mirror
  *
- * The fourth track is **video**, and video does not mirror. A viewer who switches the
+ * The third column is **video**, and video does not mirror. A viewer who switches the
  * interface to Arabic has not moved their television, and finding the picture on the
  * other side of the screen is a worse answer than reading a channel list left to right.
  * The approved design says so explicitly and shows both directions side by side.
  *
- * So the arrangement is pinned to [LayoutDirection.Ltr] and the reading direction is
- * carried past it in [LocalReadingDirection], which every cell restores before it draws
- * anything. Names right-align, rows reverse, the selected row's edge bar moves to the
- * trailing side — and the columns stay where they are.
+ * ## It is the whole board, not only the arrangement
+ *
+ * The first attempt pinned the columns and then carried the reader's own direction past
+ * the pin, restoring it inside each cell — so the boxes stayed put while the text in them
+ * right-aligned in Arabic. That is a third layout: neither the mirrored screen the
+ * platform would give nor the screen every other language gets, and on the device the
+ * category names started at the far side of the rail from where the drawing puts them.
+ *
+ * The approved behaviour is simpler and is what this now does: one direction for the
+ * board, in all thirty-seven languages. Nothing moves, and what a script shapes is the
+ * order of glyphs inside a line — which the text engine does on its own, from the text,
+ * without a layout direction to help it.
  *
  * This is a deliberate, single exception to invariant 9, scoped to this composable.
  * Nothing else in Castivio opts out of mirroring and nothing here makes it easier to.
@@ -545,20 +646,17 @@ private fun Columns(
     model: BrowseViewModel,
     previewModel: ChannelsViewModel,
     onPlay: (CatalogSelection) -> Unit,
-    onSearch: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val rows = model.items.collectAsLazyPagingItems()
 
-    CompositionLocalProvider(
-        LocalReadingDirection provides LocalLayoutDirection.current,
-        LocalLayoutDirection provides LayoutDirection.Ltr,
-    ) {
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Row(modifier.fillMaxWidth()) {
             CategoryRail(
                 state = state,
                 m = m,
                 onChoose = model::choose,
+                onFilter = model::filterGroups,
                 onRefresh = { model.retryFetch(force = true) },
                 modifier = Modifier.width(m.rail).fillMaxHeight(),
             )
@@ -578,27 +676,12 @@ private fun Columns(
 
             PlayerWell(
                 shown = shown,
-                state = state,
                 m = m,
                 modifier = Modifier.width(m.player).fillMaxHeight(),
             )
         }
     }
 }
-
-/**
- * The app's real reading direction, carried past the board's pinned arrangement.
- *
- * Read in [Columns] *before* the arrangement is pinned, and restored by [Reading] inside
- * every cell. A cell that forgets to restore it draws Arabic left-aligned, which is the
- * one way this exception could leak into the product.
- */
-private val LocalReadingDirection = compositionLocalOf { LayoutDirection.Ltr }
-
-/** Restores the reading direction for one cell's contents. See [Columns]. */
-@Composable
-private fun Reading(content: @Composable () -> Unit) =
-    CompositionLocalProvider(LocalLayoutDirection provides LocalReadingDirection.current, content = content)
 
 /* --------------------------------------------------------------- the actions */
 
@@ -617,49 +700,65 @@ private fun CategoryRail(
     state: BrowseState,
     m: ChannelsMetrics,
     onChoose: (String?) -> Unit,
+    onFilter: (String) -> Unit,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    LazyColumn(
-        state = rememberLazyListState(),
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(m.railEntryGap),
-    ) {
-        item(key = RAIL_ALL) {
-            RailEntry(
-                icon = Icons.Rounded.FormatListBulleted,
-                label = stringResource(R.string.channels_all_rail),
-                count = state.total,
-                selected = state.selectedGroup == null,
-                m = m,
-                onClick = { onChoose(null) },
-            )
-        }
-        item(key = RAIL_FAVORITES) {
-            RailEntry(
-                icon = Icons.Rounded.StarBorder,
-                label = stringResource(R.string.channels_favorites),
-                // Real, from `FavoritesRepository.count()` by way of the shell — see
-                // the note on `ChannelsScreen`. Null until the first answer arrives,
-                // which draws no digit rather than a zero that would read as "none".
-                count = null,
-                selected = false,
-                m = m,
-                onClick = { },
-            )
-        }
-        item(key = RAIL_RECENT) {
-            RailEntry(
-                icon = Icons.Rounded.History,
-                label = stringResource(R.string.channels_recent),
-                count = null,
-                selected = false,
-                m = m,
-                onClick = { },
-            )
-        }
+    Column(modifier) {
+        // **The rail's own field.** It filters the categories in this column and nothing
+        // else: a provider with four hundred bouquets is a column nobody scrolls to the
+        // end of, and the field is how a viewer reaches "SPORT" without passing 300
+        // others. Filtered in the holder, not here -- see `BrowseState.groupFilter`.
+        RailSearch(text = state.groupFilter, m = m, onType = onFilter)
 
-        item(key = RAIL_DIVIDER) { RailDivider(m) }
+        Spacer(Modifier.height(m.railEntryGap * 2))
+
+        LazyColumn(
+            state = rememberLazyListState(),
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(m.railEntryGap),
+        ) {
+            item(key = RAIL_ALL) {
+                RailEntry(
+                    label = stringResource(R.string.channels_all_rail),
+                    // **The section's own count, not the open query's.**
+                    //
+                    // This read the same `total` the list under it reads, which is the
+                    // count of the *selected* category -- so choosing SPORT made the
+                    // All row report SPORT's size, and the one figure on the board that
+                    // is supposed to say how many channels the subscription carries
+                    // agreed with whichever bouquet happened to be open. It reads
+                    // `sectionTotal` now: a second indexed COUNT, over the kind with no
+                    // group filter, so the row means the same thing whatever is chosen.
+                    count = state.sectionTotal,
+                    selected = state.selectedGroup == null,
+                    m = m,
+                    onClick = { onChoose(null) },
+                )
+            }
+            item(key = RAIL_FAVORITES) {
+                RailEntry(
+                    label = stringResource(R.string.channels_favorites),
+                    // Real, from `FavoritesRepository.count()` by way of the shell — see
+                    // the note on `ChannelsScreen`. Null until the first answer arrives,
+                    // which draws no digit rather than a zero that would read as "none".
+                    count = null,
+                    selected = false,
+                    m = m,
+                    onClick = { },
+                )
+            }
+            item(key = RAIL_RECENT) {
+                RailEntry(
+                    label = stringResource(R.string.channels_recent),
+                    count = null,
+                    selected = false,
+                    m = m,
+                    onClick = { },
+                )
+            }
+
+            item(key = RAIL_DIVIDER) { RailDivider(m) }
 
         // **A provider with no categories says so.**
         //
@@ -673,32 +772,33 @@ private fun CategoryRail(
         // in either case: a forced re-import. A playlist with no `group-title` comes
         // back the same way and the line stands; a catalogue that lost its groups comes
         // back with them. It is the same call the strip's refresh makes.
-        if (state.groups.isEmpty() && state.fetch !is SectionLoad.Failed) {
-            item(key = RAIL_EMPTY) { RailEmpty(m = m, onRefresh = onRefresh) }
-        }
+            if (state.groups.isEmpty() && state.fetch !is SectionLoad.Failed) {
+                item(key = RAIL_EMPTY) { RailEmpty(m = m, onRefresh = onRefresh) }
+            }
 
-        items(state.groups, key = { it.id }) { group ->
-            RailEntry(
-                icon = group.icon(),
-                label = group.name,
-                // The denormalised column, read rather than counted. `RoomCatalogWriter`
-                // has filled `item_count` at the end of every import since the schema
-                // existed, and until `MediaGroup` carried it the rail had nowhere to
-                // read it from -- so the value was written for nobody and the reference's
-                // "Total: N" could not be drawn. It is one field on a list of hundreds,
-                // not a query per row.
-                count = group.itemCount,
-                selected = group.id == state.selectedGroup,
-                m = m,
-                onClick = { onChoose(group.id) },
-            )
+            // The filtered list, so the field actually does something; `groups` stays
+            // whole for the rows that look a category's name up by id.
+            items(state.shownGroups, key = { it.id }) { group ->
+                RailEntry(
+                    label = group.name,
+                    // The denormalised column, read rather than counted.
+                    // `RoomCatalogWriter` has filled `item_count` at the end of every
+                    // import since the schema existed, and until `MediaGroup` carried it
+                    // the rail had nowhere to read it from -- so the value was written
+                    // for nobody and the reference's "Total: N" could not be drawn. It
+                    // is one field on a list of hundreds, not a query per row.
+                    count = group.itemCount,
+                    selected = group.id == state.selectedGroup,
+                    m = m,
+                    onClick = { onChoose(group.id) },
+                )
+            }
         }
     }
 }
 
 @Composable
 private fun RailEntry(
-    icon: ImageVector,
     label: String,
     count: Int?,
     selected: Boolean,
@@ -736,29 +836,26 @@ private fun RailEntry(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(m.rowPadH),
     ) {
-        Icon(icon, contentDescription = null, tint = ink, modifier = Modifier.size(Sizing.iconMd))
-        Reading {
-            Column(Modifier.weight(1f)) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = label,
+                style = castivioChipStyle(m.frame.fsLabel),
+                color = ink,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            // The reference's second line. Absent rather than zero for the entries
+            // that are not categories -- "Favourites: 0" before anything has been
+            // favourited is a true sentence nobody needs, and the count for those
+            // comes from a different store anyway.
+            if (count != null) {
                 Text(
-                    text = label,
-                    style = castivioChipStyle(m.frame.fsLabel),
-                    color = ink,
+                    text = stringResource(R.string.channels_rail_total, formatCount(count)),
+                    style = castivioBodyStyle(m.frame.fsBody),
+                    color = if (selected) ink else colors.onBackgroundMuted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                // The reference's second line. Absent rather than zero for the entries
-                // that are not categories -- "Favourites: 0" before anything has been
-                // favourited is a true sentence nobody needs, and the count for those
-                // comes from a different store anyway.
-                if (count != null) {
-                    Text(
-                        text = stringResource(R.string.channels_rail_total, formatCount(count)),
-                        style = castivioBodyStyle(m.frame.fsBody),
-                        color = if (selected) ink else colors.onBackgroundMuted,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
             }
         }
     }
@@ -887,7 +984,6 @@ private fun ChannelList(
                     // one-based. See `ChannelsViewModel.position` for why it is not read
                     // off the channel.
                     number = index + 1,
-                    seed = index,
                     m = m,
                     onFocused = { onSelect(channel, index + 1) },
                     onClick = { channel.asSelection()?.let(onPlay) },
@@ -902,7 +998,6 @@ private fun ChannelList(
 private fun ChannelRow(
     channel: Channel,
     number: Int,
-    seed: Int,
     m: ChannelsMetrics,
     onFocused: () -> Unit,
     onClick: () -> Unit,
@@ -932,11 +1027,21 @@ private fun ChannelRow(
     ) {
         val ink = if (focused) colors.onSecondary else colors.onBackground
 
-        LogoTile(
-            initials = initialsOf(channel.title),
-            seed = seed,
-            modifier = Modifier.width(m.logoWidth).height(m.rowMin * LOGO_OF_ROW),
-        )
+        // **The logo's slot, held open and drawn empty.**
+        //
+        // This was a coloured tile carrying the channel's initials, and the tile was
+        // standing in for something real: every provider ships a `tvg-logo` per channel
+        // and `Channel.logoUrl` already carries it. A generated square is not that
+        // picture, and leaving it there would have meant shipping a placeholder — so it
+        // is gone, and the space it occupied is reserved rather than reclaimed.
+        //
+        // Reserved, because the row's geometry has to be the one the logos will land in.
+        // If the name took this width now, every row on the board would shift sideways
+        // the day the images start loading, and the column widths, the plate's position
+        // and the metrics' assertions would all be measuring a layout that is about to
+        // change. An empty slot of exactly the right size is what makes loading the
+        // images an image change rather than a layout change.
+        Spacer(Modifier.width(m.logoWidth).height(m.rowMin * LOGO_OF_ROW))
 
         // **The name takes the row.**
         //
@@ -1021,11 +1126,17 @@ private fun NumberPlate(label: String, focused: Boolean, m: ChannelsMetrics) {
  * Everything in it is either real or absent. There is no invented programme, no
  * invented artwork and no invented duration — an absent guide draws the reference's own
  * "No Information" and an absent channel draws nothing at all.
+ *
+ * ## The provider's name is not one of them
+ *
+ * It used to close the column. It came off because it is the one line here that says
+ * nothing about what is playing: the viewer chose the provider, there is exactly one of
+ * it, and repeating its name under every channel they ever select spends the bottom of
+ * the well on a constant. What the space is for is the guide, which now has all of it.
  */
 @Composable
 private fun PlayerWell(
     shown: ChannelPreview,
-    state: BrowseState,
     m: ChannelsMetrics,
     modifier: Modifier = Modifier,
 ) {
@@ -1115,19 +1226,6 @@ private fun PlayerWell(
             }
         }
 
-        Spacer(Modifier.height(m.guideGap))
-
-        // The provider. It is the one fact this column has room for that the board does
-        // not state anywhere else, and it is real.
-        state.providerLabel?.let { provider ->
-            Text(
-                text = provider,
-                style = castivioBodyStyle(m.frame.fsBody),
-                color = colors.onBackgroundMuted,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
     }
 }
 
@@ -1164,61 +1262,59 @@ private fun Osd(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(m.osdGap),
     ) {
-        Reading {
-            Column(Modifier.weight(1f)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(m.osdGap / 2),
-                ) {
-                    // **LIVE, and it means it.** Live television is the one thing this
-                    // board shows, so the badge is a statement about the section rather
-                    // than a per-channel claim nothing could back -- which is exactly
-                    // why it is drawn here and not, say, from a guide that may be absent.
-                    LiveBadge(m)
+        Column(Modifier.weight(1f)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(m.osdGap / 2),
+            ) {
+                // **LIVE, and it means it.** Live television is the one thing this
+                // board shows, so the badge is a statement about the section rather
+                // than a per-channel claim nothing could back -- which is exactly
+                // why it is drawn here and not, say, from a guide that may be absent.
+                LiveBadge(m)
+                Text(
+                    text = titleWithoutQuality(channel.title),
+                    style = castivioTitleStyle(m.fsChannelName),
+                    color = colors.onBackgroundStrong,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                qualityOf(channel.title)?.let {
                     Text(
-                        text = titleWithoutQuality(channel.title),
-                        style = castivioTitleStyle(m.fsChannelName),
-                        color = colors.onBackgroundStrong,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
-                    qualityOf(channel.title)?.let {
-                        Text(
-                            text = it.label,
-                            style = castivioBodyStyle(m.frame.fsBody * QUALITY_OF_BODY),
-                            color = colors.secondary,
-                            maxLines = 1,
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(m.nameGap / 2))
-                Track(fraction = guide?.progressAt(System.currentTimeMillis()), m = m)
-                Spacer(Modifier.height(m.nameGap / 2))
-
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(
-                        text = programme?.startMs?.let(::clockLabel).orEmpty(),
-                        style = castivioBodyStyle(m.frame.fsBody),
-                        color = colors.onBackgroundVariant,
-                        maxLines = 1,
-                    )
-                    Text(
-                        text = programme?.title ?: stringResource(R.string.channels_no_information),
-                        style = castivioBodyStyle(m.frame.fsBody),
-                        color = colors.onBackgroundVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false).padding(horizontal = m.osdGap),
-                    )
-                    Text(
-                        text = programme?.stopMs?.let(::clockLabel).orEmpty(),
-                        style = castivioBodyStyle(m.frame.fsBody),
-                        color = colors.onBackgroundVariant,
+                        text = it.label,
+                        style = castivioBodyStyle(m.frame.fsBody * QUALITY_OF_BODY),
+                        color = colors.secondary,
                         maxLines = 1,
                     )
                 }
+            }
+
+            Spacer(Modifier.height(m.nameGap / 2))
+            Track(fraction = guide?.progressAt(System.currentTimeMillis()), m = m)
+            Spacer(Modifier.height(m.nameGap / 2))
+
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(
+                    text = programme?.startMs?.let(::clockLabel).orEmpty(),
+                    style = castivioBodyStyle(m.frame.fsBody),
+                    color = colors.onBackgroundVariant,
+                    maxLines = 1,
+                )
+                Text(
+                    text = programme?.title ?: stringResource(R.string.channels_no_information),
+                    style = castivioBodyStyle(m.frame.fsBody),
+                    color = colors.onBackgroundVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false).padding(horizontal = m.osdGap),
+                )
+                Text(
+                    text = programme?.stopMs?.let(::clockLabel).orEmpty(),
+                    style = castivioBodyStyle(m.frame.fsBody),
+                    color = colors.onBackgroundVariant,
+                    maxLines = 1,
+                )
             }
         }
 
@@ -1265,74 +1361,72 @@ private fun GuideEntry(
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(m.previewRadius)
 
-    Reading {
-        Column(
-            modifier
-                .fillMaxWidth()
-                .clip(shape)
-                .background(if (now) colors.secondaryContainer else colors.glassFill)
-                .border(1.dp, if (now) colors.selectedBorder else colors.glassBorderSoft, shape)
-                .padding(horizontal = m.guidePad, vertical = m.guidePad / 2),
-            verticalArrangement = Arrangement.Center,
+    Column(
+        modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(if (now) colors.secondaryContainer else colors.glassFill)
+            .border(1.dp, if (now) colors.selectedBorder else colors.glassBorderSoft, shape)
+            .padding(horizontal = m.guidePad, vertical = m.guidePad / 2),
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(m.osdGap / 2),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(m.osdGap / 2),
-            ) {
-                Icon(
-                    if (now) Icons.Rounded.PlayArrow else Icons.Rounded.History,
-                    contentDescription = null,
-                    tint = if (now) colors.live else colors.onBackgroundMuted,
-                    modifier = Modifier.size(Sizing.iconSm),
-                )
-                Text(
-                    text = programme.title,
-                    style = castivioChipStyle(m.frame.fsLabel),
-                    color = if (now) colors.onBackgroundStrong else colors.onBackground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+            Icon(
+                if (now) Icons.Rounded.PlayArrow else Icons.Rounded.History,
+                contentDescription = null,
+                tint = if (now) colors.live else colors.onBackgroundMuted,
+                modifier = Modifier.size(Sizing.iconSm),
+            )
+            Text(
+                text = programme.title,
+                style = castivioChipStyle(m.frame.fsLabel),
+                color = if (now) colors.onBackgroundStrong else colors.onBackground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
 
-            programme.description?.takeIf { it.isNotBlank() }?.let { detail ->
-                Text(
-                    text = detail,
-                    style = castivioBodyStyle(m.frame.fsBody),
-                    color = colors.onBackgroundMuted,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = m.nameGap / 2),
-                )
-            }
+        programme.description?.takeIf { it.isNotBlank() }?.let { detail ->
+            Text(
+                text = detail,
+                style = castivioBodyStyle(m.frame.fsBody),
+                color = colors.onBackgroundMuted,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = m.nameGap / 2),
+            )
+        }
 
-            Spacer(Modifier.height(m.nameGap / 2))
+        Spacer(Modifier.height(m.nameGap / 2))
 
-            Row(
-                Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(m.osdGap),
-            ) {
-                Text(
-                    text = clockLabel(programme.startMs),
-                    style = castivioBodyStyle(m.frame.fsBody),
-                    color = colors.onBackgroundVariant,
-                    maxLines = 1,
-                )
-                Track(
-                    // Only the programme that is on has a share to show. A bar under a
-                    // future programme would be a progress claim about something that
-                    // has not begun.
-                    fraction = if (now) programme.progressAt(System.currentTimeMillis()) else null,
-                    m = m,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    text = clockLabel(programme.stopMs),
-                    style = castivioBodyStyle(m.frame.fsBody),
-                    color = colors.onBackgroundVariant,
-                    maxLines = 1,
-                )
-            }
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(m.osdGap),
+        ) {
+            Text(
+                text = clockLabel(programme.startMs),
+                style = castivioBodyStyle(m.frame.fsBody),
+                color = colors.onBackgroundVariant,
+                maxLines = 1,
+            )
+            Track(
+                // Only the programme that is on has a share to show. A bar under a
+                // future programme would be a progress claim about something that
+                // has not begun.
+                fraction = if (now) programme.progressAt(System.currentTimeMillis()) else null,
+                m = m,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = clockLabel(programme.stopMs),
+                style = castivioBodyStyle(m.frame.fsBody),
+                color = colors.onBackgroundVariant,
+                maxLines = 1,
+            )
         }
     }
 }
@@ -1426,30 +1520,6 @@ private fun numberPlate(number: Int?): String =
     number?.let { ltrToken(it.toString()) } ?: NO_NUMBER
 
 /**
- * Which icon a category gets.
- *
- * Matched on the provider's own words, because that is the only thing a category has:
- * `MediaGroup` is an id, a name and a kind. A name nothing matches gets the neutral
- * globe rather than a wrong guess — an icon that is confidently wrong is worse than one
- * that says nothing.
- */
-private fun MediaGroup.icon(): ImageVector {
-    val lower = name.lowercase()
-    return when {
-        lower.containsAny("sport", "رياض", "futbol", "calcio") -> Icons.Rounded.SportsSoccer
-        lower.containsAny("news", "أخبار", "noticias", "info") -> Icons.Rounded.Newspaper
-        lower.containsAny("movie", "cinema", "film", "أفلام") -> Icons.Rounded.Movie
-        lower.containsAny("kid", "child", "cartoon", "أطفال") -> Icons.Rounded.ChildCare
-        lower.containsAny("music", "موسيق", "musica") -> Icons.Rounded.MusicNote
-        lower.containsAny("doc", "وثائق", "nature") -> Icons.Rounded.MenuBook
-        lower.containsAny("entertain", "ترفيه", "general", "variety") -> Icons.Rounded.TheaterComedy
-        else -> Icons.Rounded.Public
-    }
-}
-
-private fun String.containsAny(vararg needles: String): Boolean = needles.any { contains(it) }
-
-/**
  * Up to two initials for a channel with no artwork.
  *
  * Words rather than characters, so `Sky Sports Football` is `SS` and not `Sk`. A title
@@ -1495,10 +1565,9 @@ private const val RAIL_DIVIDER = "castivio.rail.divider"
 private const val RAIL_EMPTY = "castivio.rail.empty"
 
 
-/** The logo plate's height as a share of the row — 28 of 68 in the reference. */
+/** The logo slot's height as a share of the row — 28 of 68 in the reference. */
 private const val LOGO_OF_ROW = 28f / 68f
 
-/** How much of the rail's width the row's category line is allowed — 120 of 302. */
 /**
  * The quality tag, as a share of the body step.
  *
@@ -1518,5 +1587,23 @@ private const val LEGEND_OF_BODY = 0.88f
 /** The field's height inside the band. */
 private const val FIELD_OF_HEADER = 0.62f
 
+/**
+ * The rail's field, against a rail entry's floor.
+ *
+ * A shade under it, so the field reads as the column's control rather than as its first
+ * category — the same trick the header's field plays against the band.
+ */
+private const val FIELD_OF_ROW = 0.86f
+
 /** `16-09-25`: two digits a field, hyphens, shortest year. */
 private const val SHORT_DATE = "dd-MM-yy"
+
+/**
+ * The clock: twenty-four hours, in every language.
+ *
+ * The same argument as [SHORT_DATE]. A twelve-hour clock is a locale's convention and
+ * carries an `AM`/`PM` whose width is a different number of glyphs in each of the
+ * thirty-seven languages, on a band that has no room to change size — and this is a
+ * television screen, where the twenty-four-hour clock is what a viewer expects anyway.
+ */
+private const val CLOCK_TIME = "HH:mm"

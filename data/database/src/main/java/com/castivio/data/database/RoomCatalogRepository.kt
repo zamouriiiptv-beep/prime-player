@@ -78,7 +78,7 @@ class RoomCatalogRepository(
         return mediaDao.search(match, limit).map { it.toDomain() }
     }
 
-    suspend fun search(query: String, kind: MediaKind, limit: Int): List<MediaItem> {
+    override suspend fun search(query: String, kind: MediaKind, limit: Int): List<MediaItem> {
         val match = FtsQuery.build(query) ?: return emptyList()
         return mediaDao.searchKind(match, kind.name, limit).map { it.toDomain() }
     }

@@ -123,6 +123,7 @@
     <string name="channels_rail_empty">لا يعرض هذا الاشتراك أي باقات.</string>
 
     <string name="channels_search_hint">ابحث في القنوات</string>
+    <string name="channels_rail_search">ابحث في الباقات</string>
     <string name="channels_sort_number">الرقم</string>
 
     <string name="channels_live_badge">مباشر</string>

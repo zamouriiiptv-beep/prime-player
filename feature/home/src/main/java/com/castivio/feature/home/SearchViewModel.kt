@@ -4,12 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.castivio.domain.CatalogRepository
 import com.castivio.domain.MediaItem
+import com.castivio.domain.MediaKind
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
@@ -47,16 +49,43 @@ class SearchViewModel @Inject constructor(
 
     private val typed = MutableStateFlow("")
 
-    val state: StateFlow<SearchState> = typed
-        .debounce { if (it.isBlank()) 0 else DEBOUNCE_MS }
-        .mapLatest { query ->
+    /**
+     * The one kind this search is allowed to answer with, or null for all of them.
+     *
+     * Set by the screen rather than injected, because it is a property of the way in
+     * rather than of the search: the same screen answers the whole catalogue when it is
+     * opened from Home, and channels only when it is opened from the Channels board's
+     * own field. A field labelled **Search channels** that returns films is answering a
+     * question nobody asked.
+     */
+    private val restriction = MutableStateFlow<MediaKind?>(null)
+
+    val state: StateFlow<SearchState> = combine(typed, restriction) { query, kind -> query to kind }
+        .debounce { (query, _) -> if (query.isBlank()) 0 else DEBOUNCE_MS }
+        .mapLatest { (query, kind) ->
             if (query.isBlank()) {
                 SearchState(query = query)
             } else {
-                SearchState(query = query, results = catalog.search(query, LIMIT))
+                // The restriction goes into the query, never over its result: the limit
+                // is part of the search, so searching everything and keeping the
+                // channels afterwards returns whatever few were in the first sixty rows.
+                val results =
+                    if (kind == null) catalog.search(query, LIMIT)
+                    else catalog.search(query, kind, LIMIT)
+                SearchState(query = query, results = results)
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_GRACE_MS), SearchState())
+
+    /**
+     * Told once by the screen, and idempotently.
+     *
+     * Composition runs again for reasons that are not a navigation, and re-declaring the
+     * same restriction must not re-run the query the user is mid-way through typing.
+     */
+    fun restrictTo(kind: MediaKind?) {
+        if (restriction.value != kind) restriction.value = kind
+    }
 
     fun type(query: String) {
         typed.value = query

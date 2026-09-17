@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,6 +29,7 @@ import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioTitleStyle
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.castivioStage
+import com.castivio.domain.MediaKind
 
 /**
  * Search over the imported catalogue.
@@ -39,9 +41,19 @@ import com.castivio.core.design.theme.castivioStage
 @Composable
 fun CatalogSearchScreen(
     onPlay: (CatalogSelection) -> Unit,
+    /**
+     * The one kind to answer with, or null for the whole catalogue.
+     *
+     * Null when the screen is opened from Home, which is a search across everything.
+     * `MediaKind.LIVE` when it is opened from the Channels board's own field, whose
+     * label promises channels — see `SearchViewModel.restrictTo`.
+     */
+    restrictTo: MediaKind? = null,
     modifier: Modifier = Modifier,
     model: SearchViewModel = hiltViewModel(),
 ) {
+    LaunchedEffect(restrictTo) { model.restrictTo(restrictTo) }
+
     val state by model.state.collectAsStateWithLifecycle()
     val colors = CastivioTheme.colors
 

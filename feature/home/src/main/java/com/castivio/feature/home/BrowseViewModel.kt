@@ -22,6 +22,7 @@ import com.castivio.domain.SourceRepository
 import com.castivio.domain.identity.DeviceIdentity
 import com.castivio.domain.time.TrustedTime
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.util.Locale
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -64,6 +65,30 @@ data class BrowseState(
     val sort: SortOrder = SortOrder.PROVIDER,
     /** From an indexed `COUNT`, never from measuring a list. */
     val total: Int = 0,
+    /**
+     * Everything this section holds, whatever category is open.
+     *
+     * Distinct from [total], which follows the query and therefore the selection. The
+     * rail's first entry says **All Channels** and has to mean all of them: it was
+     * reading [total], so choosing a bouquet of 80 made the All row say 80 as well —
+     * the one row on the screen whose number is supposed not to move.
+     *
+     * It is the section's own count, so in Movies it is the number of films and in
+     * Series the number of shows' episodes. Same `COUNT`, no group.
+     */
+    val sectionTotal: Int = 0,
+    /**
+     * What the rail's own field has been typed into, and the categories that survive it.
+     *
+     * Filtered here rather than in composition: `CLAUDE.md` puts filtering in the state
+     * holder or in SQL, and a provider with four hundred categories would otherwise be
+     * re-filtered on every frame the rail recomposed.
+     *
+     * [groups] stays whole, because the channel rows look a category's name up by id and
+     * a filtered map would leave them blank.
+     */
+    val groupFilter: String = "",
+    val shownGroups: List<MediaGroup> = emptyList(),
     val providerLabel: String? = null,
     /**
      * This device's address, for the loading gate to print while the section arrives.
@@ -130,6 +155,9 @@ class BrowseViewModel @Inject constructor(
      */
     private val order = MutableStateFlow(SortOrder.PROVIDER)
 
+    /** What the rail's search field holds. See [BrowseState.groupFilter]. */
+    private val railFilter = MutableStateFlow("")
+
     private val groups: Flow<List<MediaGroup>> =
         section.flatMapLatest { catalog.groups(it.kind) }
 
@@ -156,20 +184,35 @@ class BrowseViewModel @Inject constructor(
         // that did not survive a re-import, and it carries the order, so the control
         // and the rows cannot disagree about either.
         query,
-        // A count per section and category, answered by SQL. It is a flow because an
-        // import running behind the screen changes it, and a number that only
-        // refreshes when the user navigates away and back is a number nobody trusts.
-        // It is also how a section being fetched right now fills in front of the user.
-        query.flatMapLatest { catalog.count(it.kind, it.groupId) },
-        combine(sources.active().map { it?.label }, fetch) { provider, state -> provider to state },
-    ) { current, available, asked, total, providerAndFetch ->
+        // Two counts, answered by SQL. They are flows because an import running behind
+        // the screen changes them, and a number that only refreshes when the user
+        // navigates away and back is a number nobody trusts -- it is also how a section
+        // being fetched right now fills in front of the user.
+        //
+        // The first follows the query and is what the category that is open holds. The
+        // second ignores the selection and is what the whole section holds; the rail's
+        // All entry needs that one and was reading the first.
+        combine(
+            query.flatMapLatest { catalog.count(it.kind, it.groupId) },
+            section.flatMapLatest { catalog.count(it.kind, null) },
+        ) { shown, whole -> shown to whole },
+        combine(
+            sources.active().map { it?.label },
+            fetch,
+            railFilter,
+        ) { provider, state, filter -> Triple(provider, state, filter) },
+    ) { current, available, asked, counts, providerAndFetch ->
+        val filter = providerAndFetch.third
         BrowseState(
             section = current,
             groups = available,
             categoryNames = available.associate { it.id to it.name },
             selectedGroup = asked.groupId,
             sort = asked.sort,
-            total = total,
+            total = counts.first,
+            sectionTotal = counts.second,
+            groupFilter = filter,
+            shownGroups = available.filtered(filter),
             providerLabel = providerAndFetch.first,
             loading = false,
             fetch = providerAndFetch.second,
@@ -285,6 +328,11 @@ class BrowseViewModel @Inject constructor(
         ensureFetched(section.value, force = force)
     }
 
+    /** What the rail's field was typed into. Empty shows every category again. */
+    fun filterGroups(text: String) {
+        railFilter.value = text
+    }
+
     /** Null is the "all" pseudo-category, which is a selection like any other. */
     fun choose(groupId: String?) {
         chosen.value = groupId
@@ -314,4 +362,20 @@ class BrowseViewModel @Inject constructor(
          */
         const val SUBSCRIPTION_GRACE_MS = 5_000L
     }
+}
+
+/**
+ * The categories whose names contain [filter], or all of them when nothing is typed.
+ *
+ * Case-insensitive and a plain `contains` rather than the FTS index, and deliberately:
+ * this is a list of hundreds already in memory, the field is answering a keystroke, and
+ * putting a query on the database for it would be slower than the scan as well as more
+ * code. `Locale.ROOT` so a Turkish device does not fold `I` differently from every
+ * other one and hide a category from its own name.
+ */
+private fun List<MediaGroup>.filtered(typed: String): List<MediaGroup> {
+    val needle = typed.trim()
+    if (needle.isEmpty()) return this
+    val lowered = needle.lowercase(Locale.ROOT)
+    return filter { it.name.lowercase(Locale.ROOT).contains(lowered) }
 }

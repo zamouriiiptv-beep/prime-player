@@ -61,6 +61,10 @@ import com.castivio.core.design.theme.rememberMetrics
 import com.castivio.core.design.theme.Spacing
 import com.castivio.core.navigation.BackPolicy
 import com.castivio.core.navigation.ShellBack
+// Aliased: `com.castivio.playback.api.MediaKind` is imported below under its own name
+// for the engine's three cases. This is the catalogue's four, and they are different
+// enums on purpose -- an engine does not care that Radio is not Live.
+import com.castivio.domain.MediaKind as CatalogKind
 import com.castivio.domain.SeriesSummary
 import com.castivio.feature.activation.ActivationRoute
 import com.castivio.feature.activation.LanguagePicker
@@ -176,6 +180,20 @@ fun ShellScreen(
     var dest by remember { mutableStateOf(Dest.Home) }
     var overlay by remember { mutableStateOf<Overlay?>(null) }
 
+    // **What the search screen is allowed to answer with, decided by where it was opened
+    // from.**
+    //
+    // Held beside `dest` rather than folded into it because `Dest` is an enum and the
+    // restriction is a parameter, not a destination: there is one search screen and it is
+    // reached from five places. Null is the catalogue-wide search, which is what every
+    // caller but one wants.
+    //
+    // The one is the Channels board, whose field says **Search channels**. A viewer who
+    // types "sport" into a field on a screen of channels is looking for a channel, and
+    // answering with films is answering a question they did not ask. The restriction goes
+    // into the query rather than over its result -- see `CatalogRepository.search`.
+    var searchKind by remember { mutableStateOf<CatalogKind?>(null) }
+
     // ## Back, and the one place it asks before it acts
     //
     // Always enabled now, where it used to stand aside at the root and let the
@@ -238,29 +256,29 @@ fun ShellScreen(
                 // Channels showed Channels and then took it away.
                 Dest.Live -> SectionGate(CatalogSection.Live) { ChannelsScreen(
                     onPlay = play,
-                    onSearch = { dest = Dest.Search },
+                    onSearch = { searchKind = CatalogKind.LIVE; dest = Dest.Search },
                 ) }
                 Dest.Movies -> SectionGate(CatalogSection.Movies) { BrowseScreen(
                     section = CatalogSection.Movies,
                     onPlay = play,
                     onOpenShow = { overlay = Overlay.Show(it) },
-                    onSearch = { dest = Dest.Search },
+                    onSearch = { searchKind = null; dest = Dest.Search },
                 ) }
                 Dest.Series -> SectionGate(CatalogSection.Series) { BrowseScreen(
                     section = CatalogSection.Series,
                     onPlay = play,
                     onOpenShow = { overlay = Overlay.Show(it) },
-                    onSearch = { dest = Dest.Search },
+                    onSearch = { searchKind = null; dest = Dest.Search },
                 ) }
                 Dest.Radio -> SectionGate(CatalogSection.Radio) { BrowseScreen(
                     section = CatalogSection.Radio,
                     onPlay = play,
                     onOpenShow = { overlay = Overlay.Show(it) },
-                    onSearch = { dest = Dest.Search },
+                    onSearch = { searchKind = null; dest = Dest.Search },
                 ) }
                 Dest.Favourites -> FavouritesScreen()
                 Dest.Library -> LibraryScreen(onOpenSection = { dest = it })
-                Dest.Search -> CatalogSearchScreen(onPlay = play)
+                Dest.Search -> CatalogSearchScreen(onPlay = play, restrictTo = searchKind)
                 Dest.Settings -> SettingsScreen(
                     motionLevel = motionLevel,
                     onMotionLevel = onMotionLevel,
