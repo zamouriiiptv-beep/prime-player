@@ -204,7 +204,12 @@ internal fun BoxScope.CompactBar(state: PlayerState) {
     ) {
         Text(
             text = state.request.title,
-            style = CastivioType.titleSmall,
+            // A step under [TopBar]'s `titleMedium`, because the band it sits in is a
+            // third of the height. `labelLarge` and not a `titleSmall`: `CastivioType`
+            // has no such step, and this is the one the product already maps `titleSmall`
+            // to where Material asks for it — so the compact title is the size the type
+            // scale had already decided for this role.
+            style = CastivioType.labelLarge,
             color = colors.onBackground,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
