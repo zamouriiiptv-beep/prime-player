@@ -61,10 +61,18 @@ import com.castivio.playback.api.VideoOutput
 fun PlayerScreen(
     state: PlayerState,
     actions: PlayerActions,
+    /**
+     * Which of the two shapes this composition is drawn in.
+     *
+     * Defaulted to [PlayerMode.Expanded] so that every existing caller — and the thirty
+     * compositions the layout gates render — mean exactly what they meant before.
+     */
+    mode: PlayerMode = PlayerMode.Expanded,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
     val tv = CastivioTheme.device.isTv
+    val expanded = mode == PlayerMode.Expanded
 
     BoxWithConstraints(
         modifier
@@ -96,7 +104,7 @@ fun PlayerScreen(
 
         CompositionLocalProvider(LocalPlayerMetrics provides m) {
 
-        VideoSurface(state, actions, picture)
+        VideoSurface(state, actions, picture, mode)
 
         // Locked hides everything but the way out of it, and it does so before the
         // opening branch: a screen that is locked while a channel opens must not draw a
@@ -110,9 +118,31 @@ fun PlayerScreen(
                 // Inside the picture's box like the chrome, and outside the `controls`
                 // branch unlike it: captions are part of the film, and a film does not
                 // stop having words in it because the controls hid four seconds ago.
-                Box(Modifier.size(picture)) { SubtitleLayer(state) }
+                //
+                // Not in the compact shape. A caption line set for a 1080p screen is
+                // unreadable in a 300dp well, and shrinking it to fit would be a second
+                // caption design — the mode draws less of the same player, never a
+                // different one.
+                if (expanded) Box(Modifier.size(picture)) { SubtitleLayer(state) }
 
-                if (state.controls) {
+                if (!expanded) {
+                    // **The compact shape's whole chrome.**
+                    //
+                    // The same title, the same LIVE pill, the same channel number, over
+                    // the same scrim — which is what makes this the player rather than a
+                    // thumbnail of it. What it leaves out is everything a viewer would
+                    // reach for *while watching*: a timeline they cannot aim at this
+                    // size, a tools row whose controls would be below the touch target,
+                    // sheets wider than the well they would open in. Those are one press
+                    // away, and the press is the picture itself.
+                    //
+                    // Drawn whether or not `controls` is set, because there is nothing
+                    // here to get out of the way of: the auto-hide exists so chrome does
+                    // not sit over a film being watched, and this shape is a preview.
+                    Box(Modifier.size(picture)) { CompactBar(state) }
+                }
+
+                if (expanded && state.controls) {
                     // The chrome belongs to the film, not to the window.
                     //
                     // It filled the whole screen, so on a 21:9 phone showing a 16:9 film
@@ -148,9 +178,16 @@ fun PlayerScreen(
 
         // The sheet reaches the screen edge by design — it is a surface, not a control —
         // so it sits outside the safe-area column rather than inside it.
-        state.sheet?.let { PlayerSheet(it, state, actions) }
+        //
+        // Expanded only, and not because a sheet could not be drawn small: the state that
+        // opens one is shared with the expanded shape through a single view model, so a
+        // sheet opened in the large player and left open would otherwise be composed over
+        // a 300dp well the moment it collapsed.
+        if (expanded) {
+            state.sheet?.let { PlayerSheet(it, state, actions) }
 
-        if (state.statistics) StatisticsPanel(state, actions, inset)
+            if (state.statistics) StatisticsPanel(state, actions, inset)
+        }
         }
     }
 }
@@ -173,11 +210,20 @@ fun PlayerScreen(
  * decoder from its output every time the chrome appeared.
  */
 @Composable
-private fun VideoSurface(state: PlayerState, actions: PlayerActions, picture: DpSize) {
+private fun VideoSurface(
+    state: PlayerState,
+    actions: PlayerActions,
+    picture: DpSize,
+    mode: PlayerMode,
+) {
     val taps = remember { MutableInteractionSource() }
     val covered = state.statistics || state.sheet != null
     val label = stringResource(
-        if (covered) R.string.player_close else R.string.player_reveal_controls,
+        when {
+            mode == PlayerMode.Compact -> R.string.player_expand
+            covered -> R.string.player_close
+            else -> R.string.player_reveal_controls
+        },
     )
 
     Box(
@@ -211,6 +257,12 @@ private fun VideoSurface(state: PlayerState, actions: PlayerActions, picture: Dp
                         onClickLabel = label,
                         onClick = {
                             when {
+                                // The compact shape's one gesture, and the reason it has
+                                // no others: a press on the picture is what makes it the
+                                // large player. Toggling chrome here would spend the only
+                                // press a preview gets on the one thing a preview does
+                                // not need.
+                                mode == PlayerMode.Compact -> actions.onExpand()
                                 state.statistics -> actions.onStatistics(false)
                                 state.sheet != null -> actions.onSheet(null)
                                 else -> actions.onToggleControls()
@@ -371,7 +423,34 @@ data class PlayerActions(
     val onFullscreen: () -> Unit = {},
     val onPictureInPicture: () -> Unit = {},
     val onShare: () -> Unit = {},
+    /** Compact only: the press that makes this the large player. See [PlayerMode]. */
+    val onExpand: () -> Unit = {},
     val onGuide: () -> Unit = {},
     val onChannels: () -> Unit = {},
     val setOutput: (VideoOutput?) -> Unit = {},
 )
+
+/**
+ * The two shapes one player is drawn in.
+ *
+ * ## Why this is a mode and not a second screen
+ *
+ * A separate `MiniPlayer` would be a second composition reading the same state, and every
+ * change to the real one after that would be a change somebody has to remember to make
+ * twice — the surface's lifecycle, the failure card, the opening branch, the aspect
+ * arithmetic. Worse, it would need a player of its own to show a picture, and two players
+ * mean two engines, two decoders and two claims on the one output the device has.
+ *
+ * So there is one [PlayerScreen], one [PlayerRoute], and one `PlayerViewModel` — which is
+ * scoped to the activity and therefore outlives either composition. The shape decides how
+ * much of the same chrome is drawn and what a press on the picture means. Nothing else
+ * differs, and nothing about playback does at all: collapsing and expanding moves the
+ * output from one surface to another while the engine goes on decoding.
+ */
+enum class PlayerMode {
+    /** Inside another screen's layout — the Channels board's preview. Title, and a press. */
+    Compact,
+
+    /** The whole viewport, with everything. The player as it has always been. */
+    Expanded,
+}

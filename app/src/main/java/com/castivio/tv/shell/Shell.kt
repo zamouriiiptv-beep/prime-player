@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -79,6 +80,7 @@ import com.castivio.feature.home.ShowScreen
 import com.castivio.feature.home.R as CatalogStrings
 import com.castivio.feature.licence.R as LicenceStrings
 import com.castivio.feature.player.PlayerRequest
+import com.castivio.feature.player.PlayerMode
 import com.castivio.feature.player.PlayerRoute
 import com.castivio.playback.api.MediaKind
 import com.castivio.tv.licence.LicenceWithLanguage
@@ -194,6 +196,20 @@ fun ShellScreen(
     // into the query rather than over its result -- see `CatalogRepository.search`.
     var searchKind by remember { mutableStateOf<CatalogKind?>(null) }
 
+    // **What the Channels board is playing in its preview plate, if anything.**
+    //
+    // Held here, beside the overlay, because the compact player and the large one are the
+    // same player: one `PlayerRoute` bound to one activity-scoped `PlayerViewModel`, drawn
+    // in one shape or the other. This is the request both shapes open, and the reason
+    // expanding and collapsing does not interrupt the stream -- `PlayerViewModel.open`
+    // returns early when it is handed the request it is already playing, so the swap moves
+    // the surface and leaves the decoder alone.
+    //
+    // The two shapes are never composed together. The overlay covers the board but does
+    // not remove it from the composition, so the compact slot is withheld while the
+    // expanded player is up; two surfaces would both claim the engine's single output.
+    var livePreview by remember { mutableStateOf<PlayerRequest?>(null) }
+
     // ## Back, and the one place it asks before it acts
     //
     // Always enabled now, where it used to stand aside at the root and let the
@@ -228,6 +244,51 @@ fun ShellScreen(
         overlay = Overlay.Play(selection.asPlayerRequest())
     }
 
+    // Live is the one section where a press does not open the large player.
+    //
+    // It plays into the board's own plate instead, which is what the preview column has
+    // always been for: a viewer stepping down a list of 55,000 channels is sampling them,
+    // and a full-screen player per press means a press to open and a press to come back
+    // for every channel they reject. Expanding is then one further press, on the picture.
+    val playInPreview: (CatalogSelection) -> Unit = { selection ->
+        livePreview = selection.asPlayerRequest()
+    }
+
+    // The compact player, or nothing.
+    //
+    // Withheld while the expanded shape is up -- see `livePreview`. Also withheld off the
+    // Live board: a stream left decoding behind Settings is a stream nobody is watching.
+    val playing = livePreview
+    val preview: (@Composable () -> Unit)? =
+        if (playing != null && dest == Dest.Live && overlay !is Overlay.Play) {
+            {
+                PlayerRoute(
+                    request = playing,
+                    mode = PlayerMode.Compact,
+                    // The press that makes it the large player, carrying the same request
+                    // -- which is what the view model recognises and declines to reopen.
+                    onExpand = { overlay = Overlay.Play(playing) },
+                    onLeave = { livePreview = null },
+                    // Asked as the plate goes away, and it asks the *destination* rather
+                    // than the request. Both have to be read at disposal, and only one of
+                    // them has changed by then: leaving the board removes this composition
+                    // in the same pass that changes `dest`, before any effect could clear
+                    // a request. So `dest` separates the two cases -- still on Live means
+                    // the expanded shape is taking the stream over, anywhere else means
+                    // nobody is watching it.
+                    retainOnDispose = { dest == Dest.Live },
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        } else {
+            null
+        }
+
+    // And forgets it, so returning to Channels shows the board rather than resuming a
+    // channel the viewer left some time ago. The engine has already been released by then
+    // — see `retainOnDispose` above; this only clears what the plate would draw next.
+    LaunchedEffect(dest) { if (dest != Dest.Live) livePreview = null }
+
     Box(Modifier.fillMaxSize()) {
         CastivioShell {
             when (dest) {
@@ -255,8 +316,9 @@ fun ShellScreen(
                 // composed first and the gate replaced it a frame later -- pressing
                 // Channels showed Channels and then took it away.
                 Dest.Live -> SectionGate(CatalogSection.Live) { ChannelsScreen(
-                    onPlay = play,
+                    onPlay = playInPreview,
                     onSearch = { searchKind = CatalogKind.LIVE; dest = Dest.Search },
+                    preview = preview,
                 ) }
                 Dest.Movies -> SectionGate(CatalogSection.Movies) { BrowseScreen(
                     section = CatalogSection.Movies,
@@ -296,7 +358,20 @@ fun ShellScreen(
                 onPlay = play,
                 onBack = { overlay = null },
             )
-            is Overlay.Play -> PlayerRoute(request = o.request, onLeave = { overlay = null })
+            // The same route, the same view model, the same engine -- drawn large. Back
+            // out of it collapses to the plate on the board it was expanded from, with the
+            // channel still playing, and only releases when there is no plate to go back
+            // to: a film opened from Movies has nowhere to collapse to and leaves as it
+            // always did.
+            is Overlay.Play -> PlayerRoute(
+                request = o.request,
+                onLeave = { overlay = null },
+                onCollapse = if (o.request == livePreview) {
+                    { overlay = null }
+                } else {
+                    null
+                },
+            )
             is Overlay.StateBoard -> StateBoardOverlay(onBack = { overlay = null })
             // Reached from a working app, so leaving means returning to
             // Settings. Reached from the gate it means leaving Castivio, and

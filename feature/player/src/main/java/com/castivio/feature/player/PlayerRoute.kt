@@ -46,7 +46,52 @@ fun PlayerRoute(
     modifier: Modifier = Modifier,
     onPrevious: (() -> Unit)? = null,
     onNext: (() -> Unit)? = null,
+    /**
+     * Which shape to draw. See [PlayerMode].
+     *
+     * The same route either way, and that is what makes the pair work: `hiltViewModel()`
+     * here resolves against the activity — there is no navigation back stack under this
+     * screen — so the compact composition and the expanded one bind the *same*
+     * `PlayerViewModel`, holding the same engine on the same stream. Swapping one for the
+     * other releases a `SurfaceView` and creates another; the decoder never stops.
+     *
+     * The two must never be composed at once. Two surfaces would both call `setOutput`
+     * and the last one to compose would take the picture from the other. The caller
+     * enforces that by composing one or the other — see the shell.
+     */
+    mode: PlayerMode = PlayerMode.Expanded,
+    /**
+     * Compact only: what a press on the picture does.
+     *
+     * Null in the expanded shape, where a press means what it has always meant.
+     */
+    onExpand: (() -> Unit)? = null,
+    /**
+     * Expanded only: where back goes instead of out.
+     *
+     * When this is given, the last rung of the back ladder collapses to the compact shape
+     * rather than releasing the engine — which is the whole of "Back → Mini, still
+     * playing". [onLeave] is then never reached from here, and the engine is released by
+     * whoever takes the compact shape away.
+     */
+    onCollapse: (() -> Unit)? = null,
+    /**
+     * Compact only: asked as this composition leaves, and answers whether to keep playing.
+     *
+     * A composable that is simply removed runs no `leave`, so without this the compact
+     * player would go on decoding behind whatever screen replaced it — which is the exact
+     * defect the note on [PlayerViewModel.leave] records from the last time a player was
+     * swapped out rather than popped.
+     *
+     * It cannot be a `Boolean`, and that is the whole reason for the lambda: the value has
+     * to be read *at disposal*, after the caller's state has changed. A parameter captured
+     * at composition time would always carry the answer from before the thing that removed
+     * this screen happened, and the two cases it has to separate — handing the stream to
+     * the expanded shape, and leaving the board altogether — differ only in that state.
+     */
+    retainOnDispose: () -> Boolean = { false },
 ) {
+    val compact = mode == PlayerMode.Compact
     val model: PlayerViewModel = hiltViewModel()
     val state by model.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -92,12 +137,17 @@ fun PlayerRoute(
     // landed on the picture, bringing the chrome back, which reads exactly like a button
     // that does nothing.
     LaunchedEffect(
+        compact,
         current.controls,
         current.sheet,
         current.statistics,
         current.picture,
         current.interactions,
     ) {
+        // Nothing to hide in the compact shape: its one band is drawn whether or not
+        // `controls` is set, and hiding the flag there would only decide what the
+        // expanded shape looked like on the way back.
+        if (compact) return@LaunchedEffect
         if (!current.controls || current.sheet != null || current.statistics) return@LaunchedEffect
         if (current.picture !is Picture.Playing) return@LaunchedEffect
         delay(CONTROLS_LINGER_MS)
@@ -114,7 +164,18 @@ fun PlayerRoute(
         onLeave()
     }
 
-    BackHandler {
+    // **No back handler in the compact shape.** It is one element inside somebody else's
+    // screen, and back there belongs to that screen: a preview that swallowed the key
+    // would strand a viewer on the Channels board.
+    // See [retainOnDispose]. Only the compact shape needs it: the expanded one is removed
+    // by a press that has already decided what happens to the engine.
+    if (compact) {
+        DisposableEffect(Unit) {
+            onDispose { if (!retainOnDispose()) model.leave() }
+        }
+    }
+
+    BackHandler(enabled = !compact) {
         when {
             // Innermost first, which is the same ladder every other screen in Castivio
             // uses. A lock is deliberately *not* on it: back must not unlock, or the lock
@@ -123,15 +184,25 @@ fun PlayerRoute(
             current.statistics -> model.setStatistics(false)
             current.sheet != null -> model.openSheet(null)
             current.controls -> model.showControls(false)
+            // The last rung, and the only one this pair changes: collapse where there is
+            // somewhere to collapse to, and otherwise leave as before. Collapsing does
+            // not call `model.leave()`, which is exactly why the channel goes on playing.
+            onCollapse != null -> onCollapse()
             else -> leave()
         }
     }
 
-    Box(modifier.fillMaxSize()) {
+    // `fillMaxSize` in the expanded shape, which owns the viewport. In the compact one the
+    // caller has already decided how big this is, and filling would take the well's whole
+    // column rather than the plate inside it.
+    Box(if (compact) modifier else modifier.fillMaxSize()) {
         PlayerScreen(
             state = current,
+            mode = mode,
             actions = PlayerActions(
-                onBack = leave,
+                // Collapse rather than release, for the same reason back does — the title
+                // bar's arrow and the back key are the same gesture by a different route.
+                onBack = onCollapse ?: leave,
                 onPlayPause = model::playPause,
                 onSeekBy = model::seekBy,
                 onSeekTo = model::seekTo,
@@ -156,6 +227,7 @@ fun PlayerRoute(
                 onFullscreen = { model.showControls(false) },
                 onPictureInPicture = { activity?.enterPip() },
                 onShare = { context.share(shareOffer(current.request), chooser) },
+                onExpand = { onExpand?.invoke() },
                 setOutput = model::setOutput,
             ),
         )

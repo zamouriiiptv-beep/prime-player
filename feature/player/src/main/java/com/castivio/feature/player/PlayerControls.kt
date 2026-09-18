@@ -8,6 +8,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -172,6 +173,43 @@ private fun SubtitleRow(state: PlayerState) {
                 tag = PlayerTags.ENGINE_BADGE,
             )
         }
+    }
+}
+
+/**
+ * The compact shape's chrome, in full.
+ *
+ * One band along the foot of the picture: the item's own title and the row under it that
+ * [TopBar] draws — the LIVE pill, the channel number, the engine badge. The same scrim the
+ * expanded player uses under its bottom bar, so the two shapes read as one player seen at
+ * two sizes rather than as a player and a thumbnail.
+ *
+ * It reuses [SubtitleRow] rather than restating it, which is the point of drawing this here
+ * and not in `PlayerScreen`: a change to what sits under a title happens once.
+ *
+ * No control of any kind. Every one of them is a press away in the expanded shape, and a
+ * control drawn at this size would be smaller than [Sizing.minTarget] — a button a thumb
+ * cannot reliably hit is worse than a button that is one press deeper.
+ */
+@Composable
+internal fun BoxScope.CompactBar(state: PlayerState) {
+    val colors = CastivioTheme.colors
+    Column(
+        Modifier
+            .align(Alignment.BottomStart)
+            .fillMaxWidth()
+            .background(colors.videoScrimBottom)
+            .padding(horizontal = barGapLarge(), vertical = barGap())
+            .testTag(PlayerTags.COMPACT_BAR),
+    ) {
+        Text(
+            text = state.request.title,
+            style = CastivioType.titleSmall,
+            color = colors.onBackground,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        SubtitleRow(state)
     }
 }
 

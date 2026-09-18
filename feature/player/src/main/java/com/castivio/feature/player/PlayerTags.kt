@@ -40,6 +40,9 @@ internal object PlayerTags {
     const val SAFE = "player.safe"
 
     /** The three bands. Tagged so "they do not overlap" is expressible. */
+    /** The compact shape's one band: title, LIVE, number. See `PlayerMode`. */
+    const val COMPACT_BAR = "player.compact"
+
     const val TOP = "player.top"
     const val CENTRE = "player.centre"
     const val BOTTOM = "player.bottom"

@@ -141,6 +141,19 @@ import com.castivio.core.design.R as DesignR
 fun ChannelsScreen(
     onPlay: (CatalogSelection) -> Unit,
     onSearch: () -> Unit,
+    /**
+     * What goes in the preview plate when something is playing.
+     *
+     * A slot, not a player, and the module graph is the reason: `:feature:home` does not
+     * depend on `:feature:player` and must not start — the board would then carry an
+     * engine contract, a subtitle module and a set of playback types it has no business
+     * knowing. The shell is the one place that knows both exist, so the shell passes the
+     * compact player in and this screen only decides where it goes.
+     *
+     * Null is the board with nothing playing, which is what it drew before this existed:
+     * the focused channel's mark and its programme strip.
+     */
+    preview: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier,
     /**
      * Keyed to match `BrowseScreen`'s Live holder.
@@ -182,6 +195,7 @@ fun ChannelsScreen(
                 model = model,
                 previewModel = previewModel,
                 onPlay = onPlay,
+                preview = preview,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -576,6 +590,7 @@ private fun Board(
     model: BrowseViewModel,
     previewModel: ChannelsViewModel,
     onPlay: (CatalogSelection) -> Unit,
+    preview: (@Composable () -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
@@ -633,6 +648,7 @@ private fun Board(
                     model = model,
                     previewModel = previewModel,
                     onPlay = onPlay,
+                    preview = preview,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -727,6 +743,7 @@ private fun Columns(
     model: BrowseViewModel,
     previewModel: ChannelsViewModel,
     onPlay: (CatalogSelection) -> Unit,
+    preview: (@Composable () -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val rows = model.items.collectAsLazyPagingItems()
@@ -758,6 +775,7 @@ private fun Columns(
             PlayerWell(
                 shown = shown,
                 m = m,
+                preview = preview,
                 modifier = Modifier.width(m.player).fillMaxHeight(),
             )
         }
@@ -1270,6 +1288,7 @@ private fun NumberPlate(label: String, focused: Boolean, m: ChannelsMetrics) {
 private fun PlayerWell(
     shown: ChannelPreview,
     m: ChannelsMetrics,
+    preview: (@Composable () -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
@@ -1290,7 +1309,19 @@ private fun PlayerWell(
                 .aspectRatio(CHANNELS_PREVIEW_ASPECT)
                 .clip(RoundedCornerShape(m.previewRadius)),
         ) {
-            if (channel != null) {
+            // **The plate is the player's when there is a player.**
+            //
+            // The mark and the bar under it are what this plate shows while nothing has
+            // been pressed — a *preview* of the channel the remote is on. Once a channel
+            // is actually playing, the same plate is the compact player, which draws its
+            // own title over its own picture; drawing both would be two titles over one
+            // frame.
+            //
+            // The plate keeps its size and its place either way, so pressing a channel
+            // changes what is in the box and never where the box is.
+            if (preview != null) {
+                preview()
+            } else if (channel != null) {
                 LogoTile(
                     initials = initialsOf(channel.title),
                     seed = channel.id.hashCode(),
