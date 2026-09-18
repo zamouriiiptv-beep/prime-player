@@ -110,11 +110,30 @@ internal data class ChannelsMetrics(
     val panelPad: Dp,
     val panelRadius: Dp,
 
+    /**
+     * What the three columns are given: the surface less every band above and below them.
+     *
+     * Stored rather than recomputed where it is needed, because two places need it — the
+     * screen, to lay the columns out, and [wellPicture], to decide how much of the well
+     * the picture may take. Two derivations of one number is two chances for the picture
+     * to be sized against a column it is not in.
+     */
+    val column: Dp,
+
     /* the three columns */
     val rail: Dp,
     val railGap: Dp,
     val player: Dp,
     val playerGap: Dp,
+    /**
+     * A button's height in the action strip under the well.
+     *
+     * A height share with a **control** floor rather than the list floor the rows carry,
+     * and the distinction is the one `ChannelsMetrics`' own note draws: a channel row is
+     * moved *through*, these are five small targets in a row that a thumb has to land
+     * *on*. Missing one here means locking a channel instead of favouriting it.
+     */
+    val strip: Dp,
 
     /* the category rail */
     val railEntryGap: Dp,
@@ -170,23 +189,26 @@ internal data class ChannelsMetrics(
     val fsChannelName: Dp get() = frame.fsTitle * CHANNEL_NAME_OF_TITLE
 
     /**
-     * The floating player's total height, fixed.
+     * The picture at the head of the well: its height, which is what the column can spare.
      *
-     * Fixed rather than wrapped, and for two reasons that are both about the list under
-     * it. The card holds a 16:9 picture, a gap and two guide lines; letting it wrap would
-     * make it change height whenever a channel's guide is absent, so the overlay would
-     * grow and shrink as a viewer arrowed down a list — movement over the one thing they
-     * are trying to read.
+     * **The picture yields, not the text.** At the column's full width a 16:9 frame is
+     * 146dp tall, and on a 21:9 handset the whole column is 255 — which leaves the facts
+     * block 52dp for a name, two programme lines and a bar that need about 76. Something
+     * has to give, and it is the picture: a frame two thirds the size is still a picture,
+     * whereas a name with its last line cut off is a defect.
      *
-     * And the number is arithmetic the reposition rule needs: which rows the card covers
-     * is `this` against the list's own geometry, and a height that is only known after
-     * layout cannot be asked that question before it.
+     * So the height is capped by what is left after the strip, the gaps and
+     * [CHANNELS_FACTS_MIN], and [wellPictureWidth] follows it — the frame stays 16:9 and
+     * is simply narrower than its column on a surface that cannot hold it. It is never
+     * letterboxed and never cropped.
      */
-    val floatHeight: Dp get() =
-        wellPad * 2 + (player * CHANNELS_CARD_PICTURE) / CHANNELS_PREVIEW_ASPECT
+    val wellPicture: Dp get() = minOf(
+        player / CHANNELS_PREVIEW_ASPECT,
+        column - strip - guideGap * 2 - CHANNELS_FACTS_MIN,
+    ).coerceAtLeast(CHANNELS_PICTURE_MIN)
 
-    /** The picture inside the card. The rest of the card's width is the guide beside it. */
-    val cardPicture: Dp get() = player * CHANNELS_CARD_PICTURE
+    /** The picture's width, which follows its height so the frame is always 16:9. */
+    val wellPictureWidth: Dp get() = minOf(wellPicture * CHANNELS_PREVIEW_ASPECT, player)
 }
 
 /**
@@ -198,29 +220,35 @@ internal data class ChannelsMetrics(
 internal fun channelsMetricsFor(tv: Boolean, width: Dp, height: Dp): ChannelsMetrics {
     val frame = castivioMetrics(width, height, tv)
 
+    val boardPad = height.boundedFraction(BOARD_PAD, 4.dp, 14.dp)
+    val header = height.boundedFraction(HEADER, 34.dp, 60.dp)
+    val headerGap = height.boundedFraction(HEADER_GAP, 4.dp, 12.dp)
+    val panelPad = width.boundedFraction(PANEL_PAD, 4.dp, 12.dp)
+
     return ChannelsMetrics(
         frame = frame,
 
         edge = width.boundedFraction(EDGE, 8.dp, 24.dp),
-        boardTop = height.boundedFraction(BOARD_PAD, 4.dp, 14.dp),
-        boardBottom = height.boundedFraction(BOARD_PAD, 4.dp, 14.dp),
+        boardTop = boardPad,
+        boardBottom = boardPad,
 
-        header = height.boundedFraction(HEADER, 34.dp, 60.dp),
-        headerGap = height.boundedFraction(HEADER_GAP, 4.dp, 12.dp),
+        header = header,
+        headerGap = headerGap,
         search = width.boundedFraction(SEARCH, 180.dp, 620.dp),
         crumb = width.boundedFraction(CRUMB, 90.dp, 260.dp),
         clock = width.boundedFraction(CLOCK, 66.dp, 150.dp),
         dates = width.boundedFraction(DATES, 210.dp, 400.dp),
         clockGap = width.boundedFraction(CLOCK_GAP, 10.dp, 30.dp),
 
-        panelPad = width.boundedFraction(PANEL_PAD, 4.dp, 12.dp),
+        panelPad = panelPad,
         panelRadius = height.boundedFraction(PANEL_RADIUS, 10.dp, 22.dp),
+        column = height - (boardPad * 2 + header + headerGap + panelPad * 2),
 
         rail = width.boundedFraction(RAIL, 170.dp, 330.dp),
         railGap = width.boundedFraction(RAIL_GAP, 6.dp, 18.dp),
-        player = width.boundedFraction(PLAYER, 360.dp, 680.dp)
-            .coerceAtMost(width * PLAYER_OF_SURFACE),
+        player = width.boundedFraction(PLAYER, 260.dp, 520.dp),
         playerGap = width.boundedFraction(PLAYER_GAP, 6.dp, 20.dp),
+        strip = height.boundedFraction(STRIP, 48.dp, 110.dp),
 
         railEntryGap = height.boundedFraction(RAIL_ENTRY_GAP, 2.dp, 7.dp),
         railDivider = height.boundedFraction(RAIL_DIVIDER, 5.dp, 14.dp),
@@ -272,6 +300,25 @@ internal const val CHANNELS_PREVIEW_ASPECT = 16f / 9f
  * twelve is the whole point of the row share being what it is.
  */
 internal const val CHANNELS_TARGET_ROWS = 12
+
+/**
+ * What the facts block under the picture may never be squeezed below.
+ *
+ * The channel's name, what is on, the bar under it and what is next — four things, and
+ * the smallest surface this ships to draws them at the frame's body step. Solved from
+ * that rather than chosen: below this the last line is cut off, which is the defect the
+ * cap on [ChannelsMetrics.wellPicture] exists to prevent.
+ */
+internal val CHANNELS_FACTS_MIN = 76.dp
+
+/**
+ * And what the picture may never be squeezed below, whatever the column says.
+ *
+ * A frame smaller than this is not a preview of anything. If a surface ever forces the
+ * cap this low, the honest failure is a picture that is too small rather than one that
+ * has vanished — and the assertion in `ChannelsMetricsTest` says no shipping surface does.
+ */
+internal val CHANNELS_PICTURE_MIN = 60.dp
 
 /* ------------------------------------------------------------------ the shares
  *
@@ -342,47 +389,33 @@ private const val PANEL_RADIUS = 16f / 1080f
 private const val RAIL = 494f / 2340f
 private const val RAIL_GAP = 16f / 2340f
 /**
- * The floating card's width.
+ * The well: the third column, and a column again rather than an overlay.
  *
- * **Wide and short, which is the opposite shape to the column it replaces, and the
- * change was forced by arithmetic rather than taste.**
+ * **It was a card floating over the channel list, and the owner rejected that for the
+ * reason the arithmetic also gives: it covered the names.** No arrangement of a rectangle
+ * over a list of names avoids covering some of them, and a rule that moves the rectangle
+ * only chooses *which* names are covered.
  *
- * The card was a portrait one at first: a 16:9 picture with the guide stacked under it,
- * the third column's composition made narrower. On the surfaces this product actually
- * ships to that came out 67% of the column's height — and a card taller than half the
- * column cannot have two places to sit that do not overlap, so the rule that moves it
- * away from the focused row would have moved it on every press. `the two places the card
- * may sit do not overlap` is the assertion that caught it.
+ * So the width comes back — but it is not the 986px preview well of the original
+ * reference either. That column was a picture with a whole schedule under it, and the
+ * schedule has left for a page of its own. What is left is a picture, the four lines that
+ * say what it is, and a strip of things to do to it; and that needs about a third of the
+ * board rather than two fifths.
  *
- * So the picture sits beside the guide rather than above it. The card spends width, which
- * this board has (a 21:9 phone is 833dp across and 385 down), and stops spending height,
- * which it has not. It is about four rows tall now instead of eleven.
+ * The floor is what those three layers need to stay legible; the ceiling stops a
+ * television from spending half its width on a preview.
  */
-private const val PLAYER = 1000f / 2340f
+private const val PLAYER = 748f / 2340f
 
 /**
- * The share of the surface the card may never pass, whatever its floor says.
+ * A button's height in the strip under the well.
  *
- * The floor above is what the card *needs*: a 16:9 picture with two readable lines of
- * guide beside it. Under about 600dp of width that floor is wider than the board it
- * floats over, and a floor wider than its own surface is not a floor — it is a clip, with
- * the card running off the edge of the screen carrying the guide with it.
- *
- * So the floor yields to the surface below that width, and the card becomes a fraction of
- * it instead. The two meet exactly at 600dp, so nothing steps; and every surface this
- * product ships to is above it, which is why no shipping geometry changes by a pixel.
- * This is the answer to "what does the card do somewhere it does not fit", not a
- * loosening of what it does where it does.
+ * Floored at a control target rather than at the list floor. The share is what the
+ * approved drawing gives it on a 1080-tall surface; on a handset the floor wins, which is
+ * the correct way round for five small targets side by side.
  */
-private const val PLAYER_OF_SURFACE = 0.6f
+private const val STRIP = 106f / 1080f
 
-/**
- * How much of the card the picture takes, the rest being the guide beside it.
- *
- * Just over half: the picture is what makes the card a player rather than a caption, and
- * what is left is enough for two lines of programme name at the board's body step.
- */
-internal const val CHANNELS_CARD_PICTURE = 0.52f
 private const val PLAYER_GAP = 18f / 2340f
 
 private const val RAIL_ENTRY_GAP = 4f / 1080f

@@ -64,9 +64,9 @@ class ChannelsMetricsTest {
      * than as "greater than zero": a list narrower than its own row furniture is a list
      * nobody can read.
      *
-     * There were three columns. The third — the preview well — is an overlay now, so it
-     * no longer takes width from anything; what it needs instead is somewhere to sit
-     * without covering the list, which is `the floating card leaves the list readable`.
+     * There are three columns again. The well went back to being one after it was tried
+     * as an overlay and covered the names — so its width is in this sum, and the list has
+     * to survive it. That is what the assertion is now for.
      */
     @Test
     fun `the columns keep a positive share of the width`() {
@@ -81,43 +81,69 @@ class ChannelsMetricsTest {
     }
 
     /**
-     * **The floating card never takes the list with it.**
+     * **The well's three layers fit the column, and the text is never the one that gives.**
      *
-     * It is drawn over the channel list rather than beside it, which is the whole point —
-     * the list got the third column's width back. The risk that replaces the old one is
-     * that the card grows until the column it floats over is a gutter: at that size a
-     * viewer is reading a list through a window.
+     * The picture, the facts and the action strip are stacked, and only one of them can
+     * be asked to shrink. The first arrangement asked the facts: at the column's full
+     * width a 16:9 frame is 146dp tall, a 21:9 handset's column is 255, and the block
+     * holding a name, two programme lines and a bar was left 52 — so the last line was
+     * cut off on the surface the product is most often used on.
      *
-     * So what is asserted is what the list keeps *while the card is up*. Its own inset is
-     * part of the sum, because the card is padded away from the panel's edge.
+     * So the **picture** yields instead, and this is the assertion that says it does. It
+     * checks both ends of that bargain: the facts keep [CHANNELS_FACTS_MIN], and the
+     * picture is never shrunk to nothing to pay for it.
      */
     @Test
-    fun `the floating card leaves the list readable`() {
+    fun `the well's three layers fit its column`() {
         sweep(from = SHIPPING_WIDTH) { tv, width, height ->
             val m = channelsMetricsFor(tv, width, height)
-            val uncovered = listWidth(m, width) - (m.player + m.playerGap * 2)
+            // The metric and this file's own arithmetic must be the same number. They are
+            // two derivations of "what is left after the bands", and the picture is sized
+            // from the first while every other assertion here measures the second.
+            assertEquals(
+                "the column metric disagrees with the bands at ${width}x$height",
+                columnHeight(m, height).value,
+                m.column.value,
+                0.01f,
+            )
+            val facts = m.column - (m.wellPicture + m.strip + m.guideGap * 2)
+            // Compared with a dust allowance, not because the rule is soft but because on
+            // the binding surface the cap makes this *exactly* the floor -- the picture
+            // gives back precisely what the facts need -- and two float paths to one
+            // number do not have to land on the same last bit. A hundredth of a dp is
+            // well under a device pixel on any density this ships to.
             assertTrue(
-                "the card covers all but $uncovered of the list at ${width}x$height",
-                uncovered >= LIST_MIN,
+                "the facts block gets $facts of a ${m.column} column at ${width}x$height",
+                facts.value >= CHANNELS_FACTS_MIN.value - DUST,
+            )
+            assertTrue(
+                "the picture is squeezed to ${m.wellPicture} at ${width}x$height",
+                m.wellPicture > CHANNELS_PICTURE_MIN,
             )
         }
     }
 
     /**
-     * **The card is short enough for the rule that moves it to work.**
+     * **And the picture keeps its shape while it does.**
      *
-     * It has two places to sit and it moves out of the one the focused row is in. That
-     * only terminates while the two zones do not meet: if the card were more than half
-     * the column tall, every row would be in both zones and it would move on every press.
+     * The cap takes height off the frame, so the width has to follow it or the picture
+     * stops being 16:9 — which on live television means a stretched face or a black bar,
+     * and the plate exists to avoid exactly that. Asserted rather than trusted because
+     * the two are separate expressions: one could be capped and the other left alone.
      */
     @Test
-    fun `the two places the card may sit do not overlap`() {
+    fun `the picture stays sixteen by nine at every size`() {
         sweep(from = SHIPPING_WIDTH) { tv, width, height ->
             val m = channelsMetricsFor(tv, width, height)
-            val column = columnHeight(m, height)
+            assertEquals(
+                "the picture is ${m.wellPictureWidth} by ${m.wellPicture} at ${width}x$height",
+                CHANNELS_PREVIEW_ASPECT,
+                m.wellPictureWidth / m.wellPicture,
+                0.01f,
+            )
             assertTrue(
-                "the card is ${m.floatHeight} of a ${column} column at ${width}x$height",
-                m.floatHeight * 2 <= column,
+                "the picture is ${m.wellPictureWidth} in a ${m.player} column",
+                m.wellPictureWidth <= m.player,
             )
         }
     }
@@ -281,7 +307,8 @@ class ChannelsMetricsTest {
                 "headerGap" to m.headerGap,
                 "panelPad" to m.panelPad, "panelRadius" to m.panelRadius,
                 "rail" to m.rail, "railGap" to m.railGap,
-                "player" to m.player, "playerGap" to m.playerGap, "rowPadH" to m.rowPadH,
+                "player" to m.player, "playerGap" to m.playerGap, "strip" to m.strip,
+                "rowPadH" to m.rowPadH,
                 "search" to m.search, "crumb" to m.crumb, "clock" to m.clock,
                 "dates" to m.dates, "clockGap" to m.clockGap,
                 "numberWidth" to m.numberWidth, "logoWidth" to m.logoWidth,
@@ -314,13 +341,11 @@ class ChannelsMetricsTest {
         // strip of circles a remote lands on, and that is the one column on this board
         // still held to the target — see `ChannelsMetrics`.
         assertNear("rail", 1280f * 494f / 2340f, m.rail)
-        // 1000 rather than the reference's 986, and the difference is not a rounding. The
-        // reference's 986 is a *column* standing beside the list; this is a *card* floating
-        // over it, whose width was solved for the shape that keeps it under half the
-        // column's height. It is still asserted here, and for the same reason as the rest:
-        // the share is what reaches the device, so a cap quietly swallowing it shows up on
-        // this line.
-        assertNear("player", 1280f * 1000f / 2340f, m.player)
+        // 748 rather than the reference's 986, and the difference is not a rounding: the
+        // reference's well held a picture with a whole schedule under it, and the schedule
+        // has left for a page of its own. What is left needs about a third of the board.
+        assertNear("player", 1280f * 748f / 2340f, m.player)
+        assertNear("strip", 720f * 106f / 1080f, m.strip)
         assertNear("railGap", 1280f * 16f / 2340f, m.railGap)
         assertNear("playerGap", 1280f * 18f / 2340f, m.playerGap)
         assertNear("edge", 1280f * 22f / 2340f, m.edge)
@@ -396,12 +421,13 @@ class ChannelsMetricsTest {
     /**
      * What the channel list is given.
      *
-     * Everything the board has after its own edges, the panel's padding and the rail.
-     * The preview column used to be in this sum and is not any more: it floats over the
-     * list now, so it takes no width from it.
+     * Everything the board has after its own edges, the panel's padding, the rail and the
+     * well. The well left this sum while it was an overlay and is back in it: it is a
+     * column again, drawn beside the list rather than over it, which is the whole of why
+     * no channel name is covered any more.
      */
     private fun listWidth(m: ChannelsMetrics, width: Dp): Dp =
-        width - (m.edge * 2 + m.panelPad * 2 + m.rail + m.railGap)
+        width - (m.edge * 2 + m.panelPad * 2 + m.rail + m.railGap + m.playerGap + m.player)
 
     /** What is left for the columns once [fixedHeight] is paid. */
     private fun columnHeight(m: ChannelsMetrics, height: Dp): Dp = height - fixedHeight(m)
@@ -525,5 +551,8 @@ class ChannelsMetricsTest {
 
         /** How much of a channel row belongs to the channel's name. */
         const val NAME_SHARE_OF_ROW = 0.5f
+
+        /** Float dust, in dp. Below a device pixel at every density this ships to. */
+        const val DUST = 0.01f
     }
 }

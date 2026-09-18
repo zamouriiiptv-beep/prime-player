@@ -234,6 +234,23 @@
     <!-- In the guide overlay's header. Back closes it too; this says so for a thumb. -->
     <string name="channels_guide_close">Close</string>
     <string name="channels_action_refresh">Refresh</string>
+
+    <!-- The control on the picture itself. It puts the third column away and gives the
+         board back to the channel list; it does not stop the stream, and the next channel
+         press brings the column back. Spoken by a screen reader, so it says what it does
+         rather than naming the glyph. -->
+    <string name="channels_player_close">Close the player</string>
+
+    <!-- The strip under the well: things done to the channel in the picture above it.
+         A word under each mark, because five unlabelled icons in a row is a puzzle on a
+         television, where there is no hover to explain one. Kept to one short word each:
+         the buttons are square and the column is narrow. -->
+    <string name="channels_action_guide">Guide</string>
+    <string name="channels_action_favorite">Favourite</string>
+    <!-- The same button once the channel is in the list: it says what the press will undo. -->
+    <string name="channels_action_unfavorite">Favourited</string>
+    <string name="channels_action_lock">Lock</string>
+    <string name="channels_action_hide">Hide</string>
     <!-- On the display over the picture. Uppercase in English because the reference
          draws it so; a language without case renders its own word. -->
     <string name="channels_live_badge">LIVE</string>

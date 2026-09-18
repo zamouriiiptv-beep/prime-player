@@ -145,5 +145,13 @@
     <string name="channels_guide_close">إغلاق</string>
     <string name="channels_action_refresh">تحديث</string>
 
+    <string name="channels_player_close">إغلاق المشغّل</string>
+
+    <string name="channels_action_guide">الدليل</string>
+    <string name="channels_action_favorite">المفضلة</string>
+    <string name="channels_action_unfavorite">في المفضلة</string>
+    <string name="channels_action_lock">قفل</string>
+    <string name="channels_action_hide">إخفاء</string>
+
 
 </resources>

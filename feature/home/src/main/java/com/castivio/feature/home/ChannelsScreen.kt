@@ -8,6 +8,7 @@ import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,7 +17,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,25 +26,30 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.StarBorder
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -57,8 +62,8 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -92,7 +97,6 @@ import com.castivio.core.platform.CastivioTrace
 import com.castivio.core.platform.PerformanceLog
 import com.castivio.domain.Channel
 import com.castivio.domain.MediaItem
-import com.castivio.domain.NowNext
 import com.castivio.domain.Programme
 import com.castivio.domain.SectionLoad
 import com.castivio.domain.SortOrder
@@ -757,57 +761,27 @@ private fun Columns(
     val rows = model.items.collectAsLazyPagingItems()
     val listState = rememberLazyListState()
 
-    // Which row the remote is on. Not the same as which channel is *selected* — see
-    // `ChannelList` — and it is tracked separately because only this one decides where
-    // the card may sit.
-    var focusedRow by remember { mutableIntStateOf(0) }
-    var anchor by remember { mutableStateOf(FloatAnchor.Bottom) }
     var guideOpen by remember { mutableStateOf(false) }
 
-    val listFocus = remember { FocusRequester() }
-    val floatFocus = remember { FocusRequester() }
+    // **The one thing the close button changes.**
+    //
+    // It is not "stop playing" — the stream is the shell's and survives this screen. It
+    // is "give me the board without the well", which is the request a viewer makes when
+    // they want to read the list rather than watch. And it lasts exactly until the next
+    // press: choosing a channel is asking to see it, so the well comes back with it. The
+    // owner asked for that explicitly and it is the right rule anyway — a hidden well
+    // that stayed hidden through a channel press would look like a player that had
+    // broken.
+    var wellClosed by remember { mutableStateOf(false) }
 
-    // The card exists only once something is playing or chosen. Everything that points
+    val listFocus = remember { FocusRequester() }
+    val wellFocus = remember { FocusRequester() }
+
+    // The well exists only once something is playing or chosen. Everything that points
     // *at* it has to ask first: a `FocusRequester` that was never attached to a node
     // throws when focus is moved to it, so "right" out of the list has to mean the
-    // default search on a board that has no card yet.
-    val cardShown = preview != null || shown.channel != null
-
-    val floatPx = with(LocalDensity.current) { m.floatHeight.roundToPx() }
-
-    // **Where the focused row is, relative to the two places the card may sit.**
-    //
-    // Read from the list's own layout rather than computed from row heights: the answer
-    // has to be the geometry that was actually laid out, and a row is `heightIn(min=)` —
-    // it can be taller than the floor. `derivedStateOf` so the whole board does not
-    // recompose on every pixel of a scroll; only a change of *zone* is worth a frame.
-    val zone by remember(floatPx) {
-        derivedStateOf {
-            val info = listState.layoutInfo
-            val row = info.visibleItemsInfo.firstOrNull { it.index == focusedRow }
-            when {
-                row == null -> FloatZone.Clear
-                row.offset + row.size > info.viewportEndOffset - floatPx -> FloatZone.Bottom
-                row.offset < info.viewportStartOffset + floatPx -> FloatZone.Top
-                else -> FloatZone.Clear
-            }
-        }
-    }
-
-    // **Two places, one rule, and it cannot oscillate.**
-    //
-    // The card moves only when the place it is in would cover the row the remote is on,
-    // and it moves to the other one — which by construction does not cover that row,
-    // because the two zones do not overlap on any list taller than two cards. So a
-    // traversal from top to bottom moves the card once, not repeatedly, and a viewer
-    // arrowing through the middle of a list never sees it move at all.
-    LaunchedEffect(zone) {
-        anchor = when {
-            zone == FloatZone.Bottom && anchor == FloatAnchor.Bottom -> FloatAnchor.Top
-            zone == FloatZone.Top && anchor == FloatAnchor.Top -> FloatAnchor.Bottom
-            else -> anchor
-        }
-    }
+    // default search on a board that has no well yet.
+    val wellShown = (preview != null || shown.channel != null) && !wellClosed
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Box(modifier.fillMaxWidth()) {
@@ -823,52 +797,52 @@ private fun Columns(
 
                 Spacer(Modifier.width(m.railGap))
 
-                // **The list takes everything the rail does not.** The third column is
-                // gone and its width went here, which is why a channel's name is no
-                // longer the first casualty of the board's arithmetic.
                 ChannelList(
                     rows = rows,
                     state = state,
                     m = m,
                     listState = listState,
-                    onRowFocused = { focusedRow = it },
                     onSelect = previewModel::select,
-                    onPlay = onPlay,
+                    onPlay = { selection ->
+                        wellClosed = false
+                        onPlay(selection)
+                    },
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
                         .focusRequester(listFocus)
                         .focusGroup()
-                        // Right out of the list is the card, and nothing else. Stated
-                        // rather than left to the geometric search, because the card
-                        // *overlaps* the list and a search that finds the nearest
-                        // focusable in a direction can pick a row instead.
+                        // Right out of the list is the well, and nothing else. Stated
+                        // rather than left to the geometric search, because the strip's
+                        // five buttons are all to the list's right and the nearest one
+                        // is not the one a viewer means.
                         .focusProperties {
-                            right = if (cardShown) floatFocus else FocusRequester.Default
+                            right = if (wellShown) wellFocus else FocusRequester.Default
                         },
                 )
-            }
 
-            // Drawn only when there is something for it to be about. Before the first
-            // press the board is a board; the card is not an empty frame waiting.
-            if (cardShown) {
-                FloatingPlayer(
-                    shown = shown,
-                    m = m,
-                    preview = preview,
-                    onOpenGuide = { guideOpen = true },
-                    modifier = Modifier
-                        .align(
-                            if (anchor == FloatAnchor.Bottom) Alignment.BottomEnd
-                            else Alignment.TopEnd,
-                        )
-                        .padding(m.playerGap)
-                        .width(m.player)
-                        .height(m.floatHeight)
-                        .focusRequester(floatFocus)
-                        .focusGroup()
-                        .focusProperties { left = listFocus },
-                )
+                // Drawn only when there is something for it to be about. Before the
+                // first press the board is two columns; the well is not an empty frame
+                // waiting, and the list has its width until there is a reason to spend
+                // it.
+                if (wellShown) {
+                    Spacer(Modifier.width(m.playerGap))
+
+                    ChannelWell(
+                        shown = shown,
+                        m = m,
+                        preview = preview,
+                        onOpenGuide = { guideOpen = true },
+                        onFavorite = previewModel::toggleFavorite,
+                        onClose = { wellClosed = true },
+                        modifier = Modifier
+                            .width(m.player)
+                            .fillMaxHeight()
+                            .focusRequester(wellFocus)
+                            .focusGroup()
+                            .focusProperties { left = listFocus },
+                    )
+                }
             }
 
             if (guideOpen) {
@@ -877,12 +851,6 @@ private fun Columns(
         }
     }
 }
-
-/** The two places the floating card is allowed to be. There is no third. */
-private enum class FloatAnchor { Bottom, Top }
-
-/** Where the focused row is, against the card's two possible places. */
-private enum class FloatZone { Top, Clear, Bottom }
 
 /* --------------------------------------------------------------- the actions */
 
@@ -1126,10 +1094,8 @@ private fun ChannelList(
     rows: LazyPagingItems<MediaItem>,
     state: BrowseState,
     m: ChannelsMetrics,
-    /** Hoisted: the floating card's position is decided from this list's own geometry. */
+    /** Hoisted so the board can scroll this list to the channel it restores on entry. */
     listState: LazyListState,
-    /** Where the remote is. Distinct from [onSelect] — moving is not choosing. */
-    onRowFocused: (Int) -> Unit,
     onSelect: (Channel, Int) -> Unit,
     onPlay: (CatalogSelection) -> Unit,
     modifier: Modifier = Modifier,
@@ -1206,16 +1172,15 @@ private fun ChannelList(
                     //
                     // Focus used to select: arrowing down a list changed what the preview
                     // column said. That was harmless while the column only drew a mark and
-                    // a guide. It is not harmless now, because the card also *plays* — and
-                    // a card whose picture is one channel while its name and its guide are
-                    // the channel the remote happens to be passing over is a card that
+                    // a guide. It is not harmless now, because the well also *plays* — and
+                    // a well whose picture is one channel while its name and its guide are
+                    // the channel the remote happens to be passing over is a well that
                     // contradicts itself. Worse, tuning on every arrow would open a stream
                     // per row on a list of 55,000.
                     //
-                    // So focus reports where the remote is, and nothing more; pressing is
-                    // what selects, and it sets the picture, the name, the number and the
-                    // guide together, from one act.
-                    onFocused = { onRowFocused(index) },
+                    // So focus does nothing at all here, and pressing is what selects: it
+                    // sets the picture, the name, the number and the guide together, from
+                    // one act.
                     onClick = {
                         onSelect(channel, index + 1)
                         channel.asSelection()?.let(onPlay)
@@ -1236,7 +1201,6 @@ private fun ChannelRow(
     channel: Channel,
     number: Int,
     m: ChannelsMetrics,
-    onFocused: () -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -1252,11 +1216,7 @@ private fun ChannelRow(
             .clip(shape)
             .background(if (focused) colors.secondary else Color.Transparent)
             .border(1.dp, if (focused) colors.focusRing else Color.Transparent, shape)
-            .onFocusChanged {
-                val now = it.isFocused || it.hasFocus
-                focused = now
-                if (now) onFocused()
-            }
+            .onFocusChanged { focused = it.isFocused || it.hasFocus }
             .clickable(interaction, indication = null, onClick = onClick)
             .padding(horizontal = m.rowPadH),
         verticalAlignment = Alignment.CenterVertically,
@@ -1392,214 +1352,286 @@ private fun NumberPlate(label: String, focused: Boolean, m: ChannelsMetrics) {
     }
 }
 
-/* --------------------------------------------------------- the floating card */
+/* ----------------------------------------------------------------- the well */
 
 /**
- * The channel that is playing, over the list rather than beside it.
+ * The third column: a picture, what it is, and what you can do to it.
  *
- * ## Why it stopped being a column
+ * ## Why it is a column again
  *
- * It was the board's third track: a picture, a guide and a channel's whole detail, taking
- * 42% of the width whether or not anything was playing. What that cost was the *names* —
- * the channel list had a third of the board and ended most of its rows in an ellipsis.
+ * It was a card floating over the channel list, and the owner rejected that for the
+ * reason the arithmetic also gives: it covered the names. No rectangle drawn over a list
+ * of names avoids covering some of them, and a rule that moves the rectangle only
+ * chooses *which* names are covered. So the width comes back, and nothing is ever drawn
+ * over the list again.
  *
- * As an overlay it costs nothing until a channel is chosen, and the list has the width
- * back. What it costs instead is the rows underneath it, which is why it has two places
- * to sit and a rule that keeps it off the one the remote is on. See `Columns`.
+ * ## The three layers, and why each is where it is
+ *
+ * 1. **The picture**, and only the picture. It carries the live badge and the number and
+ *    nothing else: the channel's *name* used to be printed over the frame, which is a
+ *    caption written across moving video.
+ * 2. **The facts** under it — the name, what is on, what is next, and what the stream
+ *    actually is. This is where "No Information" belongs, and where it now lives: a
+ *    guide's absence is a fact about the channel, not a thing to write inside a player.
+ * 3. **The strip** — the things you can do to the channel in the picture. Actions with a
+ *    subject drawn above them, rather than a menu that has to name what it acts on.
+ *
+ * The whole column costs nothing until a channel is chosen, and the close button gives
+ * the board back to the list — see `Columns` for what that press means.
  *
  * ## Everything in it is real or absent
  *
  * No invented programme, no invented artwork, no invented duration. An absent guide draws
- * "No Information"; an absent channel draws nothing, because the card is not composed at
+ * "No Information"; an absent channel draws nothing, because the well is not composed at
  * all until there is one.
  */
 @Composable
-private fun FloatingPlayer(
+private fun ChannelWell(
     shown: ChannelPreview,
     m: ChannelsMetrics,
     preview: (@Composable () -> Unit)?,
     onOpenGuide: () -> Unit,
+    onFavorite: () -> Unit,
+    onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = CastivioTheme.colors
-    val shape = RoundedCornerShape(m.wellRadius)
-    val channel = shown.channel
-    var focused by remember { mutableStateOf(false) }
-
-    // **A filled card, unlike anything else on this board.**
-    //
-    // The list and the rail are frames with the page showing through, because they are
-    // regions of the screen. This one floats *over* them, and a translucent thing over a
-    // list of names is a thing you read the list through. It takes the panel's own solid
-    // and a shadow's worth of border so the eye reads one plane above another.
-    //
-    // The ring is the focus ring, on the card and not on what is inside it: everything in
-    // here belongs to one channel, so one outline is the honest answer to "where am I".
-    //
-    // **Landscape, not portrait**, and that shape was decided by the rule that moves the
-    // card rather than by taste -- a card taller than half the channel column has no two
-    // places to sit that do not overlap. See `ChannelsMetrics.PLAYER`.
-    Row(
-        modifier
-            .onFocusChanged { focused = it.hasFocus }
-            .clip(shape)
-            .background(colors.backgroundElevated)
-            .border(
-                if (focused) 2.dp else 1.dp,
-                if (focused) colors.focusRing else colors.glassBorder,
-                shape,
-            )
-            .padding(m.wellPad),
+    Column(
+        modifier,
+        verticalArrangement = Arrangement.spacedBy(m.guideGap),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Box(
-            Modifier
-                .width(m.cardPicture)
-                .aspectRatio(CHANNELS_PREVIEW_ASPECT)
-                .clip(RoundedCornerShape(m.previewRadius)),
-        ) {
-            // **The plate is the player's when there is a player.**
-            //
-            // The mark and the bar under it are what this plate shows while nothing has
-            // been pressed — a *preview* of the channel the remote is on. Once a channel
-            // is actually playing, the same plate is the compact player, which draws its
-            // own title over its own picture; drawing both would be two titles over one
-            // frame.
-            //
-            // The plate keeps its size and its place either way, so pressing a channel
-            // changes what is in the box and never where the box is.
-            if (preview != null) {
-                preview()
-            } else if (channel != null) {
-                LogoTile(
-                    initials = initialsOf(channel.title),
-                    seed = channel.id.hashCode(),
-                    modifier = Modifier.fillMaxSize(),
-                )
-                Osd(
-                    channel = channel,
-                    number = shown.number,
-                    guide = shown.guide,
-                    m = m,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(m.osdPad),
-                )
-            } else {
-                Box(
-                    Modifier.fillMaxSize().background(colors.glassFill),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = stringResource(R.string.channels_preview_none),
-                        style = castivioBodyStyle(m.frame.fsBody),
-                        color = colors.onBackgroundMuted,
-                    )
-                }
-            }
-        }
-
-        Spacer(Modifier.width(m.guideGap))
-
-        // **Two lines, and a door to the rest.**
-        //
-        // The card carried the whole schedule when it was a column; an overlay cannot,
-        // and should not — what a viewer wants from a picture in a corner is what is on
-        // and what is next. Everything further out is a press away, in an overlay that
-        // has the room for it. See [ChannelGuideOverlay].
-        //
-        // The region is claimed whether or not the guide answered, which is why the card
-        // has a fixed height: a channel with no EPG must not make the card change shape
-        // while a viewer is arrowing past it.
-        GuideSummary(
+        // Sized from the metrics rather than from the column, because on a short surface
+        // the picture is *narrower* than the column it sits in -- it gives height back to
+        // the facts under it and keeps its shape. See `ChannelsMetrics.wellPicture`.
+        WellPicture(
             shown = shown,
             m = m,
-            onOpen = onOpenGuide,
-            modifier = Modifier.weight(1f).fillMaxHeight(),
+            preview = preview,
+            onClose = onClose,
+            modifier = Modifier.width(m.wellPictureWidth).height(m.wellPicture),
+        )
+
+        ChannelFacts(shown = shown, m = m, modifier = Modifier.fillMaxWidth().weight(1f))
+
+        ActionStrip(
+            shown = shown,
+            m = m,
+            onOpenGuide = onOpenGuide,
+            onFavorite = onFavorite,
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }
 
 /**
- * What is on and what is next, and the press that opens the whole day.
+ * The picture, with the two marks that belong on a frame of video and no others.
  *
- * Pressable as one object rather than carrying a button, for the reason the rest of this
- * board has no buttons on its rows: a remote lands on things, and a panel that *is* the
- * control is one landing place instead of two.
+ * The live badge and the number are over it because they are true of the *picture*; the
+ * name and the programme are under it because they are true of the channel, and a caption
+ * written across moving video is the thing this board was asked to stop doing.
  *
- * Two lines and a bar, which is all a card four rows tall can hold honestly. It does not
- * reuse [GuideEntry] — that draws a programme at a size the full guide has room for, and
- * shrinking it here would have produced a third guide typography. What sits beside a
- * picture this small is a summary, and a summary has its own shape.
+ * Close is a real control on the frame rather than a key a viewer has to know about: a
+ * thumb has no coloured buttons, and "how do I get rid of this" was the owner's first
+ * question about the previous shape.
  */
 @Composable
-private fun GuideSummary(
+private fun WellPicture(
     shown: ChannelPreview,
     m: ChannelsMetrics,
-    onOpen: () -> Unit,
+    preview: (@Composable () -> Unit)?,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = CastivioTheme.colors
+    val shape = RoundedCornerShape(m.wellRadius)
+    val channel = shown.channel
+
+    Box(
+        modifier
+            .clip(shape)
+            .background(colors.backgroundElevated)
+            .border(1.dp, colors.glassBorder, shape),
+    ) {
+        // **The plate is the player's when there is a player.**
+        //
+        // The mark is what this plate shows while nothing has been pressed — a preview of
+        // the channel that was chosen. Once one is actually playing, the same plate is the
+        // compact player. It keeps its size and its place either way, so pressing a
+        // channel changes what is in the box and never where the box is.
+        if (preview != null) {
+            preview()
+        } else if (channel != null) {
+            LogoTile(
+                initials = initialsOf(channel.title),
+                seed = channel.id.hashCode(),
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            Box(
+                Modifier.fillMaxSize().background(colors.glassFill),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.channels_preview_none),
+                    style = castivioBodyStyle(m.frame.fsBody),
+                    color = colors.onBackgroundMuted,
+                )
+            }
+        }
+
+        if (channel != null) {
+            Row(
+                Modifier.align(Alignment.BottomStart).padding(m.osdPad),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(m.osdGap),
+            ) {
+                LiveBadge(m)
+                Text(
+                    text = numberPlate(shown.number),
+                    style = castivioChipStyle(m.frame.fsBody * QUALITY_OF_BODY),
+                    color = colors.onBackgroundStrong,
+                    maxLines = 1,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(Radius.pill))
+                        .background(colors.scrim)
+                        .padding(horizontal = m.badgePadH, vertical = m.badgePadV),
+                )
+            }
+        }
+
+        FrameButton(
+            icon = Icons.Rounded.Close,
+            description = stringResource(R.string.channels_player_close),
+            onClick = onClose,
+            m = m,
+            modifier = Modifier.align(Alignment.TopEnd).padding(m.osdPad),
+        )
+    }
+}
+
+/** A small control over the picture: dark enough to read on any frame, and focusable. */
+@Composable
+private fun FrameButton(
+    icon: ImageVector,
+    description: String,
+    onClick: () -> Unit,
+    m: ChannelsMetrics,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
     val (focused, focusModifier) = rememberFocusFlag()
     val shape = RoundedCornerShape(m.previewRadius)
     val interaction = remember { MutableInteractionSource() }
+
+    Box(
+        modifier
+            .size(m.factChip)
+            .clip(shape)
+            .background(if (focused) colors.focusRing else colors.scrim)
+            .border(1.dp, if (focused) colors.focusRing else colors.glassBorderSoft, shape)
+            .then(focusModifier)
+            .clickable(interaction, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            icon,
+            contentDescription = description,
+            tint = if (focused) colors.onSecondary else colors.onBackgroundStrong,
+            modifier = Modifier.size(Sizing.iconSm),
+        )
+    }
+}
+
+/**
+ * What the picture is: the channel, what is on, what is next, and the stream itself.
+ *
+ * ## Why this is not inside the player
+ *
+ * It was. "No Information" was drawn in a panel *within* the card, which made a guide's
+ * absence look like a fault in the player rather than a fact about the channel. Out here
+ * it reads correctly: this is the block that says what you are watching, and sometimes
+ * one of the things it has to say is that the provider sent no schedule.
+ *
+ * ## What it may claim
+ *
+ * The name, the number and the quality tag come from the catalogue and are always true.
+ * The two programme lines come from the guide and are absent when it is. There is
+ * deliberately **no resolution or codec line**: those are properties of a decoded stream,
+ * the board does not hold them, and printing them from a channel's name would be the one
+ * dishonest pixel on the screen. When the engine reports them they can be added here —
+ * and not before.
+ */
+@Composable
+private fun ChannelFacts(shown: ChannelPreview, m: ChannelsMetrics, modifier: Modifier = Modifier) {
+    val colors = CastivioTheme.colors
+    val shape = RoundedCornerShape(m.wellRadius)
+    val channel = shown.channel
     val guide = shown.guide
     val hasGuide = shown.schedule.isNotEmpty()
 
-    Row(
+    Column(
         modifier
             .clip(shape)
-            .background(if (focused) colors.glassFillStrong else Color.Transparent)
-            .border(1.dp, if (focused) colors.focusRing else Color.Transparent, shape)
-            .then(focusModifier)
-            .clickable(interaction, indication = null, enabled = hasGuide, onClick = onOpen)
-            .padding(horizontal = m.rowPadH),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(m.factGap),
+            .border(1.dp, colors.glassBorderSoft, shape)
+            .padding(horizontal = m.guidePad, vertical = m.guidePad / 2),
+        verticalArrangement = Arrangement.spacedBy(m.badgePadV),
     ) {
-        if (!hasGuide) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(m.factGap),
+        ) {
             Text(
-                // Three different absences reach this line -- a channel with no guide
-                // id, a guide never imported, a schedule that has run out -- and all
-                // three are honestly "no information".
+                text = channel?.let { titleWithoutQuality(it.title) }
+                    ?: stringResource(R.string.channels_preview_none),
+                style = castivioTitleStyle(m.fsChannelName),
+                color = colors.onBackgroundStrong,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            channel?.title?.let(::qualityOf)?.let {
+                Text(
+                    text = it.label,
+                    style = castivioBodyStyle(m.frame.fsBody * QUALITY_OF_BODY),
+                    color = colors.secondary,
+                    maxLines = 1,
+                )
+            }
+        }
+
+        if (!hasGuide) {
+            // Three different absences reach this line -- a channel with no guide id, a
+            // guide never imported, a schedule that has run out -- and all three are
+            // honestly "no information".
+            Text(
                 text = stringResource(R.string.channels_no_information),
                 style = castivioBodyStyle(m.frame.fsBody),
                 color = colors.onBackgroundMuted,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            return@Row
+            return@Column
         }
 
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(m.badgePadV)) {
-            GuideLine(
-                label = stringResource(R.string.channels_guide_now),
-                title = guide?.now?.title ?: stringResource(R.string.channels_no_information),
-                now = true,
-                m = m,
-            )
-            // The same bar the display over the picture draws, and from the same
-            // arithmetic: how far through the programme the clock is.
-            Track(fraction = guide?.progressAt(System.currentTimeMillis()), m = m)
-            GuideLine(
-                label = stringResource(R.string.channels_guide_next),
-                title = guide?.next?.title ?: shown.schedule.getOrNull(1)?.title.orEmpty(),
-                now = false,
-                m = m,
-            )
-        }
-
-        // The affordance: one mark that says the panel leads somewhere. A word would be
-        // a third line on a panel that has room for two.
-        Icon(
-            Icons.Rounded.ChevronRight,
-            contentDescription = stringResource(R.string.channels_guide_open),
-            tint = if (focused) colors.onBackground else colors.secondary,
-            modifier = Modifier.size(Sizing.iconMd),
+        GuideLine(
+            label = stringResource(R.string.channels_guide_now),
+            title = guide?.now?.title ?: stringResource(R.string.channels_no_information),
+            now = true,
+            m = m,
+        )
+        // The same bar the guide's own rows draw, and from the same arithmetic: how far
+        // through the programme the clock is.
+        Track(fraction = guide?.progressAt(System.currentTimeMillis()), m = m)
+        GuideLine(
+            label = stringResource(R.string.channels_guide_next),
+            title = guide?.next?.title ?: shown.schedule.getOrNull(1)?.title.orEmpty(),
+            now = false,
+            m = m,
         )
     }
 }
 
-/** One line of the summary: what it is, and what is on. */
+/** One line of the facts block: what it is, and what is on. */
 @Composable
 private fun GuideLine(label: String, title: String, now: Boolean, m: ChannelsMetrics) {
     val colors = CastivioTheme.colors
@@ -1625,25 +1657,180 @@ private fun GuideLine(label: String, title: String, now: Boolean, m: ChannelsMet
 }
 
 /**
+ * The things you can do to the channel in the picture above.
+ *
+ * ## Why it scrolls
+ *
+ * Four buttons fit across this column on a television and three on a handset, and the
+ * owner intends to add more. A fixed row would make every future addition a redesign of
+ * the board's arithmetic; a scrolling one makes it an entry in a list. A remote walks it
+ * with `right`, a thumb drags it, and the strip is one focus group so neither has to
+ * think about which is which.
+ *
+ * ## Two of these do not work yet, and they are drawn anyway
+ *
+ * **Lock** and **Hide** have no table behind them: there is no `channel_lock` and no
+ * `channel_hidden`, so pressing them changes nothing. They are on screen at the owner's
+ * explicit instruction, to see the strip and walk it on a device before the storage is
+ * built. This comment is the record of that decision — the buttons are not forgotten
+ * work, they are staged work, and the next commit on this file should be the two tables.
+ */
+@Composable
+private fun ActionStrip(
+    shown: ChannelPreview,
+    m: ChannelsMetrics,
+    onOpenGuide: () -> Unit,
+    onFavorite: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val hasChannel = shown.channel != null
+
+    Row(
+        modifier.horizontalScroll(rememberScrollState()).focusGroup(),
+        horizontalArrangement = Arrangement.spacedBy(m.factGap),
+    ) {
+        ActionButton(
+            icon = Icons.Rounded.CalendarMonth,
+            label = stringResource(R.string.channels_action_guide),
+            // A guide button on a channel whose provider sent no schedule would open an
+            // empty page. It is drawn and it is dark, which is a truthful "nothing to
+            // show" rather than a press that leads nowhere.
+            enabled = shown.schedule.isNotEmpty(),
+            onClick = onOpenGuide,
+            m = m,
+        )
+        ActionButton(
+            icon = if (shown.favorite) Icons.Rounded.Star else Icons.Rounded.StarBorder,
+            label = stringResource(
+                if (shown.favorite) R.string.channels_action_unfavorite
+                else R.string.channels_action_favorite,
+            ),
+            on = shown.favorite,
+            enabled = hasChannel,
+            onClick = onFavorite,
+            m = m,
+        )
+        ActionButton(
+            icon = Icons.Rounded.Lock,
+            label = stringResource(R.string.channels_action_lock),
+            enabled = hasChannel,
+            onClick = {},
+            m = m,
+        )
+        ActionButton(
+            icon = Icons.Rounded.VisibilityOff,
+            label = stringResource(R.string.channels_action_hide),
+            enabled = hasChannel,
+            onClick = {},
+            m = m,
+        )
+    }
+}
+
+/**
+ * One button in the strip: a mark and a word.
+ *
+ * A word under the mark rather than a mark alone. Five icons in a row with no labels is a
+ * puzzle on a television, where there is no hover to explain one and no convention that
+ * covers "hide a channel".
+ *
+ * [on] is the state of a thing that toggles — a favourited channel — and takes the
+ * selection colour, which on this board means *chosen* and never *focused*. The two are
+ * different colours for that reason and this button is where they meet.
+ */
+@Composable
+private fun ActionButton(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    m: ChannelsMetrics,
+    on: Boolean = false,
+    enabled: Boolean = true,
+) {
+    val colors = CastivioTheme.colors
+    val (focused, focusModifier) = rememberFocusFlag()
+    val shape = RoundedCornerShape(m.previewRadius)
+    val interaction = remember { MutableInteractionSource() }
+
+    val ink = when {
+        !enabled -> colors.onBackgroundMuted
+        focused -> colors.onSecondary
+        on -> colors.secondary
+        else -> colors.onBackgroundVariant
+    }
+
+    Column(
+        Modifier
+            .height(m.strip)
+            .widthIn(min = m.strip)
+            .clip(shape)
+            .background(
+                when {
+                    focused -> colors.secondary
+                    on -> colors.secondaryContainer
+                    else -> colors.glassFill
+                },
+            )
+            .border(
+                1.dp,
+                when {
+                    focused -> colors.focusRing
+                    on -> colors.selectedBorder
+                    else -> colors.glassBorderSoft
+                },
+                shape,
+            )
+            .then(focusModifier)
+            .clickable(interaction, indication = null, enabled = enabled, onClick = onClick)
+            .padding(horizontal = m.rowPadH, vertical = m.badgePadV),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(icon, contentDescription = null, tint = ink, modifier = Modifier.size(Sizing.iconMd))
+        Spacer(Modifier.height(m.badgePadV))
+        Text(
+            text = label,
+            style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
+            color = ink,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/**
  * The whole day, for the channel that is playing.
  *
  * ## Why an overlay and not a fourth region
  *
  * A schedule is twenty rows and the board has no twenty rows to spare — that is the
- * arithmetic that took the guide out of the card in the first place. What it needs is the
+ * arithmetic that took the guide out of the well in the first place. What it needs is the
  * screen, briefly, and then to give it back.
+ *
+ * ## Why it stops at the well rather than covering it
+ *
+ * The obvious full-screen version puts the picture back inside the overlay, which means
+ * moving the player's slot from the well into here — and moving a `SurfaceView` between
+ * two places in one composition detaches and re-attaches it. The stream survives, because
+ * the engine belongs to the shell, but the frame goes black for as long as the surface
+ * takes to come back.
+ *
+ * So the panel takes the rail's width and the list's, and stops. The well is left exactly
+ * where it is: the picture never moves, never blinks, and the viewer reads the schedule
+ * with the channel still playing beside it — which is what the approved drawing shows and
+ * what a full-screen overlay would have had to fake.
  *
  * ## Why it is not a new EPG
  *
  * There is no new query, no new repository call and no new state. `ChannelPreview.schedule`
- * is the list the card already reads two lines of, drawn here in full with the same
- * [GuideEntry] the card uses. The overlay is a second *view* of one fact, not a second
- * fact — which is also why closing it cannot lose the channel: it never owned it.
+ * is the list the well already reads two lines of, drawn here in full. The overlay is a
+ * second *view* of one fact, not a second fact — which is also why closing it cannot lose
+ * the channel: it never owned it.
  *
  * ## The header says whose schedule this is
  *
  * The one thing an overlay of times and titles must never leave ambiguous. The channel's
- * number and name sit above the list, in the same shapes the card draws them in.
+ * number and name sit above the list, in the same shapes the well draws them in.
  */
 @Composable
 private fun ChannelGuideOverlay(shown: ChannelPreview, m: ChannelsMetrics, onClose: () -> Unit) {
@@ -1654,9 +1841,13 @@ private fun ChannelGuideOverlay(shown: ChannelPreview, m: ChannelsMetrics, onClo
     BackHandler(onBack = onClose)
     LaunchedEffect(Unit) { runCatching { first.requestFocus() } }
 
+    // Covers the rail and the list, and stops before the well. `CenterStart` with an end
+    // padding of the well's own width is how a `Box` says "everything except that
+    // column": the scrim dims what the schedule replaces and leaves the picture lit.
     Box(
         Modifier
             .fillMaxSize()
+            .padding(end = m.player + m.playerGap)
             .background(colors.scrim)
             // Swallows the press so a tap on the dimmed board behind does not reach a
             // channel row; it also closes, which is what a scrim is for.
@@ -1665,13 +1856,13 @@ private fun ChannelGuideOverlay(shown: ChannelPreview, m: ChannelsMetrics, onClo
                 indication = null,
                 onClick = onClose,
             ),
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.CenterStart,
     ) {
         Column(
             Modifier
                 .fillMaxHeight()
-                .width(m.rail + m.railGap + m.player)
-                .padding(vertical = m.panelPad)
+                .fillMaxWidth()
+                .padding(m.panelPad)
                 .clip(shape)
                 .background(colors.backgroundElevated)
                 .border(1.dp, colors.glassBorder, shape)
@@ -1719,104 +1910,6 @@ private fun ChannelGuideOverlay(shown: ChannelPreview, m: ChannelsMetrics, onClo
                 }
             }
         }
-    }
-}
-
-/**
- * The bar over the picture: which channel, what is on, and how far through it is.
- *
- * ## What it does not say
- *
- * The reference prints a resolution here — `1920 × 1080`. Castivio does not know it. A
- * stream's real geometry comes from the decoder after the player has opened it, and this
- * board has opened nothing; printing the tag from the channel's *name* in a slot that
- * looks like a measurement would be the one dishonest pixel on the screen. The quality
- * tag says what the provider wrote, and the number says where the row is — both true.
- */
-@Composable
-private fun Osd(
-    channel: Channel,
-    number: Int?,
-    guide: NowNext?,
-    m: ChannelsMetrics,
-    modifier: Modifier = Modifier,
-) {
-    val colors = CastivioTheme.colors
-    val shape = RoundedCornerShape(m.previewRadius)
-    val programme = guide?.now
-
-    Row(
-        modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(colors.scrim)
-            .border(1.dp, colors.glassBorderSoft, shape)
-            .padding(horizontal = m.osdPad, vertical = m.osdPad / 2),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(m.osdGap),
-    ) {
-        Column(Modifier.weight(1f)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(m.osdGap / 2),
-            ) {
-                // **LIVE, and it means it.** Live television is the one thing this
-                // board shows, so the badge is a statement about the section rather
-                // than a per-channel claim nothing could back -- which is exactly
-                // why it is drawn here and not, say, from a guide that may be absent.
-                LiveBadge(m)
-                Text(
-                    text = titleWithoutQuality(channel.title),
-                    style = castivioTitleStyle(m.fsChannelName),
-                    color = colors.onBackgroundStrong,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                qualityOf(channel.title)?.let {
-                    Text(
-                        text = it.label,
-                        style = castivioBodyStyle(m.frame.fsBody * QUALITY_OF_BODY),
-                        color = colors.secondary,
-                        maxLines = 1,
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(m.nameGap / 2))
-            Track(fraction = guide?.progressAt(System.currentTimeMillis()), m = m)
-            Spacer(Modifier.height(m.nameGap / 2))
-
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(
-                    text = programme?.startMs?.let(::clockLabel).orEmpty(),
-                    style = castivioBodyStyle(m.frame.fsBody),
-                    color = colors.onBackgroundVariant,
-                    maxLines = 1,
-                )
-                Text(
-                    text = programme?.title ?: stringResource(R.string.channels_no_information),
-                    style = castivioBodyStyle(m.frame.fsBody),
-                    color = colors.onBackgroundVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false).padding(horizontal = m.osdGap),
-                )
-                Text(
-                    text = programme?.stopMs?.let(::clockLabel).orEmpty(),
-                    style = castivioBodyStyle(m.frame.fsBody),
-                    color = colors.onBackgroundVariant,
-                    maxLines = 1,
-                )
-            }
-        }
-
-        Text(
-            text = numberPlate(number),
-            style = castivioTitleStyle(m.fsChannelName),
-            color = colors.secondary,
-            maxLines = 1,
-        )
     }
 }
 
