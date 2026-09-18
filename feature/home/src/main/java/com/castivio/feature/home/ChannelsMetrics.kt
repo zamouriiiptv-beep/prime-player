@@ -218,7 +218,8 @@ internal fun channelsMetricsFor(tv: Boolean, width: Dp, height: Dp): ChannelsMet
 
         rail = width.boundedFraction(RAIL, 170.dp, 330.dp),
         railGap = width.boundedFraction(RAIL_GAP, 6.dp, 18.dp),
-        player = width.boundedFraction(PLAYER, 360.dp, 680.dp),
+        player = width.boundedFraction(PLAYER, 360.dp, 680.dp)
+            .coerceAtMost(width * PLAYER_OF_SURFACE),
         playerGap = width.boundedFraction(PLAYER_GAP, 6.dp, 20.dp),
 
         railEntryGap = height.boundedFraction(RAIL_ENTRY_GAP, 2.dp, 7.dp),
@@ -358,6 +359,22 @@ private const val RAIL_GAP = 16f / 2340f
  * which it has not. It is about four rows tall now instead of eleven.
  */
 private const val PLAYER = 1000f / 2340f
+
+/**
+ * The share of the surface the card may never pass, whatever its floor says.
+ *
+ * The floor above is what the card *needs*: a 16:9 picture with two readable lines of
+ * guide beside it. Under about 600dp of width that floor is wider than the board it
+ * floats over, and a floor wider than its own surface is not a floor — it is a clip, with
+ * the card running off the edge of the screen carrying the guide with it.
+ *
+ * So the floor yields to the surface below that width, and the card becomes a fraction of
+ * it instead. The two meet exactly at 600dp, so nothing steps; and every surface this
+ * product ships to is above it, which is why no shipping geometry changes by a pixel.
+ * This is the answer to "what does the card do somewhere it does not fit", not a
+ * loosening of what it does where it does.
+ */
+private const val PLAYER_OF_SURFACE = 0.6f
 
 /**
  * How much of the card the picture takes, the rest being the guide beside it.

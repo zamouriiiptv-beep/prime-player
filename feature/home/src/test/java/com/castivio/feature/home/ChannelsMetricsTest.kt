@@ -314,7 +314,13 @@ class ChannelsMetricsTest {
         // strip of circles a remote lands on, and that is the one column on this board
         // still held to the target — see `ChannelsMetrics`.
         assertNear("rail", 1280f * 494f / 2340f, m.rail)
-        assertNear("player", 1280f * 986f / 2340f, m.player)
+        // 1000 rather than the reference's 986, and the difference is not a rounding. The
+        // reference's 986 is a *column* standing beside the list; this is a *card* floating
+        // over it, whose width was solved for the shape that keeps it under half the
+        // column's height. It is still asserted here, and for the same reason as the rest:
+        // the share is what reaches the device, so a cap quietly swallowing it shows up on
+        // this line.
+        assertNear("player", 1280f * 1000f / 2340f, m.player)
         assertNear("railGap", 1280f * 16f / 2340f, m.railGap)
         assertNear("playerGap", 1280f * 18f / 2340f, m.playerGap)
         assertNear("edge", 1280f * 22f / 2340f, m.edge)
