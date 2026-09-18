@@ -193,12 +193,12 @@
          forced re-import settles both, so the line is pressable. -->
     <string name="channels_rail_empty">This playlist lists no categories.</string>
 
-    <!-- On the preview plate, over the channel currently under the remote. -->
-    <!-- The guide has nothing for this channel: no guide id, no import, or the
-         programme has ended. All three are honestly this sentence. -->
-    <string name="channels_no_information">No Information</string>
     <!-- Before any row has been focused, and where a row is not a channel. -->
-    <string name="channels_preview_none">No channel selected</string>
+    <!-- On the idle plate, which the well draws before anything has been pressed and
+         after the close button. It says what the board wants rather than reporting an
+         absence: the column is always there now, so this is the sentence a viewer meets
+         first. -->
+    <string name="channels_preview_none">Press a channel to play it</string>
 
     <string name="channels_empty_title">No channels here</string>
     <string name="channels_empty_detail">This category has nothing in it yet. Try another, or download the section again.</string>
@@ -211,26 +211,10 @@
     <!-- The remote legend along the foot of the board. These name what the *remote\'s*
          keys do; only Back is pressable, because a thumb has no key for it. -->
     <!-- The action strip at the leading edge. -->
-    <!-- The header's two dates. They are two different things and the captions have
-         to keep them apart: one is the provider's subscription, the other is
-         Castivio's own licence, and a viewer whose picture has gone needs to know
-         which of the two ran out. -->
-    <!-- One string each, caption and value together. Two composables side by side
-         pin their physical order, and in Arabic that put the date before its own
-         caption; a single string lets the text engine place them and it places them
-         correctly in both directions. %1$s is a dd-MM-yy token. -->
-    <string name="channels_server_expires">Subscription ends: %1$s</string>
-    <string name="channels_app_expires">Licence ends: %1$s</string>
-    <string name="channels_licence_expired">Expired</string>
-    <string name="channels_licence_lifetime">Lifetime</string>
-    <!-- On the floating card, under what is on now: the press that opens the whole
-         day for the channel that is playing. A word rather than an arrow — "there is
-         more here" is a sentence, and an arrow alone reads as decoration. -->
     <!-- The two lines beside the floating card's picture. Short because the panel that
          holds them is a summary four rows tall; the words are the guide's own. -->
     <string name="channels_guide_now">NOW</string>
     <string name="channels_guide_next">NEXT</string>
-    <string name="channels_guide_open">Full guide</string>
     <!-- In the guide overlay's header. Back closes it too; this says so for a thumb. -->
     <string name="channels_guide_close">Close</string>
     <string name="channels_action_refresh">Refresh</string>
@@ -251,6 +235,11 @@
     <string name="channels_action_unfavorite">Favourited</string>
     <string name="channels_action_lock">Lock</string>
     <string name="channels_action_hide">Hide</string>
+
+    <!-- At the foot of the facts block: where this channel sits in the open category.
+         Both figures are already grouped, e.g. "Channel 3 of 1,220". It answers "how far
+         into this bouquet am I", which the row's own plate answers only half of. -->
+    <string name="channels_position">Channel %1$s of %2$s</string>
     <!-- On the display over the picture. Uppercase in English because the reference
          draws it so; a language without case renders its own word. -->
     <string name="channels_live_badge">LIVE</string>

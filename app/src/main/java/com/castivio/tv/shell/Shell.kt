@@ -269,14 +269,17 @@ fun ShellScreen(
                     // -- which is what the view model recognises and declines to reopen.
                     onExpand = { overlay = Overlay.Play(playing) },
                     onLeave = { livePreview = null },
-                    // Asked as the plate goes away, and it asks the *destination* rather
-                    // than the request. Both have to be read at disposal, and only one of
-                    // them has changed by then: leaving the board removes this composition
-                    // in the same pass that changes `dest`, before any effect could clear
-                    // a request. So `dest` separates the two cases -- still on Live means
-                    // the expanded shape is taking the stream over, anywhere else means
-                    // nobody is watching it.
-                    retainOnDispose = { dest == Dest.Live },
+                    // Asked as the plate goes away, and it has two questions to separate,
+                    // not one. Leaving the board removes this composition in the same pass
+                    // that changes `dest`, so `dest == Dest.Live` means the expanded shape
+                    // is taking the stream over rather than nobody watching it.
+                    //
+                    // **And the close button is the third case.** It clears `livePreview`,
+                    // which removes this composition while still on Live -- so `dest`
+                    // alone would have said "retain" and left a channel playing with
+                    // nothing drawing it: audio from a picture the viewer just closed.
+                    // Asking for the request as well is what makes the button mean stop.
+                    retainOnDispose = { dest == Dest.Live && livePreview != null },
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -317,6 +320,10 @@ fun ShellScreen(
                 // Channels showed Channels and then took it away.
                 Dest.Live -> SectionGate(CatalogSection.Live) { ChannelsScreen(
                     onPlay = playInPreview,
+                    // The board's close button. Clearing the request is the whole of it:
+                    // the plate stops being composed and `retainOnDispose` above reads
+                    // the same null, so the engine is released rather than left decoding.
+                    onStop = { livePreview = null },
                     onSearch = { searchKind = CatalogKind.LIVE; dest = Dest.Search },
                     preview = preview,
                 ) }

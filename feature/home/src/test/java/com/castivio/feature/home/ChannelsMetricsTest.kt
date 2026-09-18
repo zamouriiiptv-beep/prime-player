@@ -274,8 +274,9 @@ class ChannelsMetricsTest {
      * claims to run on.
      *
      * The arithmetic. Every child of the band except the field has a width the metrics
-     * decide — the mark's cell, the breadcrumb, the clock, the dates, the two gaps and
-     * the hairline — and what is left over is the field's. Nothing here is measured from
+     * decide — the mark's cell, the breadcrumb and the clock's — and what is left over is
+     * the field's. The two expiry dates, the hairline and the gaps around it are gone
+     * with them: the band is four things now, and the field has what they gave back. Nothing here is measured from
      * its text, which is what makes the sum checkable at all: the breadcrumb's second
      * line and the clock carry a provider's words and a locale's, and either could
      * otherwise have decided where the rest of the band sat.
@@ -287,8 +288,7 @@ class ChannelsMetricsTest {
     fun `the header's fixed parts leave room for the ones that are text`() {
         sweep(from = SHIPPING_WIDTH) { tv, width, height ->
             val m = channelsMetricsFor(tv, width, height)
-            val fixed = m.rail + m.railGap + m.crumb +
-                m.clock + m.dates + m.clockGap * 2 + HAIRLINE
+            val fixed = m.rail + m.railGap + m.crumb + m.dates
             val free = width - m.edge * 2 - fixed
             assertTrue(
                 "the field is left ${free} at ${width}x$height",
@@ -309,8 +309,7 @@ class ChannelsMetricsTest {
                 "rail" to m.rail, "railGap" to m.railGap,
                 "player" to m.player, "playerGap" to m.playerGap, "strip" to m.strip,
                 "rowPadH" to m.rowPadH,
-                "search" to m.search, "crumb" to m.crumb, "clock" to m.clock,
-                "dates" to m.dates, "clockGap" to m.clockGap,
+                "search" to m.search, "crumb" to m.crumb, "dates" to m.dates,
                 "numberWidth" to m.numberWidth, "logoWidth" to m.logoWidth,
                 "wellPad" to m.wellPad, "factChip" to m.factChip,
             ).forEach { (name, value) ->
@@ -536,9 +535,6 @@ class ChannelsMetricsTest {
          * the floor that keeps it there.
          */
         val SEARCH_FLOOR = 120.dp
-
-        /** The rule between the clock and the dates, which is one device pixel of band. */
-        val HAIRLINE = 1.dp
 
         /** A list this product has to survive on, where the reference's density cannot fit. */
         const val MIN_ROWS_ANYWHERE = 9

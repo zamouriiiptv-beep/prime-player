@@ -40,6 +40,7 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.PlayCircleOutline
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarBorder
@@ -67,8 +68,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.TextUnit
@@ -100,7 +99,6 @@ import com.castivio.domain.MediaItem
 import com.castivio.domain.Programme
 import com.castivio.domain.SectionLoad
 import com.castivio.domain.SortOrder
-import com.castivio.domain.entitlement.EntitlementState
 import com.castivio.domain.isProviderHeading
 import java.text.DateFormat
 import java.text.SimpleDateFormat
@@ -134,7 +132,6 @@ import com.castivio.core.design.R as DesignR
  * | `Total: n` per category | `MediaGroup.itemCount`, the denormalised column |
  * | `Total: n Channels` | an indexed `COUNT`, never a list measured |
  * | the guide, and the bar over the picture | `EpgRepository.programmes` for the selection |
- * | the header's two expiry dates | `HomeViewModel`, as Home reads them |
  *
  * ## Two things the design shows that this deliberately does not invent
  *
@@ -177,14 +174,11 @@ fun ChannelsScreen(
      */
     model: BrowseViewModel = hiltViewModel(key = CatalogSection.Live.name),
     previewModel: ChannelsViewModel = hiltViewModel(),
-    /** For the header's two subscription cards, which are the same facts Home shows. */
-    home: HomeViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(Unit) { model.show(CatalogSection.Live) }
 
     val state by model.state.collectAsStateWithLifecycle()
     val shown by previewModel.preview.collectAsStateWithLifecycle()
-    val homeState by home.state.collectAsStateWithLifecycle()
     val tv = CastivioTheme.device.isTv
 
     BoxWithConstraints(modifier.fillMaxSize().safeDrawingPadding()) {
@@ -196,7 +190,7 @@ fun ChannelsScreen(
                 .padding(horizontal = m.edge)
                 .padding(top = m.boardTop, bottom = m.boardBottom),
         ) {
-            BoardHeader(home = homeState, state = state, m = m, onSearch = onSearch)
+            BoardHeader(state = state, m = m, onSearch = onSearch)
 
             Spacer(Modifier.height(m.headerGap))
 
@@ -252,7 +246,7 @@ fun ChannelsScreen(
  * moves, and only the glyphs inside them are shaped by their own script.
  */
 @Composable
-private fun BoardHeader(home: HomeState, state: BrowseState, m: ChannelsMetrics, onSearch: () -> Unit) {
+private fun BoardHeader(state: BrowseState, m: ChannelsMetrics, onSearch: () -> Unit) {
     val colors = CastivioTheme.colors
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
@@ -329,92 +323,33 @@ private fun BoardHeader(home: HomeState, state: BrowseState, m: ChannelsMetrics,
                 SearchField(m = m, onClick = onSearch)
             }
 
-            // **The clock belongs beside the expiry dates, not beside the mark.**
+            // **The clock, at the band's trailing end, where the two expiry dates were.**
             //
-            // All three answer *when*, and reading them as one cluster is easier than
-            // hunting for the time at the other end of the band. It exists again at all
-            // because the app hides the system bars: nothing else on the screen can tell
-            // a viewer the time now.
+            // The dates are gone at the owner's instruction. They answered a question a
+            // viewer asks twice a year -- when does my subscription run out -- from a
+            // corner of a screen they look at every day, and they were the widest thing
+            // on the band. What a viewer actually wants from that corner is the time,
+            // which the app has to draw itself because it hides the system bars.
+            //
+            // Where the two dates ran out is still a fact worth knowing, and it is not
+            // lost: Home draws both, captioned and side by side, on a screen with room
+            // to say which is which.
             BoardClock(m)
-
-            // The clock was against the dates and read as a third expiry. A gap, a
-            // hairline and a gap say what the spacing alone could not: these are two
-            // different kinds of fact that happen to share a corner.
-            Spacer(Modifier.width(m.clockGap))
-            Box(
-                Modifier
-                    .width(1.dp)
-                    .height(m.header * RULE_OF_HEADER)
-                    .background(colors.glassBorderSoft),
-            )
-            Spacer(Modifier.width(m.clockGap))
-
-            Column(
-                // **A reserved width, not the remainder.** See `ChannelsMetrics.dates`
-                // for the defect this ends: in Arabic the pair was measured with what
-                // the rest of the band had left, came up short, and dropped the date.
-                Modifier.width(m.dates),
-                // **Against the band's trailing edge.** `Start` left the two lines at
-                // the leading edge of their reserved column with the reserve showing as
-                // a gap after them, so the cluster read as floating in the middle of
-                // nowhere rather than as the corner of the screen it belongs to. `End`
-                // also lines the two dates up under each other, which is the comparison
-                // a viewer is making when they look here at all.
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(m.badgePadV / 2),
-            ) {
-                ExpiryLine(
-                    text = stringResource(
-                        R.string.channels_server_expires,
-                        shortDate(home.subscription?.expiresAtMs),
-                    ),
-                    color = colors.secondary,
-                    m = m,
-                )
-                ExpiryLine(
-                    text = stringResource(R.string.channels_app_expires, licenceExpiry(home.entitlement)),
-                    color = colors.live,
-                    m = m,
-                )
-            }
         }
     }
 }
 
 /**
- * One expiry: a caption and its date, in one order in every language.
- *
- * [TextDirection.Ltr] rather than the default, which resolves the paragraph from its
- * first strong character and would therefore lay an Arabic caption out right to left
- * inside a band that is pinned left to right. That produced a third layout — not the
- * mirrored screen the platform would give and not the screen every other language gets —
- * and it is the reason the two lines did not sit under each other at the same place.
- * Pinned here, the caption starts at the column's leading edge and the date follows it,
- * in Arabic exactly as in English; the glyphs of the caption are still shaped by their
- * own script, which is the text engine's business and not the layout's.
- *
- * `Ellipsis` rather than the default clip, so that a translation this column cannot hold
- * degrades into something a reader can see is cut rather than into a caption whose value
- * silently disappeared.
- */
-@Composable
-private fun ExpiryLine(text: String, color: Color, m: ChannelsMetrics) {
-    Text(
-        text = text,
-        style = castivioBodyStyle(m.frame.fsBody * EXPIRY_OF_BODY)
-            .copy(textDirection = TextDirection.Ltr, textAlign = TextAlign.End),
-        color = color,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-    )
-}
-
-/**
  * The time, and today's date under it.
  *
- * Both isolated and both in the header's own fixed shape — see [shortDate] for why a
- * token on this band does not follow the reader's date convention, and [ltrToken] for
- * the directional marks that made an earlier attempt at this read backwards.
+ * Both isolated and both in the header's own fixed shape: the date is a `dd-MM-yyyy`
+ * token rather than the reader's own convention, because the band pins one physical
+ * order in every language. [ltrToken] carries the marks that keep it from reading
+ * backwards in Arabic, which an earlier attempt at this did.
+ *
+ * **It has the band's trailing corner to itself now.** The two expiry dates that shared
+ * it are gone, so the cell is theirs plus its own and the time is drawn a step larger:
+ * this is the clock a viewer reads instead of the phone's, which the app hides.
  */
 @Composable
 private fun BoardClock(m: ChannelsMetrics) {
@@ -428,17 +363,17 @@ private fun BoardClock(m: ChannelsMetrics) {
     }
     // Its own bounded cell, for the reason the breadcrumb has one: nothing whose width
     // is text may decide where the rest of the band sits.
-    Column(Modifier.width(m.clock), horizontalAlignment = Alignment.End) {
+    Column(Modifier.width(m.dates), horizontalAlignment = Alignment.End) {
         Text(
             text = time,
-            style = castivioTitleStyle(m.frame.fsLabel),
+            style = castivioTitleStyle(m.frame.fsLabel * CLOCK_OF_LABEL),
             color = colors.onBackgroundStrong,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
         Text(
             text = day,
-            style = castivioBodyStyle(m.frame.fsBody * EXPIRY_OF_BODY),
+            style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
             color = colors.onBackgroundMuted,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -544,46 +479,6 @@ private fun SearchField(m: ChannelsMetrics, onClick: () -> Unit) {
             overflow = TextOverflow.Ellipsis,
         )
     }
-}
-
-/**
- * `16-09-25`, or an em dash where there is no date.
- *
- * Digits and hyphens in one fixed order, in every language: this is the header's most
- * compressed fact and a month spelled out in Arabic is three times as wide as the band
- * can spare. [ltrToken] keeps it one left-to-right object — see the helper for the
- * directional marks that made the last attempt at this read backwards.
- *
- * `Locale.ROOT` deliberately, and it is the one place in the product where a date does
- * not follow the reader's own convention. What is drawn is a *token*, not a sentence,
- * and the alternative is a band whose width changes with the interface language.
- */
-@Composable
-private fun shortDate(atMs: Long?): String {
-    val none = stringResource(R.string.home_expires_none)
-    if (atMs == null) return none
-    return remember(atMs) {
-        ltrToken(SimpleDateFormat(SHORT_DATE, Locale.ROOT).format(Date(atMs)))
-    }
-}
-
-/**
- * When Castivio's own licence runs out, from the state the policy decided.
- *
- * Every case is answered from a real field. A lifetime purchase never expires and says
- * so; an expired annual restored without its date says that it expired and not when,
- * because [EntitlementState.AnnualExpired] genuinely may not carry one. Nothing here
- * invents a date, and nothing prints a zero where a question was never asked.
- */
-@Composable
-private fun licenceExpiry(state: EntitlementState?): String = when (state) {
-    is EntitlementState.TrialActive -> shortDate(state.expiresAtMs)
-    is EntitlementState.AnnualActive -> shortDate(state.expiresAtMs)
-    is EntitlementState.AnnualExpired ->
-        state.expiredAtMs?.let { shortDate(it) } ?: stringResource(R.string.channels_licence_expired)
-    EntitlementState.TrialExpired -> stringResource(R.string.channels_licence_expired)
-    EntitlementState.Lifetime -> stringResource(R.string.channels_licence_lifetime)
-    else -> stringResource(R.string.home_expires_none)
 }
 
 /**
@@ -763,25 +658,8 @@ private fun Columns(
 
     var guideOpen by remember { mutableStateOf(false) }
 
-    // **The one thing the close button changes.**
-    //
-    // It is not "stop playing" — the stream is the shell's and survives this screen. It
-    // is "give me the board without the well", which is the request a viewer makes when
-    // they want to read the list rather than watch. And it lasts exactly until the next
-    // press: choosing a channel is asking to see it, so the well comes back with it. The
-    // owner asked for that explicitly and it is the right rule anyway — a hidden well
-    // that stayed hidden through a channel press would look like a player that had
-    // broken.
-    var wellClosed by remember { mutableStateOf(false) }
-
     val listFocus = remember { FocusRequester() }
     val wellFocus = remember { FocusRequester() }
-
-    // The well exists only once something is playing or chosen. Everything that points
-    // *at* it has to ask first: a `FocusRequester` that was never attached to a node
-    // throws when focus is moved to it, so "right" out of the list has to mean the
-    // default search on a board that has no well yet.
-    val wellShown = (preview != null || shown.channel != null) && !wellClosed
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Box(modifier.fillMaxWidth()) {
@@ -803,10 +681,7 @@ private fun Columns(
                     m = m,
                     listState = listState,
                     onSelect = previewModel::select,
-                    onPlay = { selection ->
-                        wellClosed = false
-                        onPlay(selection)
-                    },
+                    onPlay = onPlay,
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
@@ -814,35 +689,38 @@ private fun Columns(
                         .focusGroup()
                         // Right out of the list is the well, and nothing else. Stated
                         // rather than left to the geometric search, because the strip's
-                        // five buttons are all to the list's right and the nearest one
-                        // is not the one a viewer means.
-                        .focusProperties {
-                            right = if (wellShown) wellFocus else FocusRequester.Default
-                        },
+                        // buttons are all to the list's right and the nearest one is not
+                        // the one a viewer means.
+                        .focusProperties { right = wellFocus },
                 )
 
-                // Drawn only when there is something for it to be about. Before the
-                // first press the board is two columns; the well is not an empty frame
-                // waiting, and the list has its width until there is a reason to spend
-                // it.
-                if (wellShown) {
-                    Spacer(Modifier.width(m.playerGap))
+                // **Always here.** It was composed only once something was playing, so
+                // the board changed shape on the first press of a channel: two columns
+                // became three and every row moved sideways under the remote. The owner
+                // asked for a board that does not move, and that is also the right
+                // answer — a jump on the press that starts a stream reads as a fault.
+                //
+                // With nothing playing the well draws its idle plate and its buttons are
+                // dark, which is a screen saying what it can do rather than a gap.
+                Spacer(Modifier.width(m.playerGap))
 
-                    ChannelWell(
-                        shown = shown,
-                        m = m,
-                        preview = preview,
-                        onOpenGuide = { guideOpen = true },
-                        onFavorite = previewModel::toggleFavorite,
-                        onClose = { wellClosed = true },
-                        modifier = Modifier
-                            .width(m.player)
-                            .fillMaxHeight()
-                            .focusRequester(wellFocus)
-                            .focusGroup()
-                            .focusProperties { left = listFocus },
-                    )
-                }
+                ChannelWell(
+                    shown = shown,
+                    m = m,
+                    preview = preview,
+                    onOpenGuide = { guideOpen = true },
+                    onFavorite = previewModel::toggleFavorite,
+                    onClose = onStop,
+                    total = state.total,
+                    bouquet = state.selectedGroup?.let { state.categoryNames[it] }
+                        ?: stringResource(R.string.channels_all_rail),
+                    modifier = Modifier
+                        .width(m.player)
+                        .fillMaxHeight()
+                        .focusRequester(wellFocus)
+                        .focusGroup()
+                        .focusProperties { left = listFocus },
+                )
             }
 
             if (guideOpen) {
@@ -1393,6 +1271,10 @@ private fun ChannelWell(
     onOpenGuide: () -> Unit,
     onFavorite: () -> Unit,
     onClose: () -> Unit,
+    /** How many channels the open category holds, for "channel 3 of 39". */
+    total: Int,
+    /** The open category's name, as the rail and the breadcrumb say it. */
+    bouquet: String,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -1411,7 +1293,13 @@ private fun ChannelWell(
             modifier = Modifier.width(m.wellPictureWidth).height(m.wellPicture),
         )
 
-        ChannelFacts(shown = shown, m = m, modifier = Modifier.fillMaxWidth().weight(1f))
+        ChannelFacts(
+            shown = shown,
+            m = m,
+            total = total,
+            bouquet = bouquet,
+            modifier = Modifier.fillMaxWidth().weight(1f),
+        )
 
         ActionStrip(
             shown = shown,
@@ -1467,14 +1355,28 @@ private fun WellPicture(
                 modifier = Modifier.fillMaxSize(),
             )
         } else {
-            Box(
+            // **The idle plate, which is why the well can stay.**
+            //
+            // The column is a fixture now, so it has to have something honest to draw
+            // before anything has been pressed and after the close button. A mark and one
+            // sentence saying what the board is waiting for: a screen explaining itself,
+            // rather than an empty frame that looks like a player which has failed.
+            Column(
                 Modifier.fillMaxSize().background(colors.glassFill),
-                contentAlignment = Alignment.Center,
+                verticalArrangement = Arrangement.spacedBy(m.nameGap, Alignment.CenterVertically),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                Icon(
+                    Icons.Rounded.PlayCircleOutline,
+                    contentDescription = null,
+                    tint = colors.onBackgroundMuted,
+                    modifier = Modifier.size(Sizing.iconXl),
+                )
                 Text(
                     text = stringResource(R.string.channels_preview_none),
                     style = castivioBodyStyle(m.frame.fsBody),
                     color = colors.onBackgroundMuted,
+                    maxLines = 1,
                 )
             }
         }
@@ -1499,13 +1401,17 @@ private fun WellPicture(
             }
         }
 
-        FrameButton(
-            icon = Icons.Rounded.Close,
-            description = stringResource(R.string.channels_player_close),
-            onClick = onClose,
-            m = m,
-            modifier = Modifier.align(Alignment.TopEnd).padding(m.osdPad),
-        )
+        // Offered only while there is something to close. On the idle plate it would be
+        // a control whose whole job is already done.
+        if (preview != null) {
+            FrameButton(
+                icon = Icons.Rounded.Close,
+                description = stringResource(R.string.channels_player_close),
+                onClick = onClose,
+                m = m,
+                modifier = Modifier.align(Alignment.TopEnd).padding(m.osdPad),
+            )
+        }
     }
 }
 
@@ -1562,12 +1468,18 @@ private fun FrameButton(
  * and not before.
  */
 @Composable
-private fun ChannelFacts(shown: ChannelPreview, m: ChannelsMetrics, modifier: Modifier = Modifier) {
+private fun ChannelFacts(
+    shown: ChannelPreview,
+    m: ChannelsMetrics,
+    total: Int,
+    bouquet: String,
+    modifier: Modifier = Modifier,
+) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(m.wellRadius)
     val channel = shown.channel
     val guide = shown.guide
-    val hasGuide = shown.schedule.isNotEmpty()
+    val now = guide?.now
 
     Column(
         modifier
@@ -1584,7 +1496,7 @@ private fun ChannelFacts(shown: ChannelPreview, m: ChannelsMetrics, modifier: Mo
                 text = channel?.let { titleWithoutQuality(it.title) }
                     ?: stringResource(R.string.channels_preview_none),
                 style = castivioTitleStyle(m.fsChannelName),
-                color = colors.onBackgroundStrong,
+                color = if (channel != null) colors.onBackgroundStrong else colors.onBackgroundMuted,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false),
@@ -1599,35 +1511,80 @@ private fun ChannelFacts(shown: ChannelPreview, m: ChannelsMetrics, modifier: Mo
             }
         }
 
-        if (!hasGuide) {
-            // Three different absences reach this line -- a channel with no guide id, a
-            // guide never imported, a schedule that has run out -- and all three are
-            // honestly "no information".
-            Text(
-                text = stringResource(R.string.channels_no_information),
-                style = castivioBodyStyle(m.frame.fsBody),
-                color = colors.onBackgroundMuted,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+        // **Absent rather than apologised for.**
+        //
+        // This block used to print "No Information" whenever a channel had no schedule,
+        // and the owner had it removed: a sentence saying nothing is worse than the
+        // space it occupies. A channel with no guide simply has no guide lines, and what
+        // the block does have -- its name, its category, where it sits in that category
+        // -- is drawn either way.
+        if (guide != null && now != null) {
+            GuideLine(
+                label = stringResource(R.string.channels_guide_now),
+                title = now.title,
+                now = true,
+                m = m,
             )
-            return@Column
+            Track(fraction = guide.progressAt(System.currentTimeMillis()), m = m)
+            guide.next?.let {
+                GuideLine(
+                    label = stringResource(R.string.channels_guide_next),
+                    title = it.title,
+                    now = false,
+                    m = m,
+                )
+            }
+
+            // What the programme is about, which is the one thing this block holds that
+            // is longer than a line -- and the reason it is here is that the owner asked
+            // what should fill the space. It is the provider's own text, drawn when there
+            // is some and absent when there is not; nothing is invented to fill a box.
+            now.description?.takeIf { it.isNotBlank() }?.let { detail ->
+                Text(
+                    text = detail,
+                    style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
+                    color = colors.onBackgroundMuted,
+                    maxLines = DESCRIPTION_LINES,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = m.badgePadV),
+                )
+            }
         }
 
-        GuideLine(
-            label = stringResource(R.string.channels_guide_now),
-            title = guide?.now?.title ?: stringResource(R.string.channels_no_information),
-            now = true,
-            m = m,
-        )
-        // The same bar the guide's own rows draw, and from the same arithmetic: how far
-        // through the programme the clock is.
-        Track(fraction = guide?.progressAt(System.currentTimeMillis()), m = m)
-        GuideLine(
-            label = stringResource(R.string.channels_guide_next),
-            title = guide?.next?.title ?: shown.schedule.getOrNull(1)?.title.orEmpty(),
-            now = false,
-            m = m,
-        )
+        Spacer(Modifier.weight(1f))
+
+        // The two facts that are true of every channel, at the foot of the block: which
+        // category it came from, and where it sits in it. Both are already on this screen
+        // -- the rail and the row's own plate -- and neither costs a query.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(m.factGap),
+        ) {
+            Text(
+                text = bouquet,
+                style = castivioChipStyle(m.frame.fsBody * QUALITY_OF_BODY),
+                color = colors.onBackgroundVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .clip(RoundedCornerShape(Radius.pill))
+                    .background(colors.glassFill)
+                    .padding(horizontal = m.badgePadH, vertical = m.badgePadV),
+            )
+            if (shown.number != null && total > 0) {
+                Text(
+                    text = stringResource(
+                        R.string.channels_position,
+                        formatCount(shown.number),
+                        formatCount(total),
+                    ),
+                    style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
+                    color = colors.onBackgroundMuted,
+                    maxLines = 1,
+                )
+            }
+        }
     }
 }
 
@@ -2173,16 +2130,26 @@ private const val QUALITY_OF_BODY = 0.84f
 private const val MARK_OF_HEADER = 0.98f
 
 /** The header's and the rail's second line, against the frame's body step. */
-private const val LEGEND_OF_BODY = 0.88f
+/**
+ * The clock, against the header's label step.
+ *
+ * Larger than a label because it is the only thing in the band's trailing corner now, and
+ * because it is the *only* clock on the screen — the app hides the system bars, so a
+ * viewer who wants the time has nowhere else to look.
+ */
+private const val CLOCK_OF_LABEL = 1.32f
 
 /**
- * The expiry pair, smaller again.
+ * How much of a programme's description the facts block shows.
  *
- * Two lines of caption-and-date is the densest thing on the band, and at the legend's
- * own step it read as loud as the section name. This is the step that makes it what it
- * is: a fact available when looked for, not an announcement.
+ * Two lines. The block is four things tall already and a provider's synopsis can run to a
+ * paragraph; what it is for here is "is this the football or the highlights", which the
+ * first two lines answer.
  */
-private const val EXPIRY_OF_BODY = 0.74f
+private const val DESCRIPTION_LINES = 2
+
+private const val LEGEND_OF_BODY = 0.88f
+
 
 /** The hairline between the clock and the dates, as a share of the band. */
 private const val RULE_OF_HEADER = 0.56f

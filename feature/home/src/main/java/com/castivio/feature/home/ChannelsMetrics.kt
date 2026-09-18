@@ -86,25 +86,21 @@ internal data class ChannelsMetrics(
      * end of it — the band's width decided by whichever category happened to be open.
      */
     val crumb: Dp,
-    /** The clock's own cell, so the time never decides where the dates sit either. */
-    val clock: Dp,
     /**
-     * The two expiry dates, at the band's trailing end.
+     * The band's trailing cell: the clock and today's date under it.
      *
-     * **Reserved, not left over,** and that distinction was a real defect. The dates
-     * were the last child of an unweighted row, so they were measured with whatever the
-     * mark, the breadcrumb, the field and the clock had not taken. In English that was
-     * enough; in Arabic the captions are wider, the box came up short, and a right-to-
-     * left line that does not fit loses its *left* end — which is where the date sits.
-     * The screen showed `ينتهي الاشتراك:` and no date at all, in the one place a viewer
-     * looks to find out why their picture stopped.
+     * **Reserved, not left over,** and that distinction was a real defect. The two expiry
+     * dates that used to live here were the last child of an unweighted row, so they were
+     * measured with whatever everything before them had not taken. In English that was
+     * enough; in Arabic the captions are wider, the box came up short, and a right-to-left
+     * line that does not fit loses its *left* end — which is where the date sat. The
+     * screen showed `ينتهي الاشتراك:` and no date at all.
      *
-     * So the column is measured first and to a fixed width, and the two weighted gaps
-     * around the search field absorb the difference instead.
+     * The dates are gone at the owner's request and the clock has the cell to itself, but
+     * the reservation stays: the clock is text too, and text may not decide where the rest
+     * of the band sits. The name is kept so the share below stays the measured one.
      */
     val dates: Dp,
-    /** Between the clock and the dates: a gap, a hairline, a gap. */
-    val clockGap: Dp,
 
     /* the panel that holds the three columns */
     val panelPad: Dp,
@@ -236,9 +232,7 @@ internal fun channelsMetricsFor(tv: Boolean, width: Dp, height: Dp): ChannelsMet
         headerGap = headerGap,
         search = width.boundedFraction(SEARCH, 180.dp, 620.dp),
         crumb = width.boundedFraction(CRUMB, 90.dp, 260.dp),
-        clock = width.boundedFraction(CLOCK, 66.dp, 150.dp),
         dates = width.boundedFraction(DATES, 210.dp, 400.dp),
-        clockGap = width.boundedFraction(CLOCK_GAP, 10.dp, 30.dp),
 
         panelPad = panelPad,
         panelRadius = height.boundedFraction(PANEL_RADIUS, 10.dp, 22.dp),
@@ -377,10 +371,6 @@ private const val DATES = 360f / 2340f
  * ellipsises rather than growing.
  */
 private const val CRUMB = 240f / 2340f
-private const val CLOCK = 140f / 2340f
-
-/** Clock, gap, hairline, gap, dates. Spent twice, so it is stated once. */
-private const val CLOCK_GAP = 26f / 2340f
 
 private const val PANEL_PAD = 10f / 2340f
 private const val PANEL_RADIUS = 16f / 1080f
