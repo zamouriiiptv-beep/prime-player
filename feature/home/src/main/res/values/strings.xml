@@ -223,6 +223,16 @@
     <string name="channels_app_expires">Licence ends: %1$s</string>
     <string name="channels_licence_expired">Expired</string>
     <string name="channels_licence_lifetime">Lifetime</string>
+    <!-- On the floating card, under what is on now: the press that opens the whole
+         day for the channel that is playing. A word rather than an arrow — "there is
+         more here" is a sentence, and an arrow alone reads as decoration. -->
+    <!-- The two lines beside the floating card's picture. Short because the panel that
+         holds them is a summary four rows tall; the words are the guide's own. -->
+    <string name="channels_guide_now">NOW</string>
+    <string name="channels_guide_next">NEXT</string>
+    <string name="channels_guide_open">Full guide</string>
+    <!-- In the guide overlay's header. Back closes it too; this says so for a thumb. -->
+    <string name="channels_guide_close">Close</string>
     <string name="channels_action_refresh">Refresh</string>
     <!-- On the display over the picture. Uppercase in English because the reference
          draws it so; a language without case renders its own word. -->

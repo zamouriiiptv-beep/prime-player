@@ -168,6 +168,25 @@ internal data class ChannelsMetrics(
      * else.
      */
     val fsChannelName: Dp get() = frame.fsTitle * CHANNEL_NAME_OF_TITLE
+
+    /**
+     * The floating player's total height, fixed.
+     *
+     * Fixed rather than wrapped, and for two reasons that are both about the list under
+     * it. The card holds a 16:9 picture, a gap and two guide lines; letting it wrap would
+     * make it change height whenever a channel's guide is absent, so the overlay would
+     * grow and shrink as a viewer arrowed down a list — movement over the one thing they
+     * are trying to read.
+     *
+     * And the number is arithmetic the reposition rule needs: which rows the card covers
+     * is `this` against the list's own geometry, and a height that is only known after
+     * layout cannot be asked that question before it.
+     */
+    val floatHeight: Dp get() =
+        wellPad * 2 + (player * CHANNELS_CARD_PICTURE) / CHANNELS_PREVIEW_ASPECT
+
+    /** The picture inside the card. The rest of the card's width is the guide beside it. */
+    val cardPicture: Dp get() = player * CHANNELS_CARD_PICTURE
 }
 
 /**
@@ -199,7 +218,7 @@ internal fun channelsMetricsFor(tv: Boolean, width: Dp, height: Dp): ChannelsMet
 
         rail = width.boundedFraction(RAIL, 170.dp, 330.dp),
         railGap = width.boundedFraction(RAIL_GAP, 6.dp, 18.dp),
-        player = width.boundedFraction(PLAYER, 280.dp, 560.dp),
+        player = width.boundedFraction(PLAYER, 360.dp, 680.dp),
         playerGap = width.boundedFraction(PLAYER_GAP, 6.dp, 20.dp),
 
         railEntryGap = height.boundedFraction(RAIL_ENTRY_GAP, 2.dp, 7.dp),
@@ -321,7 +340,32 @@ private const val PANEL_RADIUS = 16f / 1080f
 
 private const val RAIL = 494f / 2340f
 private const val RAIL_GAP = 16f / 2340f
-private const val PLAYER = 986f / 2340f
+/**
+ * The floating card's width.
+ *
+ * **Wide and short, which is the opposite shape to the column it replaces, and the
+ * change was forced by arithmetic rather than taste.**
+ *
+ * The card was a portrait one at first: a 16:9 picture with the guide stacked under it,
+ * the third column's composition made narrower. On the surfaces this product actually
+ * ships to that came out 67% of the column's height — and a card taller than half the
+ * column cannot have two places to sit that do not overlap, so the rule that moves it
+ * away from the focused row would have moved it on every press. `the two places the card
+ * may sit do not overlap` is the assertion that caught it.
+ *
+ * So the picture sits beside the guide rather than above it. The card spends width, which
+ * this board has (a 21:9 phone is 833dp across and 385 down), and stops spending height,
+ * which it has not. It is about four rows tall now instead of eleven.
+ */
+private const val PLAYER = 1000f / 2340f
+
+/**
+ * How much of the card the picture takes, the rest being the guide beside it.
+ *
+ * Just over half: the picture is what makes the card a player rather than a caption, and
+ * what is left is enough for two lines of programme name at the board's body step.
+ */
+internal const val CHANNELS_CARD_PICTURE = 0.52f
 private const val PLAYER_GAP = 18f / 2340f
 
 private const val RAIL_ENTRY_GAP = 4f / 1080f

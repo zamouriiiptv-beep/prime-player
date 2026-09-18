@@ -139,6 +139,10 @@
     <string name="channels_app_expires">تنتهي الرخصة: %1$s</string>
     <string name="channels_licence_expired">منتهية</string>
     <string name="channels_licence_lifetime">مدى الحياة</string>
+    <string name="channels_guide_now">الآن</string>
+    <string name="channels_guide_next">التالي</string>
+    <string name="channels_guide_open">الدليل الكامل</string>
+    <string name="channels_guide_close">إغلاق</string>
     <string name="channels_action_refresh">تحديث</string>
 
 

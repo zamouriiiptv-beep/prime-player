@@ -56,24 +56,68 @@ class ChannelsMetricsTest {
     }
 
     /**
-     * **The three columns always have room, and the middle one is never squeezed out.**
+     * **The two columns always have room, and the list is never squeezed out.**
      *
-     * The rail and the player well are fixed widths and the list takes what is left, so
-     * a ceiling raised carelessly on either would not overflow — it would silently
-     * starve the channel list, which is the column the screen exists for. Asserted as a
-     * real minimum rather than as "greater than zero": a list narrower than its own row
-     * furniture is a list nobody can read.
+     * The rail is a fixed width and the list takes everything else, so a ceiling raised
+     * carelessly on the rail would not overflow — it would silently starve the channel
+     * list, which is the column the screen exists for. Asserted as a real minimum rather
+     * than as "greater than zero": a list narrower than its own row furniture is a list
+     * nobody can read.
+     *
+     * There were three columns. The third — the preview well — is an overlay now, so it
+     * no longer takes width from anything; what it needs instead is somewhere to sit
+     * without covering the list, which is `the floating card leaves the list readable`.
      */
     @Test
     fun `the columns keep a positive share of the width`() {
         sweep(from = SHIPPING_WIDTH) { tv, width, height ->
             val m = channelsMetricsFor(tv, width, height)
-            val spent = m.edge * 2 + m.panelPad * 2 + m.rail + m.railGap + m.player + m.playerGap
-            val list = width - spent
+            val list = listWidth(m, width)
             assertTrue(
-                "the channel list is $list at ${width}x$height — the rail and the well " +
-                    "have taken the board",
+                "the channel list is $list at ${width}x$height — the rail has taken the board",
                 list >= LIST_MIN,
+            )
+        }
+    }
+
+    /**
+     * **The floating card never takes the list with it.**
+     *
+     * It is drawn over the channel list rather than beside it, which is the whole point —
+     * the list got the third column's width back. The risk that replaces the old one is
+     * that the card grows until the column it floats over is a gutter: at that size a
+     * viewer is reading a list through a window.
+     *
+     * So what is asserted is what the list keeps *while the card is up*. Its own inset is
+     * part of the sum, because the card is padded away from the panel's edge.
+     */
+    @Test
+    fun `the floating card leaves the list readable`() {
+        sweep(from = SHIPPING_WIDTH) { tv, width, height ->
+            val m = channelsMetricsFor(tv, width, height)
+            val uncovered = listWidth(m, width) - (m.player + m.playerGap * 2)
+            assertTrue(
+                "the card covers all but $uncovered of the list at ${width}x$height",
+                uncovered >= LIST_MIN,
+            )
+        }
+    }
+
+    /**
+     * **The card is short enough for the rule that moves it to work.**
+     *
+     * It has two places to sit and it moves out of the one the focused row is in. That
+     * only terminates while the two zones do not meet: if the card were more than half
+     * the column tall, every row would be in both zones and it would move on every press.
+     */
+    @Test
+    fun `the two places the card may sit do not overlap`() {
+        sweep(from = SHIPPING_WIDTH) { tv, width, height ->
+            val m = channelsMetricsFor(tv, width, height)
+            val column = columnHeight(m, height)
+            assertTrue(
+                "the card is ${m.floatHeight} of a ${column} column at ${width}x$height",
+                m.floatHeight * 2 <= column,
             )
         }
     }
@@ -299,7 +343,7 @@ class ChannelsMetricsTest {
     fun `the channel name keeps the majority of its row`() {
         sweep(from = SHIPPING_WIDTH) { tv, width, height ->
             val m = channelsMetricsFor(tv, width, height)
-            val list = width - (m.edge * 2 + m.panelPad * 2 + m.rail + m.railGap + m.player + m.playerGap)
+            val list = listWidth(m, width)
             // Everything in the row that is not the name: the padding at both ends, the
             // logo, the number plate, and a gap on each side of the name.
             val furniture = m.rowPadH * 4 + m.logoWidth + m.numberWidth
@@ -342,6 +386,16 @@ class ChannelsMetricsTest {
      */
     private fun fixedHeight(m: ChannelsMetrics): Dp =
         m.boardTop + m.boardBottom + m.header + m.headerGap + m.panelPad * 2
+
+    /**
+     * What the channel list is given.
+     *
+     * Everything the board has after its own edges, the panel's padding and the rail.
+     * The preview column used to be in this sum and is not any more: it floats over the
+     * list now, so it takes no width from it.
+     */
+    private fun listWidth(m: ChannelsMetrics, width: Dp): Dp =
+        width - (m.edge * 2 + m.panelPad * 2 + m.rail + m.railGap)
 
     /** What is left for the columns once [fixedHeight] is paid. */
     private fun columnHeight(m: ChannelsMetrics, height: Dp): Dp = height - fixedHeight(m)
