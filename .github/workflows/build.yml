@@ -153,6 +153,7 @@ jobs:
             :data:playlist:testDebugUnitTest \
             :data:activation:testDebugUnitTest \
             :data:entitlement:testDebugUnitTest \
+            :data:epg:testDebugUnitTest \
             :data:localmedia:testDebugUnitTest \
             :data:subtitles:testDebugUnitTest \
             :feature:activation:testDebugUnitTest \

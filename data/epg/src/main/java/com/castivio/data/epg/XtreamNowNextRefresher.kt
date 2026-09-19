@@ -99,9 +99,7 @@ class XtreamNowNextRefresher(
      * invisible, because every read joins on the guide id.
      */
     private fun XtreamEpgEntry.toProgramme(channel: ChannelRef): EpgProgramme = EpgProgramme(
-        channelId = channel.epgChannelId?.takeIf { it.isNotEmpty() }
-            ?: channelId.takeIf { it.isNotEmpty() }
-            ?: channel.mediaId,
+        channelId = channel.epgChannelId?.takeIf { it.isNotBlank() } ?: channel.mediaId,
         title = title,
         description = description,
         startMs = startMs,

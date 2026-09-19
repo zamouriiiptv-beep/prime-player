@@ -11,6 +11,12 @@ android {
     namespace = "com.castivio.feature.home"
 
     testOptions {
+        // `android.jar` on the unit-test classpath is stubs that throw, so one
+        // `Log.i` in a holder fails every test that reaches it. Defaults instead,
+        // as `feature:player` already does: the tests here assert on state and
+        // call counts, never on a platform return.
+        unitTests.isReturnDefaultValues = true
+
         // A failure here is a rule about somebody else's catalogue -- a category
         // that vanished, an episode nobody numbered -- and the message is the
         // whole value. Gradle's default hides it in an HTML report no CI runner
