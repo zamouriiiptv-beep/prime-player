@@ -146,7 +146,6 @@
     <string name="channels_action_unfavorite">في المفضلة</string>
     <string name="channels_action_lock">قفل</string>
     <string name="channels_action_hide">إخفاء</string>
-    <string name="channels_position">القناة %1$s من %2$s</string>
 
 
 </resources>

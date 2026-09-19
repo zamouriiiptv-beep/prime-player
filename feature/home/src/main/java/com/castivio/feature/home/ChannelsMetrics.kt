@@ -122,6 +122,22 @@ internal data class ChannelsMetrics(
     val player: Dp,
     val playerGap: Dp,
     /**
+     * The video frame's own width, independent of the column that holds it.
+     *
+     * Separate from [player] so the picture can be sized without moving the channel list.
+     * It is the input to [wellPictureWidth], which bounds it by the column and by the room
+     * the facts block needs.
+     */
+    val picture: Dp,
+    /**
+     * The identity row at the head of the facts block: the logo's box, and the row's height.
+     *
+     * A control-sized floor rather than a type-sized one. It carries the channel's mark,
+     * and a mark shrunk to the height of a line of text stops being recognisable — which
+     * is the whole reason it is drawn rather than the name alone.
+     */
+    val identity: Dp,
+    /**
      * A button's height in the action strip under the well.
      *
      * A height share with a **control** floor rather than the list floor the rows carry,
@@ -185,26 +201,34 @@ internal data class ChannelsMetrics(
     val fsChannelName: Dp get() = frame.fsTitle * CHANNEL_NAME_OF_TITLE
 
     /**
-     * The picture at the head of the well: its height, which is what the column can spare.
+     * The picture at the head of the well: its width, and the number the frame is sized by.
      *
-     * **The picture yields, not the text.** At the column's full width a 16:9 frame is
-     * 146dp tall, and on a 21:9 handset the whole column is 255 — which leaves the facts
-     * block 52dp for a name, two programme lines and a bar that need about 76. Something
-     * has to give, and it is the picture: a frame two thirds the size is still a picture,
-     * whereas a name with its last line cut off is a defect.
+     * **It is the picture's own share now, not the column's.** The frame used to be
+     * exactly as wide as the well, so asking for a different picture meant moving the
+     * channel list — the one thing a size test must not do. [picture] is measured
+     * independently, and what is left of the column around it is simply inset.
      *
-     * So the height is capped by what is left after the strip, the gaps and
-     * [CHANNELS_FACTS_MIN], and [wellPictureWidth] follows it — the frame stays 16:9 and
-     * is simply narrower than its column on a surface that cannot hold it. It is never
-     * letterboxed and never cropped.
+     * Three things bound it, and the smallest wins:
+     *
+     *  1. **its share**, which is what the owner is choosing — see [PICTURE];
+     *  2. **the column**, because a picture wider than the well it sits in would overflow
+     *     the board;
+     *  3. **the room under it**, because the facts block keeps [CHANNELS_FACTS_MIN]
+     *     whatever else happens. **The picture yields, not the text**: on a 21:9 handset
+     *     the column is 255dp and the block holding a name, two programme lines and a bar
+     *     needs 76 of it, so the frame gives height back rather than have a line cut off.
      */
-    val wellPicture: Dp get() = minOf(
-        player / CHANNELS_PREVIEW_ASPECT,
-        column - strip - guideGap * 2 - CHANNELS_FACTS_MIN,
-    ).coerceAtLeast(CHANNELS_PICTURE_MIN)
+    val wellPictureWidth: Dp get() = minOf(
+        picture,
+        player,
+        (column - strip - guideGap * 2 - CHANNELS_FACTS_MIN) * CHANNELS_PREVIEW_ASPECT,
+    ).coerceAtLeast(CHANNELS_PICTURE_MIN * CHANNELS_PREVIEW_ASPECT)
 
-    /** The picture's width, which follows its height so the frame is always 16:9. */
-    val wellPictureWidth: Dp get() = minOf(wellPicture * CHANNELS_PREVIEW_ASPECT, player)
+    /**
+     * And its height, which is its width divided by the aspect — so the frame is 16:9 by
+     * construction rather than by agreement between two expressions.
+     */
+    val wellPicture: Dp get() = wellPictureWidth / CHANNELS_PREVIEW_ASPECT
 }
 
 /**
@@ -242,6 +266,8 @@ internal fun channelsMetricsFor(tv: Boolean, width: Dp, height: Dp): ChannelsMet
         railGap = width.boundedFraction(RAIL_GAP, 6.dp, 18.dp),
         player = width.boundedFraction(PLAYER, 260.dp, 520.dp),
         playerGap = width.boundedFraction(PLAYER_GAP, 6.dp, 20.dp),
+        picture = width.boundedFraction(PICTURE, 260.dp, 520.dp),
+        identity = height.boundedFraction(IDENTITY, 24.dp, 48.dp),
         strip = height.boundedFraction(STRIP, 48.dp, 110.dp),
 
         railEntryGap = height.boundedFraction(RAIL_ENTRY_GAP, 2.dp, 7.dp),
@@ -298,12 +324,30 @@ internal const val CHANNELS_TARGET_ROWS = 12
 /**
  * What the facts block under the picture may never be squeezed below.
  *
- * The channel's name, what is on, the bar under it and what is next — four things, and
- * the smallest surface this ships to draws them at the frame's body step. Solved from
- * that rather than chosen: below this the last line is cut off, which is the defect the
- * cap on [ChannelsMetrics.wellPicture] exists to prevent.
+ * **Solved from the block's own content, not chosen.** The block draws five things — the
+ * channel's identity, what is on, the bar under it, the hours it runs, and what is next —
+ * and on the narrowest surface this ships to they measure:
+ *
+ * | region | at 720×309 |
+ * |---|---|
+ * | identity row (logo, name, quality) | 24 |
+ * | what is on | 16 |
+ * | the bar | 2 |
+ * | its start and end | 14 |
+ * | what is next | 16 |
+ * | the five gaps and the rule between them | 15 |
+ * | the block's own vertical padding | 5 |
+ * | **total** | **92** |
+ *
+ * It was 76, which is what the block needed before it carried a logo and the programme's
+ * hours. Below this the last line is cut off, which is the defect the cap in
+ * [ChannelsMetrics.wellPictureWidth] exists to prevent — the picture yields first.
+ *
+ * Raising it costs nothing at the reference or on a handset, where the cap is not the
+ * binding constraint: the frame stays 400×225 at 1280×720 and 260×146 at 833×385. It is
+ * paid only on the shortest surfaces, where the picture goes from 218×123 to 189×106.
  */
-internal val CHANNELS_FACTS_MIN = 76.dp
+internal val CHANNELS_FACTS_MIN = 92.dp
 
 /**
  * And what the picture may never be squeezed below, whatever the column says.
@@ -396,6 +440,34 @@ private const val RAIL_GAP = 16f / 2340f
  * television from spending half its width on a preview.
  */
 private const val PLAYER = 748f / 2340f
+
+/**
+ * The video frame's width, chosen on the product's own 1280×720 reference.
+ *
+ * **Stated against 1280 rather than 2340, and deliberately.** Every other width in this
+ * file is a pixel boundary measured off the 2340×1080 screenshot, so it carries `/2340`.
+ * This one was not measured off anything — it is a size the owner chose and is testing,
+ * at the geometry they chose it on. Writing it as `731.25/2340` would be the same number
+ * dressed up as a measurement it never was. The two conventions agree: this is 0.3125 of
+ * the width either way.
+ *
+ * So the frame is **400×225** at 1280×720, and 16:9 at every other size.
+ *
+ * The ceiling is what stops a large television spending its extra width on a preview
+ * instead of on the catalogue — the frame grows to 1.4× the reference and no further. The
+ * floor is the smallest frame a viewer can still read a channel from; below it the cap in
+ * [ChannelsMetrics.wellPictureWidth] is already doing the deciding.
+ */
+private const val PICTURE = 400f / 1280f
+
+/**
+ * The identity row's height, which is also the channel logo's box.
+ *
+ * Stated against 1080 like every other height in this file. Its floor is what keeps a
+ * provider's mark legible on a handset; its ceiling stops a television turning the row
+ * into a banner.
+ */
+private const val IDENTITY = 44f / 1080f
 
 /**
  * A button's height in the strip under the well.

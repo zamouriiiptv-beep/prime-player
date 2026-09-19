@@ -236,10 +236,6 @@
     <string name="channels_action_lock">Lock</string>
     <string name="channels_action_hide">Hide</string>
 
-    <!-- At the foot of the facts block: where this channel sits in the open category.
-         Both figures are already grouped, e.g. "Channel 3 of 1,220". It answers "how far
-         into this bouquet am I", which the row's own plate answers only half of. -->
-    <string name="channels_position">Channel %1$s of %2$s</string>
     <!-- On the display over the picture. Uppercase in English because the reference
          draws it so; a language without case renders its own word. -->
     <string name="channels_live_badge">LIVE</string>

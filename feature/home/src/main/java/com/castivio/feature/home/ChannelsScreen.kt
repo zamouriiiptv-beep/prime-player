@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -723,9 +724,6 @@ private fun Columns(
                     onOpenGuide = { guideOpen = true },
                     onFavorite = previewModel::toggleFavorite,
                     onClose = onStop,
-                    total = state.total,
-                    bouquet = state.selectedGroup?.let { state.categoryNames[it] }
-                        ?: stringResource(R.string.channels_all_rail),
                     modifier = Modifier
                         .width(m.player)
                         .fillMaxHeight()
@@ -1283,10 +1281,6 @@ private fun ChannelWell(
     onOpenGuide: () -> Unit,
     onFavorite: () -> Unit,
     onClose: () -> Unit,
-    /** How many channels the open category holds, for "channel 3 of 39". */
-    total: Int,
-    /** The open category's name, as the rail and the breadcrumb say it. */
-    bouquet: String,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -1305,13 +1299,19 @@ private fun ChannelWell(
             modifier = Modifier.width(m.wellPictureWidth).height(m.wellPicture),
         )
 
-        ChannelFacts(
-            shown = shown,
-            m = m,
-            total = total,
-            bouquet = bouquet,
-            modifier = Modifier.fillMaxWidth().weight(1f),
-        )
+        // **It takes the height its content needs and no more.**
+        //
+        // It was `weight(1f)`, which stretched it to whatever the column had spare -- at
+        // the reference that is 333dp holding 138dp of content, so two thirds of a bordered
+        // panel was empty. A frame drawn around nothing reads as a region that failed to
+        // load. Wrapping it instead turns the same slack into plain ground between the
+        // facts and the strip, which is what empty space should look like.
+        ChannelFacts(shown = shown, m = m, modifier = Modifier.fillMaxWidth())
+
+        // The slack, named. It is the only flexible thing in this column, which is what
+        // keeps the strip on the floor of the board while the facts stay under the
+        // picture.
+        Spacer(Modifier.weight(1f))
 
         ActionStrip(
             shown = shown,
@@ -1461,37 +1461,40 @@ private fun FrameButton(
 }
 
 /**
- * What the picture is: the channel, what is on, what is next, and the stream itself.
+ * What the picture is: whose channel it is, what is on, and what follows.
+ *
+ * ## Five things, and no sixth
+ *
+ * The identity, the current programme, the bar under it, the hours it runs, and what is
+ * next. The block carried a synopsis, the category and the channel's position in it; the
+ * owner removed all three. What is left is what a viewer reads *while watching*, and the
+ * rest of the schedule is a press away on a page that has room for it.
  *
  * ## Why this is not inside the player
  *
  * It was. "No Information" was drawn in a panel *within* the card, which made a guide's
  * absence look like a fault in the player rather than a fact about the channel. Out here
- * it reads correctly: this is the block that says what you are watching, and sometimes
- * one of the things it has to say is that the provider sent no schedule.
+ * it reads correctly — and a channel with no schedule now simply draws its identity and
+ * stops, because a sentence saying nothing is worse than the space it occupies.
  *
  * ## What it may claim
  *
- * The name, the number and the quality tag come from the catalogue and are always true.
- * The two programme lines come from the guide and are absent when it is. There is
- * deliberately **no resolution or codec line**: those are properties of a decoded stream,
- * the board does not hold them, and printing them from a channel's name would be the one
- * dishonest pixel on the screen. When the engine reports them they can be added here —
- * and not before.
+ * The logo, the name and the quality tag come from the catalogue and are always true; the
+ * logo is the very artwork the channel row above it already fetched, through the same
+ * [ProviderArtwork] and the same cache, so drawing it here costs no request. The
+ * programme lines come from the guide and are absent when it is. There is deliberately
+ * **no resolution, codec or bitrate**: those are properties of a decoded stream, the board
+ * does not hold them, and printing them from a channel's name would be the one dishonest
+ * pixel on the screen.
  */
 @Composable
-private fun ChannelFacts(
-    shown: ChannelPreview,
-    m: ChannelsMetrics,
-    total: Int,
-    bouquet: String,
-    modifier: Modifier = Modifier,
-) {
+private fun ChannelFacts(shown: ChannelPreview, m: ChannelsMetrics, modifier: Modifier = Modifier) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(m.wellRadius)
     val channel = shown.channel
     val guide = shown.guide
     val now = guide?.now
+    val next = guide?.next
 
     Column(
         modifier
@@ -1500,10 +1503,21 @@ private fun ChannelFacts(
             .padding(horizontal = m.guidePad, vertical = m.guidePad / 2),
         verticalArrangement = Arrangement.spacedBy(m.badgePadV),
     ) {
+        // ---------------------------------------------------------- the identity
         Row(
+            Modifier.fillMaxWidth().height(m.identity),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(m.factGap),
         ) {
+            // The mark, at the row's own height rather than the list's smaller one: this
+            // is the channel being watched, not one of eleven being scanned. Absent
+            // artwork draws the "no logo" mark the rows draw, so the name starts at the
+            // same place either way.
+            ProviderArtwork(
+                url = channel?.artworkUrl,
+                description = null,
+                modifier = Modifier.height(m.identity).aspectRatio(LOGO_BOX),
+            )
             Text(
                 text = channel?.let { titleWithoutQuality(it.title) }
                     ?: stringResource(R.string.channels_preview_none),
@@ -1511,88 +1525,74 @@ private fun ChannelFacts(
                 color = if (channel != null) colors.onBackgroundStrong else colors.onBackgroundMuted,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false),
+                modifier = Modifier.weight(1f),
             )
             channel?.title?.let(::qualityOf)?.let {
                 Text(
                     text = it.label,
-                    style = castivioBodyStyle(m.frame.fsBody * QUALITY_OF_BODY),
+                    style = castivioChipStyle(m.frame.fsBody * QUALITY_OF_BODY),
                     color = colors.secondary,
                     maxLines = 1,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(Radius.pill))
+                        .background(colors.secondaryContainer)
+                        .padding(horizontal = m.badgePadH, vertical = m.badgePadV / 2),
                 )
             }
         }
 
-        // **Absent rather than apologised for.**
-        //
-        // This block used to print "No Information" whenever a channel had no schedule,
-        // and the owner had it removed: a sentence saying nothing is worse than the
-        // space it occupies. A channel with no guide simply has no guide lines, and what
-        // the block does have -- its name, its category, where it sits in that category
-        // -- is drawn either way.
-        if (guide != null && now != null) {
-            GuideLine(
-                label = stringResource(R.string.channels_guide_now),
-                title = now.title,
-                now = true,
-                m = m,
-            )
-            Track(fraction = guide.progressAt(System.currentTimeMillis()), m = m)
-            guide.next?.let {
-                GuideLine(
-                    label = stringResource(R.string.channels_guide_next),
-                    title = it.title,
-                    now = false,
-                    m = m,
-                )
-            }
+        // Everything below belongs to the guide, and a channel without one stops here.
+        if (now == null) return@Column
 
-            // What the programme is about, which is the one thing this block holds that
-            // is longer than a line -- and the reason it is here is that the owner asked
-            // what should fill the space. It is the provider's own text, drawn when there
-            // is some and absent when there is not; nothing is invented to fill a box.
-            now.description?.takeIf { it.isNotBlank() }?.let { detail ->
-                Text(
-                    text = detail,
-                    style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
-                    color = colors.onBackgroundMuted,
-                    maxLines = DESCRIPTION_LINES,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = m.badgePadV),
-                )
-            }
-        }
+        // -------------------------------------------------------- what is on now
+        GuideLine(
+            label = stringResource(R.string.channels_guide_now),
+            title = now.title,
+            now = true,
+            m = m,
+        )
+        Track(fraction = guide.progressAt(System.currentTimeMillis()), m = m)
 
-        Spacer(Modifier.weight(1f))
-
-        // The two facts that are true of every channel, at the foot of the block: which
-        // category it came from, and where it sits in it. Both are already on this screen
-        // -- the rail and the row's own plate -- and neither costs a query.
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(m.factGap),
-        ) {
+        // The hours it runs, at the two ends of the bar they describe. Read from the
+        // programme's own timestamps -- the same two the bar is drawn from, so the
+        // figures and the fill can never disagree.
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(
-                text = bouquet,
-                style = castivioChipStyle(m.frame.fsBody * QUALITY_OF_BODY),
+                text = clockLabel(now.startMs),
+                style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
                 color = colors.onBackgroundVariant,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .weight(1f, fill = false)
-                    .clip(RoundedCornerShape(Radius.pill))
-                    .background(colors.glassFill)
-                    .padding(horizontal = m.badgePadH, vertical = m.badgePadV),
             )
-            if (shown.number != null && total > 0) {
+            Text(
+                text = clockLabel(now.stopMs),
+                style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
+                color = colors.onBackgroundVariant,
+                maxLines = 1,
+            )
+        }
+
+        // ------------------------------------------------------------ and what is next
+        next?.let { programme ->
+            Spacer(Modifier.height(m.badgePadV))
+            // One rule, because "now" and "next" are the same shape and a reader needs a
+            // boundary between them that is not a gap they have to measure.
+            Box(Modifier.fillMaxWidth().height(1.dp).background(colors.glassBorderSoft))
+            Spacer(Modifier.height(m.badgePadV))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(m.factGap),
+            ) {
+                GuideLine(
+                    label = stringResource(R.string.channels_guide_next),
+                    title = programme.title,
+                    now = false,
+                    m = m,
+                    modifier = Modifier.weight(1f),
+                )
                 Text(
-                    text = stringResource(
-                        R.string.channels_position,
-                        formatCount(shown.number),
-                        formatCount(total),
-                    ),
+                    text = clockLabel(programme.startMs),
                     style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
-                    color = colors.onBackgroundMuted,
+                    color = colors.onBackgroundVariant,
                     maxLines = 1,
                 )
             }
@@ -1602,9 +1602,16 @@ private fun ChannelFacts(
 
 /** One line of the facts block: what it is, and what is on. */
 @Composable
-private fun GuideLine(label: String, title: String, now: Boolean, m: ChannelsMetrics) {
+private fun GuideLine(
+    label: String,
+    title: String,
+    now: Boolean,
+    m: ChannelsMetrics,
+    modifier: Modifier = Modifier,
+) {
     val colors = CastivioTheme.colors
     Row(
+        modifier,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(m.factGap),
     ) {
@@ -2159,6 +2166,16 @@ private const val CLOCK_OF_LABEL = 1.32f
  * first two lines answer.
  */
 private const val DESCRIPTION_LINES = 2
+
+/**
+ * The channel logo's box in the identity row, as a ratio.
+ *
+ * The same 54:40 the channel rows give a provider's mark -- wider than tall, because a
+ * broadcaster's logo is a wordmark far more often than it is a square. Restated here
+ * rather than shared with the row's `logoWidth`, which is a *width* for a column whose
+ * height is a row; this is a *height* for a row whose width follows it.
+ */
+private const val LOGO_BOX = 54f / 40f
 
 private const val LEGEND_OF_BODY = 0.88f
 

@@ -307,7 +307,8 @@ class ChannelsMetricsTest {
                 "headerGap" to m.headerGap,
                 "panelPad" to m.panelPad, "panelRadius" to m.panelRadius,
                 "rail" to m.rail, "railGap" to m.railGap,
-                "player" to m.player, "playerGap" to m.playerGap, "strip" to m.strip,
+                "player" to m.player, "playerGap" to m.playerGap,
+                "picture" to m.picture, "strip" to m.strip,
                 "rowPadH" to m.rowPadH,
                 "search" to m.search, "crumb" to m.crumb, "dates" to m.dates,
                 "numberWidth" to m.numberWidth, "logoWidth" to m.logoWidth,
@@ -345,6 +346,15 @@ class ChannelsMetricsTest {
         // has left for a page of its own. What is left needs about a third of the board.
         assertNear("player", 1280f * 748f / 2340f, m.player)
         assertNear("strip", 720f * 106f / 1080f, m.strip)
+
+        // **The size the owner is testing, at the geometry they chose it on.**
+        //
+        // The one number on this board stated against 1280x720 rather than the 2340x1080
+        // screenshot -- because it was chosen rather than measured. Asserted as the plain
+        // figure it is: 400 wide, and 225 tall because the frame is 16:9.
+        assertNear("picture", 400f, m.picture)
+        assertNear("wellPictureWidth", 400f, m.wellPictureWidth)
+        assertNear("wellPicture", 225f, m.wellPicture)
         assertNear("railGap", 1280f * 16f / 2340f, m.railGap)
         assertNear("playerGap", 1280f * 18f / 2340f, m.playerGap)
         assertNear("edge", 1280f * 22f / 2340f, m.edge)
