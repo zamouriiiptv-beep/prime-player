@@ -149,6 +149,14 @@ import com.castivio.core.design.R as DesignR
 @Composable
 fun ChannelsScreen(
     onPlay: (CatalogSelection) -> Unit,
+    /**
+     * Stop what [onPlay] started.
+     *
+     * The board cannot do this itself: the stream belongs to the shell and the plate is a
+     * slot. Without it the close button could only stop *drawing* the picture, which would
+     * leave a viewer with a channel they can hear and cannot see — the worst of both.
+     */
+    onStop: () -> Unit,
     onSearch: () -> Unit,
     /**
      * What goes in the preview plate when something is playing.
@@ -201,6 +209,7 @@ fun ChannelsScreen(
                 model = model,
                 previewModel = previewModel,
                 onPlay = onPlay,
+                onStop = onStop,
                 preview = preview,
                 modifier = Modifier.weight(1f),
             )
@@ -497,6 +506,7 @@ private fun Board(
     model: BrowseViewModel,
     previewModel: ChannelsViewModel,
     onPlay: (CatalogSelection) -> Unit,
+    onStop: () -> Unit,
     preview: (@Composable () -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
@@ -555,6 +565,7 @@ private fun Board(
                     model = model,
                     previewModel = previewModel,
                     onPlay = onPlay,
+                    onStop = onStop,
                     preview = preview,
                     modifier = Modifier.weight(1f),
                 )
@@ -650,6 +661,7 @@ private fun Columns(
     model: BrowseViewModel,
     previewModel: ChannelsViewModel,
     onPlay: (CatalogSelection) -> Unit,
+    onStop: () -> Unit,
     preview: (@Composable () -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
