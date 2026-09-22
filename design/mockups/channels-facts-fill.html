@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<!--
+  Option B applied, and four answers to the ground under it.
+
+  Drawn at the 1280×720 reference, where the ground is at its worst: the column is
+  639.73dp, the picture is capped at 400×225 by decree, and what is left for the facts
+  block is 333.39dp against 163.3dp of content. Real metrics throughout — column 409.16,
+  guidePad 6.56, identity 29.33, badgePadV 2.67, strip 70.67, body 18, name 20, legend
+  15.84, track 2, guideGap 5.33.
+
+  The handset figures in each note come from the same arithmetic at 833×385, where the
+  room is 128.6dp — and that is the number that decides this.
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>ملء كتلة المعلومات</title>
+<style>
+  :root{
+    --s: 1.05;
+    --panel-low:#20223A;
+    --glass:rgba(255,255,255,.078);
+    --edge:rgba(255,255,255,.078);
+    --edge-strong:rgba(255,255,255,.24);
+    --ink:#FFFFFF; --ink-quiet:#D6D3E8; --ink-muted:#A6A6BF;
+    --violet:#9B6BFF; --violet-container:#2E2D55;
+    --aqua:#2FBF9F; --ember:#FF3B5C;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(120% 90% at 85% 0%, #1B1F3F 0%, rgba(27,31,63,0) 60%),
+      linear-gradient(160deg,#13152D 0%,#111327 100%);
+    color:var(--ink);font-family:"Noto Sans Arabic","Segoe UI",system-ui,sans-serif;
+    padding:30px 28px 34px;
+  }
+  h1{font-size:22px;font-weight:600}
+  .lede{font-size:14px;color:var(--ink-muted);margin-top:7px;line-height:1.75;max-width:120ch}
+  .lede b{color:var(--ink-quiet);font-weight:600}
+  .lede em{color:#FF7F96;font-style:normal;font-weight:700}
+
+  .row{display:grid;grid-template-columns:repeat(4,max-content);gap:30px;margin-top:24px;align-items:start}
+  .case{display:flex;flex-direction:column;gap:10px;width:calc(409.16px * 1.05)}
+  .tag{display:flex;align-items:center;gap:8px}
+  .chip{font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px}
+  .chip.base{background:rgba(255,59,92,.16);color:#FF7F96;border:1px solid rgba(255,59,92,.4)}
+  .chip.opt{background:var(--violet-container);color:#DCCBFF;border:1px solid rgba(155,107,255,.45)}
+  .chip.bad{background:rgba(255,59,92,.2);color:#FF7F96;border:1px solid rgba(255,59,92,.55)}
+  .chip.good{background:rgba(47,191,159,.18);color:#6FE0C6;border:1px solid rgba(47,191,159,.5)}
+  .nm{font-size:14px;font-weight:600}
+  .note{font-size:12px;color:var(--ink-muted);line-height:1.8}
+  .note b{color:var(--ink-quiet)}
+  .note .warn{color:#FF7F96;font-weight:700}
+  .note .ok{color:#6FE0C6;font-weight:700}
+
+  /* --------------------------------------------- the well at 1280×720 metrics */
+  .well{
+    width:calc(409.16px * 1.05);height:calc(639.73px * 1.05);
+    display:flex;flex-direction:column;align-items:center;gap:calc(5.33px * 1.05);
+    outline:1px dashed rgba(255,255,255,.12);outline-offset:6px;border-radius:2px;
+  }
+  .picture{
+    width:calc(400px * 1.05);height:calc(225px * 1.05);border-radius:calc(10px * 1.05);
+    background:linear-gradient(150deg,#6E4BD8 0%,#4A2E9E 100%);
+    border:1px solid var(--edge-strong);position:relative;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(10px * 1.05);
+  }
+  .picture .brand{font-size:calc(22px * 1.05);font-weight:800;letter-spacing:1px;font-family:system-ui,sans-serif}
+  .picture .idle{font-size:calc(12px * 1.05);color:rgba(255,255,255,.82)}
+  .osd{position:absolute;inset-inline-start:calc(6.56px * 1.05);bottom:calc(6.56px * 1.05);
+       display:flex;align-items:center;gap:calc(6.02px * 1.05)}
+  .live{background:var(--aqua);color:#06251E;font-weight:700;font-size:calc(15.12px * 1.05);
+        border-radius:999px;padding:calc(2.67px * 1.05) calc(4.92px * 1.05);line-height:1.45}
+  .num{background:rgba(5,4,14,.62);font-size:calc(15.12px * 1.05);border-radius:999px;
+       padding:calc(2.67px * 1.05) calc(4.92px * 1.05);line-height:1.45}
+
+  .facts{
+    width:100%;border:1px solid var(--edge);border-radius:calc(10px * 1.05);
+    padding:calc(3.28px * 1.05) calc(6.56px * 1.05);
+    display:flex;flex-direction:column;gap:calc(2.67px * 1.05);
+  }
+  .facts.spread{flex:1;justify-content:space-between}
+  .identity{height:calc(29.33px * 1.05);display:flex;align-items:center;gap:calc(5.47px * 1.05)}
+  .logo{height:calc(29.33px * 1.05);aspect-ratio:54/40;border-radius:calc(5px * 1.05);
+        background:#1B1D38;border:1px solid var(--edge);display:flex;align-items:center;
+        justify-content:center;font-size:calc(9px * 1.05);font-weight:800;color:#C9C9DA;
+        font-family:system-ui,sans-serif;line-height:1.1;text-align:center}
+  /* the board forces LTR on these three columns; the name truncates at its end */
+  .cname{flex:1;direction:ltr;text-align:start;font-size:calc(20px * 1.05);font-weight:600;
+         white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:system-ui,sans-serif}
+  .quality{font-size:calc(15.12px * 1.05);color:var(--violet);background:var(--violet-container);
+           border-radius:999px;padding:calc(1.33px * 1.05) calc(4.92px * 1.05);font-family:system-ui,sans-serif}
+
+  .group{display:flex;flex-direction:column;gap:calc(2.67px * 1.05)}
+  .rule{height:calc(1px * 1.05);background:var(--edge-strong)}
+  .rule.newseam{background:var(--aqua);box-shadow:0 0 0 1px rgba(47,191,159,.35)}
+  .line{display:flex;align-items:center;gap:calc(5.47px * 1.05)}
+  .label{font-size:calc(15.84px * 1.05);white-space:nowrap}
+  .label.on{color:var(--violet)} .label.soon{color:var(--ink-muted)}
+  .title{flex:1;direction:ltr;text-align:start;font-size:calc(18px * 1.05);white-space:nowrap;
+         overflow:hidden;text-overflow:ellipsis;font-family:system-ui,sans-serif}
+  .title.soon{color:var(--ink-quiet)}
+  .clock{font-size:calc(15.84px * 1.05);color:var(--ink-quiet);font-family:system-ui,sans-serif;white-space:nowrap}
+  .times{display:flex;justify-content:space-between}
+  .track{height:calc(2px * 1.05);border-radius:999px;background:rgba(255,255,255,.13);overflow:hidden}
+  .track > i{display:block;height:100%;width:62%;background:var(--aqua)}
+  .synopsis{font-size:calc(18px * 1.05);line-height:1.5;color:var(--ink-muted);
+            font-family:system-ui,sans-serif;display:-webkit-box;-webkit-line-clamp:2;
+            -webkit-box-orient:vertical;overflow:hidden}
+
+  .ground{
+    flex:1;width:100%;border-radius:4px;
+    background:repeating-linear-gradient(45deg,rgba(255,59,92,.16) 0 7px,rgba(255,59,92,.04) 7px 14px);
+    display:flex;align-items:center;justify-content:center;
+    font-size:13px;font-weight:700;color:#FF7F96;letter-spacing:.3px;
+  }
+  .ground.none{background:none}
+  .strip{width:100%;height:calc(70.67px * 1.05);display:flex;gap:calc(5.47px * 1.05);flex:none}
+  .btn{flex:1;border-radius:calc(6.67px * 1.05);background:var(--glass);border:1px solid var(--edge);
+       display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(4px * 1.05);
+       font-size:calc(13px * 1.05);color:var(--ink-quiet)}
+  .btn .g{font-size:calc(19px * 1.05);line-height:1}
+</style>
+</head>
+<body>
+
+<h1>الخيار ب مطبَّق، وأربع إجابات عن الأرض تحته</h1>
+<p class="lede">
+  مرسومة على المرجع <b>1280×720</b> حيث الفراغ في أسوأ حالاته: العمود <b>639.73dp</b>، الصورة مقيّدة بـ<b>400×225</b>،
+  فيبقى للكتلة <b>333.39dp</b> مقابل <b>163.3dp</b> محتوى. الخط الأخضر هو الخيار ب الجديد.
+  <br>
+  <em>وهذه هي النقطة التي تغيّر القرار:</em> على هاتفك (833×385) المساحة المتاحة <b>128.6dp</b> والمحتوى بعد ب
+  <b>116.8dp</b> — أي أن الأرض هناك <b>11.7dp</b> فقط. فكل حلٍّ يضيف محتوى ثابتًا <em>يفيض على الهاتف</em>
+  بينما يصلح التلفزيون.
+</p>
+
+<div class="row">
+
+  <!-- ===================================================== ب وحده -->
+  <div class="case">
+    <div class="tag"><span class="chip base">ب وحده</span><span class="nm">الأرض 170dp</span></div>
+    <div class="well">
+      <div class="picture"><div class="brand">beIN SPORTS</div><div class="idle">لا يوجد حدث مباشر الآن</div>
+        <div class="osd"><span class="live">مباشر</span><span class="num">3</span></div></div>
+      <div class="facts">
+        <div class="identity"><div class="logo">beIN<br>HD 2</div>
+          <div class="cname">UK: BEIN SPORTS 2 ENGLISH</div><div class="quality">HD</div></div>
+        <div class="group">
+          <div class="rule newseam"></div>
+          <div class="line"><span class="label on">الآن</span><span class="title">Table Tennis - Asian Games</span></div>
+          <div class="track"><i></i></div>
+          <div class="times"><span class="clock">06:00</span><span class="clock">12:10</span></div>
+        </div>
+        <div class="group">
+          <div class="rule"></div>
+          <div class="line"><span class="label soon">التالي</span><span class="title soon">EN MLB Plays of the Week</span><span class="clock">12:10 – 12:35</span></div>
+          <div class="line"><span class="label soon">ما بعد التالي</span><span class="title soon">Premier Padel Highlights</span><span class="clock">12:35 – 13:00</span></div>
+        </div>
+      </div>
+      <div class="ground">170.1dp</div>
+      <div class="strip"><div class="btn"><span class="g">🗓</span>الدليل</div><div class="btn"><span class="g">☆</span>المفضلة</div><div class="btn"><span class="g">🔒</span>قفل</div><div class="btn"><span class="g">🚫</span>إخفاء</div></div>
+    </div>
+    <p class="note">الخط الأخضر يصلح الالتصاق بـ<b>3dp</b>، ولا يمسّ الأرض. على الهاتف الأرض <span class="ok">11.7dp</span> — أي لا مشكلة هناك أصلًا.</p>
+  </div>
+
+  <!-- ===================================================== ب + وصف -->
+  <div class="case">
+    <div class="tag"><span class="chip opt">ب + وصف</span><span class="chip bad">يفيض على الهاتف</span></div>
+    <div class="well">
+      <div class="picture"><div class="brand">beIN SPORTS</div><div class="idle">لا يوجد حدث مباشر الآن</div>
+        <div class="osd"><span class="live">مباشر</span><span class="num">3</span></div></div>
+      <div class="facts">
+        <div class="identity"><div class="logo">beIN<br>HD 2</div>
+          <div class="cname">UK: BEIN SPORTS 2 ENGLISH</div><div class="quality">HD</div></div>
+        <div class="group">
+          <div class="rule newseam"></div>
+          <div class="line"><span class="label on">الآن</span><span class="title">Table Tennis - Asian Games</span></div>
+          <div class="track"><i></i></div>
+          <div class="times"><span class="clock">06:00</span><span class="clock">12:10</span></div>
+          <div class="synopsis">Men's and women's singles quarter-finals from the Aichi-Nagoya arena, with commentary.</div>
+        </div>
+        <div class="group">
+          <div class="rule"></div>
+          <div class="line"><span class="label soon">التالي</span><span class="title soon">EN MLB Plays of the Week</span><span class="clock">12:10 – 12:35</span></div>
+          <div class="line"><span class="label soon">ما بعد التالي</span><span class="title soon">Premier Padel Highlights</span><span class="clock">12:35 – 13:00</span></div>
+        </div>
+      </div>
+      <div class="ground">113.4dp</div>
+      <div class="strip"><div class="btn"><span class="g">🗓</span>الدليل</div><div class="btn"><span class="g">☆</span>المفضلة</div><div class="btn"><span class="g">🔒</span>قفل</div><div class="btn"><span class="g">🚫</span>إخفاء</div></div>
+    </div>
+    <p class="note">سطران من <b>Programme.description</b> — محتوى موجود على الجهاز، بلا أي طلب. يأخذ <b>57dp</b> هنا.
+      لكنه على الهاتف يجعل المحتوى <b>154.8</b> في مساحة <b>128.6</b> — <span class="warn">فيض 26dp يدفع الأزرار خارج اللوحة</span>.
+      وكثير من المزوّدين لا يرسلون وصفًا أصلًا، فيعود الفراغ.</p>
+  </div>
+
+  <!-- ===================================================== ب + رابع -->
+  <div class="case">
+    <div class="tag"><span class="chip opt">ب + برنامج رابع</span><span class="chip bad">يفيض على الهاتف</span></div>
+    <div class="well">
+      <div class="picture"><div class="brand">beIN SPORTS</div><div class="idle">لا يوجد حدث مباشر الآن</div>
+        <div class="osd"><span class="live">مباشر</span><span class="num">3</span></div></div>
+      <div class="facts">
+        <div class="identity"><div class="logo">beIN<br>HD 2</div>
+          <div class="cname">UK: BEIN SPORTS 2 ENGLISH</div><div class="quality">HD</div></div>
+        <div class="group">
+          <div class="rule newseam"></div>
+          <div class="line"><span class="label on">الآن</span><span class="title">Table Tennis - Asian Games</span></div>
+          <div class="track"><i></i></div>
+          <div class="times"><span class="clock">06:00</span><span class="clock">12:10</span></div>
+        </div>
+        <div class="group">
+          <div class="rule"></div>
+          <div class="line"><span class="label soon">التالي</span><span class="title soon">EN MLB Plays of the Week</span><span class="clock">12:10 – 12:35</span></div>
+          <div class="line"><span class="label soon">ما بعد التالي</span><span class="title soon">Premier Padel Highlights</span><span class="clock">12:35 – 13:00</span></div>
+          <div class="line"><span class="label soon">ثم</span><span class="title soon">Serie A Full Match</span><span class="clock">13:00 – 15:00</span></div>
+        </div>
+      </div>
+      <div class="ground">140.4dp</div>
+      <div class="strip"><div class="btn"><span class="g">🗓</span>الدليل</div><div class="btn"><span class="g">☆</span>المفضلة</div><div class="btn"><span class="g">🔒</span>قفل</div><div class="btn"><span class="g">🚫</span>إخفاء</div></div>
+    </div>
+    <p class="note">صفّ رابع يكلّف <b>29.7dp</b> ويأكل سُدس الفراغ فقط. ويحتاج <b>SCHEDULE_ROWS</b> من 3 إلى 4 —
+      وهو نفسه ما يغذّي صفحة الدليل، <span class="warn">فيغيّرها ضمنًا</span> وقد منعتَ ذلك.
+      وعلى الهاتف <span class="warn">فيض 8dp</span>.</p>
+  </div>
+
+  <!-- ===================================================== ب + توزيع -->
+  <div class="case">
+    <div class="tag"><span class="chip opt">ب + توزيع عمودي</span><span class="chip good">سليم في كل مقاس</span></div>
+    <div class="well">
+      <div class="picture"><div class="brand">beIN SPORTS</div><div class="idle">لا يوجد حدث مباشر الآن</div>
+        <div class="osd"><span class="live">مباشر</span><span class="num">3</span></div></div>
+      <div class="facts spread">
+        <div class="identity"><div class="logo">beIN<br>HD 2</div>
+          <div class="cname">UK: BEIN SPORTS 2 ENGLISH</div><div class="quality">HD</div></div>
+        <div class="group">
+          <div class="rule newseam"></div>
+          <div class="line"><span class="label on">الآن</span><span class="title">Table Tennis - Asian Games</span></div>
+          <div class="track"><i></i></div>
+          <div class="times"><span class="clock">06:00</span><span class="clock">12:10</span></div>
+        </div>
+        <div class="group">
+          <div class="rule"></div>
+          <div class="line"><span class="label soon">التالي</span><span class="title soon">EN MLB Plays of the Week</span><span class="clock">12:10 – 12:35</span></div>
+          <div class="line"><span class="label soon">ما بعد التالي</span><span class="title soon">Premier Padel Highlights</span><span class="clock">12:35 – 13:00</span></div>
+        </div>
+      </div>
+      <div class="ground none"></div>
+      <div class="strip"><div class="btn"><span class="g">🗓</span>الدليل</div><div class="btn"><span class="g">☆</span>المفضلة</div><div class="btn"><span class="g">🔒</span>قفل</div><div class="btn"><span class="g">🚫</span>إخفاء</div></div>
+    </div>
+    <p class="note">الكتلة تأخذ المساحة المتاحة <b>بالضبط</b> ولا تتجاوزها أبدًا: صفر أرض هنا، وصفر أرض على الهاتف،
+      و<span class="ok">لا فيض في أي مقاس</span> لأنها لا تضيف محتوى. الثمن: الفجوة بين المجموعات الثلاث تصل
+      <b>87.7dp</b> هنا — والخطّان الأفقيان هما ما يجعلها تُقرأ كثلاثة أقسام لا كثقب.</p>
+  </div>
+
+</div>
+</body>
+</html>
