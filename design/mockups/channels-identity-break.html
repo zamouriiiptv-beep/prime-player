@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<!--
+  The facts block under the mini player: four ways to separate the channel's identity
+  from the programme that is on.
+
+  Drawn at the owner's own device geometry — 833×385dp, the surface the screenshot came
+  from — and scaled ×2.4 so a 2dp gap is visible. Every number below is the real metric:
+  column 266.28, picture 260×146.25, identity row 24, guidePad 5, badgePadV 2, strip 48,
+  body 12, the channel name 10.69. Nothing here is drawn at a size the board would not use.
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>فصل هوية القناة</title>
+<style>
+  :root{
+    --s: 2.4;                   /* the scale everything is drawn at */
+    --bg: #13152D;
+    --bg-low: #111327;
+    --panel: #242642;
+    --panel-low: #20223A;
+    --glass: rgba(255,255,255,.078);
+    --edge: rgba(255,255,255,.078);
+    --edge-strong: rgba(255,255,255,.24);
+    --ink: #FFFFFF;
+    --ink-quiet: #D6D3E8;
+    --ink-muted: #A6A6BF;
+    --violet: #9B6BFF;
+    --violet-container: #2E2D55;
+    --aqua: #2FBF9F;
+    --azure: #6FB2FF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(120% 90% at 85% 0%, #1B1F3F 0%, rgba(27,31,63,0) 60%),
+      linear-gradient(160deg, #13152D 0%, #111327 100%);
+    color:var(--ink);
+    font-family:"Noto Sans Arabic","Segoe UI",system-ui,sans-serif;
+    padding:34px 30px 40px;
+    min-height:100vh;
+  }
+  h1{font-size:23px;font-weight:600;letter-spacing:.2px}
+  .lede{font-size:14.5px;color:var(--ink-muted);margin-top:8px;line-height:1.75;max-width:112ch}
+  .lede b{color:var(--ink-quiet);font-weight:600}
+
+  .row{display:grid;grid-template-columns:repeat(4,max-content);gap:34px;margin-top:28px;align-items:start}
+  .case{display:flex;flex-direction:column;gap:11px}
+  .tag{display:flex;align-items:center;gap:9px}
+  .chip{
+    font-size:12.5px;font-weight:700;letter-spacing:.3px;
+    padding:4px 11px;border-radius:999px;
+  }
+  .chip.now{background:rgba(255,59,92,.16);color:#FF7F96;border:1px solid rgba(255,59,92,.4)}
+  .chip.opt{background:var(--violet-container);color:#DCCBFF;border:1px solid rgba(155,107,255,.45)}
+  .name{font-size:14.5px;font-weight:600}
+  .note{font-size:12.5px;color:var(--ink-muted);line-height:1.75;width:calc(266.28px * 2.4)}
+
+  /* ------------------------------------------------ the well, at real metrics */
+  .well{
+    width:calc(266.28px * 2.4);       /* the player column */
+    display:flex;flex-direction:column;align-items:center;
+    gap:calc(4px * 2.4);                  /* guideGap */
+  }
+  .picture{
+    width:calc(260px * 2.4);height:calc(146.25px * 2.4);
+    border-radius:calc(10px * 2.4);
+    background:linear-gradient(150deg,#6E4BD8 0%,#4A2E9E 100%);
+    border:1px solid var(--edge-strong);
+    position:relative;display:flex;align-items:center;justify-content:center;
+    flex-direction:column;gap:calc(9px * 2.4);
+  }
+  .picture .brand{font-size:calc(15px * 2.4);font-weight:800;letter-spacing:1px;font-family:system-ui,sans-serif}
+  .picture .idle{font-size:calc(7.5px * 2.4);color:rgba(255,255,255,.82)}
+  .osd{
+    position:absolute;inset-inline-start:calc(5px * 2.4);bottom:calc(5px * 2.4);
+    display:flex;align-items:center;gap:calc(4px * 2.4);
+  }
+  .live{
+    background:var(--aqua);color:#06251E;font-weight:700;
+    font-size:calc(10.56px * 2.4);border-radius:999px;
+    padding:calc(2px * 2.4) calc(4px * 2.4);line-height:1.45;
+  }
+  .num{
+    background:rgba(5,4,14,.62);color:#fff;font-size:calc(10.56px * 2.4);
+    border-radius:999px;padding:calc(2px * 2.4) calc(4px * 2.4);line-height:1.45;
+  }
+
+  .facts{
+    width:100%;
+    border:1px solid var(--edge);
+    border-radius:calc(10px * 2.4);
+    padding:calc(2.5px * 2.4) calc(5px * 2.4);   /* guidePad/2 vertical, guidePad horizontal */
+    display:flex;flex-direction:column;gap:calc(2px * 2.4);  /* badgePadV */
+  }
+  .identity{
+    height:calc(24px * 2.4);display:flex;align-items:center;gap:calc(4px * 2.4);
+  }
+  .logo{
+    height:calc(24px * 2.4);aspect-ratio:54/40;border-radius:calc(4px * 2.4);
+    background:#1B1D38;border:1px solid var(--edge);
+    display:flex;align-items:center;justify-content:center;
+    font-size:calc(7px * 2.4);font-weight:800;color:#C9C9DA;font-family:system-ui,sans-serif;
+    line-height:1.1;text-align:center;
+  }
+  .cname{
+    flex:1;font-size:calc(10.69px * 2.4);font-weight:600;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    font-family:system-ui,sans-serif;letter-spacing:.2px;
+  }
+  .quality{
+    font-size:calc(10.08px * 2.4);color:var(--violet);background:var(--violet-container);
+    border-radius:999px;padding:calc(1px * 2.4) calc(4px * 2.4);font-family:system-ui,sans-serif;
+  }
+
+  .group{display:flex;flex-direction:column;gap:calc(2px * 2.4)}
+  .line{display:flex;align-items:center;gap:calc(4px * 2.4)}
+  .label{font-size:calc(10.56px * 2.4);white-space:nowrap}
+  .label.on{color:var(--violet)}
+  .label.soon{color:var(--ink-muted)}
+  .title{
+    flex:1;font-size:calc(12px * 2.4);color:var(--ink);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:system-ui,sans-serif;
+  }
+  .title.soon{color:var(--ink-quiet)}
+  .clock{font-size:calc(10.56px * 2.4);color:var(--ink-quiet);font-family:system-ui,sans-serif;white-space:nowrap}
+  .times{display:flex;justify-content:space-between}
+  .track{height:calc(2px * 2.4);border-radius:999px;background:rgba(255,255,255,.13);overflow:hidden}
+  .track > i{display:block;height:100%;width:62%;background:var(--aqua);border-radius:999px}
+  .rule{height:calc(1px * 2.4);background:var(--edge-strong)}
+
+  .strip{
+    width:100%;height:calc(48px * 2.4);display:flex;gap:calc(4px * 2.4);
+  }
+  .btn{
+    flex:1;border-radius:calc(6px * 2.4);background:var(--glass);border:1px solid var(--edge);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(3px * 2.4);
+    font-size:calc(9px * 2.4);color:var(--ink-quiet);
+  }
+  .btn .g{font-size:calc(13px * 2.4);line-height:1}
+
+  /* the marks that say what changed */
+  .mark{position:relative}
+  .mark::after{
+    content:attr(data-mark);
+    position:absolute;inset-inline-start:calc(100% + 8px);top:50%;transform:translateY(-50%);
+    font-size:11.5px;color:#FF7F96;white-space:nowrap;font-weight:700;letter-spacing:.2px;
+  }
+  .facts{overflow:visible}
+  .gapmark{background:repeating-linear-gradient(
+      45deg,rgba(255,59,92,.22) 0 5px,rgba(255,59,92,.06) 5px 10px);
+    border-radius:3px;}
+  .keepmark{background:repeating-linear-gradient(
+      45deg,rgba(47,191,159,.22) 0 5px,rgba(47,191,159,.06) 5px 10px);
+    border-radius:3px;}
+</style>
+</head>
+<body>
+
+<h1>فصل هوية القناة عن برنامج «الآن»</h1>
+<p class="lede">
+  الحالة الحالية والخيارات الثلاثة، مرسومة على هندسة جهازك نفسها — <b>833×385dp</b> — بمقياس ×2.4.
+  صف الهوية ارتفاعه <b>24dp</b>، والفجوة الحالية بينه وبين «الآن» هي <b>badgePadV = 2dp</b> فقط،
+  وهي نفس الفجوة التي تفصل أي سطرين داخل الكتلة. لهذا يقرأها العقل ككتلة واحدة: لا شيء يقول
+  إن ما فوق الفجوة نوع مختلف عمّا تحتها.
+</p>
+
+<div class="row">
+
+  <!-- ============================================================= الحالي -->
+  <div class="case">
+    <div class="tag"><span class="chip now">الحالي</span><span class="name">فجوة 2dp</span></div>
+    <div class="well">
+      <div class="picture">
+        <div class="brand">beIN SPORTS</div>
+        <div class="idle">لا يوجد حدث مباشر الآن</div>
+        <div class="osd"><span class="live">مباشر</span><span class="num">3</span></div>
+      </div>
+      <div class="facts">
+        <div class="identity">
+          <div class="logo">beIN<br>HD 2</div>
+          <div class="cname">UK: BEIN SPORTS 2 ENGLISH</div>
+          <div class="quality">HD</div>
+        </div>
+        <div class="group">
+          <div class="line">
+            <span class="label on">الآن</span>
+            <span class="title">Table Tennis - Asian Games</span>
+          </div>
+          <div class="track"><i></i></div>
+          <div class="times"><span class="clock">06:00</span><span class="clock">12:10</span></div>
+        </div>
+        <div class="group">
+          <div class="rule"></div>
+          <div class="line">
+            <span class="label soon">التالي</span>
+            <span class="title soon">EN MLB Plays of the Week</span>
+            <span class="clock">12:10 – 12:35</span>
+          </div>
+          <div class="line">
+            <span class="label soon">ما بعد التالي</span>
+            <span class="title soon">Premier Padel Highlights</span>
+            <span class="clock">12:35 – 13:00</span>
+          </div>
+        </div>
+      </div>
+      <div class="strip">
+        <div class="btn"><span class="g">🗓</span>الدليل</div>
+        <div class="btn"><span class="g">☆</span>المفضلة</div>
+        <div class="btn"><span class="g">🔒</span>قفل</div>
+        <div class="btn"><span class="g">🚫</span>إخفاء</div>
+      </div>
+    </div>
+    <p class="note">الهوية و«الآن» يلتصقان. الخط الفاصل الوحيد في الكتلة موجود قبل «التالي»، فيبدو أن الحدّ الحقيقي هناك — لا بين القناة وبرنامجها.</p>
+  </div>
+
+  <!-- ============================================================== خيار أ -->
+  <div class="case">
+    <div class="tag"><span class="chip opt">أ</span><span class="name">مسافة 12dp فقط</span></div>
+    <div class="well">
+      <div class="picture">
+        <div class="brand">beIN SPORTS</div>
+        <div class="idle">لا يوجد حدث مباشر الآن</div>
+        <div class="osd"><span class="live">مباشر</span><span class="num">3</span></div>
+      </div>
+      <div class="facts">
+        <div class="identity">
+          <div class="logo">beIN<br>HD 2</div>
+          <div class="cname">UK: BEIN SPORTS 2 ENGLISH</div>
+          <div class="quality">HD</div>
+        </div>
+        <div class="gapmark mark" data-mark="12dp" style="height:calc(10px * 2.4)"></div>
+        <div class="group">
+          <div class="line">
+            <span class="label on">الآن</span>
+            <span class="title">Table Tennis - Asian Games</span>
+          </div>
+          <div class="track"><i></i></div>
+          <div class="times"><span class="clock">06:00</span><span class="clock">12:10</span></div>
+        </div>
+        <div class="group">
+          <div class="rule"></div>
+          <div class="line">
+            <span class="label soon">التالي</span>
+            <span class="title soon">EN MLB Plays of the Week</span>
+            <span class="clock">12:10 – 12:35</span>
+          </div>
+          <div class="line">
+            <span class="label soon">ما بعد التالي</span>
+            <span class="title soon">Premier Padel Highlights</span>
+            <span class="clock">12:35 – 13:00</span>
+          </div>
+        </div>
+      </div>
+      <div class="strip">
+        <div class="btn"><span class="g">🗓</span>الدليل</div>
+        <div class="btn"><span class="g">☆</span>المفضلة</div>
+        <div class="btn"><span class="g">🔒</span>قفل</div>
+        <div class="btn"><span class="g">🚫</span>إخفاء</div>
+      </div>
+    </div>
+    <p class="note"><b>أرخص تغيير.</b> يكلّف 10dp من ارتفاع الكتلة ولا شيء غير ذلك. لكنه يترك خطًّا واحدًا في الكتلة — قبل «التالي» — فتبقى الحدود غير متساوية: حدّ مرسوم وحدّ مفترض.</p>
+  </div>
+
+  <!-- ============================================================== خيار ب -->
+  <div class="case">
+    <div class="tag"><span class="chip opt">ب</span><span class="name">خط فاصل، كالذي قبل «التالي»</span></div>
+    <div class="well">
+      <div class="picture">
+        <div class="brand">beIN SPORTS</div>
+        <div class="idle">لا يوجد حدث مباشر الآن</div>
+        <div class="osd"><span class="live">مباشر</span><span class="num">3</span></div>
+      </div>
+      <div class="facts">
+        <div class="identity">
+          <div class="logo">beIN<br>HD 2</div>
+          <div class="cname">UK: BEIN SPORTS 2 ENGLISH</div>
+          <div class="quality">HD</div>
+        </div>
+        <div class="group">
+          <div class="rule keepmark mark" data-mark="خط"></div>
+          <div class="line">
+            <span class="label on">الآن</span>
+            <span class="title">Table Tennis - Asian Games</span>
+          </div>
+          <div class="track"><i></i></div>
+          <div class="times"><span class="clock">06:00</span><span class="clock">12:10</span></div>
+        </div>
+        <div class="group">
+          <div class="rule"></div>
+          <div class="line">
+            <span class="label soon">التالي</span>
+            <span class="title soon">EN MLB Plays of the Week</span>
+            <span class="clock">12:10 – 12:35</span>
+          </div>
+          <div class="line">
+            <span class="label soon">ما بعد التالي</span>
+            <span class="title soon">Premier Padel Highlights</span>
+            <span class="clock">12:35 – 13:00</span>
+          </div>
+        </div>
+      </div>
+      <div class="strip">
+        <div class="btn"><span class="g">🗓</span>الدليل</div>
+        <div class="btn"><span class="g">☆</span>المفضلة</div>
+        <div class="btn"><span class="g">🔒</span>قفل</div>
+        <div class="btn"><span class="g">🚫</span>إخفاء</div>
+      </div>
+    </div>
+    <p class="note"><b>نفس النحو الموجود.</b> الخط الذي يفصل «الآن» عمّا يليه هو نفسه الذي يفصل القناة عن برنامجها — قاعدة واحدة مطبَّقة مرتين، بلا لون جديد ولا مكوّن جديد. يكلّف 3dp فقط.</p>
+  </div>
+
+  <!-- ============================================================== خيار ج -->
+  <div class="case">
+    <div class="tag"><span class="chip opt">ج</span><span class="name">حاوية مستقلة للهوية</span></div>
+    <div class="well">
+      <div class="picture">
+        <div class="brand">beIN SPORTS</div>
+        <div class="idle">لا يوجد حدث مباشر الآن</div>
+        <div class="osd"><span class="live">مباشر</span><span class="num">3</span></div>
+      </div>
+      <div class="facts mark" data-mark="صندوق" style="background:var(--panel-low);padding:calc(2.5px*2.4) calc(5px*2.4);flex:none">
+        <div class="identity">
+          <div class="logo">beIN<br>HD 2</div>
+          <div class="cname">UK: BEIN SPORTS 2 ENGLISH</div>
+          <div class="quality">HD</div>
+        </div>
+      </div>
+      <div class="facts">
+        <div class="group">
+          <div class="line">
+            <span class="label on">الآن</span>
+            <span class="title">Table Tennis - Asian Games</span>
+          </div>
+          <div class="track"><i></i></div>
+          <div class="times"><span class="clock">06:00</span><span class="clock">12:10</span></div>
+        </div>
+        <div class="group">
+          <div class="rule"></div>
+          <div class="line">
+            <span class="label soon">التالي</span>
+            <span class="title soon">EN MLB Plays of the Week</span>
+            <span class="clock">12:10 – 12:35</span>
+          </div>
+          <div class="line">
+            <span class="label soon">ما بعد التالي</span>
+            <span class="title soon">Premier Padel Highlights</span>
+            <span class="clock">12:35 – 13:00</span>
+          </div>
+        </div>
+      </div>
+      <div class="strip">
+        <div class="btn"><span class="g">🗓</span>الدليل</div>
+        <div class="btn"><span class="g">☆</span>المفضلة</div>
+        <div class="btn"><span class="g">🔒</span>قفل</div>
+        <div class="btn"><span class="g">🚫</span>إخفاء</div>
+      </div>
+    </div>
+    <p class="note"><b>أوضح فصل، وأغلى ثمن.</b> صندوقان بحدّين وحشوتين يكلّفان ~13dp من ارتفاع العمود، ويضيفان مستطيلًا رابعًا إلى عمود فيه الصورة والكتلة والشريط. الفصل هنا أقوى ممّا تحتاجه علاقة «هذه القناة، وهذا ما عليها».</p>
+  </div>
+
+</div>
+</body>
+</html>
