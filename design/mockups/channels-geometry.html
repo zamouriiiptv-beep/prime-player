@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<!-- The Channels board at the approved geometry: packages 290, gap 16, channels 520,
+     player 409.2, picture 400x225, package row 52, channel row 51.5, and three padding
+     metrics so the well's buttons keep the value they have. One px per dp. -->
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>هندسة لوحة القنوات</title><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:linear-gradient(160deg,#0D0B22,#111327);color:#fff;
+     font-family:"Noto Sans Arabic","Segoe UI",system-ui,sans-serif;padding:24px 22px 30px}
+h1{font-size:20px;font-weight:600} .lede{font-size:13px;color:#A6A6BF;margin:6px 0 18px;line-height:1.8}
+.lede b{color:#D6D3E8} .lede em{color:#6FE0C6;font-style:normal;font-weight:700}
+.case{margin-bottom:26px}
+.cap{font-size:12.5px;color:#A6A6BF;margin-bottom:7px} .cap b{color:#6FE0C6;font-size:13.5px}
+.cap2{font-size:12px;color:#8C8CA8;margin-top:7px} .cap2 b{color:#D6D3E8}
+.board{background:radial-gradient(120% 90% at 85% 0%,#1B1F3F 0%,rgba(27,31,63,0) 60%),
+       linear-gradient(160deg,#13152D,#111327);outline:1px solid rgba(255,255,255,.14);border-radius:3px}
+.stage{height:100%;display:flex;flex-direction:column}
+.hdr{display:flex;align-items:center;gap:14px;color:#D6D3E8}
+.crumb{color:#B694FF} .field{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);
+       display:flex;align-items:center;color:#8C8CA8;flex:1;max-width:38%}
+.clock{margin-inline-start:auto;font-weight:700}
+.panel{background:#20223A;border:1px solid rgba(172,180,214,.10)}
+.cols{display:flex}
+.rail{display:flex;flex-direction:column}
+.rsearch{background:rgba(255,255,255,.06);border:1px solid rgba(172,180,214,.10);border-radius:999px;
+         display:flex;align-items:center;color:#8C8CA8}
+.pkg{display:flex;flex-direction:column;justify-content:center;border:1px solid transparent}
+.pkg.on{background:#9B6BFF;border-color:#B694FF}
+.pname{color:#D6D3E8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pkg.on .pname,.pkg.on .ptot{color:#fff} .ptot{color:#8C8CA8}
+.gap{position:relative} .gap>i{position:absolute;inset:0;background:repeating-linear-gradient(
+     45deg,rgba(111,224,198,.22) 0 4px,rgba(111,224,198,.05) 4px 8px)}
+.list{border:1px solid rgba(172,180,214,.10);display:flex;flex-direction:column;overflow:hidden}
+.ch{display:flex;align-items:center;border:1px solid transparent;flex:none}
+.ch.on{background:#9B6BFF;border-color:#B694FF}
+.plate{background:rgba(255,255,255,.06);border:1px solid rgba(172,180,214,.10);color:#9B6BFF;
+       text-align:center;flex:none;display:flex;align-items:center;justify-content:center}
+.ch.on .plate{background:#fff}
+.logo{background:#1B1D38;border:1px solid rgba(172,180,214,.10);flex:none}
+.cname{flex:1;direction:ltr;text-align:start;color:#D6D3E8;white-space:nowrap;overflow:hidden;
+       text-overflow:ellipsis;font-family:system-ui,sans-serif}
+.ch.on .cname{color:#fff} .q{color:#9B6BFF;flex:none} .ch.on .q{color:#fff}
+.well{display:flex;flex-direction:column;align-items:center}
+.pic{background:linear-gradient(150deg,#6E4BD8,#4A2E9E);border:1px solid rgba(255,255,255,.24);
+     display:flex;align-items:center;justify-content:center;font-weight:700}
+.facts{width:100%;border:1px solid rgba(172,180,214,.10);display:flex;flex-direction:column;
+       flex:1;justify-content:space-between;color:#D6D3E8;overflow:hidden}
+.facts>div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rule{height:1px;background:rgba(172,180,214,.28);flex:none}
+.bar{height:2px;background:rgba(255,255,255,.13);flex:none}.bar>i{display:block;height:100%;width:55%;background:#2FBF9F}
+.tm{display:flex;justify-content:space-between;color:#8C8CA8}
+.strip{width:100%;display:flex;flex:none}
+.btn{flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(172,180,214,.10);
+     display:flex;align-items:center;justify-content:center;color:#D6D3E8}
+</style></head><body>
+<h1>هندسة لوحة القنوات — الأرقام المعتمدة</h1>
+<p class="lede">بكسل واحد لكل dp، فالأعمدة بأحجامها الحقيقية. الشريط المخطّط الأخضر هو <b>الفجوة 16dp</b> بين الباقات والقنوات.
+<em>حشوة أزرار المشغّل تبقى 6.56dp كما هي</em> — وهذا سبب المتغيّر الثالث.</p>
+
+<div class="case">
+  <div class="cap"><b>1280×720 — المرجع</b> — الباقات 290.0 · فجوة 16.00 · القنوات 520.0 · المشغّل 409.2 · الصورة 400×225 · المتبقي 0.00</div>
+  <div class="board" style="width:1280.00px;height:720.00px">
+    <div class="stage" style="padding:6.67px 12.03px">
+      <div class="hdr" style="height:50.67px;margin-bottom:5.33px;font-size:21.10px">
+        <span style="font-weight:700">Castivio</span><span class="crumb">البث المباشر</span>
+        <span class="field" style="height:31.41px;border-radius:999px;padding:0 6.56px">ابحث في القنوات</span>
+        <span class="clock" style="font-size:22.90px">10:27</span>
+      </div>
+      <div class="panel" style="padding:5.47px;border-radius:12.00px;height:650.67px">
+        <div class="cols" style="height:639.73px">
+          <div class="rail" style="width:290.00px;gap:6.00px">
+            <div class="rsearch" style="height:44.72px;padding:0 9.00px;font-size:18.00px;margin-bottom:6.00px">ابحث في الباقات</div>
+            <div class="pkg" style="height:52.00px;padding:0 9.00px;border-radius:6.67px"><div class="pname" style="font-size:21.10px">كل القنوات</div><div class="ptot" style="font-size:18.00px">المجموع: 56,802</div></div><div class="pkg" style="height:52.00px;padding:0 9.00px;border-radius:6.67px"><div class="pname" style="font-size:21.10px">المفضلة</div></div><div class="pkg" style="height:52.00px;padding:0 9.00px;border-radius:6.67px"><div class="pname" style="font-size:21.10px">شوهدت مؤخرًا</div></div><div class="pkg on" style="height:52.00px;padding:0 9.00px;border-radius:6.67px"><div class="pname" style="font-size:21.10px">UK| SPORT ᴴᴰ</div><div class="ptot" style="font-size:18.00px">المجموع: 605</div></div><div class="pkg" style="height:52.00px;padding:0 9.00px;border-radius:6.67px"><div class="pname" style="font-size:21.10px">UK| NEWS ᴴᴰ</div><div class="ptot" style="font-size:18.00px">المجموع: 27</div></div><div class="pkg" style="height:52.00px;padding:0 9.00px;border-radius:6.67px"><div class="pname" style="font-size:21.10px">UK| CINEMA ⁴ᴷ</div><div class="ptot" style="font-size:18.00px">المجموع: 42</div></div><div class="pkg" style="height:52.00px;padding:0 9.00px;border-radius:6.67px"><div class="pname" style="font-size:21.10px">UK| KIDS</div><div class="ptot" style="font-size:18.00px">المجموع: 18</div></div><div class="pkg" style="height:52.00px;padding:0 9.00px;border-radius:6.67px"><div class="pname" style="font-size:21.10px">UK| DOCS ᴴᴰ</div><div class="ptot" style="font-size:18.00px">المجموع: 31</div></div>
+          </div>
+          <div class="gap" style="width:16.00px"><i></i></div>
+          <div class="list" style="width:519.98px;padding:2.74px;border-radius:10.00px"><div class="ch" style="height:51.50px;padding:0 11.00px;gap:11.00px;border-radius:6.67px"><span class="plate" style="width:33.91px;font-size:18.00px;border-radius:3.33px">2</span><span class="logo" style="width:32.82px;height:31.93px;border-radius:3.33px"></span><span class="cname" style="font-size:21.10px">UK: SKY SPORT NEWS</span><span class="q" style="font-size:15.12px">RAW</span></div><div class="ch on" style="height:51.50px;padding:0 11.00px;gap:11.00px;border-radius:6.67px"><span class="plate" style="width:33.91px;font-size:18.00px;border-radius:3.33px">3</span><span class="logo" style="width:32.82px;height:31.93px;border-radius:3.33px"></span><span class="cname" style="font-size:21.10px">UK: SKY SPORT MAIN EVENT</span><span class="q" style="font-size:15.12px">RAW</span></div><div class="ch" style="height:51.50px;padding:0 11.00px;gap:11.00px;border-radius:6.67px"><span class="plate" style="width:33.91px;font-size:18.00px;border-radius:3.33px">4</span><span class="logo" style="width:32.82px;height:31.93px;border-radius:3.33px"></span><span class="cname" style="font-size:21.10px">UK: SKY SPORT F1</span><span class="q" style="font-size:15.12px">HD</span></div><div class="ch" style="height:51.50px;padding:0 11.00px;gap:11.00px;border-radius:6.67px"><span class="plate" style="width:33.91px;font-size:18.00px;border-radius:3.33px">5</span><span class="logo" style="width:32.82px;height:31.93px;border-radius:3.33px"></span><span class="cname" style="font-size:21.10px">UK: TNT SPORTS 1</span><span class="q" style="font-size:15.12px">HD</span></div><div class="ch" style="height:51.50px;padding:0 11.00px;gap:11.00px;border-radius:6.67px"><span class="plate" style="width:33.91px;font-size:18.00px;border-radius:3.33px">6</span><span class="logo" style="width:32.82px;height:31.93px;border-radius:3.33px"></span><span class="cname" style="font-size:21.10px">UK: TNT SPORTS 2</span><span class="q" style="font-size:15.12px">HD</span></div><div class="ch" style="height:51.50px;padding:0 11.00px;gap:11.00px;border-radius:6.67px"><span class="plate" style="width:33.91px;font-size:18.00px;border-radius:3.33px">7</span><span class="logo" style="width:32.82px;height:31.93px;border-radius:3.33px"></span><span class="cname" style="font-size:21.10px">UK: BEIN SPORTS 1</span><span class="q" style="font-size:15.12px">HD</span></div><div class="ch" style="height:51.50px;padding:0 11.00px;gap:11.00px;border-radius:6.67px"><span class="plate" style="width:33.91px;font-size:18.00px;border-radius:3.33px">8</span><span class="logo" style="width:32.82px;height:31.93px;border-radius:3.33px"></span><span class="cname" style="font-size:21.10px">UK: BEIN SPORTS 2</span><span class="q" style="font-size:15.12px">HD</span></div><div class="ch" style="height:51.50px;padding:0 11.00px;gap:11.00px;border-radius:6.67px"><span class="plate" style="width:33.91px;font-size:18.00px;border-radius:3.33px">9</span><span class="logo" style="width:32.82px;height:31.93px;border-radius:3.33px"></span><span class="cname" style="font-size:21.10px">UK: EUROSPORT 1</span><span class="q" style="font-size:15.12px">HD</span></div></div>
+          <div class="gap" style="width:9.85px"></div>
+          <div class="well" style="width:409.16px;gap:5.33px">
+            <div class="pic" style="width:400.00px;height:225.00px;border-radius:10.00px;font-size:18.00px">400×225</div>
+            <div class="facts" style="border-radius:10.00px;padding:2.67px 5.47px;gap:2.67px;font-size:18.00px">
+              <div>UK: SKY SPORT MAIN EVENT</div><div class="rule"></div>
+              <div><span style="color:#9B6BFF">الآن</span> Premier League</div>
+              <div class="bar"><i></i></div><div class="tm"><span>18:00</span><span>20:00</span></div>
+              <div class="rule"></div><div><span style="color:#A6A6BF">التالي</span> MOTD 20:00 – 21:00</div>
+              <div><span style="color:#A6A6BF">ما بعد التالي</span> Highlights 21:00 – 22:00</div>
+            </div>
+            <div class="strip" style="height:70.67px;gap:5.47px">
+              <div class="btn" style="border-radius:6.67px;padding:0 6.56px;font-size:12.96px">الدليل</div><div class="btn" style="border-radius:6.67px;padding:0 6.56px;font-size:12.96px">المفضلة</div><div class="btn" style="border-radius:6.67px;padding:0 6.56px;font-size:12.96px">قفل</div><div class="btn" style="border-radius:6.67px;padding:0 6.56px;font-size:12.96px">إخفاء</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="cap2">صف الباقة 52.0 · حشوتها 9.00 · <b>10 باقات</b> &nbsp;|&nbsp; صف القناة 51.5 · حشوتها 11.00 · <b>12 قنوات</b> &nbsp;|&nbsp; حشوة الأزرار 6.56 (بلا تغيير)</div>
+</div>
+<div class="case">
+  <div class="cap"><b>833×385 — هاتفك</b> — الباقات 188.7 · فجوة 10.41 · القنوات 337.2 · المشغّل 266.3 · الصورة 260×146 · المتبقي 0.00</div>
+  <div class="board" style="width:833.00px;height:385.00px">
+    <div class="stage" style="padding:4.00px 8.00px">
+      <div class="hdr" style="height:34.00px;margin-bottom:4.00px;font-size:13.00px">
+        <span style="font-weight:700">Castivio</span><span class="crumb">البث المباشر</span>
+        <span class="field" style="height:21.08px;border-radius:999px;padding:0 5.00px">ابحث في القنوات</span>
+        <span class="clock" style="font-size:12.25px">10:27</span>
+      </div>
+      <div class="panel" style="padding:4.00px;border-radius:10.00px;height:339.00px">
+        <div class="cols" style="height:331.00px">
+          <div class="rail" style="width:188.73px;gap:3.21px">
+            <div class="rsearch" style="height:27.52px;padding:0 8.00px;font-size:12.00px;margin-bottom:3.21px">ابحث في الباقات</div>
+            <div class="pkg" style="height:32.00px;padding:0 8.00px;border-radius:6.00px"><div class="pname" style="font-size:13.00px">كل القنوات</div><div class="ptot" style="font-size:12.00px">المجموع: 56,802</div></div><div class="pkg" style="height:32.00px;padding:0 8.00px;border-radius:6.00px"><div class="pname" style="font-size:13.00px">المفضلة</div></div><div class="pkg" style="height:32.00px;padding:0 8.00px;border-radius:6.00px"><div class="pname" style="font-size:13.00px">شوهدت مؤخرًا</div></div><div class="pkg on" style="height:32.00px;padding:0 8.00px;border-radius:6.00px"><div class="pname" style="font-size:13.00px">UK| SPORT ᴴᴰ</div><div class="ptot" style="font-size:12.00px">المجموع: 605</div></div><div class="pkg" style="height:32.00px;padding:0 8.00px;border-radius:6.00px"><div class="pname" style="font-size:13.00px">UK| NEWS ᴴᴰ</div><div class="ptot" style="font-size:12.00px">المجموع: 27</div></div><div class="pkg" style="height:32.00px;padding:0 8.00px;border-radius:6.00px"><div class="pname" style="font-size:13.00px">UK| CINEMA ⁴ᴷ</div><div class="ptot" style="font-size:12.00px">المجموع: 42</div></div><div class="pkg" style="height:32.00px;padding:0 8.00px;border-radius:6.00px"><div class="pname" style="font-size:13.00px">UK| KIDS</div><div class="ptot" style="font-size:12.00px">المجموع: 18</div></div><div class="pkg" style="height:32.00px;padding:0 8.00px;border-radius:6.00px"><div class="pname" style="font-size:13.00px">UK| DOCS ᴴᴰ</div><div class="ptot" style="font-size:12.00px">المجموع: 31</div></div>
+          </div>
+          <div class="gap" style="width:10.41px"><i></i></div>
+          <div class="list" style="width:337.18px;padding:2.50px;border-radius:10.00px"><div class="ch" style="height:27.54px;padding:0 10.00px;gap:10.00px;border-radius:6.00px"><span class="plate" style="width:30.00px;font-size:12.00px;border-radius:3.00px">2</span><span class="logo" style="width:26.00px;height:17.07px;border-radius:3.00px"></span><span class="cname" style="font-size:13.00px">UK: SKY SPORT NEWS</span><span class="q" style="font-size:10.08px">RAW</span></div><div class="ch on" style="height:27.54px;padding:0 10.00px;gap:10.00px;border-radius:6.00px"><span class="plate" style="width:30.00px;font-size:12.00px;border-radius:3.00px">3</span><span class="logo" style="width:26.00px;height:17.07px;border-radius:3.00px"></span><span class="cname" style="font-size:13.00px">UK: SKY SPORT MAIN EVENT</span><span class="q" style="font-size:10.08px">RAW</span></div><div class="ch" style="height:27.54px;padding:0 10.00px;gap:10.00px;border-radius:6.00px"><span class="plate" style="width:30.00px;font-size:12.00px;border-radius:3.00px">4</span><span class="logo" style="width:26.00px;height:17.07px;border-radius:3.00px"></span><span class="cname" style="font-size:13.00px">UK: SKY SPORT F1</span><span class="q" style="font-size:10.08px">HD</span></div><div class="ch" style="height:27.54px;padding:0 10.00px;gap:10.00px;border-radius:6.00px"><span class="plate" style="width:30.00px;font-size:12.00px;border-radius:3.00px">5</span><span class="logo" style="width:26.00px;height:17.07px;border-radius:3.00px"></span><span class="cname" style="font-size:13.00px">UK: TNT SPORTS 1</span><span class="q" style="font-size:10.08px">HD</span></div><div class="ch" style="height:27.54px;padding:0 10.00px;gap:10.00px;border-radius:6.00px"><span class="plate" style="width:30.00px;font-size:12.00px;border-radius:3.00px">6</span><span class="logo" style="width:26.00px;height:17.07px;border-radius:3.00px"></span><span class="cname" style="font-size:13.00px">UK: TNT SPORTS 2</span><span class="q" style="font-size:10.08px">HD</span></div><div class="ch" style="height:27.54px;padding:0 10.00px;gap:10.00px;border-radius:6.00px"><span class="plate" style="width:30.00px;font-size:12.00px;border-radius:3.00px">7</span><span class="logo" style="width:26.00px;height:17.07px;border-radius:3.00px"></span><span class="cname" style="font-size:13.00px">UK: BEIN SPORTS 1</span><span class="q" style="font-size:10.08px">HD</span></div><div class="ch" style="height:27.54px;padding:0 10.00px;gap:10.00px;border-radius:6.00px"><span class="plate" style="width:30.00px;font-size:12.00px;border-radius:3.00px">8</span><span class="logo" style="width:26.00px;height:17.07px;border-radius:3.00px"></span><span class="cname" style="font-size:13.00px">UK: BEIN SPORTS 2</span><span class="q" style="font-size:10.08px">HD</span></div><div class="ch" style="height:27.54px;padding:0 10.00px;gap:10.00px;border-radius:6.00px"><span class="plate" style="width:30.00px;font-size:12.00px;border-radius:3.00px">9</span><span class="logo" style="width:26.00px;height:17.07px;border-radius:3.00px"></span><span class="cname" style="font-size:13.00px">UK: EUROSPORT 1</span><span class="q" style="font-size:10.08px">HD</span></div></div>
+          <div class="gap" style="width:6.41px"></div>
+          <div class="well" style="width:266.28px;gap:4.00px">
+            <div class="pic" style="width:260.31px;height:146.43px;border-radius:10.00px;font-size:12.00px">260×146</div>
+            <div class="facts" style="border-radius:10.00px;padding:2.00px 4.00px;gap:2.00px;font-size:12.00px">
+              <div>UK: SKY SPORT MAIN EVENT</div><div class="rule"></div>
+              <div><span style="color:#9B6BFF">الآن</span> Premier League</div>
+              <div class="bar"><i></i></div><div class="tm"><span>18:00</span><span>20:00</span></div>
+              <div class="rule"></div><div><span style="color:#A6A6BF">التالي</span> MOTD 20:00 – 21:00</div>
+              <div><span style="color:#A6A6BF">ما بعد التالي</span> Highlights 21:00 – 22:00</div>
+            </div>
+            <div class="strip" style="height:48.00px;gap:4.00px">
+              <div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:8.64px">الدليل</div><div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:8.64px">المفضلة</div><div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:8.64px">قفل</div><div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:8.64px">إخفاء</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="cap2">صف الباقة 32.0 · حشوتها 8.00 · <b>8 باقات</b> &nbsp;|&nbsp; صف القناة 27.5 · حشوتها 10.00 · <b>12 قنوات</b> &nbsp;|&nbsp; حشوة الأزرار 5.00 (بلا تغيير)</div>
+</div></body></html>
