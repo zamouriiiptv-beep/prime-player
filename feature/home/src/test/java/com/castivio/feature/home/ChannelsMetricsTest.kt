@@ -3,6 +3,7 @@ package com.castivio.feature.home
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.castivio.core.design.components.BODY_LEADING
+import com.castivio.core.design.theme.Sizing
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -52,6 +53,33 @@ class ChannelsMetricsTest {
             assertTrue(
                 "a rail entry is ${m.railMin} at ${width}x$height, under the list floor",
                 m.railMin >= LIST_ROW_FLOOR,
+            )
+        }
+    }
+
+    /**
+     * **And the action strip keeps the target floor of the device it is on.**
+     *
+     * The other half of the same distinction, and the half that was wrong. The strip's
+     * floor was the literal `48.dp` — the thumb's figure — on every surface including a
+     * television, where a remote's is 56. The share only clears 56 above a 571dp-tall
+     * surface, so a 1080p television at density 2 reports 960×540 and drew its buttons at
+     * **53dp**: three under the D-pad floor, on the commonest television there is.
+     *
+     * `Sizing`' own note says this is how it goes wrong — "every button in the application
+     * was 8dp under the D-pad floor, and the two occasions it was caught were both by eye
+     * on a photograph". Asked of the frames instead, it is caught in seconds, and the
+     * `tv` half of the sweep is the whole point of asserting it here.
+     */
+    @Test
+    fun `the action strip keeps the control floor`() {
+        sweep { tv, width, height ->
+            val m = channelsMetricsFor(tv, width, height)
+            assertTrue(
+                "a strip button is ${m.strip} at ${width}x$height on " +
+                    (if (tv) "a television" else "a handset") +
+                    ", under the ${Sizing.minTarget(tv)} target",
+                m.strip >= Sizing.minTarget(tv),
             )
         }
     }

@@ -5,6 +5,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.castivio.core.design.components.BODY_LEADING
 import com.castivio.core.design.theme.CastivioMetrics
+import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.boundedFraction
 import com.castivio.core.design.theme.castivioMetrics
 
@@ -143,8 +144,11 @@ internal data class ChannelsMetrics(
      *
      * A height share with a **control** floor rather than the list floor the rows carry,
      * and the distinction is the one `ChannelsMetrics`' own note draws: a channel row is
-     * moved *through*, these are five small targets in a row that a thumb has to land
+     * moved *through*, these are four small targets in a row that a thumb has to land
      * *on*. Missing one here means locking a channel instead of favouriting it.
+     *
+     * Which control floor is asked of the device rather than assumed — 48 for a thumb, 56
+     * for a remote. See [STRIP] for the television that was three dp under it.
      */
     val strip: Dp,
 
@@ -307,7 +311,7 @@ internal fun channelsMetricsFor(tv: Boolean, width: Dp, height: Dp): ChannelsMet
         playerGap = width.boundedFraction(PLAYER_GAP, 6.dp, 20.dp),
         picture = width.boundedFraction(PICTURE, 260.dp, 520.dp),
         identity = height.boundedFraction(IDENTITY, 24.dp, 48.dp),
-        strip = height.boundedFraction(STRIP, 48.dp, 110.dp),
+        strip = height.boundedFraction(STRIP, Sizing.minTarget(tv), 110.dp),
 
         railEntryGap = height.boundedFraction(RAIL_ENTRY_GAP, 2.dp, 7.dp),
         railDivider = height.boundedFraction(RAIL_DIVIDER, 5.dp, 14.dp),
@@ -535,7 +539,20 @@ private const val IDENTITY = 44f / 1080f
  *
  * Floored at a control target rather than at the list floor. The share is what the
  * approved drawing gives it on a 1080-tall surface; on a handset the floor wins, which is
- * the correct way round for five small targets side by side.
+ * the correct way round for four small targets side by side.
+ *
+ * **And the floor is asked of the device, not written down.** It was a literal `48.dp` —
+ * `Sizing.minTouchTarget`, the thumb's figure — on every surface including a television,
+ * where the remote's figure is 56. The share only clears 56 above a 571dp-tall surface,
+ * so a 1080p television at density 2 reports 960×540 and got **53dp**: three under the
+ * D-pad floor, on the commonest television there is.
+ *
+ * That is the exact mistake `Sizing`' own note records — "every button in the application
+ * was 8dp under the D-pad floor, and the two occasions it was caught were both by eye on
+ * a photograph". A named function exists so the question can be asked instead of guessed,
+ * and this is the last place on this board that was not asking it.
+ *
+ * Nothing changes for a handset: `minTarget(false)` is the same 48 this said before.
  */
 private const val STRIP = 106f / 1080f
 
