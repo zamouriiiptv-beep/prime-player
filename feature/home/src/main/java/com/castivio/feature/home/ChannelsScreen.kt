@@ -82,6 +82,7 @@ import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
+import com.castivio.core.design.components.CastivioMiddleEllipsisText
 import com.castivio.core.design.components.DelayedSpinner
 import com.castivio.core.design.components.EmptyState
 import com.castivio.core.design.components.ErrorState
@@ -1212,31 +1213,47 @@ private fun ChannelRow(
         // two smallest things on the row. Whatever is left after a 60px mark and a
         // 62px plate belongs to the name, which is the only part of the row anybody
         // is reading.
-        Text(
-            // Without the tag, because the tag is drawn beside it. `|FR| TF1 HD`
-            // reads as `|FR| TF1  ᴴᴰ` rather than repeating itself.
-            text = if (heading) channel.title else titleWithoutQuality(channel.title),
-            style = castivioChipStyle(m.frame.fsLabel)
-                .copy(letterSpacing = if (heading) HEADING_TRACKING else TextUnit.Unspecified),
-            color = ink,
-            maxLines = 1,
-            // **A name too long for the row scrolls, but only the one under the remote.**
-            //
-            // Providers ship names like `4K| SKY SPORTS ULTRA HD MAIN EVENT 1`, and a
-            // list column this wide ends most of them in an ellipsis -- which is the one
-            // complaint a viewer cannot work around, because the part that is cut is the
-            // part that tells two similar channels apart.
-            //
-            // Scrolling every row at once would make the screen unreadable and would
-            // animate twelve texts on a stick that has to hold 60fps while paging a
-            // catalogue, so it is the focused row and no other. An unfocused row keeps
-            // its ellipsis, which is also the honest cue that there is more to see:
-            // arrow onto it and the rest arrives.
-            overflow = if (focused) TextOverflow.Clip else TextOverflow.Ellipsis,
-            modifier = Modifier
-                .weight(1f)
-                .then(if (focused) Modifier.basicMarquee(iterations = Int.MAX_VALUE) else Modifier),
-        )
+        //
+        // Without the tag, because the tag is drawn beside it. `|FR| TF1 HD` reads as
+        // `|FR| TF1  ᴴᴰ` rather than repeating itself.
+        val name = if (heading) channel.title else titleWithoutQuality(channel.title)
+        val nameStyle = castivioChipStyle(m.frame.fsLabel)
+            .copy(letterSpacing = if (heading) HEADING_TRACKING else TextUnit.Unspecified)
+
+        // **A name too long for the row loses its middle, and the one under the remote
+        // scrolls.**
+        //
+        // Two different jobs, so two different answers. A viewer running an eye down
+        // twelve rows is *identifying* channels, and the identifying part is at the
+        // end: the owner's screen showed sixty-one rows reading `US: CINEMANIA
+        // HOLLYWOOD …` because 186.8dp of name field holds about twenty-three
+        // upper-case characters and the shared prefix is twenty-three characters long.
+        // A tail ellipsis had kept every character they have in common and thrown away
+        // the only one they do not. `CastivioMiddleEllipsisText` keeps both ends.
+        //
+        // The row under the remote is being *read*, not identified, so it gets the
+        // whole name and scrolls it. Scrolling all twelve at once would make the
+        // column unreadable and would animate twelve texts on a stick that has to
+        // hold 60fps while paging a catalogue.
+        if (focused) {
+            Text(
+                text = name,
+                style = nameStyle,
+                color = ink,
+                maxLines = 1,
+                overflow = TextOverflow.Clip,
+                modifier = Modifier
+                    .weight(1f)
+                    .basicMarquee(iterations = Int.MAX_VALUE),
+            )
+        } else {
+            CastivioMiddleEllipsisText(
+                text = name,
+                style = nameStyle,
+                color = ink,
+                modifier = Modifier.weight(1f),
+            )
+        }
 
         // The reference's quality tag, read out of the name the provider wrote.
         // Absent when the provider wrote none -- never inferred, and never a
