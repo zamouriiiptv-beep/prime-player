@@ -410,6 +410,7 @@ class ChannelsMetricsTest {
                 "search" to m.search, "crumb" to m.crumb, "dates" to m.dates,
                 "numberWidth" to m.numberWidth, "logoWidth" to m.logoWidth,
                 "wellPad" to m.wellPad, "factChip" to m.factChip,
+                "railPadH" to m.railPadH, "controlPadH" to m.controlPadH,
             ).forEach { (name, value) ->
                 assertTrue("$name is $value at ${width}x$height", value > 0.dp)
                 assertTrue("$name is $value, wider than the surface", value <= width)
@@ -437,7 +438,11 @@ class ChannelsMetricsTest {
         // 1280dp the floor wins (38.3dp of share against a 56dp D-pad floor). It is a
         // strip of circles a remote lands on, and that is the one column on this board
         // still held to the target — see `ChannelsMetrics`.
-        assertNear("rail", 1280f * 494f / 2340f, m.rail)
+        // The four columns the owner set at this geometry, as the plain figures they
+        // are. The rail and the gap are stated against 1280 rather than the 2340
+        // screenshot because they were chosen on a rendered board rather than measured
+        // off one -- the same convention `picture` already carries below.
+        assertNear("rail", 290f, m.rail)
         // 748 rather than the reference's 986, and the difference is not a rounding: the
         // reference's well held a picture with a whole schedule under it, and the schedule
         // has left for a page of its own. What is left needs about a third of the board.
@@ -452,7 +457,14 @@ class ChannelsMetricsTest {
         assertNear("picture", 400f, m.picture)
         assertNear("wellPictureWidth", 400f, m.wellPictureWidth)
         assertNear("wellPicture", 225f, m.wellPicture)
-        assertNear("railGap", 1280f * 16f / 2340f, m.railGap)
+        assertNear("railGap", 16f, m.railGap)
+        // And the list is what is left, which is the one column with no share of its own.
+        assertNear(
+            "list",
+            1280f - m.edge.value * 2 - m.panelPad.value * 2 -
+                (m.rail.value + m.railGap.value + m.player.value + m.playerGap.value),
+            listWidth(m, 1280.dp),
+        )
         assertNear("playerGap", 1280f * 18f / 2340f, m.playerGap)
         assertNear("edge", 1280f * 22f / 2340f, m.edge)
         assertNear("logoWidth", 1280f * 60f / 2340f, m.logoWidth)
@@ -460,8 +472,23 @@ class ChannelsMetricsTest {
         assertNear("header", 720f * 76f / 1080f, m.header)
         assertNear("search", 1280f * 520f / 2340f, m.search)
         assertNear("headerGap", 720f * 8f / 1080f, m.headerGap)
-        assertNear("railMin", 720f * 100f / 1080f, m.railMin)
-        assertNear("rowMin", 720f * 70f / 1080f, m.rowMin)
+        assertNear("railMin", 52f, m.railMin)
+        // And the rail's field falls out of the entry rather than being stated: 0.86 of
+        // 52 is the 44.7 the owner asked for, with no second number to keep in step.
+        // What the rail spends per entry is that field plus the gap above and below it.
+        assertNear(
+            "railField",
+            52f * RAIL_FIELD_OF_ROW + 6f * 2,
+            railFieldHeight(m),
+        )
+        assertNear("railEntryGap", 6f, m.railEntryGap)
+        assertNear("rowMin", 51.5f, m.rowMin)
+
+        // The three insets, which are three because the well may not move. See
+        // `ChannelsMetrics.controlPadH`.
+        assertNear("railPadH", 9f, m.railPadH)
+        assertNear("rowPadH", 11f, m.rowPadH)
+        assertNear("controlPadH", 1280f * 12f / 2340f, m.controlPadH)
     }
 
     /**

@@ -161,7 +161,33 @@ internal data class ChannelsMetrics(
     /* the channel list */
     /** A channel row's height. The list floor, not the control floor — see the note. */
     val rowMin: Dp,
+    /**
+     * A channel row's inset, and the gap between the things on it.
+     *
+     * Its own metric since the owner set the two columns' insets apart — 9dp for a
+     * package and 11dp for a channel at the 1280×720 reference. A channel row carries
+     * four things where a package carries two, so the wider inset is the one that has to
+     * hold a number plate, a logo, a name and a quality tag off each other.
+     */
     val rowPadH: Dp,
+    /**
+     * A package row's inset, and the gap between the name and the total under it.
+     *
+     * Narrower than [rowPadH], because the column is narrower and holds less: a name and
+     * a count, where the channel row holds four things. The rail's search field takes the
+     * same inset, so the field and the entries under it line up on one edge.
+     */
+    val railPadH: Dp,
+    /**
+     * The inset for the controls that are in neither column.
+     *
+     * The header's search field, the fetch notice, the well's action buttons, the guide
+     * overlay's header. These shared `rowPadH` when there was one inset for the whole
+     * board; splitting the columns apart would have dragged them along, and an action
+     * button would have gone from 57.5dp of usable width to 48.7. So they keep the value
+     * they had, under a name that says what they are — this is a rename, not a change.
+     */
+    val controlPadH: Dp,
     val numberWidth: Dp,
     /** The number's plate. A pill, because the reference makes the number a *token*. */
     val numberHeight: Dp,
@@ -317,8 +343,10 @@ internal fun channelsMetricsFor(tv: Boolean, width: Dp, height: Dp): ChannelsMet
         railDivider = height.boundedFraction(RAIL_DIVIDER, 5.dp, 14.dp),
         railMin = height.boundedFraction(RAIL_MIN, 32.dp, 68.dp),
 
-        rowMin = height.boundedFraction(ROW, 26.dp, 48.dp),
-        rowPadH = width.boundedFraction(ROW_PAD_H, 5.dp, 16.dp),
+        rowMin = height.boundedFraction(ROW, 26.dp, 56.dp),
+        rowPadH = width.boundedFraction(ROW_PAD_H, 10.dp, 12.dp),
+        railPadH = width.boundedFraction(RAIL_PAD_H, 8.dp, 10.dp),
+        controlPadH = width.boundedFraction(CONTROL_PAD_H, 5.dp, 16.dp),
         numberWidth = width.boundedFraction(NUMBER, 30.dp, 58.dp),
         numberHeight = height.boundedFraction(NUMBER_H, 18.dp, 34.dp),
         logoWidth = width.boundedFraction(LOGO, 26.dp, 54.dp),
@@ -485,8 +513,28 @@ private const val PANEL_PAD = 10f / 2340f
 private const val PANEL_RADIUS = 16f / 1080f
 
 
-private const val RAIL = 494f / 2340f
-private const val RAIL_GAP = 16f / 2340f
+/**
+ * The category rail's width.
+ *
+ * **Stated against 1280 rather than 2340, like [PICTURE] and for the same reason.** The
+ * 494/2340 this replaced was a boundary measured off the reference screenshot; 290 at
+ * 1280×720 is a width the owner chose after seeing the board on a device. Writing it as
+ * `530.2/2340` would dress a decision up as a measurement.
+ *
+ * The reference's rail was 21.1% of the board and this is 23.3%, and the two and a bit
+ * points come from the channel list, which had 44% — a share it only ever had because the
+ * well was narrowed when the schedule left it. The list keeps the majority of the board
+ * either way; see `ChannelsMetricsTest`.
+ */
+private const val RAIL = 290f / 1280f
+/**
+ * And the gap between the rail and the list.
+ *
+ * Also against 1280: 16dp there, where the measured 16/2340 gave 8.75 and the two columns
+ * read as one. The ceiling stays 18 — past that it stops being a gap and starts being a
+ * third column of nothing.
+ */
+private const val RAIL_GAP = 16f / 1280f
 /**
  * The well: the third column, and a column again rather than an overlay.
  *
@@ -558,32 +606,71 @@ private const val STRIP = 106f / 1080f
 
 private const val PLAYER_GAP = 18f / 2340f
 
-private const val RAIL_ENTRY_GAP = 4f / 1080f
+/**
+ * The gap between two category entries.
+ *
+ * 6dp at 1280×720 where the measured share gave 2.67 — the same gap that separates two
+ * *lines inside* an entry, so a column of entries read as one block of text. Against 720
+ * for that reason: it is a spacing the owner set against a rendered board.
+ */
+private const val RAIL_ENTRY_GAP = 6f / 720f
 private const val RAIL_DIVIDER = 10f / 1080f
 
 /**
  * A category entry's height.
  *
- * The reference's is 109 of 1080 and this is 100, which is the one share deliberately
- * tightened rather than copied: the reference's rail carries a name and a total in a
- * column 21% wide, and so does this one, but this one also has to hold at 800dp where
- * the reference was never drawn. Nine entries at 100 is what the reference shows.
+ * **52 at 1280×720**, down from the 100/1080 that gave 66.7 there. The entry holds a name
+ * and a total, and two lines do not need two thirds of the height a channel row gets —
+ * the reference's own rail carried them in less. Ten entries fit at the reference and
+ * eight on a handset, against a floor of six in `ChannelsMetricsTest`.
+ *
+ * The rail's search field falls out of this: [FIELD_OF_ROW] is 0.86, so 52 makes it 44.7
+ * without a second number to keep in step.
+ *
+ * On a handset the 32dp floor binds before the share does, which is the right way round —
+ * it is what stops a two-line entry from being shorter than its two lines.
  */
-private const val RAIL_MIN = 100f / 1080f
+private const val RAIL_MIN = 52f / 720f
 
 /**
  * A channel row's height, and the number the board's density is decided by.
  *
- * The reference's row is 82 of 1080 and this is 70. The difference is the two things
- * the reference does not spend height on and this board did: a remote-key legend along
- * the bottom, and the panel's own padding. The legend is gone now and the room it took
- * went to the list. Solved rather than copied, so that
- * [CHANNELS_TARGET_ROWS] rows fit *after* those are paid for — which is the property
- * worth reproducing, the pixel height being only how the reference happened to reach it.
+ * **51.5 at 1280×720, and the half is not a rounding error — it is the whole constraint.**
+ * The owner asked for 56 and then for 53; both show eleven rows somewhere that has to
+ * show twelve. The binding surface is the handset the board is tested on: its column is
+ * 331.0dp, and 331.0 ÷ 12 is 27.583, so the largest row that keeps twelve *there* is
+ * 51.58 at the reference. 51.5 passes and 51.6 does not.
+ *
+ * So this number is solved from two places at once — twelve rows at 1280×720 and twelve
+ * at 833×385 — and `ChannelsMetricsTest` asserts both, because a share that satisfied only
+ * the reference would drift off the handset without anything saying so.
+ *
+ * The ceiling went 48 → 56 with it: at 48 the share was cut back to 48 at the reference
+ * and this would have been a number that never applied.
  */
-private const val ROW = 70f / 1080f
+private const val ROW = 51.5f / 720f
 
-private const val ROW_PAD_H = 12f / 2340f
+/**
+ * A channel row's inset, and the gap between the four things on it.
+ *
+ * 11dp at 1280×720. It was 12/2340 — 6.56 — shared by the whole board; the owner set the
+ * two columns apart, and this is the channel column's half.
+ */
+private const val ROW_PAD_H = 11f / 1280f
+
+/** A package row's inset. 9dp at the reference: a narrower column holding less. */
+private const val RAIL_PAD_H = 9f / 1280f
+
+/**
+ * And the inset for everything that is in neither column.
+ *
+ * **The value this file has always had**, kept under its own name so that splitting the
+ * two columns apart does not drag the header's field, the fetch notice, the guide
+ * overlay and the well's action buttons along with them. An action button is 70.67dp
+ * wide at the reference; at 11dp of inset what fits inside one drops from 57.5 to 48.7,
+ * and the owner's instruction was that the well does not move.
+ */
+private const val CONTROL_PAD_H = 12f / 2340f
 private const val NUMBER = 62f / 2340f
 private const val NUMBER_H = 40f / 1080f
 private const val LOGO = 60f / 2340f

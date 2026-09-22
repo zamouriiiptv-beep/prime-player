@@ -419,7 +419,7 @@ private fun RailSearch(text: String, m: ChannelsMetrics, onType: (String) -> Uni
             .clip(shape)
             .background(colors.glassFill)
             .border(1.dp, if (focused) colors.focusRing else colors.glassBorderSoft, shape)
-            .padding(horizontal = m.rowPadH),
+            .padding(horizontal = m.railPadH),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(m.factGap),
     ) {
@@ -477,7 +477,7 @@ private fun SearchField(m: ChannelsMetrics, onClick: () -> Unit) {
             .border(1.dp, if (focused) colors.focusRing else colors.glassBorderSoft, shape)
             .then(focusModifier)
             .clickable(onClick = onClick)
-            .padding(horizontal = m.rowPadH),
+            .padding(horizontal = m.controlPadH),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(m.factGap),
     ) {
@@ -612,7 +612,7 @@ private fun FetchNotice(
             .background(colors.glassFill)
             .border(1.dp, colors.selectedBorder, shape)
             .clickable(onClick = onRetry)
-            .padding(horizontal = m.rowPadH, vertical = m.badgePadV * 2),
+            .padding(horizontal = m.controlPadH, vertical = m.badgePadV * 2),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(m.factGap),
     ) {
@@ -904,9 +904,9 @@ private fun RailEntry(
             )
             .then(focusModifier)
             .clickable(interaction, indication = null, onClick = onClick)
-            .padding(horizontal = m.rowPadH),
+            .padding(horizontal = m.railPadH),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(m.rowPadH),
+        horizontalArrangement = Arrangement.spacedBy(m.railPadH),
     ) {
         Column(Modifier.weight(1f)) {
             Text(
@@ -947,7 +947,7 @@ private fun RailEmpty(m: ChannelsMetrics, onRefresh: () -> Unit) {
             .border(1.dp, if (focused) colors.focusRing else colors.glassBorderSoft, shape)
             .then(focusModifier)
             .clickable(onClick = onRefresh)
-            .padding(horizontal = m.rowPadH, vertical = m.badgePadV * 2),
+            .padding(horizontal = m.railPadH, vertical = m.badgePadV * 2),
     ) {
         Text(
             text = stringResource(R.string.channels_rail_empty),
@@ -972,7 +972,7 @@ private fun RailDivider(m: ChannelsMetrics) {
     Box(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = m.rowPadH, vertical = m.railDivider / 2)
+            .padding(horizontal = m.railPadH, vertical = m.railDivider / 2)
             .height(1.dp)
             .background(colors.divider),
     )
@@ -1978,7 +1978,7 @@ private fun ActionButton(
             )
             .then(focusModifier)
             .clickable(interaction, indication = null, enabled = enabled, onClick = onClick)
-            .padding(horizontal = m.rowPadH, vertical = m.badgePadV),
+            .padding(horizontal = m.controlPadH, vertical = m.badgePadV),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -2071,7 +2071,7 @@ private fun ChannelGuideOverlay(shown: ChannelPreview, m: ChannelsMetrics, onClo
                     color = colors.secondary,
                     maxLines = 1,
                 )
-                Spacer(Modifier.width(m.rowPadH))
+                Spacer(Modifier.width(m.controlPadH))
                 Text(
                     text = shown.channel?.let { titleWithoutQuality(it.title) }
                         ?: stringResource(R.string.channels_preview_none),
