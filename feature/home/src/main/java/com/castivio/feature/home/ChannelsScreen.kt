@@ -1721,23 +1721,32 @@ private fun ChannelFacts(
 
         // ----------------------------------------------- and the two that follow it
         //
-        // One child, and for a reason with more at stake than the grouping above: the
-        // hairline is a boundary *belonging to* what comes after it, and loose in the
-        // column it would read as a rule floating in the middle of the panel.
+        // **Two children, not one, and that is the whole of a defect this had on a
+        // device.** They were one group, so `SpaceBetween` gave the column's spare height
+        // to the three gaps *between* groups and none of it to the gap inside this one:
+        // what is on sat a finger's width from what is next, and the two coming
+        // programmes were glued together 2dp apart. Three sections breathing and two rows
+        // suffocating inside the last of them is not a distribution, it is a distribution
+        // with an exception.
         //
-        // Both rows come out of `shown.schedule` — the same ordered window the guide page
+        // Separated, the column's children are the four things a reader actually scans —
+        // who, what is on, what is next, what follows that — and `SpaceBetween` sets the
+        // same air between each of them. The rule stays with the row it opens, because a
+        // hairline loose in a column reads as floating rather than as a boundary.
+        //
+        // Both rows come out of `shown.schedule` -- the same ordered window the guide page
         // reads, already on the device. Nothing is fetched to draw the second one.
         next?.let { programme ->
             Column(
                 Modifier.padding(top = m.badgePadV),
                 verticalArrangement = Arrangement.spacedBy(m.badgePadV),
             ) {
-                // One rule for both rows, not one each: they are the same category of
-                // thing — the future — and ruling between them would say they are not.
+                // One rule for the pair, not one each: they are the same category of thing
+                // -- the future -- and ruling between them would say they are not.
                 //
                 // `glassBorder` rather than the `glassBorderSoft` this drew before. Soft is
                 // the pale blue-grey at 10%, which over this ground is about seven steps of
-                // lightness — enough for a container's edge, where the shape does the work,
+                // lightness -- enough for a container's edge, where the shape does the work,
                 // and not enough for a 1dp line that has to be *found* on a handset held at
                 // arm's length. At 20% it is about fifteen, and it reads. Both rules take
                 // it, because a seam that is stronger than its twin stops being the same
@@ -1748,18 +1757,20 @@ private fun ChannelFacts(
                     programme = programme,
                     m = m,
                 )
-                // Absent rather than reserved: a channel whose guide window ends after the
-                // next programme draws two rows and the panel is simply shorter. An empty
-                // row held open for something that does not exist is the defect this
-                // block's whole shape exists to avoid.
-                after?.let {
-                    ComingLine(
-                        label = stringResource(R.string.channels_guide_then),
-                        programme = it,
-                        m = m,
-                    )
-                }
             }
+        }
+
+        // Absent rather than reserved: a channel whose guide window ends after the next
+        // programme draws one coming row and the panel is simply shorter. An empty row
+        // held open for something that does not exist is the defect this block's whole
+        // shape exists to avoid.
+        after?.let {
+            ComingLine(
+                label = stringResource(R.string.channels_guide_then),
+                programme = it,
+                m = m,
+                modifier = Modifier.padding(top = m.badgePadV),
+            )
         }
     }
 }

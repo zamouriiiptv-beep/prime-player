@@ -65,11 +65,13 @@
   .btn .g{font-size:1.45em;line-height:1}
 </style></head><body>
 
-<h1>النهائي: الخيار ب + كتلة تتكيّف · الوصف ثلاثة أسطر</h1>
+<h1>التوزيع متساوٍ على أربعة صفوف، لا على ثلاث مجموعات</h1>
 <p class="lede">
   مرسومة من حساب <b>ChannelsMetrics</b> نفسه، و<b>كل بكسل هنا يساوي dp واحدًا</b> — فالأعمدة الثلاثة
   بأحجامها الحقيقية النسبية، لا مكبَّرة لتتشابه. الخط الأخضر هو الخيار ب.
-  <em>الوصف يظهر حيث يتّسع العمود له، والباقي يُوزَّع بين المجموعات الثلاث — فلا أرض ميتة في أي مقاس.</em>
+  <em>الفائض يُوزَّع بالتساوي بين أربعة صفوف: الهوية · الآن · التالي · ما بعد التالي.</em>
+  كانت الكتلة ثلاث مجموعات، والصفّان الأخيران داخل واحدة منها — فأخذت الفجواتُ بين المجموعات كل الفائض
+  ولم يصل الصفَّين شيء: هواء فوقهما و<b>2dp</b> بينهما.
   <br>
   <u>القاعدة المعتمدة، من الـMetrics لا من تصنيف الجهاز:</u>
   <b>يظهر الوصف ⟺ (room − CHANNELS_FACTS_MIN) ≥ ارتفاع ثلاثة أسطر</b>.
@@ -112,11 +114,11 @@
             <span class="label soon" style="font-size:15.84px">التالي</span>
             <span class="title soon" style="font-size:18.00px">EN MLB Plays of the Week</span>
             <span class="clock" style="font-size:15.84px">12:10 – 12:35</span></div>
-          <div class="line" style="gap:5.47px">
-            <span class="label soon" style="font-size:15.84px">ما بعد التالي</span>
-            <span class="title soon" style="font-size:18.00px">Premier Padel Highlights</span>
-            <span class="clock" style="font-size:15.84px">12:35 – 13:00</span></div>
         </div>
+        <div class="line" style="gap:5.47px">
+          <span class="label soon" style="font-size:15.84px">ما بعد التالي</span>
+          <span class="title soon" style="font-size:18.00px">Premier Padel Highlights</span>
+          <span class="clock" style="font-size:15.84px">12:35 – 13:00</span></div>
       </div>
       <div class="strip" style="height:70.67px;gap:5.47px">
         <div class="btn" style="border-radius:6.67px;font-size:12.96px"><span class="g">🗓</span>الدليل</div>
@@ -125,7 +127,7 @@
         <div class="btn" style="border-radius:6.67px;font-size:12.96px"><span class="g">🚫</span>إخفاء</div>
       </div>
     </div>
-    <p class="note">الوصف يأخذ <b>83.7dp</b> والباقي يتوزّع. الأرض التي كانت <b>170.1dp</b> صارت صفرًا، والفجوة بين الأقسام <b>45.9dp</b> بدل 87.7.
+    <p class="note">الفائض موزَّع على ثلاث فجوات متساوية بدل اثنتين — والصفّان الأخيران يتنفّسان كبقية الصفوف.
       <br><span class="fig">المساحة 333.4 · المحتوى 247.0 · الفجوة بين المجموعات <b>45.9dp</b> · أرض ميتة <b class="zero">0</b></span></p>
   </div>
   <div class="case" style="width:306.87px">
@@ -162,11 +164,11 @@
             <span class="label soon" style="font-size:11.88px">التالي</span>
             <span class="title soon" style="font-size:13.50px">EN MLB Plays of the Week</span>
             <span class="clock" style="font-size:11.88px">12:10 – 12:35</span></div>
-          <div class="line" style="gap:4.10px">
-            <span class="label soon" style="font-size:11.88px">ما بعد التالي</span>
-            <span class="title soon" style="font-size:13.50px">Premier Padel Highlights</span>
-            <span class="clock" style="font-size:11.88px">12:35 – 13:00</span></div>
         </div>
+        <div class="line" style="gap:4.10px">
+          <span class="label soon" style="font-size:11.88px">ما بعد التالي</span>
+          <span class="title soon" style="font-size:13.50px">Premier Padel Highlights</span>
+          <span class="clock" style="font-size:11.88px">12:35 – 13:00</span></div>
       </div>
       <div class="strip" style="height:53.00px;gap:4.10px">
         <div class="btn" style="border-radius:6.00px;font-size:9.72px"><span class="g">🗓</span>الدليل</div>
@@ -175,7 +177,7 @@
         <div class="btn" style="border-radius:6.00px;font-size:9.72px"><span class="g">🚫</span>إخفاء</div>
       </div>
     </div>
-    <p class="note">السطح الذي كانت قاعدة <b>sw ≥ 600</b> تحرمه. الوصف يأخذ <b>62.8dp</b>، والأرض التي كانت <b>124.4dp</b> صارت صفرًا.
+    <p class="note">نفس الإيقاع: أربعة صفوف، ثلاث فجوات متساوية.
       <br><span class="fig">المساحة 250.0 · المحتوى 188.3 · الفجوة بين المجموعات <b>32.9dp</b> · أرض ميتة <b class="zero">0</b></span></p>
   </div>
   <div class="case" style="width:266.28px">
@@ -212,11 +214,11 @@
             <span class="label soon" style="font-size:10.56px">التالي</span>
             <span class="title soon" style="font-size:12.00px">EN MLB Plays of the Week</span>
             <span class="clock" style="font-size:10.56px">12:10 – 12:35</span></div>
-          <div class="line" style="gap:4.00px">
-            <span class="label soon" style="font-size:10.56px">ما بعد التالي</span>
-            <span class="title soon" style="font-size:12.00px">Premier Padel Highlights</span>
-            <span class="clock" style="font-size:10.56px">12:35 – 13:00</span></div>
         </div>
+        <div class="line" style="gap:4.00px">
+          <span class="label soon" style="font-size:10.56px">ما بعد التالي</span>
+          <span class="title soon" style="font-size:12.00px">Premier Padel Highlights</span>
+          <span class="clock" style="font-size:10.56px">12:35 – 13:00</span></div>
       </div>
       <div class="strip" style="height:48.00px;gap:4.00px">
         <div class="btn" style="border-radius:6.00px;font-size:8.64px"><span class="g">🗓</span>الدليل</div>
@@ -225,7 +227,7 @@
         <div class="btn" style="border-radius:6.00px;font-size:8.64px"><span class="g">🚫</span>إخفاء</div>
       </div>
     </div>
-    <p class="note">الفائض <b>8.6dp</b> والوصف يحتاج <b>56</b> — فلا يظهر. التوزيع وحده يكفي: الأرض التي كانت <b>11.7dp</b> صارت صفرًا.
+    <p class="note">بلا وصف — لا يتّسع. والفائض القليل يتوزّع بالتساوي فلا يلتصق صفّان ويتباعد آخران.
       <br><span class="fig">المساحة 128.6 · المحتوى 116.8 · الفجوة بين المجموعات <b>7.9dp</b> · أرض ميتة <b class="zero">0</b></span></p>
   </div>
 </div></body></html>
