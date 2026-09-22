@@ -324,30 +324,38 @@ internal const val CHANNELS_TARGET_ROWS = 12
 /**
  * What the facts block under the picture may never be squeezed below.
  *
- * **Solved from the block's own content, not chosen.** The block draws five things — the
- * channel's identity, what is on, the bar under it, the hours it runs, and what is next —
- * and on the narrowest surface this ships to they measure:
+ * **Solved from the block's own content, not chosen.** The block draws what is on, what
+ * is next and what follows that, under the channel's identity — and on the narrowest
+ * surface this ships to they measure:
  *
  * | region | at 720×309 |
  * |---|---|
  * | identity row (logo, name, quality) | 24 |
- * | what is on | 16 |
+ * | what is on | 18 |
  * | the bar | 2 |
- * | its start and end | 14 |
- * | what is next | 16 |
- * | the five gaps and the rule between them | 15 |
+ * | its start and end | 16 |
+ * | what is next, with its hours | 18 |
+ * | and what follows that | 18 |
+ * | the gaps and the rule between them | 19 |
  * | the block's own vertical padding | 5 |
- * | **total** | **92** |
+ * | **total** | **120** |
  *
- * It was 76, which is what the block needed before it carried a logo and the programme's
- * hours. Below this the last line is cut off, which is the defect the cap in
- * [ChannelsMetrics.wellPictureWidth] exists to prevent — the picture yields first.
+ * It has been 76, then 92, and each rise is a row the block gained: the logo and the
+ * programme's hours, then the second coming programme. Below this the last line is cut
+ * off, which is the defect the cap in [ChannelsMetrics.wellPictureWidth] exists to
+ * prevent — the picture yields first.
+ *
+ * **92 was already one dp short** of what two coming rows need on the shortest surface,
+ * and the third row put it 22 short; a sweep from 320 to 2160 over seven aspects finds
+ * 120 the smallest reserve that clears every one of them.
  *
  * Raising it costs nothing at the reference or on a handset, where the cap is not the
- * binding constraint: the frame stays 400×225 at 1280×720 and 260×146 at 833×385. It is
- * paid only on the shortest surfaces, where the picture goes from 218×123 to 189×106.
+ * binding constraint: the frame stays **400×225 at 1280×720** and 260×146 at 833×385. It
+ * is paid only on the shortest surfaces, where the picture goes from 190×107 to 155×87 —
+ * and the smallest frame anywhere in the sweep is 160×90, still clear of
+ * [CHANNELS_PICTURE_MIN].
  */
-internal val CHANNELS_FACTS_MIN = 92.dp
+internal val CHANNELS_FACTS_MIN = 120.dp
 
 /**
  * And what the picture may never be squeezed below, whatever the column says.

@@ -215,15 +215,21 @@
          holds them is a summary four rows tall; the words are the guide's own. -->
     <string name="channels_guide_now">NOW</string>
     <string name="channels_guide_next">NEXT</string>
+    <!-- The third line under the picture: the programme after NEXT. A third word in
+         the same register as the other two, short because it shares a narrow row with a
+         programme title. -->
+    <string name="channels_guide_then">THEN</string>
+    <!-- When a programme runs, as two clock times: "23:25 – 00:20". A formatted string and
+         not two texts with a dash between them, because the dash is punctuation between two
+         numbers and a language that writes a range differently has to be able to say so. -->
+    <string name="channels_time_range">%1$s – %2$s</string>
+    <!-- Under the picture, for a channel whose provider sends no schedule at all. Said
+         plainly rather than left blank: an empty panel and a channel with no guide look
+         identical, and only one of them is a fact. -->
+    <string name="channels_guide_none">No programme guide for this channel</string>
     <!-- In the guide overlay's header. Back closes it too; this says so for a thumb. -->
     <string name="channels_guide_close">Close</string>
     <string name="channels_action_refresh">Refresh</string>
-
-    <!-- The control on the picture itself. It puts the third column away and gives the
-         board back to the channel list; it does not stop the stream, and the next channel
-         press brings the column back. Spoken by a screen reader, so it says what it does
-         rather than naming the glyph. -->
-    <string name="channels_player_close">Close the player</string>
 
     <!-- The strip under the well: things done to the channel in the picture above it.
          A word under each mark, because five unlabelled icons in a row is a puzzle on a

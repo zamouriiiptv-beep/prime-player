@@ -125,22 +125,24 @@ fun PlayerScreen(
                 // different one.
                 if (expanded) Box(Modifier.size(picture)) { SubtitleLayer(state) }
 
-                if (!expanded) {
-                    // **The compact shape's whole chrome.**
-                    //
-                    // The same title, the same LIVE pill, the same channel number, over
-                    // the same scrim — which is what makes this the player rather than a
-                    // thumbnail of it. What it leaves out is everything a viewer would
-                    // reach for *while watching*: a timeline they cannot aim at this
-                    // size, a tools row whose controls would be below the touch target,
-                    // sheets wider than the well they would open in. Those are one press
-                    // away, and the press is the picture itself.
-                    //
-                    // Drawn whether or not `controls` is set, because there is nothing
-                    // here to get out of the way of: the auto-hide exists so chrome does
-                    // not sit over a film being watched, and this shape is a preview.
-                    Box(Modifier.size(picture)) { CompactBar(state) }
-                }
+                // **The compact shape draws no chrome of its own.**
+                //
+                // It drew a band along the foot of the picture: the title, a LIVE pill, the
+                // channel number. That band is only ever seen in one place — the well on the
+                // Channels board — and the well draws every one of those things already: its
+                // own live badge and number over the picture, the name and the quality tag
+                // in the panel underneath. So the picture carried each of them twice, one
+                // set overlapping the other, and the channel's name was printed across
+                // moving video a few millimetres above the same name set properly on a
+                // ground of its own.
+                //
+                // Removed rather than reconciled, because the board's copies are the ones
+                // that belong: they are laid out with the column, they follow its metrics,
+                // and they are what the approved reference draws. A preview of a channel
+                // does not need to caption itself when its caption is directly below it.
+                //
+                // Nothing else changes about this shape — same surface, same press, same
+                // engine. The expanded player keeps its own chrome in full.
 
                 if (expanded && state.controls) {
                     // The chrome belongs to the film, not to the window.

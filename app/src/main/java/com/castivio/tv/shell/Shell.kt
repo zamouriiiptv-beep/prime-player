@@ -274,11 +274,10 @@ fun ShellScreen(
                     // that changes `dest`, so `dest == Dest.Live` means the expanded shape
                     // is taking the stream over rather than nobody watching it.
                     //
-                    // **And the close button is the third case.** It clears `livePreview`,
-                    // which removes this composition while still on Live -- so `dest`
-                    // alone would have said "retain" and left a channel playing with
-                    // nothing drawing it: audio from a picture the viewer just closed.
-                    // Asking for the request as well is what makes the button mean stop.
+                    // The second clause is what makes it safe for the request to be
+                    // cleared while still on Live -- `LaunchedEffect(dest)` below does
+                    // exactly that on the way out, and `dest` alone would have said
+                    // "retain" and left a channel decoding with nothing drawing it.
                     retainOnDispose = { dest == Dest.Live && livePreview != null },
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -320,10 +319,13 @@ fun ShellScreen(
                 // Channels showed Channels and then took it away.
                 Dest.Live -> SectionGate(CatalogSection.Live) { ChannelsScreen(
                     onPlay = playInPreview,
-                    // The board's close button. Clearing the request is the whole of it:
-                    // the plate stops being composed and `retainOnDispose` above reads
-                    // the same null, so the engine is released rather than left decoding.
-                    onStop = { livePreview = null },
+                    // Two presses on the name under the picture, reaching the very action
+                    // the picture's own press reaches — `Overlay.Play` on the request that
+                    // is already playing, which `PlayerViewModel.open` recognises and
+                    // declines to reopen, so expanding moves the surface and leaves the
+                    // decoder alone. Guarded here and not in the board: the request is what
+                    // decides whether there is anything to expand, and the shell holds it.
+                    onExpand = { livePreview?.let { overlay = Overlay.Play(it) } },
                     onSearch = { searchKind = CatalogKind.LIVE; dest = Dest.Search },
                     preview = preview,
                 ) }

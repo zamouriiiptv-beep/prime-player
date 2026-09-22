@@ -136,10 +136,11 @@
 
     <string name="channels_guide_now">الآن</string>
     <string name="channels_guide_next">التالي</string>
+    <string name="channels_guide_then">ما بعد التالي</string>
+    <string name="channels_time_range">%1$s – %2$s</string>
+    <string name="channels_guide_none">لا يوجد دليل برامج لهذه القناة</string>
     <string name="channels_guide_close">إغلاق</string>
     <string name="channels_action_refresh">تحديث</string>
-
-    <string name="channels_player_close">إغلاق المشغّل</string>
 
     <string name="channels_action_guide">الدليل</string>
     <string name="channels_action_favorite">المفضلة</string>
