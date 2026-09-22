@@ -58,22 +58,23 @@
   .track{border-radius:999px;background:rgba(255,255,255,.13);overflow:hidden}
   .track>i{display:block;height:100%;width:62%;background:#2FBF9F}
   .synopsis{color:#A6A6BF;font-family:system-ui,sans-serif;display:-webkit-box;
-            -webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+            -webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
   .strip{width:100%;display:flex;flex:none}
   .btn{flex:1;background:rgba(255,255,255,.078);border:1px solid rgba(255,255,255,.078);
        display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#D6D3E8}
   .btn .g{font-size:1.45em;line-height:1}
 </style></head><body>
 
-<h1>الخيار ب، وكتلة تتكيّف بدل شكل واحد مفروض على كل مقاس</h1>
+<h1>النهائي: الخيار ب + كتلة تتكيّف · الوصف ثلاثة أسطر</h1>
 <p class="lede">
   مرسومة من حساب <b>ChannelsMetrics</b> نفسه، و<b>كل بكسل هنا يساوي dp واحدًا</b> — فالأعمدة الثلاثة
   بأحجامها الحقيقية النسبية، لا مكبَّرة لتتشابه. الخط الأخضر هو الخيار ب.
   <em>الوصف يظهر حيث يتّسع العمود له، والباقي يُوزَّع بين المجموعات الثلاث — فلا أرض ميتة في أي مقاس.</em>
   <br>
-  <u>وهذه هي نقطة العتبة:</u> قاعدة <b>sw ≥ 600dp</b> تصنّف <b>960×540</b> — وهو تلفزيون 1080p بكثافة 2،
-  أشيع سطح تلفزيوني — على أنه هاتف (sw = 540)، فتحرمه الوصف رغم أن لديه <b>130dp</b> فائضًا.
-  القاعدة المبنيّة على المساحة الفعلية تصيبه.
+  <u>القاعدة المعتمدة، من الـMetrics لا من تصنيف الجهاز:</u>
+  <b>يظهر الوصف ⟺ (room − CHANNELS_FACTS_MIN) ≥ ارتفاع ثلاثة أسطر</b>.
+  تصيب <b>960×540</b> الذي كانت قاعدة <b>sw ≥ 600</b> تحرمه رغم <b>130dp</b> فائضًا،
+  وتمنعه عن هاتفك الذي فائضه <b>8.6dp</b> فقط.
 </p>
 
 <div class="row">
@@ -103,7 +104,7 @@
           <div class="times">
             <span class="clock" style="font-size:15.84px">06:00</span>
             <span class="clock" style="font-size:15.84px">12:10</span></div>
-          <div class="synopsis" style="font-size:18.00px;line-height:1.5">Men's and women's singles quarter-finals from the Aichi-Nagoya arena, with commentary throughout.</div>
+          <div class="synopsis" style="font-size:18.00px;line-height:1.5">Men's and women's singles quarter-finals from the Aichi-Nagoya arena, with commentary throughout. Coverage continues after the break with the doubles semi-finals.</div>
         </div>
         <div class="group" style="gap:2.67px">
           <div class="rule"></div>
@@ -124,8 +125,8 @@
         <div class="btn" style="border-radius:6.67px;font-size:12.96px"><span class="g">🚫</span>إخفاء</div>
       </div>
     </div>
-    <p class="note">المساحة واسعة، فالوصف يظهر ويأخذ <b>56.7dp</b> من الأرض، والباقي يتوزّع. الأرض الميتة التي كانت <b>170.1dp</b> صارت صفرًا.
-      <br><span class="fig">المساحة 333.4 · المحتوى 220.0 · الفجوة بين المجموعات <b>59.4dp</b> · أرض ميتة <b class="zero">0</b></span></p>
+    <p class="note">الوصف يأخذ <b>83.7dp</b> والباقي يتوزّع. الأرض التي كانت <b>170.1dp</b> صارت صفرًا، والفجوة بين الأقسام <b>45.9dp</b> بدل 87.7.
+      <br><span class="fig">المساحة 333.4 · المحتوى 247.0 · الفجوة بين المجموعات <b>45.9dp</b> · أرض ميتة <b class="zero">0</b></span></p>
   </div>
   <div class="case" style="width:306.87px">
     <div class="tag"><span class="chip edge">تلفزيون 960×540</span>
@@ -153,7 +154,7 @@
           <div class="times">
             <span class="clock" style="font-size:11.88px">06:00</span>
             <span class="clock" style="font-size:11.88px">12:10</span></div>
-          <div class="synopsis" style="font-size:13.50px;line-height:1.5">Men's and women's singles quarter-finals from the Aichi-Nagoya arena, with commentary throughout.</div>
+          <div class="synopsis" style="font-size:13.50px;line-height:1.5">Men's and women's singles quarter-finals from the Aichi-Nagoya arena, with commentary throughout. Coverage continues after the break with the doubles semi-finals.</div>
         </div>
         <div class="group" style="gap:2.00px">
           <div class="rule"></div>
@@ -174,8 +175,8 @@
         <div class="btn" style="border-radius:6.00px;font-size:9.72px"><span class="g">🚫</span>إخفاء</div>
       </div>
     </div>
-    <p class="note"><b>هذا هو السطح الذي تفترق عنده القاعدتان.</b> sw = 540 فتمنعه قاعدة الـ600، لكن لديه <b>130dp</b> فائضًا ويستحق الوصف. الأرض كانت <b>124.4dp</b>.
-      <br><span class="fig">المساحة 250.0 · المحتوى 168.1 · الفجوة بين المجموعات <b>43.0dp</b> · أرض ميتة <b class="zero">0</b></span></p>
+    <p class="note">السطح الذي كانت قاعدة <b>sw ≥ 600</b> تحرمه. الوصف يأخذ <b>62.8dp</b>، والأرض التي كانت <b>124.4dp</b> صارت صفرًا.
+      <br><span class="fig">المساحة 250.0 · المحتوى 188.3 · الفجوة بين المجموعات <b>32.9dp</b> · أرض ميتة <b class="zero">0</b></span></p>
   </div>
   <div class="case" style="width:266.28px">
     <div class="tag"><span class="chip ph">هاتفك 833×385</span>
@@ -224,7 +225,7 @@
         <div class="btn" style="border-radius:6.00px;font-size:8.64px"><span class="g">🚫</span>إخفاء</div>
       </div>
     </div>
-    <p class="note">الفائض <b>8.6dp</b> فقط والوصف يحتاج <b>38</b> — فلا يظهر، ولو ظهر لدفع الأزرار خارج اللوحة. التوزيع وحده يكفي هنا لأن الأرض كانت <b>11.7dp</b> أصلًا.
+    <p class="note">الفائض <b>8.6dp</b> والوصف يحتاج <b>56</b> — فلا يظهر. التوزيع وحده يكفي: الأرض التي كانت <b>11.7dp</b> صارت صفرًا.
       <br><span class="fig">المساحة 128.6 · المحتوى 116.8 · الفجوة بين المجموعات <b>7.9dp</b> · أرض ميتة <b class="zero">0</b></span></p>
   </div>
 </div></body></html>

@@ -3,6 +3,7 @@ package com.castivio.feature.home
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.castivio.core.design.components.BODY_LEADING
 import com.castivio.core.design.theme.CastivioMetrics
 import com.castivio.core.design.theme.boundedFraction
 import com.castivio.core.design.theme.castivioMetrics
@@ -229,6 +230,44 @@ internal data class ChannelsMetrics(
      * construction rather than by agreement between two expressions.
      */
     val wellPicture: Dp get() = wellPictureWidth / CHANNELS_PREVIEW_ASPECT
+
+    /**
+     * What the well has left for the facts block: the column, less the picture, the gaps
+     * either side of it and the action strip.
+     *
+     * The block takes all of it. It used to hug its content, which left this as bare
+     * ground between the last programme and the strip — 170dp of it at the 1280×720
+     * reference. Stated here rather than derived in the screen because it is the same
+     * subtraction [wellPictureWidth] already does from the other end, and two derivations
+     * of one number are two chances for the picture and the panel to disagree about the
+     * column they are both in.
+     */
+    val wellRoom: Dp get() = column - wellPicture - guideGap * 2 - strip
+
+    /**
+     * Whether the column can afford the current programme's synopsis.
+     *
+     * **A question about this column, not about this device.** The obvious rule is a
+     * device class — `sw >= 600dp` for a television or a tablet — and it is wrong here by
+     * a case that matters: a 1080p television at density 2 reports 960×540, so its
+     * smallest width is 540 and the rule files it as a phone. That surface has 130dp of
+     * headroom and had 124dp of bare ground. It is the commonest television there is.
+     *
+     * So the question is asked of the room instead. [CHANNELS_FACTS_MIN] is what the
+     * block needs without a synopsis; whatever [wellRoom] holds beyond it is what a
+     * synopsis may use, and three lines of body text either fit in that or they do not.
+     * The same arithmetic that sizes the picture decides this, and it is right on every
+     * surface rather than on most of them.
+     *
+     * At 1280×720: 333.4 of room, 213.4 spare, three lines cost 83.7 — shown.
+     * At 960×540: 250.0 of room, 130.0 spare, three lines cost 62.8 — shown.
+     * At 833×385: 128.6 of room, 8.6 spare, three lines cost 56.0 — not shown, and
+     * drawing it anyway would push the action strip 26dp off the bottom of the board.
+     */
+    val wellSynopsis: Boolean get() {
+        val lines = frame.fsBody * BODY_LEADING * CHANNELS_SYNOPSIS_LINES
+        return wellRoom - CHANNELS_FACTS_MIN >= badgePadV + lines
+    }
 }
 
 /**
@@ -365,6 +404,20 @@ internal val CHANNELS_FACTS_MIN = 120.dp
  * has vanished — and the assertion in `ChannelsMetricsTest` says no shipping surface does.
  */
 internal val CHANNELS_PICTURE_MIN = 60.dp
+
+/**
+ * How many lines of the current programme's synopsis the block draws, where it draws one.
+ *
+ * Three rather than two, and the third line is bought with a measurement: at the 1280×720
+ * reference two lines leave 59.4dp of air between the block's three sections and three
+ * leave 45.9dp. It is a *maximum* — a short synopsis takes one line and the distribution
+ * absorbs the difference — and it is also the budget [ChannelsMetrics.wellSynopsis] spends,
+ * so what is reserved and what is drawn are the same number by construction.
+ *
+ * It replaces `DESCRIPTION_LINES`, which sat unused in `ChannelsScreen` from the day the
+ * synopsis was taken out of this block.
+ */
+internal const val CHANNELS_SYNOPSIS_LINES = 3
 
 /* ------------------------------------------------------------------ the shares
  *

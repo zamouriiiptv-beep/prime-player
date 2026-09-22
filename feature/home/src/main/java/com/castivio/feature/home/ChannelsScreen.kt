@@ -1351,32 +1351,42 @@ private fun ChannelWell(
             modifier = Modifier.width(m.wellPictureWidth).height(m.wellPicture),
         )
 
-        // **It takes the height its content needs and no more, and the content is what
-        // fills the column.**
+        // **It takes the room, and the room decides what goes in it.**
         //
-        // Three shapes were tried here and only the third is right. `weight(1f)` stretched
-        // it to whatever the column had spare — 333dp of bordered panel around 138dp of
-        // content at the reference. Hugging moved the same emptiness outside the border,
-        // where it became ground between NEXT and the strip. A floor with the content
-        // spread across it filled the box but set NEXT and what follows it a hand's width
-        // apart, which is a panel pretending to be full.
+        // Four shapes were tried here. `weight(1f)` stretched the block to whatever the
+        // column had spare -- 333dp of bordered panel around 138dp of content at the
+        // reference. Hugging moved the same emptiness outside the border, where it became
+        // ground between the last programme and the strip. A bounded floor filled part of
+        // the box and set the two coming programmes a hand's width apart. A third
+        // programme helped without finishing the job: 170dp of ground became 163dp of
+        // content in a 333dp room.
         //
-        // What actually closed the gap was giving the block a third thing to say. It holds
-        // what is on, what is next and what follows that, at its natural height with small
-        // gaps — 163dp of the 333 at the reference, and on a handset it is within about
-        // ten of filling the column outright. No floor, no spreading, no arithmetic in the
-        // metrics: content.
+        // What finishes it is letting the *column* decide. The block takes the room in
+        // full and distributes what it does not need between its three ruled sections;
+        // and where the column is deep enough to afford it, the current programme's
+        // synopsis fills part of that room with something worth reading. At 1280x720 that
+        // is 83.7dp of synopsis and 45.9dp of air between sections, against 87.7 with the
+        // space merely spread. On a handset the synopsis is absent -- it would not fit --
+        // and the 11.7dp of ground is simply absorbed. No surface keeps dead ground.
+        //
+        // **Only where there are three sections to set apart.** A channel with no schedule
+        // holds a name and one sentence, and one at the end of its guide window holds a
+        // name and one programme; stretching *those* over the room would put the hole back
+        // inside the border. They keep hugging, and their slack stays plain ground outside
+        // the frame, where empty space belongs.
+        val sections = shown.guide?.next != null
         ChannelFacts(
             shown = shown,
             m = m,
             onExpand = onExpand,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (sections) Modifier.weight(1f) else Modifier),
         )
 
-        // The slack, named. It is the only flexible thing in this column, which is what
-        // keeps the strip on the floor of the board while the facts stay under the
-        // picture.
-        Spacer(Modifier.weight(1f))
+        // The slack, named -- and needed only where the block did not take it. It is what
+        // keeps the strip on the floor of the board while the facts stay under the picture.
+        if (!sections) Spacer(Modifier.weight(1f))
 
         ActionStrip(
             shown = shown,
@@ -1549,11 +1559,19 @@ private fun ChannelFacts(
             .clip(shape)
             .border(1.dp, colors.glassBorderSoft, shape)
             .padding(horizontal = m.guidePad, vertical = m.guidePad / 2),
-        // Stacked with one small gap, not spread. The block is the height of what it
-        // holds, so there is nothing to distribute — and a `SpaceBetween` over a taller
-        // box would push NEXT and the programme after it to opposite ends of the panel,
-        // which is the one arrangement of these three groups a reader cannot follow.
-        verticalArrangement = Arrangement.spacedBy(m.badgePadV),
+        // **Spread, because the block is now given the room rather than its content.**
+        //
+        // `SpaceBetween` distributes whatever the column had spare between the *children*
+        // of this column, which is why they are three and not eight: grouped, the air
+        // falls between who / what is on / what is coming, and never between a programme's
+        // name and the bar measuring it. Each group carries a top padding as well, because
+        // `SpaceBetween` cannot state a minimum — where the content already fills the room
+        // there is nothing to distribute and the groups would otherwise meet edge to edge.
+        //
+        // Where the block hugs instead — a channel with no schedule, or one at the end of
+        // its window — there is no free space and this arranges nothing, reading exactly
+        // as `spacedBy(badgePadV)` did.
+        verticalArrangement = Arrangement.SpaceBetween,
     ) {
         // ---------------------------------------------------------- the identity
         //
@@ -1632,12 +1650,26 @@ private fun ChannelFacts(
 
         // -------------------------------------------------------- what is on now
         //
-        // The title, its bar and its hours are one child of this column, not three.
-        // `SpaceBetween` distributes whatever height the floor added between the column's
-        // *children*, and three loose children would put that air between a programme's
+        // The title, its bar, its hours and its synopsis are one child of this column,
+        // not four. `SpaceBetween` distributes the column's spare height between its
+        // *children*, and four loose children would put that air between a programme's
         // name and the bar measuring it. Grouped, the air falls where it belongs: between
-        // the three things a reader treats as separate — who, what is on, what is next.
-        Column(verticalArrangement = Arrangement.spacedBy(m.badgePadV)) {
+        // the three things a reader treats as separate — who, what is on, what is coming.
+        Column(
+            Modifier.padding(top = m.badgePadV),
+            verticalArrangement = Arrangement.spacedBy(m.badgePadV),
+        ) {
+            // **The seam the block was missing.**
+            //
+            // The channel's name and the programme on it were separated by `badgePadV` —
+            // 2dp on a handset, the same gap that holds the NOW line off its own bar. So
+            // nothing said the thing above it was a different kind of thing from the one
+            // below, and the only drawn rule sat before what is coming: the seam the eye
+            // trusted was in the wrong place, and the block read as "channel and now",
+            // then "the rest".
+            //
+            // This is the same rule, drawn twice. Three sections, one mark between each.
+            Box(Modifier.fillMaxWidth().height(1.dp).background(colors.glassBorder))
             GuideLine(
                 label = stringResource(R.string.channels_guide_now),
                 title = now.title,
@@ -1663,6 +1695,28 @@ private fun ChannelFacts(
                     maxLines = 1,
                 )
             }
+
+            // **What the programme actually is, where the column can afford to say it.**
+            //
+            // It belongs to NOW and sits inside NOW's group, under the bar that measures
+            // it. Already on the device and already drawn by the guide page -- this reads
+            // the same `Programme.description` and issues nothing.
+            //
+            // Two conditions, and both are refusals to invent. `wellSynopsis` is the
+            // column's answer about room, not a device class; see `ChannelsMetrics`. And a
+            // provider that sent no synopsis gets no line at all rather than an empty one,
+            // which is why this is a `takeIf` and not a placeholder.
+            if (m.wellSynopsis) {
+                now.description?.takeIf { it.isNotBlank() }?.let { detail ->
+                    Text(
+                        text = detail,
+                        style = castivioBodyStyle(m.frame.fsBody),
+                        color = colors.onBackgroundMuted,
+                        maxLines = CHANNELS_SYNOPSIS_LINES,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
         }
 
         // ----------------------------------------------- and the two that follow it
@@ -1674,13 +1728,21 @@ private fun ChannelFacts(
         // Both rows come out of `shown.schedule` — the same ordered window the guide page
         // reads, already on the device. Nothing is fetched to draw the second one.
         next?.let { programme ->
-            Column(verticalArrangement = Arrangement.spacedBy(m.badgePadV)) {
-                // One rule, because what is on and what is coming are the same shape and a
-                // reader needs a boundary between them that is not a gap they have to
-                // measure. One rule for both rows, not one each: they are the same
-                // category of thing — the future — and ruling between them would say they
-                // are not.
-                Box(Modifier.fillMaxWidth().height(1.dp).background(colors.glassBorderSoft))
+            Column(
+                Modifier.padding(top = m.badgePadV),
+                verticalArrangement = Arrangement.spacedBy(m.badgePadV),
+            ) {
+                // One rule for both rows, not one each: they are the same category of
+                // thing — the future — and ruling between them would say they are not.
+                //
+                // `glassBorder` rather than the `glassBorderSoft` this drew before. Soft is
+                // the pale blue-grey at 10%, which over this ground is about seven steps of
+                // lightness — enough for a container's edge, where the shape does the work,
+                // and not enough for a 1dp line that has to be *found* on a handset held at
+                // arm's length. At 20% it is about fifteen, and it reads. Both rules take
+                // it, because a seam that is stronger than its twin stops being the same
+                // mark said twice.
+                Box(Modifier.fillMaxWidth().height(1.dp).background(colors.glassBorder))
                 ComingLine(
                     label = stringResource(R.string.channels_guide_next),
                     programme = programme,
@@ -2304,15 +2366,6 @@ private const val MARK_OF_HEADER = 0.98f
  * viewer who wants the time has nowhere else to look.
  */
 private const val CLOCK_OF_LABEL = 1.32f
-
-/**
- * How much of a programme's description the facts block shows.
- *
- * Two lines. The block is four things tall already and a provider's synopsis can run to a
- * paragraph; what it is for here is "is this the football or the highlights", which the
- * first two lines answer.
- */
-private const val DESCRIPTION_LINES = 2
 
 /**
  * The channel logo's box in the identity row, as a ratio.

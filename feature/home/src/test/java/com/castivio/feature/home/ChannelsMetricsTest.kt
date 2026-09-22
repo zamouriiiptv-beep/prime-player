@@ -2,6 +2,7 @@ package com.castivio.feature.home
 
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.castivio.core.design.components.BODY_LEADING
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -120,7 +121,75 @@ class ChannelsMetricsTest {
                 "the picture is squeezed to ${m.wellPicture} at ${width}x$height",
                 m.wellPicture > CHANNELS_PICTURE_MIN,
             )
+            // The metric and this file's arithmetic are again two derivations of one
+            // number, and the block is now *sized* from the first.
+            assertEquals(
+                "wellRoom disagrees with the column at ${width}x$height",
+                facts.value,
+                m.wellRoom.value,
+                DUST,
+            )
         }
+    }
+
+    /**
+     * **The synopsis is offered only where the column can pay for it.**
+     *
+     * This is the assertion the rule exists for, and it is worth stating why it is not a
+     * device class. `sw >= 600dp` — the obvious rule — files a 1080p television at density
+     * 2 as a phone, because that surface reports 960×540. It has 130dp of headroom and 124
+     * of bare ground, and the obvious rule would leave it bare. So the question is asked of
+     * the room, and this sweep is what says the answer is affordable at every surface:
+     * wherever [ChannelsMetrics.wellSynopsis] is true, the lines it promises fit in what is
+     * left after [CHANNELS_FACTS_MIN].
+     */
+    @Test
+    fun `the synopsis is drawn only where there is room to pay for it`() {
+        var shown = 0
+        var withheld = 0
+        sweep(from = SHIPPING_WIDTH) { tv, width, height ->
+            val m = channelsMetricsFor(tv, width, height)
+            val lines =
+                m.badgePadV + m.frame.fsBody * BODY_LEADING * CHANNELS_SYNOPSIS_LINES
+            val spare = m.wellRoom - CHANNELS_FACTS_MIN
+            if (m.wellSynopsis) {
+                shown++
+                assertTrue(
+                    "the synopsis is offered $lines of $spare spare at ${width}x$height",
+                    spare.value >= lines.value - DUST,
+                )
+            } else {
+                withheld++
+                assertTrue(
+                    "the synopsis is withheld although $spare would hold $lines" +
+                        " at ${width}x$height",
+                    spare.value < lines.value,
+                )
+            }
+        }
+        // Both branches are reached by the surfaces this ships to: a rule that were always
+        // true, or always false, would pass every assertion above and mean nothing.
+        assertTrue("no surface draws the synopsis", shown > 0)
+        assertTrue("every surface draws the synopsis", withheld > 0)
+    }
+
+    /**
+     * And the two surfaces the decision was argued over, stated as the figures they are.
+     *
+     * 960×540 is the one that separates the room rule from a device class, so it is named
+     * here rather than left to the sweep: if a future change to a share quietly puts that
+     * television back on the phone's side of the line, this fails and says so.
+     */
+    @Test
+    fun `the television affords a synopsis and the handset does not`() {
+        val tv = channelsMetricsFor(tv = true, width = 960.dp, height = 540.dp)
+        assertTrue("960x540 has ${tv.wellRoom} and draws no synopsis", tv.wellSynopsis)
+
+        val phone = channelsMetricsFor(tv = false, width = 833.dp, height = 385.dp)
+        assertTrue(
+            "833x385 has only ${phone.wellRoom} and draws one anyway",
+            !phone.wellSynopsis,
+        )
     }
 
     /**
