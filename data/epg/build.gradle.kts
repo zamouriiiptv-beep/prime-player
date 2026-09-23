@@ -6,6 +6,16 @@ plugins {
 
 android {
     namespace = "com.castivio.data.epg"
+
+    testOptions {
+        // `android.jar` on the unit-test classpath is stubs that throw, so one `Log.i`
+        // on a path a test reaches fails that test at the logging line, before any
+        // assertion runs. Defaults instead, as `feature:home` and `feature:player`
+        // already do: nothing in this module asserts on a platform return value, and
+        // the alternative -- dropping the guide diagnostics -- would remove the numbers
+        // they exist to produce.
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {
