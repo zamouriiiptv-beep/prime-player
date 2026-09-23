@@ -277,14 +277,28 @@ class XtreamHttpApi(
         return if (action.isEmpty()) "${CastivioTrace.API}.account" else "${CastivioTrace.API}.$action"
     }
 
-    private companion object {
-        const val READ_BUFFER = 1 shl 16
+    /**
+     * Open, but only two of it.
+     *
+     * This was `private`, which was right while nothing outside needed a figure from it.
+     * The guide page changed that: `:data:epg` names both limits — one to ask for a row
+     * label, one to ask for a week — and its test asserts that each path used its own.
+     * A caller that cannot name the number it is passing is a caller that will pass the
+     * wrong one.
+     *
+     * The three that remain `private` are the class's own business: a buffer size, a
+     * retry count and a backoff. Nothing outside should have an opinion about them, so
+     * opening the block wholesale would have widened the surface for no reason.
+     */
+    companion object {
+        private const val READ_BUFFER = 1 shl 16
 
         /** Attempts after the first. Two, and never unbounded -- see [openWithRetry]. */
-        const val MAX_RETRIES = 2
+        private const val MAX_RETRIES = 2
 
         /** Multiplied by the attempt number: 500ms, then 1s. */
-        const val BACKOFF_MS = 500L
+        private const val BACKOFF_MS = 500L
+
         /** Two entries is now and next; more is a guide, not a row label. */
         const val SHORT_EPG_LIMIT = 4
 
