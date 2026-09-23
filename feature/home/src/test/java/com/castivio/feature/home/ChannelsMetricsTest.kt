@@ -85,6 +85,33 @@ class ChannelsMetricsTest {
     }
 
     /**
+     * **A coming programme's name keeps most of its row.**
+     *
+     * The row under the rule used to be a word, a title and a range: `ما بعد التالي` cost
+     * 43dp of the block's width on the owner's handset and the range 62, leaving the
+     * programme's name about 143 of 256. The word went — the order already says what it
+     * said — and the range became the hour the programme starts, in a column of its own,
+     * so the name is left about 202dp instead. Forty per cent more, for a fact nobody read.
+     *
+     * What is asserted is the floor rather than the gain, because the gain is a number in
+     * a commit message and the floor is what a future change can quietly take back. The
+     * worst surface in the sweep leaves 182dp; below [COMING_TITLE_MIN] the row stops
+     * being a programme's name beside an hour and becomes an hour beside an ellipsis.
+     */
+    @Test
+    fun `the hour that opens a coming row leaves the title its width`() {
+        sweep { tv, width, height ->
+            val m = channelsMetricsFor(tv, width, height)
+            val title = factsWidth(m) - m.frame.fsBody * TIME_COLUMN_OF_BODY - m.factGap
+            assertTrue(
+                "a coming programme's title has $title at ${width}x$height, under " +
+                    "$COMING_TITLE_MIN",
+                title >= COMING_TITLE_MIN,
+            )
+        }
+    }
+
+    /**
      * **The two columns always have room, and the list is never squeezed out.**
      *
      * The rail is a fixed width and the list takes everything else, so a ceiling raised
@@ -566,6 +593,15 @@ class ChannelsMetricsTest {
     private fun columnHeight(m: ChannelsMetrics, height: Dp): Dp = height - fixedHeight(m)
 
     /**
+     * What a line inside the facts block is given.
+     *
+     * The well's width less the block's own horizontal padding, which `ChannelFacts`
+     * applies as `padding(horizontal = guidePad)`. The 1dp border draws inside the bounds
+     * and takes nothing from the content, so it is not subtracted here.
+     */
+    private fun factsWidth(m: ChannelsMetrics): Dp = m.player - m.guidePad * 2
+
+    /**
      * What the rail spends above its list: the field, and the gap under it.
      *
      * The two shares here are `ChannelsScreen`'s own — `FIELD_OF_ROW` and the doubled
@@ -659,6 +695,18 @@ class ChannelsMetricsTest {
 
         /** `ChannelsScreen.FIELD_OF_ROW`, which is private to that file. */
         const val RAIL_FIELD_OF_ROW = 0.86f
+
+        /** `ChannelsScreen.TIME_COLUMN_OF_BODY`, which is private to that file. */
+        const val TIME_COLUMN_OF_BODY = 4.2f
+
+        /**
+         * The narrowest a coming programme's name may be squeezed to.
+         *
+         * The worst surface in the sweep leaves it 182dp, so this is the floor that keeps
+         * it there — near enough to catch a regression, far enough that float dust in a
+         * share cannot fail the build.
+         */
+        val COMING_TITLE_MIN = 175.dp
 
         /**
          * The narrowest the search field may be squeezed to.

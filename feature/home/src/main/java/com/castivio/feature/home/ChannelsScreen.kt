@@ -1687,28 +1687,68 @@ private fun ChannelFacts(
             //
             // This is the same rule, drawn twice. Three sections, one mark between each.
             Box(Modifier.fillMaxWidth().height(1.dp).background(colors.glassBorder))
-            GuideLine(
-                label = stringResource(R.string.channels_guide_now),
-                title = now.title,
-                now = true,
-                m = m,
-            )
-            Track(fraction = guide.progressAt(System.currentTimeMillis()), m = m)
 
-            // The hours it runs, at the two ends of the bar they describe. Read from the
-            // programme's own timestamps -- the same two the bar is drawn from, so the
-            // figures and the fill can never disagree.
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            // **The programme's name has the line to itself.**
+            //
+            // It used to share it with the word NOW, and the two coming rows shared
+            // theirs with a label *and* a range — so three lines each carried an Arabic
+            // word, a Latin title and a pair of clock figures at once. That mixture is
+            // the one arrangement the bidirectional algorithm cannot lay out
+            // predictably: asked for `00:05 – 03:50` on such a line it draws
+            // `03:50 – 00:05`, reversed. No choice of side fixes it, because the mixture
+            // is the fault and not the order — which is why mirroring this block was
+            // drawn twice and rejected twice before the cause was found.
+            //
+            // Alone, the name takes whatever direction its own first letter asks for and
+            // nothing competes with it, in Arabic or in French. It also gets the width
+            // the labels were spending: about 211dp of the block's 249 where it had 134.
+            Text(
+                text = now.title,
+                style = castivioBodyStyle(m.frame.fsBody),
+                color = colors.onBackgroundStrong,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            // Everything that describes it, on the line below: the bar opens the line and
+            // takes what the other two leave, the hours follow, and NOW closes it at the
+            // end — which is where an Arabic reader's eye starts. The two figures are one
+            // string in one direction, which is what makes them safe to print at all.
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(m.factGap),
+            ) {
+                Track(
+                    fraction = guide.progressAt(System.currentTimeMillis()),
+                    m = m,
+                    modifier = Modifier.weight(1f),
+                )
+                // Read from the programme's own timestamps -- the same two the bar is
+                // drawn from, so the figures and the fill can never disagree.
                 Text(
-                    text = clockLabel(now.startMs),
+                    text = stringResource(
+                        R.string.channels_time_range,
+                        clockLabel(now.startMs),
+                        clockLabel(now.stopMs),
+                    ),
                     style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
                     color = colors.onBackgroundVariant,
                     maxLines = 1,
                 )
+                // **Aqua, and no longer violet.**
+                //
+                // The palette holds one meaning per colour: violet is *selection*, the
+                // fill that says "this is the row the picture is showing", and aqua is
+                // *live*. This word says live. It was drawn in the selection colour,
+                // which put it at odds with the LIVE badge over the picture and with the
+                // very bar beside it — one sentence, said in two colours, a few pixels
+                // apart. Now the badge, the bar and the word agree.
                 Text(
-                    text = clockLabel(now.stopMs),
+                    text = stringResource(R.string.channels_guide_now),
                     style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
-                    color = colors.onBackgroundVariant,
+                    color = colors.live,
                     maxLines = 1,
                 )
             }
@@ -1769,11 +1809,7 @@ private fun ChannelFacts(
                 // it, because a seam that is stronger than its twin stops being the same
                 // mark said twice.
                 Box(Modifier.fillMaxWidth().height(1.dp).background(colors.glassBorder))
-                ComingLine(
-                    label = stringResource(R.string.channels_guide_next),
-                    programme = programme,
-                    m = m,
-                )
+                ComingLine(programme = programme, m = m)
             }
         }
 
@@ -1782,31 +1818,48 @@ private fun ChannelFacts(
         // held open for something that does not exist is the defect this block's whole
         // shape exists to avoid.
         after?.let {
-            ComingLine(
-                label = stringResource(R.string.channels_guide_then),
-                programme = it,
-                m = m,
-                modifier = Modifier.padding(top = m.badgePadV),
-            )
+            ComingLine(programme = it, m = m, modifier = Modifier.padding(top = m.badgePadV))
         }
     }
 }
 
 /**
- * A programme that has not started: what it is, and the hours it will run.
+ * A programme that has not started: the hour it begins, and what it is.
  *
  * One declaration for both of the rows under the rule, because they are the same row. It
  * was written once and the second would have been a copy — and a copy is where the two
  * stop agreeing about type, colour or the shape of a time.
  *
- * **The range, not the start.** The start alone is the right number and reads as the wrong
- * one: the instant a programme begins is the instant the one before it ends, so a column
- * of single times prints each boundary twice and looks like a clock that has failed to
- * move. Both ends is also what the guide page shows, in the same grammar.
+ * ## The hour is the label
+ *
+ * This drew a word — NEXT, or THEN — a title, and a range, in that order on one line. Two
+ * of those three were paid for and neither earned it.
+ *
+ * **The word is what the order already says.** These rows are drawn under what is on now,
+ * in the order the provider sent them; nothing else can be second. Measured on the
+ * owner's handset, where the block is 249dp wide, `التالي` cost 18dp and `ما بعد التالي`
+ * 43 — for a fact the position states for free.
+ *
+ * **And the range is a boundary printed twice.** A programme ends when the next one
+ * begins, so the second figure of each row is the first figure of the row beneath it.
+ * Dropping it costs 62dp and loses exactly one fact: the hour the last row ends. What it
+ * buys is 211dp for the title where there were 134.
+ *
+ * The earlier note here argued the opposite — that a column of single times "looks like a
+ * clock that has failed to move". It was written when the times sat at the end of the
+ * line, scattered by whatever the titles left. Given a column of their own they line up,
+ * and a column of hours is what a viewer scans an EPG for.
+ *
+ * ## And it is the reason this block survives two scripts
+ *
+ * A line carrying an Arabic word, a Latin title and a pair of clock figures is the one
+ * arrangement the bidirectional algorithm cannot lay out predictably: asked for
+ * `00:05 – 03:50` it draws `03:50 – 00:05`, reversed. With the word gone and the hour
+ * alone in its own slot, no line holds two scripts at once and there is nothing left to
+ * reorder.
  */
 @Composable
 private fun ComingLine(
-    label: String,
     programme: Programme,
     m: ChannelsMetrics,
     modifier: Modifier = Modifier,
@@ -1817,51 +1870,20 @@ private fun ComingLine(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(m.factGap),
     ) {
-        GuideLine(
-            label = label,
-            title = programme.title,
-            now = false,
-            m = m,
-            modifier = Modifier.weight(1f),
-        )
+        // A fixed width, so the two rows' hours sit on one axis rather than wherever
+        // their own digits end. Derived from the body step like every other figure on
+        // this board, so it follows the surface instead of being a number written down.
         Text(
-            text = stringResource(
-                R.string.channels_time_range,
-                clockLabel(programme.startMs),
-                clockLabel(programme.stopMs),
-            ),
+            text = clockLabel(programme.startMs),
             style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
             color = colors.onBackgroundVariant,
             maxLines = 1,
-        )
-    }
-}
-
-/** One line of the facts block: what it is, and what is on. */
-@Composable
-private fun GuideLine(
-    label: String,
-    title: String,
-    now: Boolean,
-    m: ChannelsMetrics,
-    modifier: Modifier = Modifier,
-) {
-    val colors = CastivioTheme.colors
-    Row(
-        modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(m.factGap),
-    ) {
-        Text(
-            text = label,
-            style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
-            color = if (now) colors.secondary else colors.onBackgroundMuted,
-            maxLines = 1,
+            modifier = Modifier.width(m.frame.fsBody * TIME_COLUMN_OF_BODY),
         )
         Text(
-            text = title,
+            text = programme.title,
             style = castivioBodyStyle(m.frame.fsBody),
-            color = if (now) colors.onBackgroundStrong else colors.onBackgroundVariant,
+            color = colors.onBackgroundVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
@@ -2406,6 +2428,21 @@ private const val CLOCK_OF_LABEL = 1.32f
 private const val LOGO_BOX = 54f / 40f
 
 private const val LEGEND_OF_BODY = 0.88f
+
+/**
+ * The width of the hour that opens a coming programme's row, in body steps.
+ *
+ * `00:05` is five figures at `LEGEND_OF_BODY` of the body step, and a digit is about
+ * three fifths of its own size wide — so four and a fifth body steps holds the widest
+ * clock this draws with a little air after it, at every surface, because the step itself
+ * is derived from the surface. Stated as a ratio and not as a `Dp` for exactly that
+ * reason: a written-down width is a width that is right on one screen.
+ *
+ * It is a *fixed* width rather than a wrap, which is the whole point: the two rows' hours
+ * then share one axis, and the titles beside them start at one place instead of wherever
+ * the digits above them happened to end.
+ */
+private const val TIME_COLUMN_OF_BODY = 4.2f
 
 
 /** The hairline between the clock and the dates, as a share of the band. */

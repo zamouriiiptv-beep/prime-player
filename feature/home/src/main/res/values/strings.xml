@@ -211,14 +211,11 @@
     <!-- The remote legend along the foot of the board. These name what the *remote\'s*
          keys do; only Back is pressable, because a thumb has no key for it. -->
     <!-- The action strip at the leading edge. -->
-    <!-- The two lines beside the floating card's picture. Short because the panel that
-         holds them is a summary four rows tall; the words are the guide's own. -->
+    <!-- The one word left in the panel under the picture, and the only one that earns its
+         place: it names a *state*, which no position can state. NEXT and THEN were retired
+         with it - those rows are drawn in order under this one, so their order already says
+         what the words said, and the hour each begins at says more. -->
     <string name="channels_guide_now">NOW</string>
-    <string name="channels_guide_next">NEXT</string>
-    <!-- The third line under the picture: the programme after NEXT. A third word in
-         the same register as the other two, short because it shares a narrow row with a
-         programme title. -->
-    <string name="channels_guide_then">THEN</string>
     <!-- When a programme runs, as two clock times: "23:25 – 00:20". A formatted string and
          not two texts with a dash between them, because the dash is punctuation between two
          numbers and a language that writes a range differently has to be able to say so. -->
