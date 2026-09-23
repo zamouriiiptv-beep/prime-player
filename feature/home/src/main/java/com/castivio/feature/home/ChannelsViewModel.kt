@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.castivio.domain.CatalogRepository
+import com.castivio.domain.ChannelGuideFetcher
 import com.castivio.domain.Channel
 import com.castivio.domain.EpgRepository
 import com.castivio.domain.FavoritesRepository
@@ -12,6 +13,7 @@ import com.castivio.domain.NowNextRefresher
 import com.castivio.domain.Programme
 import com.castivio.domain.time.TrustedTime
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.util.Calendar
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -65,6 +67,14 @@ class ChannelsViewModel @Inject constructor(
      * both contracts already live in `:domain`, which `:feature:home` already depends on.
      */
     private val nowNext: NowNextRefresher,
+    /**
+     * The guide page's path: the same endpoint asked for a week instead of a row label.
+     *
+     * A second port rather than a count on [nowNext], so a screen drawing rows cannot
+     * accidentally issue the expensive request — it is holding an interface that has no
+     * such method. See `ChannelGuideFetcher`.
+     */
+    private val guideFetcher: ChannelGuideFetcher,
     private val favorites: FavoritesRepository,
     private val clock: TrustedTime,
 ) : ViewModel() {
@@ -160,6 +170,10 @@ class ChannelsViewModel @Inject constructor(
         // the guide. An absent programme is a sentence the panel already has.
         guide.value = null
         schedule.value = emptyList()
+        // The open guide belongs to the channel it was opened on. Left standing, a
+        // viewer who closes it, moves a row and opens it again would read yesterday's
+        // channel under today's name for as long as the first query takes.
+        _fullGuide.value = FullGuide()
         loadGuide(channel)
     }
 
@@ -278,6 +292,101 @@ class ChannelsViewModel @Inject constructor(
         return false
     }
 
+    // ------------------------------------------------------------------- the guide page
+
+    /**
+     * One channel's guide, as many days of it as the provider holds.
+     *
+     * Separate from [schedule] and deliberately so. That one is three rows beside a list
+     * and is read over eight hours; this is a page a person opened and is read over seven
+     * days. Sharing a flow would have made every keypress on the channel list pay for a
+     * week of programmes, which is the one thing this feature must not do.
+     */
+    private val _fullGuide = MutableStateFlow(FullGuide())
+    val fullGuide: StateFlow<FullGuide> = _fullGuide.asStateFlow()
+
+    /**
+     * When this channel's full guide was last asked of the provider, by media id.
+     *
+     * The same shape as [asked] and for the same reason: storage is consulted first, and
+     * this only stops a provider that holds one day from being asked again every time the
+     * page is opened. Separate from [asked] because the two ask different questions and a
+     * short answer to one says nothing about the other.
+     */
+    private val fetched = HashMap<String, Long>()
+
+    /**
+     * Called when the viewer opens the guide, and at no other time.
+     *
+     * This is the whole performance contract of the feature, stated in one place: nothing
+     * above reaches the network for more than a row label, and this reaches it for one
+     * channel, once, because somebody asked to see it.
+     */
+    fun openGuide() {
+        val channel = _selected.value ?: return
+        viewModelScope.launch { loadFullGuide(channel) }
+    }
+
+    /**
+     * Storage first, the provider only if storage falls short.
+     *
+     * The order matters and is the reason re-opening the page costs nothing. What is
+     * stored is drawn immediately — a viewer never waits in front of an empty panel for
+     * data already on the device — and the request that follows, if one follows, replaces
+     * it when it arrives.
+     *
+     * **What "falls short" means.** Not "does not cover seven days": a provider holding
+     * one day would never satisfy that and would be asked on every open, forever. The
+     * question is whether the stored guide runs out soon, and
+     * [EpgRepository.MINIMUM_HORIZON_MS] already answers it — six hours, the figure the
+     * domain layer uses for exactly this. A provider with a single day passes it all day
+     * and is left alone; a channel holding only the four rows now/next wrote fails it and
+     * is asked once.
+     */
+    private suspend fun loadFullGuide(channel: Channel) {
+        val nowMs = clock.nowMs()
+        val horizonMs = nowMs + GUIDE_HORIZON_MS
+
+        val stored = readGuide(channel, nowMs, horizonMs)
+        _fullGuide.value = FullGuide(days = groupByDay(stored))
+        if (runsOutSoon(stored, nowMs).not()) return
+
+        val last = fetched[channel.id]
+        if (last != null && nowMs - last < ASK_AGAIN_MS) return
+        fetched[channel.id] = nowMs
+
+        _fullGuide.value = _fullGuide.value.copy(loading = true)
+        val refs = runCatching { catalog.channelRefs(listOf(channel.id)) }.getOrDefault(emptyList())
+        val ref = refs.firstOrNull()
+        val wrote = if (ref == null) 0 else runCatching { guideFetcher.fetch(ref) }.getOrDefault(0)
+        Log.i(TAG, "full epg: media=${channel.id} wrote=$wrote")
+
+        // The page may have been closed and another channel selected while the request
+        // was out. Storage keeps what arrived either way; only the drawing is abandoned.
+        if (_selected.value?.id != channel.id) return
+        val refreshed = readGuide(channel, clock.nowMs(), horizonMs)
+        _fullGuide.value = FullGuide(days = groupByDay(refreshed))
+    }
+
+    /** The same two keys [show] reads under, for the same reason: providers disagree. */
+    private suspend fun readGuide(channel: Channel, fromMs: Long, toMs: Long): List<Programme> {
+        val keys = listOfNotNull(
+            channel.epgChannelId?.takeIf { it.isNotBlank() },
+            channel.id,
+        ).distinct()
+        for (key in keys) {
+            val rows = runCatching { epg.programmes(key, fromMs, toMs) }.getOrDefault(emptyList())
+            if (rows.isNotEmpty()) return rows
+        }
+        return emptyList()
+    }
+
+    /** True when what is stored ends inside the horizon the domain calls a shortage. */
+    private fun runsOutSoon(stored: List<Programme>, nowMs: Long): Boolean {
+        val last = stored.maxOfOrNull { it.stopMs } ?: return true
+        return last < nowMs + EpgRepository.MINIMUM_HORIZON_MS
+    }
+
     /** The blue key, and the star in the row. Returns nothing: the flow reports the result. */
     fun toggleFavorite() {
         val channel = _selected.value ?: return
@@ -295,6 +404,17 @@ class ChannelsViewModel @Inject constructor(
 
         /** What the board draws. More would be the guide screen, which this is not. */
         const val SCHEDULE_ROWS = 3
+
+        /**
+         * How far ahead the guide page reads, and the ceiling on what it will show.
+         *
+         * Seven days, matching `EpgRetention.DEFAULT_FUTURE_MS` — the point past which
+         * the writer prunes anyway, so reading further could only ever return nothing.
+         * It is a *ceiling*: the page shows the days that came back, and a provider with
+         * one day produces one day. No day is ever drawn because the week has room for
+         * it.
+         */
+        const val GUIDE_HORIZON_MS = 7 * 24 * 60 * 60 * 1000L
 
         /**
          * How long a fruitless ask stands before the provider is asked again.
@@ -318,6 +438,62 @@ class ChannelsViewModel @Inject constructor(
  * end here as `guide == null` — which the panel renders as the reference's own
  * "No Information" rather than as an invented programme.
  */
+/**
+ * One day of a channel's guide.
+ *
+ * A day, and not a date string: the boundary is computed once here against the device's
+ * own zone, and the screen formats it. Grouping in the state holder rather than in the
+ * composition is the data rule this board is written to — a `LazyColumn` that decided day
+ * boundaries while scrolling would be doing calendar arithmetic per frame.
+ */
+data class GuideDay(
+    /** Midnight at the start of this day, in the device's zone. */
+    val startOfDayMs: Long,
+    val programmes: List<Programme>,
+)
+
+/**
+ * The guide page's whole state.
+ *
+ * [days] holds only days that have programmes in them. A provider offering four days
+ * produces four entries and a provider offering one produces one; nothing pads the list
+ * out to a week, because an empty day on screen is a claim that the provider has nothing
+ * on that day rather than that nobody asked.
+ *
+ * [loading] is true only while a request is out *and* something is already drawn beneath
+ * it — the page never blocks on the network, it shows what is stored and refreshes.
+ */
+data class FullGuide(
+    val days: List<GuideDay> = emptyList(),
+    val loading: Boolean = false,
+)
+
+/**
+ * Splits an ordered schedule into the days it actually covers.
+ *
+ * By the programme's *start*, in the device's zone, using `Calendar` rather than
+ * `java.time` because this module compiles to minSdk 21 without desugaring. A programme
+ * that runs past midnight belongs to the day it began on, which is where a viewer looks
+ * for it.
+ *
+ * `internal` so `ChannelsViewModelTest` can assert the boundaries without a device: this
+ * is the one part of the feature that is pure arithmetic over timestamps.
+ */
+internal fun groupByDay(programmes: List<Programme>): List<GuideDay> {
+    if (programmes.isEmpty()) return emptyList()
+    val calendar = Calendar.getInstance()
+    val days = LinkedHashMap<Long, MutableList<Programme>>()
+    for (programme in programmes) {
+        calendar.timeInMillis = programme.startMs
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        days.getOrPut(calendar.timeInMillis) { ArrayList() }.add(programme)
+    }
+    return days.map { (startOfDayMs, rows) -> GuideDay(startOfDayMs, rows) }
+}
+
 data class ChannelPreview(
     val channel: Channel? = null,
     val guide: NowNext? = null,

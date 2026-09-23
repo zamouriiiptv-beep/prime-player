@@ -2,6 +2,7 @@ package com.castivio.feature.home
 
 import com.castivio.domain.CatalogRepository
 import com.castivio.domain.Channel
+import com.castivio.domain.ChannelGuideFetcher
 import com.castivio.domain.ChannelRef
 import com.castivio.domain.EpgCoverage
 import com.castivio.domain.EpgRepository
@@ -238,13 +239,27 @@ class ChannelsGuideTest {
         epg: EpgRepository,
         refresher: NowNextRefresher,
         clock: TrustedTime = FixedClock(NOW_MS),
+        fetcher: ChannelGuideFetcher = NoGuideFetcher,
     ) = ChannelsViewModel(
         epg = epg,
         catalog = FakeCatalog(),
         nowNext = refresher,
+        guideFetcher = fetcher,
         favorites = NoFavorites(),
         clock = clock,
     ).also { holder -> backgroundScope.launch { holder.preview.collect { } } }
+
+    /**
+     * The guide page's path, absent.
+     *
+     * Every test in this file is about the three rows beside the list, and none of them
+     * opens the page — so a fetcher that is never called is the honest double. A test
+     * that finds it called has found the defect this whole feature exists to avoid.
+     */
+    private object NoGuideFetcher : ChannelGuideFetcher {
+        override suspend fun fetch(channel: ChannelRef): Int =
+            error("the rows must never reach the guide page's path")
+    }
 
     private fun channel(id: String = MEDIA_ID, guideId: String? = GUIDE_ID) = Channel(
         id = id,

@@ -51,6 +51,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -106,6 +107,7 @@ import com.castivio.domain.SortOrder
 import com.castivio.domain.isProviderHeading
 import java.text.DateFormat
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import com.castivio.core.design.R as DesignR
@@ -195,6 +197,10 @@ fun ChannelsScreen(
 
     val state by model.state.collectAsStateWithLifecycle()
     val shown by previewModel.preview.collectAsStateWithLifecycle()
+    // Collected here and not inside the overlay, so the page's state survives the
+    // overlay being closed and re-opened on the same channel: a second look costs no
+    // query at all, which is what makes the store the cache.
+    val fullGuide by previewModel.fullGuide.collectAsStateWithLifecycle()
     val tv = CastivioTheme.device.isTv
 
     BoxWithConstraints(modifier.fillMaxSize().safeDrawingPadding()) {
@@ -745,7 +751,17 @@ private fun Columns(
             }
 
             if (guideOpen) {
-                ChannelGuideOverlay(shown = shown, m = m, onClose = { guideOpen = false })
+                // Asked for here rather than in the view model's own init, because this
+                // is the moment a person asked. `openGuide` reads storage first and only
+                // reaches the provider when what is stored runs out; see
+                // `ChannelsViewModel.loadFullGuide`.
+                LaunchedEffect(shown.channel?.id) { previewModel.openGuide() }
+                ChannelGuideOverlay(
+                    shown = shown,
+                    guide = fullGuide,
+                    m = m,
+                    onClose = { guideOpen = false },
+                )
             }
         }
     }
@@ -2069,7 +2085,12 @@ private fun ActionButton(
  * number and name sit above the list, in the same shapes the well draws them in.
  */
 @Composable
-private fun ChannelGuideOverlay(shown: ChannelPreview, m: ChannelsMetrics, onClose: () -> Unit) {
+private fun ChannelGuideOverlay(
+    shown: ChannelPreview,
+    guide: FullGuide,
+    m: ChannelsMetrics,
+    onClose: () -> Unit,
+) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(m.panelRadius)
     val first = remember { FocusRequester() }
@@ -2136,13 +2157,25 @@ private fun ChannelGuideOverlay(shown: ChannelPreview, m: ChannelsMetrics, onClo
                 Modifier.fillMaxWidth().weight(1f).focusRequester(first),
                 verticalArrangement = Arrangement.spacedBy(m.guideGap),
             ) {
-                items(shown.schedule, key = { it.startMs }) { programme ->
-                    GuideEntry(
-                        programme = programme,
-                        now = programme.startMs == nowId,
-                        m = m,
-                        modifier = Modifier.heightIn(min = m.rowMin),
-                    )
+                // **Only the days the provider actually sent.**
+                //
+                // `FullGuide.days` is grouped in the state holder and holds nothing for a
+                // day with no programmes in it, so a provider with one day draws one
+                // heading and a provider with seven draws seven. Nothing is padded out to
+                // a week: an empty day on screen would be a claim about the provider's
+                // schedule rather than about our request.
+                for (day in guide.days) {
+                    item(key = day.startOfDayMs) {
+                        DayHeading(startOfDayMs = day.startOfDayMs, m = m)
+                    }
+                    items(day.programmes, key = { it.startMs }) { programme ->
+                        GuideEntry(
+                            programme = programme,
+                            now = programme.startMs == nowId,
+                            m = m,
+                            modifier = Modifier.heightIn(min = m.rowMin),
+                        )
+                    }
                 }
             }
         }
@@ -2163,6 +2196,26 @@ private fun LiveBadge(m: ChannelsMetrics) {
             .clip(shape)
             .background(colors.live)
             .padding(horizontal = m.badgePadH, vertical = m.badgePadV),
+    )
+}
+
+/**
+ * The date a run of programmes belongs to.
+ *
+ * Drawn only where a day exists, which is what keeps the page honest about how much guide
+ * a provider actually holds. Today and tomorrow are named rather than dated — a viewer
+ * reading "today" places it instantly and reads a date twice as slowly — and every day
+ * after them carries its own date in the device's own format.
+ */
+@Composable
+private fun DayHeading(startOfDayMs: Long, m: ChannelsMetrics) {
+    val colors = CastivioTheme.colors
+    Text(
+        text = dayLabel(startOfDayMs),
+        style = castivioChipStyle(m.frame.fsBody),
+        color = colors.onBackgroundMuted,
+        maxLines = 1,
+        modifier = Modifier.fillMaxWidth().padding(top = m.guideGap, bottom = m.badgePadV),
     )
 }
 
@@ -2359,6 +2412,33 @@ internal fun initialsOf(title: String): String =
 /** `13:30`, in the device's own format. */
 private fun clockLabel(epochMs: Long): String =
     DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(epochMs))
+
+/**
+ * A guide day, named where naming helps and dated where it does not.
+ *
+ * The comparison is against *this* device's midnight rather than a 24-hour arithmetic on
+ * the difference: "tomorrow" is a calendar fact, and a programme at 00:30 is tomorrow
+ * even though it is forty minutes away.
+ */
+@Composable
+@ReadOnlyComposable
+private fun dayLabel(startOfDayMs: Long): String {
+    val today = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+    return when (startOfDayMs) {
+        today -> stringResource(R.string.channels_guide_today)
+        today + DAY_MS -> stringResource(R.string.channels_guide_tomorrow)
+        else -> DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(startOfDayMs))
+    }
+}
+
+/** One day, for naming tomorrow. Days are not all 24 hours long, and this is not used
+ *  to measure one -- only to step from one already-computed midnight to the next. */
+private const val DAY_MS = 24 * 60 * 60 * 1000L
 
 /** How the order reads in this board's toolbar, which states a value rather than a verb. */
 private val SortOrder.channelsLabel: Int

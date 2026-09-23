@@ -3,6 +3,7 @@ package com.castivio.data.epg.di
 import com.castivio.core.common.AppDispatchers
 import com.castivio.data.epg.DefaultEpgImporter
 import com.castivio.data.networking.HttpStreamSource
+import com.castivio.domain.ChannelGuideFetcher
 import com.castivio.domain.EpgImporter
 import com.castivio.domain.EpgWriter
 import com.castivio.domain.NowNextRefresher
@@ -40,15 +41,35 @@ object EpgModule {
      */
     @Provides
     @Singleton
-    fun nowNextRefresher(
+    fun xtreamGuide(
         client: OkHttpClient,
         writers: Provider<EpgWriter>,
         sources: com.castivio.domain.SourceRepository,
         dispatchers: AppDispatchers,
-    ): NowNextRefresher = XtreamNowNextRefresher(
+    ): XtreamNowNextRefresher = XtreamNowNextRefresher(
         client = client,
         writerFactory = { writers.get() },
         sources = sources,
         dispatchers = dispatchers,
     )
+
+    /**
+     * Two ports, one object, and the concrete type bound above rather than cast down to.
+     *
+     * `XtreamNowNextRefresher` serves both because the *writing* is identical and must
+     * stay identical — one transaction, one retention pass, one set of import pragmas —
+     * while the two requests differ only in how many entries they ask for. Binding one
+     * instance to both is what stops that becoming two stores that drift.
+     *
+     * The types stay separate all the same, and that is the point: a screen drawing rows
+     * holds a [NowNextRefresher], and that interface has no method that could fetch a
+     * week. It cannot make the expensive request by accident because it cannot name it.
+     */
+    @Provides
+    @Singleton
+    fun nowNextRefresher(guide: XtreamNowNextRefresher): NowNextRefresher = guide
+
+    @Provides
+    @Singleton
+    fun channelGuideFetcher(guide: XtreamNowNextRefresher): ChannelGuideFetcher = guide
 }

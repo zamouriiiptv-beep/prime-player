@@ -223,6 +223,10 @@
     <!-- Under the picture, for a channel whose provider sends no schedule at all. Said
          plainly rather than left blank: an empty panel and a channel with no guide look
          identical, and only one of them is a fact. -->
+    <!-- The two day headings a viewer can place without reading a date. Every day
+         after tomorrow carries its own date instead, in the device's format. -->
+    <string name="channels_guide_today">Today</string>
+    <string name="channels_guide_tomorrow">Tomorrow</string>
     <string name="channels_guide_none">No programme guide for this channel</string>
     <!-- In the guide overlay's header. Back closes it too; this says so for a thumb. -->
     <string name="channels_guide_close">Close</string>

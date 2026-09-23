@@ -2,6 +2,7 @@ package com.castivio.data.networking
 
 import com.castivio.core.common.AppError
 import com.castivio.core.common.Outcome
+import com.castivio.data.parsing.JsonFormatException
 import com.castivio.data.parsing.XtreamAccount
 import com.castivio.data.parsing.XtreamEpgEntry
 import com.castivio.data.parsing.XtreamImportEngine
@@ -134,6 +135,19 @@ class XtreamHttpApi(
         Outcome.Failure(AppError.NETWORK_UNAVAILABLE, e)
     } catch (e: IOException) {
         Outcome.Failure(AppError.NETWORK_UNAVAILABLE, e)
+    } catch (e: JsonFormatException) {
+        // **The one failure that was not an `Outcome`.**
+        //
+        // `JsonFormatException` is a `RuntimeException`, so it passed straight through
+        // the list above — and past the `continue` in `XtreamNowNextRefresher` that
+        // isolates one channel's guide from the rest. A single panel answering with
+        // something that is not JSON took the whole batch of forty channels down with
+        // it, silently, because the view model's `runCatching` swallowed it at the end.
+        //
+        // It matters more now than it did: a request for two hundred entries carries a
+        // far larger surface of a provider's formatting than a request for four, and
+        // Castivio talks to providers it has never seen.
+        Outcome.Failure(AppError.MALFORMED_PLAYLIST, e)
     }
 
     /** The provider's own XMLTV endpoint, for a full guide import. */
@@ -273,6 +287,23 @@ class XtreamHttpApi(
         const val BACKOFF_MS = 500L
         /** Two entries is now and next; more is a guide, not a row label. */
         const val SHORT_EPG_LIMIT = 4
+
+        /**
+         * What one channel's guide page asks for, when a viewer opens it.
+         *
+         * The same endpoint and the same parser; only the count differs, because the
+         * question differs. [SHORT_EPG_LIMIT] answers "what is on this row" for up to
+         * forty rows at once and must stay small for that reason. This answers "show me
+         * this channel's week" for exactly one channel, once, when a person asked.
+         *
+         * Two hundred is the retention window's worth with room to spare: a broadcaster
+         * runs about fifteen programmes a day, so seven days is near a hundred and five.
+         * It is a *ceiling*, not an expectation — `limit` is a count and panels differ in
+         * what they honour. A provider that caps it, ignores it, or holds one day of
+         * guide answers with fewer entries, and fewer entries is fewer days on screen.
+         * Nothing here treats a short answer as a failure.
+         */
+        const val FULL_EPG_LIMIT = 200
     }
 }
 

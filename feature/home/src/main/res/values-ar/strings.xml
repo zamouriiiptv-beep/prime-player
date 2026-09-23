@@ -136,6 +136,8 @@
 
     <string name="channels_guide_now">الآن</string>
     <string name="channels_time_range">%1$s – %2$s</string>
+    <string name="channels_guide_today">اليوم</string>
+    <string name="channels_guide_tomorrow">غدًا</string>
     <string name="channels_guide_none">لا يوجد دليل برامج لهذه القناة</string>
     <string name="channels_guide_close">إغلاق</string>
     <string name="channels_action_refresh">تحديث</string>

@@ -172,3 +172,44 @@ interface NowNextRefresher {
     /** @return how many programmes were stored. */
     suspend fun refresh(channels: List<ChannelRef>): Int
 }
+
+/**
+ * Fetches as much of **one** channel's guide as its provider will give.
+ *
+ * ## Why this is not a parameter on [NowNextRefresher]
+ *
+ * Because the two ask different questions and the difference is the whole point.
+ * [NowNextRefresher] answers "what is on these forty rows" and is called every time a
+ * viewer moves through the list; its request has to stay small or browsing a catalogue
+ * becomes a download. This answers "show me this channel's week", for one channel, once,
+ * because a person opened the guide and asked.
+ *
+ * A limit parameter on the first would have made the cheap path capable of the expensive
+ * one, and a caller that passed the wrong number would turn every keypress into a guide
+ * fetch. Two ports cannot be confused; one port with a number can.
+ *
+ * ## What "as much as it will give" means
+ *
+ * A ceiling, never a promise. The request names a large count, and what comes back is
+ * whatever the provider holds: seven days, four, one, or nothing at all. A short answer
+ * is data, not an error — the screen shows the days that exist and invents none. A
+ * provider with no guide endpoint at all answers zero, quietly, exactly as the M3U case
+ * already does.
+ *
+ * ## And it writes where everything else reads
+ *
+ * Into the same store, through the same writer. `programme`'s primary key is
+ * `(channel_id, start_ms)` and the insert is `INSERT OR REPLACE`, so this merges with
+ * what now/next already wrote rather than replacing it — and a later now/next refresh
+ * overwrites its own four rows with identical values and leaves the rest of the week
+ * standing. That is what makes the cache in [EpgRepository.programmes] enough, and a
+ * second store unnecessary.
+ */
+interface ChannelGuideFetcher {
+
+    /**
+     * @param channel the one channel to ask about.
+     * @return how many programmes were stored, zero when the provider offered none.
+     */
+    suspend fun fetch(channel: ChannelRef): Int
+}

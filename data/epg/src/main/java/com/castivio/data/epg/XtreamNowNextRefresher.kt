@@ -4,6 +4,7 @@ import com.castivio.core.common.AppDispatchers
 import com.castivio.core.common.Outcome
 import com.castivio.data.networking.XtreamHttpApi
 import com.castivio.data.parsing.XtreamEpgEntry
+import com.castivio.domain.ChannelGuideFetcher
 import com.castivio.domain.ChannelRef
 import com.castivio.domain.EpgProgramme
 import com.castivio.domain.EpgSummary
@@ -39,16 +40,11 @@ class XtreamNowNextRefresher(
     private val sources: SourceRepository,
     private val dispatchers: AppDispatchers,
     private val apiFactory: (OkHttpClient, ProviderSource) -> ShortEpgSource = ::httpShortEpg,
-) : NowNextRefresher {
+) : NowNextRefresher, ChannelGuideFetcher {
 
     override suspend fun refresh(channels: List<ChannelRef>): Int = withContext(dispatchers.io) {
         if (channels.isEmpty()) return@withContext 0
-
-        val source = sources.activeNow() ?: return@withContext 0
-        // Only Xtream has this endpoint. An M3U provider gets its guide from XMLTV
-        // and this is not a failure, so it returns quietly rather than erroring.
-        if (source.kind != SourceKind.XTREAM) return@withContext 0
-        if (source.url == null || source.username == null || source.password == null) return@withContext 0
+        val source = xtreamSource() ?: return@withContext 0
 
         val api = apiFactory(client, source)
         val requests = channels.asSequence()
@@ -57,9 +53,11 @@ class XtreamNowNextRefresher(
             .toList()
         if (requests.isEmpty()) return@withContext 0
 
-        val batch = ArrayList<EpgProgramme>(requests.size * 4)
+        val batch = ArrayList<EpgProgramme>(requests.size * XtreamHttpApi.SHORT_EPG_LIMIT)
         for (channel in requests) {
-            val entries = when (val result = api.shortEpg(channel.providerRef!!)) {
+            val entries = when (
+                val result = api.shortEpg(channel.providerRef!!, XtreamHttpApi.SHORT_EPG_LIMIT)
+            ) {
                 is Outcome.Failure -> continue // one channel's guide, not the refresh
                 is Outcome.Success -> result.value
             }
@@ -67,7 +65,59 @@ class XtreamNowNextRefresher(
                 batch.add(entry.toProgramme(channel))
             }
         }
-        if (batch.isEmpty()) return@withContext 0
+        store(source, batch, channels = requests.size)
+    }
+
+    /**
+     * One channel's guide, as deep as the provider will answer.
+     *
+     * The same endpoint, the same parser and the same store as [refresh] — only the
+     * count differs, and it differs because a person asked for this one rather than a
+     * list scrolling past. It is a single request for a single channel, issued when the
+     * guide is opened and not before.
+     *
+     * Everything that can go wrong returns zero rather than throwing: no provider, an
+     * M3U provider with no such endpoint, a channel with no stream id, a refused
+     * request, a malformed answer. The caller's job is then to show what the store
+     * already holds, which is never worse than what was on screen a moment earlier.
+     */
+    override suspend fun fetch(channel: ChannelRef): Int = withContext(dispatchers.io) {
+        val providerRef = channel.providerRef
+        if (providerRef.isNullOrEmpty()) return@withContext 0
+        val source = xtreamSource() ?: return@withContext 0
+
+        val api = apiFactory(client, source)
+        val entries = when (val result = api.shortEpg(providerRef, XtreamHttpApi.FULL_EPG_LIMIT)) {
+            is Outcome.Failure -> return@withContext 0
+            is Outcome.Success -> result.value
+        }
+        store(source, entries.map { it.toProgramme(channel) }, channels = 1)
+    }
+
+    /**
+     * The active provider, when it is one this can ask.
+     *
+     * Only Xtream has this endpoint. An M3U provider gets its guide from XMLTV and that
+     * is not a failure, so this returns null and both callers return zero quietly.
+     */
+    private suspend fun xtreamSource(): ProviderSource? {
+        val source = sources.activeNow() ?: return null
+        if (source.kind != SourceKind.XTREAM) return null
+        if (source.url == null || source.username == null || source.password == null) return null
+        return source
+    }
+
+    /**
+     * Commits a batch, whatever asked for it.
+     *
+     * Shared by both entry points because the writing is the part that must not differ:
+     * one transaction, one retention pass, one set of import pragmas. `programme`'s key
+     * is `(channel_id, start_ms)` and the insert is `INSERT OR REPLACE`, so a week
+     * written here survives every later now/next refresh — the four rows they share are
+     * overwritten with identical values and the rest of the week is untouched.
+     */
+    private fun store(source: ProviderSource, batch: List<EpgProgramme>, channels: Int): Int {
+        if (batch.isEmpty()) return 0
 
         val writer = writerFactory()
         writer.begin(source.id)
@@ -78,7 +128,7 @@ class XtreamNowNextRefresher(
                 EpgSummary(
                     sourceId = source.id,
                     programmes = batch.size,
-                    channels = requests.size,
+                    channels = channels,
                     skipped = 0,
                     outsideWindow = 0,
                     durationMs = 0,
@@ -88,7 +138,7 @@ class XtreamNowNextRefresher(
             writer.abort(t)
             throw t
         }
-        batch.size
+        return batch.size
     }
 
     /**
@@ -121,7 +171,7 @@ class XtreamNowNextRefresher(
                 password = source.password.orEmpty(),
                 userAgent = source.userAgent,
             )
-            return ShortEpgSource { providerRef -> api.shortEpg(providerRef) }
+            return ShortEpgSource { providerRef, limit -> api.shortEpg(providerRef, limit) }
         }
     }
 }
@@ -133,5 +183,13 @@ class XtreamNowNextRefresher(
  * HTTP implementation is a lambda over [XtreamHttpApi].
  */
 fun interface ShortEpgSource {
-    fun shortEpg(providerRef: String): Outcome<List<XtreamEpgEntry>>
+
+    /**
+     * @param limit how many entries to ask for. A ceiling and not a promise: panels
+     *   differ in what they honour, and a provider holding one day of guide answers
+     *   with fewer entries however large the number. The two callers pass
+     *   `XtreamHttpApi.SHORT_EPG_LIMIT` and `XtreamHttpApi.FULL_EPG_LIMIT`, and the
+     *   count is the only thing that separates a row label from a guide page.
+     */
+    fun shortEpg(providerRef: String, limit: Int): Outcome<List<XtreamEpgEntry>>
 }

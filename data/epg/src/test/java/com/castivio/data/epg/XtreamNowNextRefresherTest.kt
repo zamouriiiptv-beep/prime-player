@@ -3,6 +3,7 @@ package com.castivio.data.epg
 import com.castivio.core.common.AppDispatchers
 import com.castivio.core.common.AppError
 import com.castivio.core.common.Outcome
+import com.castivio.data.networking.XtreamHttpApi
 import com.castivio.data.parsing.XtreamEpgEntry
 import com.castivio.domain.ChannelRef
 import com.castivio.domain.EpgProgramme
@@ -55,6 +56,88 @@ class XtreamNowNextRefresherTest {
         assertEquals(listOf("nova.1", "atlas.1"), writer.programmes.map { it.channelId })
         assertEquals(listOf("11", "12"), api.requested)
         assertEquals(2, writer.finished?.programmes)
+    }
+
+    /**
+     * **The page asks deeply; the rows do not.**
+     *
+     * The whole performance contract of the guide page is that these two paths issue
+     * different requests through one object, and the only thing that separates them is
+     * the count. If `fetch` ever went out at the row limit the page would show four
+     * programmes; if `refresh` ever went out at the page limit, browsing a channel list
+     * would download a week per row. Asserting the numbers is asserting that neither
+     * happened.
+     */
+    @Test
+    fun `the guide page asks for a week and the rows ask for a label`() = runBlocking {
+        val writer = RecordingEpgWriter()
+        val api = FakeShortEpg(mapOf("11" to listOf(entry("nova.1", "Cup Final", now))))
+        val channel = ChannelRef(mediaId = "a", providerRef = "11", epgChannelId = "nova.1")
+
+        refresher(writer, api).fetch(channel)
+        refresher(writer, api).refresh(listOf(channel))
+
+        assertEquals(
+            listOf(XtreamHttpApi.FULL_EPG_LIMIT, XtreamHttpApi.SHORT_EPG_LIMIT),
+            api.limits,
+        )
+    }
+
+    /**
+     * **One channel, one request — and nothing when there is nothing to address.**
+     *
+     * A channel whose provider shipped no stream id cannot be asked about, and the page
+     * must not issue a request that can only fail. Zero, and no call.
+     */
+    @Test
+    fun `a channel with no provider id is never asked about`() = runBlocking {
+        val writer = RecordingEpgWriter()
+        val api = FakeShortEpg(emptyMap())
+
+        val written = refresher(writer, api)
+            .fetch(ChannelRef(mediaId = "a", providerRef = null, epgChannelId = "nova.1"))
+
+        assertEquals(0, written)
+        assertTrue(api.requested.isEmpty())
+    }
+
+    /**
+     * **A provider with a short guide is not a failure.**
+     *
+     * The page asks for two hundred and a provider holding an hour answers with one.
+     * That one is stored and reported, because "fewer days" is the answer to the
+     * question rather than an error — it is what lets a page show one day for one
+     * provider and seven for another without a branch anywhere.
+     */
+    @Test
+    fun `a short answer is stored rather than refused`() = runBlocking {
+        val writer = RecordingEpgWriter()
+        val api = FakeShortEpg(mapOf("11" to listOf(entry("nova.1", "Cup Final", now))))
+
+        val written = refresher(writer, api)
+            .fetch(ChannelRef(mediaId = "a", providerRef = "11", epgChannelId = "nova.1"))
+
+        assertEquals(1, written)
+        assertEquals(listOf("nova.1"), writer.programmes.map { it.channelId })
+    }
+
+    /**
+     * **And a provider that cannot be asked at all answers quietly.**
+     *
+     * An M3U source has no `get_short_epg`; its guide comes from XMLTV. The page shows
+     * whatever is stored and says nothing about a request that was never sensible to
+     * make, exactly as `refresh` already does.
+     */
+    @Test
+    fun `an m3u provider yields nothing without erroring`() = runBlocking {
+        val writer = RecordingEpgWriter()
+        val api = FakeShortEpg(mapOf("11" to listOf(entry("nova.1", "Cup Final", now))))
+
+        val written = refresher(writer, api, kind = SourceKind.M3U)
+            .fetch(ChannelRef(mediaId = "a", providerRef = "11", epgChannelId = "nova.1"))
+
+        assertEquals(0, written)
+        assertTrue(api.requested.isEmpty())
     }
 
     @Test
@@ -164,8 +247,12 @@ class XtreamNowNextRefresherTest {
     ) : ShortEpgSource {
         val requested = mutableListOf<String>()
 
-        override fun shortEpg(providerRef: String): Outcome<List<XtreamEpgEntry>> {
+        /** Every limit this double was asked for, so a test can assert which path ran. */
+        val limits = mutableListOf<Int>()
+
+        override fun shortEpg(providerRef: String, limit: Int): Outcome<List<XtreamEpgEntry>> {
             requested += providerRef
+            limits += limit
             if (providerRef in failing) return Outcome.Failure(AppError.SERVER_ERROR)
             return Outcome.Success(responses[providerRef].orEmpty())
         }
