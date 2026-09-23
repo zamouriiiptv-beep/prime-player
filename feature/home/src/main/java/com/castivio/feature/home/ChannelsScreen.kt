@@ -1674,7 +1674,22 @@ private fun ChannelFacts(
         // nothing under a name. One sentence, from the state already in hand: nothing is
         // fetched to say it, and nothing is invented. An empty channel slot keeps its own
         // idle wording and does not claim a missing guide.
-        if (now == null) {
+        //
+        // **And "no schedule" means no schedule, not "nothing on right now".**
+        //
+        // This read `now == null`, which conflated two different channels: one whose
+        // provider ships no guide at all, and one whose guide has a hole over this
+        // instant. The second is ordinary -- a provider that sends what starts after now
+        // leaves the programme already running out of its answer -- and it was being told
+        // it had no guide while `next`, the row after it, and the whole guide page were
+        // sitting in state, drawn from the same rows. The sentence was true of the minute
+        // and false of the channel.
+        //
+        // The question is whether there is anything to say, so it is asked of both. With
+        // a `next` the panel skips what is on -- there is nothing on -- and opens at what
+        // is coming, which is the honest picture of a gap and is what the guide page
+        // already showed.
+        if (now == null && next == null) {
             if (channel != null) {
                 Text(
                     text = stringResource(R.string.channels_guide_none),
@@ -1696,103 +1711,112 @@ private fun ChannelFacts(
         // measuring it. Grouped, it falls where it belongs — between the things a reader
         // treats as separate — and inside the group the far smaller `badgePadV` holds a
         // programme's own parts together.
-        Column(verticalArrangement = Arrangement.spacedBy(m.badgePadV)) {
-            // **The seam the block was missing.**
-            //
-            // The channel's name and the programme on it were separated by `badgePadV` —
-            // 2dp on a handset, the same gap that holds the NOW line off its own bar. So
-            // nothing said the thing above it was a different kind of thing from the one
-            // below, and the only drawn rule sat before what is coming: the seam the eye
-            // trusted was in the wrong place, and the block read as "channel and now",
-            // then "the rest".
-            //
-            // This is the same rule, drawn twice. Three sections, one mark between each.
-            Box(Modifier.fillMaxWidth().height(1.dp).background(colors.glassBorder))
-
-            // **The programme's name has the line to itself.**
-            //
-            // It used to share it with the word NOW, and the two coming rows shared
-            // theirs with a label *and* a range — so three lines each carried an Arabic
-            // word, a Latin title and a pair of clock figures at once. That mixture is
-            // the one arrangement the bidirectional algorithm cannot lay out
-            // predictably: asked for `00:05 – 03:50` on such a line it draws
-            // `03:50 – 00:05`, reversed. No choice of side fixes it, because the mixture
-            // is the fault and not the order — which is why mirroring this block was
-            // drawn twice and rejected twice before the cause was found.
-            //
-            // Alone, the name takes whatever direction its own first letter asks for and
-            // nothing competes with it, in Arabic or in French. It also gets the width
-            // the labels were spending: about 211dp of the block's 249 where it had 134.
-            Text(
-                text = now.title,
-                style = castivioBodyStyle(m.frame.fsBody),
-                color = colors.onBackgroundStrong,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            // Everything that describes it, on the line below: the bar opens the line and
-            // takes what the other two leave, the hours follow, and NOW closes it at the
-            // end — which is where an Arabic reader's eye starts. The two figures are one
-            // string in one direction, which is what makes them safe to print at all.
-            Row(
-                Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(m.factGap),
-            ) {
-                Track(
-                    fraction = guide.progressAt(System.currentTimeMillis()),
-                    m = m,
-                    modifier = Modifier.weight(1f),
-                )
-                // Read from the programme's own timestamps -- the same two the bar is
-                // drawn from, so the figures and the fill can never disagree.
-                Text(
-                    text = stringResource(
-                        R.string.channels_time_range,
-                        clockLabel(now.startMs),
-                        clockLabel(now.stopMs),
-                    ),
-                    style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
-                    color = colors.onBackgroundVariant,
-                    maxLines = 1,
-                )
-                // **Aqua, and no longer violet.**
+        //
+        // **And the whole group is conditional now.** The block above admits a channel
+        // whose guide has a hole over this instant, and such a channel has no title to
+        // print, no bar to fill and no hours to name; the panel opens at what is coming
+        // instead, which is what the guide page already showed for it. `guide` is tested
+        // beside `now` rather than inferred from it: the progress bar below is asked of
+        // the pair, and a condition a reader can see beats one the compiler works out.
+        if (guide != null && now != null) {
+            Column(verticalArrangement = Arrangement.spacedBy(m.badgePadV)) {
+                // **The seam the block was missing.**
                 //
-                // The palette holds one meaning per colour: violet is *selection*, the
-                // fill that says "this is the row the picture is showing", and aqua is
-                // *live*. This word says live. It was drawn in the selection colour,
-                // which put it at odds with the LIVE badge over the picture and with the
-                // very bar beside it — one sentence, said in two colours, a few pixels
-                // apart. Now the badge, the bar and the word agree.
-                Text(
-                    text = stringResource(R.string.channels_guide_now),
-                    style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
-                    color = colors.live,
-                    maxLines = 1,
-                )
-            }
+                // The channel's name and the programme on it were separated by `badgePadV` —
+                // 2dp on a handset, the same gap that holds the NOW line off its own bar. So
+                // nothing said the thing above it was a different kind of thing from the one
+                // below, and the only drawn rule sat before what is coming: the seam the eye
+                // trusted was in the wrong place, and the block read as "channel and now",
+                // then "the rest".
+                //
+                // This is the same rule, drawn twice. Three sections, one mark between each.
+                Box(Modifier.fillMaxWidth().height(1.dp).background(colors.glassBorder))
 
-            // **What the programme actually is, where the column can afford to say it.**
-            //
-            // It belongs to NOW and sits inside NOW's group, under the bar that measures
-            // it. Already on the device and already drawn by the guide page -- this reads
-            // the same `Programme.description` and issues nothing.
-            //
-            // Two conditions, and both are refusals to invent. `wellSynopsis` is the
-            // column's answer about room, not a device class; see `ChannelsMetrics`. And a
-            // provider that sent no synopsis gets no line at all rather than an empty one,
-            // which is why this is a `takeIf` and not a placeholder.
-            if (m.wellSynopsis) {
-                now.description?.takeIf { it.isNotBlank() }?.let { detail ->
-                    Text(
-                        text = detail,
-                        style = castivioBodyStyle(m.frame.fsBody),
-                        color = colors.onBackgroundMuted,
-                        maxLines = CHANNELS_SYNOPSIS_LINES,
-                        overflow = TextOverflow.Ellipsis,
+                // **The programme's name has the line to itself.**
+                //
+                // It used to share it with the word NOW, and the two coming rows shared
+                // theirs with a label *and* a range — so three lines each carried an Arabic
+                // word, a Latin title and a pair of clock figures at once. That mixture is
+                // the one arrangement the bidirectional algorithm cannot lay out
+                // predictably: asked for `00:05 – 03:50` on such a line it draws
+                // `03:50 – 00:05`, reversed. No choice of side fixes it, because the mixture
+                // is the fault and not the order — which is why mirroring this block was
+                // drawn twice and rejected twice before the cause was found.
+                //
+                // Alone, the name takes whatever direction its own first letter asks for and
+                // nothing competes with it, in Arabic or in French. It also gets the width
+                // the labels were spending: about 211dp of the block's 249 where it had 134.
+                Text(
+                    text = now.title,
+                    style = castivioBodyStyle(m.frame.fsBody),
+                    color = colors.onBackgroundStrong,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                // Everything that describes it, on the line below: the bar opens the line and
+                // takes what the other two leave, the hours follow, and NOW closes it at the
+                // end — which is where an Arabic reader's eye starts. The two figures are one
+                // string in one direction, which is what makes them safe to print at all.
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(m.factGap),
+                ) {
+                    Track(
+                        fraction = guide.progressAt(System.currentTimeMillis()),
+                        m = m,
+                        modifier = Modifier.weight(1f),
                     )
+                    // Read from the programme's own timestamps -- the same two the bar is
+                    // drawn from, so the figures and the fill can never disagree.
+                    Text(
+                        text = stringResource(
+                            R.string.channels_time_range,
+                            clockLabel(now.startMs),
+                            clockLabel(now.stopMs),
+                        ),
+                        style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
+                        color = colors.onBackgroundVariant,
+                        maxLines = 1,
+                    )
+                    // **Aqua, and no longer violet.**
+                    //
+                    // The palette holds one meaning per colour: violet is *selection*, the
+                    // fill that says "this is the row the picture is showing", and aqua is
+                    // *live*. This word says live. It was drawn in the selection colour,
+                    // which put it at odds with the LIVE badge over the picture and with the
+                    // very bar beside it — one sentence, said in two colours, a few pixels
+                    // apart. Now the badge, the bar and the word agree.
+                    Text(
+                        text = stringResource(R.string.channels_guide_now),
+                        style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
+                        color = colors.live,
+                        maxLines = 1,
+                    )
+                }
+
+                // **What the programme actually is, where the column can afford to say it.**
+                //
+                // It belongs to NOW and sits inside NOW's group, under the bar that measures
+                // it. Already on the device and already drawn by the guide page -- this reads
+                // the same `Programme.description` and issues nothing.
+                //
+                // Two conditions, and both are refusals to invent. `wellSynopsis` is the
+                // column's answer about room, not a device class; see `ChannelsMetrics`. And a
+                // provider that sent no synopsis gets no line at all rather than an empty one,
+                // which is why this is a `takeIf` and not a placeholder.
+                if (m.wellSynopsis) {
+                    now.description?.takeIf { it.isNotBlank() }?.let { detail ->
+                        Text(
+                            text = detail,
+                            style = castivioBodyStyle(m.frame.fsBody),
+                            color = colors.onBackgroundMuted,
+                            maxLines = CHANNELS_SYNOPSIS_LINES,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
         }
