@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<!-- The block's rhythm must not depend on how many programmes the provider happened to
+     send. Today it does. Phone geometry, 833x385dp, one px per dp, drawn at 2x. -->
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>إيقاع كتلة الدليل</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0D0B22;color:#fff;font-family:"DejaVu Sans",system-ui,sans-serif;
+     padding:16px;direction:rtl;display:inline-block}
+h1{font-size:15px;font-weight:700;margin-bottom:4px}
+.lede{font-size:10.5px;color:#A6A6BF;line-height:1.85;max-width:840px;margin-bottom:12px}
+.lede b{color:#D6D3E8}.lede em{color:#6FE0C6;font-style:normal;font-weight:700}
+h2{font-size:12px;font-weight:700;margin:14px 0 7px}
+h2.bad{color:#FF7A85}h2.good{color:#6FE0C6}
+.row{display:flex;gap:16px;align-items:flex-start}
+.cell{text-align:center}
+.tag{font-size:10.5px;color:#A6A6BF;margin-bottom:5px}
+.tag b{color:#D6D3E8}.tag .g{color:#FF9AA2;font-weight:700}.tag .k{color:#8FE8D2;font-weight:700}
+.frame{background:#20223A;border:1px solid rgba(172,180,214,.14);border-radius:5px;padding:6px}
+.well{display:flex;flex-direction:column;align-items:center}
+.pic{background:linear-gradient(150deg,#3E3466,#241F3C);border:1px solid rgba(255,255,255,.20);
+     position:relative;flex:none;overflow:hidden}
+.live{position:absolute;bottom:4px;left:4px;background:#2FBF9F;color:#062B23;font-weight:700;
+      white-space:nowrap;border-radius:999px}
+.facts{width:100%;border:1px solid rgba(172,180,214,.10);display:flex;flex-direction:column;
+       color:#D6D3E8;overflow:hidden}
+.idr{display:flex;align-items:center;flex:none}
+.logo{background:rgba(255,255,255,.04);border:1px solid rgba(172,180,214,.10);flex:none;
+      display:flex;align-items:center;justify-content:center;color:#6B6B85;border-radius:3px;font-size:8px}
+.wname{flex:1;direction:ltr;text-align:left;color:#fff;font-weight:600;white-space:nowrap;
+       overflow:hidden;text-overflow:ellipsis}
+.qb{background:rgba(155,107,255,.22);color:#B694FF;flex:none;font-weight:700;border-radius:999px}
+.rule{height:1px;background:rgba(172,180,214,.28);flex:none}
+.grp{display:flex;flex-direction:column;flex:none}
+.ln{display:flex;align-items:baseline;overflow:hidden}
+.ln2{display:flex;gap:6px;align-items:baseline;overflow:hidden;flex:none}
+.ttl{flex:1;direction:ltr;unicode-bidi:plaintext;text-align:start;color:#fff;white-space:nowrap;
+     overflow:hidden;text-overflow:ellipsis}
+.ttl.big{font-weight:600}
+.now{color:#2FBF9F;font-weight:700;flex:none}
+.num{direction:ltr;color:#9FA0BC;font-variant-numeric:tabular-nums;flex:none;white-space:nowrap;
+     text-align:left}
+.meta{display:flex;align-items:center;gap:6px}
+.mtxt{flex:none;display:flex;gap:5px;align-items:baseline;color:#8C8CA8}
+.bar{height:2px;background:rgba(255,255,255,.13);flex:1}
+.bar>i{display:block;height:100%;width:30%;background:#2FBF9F}
+.strip{width:100%;display:flex;flex:none}
+.btn{flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(172,180,214,.10);
+     display:flex;align-items:center;justify-content:center;color:#D6D3E8;white-space:nowrap}
+</style></head><body>
+<h1>إيقاع الكتلة — لا يتبع عدد البرامج</h1>
+<p class="lede">القياس من لقطاتك الثلاث، بكسل حقيقي: الفجوة بين اسم القناة وعنوان البرنامج كانت
+<b class="g">13.5dp</b> في FRANCE 5 و<b>23.1dp</b> في M6 و<b>36.3dp</b> في TF1 —
+<em>ثلاث قيم لثلاث قنوات</em>، لأن <code>SpaceBetween</code> يقسم الفائض على عدد الأبناء،
+وعدد الأبناء هو عدد البرامج التي أرسلها المزوّد. المقترح: فجوة واحدة ثابتة
+<b>11.8dp</b>، والفائض يتجمّع في مكان واحد أسفل الكتلة.</p>
+
+<h2 class="bad">اليوم — الإيقاع يتغيّر بتغيّر البيانات</h2>
+<div class="row">
+  <div class="cell"><div class="tag"><b>M6</b> · صفّان قادمان · فجوة <span class="g">23.1dp</span></div><div class="frame"><div class="well" style="width:266.28px;height:331.00px;gap:4.00px"><div class="pic" style="width:260.31px;height:146.43px;border-radius:10.00px"><span class="live" style="font-size:11.00px;padding:2.00px 4.00px">مباشر&nbsp;&nbsp;2</span></div><div class="facts" dir="ltr" style="border-radius:10.00px;padding:2.00px 5.00px;font-size:12.00px;justify-content:space-between;flex:1"><div class="idr" style="gap:5.00px"><span class="logo" style="width:26.00px;height:19.50px">&#8416;</span><span class="wname" style="font-size:13.00px">FR| M6</span><span class="qb" style="font-size:10.08px;padding:1.00px 4.00px">HD</span></div><div class="grp" style="gap:2.00px"><div class="rule"></div><div class="ln"><span class="ttl big">Programmes de la nuit</span></div><div class="meta"><span class="bar"><i></i></span><span class="mtxt"><span class="num">00:10 – 04:00</span><span class="now">الآن</span></span></div></div><div class="grp" style="gap:2.00px"><div class="rule"></div><div class="ln2"><span class="num" style="width:50.40px">04:00</span><span class="ttl">Scènes de ménages</span></div></div><div class="ln2"><span class="num" style="width:50.40px">06:05</span><span class="ttl">My boutique Téléshop'</span></div></div><div class="strip" dir="ltr" style="height:48.00px;gap:4.00px"><div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:11.00px">الدليل</div><div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:11.00px">المفضلة</div><div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:11.00px">قفل</div><div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:11.00px">إخفاء</div></div></div></div></div>
+  <div class="cell"><div class="tag"><b>TF1</b> · صفّ واحد · فجوة <span class="g">36.3dp</span></div><div class="frame"><div class="well" style="width:266.28px;height:331.00px;gap:4.00px"><div class="pic" style="width:260.31px;height:146.43px;border-radius:10.00px"><span class="live" style="font-size:11.00px;padding:2.00px 4.00px">مباشر&nbsp;&nbsp;2</span></div><div class="facts" dir="ltr" style="border-radius:10.00px;padding:2.00px 5.00px;font-size:12.00px;justify-content:space-between;flex:1"><div class="idr" style="gap:5.00px"><span class="logo" style="width:26.00px;height:19.50px">&#8416;</span><span class="wname" style="font-size:13.00px">FR| TF1</span><span class="qb" style="font-size:10.08px;padding:1.00px 4.00px">HD</span></div><div class="grp" style="gap:2.00px"><div class="rule"></div><div class="ln"><span class="ttl big">Programmes de nuit - TF1</span></div><div class="meta"><span class="bar"><i></i></span><span class="mtxt"><span class="num">00:05 – 03:50</span><span class="now">الآن</span></span></div></div><div class="grp" style="gap:2.00px"><div class="rule"></div><div class="ln2"><span class="num" style="width:50.40px">03:50</span><span class="ttl">Tfou</span></div></div></div><div class="strip" dir="ltr" style="height:48.00px;gap:4.00px"><div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:11.00px">الدليل</div><div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:11.00px">المفضلة</div><div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:11.00px">قفل</div><div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:11.00px">إخفاء</div></div></div></div></div>
+  <div class="cell"><div class="tag"><b>FRANCE 5</b> · بلا صفوف · فجوة <span class="g">13.5dp</span><br>و80.7dp فراغ خارج الكتلة</div><div class="frame"><div class="well" style="width:266.28px;height:331.00px;gap:4.00px"><div class="pic" style="width:260.31px;height:146.43px;border-radius:10.00px"><span class="live" style="font-size:11.00px;padding:2.00px 4.00px">مباشر&nbsp;&nbsp;2</span></div><div class="facts" dir="ltr" style="border-radius:10.00px;padding:2.00px 5.00px;font-size:12.00px;justify-content:space-between;flex:none"><div class="idr" style="gap:5.00px"><span class="logo" style="width:26.00px;height:19.50px">&#8416;</span><span class="wname" style="font-size:13.00px">FR| FRANCE 5</span><span class="qb" style="font-size:10.08px;padding:1.00px 4.00px">HD</span></div><div class="grp" style="gap:2.00px"><div class="rule"></div><div class="ln"><span class="ttl big">La grande librairie</span></div><div class="meta"><span class="bar"><i></i></span><span class="mtxt"><span class="num">01:14 – 02:34</span><span class="now">الآن</span></span></div></div></div><div style="flex:1"></div><div class="strip" dir="ltr" style="height:48.00px;gap:4.00px"><div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:11.00px">الدليل</div><div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:11.00px">المفضلة</div><div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:11.00px">قفل</div><div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:11.00px">إخفاء</div></div></div></div></div>
+</div>
+
+<h2 class="good">المقترح — إيقاع واحد، والفائض في مكان واحد</h2>
+<div class="row">
+  <div class="cell"><div class="tag"><b>M6</b> · فجوة <span class="k">11.8dp</span></div><div class="frame"><div class="well" style="width:266.28px;height:331.00px;gap:4.00px"><div class="pic" style="width:260.31px;height:146.43px;border-radius:10.00px"><span class="live" style="font-size:11.00px;padding:2.00px 4.00px">مباشر&nbsp;&nbsp;2</span></div><div class="facts" dir="ltr" style="border-radius:10.00px;padding:2.00px 5.00px;font-size:12.00px;justify-content:flex-start;gap:11.76px;flex:1"><div class="idr" style="gap:5.00px"><span class="logo" style="width:26.00px;height:19.50px">&#8416;</span><span class="wname" style="font-size:13.00px">FR| M6</span><span class="qb" style="font-size:10.08px;padding:1.00px 4.00px">HD</span></div><div class="grp" style="gap:2.00px"><div class="rule"></div><div class="ln"><span class="ttl big">Programmes de la nuit</span></div><div class="meta"><span class="bar"><i></i></span><span class="mtxt"><span class="num">00:10 – 04:00</span><span class="now">الآن</span></span></div></div><div class="grp" style="gap:2.00px"><div class="rule"></div><div class="ln2"><span class="num" style="width:50.40px">04:00</span><span class="ttl">Scènes de ménages</span></div></div><div class="ln2"><span class="num" style="width:50.40px">06:05</span><span class="ttl">My boutique Téléshop'</span></div></div><div class="strip" dir="ltr" style="height:48.00px;gap:4.00px"><div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:11.00px">الدليل</div><div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:11.00px">المفضلة</div><div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:11.00px">قفل</div><div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:11.00px">إخفاء</div></div></div></div></div>
+  <div class="cell"><div class="tag"><b>TF1</b> · فجوة <span class="k">11.8dp</span></div><div class="frame"><div class="well" style="width:266.28px;height:331.00px;gap:4.00px"><div class="pic" style="width:260.31px;height:146.43px;border-radius:10.00px"><span class="live" style="font-size:11.00px;padding:2.00px 4.00px">مباشر&nbsp;&nbsp;2</span></div><div class="facts" dir="ltr" style="border-radius:10.00px;padding:2.00px 5.00px;font-size:12.00px;justify-content:flex-start;gap:11.76px;flex:1"><div class="idr" style="gap:5.00px"><span class="logo" style="width:26.00px;height:19.50px">&#8416;</span><span class="wname" style="font-size:13.00px">FR| TF1</span><span class="qb" style="font-size:10.08px;padding:1.00px 4.00px">HD</span></div><div class="grp" style="gap:2.00px"><div class="rule"></div><div class="ln"><span class="ttl big">Programmes de nuit - TF1</span></div><div class="meta"><span class="bar"><i></i></span><span class="mtxt"><span class="num">00:05 – 03:50</span><span class="now">الآن</span></span></div></div><div class="grp" style="gap:2.00px"><div class="rule"></div><div class="ln2"><span class="num" style="width:50.40px">03:50</span><span class="ttl">Tfou</span></div></div></div><div class="strip" dir="ltr" style="height:48.00px;gap:4.00px"><div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:11.00px">الدليل</div><div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:11.00px">المفضلة</div><div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:11.00px">قفل</div><div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:11.00px">إخفاء</div></div></div></div></div>
+  <div class="cell"><div class="tag"><b>FRANCE 5</b> · فجوة <span class="k">11.8dp</span></div><div class="frame"><div class="well" style="width:266.28px;height:331.00px;gap:4.00px"><div class="pic" style="width:260.31px;height:146.43px;border-radius:10.00px"><span class="live" style="font-size:11.00px;padding:2.00px 4.00px">مباشر&nbsp;&nbsp;2</span></div><div class="facts" dir="ltr" style="border-radius:10.00px;padding:2.00px 5.00px;font-size:12.00px;justify-content:flex-start;gap:11.76px;flex:1"><div class="idr" style="gap:5.00px"><span class="logo" style="width:26.00px;height:19.50px">&#8416;</span><span class="wname" style="font-size:13.00px">FR| FRANCE 5</span><span class="qb" style="font-size:10.08px;padding:1.00px 4.00px">HD</span></div><div class="grp" style="gap:2.00px"><div class="rule"></div><div class="ln"><span class="ttl big">La grande librairie</span></div><div class="meta"><span class="bar"><i></i></span><span class="mtxt"><span class="num">01:14 – 02:34</span><span class="now">الآن</span></span></div></div></div><div class="strip" dir="ltr" style="height:48.00px;gap:4.00px"><div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:11.00px">الدليل</div><div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:11.00px">المفضلة</div><div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:11.00px">قفل</div><div class="btn" style="border-radius:6.00px;padding:0 5.00px;font-size:11.00px">إخفاء</div></div></div></div></div>
+</div>
+<p class="lede" style="margin-top:12px">الكتلة تملأ عمودها في الحالات الثلاث، فالإطار يؤطّر
+نفس المساحة دائمًا ويختفي فراغ الـ80dp الذي كان خارجه في FRANCE 5. وما يبقى فارغًا أسفل الكتلة
+هو <b>الحقيقة</b>: هذه القناة لديها برامج أقلّ. وعلى شاشة طويلة يملأه الملخّص الذي يظهر أصلًا هناك.</p>
+</body></html>
