@@ -1,5 +1,6 @@
 package com.castivio.data.networking
 
+import android.util.Log
 import com.castivio.core.common.AppError
 import com.castivio.core.common.Outcome
 import com.castivio.data.parsing.JsonFormatException
@@ -118,7 +119,17 @@ class XtreamHttpApi(
             ),
         ).use { reader ->
             val entries = ArrayList<XtreamEpgEntry>(limit)
-            XtreamParser.parseShortEpg(reader) { entries.add(it) }
+            // TEMPORARY DIAGNOSTIC. Two numbers that cannot be recovered downstream: how
+            // many elements the provider put in `epg_listings`, and how many of them
+            // carried a channel id and a start time. Guarded on the page's own limit so
+            // walking the channel list -- forty requests at a time -- does not fill
+            // logcat; ids and counts only, never the url, the user or the password.
+            var listings = 0
+            XtreamParser.parseShortEpg(reader, onListing = { listings++ }) { entries.add(it) }
+            if (limit == FULL_EPG_LIMIT) {
+                Log.i(FULL_EPG_TAG, "FULL_EPG RESPONSE streamId=$streamId listings=$listings")
+                Log.i(FULL_EPG_TAG, "FULL_EPG PARSED streamId=$streamId entries=${entries.size}")
+            }
             Outcome.Success(entries)
         }
     } catch (e: HttpStatusException) {
@@ -291,6 +302,12 @@ class XtreamHttpApi(
      * opening the block wholesale would have widened the surface for no reason.
      */
     companion object {
+        /**
+         * TEMPORARY DIAGNOSTIC. The same tag `ChannelsViewModel` already logs the guide
+         * under, so one `adb logcat -s CastivioEpg` shows the whole chain in order.
+         */
+        private const val FULL_EPG_TAG = "CastivioEpg"
+
         private const val READ_BUFFER = 1 shl 16
 
         /** Attempts after the first. Two, and never unbounded -- see [openWithRetry]. */

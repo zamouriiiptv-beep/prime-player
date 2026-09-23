@@ -1,5 +1,6 @@
 package com.castivio.data.epg
 
+import android.util.Log
 import com.castivio.core.common.AppDispatchers
 import com.castivio.core.common.Outcome
 import com.castivio.data.networking.XtreamHttpApi
@@ -87,11 +88,23 @@ class XtreamNowNextRefresher(
         val source = xtreamSource() ?: return@withContext 0
 
         val api = apiFactory(client, source)
+        // TEMPORARY DIAGNOSTIC. Ids and counts only -- never the host, the user or the
+        // password. See the matching lines in `XtreamHttpApi.shortEpg`.
+        Log.i(
+            FULL_EPG_TAG,
+            "FULL_EPG REQUEST streamId=$providerRef limit=${XtreamHttpApi.FULL_EPG_LIMIT} " +
+                "atMs=${System.currentTimeMillis()}",
+        )
         val entries = when (val result = api.shortEpg(providerRef, XtreamHttpApi.FULL_EPG_LIMIT)) {
             is Outcome.Failure -> return@withContext 0
             is Outcome.Success -> result.value
         }
-        store(source, entries.map { it.toProgramme(channel) }, channels = 1)
+        val programmes = entries.map { it.toProgramme(channel) }
+        Log.i(FULL_EPG_TAG, "FULL_EPG MAPPED streamId=$providerRef programmes=${programmes.size}")
+        // Immediately before `store`, whose only step ahead of `writer.writeProgrammes`
+        // is an `isEmpty` guard -- so this is the count that reaches the writer.
+        Log.i(FULL_EPG_TAG, "FULL_EPG WRITE streamId=$providerRef programmes=${programmes.size}")
+        store(source, programmes, channels = 1)
     }
 
     /**
@@ -157,6 +170,12 @@ class XtreamNowNextRefresher(
     )
 
     companion object {
+        /**
+         * TEMPORARY DIAGNOSTIC. The tag `ChannelsViewModel` already logs the guide under,
+         * so one `adb logcat -s CastivioEpg` shows the whole chain in order.
+         */
+        private const val FULL_EPG_TAG = "CastivioEpg"
+
         /**
          * One request per channel, so this is a request budget rather than a row
          * limit. Forty covers a full guide page with room to spare.

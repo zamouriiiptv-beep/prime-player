@@ -376,8 +376,15 @@ class ChannelsViewModel @Inject constructor(
         ).distinct()
         for (key in keys) {
             val rows = runCatching { epg.programmes(key, fromMs, toMs) }.getOrDefault(emptyList())
-            if (rows.isNotEmpty()) return rows
+            if (rows.isNotEmpty()) {
+                // TEMPORARY DIAGNOSTIC. The last number in the chain that begins with
+                // `FULL_EPG REQUEST`: what storage gives back for the window the page
+                // asked for, and which of the two keys it answered under.
+                Log.i(TAG, "FULL_EPG READ channel=${channel.id} key=$key programmes=${rows.size}")
+                return rows
+            }
         }
+        Log.i(TAG, "FULL_EPG READ channel=${channel.id} key=none programmes=0")
         return emptyList()
     }
 

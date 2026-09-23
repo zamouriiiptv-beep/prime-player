@@ -262,12 +262,27 @@ object XtreamParser {
      * Titles and descriptions are base64 in most implementations and plain text in
      * a few, so [decodeBase64OrSelf] handles both.
      */
-    fun parseShortEpg(reader: Reader, onEntry: (XtreamEpgEntry) -> Unit): Int {
+    fun parseShortEpg(
+        reader: Reader,
+        /**
+         * **Diagnostic only, and default no-op.**
+         *
+         * Called once per element of `epg_listings`, before any field is read and before
+         * the usable-entry test below, so a caller that wants it can count what the
+         * provider actually sent as distinct from what survived parsing. The returned
+         * count is the second of those two numbers and always has been; this is the
+         * first. Nothing here reads it, and the default makes every existing call site
+         * and every existing behaviour identical.
+         */
+        onListing: () -> Unit = {},
+        onEntry: (XtreamEpgEntry) -> Unit,
+    ): Int {
         var count = 0
         val scanner = JsonScanner(reader)
         scanner.readObject { field ->
             if (field != "epg_listings") return@readObject
             scanner.readArray {
+                onListing()
                 var channelId: String? = null
                 var title: String? = null
                 var description: String? = null
