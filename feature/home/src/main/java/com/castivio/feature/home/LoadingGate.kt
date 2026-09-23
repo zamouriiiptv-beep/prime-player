@@ -552,21 +552,98 @@ fun SectionGate(
         graceExpired = true
     }
 
-    when (val fetch = state.fetch) {
-        is SectionLoad.Loading ->
-            LoadingGate(section, fetch, state.mac, state.providerLabel, modifier)
+    when (gateDecision(section, state.fetch, state.sectionTotal)) {
+        GateDecision.Content -> content()
+
+        GateDecision.Wait -> LoadingGate(
+            section,
+            state.fetch as? SectionLoad.Loading,
+            state.mac,
+            state.providerLabel,
+            modifier,
+        )
 
         // Not "settled": this is the state before the loader has been asked anything,
         // and treating it as an answer is exactly what let the section draw its own
         // first frame and then have the gate replace it.
-        null -> if (graceExpired) {
+        GateDecision.Undecided -> if (graceExpired) {
             LoadingGate(section, null, state.mac, state.providerLabel, modifier)
         } else {
             Box(modifier.fillMaxSize())
         }
-
-        else -> content()
     }
+}
+
+/** What [SectionGate] draws. Three outcomes, because "not yet asked" is not "empty". */
+internal enum class GateDecision { Content, Wait, Undecided }
+
+/**
+ * Whether a section is worth drawing yet.
+ *
+ * ## An import in progress is not the same as a section with nothing in it
+ *
+ * This was `fetch is Loading -> gate`, full stop, so a first import held the screen until
+ * its very last category. On a real subscription that is 836 categories and 833 requests
+ * — measured at 112.9s on the owner's device — and the viewer waited all of it to reach a
+ * list whose first page is sixty rows.
+ *
+ * They were waiting for rows that were already there. `XtreamImportEngine` commits as it
+ * goes, on `COMMIT_ROWS` or `COMMIT_INTERVAL_MS`, and exempts the very first commit for
+ * exactly this reason — its own comment calls it "the first content on the screen". The
+ * rows become readable seconds in; only the gate disagreed.
+ *
+ * ## What counts as usable, and why it is this number
+ *
+ * [BrowseState.sectionTotal] — `COUNT(*)` for the section's kind, no group, as a Room
+ * flow. It is the strongest evidence the architecture already keeps, and it is evidence
+ * of the right thing:
+ *
+ *  - It counts **committed** rows. Room's invalidation tracker publishes after a
+ *    transaction succeeds, and `RoomCatalogWriter.commitNow` refreshes it explicitly
+ *    because it writes through raw statements. A row inside an open transaction cannot
+ *    reach this number, so a partial write can never open the screen.
+ *  - It counts **rows**, not categories. The groups are written before the first request
+ *    goes out, so a category count would be positive with nothing to show — the empty
+ *    screen this must not produce.
+ *  - It is already in the state, already a flow, already recomputed as the import runs.
+ *    No new query, no new plumbing, nothing invented.
+ *
+ * ## What this does not change
+ *
+ * Not what "loaded" means. `LoadSection` still writes its mark only after the importer's
+ * flow completes, so a section opened early is still `Loading`, still importing, and
+ * still re-imported on the next visit if it never finished. Drawing rows is a statement
+ * about the screen; the mark is a statement about the cache, and they stay separate.
+ *
+ * Not the failure path either. `Failed` reaches `Content` here exactly as it did before,
+ * because the screen draws its own failure — with the rows it has when it has them, and
+ * as a wall when it has none. See `ChannelsScreen`'s `SectionLoad.Failed` branches.
+ *
+ * ## And only Channels, for now
+ *
+ * [CatalogSection.Live] alone opens early; Movies, Series and Radio wait for the import
+ * exactly as they did. Not because the reasoning stops applying to them — it does not —
+ * but because this is the change being measured, and a change measured on four screens at
+ * once is four changes measured on none. The others are a decision to take with the
+ * numbers from this one in hand.
+ *
+ * Radio is the one worth naming: it has no endpoint of its own and re-imports the live
+ * catalogue to sort stations out of it, so it pays the same 836 requests and would gain
+ * the most. It still waits, deliberately, until this has been seen on a device.
+ */
+internal fun gateDecision(
+    section: CatalogSection,
+    fetch: SectionLoad?,
+    sectionTotal: Int,
+): GateDecision = when (fetch) {
+    null -> GateDecision.Undecided
+    is SectionLoad.Loading ->
+        if (section == CatalogSection.Live && sectionTotal > 0) {
+            GateDecision.Content
+        } else {
+            GateDecision.Wait
+        }
+    else -> GateDecision.Content
 }
 
 /**
