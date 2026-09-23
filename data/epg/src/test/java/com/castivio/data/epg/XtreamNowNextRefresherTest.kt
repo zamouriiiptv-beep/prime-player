@@ -133,7 +133,7 @@ class XtreamNowNextRefresherTest {
         val writer = RecordingEpgWriter()
         val api = FakeShortEpg(mapOf("11" to listOf(entry("nova.1", "Cup Final", now))))
 
-        val written = refresher(writer, api, kind = SourceKind.M3U)
+        val written = refresher(writer, api, kind = SourceKind.M3U_URL)
             .fetch(ChannelRef(mediaId = "a", providerRef = "11", epgChannelId = "nova.1"))
 
         assertEquals(0, written)
