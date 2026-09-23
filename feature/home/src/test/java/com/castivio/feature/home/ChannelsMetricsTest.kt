@@ -85,6 +85,39 @@ class ChannelsMetricsTest {
     }
 
     /**
+     * **The facts block's gaps are one figure, and they leave the content its room.**
+     *
+     * They were a division of the slack — `SpaceBetween` over the column's children —
+     * and the children are the channel, what is on, what is next and what follows it, so
+     * their number is the number of programmes the provider returned. Three screenshots
+     * from one device measured the gap under the channel's name at 13.5dp, 23.1dp and
+     * 36.3dp on three channels, the widest on the channel with the *fewest* programmes.
+     *
+     * A stated gap fixes that and introduces the risk the old arrangement did not have:
+     * `SpaceBetween` could never overflow, and a fixed gap can. The drawing found it at
+     * 18.2dp, where the third programme was pushed off a handset. So what is asserted is
+     * the budget — three gaps may never take more than [GAP_BUDGET] of the block — which
+     * is the half of the question a JVM can answer. The other half needs a font, and the
+     * device answers it.
+     *
+     * Surfaces whose block is under its floor are skipped rather than asserted: at the
+     * bottom of the sweep the well has no room at all, and a ratio against nothing is not
+     * a fact about spacing.
+     */
+    @Test
+    fun `the facts block never spends a fifth of itself on gaps`() {
+        sweep { tv, width, height ->
+            val m = channelsMetricsFor(tv, width, height)
+            if (m.wellRoom < CHANNELS_FACTS_MIN) return@sweep
+            val gaps = m.guideSection * GUIDE_GAPS
+            assertTrue(
+                "three gaps take $gaps of a ${m.wellRoom} block at ${width}x$height",
+                gaps <= m.wellRoom * GAP_BUDGET,
+            )
+        }
+    }
+
+    /**
      * **A coming programme's name keeps most of its row.**
      *
      * The row under the rule used to be a word, a title and a range: `ما بعد التالي` cost
@@ -485,6 +518,9 @@ class ChannelsMetricsTest {
         assertNear("wellPictureWidth", 400f, m.wellPictureWidth)
         assertNear("wellPicture", 225f, m.wellPicture)
         assertNear("railGap", 16f, m.railGap)
+        // One gap between the block's sections, on every channel: six per cent of the
+        // 333.4 the well has left once the picture and the strip are paid.
+        assertNear("guideSection", 20f, m.guideSection)
         // And the list is what is left, which is the one column with no share of its own.
         assertNear(
             "list",
@@ -698,6 +734,22 @@ class ChannelsMetricsTest {
 
         /** `ChannelsScreen.TIME_COLUMN_OF_BODY`, which is private to that file. */
         const val TIME_COLUMN_OF_BODY = 4.2f
+
+        /**
+         * Gaps in a full facts block: between the channel, what is on, what is next and
+         * what follows it. Four sections, so three gaps.
+         */
+        const val GUIDE_GAPS = 3
+
+        /**
+         * The most of the block its gaps may take.
+         *
+         * The share is six per cent each, so three take eighteen and this is the ceiling
+         * above them — near enough to catch a change that makes the spacing generous at
+         * the content's expense, and far enough that the clamps at either end of
+         * `guideSection` cannot trip it.
+         */
+        const val GAP_BUDGET = 0.20f
 
         /**
          * The narrowest a coming programme's name may be squeezed to.

@@ -1386,24 +1386,23 @@ private fun ChannelWell(
         // space merely spread. On a handset the synopsis is absent -- it would not fit --
         // and the 11.7dp of ground is simply absorbed. No surface keeps dead ground.
         //
-        // **Only where there are three sections to set apart.** A channel with no schedule
-        // holds a name and one sentence, and one at the end of its guide window holds a
-        // name and one programme; stretching *those* over the room would put the hole back
-        // inside the border. They keep hugging, and their slack stays plain ground outside
-        // the frame, where empty space belongs.
-        val sections = shown.guide?.next != null
+        // **On every channel, and no longer only on the ones with three sections.** This
+        // took the room when the guide had a NEXT and hugged its content when it did not,
+        // so a channel at the end of its window drew a short panel with 80dp of ground
+        // between it and the strip while its neighbour drew a full one. Two shapes for one
+        // panel, chosen by what a provider's EPG happened to contain.
+        //
+        // The room is the column's to give and the block's to take; what varies is how
+        // much of it the content uses. Since the gaps inside are now one figure
+        // (`ChannelsMetrics.guideSection`) rather than a division of the slack, the
+        // leftover collects at the bottom of the block instead of stretching it, and the
+        // frame ends up in the same place on every channel.
         ChannelFacts(
             shown = shown,
             m = m,
             onExpand = onExpand,
-            modifier = Modifier
-                .fillMaxWidth()
-                .then(if (sections) Modifier.weight(1f) else Modifier),
+            modifier = Modifier.fillMaxWidth().weight(1f),
         )
-
-        // The slack, named -- and needed only where the block did not take it. It is what
-        // keeps the strip on the floor of the board while the facts stay under the picture.
-        if (!sections) Spacer(Modifier.weight(1f))
 
         ActionStrip(
             shown = shown,
@@ -1576,19 +1575,23 @@ private fun ChannelFacts(
             .clip(shape)
             .border(1.dp, colors.glassBorderSoft, shape)
             .padding(horizontal = m.guidePad, vertical = m.guidePad / 2),
-        // **Spread, because the block is now given the room rather than its content.**
+        // **One gap, and not a division of the slack.**
         //
-        // `SpaceBetween` distributes whatever the column had spare between the *children*
-        // of this column, which is why they are three and not eight: grouped, the air
-        // falls between who / what is on / what is coming, and never between a programme's
-        // name and the bar measuring it. Each group carries a top padding as well, because
-        // `SpaceBetween` cannot state a minimum — where the content already fills the room
-        // there is nothing to distribute and the groups would otherwise meet edge to edge.
+        // This was `SpaceBetween`, which spreads the spare height between a column's
+        // *children* — and the children here are the channel, what is on, what is next and
+        // what follows it, so their number is the number of programmes the provider sent.
+        // Three screenshots from one device measured the gap under the channel's name at
+        // 13.5dp, 23.1dp and 36.3dp on three channels, and the one with the *fewest*
+        // programmes had the widest gaps: the same slack cut into two pieces instead of
+        // three. A panel whose rhythm is set by an EPG feed is a panel that reads
+        // differently every time a viewer changes channel.
         //
-        // Where the block hugs instead — a channel with no schedule, or one at the end of
-        // its window — there is no free space and this arranges nothing, reading exactly
-        // as `spacedBy(badgePadV)` did.
-        verticalArrangement = Arrangement.SpaceBetween,
+        // `guideSection` is one figure derived from the block's own room, so the four
+        // sections sit the same distance apart whatever the provider returned, and
+        // whatever is left over collects at the bottom rather than being smeared between
+        // the rows. The groups' own top paddings went with `SpaceBetween`: they existed
+        // because it could not state a minimum, and a stated gap needs no floor under it.
+        verticalArrangement = Arrangement.spacedBy(m.guideSection),
     ) {
         // ---------------------------------------------------------- the identity
         //
@@ -1659,7 +1662,7 @@ private fun ChannelFacts(
                     color = colors.onBackgroundMuted,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.fillMaxWidth().padding(top = m.badgePadV),
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
             return@Column
@@ -1668,14 +1671,12 @@ private fun ChannelFacts(
         // -------------------------------------------------------- what is on now
         //
         // The title, its bar, its hours and its synopsis are one child of this column,
-        // not four. `SpaceBetween` distributes the column's spare height between its
-        // *children*, and four loose children would put that air between a programme's
-        // name and the bar measuring it. Grouped, the air falls where it belongs: between
-        // the three things a reader treats as separate — who, what is on, what is coming.
-        Column(
-            Modifier.padding(top = m.badgePadV),
-            verticalArrangement = Arrangement.spacedBy(m.badgePadV),
-        ) {
+        // not four. The column sets `guideSection` between its children, and four loose
+        // children would put that whole gap between a programme's name and the bar
+        // measuring it. Grouped, it falls where it belongs — between the things a reader
+        // treats as separate — and inside the group the far smaller `badgePadV` holds a
+        // programme's own parts together.
+        Column(verticalArrangement = Arrangement.spacedBy(m.badgePadV)) {
             // **The seam the block was missing.**
             //
             // The channel's name and the programme on it were separated by `badgePadV` —
@@ -1787,17 +1788,17 @@ private fun ChannelFacts(
         // with an exception.
         //
         // Separated, the column's children are the four things a reader actually scans —
-        // who, what is on, what is next, what follows that — and `SpaceBetween` sets the
-        // same air between each of them. The rule stays with the row it opens, because a
+        // who, what is on, what is next, what follows that — and `guideSection` sets the
+        // same air between each of them. That the air is now a stated figure rather than a
+        // share of the slack is what finished the job: the slack's size depends on how many
+        // of these four exist, so dividing it gave a channel with fewer programmes wider
+        // gaps than one with more. The rule stays with the row it opens, because a
         // hairline loose in a column reads as floating rather than as a boundary.
         //
         // Both rows come out of `shown.schedule` -- the same ordered window the guide page
         // reads, already on the device. Nothing is fetched to draw the second one.
         next?.let { programme ->
-            Column(
-                Modifier.padding(top = m.badgePadV),
-                verticalArrangement = Arrangement.spacedBy(m.badgePadV),
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(m.badgePadV)) {
                 // One rule for the pair, not one each: they are the same category of thing
                 // -- the future -- and ruling between them would say they are not.
                 //
@@ -1818,7 +1819,7 @@ private fun ChannelFacts(
         // held open for something that does not exist is the defect this block's whole
         // shape exists to avoid.
         after?.let {
-            ComingLine(programme = it, m = m, modifier = Modifier.padding(top = m.badgePadV))
+            ComingLine(programme = it, m = m)
         }
     }
 }

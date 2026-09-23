@@ -275,6 +275,38 @@ internal data class ChannelsMetrics(
     val wellRoom: Dp get() = column - wellPicture - guideGap * 2 - strip
 
     /**
+     * What separates the facts block's sections — one figure, on every channel.
+     *
+     * ## Why it is a figure at all
+     *
+     * The block used to set its sections apart with `Arrangement.SpaceBetween`, which
+     * divides the spare height between a column's *children* — and the number of children
+     * is the number of programmes the provider happened to return. Three screenshots from
+     * one device, taken minutes apart, measured the gap between the channel's name and the
+     * programme on it at **13.5dp** on a channel with no coming rows, **23.1dp** on one
+     * with two, and **36.3dp** on one with one. The channel with fewer programmes had the
+     * wider gaps, because the same slack was cut into two pieces instead of three.
+     *
+     * A reader cannot be expected to know that. The rhythm of a panel is part of how it
+     * reads, and here it was being set by an EPG feed.
+     *
+     * ## Why it is a share of the room and not of the screen
+     *
+     * Because the room is what it has to fit inside. [wellRoom] is already the block's
+     * own height — bounded from the other end by [wellPictureWidth], which gives the
+     * picture's height back until the block has [CHANNELS_FACTS_MIN] — so a share of it
+     * scales with the space actually available rather than with a screen dimension the
+     * block only partly owns. Three gaps take [SECTION_OF_ROOM] × 3 of the block, which
+     * is under a fifth of it at every surface; the rest stays with the content, and
+     * whatever is left over collects in one place at the bottom instead of being smeared
+     * unevenly between the rows.
+     *
+     * At 1280×720: 333.4 of room, a 20.0 gap. At 960×540: 247.0 and 14.8.
+     * At 833×385: 128.6 and 7.7.
+     */
+    val guideSection: Dp get() = (wellRoom * SECTION_OF_ROOM).coerceIn(5.dp, 22.dp)
+
+    /**
      * Whether the column can afford the current programme's synopsis.
      *
      * **A question about this column, not about this device.** The obvious rule is a
@@ -450,6 +482,22 @@ internal val CHANNELS_PICTURE_MIN = 60.dp
  * synopsis was taken out of this block.
  */
 internal const val CHANNELS_SYNOPSIS_LINES = 3
+
+/**
+ * How much of the facts block one gap between its sections takes.
+ *
+ * Six per cent, so the three gaps take eighteen — under a fifth of the block, which is
+ * the budget `ChannelsMetricsTest` holds this to. It is deliberately less than the slack
+ * the old arrangement spread, because that arrangement could not overflow and this one
+ * can: a fixed gap large enough to look generous on a channel with one programme is a
+ * gap that pushes the third programme off a handset. The drawing found exactly that at
+ * 18.2dp before any of this was written.
+ *
+ * What is left over after the content and the gaps collects at the bottom of the block.
+ * On a surface deep enough that is where the synopsis goes; on a handset it is simply
+ * the honest picture of a channel whose provider sent fewer programmes.
+ */
+private const val SECTION_OF_ROOM = 0.06f
 
 /* ------------------------------------------------------------------ the shares
  *
