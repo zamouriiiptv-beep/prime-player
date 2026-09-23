@@ -219,6 +219,7 @@ fun ChannelsScreen(
             Board(
                 state = state,
                 shown = shown,
+                fullGuide = fullGuide,
                 m = m,
                 model = model,
                 previewModel = previewModel,
@@ -516,6 +517,7 @@ private fun SearchField(m: ChannelsMetrics, onClick: () -> Unit) {
 private fun Board(
     state: BrowseState,
     shown: ChannelPreview,
+    fullGuide: FullGuide,
     m: ChannelsMetrics,
     model: BrowseViewModel,
     previewModel: ChannelsViewModel,
@@ -575,6 +577,7 @@ private fun Board(
                 Columns(
                     state = state,
                     shown = shown,
+                    fullGuide = fullGuide,
                     m = m,
                     model = model,
                     previewModel = previewModel,
@@ -671,6 +674,7 @@ private fun FetchNotice(
 private fun Columns(
     state: BrowseState,
     shown: ChannelPreview,
+    fullGuide: FullGuide,
     m: ChannelsMetrics,
     model: BrowseViewModel,
     previewModel: ChannelsViewModel,
