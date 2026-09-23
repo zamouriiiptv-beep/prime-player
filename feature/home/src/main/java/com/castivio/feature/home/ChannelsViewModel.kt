@@ -335,13 +335,27 @@ class ChannelsViewModel @Inject constructor(
      * data already on the device — and the request that follows, if one follows, replaces
      * it when it arrives.
      *
-     * **What "falls short" means.** Not "does not cover seven days": a provider holding
-     * one day would never satisfy that and would be asked on every open, forever. The
-     * question is whether the stored guide runs out soon, and
-     * [EpgRepository.MINIMUM_HORIZON_MS] already answers it — six hours, the figure the
-     * domain layer uses for exactly this. A provider with a single day passes it all day
-     * and is left alone; a channel holding only the four rows now/next wrote fails it and
-     * is asked once.
+     * **What "falls short" means, and the figure that got it wrong.**
+     *
+     * This asked [EpgRepository.MINIMUM_HORIZON_MS] — six hours — on the reasoning that
+     * the domain layer already had a number for "the stored guide is running out". It
+     * does, and it is the wrong question. Six hours is what a *row beside a list* needs
+     * before now/next starts coming up empty. A page that exists to show a day needs a
+     * day, and asking the row's question on the page's behalf produced a defect that
+     * scaled the wrong way: a channel with three-hour programmes has its four now/next
+     * rows spanning twelve hours, clears six comfortably, and is therefore **never asked
+     * at all** — so the longer a channel's programmes, the less of its guide the page
+     * would show. Measured on a device: TV BREIZH held four rows reaching 10h33m ahead
+     * and the request never went out; the page drew what now/next happened to leave.
+     *
+     * So the page asks its own question against its own figure. [GUIDE_DEPTH_MS] is a
+     * day, and it is a *floor on what is worth asking for*, not a promise: storage that
+     * reaches past this hour tomorrow is enough to draw and the provider is left alone;
+     * storage that stops short is asked once, and whatever comes back is what the page
+     * shows. A provider that only ever holds an afternoon fails the test on every open
+     * and is still asked no more than once per [ASK_AGAIN_MS] per channel, because the
+     * throttle below is what bounds the asking — not the depth test, which is about the
+     * data.
      */
     private suspend fun loadFullGuide(channel: Channel) {
         val nowMs = clock.nowMs()
@@ -349,7 +363,7 @@ class ChannelsViewModel @Inject constructor(
 
         val stored = readGuide(channel, nowMs, horizonMs)
         _fullGuide.value = FullGuide(days = groupByDay(stored))
-        if (runsOutSoon(stored, nowMs).not()) return
+        if (coversAPage(stored, nowMs)) return
 
         val last = fetched[channel.id]
         if (last != null && nowMs - last < ASK_AGAIN_MS) return
@@ -388,11 +402,6 @@ class ChannelsViewModel @Inject constructor(
         return emptyList()
     }
 
-    /** True when what is stored ends inside the horizon the domain calls a shortage. */
-    private fun runsOutSoon(stored: List<Programme>, nowMs: Long): Boolean {
-        val last = stored.maxOfOrNull { it.stopMs } ?: return true
-        return last < nowMs + EpgRepository.MINIMUM_HORIZON_MS
-    }
 
     /** The blue key, and the star in the row. Returns nothing: the flow reports the result. */
     fun toggleFavorite() {
@@ -422,6 +431,24 @@ class ChannelsViewModel @Inject constructor(
          * it.
          */
         const val GUIDE_HORIZON_MS = 7 * 24 * 60 * 60 * 1000L
+
+        /**
+         * How much stored guide makes the page worth drawing without asking again.
+         *
+         * A day, because a day is the smallest thing this page is for: somebody opens it
+         * to see what is on tonight, and a panel that stops at teatime has not answered
+         * them. It is deliberately **not** [EpgRepository.MINIMUM_HORIZON_MS] — that is
+         * the row's figure, six hours, and borrowing it meant a channel with long
+         * programmes cleared the bar on four rows and was never asked for the rest.
+         *
+         * A floor on asking, never a demand on answering. A provider holding eight hours
+         * fails this on every open and is asked once per [ASK_AGAIN_MS], which is the
+         * honest cost of not knowing in advance what a panel holds; it is one request per
+         * channel per half hour, and the page still draws whatever came back. Nothing
+         * here treats a short answer as a failure, and no day is invented to fill this
+         * figure out — see `groupByDay`.
+         */
+        const val GUIDE_DEPTH_MS = 24 * 60 * 60 * 1000L
 
         /**
          * How long a fruitless ask stands before the provider is asked again.
@@ -499,6 +526,23 @@ internal fun groupByDay(programmes: List<Programme>): List<GuideDay> {
         days.getOrPut(calendar.timeInMillis) { ArrayList() }.add(programme)
     }
     return days.map { (startOfDayMs, rows) -> GuideDay(startOfDayMs, rows) }
+}
+
+/**
+ * True when storage already reaches as far ahead as the guide page sets out to show.
+ *
+ * The page's own test, against the page's own figure — [ChannelsViewModel.GUIDE_DEPTH_MS],
+ * a day — and deliberately not the six hours now/next runs on. Nothing empty passes it: a
+ * channel with no rows has no last stop and is asked. And the answer says only whether
+ * asking is worth a request, never how much a provider must return.
+ *
+ * Top-level and `internal` for the same reason `groupByDay` is: it is arithmetic over two
+ * timestamps, it decides whether a request goes out, and a test can hold it to account
+ * without a device, a provider or a view model.
+ */
+internal fun coversAPage(stored: List<Programme>, nowMs: Long): Boolean {
+    val last = stored.maxOfOrNull { it.stopMs } ?: return false
+    return last >= nowMs + ChannelsViewModel.GUIDE_DEPTH_MS
 }
 
 data class ChannelPreview(
