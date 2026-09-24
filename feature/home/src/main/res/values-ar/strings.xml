@@ -84,6 +84,13 @@
 
 
     <string name="home_not_fetched">لم يُحمَّل بعد</string>
+
+    <!-- قسم سُئل عنه المزوّد فأجاب بلا شيء. لا «0 قناة» أبدًا: الصفر يُقرأ عطلًا
+         في التطبيق، ولا يُفرَّق بنظرة عن قسم لم يُطلب بعد. -->
+    <string name="home_section_no_live">لا قنوات في هذا الاشتراك</string>
+    <string name="home_section_no_movies">لا أفلام في هذا الاشتراك</string>
+    <string name="home_section_no_series">لا مسلسلات في هذا الاشتراك</string>
+    <string name="home_section_no_radio">لا محطات في هذا الاشتراك</string>
     <string name="home_fetched_at">محفوظ محليًا · %1$s</string>
 
 

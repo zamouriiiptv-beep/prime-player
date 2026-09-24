@@ -154,6 +154,14 @@
 
     <!-- A tile whose section has never been brought onto this device. -->
     <string name="home_not_fetched">Not downloaded yet</string>
+
+    <!-- A section the provider was asked for and answered with nothing. Never "0
+         channels": a zero reads as a fault in the app, and at a glance it is
+         indistinguishable from a section nobody has fetched yet. -->
+    <string name="home_section_no_live">No channels in this subscription</string>
+    <string name="home_section_no_movies">No films in this subscription</string>
+    <string name="home_section_no_series">No series in this subscription</string>
+    <string name="home_section_no_radio">No stations in this subscription</string>
     <!-- %1$s is a date and time. Shown under the count on a downloaded section. -->
     <string name="home_fetched_at">On this device · %1$s</string>
 

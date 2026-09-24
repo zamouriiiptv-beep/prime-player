@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CalendarMonth
@@ -167,7 +168,7 @@ fun HomeScreen(
     // trailing column underneath the navigation.
     BoxWithConstraints(modifier.fillMaxSize().safeDrawingPadding()) {
         val frame = rememberMetrics(maxWidth, maxHeight)
-        val plan = Plan.of(frame, maxHeight)
+        val plan = Plan.of(frame)
 
         Column(
             Modifier
@@ -223,18 +224,19 @@ fun HomeScreen(
                 }
 
                 else -> {
-                    SectionCards(state, frame, plan, onSeeSection)
-                    ActionRow(
+                    SectionBoard(
+                        state = state,
                         frame = frame,
+                        onSeeSection = onSeeSection,
                         onRefresh = model::refresh,
                         onAddSource = onAddSource,
                         onTimeShift = onTimeShift,
                         onSettings = onSettings,
                         onAbout = onAbout,
                         onExit = onExit,
+                        modifier = Modifier.fillMaxWidth().weight(1f),
                     )
-                    DeviceStrip(state, frame)
-                    Disclaimer(frame)
+                    FooterLine(state, frame)
                 }
             }
         }
@@ -256,30 +258,21 @@ fun HomeScreen(
 private data class Plan(
     /** The header band: the frame's row plus the strapline this screen sets under it. */
     val headerHeight: Dp,
-    val cardHeight: Dp,
 ) {
     companion object {
-        fun of(frame: CastivioMetrics, height: Dp): Plan {
-            val gap = frame.bandTop
-            val stage = height - frame.stageTop - frame.stageBottom
-
-            // The frame's header is the lockup's row. This screen puts a strapline
-            // under it, so the band is that row plus one small line — stated here,
-            // where the arithmetic can see it, rather than discovered by clipping.
-            val header = frame.header + frame.fsChip
-
-            // Everything that is not the cards: the header, the actions, the device
-            // strip, the disclaimer, and the four gaps between those five bands.
-            val fixed = header + frame.touchTarget + frame.chip + frame.chip
-            return Plan(
-                headerHeight = header,
-                // A floor as well as a share: on the shortest surface this project
-                // ships to the arithmetic still has to leave a card somebody can
-                // read, and a band that has been squeezed past that is a sign the
-                // tokens above need their ceilings looked at — not a card to draw.
-                cardHeight = (stage - fixed - gap * 4).coerceAtLeast(CARD_MIN),
-            )
-        }
+        /**
+         * The frame's header is the lockup's row. This screen puts a strapline under
+         * it, so the band is that row plus one small line — stated here, where the
+         * arithmetic can see it, rather than discovered by clipping.
+         *
+         * **And nothing else is measured out any more.** The board used to be handed a
+         * computed height because five bands had to add up: header, cards, actions,
+         * device strip, disclaimer. There are two bands now — the board and one footer
+         * line — so the board takes what is left with `weight(1f)`. That cannot
+         * disagree with the column it lives in the way a second copy of the arithmetic
+         * can, and it is why the stage height is no longer a parameter here.
+         */
+        fun of(frame: CastivioMetrics): Plan = Plan(headerHeight = frame.header + frame.fsChip)
     }
 }
 
@@ -578,183 +571,290 @@ internal fun expiryLabel(status: Recorded?): String {
     return rememberDate(at)
 }
 
-// ------------------------------------------------------------ the four cards
+// ------------------------------------------------------------- the board
 
 /**
- * The four sections, in one row, on every frame.
+ * The four sections, weighted by how often they are opened.
  *
- * One row and not a grid that folds: four abreast is what the approved screen is,
- * and a handset has the width for it — 873dp gives each card about 185, which is
- * wider than the tallest of the four names needs. Folding to two by two was a
- * layout this screen invented, and it made a phone look like a different product.
+ * ## Why one of them is large
+ *
+ * The four were one row of equal cards, and the equality was the defect. Live
+ * television is what this application is opened for; Radio is a section most
+ * subscriptions do not even carry. Four cards of one size say those are the same
+ * decision, so the board offered no path — the eye had to read all four names to
+ * find the one it wanted, every time, and a launcher whose items are all equally
+ * important is a settings list wearing a launcher's clothes.
+ *
+ * So Live takes a panel and the other three take a line each. That is not decoration:
+ * the room Live gains is what lets it carry its count at a size readable across a
+ * living room, and the room the other three give up is room they were spending on
+ * nothing — a glyph floating above two short words, with a third of the card empty
+ * beneath it.
+ *
+ * ## And the utilities are demoted, deliberately
+ *
+ * They were six pills the width of the section cards and directly under them, which
+ * gave "Refresh" the same visual claim as "Live TV". They are now a quiet column at
+ * the trailing edge: same six controls, same order, a fainter edge and a smaller
+ * label. Nothing was removed. A viewer looking for Settings still finds it in one
+ * pass, and a viewer looking for television no longer reads past it.
+ *
+ * ## The traversal, which a still picture cannot show
+ *
+ * Three columns, so the D-pad has a spine: Live, then the stack, then the utilities,
+ * with up and down staying inside whichever column has focus. Compose's own focus
+ * search resolves all of that from the geometry here — there is no focus order to
+ * declare, and declaring one would be a second description of a layout that already
+ * says it.
  */
 @Composable
-private fun SectionCards(
+private fun SectionBoard(
     state: HomeState,
     frame: CastivioMetrics,
-    plan: Plan,
     onSeeSection: (CatalogSection) -> Unit,
+    onRefresh: () -> Unit,
+    onAddSource: () -> Unit,
+    onTimeShift: () -> Unit,
+    onSettings: () -> Unit,
+    onAbout: () -> Unit,
+    onExit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
-    val sections = listOf(
-        Section(CatalogSection.Live, Icons.Rounded.LiveTv, colors.hueAzure, R.string.browse_live, state.liveCount, R.string.home_count_live, state.sections[MediaKind.LIVE]),
-        Section(CatalogSection.Movies, Icons.Rounded.Movie, colors.hueViolet, R.string.browse_movies, state.movieCount, R.string.home_count_movies, state.sections[MediaKind.MOVIE]),
-        Section(CatalogSection.Series, Icons.Rounded.Tv, colors.hueGreen, R.string.browse_series, state.seriesCount, R.string.home_count_series, state.sections[MediaKind.SERIES]),
-        Section(CatalogSection.Radio, Icons.Rounded.Radio, colors.hueAmber, R.string.browse_radio, state.radioCount, R.string.home_count_radio, state.sections[MediaKind.RADIO]),
+    val live = Section(
+        CatalogSection.Live, Icons.Rounded.LiveTv, colors.hueAzure,
+        R.string.browse_live, state.liveCount, R.string.home_count_live,
+        R.string.home_section_no_live, state.sections[MediaKind.LIVE],
+    )
+    val rest = listOf(
+        Section(
+            CatalogSection.Movies, Icons.Rounded.Movie, colors.hueViolet,
+            R.string.browse_movies, state.movieCount, R.string.home_count_movies,
+            R.string.home_section_no_movies, state.sections[MediaKind.MOVIE],
+        ),
+        Section(
+            CatalogSection.Series, Icons.Rounded.Tv, colors.hueGreen,
+            R.string.browse_series, state.seriesCount, R.string.home_count_series,
+            R.string.home_section_no_series, state.sections[MediaKind.SERIES],
+        ),
+        Section(
+            CatalogSection.Radio, Icons.Rounded.Radio, colors.hueAmber,
+            R.string.browse_radio, state.radioCount, R.string.home_count_radio,
+            R.string.home_section_no_radio, state.sections[MediaKind.RADIO],
+        ),
     )
 
-    Column(
-        modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(frame.bandTop),
-    ) {
-        Row(
-            Modifier.fillMaxWidth().height(plan.cardHeight),
-            horizontalArrangement = Arrangement.spacedBy(frame.bandTop),
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(frame.bandTop)) {
+        HeroCard(
+            section = live,
+            frame = frame,
+            onClick = { onSeeSection(live.section) },
+            modifier = Modifier.weight(HERO_SHARE).fillMaxHeight(),
+        )
+
+        Column(
+            Modifier.weight(STACK_SHARE).fillMaxHeight(),
+            verticalArrangement = Arrangement.spacedBy(frame.bandTop),
         ) {
-            for (section in sections) {
-                SectionCard(
+            for (section in rest) {
+                SectionLine(
                     section = section,
                     frame = frame,
                     onClick = { onSeeSection(section.section) },
-                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    modifier = Modifier.fillMaxWidth().weight(1f),
                 )
             }
         }
+
+        UtilityRail(
+            frame = frame,
+            onRefresh = onRefresh,
+            onAddSource = onAddSource,
+            onTimeShift = onTimeShift,
+            onSettings = onSettings,
+            onAbout = onAbout,
+            onExit = onExit,
+            modifier = Modifier.weight(RAIL_SHARE).fillMaxHeight(),
+        )
     }
 }
 
-/** One card's worth of decisions, so the list above reads as a list rather than a wall. */
+/** One section's worth of decisions, so the lists above read as lists rather than walls. */
 private data class Section(
     val section: CatalogSection,
     val icon: ImageVector,
     val hue: Color,
     val name: Int,
     val count: Int,
+    /** "%s channels" — used only when there is a number worth printing. */
     val unit: Int,
+    /** What this section says when the provider was asked and sent nothing. */
+    val empty: Int,
     /** When this section was brought onto the device, or null if it never has been. */
     val fetchedAtMs: Long?,
 )
 
+/**
+ * What a section says about itself, which is three different sentences.
+ *
+ * Never a zero. "0 channels" is the sentence a viewer reads as a fault in the
+ * application, and it is indistinguishable at a glance from a section that has not
+ * been asked yet — the two states this screen exists to keep apart. A section the
+ * provider answered with nothing says so in words, and it stays pressable, because
+ * pressing it is how it is asked again.
+ */
+private enum class Tally { Unfetched, Empty, Counted }
+
+private val Section.tally: Tally
+    get() = when {
+        fetchedAtMs == null -> Tally.Unfetched
+        count <= 0 -> Tally.Empty
+        else -> Tally.Counted
+    }
+
 @Composable
-private fun SectionCard(
+private fun Section.sentence(): String = when (tally) {
+    Tally.Unfetched -> stringResource(R.string.home_not_fetched)
+    Tally.Empty -> stringResource(empty)
+    Tally.Counted -> stringResource(unit, formatCount(count))
+}
+
+@Composable
+private fun Section.ink(): Color {
+    val colors = CastivioTheme.colors
+    return when (tally) {
+        Tally.Unfetched -> colors.primary
+        Tally.Empty -> colors.onBackgroundMuted
+        Tally.Counted -> hue
+    }
+}
+
+/**
+ * Live television, at the size its use deserves.
+ *
+ * The count is the largest figure on the screen and the only one set in the title
+ * step, because it is the one fact a returning viewer checks: that the catalogue on
+ * this device is the size it was. It is `tabular` for the same reason every other
+ * changing figure in this application is — a number that shifts width as it rises
+ * reads as instability in the thing counting.
+ *
+ * The glyph is drawn on the panel rather than inside a plate of its own. Every
+ * section used to be two visible rectangles, one nested in the other, and two edges
+ * around one idea is the detail that makes a screen look assembled rather than
+ * designed.
+ */
+@Composable
+private fun HeroCard(
     section: Section,
     frame: CastivioMetrics,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val colors = CastivioTheme.colors
     InteractiveGlassCard(
         onClick = onClick,
         modifier = modifier,
         shape = RoundedCornerShape(frame.radius),
     ) {
-        Column(
-            Modifier.fillMaxSize().padding(frame.chipPad),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
-        ) {
-            SectionPlate(section, frame, Modifier.fillMaxWidth().weight(1f))
-            SectionLabels(section, frame, Modifier.fillMaxWidth())
+        Column(Modifier.fillMaxSize().padding(frame.chipPad)) {
+            Icon(
+                imageVector = section.icon,
+                contentDescription = null,
+                tint = colors.discGlyph(section.hue),
+                modifier = Modifier.size(frame.brand),
+            )
+
+            // **The glyph opens the panel and the words close it**, rather than three
+            // children stacked at the top with the bottom third empty — which is the
+            // shape the four equal cards had and the reason they read as unfinished.
+            // One spacer between two groups, not `SpaceBetween` over three children:
+            // the panel's composition must not change when a count becomes a sentence.
+            Spacer(Modifier.weight(1f))
+
+            Text(
+                text = stringResource(section.name),
+                style = castivioTitleStyle(frame.fsLabel),
+                color = colors.onBackgroundStrong,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = section.sentence(),
+                style = when (section.tally) {
+                    Tally.Counted -> castivioTitleStyle(frame.fsTitle)
+                    else -> castivioBodyStyle(frame.fsBody)
+                },
+                color = section.ink(),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
 
 /**
- * What the card carries instead of a picture.
+ * One of the other three, on one line.
  *
- * The section's glyph on the section's hue, from the theme's own disc recipe. It is
- * plainly a plate and not a cover, which is the point: this build has no image
- * loader, and four coloured rectangles arranged like posters claim otherwise.
+ * Glyph, name, and what the section says — read in that order and in one pass. The
+ * name and the sentence are stacked so the row survives a long translation without
+ * the count being pushed off the end, which is what a three-column row of fixed
+ * shares would have done to Arabic.
  */
 @Composable
-private fun SectionPlate(section: Section, frame: CastivioMetrics, modifier: Modifier = Modifier) {
-    val colors = CastivioTheme.colors
-    val shape = RoundedCornerShape(frame.radius / 2)
-    Box(
-        modifier
-            .clip(shape)
-            .background(colors.discFill(section.hue))
-            .border(BorderStroke(1.dp, colors.discBorder(section.hue)), shape),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = section.icon,
-            contentDescription = null,
-            tint = colors.discGlyph(section.hue),
-            modifier = Modifier.size(frame.brand),
-        )
-    }
-}
-
-/**
- * The section's name, and the one sentence under it.
- *
- * The difference between those two sentences is the whole point of the lazy fetch:
- * "not downloaded yet" is an invitation, a count is a fact about this device. A count
- * with no mark behind it cannot happen.
- */
-@Composable
-private fun SectionLabels(
+private fun SectionLine(
     section: Section,
     frame: CastivioMetrics,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
-    Column(modifier, verticalArrangement = Arrangement.Center) {
-        Text(
-            text = stringResource(section.name),
-            style = castivioChipStyle(frame.fsLabel),
-            color = colors.onBackgroundStrong,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Text(
-            text = if (section.fetchedAtMs == null) {
-                stringResource(R.string.home_not_fetched)
-            } else {
-                stringResource(section.unit, formatCount(section.count))
-            },
-            style = castivioBodyStyle(frame.fsBody),
-            color = if (section.fetchedAtMs == null) colors.primary else section.hue,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
+    InteractiveGlassCard(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(frame.radius / 2),
+    ) {
+        Row(
+            Modifier.fillMaxSize().padding(horizontal = frame.chipPad),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(frame.chipPad),
+        ) {
+            Icon(
+                imageVector = section.icon,
+                contentDescription = null,
+                tint = colors.discGlyph(section.hue),
+                modifier = Modifier.size(Sizing.iconMd),
+            )
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(section.name),
+                    style = castivioChipStyle(frame.fsLabel),
+                    color = colors.onBackgroundStrong,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = section.sentence(),
+                    style = castivioBodyStyle(frame.fsBody),
+                    color = section.ink(),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
     }
 }
 
-// --------------------------------------------------------------- the actions
+// --------------------------------------------------------------- the utilities
 
 /**
- * What a viewer does from Home that is not "open a section": seven controls, in the
- * approved order.
+ * What a viewer does from Home that is not "open a section": six controls, in the
+ * approved order, at the trailing edge.
  *
- * ## Small pills, one gap, centred
- *
- * Each is as wide as its own label and no wider, the gap between any two is the
- * frame's own `chipPad`, and the row is centred so what is left over is the same
- * margin on each side. Three arrangements were tried before this one and each spent
- * the spare width somewhere worse: `space-between` pushed it *between* the buttons as
- * gaps of three different sizes, equal shares spent it by inflating every pill to the
- * width of the longest label, and packing at the leading edge left the whole
- * remainder against one margin.
- *
- * ## One line each
- *
- * No button carries a second line. A row where one is two lines tall and the rest are
- * one has a step in it, and the step reads as an error.
- *
- * The language is not on this row: it sits in the header, at the outer end, with the
- * theme control just inside it — the corner the other five screens keep it in.
- *
- * ## Search is not here, and that is checked rather than assumed
- *
- * Every section screen carries its own search chip, so this row dropping it strands
- * nothing. It was here only while the standing navigation was gone and nothing else
- * offered it.
+ * They were a centred row of pills directly under the section cards, at the same
+ * width and the same weight. That row read as a fifth and sixth and seventh
+ * destination, and it sat in the path between the sections and everything below
+ * them. As a column at the edge they are where a hand reaches for a tool and where
+ * an eye looking for television does not go.
  *
  * ## Two of these needed something built behind them
  *
@@ -762,13 +862,16 @@ private fun SectionLabels(
  * which is what moves the two facts in the header. It downloads no catalogue — see
  * [com.castivio.domain.RefreshProvider].
  *
- * **Time Shift** has no catch-up engine in this build, and it is on the row anyway
- * because it was asked for twice. What it must not be is silent: pressing it says so,
- * in the app's own words for a part of Castivio that is not ready yet, rather than
- * doing nothing and teaching the user that the row cannot be trusted.
+ * **Time Shift** has no catch-up engine in this build, and it is on the rail anyway
+ * because it was asked for twice. What it must not be is silent: pressing it says
+ * so, in the app's own words for a part of Castivio that is not ready yet, rather
+ * than doing nothing and teaching the user that the rail cannot be trusted.
+ *
+ * The language is not here. It sits in the header at the outer end, with the theme
+ * control just inside it — the corner the other five screens keep it in.
  */
 @Composable
-private fun ActionRow(
+private fun UtilityRail(
     frame: CastivioMetrics,
     onRefresh: () -> Unit,
     onAddSource: () -> Unit,
@@ -778,24 +881,18 @@ private fun ActionRow(
     onExit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier.fillMaxWidth().height(frame.touchTarget),
-        // Centred, so the spare width is the same on both sides. Packed at the
-        // leading edge it left the whole remainder against one margin, which reads
-        // as a row that failed to fill rather than as one that is the size it is.
-        horizontalArrangement = Arrangement.spacedBy(frame.chipPad, Alignment.CenterHorizontally),
-    ) {
-        Action(Icons.Rounded.Refresh, stringResource(R.string.home_refresh), frame, onRefresh)
-        Action(Icons.Rounded.PlaylistAdd, stringResource(R.string.home_change), frame, onAddSource)
-        Action(Icons.Rounded.History, stringResource(R.string.home_time_shift), frame, onTimeShift)
-        Action(Icons.Rounded.Settings, stringResource(R.string.home_settings), frame, onSettings)
-        Action(Icons.Rounded.Info, stringResource(R.string.home_about), frame, onAbout)
-        Action(Icons.Rounded.PowerSettingsNew, stringResource(R.string.home_exit), frame, onExit)
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(frame.chipPad / 2)) {
+        Utility(Icons.Rounded.Refresh, stringResource(R.string.home_refresh), frame, onRefresh)
+        Utility(Icons.Rounded.PlaylistAdd, stringResource(R.string.home_change), frame, onAddSource)
+        Utility(Icons.Rounded.History, stringResource(R.string.home_time_shift), frame, onTimeShift)
+        Utility(Icons.Rounded.Settings, stringResource(R.string.home_settings), frame, onSettings)
+        Utility(Icons.Rounded.Info, stringResource(R.string.home_about), frame, onAbout)
+        Utility(Icons.Rounded.PowerSettingsNew, stringResource(R.string.home_exit), frame, onExit)
     }
 }
 
 @Composable
-private fun Action(
+private fun ColumnScope.Utility(
     icon: ImageVector,
     label: String,
     frame: CastivioMetrics,
@@ -804,69 +901,60 @@ private fun Action(
     val colors = CastivioTheme.colors
     InteractiveGlassCard(
         onClick = onClick,
-        modifier = Modifier.fillMaxHeight(),
+        modifier = Modifier.fillMaxWidth().weight(1f),
         shape = RoundedCornerShape(frame.radius / 2),
     ) {
         Row(
-            Modifier.fillMaxHeight().padding(horizontal = frame.chipPad),
+            Modifier.fillMaxSize().padding(horizontal = frame.chipPad),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
         ) {
-            Text(
-                label,
-                style = castivioChipStyle(frame.fsChip),
-                color = colors.onBackground,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
             Icon(
                 icon,
                 contentDescription = null,
                 tint = colors.hueViolet,
-                modifier = Modifier.size(Sizing.iconMd),
+                modifier = Modifier.size(Sizing.iconSm),
+            )
+            Text(
+                label,
+                style = castivioChipStyle(frame.fsChip),
+                color = colors.onBackgroundVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
 }
 
-// ---------------------------------------------------------------- the device
+// ---------------------------------------------------------------- the footer
 
 /**
- * What this device is: its address, and whether Castivio is unlocked on it.
+ * One line: what this device is, and what Castivio is not.
  *
- * The build's version was a third cell here and has gone to Settings, which is where
- * a number nobody reads twice belongs — Home answers "what have I got and how do I
- * change it", and a version string answers neither.
+ * It was three bands — a full-width filled strip holding two short facts with a
+ * great deal of nothing between them, and the disclaimer centred under it. A box
+ * that wide around that little is the shape a screen takes when a band was given a
+ * height before anyone asked what would go in it.
  *
  * The address is the one a user reads out to a provider who activates by MAC, so it
- * belongs where it can be read without hunting — isolated for direction, because a
- * colon-separated hex address reordered by an Arabic paragraph is not the address any
- * more.
+ * stays; it is isolated for direction, because a colon-separated hex address
+ * reordered by an Arabic paragraph is not the address any more. The device key that
+ * a reference design put beside it is deliberately absent: a key printed on the
+ * screen a phone is most often photographed on is a key that leaves with the photo,
+ * and Settings is one press away.
  */
 @Composable
-private fun DeviceStrip(
+private fun FooterLine(
     state: HomeState,
     frame: CastivioMetrics,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
     Row(
-        modifier
-            .fillMaxWidth()
-            .height(frame.chip)
-            .clip(RoundedCornerShape(frame.radius / 2))
-            .background(colors.glassFillBrush)
-            .padding(horizontal = frame.chipPad),
+        modifier.fillMaxWidth().height(frame.chip),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(frame.headGap),
     ) {
-        Fact(
-            Icons.Rounded.Memory,
-            stringResource(R.string.home_device_mac, ltrIsolate(state.mac)),
-            colors.onBackgroundMuted,
-            frame,
-            Modifier.weight(1f),
-        )
         Fact(
             Icons.Rounded.Lock,
             stringResource(
@@ -878,7 +966,20 @@ private fun DeviceStrip(
             ),
             if (state.licenceHolds) colors.success else colors.danger,
             frame,
-            Modifier.weight(1f),
+        )
+        Fact(
+            Icons.Rounded.Memory,
+            stringResource(R.string.home_device_mac, ltrIsolate(state.mac)),
+            colors.onBackgroundMuted,
+            frame,
+        )
+        Spacer(Modifier.weight(1f))
+        Fact(
+            Icons.Rounded.Shield,
+            stringResource(R.string.home_disclaimer),
+            colors.hueViolet,
+            frame,
+            Modifier.weight(DISCLAIMER_SHARE, fill = false),
         )
     }
 }
@@ -900,33 +1001,6 @@ private fun Fact(
         Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(Sizing.iconSm))
         Text(
             text,
-            style = castivioBodyStyle(frame.fsBody),
-            color = colors.onBackgroundVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-@Composable
-private fun Disclaimer(frame: CastivioMetrics, modifier: Modifier = Modifier) {
-    val colors = CastivioTheme.colors
-    Row(
-        modifier.fillMaxWidth().height(frame.chip),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(
-            frame.chipPad / 2,
-            Alignment.CenterHorizontally,
-        ),
-    ) {
-        Icon(
-            Icons.Rounded.Shield,
-            contentDescription = null,
-            tint = colors.hueViolet,
-            modifier = Modifier.size(Sizing.iconSm),
-        )
-        Text(
-            text = stringResource(R.string.home_disclaimer),
             style = castivioBodyStyle(frame.fsBody),
             color = colors.onBackgroundMuted,
             maxLines = 1,
@@ -952,13 +1026,32 @@ internal fun rememberDate(atMs: Long): String {
 }
 
 /**
- * The shortest a section card may be drawn.
+ * How the board's width is divided: the hero, the stack, the rail.
  *
- * A floor, not a size. Every other height on this screen is measured out of the
- * stage; this is the one number that says the arithmetic has taken too much, and on
- * the surfaces this project ships to it is never reached.
+ * Weights rather than widths, so the three columns share whatever the frame's edge
+ * and gaps leave instead of each screen size needing its own arithmetic. The figures
+ * are the approved drawing's, read off it at the owner's own geometry — 833x385dp,
+ * where the board is 801dp wide and the three columns measure 378, 262 and 133 with
+ * two gaps of 11 between them.
+ *
+ * The hero is not merely the largest. It is larger than the stack *and* the rail
+ * together are wide, which is what makes the board read as one destination with
+ * alternatives rather than as three equal columns.
  */
-private val CARD_MIN: Dp = 96.dp
+private const val HERO_SHARE = 0.472f
+private const val STACK_SHARE = 0.327f
+private const val RAIL_SHARE = 0.166f
+
+/**
+ * What the disclaimer may take of the footer line before it is cut.
+ *
+ * `fill = false`, so it asks for what its words need and gives the rest back: the
+ * two device facts keep their width on a narrow frame and the sentence ellipsises,
+ * which is the right one of the three to lose. Half, because a footer whose legal
+ * line is longer than everything else on it is a legal line pretending to be
+ * content.
+ */
+private const val DISCLAIMER_SHARE = 0.5f
 
 /** The wordmark's share of the frame's title step, as the licence screen sets it. */
 private const val WORD_RATIO = 0.8f
