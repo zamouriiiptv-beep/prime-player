@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<!-- The start board, laid out by weight instead of by count.
+     833x385dp phone geometry, one px per dp; rendered at 2x so it can be read.
+     The ground is the real one: backdropStops = Deep #141031 -> Violet10 #1B1038 ->
+     Azure10 #0A1E3D, with the Violet40 / Azure40 aurora glows over it. Every other
+     colour is a :core:design token, named where it is used. -->
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>لوحة البداية</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#05040E;color:#fff;font-family:"DejaVu Sans",system-ui,sans-serif;
+     padding:20px;direction:rtl;display:inline-block}
+h2{font-size:13px;color:#6FB2FF;margin:24px 0 3px;font-weight:700}
+.note{font-size:10.5px;color:#A6A6BF;line-height:1.8;max-width:833px;margin-bottom:9px}
+.note b{color:#fff} .note .no{color:#FF8A8A} .note .yes{color:#2FBF9F}
+
+/* =============================================================== the ground */
+.board{width:833px;height:385px;border-radius:10px;overflow:hidden;position:relative;
+       background:linear-gradient(135deg,#141031 0%,#1B1038 46%,#0A1E3D 100%);
+       padding:16px;display:flex;flex-direction:column;gap:11px}
+.board::before,.board::after{content:"";position:absolute;border-radius:50%;filter:blur(70px);
+       pointer-events:none}
+.board::before{width:420px;height:300px;right:-90px;bottom:-120px;background:#6E4BD8;opacity:.30}
+.board::after {width:460px;height:320px;left:-110px;top:-140px;background:#2E6BFF;opacity:.22}
+.waves{position:absolute;inset:0;opacity:.30;pointer-events:none}
+
+/* ================================================================= the top */
+.top{height:34px;flex:none;display:flex;align-items:center;gap:11px;position:relative;z-index:2}
+.brand{display:flex;align-items:center;gap:7px}
+.mark{width:23px;height:23px;border-radius:50%;flex:none;
+      background:linear-gradient(135deg,#6E4BD8,#2E6BFF);display:flex;align-items:center;
+      justify-content:center;font-size:10px}
+.bname{font-size:15px;font-weight:700;letter-spacing:.11em;line-height:1}
+.btag{font-size:8px;color:#A6A6BF;letter-spacing:0;margin-top:2px}
+.spring{flex:1}
+.state{display:flex;align-items:center;gap:6px;font-size:10px;color:#C9C9DA;white-space:nowrap}
+.state .dot{width:6px;height:6px;border-radius:50%;background:#2FBF9F;flex:none;
+            box-shadow:0 0 6px #2FBF9F}
+.state .to{color:#7A7A96}
+.vr{width:1px;height:15px;background:rgba(160,163,215,.20);flex:none}
+.clock{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.cdate{font-size:8.5px;color:#7A7A96;font-variant-numeric:tabular-nums;margin-top:2px;text-align:left}
+
+/* ================================================================ the body */
+.body{flex:1;display:flex;gap:11px;min-height:0;position:relative;z-index:2}
+
+/* -- the hero: one destination, given the room its use deserves -------------- */
+.hero{width:378px;flex:none;border-radius:12px;padding:15px 17px;position:relative;
+      overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;
+      background:linear-gradient(150deg,rgba(46,107,255,.20),rgba(20,16,49,.55));
+      border:1px solid #6FB2FF;box-shadow:0 0 0 1.5px rgba(111,178,255,.55)}
+.hero .hglow{position:absolute;width:190px;height:190px;border-radius:50%;filter:blur(46px);
+      background:#2E6BFF;opacity:.32;left:-46px;bottom:-66px}
+.hg{font-size:30px;line-height:1}
+.hname{font-size:21px;font-weight:700;margin-top:9px;letter-spacing:.01em}
+.hcount{font-size:27px;font-weight:700;font-variant-numeric:tabular-nums;color:#6FB2FF;
+        line-height:1.05;margin-top:4px}
+.hcount small{font-size:12px;font-weight:400;color:#C9C9DA;margin-right:5px}
+.hresume{display:flex;align-items:center;gap:7px;font-size:10.5px;color:#C9C9DA;
+         background:rgba(255,255,255,.06);border:1px solid rgba(160,163,215,.18);
+         border-radius:999px;padding:5px 10px;align-self:flex-start;max-width:100%}
+.hresume .lbl{color:#7A7A96;flex:none}
+.hresume .val{color:#fff;font-weight:600;direction:ltr;unicode-bidi:isolate;
+              overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* -- the stack: three sections, one line each ------------------------------- */
+.stack{width:262px;flex:none;display:flex;flex-direction:column;gap:9px}
+.row{flex:1;border-radius:10px;padding:0 13px;display:flex;align-items:center;gap:12px;
+     background:rgba(255,255,255,.045);border:1px solid rgba(126,140,255,.28);position:relative;
+     overflow:hidden}
+.row .rglow{position:absolute;width:104px;height:104px;border-radius:50%;filter:blur(30px);
+     opacity:.26;left:-34px;top:-26px}
+.rg{font-size:19px;flex:none;line-height:1;position:relative;z-index:1}
+.rtext{flex:1;min-width:0;position:relative;z-index:1}
+.rname{font-size:13px;font-weight:700}
+.rsub{font-size:10px;margin-top:2px}
+.rnum{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.rnum small{font-size:9.5px;font-weight:400;color:#7A7A96;margin-right:4px}
+.ridle{color:#7A7A96}
+.rload{color:#6FB2FF;display:flex;align-items:center;gap:5px}
+.spin{width:8px;height:8px;border-radius:50%;border:1.5px solid rgba(111,178,255,.28);
+      border-top-color:#6FB2FF;flex:none}
+.trk{position:absolute;left:0;right:0;bottom:0;height:2px;background:rgba(255,255,255,.07)}
+.trk>i{display:block;height:100%;background:#6FB2FF}
+.mov .rnum,.mov .rload{color:#9B6BFF} .mov .rglow{background:#9B6BFF}
+.mov .trk>i{background:#9B6BFF}
+.ser .rnum{color:#2FBF9F} .ser .rglow{background:#2FBF9F}
+.rad .rnum{color:#F0A03C} .rad .rglow{background:#F0A03C}
+
+/* -- the rail: utilities, demoted on purpose -------------------------------- */
+.rail{width:133px;flex:none;display:flex;flex-direction:column;gap:5px}
+.util{flex:1;display:flex;align-items:center;gap:9px;padding:0 10px;border-radius:8px;
+      font-size:10.5px;color:#C9C9DA;background:rgba(255,255,255,.03);
+      border:1px solid rgba(160,163,215,.12)}
+.util i{font-style:normal;color:#8F8FAE;width:13px;text-align:center;flex:none;font-size:11px}
+.util.quit{color:#FF9B9B} .util.quit i{color:#FF9B9B}
+
+/* ============================================================== the footer */
+.foot{height:15px;flex:none;display:flex;align-items:center;gap:9px;font-size:9px;
+      color:#6E6E8A;position:relative;z-index:2}
+.foot .id{font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
+.foot .ok{color:#2FBF9F}
+
+/* ============================================== the old board, for contrast */
+.old{width:833px;height:200px;border-radius:10px;overflow:hidden;position:relative;
+     background:linear-gradient(135deg,#141031,#1B1038 46%,#0A1E3D);padding:12px;
+     display:flex;flex-direction:column;gap:9px}
+.ocards{flex:1;display:flex;gap:9px}
+.ocard{flex:1;border:1px solid rgba(160,163,215,.22);border-radius:9px;
+       display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px}
+.otile{width:74px;height:46px;border-radius:7px;border:1px solid rgba(126,140,255,.45);
+       display:flex;align-items:center;justify-content:center;font-size:17px}
+.oname{font-size:11px;font-weight:700} .osub{font-size:9px;color:#6FB2FF}
+.obtns{height:34px;display:flex;gap:8px;justify-content:center}
+.obtn{width:96px;border:1px solid rgba(160,163,215,.22);border-radius:8px;display:flex;
+      align-items:center;justify-content:center;font-size:9.5px;color:#C9C9DA;gap:5px}
+.obar{height:26px;border:1px solid rgba(160,163,215,.18);border-radius:8px;display:flex;
+      align-items:center;justify-content:space-between;padding:0 12px;font-size:9px;color:#8F8FAE}
+.tagno{position:absolute;background:rgba(255,80,80,.14);border:1px solid rgba(255,120,120,.55);
+       color:#FF9B9B;font-size:8.5px;border-radius:5px;padding:1.5px 5px;z-index:5;white-space:nowrap}
+
+/* ============================================================== focus rules */
+.map{width:833px;background:rgba(20,16,49,.72);border:1px solid rgba(126,140,255,.24);
+     border-radius:9px;padding:13px 15px;display:flex;gap:20px;align-items:flex-start}
+.mbox{display:flex;gap:7px;flex:none}
+.mh{width:96px;height:118px;border:1.5px solid #6FB2FF;border-radius:6px;color:#6FB2FF;
+    background:rgba(111,178,255,.08);display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:3px;font-size:10px;text-align:center;line-height:1.35}
+.ms{width:74px;display:flex;flex-direction:column;gap:5px}
+.msr{flex:1;border:1px solid rgba(255,255,255,.16);border-radius:5px;display:flex;
+     align-items:center;justify-content:center;font-size:9px;color:#C9C9DA}
+.mr{width:52px;border:1px dashed rgba(160,163,215,.40);border-radius:6px;display:flex;
+    align-items:center;justify-content:center;font-size:9px;color:#8F8FAE;text-align:center;
+    line-height:1.4}
+.rules{font-size:10.5px;color:#A6A6BF;line-height:2;flex:1}
+.rules b{color:#fff}
+.k{display:inline-block;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);
+   border-radius:4px;padding:0 5px;font-size:9.5px;color:#C9C9DA;direction:ltr}
+</style></head><body>
+
+<h2>المقترح — 833×385dp، بحجمه الحقيقي على جهازك</h2>
+<div class="note">
+الأرضية هي أرضية Castivio نفسها: <b>#141031 → #1B1038 → #0A1E3D</b> بتوهّجَي
+<b style="color:#9B6BFF">Violet40</b> و<b style="color:#6FB2FF">Azure40</b>، من <b>Color.kt</b> حرفيًّا.
+التخطيط وحده تغيّر. <b>البث المباشر يأخذ الحجم الذي يستحقّه استعماله</b> — والثلاثة الباقية سطر لكل منها.
+</div>
+
+<div class="board">
+  <svg class="waves" viewBox="0 0 833 385" preserveAspectRatio="none">
+    <g fill="none" stroke="#B4D6FF" stroke-width="0.7" opacity="0.14">
+      <path d="M-40 300 C 160 250, 300 340, 500 286 S 760 210, 900 250"/>
+      <path d="M-40 330 C 170 282, 310 368, 505 316 S 765 244, 900 282"/>
+      <path d="M-40 360 C 180 314, 320 396, 510 346 S 770 278, 900 314"/>
+      <path d="M-40 80 C 150 30, 300 120, 500 66 S 760 -10, 900 30"/>
+    </g>
+    <g fill="#B4D6FF" opacity="0.30">
+      <circle cx="678" cy="92" r="1.3"/><circle cx="300" cy="58" r="1"/>
+      <circle cx="146" cy="196" r="1.2"/><circle cx="792" cy="238" r="1"/>
+    </g>
+  </svg>
+
+  <div class="top">
+    <div class="brand"><span class="mark">▶</span>
+      <div><div class="bname">CASTIVIO</div><div class="btag">مشغّل IPTV متميّز</div></div></div>
+    <div class="spring"></div>
+    <div class="state"><span class="dot"></span>الاشتراك نشط
+      <span class="to">· ينتهي 08/04/2027</span></div>
+    <div class="vr"></div>
+    <div><div class="clock">07:37</div><div class="cdate">24/09/2026</div></div>
+  </div>
+
+  <div class="body">
+    <div class="hero"><span class="hglow"></span>
+      <div>
+        <div class="hg">📺</div>
+        <div class="hname">البث المباشر</div>
+        <div class="hcount">54,334<small>قناة</small></div>
+      </div>
+      <div class="hresume"><span class="lbl">تابع</span>
+        <span class="val">FR| TF1 HD</span></div>
+    </div>
+
+    <div class="stack">
+      <div class="row mov"><span class="rglow"></span>
+        <span class="rg">🎞</span>
+        <div class="rtext"><div class="rname">الأفلام</div>
+          <div class="rsub rload"><span class="spin"></span>جارٍ · 12,480</div></div>
+        <div class="trk"><i style="width:34%"></i></div></div>
+
+      <div class="row ser"><span class="rglow"></span>
+        <span class="rg">🎬</span>
+        <div class="rtext"><div class="rname">المسلسلات</div>
+          <div class="rsub ridle">لم يُحمَّل بعد</div></div></div>
+
+      <div class="row rad"><span class="rglow"></span>
+        <span class="rg">🎙</span>
+        <div class="rtext"><div class="rname">الراديو</div>
+          <div class="rsub ridle">لا محطات في هذا الاشتراك</div></div></div>
+    </div>
+
+    <div class="rail">
+      <div class="util"><i>⟲</i>تحديث</div>
+      <div class="util"><i>⏱</i>Time Shift</div>
+      <div class="util"><i>⇄</i>تغيير الاشتراك</div>
+      <div class="util"><i>⚙</i>الإعدادات</div>
+      <div class="util"><i>ⓘ</i>حول الجهاز</div>
+      <div class="util quit"><i>⏻</i>خروج</div>
+    </div>
+  </div>
+
+  <div class="foot"><span class="ok">◉</span>الجهاز مُفعَّل
+    <span>·</span><span>MAC <span class="id">FE:F8:4D:83:78:9F</span></span>
+    <div class="spring"></div>
+    <span>Castivio مشغّل وسائط. لا يوفّر قنوات ولا أفلامًا ولا اشتراكات — أنت من يضيفها.</span></div>
+</div>
+
+<h2>الحالي، وما فيه — نفس المقياس</h2>
+<div class="note">
+ستّة عيوب، وكلّها بنيوية لا ذوقية.
+</div>
+<div class="old">
+  <div class="tagno" style="top:30px;right:196px">١ · إطار داخل إطار</div>
+  <div class="tagno" style="top:74px;right:432px">٢ · فراغ ميّت</div>
+  <div class="tagno" style="top:8px;right:14px">٣ · أربعة بوزن واحد</div>
+  <div class="tagno" style="bottom:52px;left:14px">٤ · ستّة أزرار بوزن الأقسام</div>
+  <div class="tagno" style="bottom:4px;left:186px">٥ · صندوق فارغ عرضه كامل</div>
+  <div class="ocards">
+    <div class="ocard"><div class="otile" style="color:#F0A03C">🎙</div>
+      <div class="oname">الراديو</div><div class="osub">لم يُحمَّل بعد</div></div>
+    <div class="ocard"><div class="otile" style="color:#2FBF9F">🎬</div>
+      <div class="oname">المسلسلات</div><div class="osub">لم يُحمَّل بعد</div></div>
+    <div class="ocard"><div class="otile" style="color:#9B6BFF">🎞</div>
+      <div class="oname">الأفلام</div><div class="osub">لم يُحمَّل بعد</div></div>
+    <div class="ocard"><div class="otile" style="color:#6FB2FF">📺</div>
+      <div class="oname">البث المباشر</div><div class="osub">54,334 قناة</div></div>
+  </div>
+  <div class="obtns">
+    <div class="obtn">⏻ خروج</div><div class="obtn">ⓘ حول</div><div class="obtn">⚙ الإعدادات</div>
+    <div class="obtn">⏱ Time Shift</div><div class="obtn">⇄ تغيير الاشتراك</div><div class="obtn">⟲ تحديث</div>
+  </div>
+  <div class="obar"><span>MAC: FE:F8:4D:83:78:9F</span><span>الجهاز: مُفعَّل</span></div>
+</div>
+
+<h2>ما عالجه المقترح، بندًا بندًا</h2>
+<div class="note">
+<b>١ · إطار داخل إطار.</b> كل قسم كان مستطيلين متداخلين مرئيين — بطاقة، وداخلها مربّع أيقونة بحدّ خاص.
+هذا أوضح ما يجعل واجهة تبدو غير مصقولة. <span class="yes">الأيقونة الآن رسم على البطاقة، بلا صندوق.</span><br>
+<b>٢ · فراغ ميّت.</b> الأيقونة تطفو في الثلثين العلويين والنص محشور أسفلها.
+<span class="yes">الأسطر الثلاثة صارت صفًّا أفقيًّا: أيقونة · اسم · رقم — بلا فراغ يحمله أحد.</span><br>
+<b>٣ · أربعة بوزن واحد.</b> وهو أهمّها: البث المباشر تسع زيارات من عشر، وكان بحجم الراديو.
+<span class="yes">صار الأكبر، وحلقة التركيز تبدأ عليه.</span><br>
+<b>٤ · ستّة أزرار بوزن الأقسام.</b> «تحديث» ليس وجهة.
+<span class="yes">صارت عمودًا هادئًا في الحافة، بحدّ أخفت ونصّ أصغر.</span><br>
+<b>٥ · صندوق فارغ بعرض الشاشة</b> يحمل سطرين صغيرين.
+<span class="yes">صار سطرًا واحدًا هادئًا بلا إطار.</span><br>
+<b>٦ · الشريط العلوي مبعثر</b> — شعار وصندوقان ودائرتان وساعة، بخمسة ارتفاعات.
+<span class="yes">صفّ واحد، محاذاة واحدة، وفاصل رأسي واحد قبل الساعة.</span>
+</div>
+
+<h2>وثلاثة أشياء أضافها التخطيط الجديد</h2>
+<div class="note">
+<b>«تابع: FR| TF1 HD»</b> داخل البطاقة الكبيرة. أكثر ما يفعله المستخدم هو استئناف آخر قناة،
+ولم يكن له مكان في اللوحة. الحجم الذي كسبه البث المباشر هو ما أتاح هذا.<br>
+<b>حالات العدّاد الأربع</b> مرسومة في اللوحة نفسها: <b>54,334 قناة</b> محمَّل ·
+<b style="color:#6FB2FF">جارٍ · 12,480</b> مع شريط · <b>لم يُحمَّل بعد</b> · <b>لا محطات في هذا الاشتراك</b>.
+لا «0» أبدًا — الصفر يُقرأ عطلًا.<br>
+<b>أُزيل <span class="no">Device Key</span> و<span class="no">رخصة التطبيق</span>.</b>
+الأول مفتاح لا يُعرض دائمًا، والثاني يعد بنظام ترخيص لم يُبنَ بعد (<b>RELEASE_CHECKLIST.md</b>).
+</div>
+
+<h2>نموذج التركيز — الريموت أوّلًا</h2>
+<div class="map">
+  <div class="mbox">
+    <div class="mh">البث المباشر<br><span style="font-size:8px">البداية</span></div>
+    <div class="ms"><div class="msr">الأفلام</div><div class="msr">المسلسلات</div>
+      <div class="msr">الراديو</div></div>
+    <div class="mr">الأدوات</div>
+  </div>
+  <div class="rules">
+    <b>البداية:</b> البطاقة الكبيرة — وهي أيضًا ما يفتحه زرّ التشغيل مباشرة.<br>
+    <b><span class="k">←</span> من الكبيرة:</b> إلى أعلى العمود الأوسط، أو إلى الصفّ الذي غادره آخر مرّة.<br>
+    <b><span class="k">↑</span> <span class="k">↓</span> في العمود الأوسط:</b> بين الثلاثة، ولا تخرجان منه.<br>
+    <b><span class="k">←</span> من العمود الأوسط:</b> إلى الأدوات، على نفس الارتفاع تقريبًا.<br>
+    <b><span class="k">→</span></b> عكس ذلك تمامًا، ويعود دائمًا إلى ما غادره لا إلى الأوّل.<br>
+    <b><span class="k">↑</span> من أي عمود:</b> إلى الشريط العلوي — اللغة والسطوع.<br>
+    <b><span class="k">رجوع</span>:</b> من الأدوات إلى العمود؛ ومن الكبيرة خروج بتأكيد.<br>
+    <b>وبطاقة «لم يُحمَّل بعد» تُركَّز وتُفتح</b> — الضغط عليها هو ما يبدأ استيرادها.
+  </div>
+</div>
+
+</body></html>

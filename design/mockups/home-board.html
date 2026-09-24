@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<!-- The start board, redrawn: a 2x2 grid of sections beside a grouped rail.
+     833x385dp phone geometry, one px per dp; rendered at 2x purely so it can be read.
+     Palette straight from :core:design — Void #08071A, PanelLow #20223A, Panel #242642,
+     Violet50 #9B6BFF, Aqua #2FBF9F, Azure60 #6FB2FF, GlassEdge 24%, GlassEdgeSoft 8%. -->
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>لوحة البداية</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#05040E;color:#fff;font-family:"DejaVu Sans",system-ui,sans-serif;
+     padding:20px;direction:rtl;display:inline-block}
+
+h2{font-size:13px;color:#2FBF9F;margin:22px 0 3px;font-weight:700}
+.note{font-size:10.5px;color:#A6A6BF;line-height:1.75;max-width:833px;margin-bottom:9px}
+.note b{color:#fff}
+.note .no{color:#FF8A8A}
+.note .yes{color:#2FBF9F}
+
+/* ---------------------------------------------------------------- the board */
+.board{width:833px;height:385px;background:#08071A;border:1px solid rgba(255,255,255,.10);
+       border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:12px;
+       position:relative;overflow:hidden}
+
+.top{height:40px;flex:none;display:flex;align-items:center;gap:12px}
+.brand{display:flex;align-items:center;gap:7px;font-size:15px;font-weight:700;letter-spacing:.09em}
+.mark{width:22px;height:22px;border-radius:50%;background:linear-gradient(140deg,#9B6BFF,#6FB2FF);
+      display:flex;align-items:center;justify-content:center;font-size:11px}
+.tag{font-size:9px;color:#A6A6BF;letter-spacing:0;font-weight:400}
+.spring{flex:1}
+.chip{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:4px 9px;font-size:10px;
+      color:#C9C9DA;white-space:nowrap}
+.chip .dot{width:6px;height:6px;border-radius:50%;background:#2FBF9F;flex:none}
+.clock{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.05}
+.date{font-size:9.5px;color:#A6A6BF;font-variant-numeric:tabular-nums;text-align:left}
+
+.body{flex:1;display:flex;gap:14px;min-height:0}
+
+/* ------------------------------------------------------------------- the rail */
+.rail{width:176px;flex:none;background:#20223A;border:1px solid rgba(255,255,255,.08);
+      border-radius:8px;padding:9px 8px;display:flex;flex-direction:column;gap:3px}
+.grp{font-size:8.5px;color:#7A7A96;letter-spacing:.10em;margin:5px 4px 2px}
+.grp:first-child{margin-top:0}
+.item{display:flex;align-items:center;gap:8px;padding:5.5px 7px;border-radius:5px;
+      font-size:11px;color:#C9C9DA;border:1px solid transparent}
+.item i{width:13px;text-align:center;color:#8F8FAE;font-style:normal;font-size:11px;flex:none}
+.item.exit{color:#FF9B9B;margin-top:auto}
+.item.exit i{color:#FF9B9B}
+.sep{height:1px;background:rgba(255,255,255,.08);margin:5px 2px}
+
+/* ------------------------------------------------------------------- the grid */
+.grid{flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:12px;min-width:0}
+.card{background:#242642;border:1px solid rgba(255,255,255,.08);border-radius:9px;
+      padding:11px 13px;display:flex;flex-direction:column;justify-content:space-between;
+      position:relative;overflow:hidden;min-width:0}
+.card .glow{position:absolute;inset:auto auto -34px -34px;width:96px;height:96px;border-radius:50%;
+            filter:blur(28px);opacity:.30}
+.ico{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+     font-size:17px;border:1px solid;flex:none}
+.cname{font-size:14px;font-weight:700;margin-top:7px}
+.cline{margin-top:4px;min-height:17px;display:flex;align-items:center;gap:6px}
+.count{font-size:11px;font-weight:700;border-radius:999px;padding:2.5px 9px;white-space:nowrap;
+       font-variant-numeric:tabular-nums;direction:rtl}
+.idle{font-size:10.5px;color:#7A7A96}
+.load{font-size:10.5px;color:#6FB2FF;display:flex;align-items:center;gap:5px}
+.spin{width:9px;height:9px;border-radius:50%;border:1.5px solid rgba(111,178,255,.30);
+      border-top-color:#6FB2FF;flex:none}
+.trk{position:absolute;left:0;right:0;bottom:0;height:2px;background:rgba(255,255,255,.07)}
+.trk>i{display:block;height:100%;background:#6FB2FF}
+
+.live  .ico{color:#6FB2FF;background:rgba(111,178,255,.10);border-color:rgba(111,178,255,.35)}
+.live  .count{color:#6FB2FF;background:rgba(111,178,255,.13)} .live  .glow{background:#6FB2FF}
+.ser   .ico{color:#2FBF9F;background:rgba(47,191,159,.10);border-color:rgba(47,191,159,.35)}
+.ser   .count{color:#2FBF9F;background:rgba(47,191,159,.13)} .ser   .glow{background:#2FBF9F}
+.mov   .ico{color:#9B6BFF;background:rgba(155,107,255,.10);border-color:rgba(155,107,255,.35)}
+.mov   .count{color:#9B6BFF;background:rgba(155,107,255,.13)} .mov   .glow{background:#9B6BFF}
+.rad   .ico{color:#F0A03C;background:rgba(240,160,60,.10);border-color:rgba(240,160,60,.35)}
+.rad   .count{color:#F0A03C;background:rgba(240,160,60,.13)} .rad   .glow{background:#F0A03C}
+
+/* focus: the azure ring, the one thing on the board that means "you are here" */
+.focus{border-color:#6FB2FF;box-shadow:0 0 0 1.5px #6FB2FF}
+.item.focus{background:rgba(111,178,255,.10)}
+
+.foot{height:24px;flex:none;display:flex;align-items:center;gap:10px;
+      font-size:9.5px;color:#7A7A96}
+.foot .id{font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
+.foot .ok{color:#2FBF9F}
+
+/* ------------------------------------------------------- the four count states */
+.states{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+.st{width:200px;background:#242642;border:1px solid rgba(255,255,255,.08);border-radius:9px;
+    padding:11px 13px;position:relative;overflow:hidden}
+.stcap{font-size:9px;color:#7A7A96;margin-top:8px;line-height:1.6}
+.stcap b{color:#C9C9DA}
+
+/* ------------------------------------------------------------- the focus map */
+.map{width:833px;background:#0D0B22;border:1px solid rgba(255,255,255,.08);border-radius:8px;
+     padding:14px 16px;display:flex;gap:22px;align-items:flex-start}
+.mapbox{display:flex;gap:9px}
+.mrail{width:96px;border:1px dashed rgba(111,178,255,.45);border-radius:6px;height:132px;
+       display:flex;align-items:center;justify-content:center;font-size:10px;color:#6FB2FF;
+       text-align:center;line-height:1.5}
+.mgrid{display:grid;grid-template-columns:82px 82px;grid-template-rows:62px 62px;gap:8px}
+.mc{border:1px solid rgba(255,255,255,.14);border-radius:6px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:2px;font-size:10px;color:#C9C9DA;
+    text-align:center;line-height:1.4}
+.mc.start{border-color:#6FB2FF;color:#6FB2FF;background:rgba(111,178,255,.08)}
+.rules{font-size:10.5px;color:#A6A6BF;line-height:1.95;flex:1}
+.rules b{color:#fff}
+.k{display:inline-block;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
+   border-radius:4px;padding:0 5px;font-size:9.5px;color:#C9C9DA;direction:ltr}
+</style></head><body>
+
+<h2>لوحة البداية — 833×385dp، بحجمها الحقيقي على جهازك</h2>
+<div class="note">
+شبكة 2×2 بدل صفّ من أربعة، وشريط مُجمَّع بدل ستّة أزرار متجاورة.
+<b>كل بطاقة تحمل عدّادًا، وللعدّاد أربع حالات</b> — وهي ما ينقص التصميم الذي أرسلته.
+البطاقة المركَّزة هنا هي «البث المباشر»: حلقة <b style="color:#6FB2FF">Azure</b>، وهي وحدها تعني «أنت هنا».
+</div>
+
+<div class="board">
+  <div class="top">
+    <div class="brand"><span class="mark">▶</span>CASTIVIO
+      <span class="tag">مشغّل IPTV متميّز</span></div>
+    <div class="spring"></div>
+    <div class="chip"><span class="dot"></span>الاشتراك نشط · ينتهي 08/04/2027</div>
+    <div><div class="clock">07:03</div><div class="date">24/09/2026</div></div>
+  </div>
+
+  <div class="body">
+    <div class="rail">
+      <div class="grp">أدوات</div>
+      <div class="item"><i>⟲</i>تحديث</div>
+      <div class="item"><i>⏱</i>Time Shift</div>
+      <div class="item"><i>⇄</i>تغيير الاشتراك</div>
+      <div class="sep"></div>
+      <div class="grp">إعدادات</div>
+      <div class="item"><i>⚙</i>الإعدادات</div>
+      <div class="item"><i>🌐</i>اللغة</div>
+      <div class="item"><i>☀</i>السطوع</div>
+      <div class="item"><i>ⓘ</i>حول الجهاز</div>
+      <div class="item exit"><i>⏻</i>خروج</div>
+    </div>
+
+    <div class="grid">
+      <div class="card live focus"><span class="glow"></span>
+        <div><div class="ico">📺</div><div class="cname">البث المباشر</div>
+          <div class="cline"><span class="count">54,334 قناة</span></div></div></div>
+
+      <div class="card ser"><span class="glow"></span>
+        <div><div class="ico">🎬</div><div class="cname">المسلسلات</div>
+          <div class="cline"><span class="idle">لم يُحمَّل بعد</span></div></div></div>
+
+      <div class="card mov"><span class="glow"></span>
+        <div><div class="ico">🎞</div><div class="cname">الأفلام</div>
+          <div class="cline"><span class="load"><span class="spin"></span>جارٍ · 12,480</span></div></div>
+        <div class="trk"><i style="width:34%"></i></div></div>
+
+      <div class="card rad"><span class="glow"></span>
+        <div><div class="ico">🎙</div><div class="cname">الراديو</div>
+          <div class="cline"><span class="idle">لا محطات في هذا الاشتراك</span></div></div></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span class="ok">◉ الجهاز مُفعَّل</span>
+    <span>·</span>
+    <span>MAC <span class="id">FE:F8:4D:83:78:9F</span></span>
+    <div class="spring"></div>
+    <span>Castivio مشغّل وسائط. لا يوفّر قنوات ولا أفلامًا ولا اشتراكات — أنت من يضيفها.</span>
+  </div>
+</div>
+
+<h2>حالات العدّاد الأربع — وهي المهمّة</h2>
+<div class="note">
+بطاقة بلا هذه الحالات تفترض رقمًا دائمًا، وثلاث من كل أربع لحظات في حياة التطبيق ليست كذلك.
+</div>
+<div class="states">
+  <div class="st live"><span class="glow"></span>
+    <div class="ico">📺</div><div class="cname">البث المباشر</div>
+    <div class="cline"><span class="idle">لم يُحمَّل بعد</span></div>
+    <div class="stcap"><b>١ — قبل أي استيراد.</b> لا رقم، ولا صفر: صفرٌ يقول «المزوّد فارغ»،
+      وهذا يقول «لم نسأله بعد».</div></div>
+
+  <div class="st mov"><span class="glow"></span>
+    <div class="ico">🎞</div><div class="cname">الأفلام</div>
+    <div class="cline"><span class="load"><span class="spin"></span>جارٍ · 12,480</span></div>
+    <div class="trk"><i style="width:34%"></i></div>
+    <div class="stcap"><b>٢ — أثناء الاستيراد.</b> الرقم يتزايد والشريط يتقدّم.
+      القسم لا يُفتح — الانتظار يبقى في شاشة التحميل، وهذا مؤشّر لا بوّابة.</div></div>
+
+  <div class="st rad"><span class="glow"></span>
+    <div class="ico">🎙</div><div class="cname">الراديو</div>
+    <div class="cline"><span class="idle">لا محطات في هذا الاشتراك</span></div>
+    <div class="stcap"><b>٣ — اكتمل وعاد بصفر.</b> جملة لا رقم.
+      «0 محطة» تبدو عطلًا؛ هذه تقول إن المزوّد لا يبيع راديو.</div></div>
+
+  <div class="st ser"><span class="glow"></span>
+    <div class="ico">🎬</div><div class="cname">المسلسلات</div>
+    <div class="cline"><span class="count">236,491 مسلسلًا</span></div>
+    <div class="stcap"><b>٤ — ستّ خانات.</b> الشارة تتمدّد ولا تُقصّ، والأرقام
+      <b>tabular</b> فلا يرقص عرضها وهي تتزايد.</div></div>
+</div>
+
+<h2>نموذج التركيز — الريموت أوّلًا</h2>
+<div class="note">
+هذا ما لا تُظهره صورة ثابتة، وهو أخطر ما في التصميم: شريط عمودي بجانب شبكة 2×2
+يجعل «يمين» و«يسار» سؤالًا مفتوحًا. الجواب يُقرَّر هنا لا في الكود.
+</div>
+<div class="map">
+  <div class="mapbox">
+    <div class="mrail">الشريط<br>عمود واحد<br>↑ ↓</div>
+    <div class="mgrid">
+      <div class="mc start">البث المباشر<br><span style="font-size:8.5px">البداية</span></div>
+      <div class="mc">المسلسلات</div>
+      <div class="mc">الأفلام</div>
+      <div class="mc">الراديو</div>
+    </div>
+  </div>
+  <div class="rules">
+    <b>البداية:</b> «البث المباشر» — أعلى يمين، وهو القسم الذي يُفتح في ٩ زيارات من ١٠.<br>
+    <b><span class="k">↑</span> <span class="k">↓</span> داخل الشبكة:</b> بين صفّي العمود نفسه، ولا تخرجان منها.<br>
+    <b><span class="k">←</span> من العمود الأيمن:</b> إلى العمود الأيسر في نفس الصفّ.<br>
+    <b><span class="k">←</span> من العمود الأيسر:</b> لا شيء — حافة. الشريط في اليمين لا اليسار.<br>
+    <b><span class="k">→</span> من العمود الأيمن:</b> إلى الشريط، إلى العنصر الذي غادره آخر مرّة.<br>
+    <b><span class="k">→</span> من الشريط:</b> يعود إلى البطاقة التي جاء منها، لا إلى الأولى دائمًا.<br>
+    <b><span class="k">رجوع</span>:</b> من الشبكة يخرج من التطبيق بعد تأكيد؛ من الشريط يعود إلى الشبكة.<br>
+    <b>ولا تركيز على بطاقة «لم يُحمَّل بعد»؟</b> بل تُركَّز وتُفتح — الضغط عليها هو ما يبدأ الاستيراد.
+  </div>
+</div>
+
+<h2>ثلاثة قرارات أخذتُها في هذا الرسم — راجعها</h2>
+<div class="note">
+<b>١. <span class="no">Device Key: 482731</span> أُزيل من اللوحة.</b>
+مفتاح جهاز معروض دائمًا على الشاشة الأولى يُصوَّر ويُشارَك دون قصد. مكانه «حول الجهاز» في الشريط.
+عنوان MAC بقي — فهو معرّف لا سرّ، والتفعيل يقوم عليه.<br>
+<b>٢. <span class="no">رخصة التطبيق: 31/12/2027</span> أُزيلت.</b>
+<b>RELEASE_CHECKLIST.md</b> يقول إن خلفية الترخيص لم تُبنَ، وإن بناء الإصدار يفشل عمدًا لذلك.
+عرض تاريخ رخصة يعد بنظام غير موجود. يعود حين يوجد.<br>
+<b>٣. <span class="yes">حالة الاشتراك وتاريخ انتهائه صارا شارة واحدة.</span></b>
+كانا صندوقين يقولان شيئًا واحدًا، ويأكلان عرضًا تحتاجه الساعة.
+</div>
+
+<h2>ما لم أغيّره، عمدًا</h2>
+<div class="note">
+الأرضية <b>#08071A</b> والبطاقات <b>#242642</b> والحلقة <b>#6FB2FF</b> — كلّها من <b>:core:design</b> حرفيًّا،
+لا من الصورة التي أرسلتها. تلك أرضيتها شبه سوداء وهويّة أخرى؛ اعتمادها قرار يُتَّخذ مرّة ويُطبَّق على
+التطبيق كلّه، لا على شاشة واحدة. إن أردتها فقلها ونغيّر <b>Color.kt</b> في كوميت مستقلّ.
+</div>
+
+</body></html>
