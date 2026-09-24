@@ -116,10 +116,11 @@
     <string name="home_term_licence">Castivio licence</string>
     <!-- The provider card's second line. %1$s is a date in the reader's locale. -->
     <string name="home_term_expires">Expires on %1$s</string>
-    <!-- The licence card's second line where the plan has an end date.
-         %1$s is the plan, %2$s the date. The plan leads: a licence is a kind of
-         licence first, and a plan with no end date is a whole sentence by itself. -->
-    <string name="home_licence_until">%1$s · expires on %2$s</string>
+    <!-- The licence card's second line where the licence has an end date. Its own
+         string rather than a second use of home_term_expires: that one is about the
+         subscription and this one about the licence, and languages that inflect for
+         gender need different words for the two. %1$s is the date. -->
+    <string name="home_licence_expires">Expires on %1$s</string>
 
     <!-- Used only where the provider gave no word of its own. Its own word is
          preferred, untranslated, because that is what the user sees on their

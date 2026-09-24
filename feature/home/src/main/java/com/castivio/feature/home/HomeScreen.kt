@@ -57,9 +57,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -780,23 +785,30 @@ private fun providerSentence(status: Recorded?): String {
 }
 
 /**
- * The licence card's second line: which plan, and when it runs out.
+ * The licence card's second line: when it runs out, or what it is when it does not.
  *
- * The plan leads and the date follows — "تجريبية · تنتهي في 01/10/2026" — because a
- * licence is first a *kind* of licence and only then a date, and because a plan that
- * has no date at all reads as a complete sentence on its own. A lifetime licence is
- * exactly that: [EntitlementState.Lifetime] never expires, so the line is the plan
- * and stops. A dash or an empty half there would read as a value that failed to load
- * in something the user bought outright.
+ * **The date alone where there is one.** The plan led this line — "تجريبية · تنتهي في
+ * 01/10/2026" — and on a device the date was the half that got cut, because the line
+ * ellipsises from its end. Trial and annual differ in *when* they end, not in what
+ * the card is for, and a user reading the header is asking how long they have left.
+ * The plan is a question the licence screen answers, one press away, with room to
+ * answer it in.
  *
- * Every other state — expired, withdrawn, unverified, not established — comes through
- * [licenceTerm] with no date and prints its word alone, for the same reason: "expires
- * on" is future tense and none of them has a future to name.
+ * **The word alone where there is no date.** A lifetime licence never expires, so the
+ * line is "Lifetime" and stops — a date slot filled with a dash would read as a value
+ * that failed to load in something bought outright. Every other state — expired,
+ * withdrawn, unverified, not established — arrives from [licenceTerm] with no date for
+ * the same reason, and says its word: "expires on" is future tense and none of them
+ * has a future to name.
+ *
+ * Which is to say the two branches are one rule, and it is the rule
+ * [providerSentence] follows beside it: the date if there is one, the word if there
+ * is not. The two cards read as a pair because they are built the same way.
  */
 @Composable
 private fun licenceSentence(term: Term): String {
     val at = term.atMs ?: return stringResource(term.word)
-    return stringResource(R.string.home_licence_until, stringResource(term.word), rememberDate(at))
+    return stringResource(R.string.home_licence_expires, rememberDate(at))
 }
 
 /**
@@ -1053,14 +1065,37 @@ private fun HeroCard(
         shape = RoundedCornerShape(frame.radius),
     ) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
+            // **Filled with a gradient, not a tint, and placed dead centre.** It hung
+            // from the top edge in a flat wash of the section's hue at a tenth of its
+            // ink, which read as an icon somebody forgot in a corner rather than a
+            // mark the panel was built around. Centred, a little larger and carrying
+            // the azure-to-violet ramp the backdrop and the wordmark already use, it
+            // reads as part of the identity instead of a shape added to it.
+            //
+            // `Icon` paints a vector in one colour, so the gradient is applied after
+            // the fact: the glyph is drawn into its own layer and `SrcIn` replaces
+            // every opaque pixel of it with the brush, which is why the layer is
+            // forced offscreen — without that the blend would reach the card behind.
+            // The alpha rides on the same layer so it multiplies the finished ramp
+            // once rather than each colour separately.
+            val ramp = Brush.linearGradient(
+                listOf(colors.discGlyph(section.hue), colors.hueViolet),
+            )
             Icon(
                 imageVector = section.icon,
                 contentDescription = null,
-                tint = colors.discGlyph(section.hue).copy(alpha = HERO_GLYPH_ALPHA),
+                tint = colors.onBackgroundStrong,
                 modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = frame.chipPad)
-                    .size(maxHeight * HERO_GLYPH_SHARE),
+                    .align(Alignment.Center)
+                    .size(maxHeight * HERO_GLYPH_SHARE)
+                    .graphicsLayer {
+                        alpha = HERO_GLYPH_ALPHA
+                        compositingStrategy = CompositingStrategy.Offscreen
+                    }
+                    .drawWithContent {
+                        drawContent()
+                        drawRect(ramp, blendMode = BlendMode.SrcIn)
+                    },
             )
 
             Column(
@@ -1404,13 +1439,17 @@ private const val HERO_SHARE = 0.472f
  * The watermark: how much of the hero panel's height its glyph takes, and how far it
  * is faded.
  *
- * Just over half the height, so it reaches into the upper area without crowding the
- * words at the floor, and at a tenth of the glyph's own ink — enough to read as a
- * shape from across a room, far too little to compete with a count set in the title
- * step directly under it. Any stronger and the panel has two subjects.
+ * Just under two thirds of the height and centred, so the panel has a subject rather
+ * than a corner with something in it, and the glyph still ends above the words at the
+ * floor. Eighteen per cent because it is a *gradient* now, not a flat tint: a ramp at
+ * a tenth reads as grey on this ground and loses the only reason to have coloured it.
+ *
+ * It stays a watermark at this strength, which the count proves — set in the title
+ * step and in the section's full hue, the number sits a long way clear of a ramp at
+ * 18%. Any stronger and the panel has two subjects.
  */
-private const val HERO_GLYPH_SHARE = 0.52f
-private const val HERO_GLYPH_ALPHA = 0.10f
+private const val HERO_GLYPH_SHARE = 0.64f
+private const val HERO_GLYPH_ALPHA = 0.18f
 
 /**
  * How much larger the hero's count is than the screen's title step.

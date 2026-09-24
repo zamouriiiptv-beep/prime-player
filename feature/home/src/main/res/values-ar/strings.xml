@@ -96,7 +96,7 @@
     <string name="home_term_provider">اشتراك المزوّد</string>
     <string name="home_term_licence">رخصة Castivio</string>
     <string name="home_term_expires">ينتهي في %1$s</string>
-    <string name="home_licence_until">%1$s · تنتهي في %2$s</string>
+    <string name="home_licence_expires">تنتهي في %1$s</string>
 
     <string name="home_account_active">نشط</string>
     <string name="home_account_inactive">غير نشط</string>
