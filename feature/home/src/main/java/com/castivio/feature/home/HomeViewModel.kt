@@ -78,6 +78,15 @@ data class HomeState(
      * guaranteed identical answer.
      */
     val mac: String = "",
+    /**
+     * The short code beside the address, for a provider whose panel asks for one.
+     *
+     * Derived from the same seed as [mac] and carried here for the same reason: it
+     * cannot change while the app is running, so deriving it where it is drawn would
+     * be work with a guaranteed identical answer. Empty only before the first state
+     * arrives, and the footer draws nothing for an empty one rather than an empty box.
+     */
+    val deviceKey: String = "",
     val loading: Boolean = true,
 ) {
     /** True once a provider has been configured, whatever it did or did not carry. */
@@ -138,6 +147,7 @@ class HomeViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val mac: String = identity.current().macAddress.value
+    private val deviceKey: String = identity.key().value
 
     /**
      * Ask the provider again, and let the recorded answer move the header.
@@ -198,6 +208,7 @@ class HomeViewModel @Inject constructor(
             sections = fetched,
             subscription = status,
             mac = mac,
+            deviceKey = deviceKey,
             loading = false,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_GRACE_MS), HomeState())

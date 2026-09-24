@@ -34,6 +34,18 @@ interface DeviceIdentity {
      * stranding a paid licence on an address nothing asks about any more.
      */
     fun legacy(): List<DeviceIdentityRecord>
+
+    /**
+     * The short code this device shows a user who has to give their provider
+     * something, derived from the same seed as the address.
+     *
+     * Not part of [DeviceIdentityRecord], and deliberately not: a record is one
+     * *address* under one algorithm version, and [legacy] returns several of them for
+     * one device. The key belongs to the device, so a record carrying one would have
+     * to answer what an old address's key is — a question with no meaning. See
+     * [DeviceKeyV1].
+     */
+    fun key(): DeviceKey
 }
 
 /** An address, and everything that has to be known about how it was produced. */

@@ -163,6 +163,9 @@
     <!-- What this device is. %1$s is the address a MAC-activating provider asks for. -->
     <string name="home_device_mac">MAC: %1$s</string>
     <string name="home_device_state">Device: %1$s</string>
+    <!-- The short code a provider whose panel asks for one wants beside the MAC.
+         Derived from the same seed as the address; see DeviceKeyV1. -->
+    <string name="home_device_key">Device key: %1$s</string>
     <string name="home_device_activated">Activated</string>
     <string name="home_device_locked">Locked</string>
 

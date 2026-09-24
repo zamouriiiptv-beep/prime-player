@@ -126,6 +126,7 @@
          to translate, and the provider expects them character for character. -->
     <string name="home_device_mac">ماك: %1$s</string>
     <string name="home_device_state">الجهاز: %1$s</string>
+    <string name="home_device_key">مفتاح الجهاز: %1$s</string>
     <string name="home_device_activated">مُفعَّل</string>
     <string name="home_device_locked">مقفل</string>
 

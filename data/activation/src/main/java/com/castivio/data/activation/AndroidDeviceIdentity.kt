@@ -6,6 +6,8 @@ import android.provider.Settings
 import com.castivio.domain.identity.DeviceIdentity
 import com.castivio.domain.identity.DeviceIdentityAlgorithm
 import com.castivio.domain.identity.DeviceIdentityRecord
+import com.castivio.domain.identity.DeviceKey
+import com.castivio.domain.identity.DeviceKeyAlgorithm
 import com.castivio.domain.identity.IdentityProvenance
 import com.castivio.domain.identity.IdentitySeed
 import com.castivio.domain.identity.MacAddress
@@ -75,6 +77,31 @@ class AndroidDeviceIdentity @Inject constructor(
             .sortedByDescending { it.algorithmVersion }
     }
 
+    /**
+     * The device key, derived once and then read back.
+     *
+     * Stored under its own versioned name beside `mac.v1`, for the reason the address
+     * is: a provider who has written the key down must be given the same key after an
+     * algorithm change, and that is only possible if what this device actually showed
+     * is on disk rather than recomputed by whatever the build happens to implement.
+     *
+     * `current()` first, so that the seed exists before anything derives from it: a
+     * user who opens Home before the activation screen would otherwise mint the seed
+     * here, and the seed is the one thing in this class that must be written exactly
+     * once. It is cached, so this costs nothing after the first call.
+     */
+    override fun key(): DeviceKey {
+        current()
+        val seed = storedSeed() ?: mintSeed()
+        val version = DeviceKeyAlgorithm.CURRENT
+
+        prefs.getString(deviceKeyName(version), null)?.let { return DeviceKey(it) }
+
+        val key = DeviceKeyAlgorithm.derive(seed, sha256, version)
+        prefs.edit().putString(deviceKeyName(version), key.value).apply()
+        return key
+    }
+
     private fun resolve(): DeviceIdentityRecord {
         val seed = storedSeed() ?: mintSeed()
         val version = DeviceIdentityAlgorithm.CURRENT
@@ -128,6 +155,8 @@ class AndroidDeviceIdentity @Inject constructor(
     }.getOrNull()
 
     private fun macKey(version: Int): String = "mac.v$version"
+
+    private fun deviceKeyName(version: Int): String = "key.v$version"
 
     private companion object {
         /**

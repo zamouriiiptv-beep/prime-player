@@ -9,6 +9,7 @@ import com.castivio.domain.entitlement.PricingDefaults
 import com.castivio.domain.entitlement.RedemptionCredential
 import com.castivio.domain.identity.DeviceIdentity
 import com.castivio.domain.identity.DeviceIdentityRecord
+import com.castivio.domain.identity.DeviceKey
 import com.castivio.domain.identity.IdentityProvenance
 import com.castivio.domain.identity.MacAddress
 import kotlinx.coroutines.CoroutineDispatcher
@@ -248,6 +249,8 @@ private object FakeIdentity : DeviceIdentity {
     )
 
     override fun legacy(): List<DeviceIdentityRecord> = emptyList()
+
+    override fun key() = DeviceKey("TEST-0001")
 }
 
 private class FakeEntitlement(

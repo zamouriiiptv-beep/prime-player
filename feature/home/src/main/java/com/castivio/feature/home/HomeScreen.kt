@@ -41,6 +41,7 @@ import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.Tv
+import androidx.compose.material.icons.rounded.VpnKey
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -322,9 +323,16 @@ private data class Plan(
  * The pair is on every frame, and it shrinks rather than disappearing. A handset is
  * where a user is most likely to be checking whether their subscription is still good,
  * so hiding the two facts there would drop them from the one frame that wanted them.
- * `weight(fill = false)` is what makes that safe: each card takes what its words need
- * and no more, and gives width back when the row is tight, so the failure mode is an
- * ellipsis rather than a card pushed off the edge.
+ *
+ * **The two cards take the row's slack, and there is no spacer between them and the
+ * clock.** There was one, and it was the defect that shipped: a `Box(weight(1f))`
+ * pushing the clock to the trailing end sat beside two cards at `weight(1f, fill =
+ * false)`, so Compose divided the leftover width into *three* equal shares and handed
+ * a third of it to a box that draws nothing. Each card got 141dp where its words
+ * needed 175, and on a device the labels came out as "اشتراك الم…" with the dates
+ * clipped away entirely — the header lost the very fact this revision added. With the
+ * spacer gone and `fill = true`, the cards absorb the slack themselves and the clock
+ * and its chips are pushed to the end by the cards rather than by an empty box.
  *
  * ## Why it is `internal` and takes a slot
  *
@@ -371,7 +379,7 @@ internal fun DashboardHeader(
                 date = if (soldUntil == null) null else rememberDate(soldUntil),
                 hue = if (state.subscription?.usable == false) colors.danger else colors.hueGreen,
                 frame = frame,
-                modifier = Modifier.weight(1f, fill = false),
+                modifier = Modifier.weight(1f),
             )
 
             val licence = licenceTerm(state.entitlement)
@@ -383,10 +391,9 @@ internal fun DashboardHeader(
                 date = if (licenceUntil == null) null else rememberDate(licenceUntil),
                 hue = if (state.licenceHolds) colors.hueAzure else colors.danger,
                 frame = frame,
-                modifier = Modifier.weight(1f, fill = false),
+                modifier = Modifier.weight(1f),
             )
 
-            Box(Modifier.weight(1f))
             Clock(frame)
             trailing()
         }
@@ -1056,15 +1063,18 @@ private fun ColumnScope.Utility(
  * that stops at "Castivio does not provide chan…" is not a statement. On its own line
  * it has the full width, and two lines to use if a translation needs them.
  *
- * ## What is still not here
+ * ## The device key, which now exists
  *
- * **The device key.** The approved drawing has a third card for it, drawn with a
- * dashed edge precisely because nothing in this build mints one:
- * `PlaylistSource.Portal(mac, deviceKey)` at `CatalogRepository.kt:122` is an
- * unimplemented path, no store holds a key, and no server would recognise one this
- * screen made up. Printing a plausible-looking code that a user then sends to their
- * provider is worse than printing nothing, so the card waits for the value rather
- * than the value being faked to fill the card.
+ * It shipped once without one, because nothing in the build minted a key and a
+ * plausible-looking code a user then sends to their provider is worse than no card at
+ * all. `DeviceKeyV1` is that value now: derived from the same seed as the address,
+ * under its own label so the two cannot be turned into one another, stable across
+ * launches and reinstalls, and reproducible by a support tool or a licence server
+ * without the device in hand.
+ *
+ * It is drawn in amber rather than the muted ink the address uses, because the two
+ * are answers to *different* questions a provider asks and a user copying one into a
+ * form for the other is the mistake this line exists to prevent.
  */
 @Composable
 private fun FooterLine(
@@ -1102,6 +1112,18 @@ private fun FooterLine(
                 frame,
                 Modifier.weight(1f),
             )
+            // Only once there is one. The card is not drawn from a blank, because an
+            // empty third box beside two filled ones reads as a value that failed to
+            // load rather than one that has not arrived yet.
+            if (state.deviceKey.isNotBlank()) {
+                Fact(
+                    Icons.Rounded.VpnKey,
+                    stringResource(R.string.home_device_key, ltrIsolate(state.deviceKey)),
+                    colors.hueAmber,
+                    frame,
+                    Modifier.weight(1f),
+                )
+            }
         }
 
         Row(

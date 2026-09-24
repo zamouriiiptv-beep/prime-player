@@ -18,6 +18,7 @@ import com.castivio.domain.entitlement.StoredEntitlement
 import com.castivio.domain.entitlement.VerificationRequest
 import com.castivio.domain.identity.DeviceIdentity
 import com.castivio.domain.identity.DeviceIdentityRecord
+import com.castivio.domain.identity.DeviceKey
 import com.castivio.domain.identity.IdentityProvenance
 import com.castivio.domain.identity.MacAddress
 import com.castivio.domain.time.ClockSignalSource
@@ -105,6 +106,7 @@ class DefaultEntitlementRepositoryTest {
     ) : DeviceIdentity {
         override fun current() = record
         override fun legacy() = previous
+        override fun key() = DeviceKey("TEST-0001")
     }
 
     private fun identity(provenance: IdentityProvenance = IdentityProvenance.DEVICE) =
