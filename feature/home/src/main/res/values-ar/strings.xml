@@ -95,14 +95,15 @@
 
     <string name="home_term_provider">اشتراك المزوّد</string>
     <string name="home_term_licence">رخصة Castivio</string>
-    <string name="home_term_value">حتى %1$s · %2$s</string>
+    <string name="home_term_expires">ينتهي في %1$s</string>
+    <string name="home_licence_until">%1$s · تنتهي في %2$s</string>
 
     <string name="home_account_active">نشط</string>
     <string name="home_account_inactive">غير نشط</string>
     <string name="home_account_unknown">لم يُفحص</string>
 
     <string name="home_licence_trial">تجريبية</string>
-    <string name="home_licence_active">سارية</string>
+    <string name="home_licence_annual">سنوي</string>
     <string name="home_licence_expired">منتهية</string>
     <string name="home_licence_lifetime">مدى الحياة</string>
     <string name="home_licence_revoked">مسحوبة</string>
@@ -119,7 +120,6 @@
     <!-- Untranslated, as the approved row has it: the feature is known by its
          English name and the Arabic rendering is three times as wide. -->
     <string name="home_time_shift">Time Shift</string>
-    <string name="home_about">حول</string>
     <string name="home_exit">خروج</string>
 
     <!-- The label is Arabic; the value is not. Six hexadecimal pairs are not a word

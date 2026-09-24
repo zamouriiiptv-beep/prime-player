@@ -15,13 +15,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -151,8 +155,6 @@ fun HomeScreen(
     onSettings: () -> Unit,
     /** Catch-up, which has no engine yet: the caller says so rather than doing nothing. */
     onTimeShift: () -> Unit,
-    /** What this build is: its licence, its device, its version. */
-    onAbout: () -> Unit,
     /** Opens the language chooser. */
     onLanguage: () -> Unit,
     /** Ask to leave. The confirmation is the application's, not this screen's. */
@@ -166,16 +168,48 @@ fun HomeScreen(
     // sideways the system's own navigation sits on one *side*, so a screen that
     // measured the display would size itself to room it does not have and draw its
     // trailing column underneath the navigation.
-    BoxWithConstraints(modifier.fillMaxSize().safeDrawingPadding()) {
+    //
+    // **The horizontal inset is symmetrised rather than applied as given**, which is
+    // the one thing this differs from `safeDrawingPadding()` in. Held sideways, the
+    // system's furniture is on the *sides*: a camera cutout on one edge and the
+    // navigation bar on the other, and they are not the same width. Insetting each
+    // edge by its own obstruction keeps the board out of both and leaves it visibly
+    // off-centre — which is what the board did on a device, sitting a few dp nearer
+    // one edge than the other with no reason a viewer could see. Taking the larger of
+    // the two and spending it on both edges costs that difference in width and buys a
+    // block that is centred on the *screen*, which is the thing being looked at.
+    //
+    // Start and end rather than left and right: the two are compared, never placed,
+    // and the maximum of the pair is the same number whichever way the text runs. The
+    // result is symmetric by construction, so this screen lays out identically in
+    // both directions — which is what invariant 9 is protecting and why reading a
+    // physical inset here does not breach it.
+    val safeArea = WindowInsets.safeDrawing.asPaddingValues()
+    val reading = LocalLayoutDirection.current
+    val gutter = maxOf(
+        safeArea.calculateStartPadding(reading),
+        safeArea.calculateEndPadding(reading),
+    )
+
+    BoxWithConstraints(
+        modifier
+            .fillMaxSize()
+            .padding(
+                top = safeArea.calculateTopPadding(),
+                bottom = safeArea.calculateBottomPadding(),
+            )
+            .padding(horizontal = gutter),
+    ) {
         val frame = rememberMetrics(maxWidth, maxHeight)
         val plan = Plan.of(frame)
+        val rhythm = Rhythm.of(frame)
 
         Column(
             Modifier
                 .fillMaxSize()
                 .padding(horizontal = frame.edge)
-                .padding(top = frame.stageTop, bottom = frame.stageBottom),
-            verticalArrangement = Arrangement.spacedBy(frame.bandTop),
+                .padding(vertical = rhythm.stage),
+            verticalArrangement = Arrangement.spacedBy(rhythm.group),
         ) {
             DashboardHeader(state, frame, plan.headerHeight) {
                 // The trailing end of the header, in the order the other five screens
@@ -227,16 +261,16 @@ fun HomeScreen(
                     SectionBoard(
                         state = state,
                         frame = frame,
+                        rhythm = rhythm,
                         onSeeSection = onSeeSection,
                         onRefresh = model::refresh,
                         onAddSource = onAddSource,
                         onTimeShift = onTimeShift,
                         onSettings = onSettings,
-                        onAbout = onAbout,
                         onExit = onExit,
                         modifier = Modifier.fillMaxWidth().weight(1f),
                     )
-                    FooterLine(state, frame)
+                    FooterLine(state, frame, rhythm)
                 }
             }
         }
@@ -278,6 +312,82 @@ private data class Plan(
         fun of(frame: CastivioMetrics): Plan = Plan(headerHeight = frame.header)
     }
 }
+
+/**
+ * The vertical rhythm: four steps, and the relationships between them are the point.
+ *
+ * ## Why this is not `bandTop` four times
+ *
+ * It was. One token spaced the header from the board, the board from the footer, *and*
+ * the section cards from one another — so the distance between two **groups** was the
+ * same as the distance between two **members of a group**, and nothing told a reader
+ * where the header ended and the content began. Beside it the utility rail ran at
+ * `chipPad / 2`, a third of the cards' step, so two columns standing side by side kept
+ * two different time signatures.
+ *
+ * Four steps now, and each is defined by its relation to the others rather than
+ * chosen:
+ *
+ *  - [group] separates groups, and is the largest. Nothing inside a group may equal it.
+ *  - [item] separates members of a group — the three section cards.
+ *  - [rail] is exactly **half** [item], so the two columns of the board are the same
+ *    rhythm at two densities rather than two unrelated ones. Six controls in the
+ *    height of three cards is a 2:1 count; a 2:1 gap is what makes that read as
+ *    deliberate.
+ *  - [foot] holds the footer's own sentence off its cards, and is the quietest.
+ *
+ * ## Why the stage padding is [item] and not its own token
+ *
+ * `stageTop` and `stageBottom` are 17.1 and 15.7 at this frame — different from each
+ * other for no reason a viewer could name, and generous on a screen this short. Home
+ * is the densest surface in the application and it spends that difference on content.
+ * Using [item] for both makes the block symmetric top to bottom, which is what the
+ * horizontal gutter already does side to side.
+ *
+ * The shared tokens are deliberately **not** touched. `stageTop`, `stageBottom` and
+ * `bandTop` are read by the shell, the activation flow, the pickers and their tests;
+ * moving them to suit one screen would move seven, and none of those was reviewed.
+ * This screen states its own rhythm and derives it from the frame, so it still scales
+ * with every other size rather than pinning a number to one phone.
+ *
+ * At the owner's 833×385dp: [group] 20, [item] 12, [rail] 6, [foot] 8, stage 12.
+ */
+private data class Rhythm(
+    /** Above and below the whole block, equal on both sides. */
+    val stage: Dp,
+    /** Header ↔ board ↔ footer. */
+    val group: Dp,
+    /** Between the three section cards. */
+    val item: Dp,
+    /** Between the utility controls. */
+    val rail: Dp,
+    /** Inside the footer: the identity cards ↔ the sentence under them. */
+    val foot: Dp,
+) {
+    companion object {
+        fun of(frame: CastivioMetrics): Rhythm {
+            val item = frame.bandTop * ITEM_RATIO
+            return Rhythm(
+                stage = item,
+                group = frame.bandTop * GROUP_RATIO,
+                item = item,
+                rail = item / 2,
+                foot = frame.bandTop * FOOT_RATIO,
+            )
+        }
+    }
+}
+
+/**
+ * The three ratios, off `bandTop`, that produce the approved drawing's figures.
+ *
+ * Ratios rather than sizes because a television is not a handset: expressed this way
+ * the whole rhythm rides the frame's own scale, so a 1280×720 set gets 37.3 / 22.4 /
+ * 11.2 / 15.0 in place of 20 / 12 / 6 / 8 and keeps every relationship between them.
+ */
+private const val GROUP_RATIO = 1.274f
+private const val ITEM_RATIO = 0.764f
+private const val FOOT_RATIO = 0.509f
 
 // ---------------------------------------------------------------- the header
 
@@ -387,30 +497,24 @@ internal fun DashboardHeader(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(frame.chipPad),
             ) {
-                // Both dates are read before the cards are built, and each is
-                // formatted only where one exists: a term with no expiry has nothing
-                // to print, and `rememberDate` may not be handed a stand-in date to
-                // make the types line up — a formatted epoch zero on a licence card
-                // is a lie about a licence.
-                val soldUntil = state.subscription?.expiresAtMs
+                // Each card is handed a finished sentence rather than the parts of
+                // one. Composing it here keeps the two compositions — "expires on a
+                // date" and "a plan, and when it runs out" — beside the facts they
+                // are made from, and leaves `TermCard` with nothing to arbitrate.
                 TermCard(
                     icon = Icons.Rounded.CheckCircle,
                     label = stringResource(R.string.home_term_provider),
-                    word = subscriptionLabel(state.subscription),
-                    date = if (soldUntil == null) null else rememberDate(soldUntil),
+                    value = providerSentence(state.subscription),
                     hue = if (state.subscription?.usable == false) colors.danger else colors.hueGreen,
                     reading = reading,
                     frame = frame,
                     modifier = Modifier.weight(1f),
                 )
 
-                val licence = licenceTerm(state.entitlement)
-                val licenceUntil = licence.atMs
                 TermCard(
                     icon = Icons.Rounded.Shield,
                     label = stringResource(R.string.home_term_licence),
-                    word = stringResource(licence.word),
-                    date = if (licenceUntil == null) null else rememberDate(licenceUntil),
+                    value = licenceSentence(licenceTerm(state.entitlement)),
                     hue = if (state.licenceHolds) colors.hueAzure else colors.danger,
                     reading = reading,
                     frame = frame,
@@ -462,8 +566,8 @@ internal fun DashboardHeader(
 private fun TermCard(
     icon: ImageVector,
     label: String,
-    word: String,
-    date: String?,
+    /** The finished second line. See [providerSentence] and [licenceSentence]. */
+    value: String,
     hue: Color,
     /** The reader's own direction, captured before the header pinned its subtree. */
     reading: LayoutDirection,
@@ -472,8 +576,6 @@ private fun TermCard(
 ) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(frame.radius / 2)
-    val sentence =
-        if (date == null) word else stringResource(R.string.home_term_value, date, word)
 
     CompositionLocalProvider(LocalLayoutDirection provides reading) {
         Row(
@@ -504,7 +606,7 @@ private fun TermCard(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    sentence,
+                    value,
                     style = castivioChipStyle(frame.fsLabel),
                     color = hue,
                     maxLines = 1,
@@ -660,6 +762,44 @@ internal fun subscriptionLabel(status: Recorded?): String {
 }
 
 /**
+ * The provider card's second line: when the subscription runs out.
+ *
+ * One fact, because the provider's *state* was the other half of this line and it was
+ * saying nothing the card did not already say twice — the tick is green, the edge is
+ * green, and then a word said "Active" as well. The date is the half a user cannot
+ * get from anywhere else on this screen, so it is the half that stayed.
+ *
+ * A provider that stated no date falls back to its word, which is the one case where
+ * the word carries the whole line: "Not checked" is a real answer and an empty second
+ * line is not. Three answers, not two — see [subscriptionLabel].
+ */
+@Composable
+private fun providerSentence(status: Recorded?): String {
+    val at = status?.expiresAtMs ?: return subscriptionLabel(status)
+    return stringResource(R.string.home_term_expires, rememberDate(at))
+}
+
+/**
+ * The licence card's second line: which plan, and when it runs out.
+ *
+ * The plan leads and the date follows — "تجريبية · تنتهي في 01/10/2026" — because a
+ * licence is first a *kind* of licence and only then a date, and because a plan that
+ * has no date at all reads as a complete sentence on its own. A lifetime licence is
+ * exactly that: [EntitlementState.Lifetime] never expires, so the line is the plan
+ * and stops. A dash or an empty half there would read as a value that failed to load
+ * in something the user bought outright.
+ *
+ * Every other state — expired, withdrawn, unverified, not established — comes through
+ * [licenceTerm] with no date and prints its word alone, for the same reason: "expires
+ * on" is future tense and none of them has a future to name.
+ */
+@Composable
+private fun licenceSentence(term: Term): String {
+    val at = term.atMs ?: return stringResource(term.word)
+    return stringResource(R.string.home_licence_until, stringResource(term.word), rememberDate(at))
+}
+
+/**
  * What the licence card says: one word, and a date only where one is owed.
  *
  * A word and a resource id rather than a formatted string, so the nine states of
@@ -684,8 +824,12 @@ internal fun subscriptionLabel(status: Recorded?): String {
  */
 internal fun licenceTerm(state: EntitlementState?): Term = when (state) {
     is EntitlementState.TrialActive -> Term(R.string.home_licence_trial, state.expiresAtMs)
-    is EntitlementState.AnnualActive -> Term(R.string.home_licence_active, state.expiresAtMs)
-    is EntitlementState.AnnualExpired -> Term(R.string.home_licence_expired, state.expiredAtMs)
+    is EntitlementState.AnnualActive -> Term(R.string.home_licence_annual, state.expiresAtMs)
+    // **No date, although the state carries one.** `expiredAtMs` is when it lapsed,
+    // and this card's date slot means "runs out on", which is future tense. "Expired
+    // · expires on 4 March" is the screen contradicting itself in four words. The
+    // licence screen is where a lapse says *when*; here it says *that*.
+    is EntitlementState.AnnualExpired -> Term(R.string.home_licence_expired, null)
     EntitlementState.TrialExpired -> Term(R.string.home_licence_expired, null)
     EntitlementState.Lifetime -> Term(R.string.home_licence_lifetime, null)
     is EntitlementState.Revoked -> Term(R.string.home_licence_revoked, null)
@@ -746,12 +890,12 @@ internal data class Term(val word: Int, val atMs: Long?)
 private fun SectionBoard(
     state: HomeState,
     frame: CastivioMetrics,
+    rhythm: Rhythm,
     onSeeSection: (CatalogSection) -> Unit,
     onRefresh: () -> Unit,
     onAddSource: () -> Unit,
     onTimeShift: () -> Unit,
     onSettings: () -> Unit,
-    onAbout: () -> Unit,
     onExit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -782,18 +926,18 @@ private fun SectionBoard(
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(frame.bandTop)) {
         UtilityRail(
             frame = frame,
+            rhythm = rhythm,
             onRefresh = onRefresh,
             onAddSource = onAddSource,
             onTimeShift = onTimeShift,
             onSettings = onSettings,
-            onAbout = onAbout,
             onExit = onExit,
             modifier = Modifier.weight(RAIL_SHARE).fillMaxHeight(),
         )
 
         Column(
             Modifier.weight(STACK_SHARE).fillMaxHeight(),
-            verticalArrangement = Arrangement.spacedBy(frame.bandTop),
+            verticalArrangement = Arrangement.spacedBy(rhythm.item),
         ) {
             for (section in rest) {
                 SectionLine(
@@ -1026,20 +1170,19 @@ private fun SectionLine(
 @Composable
 private fun UtilityRail(
     frame: CastivioMetrics,
+    rhythm: Rhythm,
     onRefresh: () -> Unit,
     onAddSource: () -> Unit,
     onTimeShift: () -> Unit,
     onSettings: () -> Unit,
-    onAbout: () -> Unit,
     onExit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(frame.chipPad / 2)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(rhythm.rail)) {
         Utility(Icons.Rounded.Refresh, stringResource(R.string.home_refresh), frame, onRefresh)
         Utility(Icons.Rounded.PlaylistAdd, stringResource(R.string.home_change), frame, onAddSource)
         Utility(Icons.Rounded.History, stringResource(R.string.home_time_shift), frame, onTimeShift)
         Utility(Icons.Rounded.Settings, stringResource(R.string.home_settings), frame, onSettings)
-        Utility(Icons.Rounded.Info, stringResource(R.string.home_about), frame, onAbout)
         Utility(Icons.Rounded.PowerSettingsNew, stringResource(R.string.home_exit), frame, onExit)
     }
 }
@@ -1123,12 +1266,13 @@ private fun ColumnScope.Utility(
 private fun FooterLine(
     state: HomeState,
     frame: CastivioMetrics,
+    rhythm: Rhythm,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
     Column(
         modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
+        verticalArrangement = Arrangement.spacedBy(rhythm.foot),
     ) {
         Row(
             Modifier.fillMaxWidth(),

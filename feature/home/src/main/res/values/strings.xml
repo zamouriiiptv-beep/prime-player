@@ -114,12 +114,12 @@
          them, alongside hue, glyph and edge. -->
     <string name="home_term_provider">Provider subscription</string>
     <string name="home_term_licence">Castivio licence</string>
-    <!-- A term card's second line, as one sentence rather than parts a layout has
-         to fit together. The DATE COMES FIRST on purpose: the line ellipsises from
-         its end, and the state word is the half that may be lost — it is already in
-         the card's colour and glyph, while the date is on the card alone.
-         %1$s is a date in the reader's locale, %2$s the state word. -->
-    <string name="home_term_value">until %1$s · %2$s</string>
+    <!-- The provider card's second line. %1$s is a date in the reader's locale. -->
+    <string name="home_term_expires">Expires on %1$s</string>
+    <!-- The licence card's second line where the plan has an end date.
+         %1$s is the plan, %2$s the date. The plan leads: a licence is a kind of
+         licence first, and a plan with no end date is a whole sentence by itself. -->
+    <string name="home_licence_until">%1$s · expires on %2$s</string>
 
     <!-- Used only where the provider gave no word of its own. Its own word is
          preferred, untranslated, because that is what the user sees on their
@@ -133,7 +133,7 @@
          only the two states that really did run out may use it: a licence we could
          not verify says so, and one never established says that instead. -->
     <string name="home_licence_trial">Trial</string>
-    <string name="home_licence_active">Active</string>
+    <string name="home_licence_annual">Annual</string>
     <string name="home_licence_expired">Expired</string>
     <string name="home_licence_lifetime">Lifetime</string>
     <string name="home_licence_revoked">Withdrawn</string>
@@ -159,7 +159,6 @@
     <string name="home_language">Language</string>
     <!-- Catch-up. There is no engine for it in this build, and pressing it says so. -->
     <string name="home_time_shift">Time Shift</string>
-    <string name="home_about">About</string>
     <!-- Leaves Castivio. The confirmation belongs to the application, not to Home. -->
     <string name="home_exit">Exit</string>
 

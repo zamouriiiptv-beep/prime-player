@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<!-- The shipped Home, unchanged in every element, centred as one block on the screen.
+     Drawn at the owner's geometry: 2340x1080 physical, density 2.8125, so 833x385dp,
+     one px per dp, rendered at 2x. The screen edge is drawn because the whole point of
+     this revision is where the content sits inside it. -->
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>لوحة البداية متمركزة</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#05040E;color:#fff;font-family:"DejaVu Sans",system-ui,sans-serif;
+     padding:20px;display:inline-block}
+.cap{font-size:12px;color:#6FB2FF;font-weight:700;margin-bottom:3px}
+.sub{font-size:10.5px;color:#A6A6BF;line-height:1.75;max-width:833px;margin-bottom:12px}
+.sub b{color:#fff} .sub .ok{color:#2FBF9F} .sub .warn{color:#F0A03C}
+
+/* ---- the physical screen, 833x385dp ---- */
+.screen{width:833px;height:385px;position:relative;overflow:hidden;border-radius:10px;
+        background:linear-gradient(135deg,#141031 0%,#1B1038 46%,#0A1E3D 100%)}
+.screen::before,.screen::after{content:"";position:absolute;border-radius:50%;filter:blur(70px)}
+.screen::before{width:420px;height:300px;inset-inline-start:-90px;bottom:-120px;background:#6E4BD8;opacity:.30}
+.screen::after {width:460px;height:320px;inset-inline-end:-110px;top:-140px;background:#2E6BFF;opacity:.22}
+.waves{position:absolute;inset:0;opacity:.30}
+
+/* the system's own furniture, drawn so the gutters can be judged against something real */
+.sysL{position:absolute;left:0;top:0;bottom:0;width:26px;z-index:4;
+      display:flex;align-items:center;justify-content:center}
+.sysR{position:absolute;right:0;top:0;bottom:0;width:26px;z-index:4;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px}
+.sysdot{color:#6E6E8A;font-size:11px}
+.cut{position:absolute;left:7px;top:50%;transform:translateY(-50%);width:6px;height:52px;
+     border-radius:4px;background:#000;opacity:.85}
+
+/* ---- the gutters, equal, measured ---- */
+.gut{position:absolute;top:0;bottom:0;z-index:3;background:rgba(111,178,255,.055);
+     border-inline:1px dashed rgba(111,178,255,.32)}
+.gut.s{inset-inline-start:0;width:72px} .gut.e{inset-inline-end:0;width:72px}
+.gutlab{position:absolute;top:50%;transform:translateY(-50%) rotate(-90deg);width:72px;
+        text-align:center;font-size:8px;color:#6FB2FF;letter-spacing:.04em;white-space:nowrap}
+
+/* ---- the content block: everything Home draws, as one centred column ---- */
+.block{position:absolute;inset-inline-start:72px;inset-inline-end:72px;top:0;bottom:0;
+       padding:14px 0;display:flex;flex-direction:column;gap:10px;z-index:2}
+
+.top{height:34px;flex:none;display:flex;align-items:center;gap:11px;direction:ltr}
+.brand{display:flex;align-items:center;gap:7px}
+.mark{width:23px;height:23px;border-radius:50%;flex:none;background:linear-gradient(135deg,#6E4BD8,#2E6BFF);
+      display:flex;align-items:center;justify-content:center;font-size:10px}
+.bname{font-size:15px;font-weight:700;letter-spacing:.11em;line-height:1}
+.terms{flex:1;display:flex;gap:9px;direction:rtl}
+.term{flex:1;min-width:0;display:flex;align-items:center;gap:6px;padding:3px 9px;border-radius:7px;
+      background:rgba(255,255,255,.035);border:1px solid rgba(160,163,215,.14)}
+.term i{font-style:normal;font-size:13px;flex:none}
+.tcol{min-width:0;display:flex;flex-direction:column;gap:2px}
+.who{font-size:8px;color:#8F8FAE;line-height:1;white-space:nowrap}
+.when{font-size:10px;line-height:1;white-space:nowrap}
+.when .d{font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
+.term.prov{border-color:rgba(47,191,159,.30)} .term.prov i,.term.prov .when{color:#2FBF9F}
+.term.lic{border-color:rgba(111,178,255,.32)} .term.lic i,.term.lic .when{color:#6FB2FF}
+.clock{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;text-align:right}
+.cdate{font-size:8.5px;color:#7A7A96;font-variant-numeric:tabular-nums;margin-top:2px}
+.rnd{width:26px;height:26px;border-radius:50%;flex:none;border:1px solid rgba(160,163,215,.16);
+     display:flex;align-items:center;justify-content:center;font-size:11px;color:#C9C9DA}
+.lang{display:flex;align-items:center;gap:6px;padding:0 10px;height:26px;border-radius:13px;
+      border:1px solid rgba(160,163,215,.16);font-size:10px;color:#C9C9DA;white-space:nowrap}
+
+.body{flex:1;display:flex;gap:11px;min-height:0;direction:rtl}
+.rail{width:120px;flex:none;display:flex;flex-direction:column;gap:5px}
+.util{flex:1;display:flex;align-items:center;gap:8px;padding:0 9px;border-radius:8px;font-size:10px;
+      color:#C9C9DA;background:rgba(255,255,255,.03);border:1px solid rgba(160,163,215,.12)}
+.util i{font-style:normal;color:#9B6BFF;width:12px;text-align:center;flex:none;font-size:11px}
+.util.quit i{color:#FF9B9B}
+.stack{width:232px;flex:none;display:flex;flex-direction:column;gap:9px}
+.row{flex:1;border-radius:10px;padding:0 12px;display:flex;align-items:center;gap:11px;
+     background:rgba(255,255,255,.045);border:1px solid rgba(126,140,255,.24)}
+.rg{font-size:17px;flex:none;line-height:1}
+.rname{font-size:12.5px;font-weight:700}
+.rsub{font-size:9.5px;margin-top:2px;color:#6FB2FF}
+.hero{flex:1;border-radius:12px;padding:14px 16px;position:relative;overflow:hidden;display:flex;
+      flex-direction:column;justify-content:flex-end;
+      background:linear-gradient(150deg,rgba(46,107,255,.14),rgba(20,16,49,.42));
+      border:1px solid rgba(126,140,255,.24)}
+.hero .wm{position:absolute;font-size:104px;line-height:1;opacity:.075;pointer-events:none;
+      left:50%;transform:translateX(-50%);top:14px;filter:grayscale(1) brightness(2.6)}
+.hname{font-size:18px;font-weight:700;position:relative;z-index:1}
+.hsub{font-size:11px;color:#6FB2FF;margin-top:2px;position:relative;z-index:1}
+
+.foot{flex:none;display:flex;flex-direction:column;gap:5px;direction:rtl}
+.fid{display:flex;gap:8px}
+.fact{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:7px;
+      white-space:nowrap;font-size:9.5px;padding:4px 9px;border-radius:7px;
+      background:rgba(255,255,255,.035);border:1px solid rgba(160,163,215,.14)}
+.fact .gl{font-size:10px;flex:none;color:#8F8FAE}
+.fact .lbl{color:#6E6E8A}
+.fact b{color:#C9C9DA;font-weight:700;font-variant-numeric:tabular-nums}
+.fact .val{direction:ltr;unicode-bidi:isolate}
+.fact.live b{color:#2FBF9F} .fact.live .gl{color:#2FBF9F}
+.fact.key b{color:#F0A03C} .fact.key .gl{color:#F0A03C}
+.fdisc{font-size:9px;color:#6E6E8A;display:flex;align-items:center;justify-content:center;gap:5px}
+
+.notes{font-size:10.5px;color:#A6A6BF;line-height:1.85;max-width:833px;margin-top:12px}
+.notes b{color:#fff} .notes .ok{color:#2FBF9F} .notes .warn{color:#F0A03C}
+</style></head><body>
+<div class="cap">العربية (RTL) — كامل محتوى Home ككتلة واحدة في منتصف الشاشة</div>
+<div class="sub">لا عنصر تغيّر، ولا لون، ولا حجم، ولا محتوى. المتغيّر الوحيد أن الكتلة كلّها —
+ الترويسة والبث والأفلام والمسلسلات والراديو والقائمة والمعلومات السفلية — صارت
+ <b>هامشًا متساويًا من الحافتين</b>: <b class="ok">٧٢dp</b> يمينًا و<b class="ok">٧٢dp</b> يسارًا.</div>
+
+<div class="screen"><svg class="waves" viewBox="0 0 833 385" preserveAspectRatio="none">
+  <g fill="none" stroke="#B4D6FF" stroke-width="0.7" opacity="0.14">
+    <path d="M-40 300 C 160 250, 300 340, 500 286 S 760 210, 900 250"/>
+    <path d="M-40 330 C 170 282, 310 368, 505 316 S 765 244, 900 282"/>
+    <path d="M-40 360 C 180 314, 320 396, 510 346 S 770 278, 900 314"/>
+    <path d="M-40 80 C 150 30, 300 120, 500 66 S 760 -10, 900 30"/></g>
+  <g fill="#B4D6FF" opacity="0.30"><circle cx="678" cy="92" r="1.3"/><circle cx="300" cy="58" r="1"/>
+    <circle cx="146" cy="196" r="1.2"/><circle cx="792" cy="238" r="1"/></g></svg>
+
+  <div class="gut s"><div class="gutlab">٧٢dp · قُصاصة الكاميرا</div></div>
+  <div class="gut e"><div class="gutlab">٧٢dp · شريط التنقّل</div></div>
+  <div class="sysL"><span class="cut"></span></div>
+  <div class="sysR"><span class="sysdot">&#10073;&#10073;&#10073;</span><span class="sysdot">&#9711;</span><span class="sysdot">&#8249;</span></div>
+
+  <div class="block">
+    <div class="top">
+      <div class="brand"><span class="mark">&#9654;</span><div class="bname">CASTIVIO</div></div>
+      <div class="terms">
+        <div class="term prov"><i>&#10004;</i><div class="tcol">
+          <div class="who">اشتراك المزوّد</div>
+          <div class="when">حتى <span class="d">08/04/2027</span> · Active</div></div></div>
+        <div class="term lic"><i>&#128737;</i><div class="tcol">
+          <div class="who">رخصة Castivio</div>
+          <div class="when">حتى <span class="d">01/10/2026</span> · تجريبية</div></div></div>
+      </div>
+      <div><div class="clock">19:38</div><div class="cdate">24/09/2026</div></div>
+      <div class="rnd">&#9728;</div>
+      <div class="lang">اللغة &#127760;</div>
+    </div>
+
+    <div class="body">
+      <div class="rail"><div class="util"><i>⟲</i>تحديث</div><div class="util"><i>⇄</i>تغيير الاشتراك</div><div class="util"><i>⏱</i>Time Shift</div><div class="util"><i>⚙</i>الإعدادات</div><div class="util"><i>ⓘ</i>حول</div><div class="util quit"><i>⏻</i>خروج</div></div>
+      <div class="stack"><div class="row"><span class="rg">🎞</span><div><div class="rname">الأفلام</div><div class="rsub">لم يُحمَّل بعد</div></div></div><div class="row"><span class="rg">🎬</span><div><div class="rname">المسلسلات</div><div class="rsub">لم يُحمَّل بعد</div></div></div><div class="row"><span class="rg">🎙</span><div><div class="rname">الراديو</div><div class="rsub">لم يُحمَّل بعد</div></div></div></div>
+      <div class="hero"><span class="wm">&#128250;</span>
+        <div class="hname">البث المباشر</div><div class="hsub">لم يُحمَّل بعد</div></div>
+    </div>
+
+    <div class="foot">
+      <div class="fid">
+        <div class="fact live"><span class="gl">&#128274;</span><span class="lbl">الجهاز:</span><b>مُفعَّل</b></div>
+        <div class="fact"><span class="gl">&#9635;</span><span class="lbl">ماك:</span><b class="val">FE:F8:4D:83:78:9F</b></div>
+        <div class="fact key"><span class="gl">&#128273;</span><span class="lbl">مفتاح الجهاز:</span><b class="val">K6BB-0P2R</b></div>
+      </div>
+      <div class="fdisc"><span>&#8505;</span><span>Castivio مشغّل وسائط. لا يوفّر قنوات ولا أفلامًا ولا اشتراكات — أنت من يضيفها.</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="notes"><b>ما تغيّر.</b> شيء واحد: الهامش. الكتلة كلها بين <b>٧٢dp</b> من كل حافة،
+ فما يحيط بها متساوٍ يمينًا ويسارًا. ولم يتحرّك إطار البث وحده ولا أي عنصر آخر — الأعمدة الثلاثة
+ والترويسة والفوتر انزاحت معًا ككتلة واحدة.<br>
+ <b>لماذا ٧٢ وليس ٢٠.</b> الشاشة أفقية، فأجهزة النظام على الجانبين لا في الأعلى: قُصاصة الكاميرا
+ على حافة، وشريط التنقّل على الأخرى (مرسومان بالرمادي في الطرفين). التطبيق اليوم يتجنّب كلًا منهما
+ بمقدارها هي، وهما غير متساويين، فينتج ميل بصري. جعلُ الهامشين واحدًا يعني أخذ <b>الأكبر منهما</b>
+ وتطبيقه على الجهتين — وهذا هو الرقم ٧٢.<br>
+ <b class="warn">وثمنه صريح:</b> ١٤٤dp من ٨٣٣ تذهب هامشًا، أي <b>١٧٪ من عرض الشاشة</b>.
+ الأعمدة الثلاثة تتقاسم ٦٨٩dp بدل ٨٠١، فيضيق إطار البث ويضيق معه سطر التاريخ في الترويسة
+ الذي كان ضيّقًا أصلًا. هذا رسم لتراه وتحكم: إن رأيتَه ثقيلًا، البديل أن نُبقي الهامش الأصغر
+ ونُضيف الفرق على الجهة الأضيق فقط — توسيط بصري بلا خسارة عرض.</div>
+</body></html>

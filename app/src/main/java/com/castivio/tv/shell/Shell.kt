@@ -300,9 +300,12 @@ fun ShellScreen(
                     onSettings = { dest = Dest.Settings },
                     onLanguage = { overlay = Overlay.Language },
                     onTimeShift = { overlay = Overlay.TimeShift },
-                    // What "about" means here is what this build is: its licence, the
-                    // device it is bound to, and its version. That screen exists.
-                    onAbout = { overlay = Overlay.Licence },
+                    // No `onAbout`: "about" is this build's licence, its device and its
+                    // version, and Settings already opens exactly that screen through
+                    // `onShowLicence` below. Home's rail carried a second door to the
+                    // same room, and the room it was taking space from was the rail
+                    // itself -- six controls in the height of three cards left every
+                    // one of them under the touch floor.
                     onExit = onExit,
                 )
                 // Live has its own board rather than the generic section screen: the

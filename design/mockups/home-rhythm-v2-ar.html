@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<!-- The five approved gaps kept exactly — 20 / 20 / 12 / 6 / 8 — and the rail button
+     made bigger rather than smaller. The height comes from two places and neither is
+     an element's design: the stage padding drops to its own 12dp floor, and the rail
+     carries five controls instead of six. 833x385dp, one px per dp, rendered at 2x. -->
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>إيقاع لوحة البداية ٢</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#05040E;color:#fff;font-family:"DejaVu Sans",system-ui,sans-serif;
+     padding:20px;display:inline-block}
+.cap{font-size:12px;color:#6FB2FF;font-weight:700;margin-bottom:3px}
+.sub{font-size:10.5px;color:#A6A6BF;line-height:1.75;max-width:1010px;margin-bottom:12px}
+.sub b{color:#fff} .sub .ok{color:#2FBF9F} .sub .warn{color:#F0A03C}
+
+.stagewrap{position:relative;width:1010px;height:385px}
+.screen{position:absolute;inset-inline-start:0;top:0;width:833px;height:385px;overflow:hidden;
+        border-radius:10px;background:linear-gradient(135deg,#141031 0%,#1B1038 46%,#0A1E3D 100%)}
+.screen::before,.screen::after{content:"";position:absolute;border-radius:50%;filter:blur(70px)}
+.screen::before{width:420px;height:300px;inset-inline-start:-90px;bottom:-120px;background:#6E4BD8;opacity:.30}
+.screen::after {width:460px;height:320px;inset-inline-end:-110px;top:-140px;background:#2E6BFF;opacity:.22}
+.waves{position:absolute;inset:0;opacity:.28}
+.gut{position:absolute;top:0;bottom:0;z-index:3;background:rgba(111,178,255,.05);
+     border-inline:1px dashed rgba(111,178,255,.26)}
+.gut.s{inset-inline-start:0;width:72px} .gut.e{inset-inline-end:0;width:72px}
+
+/* stage padding now 12 top and 12 bottom — its own floor, and symmetric */
+.block{position:absolute;inset-inline-start:72px;inset-inline-end:72px;top:12px;bottom:12px;
+       display:flex;flex-direction:column;z-index:2}
+
+.top{height:40px;flex:none;display:flex;align-items:center;gap:11.3px;direction:ltr}
+.brand{display:flex;align-items:center;gap:7px}
+.mark{width:24px;height:24px;border-radius:50%;flex:none;background:linear-gradient(135deg,#6E4BD8,#2E6BFF);
+      display:flex;align-items:center;justify-content:center;font-size:10px}
+.bname{font-size:15px;font-weight:700;letter-spacing:.11em;line-height:1}
+.terms{flex:1;display:flex;gap:9.6px;direction:rtl}
+.term{flex:1;min-width:0;display:flex;align-items:center;gap:6px;padding:3px 9px;border-radius:7px;
+      background:rgba(255,255,255,.035);border:1px solid rgba(160,163,215,.14)}
+.term i{font-style:normal;font-size:13px;flex:none}
+.who{font-size:8px;color:#8F8FAE;line-height:1;white-space:nowrap}
+.when{font-size:10px;line-height:1;white-space:nowrap;margin-top:2px}
+.when .d{font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
+.term.prov{border-color:rgba(47,191,159,.30)} .term.prov i,.term.prov .when{color:#2FBF9F}
+.term.lic{border-color:rgba(111,178,255,.32)} .term.lic i,.term.lic .when{color:#6FB2FF}
+.clock{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;text-align:right}
+.cdate{font-size:8.5px;color:#7A7A96;font-variant-numeric:tabular-nums;margin-top:2px}
+.rnd{width:26px;height:26px;border-radius:50%;flex:none;border:1px solid rgba(160,163,215,.16);
+     display:flex;align-items:center;justify-content:center;font-size:11px;color:#C9C9DA}
+.lang{display:flex;align-items:center;gap:6px;padding:0 10px;height:26px;border-radius:13px;
+      border:1px solid rgba(160,163,215,.16);font-size:10px;color:#C9C9DA;white-space:nowrap}
+
+.gapA,.gapB{height:20px;flex:none}
+
+.body{flex:1;display:flex;gap:15.7px;min-height:0;direction:rtl}
+.rail{width:113px;flex:none;display:flex;flex-direction:column;gap:6px}
+.util{flex:1;display:flex;align-items:center;gap:8px;padding:0 9px;border-radius:9px;font-size:10.5px;
+      color:#C9C9DA;background:rgba(255,255,255,.035);border:1px solid rgba(160,163,215,.14)}
+.util i{font-style:normal;color:#9B6BFF;width:12px;text-align:center;flex:none;font-size:12px}
+.util.quit i{color:#FF9B9B}
+.stack{width:223px;flex:none;display:flex;flex-direction:column;gap:12px}
+.row{flex:1;border-radius:14px;padding:0 12px;display:flex;align-items:center;gap:11px;
+     background:rgba(255,255,255,.045);border:1px solid rgba(126,140,255,.24)}
+.rg{font-size:18px;flex:none;line-height:1}
+.rname{font-size:13px;font-weight:700}
+.rsub{font-size:10px;margin-top:2px;color:#6FB2FF}
+.hero{flex:1;border-radius:14px;padding:14px 16px;position:relative;overflow:hidden;display:flex;
+      flex-direction:column;justify-content:flex-end;
+      background:linear-gradient(150deg,rgba(46,107,255,.14),rgba(20,16,49,.42));
+      border:1px solid rgba(126,140,255,.24)}
+.hero .wm{position:absolute;font-size:108px;line-height:1;opacity:.075;pointer-events:none;
+      left:50%;transform:translateX(-50%);top:12px;filter:grayscale(1) brightness(2.6)}
+.hname{font-size:18px;font-weight:700;position:relative;z-index:1}
+.hsub{font-size:11px;color:#6FB2FF;margin-top:2px;position:relative;z-index:1}
+
+.foot{flex:none;display:flex;flex-direction:column;gap:8px;direction:rtl}
+.fid{display:flex;gap:9.6px;height:32px}
+.fact{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:7px;
+      white-space:nowrap;font-size:9.5px;padding:0 9px;border-radius:7px;
+      background:rgba(255,255,255,.035);border:1px solid rgba(160,163,215,.14)}
+.fact .gl{font-size:10px;flex:none;color:#8F8FAE}
+.fact .lbl{color:#6E6E8A}
+.fact b{color:#C9C9DA;font-weight:700;font-variant-numeric:tabular-nums}
+.fact .val{direction:ltr;unicode-bidi:isolate}
+.fact.live b,.fact.live .gl{color:#2FBF9F}
+.fact.key b,.fact.key .gl{color:#F0A03C}
+.fdisc{font-size:9px;color:#6E6E8A;display:flex;align-items:center;justify-content:center;gap:5px;
+       height:17.6px}
+
+/* the measures: gaps in amber, element heights in aqua */
+.dim{position:absolute;z-index:6;pointer-events:none}
+.bar{position:absolute;inset-inline-start:0;width:100%;border-block:1px solid #F0A03C;
+     background:repeating-linear-gradient(90deg,rgba(240,160,60,.32) 0 3px,transparent 3px 6px)}
+.tag{position:absolute;font-size:9px;font-weight:700;white-space:nowrap;background:#0B0A1C;
+     border-radius:4px;padding:1px 5px;z-index:7}
+.tag.gap{color:#F0A03C;border:1px solid rgba(240,160,60,.5)}
+.tag.el{color:#2FBF9F;border:1px solid rgba(47,191,159,.45)}
+.lead{position:absolute;height:1px;background:rgba(240,160,60,.45);z-index:6}
+.lead.el{background:rgba(47,191,159,.40)}
+.was{color:#8F8FAE;font-weight:400}
+
+.legend{margin-top:14px;font-size:10.5px;color:#A6A6BF;line-height:1.9;max-width:1010px}
+.legend b{color:#fff} .legend .ok{color:#2FBF9F} .legend .warn{color:#F0A03C}
+table{border-collapse:collapse;margin-top:10px;font-size:10px}
+th,td{border:1px solid rgba(160,163,215,.22);padding:4px 9px;text-align:start}
+th{color:#6FB2FF;font-weight:700;background:rgba(111,178,255,.07)}
+td.n{font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate;text-align:center}
+.up{color:#2FBF9F;font-weight:700} .dn{color:#F0A03C} .same{color:#8F8FAE}
+</style></head><body>
+<div class="cap">الإيقاع العمودي ٢ — المسافات كما اعتُمدت، والأزرار أكبر لا أصغر</div>
+<div class="sub">المسافات الخمس ثابتة كما طلبتَها: <b>٢٠ / ٢٠ / ١٢ / ٦ / ٨</b>.
+ <b class="warn">البرتقالي مسافة</b> و<b class="ok">الأخضر ارتفاع عنصر</b>. زرّ العمود صعد من
+ <b>٣٣٫٧</b> إلى <b class="ok">٣٩٫٩dp</b>، وبطاقة القسم من <b>٦٥٫٠</b> إلى <b class="ok">٦٦٫٥dp</b>.</div>
+
+<div class="stagewrap">
+<div class="screen"><svg class="waves" viewBox="0 0 833 385" preserveAspectRatio="none">
+  <g fill="none" stroke="#B4D6FF" stroke-width="0.7" opacity="0.14">
+    <path d="M-40 300 C 160 250, 300 340, 500 286 S 760 210, 900 250"/>
+    <path d="M-40 330 C 170 282, 310 368, 505 316 S 765 244, 900 282"/>
+    <path d="M-40 80 C 150 30, 300 120, 500 66 S 760 -10, 900 30"/></g></svg>
+  <div class="gut s"></div><div class="gut e"></div>
+
+  <div class="block">
+    <div class="top">
+      <div class="brand"><span class="mark">&#9654;</span><div class="bname">CASTIVIO</div></div>
+      <div class="terms">
+        <div class="term prov"><i>&#10004;</i><div>
+          <div class="who">اشتراك المزوّد</div>
+          <div class="when">حتى <span class="d">08/04/2027</span> · Active</div></div></div>
+        <div class="term lic"><i>&#128737;</i><div>
+          <div class="who">رخصة Castivio</div>
+          <div class="when">حتى <span class="d">01/10/2026</span> · تجريبية</div></div></div>
+      </div>
+      <div><div class="clock">19:38</div><div class="cdate">24/09/2026</div></div>
+      <div class="rnd">&#9728;</div>
+      <div class="lang">اللغة &#127760;</div>
+    </div>
+
+    <div class="gapA"></div>
+
+    <div class="body">
+      <div class="rail"><div class="util"><i>⟲</i>تحديث</div><div class="util"><i>⇄</i>تغيير الاشتراك</div><div class="util"><i>⏱</i>Time Shift</div><div class="util"><i>⚙</i>الإعدادات</div><div class="util quit"><i>⏻</i>خروج</div></div>
+      <div class="stack"><div class="row"><span class="rg">🎞</span><div><div class="rname">الأفلام</div><div class="rsub">لم يُحمَّل بعد</div></div></div><div class="row"><span class="rg">🎬</span><div><div class="rname">المسلسلات</div><div class="rsub">لم يُحمَّل بعد</div></div></div><div class="row"><span class="rg">🎙</span><div><div class="rname">الراديو</div><div class="rsub">لم يُحمَّل بعد</div></div></div></div>
+      <div class="hero"><span class="wm">&#128250;</span>
+        <div class="hname">البث المباشر</div><div class="hsub">لم يُحمَّل بعد</div></div>
+    </div>
+
+    <div class="gapB"></div>
+
+    <div class="foot">
+      <div class="fid">
+        <div class="fact live"><span class="gl">&#128274;</span><span class="lbl">الجهاز:</span><b>مُفعَّل</b></div>
+        <div class="fact"><span class="gl">&#9635;</span><span class="lbl">ماك:</span><b class="val">FE:F8:4D:83:78:9F</b></div>
+        <div class="fact key"><span class="gl">&#128273;</span><span class="lbl">مفتاح الجهاز:</span><b class="val">K6BB-0P2R</b></div>
+      </div>
+      <div class="fdisc"><span>&#8505;</span><span>Castivio مشغّل وسائط. لا يوفّر قنوات ولا أفلامًا ولا اشتراكات — أنت من يضيفها.</span></div>
+    </div>
+  </div>
+
+  <!-- gaps: board runs 72..761 from the start edge; stack 200.7 wide 223; rail 72 wide 113 -->
+  <div class="dim" style="inset-inline-start:72px;width:689px;top:52px;height:20px"><div class="bar" style="top:0;height:20px"></div></div>
+  <div class="dim" style="inset-inline-start:72px;width:689px;top:295.4px;height:20px"><div class="bar" style="top:0;height:20px"></div></div>
+  <div class="dim" style="inset-inline-start:72px;width:689px;top:347.4px;height:8px"><div class="bar" style="top:0;height:8px"></div></div>
+  <!-- stack: cards 66.47, gaps 12, starting 72 -->
+  <div class="dim" style="inset-inline-start:200.7px;width:223px;top:138.5px;height:12px"><div class="bar" style="top:0;height:12px"></div></div>
+  <div class="dim" style="inset-inline-start:200.7px;width:223px;top:217px;height:12px"><div class="bar" style="top:0;height:12px"></div></div>
+  <!-- rail: buttons 39.88, gaps 6 -->
+  <div class="dim" style="inset-inline-start:72px;width:113px;top:111.9px;height:6px"><div class="bar" style="top:0;height:6px"></div></div>
+  <div class="dim" style="inset-inline-start:72px;width:113px;top:157.8px;height:6px"><div class="bar" style="top:0;height:6px"></div></div>
+  <div class="dim" style="inset-inline-start:72px;width:113px;top:203.6px;height:6px"><div class="bar" style="top:0;height:6px"></div></div>
+  <div class="dim" style="inset-inline-start:72px;width:113px;top:249.5px;height:6px"><div class="bar" style="top:0;height:6px"></div></div>
+</div>
+
+<!-- tags in the strip, each on its own measure's line -->
+<div class="lead" style="inset-inline-start:761px;width:62px;top:62px"></div>
+<div class="tag gap" style="inset-inline-start:827px;top:55.5px">① ٢٠</div>
+
+<div class="lead" style="inset-inline-start:423.7px;width:399px;top:144.5px"></div>
+<div class="tag gap" style="inset-inline-start:827px;top:138px">② ١٢</div>
+
+<div class="lead" style="inset-inline-start:185px;width:638px;top:206.6px"></div>
+<div class="tag gap" style="inset-inline-start:827px;top:200.1px">③ ٦</div>
+
+<div class="lead" style="inset-inline-start:761px;width:62px;top:305.4px"></div>
+<div class="tag gap" style="inset-inline-start:827px;top:298.9px">④ ٢٠</div>
+
+<div class="lead" style="inset-inline-start:761px;width:62px;top:351.4px"></div>
+<div class="tag gap" style="inset-inline-start:827px;top:344.9px">⑤ ٨</div>
+
+<div class="lead el" style="inset-inline-start:761px;width:62px;top:32px"></div>
+<div class="tag el" style="inset-inline-start:827px;top:25.5px">الترويسة ٤٠</div>
+
+<div class="lead el" style="inset-inline-start:185px;width:638px;top:92px"></div>
+<div class="tag el" style="inset-inline-start:827px;top:85.5px">زرّ ٣٩٫٩ <span class="was">← ٣٣٫٧</span></div>
+
+<div class="lead el" style="inset-inline-start:423.7px;width:399px;top:105.2px"></div>
+<div class="tag el" style="inset-inline-start:827px;top:170px">بطاقة ٦٦٫٥ <span class="was">← ٦٥٫٠</span></div>
+
+<div class="lead el" style="inset-inline-start:761px;width:62px;top:331.4px"></div>
+<div class="tag el" style="inset-inline-start:827px;top:324.9px">السفلي ٣٢</div>
+</div>
+
+<div class="legend">
+<b>أوّلًا، البرهان أن المقترح السابق كان مستحيلًا.</b> الأرقام كلها مشتقّة من الارتفاع ٣٨٥dp،
+والمسافات الخمس التي ثبّتَّها، والترويسة ٤٠ (أرضيتها) والسفلي ٥٧٫٦ (٣٢ + ٨ + ١٧٫٦):
+
+<table>
+<tr><th>حشو المسرح</th><th>ارتفاع المحتوى</th><th>٦ أزرار</th><th>٥ أزرار</th><th>٤ أزرار</th></tr>
+<tr><td>١٧٫١ / ١٥٫٧ (الحالي)</td><td class="n">214.6</td><td class="n dn">30.8</td><td class="n">38.1</td><td class="n up">49.1</td></tr>
+<tr><td>١٢ / ١٢ (الأرضية)</td><td class="n">223.4</td><td class="n dn">32.2</td><td class="n up">39.9</td><td class="n up">51.4</td></tr>
+</table>
+
+<br>الزرّ اليوم <b>٣٣٫٧dp</b>. أي خانة في عمود «٦ أزرار» أصغر منه — مهما وزّعنا. السبب ليس الإيقاع
+بل <b>العدد</b>: ستّة عناصر في ارتفاع ثلاث بطاقات لا تتّسع. لذلك جاء الارتفاع من مكانين، وليس في
+أيٍّ منهما تصغيرُ عنصر:
+
+<br><br><b>١) حشو المسرح إلى أرضيته.</b> كان ١٧٫١ فوق و١٥٫٧ تحت — غير متساويين بلا سبب.
+صارا <b>١٢ / ١٢</b>: <span class="ok">+٨٫٨dp</span>، ومع ذلك أصبح العلوي والسفلي متماثلين.
+
+<br><b>٢) العمود خمسة عناصر لا ستّة.</b> <b>«حول»</b> ينتقل إلى داخل <b>«الإعدادات»</b> — وهو
+مكانه في كل تطبيق تقريبًا، ولا يُفتح إلا مرّة في عمر التثبيت. <span class="ok">+٤٥٫٩dp</span> لبقية
+الأزرار. لم يُحذف شيء ولم يصغر شيء: زرّ واحد انتقل إلى شاشة أخرى.
+
+<br><br><b class="warn">وما زال تحت الأرضية.</b> ٣٩٫٩dp أكبر من اليوم بـ٦٫٢ لكنه دون
+<b>٤٨dp</b> التي يفرضها <b>Sizing.minTouchTarget</b>. الوصول إليها يحتاج <b>أربعة</b> عناصر
+(٥١٫٤dp) — أي نقل «حول» و«تغيير الاشتراك» معًا. أعرضه ولا أوصي به: تغيير الاشتراك فعلٌ رئيسي
+في مشغّل IPTV ومكانه الواجهة. القرار قرارك.
+</div>
+</body></html>

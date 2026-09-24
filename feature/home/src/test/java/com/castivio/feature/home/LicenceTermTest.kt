@@ -34,33 +34,70 @@ class LicenceTermTest {
         assertEquals(expiry, term.atMs)
     }
 
+    /**
+     * **The plan, not the state.** It said "Active", which is what the licence screen
+     * says because that screen's question is "am I licensed". Home's card asks a
+     * different one — *which* licence, and until when — so the word is the plan and
+     * the state is carried by the card's colour, as it is for the provider beside it.
+     */
     @Test
-    fun `an annual licence says active and carries its date`() {
+    fun `an annual licence is named by its plan and carries its date`() {
         val term = licenceTerm(EntitlementState.AnnualActive(expiry, daysRemaining = 200))
 
-        assertEquals(R.string.home_licence_active, term.word)
-        assertEquals(expiry, term.atMs)
-    }
-
-    @Test
-    fun `an expired annual licence says when it lapsed`() {
-        val term = licenceTerm(EntitlementState.AnnualExpired(expiry))
-
-        assertEquals(R.string.home_licence_expired, term.word)
+        assertEquals(R.string.home_licence_annual, term.word)
         assertEquals(expiry, term.atMs)
     }
 
     /**
-     * The date is nullable in the state itself — a record repaired after a clock
-     * rollback may not have one — and the card must then say that it expired without
-     * saying when, rather than requiring a date it would have to invent.
+     * **No date, although the state has one.** `expiredAtMs` is when the licence
+     * lapsed, and this card's date slot is read as "runs out on" — future tense. The
+     * card would have said "Expired · expires on 4 March", which is the screen
+     * contradicting itself inside one line. The licence screen is where a lapse says
+     * *when*; the card says *that*, and says it in one word.
+     *
+     * This assertion was the opposite way round before the card's sentence was fixed.
+     * It is kept and inverted rather than deleted, because the case still has to be
+     * covered — what changed is what the right answer is.
      */
+    @Test
+    fun `an expired annual licence names no date, even holding one`() {
+        val term = licenceTerm(EntitlementState.AnnualExpired(expiry))
+
+        assertEquals(R.string.home_licence_expired, term.word)
+        assertNull(term.atMs)
+    }
+
     @Test
     fun `an expired annual licence with no recorded date still says expired`() {
         val term = licenceTerm(EntitlementState.AnnualExpired())
 
         assertEquals(R.string.home_licence_expired, term.word)
         assertNull(term.atMs)
+    }
+
+    /**
+     * The three plan states are the only ones that may print a date, because they
+     * are the only ones with a future to name. This is the assertion that fails if a
+     * later edit hands a date back to a state that has already ended.
+     */
+    @Test
+    fun `only a live plan carries a date`() {
+        val dated = listOf(
+            EntitlementState.TrialActive(expiry, 3),
+            EntitlementState.AnnualActive(expiry, 3),
+        )
+        val undated = listOf(
+            EntitlementState.Lifetime,
+            EntitlementState.TrialExpired,
+            EntitlementState.AnnualExpired(expiry),
+            EntitlementState.Revoked(expiry),
+            EntitlementState.VerificationUnavailable(Plan.ANNUAL, expiry, expiry),
+            EntitlementState.ServiceUnavailable(ServiceFault.NOT_CONFIGURED),
+            EntitlementState.Unknown,
+        )
+
+        for (state in dated) assertEquals(expiry, licenceTerm(state).atMs)
+        for (state in undated) assertNull("$state", licenceTerm(state).atMs)
     }
 
     @Test

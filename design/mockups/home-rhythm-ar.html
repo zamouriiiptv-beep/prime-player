@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<!-- Vertical rhythm only. Every element keeps its design, its size and its content;
+     the horizontal centring is the approved 72dp gutter. What is proposed here is the
+     four vertical gaps, drawn to scale with their measurements beside them.
+     833x385dp at the owner's geometry, one px per dp, rendered at 2x. -->
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>إيقاع لوحة البداية</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#05040E;color:#fff;font-family:"DejaVu Sans",system-ui,sans-serif;
+     padding:20px;display:inline-block}
+.cap{font-size:12px;color:#6FB2FF;font-weight:700;margin-bottom:3px}
+.sub{font-size:10.5px;color:#A6A6BF;line-height:1.75;max-width:1010px;margin-bottom:12px}
+.sub b{color:#fff} .sub .ok{color:#2FBF9F} .sub .warn{color:#F0A03C}
+
+.stagewrap{position:relative;width:1010px;height:385px}
+.screen{position:absolute;inset-inline-start:0;top:0;width:833px;height:385px;overflow:hidden;
+        border-radius:10px;background:linear-gradient(135deg,#141031 0%,#1B1038 46%,#0A1E3D 100%)}
+.screen::before,.screen::after{content:"";position:absolute;border-radius:50%;filter:blur(70px)}
+.screen::before{width:420px;height:300px;inset-inline-start:-90px;bottom:-120px;background:#6E4BD8;opacity:.30}
+.screen::after {width:460px;height:320px;inset-inline-end:-110px;top:-140px;background:#2E6BFF;opacity:.22}
+.waves{position:absolute;inset:0;opacity:.28}
+.gut{position:absolute;top:0;bottom:0;z-index:3;background:rgba(111,178,255,.05);
+     border-inline:1px dashed rgba(111,178,255,.26)}
+.gut.s{inset-inline-start:0;width:72px} .gut.e{inset-inline-end:0;width:72px}
+
+/* the stage: 17.1 above, 15.7 below, exactly as the tokens give them */
+.block{position:absolute;inset-inline-start:72px;inset-inline-end:72px;top:17.1px;bottom:15.7px;
+       display:flex;flex-direction:column;z-index:2}
+
+.top{height:40px;flex:none;display:flex;align-items:center;gap:11.3px;direction:ltr}
+.brand{display:flex;align-items:center;gap:7px}
+.mark{width:24px;height:24px;border-radius:50%;flex:none;background:linear-gradient(135deg,#6E4BD8,#2E6BFF);
+      display:flex;align-items:center;justify-content:center;font-size:10px}
+.bname{font-size:15px;font-weight:700;letter-spacing:.11em;line-height:1}
+.terms{flex:1;display:flex;gap:9.6px;direction:rtl}
+.term{flex:1;min-width:0;display:flex;align-items:center;gap:6px;padding:3px 9px;border-radius:7px;
+      background:rgba(255,255,255,.035);border:1px solid rgba(160,163,215,.14)}
+.term i{font-style:normal;font-size:13px;flex:none}
+.who{font-size:8px;color:#8F8FAE;line-height:1;white-space:nowrap}
+.when{font-size:10px;line-height:1;white-space:nowrap;margin-top:2px}
+.when .d{font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
+.term.prov{border-color:rgba(47,191,159,.30)} .term.prov i,.term.prov .when{color:#2FBF9F}
+.term.lic{border-color:rgba(111,178,255,.32)} .term.lic i,.term.lic .when{color:#6FB2FF}
+.clock{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;text-align:right}
+.cdate{font-size:8.5px;color:#7A7A96;font-variant-numeric:tabular-nums;margin-top:2px}
+.rnd{width:26px;height:26px;border-radius:50%;flex:none;border:1px solid rgba(160,163,215,.16);
+     display:flex;align-items:center;justify-content:center;font-size:11px;color:#C9C9DA}
+.lang{display:flex;align-items:center;gap:6px;padding:0 10px;height:26px;border-radius:13px;
+      border:1px solid rgba(160,163,215,.16);font-size:10px;color:#C9C9DA;white-space:nowrap}
+
+.gapA{height:20px;flex:none}          /* header  -> board   PROPOSED 20 (was 15.7) */
+.gapB{height:20px;flex:none}          /* board   -> footer  PROPOSED 20 (was 15.7) */
+
+.body{flex:1;display:flex;gap:15.7px;min-height:0;direction:rtl}
+.rail{width:113px;flex:none;display:flex;flex-direction:column;gap:6px}  /* PROPOSED 6 (was 4.8) */
+.util{flex:1;display:flex;align-items:center;gap:8px;padding:0 9px;border-radius:8px;font-size:10px;
+      color:#C9C9DA;background:rgba(255,255,255,.03);border:1px solid rgba(160,163,215,.12)}
+.util i{font-style:normal;color:#9B6BFF;width:12px;text-align:center;flex:none;font-size:11px}
+.util.quit i{color:#FF9B9B}
+.stack{width:223px;flex:none;display:flex;flex-direction:column;gap:12px}  /* PROPOSED 12 (was 15.7) */
+.row{flex:1;border-radius:14px;padding:0 12px;display:flex;align-items:center;gap:11px;
+     background:rgba(255,255,255,.045);border:1px solid rgba(126,140,255,.24)}
+.rg{font-size:17px;flex:none;line-height:1}
+.rname{font-size:13px;font-weight:700}
+.rsub{font-size:10px;margin-top:2px;color:#6FB2FF}
+.hero{flex:1;border-radius:14px;padding:14px 16px;position:relative;overflow:hidden;display:flex;
+      flex-direction:column;justify-content:flex-end;
+      background:linear-gradient(150deg,rgba(46,107,255,.14),rgba(20,16,49,.42));
+      border:1px solid rgba(126,140,255,.24)}
+.hero .wm{position:absolute;font-size:104px;line-height:1;opacity:.075;pointer-events:none;
+      left:50%;transform:translateX(-50%);top:12px;filter:grayscale(1) brightness(2.6)}
+.hname{font-size:18px;font-weight:700;position:relative;z-index:1}
+.hsub{font-size:11px;color:#6FB2FF;margin-top:2px;position:relative;z-index:1}
+
+.foot{flex:none;display:flex;flex-direction:column;gap:8px;direction:rtl}  /* PROPOSED 8 (was 4.8) */
+.fid{display:flex;gap:9.6px;height:32px}
+.fact{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:7px;
+      white-space:nowrap;font-size:9.5px;padding:0 9px;border-radius:7px;
+      background:rgba(255,255,255,.035);border:1px solid rgba(160,163,215,.14)}
+.fact .gl{font-size:10px;flex:none;color:#8F8FAE}
+.fact .lbl{color:#6E6E8A}
+.fact b{color:#C9C9DA;font-weight:700;font-variant-numeric:tabular-nums}
+.fact .val{direction:ltr;unicode-bidi:isolate}
+.fact.live b,.fact.live .gl{color:#2FBF9F}
+.fact.key b,.fact.key .gl{color:#F0A03C}
+.fdisc{font-size:9px;color:#6E6E8A;display:flex;align-items:center;justify-content:center;gap:5px;
+       height:17.6px}
+
+/* ---------------- the dimension marks, which are annotation not interface ------- */
+.dim{position:absolute;z-index:6;pointer-events:none}
+.dim .bar{position:absolute;inset-inline-start:0;width:100%;
+          border-top:1px solid #F0A03C;border-bottom:1px solid #F0A03C;
+          background:repeating-linear-gradient(90deg,rgba(240,160,60,.30) 0 3px,transparent 3px 6px)}
+.dim .tag{position:absolute;font-size:9px;font-weight:700;color:#F0A03C;white-space:nowrap;
+          background:#0B0A1C;border:1px solid rgba(240,160,60,.5);border-radius:4px;padding:1px 5px}
+.lead{position:absolute;height:1px;background:rgba(240,160,60,.45);z-index:6}
+.was{color:#8F8FAE;font-weight:400}
+
+.legend{margin-top:14px;font-size:10.5px;color:#A6A6BF;line-height:1.9;max-width:1010px}
+.legend b{color:#fff} .legend .ok{color:#2FBF9F} .legend .warn{color:#F0A03C}
+table{border-collapse:collapse;margin-top:10px;font-size:10px}
+th,td{border:1px solid rgba(160,163,215,.22);padding:4px 9px;text-align:start}
+th{color:#6FB2FF;font-weight:700;background:rgba(111,178,255,.07)}
+td.n{font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate;text-align:center}
+.up{color:#2FBF9F} .dn{color:#F0A03C}
+</style></head><body>
+<div class="cap">الإيقاع العمودي — المسافات وحدها، بالقياس</div>
+<div class="sub">لا حجم ولا لون ولا مكوّن تغيّر، والتمركز الأفقي هو المعتمد (٧٢dp من كل حافة).
+ المرسوم بالبرتقالي <b class="warn">قياسات لا واجهة</b> — أربع مسافات، كلٌّ مرسومة على مقياسها الحقيقي.</div>
+
+<div class="stagewrap">
+<div class="screen"><svg class="waves" viewBox="0 0 833 385" preserveAspectRatio="none">
+  <g fill="none" stroke="#B4D6FF" stroke-width="0.7" opacity="0.14">
+    <path d="M-40 300 C 160 250, 300 340, 500 286 S 760 210, 900 250"/>
+    <path d="M-40 330 C 170 282, 310 368, 505 316 S 765 244, 900 282"/>
+    <path d="M-40 80 C 150 30, 300 120, 500 66 S 760 -10, 900 30"/></g></svg>
+  <div class="gut s"></div><div class="gut e"></div>
+
+  <div class="block">
+    <div class="top">
+      <div class="brand"><span class="mark">&#9654;</span><div class="bname">CASTIVIO</div></div>
+      <div class="terms">
+        <div class="term prov"><i>&#10004;</i><div>
+          <div class="who">اشتراك المزوّد</div>
+          <div class="when">حتى <span class="d">08/04/2027</span> · Active</div></div></div>
+        <div class="term lic"><i>&#128737;</i><div>
+          <div class="who">رخصة Castivio</div>
+          <div class="when">حتى <span class="d">01/10/2026</span> · تجريبية</div></div></div>
+      </div>
+      <div><div class="clock">19:38</div><div class="cdate">24/09/2026</div></div>
+      <div class="rnd">&#9728;</div>
+      <div class="lang">اللغة &#127760;</div>
+    </div>
+
+    <div class="gapA"></div>
+
+    <div class="body">
+      <div class="rail"><div class="util"><i>⟲</i>تحديث</div><div class="util"><i>⇄</i>تغيير الاشتراك</div><div class="util"><i>⏱</i>Time Shift</div><div class="util"><i>⚙</i>الإعدادات</div><div class="util"><i>ⓘ</i>حول</div><div class="util quit"><i>⏻</i>خروج</div></div>
+      <div class="stack"><div class="row"><span class="rg">🎞</span><div><div class="rname">الأفلام</div><div class="rsub">لم يُحمَّل بعد</div></div></div><div class="row"><span class="rg">🎬</span><div><div class="rname">المسلسلات</div><div class="rsub">لم يُحمَّل بعد</div></div></div><div class="row"><span class="rg">🎙</span><div><div class="rname">الراديو</div><div class="rsub">لم يُحمَّل بعد</div></div></div></div>
+      <div class="hero"><span class="wm">&#128250;</span>
+        <div class="hname">البث المباشر</div><div class="hsub">لم يُحمَّل بعد</div></div>
+    </div>
+
+    <div class="gapB"></div>
+
+    <div class="foot">
+      <div class="fid">
+        <div class="fact live"><span class="gl">&#128274;</span><span class="lbl">الجهاز:</span><b>مُفعَّل</b></div>
+        <div class="fact"><span class="gl">&#9635;</span><span class="lbl">ماك:</span><b class="val">FE:F8:4D:83:78:9F</b></div>
+        <div class="fact key"><span class="gl">&#128273;</span><span class="lbl">مفتاح الجهاز:</span><b class="val">K6BB-0P2R</b></div>
+      </div>
+      <div class="fdisc"><span>&#8505;</span><span>Castivio مشغّل وسائط. لا يوفّر قنوات ولا أفلامًا ولا اشتراكات — أنت من يضيفها.</span></div>
+    </div>
+  </div>
+
+  <!-- ① header -> board : top 17.1+40 = 57.1, height 20 -->
+  <div class="dim" style="inset-inline-start:72px;width:689px;top:57.1px;height:20px">
+    <div class="bar" style="top:0;height:20px"></div></div>
+  <!-- ② between stack cards : board starts 77.1, card 63.5 -->
+  <div class="dim" style="inset-inline-start:200.7px;width:223px;top:140.6px;height:12px">
+    <div class="bar" style="top:0;height:12px"></div></div>
+  <div class="dim" style="inset-inline-start:200.7px;width:223px;top:216.1px;height:12px">
+    <div class="bar" style="top:0;height:12px"></div></div>
+  <!-- ③ between rail buttons : button 30.8, gap 6 -->
+  <div class="dim" style="inset-inline-start:72px;width:113px;top:107.9px;height:6px">
+    <div class="bar" style="top:0;height:6px"></div></div>
+  <div class="dim" style="inset-inline-start:72px;width:113px;top:144.7px;height:6px">
+    <div class="bar" style="top:0;height:6px"></div></div>
+  <div class="dim" style="inset-inline-start:72px;width:113px;top:181.5px;height:6px">
+    <div class="bar" style="top:0;height:6px"></div></div>
+  <div class="dim" style="inset-inline-start:72px;width:113px;top:218.3px;height:6px">
+    <div class="bar" style="top:0;height:6px"></div></div>
+  <div class="dim" style="inset-inline-start:72px;width:113px;top:255.1px;height:6px">
+    <div class="bar" style="top:0;height:6px"></div></div>
+  <!-- ④ board -> footer : board ends 291.7, height 20 -->
+  <div class="dim" style="inset-inline-start:72px;width:689px;top:291.7px;height:20px">
+    <div class="bar" style="top:0;height:20px"></div></div>
+  <!-- ⑤ inside the footer : facts -> sentence -->
+  <div class="dim" style="inset-inline-start:72px;width:689px;top:343.7px;height:8px">
+    <div class="bar" style="top:0;height:8px"></div></div>
+</div>
+
+<!-- the tags, in the strip to the side, each on its measure's line -->
+<div class="lead" style="inset-inline-start:761px;width:60px;top:67.1px"></div>
+<div class="dim tag" style="inset-inline-start:825px;top:60.6px">① ٢٠ <span class="was">← ١٥٫٧</span></div>
+
+<div class="lead" style="inset-inline-start:423.7px;width:401px;top:146.6px"></div>
+<div class="dim tag" style="inset-inline-start:825px;top:140.1px">② ١٢ <span class="was">← ١٥٫٧</span></div>
+
+<div class="lead" style="inset-inline-start:185px;width:640px;top:184.5px"></div>
+<div class="dim tag" style="inset-inline-start:825px;top:178px">③ ٦ <span class="was">← ٤٫٨</span></div>
+
+<div class="lead" style="inset-inline-start:761px;width:60px;top:301.7px"></div>
+<div class="dim tag" style="inset-inline-start:825px;top:295.2px">④ ٢٠ <span class="was">← ١٥٫٧</span></div>
+
+<div class="lead" style="inset-inline-start:761px;width:60px;top:347.7px"></div>
+<div class="dim tag" style="inset-inline-start:825px;top:341.2px">⑤ ٨ <span class="was">← ٤٫٨</span></div>
+</div>
+
+<div class="legend">
+<b>العلّة، بعبارة واحدة:</b> المسافة بين <span class="ok">مجموعتين</span> كانت تساوي المسافة بين
+<span class="ok">عضوين في مجموعة</span> — ١٥٫٧dp في الحالتين — فلا شيء يقول للعين أين تنتهي الترويسة
+وأين يبدأ المحتوى. وفي الوقت نفسه كان العمودان المتجاوران يسيران بإيقاعين مختلفين:
+البطاقات تتنفّس عند ١٥٫٧ والأزرار مضغوطة عند ٤٫٨ — ثلاثة أضعاف فرق، جنبًا إلى جنب في صفّ واحد.
+
+<table>
+<tr><th>#</th><th>المسافة</th><th>الآن</th><th>المقترح</th><th>لماذا</th></tr>
+<tr><td class="n">①</td><td>الترويسة ← المحتوى</td><td class="n">15.7</td><td class="n up">20</td>
+    <td>فصل بين مجموعتين، فيجب أن يكون أكبر من أي مسافة داخل مجموعة</td></tr>
+<tr><td class="n">④</td><td>المحتوى ← السفلي</td><td class="n">15.7</td><td class="n up">20</td>
+    <td>المسافة نفسها لأن الفصل نفسه — التماثل هنا مقصود</td></tr>
+<tr><td class="n">②</td><td>بين بطاقات الأفلام/المسلسلات/الراديو</td><td class="n">15.7</td><td class="n dn">12</td>
+    <td>أعضاء مجموعة واحدة، فتبقى دون مسافة الفصل بوضوح</td></tr>
+<tr><td class="n">③</td><td>بين أزرار العمود الستّة</td><td class="n">4.8</td><td class="n up">6</td>
+    <td>نسبة ٢:١ مع البطاقات بدل ٣٫٣:١ — إيقاع واحد لا اثنان</td></tr>
+<tr><td class="n">⑤</td><td>داخل السفلي: البطاقات ← الجملة</td><td class="n">4.8</td><td class="n up">8</td>
+    <td>الجملة كانت ملتصقة بالبطاقات فتُقرأ كجزء منها</td></tr>
+</table>
+
+<br><b>الحساب، لا التقدير.</b> ارتفاع المسرح ٣٥٢٫٢dp بعد ١٧٫١ فوق و١٥٫٧ تحت. الترويسة ٤٠ ثابتة،
+والسفلي يصير ٣٢ + ٨ + ١٧٫٦ = <b>٥٧٫٦</b>، فيبقى للمحتوى:
+٣٥٢٫٢ − ٤٠ − ٢٠ − ٢٠ − ٥٧٫٦ = <b>٢١٤٫٦dp</b>.<br>
+منها: بطاقة القسم = (٢١٤٫٦ − ٢٤) ÷ ٣ = <b>٦٣٫٥dp</b> <span class="was">(كانت ٦٥٫٠ — أصغر بـ١٫٥)</span>،
+وزرّ العمود = (٢١٤٫٦ − ٣٠) ÷ ٦ = <b>٣٠٫٨dp</b> <span class="was">(كان ٣٣٫٧ — أصغر بـ٢٫٩)</span>.
+
+<br><br><b class="warn">وهذا هو الثمن، وأقوله قبل أن تقرّر:</b> كل dp يُضاف إلى مسافة يُؤخذ من ارتفاع
+عنصر. أزرار العمود تنزل من ٣٣٫٧ إلى ٣٠٫٨dp — <b>وهي أصلًا تحت أرضية ٤٨dp</b> التي يفرضها
+<b>Sizing.minTouchTarget</b> للمس، و٥٦ للتلفاز. ستّة أزرار في ارتفاع ثلاث بطاقات لا تتّسع لهدف
+لمس نظامي مهما وزّعنا المسافات: هذا قيد بنيوي في العمود نفسه، لا في الإيقاع، وعلاجه قرار آخر
+(أزرار أقلّ، أو صفّ بدل عمود). أذكره لأنه يسوء قليلًا بهذا المقترح، لا لأنه ينشأ عنه.
+</div>
+</body></html>
