@@ -43,7 +43,6 @@
 
 
     <!-- ============================================================ the dashboard -->
-    <string name="home_tagline">Premium IPTV player</string>
 
     <!-- Shown before any provider is configured: the one screen that has to lead
          somewhere, because nothing else on Home can work until it does. -->
@@ -107,13 +106,18 @@
     <string name="gate_provider">Provider</string>
 
 
-    <!-- ============================================ the dashboard's own two cards
+    <!-- ============================================ the dashboard's own two terms
 
-         Castivio's licence, not the provider's subscription. The provider's status
-         and expiry are returned by the validator and have nowhere to be stored, so
-         they are not shown at all rather than shown from nothing. -->
-    <string name="home_status_account">Account status</string>
-    <string name="home_status_expires">Expires on</string>
+         Two systems that both run out, and a user who confuses them rings the wrong
+         support line. Each is named in full — never "Subscription" on its own, which
+         could be either — because the label is one of the four things separating
+         them, alongside hue, glyph and edge. -->
+    <string name="home_term_provider">Provider subscription</string>
+    <string name="home_term_licence">Castivio licence</string>
+    <!-- Follows the state word on a term card: "Active · until 8 Apr 2027".
+         %1$s is a date already formatted in the reader's locale. -->
+    <string name="home_term_until">until %1$s</string>
+
     <!-- Used only where the provider gave no word of its own. Its own word is
          preferred, untranslated, because that is what the user sees on their
          provider's panel and ours disagreeing with theirs helps nobody. -->
@@ -121,8 +125,18 @@
     <string name="home_account_inactive">Inactive</string>
     <!-- Never asked, which is not the same as refused. -->
     <string name="home_account_unknown">Not checked</string>
-    <!-- The provider stated no expiry, or was never asked for one. -->
-    <string name="home_expires_none">—</string>
+
+    <!-- Castivio's own licence, one word per state. "Expired" is an accusation and
+         only the two states that really did run out may use it: a licence we could
+         not verify says so, and one never established says that instead. -->
+    <string name="home_licence_trial">Trial</string>
+    <string name="home_licence_active">Active</string>
+    <string name="home_licence_expired">Expired</string>
+    <string name="home_licence_lifetime">Lifetime</string>
+    <string name="home_licence_revoked">Withdrawn</string>
+    <string name="home_licence_unknown">Not established</string>
+    <string name="home_licence_unverified">Not verified</string>
+    <string name="home_licence_unavailable">Unavailable</string>
 
     <!-- The theme control in the header. Two sentences rather than one, because a
          screen reader should announce what the press will do, and that is a

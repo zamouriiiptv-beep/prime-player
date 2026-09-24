@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<!-- The rail sits at the START of the reading order and the hero at the END.
+     One DOM order, both directions: the row is laid out by `dir`, so nothing here
+     names a physical side. 833x385dp, one px per dp, rendered at 2x to be read. -->
+<html lang="en" dir="ltr"><head><meta charset="utf-8"><title>Start board — English</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#05040E;color:#fff;font-family:"DejaVu Sans",system-ui,sans-serif;
+     padding:20px;display:inline-block}
+.cap{font-size:12px;color:#6FB2FF;font-weight:700;margin-bottom:3px}
+.sub{font-size:10.5px;color:#A6A6BF;line-height:1.75;max-width:833px;margin-bottom:10px}
+.sub b{color:#fff} .sub .was{color:#FF8A8A} .sub .now{color:#2FBF9F}
+
+.board{width:833px;height:385px;border-radius:10px;overflow:hidden;position:relative;
+       background:linear-gradient(135deg,#141031 0%,#1B1038 46%,#0A1E3D 100%);
+       padding:16px;display:flex;flex-direction:column;gap:11px}
+.board::before,.board::after{content:"";position:absolute;border-radius:50%;filter:blur(70px)}
+.board::before{width:420px;height:300px;inset-inline-start:-90px;bottom:-120px;background:#6E4BD8;opacity:.30}
+.board::after {width:460px;height:320px;inset-inline-end:-110px;top:-140px;background:#2E6BFF;opacity:.22}
+.waves{position:absolute;inset:0;opacity:.30}
+
+.top{height:34px;flex:none;display:flex;align-items:center;gap:11px;position:relative;z-index:2}
+.brand{display:flex;align-items:center;gap:7px}
+.mark{width:23px;height:23px;border-radius:50%;flex:none;background:linear-gradient(135deg,#6E4BD8,#2E6BFF);
+      display:flex;align-items:center;justify-content:center;font-size:10px}
+.bname{font-size:15px;font-weight:700;letter-spacing:.11em;line-height:1}
+.btag{font-size:8px;color:#A6A6BF;letter-spacing:0;margin-top:2px}
+.spring{flex:1}
+.state{display:flex;align-items:center;gap:6px;font-size:10px;color:#C9C9DA;white-space:nowrap}
+.state .dot{width:6px;height:6px;border-radius:50%;background:#2FBF9F;box-shadow:0 0 6px #2FBF9F}
+.state .to{color:#7A7A96}
+.vr{width:1px;height:15px;background:rgba(160,163,215,.20)}
+.clock{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.cdate{font-size:8.5px;color:#7A7A96;font-variant-numeric:tabular-nums;margin-top:2px;text-align:end}
+
+.body{flex:1;display:flex;gap:11px;min-height:0;position:relative;z-index:2}
+
+.rail{width:133px;flex:none;display:flex;flex-direction:column;gap:5px}
+.util{flex:1;display:flex;align-items:center;gap:9px;padding:0 10px;border-radius:8px;font-size:10.5px;
+      color:#C9C9DA;background:rgba(255,255,255,.03);border:1px solid rgba(160,163,215,.12)}
+.util i{font-style:normal;color:#8F8FAE;width:13px;text-align:center;flex:none;font-size:11px}
+.util.quit{color:#FF9B9B} .util.quit i{color:#FF9B9B}
+
+.stack{width:262px;flex:none;display:flex;flex-direction:column;gap:9px}
+.row{flex:1;border-radius:10px;padding:0 13px;display:flex;align-items:center;gap:12px;
+     background:rgba(255,255,255,.045);border:1px solid rgba(126,140,255,.28);position:relative;overflow:hidden}
+.row .rglow{position:absolute;width:104px;height:104px;border-radius:50%;filter:blur(30px);opacity:.26;
+     inset-inline-start:-34px;top:-26px}
+.rg{font-size:19px;flex:none;line-height:1;position:relative;z-index:1}
+.rtext{flex:1;min-width:0;position:relative;z-index:1}
+.rname{font-size:13px;font-weight:700}
+.rsub{font-size:10px;margin-top:2px;color:#6FB2FF}
+.mov .rglow{background:#9B6BFF} .ser .rglow{background:#2FBF9F} .rad .rglow{background:#F0A03C}
+
+.hero{flex:1;border-radius:12px;padding:15px 17px;position:relative;overflow:hidden;display:flex;
+      flex-direction:column;justify-content:space-between;
+      background:linear-gradient(150deg,rgba(46,107,255,.20),rgba(20,16,49,.55));
+      border:1px solid rgba(126,140,255,.34)}
+.hero .hglow{position:absolute;width:190px;height:190px;border-radius:50%;filter:blur(46px);
+      background:#2E6BFF;opacity:.30;inset-inline-end:-46px;bottom:-66px}
+.hg{font-size:26px;line-height:1}
+.hname{font-size:20px;font-weight:700}
+.hcount{font-size:27px;font-weight:700;font-variant-numeric:tabular-nums;color:#6FB2FF;line-height:1.05;margin-top:3px}
+.hcount small{font-size:12px;font-weight:400;color:#C9C9DA;margin-inline-start:5px}
+
+.foot{height:15px;flex:none;display:flex;align-items:center;gap:9px;font-size:9px;color:#6E6E8A;
+      position:relative;z-index:2}
+.foot .id{font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
+.foot .ok{color:#2FBF9F}
+</style></head><body>
+<div class="cap">English (LTR) — the rail on the left, the Live TV panel on the right</div>
+<div class="sub"><b class="was">What shipped is the mirror of this:</b> the panel on the left and the rail on the right. <b class="now">Correct:</b> the rail sits at the start of the reading order — the left in English — and the panel at the end.</div>
+<div class="board"><svg class="waves" viewBox="0 0 833 385" preserveAspectRatio="none">
+  <g fill="none" stroke="#B4D6FF" stroke-width="0.7" opacity="0.14">
+    <path d="M-40 300 C 160 250, 300 340, 500 286 S 760 210, 900 250"/>
+    <path d="M-40 330 C 170 282, 310 368, 505 316 S 765 244, 900 282"/>
+    <path d="M-40 360 C 180 314, 320 396, 510 346 S 770 278, 900 314"/>
+    <path d="M-40 80 C 150 30, 300 120, 500 66 S 760 -10, 900 30"/></g>
+  <g fill="#B4D6FF" opacity="0.30"><circle cx="678" cy="92" r="1.3"/><circle cx="300" cy="58" r="1"/>
+    <circle cx="146" cy="196" r="1.2"/><circle cx="792" cy="238" r="1"/></g></svg>
+  <div class="top">
+    <div class="brand"><span class="mark">&#9654;</span>
+      <div><div class="bname">CASTIVIO</div><div class="btag">Premium IPTV player</div></div></div>
+    <div class="spring"></div>
+    <div class="state"><span class="dot"></span>Account active<span class="to"> · expires Apr 8, 2027</span></div>
+    <div class="vr"></div>
+    <div><div class="clock">13:01</div><div class="cdate">Sep 24, 2026</div></div>
+  </div>
+  <div class="body">
+    <div class="rail"><div class="util"><i>⟲</i>Refresh</div><div class="util"><i>⇄</i>Change subscription</div><div class="util"><i>⏱</i>Time Shift</div><div class="util"><i>⚙</i>Settings</div><div class="util"><i>ⓘ</i>About</div><div class="util quit"><i>⏻</i>Exit</div></div>
+    <div class="stack"><div class="row mov"><span class="rglow"></span><span class="rg">🎞</span><div class="rtext"><div class="rname">Movies</div><div class="rsub">Not downloaded yet</div></div></div><div class="row ser"><span class="rglow"></span><span class="rg">🎬</span><div class="rtext"><div class="rname">Series</div><div class="rsub">Not downloaded yet</div></div></div><div class="row rad"><span class="rglow"></span><span class="rg">🎙</span><div class="rtext"><div class="rname">Radio</div><div class="rsub">Not downloaded yet</div></div></div></div>
+    <div class="hero"><span class="hglow"></span>
+      <div class="hg">&#128250;</div>
+      <div><div class="hname">Live TV</div>
+        <div class="hcount">54,508<small>channels</small></div></div></div>
+  </div>
+  <div class="foot"><span class="ok">&#9673;</span>Device activated<span>&middot;</span>
+    <span>MAC <span class="id">FE:F8:4D:83:78:9F</span></span>
+    <div class="spring"></div><span>Castivio is a media player. It provides no channels, films or subscriptions — you add them.</span></div>
+</div></body></html>

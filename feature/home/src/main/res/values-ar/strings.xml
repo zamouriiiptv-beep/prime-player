@@ -38,7 +38,6 @@
 
 
     <!-- ============================================================ لوحة البداية -->
-    <string name="home_tagline">مشغّل IPTV متميّز</string>
 
     <string name="home_no_source_title">لا يوجد اشتراك بعد</string>
     <string name="home_no_source_detail">أضف مزوّدك ليستورد Castivio قنواته وأفلامه ومسلسلاته إلى هذا الجهاز. عبر Xtream Codes أو رابط M3U أو التفعيل بعنوان MAC.</string>
@@ -94,12 +93,22 @@
     <string name="home_fetched_at">محفوظ محليًا · %1$s</string>
 
 
-    <string name="home_status_account">حالة الاشتراك</string>
-    <string name="home_status_expires">ينتهي في</string>
+    <string name="home_term_provider">اشتراك المزوّد</string>
+    <string name="home_term_licence">رخصة Castivio</string>
+    <string name="home_term_until">حتى %1$s</string>
+
     <string name="home_account_active">نشط</string>
     <string name="home_account_inactive">غير نشط</string>
     <string name="home_account_unknown">لم يُفحص</string>
-    <string name="home_expires_none">—</string>
+
+    <string name="home_licence_trial">تجريبية</string>
+    <string name="home_licence_active">سارية</string>
+    <string name="home_licence_expired">منتهية</string>
+    <string name="home_licence_lifetime">مدى الحياة</string>
+    <string name="home_licence_revoked">مسحوبة</string>
+    <string name="home_licence_unknown">لم تُنشأ بعد</string>
+    <string name="home_licence_unverified">تعذّر التحقّق</string>
+    <string name="home_licence_unavailable">غير متاحة</string>
 
     <string name="home_theme_lighter">التبديل إلى الوضع الأفتح</string>
     <string name="home_theme_darker">التبديل إلى الوضع الأغمق</string>
@@ -113,7 +122,9 @@
     <string name="home_about">حول</string>
     <string name="home_exit">خروج</string>
 
-    <string name="home_device_mac">MAC: %1$s</string>
+    <!-- The label is Arabic; the value is not. Six hexadecimal pairs are not a word
+         to translate, and the provider expects them character for character. -->
+    <string name="home_device_mac">ماك: %1$s</string>
     <string name="home_device_state">الجهاز: %1$s</string>
     <string name="home_device_activated">مُفعَّل</string>
     <string name="home_device_locked">مقفل</string>

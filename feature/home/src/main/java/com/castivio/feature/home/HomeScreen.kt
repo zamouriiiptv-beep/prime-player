@@ -23,10 +23,9 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Info
@@ -88,6 +87,7 @@ import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.rememberMetrics
 import com.castivio.domain.MediaKind
 import com.castivio.domain.Recorded
+import com.castivio.domain.entitlement.EntitlementState
 import java.text.DateFormat
 import java.util.Date
 
@@ -261,9 +261,12 @@ private data class Plan(
 ) {
     companion object {
         /**
-         * The frame's header is the lockup's row. This screen puts a strapline under
-         * it, so the band is that row plus one small line — stated here, where the
-         * arithmetic can see it, rather than discovered by clipping.
+         * The header band is the lockup's row and nothing more.
+         *
+         * It used to be that row *plus* a small line, because a strapline sat under
+         * the wordmark. The strapline is gone — it described the application to
+         * somebody already using it — and the extra line went with it rather than
+         * being left behind as slack the two term cards would silently grow into.
          *
          * **And nothing else is measured out any more.** The board used to be handed a
          * computed height because five bands had to add up: header, cards, actions,
@@ -272,7 +275,7 @@ private data class Plan(
          * disagree with the column it lives in the way a second copy of the arithmetic
          * can, and it is why the stage height is no longer a parameter here.
          */
-        fun of(frame: CastivioMetrics): Plan = Plan(headerHeight = frame.header + frame.fsChip)
+        fun of(frame: CastivioMetrics): Plan = Plan(headerHeight = frame.header)
     }
 }
 
@@ -297,12 +300,31 @@ private data class Plan(
  * the one `CastivioLockup` already uses internally. Invariant 4 forbids a
  * direction-absolute *API*, not a subtree that states its direction.
  *
- * The subscription pair is on every frame, and it shrinks rather than disappearing.
- * A handset is where a user is most likely to be checking whether their subscription
- * is still good, so hiding the two facts there would drop them from the one frame
- * that wanted them. `weight(fill = false)` is what makes that safe: each card takes
- * what its words need and no more, and gives width back when the row is tight, so
- * the failure mode is an ellipsis rather than a card pushed off the edge.
+ * ## Two terms, and telling them apart is the point
+ *
+ * The provider's subscription and Castivio's own licence both run out, and a user who
+ * confuses the two rings the wrong support line. The header used to carry one of them
+ * across two cards — "Account status" beside "Expires on" — which left the licence
+ * with no date anywhere and read as though the screen had one expiry to report.
+ *
+ * Each term is now one card carrying its own word *and* its own date, and the two are
+ * separated four ways at once so the difference is seen rather than read: a hue that
+ * is fixed per term and never shared, its own glyph, a label that names the system in
+ * full, and its own edge. The hue is the term's identity, not its health — the word
+ * carries health — with one exception: a term that has lapsed turns [danger], because
+ * an expired licence drawn in its calm identity colour is a warning nobody sees. Two
+ * cards can therefore never wear the same colour while either is good.
+ *
+ * Nothing here is invented. The provider's date is [Recorded.expiresAtMs] as the
+ * provider last stated it, and the licence's is whatever [EntitlementState] carries —
+ * see [licenceTerm], which is where the nine states become a word and a date.
+ *
+ * The pair is on every frame, and it shrinks rather than disappearing. A handset is
+ * where a user is most likely to be checking whether their subscription is still good,
+ * so hiding the two facts there would drop them from the one frame that wanted them.
+ * `weight(fill = false)` is what makes that safe: each card takes what its words need
+ * and no more, and gives width back when the row is tight, so the failure mode is an
+ * ellipsis rather than a card pushed off the edge.
  *
  * ## Why it is `internal` and takes a slot
  *
@@ -329,37 +351,37 @@ internal fun DashboardHeader(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(frame.headGap),
         ) {
-            Column(verticalArrangement = Arrangement.Center) {
-                CastivioLockup(
-                    markSize = frame.brand,
-                    wordSize = (frame.fsTitle.value * WORD_RATIO).sp,
-                )
-                Text(
-                    text = stringResource(R.string.home_tagline),
-                    style = castivioChipStyle(frame.fsChip),
-                    color = colors.secondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+            // The lockup alone. The strapline that sat under it — "Premium IPTV
+            // player" — described the application to a user already inside it, and
+            // it was taking the height the two terms below now spend on their dates.
+            CastivioLockup(
+                markSize = frame.brand,
+                wordSize = (frame.fsTitle.value * WORD_RATIO).sp,
+            )
 
-            StatusCard(
+            // Both dates are read before the cards are built, and each is formatted
+            // only where one exists: a term with no expiry has nothing to print, and
+            // `rememberDate` may not be handed a stand-in date to make the types line
+            // up — a formatted epoch zero on a licence card is a lie about a licence.
+            val soldUntil = state.subscription?.expiresAtMs
+            TermCard(
                 icon = Icons.Rounded.CheckCircle,
-                label = stringResource(R.string.home_status_account),
-                value = subscriptionLabel(state.subscription),
-                tint = when (state.subscription?.usable) {
-                    null -> colors.onBackgroundMuted
-                    true -> colors.success
-                    false -> colors.danger
-                },
+                label = stringResource(R.string.home_term_provider),
+                word = subscriptionLabel(state.subscription),
+                date = if (soldUntil == null) null else rememberDate(soldUntil),
+                hue = if (state.subscription?.usable == false) colors.danger else colors.hueGreen,
                 frame = frame,
                 modifier = Modifier.weight(1f, fill = false),
             )
-            StatusCard(
-                icon = Icons.Rounded.CalendarMonth,
-                label = stringResource(R.string.home_status_expires),
-                value = expiryLabel(state.subscription),
-                tint = colors.hueViolet,
+
+            val licence = licenceTerm(state.entitlement)
+            val licenceUntil = licence.atMs
+            TermCard(
+                icon = Icons.Rounded.Shield,
+                label = stringResource(R.string.home_term_licence),
+                word = stringResource(licence.word),
+                date = if (licenceUntil == null) null else rememberDate(licenceUntil),
+                hue = if (state.licenceHolds) colors.hueAzure else colors.danger,
                 frame = frame,
                 modifier = Modifier.weight(1f, fill = false),
             )
@@ -371,27 +393,41 @@ internal fun DashboardHeader(
     }
 }
 
-/** One fact about the subscription: what it is called, and what it says. */
+/**
+ * One term: which system it belongs to, what it says, and when it runs out.
+ *
+ * The edge is the hue's, not the shared quiet one, because the edge is half of what
+ * separates this card from the term beside it — `discBorder` is the palette's own
+ * recipe for "this surface belongs to this hue", and reaching for it here rather
+ * than inventing a tint is what keeps the two cards in the system.
+ *
+ * The date is optional and absent means absent. A licence bought outright never
+ * expires and a provider that was never asked has no date to state; either way the
+ * card stops after the word instead of printing a dash that reads like a fault.
+ */
 @Composable
-private fun StatusCard(
+private fun TermCard(
     icon: ImageVector,
     label: String,
-    value: String,
-    tint: Color,
+    word: String,
+    date: String?,
+    hue: Color,
     frame: CastivioMetrics,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
+    val shape = RoundedCornerShape(frame.radius / 2)
     Row(
         modifier
             .height(frame.chip + frame.chipPad)
-            .clip(RoundedCornerShape(frame.radius / 2))
+            .clip(shape)
             .background(colors.glassFillBrush)
+            .border(BorderStroke(1.dp, colors.discBorder(hue)), shape)
             .padding(horizontal = frame.chipPad),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
     ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(Sizing.iconMd))
+        Icon(icon, contentDescription = null, tint = hue, modifier = Modifier.size(Sizing.iconMd))
         // The words give way, not the card: the row above hands this a share it may
         // be smaller than, and a line that cannot fit its share ellipsizes inside it
         // rather than pushing the clock off the edge.
@@ -403,13 +439,28 @@ private fun StatusCard(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                value,
-                style = castivioChipStyle(frame.fsLabel),
-                color = tint,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
+            ) {
+                Box(Modifier.size(Sizing.iconSm / 3).clip(CircleShape).background(hue))
+                Text(
+                    word,
+                    style = castivioChipStyle(frame.fsLabel),
+                    color = hue,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (date != null) {
+                    Text(
+                        stringResource(R.string.home_term_until, date),
+                        style = castivioChipStyle(frame.fsLabel),
+                        color = colors.onBackgroundVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
         }
     }
 }
@@ -528,7 +579,7 @@ internal fun rememberMinute(): Long {
     return now
 }
 
-/** Whether Castivio's own licence permits use. Read by the device strip, not the header. */
+/** Whether Castivio's own licence permits use — the one question every screen asks. */
 private val HomeState.licenceHolds: Boolean
     get() = entitlement?.allowsUse == true
 
@@ -559,17 +610,42 @@ internal fun subscriptionLabel(status: Recorded?): String {
 }
 
 /**
- * When the subscription runs out.
+ * What the licence card says: one word, and a date only where one is owed.
  *
- * A dash where the provider stated no date, and the same dash where it was never
- * asked — the difference between those two is carried by the card beside this one,
- * and putting it in both would say it twice.
+ * A word and a resource id rather than a formatted string, so the nine states of
+ * [EntitlementState] collapse in one pure function that a JVM test can enumerate.
+ * Getting this wrong is not a cosmetic defect — telling somebody who paid that their
+ * licence has expired is a refund — so it is the part of this screen that is tested,
+ * and it is separated from the drawing for exactly that reason.
+ *
+ * Two of the mappings are deliberate and would each be a bug read the obvious way:
+ *
+ * **`VerificationUnavailable` carries no date.** It holds `lastKnownExpiresAtMs`, and
+ * printing it would say "valid until March" on the strength of a record we have just
+ * admitted we cannot confirm. The word says we could not check; a date beside it
+ * would quietly contradict the word.
+ *
+ * **`Lifetime` has no date and that is not a gap.** It was bought outright and does
+ * not run out, so the card stops after the word. A dash there would read as a missing
+ * value in something that was paid for.
+ *
+ * `null` is the state before the first answer arrives, and it reads the same as
+ * [EntitlementState.Unknown]: nothing has been established. Neither is an accusation.
  */
-@Composable
-internal fun expiryLabel(status: Recorded?): String {
-    val at = status?.expiresAtMs ?: return stringResource(R.string.home_expires_none)
-    return rememberDate(at)
+internal fun licenceTerm(state: EntitlementState?): Term = when (state) {
+    is EntitlementState.TrialActive -> Term(R.string.home_licence_trial, state.expiresAtMs)
+    is EntitlementState.AnnualActive -> Term(R.string.home_licence_active, state.expiresAtMs)
+    is EntitlementState.AnnualExpired -> Term(R.string.home_licence_expired, state.expiredAtMs)
+    EntitlementState.TrialExpired -> Term(R.string.home_licence_expired, null)
+    EntitlementState.Lifetime -> Term(R.string.home_licence_lifetime, null)
+    is EntitlementState.Revoked -> Term(R.string.home_licence_revoked, null)
+    is EntitlementState.VerificationUnavailable -> Term(R.string.home_licence_unverified, null)
+    is EntitlementState.ServiceUnavailable -> Term(R.string.home_licence_unavailable, null)
+    EntitlementState.Unknown, null -> Term(R.string.home_licence_unknown, null)
 }
+
+/** A term's two halves: the word for it, and when it runs out if it ever does. */
+internal data class Term(val word: Int, val atMs: Long?)
 
 // ------------------------------------------------------------- the board
 
@@ -594,14 +670,23 @@ internal fun expiryLabel(status: Recorded?): String {
  * ## And the utilities are demoted, deliberately
  *
  * They were six pills the width of the section cards and directly under them, which
- * gave "Refresh" the same visual claim as "Live TV". They are now a quiet column at
- * the trailing edge: same six controls, same order, a fainter edge and a smaller
- * label. Nothing was removed. A viewer looking for Settings still finds it in one
- * pass, and a viewer looking for television no longer reads past it.
+ * gave "Refresh" the same visual claim as "Live TV". They are now a quiet column:
+ * same six controls, same order, a fainter edge and a smaller label. Nothing was
+ * removed. A viewer looking for Settings still finds it in one pass, and a viewer
+ * looking for television no longer reads past it.
+ *
+ * ## Which column sits where, and why it is this way round
+ *
+ * The menu takes the **leading** edge and Live takes the **trailing** one: on the
+ * left and the right respectively in English, and mirrored in Arabic, because these
+ * are start and end rather than left and right. A `Row` reverses under
+ * `LayoutDirection.Rtl` on its own, so the order declared here *is* both layouts —
+ * and the previous revision, which declared Live first, was therefore wrong in both
+ * languages at once rather than in one of them.
  *
  * ## The traversal, which a still picture cannot show
  *
- * Three columns, so the D-pad has a spine: Live, then the stack, then the utilities,
+ * Three columns, so the D-pad has a spine: the utilities, then the stack, then Live,
  * with up and down staying inside whichever column has focus. Compose's own focus
  * search resolves all of that from the geometry here — there is no focus order to
  * declare, and declaring one would be a second description of a layout that already
@@ -645,11 +730,15 @@ private fun SectionBoard(
     )
 
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(frame.bandTop)) {
-        HeroCard(
-            section = live,
+        UtilityRail(
             frame = frame,
-            onClick = { onSeeSection(live.section) },
-            modifier = Modifier.weight(HERO_SHARE).fillMaxHeight(),
+            onRefresh = onRefresh,
+            onAddSource = onAddSource,
+            onTimeShift = onTimeShift,
+            onSettings = onSettings,
+            onAbout = onAbout,
+            onExit = onExit,
+            modifier = Modifier.weight(RAIL_SHARE).fillMaxHeight(),
         )
 
         Column(
@@ -666,15 +755,11 @@ private fun SectionBoard(
             }
         }
 
-        UtilityRail(
+        HeroCard(
+            section = live,
             frame = frame,
-            onRefresh = onRefresh,
-            onAddSource = onAddSource,
-            onTimeShift = onTimeShift,
-            onSettings = onSettings,
-            onAbout = onAbout,
-            onExit = onExit,
-            modifier = Modifier.weight(RAIL_SHARE).fillMaxHeight(),
+            onClick = { onSeeSection(live.section) },
+            modifier = Modifier.weight(HERO_SHARE).fillMaxHeight(),
         )
     }
 }
@@ -742,6 +827,23 @@ private fun Section.ink(): Color {
  * section used to be two visible rectangles, one nested in the other, and two edges
  * around one idea is the detail that makes a screen look assembled rather than
  * designed.
+ *
+ * ## The middle of the panel was empty, and a spacer is not a composition
+ *
+ * A small glyph at the top and two lines at the bottom left a third of the largest
+ * object on the screen as nothing — the void the owner pointed at on a device. The
+ * fix is not to centre the words, which only moves the hole; it is to spend the room.
+ * The section's own glyph is drawn again at [HERO_GLYPH_SHARE] of the panel's height,
+ * faded to [HERO_GLYPH_ALPHA], filling the upper half as a watermark with the words
+ * resting on the floor beneath it.
+ *
+ * It is ornament, and that is the point: it says nothing the panel does not already
+ * say. Filling that space with a *fact* would have meant inventing one — an import
+ * percentage, a last-watched channel — and neither exists behind this screen.
+ *
+ * The watermark is sized from the panel rather than from a token because it is a
+ * proportion of a box whose height is decided by the frame; the card clips it, so an
+ * unusually short panel crops the glyph instead of overflowing the board.
  */
 @Composable
 private fun HeroCard(
@@ -756,38 +858,39 @@ private fun HeroCard(
         modifier = modifier,
         shape = RoundedCornerShape(frame.radius),
     ) {
-        Column(Modifier.fillMaxSize().padding(frame.chipPad)) {
+        BoxWithConstraints(Modifier.fillMaxSize()) {
             Icon(
                 imageVector = section.icon,
                 contentDescription = null,
-                tint = colors.discGlyph(section.hue),
-                modifier = Modifier.size(frame.brand),
+                tint = colors.discGlyph(section.hue).copy(alpha = HERO_GLYPH_ALPHA),
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = frame.chipPad)
+                    .size(maxHeight * HERO_GLYPH_SHARE),
             )
 
-            // **The glyph opens the panel and the words close it**, rather than three
-            // children stacked at the top with the bottom third empty — which is the
-            // shape the four equal cards had and the reason they read as unfinished.
-            // One spacer between two groups, not `SpaceBetween` over three children:
-            // the panel's composition must not change when a count becomes a sentence.
-            Spacer(Modifier.weight(1f))
-
-            Text(
-                text = stringResource(section.name),
-                style = castivioTitleStyle(frame.fsLabel),
-                color = colors.onBackgroundStrong,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = section.sentence(),
-                style = when (section.tally) {
-                    Tally.Counted -> castivioTitleStyle(frame.fsTitle)
-                    else -> castivioBodyStyle(frame.fsBody)
-                },
-                color = section.ink(),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Column(
+                Modifier.fillMaxSize().padding(frame.chipPad),
+                verticalArrangement = Arrangement.Bottom,
+            ) {
+                Text(
+                    text = stringResource(section.name),
+                    style = castivioTitleStyle(frame.fsLabel),
+                    color = colors.onBackgroundStrong,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = section.sentence(),
+                    style = when (section.tally) {
+                        Tally.Counted -> castivioTitleStyle(frame.fsTitle * HERO_COUNT_RATIO)
+                        else -> castivioBodyStyle(frame.fsBody)
+                    },
+                    color = section.ink(),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
@@ -929,19 +1032,39 @@ private fun ColumnScope.Utility(
 // ---------------------------------------------------------------- the footer
 
 /**
- * One line: what this device is, and what Castivio is not.
+ * What this device is, and what Castivio is not — in that order, on two lines.
  *
- * It was three bands — a full-width filled strip holding two short facts with a
- * great deal of nothing between them, and the disclaimer centred under it. A box
- * that wide around that little is the shape a screen takes when a band was given a
- * height before anyone asked what would go in it.
+ * ## The identity is what gets photographed
  *
- * The address is the one a user reads out to a provider who activates by MAC, so it
- * stays; it is isolated for direction, because a colon-separated hex address
- * reordered by an Arabic paragraph is not the address any more. The device key that
- * a reference design put beside it is deliberately absent: a key printed on the
- * screen a phone is most often photographed on is a key that leaves with the photo,
- * and Settings is one press away.
+ * A user who cannot find their own MAC address cannot be activated by a provider who
+ * works that way, and telling them to dig it out of Settings fails exactly the user
+ * this footer is for. Printed here it is one photograph. That is why each fact is a
+ * card of its own with its own edge rather than a run-on sentence: three bordered
+ * things read as three values to copy, where `Device: Activated · MAC: FE:…` reads as
+ * a status line and gets cropped out of the picture.
+ *
+ * They are spread with equal weights, so the line spends the whole width instead of
+ * huddling at the leading edge with half the footer empty — which is what a row of
+ * intrinsically-sized facts followed by a spacer actually drew.
+ *
+ * The address is isolated for direction, because a colon-separated hex address
+ * reordered by an Arabic paragraph is not the address any more.
+ *
+ * ## The disclaimer gets its own line, and it is never cut
+ *
+ * It shared the identity's line and lost, ellipsised mid-sentence — a legal statement
+ * that stops at "Castivio does not provide chan…" is not a statement. On its own line
+ * it has the full width, and two lines to use if a translation needs them.
+ *
+ * ## What is still not here
+ *
+ * **The device key.** The approved drawing has a third card for it, drawn with a
+ * dashed edge precisely because nothing in this build mints one:
+ * `PlaylistSource.Portal(mac, deviceKey)` at `CatalogRepository.kt:122` is an
+ * unimplemented path, no store holds a key, and no server would recognise one this
+ * screen made up. Printing a plausible-looking code that a user then sends to their
+ * provider is worse than printing nothing, so the card waits for the value rather
+ * than the value being faked to fill the card.
  */
 @Composable
 private fun FooterLine(
@@ -950,40 +1073,60 @@ private fun FooterLine(
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
-    Row(
-        modifier.fillMaxWidth().height(frame.chip),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(frame.headGap),
+    Column(
+        modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
     ) {
-        Fact(
-            Icons.Rounded.Lock,
-            stringResource(
-                R.string.home_device_state,
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(frame.chipPad),
+        ) {
+            Fact(
+                Icons.Rounded.Lock,
                 stringResource(
-                    if (state.licenceHolds) R.string.home_device_activated
-                    else R.string.home_device_locked,
+                    R.string.home_device_state,
+                    stringResource(
+                        if (state.licenceHolds) R.string.home_device_activated
+                        else R.string.home_device_locked,
+                    ),
                 ),
-            ),
-            if (state.licenceHolds) colors.success else colors.danger,
-            frame,
-        )
-        Fact(
-            Icons.Rounded.Memory,
-            stringResource(R.string.home_device_mac, ltrIsolate(state.mac)),
-            colors.onBackgroundMuted,
-            frame,
-        )
-        Spacer(Modifier.weight(1f))
-        Fact(
-            Icons.Rounded.Shield,
-            stringResource(R.string.home_disclaimer),
-            colors.hueViolet,
-            frame,
-            Modifier.weight(DISCLAIMER_SHARE, fill = false),
-        )
+                if (state.licenceHolds) colors.success else colors.danger,
+                frame,
+                Modifier.weight(1f),
+            )
+            Fact(
+                Icons.Rounded.Memory,
+                stringResource(R.string.home_device_mac, ltrIsolate(state.mac)),
+                colors.onBackgroundMuted,
+                frame,
+                Modifier.weight(1f),
+            )
+        }
+
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2, Alignment.CenterHorizontally),
+        ) {
+            Icon(
+                Icons.Rounded.Info,
+                contentDescription = null,
+                tint = colors.hueViolet,
+                modifier = Modifier.size(Sizing.iconSm),
+            )
+            Text(
+                stringResource(R.string.home_disclaimer),
+                style = castivioBodyStyle(frame.fsChip),
+                color = colors.onBackgroundMuted,
+                textAlign = TextAlign.Center,
+                maxLines = DISCLAIMER_LINES,
+            )
+        }
     }
 }
 
+/** One value a user copies: a glyph, a label and the value, inside its own edge. */
 @Composable
 private fun Fact(
     icon: ImageVector,
@@ -993,15 +1136,21 @@ private fun Fact(
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
+    val shape = RoundedCornerShape(frame.radius / 2)
     Row(
-        modifier,
+        modifier
+            .height(frame.chip)
+            .clip(shape)
+            .background(colors.glassFill)
+            .border(BorderStroke(1.dp, colors.edgeQuiet), shape)
+            .padding(horizontal = frame.chipPad),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
+        horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2, Alignment.CenterHorizontally),
     ) {
         Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(Sizing.iconSm))
         Text(
             text,
-            style = castivioBodyStyle(frame.fsBody),
+            style = castivioBodyStyle(frame.fsChip),
             color = colors.onBackgroundMuted,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -1026,32 +1175,54 @@ internal fun rememberDate(atMs: Long): String {
 }
 
 /**
- * How the board's width is divided: the hero, the stack, the rail.
+ * How the board's width is divided: the rail, the stack, the hero.
  *
  * Weights rather than widths, so the three columns share whatever the frame's edge
  * and gaps leave instead of each screen size needing its own arithmetic. The figures
  * are the approved drawing's, read off it at the owner's own geometry — 833x385dp,
- * where the board is 801dp wide and the three columns measure 378, 262 and 133 with
+ * where the board is 801dp wide and the three columns measure 133, 262 and 378 with
  * two gaps of 11 between them.
  *
  * The hero is not merely the largest. It is larger than the stack *and* the rail
  * together are wide, which is what makes the board read as one destination with
  * alternatives rather than as three equal columns.
  */
-private const val HERO_SHARE = 0.472f
-private const val STACK_SHARE = 0.327f
 private const val RAIL_SHARE = 0.166f
+private const val STACK_SHARE = 0.327f
+private const val HERO_SHARE = 0.472f
 
 /**
- * What the disclaimer may take of the footer line before it is cut.
+ * The watermark: how much of the hero panel's height its glyph takes, and how far it
+ * is faded.
  *
- * `fill = false`, so it asks for what its words need and gives the rest back: the
- * two device facts keep their width on a narrow frame and the sentence ellipsises,
- * which is the right one of the three to lose. Half, because a footer whose legal
- * line is longer than everything else on it is a legal line pretending to be
- * content.
+ * Just over half the height, so it reaches into the upper area without crowding the
+ * words at the floor, and at a tenth of the glyph's own ink — enough to read as a
+ * shape from across a room, far too little to compete with a count set in the title
+ * step directly under it. Any stronger and the panel has two subjects.
  */
-private const val DISCLAIMER_SHARE = 0.5f
+private const val HERO_GLYPH_SHARE = 0.52f
+private const val HERO_GLYPH_ALPHA = 0.10f
+
+/**
+ * How much larger the hero's count is than the screen's title step.
+ *
+ * The one figure a returning viewer checks is the size of their catalogue, and it is
+ * the largest thing on the board on purpose. Expressed as a ratio of `fsTitle` rather
+ * than a size of its own, so it rides the frame's own type scale up and down instead
+ * of being a second, independent opinion about how big text should be — the same
+ * device [WORD_RATIO] uses for the wordmark.
+ */
+private const val HERO_COUNT_RATIO = 1.26f
+
+/**
+ * How many lines the disclaimer may use.
+ *
+ * Two, not one. It shared a line with the device facts and was ellipsised mid-clause,
+ * which is the failure this fixes: a legal sentence that stops early has not been
+ * shown. One line is enough for it in English and Arabic at the frames Castivio
+ * targets; the second exists so a longer translation wraps rather than gets cut.
+ */
+private const val DISCLAIMER_LINES = 2
 
 /** The wordmark's share of the frame's title step, as the licence screen sets it. */
 private const val WORD_RATIO = 0.8f
