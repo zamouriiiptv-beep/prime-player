@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
@@ -353,11 +352,20 @@ internal fun DashboardHeader(
     trailing: @Composable RowScope.() -> Unit = {},
 ) {
     val colors = CastivioTheme.colors
+    // **Captured before the pin below overwrites it.** The band's *order* is physical
+    // on purpose — the signature does not change sides per locale — but the words
+    // inside it are still Arabic, and an Arabic sentence laid out in a pinned
+    // left-to-right subtree is read backwards. The cards take this back for their own
+    // content, which is the narrow exception the pin was always going to need.
+    val reading = LocalLayoutDirection.current
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Row(
             modifier.fillMaxWidth().height(height),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(frame.headGap),
+            // Half the header step, which is the gap the approved drawing measures at
+            // this geometry. The full step between six children was spending 113dp of
+            // an 801dp row on air, and the cards were paying for it in truncation.
+            horizontalArrangement = Arrangement.spacedBy(frame.headGap / 2),
         ) {
             // The lockup alone. The strapline that sat under it — "Premium IPTV
             // player" — described the application to a user already inside it, and
@@ -391,6 +399,7 @@ internal fun DashboardHeader(
                     word = subscriptionLabel(state.subscription),
                     date = if (soldUntil == null) null else rememberDate(soldUntil),
                     hue = if (state.subscription?.usable == false) colors.danger else colors.hueGreen,
+                    reading = reading,
                     frame = frame,
                     modifier = Modifier.weight(1f),
                 )
@@ -403,6 +412,7 @@ internal fun DashboardHeader(
                     word = stringResource(licence.word),
                     date = if (licenceUntil == null) null else rememberDate(licenceUntil),
                     hue = if (state.licenceHolds) colors.hueAzure else colors.danger,
+                    reading = reading,
                     frame = frame,
                     modifier = Modifier.weight(1f),
                 )
@@ -422,9 +432,31 @@ internal fun DashboardHeader(
  * recipe for "this surface belongs to this hue", and reaching for it here rather
  * than inventing a tint is what keeps the two cards in the system.
  *
+ * ## The card reads in the reader's direction, and the band does not
+ *
+ * [DashboardHeader] pins its subtree to left-to-right so the signature does not swap
+ * sides per locale. That is right for the *order of the band* and wrong for the
+ * *words inside it*: an Arabic sentence laid out in a pinned left-to-right paragraph
+ * comes out reversed, and on a device "حتى 08/04/2027" read as the date first and
+ * "حتى" behind it — the sentence backwards. [reading] is the direction captured
+ * before the pin, restored here for this card's contents only.
+ *
+ * ## One sentence, not three children competing for the width
+ *
+ * The state word and the date were separate `Text`s in a row, so the width question
+ * was "which child loses", and the answer kept being the wrong one: first the date
+ * was truncated, then the word was ellipsised to a single dot. A line of text is not
+ * a layout problem — it is one string with one bidirectional order, so it is now one
+ * `Text`.
+ *
+ * The date comes **first** in that string and the word second, which is what makes
+ * the truncation safe: an overflow eats the end of a line, and the end is now the
+ * word. Losing "نشط" costs a reader nothing they cannot see in the hue and the glyph;
+ * losing "2027" costs them the fact they opened the screen for.
+ *
  * The date is optional and absent means absent. A licence bought outright never
  * expires and a provider that was never asked has no date to state; either way the
- * card stops after the word instead of printing a dash that reads like a fault.
+ * line is the word alone rather than a dash that reads like a fault.
  */
 @Composable
 private fun TermCard(
@@ -433,69 +465,51 @@ private fun TermCard(
     word: String,
     date: String?,
     hue: Color,
+    /** The reader's own direction, captured before the header pinned its subtree. */
+    reading: LayoutDirection,
     frame: CastivioMetrics,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(frame.radius / 2)
-    Row(
-        modifier
-            .height(frame.chip + frame.chipPad)
-            .clip(shape)
-            .background(colors.glassFillBrush)
-            .border(BorderStroke(1.dp, colors.discBorder(hue)), shape)
-            .padding(horizontal = frame.chipPad),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
-    ) {
-        Icon(icon, contentDescription = null, tint = hue, modifier = Modifier.size(Sizing.iconMd))
-        // The words give way, not the card: the row above hands this a share it may
-        // be smaller than, and a line that cannot fit its share ellipsizes inside it
-        // rather than pushing the clock off the edge.
-        Column(Modifier.weight(1f, fill = false), verticalArrangement = Arrangement.Center) {
-            Text(
-                label,
-                style = castivioChipStyle(frame.fsChip),
-                color = colors.onBackgroundMuted,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+    val sentence =
+        if (date == null) word else stringResource(R.string.home_term_value, date, word)
+
+    CompositionLocalProvider(LocalLayoutDirection provides reading) {
+        Row(
+            modifier
+                .height(frame.chip + frame.chipPad)
+                .clip(shape)
+                .background(colors.glassFillBrush)
+                .border(BorderStroke(1.dp, colors.discBorder(hue)), shape)
+                .padding(horizontal = frame.chipPad),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = hue,
+                modifier = Modifier.size(Sizing.iconMd),
             )
-            // **The date is measured first and the word gives way, never the reverse.**
-            // Both were plain children of this row, so Compose laid them out in order
-            // and whatever was left over fell to the last one — the date. On a device
-            // that read "نشط حتى 08/0…", which is the one thing on the card that
-            // cannot be guessed from anything else: the state is already in the hue
-            // and in the word, and a half-printed date is worse than no date because
-            // it looks like a date. So the date takes its intrinsic width as an
-            // unweighted child, and the word takes the remainder and ellipsises into
-            // it. Losing "نشط" costs a reader nothing; losing "2027" costs them the
-            // fact they opened the screen for.
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
-            ) {
-                Box(Modifier.size(Sizing.iconSm / 3).clip(CircleShape).background(hue))
+            // The words give way, not the card: the row above hands this a share it
+            // may be smaller than, and a line that cannot fit its share ellipsizes
+            // inside it rather than pushing the clock off the edge.
+            Column(Modifier.weight(1f, fill = false), verticalArrangement = Arrangement.Center) {
                 Text(
-                    word,
+                    label,
+                    style = castivioChipStyle(frame.fsChip),
+                    color = colors.onBackgroundMuted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    sentence,
                     style = castivioChipStyle(frame.fsLabel),
                     color = hue,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
                 )
-                if (date != null) {
-                    Text(
-                        stringResource(R.string.home_term_until, date),
-                        style = castivioChipStyle(frame.fsLabel),
-                        color = colors.onBackgroundVariant,
-                        maxLines = 1,
-                        softWrap = false,
-                        // Only reachable on a frame too narrow for the date alone,
-                        // where an ellipsis at least says the value was cut rather
-                        // than letting a half-drawn glyph pass for one.
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
             }
         }
     }
