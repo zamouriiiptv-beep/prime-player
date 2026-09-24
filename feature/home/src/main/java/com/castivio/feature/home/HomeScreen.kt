@@ -367,32 +367,46 @@ internal fun DashboardHeader(
                 wordSize = (frame.fsTitle.value * WORD_RATIO).sp,
             )
 
-            // Both dates are read before the cards are built, and each is formatted
-            // only where one exists: a term with no expiry has nothing to print, and
-            // `rememberDate` may not be handed a stand-in date to make the types line
-            // up — a formatted epoch zero on a licence card is a lie about a licence.
-            val soldUntil = state.subscription?.expiresAtMs
-            TermCard(
-                icon = Icons.Rounded.CheckCircle,
-                label = stringResource(R.string.home_term_provider),
-                word = subscriptionLabel(state.subscription),
-                date = if (soldUntil == null) null else rememberDate(soldUntil),
-                hue = if (state.subscription?.usable == false) colors.danger else colors.hueGreen,
-                frame = frame,
-                modifier = Modifier.weight(1f),
-            )
+            // **The two terms are one group, spaced as one.** They sat directly in
+            // the header row, so the gap between them was `headGap` — the step that
+            // separates the lockup from the clock from the chips — and five of those
+            // steps were spending 113dp of an 801dp row on air. Nested in a row of
+            // their own at `chipPad`, the pair keeps the header's spacing on the
+            // outside and takes back what was between them, which is width the dates
+            // then have to print in.
+            Row(
+                Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(frame.chipPad),
+            ) {
+                // Both dates are read before the cards are built, and each is
+                // formatted only where one exists: a term with no expiry has nothing
+                // to print, and `rememberDate` may not be handed a stand-in date to
+                // make the types line up — a formatted epoch zero on a licence card
+                // is a lie about a licence.
+                val soldUntil = state.subscription?.expiresAtMs
+                TermCard(
+                    icon = Icons.Rounded.CheckCircle,
+                    label = stringResource(R.string.home_term_provider),
+                    word = subscriptionLabel(state.subscription),
+                    date = if (soldUntil == null) null else rememberDate(soldUntil),
+                    hue = if (state.subscription?.usable == false) colors.danger else colors.hueGreen,
+                    frame = frame,
+                    modifier = Modifier.weight(1f),
+                )
 
-            val licence = licenceTerm(state.entitlement)
-            val licenceUntil = licence.atMs
-            TermCard(
-                icon = Icons.Rounded.Shield,
-                label = stringResource(R.string.home_term_licence),
-                word = stringResource(licence.word),
-                date = if (licenceUntil == null) null else rememberDate(licenceUntil),
-                hue = if (state.licenceHolds) colors.hueAzure else colors.danger,
-                frame = frame,
-                modifier = Modifier.weight(1f),
-            )
+                val licence = licenceTerm(state.entitlement)
+                val licenceUntil = licence.atMs
+                TermCard(
+                    icon = Icons.Rounded.Shield,
+                    label = stringResource(R.string.home_term_licence),
+                    word = stringResource(licence.word),
+                    date = if (licenceUntil == null) null else rememberDate(licenceUntil),
+                    hue = if (state.licenceHolds) colors.hueAzure else colors.danger,
+                    frame = frame,
+                    modifier = Modifier.weight(1f),
+                )
+            }
 
             Clock(frame)
             trailing()
@@ -446,6 +460,16 @@ private fun TermCard(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+            // **The date is measured first and the word gives way, never the reverse.**
+            // Both were plain children of this row, so Compose laid them out in order
+            // and whatever was left over fell to the last one — the date. On a device
+            // that read "نشط حتى 08/0…", which is the one thing on the card that
+            // cannot be guessed from anything else: the state is already in the hue
+            // and in the word, and a half-printed date is worse than no date because
+            // it looks like a date. So the date takes its intrinsic width as an
+            // unweighted child, and the word takes the remainder and ellipsises into
+            // it. Losing "نشط" costs a reader nothing; losing "2027" costs them the
+            // fact they opened the screen for.
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
@@ -457,6 +481,7 @@ private fun TermCard(
                     color = hue,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
                 if (date != null) {
                     Text(
@@ -464,6 +489,10 @@ private fun TermCard(
                         style = castivioChipStyle(frame.fsLabel),
                         color = colors.onBackgroundVariant,
                         maxLines = 1,
+                        softWrap = false,
+                        // Only reachable on a frame too narrow for the date alone,
+                        // where an ellipsis at least says the value was cut rather
+                        // than letting a half-drawn glyph pass for one.
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
