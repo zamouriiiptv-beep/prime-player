@@ -127,24 +127,42 @@ internal class ActivationIdentityViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            // The key is read here, on the io dispatcher, beside the address: both
+            // come from the same seed and the same preferences file, and `key()`
+            // mints and stores its value the first time it is asked. Reading it in
+            // the `update` block below would put a disk write on the main thread.
             val resolved = withContext(dispatchers.io) {
                 val record = identity.current()
-                Triple(
-                    record.macAddress.value,
-                    record.provenance,
-                    runCatching { activationQrBitmap(QR_PIXELS) }.getOrNull(),
+                Resolved(
+                    address = record.macAddress.value,
+                    provenance = record.provenance,
+                    deviceKey = identity.key().value,
+                    qr = runCatching { activationQrBitmap(QR_PIXELS) }.getOrNull(),
                 )
             }
             _state.update {
                 it.copy(
-                    address = resolved.first,
-                    provenance = resolved.second,
-                    qr = resolved.third,
-                    deviceKey = DebugFixtures.deviceKey(),
+                    address = resolved.address,
+                    provenance = resolved.provenance,
+                    qr = resolved.qr,
+                    // **The one source.** This was a debug fixture: one constant for
+                    // every device in the world, and null in release, so the row was
+                    // not composed there at all. `DeviceIdentity.key()` is the same
+                    // value Home and the licence screen read, derived from the seed
+                    // this device's address is derived from.
+                    deviceKey = resolved.deviceKey,
                 )
             }
         }
     }
+
+    /** What one trip to the io dispatcher brings back. Named, because four. */
+    private data class Resolved(
+        val address: String,
+        val provenance: IdentityProvenance,
+        val deviceKey: String,
+        val qr: Bitmap?,
+    )
 
     /**
      * Ask whether a subscription has appeared.

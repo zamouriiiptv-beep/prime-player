@@ -14,6 +14,9 @@ package com.castivio.domain.identity
  * from — so it is the same code on every launch of every install, it survives a
  * reinstall wherever the address does, and a support tool or a licence server can
  * reproduce it from the seed without the device being present.
+ *
+ * The shape is the algorithm's, not this type's: [DeviceKeyV2] is in force and makes
+ * six decimal figures, which is what the activation screen has always drawn.
  */
 @JvmInline
 value class DeviceKey(val value: String) {
@@ -109,6 +112,85 @@ object DeviceKeyV1 {
 }
 
 /**
+ * **DeviceKey algorithm v2 — the one in force.**
+ *
+ * ```
+ * material := "castivio/device-key/v2" ‖ "\n" ‖ seed.material
+ * digest   := SHA-256(UTF-8(material))
+ * n        := unsigned big-endian integer over digest[0 .. 7]      // 64 bits
+ * key      := decimal(n mod 10^6), left-padded with '0' to 6 digits
+ * ```
+ *
+ * ### Why digits, when [DeviceKeyV1] went to some trouble not to use them
+ *
+ * Because the screen that has always owned this value asks for digits. The
+ * activation screen's key row is six decimal figures, measured and approved at that
+ * shape long before v1 existed, and a user reads the code off a television to a
+ * provider on the telephone. v1 answered a question nobody had asked: it optimised
+ * the *space* and broke the *format*, so two screens in one application showed two
+ * different kinds of key. This one matches the screen.
+ *
+ * ### The size of the space, stated rather than glossed
+ *
+ * Six digits is 10^6 values. Two devices collide with probability 10^-6, and among
+ * N devices a collision becomes more likely than not at about **1,180**. So this is
+ * **not a unique identifier and must not be used as one.** It is a short code read
+ * beside [MacAddress], which is the identity: a provider keys on the address and the
+ * key is what makes the address quick to quote. Should it ever have to stand alone,
+ * a v3 widens it — which is exactly what [DeviceKeyAlgorithm] is for.
+ *
+ * ### Two details that would be defects if done the obvious way
+ *
+ * **Eight bytes, not three.** The modulo is taken over 2^64, so the bias toward low
+ * values is about 10^6 / 2^64 — five parts in a hundred million million. Reducing
+ * the digest to three bytes first, which is the tempting shortcut, makes that bias
+ * about one part in sixteen and quietly clusters keys.
+ *
+ * **The padding is part of the value.** `n mod 10^6` is a number, and a number that
+ * happens to be small prints as `22971`. Six characters is the format, so the value
+ * is zero-filled to six — a key that is sometimes five digits long is a key a user
+ * mistypes and a field that cannot validate its own length.
+ *
+ * ### Changing this
+ *
+ * The rule [DeviceKeyV1] states, for the reason it states it. A provider who has
+ * written a key down is owed the same key tomorrow.
+ */
+object DeviceKeyV2 {
+
+    const val VERSION: Int = 2
+
+    /** Frozen. One character of difference is a different key on every device. */
+    const val LABEL: String = "castivio/device-key/v2"
+
+    /** How many decimal figures the key is, and therefore how wide the space is. */
+    const val DIGITS: Int = 6
+
+    fun derive(seed: IdentitySeed, sha256: Sha256): DeviceKey {
+        val digest = sha256.digest("$LABEL\n${seed.material}".encodeToByteArray())
+        require(digest.size >= BYTES) {
+            "SHA-256 returns 32 bytes; this implementation returned ${digest.size}"
+        }
+
+        // Eight bytes as one unsigned 64-bit number, most significant first. The top
+        // bit is masked off rather than carried, because Kotlin's Long is signed and
+        // a negative dividend would make the remainder negative: that drops one bit
+        // of entropy, which against 10^6 is nothing, and removes a whole class of
+        // platform-dependent answers about how `%` treats a negative left operand.
+        var bits = 0L
+        for (index in 0 until BYTES) {
+            bits = (bits shl 8) or (digest[index].toLong() and 0xFF)
+        }
+        val value = (bits and Long.MAX_VALUE) % MODULUS
+
+        return DeviceKey(value.toString().padStart(DIGITS, '0'))
+    }
+
+    private const val BYTES = 8
+    private const val MODULUS = 1_000_000L
+}
+
+/**
  * The key versions that exist, and the one in force.
  *
  * The same indirection [DeviceIdentityAlgorithm] has, for the same reason: the day a
@@ -118,10 +200,10 @@ object DeviceKeyV1 {
 object DeviceKeyAlgorithm {
 
     /** The version new derivations use. */
-    const val CURRENT: Int = DeviceKeyV1.VERSION
+    const val CURRENT: Int = DeviceKeyV2.VERSION
 
     /** Every version that can still be reproduced, oldest first. */
-    val known: List<Int> = listOf(DeviceKeyV1.VERSION)
+    val known: List<Int> = listOf(DeviceKeyV1.VERSION, DeviceKeyV2.VERSION)
 
     /**
      * @throws IllegalArgumentException for a version this build does not know, which
@@ -130,6 +212,7 @@ object DeviceKeyAlgorithm {
     fun derive(seed: IdentitySeed, sha256: Sha256, version: Int = CURRENT): DeviceKey =
         when (version) {
             DeviceKeyV1.VERSION -> DeviceKeyV1.derive(seed, sha256)
+            DeviceKeyV2.VERSION -> DeviceKeyV2.derive(seed, sha256)
             else -> throw IllegalArgumentException("Unknown device key algorithm v$version")
         }
 }

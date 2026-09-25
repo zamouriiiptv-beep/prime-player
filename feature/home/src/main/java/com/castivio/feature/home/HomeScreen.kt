@@ -98,7 +98,9 @@ import com.castivio.domain.MediaKind
 import com.castivio.domain.Recorded
 import com.castivio.domain.entitlement.EntitlementState
 import java.text.DateFormat
+import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 
 /**
  * Home: the dashboard, composed to the frame it is handed rather than to a scroll.
@@ -767,12 +769,22 @@ internal fun subscriptionLabel(status: Recorded?): String {
 }
 
 /**
- * The provider card's second line: when the subscription runs out.
+ * The provider card's second line: the date the subscription runs out, and nothing
+ * else.
  *
- * One fact, because the provider's *state* was the other half of this line and it was
- * saying nothing the card did not already say twice — the tick is green, the edge is
- * green, and then a word said "Active" as well. The date is the half a user cannot
- * get from anywhere else on this screen, so it is the half that stayed.
+ * ## Why there is no verb in front of it
+ *
+ * There was: "Expires on 08/04/2027". It fits in Arabic and does not fit in English,
+ * and the half it lost was the date — the line ellipsises from its end, and "Expires
+ * on 08/04/2…" is the one shape this line must never take. The card is 158dp in a
+ * Latin locale against 188 in Arabic, because the trailing furniture in the header is
+ * wider there, and the sentence needs 128dp of the 114 that leaves.
+ *
+ * So the words go and the figures stay. The label directly above already says
+ * *Provider subscription*; a date under it is an expiry by the same convention every
+ * subscription card in the world uses, and at 65dp it fits every language this
+ * application ships with and leaves 49dp spare — which is the difference between a
+ * line that fits today and a line that fits after the next translation.
  *
  * A provider that stated no date falls back to its word, which is the one case where
  * the word carries the whole line: "Not checked" is a real answer and an empty second
@@ -781,25 +793,25 @@ internal fun subscriptionLabel(status: Recorded?): String {
 @Composable
 private fun providerSentence(status: Recorded?): String {
     val at = status?.expiresAtMs ?: return subscriptionLabel(status)
-    return stringResource(R.string.home_term_expires, rememberDate(at))
+    return rememberDate(at)
 }
 
 /**
- * The licence card's second line: when it runs out, or what it is when it does not.
+ * The licence card's second line: the date it runs out, or what it is when it does
+ * not run out.
  *
- * **The date alone where there is one.** The plan led this line — "تجريبية · تنتهي في
- * 01/10/2026" — and on a device the date was the half that got cut, because the line
- * ellipsises from its end. Trial and annual differ in *when* they end, not in what
- * the card is for, and a user reading the header is asking how long they have left.
- * The plan is a question the licence screen answers, one press away, with room to
- * answer it in.
+ * **The date alone where there is one**, for the reason [providerSentence] gives: a
+ * verb in front of it is the half that fits in one language and not in the next, and
+ * the figures are the half that cannot be recovered from anywhere else on the screen.
+ * The plan name went the same way and for the same reason — trial and annual differ
+ * in *when* they end, not in what the card is for, and the licence screen answers
+ * which plan it is with room to answer it in.
  *
  * **The word alone where there is no date.** A lifetime licence never expires, so the
  * line is "Lifetime" and stops — a date slot filled with a dash would read as a value
  * that failed to load in something bought outright. Every other state — expired,
  * withdrawn, unverified, not established — arrives from [licenceTerm] with no date for
- * the same reason, and says its word: "expires on" is future tense and none of them
- * has a future to name.
+ * the same reason, and says its word.
  *
  * Which is to say the two branches are one rule, and it is the rule
  * [providerSentence] follows beside it: the date if there is one, the word if there
@@ -808,7 +820,7 @@ private fun providerSentence(status: Recorded?): String {
 @Composable
 private fun licenceSentence(term: Term): String {
     val at = term.atMs ?: return stringResource(term.word)
-    return stringResource(R.string.home_licence_expires, rememberDate(at))
+    return rememberDate(at)
 }
 
 /**
@@ -1405,18 +1417,45 @@ private fun Fact(
 // ----------------------------------------------------------------- utilities
 
 /**
- * A date, in the reader's own locale, formatted once.
+ * An expiry date, as figures, the same shape in every language.
  *
- * `remember` keyed on the value, because building a `DateFormat` and running it is
- * real work and composition runs whenever anything on this screen moves.
+ * ## Why this is not the reader's own date format
+ *
+ * It was `DateFormat.MEDIUM`, which is the right default nearly everywhere and the
+ * wrong one here. Medium is a *worded* format in most locales — "8 abr 2027" in
+ * Spanish, "8 avr. 2027" in French, "8. Apr. 2027" in German — and the term cards it
+ * feeds are two of the narrowest surfaces in the application. On a device the Spanish
+ * card read "Expires on 8 abr 2…": the month name spent the width the year needed,
+ * and the year is the part a reader is actually checking.
+ *
+ * `dd/MM/yyyy` is eight figures and two slashes in every language, so the card can be
+ * measured once and trusted. The zero fill is part of that: `8/4/2027` is eight
+ * characters on one device and ten on the next, which is a card that fits until it
+ * does not.
+ *
+ * ## Why [Locale.ROOT] and not the reader's locale
+ *
+ * Because "the same in every language" has to include the *digits* and the *calendar*.
+ * A locale-aware formatter may render Arabic-Indic figures, and a locale carrying a
+ * calendar extension — `ar-SA-u-ca-islamic` — would print a Hijri date, so the same
+ * moment would be two different dates on two phones. `Locale.ROOT` pins Gregorian and
+ * Latin figures, which is what this row has always drawn and what a user reads out to
+ * a provider.
+ *
+ * The sentence around it still runs in the reader's direction; only this token is
+ * fixed. [ltrToken] is what keeps it that way — an unisolated `08/04/2027` inside an
+ * Arabic paragraph is reordered into `2708/04/20` by the bidirectional algorithm.
+ *
+ * `remember` keyed on the value, because building a formatter and running it is real
+ * work and composition runs whenever anything on this screen moves.
  */
 @Composable
-internal fun rememberDate(atMs: Long): String {
-    val locale = LocalConfiguration.current
-    return remember(atMs, locale) {
-        ltrToken(DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(atMs)))
-    }
+internal fun rememberDate(atMs: Long): String = remember(atMs) {
+    ltrToken(SimpleDateFormat(EXPIRY_PATTERN, Locale.ROOT).format(Date(atMs)))
 }
+
+/** Frozen with [rememberDate]: eight figures and two slashes, zero-filled. */
+private const val EXPIRY_PATTERN = "dd/MM/yyyy"
 
 /**
  * How the board's width is divided: the rail, the stack, the hero.

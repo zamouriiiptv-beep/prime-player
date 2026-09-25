@@ -100,13 +100,21 @@ internal class LicenceViewModel @Inject constructor(
                 val record = identity.current()
                 // The QR carries the bare portal address and nothing else -- no
                 // MAC, no device key. See LicenceQrTest, which decodes it.
-                record.macAddress.value to runCatching { licenceQrBitmap(QR_PIXELS) }.getOrNull()
+                Triple(
+                    record.macAddress.value,
+                    identity.key().value,
+                    runCatching { licenceQrBitmap(QR_PIXELS) }.getOrNull(),
+                )
             }
             _state.update {
                 it.copy(
                     address = resolved.first,
-                    qr = resolved.second,
-                    deviceKey = DebugFixtures.deviceKey(),
+                    qr = resolved.third,
+                    // The same `DeviceIdentity` the address comes from, so this screen
+                    // and the activation screen and Home cannot disagree about what
+                    // this device's key is. It replaced a debug constant that was the
+                    // same on every device and absent in release.
+                    deviceKey = resolved.second,
                 )
             }
         }

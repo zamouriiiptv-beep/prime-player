@@ -95,8 +95,6 @@
 
     <string name="home_term_provider">اشتراك المزوّد</string>
     <string name="home_term_licence">رخصة Castivio</string>
-    <string name="home_term_expires">ينتهي في %1$s</string>
-    <string name="home_licence_expires">تنتهي في %1$s</string>
 
     <string name="home_account_active">نشط</string>
     <string name="home_account_inactive">غير نشط</string>
@@ -132,6 +130,9 @@
 
     <!-- The second line of a category in the Channels rail. %1$s is a formatted count. -->
     <string name="channels_rail_total">المجموع: %1$s</string>
+
+    <!-- A path separator, not a word. The same glyph in every language. -->
+    <string name="channels_crumb_separator">/</string>
 
     <!-- ===================================================== لوحة القنوات
          كانت هذه المجموعة كاملة بالإنجليزية داخل واجهة عربية: عناوين من تأليفنا،
