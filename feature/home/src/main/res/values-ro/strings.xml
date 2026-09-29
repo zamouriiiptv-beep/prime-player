@@ -75,10 +75,14 @@
     <string name="home_theme_lighter">Comută pe tema deschisă</string>
     <string name="home_theme_darker">Comută pe tema închisă</string>
     <string name="home_refresh">Reîncarcă</string>
+
+    <string name="home_refresh_no_provider">Adăugați mai întâi un abonament.</string>
+    <string name="home_refresh_unreachable">Furnizorul dvs. nu a răspuns. Încercați din nou în scurt timp.</string>
     <string name="home_change">Schimbă lista</string>
 
     <string name="home_playlist_numbered">Lista %1$d</string>
     <string name="home_add_playlist">Adaugă o listă</string>
+    <string name="home_my_subscriptions">Abonamentele mele</string>
     <string name="home_language">Limbă</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Ieșire</string>

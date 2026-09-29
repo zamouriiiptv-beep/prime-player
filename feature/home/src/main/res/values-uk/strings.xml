@@ -75,10 +75,14 @@
     <string name="home_theme_lighter">Перемкнути на світлу тему</string>
     <string name="home_theme_darker">Перемкнути на темну тему</string>
     <string name="home_refresh">Оновити</string>
+
+    <string name="home_refresh_no_provider">Спершу додайте передплату.</string>
+    <string name="home_refresh_unreachable">Ваш постачальник не відповів. Спробуйте ще раз за хвилину.</string>
     <string name="home_change">Плейлисти</string>
 
     <string name="home_playlist_numbered">Плейлист %1$d</string>
     <string name="home_add_playlist">Додати плейлист</string>
+    <string name="home_my_subscriptions">Мої передплати</string>
     <string name="home_language">Мова</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Вихід</string>

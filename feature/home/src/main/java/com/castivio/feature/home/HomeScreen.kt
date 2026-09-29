@@ -8,6 +8,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -39,6 +40,7 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.LiveTv
 import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.LockOpen
 import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.material.icons.rounded.PlaylistAdd
@@ -49,14 +51,17 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.Tv
 import androidx.compose.material.icons.rounded.VpnKey
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -67,6 +72,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -91,6 +98,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.castivio.core.design.components.CastivioLockup
 import com.castivio.core.design.components.CastivioThemeSwitchChip
 import com.castivio.core.design.components.EmptyState
+import com.castivio.core.design.components.GlassCard
 import com.castivio.core.design.components.InteractiveGlassCard
 import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioChipStyle
@@ -168,6 +176,23 @@ fun HomeScreen(
     onSeeSection: (CatalogSection) -> Unit,
     /** Add a first subscription, or change the one showing. Opens the activation flow. */
     onAddSource: () -> Unit,
+    /**
+     * Add another playlist, from the menu of the ones already here.
+     *
+     * Separate from [onAddSource] because the two are different questions asked by
+     * different users. The empty state's button is "I have nothing, set me up", and it
+     * opens where the flow has always opened. This one is pressed by somebody who is
+     * already watching, already knows what a subscription is, and has just been shown
+     * their list — so it opens on the *chooser*, which is the screen that asks how.
+     */
+    onAddPlaylist: () -> Unit,
+    /**
+     * Open the saved-subscriptions screen: the one that renames, deletes and shows
+     * which is in use. The same activation flow [onAddSource] opens, at the step that
+     * screen already occupies — this screen does not know how to get there, only that
+     * somebody else does.
+     */
+    onManageSources: () -> Unit,
     onSettings: () -> Unit,
     /** Catch-up, which has no engine yet: the caller says so rather than doing nothing. */
     onTimeShift: () -> Unit,
@@ -281,7 +306,8 @@ fun HomeScreen(
                         onSeeSection = onSeeSection,
                         onRefresh = model::refresh,
                         onChoosePlaylist = model::choosePlaylist,
-                        onAddSource = onAddSource,
+                        onAddPlaylist = onAddPlaylist,
+                        onManageSources = onManageSources,
                         onTimeShift = onTimeShift,
                         onSettings = onSettings,
                         onExit = onExit,
@@ -291,6 +317,77 @@ fun HomeScreen(
                 }
             }
         }
+
+        // **Floating, so it cannot move the board.**
+        //
+        // A notice that took a row in the column above would push the footer and
+        // re-measure the section cards the moment a request failed — the layout
+        // changing shape to report that nothing changed. Drawn in the frame instead,
+        // over the footer, it says what happened and costs the board nothing.
+        state.refreshFault?.let { fault ->
+            RefreshNotice(
+                fault = fault,
+                frame = frame,
+                onDismiss = model::clearRefreshFault,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = frame.edge),
+            )
+        }
+    }
+}
+
+/**
+ * What a refresh that produced no answer has to say.
+ *
+ * Two sentences, because the two failures need opposite ones: a provider that was
+ * never there is asking for a subscription, and a provider that did not answer is
+ * asking for another press in a minute. The same split `Refreshed` draws in the
+ * domain, arriving here rather than being decided again.
+ *
+ * Dismissed by pressing it, and by nothing else. A notice on a timer is one a viewer
+ * looks up to find already gone, and on a television there is no "swipe away" — the
+ * press that acknowledges it is the only gesture every input has.
+ */
+@Composable
+private fun RefreshNotice(
+    fault: RefreshFault,
+    frame: CastivioMetrics,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = CastivioTheme.colors
+    val shape = RoundedCornerShape(frame.radius / 2)
+    val message = stringResource(
+        when (fault) {
+            RefreshFault.NoProvider -> R.string.home_refresh_no_provider
+            RefreshFault.Unreachable -> R.string.home_refresh_unreachable
+        },
+    )
+    Row(
+        modifier
+            .heightIn(min = frame.touchTarget)
+            .clip(shape)
+            .clickable(onClick = onDismiss)
+            .background(colors.glassFillBrush)
+            .border(BorderStroke(1.dp, colors.discBorder(colors.danger)), shape)
+            .padding(horizontal = frame.chipPad),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
+    ) {
+        Icon(
+            Icons.Rounded.Info,
+            contentDescription = null,
+            tint = colors.danger,
+            modifier = Modifier.size(Sizing.iconSm),
+        )
+        Text(
+            message,
+            style = castivioBodyStyle(frame.fsChip),
+            color = colors.onBackgroundVariant,
+            maxLines = NOTICE_LINES,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -928,7 +1025,8 @@ private fun SectionBoard(
     onSeeSection: (CatalogSection) -> Unit,
     onRefresh: () -> Unit,
     onChoosePlaylist: (String) -> Unit,
-    onAddSource: () -> Unit,
+    onAddPlaylist: () -> Unit,
+    onManageSources: () -> Unit,
     onTimeShift: () -> Unit,
     onSettings: () -> Unit,
     onExit: () -> Unit,
@@ -965,7 +1063,8 @@ private fun SectionBoard(
             rhythm = rhythm,
             onRefresh = onRefresh,
             onChoosePlaylist = onChoosePlaylist,
-            onAddSource = onAddSource,
+            onAddPlaylist = onAddPlaylist,
+            onManageSources = onManageSources,
             onTimeShift = onTimeShift,
             onSettings = onSettings,
             onExit = onExit,
@@ -1234,19 +1333,31 @@ private fun UtilityRail(
     rhythm: Rhythm,
     onRefresh: () -> Unit,
     onChoosePlaylist: (String) -> Unit,
-    onAddSource: () -> Unit,
+    onAddPlaylist: () -> Unit,
+    onManageSources: () -> Unit,
     onTimeShift: () -> Unit,
     onSettings: () -> Unit,
     onExit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(rhythm.rail)) {
-        Utility(Icons.Rounded.Refresh, stringResource(R.string.home_refresh), frame, onRefresh)
+        // The refresh control, which says whether it is working.
+        //
+        // The card is the same card at the same size: only the glyph is swapped for a
+        // spinner, so the rail's geometry cannot move while a request is in flight.
+        // Disabled while busy, because the press has already been taken — a second one
+        // would start a second request whose answer overwrites the first's.
+        if (state.refreshing) {
+            UtilityBusy(stringResource(R.string.home_refresh), frame)
+        } else {
+            Utility(Icons.Rounded.Refresh, stringResource(R.string.home_refresh), frame, onRefresh)
+        }
         PlaylistPicker(
             state = state,
             frame = frame,
             onChoose = onChoosePlaylist,
-            onAdd = onAddSource,
+            onAdd = onAddPlaylist,
+            onManage = onManageSources,
         )
         Utility(Icons.Rounded.History, stringResource(R.string.home_time_shift), frame, onTimeShift)
         Utility(Icons.Rounded.Settings, stringResource(R.string.home_settings), frame, onSettings)
@@ -1264,8 +1375,11 @@ private fun UtilityRail(
  * for a user with two playlists, a toggle. The subscriptions were always there —
  * `SourceRepository` has carried a list, an active one and a switch since the
  * saved-sources screen shipped — and the only thing missing was somewhere near the
- * user to spend them. The saved-sources screen is not replaced: it still owns adding,
- * and it is still where a longer list is managed.
+ * user to spend them. The saved-sources screen is not replaced: it still owns adding
+ * and managing, and the menu's last entry is a door to it — which is what separates
+ * the two. This menu does one thing to a playlist, immediately: it switches. Renaming
+ * one, deleting one, or reading what a subscription actually is are not menu-sized
+ * jobs, and they already have a screen.
  *
  * ## Why it costs the layout nothing
  *
@@ -1291,12 +1405,42 @@ private fun ColumnScope.PlaylistPicker(
     frame: CastivioMetrics,
     onChoose: (String) -> Unit,
     onAdd: () -> Unit,
+    onManage: () -> Unit,
 ) {
     val colors = CastivioTheme.colors
+    val shape = RoundedCornerShape(frame.radius / 2)
     // `rememberSaveable`: a rotation with the menu open should not silently close it,
     // and the boolean is the whole of this control's state — what is *in* the menu
     // comes from the store, so there is nothing else here that could go stale.
     var open by rememberSaveable { mutableStateOf(false) }
+
+    // **Where the remote goes, and where it comes back to.**
+    //
+    // A menu that opens without taking focus is a menu a D-pad cannot reach: the
+    // highlight stays on the rail behind it, Down moves to the card *below* the
+    // button rather than into the list, and the only way to choose a playlist is a
+    // touchscreen. So the first entry asks for focus when the menu opens, and the
+    // button asks for it back when the menu closes — otherwise the highlight is left
+    // pointing at a popup that no longer exists and the next press goes nowhere.
+    //
+    // Two requesters and not one, because they belong to two different windows: the
+    // menu is a popup of its own, and a requester attached to a composable that has
+    // left the composition throws rather than moving anything. The `runCatching` in
+    // [LaunchedFocus] is what makes a request arriving a frame too early harmless.
+    val anchorFocus = remember { FocusRequester() }
+    val firstItemFocus = remember { FocusRequester() }
+
+    // **Focus is returned deliberately, not as a side effect of the press.** Choosing
+    // a playlist, adding one, opening the subscriptions screen and dismissing with
+    // Back all end in the same place, so the rule is written once instead of at each
+    // of the four exits.
+    //
+    // A flag rather than an effect keyed on `open`, because `open` starts false: an
+    // effect on it would grab the remote on the first composition of Home and pull it
+    // onto this button before the user had touched anything.
+    var returning by remember { mutableStateOf(false) }
+    LaunchedFocus(anchorFocus, enabled = returning)
+    LaunchedEffect(returning) { if (returning) returning = false }
 
     Box(Modifier.fillMaxWidth().weight(1f)) {
         UtilityCard(
@@ -1304,95 +1448,287 @@ private fun ColumnScope.PlaylistPicker(
             label = stringResource(R.string.home_change),
             frame = frame,
             onClick = { open = true },
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().focusRequester(anchorFocus),
         )
 
-        DropdownMenu(
-            expanded = open,
-            onDismissRequest = { open = false },
-            // Bounds only. Material 3's own menu content already sizes its column to
-            // `IntrinsicSize.Max`, so the menu is as wide as its widest name by
-            // default and repeating that here would be two rules deciding one width.
-            modifier = Modifier
-                .widthIn(min = PICKER_MIN_WIDTH, max = PICKER_MAX_WIDTH)
-                .background(colors.glassFill),
-        ) {
-            for (playlist in state.playlists) {
-                val name = playlist.name.ifBlank {
-                    stringResource(R.string.home_playlist_numbered, playlist.position)
-                }
-                val isActive = playlist.id == state.activePlaylistId
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            name,
-                            style = castivioChipStyle(frame.fsLabel),
-                            color = if (isActive) colors.onBackgroundStrong else colors.onBackgroundVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    },
-                    // The tick leads, and the row keeps its indent when there is no
-                    // tick to draw: a list whose names shift sideways as the active
-                    // one moves is a list that looks like it reflowed rather than
-                    // one that answered.
-                    leadingIcon = {
-                        if (isActive) {
-                            Icon(
-                                Icons.Rounded.Check,
-                                contentDescription = null,
-                                tint = colors.hueGreen,
-                                modifier = Modifier.size(Sizing.iconSm),
-                            )
-                        } else {
-                            Spacer(Modifier.size(Sizing.iconSm))
-                        }
-                    },
-                    onClick = {
-                        open = false
-                        // Guarded, not because a second write would corrupt anything —
-                        // `setActive` is idempotent and transactional — but because
-                        // re-activating the current source makes the store re-emit and
-                        // every flow hanging off it recompute for no change.
-                        if (!isActive) onChoose(playlist.id)
-                    },
-                )
-            }
+        // **Material's own surface is switched off, not painted over.**
+        //
+        // `DropdownMenu` draws a `Surface` filled from `colorScheme.surfaceContainer`
+        // with a tonal overlay on top, and on this backdrop that is the flat grey
+        // rectangle the owner photographed — an application-shaped hole in a screen
+        // made of glass. This build's Material 3 has no `containerColor` parameter on
+        // the menu to set instead, so the three tokens it reaches for are made
+        // transparent for the subtree and the panel is then filled with the *same*
+        // recipe every card on this board uses: `glassFillBrush` inside the frame's
+        // own radius, with `edgeQuiet` around it.
+        //
+        // Scoped to this composable, so nothing else on the screen sees the override.
+        // It costs a `MaterialTheme` node while the menu is open and nothing at all
+        // while it is closed, and it keeps everything `DropdownMenu` is worth having
+        // for: it clamps itself inside the window, takes D-pad focus, dismisses on
+        // back and on an outside press, and animates in.
+        // **The locale has to be carried into the popup by hand.**
+        //
+        // `MainActivity` applies the chosen language by providing a `Context` wrapped
+        // in it, and every `stringResource` on this screen resolves against that. A
+        // `DropdownMenu` does not draw in this composition though — it draws in a
+        // `Popup`, which is a window of its own, and Compose re-provides `LocalContext`
+        // there from *that window's* context. The wrapper is gone by then, so the menu
+        // resolved its strings against the device's language while the board behind it
+        // was in the user's: Spanish everywhere and `Add playlist` in English, which is
+        // exactly what the owner photographed.
+        //
+        // Nothing was missing from the translations — `values-es` has had `Añadir
+        // lista` since the menu shipped. So these three are captured *here*, in the
+        // composition where the activity's providers are still in scope, and handed
+        // back inside the popup. The layout direction goes with them for the same
+        // reason: a popup that reset the context would reset the direction too, and an
+        // Arabic menu laid out left to right is the same defect wearing a different hat.
+        val localised = LocalContext.current
+        val configuration = LocalConfiguration.current
+        val reading = LocalLayoutDirection.current
 
-            // Separated, because it is not one of the things above: the list answers
-            // "which one", and this answers "another one". Drawn only when there is a
-            // list to separate it from — on a device with a single playlist the menu
-            // is one entry and a rule above it would be a divider dividing nothing.
-            if (state.playlists.isNotEmpty()) {
-                HorizontalDivider(color = colors.edgeQuiet)
-            }
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        stringResource(R.string.home_add_playlist),
-                        style = castivioChipStyle(frame.fsLabel),
-                        color = colors.onBackgroundVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                },
-                leadingIcon = {
-                    Icon(
-                        Icons.Rounded.Add,
-                        contentDescription = null,
-                        tint = colors.hueViolet,
-                        modifier = Modifier.size(Sizing.iconSm),
-                    )
-                },
-                onClick = {
+        val scheme = MaterialTheme.colorScheme
+        MaterialTheme(
+            colorScheme = scheme.copy(
+                surface = Color.Transparent,
+                surfaceContainer = Color.Transparent,
+                surfaceTint = Color.Transparent,
+            ),
+            typography = MaterialTheme.typography,
+            shapes = MaterialTheme.shapes,
+        ) {
+            DropdownMenu(
+                expanded = open,
+                // Back on a remote, and a press outside on a touchscreen, both arrive
+                // here. The popup is focusable, so the system routes Back to it rather
+                // than to Home — the menu closes and the board behind it stays exactly
+                // where it was, which is the whole of requirement 2.
+                onDismissRequest = {
                     open = false
-                    // The existing route, not a new one: this is the same callback the
-                    // empty state's button carries, landing on the same activation flow
-                    // and therefore the same Xtream and M3U forms.
-                    onAdd()
+                    returning = true
                 },
+                // Bounds only for the width. Material 3's own menu content already
+                // sizes its column to `IntrinsicSize.Max`, so the menu is as wide as
+                // its widest name by default and repeating that here would be two
+                // rules deciding one width.
+                modifier = Modifier
+                    .widthIn(min = PICKER_MIN_WIDTH, max = PICKER_MAX_WIDTH)
+                    .clip(shape)
+                    .background(colors.glassFillBrush)
+                    .border(BorderStroke(1.dp, colors.edgeQuiet), shape),
+            ) {
+                // Handed back what the popup's own window took away. See above.
+                CompositionLocalProvider(
+                    LocalContext provides localised,
+                    LocalConfiguration provides configuration,
+                    LocalLayoutDirection provides reading,
+                ) {
+                    // **The remote cannot leave the menu while it is open.**
+                    //
+                    // `focusGroup` makes the column one stop rather than a handful of
+                    // siblings the focus search can wander out of, and the popup is a
+                    // window of its own so there is nothing outside it to wander *to*.
+                    // Up and Down then move between entries and stop at the ends
+                    // instead of silently handing the highlight back to the board.
+                    Column(Modifier.focusGroup()) {
+                        // Asked for as the menu opens, once. Without it the popup takes
+                        // window focus but nothing inside it is focused, so the first Down
+                        // is spent arriving rather than moving.
+                        LaunchedFocus(firstItemFocus, enabled = open)
+
+                        for ((index, playlist) in state.playlists.withIndex()) {
+                            val name = playlist.name.ifBlank {
+                                stringResource(R.string.home_playlist_numbered, playlist.position)
+                            }
+                            val isActive = playlist.id == state.activePlaylistId
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        name,
+                                        style = castivioChipStyle(frame.fsLabel),
+                                        color = if (isActive) colors.onBackgroundStrong else colors.onBackgroundVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                },
+                                // The tick leads, and the row keeps its indent when there is no
+                                // tick to draw: a list whose names shift sideways as the active
+                                // one moves is a list that looks like it reflowed rather than
+                                // one that answered.
+                                leadingIcon = {
+                                    if (isActive) {
+                                        Icon(
+                                            Icons.Rounded.Check,
+                                            contentDescription = null,
+                                            tint = colors.hueGreen,
+                                            modifier = Modifier.size(Sizing.iconSm),
+                                        )
+                                    } else {
+                                        Spacer(Modifier.size(Sizing.iconSm))
+                                    }
+                                },
+                                onClick = {
+                                    open = false
+                                    returning = true
+                                    // Guarded, not because a second write would corrupt anything —
+                                    // `setActive` is idempotent and transactional — but because
+                                    // re-activating the current source makes the store re-emit and
+                                    // every flow hanging off it recompute for no change.
+                                    if (!isActive) onChoose(playlist.id)
+                                },
+                                // Only the first: it is where the remote lands when the menu
+                                // opens, and every other entry is one Down away from it.
+                                modifier = if (index == 0) {
+                                    Modifier.focusRequester(firstItemFocus)
+                                } else {
+                                    Modifier
+                                },
+                            )
+                        }
+
+                        // Separated, because it is not one of the things above: the list answers
+                        // "which one", and this answers "another one". Drawn only when there is a
+                        // list to separate it from — on a device with a single playlist the menu
+                        // is one entry and a rule above it would be a divider dividing nothing.
+                        if (state.playlists.isNotEmpty()) {
+                            HorizontalDivider(color = colors.edgeQuiet)
+                        }
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    stringResource(R.string.home_add_playlist),
+                                    style = castivioChipStyle(frame.fsLabel),
+                                    color = colors.onBackgroundVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Rounded.Add,
+                                    contentDescription = null,
+                                    tint = colors.hueViolet,
+                                    modifier = Modifier.size(Sizing.iconSm),
+                                )
+                            },
+                            onClick = {
+                                open = false
+                                returning = true
+                                // The existing route, not a new one: this is the same callback the
+                                // empty state's button carries, landing on the same activation flow
+                                // and therefore the same Xtream and M3U forms.
+                                onAdd()
+                            },
+                            // The landing place when there are no playlists to land on.
+                            // A menu whose only entries are "add" and "manage" still
+                            // has to be reachable by remote, and the requester above
+                            // is attached to a row that does not exist.
+                            modifier = if (state.playlists.isEmpty()) {
+                                Modifier.focusRequester(firstItemFocus)
+                            } else {
+                                Modifier
+                            },
+                        )
+
+                        // **The menu switches; this opens the place that manages.**
+                        //
+                        // Both of the entries above are one-press actions on the playlists
+                        // themselves. Renaming one, deleting one, or reading what a subscription
+                        // actually is are not menu-sized jobs and they already have a screen —
+                        // the saved-subscriptions screen this flow has always carried, reached
+                        // until now only by going through the source chooser. So this is a door
+                        // to that screen, not a second implementation of it: `onManage` opens the
+                        // same `ActivationRoute`, at the step that screen already occupies.
+                        //
+                        // No divider above it, because it belongs with "add" rather than with the
+                        // list: the two together are "do something about my subscriptions", and
+                        // the one rule in this menu separates that group from the names.
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    stringResource(R.string.home_my_subscriptions),
+                                    style = castivioChipStyle(frame.fsLabel),
+                                    color = colors.onBackgroundVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Rounded.Settings,
+                                    contentDescription = null,
+                                    tint = colors.hueViolet,
+                                    modifier = Modifier.size(Sizing.iconSm),
+                                )
+                            },
+                            onClick = {
+                                open = false
+                                returning = true
+                                onManage()
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The refresh card while its request is in flight.
+ *
+ * A separate composable rather than a flag on [Utility], because the two differ in
+ * more than a glyph: this one is not pressable and must not draw as though it were.
+ * It keeps the card, the padding, the label and the weight, so nothing in the column
+ * moves when it appears — which is the whole reason the spinner is the size of the
+ * icon it replaces rather than something laid out beside it.
+ */
+@Composable
+private fun ColumnScope.UtilityBusy(label: String, frame: CastivioMetrics) {
+    val colors = CastivioTheme.colors
+    GlassCard(
+        modifier = Modifier.fillMaxWidth().weight(1f),
+        shape = RoundedCornerShape(frame.radius / 2),
+    ) {
+        Row(
+            Modifier.fillMaxSize().padding(horizontal = frame.chipPad),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(Sizing.iconSm),
+                color = colors.hueViolet,
+                strokeWidth = BUSY_STROKE,
+            )
+            Text(
+                label,
+                style = castivioChipStyle(frame.fsChip),
+                color = colors.onBackgroundMuted,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
+    }
+}
+
+/**
+ * Put the remote somewhere useful, once, without fighting the user for it.
+ *
+ * Requested when [enabled] turns true and not on every recomposition, which would drag
+ * the highlight back each time anything else on the screen changed — exactly when the
+ * user is reading somewhere else. `runCatching` because a `FocusRequester` whose
+ * composable has not been attached yet, or has just left, throws rather than doing
+ * nothing: the popup and the board are two windows and their frames do not line up.
+ *
+ * The same helper the licence screen uses, deliberately written again rather than
+ * shared: it is four lines, and moving it to `:core:design` would make a focus policy
+ * out of what is currently a local decision each screen is free to make differently.
+ */
+@Composable
+private fun LaunchedFocus(focus: FocusRequester, enabled: Boolean) {
+    LaunchedEffect(enabled) {
+        if (enabled) runCatching { focus.requestFocus() }
     }
 }
 
@@ -1507,7 +1843,22 @@ private fun FooterLine(
             horizontalArrangement = Arrangement.spacedBy(frame.chipPad),
         ) {
             Fact(
-                Icons.Rounded.Lock,
+                // **The padlock is open when the licence permits use.**
+                //
+                // It was closed in both states, with only the hue and the word
+                // separating them, and a closed padlock is the one glyph in this
+                // vocabulary that means "you may not". Drawn beside "Activated" it
+                // contradicted the sentence it was illustrating — and it is the part
+                // of the card a viewer reads first, because a shape at a glance beats
+                // a word every time. Open says the device is free to play; closed says
+                // the licence ran out and it is not, which is the only thing this fact
+                // has ever been about.
+                //
+                // Both come from `licenceHolds`, which is `entitlement.allowsUse` —
+                // the same question the header's licence card and the section board
+                // already ask. Nothing new decides it here; the glyph simply stopped
+                // disagreeing with the other two things on this line.
+                if (state.licenceHolds) Icons.Rounded.LockOpen else Icons.Rounded.Lock,
                 stringResource(
                     R.string.home_device_state,
                     stringResource(
@@ -1708,6 +2059,12 @@ private const val HERO_COUNT_RATIO = 1.26f
  * targets; the second exists so a longer translation wraps rather than gets cut.
  */
 private const val DISCLAIMER_LINES = 2
+
+/** The failure notice wraps rather than truncating; two lines is every translation. */
+private const val NOTICE_LINES = 2
+
+/** The busy ring inside a rail card, in proportion to the glyph it replaces. */
+private val BUSY_STROKE = 2.dp
 
 /** The wordmark's share of the frame's title step, as the licence screen sets it. */
 private const val WORD_RATIO = 0.8f

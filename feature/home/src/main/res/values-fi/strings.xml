@@ -75,10 +75,14 @@
     <string name="home_theme_lighter">Vaihda vaaleaan teemaan</string>
     <string name="home_theme_darker">Vaihda tummaan teemaan</string>
     <string name="home_refresh">Päivitä</string>
+
+    <string name="home_refresh_no_provider">Lisää ensin tilaus.</string>
+    <string name="home_refresh_unreachable">Palveluntarjoajasi ei vastannut. Yritä hetken kuluttua uudelleen.</string>
     <string name="home_change">Vaihda lista</string>
 
     <string name="home_playlist_numbered">Lista %1$d</string>
     <string name="home_add_playlist">Lisää lista</string>
+    <string name="home_my_subscriptions">Omat tilaukset</string>
     <string name="home_language">Kieli</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Poistu</string>

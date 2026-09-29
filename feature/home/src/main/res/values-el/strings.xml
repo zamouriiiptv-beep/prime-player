@@ -75,10 +75,14 @@
     <string name="home_theme_lighter">Εναλλαγή σε φωτεινό θέμα</string>
     <string name="home_theme_darker">Εναλλαγή σε σκούρο θέμα</string>
     <string name="home_refresh">Ανανέωση</string>
+
+    <string name="home_refresh_no_provider">Προσθέστε πρώτα μια συνδρομή.</string>
+    <string name="home_refresh_unreachable">Ο πάροχός σας δεν απάντησε. Δοκιμάστε ξανά σε λίγο.</string>
     <string name="home_change">Άλλη λίστα</string>
 
     <string name="home_playlist_numbered">Λίστα %1$d</string>
     <string name="home_add_playlist">Προσθήκη λίστας</string>
+    <string name="home_my_subscriptions">Οι συνδρομές μου</string>
     <string name="home_language">Γλώσσα</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Έξοδος</string>

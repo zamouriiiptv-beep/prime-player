@@ -75,10 +75,14 @@
     <string name="home_theme_lighter">明るいテーマに切り替える</string>
     <string name="home_theme_darker">暗いテーマに切り替える</string>
     <string name="home_refresh">更新</string>
+
+    <string name="home_refresh_no_provider">先にサブスクを追加してください。</string>
+    <string name="home_refresh_unreachable">プロバイダーから応答がありません。少し後でもう一度お試しください。</string>
     <string name="home_change">リスト変更</string>
 
     <string name="home_playlist_numbered">リスト %1$d</string>
     <string name="home_add_playlist">リストを追加</string>
+    <string name="home_my_subscriptions">マイサブスク</string>
     <string name="home_language">言語</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">終了</string>

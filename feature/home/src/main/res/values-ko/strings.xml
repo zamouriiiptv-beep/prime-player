@@ -75,10 +75,14 @@
     <string name="home_theme_lighter">밝은 테마로 전환</string>
     <string name="home_theme_darker">어두운 테마로 전환</string>
     <string name="home_refresh">새로 고침</string>
+
+    <string name="home_refresh_no_provider">먼저 구독을 추가하세요.</string>
+    <string name="home_refresh_unreachable">공급자가 응답하지 않았습니다. 잠시 후 다시 시도하세요.</string>
     <string name="home_change">목록 변경</string>
 
     <string name="home_playlist_numbered">목록 %1$d</string>
     <string name="home_add_playlist">목록 추가</string>
+    <string name="home_my_subscriptions">내 구독</string>
     <string name="home_language">언어</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">종료</string>

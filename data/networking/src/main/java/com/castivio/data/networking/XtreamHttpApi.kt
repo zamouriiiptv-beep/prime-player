@@ -80,7 +80,21 @@ class XtreamHttpApi(
      * an empty catalogue is none of them.
      */
     fun account(): Outcome<XtreamAccount> = try {
-        open(XtreamUrls.api(base, username, password)).use { reader ->
+        // **`noCache`, and only here.**
+        //
+        // The client keeps a disk cache, and this request had no `Cache-Control` on
+        // it. A panel that returns `player_api.php` without a no-store header — many
+        // do — leaves OkHttp free to answer from that cache, so "refresh" replayed the
+        // answer it already had: the button went to the disk, not to the provider, and
+        // an expiry that moved yesterday stayed where it was. The playlist validator
+        // beside this one has passed `noCache = true` since it was written; this path
+        // had not, and the two branches of one validator disagreed.
+        //
+        // Scoped to the account call on purpose. A catalogue import is hundreds of
+        // category requests whose whole economy is that unchanged ones are cheap;
+        // disabling the cache for those would turn a skipped import into a full
+        // download. This is one small request that exists to be current.
+        open(XtreamUrls.api(base, username, password), noCache = true).use { reader ->
             val account = XtreamParser.parseAccount(reader)
             when {
                 account == null -> Outcome.Failure(AppError.MALFORMED_PLAYLIST)
@@ -174,7 +188,8 @@ class XtreamHttpApi(
      * anything -- and without a credential reaching the trace, which is why the name is
      * built from one query parameter rather than from the URL.
      */
-    private fun open(url: String): Reader = trace(traceName(url)) { openWithRetry(url) }
+    private fun open(url: String, noCache: Boolean = false): Reader =
+        trace(traceName(url)) { openWithRetry(url, noCache) }
 
     /**
      * One call, tried up to [MAX_RETRIES] more times if the failure was transient.
@@ -205,12 +220,12 @@ class XtreamHttpApi(
      * 500ms then 1s. The engine checks cancellation between categories, so the longest
      * a cancelled import can linger inside a backoff is one second.
      */
-    private fun openWithRetry(url: String): Reader {
+    private fun openWithRetry(url: String, noCache: Boolean = false): Reader {
         var attempt = 0
         while (true) {
             PerformanceLog.requestStarted()
             try {
-                return openNow(url)
+                return openNow(url, noCache)
             } catch (e: IOException) {
                 if (attempt >= MAX_RETRIES || !isTransient(e)) {
                     PerformanceLog.requestFailed()
@@ -252,9 +267,13 @@ class XtreamHttpApi(
         else -> true
     }
 
-    private fun openNow(url: String): Reader {
+    private fun openNow(url: String, noCache: Boolean = false): Reader {
         val builder = Request.Builder().url(url).get()
         if (userAgent != null) builder.header("User-Agent", userAgent)
+        // The header the origin is asked to honour, not a local flag: it forces
+        // revalidation rather than forbidding storage, so a provider that does send
+        // validators still gets a cheap 304 instead of a full re-download.
+        if (noCache) builder.header("Cache-Control", "no-cache")
         val response = client.newCall(builder.build()).execute()
         if (!response.isSuccessful) {
             response.close()

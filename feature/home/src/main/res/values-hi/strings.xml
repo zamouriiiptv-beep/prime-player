@@ -75,10 +75,14 @@
     <string name="home_theme_lighter">हल्की थीम पर जाएँ</string>
     <string name="home_theme_darker">गहरी थीम पर जाएँ</string>
     <string name="home_refresh">रीफ़्रेश</string>
+
+    <string name="home_refresh_no_provider">पहले एक सदस्यता जोड़ें।</string>
+    <string name="home_refresh_unreachable">आपके प्रदाता ने जवाब नहीं दिया। थोड़ी देर बाद फिर कोशिश करें।</string>
     <string name="home_change">प्लेलिस्ट बदलें</string>
 
     <string name="home_playlist_numbered">प्लेलिस्ट %1$d</string>
     <string name="home_add_playlist">प्लेलिस्ट जोड़ें</string>
+    <string name="home_my_subscriptions">मेरी सदस्यताएँ</string>
     <string name="home_language">भाषा</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">बाहर निकलें</string>

@@ -38,51 +38,50 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.castivio.core.common.AppError
 import com.castivio.core.common.ScreenState
+import com.castivio.core.design.components.CardShape
 import com.castivio.core.design.components.CastivioShell
 import com.castivio.core.design.components.EmptyState
 import com.castivio.core.design.components.IconLabel
 import com.castivio.core.design.components.MediaCard
-import com.castivio.core.design.components.CardShape
 import com.castivio.core.design.components.NowPlayingBadge
 import com.castivio.core.design.components.ScreenScaffold
 import com.castivio.core.design.components.SectionHeader
 import com.castivio.core.design.components.WatchState
 import com.castivio.core.design.components.WatchedTag
-import com.castivio.core.design.theme.castivioBackdrop
 import com.castivio.core.design.theme.CastivioMetrics
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.MotionLevel
 import com.castivio.core.design.theme.Radius
-import com.castivio.core.design.theme.rememberMetrics
 import com.castivio.core.design.theme.Spacing
+import com.castivio.core.design.theme.castivioBackdrop
+import com.castivio.core.design.theme.rememberMetrics
 import com.castivio.core.navigation.BackPolicy
 import com.castivio.core.navigation.ShellBack
-// Aliased: `com.castivio.playback.api.MediaKind` is imported below under its own name
-// for the engine's three cases. This is the catalogue's four, and they are different
-// enums on purpose -- an engine does not care that Radio is not Live.
 import com.castivio.domain.MediaKind as CatalogKind
 import com.castivio.domain.SeriesSummary
+import com.castivio.feature.activation.ActivationEntry
 import com.castivio.feature.activation.ActivationRoute
 import com.castivio.feature.activation.LanguagePicker
 import com.castivio.feature.home.BrowseScreen
-import com.castivio.feature.home.ChannelsScreen
 import com.castivio.feature.home.CatalogSearchScreen
 import com.castivio.feature.home.CatalogSection
 import com.castivio.feature.home.CatalogSelection
+import com.castivio.feature.home.ChannelsScreen
 import com.castivio.feature.home.HomeScreen
+import com.castivio.feature.home.R as CatalogStrings
 import com.castivio.feature.home.SectionGate
 import com.castivio.feature.home.ShowScreen
-import com.castivio.feature.home.R as CatalogStrings
 import com.castivio.feature.licence.R as LicenceStrings
-import com.castivio.feature.player.PlayerRequest
 import com.castivio.feature.player.PlayerMode
+import com.castivio.feature.player.PlayerRequest
 import com.castivio.feature.player.PlayerRoute
 import com.castivio.playback.api.MediaKind
+import com.castivio.tv.R
 import com.castivio.tv.licence.LicenceWithLanguage
 import com.castivio.tv.locale.LocalLocaleController
 import com.castivio.tv.player.PlayerHost
@@ -117,7 +116,17 @@ private sealed interface Overlay {
      * callback at all — Home reads Room through flows, so the counts move on their
      * own while this is still on screen.
      */
-    data object AddSource : Overlay
+    data class AddSource(
+        /**
+         * Which door into the flow this press opened.
+         *
+         * Home's playlist menu has two: "add playlist" wants the chooser, and "my
+         * subscriptions" wants the list that renames and deletes. One overlay carrying
+         * the entry rather than two overlays, because it is one flow and a second
+         * variant would be a second thing to keep in step with it.
+         */
+        val entry: ActivationEntry = ActivationEntry.Default,
+    ) : Overlay
 
     /**
      * Castivio's own licence, reached from Settings.
@@ -296,7 +305,15 @@ fun ShellScreen(
             when (dest) {
                 Dest.Home -> HomeScreen(
                     onSeeSection = { dest = it.destination },
-                    onAddSource = { overlay = Overlay.AddSource },
+                    // Unchanged: the empty state's button opens where the flow has
+                    // always opened, on the address step most people came for.
+                    onAddSource = { overlay = Overlay.AddSource() },
+                    // The chooser, not the address step. "Add a playlist" is pressed
+                    // from a menu of the playlists already here, by somebody who knows
+                    // what one is — the question they are asking is *how*, and that
+                    // screen is the one that asks it.
+                    onAddPlaylist = { overlay = Overlay.AddSource(ActivationEntry.AddSource) },
+                    onManageSources = { overlay = Overlay.AddSource(ActivationEntry.SavedSources) },
                     onSettings = { dest = Dest.Settings },
                     onLanguage = { overlay = Overlay.Language },
                     onTimeShift = { overlay = Overlay.TimeShift },
@@ -420,6 +437,7 @@ fun ShellScreen(
                         language = locale.current.language,
                         onLanguage = locale::choose,
                         onPlay = onPlayLocal,
+                        entry = o.entry,
                     )
                 }
             }
@@ -562,65 +580,118 @@ private fun SettingsScreen(
             .padding(frame.edge),
         verticalArrangement = Arrangement.spacedBy(frame.bandTop),
     ) {
-        SectionHeader(title = "Settings")
+        SectionHeader(title = stringResource(R.string.settings_title))
 
         // Two chips and nothing else: the same control the motion level takes, so a
         // reader meets one pattern rather than a switch here and chips there.
-        Text("Appearance", style = CastivioType.titleMedium, color = colors.onBackground)
         Text(
-            "Two dark grounds, not a dark mode and a light one: a picture reads as a " +
-                "picture when the room is darker than it is. Deep is the near-black the " +
-                "product is drawn on; Slate is lifted, for a lit room. The choice is " +
-                "remembered, and Castivio does not follow the system.",
+            stringResource(R.string.settings_appearance),
+            style = CastivioType.titleMedium,
+            color = colors.onBackground,
+        )
+        Text(
+            stringResource(R.string.settings_appearance_detail),
             style = CastivioType.bodySmall,
             color = colors.onBackgroundMuted,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            CategoryChipPlain(label = "Deep", selected = dark, onClick = { onDark(true) })
-            CategoryChipPlain(label = "Slate", selected = !dark, onClick = { onDark(false) })
+            CategoryChipPlain(
+                label = stringResource(R.string.settings_ground_deep),
+                selected = dark,
+                onClick = { onDark(true) },
+            )
+            CategoryChipPlain(
+                label = stringResource(R.string.settings_ground_slate),
+                selected = !dark,
+                onClick = { onDark(false) },
+            )
         }
 
-        Text("Motion", style = CastivioType.titleMedium, color = colors.onBackground)
         Text(
-            "Three levels, each fully usable. Change it and watch the backdrop and the " +
-                "playing meter respond.",
+            stringResource(R.string.settings_motion),
+            style = CastivioType.titleMedium,
+            color = colors.onBackground,
+        )
+        Text(
+            stringResource(R.string.settings_motion_detail),
             style = CastivioType.bodySmall,
             color = colors.onBackgroundMuted,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             MotionLevel.entries.forEach { level ->
                 CategoryChipPlain(
-                    label = level.name.lowercase().replaceFirstChar { it.uppercase() },
+                    label = stringResource(level.label),
                     selected = level == motionLevel,
                     onClick = { onMotionLevel(level) },
                 )
             }
         }
 
-        Text("Player", style = CastivioType.titleMedium, color = colors.onBackground)
-        SettingRow(icon = Icons.Filled.PlayArrow, label = "Internal player", value = "Default")
+        Text(
+            stringResource(R.string.settings_player),
+            style = CastivioType.titleMedium,
+            color = colors.onBackground,
+        )
+        SettingRow(
+            icon = Icons.Filled.PlayArrow,
+            label = stringResource(R.string.settings_internal_player),
+            value = stringResource(R.string.settings_player_default),
+        )
 
-        Text("Design", style = CastivioType.titleMedium, color = colors.onBackground)
+        Text(
+            stringResource(R.string.settings_design),
+            style = CastivioType.titleMedium,
+            color = colors.onBackground,
+        )
         SettingRow(
             icon = Icons.Filled.VideoLibrary,
-            label = "Show the state language",
+            label = stringResource(R.string.settings_state_board),
             onClick = onShowStateBoard,
         )
         // Castivio's licence, which is not the provider's subscription. The two
         // are separate systems and this row says so by living under its own
         // heading rather than beside the playlist.
-        Text("Licence", style = CastivioType.titleMedium, color = colors.onBackground)
+        Text(
+            stringResource(R.string.settings_licence),
+            style = CastivioType.titleMedium,
+            color = colors.onBackground,
+        )
         SettingRow(
             icon = Icons.Filled.Settings,
             label = stringResource(LicenceStrings.string.licence_title),
             onClick = onShowLicence,
         )
 
-        SettingRow(icon = Icons.Filled.Settings, label = "Device class", value = CastivioTheme.device.name)
-        SettingRow(icon = Icons.Filled.Settings, label = "Version", value = "1.0.0")
+        SettingRow(
+            icon = Icons.Filled.Settings,
+            label = stringResource(R.string.settings_device_class),
+            value = CastivioTheme.device.name,
+        )
+        SettingRow(
+            icon = Icons.Filled.Settings,
+            label = stringResource(R.string.settings_version),
+            value = "1.0.0",
+        )
     }
     }
 }
+
+/**
+ * What each animation level is called on screen.
+ *
+ * The chips used to be labelled `level.name.lowercase().replaceFirstChar { it.uppercase() }`
+ * — the enum constant, title-cased. That is a programming detail arriving in front of a
+ * user: untranslatable by construction, so the row stayed English on an Arabic device,
+ * and `DISABLED` is not a word anybody chose for it. A `when` instead, which the
+ * compiler makes exhaustive: a fourth level cannot be added without deciding what to
+ * call it.
+ */
+private val MotionLevel.label: Int
+    get() = when (this) {
+        MotionLevel.FULL -> R.string.settings_motion_full
+        MotionLevel.REDUCED -> R.string.settings_motion_reduced
+        MotionLevel.DISABLED -> R.string.settings_motion_disabled
+    }
 
 @Composable
 private fun SettingRow(

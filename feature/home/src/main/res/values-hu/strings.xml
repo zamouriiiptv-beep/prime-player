@@ -75,10 +75,14 @@
     <string name="home_theme_lighter">Váltás világos témára</string>
     <string name="home_theme_darker">Váltás sötét témára</string>
     <string name="home_refresh">Frissítés</string>
+
+    <string name="home_refresh_no_provider">Először adjon hozzá egy előfizetést.</string>
+    <string name="home_refresh_unreachable">A szolgáltatója nem válaszolt. Próbálja újra egy pillanat múlva.</string>
     <string name="home_change">Másik lista</string>
 
     <string name="home_playlist_numbered">Lista %1$d</string>
     <string name="home_add_playlist">Lista hozzáadása</string>
+    <string name="home_my_subscriptions">Előfizetéseim</string>
     <string name="home_language">Nyelv</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Kilépés</string>

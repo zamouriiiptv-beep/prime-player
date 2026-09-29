@@ -75,10 +75,14 @@
     <string name="home_theme_lighter">Přepnout na světlý motiv</string>
     <string name="home_theme_darker">Přepnout na tmavý motiv</string>
     <string name="home_refresh">Obnovit</string>
+
+    <string name="home_refresh_no_provider">Nejprve přidejte předplatné.</string>
+    <string name="home_refresh_unreachable">Váš poskytovatel neodpověděl. Zkuste to za chvíli znovu.</string>
     <string name="home_change">Jiný playlist</string>
 
     <string name="home_playlist_numbered">Playlist %1$d</string>
     <string name="home_add_playlist">Přidat playlist</string>
+    <string name="home_my_subscriptions">Moje předplatné</string>
     <string name="home_language">Jazyk</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Ukončit</string>

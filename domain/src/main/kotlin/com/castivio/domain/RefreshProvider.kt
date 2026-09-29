@@ -51,8 +51,47 @@ class RefreshProvider(
     private val sources: SourceRepository,
     private val validator: ProviderValidator,
     private val statuses: ProviderStatusCatalogue,
+    /**
+     * The marks that say which sections are already on the device.
+     *
+     * Cleared on a successful refresh — see [refresh]. Nullable so the two callers
+     * that only want the status question, and the tests that only assert it, are not
+     * made to supply a catalogue they have no opinion about.
+     */
+    private val sections: SectionCatalogue? = null,
 ) {
 
+    /**
+     * Ask the active provider, record the answer, and let the sections go stale.
+     *
+     * ## Why the active source is read here and never held
+     *
+     * `activeNow()` is a query, run inside this call, on every call. Nothing about the
+     * provider is captured when this object is built, so the source it asks about is
+     * whatever the repository says is active at the instant the button was pressed —
+     * which is what makes switching playlists and then refreshing ask the *new* one.
+     * The answer is then recorded under `active.id`, read in the same call, so a reply
+     * can never be filed against a different subscription.
+     *
+     * ## Why a successful refresh forgets the section marks
+     *
+     * The marks are what let a section open instantly the second time: a section with
+     * a mark is on the device and is not fetched again. That is right until the user
+     * asks for fresh information, and then it is the reason pressing refresh changed a
+     * date and nothing else — the catalogue underneath stayed whatever it was when it
+     * was first imported.
+     *
+     * Forgetting the marks costs nothing now and re-fetches nothing now. It makes the
+     * *next* visit to Movies, Series or Radio fetch, on the screen that already has a
+     * progress indicator for exactly that. So refresh stays the cheap question it was
+     * designed to be — no 180,000-row import behind a button — and the content still
+     * catches up.
+     *
+     * Only on success, and only for the source that answered. A provider that could
+     * not be reached has told us nothing about whether its catalogue moved, and
+     * throwing away a working offline catalogue on the strength of a failed request
+     * would be the opposite of useful.
+     */
     suspend fun refresh(nowMs: Long): Refreshed {
         val active = sources.activeNow() ?: return Refreshed.NoProvider
         // A portal registration has no address to go back to, so it cannot be asked
@@ -64,6 +103,7 @@ class RefreshProvider(
             is Outcome.Failure -> Refreshed.Unreachable(answer.error)
             is Outcome.Success -> {
                 statuses.record(active.id, answer.value, nowMs)
+                sections?.forget(active.id)
                 Refreshed.Updated(answer.value)
             }
         }

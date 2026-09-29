@@ -75,10 +75,14 @@
     <string name="home_theme_lighter">Cambiar al tema claro</string>
     <string name="home_theme_darker">Cambiar al tema oscuro</string>
     <string name="home_refresh">Actualizar</string>
+
+    <string name="home_refresh_no_provider">Añade una suscripción primero.</string>
+    <string name="home_refresh_unreachable">Tu proveedor no respondió. Inténtalo de nuevo en un momento.</string>
     <string name="home_change">Otra lista</string>
 
     <string name="home_playlist_numbered">Lista %1$d</string>
     <string name="home_add_playlist">Añadir lista</string>
+    <string name="home_my_subscriptions">Mis suscripciones</string>
     <string name="home_language">Idioma</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Salir</string>

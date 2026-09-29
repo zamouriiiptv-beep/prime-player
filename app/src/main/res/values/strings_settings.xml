@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The settings screen, which lives in `:app` because the screen does.
+
+  `:feature:settings` is still a documentation placeholder — the real screen has
+  not been built — and what the shell draws today is the UX-validation stand-in.
+  Its copy was written straight into `Shell.kt` as Kotlin literals, so the page
+  was English on an Arabic device no matter what any translation said. These
+  keys are that copy, extracted unchanged.
+
+  Every name is prefixed `settings_`, for the reason `strings_exit.xml` states:
+  Android merges every module's resources into one table and a collision picks a
+  winner silently. `check-invariants.sh` fails the build if a name declared here
+  is also declared by a feature or core module.
+
+  **These strings move with the screen.** When the real settings feature lands it
+  takes them into `:feature:settings`, because a user-visible string belongs to
+  the module that draws it — and nothing here is worth keeping in `:app` once the
+  screen is not drawn here either.
+-->
+<resources>
+
+    <string name="settings_title">Settings</string>
+
+    <!-- The two grounds. Not a light theme and a dark one: both are dark, and the
+         paragraph says so because a user who expected a white screen will
+         otherwise read the lighter one as broken. -->
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_appearance_detail">Two dark grounds, not a dark mode and a light one: a picture reads as a picture when the room is darker than it is. Deep is the near-black the product is drawn on; Slate is lifted, for a lit room. The choice is remembered, and Castivio does not follow the system.</string>
+    <string name="settings_ground_deep">Deep</string>
+    <string name="settings_ground_slate">Slate</string>
+
+    <!-- The three animation levels. The labels were the enum constants rendered
+         through `lowercase().replaceFirstChar { uppercase() }`, which is a
+         programming detail arriving on screen: untranslatable by construction,
+         and "DISABLED" is not a word a user chose. One key each instead. -->
+    <string name="settings_motion">Motion</string>
+    <string name="settings_motion_detail">Three levels, each fully usable. Change it and watch the backdrop and the playing meter respond.</string>
+    <string name="settings_motion_full">Full</string>
+    <string name="settings_motion_reduced">Reduced</string>
+    <string name="settings_motion_disabled">Disabled</string>
+
+    <string name="settings_player">Player</string>
+    <string name="settings_internal_player">Internal player</string>
+    <string name="settings_player_default">Default</string>
+
+    <string name="settings_design">Design</string>
+    <string name="settings_state_board">Show the state language</string>
+
+    <!-- Castivio's own licence, which is not the provider's subscription. Its own
+         heading, so the two systems are not read as one. -->
+    <string name="settings_licence">Licence</string>
+
+    <!-- The value beside this is `DeviceClass.name` — Compact, Medium, Expanded,
+         Television — which is a programming constant on screen for the same
+         reason the motion labels were. Left as it is: this screen is a
+         stand-in, and the row is a diagnostic rather than a setting. -->
+    <string name="settings_device_class">Device class</string>
+
+    <string name="settings_version">Version</string>
+
+</resources>

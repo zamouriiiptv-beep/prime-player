@@ -79,6 +79,48 @@ import com.castivio.domain.activation.ActivationUiState
  * at the call site and the function could not see it. It is written once, here,
  * and the compiler checks the `when` is exhaustive.
  */
+/**
+ * Where this flow opens when something outside it asks for a subscription.
+ *
+ * ## Why this exists rather than an [ActivationStep] parameter
+ *
+ * [ActivationStep] is `internal` on purpose: a caller that could name any step could
+ * invent a flow, and the back ladder is a shape this module owns. This enum is the
+ * three doors that have a reason to exist from outside, named by what the user asked
+ * for rather than by which screen answers — so a later rearrangement of the steps is
+ * this file's business and not the shell's.
+ *
+ * Back behaves the same whichever door was used: the ladder is the step's, not the
+ * entry's, so a user who arrived from Home's menu lands in the flow rather than in a
+ * dead end.
+ */
+enum class ActivationEntry {
+
+    /** The address, which is where the gate opens and what most people came for. */
+    Default,
+
+    /**
+     * "What did your provider give you?" — the chooser, with Xtream, a playlist URL,
+     * the device's own media and the saved subscriptions on it.
+     *
+     * This is what *adding* means from outside. Opening on [Default] instead put a
+     * user who pressed "add playlist" on the MAC screen, one press further from both
+     * forms than the menu they had just used.
+     */
+    AddSource,
+
+    /** The subscriptions already on this device: which is in use, and managing them. */
+    SavedSources,
+    ;
+
+    internal val step: ActivationStep
+        get() = when (this) {
+            Default -> ActivationStep.Mac
+            AddSource -> ActivationStep.Choose
+            SavedSources -> ActivationStep.SavedSources
+        }
+}
+
 internal enum class ActivationStep {
     /** The address, and the route most people take. */
     Mac,
@@ -201,6 +243,8 @@ fun ActivationRoute(
      * This module reads `MediaStore` and draws the result; `:app` owns what a press opens.
      */
     onPlay: (LocalMediaSelection) -> Unit = {},
+    /** Where the flow opens. See [ActivationEntry]. */
+    entry: ActivationEntry = ActivationEntry.Default,
     modifier: Modifier = Modifier,
 ) {
     val activation: ActivationViewModel = hiltViewModel()
@@ -217,7 +261,7 @@ fun ActivationRoute(
     // Survives rotation and process death; the form text does too, because it lives in
     // the view model. Coming back to a half-typed server URL and finding it gone is the
     // kind of small betrayal people remember.
-    var step by rememberSaveable { mutableStateOf(ActivationStep.Mac) }
+    var step by rememberSaveable { mutableStateOf(entry.step) }
 
     val phase = state.phase
 

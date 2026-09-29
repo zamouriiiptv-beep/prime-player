@@ -75,10 +75,14 @@
     <string name="home_theme_lighter">Skift til lyst tema</string>
     <string name="home_theme_darker">Skift til mørkt tema</string>
     <string name="home_refresh">Opdatér</string>
+
+    <string name="home_refresh_no_provider">Tilføj et abonnement først.</string>
+    <string name="home_refresh_unreachable">Din udbyder svarede ikke. Prøv igen om lidt.</string>
     <string name="home_change">Skift liste</string>
 
     <string name="home_playlist_numbered">Liste %1$d</string>
     <string name="home_add_playlist">Tilføj liste</string>
+    <string name="home_my_subscriptions">Mine abonnementer</string>
     <string name="home_language">Sprog</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Afslut</string>

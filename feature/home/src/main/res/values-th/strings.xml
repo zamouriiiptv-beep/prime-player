@@ -75,10 +75,14 @@
     <string name="home_theme_lighter">เปลี่ยนเป็นธีมสว่าง</string>
     <string name="home_theme_darker">เปลี่ยนเป็นธีมมืด</string>
     <string name="home_refresh">รีเฟรช</string>
+
+    <string name="home_refresh_no_provider">เพิ่มการสมัครก่อน</string>
+    <string name="home_refresh_unreachable">ผู้ให้บริการของคุณไม่ตอบกลับ ลองอีกครั้งในอีกสักครู่</string>
     <string name="home_change">เพลย์ลิสต์</string>
 
     <string name="home_playlist_numbered">เพลย์ลิสต์ %1$d</string>
     <string name="home_add_playlist">เพิ่มเพลย์ลิสต์</string>
+    <string name="home_my_subscriptions">การสมัครของฉัน</string>
     <string name="home_language">ภาษา</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">ออก</string>

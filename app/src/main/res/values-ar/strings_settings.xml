@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  شاشة الإعدادات بالعربية.
+
+  ترجمة الشاشة المؤقتة كما هي، بلا تغيير في معناها: الغرض أن تُقرأ الصفحة
+  بالعربية قبل أن تُقرَّر التعديلات عليها، لا أن تُعاد صياغتها.
+
+  «داكن» و«رمادي» اسمان لأرضيتين كلتاهما داكنة، لذلك تتجنّب الترجمة كلمتَي
+  «فاتح» و«مظلم»: الأولى وعد لا تفي به الشاشة، والثانية تجعل الخيارين اسمًا
+  واحدًا.
+-->
+<resources>
+
+    <string name="settings_title">الإعدادات</string>
+
+    <string name="settings_appearance">المظهر</string>
+    <string name="settings_appearance_detail">أرضيتان داكنتان، لا وضع داكن وآخر فاتح: الصورة تُقرأ صورةً حين تكون الغرفة أغمق منها. «داكن» هو الأسود المائل الذي رُسم عليه التطبيق، و«رمادي» أفتح قليلًا لغرفة مضاءة. يُحفظ اختيارك، وCastivio لا يتبع إعداد النظام.</string>
+    <string name="settings_ground_deep">داكن</string>
+    <string name="settings_ground_slate">رمادي</string>
+
+    <string name="settings_motion">الحركة</string>
+    <string name="settings_motion_detail">ثلاثة مستويات، كلٌّ منها صالح للاستخدام كاملًا. غيّره وراقب الخلفية ومؤشّر التشغيل يستجيبان.</string>
+    <string name="settings_motion_full">كاملة</string>
+    <string name="settings_motion_reduced">مخفَّفة</string>
+    <string name="settings_motion_disabled">معطَّلة</string>
+
+    <string name="settings_player">المشغّل</string>
+    <string name="settings_internal_player">المشغّل الداخلي</string>
+    <string name="settings_player_default">افتراضي</string>
+
+    <string name="settings_design">التصميم</string>
+    <string name="settings_state_board">عرض لغة الحالات</string>
+
+    <string name="settings_licence">الرخصة</string>
+
+    <string name="settings_device_class">فئة الجهاز</string>
+
+    <string name="settings_version">الإصدار</string>
+
+</resources>

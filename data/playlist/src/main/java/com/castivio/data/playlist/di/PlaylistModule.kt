@@ -81,7 +81,8 @@ object PlaylistModule {
         sources: SourceRepository,
         validator: ProviderValidator,
         statuses: ProviderStatusCatalogue,
-    ): RefreshProvider = RefreshProvider(sources, validator, statuses)
+        sections: SectionCatalogue,
+    ): RefreshProvider = RefreshProvider(sources, validator, statuses, sections)
 
     /**
      * Fetching one section, assembled where the importer it needs is already bound —

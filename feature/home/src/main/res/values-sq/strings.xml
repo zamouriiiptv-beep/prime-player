@@ -75,10 +75,14 @@
     <string name="home_theme_lighter">Kalo në temën e çelët</string>
     <string name="home_theme_darker">Kalo në temën e errët</string>
     <string name="home_refresh">Rifresko</string>
+
+    <string name="home_refresh_no_provider">Shtoni fillimisht një abonim.</string>
+    <string name="home_refresh_unreachable">Ofruesi juaj nuk u përgjigj. Provoni sërish pas pak.</string>
     <string name="home_change">Listë tjetër</string>
 
     <string name="home_playlist_numbered">Lista %1$d</string>
     <string name="home_add_playlist">Shto një listë</string>
+    <string name="home_my_subscriptions">Abonimet e mia</string>
     <string name="home_language">Gjuha</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Dil</string>

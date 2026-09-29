@@ -75,10 +75,14 @@
     <string name="home_theme_lighter">Zum helleren Design wechseln</string>
     <string name="home_theme_darker">Zum dunkleren Design wechseln</string>
     <string name="home_refresh">Aktualisieren</string>
+
+    <string name="home_refresh_no_provider">Fügen Sie zuerst ein Abonnement hinzu.</string>
+    <string name="home_refresh_unreachable">Ihr Anbieter hat nicht geantwortet. Versuchen Sie es gleich noch einmal.</string>
     <string name="home_change">Playlisten</string>
 
     <string name="home_playlist_numbered">Playlist %1$d</string>
     <string name="home_add_playlist">Playlist hinzufügen</string>
+    <string name="home_my_subscriptions">Meine Abos</string>
     <string name="home_language">Sprache</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Beenden</string>

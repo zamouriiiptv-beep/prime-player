@@ -8,6 +8,7 @@ import com.castivio.domain.ProviderSource
 import com.castivio.domain.ProviderStatusCatalogue
 import com.castivio.domain.Recorded
 import com.castivio.domain.RefreshProvider
+import com.castivio.domain.Refreshed
 import com.castivio.domain.SectionCatalogue
 import com.castivio.domain.SourceKind
 import com.castivio.domain.SourceRepository
@@ -16,8 +17,10 @@ import com.castivio.domain.entitlement.EntitlementState
 import com.castivio.domain.identity.DeviceIdentity
 import com.castivio.domain.time.TrustedTime
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -26,7 +29,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 /**
  * Home: which provider is showing, how much of each kind it carries, and a first
@@ -109,6 +111,25 @@ data class HomeState(
      */
     val playlists: List<Playlist> = emptyList(),
     val activePlaylistId: String? = null,
+    /**
+     * A refresh is in flight.
+     *
+     * Its own field and not derived from anything, because the whole point of the
+     * control is that the user can see it working. Pressing it used to launch a
+     * coroutine and throw the answer away: a provider that could not be reached and a
+     * provider whose answer was identical produced the same screen — nothing — and the
+     * button was indistinguishable from one that did not work.
+     */
+    val refreshing: Boolean = false,
+    /**
+     * Why the last refresh failed, or null when it did not fail.
+     *
+     * Only the two outcomes a user can act on are carried. `Updated` needs no field:
+     * the recorded answer is a flow this screen is already collecting, so a changed
+     * status moves the header on its own, and a status that did not change has nothing
+     * to announce.
+     */
+    val refreshFault: RefreshFault? = null,
     val loading: Boolean = true,
 ) {
     /** True once a provider has been configured, whatever it did or did not carry. */
@@ -162,6 +183,23 @@ data class Playlist(
     /** Its one-based place in the order they were added. */
     val position: Int,
 )
+
+/**
+ * Why a refresh did not produce an answer.
+ *
+ * Two cases, kept apart because they need opposite sentences — one asks the user to
+ * add a subscription, the other to try again — and collapsing them would let a
+ * network blip read as a missing provider. The same split [Refreshed] already draws;
+ * this is that decision arriving at the screen rather than being re-taken there.
+ */
+enum class RefreshFault {
+
+    /** Nothing was active to ask. */
+    NoProvider,
+
+    /** The provider did not answer. Whatever was recorded before still stands. */
+    Unreachable,
+}
 
 /**
  * Every saved subscription, as the menu needs it.
@@ -232,8 +270,45 @@ class HomeViewModel @Inject constructor(
      * rather than a limitation.
      */
     fun refresh() {
-        viewModelScope.launch { refresher.refresh(clock.nowMs()) }
+        // Guarded: a second press while one is in flight would start a second network
+        // call whose answer would be recorded over the first for no benefit, and would
+        // let the spinner stop while a request was still running.
+        if (_refresh.value.busy) return
+        viewModelScope.launch {
+            _refresh.value = RefreshUi(busy = true)
+            // `nowMs` read here, not held: the answer is stamped with the instant it
+            // was judged at, which is what the recorded status is compared against.
+            val outcome = refresher.refresh(clock.nowMs())
+            _refresh.value = RefreshUi(
+                busy = false,
+                fault = when (outcome) {
+                    is Refreshed.Updated -> null
+                    Refreshed.NoProvider -> RefreshFault.NoProvider
+                    is Refreshed.Unreachable -> RefreshFault.Unreachable
+                },
+            )
+        }
     }
+
+    /**
+     * Dismiss the failure notice.
+     *
+     * The screen owns when the message goes, not a timer here: a notice that vanished
+     * on its own schedule is one a user can look up and find already gone.
+     */
+    fun clearRefreshFault() {
+        _refresh.value = _refresh.value.copy(fault = null)
+    }
+
+    /**
+     * What the refresh control is doing, and what the last attempt produced.
+     *
+     * Held here rather than derived, because it is the *only* thing on this screen
+     * that is not a projection of the database. Everything else — the counts, the
+     * status, the playlists — is a flow the store owns, and this is a fact about a
+     * button press that no store knows about.
+     */
+    private val _refresh = MutableStateFlow(RefreshUi())
 
     /**
      * Show a different playlist.
@@ -308,8 +383,11 @@ class HomeViewModel @Inject constructor(
         counts,
         entitlement.state,
         sections,
-        subscription,
-    ) { shelf, tally, licence, fetched, status ->
+        // Paired with the recorded status because both are answers about the same
+        // question — what the provider says — and because `combine` is typed to five.
+        subscription.combine(_refresh) { recorded, refresh -> recorded to refresh },
+    ) { shelf, tally, licence, fetched, answer ->
+        val (status, refresh) = answer
         val source = shelf.active
         HomeState(
             provider = source?.label,
@@ -326,12 +404,17 @@ class HomeViewModel @Inject constructor(
             deviceKey = deviceKey,
             playlists = shelf.all,
             activePlaylistId = source?.id,
+            refreshing = refresh.busy,
+            refreshFault = refresh.fault,
             loading = false,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_GRACE_MS), HomeState())
 
     /** See [library]. */
     private data class Library(val active: ProviderSource?, val all: List<Playlist>)
+
+    /** See [_refresh]. */
+    private data class RefreshUi(val busy: Boolean = false, val fault: RefreshFault? = null)
 
     private companion object {
         const val SUBSCRIPTION_GRACE_MS = 5_000L

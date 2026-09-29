@@ -75,10 +75,14 @@
     <string name="home_theme_lighter">হালকা থিমে যান</string>
     <string name="home_theme_darker">গাঢ় থিমে যান</string>
     <string name="home_refresh">রিফ্রেশ</string>
+
+    <string name="home_refresh_no_provider">প্রথমে একটি সাবস্ক্রিপশন যোগ করুন।</string>
+    <string name="home_refresh_unreachable">আপনার সরবরাহকারী উত্তর দেয়নি। একটু পরে আবার চেষ্টা করুন।</string>
     <string name="home_change">প্লেলিস্ট বদলান</string>
 
     <string name="home_playlist_numbered">প্লেলিস্ট %1$d</string>
     <string name="home_add_playlist">প্লেলিস্ট যোগ করুন</string>
+    <string name="home_my_subscriptions">আমার সাবস্ক্রিপশন</string>
     <string name="home_language">ভাষা</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">প্রস্থান</string>
