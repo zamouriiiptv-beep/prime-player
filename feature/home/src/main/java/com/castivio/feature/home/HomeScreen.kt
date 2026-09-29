@@ -1833,15 +1833,34 @@ private class MutableGround {
  */
 private fun LayoutCoordinates.backdropWindowOnScreen(view: View): Rect? {
     if (!isAttached) return null
-    val size = findRootCoordinates().size
-    if (size.width == 0 || size.height == 0) return null
+    val window = rootCoordinates()
+    val width = window.size.width
+    val height = window.size.height
+    if (width == 0 || height == 0) return null
     val origin = IntArray(2).also { view.getLocationOnScreen(it) }
     return Rect(
         left = origin[0].toFloat(),
         top = origin[1].toFloat(),
-        right = (origin[0] + size.width).toFloat(),
-        bottom = (origin[1] + size.height).toFloat(),
+        right = (origin[0] + width).toFloat(),
+        bottom = (origin[1] + height).toFloat(),
     )
+}
+
+/**
+ * The outermost node of this composition, reached by walking parents.
+ *
+ * `parentLayoutCoordinates` is a member of `LayoutCoordinates`, which is the whole
+ * reason the walk is written out rather than delegated: the library's own helper for
+ * this is an extension function, and an extension is only as available as its import.
+ * A member cannot be missed the same way.
+ */
+private fun LayoutCoordinates.rootCoordinates(): LayoutCoordinates {
+    var node: LayoutCoordinates = this
+    while (true) {
+        val parent = node.parentLayoutCoordinates ?: return node
+        if (!parent.isAttached) return node
+        node = parent
+    }
 }
 
 /**
