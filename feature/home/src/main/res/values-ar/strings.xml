@@ -93,7 +93,7 @@
     <string name="home_fetched_at">محفوظ محليًا · %1$s</string>
 
 
-    <string name="home_term_provider">اشتراك المزوّد</string>
+    <string name="home_term_provider">الاشتراك</string>
     <string name="home_term_licence">رخصة Castivio</string>
 
     <string name="home_account_active">نشط</string>
@@ -113,7 +113,7 @@
     <string name="home_theme_darker">التبديل إلى الوضع الأغمق</string>
 
     <string name="home_refresh">تحديث</string>
-    <string name="home_change">تغيير الاشتراك</string>
+    <string name="home_change">تبديل القائمة</string>
     <string name="home_language">اللغة</string>
     <!-- Untranslated, as the approved row has it: the feature is known by its
          English name and the Arabic rendering is three times as wide. -->

@@ -59,7 +59,7 @@
     <string name="gate_starting">Po lidhemi me ofruesin tuaj…</string>
     <string name="gate_mac">Adresa MAC</string>
     <string name="gate_provider">Ofruesi</string>
-    <string name="home_term_provider">Abonimi te ofruesi</string>
+    <string name="home_term_provider">Abonimi</string>
     <string name="home_term_licence">Licenca Castivio</string>
     <string name="home_account_active">Aktiv</string>
     <string name="home_account_inactive">Joaktiv</string>
@@ -75,7 +75,7 @@
     <string name="home_theme_lighter">Kalo në temën e çelët</string>
     <string name="home_theme_darker">Kalo në temën e errët</string>
     <string name="home_refresh">Rifresko</string>
-    <string name="home_change">Ndrysho abonimin</string>
+    <string name="home_change">Listë tjetër</string>
     <string name="home_language">Gjuha</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Dil</string>

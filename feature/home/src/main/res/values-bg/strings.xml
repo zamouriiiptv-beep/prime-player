@@ -59,7 +59,7 @@
     <string name="gate_starting">Свързване с вашия доставчик…</string>
     <string name="gate_mac">MAC адрес</string>
     <string name="gate_provider">Доставчик</string>
-    <string name="home_term_provider">Абонамент при доставчика</string>
+    <string name="home_term_provider">Абонамент</string>
     <string name="home_term_licence">Лиценз на Castivio</string>
     <string name="home_account_active">Активен</string>
     <string name="home_account_inactive">Неактивен</string>
@@ -75,7 +75,7 @@
     <string name="home_theme_lighter">Превключване към светла тема</string>
     <string name="home_theme_darker">Превключване към тъмна тема</string>
     <string name="home_refresh">Опресняване</string>
-    <string name="home_change">Смяна на абонамента</string>
+    <string name="home_change">Плейлисти</string>
     <string name="home_language">Език</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Изход</string>

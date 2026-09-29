@@ -59,7 +59,7 @@
     <string name="gate_starting">Otetaan yhteyttä palveluntarjoajaasi…</string>
     <string name="gate_mac">MAC-osoite</string>
     <string name="gate_provider">Palveluntarjoaja</string>
-    <string name="home_term_provider">Palveluntarjoajan tilaus</string>
+    <string name="home_term_provider">Tilaus</string>
     <string name="home_term_licence">Castivio-lisenssi</string>
     <string name="home_account_active">Voimassa</string>
     <string name="home_account_inactive">Ei voimassa</string>
@@ -75,7 +75,7 @@
     <string name="home_theme_lighter">Vaihda vaaleaan teemaan</string>
     <string name="home_theme_darker">Vaihda tummaan teemaan</string>
     <string name="home_refresh">Päivitä</string>
-    <string name="home_change">Vaihda tilaus</string>
+    <string name="home_change">Vaihda lista</string>
     <string name="home_language">Kieli</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Poistu</string>

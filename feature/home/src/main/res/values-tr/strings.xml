@@ -59,7 +59,7 @@
     <string name="gate_starting">Sağlayıcınıza bağlanılıyor…</string>
     <string name="gate_mac">MAC adresi</string>
     <string name="gate_provider">Sağlayıcı</string>
-    <string name="home_term_provider">Sağlayıcı aboneliği</string>
+    <string name="home_term_provider">Abonelik</string>
     <string name="home_term_licence">Castivio lisansı</string>
     <string name="home_account_active">Etkin</string>
     <string name="home_account_inactive">Etkin değil</string>
@@ -75,7 +75,7 @@
     <string name="home_theme_lighter">Açık temaya geç</string>
     <string name="home_theme_darker">Koyu temaya geç</string>
     <string name="home_refresh">Yenile</string>
-    <string name="home_change">Aboneliği değiştir</string>
+    <string name="home_change">Liste değiştir</string>
     <string name="home_language">Dil</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Çıkış</string>

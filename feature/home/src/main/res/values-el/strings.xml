@@ -59,7 +59,7 @@
     <string name="gate_starting">Επικοινωνία με τον πάροχό σας…</string>
     <string name="gate_mac">Διεύθυνση MAC</string>
     <string name="gate_provider">Πάροχος</string>
-    <string name="home_term_provider">Συνδρομή παρόχου</string>
+    <string name="home_term_provider">Συνδρομή</string>
     <string name="home_term_licence">Άδεια Castivio</string>
     <string name="home_account_active">Ενεργή</string>
     <string name="home_account_inactive">Ανενεργή</string>
@@ -75,7 +75,7 @@
     <string name="home_theme_lighter">Εναλλαγή σε φωτεινό θέμα</string>
     <string name="home_theme_darker">Εναλλαγή σε σκούρο θέμα</string>
     <string name="home_refresh">Ανανέωση</string>
-    <string name="home_change">Αλλαγή συνδρομής</string>
+    <string name="home_change">Άλλη λίστα</string>
     <string name="home_language">Γλώσσα</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Έξοδος</string>

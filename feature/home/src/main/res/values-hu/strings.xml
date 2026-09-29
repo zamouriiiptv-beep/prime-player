@@ -59,7 +59,7 @@
     <string name="gate_starting">Kapcsolódás a szolgáltatójához…</string>
     <string name="gate_mac">MAC-cím</string>
     <string name="gate_provider">Szolgáltató</string>
-    <string name="home_term_provider">Szolgáltatói előfizetés</string>
+    <string name="home_term_provider">Előfizetés</string>
     <string name="home_term_licence">Castivio licenc</string>
     <string name="home_account_active">Aktív</string>
     <string name="home_account_inactive">Nem aktív</string>
@@ -75,7 +75,7 @@
     <string name="home_theme_lighter">Váltás világos témára</string>
     <string name="home_theme_darker">Váltás sötét témára</string>
     <string name="home_refresh">Frissítés</string>
-    <string name="home_change">Előfizetés módosítása</string>
+    <string name="home_change">Másik lista</string>
     <string name="home_language">Nyelv</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Kilépés</string>

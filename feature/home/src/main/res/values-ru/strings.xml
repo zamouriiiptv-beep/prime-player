@@ -59,7 +59,7 @@
     <string name="gate_starting">Соединение с провайдером…</string>
     <string name="gate_mac">MAC-адрес</string>
     <string name="gate_provider">Провайдер</string>
-    <string name="home_term_provider">Подписка провайдера</string>
+    <string name="home_term_provider">Подписка</string>
     <string name="home_term_licence">Лицензия Castivio</string>
     <string name="home_account_active">Активна</string>
     <string name="home_account_inactive">Неактивна</string>
@@ -75,7 +75,7 @@
     <string name="home_theme_lighter">Переключить на светлую тему</string>
     <string name="home_theme_darker">Переключить на тёмную тему</string>
     <string name="home_refresh">Обновить</string>
-    <string name="home_change">Сменить подписку</string>
+    <string name="home_change">Плейлисты</string>
     <string name="home_language">Язык</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Выход</string>

@@ -59,7 +59,7 @@
     <string name="gate_starting">Kinakausap ang provider mo…</string>
     <string name="gate_mac">MAC address</string>
     <string name="gate_provider">Provider</string>
-    <string name="home_term_provider">Subscription sa provider</string>
+    <string name="home_term_provider">Subscription</string>
     <string name="home_term_licence">Lisensya ng Castivio</string>
     <string name="home_account_active">Aktibo</string>
     <string name="home_account_inactive">Hindi aktibo</string>
@@ -75,7 +75,7 @@
     <string name="home_theme_lighter">Lumipat sa mas maliwanag na tema</string>
     <string name="home_theme_darker">Lumipat sa mas madilim na tema</string>
     <string name="home_refresh">I-refresh</string>
-    <string name="home_change">Palitan ang subscription</string>
+    <string name="home_change">Mga playlist</string>
     <string name="home_language">Wika</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Lumabas</string>

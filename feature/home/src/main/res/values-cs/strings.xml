@@ -59,7 +59,7 @@
     <string name="gate_starting">Navazuje se spojení s poskytovatelem…</string>
     <string name="gate_mac">MAC adresa</string>
     <string name="gate_provider">Poskytovatel</string>
-    <string name="home_term_provider">Předplatné u poskytovatele</string>
+    <string name="home_term_provider">Předplatné</string>
     <string name="home_term_licence">Licence Castivio</string>
     <string name="home_account_active">Aktivní</string>
     <string name="home_account_inactive">Neaktivní</string>
@@ -75,7 +75,7 @@
     <string name="home_theme_lighter">Přepnout na světlý motiv</string>
     <string name="home_theme_darker">Přepnout na tmavý motiv</string>
     <string name="home_refresh">Obnovit</string>
-    <string name="home_change">Změnit předplatné</string>
+    <string name="home_change">Jiný playlist</string>
     <string name="home_language">Jazyk</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Ukončit</string>

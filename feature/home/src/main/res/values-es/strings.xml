@@ -59,7 +59,7 @@
     <string name="gate_starting">Contactando con tu proveedor…</string>
     <string name="gate_mac">Dirección MAC</string>
     <string name="gate_provider">Proveedor</string>
-    <string name="home_term_provider">Suscripción del proveedor</string>
+    <string name="home_term_provider">Suscripción</string>
     <string name="home_term_licence">Licencia de Castivio</string>
     <string name="home_account_active">Activa</string>
     <string name="home_account_inactive">Inactiva</string>
@@ -75,7 +75,7 @@
     <string name="home_theme_lighter">Cambiar al tema claro</string>
     <string name="home_theme_darker">Cambiar al tema oscuro</string>
     <string name="home_refresh">Actualizar</string>
-    <string name="home_change">Cambiar suscripción</string>
+    <string name="home_change">Otra lista</string>
     <string name="home_language">Idioma</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Salir</string>

@@ -59,7 +59,7 @@
     <string name="gate_starting">Kontaktar din leverantör…</string>
     <string name="gate_mac">MAC-adress</string>
     <string name="gate_provider">Leverantör</string>
-    <string name="home_term_provider">Leverantörsabonnemang</string>
+    <string name="home_term_provider">Abonnemang</string>
     <string name="home_term_licence">Castivio-licens</string>
     <string name="home_account_active">Aktivt</string>
     <string name="home_account_inactive">Inaktivt</string>
@@ -75,7 +75,7 @@
     <string name="home_theme_lighter">Byt till ljust tema</string>
     <string name="home_theme_darker">Byt till mörkt tema</string>
     <string name="home_refresh">Uppdatera</string>
-    <string name="home_change">Byt abonnemang</string>
+    <string name="home_change">Byt spellista</string>
     <string name="home_language">Språk</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Avsluta</string>

@@ -112,7 +112,7 @@
          support line. Each is named in full — never "Subscription" on its own, which
          could be either — because the label is one of the four things separating
          them, alongside hue, glyph and edge. -->
-    <string name="home_term_provider">Provider subscription</string>
+    <string name="home_term_provider">Subscription</string>
     <string name="home_term_licence">Castivio licence</string>
 
     <!-- Used only where the provider gave no word of its own. Its own word is
@@ -148,7 +148,7 @@
     <string name="home_refresh">Refresh</string>
     <!-- The row wants a short label; the empty state, which has the width for a
          sentence, keeps `home_change_source`. -->
-    <string name="home_change">Change subscription</string>
+    <string name="home_change">Change list</string>
     <!-- The header chip, worded as the other screens word theirs. -->
     <string name="home_language">Language</string>
     <!-- Catch-up. There is no engine for it in this build, and pressing it says so. -->

@@ -59,7 +59,7 @@
     <string name="gate_starting">Łączenie z dostawcą…</string>
     <string name="gate_mac">Adres MAC</string>
     <string name="gate_provider">Dostawca</string>
-    <string name="home_term_provider">Subskrypcja dostawcy</string>
+    <string name="home_term_provider">Subskrypcja</string>
     <string name="home_term_licence">Licencja Castivio</string>
     <string name="home_account_active">Aktywna</string>
     <string name="home_account_inactive">Nieaktywna</string>
@@ -75,7 +75,7 @@
     <string name="home_theme_lighter">Przełącz na jaśniejszy motyw</string>
     <string name="home_theme_darker">Przełącz na ciemniejszy motyw</string>
     <string name="home_refresh">Odśwież</string>
-    <string name="home_change">Zmień subskrypcję</string>
+    <string name="home_change">Zmień listę</string>
     <string name="home_language">Język</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Zakończ</string>

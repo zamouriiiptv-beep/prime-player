@@ -59,7 +59,7 @@
     <string name="gate_starting">আপনার সরবরাহকারীর সঙ্গে যোগাযোগ করা হচ্ছে…</string>
     <string name="gate_mac">MAC ঠিকানা</string>
     <string name="gate_provider">সরবরাহকারী</string>
-    <string name="home_term_provider">সরবরাহকারীর সাবস্ক্রিপশন</string>
+    <string name="home_term_provider">সাবস্ক্রিপশন</string>
     <string name="home_term_licence">Castivio লাইসেন্স</string>
     <string name="home_account_active">সক্রিয়</string>
     <string name="home_account_inactive">নিষ্ক্রিয়</string>
@@ -75,7 +75,7 @@
     <string name="home_theme_lighter">হালকা থিমে যান</string>
     <string name="home_theme_darker">গাঢ় থিমে যান</string>
     <string name="home_refresh">রিফ্রেশ</string>
-    <string name="home_change">সাবস্ক্রিপশন বদলান</string>
+    <string name="home_change">প্লেলিস্ট বদলান</string>
     <string name="home_language">ভাষা</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">প্রস্থান</string>

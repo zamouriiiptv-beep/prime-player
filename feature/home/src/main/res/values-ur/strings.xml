@@ -59,7 +59,7 @@
     <string name="gate_starting">آپ کے فراہم کنندہ سے رابطہ ہو رہا ہے…</string>
     <string name="gate_mac">MAC پتہ</string>
     <string name="gate_provider">فراہم کنندہ</string>
-    <string name="home_term_provider">فراہم کنندہ کی رکنیت</string>
+    <string name="home_term_provider">رکنیت</string>
     <string name="home_term_licence">Castivio لائسنس</string>
     <string name="home_account_active">فعال</string>
     <string name="home_account_inactive">غیر فعال</string>
@@ -75,7 +75,7 @@
     <string name="home_theme_lighter">ہلکے تھیم پر جائیں</string>
     <string name="home_theme_darker">گہرے تھیم پر جائیں</string>
     <string name="home_refresh">تازہ کریں</string>
-    <string name="home_change">رکنیت تبدیل کریں</string>
+    <string name="home_change">پلے لسٹ بدلیں</string>
     <string name="home_language">زبان</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">باہر نکلیں</string>

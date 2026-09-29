@@ -59,7 +59,7 @@
     <string name="gate_starting">Se contactează furnizorul dvs.…</string>
     <string name="gate_mac">Adresă MAC</string>
     <string name="gate_provider">Furnizor</string>
-    <string name="home_term_provider">Abonamentul furnizorului</string>
+    <string name="home_term_provider">Abonament</string>
     <string name="home_term_licence">Licența Castivio</string>
     <string name="home_account_active">Activ</string>
     <string name="home_account_inactive">Inactiv</string>
@@ -75,7 +75,7 @@
     <string name="home_theme_lighter">Comută pe tema deschisă</string>
     <string name="home_theme_darker">Comută pe tema închisă</string>
     <string name="home_refresh">Reîmprospătare</string>
-    <string name="home_change">Schimbă abonamentul</string>
+    <string name="home_change">Schimbă lista</string>
     <string name="home_language">Limbă</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Ieșire</string>

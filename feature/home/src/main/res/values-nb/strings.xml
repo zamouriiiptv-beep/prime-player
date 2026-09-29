@@ -59,7 +59,7 @@
     <string name="gate_starting">Kontakter leverandøren din…</string>
     <string name="gate_mac">MAC-adresse</string>
     <string name="gate_provider">Leverandør</string>
-    <string name="home_term_provider">Leverandørabonnement</string>
+    <string name="home_term_provider">Abonnement</string>
     <string name="home_term_licence">Castivio-lisens</string>
     <string name="home_account_active">Aktivt</string>
     <string name="home_account_inactive">Inaktivt</string>
@@ -75,7 +75,7 @@
     <string name="home_theme_lighter">Bytt til lyst tema</string>
     <string name="home_theme_darker">Bytt til mørkt tema</string>
     <string name="home_refresh">Oppdater</string>
-    <string name="home_change">Bytt abonnement</string>
+    <string name="home_change">Bytt liste</string>
     <string name="home_language">Språk</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Avslutt</string>

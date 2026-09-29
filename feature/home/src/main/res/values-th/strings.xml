@@ -59,7 +59,7 @@
     <string name="gate_starting">กำลังติดต่อผู้ให้บริการของคุณ…</string>
     <string name="gate_mac">ที่อยู่ MAC</string>
     <string name="gate_provider">ผู้ให้บริการ</string>
-    <string name="home_term_provider">การสมัครกับผู้ให้บริการ</string>
+    <string name="home_term_provider">การสมัครสมาชิก</string>
     <string name="home_term_licence">ใบอนุญาต Castivio</string>
     <string name="home_account_active">ใช้งานอยู่</string>
     <string name="home_account_inactive">ไม่ได้ใช้งาน</string>
@@ -75,7 +75,7 @@
     <string name="home_theme_lighter">เปลี่ยนเป็นธีมสว่าง</string>
     <string name="home_theme_darker">เปลี่ยนเป็นธีมมืด</string>
     <string name="home_refresh">รีเฟรช</string>
-    <string name="home_change">เปลี่ยนการสมัคร</string>
+    <string name="home_change">เพลย์ลิสต์</string>
     <string name="home_language">ภาษา</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">ออก</string>

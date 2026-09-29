@@ -59,7 +59,7 @@
     <string name="gate_starting">Verbindung zu deinem Anbieter…</string>
     <string name="gate_mac">MAC-Adresse</string>
     <string name="gate_provider">Anbieter</string>
-    <string name="home_term_provider">Anbieter-Abonnement</string>
+    <string name="home_term_provider">Abonnement</string>
     <string name="home_term_licence">Castivio-Lizenz</string>
     <string name="home_account_active">Aktiv</string>
     <string name="home_account_inactive">Inaktiv</string>
@@ -75,7 +75,7 @@
     <string name="home_theme_lighter">Zum helleren Design wechseln</string>
     <string name="home_theme_darker">Zum dunkleren Design wechseln</string>
     <string name="home_refresh">Aktualisieren</string>
-    <string name="home_change">Abonnement wechseln</string>
+    <string name="home_change">Playlisten</string>
     <string name="home_language">Sprache</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Beenden</string>

@@ -59,7 +59,7 @@
     <string name="gate_starting">Повезивање са вашим добављачем…</string>
     <string name="gate_mac">MAC адреса</string>
     <string name="gate_provider">Добављач</string>
-    <string name="home_term_provider">Претплата код добављача</string>
+    <string name="home_term_provider">Претплата</string>
     <string name="home_term_licence">Castivio лиценца</string>
     <string name="home_account_active">Активна</string>
     <string name="home_account_inactive">Неактивна</string>
@@ -75,7 +75,7 @@
     <string name="home_theme_lighter">Пређи на светлу тему</string>
     <string name="home_theme_darker">Пређи на тамну тему</string>
     <string name="home_refresh">Освежи</string>
-    <string name="home_change">Промени претплату</string>
+    <string name="home_change">Друга листа</string>
     <string name="home_language">Језик</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Излаз</string>

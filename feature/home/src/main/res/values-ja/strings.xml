@@ -59,7 +59,7 @@
     <string name="gate_starting">プロバイダーに接続しています…</string>
     <string name="gate_mac">MAC アドレス</string>
     <string name="gate_provider">プロバイダー</string>
-    <string name="home_term_provider">プロバイダーのサブスクリプション</string>
+    <string name="home_term_provider">サブスク</string>
     <string name="home_term_licence">Castivio ライセンス</string>
     <string name="home_account_active">有効</string>
     <string name="home_account_inactive">無効</string>
@@ -75,7 +75,7 @@
     <string name="home_theme_lighter">明るいテーマに切り替える</string>
     <string name="home_theme_darker">暗いテーマに切り替える</string>
     <string name="home_refresh">更新</string>
-    <string name="home_change">サブスクリプションを変更</string>
+    <string name="home_change">リスト変更</string>
     <string name="home_language">言語</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">終了</string>

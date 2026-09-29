@@ -59,7 +59,7 @@
     <string name="gate_starting">Contact maken met je provider…</string>
     <string name="gate_mac">MAC-adres</string>
     <string name="gate_provider">Provider</string>
-    <string name="home_term_provider">Provider-abonnement</string>
+    <string name="home_term_provider">Abonnement</string>
     <string name="home_term_licence">Castivio-licentie</string>
     <string name="home_account_active">Actief</string>
     <string name="home_account_inactive">Inactief</string>
@@ -75,7 +75,7 @@
     <string name="home_theme_lighter">Overschakelen naar het lichte thema</string>
     <string name="home_theme_darker">Overschakelen naar het donkere thema</string>
     <string name="home_refresh">Verversen</string>
-    <string name="home_change">Abonnement wijzigen</string>
+    <string name="home_change">Andere lijst</string>
     <string name="home_language">Taal</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Afsluiten</string>

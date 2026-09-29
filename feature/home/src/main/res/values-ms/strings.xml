@@ -59,7 +59,7 @@
     <string name="gate_starting">Menghubungi pembekal anda…</string>
     <string name="gate_mac">Alamat MAC</string>
     <string name="gate_provider">Pembekal</string>
-    <string name="home_term_provider">Langganan pembekal</string>
+    <string name="home_term_provider">Langganan</string>
     <string name="home_term_licence">Lesen Castivio</string>
     <string name="home_account_active">Aktif</string>
     <string name="home_account_inactive">Tidak aktif</string>
@@ -75,7 +75,7 @@
     <string name="home_theme_lighter">Tukar ke tema cerah</string>
     <string name="home_theme_darker">Tukar ke tema gelap</string>
     <string name="home_refresh">Segar semula</string>
-    <string name="home_change">Tukar langganan</string>
+    <string name="home_change">Tukar senarai</string>
     <string name="home_language">Bahasa</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Keluar</string>

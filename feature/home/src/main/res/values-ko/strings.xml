@@ -59,7 +59,7 @@
     <string name="gate_starting">공급자에 연결하는 중…</string>
     <string name="gate_mac">MAC 주소</string>
     <string name="gate_provider">공급자</string>
-    <string name="home_term_provider">공급자 구독</string>
+    <string name="home_term_provider">구독</string>
     <string name="home_term_licence">Castivio 라이선스</string>
     <string name="home_account_active">활성</string>
     <string name="home_account_inactive">비활성</string>
@@ -75,7 +75,7 @@
     <string name="home_theme_lighter">밝은 테마로 전환</string>
     <string name="home_theme_darker">어두운 테마로 전환</string>
     <string name="home_refresh">새로 고침</string>
-    <string name="home_change">구독 변경</string>
+    <string name="home_change">목록 변경</string>
     <string name="home_language">언어</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">종료</string>
