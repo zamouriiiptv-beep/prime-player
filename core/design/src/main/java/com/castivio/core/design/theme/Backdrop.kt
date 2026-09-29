@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -78,13 +79,46 @@ fun CastivioBackdrop(content: @Composable () -> Unit) {
  * A screen that is *not* covering another one should use neither this nor
  * [CastivioBackdrop]: the theme has already put the backdrop behind it, and a
  * second copy is a second full-screen canvas for a pixel-identical result.
+ *
+ * ## [ground], and why a small surface needs it
+ *
+ * Every layer below is a proportion of the box it is drawn in, which is right while
+ * that box is the window. It stops being right for a *small* surface: a popup menu
+ * 200dp wide gets the cool glow at a 104dp radius instead of 433dp, and a light meant
+ * to be wider than the screen becomes a bright patch inside a panel. The gradient
+ * suffers the same compression — the full three-stop ramp in 200dp, so the panel
+ * starts at the darkest stop while the board around it has long since reached the
+ * lightest.
+ *
+ * [ground] is the rectangle the *whole* backdrop occupies, expressed in this node's
+ * own coordinates. A surface that is the window passes nothing and gets
+ * `Rect(0, 0, size)` — which is what this has always drawn, so every existing caller
+ * is unchanged by construction rather than by inspection. A surface that is a slice
+ * of the window passes where the window is relative to itself, and then draws *its
+ * slice of the one ground* rather than a miniature of it: same gradient, same glow
+ * centres, same radii, same mesh, same motes, clipped to its own bounds by the canvas.
+ *
+ * It is a lambda, not a `Rect`, because the callers that need it only learn their
+ * position during layout — see the read site for why that matters.
  */
 @Composable
-fun Modifier.castivioBackdrop(): Modifier {
+fun Modifier.castivioBackdrop(ground: (() -> Rect?)? = null): Modifier {
     val colors = CastivioTheme.colors
     val profile = LocalPerformanceProfile.current
     val (wave, drift) = backdropPhase(profile)
-    return drawBehind { paintBackdrop(wave, drift, colors, profile.backdropParticles) }
+    return drawBehind {
+        // Read at *draw* time, which is the whole reason this is a lambda rather than
+        // a value. A popup only learns where it sits during the layout pass, and
+        // `onGloballyPositioned` fires at the end of that pass — before drawing, in
+        // the same frame. A `Rect` parameter would have been captured at composition,
+        // one frame early, and the menu would have drawn its first frame against the
+        // wrong ground and corrected itself on the second: a visible flash at exactly
+        // the moment the menu appears.
+        paintBackdrop(
+            wave, drift, colors, profile.backdropParticles,
+            ground = ground?.invoke() ?: Rect(Offset.Zero, size),
+        )
+    }
 }
 
 /**
@@ -100,27 +134,30 @@ private fun DrawScope.paintBackdrop(
     drift: Float,
     colors: CastivioColors,
     particles: Boolean,
+    ground: Rect,
 ) {
     drawRect(
         Brush.linearGradient(
             colors = colors.backdropStops,
-            start = Offset(0f, 0f),
-            end = Offset(size.width, size.height),
+            start = ground.topLeft,
+            end = ground.bottomRight,
         )
     )
     // The geometry is the theme's business, not the ground's: both glows keep their
     // corner, their radius and their alpha in either mode, and only the hue is asked
     // for again. A light page with the aurora somewhere else would be a second layout.
     glow(
-        Offset(size.width * 0.05f, size.height), size.width * 0.55f,
+        ground.topLeft + Offset(ground.width * 0.05f, ground.height),
+        ground.width * 0.55f,
         colors.backdropWarmGlow, colors.backdropGlowWarm,
     )
     glow(
-        Offset(size.width * 0.95f, size.height * 0.30f), size.width * 0.52f,
+        ground.topLeft + Offset(ground.width * 0.95f, ground.height * 0.30f),
+        ground.width * 0.52f,
         colors.backdropCoolGlow, colors.backdropGlowCool,
     )
-    mesh(wave, colors.primary)
-    if (particles) motes(drift, colors.backdropMote)
+    mesh(wave, colors.primary, ground)
+    if (particles) motes(drift, colors.backdropMote, ground)
 }
 
 /**
@@ -167,19 +204,19 @@ private fun DrawScope.glow(center: Offset, radius: Float, color: Color, alpha: F
 }
 
 /** Perspective contour waves across the lower half. */
-private fun DrawScope.mesh(phase: Float, color: Color) {
-    val horizon = size.height * 0.40f
+private fun DrawScope.mesh(phase: Float, color: Color, ground: Rect) {
+    val horizon = ground.top + ground.height * 0.40f
     val lines = 16
     for (i in 0..lines) {
         val t = i / lines.toFloat()
-        val y = horizon + (size.height - horizon) * (t * t)
+        val y = horizon + (ground.bottom - horizon) * (t * t)
         val amp = 7f + 44f * t
         val alpha = 0.025f + 0.07f * t
         val path = Path()
         val steps = 64
         for (s in 0..steps) {
             val p = s / steps.toFloat()
-            val x = size.width * p
+            val x = ground.left + ground.width * p
             val yy = y + amp * sin(p * 11f + i * 0.6f + phase)
             if (s == 0) path.moveTo(x, yy) else path.lineTo(x, yy)
         }
@@ -188,7 +225,7 @@ private fun DrawScope.mesh(phase: Float, color: Color) {
 }
 
 /** A handful of slow motes that rise, wrap and twinkle. */
-private fun DrawScope.motes(drift: Float, tint: Color) {
+private fun DrawScope.motes(drift: Float, tint: Color, ground: Rect) {
     val rng = Random(7)
     repeat(13) {
         val baseX = rng.nextFloat()
@@ -201,7 +238,7 @@ private fun DrawScope.motes(drift: Float, tint: Color) {
         drawCircle(
             color = tint.copy(alpha = 0.20f * twinkle),
             radius = radius,
-            center = Offset(size.width * baseX, size.height * y),
+            center = ground.topLeft + Offset(ground.width * baseX, ground.height * y),
         )
     }
 }

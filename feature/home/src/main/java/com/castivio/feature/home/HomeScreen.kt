@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.view.View
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -74,15 +75,20 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -110,6 +116,7 @@ import com.castivio.core.design.theme.CASTIVIO_ARTWORK_ASPECT
 import com.castivio.core.design.theme.CastivioMetrics
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Sizing
+import com.castivio.core.design.theme.castivioBackdrop
 import com.castivio.core.design.theme.rememberMetrics
 import com.castivio.domain.MediaKind
 import com.castivio.domain.Recorded
@@ -1430,6 +1437,34 @@ private fun ColumnScope.PlaylistPicker(
     val anchorFocus = remember { FocusRequester() }
     val firstItemFocus = remember { FocusRequester() }
 
+    // **Where the application's backdrop is, seen from inside the menu's own window.**
+    //
+    // The menu is a popup, so `castivioBackdrop()` applied to it would size all four
+    // layers to a 200dp panel: the cool glow at a 104dp radius instead of 433, which
+    // is a bright patch rather than ambient light, and the whole three-stop gradient
+    // compressed into a box that then starts at the darkest stop. `ground` is what
+    // lets it draw its *slice* of the one backdrop instead.
+    //
+    // ## Why there are two of them
+    //
+    // The menu only learns where it sits during its own layout pass. The rail card
+    // does not: it is laid out with the board, long before anything can be pressed,
+    // so its ground is known and correct while the menu is still closed. It seeds
+    // the menu's, and the menu refines it once its own position arrives.
+    //
+    // That seeding is the answer to the flash. Without it the first drawn frame would
+    // fall back to `Rect(0, 0, size)` — the compressed miniature — and correct itself
+    // immediately after, which is a visible jump at exactly the moment a user is
+    // looking at the menu appearing. With it the first frame is already within a few
+    // dp of the final one, because the menu opens *at* the anchor.
+    val view = LocalView.current
+    // The backdrop's rectangle on screen, and the anchor's own view of it. Both are
+    // known while the menu is still closed, because the rail card is laid out with
+    // the board — which is what lets the menu's first drawn frame already be right.
+    var window by remember { mutableStateOf<Rect?>(null) }
+    var anchorGround by remember { mutableStateOf<Rect?>(null) }
+    val menuGround = remember { MutableGround() }
+
     // **Focus is returned deliberately, not as a side effect of the press.** Choosing
     // a playlist, adding one, opening the subscriptions screen and dismissing with
     // Back all end in the same place, so the rule is written once instead of at each
@@ -1448,7 +1483,14 @@ private fun ColumnScope.PlaylistPicker(
             label = stringResource(R.string.home_change),
             frame = frame,
             onClick = { open = true },
-            modifier = Modifier.fillMaxSize().focusRequester(anchorFocus),
+            modifier = Modifier
+                .fillMaxSize()
+                .focusRequester(anchorFocus)
+                .onGloballyPositioned { coords ->
+                    val onScreen = coords.backdropWindowOnScreen(view)
+                    window = onScreen
+                    anchorGround = onScreen?.let { coords.groundFor(it, view) }
+                },
         )
 
         // **Material's own surface is switched off, not painted over.**
@@ -1514,27 +1556,32 @@ private fun ColumnScope.PlaylistPicker(
                 modifier = Modifier
                     .widthIn(min = PICKER_MIN_WIDTH, max = PICKER_MAX_WIDTH)
                     .clip(shape)
-                    // **Two fills, and the first one is why the menu is readable.**
+                    // **The ground is the application's, not a second copy of it.**
                     //
-                    // `glassFillBrush` is 8% white over 5% white: it is *lift*, not a
-                    // colour, and it is designed to sit on the board's own backdrop
-                    // and borrow it. A popup has no backdrop to borrow — it is its own
-                    // window over the wallpaper — so the glass alone left the menu
-                    // 92% transparent and the rail's buttons read straight through the
-                    // playlist names, which is what the owner photographed.
+                    // `glassFillBrush` is 8% white over 5%: it is *lift*, not a colour,
+                    // and it works on every other card because it sits on the board's
+                    // backdrop and borrows it. A popup has no backdrop to borrow — it
+                    // is its own window — so the glass alone left the menu 92%
+                    // transparent and the rail's buttons read straight through the
+                    // playlist names.
                     //
-                    // `auroraBrush` is the application's own diagonal, and its three
-                    // stops are fully opaque in both themes: Deep, Violet10 and Azure10
-                    // on the dark ground, the Steel trio on the lighter one. Painted
-                    // first it makes the panel solid; the glass painted over it keeps
-                    // the lift every other card on this board has. So the menu is
-                    // opaque *and* carries the identity gradient, rather than being
-                    // made opaque with a grey — which is what switching Material's
-                    // surface back on would have done.
-                    .background(colors.auroraBrush)
+                    // `castivioBackdrop()` is what an overlay is supposed to use, and
+                    // its own documentation says so: the four layers behind whatever
+                    // it is applied to, opaque from the first one. Painting the aurora
+                    // gradient here by hand was a *second* implementation of the ground
+                    // — it reproduced one of the four layers and missed the two glows
+                    // and the mesh, so the panel came out darker and its gradient ran
+                    // the other way from the board's. This is the one system, and the
+                    // day those four layers change the menu changes with them.
+                    .castivioBackdrop { menuGround.rect ?: anchorGround }
                     .background(colors.glassFillBrush)
                     .border(BorderStroke(1.dp, colors.edgeQuiet), shape),
             ) {
+                // The popup's own view, which is what knows where the popup window
+                // sits on the screen. `LocalView` outside the menu is Home's view and
+                // would put the menu's ground in the wrong window.
+                val menuView = LocalView.current
+
                 // Handed back what the popup's own window took away. See above.
                 CompositionLocalProvider(
                     LocalContext provides localised,
@@ -1548,7 +1595,27 @@ private fun ColumnScope.PlaylistPicker(
                     // window of its own so there is nothing outside it to wander *to*.
                     // Up and Down then move between entries and stop at the ends
                     // instead of silently handing the highlight back to the board.
-                    Column(Modifier.focusGroup()) {
+                    Column(
+                        Modifier
+                            .focusGroup()
+                            // **Written during layout, read during draw, same frame.**
+                            //
+                            // That is why `castivioBackdrop` takes a lambda and why
+                            // this holder is a plain field rather than snapshot state:
+                            // `onGloballyPositioned` fires at the end of the layout
+                            // pass, before drawing, so a value written here is visible
+                            // to *this* frame's draw. A `mutableStateOf` would schedule
+                            // another frame instead, and the one frame in between —
+                            // drawn against the compressed miniature — is the flash
+                            // this whole arrangement exists to prevent.
+                            //
+                            // It measures the content column rather than the menu's
+                            // own surface, which differs by the menu's internal
+                            // padding: a few dp, against a glow 433dp across.
+                            .onGloballyPositioned { coords ->
+                                menuGround.rect = window?.let { coords.groundFor(it, menuView) }
+                            },
+                    ) {
                         // Asked for as the menu opens, once. Without it the popup takes
                         // window focus but nothing inside it is focused, so the first Down
                         // is spent arriving rather than moving.
@@ -1733,6 +1800,67 @@ private fun ColumnScope.UtilityBusy(label: String, frame: CastivioMetrics) {
             )
         }
     }
+}
+
+/**
+ * A ground rectangle written during layout and read during drawing.
+ *
+ * Deliberately *not* snapshot state. `onGloballyPositioned` runs at the end of the
+ * layout pass and drawing runs after it in the same frame, so a plain field written
+ * there is visible to that frame's draw. A `mutableStateOf` would invalidate the
+ * composition instead and the corrected ground would land one frame later — and that
+ * one frame, drawn against a miniature of the backdrop, is exactly the flash a menu
+ * must not have at the moment it appears.
+ *
+ * The cost of the plain field is that a *change* of position does not invalidate the
+ * drawing by itself. It does not need to: a popup is laid out when it opens and does
+ * not move while it is open, and the layout that would move it redraws it anyway.
+ */
+private class MutableGround {
+    var rect: Rect? = null
+}
+
+/**
+ * The rectangle the application's backdrop occupies, **in screen coordinates**.
+ *
+ * Read from the board, whose composition root *is* the activity's window — the same
+ * box `castivioBackdrop()` fills for the shell. The screen is the common frame
+ * between two windows, which is the whole reason this is expressed in it: a popup is
+ * a second window on the same screen, and nothing inside it can describe the first
+ * one in its own terms.
+ *
+ * Null until the node is attached and measured, which the caller reads as "not yet".
+ */
+private fun LayoutCoordinates.backdropWindowOnScreen(view: View): Rect? {
+    if (!isAttached) return null
+    val size = findRootCoordinates().size
+    if (size.width == 0 || size.height == 0) return null
+    val origin = IntArray(2).also { view.getLocationOnScreen(it) }
+    return Rect(
+        left = origin[0].toFloat(),
+        top = origin[1].toFloat(),
+        right = (origin[0] + size.width).toFloat(),
+        bottom = (origin[1] + size.height).toFloat(),
+    )
+}
+
+/**
+ * That same rectangle, moved into this node's own coordinates.
+ *
+ * This node's origin on screen is where *its* window sits plus where it sits inside
+ * that window, and the backdrop's rectangle translated by the negative of that is
+ * where the backdrop begins as far as this node is concerned. Handed to
+ * `castivioBackdrop`, it makes the node draw its slice of the one ground.
+ *
+ * `getLocationOnScreen` rather than a Compose coordinate call, because the Compose
+ * ones stop at the window: `positionInWindow` inside a popup is a position inside
+ * *the popup*, which is the confusion this resolves rather than inherits.
+ */
+private fun LayoutCoordinates.groundFor(windowOnScreen: Rect, view: View): Rect? {
+    if (!isAttached) return null
+    val origin = IntArray(2).also { view.getLocationOnScreen(it) }
+    val here = positionInRoot()
+    return windowOnScreen.translate(-(origin[0] + here.x), -(origin[1] + here.y))
 }
 
 /**
