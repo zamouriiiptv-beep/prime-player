@@ -1458,9 +1458,8 @@ private fun ColumnScope.PlaylistPicker(
         // rectangle the owner photographed — an application-shaped hole in a screen
         // made of glass. This build's Material 3 has no `containerColor` parameter on
         // the menu to set instead, so the three tokens it reaches for are made
-        // transparent for the subtree and the panel is then filled with the *same*
-        // recipe every card on this board uses: `glassFillBrush` inside the frame's
-        // own radius, with `edgeQuiet` around it.
+        // transparent for the subtree and the panel paints its own fill — see the
+        // modifier below for what, and why it is two brushes rather than one.
         //
         // Scoped to this composable, so nothing else on the screen sees the override.
         // It costs a `MaterialTheme` node while the menu is open and nothing at all
@@ -1515,6 +1514,24 @@ private fun ColumnScope.PlaylistPicker(
                 modifier = Modifier
                     .widthIn(min = PICKER_MIN_WIDTH, max = PICKER_MAX_WIDTH)
                     .clip(shape)
+                    // **Two fills, and the first one is why the menu is readable.**
+                    //
+                    // `glassFillBrush` is 8% white over 5% white: it is *lift*, not a
+                    // colour, and it is designed to sit on the board's own backdrop
+                    // and borrow it. A popup has no backdrop to borrow — it is its own
+                    // window over the wallpaper — so the glass alone left the menu
+                    // 92% transparent and the rail's buttons read straight through the
+                    // playlist names, which is what the owner photographed.
+                    //
+                    // `auroraBrush` is the application's own diagonal, and its three
+                    // stops are fully opaque in both themes: Deep, Violet10 and Azure10
+                    // on the dark ground, the Steel trio on the lighter one. Painted
+                    // first it makes the panel solid; the glass painted over it keeps
+                    // the lift every other card on this board has. So the menu is
+                    // opaque *and* carries the identity gradient, rather than being
+                    // made opaque with a grey — which is what switching Material's
+                    // surface back on would have done.
+                    .background(colors.auroraBrush)
                     .background(colors.glassFillBrush)
                     .border(BorderStroke(1.dp, colors.edgeQuiet), shape),
             ) {
@@ -1614,10 +1631,16 @@ private fun ColumnScope.PlaylistPicker(
                             },
                             onClick = {
                                 open = false
-                                returning = true
-                                // The existing route, not a new one: this is the same callback the
-                                // empty state's button carries, landing on the same activation flow
-                                // and therefore the same Xtream and M3U forms.
+                                // **No `returning` here, and that is the fix.** This exit
+                                // leaves Home: the activation flow opens over the board
+                                // and owns the remote from that moment. Asking Home's
+                                // rail button for focus at the same instant put the
+                                // highlight on a control *underneath* a full-screen
+                                // overlay, so the D-pad was driving the screen nobody
+                                // could see and the flow looked like it had not opened.
+                                //
+                                // Only the two exits that stay on Home return focus:
+                                // choosing a playlist, and dismissing the menu.
                                 onAdd()
                             },
                             // The landing place when there are no playlists to land on.
@@ -1664,7 +1687,7 @@ private fun ColumnScope.PlaylistPicker(
                             },
                             onClick = {
                                 open = false
-                                returning = true
+                                // Leaves Home, so no focus return. See the entry above.
                                 onManage()
                             },
                         )

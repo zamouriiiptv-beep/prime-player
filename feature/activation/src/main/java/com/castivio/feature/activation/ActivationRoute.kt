@@ -261,7 +261,13 @@ fun ActivationRoute(
     // Survives rotation and process death; the form text does too, because it lives in
     // the view model. Coming back to a half-typed server URL and finding it gone is the
     // kind of small betrayal people remember.
-    var step by rememberSaveable { mutableStateOf(entry.step) }
+    //
+    // **Keyed on [entry]**, because the initial value is derived from it. Without the
+    // key a route kept alive while the entry changed underneath it — the shell draws
+    // one `ActivationRoute` for both of Home's menu doors, in the same slot — would
+    // restore the step it was last on and ignore the door that was just opened. The
+    // key makes "which door" and "which step" impossible to disagree about.
+    var step by rememberSaveable(entry) { mutableStateOf(entry.step) }
 
     val phase = state.phase
 
@@ -277,6 +283,20 @@ fun ActivationRoute(
             // A running attempt is the thing back cancels, whatever step started it.
             state.busy -> activation.cancel()
             phase is ActivationPhase.Failed -> activation.dismissFailure()
+            // **The step the flow was entered at is this session's root.**
+            //
+            // `parent()` describes one tree with the address step at its top, which
+            // was the whole truth while the address step was the only way in. It is
+            // not any more: Home's playlist menu opens this flow at the chooser and
+            // at the saved subscriptions, and walking `parent()` from there took the
+            // user *up* into screens they had never seen — press "add playlist", press
+            // Back, and land on the MAC address, two presses from the Home they came
+            // from. Back from where you came in is "leave", on any door.
+            //
+            // Above the entry the ladder is unchanged, so a user who went on to a form
+            // still returns to the screen that opened it.
+            step == entry.step -> onExit()
+
             else -> when (val parent = step.parent()) {
                 // The root has nothing behind it, so back leaves the application.
                 null -> onExit()
