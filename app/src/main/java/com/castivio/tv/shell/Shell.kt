@@ -91,6 +91,29 @@ private enum class Dest { Home, Live, Movies, Series, Radio, Favourites, Library
 
 /** An overlay drawn above the shell: a show's episodes, the player, or Settings' extras. */
 private sealed interface Overlay {
+
+    /**
+     * Whether this one **replaces** the destination underneath rather than covering it.
+     *
+     * The default is false, and that is the older and the commoner case: the shell keeps
+     * composing and the overlay is drawn over it. `Play` needs exactly that — collapsing
+     * the large player back to the Channels plate depends on the board still being there
+     * to collapse *to*, and removing it would release the engine on the way in.
+     *
+     * True means the destination is not composed at all while this is up. It is not a
+     * matter of taste: an overlay is responsible for the ground it stands on, and an
+     * overlay that paints none is legible only over nothing. `ShowScreen` calls
+     * `castivioBackdrop()` and `StateBoardOverlay` does too, so both are opaque and both
+     * may sit over Home. `ActivationRoute` deliberately paints nothing — it was written
+     * for the gate, where it is the whole window and `CastivioTheme`'s one backdrop is
+     * already behind it — so over a composed Home it reads as two screens at once.
+     *
+     * Answered by removing the screen underneath rather than by giving the flow a
+     * background of its own: a second painted ground would be a second implementation of
+     * the backdrop, and the gate would then draw it twice.
+     */
+    val replacesShell: Boolean get() = false
+
     /** One show's seasons. Series rows are not streams, so a press has to land here. */
     data class Show(val show: SeriesSummary) : Overlay
 
@@ -126,7 +149,17 @@ private sealed interface Overlay {
          * variant would be a second thing to keep in step with it.
          */
         val entry: ActivationEntry = ActivationEntry.Default,
-    ) : Overlay
+    ) : Overlay {
+
+        /**
+         * **The flow is a screen, not a sheet.** See [replacesShell].
+         *
+         * This is also what the gate already does: there, `ActivationRoute` is the only
+         * thing composed. Entering it from a working app now means the same composition
+         * rather than a second one layered over Home, which is why the two look alike.
+         */
+        override val replacesShell: Boolean get() = true
+    }
 
     /**
      * Castivio's own licence, reached from Settings.
@@ -301,83 +334,88 @@ fun ShellScreen(
     LaunchedEffect(dest) { if (dest != Dest.Live) livePreview = null }
 
     Box(Modifier.fillMaxSize()) {
-        CastivioShell {
-            when (dest) {
-                Dest.Home -> HomeScreen(
-                    onSeeSection = { dest = it.destination },
-                    // Unchanged: the empty state's button opens where the flow has
-                    // always opened, on the address step most people came for.
-                    onAddSource = { overlay = Overlay.AddSource() },
-                    // The chooser, not the address step. "Add a playlist" is pressed
-                    // from a menu of the playlists already here, by somebody who knows
-                    // what one is — the question they are asking is *how*, and that
-                    // screen is the one that asks it.
-                    onAddPlaylist = { overlay = Overlay.AddSource(ActivationEntry.AddSource) },
-                    onManageSources = { overlay = Overlay.AddSource(ActivationEntry.SavedSources) },
-                    onSettings = { dest = Dest.Settings },
-                    onLanguage = { overlay = Overlay.Language },
-                    onTimeShift = { overlay = Overlay.TimeShift },
-                    // No `onAbout`: "about" is this build's licence, its device and its
-                    // version, and Settings already opens exactly that screen through
-                    // `onShowLicence` below. Home's rail carried a second door to the
-                    // same room, and the room it was taking space from was the rail
-                    // itself -- six controls in the height of three cards left every
-                    // one of them under the touch floor.
-                    onExit = onExit,
-                )
-                // Live has its own board rather than the generic section screen: the
-                // approved reference is three columns whose third is a preview of the
-                // channel the remote is on, which the other three sections have no
-                // equivalent of. They keep `BrowseScreen` exactly as it was.
-                //
-                // **The gate is entered before the section, not inside it.**
-                //
-                // `SectionGate` composes the screen only once the loader has answered,
-                // so the first press of a section shows the loading screen and nothing
-                // else. It was an `if` at the top of each screen, which meant the screen
-                // composed first and the gate replaced it a frame later -- pressing
-                // Channels showed Channels and then took it away.
-                Dest.Live -> SectionGate(CatalogSection.Live) { ChannelsScreen(
-                    onPlay = playInPreview,
-                    // Two presses on the name under the picture, reaching the very action
-                    // the picture's own press reaches — `Overlay.Play` on the request that
-                    // is already playing, which `PlayerViewModel.open` recognises and
-                    // declines to reopen, so expanding moves the surface and leaves the
-                    // decoder alone. Guarded here and not in the board: the request is what
-                    // decides whether there is anything to expand, and the shell holds it.
-                    onExpand = { livePreview?.let { overlay = Overlay.Play(it) } },
-                    onSearch = { searchKind = CatalogKind.LIVE; dest = Dest.Search },
-                    preview = preview,
-                ) }
-                Dest.Movies -> SectionGate(CatalogSection.Movies) { BrowseScreen(
-                    section = CatalogSection.Movies,
-                    onPlay = play,
-                    onOpenShow = { overlay = Overlay.Show(it) },
-                    onSearch = { searchKind = null; dest = Dest.Search },
-                ) }
-                Dest.Series -> SectionGate(CatalogSection.Series) { BrowseScreen(
-                    section = CatalogSection.Series,
-                    onPlay = play,
-                    onOpenShow = { overlay = Overlay.Show(it) },
-                    onSearch = { searchKind = null; dest = Dest.Search },
-                ) }
-                Dest.Radio -> SectionGate(CatalogSection.Radio) { BrowseScreen(
-                    section = CatalogSection.Radio,
-                    onPlay = play,
-                    onOpenShow = { overlay = Overlay.Show(it) },
-                    onSearch = { searchKind = null; dest = Dest.Search },
-                ) }
-                Dest.Favourites -> FavouritesScreen()
-                Dest.Library -> LibraryScreen(onOpenSection = { dest = it })
-                Dest.Search -> CatalogSearchScreen(onPlay = play, restrictTo = searchKind)
-                Dest.Settings -> SettingsScreen(
-                    motionLevel = motionLevel,
-                    onMotionLevel = onMotionLevel,
-                    dark = dark,
-                    onDark = onDark,
-                    onShowStateBoard = { overlay = Overlay.StateBoard },
-                    onShowLicence = { overlay = Overlay.Licence },
-                )
+        // The destination, unless something above it has taken the window. See
+        // `Overlay.replacesShell`: this is the whole of the fix for Home reading through
+        // the subscription flow, and it is a composition decision rather than a paint one.
+        if (overlay?.replacesShell != true) {
+            CastivioShell {
+                when (dest) {
+                    Dest.Home -> HomeScreen(
+                        onSeeSection = { dest = it.destination },
+                        // Unchanged: the empty state's button opens where the flow has
+                        // always opened, on the address step most people came for.
+                        onAddSource = { overlay = Overlay.AddSource() },
+                        // The chooser, not the address step. "Add a playlist" is pressed
+                        // from a menu of the playlists already here, by somebody who knows
+                        // what one is — the question they are asking is *how*, and that
+                        // screen is the one that asks it.
+                        onAddPlaylist = { overlay = Overlay.AddSource(ActivationEntry.AddSource) },
+                        onManageSources = { overlay = Overlay.AddSource(ActivationEntry.SavedSources) },
+                        onSettings = { dest = Dest.Settings },
+                        onLanguage = { overlay = Overlay.Language },
+                        onTimeShift = { overlay = Overlay.TimeShift },
+                        // No `onAbout`: "about" is this build's licence, its device and its
+                        // version, and Settings already opens exactly that screen through
+                        // `onShowLicence` below. Home's rail carried a second door to the
+                        // same room, and the room it was taking space from was the rail
+                        // itself -- six controls in the height of three cards left every
+                        // one of them under the touch floor.
+                        onExit = onExit,
+                    )
+                    // Live has its own board rather than the generic section screen: the
+                    // approved reference is three columns whose third is a preview of the
+                    // channel the remote is on, which the other three sections have no
+                    // equivalent of. They keep `BrowseScreen` exactly as it was.
+                    //
+                    // **The gate is entered before the section, not inside it.**
+                    //
+                    // `SectionGate` composes the screen only once the loader has answered,
+                    // so the first press of a section shows the loading screen and nothing
+                    // else. It was an `if` at the top of each screen, which meant the screen
+                    // composed first and the gate replaced it a frame later -- pressing
+                    // Channels showed Channels and then took it away.
+                    Dest.Live -> SectionGate(CatalogSection.Live) { ChannelsScreen(
+                        onPlay = playInPreview,
+                        // Two presses on the name under the picture, reaching the very action
+                        // the picture's own press reaches — `Overlay.Play` on the request that
+                        // is already playing, which `PlayerViewModel.open` recognises and
+                        // declines to reopen, so expanding moves the surface and leaves the
+                        // decoder alone. Guarded here and not in the board: the request is what
+                        // decides whether there is anything to expand, and the shell holds it.
+                        onExpand = { livePreview?.let { overlay = Overlay.Play(it) } },
+                        onSearch = { searchKind = CatalogKind.LIVE; dest = Dest.Search },
+                        preview = preview,
+                    ) }
+                    Dest.Movies -> SectionGate(CatalogSection.Movies) { BrowseScreen(
+                        section = CatalogSection.Movies,
+                        onPlay = play,
+                        onOpenShow = { overlay = Overlay.Show(it) },
+                        onSearch = { searchKind = null; dest = Dest.Search },
+                    ) }
+                    Dest.Series -> SectionGate(CatalogSection.Series) { BrowseScreen(
+                        section = CatalogSection.Series,
+                        onPlay = play,
+                        onOpenShow = { overlay = Overlay.Show(it) },
+                        onSearch = { searchKind = null; dest = Dest.Search },
+                    ) }
+                    Dest.Radio -> SectionGate(CatalogSection.Radio) { BrowseScreen(
+                        section = CatalogSection.Radio,
+                        onPlay = play,
+                        onOpenShow = { overlay = Overlay.Show(it) },
+                        onSearch = { searchKind = null; dest = Dest.Search },
+                    ) }
+                    Dest.Favourites -> FavouritesScreen()
+                    Dest.Library -> LibraryScreen(onOpenSection = { dest = it })
+                    Dest.Search -> CatalogSearchScreen(onPlay = play, restrictTo = searchKind)
+                    Dest.Settings -> SettingsScreen(
+                        motionLevel = motionLevel,
+                        onMotionLevel = onMotionLevel,
+                        dark = dark,
+                        onDark = onDark,
+                        onShowStateBoard = { overlay = Overlay.StateBoard },
+                        onShowLicence = { overlay = Overlay.Licence },
+                    )
+                }
             }
         }
 

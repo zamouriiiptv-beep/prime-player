@@ -212,6 +212,31 @@ fun HomeScreen(
 ) {
     val state by model.state.collectAsStateWithLifecycle()
 
+    // **Where the remote is when this board appears.**
+    //
+    // Home had no initial focus of its own and did not need one while it was never taken
+    // out of the composition: the shell drew the subscription flow over it, so coming back
+    // found the highlight where it was left. The flow replaces this screen now — it paints
+    // no ground, and drawn over a composed Home the two read as one screen — so Home is
+    // built afresh on the way back and arrives with nothing focused. On a remote that is a
+    // board with no way in until a direction key has been spent entering it.
+    //
+    // Requested rather than restored, which is the deliberate half. The highlight lands in
+    // the same place every time the board appears — the first control on the rail — instead
+    // of wherever the last visit ended, so returning is a position a user can learn.
+    //
+    // Attached to the rail rather than to Refresh itself: a `FocusRequester` on a container
+    // enters its first focusable child, which is Refresh, and stays right while a refresh
+    // in flight has replaced that card with its busy twin. The same thing `ActivationSurface`
+    // does with the frame it hands the flow.
+    val boardFocus = remember { FocusRequester() }
+
+    // Not while loading. That branch draws an empty box with nothing focusable in it, and
+    // the request would be thrown away by the `runCatching` inside — quietly, and for good,
+    // because the effect does not run again on a key it has already seen. Keyed on the
+    // state instead, it is asked once the board is really there.
+    LaunchedFocus(boardFocus, enabled = !state.loading)
+
     // `safeDrawing`, and the metrics are read from what is left after it: turned
     // sideways the system's own navigation sits on one *side*, so a screen that
     // measured the display would size itself to room it does not have and draw its
@@ -278,8 +303,11 @@ fun HomeScreen(
             when {
                 state.loading -> Box(Modifier.fillMaxSize())
 
+                // The empty states carry the requester too, and for the same reason the
+                // board does: their button is the only control on the screen, and this
+                // one is a door into the very flow the user is coming back from.
                 !state.hasSource -> Box(
-                    Modifier.fillMaxSize(),
+                    Modifier.fillMaxSize().focusRequester(boardFocus),
                     contentAlignment = Alignment.Center,
                 ) {
                     EmptyState(
@@ -294,7 +322,7 @@ fun HomeScreen(
                 }
 
                 state.carriesNothing -> Box(
-                    Modifier.fillMaxSize(),
+                    Modifier.fillMaxSize().focusRequester(boardFocus),
                     contentAlignment = Alignment.Center,
                 ) {
                     EmptyState(
@@ -310,6 +338,7 @@ fun HomeScreen(
                         state = state,
                         frame = frame,
                         rhythm = rhythm,
+                        railFocus = boardFocus,
                         onSeeSection = onSeeSection,
                         onRefresh = model::refresh,
                         onChoosePlaylist = model::choosePlaylist,
@@ -1029,6 +1058,12 @@ private fun SectionBoard(
     state: HomeState,
     frame: CastivioMetrics,
     rhythm: Rhythm,
+    /**
+     * Where the remote lands when this board appears — the rail, and so its first
+     * control. Held by the screen rather than by the rail because the screen is what
+     * knows the board has just been built; see its use in [HomeScreen].
+     */
+    railFocus: FocusRequester,
     onSeeSection: (CatalogSection) -> Unit,
     onRefresh: () -> Unit,
     onChoosePlaylist: (String) -> Unit,
@@ -1075,7 +1110,10 @@ private fun SectionBoard(
             onTimeShift = onTimeShift,
             onSettings = onSettings,
             onExit = onExit,
-            modifier = Modifier.weight(RAIL_SHARE).fillMaxHeight(),
+            modifier = Modifier
+                .weight(RAIL_SHARE)
+                .fillMaxHeight()
+                .focusRequester(railFocus),
         )
 
         Column(
