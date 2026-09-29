@@ -89,9 +89,9 @@
     <string name="home_device_locked">लॉक</string>
     <string name="home_not_fetched">अभी डाउनलोड नहीं हुआ</string>
     <string name="home_section_no_live">इस सदस्यता में कोई चैनल नहीं</string>
-    <string name="home_section_no_movies">इस सदस्यता में कोई फ़िल्म नहीं</string>
-    <string name="home_section_no_series">इस सदस्यता में कोई सीरीज़ नहीं</string>
-    <string name="home_section_no_radio">इस सदस्यता में कोई स्टेशन नहीं</string>
+    <string name="home_section_no_movies">कोई फ़िल्म नहीं</string>
+    <string name="home_section_no_series">कोई सीरीज़ नहीं</string>
+    <string name="home_section_no_radio">कोई स्टेशन नहीं</string>
     <string name="home_fetched_at">इस डिवाइस पर · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">सभी चैनल</string>

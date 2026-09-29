@@ -89,9 +89,9 @@
     <string name="home_device_locked">Lukittu</string>
     <string name="home_not_fetched">Ei vielä ladattu</string>
     <string name="home_section_no_live">Tässä tilauksessa ei ole kanavia</string>
-    <string name="home_section_no_movies">Tässä tilauksessa ei ole elokuvia</string>
-    <string name="home_section_no_series">Tässä tilauksessa ei ole sarjoja</string>
-    <string name="home_section_no_radio">Tässä tilauksessa ei ole asemia</string>
+    <string name="home_section_no_movies">Ei elokuvia</string>
+    <string name="home_section_no_series">Ei sarjoja</string>
+    <string name="home_section_no_radio">Ei asemia</string>
     <string name="home_fetched_at">Tällä laitteella · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Kaikki kanavat</string>

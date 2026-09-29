@@ -89,9 +89,9 @@
     <string name="home_device_locked">ล็อกอยู่</string>
     <string name="home_not_fetched">ยังไม่ได้ดาวน์โหลด</string>
     <string name="home_section_no_live">การสมัครนี้ไม่มีช่อง</string>
-    <string name="home_section_no_movies">การสมัครนี้ไม่มีภาพยนตร์</string>
-    <string name="home_section_no_series">การสมัครนี้ไม่มีซีรีส์</string>
-    <string name="home_section_no_radio">การสมัครนี้ไม่มีสถานี</string>
+    <string name="home_section_no_movies">ไม่มีภาพยนตร์</string>
+    <string name="home_section_no_series">ไม่มีซีรีส์</string>
+    <string name="home_section_no_radio">ไม่มีสถานี</string>
     <string name="home_fetched_at">อยู่ในอุปกรณ์นี้ · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">ทุกช่อง</string>

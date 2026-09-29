@@ -89,9 +89,9 @@
     <string name="home_device_locked">Zaključan</string>
     <string name="home_not_fetched">Još nije preuzeto</string>
     <string name="home_section_no_live">U ovoj pretplati nema kanala</string>
-    <string name="home_section_no_movies">U ovoj pretplati nema filmova</string>
-    <string name="home_section_no_series">U ovoj pretplati nema serija</string>
-    <string name="home_section_no_radio">U ovoj pretplati nema postaja</string>
+    <string name="home_section_no_movies">Nema filmova</string>
+    <string name="home_section_no_series">Nema serija</string>
+    <string name="home_section_no_radio">Nema postaja</string>
     <string name="home_fetched_at">Na ovom uređaju · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Svi kanali</string>

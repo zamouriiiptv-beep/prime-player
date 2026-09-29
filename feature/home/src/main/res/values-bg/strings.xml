@@ -74,7 +74,7 @@
     <string name="home_licence_unavailable">Недостъпен</string>
     <string name="home_theme_lighter">Превключване към светла тема</string>
     <string name="home_theme_darker">Превключване към тъмна тема</string>
-    <string name="home_refresh">Опресняване</string>
+    <string name="home_refresh">Обнови</string>
     <string name="home_change">Плейлисти</string>
 
     <string name="home_playlist_numbered">Плейлист %1$d</string>
@@ -89,9 +89,9 @@
     <string name="home_device_locked">Заключено</string>
     <string name="home_not_fetched">Още не е изтеглено</string>
     <string name="home_section_no_live">В този абонамент няма канали</string>
-    <string name="home_section_no_movies">В този абонамент няма филми</string>
-    <string name="home_section_no_series">В този абонамент няма сериали</string>
-    <string name="home_section_no_radio">В този абонамент няма станции</string>
+    <string name="home_section_no_movies">Няма филми</string>
+    <string name="home_section_no_series">Няма сериали</string>
+    <string name="home_section_no_radio">Няма станции</string>
     <string name="home_fetched_at">На това устройство · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Всички канали</string>

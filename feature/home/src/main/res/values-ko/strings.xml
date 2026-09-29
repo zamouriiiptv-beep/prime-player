@@ -89,9 +89,9 @@
     <string name="home_device_locked">잠김</string>
     <string name="home_not_fetched">아직 내려받지 않음</string>
     <string name="home_section_no_live">이 구독에는 채널이 없습니다</string>
-    <string name="home_section_no_movies">이 구독에는 영화가 없습니다</string>
-    <string name="home_section_no_series">이 구독에는 시리즈가 없습니다</string>
-    <string name="home_section_no_radio">이 구독에는 방송국이 없습니다</string>
+    <string name="home_section_no_movies">영화 없음</string>
+    <string name="home_section_no_series">시리즈 없음</string>
+    <string name="home_section_no_radio">방송국 없음</string>
     <string name="home_fetched_at">이 기기에 저장됨 · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">전체 채널</string>

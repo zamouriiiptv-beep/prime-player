@@ -89,9 +89,9 @@
     <string name="home_device_locked">已锁定</string>
     <string name="home_not_fetched">尚未下载</string>
     <string name="home_section_no_live">该订阅中没有频道</string>
-    <string name="home_section_no_movies">该订阅中没有电影</string>
-    <string name="home_section_no_series">该订阅中没有剧集</string>
-    <string name="home_section_no_radio">该订阅中没有电台</string>
+    <string name="home_section_no_movies">无电影</string>
+    <string name="home_section_no_series">无剧集</string>
+    <string name="home_section_no_radio">无电台</string>
     <string name="home_fetched_at">已存于本机 · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">全部频道</string>

@@ -89,9 +89,9 @@
     <string name="home_device_locked">Terkunci</string>
     <string name="home_not_fetched">Belum diunduh</string>
     <string name="home_section_no_live">Tidak ada saluran dalam langganan ini</string>
-    <string name="home_section_no_movies">Tidak ada film dalam langganan ini</string>
-    <string name="home_section_no_series">Tidak ada serial dalam langganan ini</string>
-    <string name="home_section_no_radio">Tidak ada stasiun dalam langganan ini</string>
+    <string name="home_section_no_movies">Tidak ada film</string>
+    <string name="home_section_no_series">Tidak ada serial</string>
+    <string name="home_section_no_radio">Tidak ada stasiun</string>
     <string name="home_fetched_at">Di perangkat ini · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Semua Saluran</string>

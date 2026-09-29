@@ -89,9 +89,9 @@
     <string name="home_device_locked">Bloqueado</string>
     <string name="home_not_fetched">Ainda não transferido</string>
     <string name="home_section_no_live">Sem canais nesta subscrição</string>
-    <string name="home_section_no_movies">Sem filmes nesta subscrição</string>
-    <string name="home_section_no_series">Sem séries nesta subscrição</string>
-    <string name="home_section_no_radio">Sem estações nesta subscrição</string>
+    <string name="home_section_no_movies">Sem filmes</string>
+    <string name="home_section_no_series">Sem séries</string>
+    <string name="home_section_no_radio">Sem estações</string>
     <string name="home_fetched_at">Neste dispositivo · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Todos os canais</string>

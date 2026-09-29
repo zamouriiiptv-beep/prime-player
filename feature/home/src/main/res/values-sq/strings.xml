@@ -89,9 +89,9 @@
     <string name="home_device_locked">E kyçur</string>
     <string name="home_not_fetched">Ende e pashkarkuar</string>
     <string name="home_section_no_live">Ky abonim nuk ka kanale</string>
-    <string name="home_section_no_movies">Ky abonim nuk ka filma</string>
-    <string name="home_section_no_series">Ky abonim nuk ka seriale</string>
-    <string name="home_section_no_radio">Ky abonim nuk ka stacione</string>
+    <string name="home_section_no_movies">Asnjë film</string>
+    <string name="home_section_no_series">Asnjë serial</string>
+    <string name="home_section_no_radio">Asnjë stacion</string>
     <string name="home_fetched_at">Në këtë pajisje · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Të gjitha kanalet</string>

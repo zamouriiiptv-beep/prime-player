@@ -89,9 +89,9 @@
     <string name="home_device_locked">Naka-lock</string>
     <string name="home_not_fetched">Hindi pa na-download</string>
     <string name="home_section_no_live">Walang channel sa subscription na ito</string>
-    <string name="home_section_no_movies">Walang pelikula sa subscription na ito</string>
-    <string name="home_section_no_series">Walang serye sa subscription na ito</string>
-    <string name="home_section_no_radio">Walang istasyon sa subscription na ito</string>
+    <string name="home_section_no_movies">Walang pelikula</string>
+    <string name="home_section_no_series">Walang serye</string>
+    <string name="home_section_no_radio">Walang istasyon</string>
     <string name="home_fetched_at">Nasa device na ito · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Lahat ng Channel</string>

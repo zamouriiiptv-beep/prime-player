@@ -89,9 +89,9 @@
     <string name="home_device_locked">Uzamčeno</string>
     <string name="home_not_fetched">Zatím nestaženo</string>
     <string name="home_section_no_live">V tomto předplatném nejsou žádné kanály</string>
-    <string name="home_section_no_movies">V tomto předplatném nejsou žádné filmy</string>
-    <string name="home_section_no_series">V tomto předplatném nejsou žádné seriály</string>
-    <string name="home_section_no_radio">V tomto předplatném nejsou žádné stanice</string>
+    <string name="home_section_no_movies">Žádné filmy</string>
+    <string name="home_section_no_series">Žádné seriály</string>
+    <string name="home_section_no_radio">Žádné stanice</string>
     <string name="home_fetched_at">V tomto zařízení · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Všechny kanály</string>

@@ -89,9 +89,9 @@
     <string name="home_device_locked">Κλειδωμένη</string>
     <string name="home_not_fetched">Δεν έχει ληφθεί ακόμη</string>
     <string name="home_section_no_live">Αυτή η συνδρομή δεν έχει κανάλια</string>
-    <string name="home_section_no_movies">Αυτή η συνδρομή δεν έχει ταινίες</string>
-    <string name="home_section_no_series">Αυτή η συνδρομή δεν έχει σειρές</string>
-    <string name="home_section_no_radio">Αυτή η συνδρομή δεν έχει σταθμούς</string>
+    <string name="home_section_no_movies">Καμία ταινία</string>
+    <string name="home_section_no_series">Καμία σειρά</string>
+    <string name="home_section_no_radio">Κανένας σταθμός</string>
     <string name="home_fetched_at">Σε αυτή τη συσκευή · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Όλα τα κανάλια</string>

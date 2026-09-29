@@ -31,7 +31,7 @@
     <string name="home_no_source_detail">Додајте свог добављача и Castivio ће његове канале, филмове и серије пренети на овај уређај. Преко Xtream Codes, M3U везе или активације MAC адресом.</string>
     <string name="home_add_source">Додај претплату</string>
     <string name="home_change_source">Додај или промени претплату</string>
-    <string name="home_settings">Подешавања</string>
+    <string name="home_settings">Поставке</string>
     <string name="home_count_live">%1$s канала</string>
     <string name="home_count_movies">%1$s филмова</string>
     <string name="home_count_series">%1$s серија</string>
@@ -89,9 +89,9 @@
     <string name="home_device_locked">Закључан</string>
     <string name="home_not_fetched">Још није преузето</string>
     <string name="home_section_no_live">У овој претплати нема канала</string>
-    <string name="home_section_no_movies">У овој претплати нема филмова</string>
-    <string name="home_section_no_series">У овој претплати нема серија</string>
-    <string name="home_section_no_radio">У овој претплати нема станица</string>
+    <string name="home_section_no_movies">Нема филмова</string>
+    <string name="home_section_no_series">Нема серија</string>
+    <string name="home_section_no_radio">Нема станица</string>
     <string name="home_fetched_at">На овом уређају · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Сви канали</string>

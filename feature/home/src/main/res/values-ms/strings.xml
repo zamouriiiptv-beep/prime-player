@@ -89,9 +89,9 @@
     <string name="home_device_locked">Berkunci</string>
     <string name="home_not_fetched">Belum dimuat turun</string>
     <string name="home_section_no_live">Tiada saluran dalam langganan ini</string>
-    <string name="home_section_no_movies">Tiada filem dalam langganan ini</string>
-    <string name="home_section_no_series">Tiada siri dalam langganan ini</string>
-    <string name="home_section_no_radio">Tiada stesen dalam langganan ini</string>
+    <string name="home_section_no_movies">Tiada filem</string>
+    <string name="home_section_no_series">Tiada siri</string>
+    <string name="home_section_no_radio">Tiada stesen</string>
     <string name="home_fetched_at">Pada peranti ini · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Semua Saluran</string>

@@ -89,9 +89,9 @@
     <string name="home_device_locked">লক করা</string>
     <string name="home_not_fetched">এখনও ডাউনলোড হয়নি</string>
     <string name="home_section_no_live">এই সাবস্ক্রিপশনে কোনো চ্যানেল নেই</string>
-    <string name="home_section_no_movies">এই সাবস্ক্রিপশনে কোনো সিনেমা নেই</string>
-    <string name="home_section_no_series">এই সাবস্ক্রিপশনে কোনো সিরিজ নেই</string>
-    <string name="home_section_no_radio">এই সাবস্ক্রিপশনে কোনো স্টেশন নেই</string>
+    <string name="home_section_no_movies">কোনো সিনেমা নেই</string>
+    <string name="home_section_no_series">কোনো সিরিজ নেই</string>
+    <string name="home_section_no_radio">কোনো স্টেশন নেই</string>
     <string name="home_fetched_at">এই ডিভাইসে · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">সব চ্যানেল</string>

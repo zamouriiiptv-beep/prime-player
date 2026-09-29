@@ -89,9 +89,9 @@
     <string name="home_device_locked">Verrouillé</string>
     <string name="home_not_fetched">Pas encore téléchargé</string>
     <string name="home_section_no_live">Aucune chaîne dans cet abonnement</string>
-    <string name="home_section_no_movies">Aucun film dans cet abonnement</string>
-    <string name="home_section_no_series">Aucune série dans cet abonnement</string>
-    <string name="home_section_no_radio">Aucune station dans cet abonnement</string>
+    <string name="home_section_no_movies">Aucun film</string>
+    <string name="home_section_no_series">Aucune série</string>
+    <string name="home_section_no_radio">Aucune station</string>
     <string name="home_fetched_at">Sur cet appareil · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Toutes les chaînes</string>

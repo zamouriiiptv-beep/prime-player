@@ -89,9 +89,9 @@
     <string name="home_device_locked">قفل</string>
     <string name="home_not_fetched">هنوز دانلود نشده</string>
     <string name="home_section_no_live">این اشتراک کانالی ندارد</string>
-    <string name="home_section_no_movies">این اشتراک فیلمی ندارد</string>
-    <string name="home_section_no_series">این اشتراک سریالی ندارد</string>
-    <string name="home_section_no_radio">این اشتراک ایستگاهی ندارد</string>
+    <string name="home_section_no_movies">بدون فیلم</string>
+    <string name="home_section_no_series">بدون سریال</string>
+    <string name="home_section_no_radio">بدون ایستگاه</string>
     <string name="home_fetched_at">روی همین دستگاه · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">همهٔ کانال‌ها</string>

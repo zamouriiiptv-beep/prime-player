@@ -89,9 +89,9 @@
     <string name="home_device_locked">Zárolva</string>
     <string name="home_not_fetched">Még nincs letöltve</string>
     <string name="home_section_no_live">Ebben az előfizetésben nincsenek csatornák</string>
-    <string name="home_section_no_movies">Ebben az előfizetésben nincsenek filmek</string>
-    <string name="home_section_no_series">Ebben az előfizetésben nincsenek sorozatok</string>
-    <string name="home_section_no_radio">Ebben az előfizetésben nincsenek állomások</string>
+    <string name="home_section_no_movies">Nincs film</string>
+    <string name="home_section_no_series">Nincs sorozat</string>
+    <string name="home_section_no_radio">Nincs állomás</string>
     <string name="home_fetched_at">Ezen az eszközön · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Összes csatorna</string>

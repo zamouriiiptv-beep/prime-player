@@ -89,9 +89,9 @@
     <string name="home_device_locked">Låst</string>
     <string name="home_not_fetched">Ikke lastet ned ennå</string>
     <string name="home_section_no_live">Ingen kanaler i dette abonnementet</string>
-    <string name="home_section_no_movies">Ingen filmer i dette abonnementet</string>
-    <string name="home_section_no_series">Ingen serier i dette abonnementet</string>
-    <string name="home_section_no_radio">Ingen stasjoner i dette abonnementet</string>
+    <string name="home_section_no_movies">Ingen filmer</string>
+    <string name="home_section_no_series">Ingen serier</string>
+    <string name="home_section_no_radio">Ingen stasjoner</string>
     <string name="home_fetched_at">På denne enheten · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Alle kanaler</string>

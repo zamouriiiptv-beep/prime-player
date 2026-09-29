@@ -31,7 +31,7 @@
     <string name="home_no_source_detail">Додайте провайдера, і Castivio перенесе його канали, фільми та серіали на цей пристрій. Xtream Codes, посилання M3U або активація за MAC-адресою.</string>
     <string name="home_add_source">Додати передплату</string>
     <string name="home_change_source">Додати або змінити передплату</string>
-    <string name="home_settings">Налаштування</string>
+    <string name="home_settings">Параметри</string>
     <string name="home_count_live">Каналів: %1$s</string>
     <string name="home_count_movies">Фільмів: %1$s</string>
     <string name="home_count_series">Серіалів: %1$s</string>
@@ -89,9 +89,9 @@
     <string name="home_device_locked">Заблоковано</string>
     <string name="home_not_fetched">Ще не завантажено</string>
     <string name="home_section_no_live">У цій передплаті немає каналів</string>
-    <string name="home_section_no_movies">У цій передплаті немає фільмів</string>
-    <string name="home_section_no_series">У цій передплаті немає серіалів</string>
-    <string name="home_section_no_radio">У цій передплаті немає станцій</string>
+    <string name="home_section_no_movies">Немає фільмів</string>
+    <string name="home_section_no_series">Немає серіалів</string>
+    <string name="home_section_no_radio">Немає станцій</string>
     <string name="home_fetched_at">На цьому пристрої · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Усі канали</string>

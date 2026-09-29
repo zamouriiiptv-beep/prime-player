@@ -89,9 +89,9 @@
     <string name="home_device_locked">Låst</string>
     <string name="home_not_fetched">Inte hämtat än</string>
     <string name="home_section_no_live">Inga kanaler i det här abonnemanget</string>
-    <string name="home_section_no_movies">Inga filmer i det här abonnemanget</string>
-    <string name="home_section_no_series">Inga serier i det här abonnemanget</string>
-    <string name="home_section_no_radio">Inga stationer i det här abonnemanget</string>
+    <string name="home_section_no_movies">Inga filmer</string>
+    <string name="home_section_no_series">Inga serier</string>
+    <string name="home_section_no_radio">Inga stationer</string>
     <string name="home_fetched_at">På den här enheten · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Alla kanaler</string>

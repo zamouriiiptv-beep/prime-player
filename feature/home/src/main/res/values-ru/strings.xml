@@ -89,9 +89,9 @@
     <string name="home_device_locked">Заблокировано</string>
     <string name="home_not_fetched">Ещё не загружено</string>
     <string name="home_section_no_live">В этой подписке нет каналов</string>
-    <string name="home_section_no_movies">В этой подписке нет фильмов</string>
-    <string name="home_section_no_series">В этой подписке нет сериалов</string>
-    <string name="home_section_no_radio">В этой подписке нет станций</string>
+    <string name="home_section_no_movies">Нет фильмов</string>
+    <string name="home_section_no_series">Нет сериалов</string>
+    <string name="home_section_no_radio">Нет станций</string>
     <string name="home_fetched_at">На этом устройстве · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Все каналы</string>

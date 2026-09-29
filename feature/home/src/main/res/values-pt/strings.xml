@@ -31,7 +31,7 @@
     <string name="home_no_source_detail">Adicione seu provedor e o Castivio importará os canais, filmes e séries dele para este aparelho. Xtream Codes, um link M3U ou ativação por endereço MAC.</string>
     <string name="home_add_source">Adicionar assinatura</string>
     <string name="home_change_source">Adicionar ou trocar assinatura</string>
-    <string name="home_settings">Configurações</string>
+    <string name="home_settings">Ajustes</string>
     <string name="home_count_live">%1$s canais</string>
     <string name="home_count_movies">%1$s filmes</string>
     <string name="home_count_series">%1$s séries</string>
@@ -89,9 +89,9 @@
     <string name="home_device_locked">Bloqueado</string>
     <string name="home_not_fetched">Ainda não baixado</string>
     <string name="home_section_no_live">Nenhum canal nesta assinatura</string>
-    <string name="home_section_no_movies">Nenhum filme nesta assinatura</string>
-    <string name="home_section_no_series">Nenhuma série nesta assinatura</string>
-    <string name="home_section_no_radio">Nenhuma estação nesta assinatura</string>
+    <string name="home_section_no_movies">Sem filmes</string>
+    <string name="home_section_no_series">Sem séries</string>
+    <string name="home_section_no_radio">Sem estações</string>
     <string name="home_fetched_at">Neste aparelho · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Todos os canais</string>

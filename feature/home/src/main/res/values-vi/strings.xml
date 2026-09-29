@@ -89,9 +89,9 @@
     <string name="home_device_locked">Đã khóa</string>
     <string name="home_not_fetched">Chưa tải xuống</string>
     <string name="home_section_no_live">Thuê bao này không có kênh</string>
-    <string name="home_section_no_movies">Thuê bao này không có phim</string>
-    <string name="home_section_no_series">Thuê bao này không có phim bộ</string>
-    <string name="home_section_no_radio">Thuê bao này không có đài</string>
+    <string name="home_section_no_movies">Không có phim</string>
+    <string name="home_section_no_series">Không có phim bộ</string>
+    <string name="home_section_no_radio">Không có đài</string>
     <string name="home_fetched_at">Trên thiết bị này · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Tất cả kênh</string>

@@ -89,9 +89,9 @@
     <string name="home_device_locked">ロック中</string>
     <string name="home_not_fetched">未ダウンロード</string>
     <string name="home_section_no_live">このサブスクリプションにチャンネルはありません</string>
-    <string name="home_section_no_movies">このサブスクリプションに映画はありません</string>
-    <string name="home_section_no_series">このサブスクリプションにシリーズはありません</string>
-    <string name="home_section_no_radio">このサブスクリプションに局はありません</string>
+    <string name="home_section_no_movies">映画なし</string>
+    <string name="home_section_no_series">シリーズなし</string>
+    <string name="home_section_no_radio">局なし</string>
     <string name="home_fetched_at">この端末に保存済み · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">すべてのチャンネル</string>

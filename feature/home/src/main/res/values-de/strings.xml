@@ -89,9 +89,9 @@
     <string name="home_device_locked">Gesperrt</string>
     <string name="home_not_fetched">Noch nicht heruntergeladen</string>
     <string name="home_section_no_live">Keine Sender in diesem Abonnement</string>
-    <string name="home_section_no_movies">Keine Filme in diesem Abonnement</string>
-    <string name="home_section_no_series">Keine Serien in diesem Abonnement</string>
-    <string name="home_section_no_radio">Keine Radiosender in diesem Abonnement</string>
+    <string name="home_section_no_movies">Keine Filme</string>
+    <string name="home_section_no_series">Keine Serien</string>
+    <string name="home_section_no_radio">Keine Sender</string>
     <string name="home_fetched_at">Auf diesem Gerät · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Alle Sender</string>

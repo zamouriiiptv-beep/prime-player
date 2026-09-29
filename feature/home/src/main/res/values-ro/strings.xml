@@ -74,7 +74,7 @@
     <string name="home_licence_unavailable">Indisponibilă</string>
     <string name="home_theme_lighter">Comută pe tema deschisă</string>
     <string name="home_theme_darker">Comută pe tema închisă</string>
-    <string name="home_refresh">Reîmprospătare</string>
+    <string name="home_refresh">Reîncarcă</string>
     <string name="home_change">Schimbă lista</string>
 
     <string name="home_playlist_numbered">Lista %1$d</string>
@@ -89,9 +89,9 @@
     <string name="home_device_locked">Blocat</string>
     <string name="home_not_fetched">Încă nedescărcat</string>
     <string name="home_section_no_live">Acest abonament nu are canale</string>
-    <string name="home_section_no_movies">Acest abonament nu are filme</string>
-    <string name="home_section_no_series">Acest abonament nu are seriale</string>
-    <string name="home_section_no_radio">Acest abonament nu are posturi</string>
+    <string name="home_section_no_movies">Niciun film</string>
+    <string name="home_section_no_series">Niciun serial</string>
+    <string name="home_section_no_radio">Niciun post</string>
     <string name="home_fetched_at">Pe acest dispozitiv · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Toate canalele</string>

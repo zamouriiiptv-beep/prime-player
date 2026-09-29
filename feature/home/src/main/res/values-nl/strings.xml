@@ -89,9 +89,9 @@
     <string name="home_device_locked">Vergrendeld</string>
     <string name="home_not_fetched">Nog niet gedownload</string>
     <string name="home_section_no_live">Geen zenders in dit abonnement</string>
-    <string name="home_section_no_movies">Geen films in dit abonnement</string>
-    <string name="home_section_no_series">Geen series in dit abonnement</string>
-    <string name="home_section_no_radio">Geen stations in dit abonnement</string>
+    <string name="home_section_no_movies">Geen films</string>
+    <string name="home_section_no_series">Geen series</string>
+    <string name="home_section_no_radio">Geen stations</string>
     <string name="home_fetched_at">Op dit apparaat · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Alle zenders</string>

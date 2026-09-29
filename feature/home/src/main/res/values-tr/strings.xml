@@ -89,9 +89,9 @@
     <string name="home_device_locked">Kilitli</string>
     <string name="home_not_fetched">Henüz indirilmedi</string>
     <string name="home_section_no_live">Bu abonelikte kanal yok</string>
-    <string name="home_section_no_movies">Bu abonelikte film yok</string>
-    <string name="home_section_no_series">Bu abonelikte dizi yok</string>
-    <string name="home_section_no_radio">Bu abonelikte istasyon yok</string>
+    <string name="home_section_no_movies">Film yok</string>
+    <string name="home_section_no_series">Dizi yok</string>
+    <string name="home_section_no_radio">İstasyon yok</string>
     <string name="home_fetched_at">Bu cihazda · %1$s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Tüm Kanallar</string>
