@@ -76,6 +76,9 @@
     <string name="home_theme_darker">Пређи на тамну тему</string>
     <string name="home_refresh">Освежи</string>
     <string name="home_change">Друга листа</string>
+
+    <string name="home_playlist_numbered">Листа %1$d</string>
+    <string name="home_add_playlist">Додај листу</string>
     <string name="home_language">Језик</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Излаз</string>

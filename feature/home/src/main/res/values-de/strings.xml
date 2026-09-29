@@ -76,6 +76,9 @@
     <string name="home_theme_darker">Zum dunkleren Design wechseln</string>
     <string name="home_refresh">Aktualisieren</string>
     <string name="home_change">Playlisten</string>
+
+    <string name="home_playlist_numbered">Playlist %1$d</string>
+    <string name="home_add_playlist">Playlist hinzufügen</string>
     <string name="home_language">Sprache</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Beenden</string>

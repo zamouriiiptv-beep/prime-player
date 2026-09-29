@@ -76,6 +76,9 @@
     <string name="home_theme_darker">Lumipat sa mas madilim na tema</string>
     <string name="home_refresh">I-refresh</string>
     <string name="home_change">Mga playlist</string>
+
+    <string name="home_playlist_numbered">Playlist %1$d</string>
+    <string name="home_add_playlist">Magdagdag ng playlist</string>
     <string name="home_language">Wika</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Lumabas</string>

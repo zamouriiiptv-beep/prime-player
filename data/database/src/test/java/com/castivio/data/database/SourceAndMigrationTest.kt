@@ -1,5 +1,6 @@
 package com.castivio.data.database
 
+import com.castivio.domain.PlaylistSource
 import com.castivio.domain.ProviderSource
 import com.castivio.domain.RefreshPolicy
 import com.castivio.domain.SourceKind
@@ -100,6 +101,85 @@ class SourceAndMigrationTest {
         assertEquals("a", repository.activeNow()?.id)
         assertEquals(1, database.sourceDao().all().first().count { it.isActive })
     }
+
+    /**
+     * **A name the user typed is stored exactly as typed.**
+     *
+     * The label is the one field on this row a person chose, and Home now prints it in
+     * the menu that switches between playlists. Anything the data layer did to it —
+     * trimming it, appending the host, title-casing it — would be the application
+     * renaming a subscription behind the user's back.
+     */
+    @Test
+    fun `a registered source keeps the name the user gave it`() = runBlocking {
+        val repository = repository()
+
+        val stored = repository.register(
+            PlaylistSource.Xtream(host = "http://mytv.test", username = "user", password = "pw"),
+            label = "zamouri1",
+        )
+
+        assertEquals("zamouri1", stored.label)
+        assertEquals("zamouri1", repository.get(stored.id)?.label)
+    }
+
+    /**
+     * **A source the user did not name is stored with no name, not with the host.**
+     *
+     * This is the fact the whole playlist menu hangs off. `register` used to replace a
+     * null label with `SourceIds.labelOf(source)` — `mytv.test · user` — which made
+     * "the user named it" and "we invented a name" indistinguishable from that write
+     * onwards, so no screen could offer its own placeholder without guessing. Keeping
+     * the absence lets Home number it `Playlist 1` and lets the saved-sources screen
+     * say `Unnamed playlist`, each choosing wording that suits its own width.
+     *
+     * The column is `TEXT NOT NULL`, so empty is a value it could always hold: there
+     * is no migration here and rows written before this keep whatever label they have.
+     */
+    @Test
+    fun `a source registered without a name is stored without one`() = runBlocking {
+        val repository = repository()
+
+        val stored = repository.register(
+            PlaylistSource.Xtream(host = "http://mytv.test", username = "user", password = "pw"),
+            label = null,
+        )
+
+        assertEquals("", stored.label)
+        assertEquals("", repository.get(stored.id)?.label)
+        // Specifically not the host, which is what it used to be.
+        assertFalse(stored.label.contains("mytv"))
+    }
+
+    /**
+     * Switching is what the menu does, and it is this call — the same one the
+     * saved-sources screen has always made. Registering a second playlist must not
+     * lose the first, and choosing the first back must not disturb either row.
+     */
+    @Test
+    fun `switching between registered playlists keeps both and moves the active flag`() =
+        runBlocking {
+            val repository = repository()
+            val first = repository.register(
+                PlaylistSource.Xtream(host = "http://one.test", username = "a", password = "p"),
+                label = "zamouri1",
+            )
+            val second = repository.register(
+                PlaylistSource.Xtream(host = "http://two.test", username = "b", password = "p"),
+                label = null,
+            )
+
+            assertEquals(2, repository.sources().first().size)
+            assertEquals(second.id, repository.activeNow()?.id)
+
+            repository.setActive(first.id)
+
+            assertEquals(first.id, repository.activeNow()?.id)
+            assertEquals(2, repository.sources().first().size)
+            assertEquals(1, database.sourceDao().all().first().count { it.isActive })
+            assertEquals("zamouri1", repository.get(first.id)?.label)
+            assertEquals("", repository.get(second.id)?.label)
+        }
 
     @Test
     fun `import timestamps are recorded separately for catalogue and guide`() = runBlocking {

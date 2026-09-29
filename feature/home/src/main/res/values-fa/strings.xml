@@ -76,6 +76,9 @@
     <string name="home_theme_darker">رفتن به پوستهٔ تیره</string>
     <string name="home_refresh">تازه‌سازی</string>
     <string name="home_change">تغییر فهرست</string>
+
+    <string name="home_playlist_numbered">فهرست %1$d</string>
+    <string name="home_add_playlist">افزودن فهرست</string>
     <string name="home_language">زبان</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">خروج</string>

@@ -200,13 +200,18 @@ private fun SavedSourceRow(
 ) {
     val colors = CastivioTheme.colors
     val inUse = stringResource(R.string.saved_sources_active)
+    // A subscription the user added without naming has no label, because the
+    // repository stores that fact instead of replacing it with the host. The address
+    // on the second line is what identifies the row either way; this only keeps the
+    // first line from being an empty rectangle above it.
+    val title = source.label.ifBlank { stringResource(R.string.saved_sources_unnamed) }
 
     InteractiveGlassCard(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
             .semantics(mergeDescendants = true) {
-                contentDescription = if (isActive) "${source.label}. $inUse" else source.label
+                contentDescription = if (isActive) "$title. $inUse" else title
             },
         shape = RoundedCornerShape(m.radius),
         fill = SolidColor(colors.glassFillStrong),
@@ -221,7 +226,7 @@ private fun SavedSourceRow(
         ) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = source.label,
+                    text = title,
                     style = castivioChipStyle(m.fsCard),
                     color = colors.onBackground,
                     maxLines = 1,

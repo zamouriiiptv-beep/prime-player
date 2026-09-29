@@ -76,6 +76,9 @@
     <string name="home_theme_darker">Chuyển sang giao diện tối</string>
     <string name="home_refresh">Làm mới</string>
     <string name="home_change">Đổi playlist</string>
+
+    <string name="home_playlist_numbered">Danh sách %1$d</string>
+    <string name="home_add_playlist">Thêm danh sách</string>
     <string name="home_language">Ngôn ngữ</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Thoát</string>

@@ -76,6 +76,9 @@
     <string name="home_theme_darker">Overschakelen naar het donkere thema</string>
     <string name="home_refresh">Verversen</string>
     <string name="home_change">Andere lijst</string>
+
+    <string name="home_playlist_numbered">Lijst %1$d</string>
+    <string name="home_add_playlist">Lijst toevoegen</string>
     <string name="home_language">Taal</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Afsluiten</string>

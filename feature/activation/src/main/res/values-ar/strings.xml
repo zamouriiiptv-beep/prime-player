@@ -47,6 +47,7 @@
     <string name="saved_sources_add_xtream">إضافة Xtream</string>
     <string name="saved_sources_add_m3u">إضافة M3U</string>
     <string name="saved_sources_active">قيد الاستخدام</string>
+    <string name="saved_sources_unnamed">قائمة بلا اسم</string>
 
     <string name="field_playlist_name">اسم القائمة</string>
     <string name="field_optional">اختياري</string>

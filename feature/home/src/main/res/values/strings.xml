@@ -109,9 +109,11 @@
     <!-- ============================================ the dashboard's own two terms
 
          Two systems that both run out, and a user who confuses them rings the wrong
-         support line. Each is named in full — never "Subscription" on its own, which
-         could be either — because the label is one of the four things separating
-         them, alongside hue, glyph and edge. -->
+         support line. The licence names itself in full; the provider's term is the
+         bare noun, because "Provider subscription" filled 96% of its card in English
+         and overflowed in 21 of the 38 other locales — a label with no margin is a
+         label every longer language loses. What the word dropped, the card still
+         says: hue, glyph and edge separate the two, and only one of them is ours. -->
     <string name="home_term_provider">Subscription</string>
     <string name="home_term_licence">Castivio licence</string>
 
@@ -149,6 +151,9 @@
     <!-- The row wants a short label; the empty state, which has the width for a
          sentence, keeps `home_change_source`. -->
     <string name="home_change">Change list</string>
+
+    <string name="home_playlist_numbered">Playlist %1$d</string>
+    <string name="home_add_playlist">Add playlist</string>
     <!-- The header chip, worded as the other screens word theirs. -->
     <string name="home_language">Language</string>
     <!-- Catch-up. There is no engine for it in this build, and pressing it says so. -->

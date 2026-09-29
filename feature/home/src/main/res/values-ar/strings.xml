@@ -114,6 +114,9 @@
 
     <string name="home_refresh">تحديث</string>
     <string name="home_change">تبديل القائمة</string>
+
+    <string name="home_playlist_numbered">قائمة %1$d</string>
+    <string name="home_add_playlist">إضافة قائمة</string>
     <string name="home_language">اللغة</string>
     <!-- Untranslated, as the approved row has it: the feature is known by its
          English name and the Arabic rendering is three times as wide. -->

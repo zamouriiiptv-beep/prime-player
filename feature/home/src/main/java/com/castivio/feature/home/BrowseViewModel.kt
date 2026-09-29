@@ -197,7 +197,11 @@ class BrowseViewModel @Inject constructor(
             section.flatMapLatest { catalog.count(it.kind, null) },
         ) { shown, whole -> shown to whole },
         combine(
-            sources.active().map { it?.label },
+            // `takeIf`, because a playlist the user did not name now stores no name
+            // rather than the host: absent and empty mean the same thing to every
+            // reader of this, and only one of them has a fallback. Without it the
+            // empty-section title reads " carries no Films".
+            sources.active().map { it?.label?.takeIf(String::isNotBlank) },
             fetch,
             railFilter,
         ) { provider, state, filter -> Triple(provider, state, filter) },

@@ -76,6 +76,9 @@
     <string name="home_theme_darker">Tukar ke tema gelap</string>
     <string name="home_refresh">Segar semula</string>
     <string name="home_change">Tukar senarai</string>
+
+    <string name="home_playlist_numbered">Senarai %1$d</string>
+    <string name="home_add_playlist">Tambah senarai</string>
     <string name="home_language">Bahasa</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Keluar</string>

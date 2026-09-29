@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -38,7 +39,13 @@ import javax.inject.Inject
  * size of the list" would be most tempting.
  */
 data class HomeState(
-    /** What the user named their provider, or what its host is. Null before activation. */
+    /**
+     * What the user named the active playlist. Null before activation, and **empty
+     * when they named nothing** — the two are not the same and [hasSource] turns on
+     * the first, so this is deliberately not narrowed to null-when-blank the way
+     * `BrowseState.providerLabel` is. Nothing on Home prints it; [playlists] is what
+     * the menu draws, with its own placeholder for the unnamed.
+     */
     val provider: String? = null,
     /** Xtream, an M3U link, a file — shown so a user with several knows which is live. */
     val sourceKind: SourceKind? = null,
@@ -87,10 +94,28 @@ data class HomeState(
      * arrives, and the footer draws nothing for an empty one rather than an empty box.
      */
     val deviceKey: String = "",
+    /**
+     * Every playlist on this device, in the order they were added, and which one is
+     * showing.
+     *
+     * Home draws these in the menu behind its "change list" control. They are carried
+     * in the state rather than read where the menu is built for the reason every other
+     * field here is: a composable that opened its own collector would re-read the
+     * table on each recomposition of a menu that is usually closed.
+     *
+     * The active one is identified by [activePlaylistId] rather than by a flag on the
+     * item, because the repository is the only thing that decides which is active and
+     * a second copy of that fact is a second thing to get wrong.
+     */
+    val playlists: List<Playlist> = emptyList(),
+    val activePlaylistId: String? = null,
     val loading: Boolean = true,
 ) {
     /** True once a provider has been configured, whatever it did or did not carry. */
     val hasSource: Boolean get() = provider != null
+
+    /** True when there is a choice to offer. One playlist is not a menu. */
+    val hasPlaylistChoice: Boolean get() = playlists.size > 1
 
     /** True when nothing has been counted — which is the normal state before any
      * section has been opened, and says nothing about the provider. */
@@ -112,6 +137,52 @@ data class HomeState(
      */
     val carriesNothing: Boolean get() = everySectionFetched && isEmpty
 }
+
+/**
+ * One playlist as the menu needs it: what to call it, and what to switch to.
+ *
+ * ## Why the name can be absent, and who supplies the placeholder
+ *
+ * [name] is what the user typed when they added the subscription, and empty when they
+ * typed nothing — `RoomSourceRepository` stores that fact rather than replacing it
+ * with the host, so the screen is free to offer its own placeholder instead of being
+ * handed one it cannot recognise as invented.
+ *
+ * The placeholder itself is *not* here. "Playlist 1" is a translated string, and a
+ * state holder that reached for a `Context` to resolve one would be a state holder
+ * that cannot be tested without an emulator. So this carries the name and the
+ * [position], and the screen composes `Playlist ${position}` when the name is empty —
+ * which is also why the position is one-based: it is a number a reader counts with,
+ * not an index.
+ */
+data class Playlist(
+    val id: String,
+    /** What the user called it. Empty when they named nothing. */
+    val name: String,
+    /** Its one-based place in the order they were added. */
+    val position: Int,
+)
+
+/**
+ * Every saved subscription, as the menu needs it.
+ *
+ * A free function rather than a method so it can be tested without building a view
+ * model and the eight collaborators one needs — which is the same reason `licenceTerm`
+ * is one. There is nothing here a fake repository would prove that a list of sources
+ * does not.
+ *
+ * The position is the source's place in the repository's order, which is `created_at`:
+ * one-based because it is read aloud as a number, and taken from the order rather than
+ * from any stored counter so that adding a playlist never renumbers the ones already
+ * on the device.
+ */
+internal fun playlistsOf(sources: List<ProviderSource>): List<Playlist> =
+    sources.mapIndexed { index, source ->
+        // `label` is what the user typed, or empty when they typed nothing — the
+        // repository keeps that distinction rather than filling it with the host. The
+        // placeholder is the screen's, because it is a translated string.
+        Playlist(id = source.id, name = source.label, position = index + 1)
+    }
 
 /** The four `COUNT`s, carried together so the outer combine stays within its arity. */
 private data class Counts(
@@ -137,7 +208,7 @@ private data class Counts(
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     catalog: CatalogRepository,
-    sources: SourceRepository,
+    private val sources: SourceRepository,
     entitlement: EntitlementRepository,
     marks: SectionCatalogue,
     statuses: ProviderStatusCatalogue,
@@ -164,6 +235,26 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch { refresher.refresh(clock.nowMs()) }
     }
 
+    /**
+     * Show a different playlist.
+     *
+     * One line, and deliberately so. `SourceRepository.setActive` already exists, is
+     * already the only writer of that flag, and already does it in one transaction so
+     * there is never a moment with two active sources or none — `SavedSourcesViewModel`
+     * has forwarded to it since that screen shipped, and this is the same forward from
+     * a second place, not a second mechanism.
+     *
+     * Nothing is flipped optimistically and nothing is reloaded here. [provider] is
+     * `sources.active()`, and the sections and the subscription status hang off it
+     * through `flatMapLatest`, so the store re-emitting is what moves Home — the tick
+     * moves because the database said so, not because this assumed it would. No
+     * import is triggered: the catalogue rows of every playlist are already on the
+     * device, keyed by source.
+     */
+    fun choosePlaylist(id: String) {
+        viewModelScope.launch { sources.setActive(id) }
+    }
+
     private val counts: Flow<Counts> = combine(
         catalog.count(MediaKind.LIVE),
         catalog.count(MediaKind.MOVIE),
@@ -172,6 +263,17 @@ class HomeViewModel @Inject constructor(
     ) { live, movies, series, radio -> Counts(live, movies, series, radio) }
 
     private val provider: Flow<ProviderSource?> = sources.active()
+
+    /**
+     * Every playlist on the device, numbered in the order they were added.
+     *
+     * The order is the repository's, which is `created_at` — so the number beside an
+     * unnamed playlist is stable: adding a fourth does not renumber the first three,
+     * and a user who was told "Playlist 2" yesterday still sees Playlist 2 today.
+     * Deleting one does renumber the ones after it, which is the same thing any
+     * ordinal placeholder does and the reason a user who cares is invited to name it.
+     */
+    private val playlists: Flow<List<Playlist>> = sources.sources().map(::playlistsOf)
 
     /**
      * The marks belonging to whichever provider is active.
@@ -189,13 +291,26 @@ class HomeViewModel @Inject constructor(
         if (active == null) flowOf(null) else statuses.of(active.id)
     }
 
+    /**
+     * The active source and the whole shelf it came off, carried together.
+     *
+     * The same reason [Counts] exists: `combine` is typed up to five flows and this
+     * screen now has six facts to assemble. Pairing the two that are about *which
+     * playlist* keeps the outer combine within its arity without an array overload
+     * that would lose every parameter name.
+     */
+    private val library: Flow<Library> = combine(provider, playlists) { active, all ->
+        Library(active, all)
+    }
+
     val state: StateFlow<HomeState> = combine(
-        provider,
+        library,
         counts,
         entitlement.state,
         sections,
         subscription,
-    ) { source, tally, licence, fetched, status ->
+    ) { shelf, tally, licence, fetched, status ->
+        val source = shelf.active
         HomeState(
             provider = source?.label,
             sourceKind = source?.kind,
@@ -209,9 +324,14 @@ class HomeViewModel @Inject constructor(
             subscription = status,
             mac = mac,
             deviceKey = deviceKey,
+            playlists = shelf.all,
+            activePlaylistId = source?.id,
             loading = false,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_GRACE_MS), HomeState())
+
+    /** See [library]. */
+    private data class Library(val active: ProviderSource?, val all: List<Playlist>)
 
     private companion object {
         const val SUBSCRIPTION_GRACE_MS = 5_000L

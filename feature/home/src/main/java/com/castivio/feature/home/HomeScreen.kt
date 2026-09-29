@@ -6,8 +6,8 @@ import android.content.Intent
 import android.content.IntentFilter
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
@@ -27,8 +28,11 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Info
@@ -45,6 +49,9 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.Tv
 import androidx.compose.material.icons.rounded.VpnKey
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -52,14 +59,14 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -70,6 +77,8 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -271,6 +280,7 @@ fun HomeScreen(
                         rhythm = rhythm,
                         onSeeSection = onSeeSection,
                         onRefresh = model::refresh,
+                        onChoosePlaylist = model::choosePlaylist,
                         onAddSource = onAddSource,
                         onTimeShift = onTimeShift,
                         onSettings = onSettings,
@@ -917,6 +927,7 @@ private fun SectionBoard(
     rhythm: Rhythm,
     onSeeSection: (CatalogSection) -> Unit,
     onRefresh: () -> Unit,
+    onChoosePlaylist: (String) -> Unit,
     onAddSource: () -> Unit,
     onTimeShift: () -> Unit,
     onSettings: () -> Unit,
@@ -949,9 +960,11 @@ private fun SectionBoard(
 
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(frame.bandTop)) {
         UtilityRail(
+            state = state,
             frame = frame,
             rhythm = rhythm,
             onRefresh = onRefresh,
+            onChoosePlaylist = onChoosePlaylist,
             onAddSource = onAddSource,
             onTimeShift = onTimeShift,
             onSettings = onSettings,
@@ -1216,9 +1229,11 @@ private fun SectionLine(
  */
 @Composable
 private fun UtilityRail(
+    state: HomeState,
     frame: CastivioMetrics,
     rhythm: Rhythm,
     onRefresh: () -> Unit,
+    onChoosePlaylist: (String) -> Unit,
     onAddSource: () -> Unit,
     onTimeShift: () -> Unit,
     onSettings: () -> Unit,
@@ -1227,10 +1242,157 @@ private fun UtilityRail(
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(rhythm.rail)) {
         Utility(Icons.Rounded.Refresh, stringResource(R.string.home_refresh), frame, onRefresh)
-        Utility(Icons.Rounded.PlaylistAdd, stringResource(R.string.home_change), frame, onAddSource)
+        PlaylistPicker(
+            state = state,
+            frame = frame,
+            onChoose = onChoosePlaylist,
+            onAdd = onAddSource,
+        )
         Utility(Icons.Rounded.History, stringResource(R.string.home_time_shift), frame, onTimeShift)
         Utility(Icons.Rounded.Settings, stringResource(R.string.home_settings), frame, onSettings)
         Utility(Icons.Rounded.PowerSettingsNew, stringResource(R.string.home_exit), frame, onExit)
+    }
+}
+
+/**
+ * The rail control that changes which playlist is showing.
+ *
+ * ## Why it is a menu and not a screen
+ *
+ * It used to open the activation flow, which is three presses from here to the list
+ * of saved subscriptions and a full-screen departure from Home to perform what is,
+ * for a user with two playlists, a toggle. The subscriptions were always there —
+ * `SourceRepository` has carried a list, an active one and a switch since the
+ * saved-sources screen shipped — and the only thing missing was somewhere near the
+ * user to spend them. The saved-sources screen is not replaced: it still owns adding,
+ * and it is still where a longer list is managed.
+ *
+ * ## Why it costs the layout nothing
+ *
+ * The rail is five cards in a fixed column and this is still one of them: the picker
+ * is a `Box` that takes exactly the weight the card took, with the same card drawn to
+ * fill it. A [DropdownMenu] draws in a popup window of its own, so an open menu does
+ * not participate in this layout at all — nothing reflows, nothing is measured twice,
+ * and the board behind it keeps every dimension it had.
+ *
+ * ## The names
+ *
+ * What the user typed when they added the subscription, and `Playlist 1`, `Playlist
+ * 2` when they typed nothing — the numbering is the repository's order, which is the
+ * order they were added, so the number beside a playlist does not move when another
+ * is added after it. They may be long and they are one line each: a playlist called
+ * after a provider's full marketing name is a name to recognise at a glance, not to
+ * read to the end, and the menu is wider than the rail card it hangs off precisely so
+ * that glance usually succeeds.
+ */
+@Composable
+private fun ColumnScope.PlaylistPicker(
+    state: HomeState,
+    frame: CastivioMetrics,
+    onChoose: (String) -> Unit,
+    onAdd: () -> Unit,
+) {
+    val colors = CastivioTheme.colors
+    // `rememberSaveable`: a rotation with the menu open should not silently close it,
+    // and the boolean is the whole of this control's state — what is *in* the menu
+    // comes from the store, so there is nothing else here that could go stale.
+    var open by rememberSaveable { mutableStateOf(false) }
+
+    Box(Modifier.fillMaxWidth().weight(1f)) {
+        UtilityCard(
+            icon = Icons.Rounded.PlaylistAdd,
+            label = stringResource(R.string.home_change),
+            frame = frame,
+            onClick = { open = true },
+            modifier = Modifier.fillMaxSize(),
+        )
+
+        DropdownMenu(
+            expanded = open,
+            onDismissRequest = { open = false },
+            // Bounds only. Material 3's own menu content already sizes its column to
+            // `IntrinsicSize.Max`, so the menu is as wide as its widest name by
+            // default and repeating that here would be two rules deciding one width.
+            modifier = Modifier
+                .widthIn(min = PICKER_MIN_WIDTH, max = PICKER_MAX_WIDTH)
+                .background(colors.glassFill),
+        ) {
+            for (playlist in state.playlists) {
+                val name = playlist.name.ifBlank {
+                    stringResource(R.string.home_playlist_numbered, playlist.position)
+                }
+                val isActive = playlist.id == state.activePlaylistId
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            name,
+                            style = castivioChipStyle(frame.fsLabel),
+                            color = if (isActive) colors.onBackgroundStrong else colors.onBackgroundVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    // The tick leads, and the row keeps its indent when there is no
+                    // tick to draw: a list whose names shift sideways as the active
+                    // one moves is a list that looks like it reflowed rather than
+                    // one that answered.
+                    leadingIcon = {
+                        if (isActive) {
+                            Icon(
+                                Icons.Rounded.Check,
+                                contentDescription = null,
+                                tint = colors.hueGreen,
+                                modifier = Modifier.size(Sizing.iconSm),
+                            )
+                        } else {
+                            Spacer(Modifier.size(Sizing.iconSm))
+                        }
+                    },
+                    onClick = {
+                        open = false
+                        // Guarded, not because a second write would corrupt anything —
+                        // `setActive` is idempotent and transactional — but because
+                        // re-activating the current source makes the store re-emit and
+                        // every flow hanging off it recompute for no change.
+                        if (!isActive) onChoose(playlist.id)
+                    },
+                )
+            }
+
+            // Separated, because it is not one of the things above: the list answers
+            // "which one", and this answers "another one". Drawn only when there is a
+            // list to separate it from — on a device with a single playlist the menu
+            // is one entry and a rule above it would be a divider dividing nothing.
+            if (state.playlists.isNotEmpty()) {
+                HorizontalDivider(color = colors.edgeQuiet)
+            }
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        stringResource(R.string.home_add_playlist),
+                        style = castivioChipStyle(frame.fsLabel),
+                        color = colors.onBackgroundVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        Icons.Rounded.Add,
+                        contentDescription = null,
+                        tint = colors.hueViolet,
+                        modifier = Modifier.size(Sizing.iconSm),
+                    )
+                },
+                onClick = {
+                    open = false
+                    // The existing route, not a new one: this is the same callback the
+                    // empty state's button carries, landing on the same activation flow
+                    // and therefore the same Xtream and M3U forms.
+                    onAdd()
+                },
+            )
+        }
     }
 }
 
@@ -1241,10 +1403,28 @@ private fun ColumnScope.Utility(
     frame: CastivioMetrics,
     onClick: () -> Unit,
 ) {
+    UtilityCard(icon, label, frame, onClick, Modifier.fillMaxWidth().weight(1f))
+}
+
+/**
+ * One rail card, without the column's weight.
+ *
+ * Split from [Utility] only so [PlaylistPicker] can draw the identical card inside
+ * the `Box` that anchors its menu. The weight stays on the caller, which is what
+ * keeps the five cards the five heights they were.
+ */
+@Composable
+private fun UtilityCard(
+    icon: ImageVector,
+    label: String,
+    frame: CastivioMetrics,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val colors = CastivioTheme.colors
     InteractiveGlassCard(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth().weight(1f),
+        modifier = modifier,
         shape = RoundedCornerShape(frame.radius / 2),
     ) {
         Row(
@@ -1470,6 +1650,24 @@ private const val EXPIRY_PATTERN = "dd/MM/yyyy"
  * together are wide, which is what makes the board read as one destination with
  * alternatives rather than as three equal columns.
  */
+/**
+ * How wide the playlist menu is allowed to be.
+ *
+ * Fixed dp rather than a share of the frame, and deliberately: the menu is sized by
+ * its *contents*, which are names the user typed and this screen cannot measure in
+ * advance. Material 3's menu already draws as wide as its widest item, and these two
+ * bound that answer — a floor so a menu of one-word names is still a comfortable
+ * target on a remote, and a ceiling so a provider's forty-character marketing name
+ * cannot grow the menu across the board behind it.
+ *
+ * The floor is above the rail card it hangs off (108dp on the reference handset) on
+ * purpose. A menu the width of its anchor would truncate names the anchor never had
+ * to hold, and a popup is the one thing on this screen that may be wider than the
+ * thing that opened it without costing the layout anything.
+ */
+private val PICKER_MIN_WIDTH = 180.dp
+private val PICKER_MAX_WIDTH = 320.dp
+
 private const val RAIL_SHARE = 0.166f
 private const val STACK_SHARE = 0.327f
 private const val HERO_SHARE = 0.472f

@@ -76,6 +76,9 @@
     <string name="home_theme_darker">Kalo në temën e errët</string>
     <string name="home_refresh">Rifresko</string>
     <string name="home_change">Listë tjetër</string>
+
+    <string name="home_playlist_numbered">Lista %1$d</string>
+    <string name="home_add_playlist">Shto një listë</string>
     <string name="home_language">Gjuha</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">Dil</string>

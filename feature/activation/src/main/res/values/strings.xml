@@ -67,6 +67,10 @@
     <string name="saved_sources_add_xtream">Add Xtream</string>
     <string name="saved_sources_add_m3u">Add M3U</string>
     <string name="saved_sources_active">In use</string>
+    <!-- A subscription the user added without naming. `RoomSourceRepository` stores
+         no name rather than inventing one from the host, so the row supplies its own
+         placeholder; the address underneath is what actually identifies it here. -->
+    <string name="saved_sources_unnamed">Unnamed playlist</string>
 
     <!-- The forms -->
     <string name="field_playlist_name">Playlist name</string>

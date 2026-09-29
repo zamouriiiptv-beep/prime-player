@@ -76,6 +76,9 @@
     <string name="home_theme_darker">切換至深色主題</string>
     <string name="home_refresh">重新整理</string>
     <string name="home_change">切換清單</string>
+
+    <string name="home_playlist_numbered">清單 %1$d</string>
+    <string name="home_add_playlist">新增清單</string>
     <string name="home_language">語言</string>
     <string name="home_time_shift">Time Shift</string>
     <string name="home_exit">結束</string>

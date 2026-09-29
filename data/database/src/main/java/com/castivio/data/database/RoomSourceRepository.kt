@@ -19,9 +19,29 @@ class RoomSourceRepository(
     /**
      * Registers a provider and makes it the active one.
      *
-     * The id and label come from [SourceIds], so the same credentials entered twice
-     * — or re-entered after a reinstall — resolve to the same source, and every
-     * catalogue id built on top of it stays valid.
+     * The id comes from [SourceIds], so the same credentials entered twice — or
+     * re-entered after a reinstall — resolve to the same source, and every catalogue
+     * id built on top of it stays valid.
+     *
+     * ## Why an unnamed source is stored unnamed
+     *
+     * [label] is what the user typed, and null when they typed nothing. It used to be
+     * replaced here with `SourceIds.labelOf(source)` — the host, or `host · username`
+     * for Xtream — which made the column non-empty and made "the user named this" and
+     * "we invented a name" indistinguishable from that moment on. A screen that wants
+     * to offer its own placeholder could then only guess, and guessing by comparing
+     * the stored label against a re-derived one is a second implementation of the
+     * derivation that drifts the first time either changes.
+     *
+     * So the fact is kept rather than overwritten: no name is stored as no name, and a
+     * *display* fallback belongs to whichever screen is drawing it. That is a
+     * presentation decision — Home numbers them `Playlist 1`, `Playlist 2` — and
+     * presentation decisions do not belong in a table.
+     *
+     * Rows written before this change keep whatever label they were given, so a
+     * subscription the user did name still shows that name. Nothing is rewritten and
+     * no migration is needed: the column was already `TEXT NOT NULL`, and empty is a
+     * value it could always hold.
      */
     override suspend fun register(source: PlaylistSource, label: String?): ProviderSource {
         val id = SourceIds.of(source)
@@ -29,7 +49,7 @@ class RoomSourceRepository(
         val registered = ProviderSource(
             id = id,
             kind = SourceIds.kindOf(source),
-            label = label ?: SourceIds.labelOf(source),
+            label = label.orEmpty(),
             url = when (source) {
                 is PlaylistSource.M3u -> source.url
                 is PlaylistSource.LocalFile -> source.uri
