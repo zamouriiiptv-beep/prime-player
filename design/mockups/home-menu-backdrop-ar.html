@@ -1,0 +1,166 @@
+<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8">
+<style>
+:root{
+  --deep:#141031; --violet10:#1B1038; --azure10:#0A1E3D;
+  --violet40:#6E4BD8; --azure40:#2E6BFF; --azure50:#4C9BFF;
+  --edge:rgba(160,163,215,.20);
+  --glassLow:rgba(255,255,255,.039); --glassMid:rgba(255,255,255,.078);
+  --ink:#F2F3FB; --inkVar:#C7CBE8; --inkMuted:#9AA0C8; --green:#3DDC97;
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Noto Sans Arabic","DejaVu Sans",sans-serif}
+body{background:#000}
+.shot{position:relative;width:833px;height:385px;overflow:hidden}
+.label{position:absolute;top:6px;inset-inline-start:10px;font-size:10px;color:#7c86c9;letter-spacing:.06em;z-index:99}
+
+/* ---------- the four backdrop layers, exactly as paintBackdrop draws them ---------- */
+.bd{position:absolute;inset:0;overflow:hidden}
+.bd .ramp{position:absolute;inset:0;
+  background:linear-gradient(to bottom right,var(--deep) 0%,var(--violet10) 50%,var(--azure10) 100%)}
+.bd .warm{position:absolute;border-radius:50%;
+  background:radial-gradient(circle closest-side,rgba(110,75,216,.30),rgba(110,75,216,0))}
+.bd .cool{position:absolute;border-radius:50%;
+  background:radial-gradient(circle closest-side,rgba(46,107,255,.26),rgba(46,107,255,0))}
+.bd .mesh{position:absolute;inset:0;opacity:.5;
+  background:repeating-linear-gradient(105deg,rgba(76,155,255,.05) 0 1.2px,transparent 1.2px 34px)}
+
+/* the board's own backdrop: glows positioned by the screen box */
+.screen .warm{inset-inline-start:calc(5% - 229px);top:calc(100% - 229px);width:458px;height:458px}
+.screen .cool{inset-inline-start:calc(95% - 216px);top:calc(30% - 216px);width:433px;height:433px}
+
+.stage{position:absolute;inset:0;padding:16px 40px;display:flex;flex-direction:column;gap:20px}
+.head{display:flex;align-items:center;gap:11px;height:40px;direction:ltr}
+.mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,var(--azure50),var(--violet40));flex:0 0 auto}
+.word{font-size:15px;letter-spacing:.34em;color:var(--ink);font-weight:700}
+.terms{flex:1;display:flex;gap:10px}
+.term{flex:1;height:42px;border-radius:7px;background:linear-gradient(to bottom,var(--glassMid),var(--glassLow));
+  border:1px solid;display:flex;align-items:center;gap:5px;padding:0 10px;direction:rtl}
+.t1{border-color:rgba(61,220,151,.30)} .t2{border-color:rgba(46,107,255,.30)}
+.term .k{width:20px;height:20px;border-radius:50%;flex:0 0 auto}
+.t1 .k{background:var(--green)} .t2 .k{background:var(--azure40)}
+.term .col{min-width:0}
+.term .lbl{font-size:11px;color:var(--inkMuted);white-space:nowrap}
+.term .val{font-size:13px;white-space:nowrap}
+.t1 .val{color:var(--green)} .t2 .val{color:var(--azure50)}
+.clock{text-align:right;direction:ltr}
+.clock .t{font-size:19px;color:var(--ink);font-weight:700}
+.clock .d{font-size:12px;color:var(--inkMuted)}
+.pill{height:32px;border-radius:16px;background:var(--glassLow);border:1px solid var(--edge);
+  display:flex;align-items:center;gap:5px;padding:0 10px;font-size:11px;color:var(--inkVar)}
+.dot{width:32px;height:32px;border-radius:50%;background:var(--glassLow);border:1px solid var(--edge)}
+
+.board{flex:1;display:flex;gap:15.7px}
+.rail{width:108px;display:flex;flex-direction:column;gap:6px}
+.rcard{flex:1;border-radius:7px;background:linear-gradient(to bottom,var(--glassMid),var(--glassLow));
+  border:1px solid var(--edge);display:flex;align-items:center;gap:5px;padding:0 10px;font-size:11px;color:var(--inkVar)}
+.rcard i{width:16px;height:16px;border-radius:4px;background:var(--violet40);flex:0 0 auto}
+.stack{width:215px;display:flex;flex-direction:column;gap:12px}
+.scard{flex:1;border-radius:7px;background:linear-gradient(to bottom,var(--glassMid),var(--glassLow));
+  border:1px solid var(--edge);display:flex;align-items:center;gap:10px;padding:0 10px}
+.scard i{width:20px;height:20px;border-radius:5px;flex:0 0 auto}
+.scard .n{font-size:13px;color:var(--ink)} .scard .s{font-size:12px;color:var(--azure50)}
+.hero{flex:1;border-radius:14px;background:linear-gradient(to bottom,var(--glassMid),var(--glassLow));
+  border:1px solid var(--edge);position:relative}
+.hero .cap{position:absolute;inset-inline-end:10px;bottom:10px;text-align:right}
+.hero .n{font-size:13px;color:var(--ink);font-weight:700} .hero .s{font-size:12px;color:var(--azure50)}
+.foot{display:flex;gap:10px}
+.fact{flex:1;height:32px;border-radius:7px;background:var(--glassLow);border:1px solid var(--edge);
+  display:flex;align-items:center;justify-content:center;gap:5px;font-size:11px;color:var(--inkMuted)}
+
+/* ---------- the menu ---------- */
+.menu{position:absolute;width:200px;border-radius:7px;overflow:hidden;
+  border:1px solid var(--edge);z-index:20}
+.menu .glass{position:absolute;inset:0;background:linear-gradient(to bottom,var(--glassMid),var(--glassLow))}
+/* the menu's own backdrop: glows positioned by the MENU box */
+.menu .warm{inset-inline-start:calc(5% - 55px);top:calc(100% - 55px);width:110px;height:110px}
+.menu .cool{inset-inline-start:calc(95% - 52px);top:calc(30% - 52px);width:104px;height:104px}
+.menu .items{position:relative;padding:6px 0}
+.mi{height:40px;display:flex;align-items:center;gap:10px;padding:0 12px;font-size:13px;color:var(--inkVar)}
+.mi.on{color:var(--ink)}
+.mi .g{width:16px;height:16px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:14px}
+.rule{height:1px;background:var(--edge);margin:4px 0}
+/* the OLD treatment, for comparison */
+.menu.old .ramp{background:linear-gradient(to bottom right,var(--deep) 0%,var(--violet10) 50%,var(--azure10) 100%)}
+.menu.old .warm,.menu.old .cool,.menu.old .mesh{display:none}
+</style>
+
+<div class="shot screen">
+  <div class="label">A — اليوم: تدرّج مرسوم يدويًّا (طبقة واحدة من أربع)</div>
+  <div class="bd"><div class="ramp"></div><div class="warm"></div><div class="cool"></div><div class="mesh"></div></div>
+  <div class="stage">
+    <div class="head">
+      <div class="mark"></div><div class="word">CASTIVIO</div>
+      <div class="terms">
+        <div class="term t1"><div class="k"></div><div class="col"><div class="lbl">الاشتراك</div><div class="val">22/12/2026</div></div></div>
+        <div class="term t2"><div class="k"></div><div class="col"><div class="lbl">رخصة Castivio</div><div class="val">06/10/2026</div></div></div>
+      </div>
+      <div class="clock"><div class="t">15:52</div><div class="d">29/09/2026</div></div>
+      <div class="dot"></div><div class="pill">اللغة</div>
+    </div>
+    <div class="board">
+      <div class="rail">
+        <div class="rcard"><i></i>تحديث</div><div class="rcard"><i></i>تبديل القائمة</div>
+        <div class="rcard"><i></i>Time Shift</div><div class="rcard"><i></i>الإعدادات</div><div class="rcard"><i></i>خروج</div>
+      </div>
+      <div class="stack">
+        <div class="scard"><i style="background:#9B6BFF"></i><div><div class="n">الأفلام</div><div class="s">لم يُحمَّل بعد</div></div></div>
+        <div class="scard"><i style="background:#3DDC97"></i><div><div class="n">المسلسلات</div><div class="s">لم يُحمَّل بعد</div></div></div>
+        <div class="scard"><i style="background:#F5A524"></i><div><div class="n">الراديو</div><div class="s">لم يُحمَّل بعد</div></div></div>
+      </div>
+      <div class="hero"><div class="cap"><div class="n">البث المباشر</div><div class="s">لم يُحمَّل بعد</div></div></div>
+    </div>
+    <div class="foot">
+      <div class="fact">مفتاح الجهاز: 116822</div><div class="fact">ماك: FE:F8:4D:83:78:9F</div><div class="fact">الجهاز: مُفعَّل</div>
+    </div>
+  </div>
+  <div class="menu old" style="inset-inline-start:40px;top:150px">
+    <div class="bd"><div class="ramp"></div></div><div class="glass"></div>
+    <div class="items">
+      <div class="mi on"><div class="g">✓</div>قائمة 1</div>
+      <div class="rule"></div>
+      <div class="mi"><div class="g">+</div>إضافة قائمة</div>
+      <div class="mi"><div class="g">⚙</div>اشتراكاتي</div>
+    </div>
+  </div>
+</div>
+
+<div class="shot screen" style="margin-top:14px">
+  <div class="label">B — المقترح: castivioBackdrop() — الطبقات الأربع نفسها</div>
+  <div class="bd"><div class="ramp"></div><div class="warm"></div><div class="cool"></div><div class="mesh"></div></div>
+  <div class="stage">
+    <div class="head">
+      <div class="mark"></div><div class="word">CASTIVIO</div>
+      <div class="terms">
+        <div class="term t1"><div class="k"></div><div class="col"><div class="lbl">الاشتراك</div><div class="val">22/12/2026</div></div></div>
+        <div class="term t2"><div class="k"></div><div class="col"><div class="lbl">رخصة Castivio</div><div class="val">06/10/2026</div></div></div>
+      </div>
+      <div class="clock"><div class="t">15:52</div><div class="d">29/09/2026</div></div>
+      <div class="dot"></div><div class="pill">اللغة</div>
+    </div>
+    <div class="board">
+      <div class="rail">
+        <div class="rcard"><i></i>تحديث</div><div class="rcard"><i></i>تبديل القائمة</div>
+        <div class="rcard"><i></i>Time Shift</div><div class="rcard"><i></i>الإعدادات</div><div class="rcard"><i></i>خروج</div>
+      </div>
+      <div class="stack">
+        <div class="scard"><i style="background:#9B6BFF"></i><div><div class="n">الأفلام</div><div class="s">لم يُحمَّل بعد</div></div></div>
+        <div class="scard"><i style="background:#3DDC97"></i><div><div class="n">المسلسلات</div><div class="s">لم يُحمَّل بعد</div></div></div>
+        <div class="scard"><i style="background:#F5A524"></i><div><div class="n">الراديو</div><div class="s">لم يُحمَّل بعد</div></div></div>
+      </div>
+      <div class="hero"><div class="cap"><div class="n">البث المباشر</div><div class="s">لم يُحمَّل بعد</div></div></div>
+    </div>
+    <div class="foot">
+      <div class="fact">مفتاح الجهاز: 116822</div><div class="fact">ماك: FE:F8:4D:83:78:9F</div><div class="fact">الجهاز: مُفعَّل</div>
+    </div>
+  </div>
+  <div class="menu" style="inset-inline-start:40px;top:150px">
+    <div class="bd"><div class="ramp"></div><div class="warm"></div><div class="cool"></div><div class="mesh"></div></div>
+    <div class="glass"></div>
+    <div class="items">
+      <div class="mi on"><div class="g">✓</div>قائمة 1</div>
+      <div class="rule"></div>
+      <div class="mi"><div class="g">+</div>إضافة قائمة</div>
+      <div class="mi"><div class="g">⚙</div>اشتراكاتي</div>
+    </div>
+  </div>
+</div>
+</html>
