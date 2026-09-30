@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -247,20 +248,21 @@ private fun DialogPanel(
     val colors = CastivioTheme.colors
     val tv = CastivioTheme.device.isTv
 
-    BoxWithConstraints(
+    // **The scrim is the window; the keyboard only moves the panel.**
+    //
+    // These were one box, with `imePadding()` on it, and that was wrong in a way a
+    // photograph showed at once: padding the scrim *shrinks* the scrim, so it stopped
+    // short of the keys and a band of the application's own backdrop stood lit between
+    // the dialog and the keyboard. A modal that dims part of what is behind it is not
+    // dimming anything.
+    //
+    // So the dim covers the whole window, and the inset is spent inside it, on the box
+    // the panel is measured and centred in. Nothing new is drawn: it is the same one
+    // scrim, no longer cut short.
+    Box(
         modifier
             .fillMaxSize()
             .background(colors.scrim)
-            // **The keyboard is part of the room.** `enableEdgeToEdge` means the IME is
-            // drawn over the window rather than shrinking it, so without this the panel
-            // centres itself in a height that is no longer there and the field a dialog
-            // exists to offer sits behind the keys. Applied to the box the panel is
-            // measured and centred in, so `maxHeight` below describes the space that is
-            // actually free — which is what the panel's own cap is a fraction of.
-            //
-            // On the scrim rather than on the panel: the area under the keyboard needs
-            // no dimming, because the keyboard is already over it.
-            .imePadding()
             // The scrim absorbs presses rather than letting them through to a
             // screen that is no longer answering. That is what makes this modal
             // instead of a decoration drawn over something still live.
@@ -272,63 +274,73 @@ private fun DialogPanel(
             // Announced as a dialog, so a screen reader says so rather than
             // reading a heading that happens to be on top.
             .semantics(mergeDescendants = false) { dialog() },
-        contentAlignment = Alignment.Center,
     ) {
-        val m = dialogMetricsFor(maxWidth, maxHeight)
-        val shape = RoundedCornerShape(m.radius)
-
-        Column(
-            Modifier
-                .widthIn(max = m.width)
-                // Never taller than most of the screen. On the 360dp frame that
-                // is 288dp, which is the number that makes the notice scroll
-                // rather than push its own close button off the bottom.
-                //
-                // **Unless most of the screen is already gone.** The fifth of the height
-                // this gives back is breathing room, and breathing room is the first
-                // thing a keyboard takes: with the IME up the box above it is a couple
-                // of hundred dp, and spending a fifth of that on margin is spending it
-                // on nothing a user can see. Below [TIGHT] the panel keeps a fixed
-                // margin instead of a proportional one, which is the same rule every
-                // other size in Castivio follows — a share, with a bound on it.
-                .heightIn(
-                    max = if (maxHeight < TIGHT) {
-                        (maxHeight - Spacing.md * 2).coerceAtLeast(0.dp)
-                    } else {
-                        maxHeight * PANEL_MAX_FRACTION
-                    },
-                )
-                .clip(shape)
-                .background(colors.backgroundElevated)
-                .border(BorderStroke(1.dp, colors.glassBorderSoft), shape)
-                // Presses inside the panel belong to the panel, not the scrim.
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = {},
-                )
-                .padding(if (maxHeight < TIGHT) Spacing.md else m.padding),
-            // The rhythm tightens with the room, for the reason the cap does.
-            verticalArrangement = Arrangement.spacedBy(
-                if (maxHeight < TIGHT) Spacing.sm else Spacing.md,
-            ),
+        BoxWithConstraints(
+            // `enableEdgeToEdge` means the IME is drawn over the window rather than
+            // shrinking it, so without this the panel centres itself in a height that is no
+            // longer there and the field a dialog exists to offer sits behind the keys.
+            // Here rather than outside, so `maxHeight` describes the space that is actually
+            // free — which is what the panel's own cap is a fraction of — while the dim
+            // above stays the size of the window.
+            Modifier.fillMaxSize().imePadding(),
+            contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = title,
-                // **Weight is the device's; only the size is the surface's.**
-                //
-                // This picks the same two tokens it always picked, and overwrites the
-                // one thing it is allowed to: the step. See [TITLE] for why the weight
-                // stayed behind.
-                style = (if (tv) CastivioType.headlineSmall else CastivioType.titleMedium)
-                    .copy(
-                        fontSize = m.title.value.sp,
-                        lineHeight = (m.title.value * TITLE_LEADING).sp,
-                    ),
-                color = colors.onBackground,
-                modifier = Modifier.semantics { heading() },
-            )
-            content()
+            val m = dialogMetricsFor(maxWidth, maxHeight)
+            val shape = RoundedCornerShape(m.radius)
+
+            Column(
+                Modifier
+                    .widthIn(max = m.width)
+                    // Never taller than most of the screen. On the 360dp frame that
+                    // is 288dp, which is the number that makes the notice scroll
+                    // rather than push its own close button off the bottom.
+                    //
+                    // **Unless most of the screen is already gone.** The fifth of the height
+                    // this gives back is breathing room, and breathing room is the first
+                    // thing a keyboard takes: with the IME up the box above it is a couple
+                    // of hundred dp, and spending a fifth of that on margin is spending it
+                    // on nothing a user can see. Below [TIGHT] the panel keeps a fixed
+                    // margin instead of a proportional one, which is the same rule every
+                    // other size in Castivio follows — a share, with a bound on it.
+                    .heightIn(
+                        max = if (maxHeight < TIGHT) {
+                            (maxHeight - Spacing.md * 2).coerceAtLeast(0.dp)
+                        } else {
+                            maxHeight * PANEL_MAX_FRACTION
+                        },
+                    )
+                    .clip(shape)
+                    .background(colors.backgroundElevated)
+                    .border(BorderStroke(1.dp, colors.glassBorderSoft), shape)
+                    // Presses inside the panel belong to the panel, not the scrim.
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = {},
+                    )
+                    .padding(if (maxHeight < TIGHT) Spacing.md else m.padding),
+                // The rhythm tightens with the room, for the reason the cap does.
+                verticalArrangement = Arrangement.spacedBy(
+                    if (maxHeight < TIGHT) Spacing.sm else Spacing.md,
+                ),
+            ) {
+                Text(
+                    text = title,
+                    // **Weight is the device's; only the size is the surface's.**
+                    //
+                    // This picks the same two tokens it always picked, and overwrites the
+                    // one thing it is allowed to: the step. See [TITLE] for why the weight
+                    // stayed behind.
+                    style = (if (tv) CastivioType.headlineSmall else CastivioType.titleMedium)
+                        .copy(
+                            fontSize = m.title.value.sp,
+                            lineHeight = (m.title.value * TITLE_LEADING).sp,
+                        ),
+                    color = colors.onBackground,
+                    modifier = Modifier.semantics { heading() },
+                )
+                content()
+            }
         }
     }
 }
