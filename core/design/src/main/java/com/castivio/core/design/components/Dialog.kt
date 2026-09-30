@@ -109,27 +109,10 @@ fun CastivioDialog(
     LaunchedEffect(Unit) { runCatching { safe.requestFocus() } }
 
     DialogPanel(title = title, onScrim = onDismiss, modifier = modifier) {
-        // **The message is the part that gives way, and it is the only part.**
-        //
-        // The panel is capped at a fraction of the screen and does not scroll, which is
-        // right for a question and wrong the moment a question carries a field: on a
-        // 393dp handset the title, a two-line message, a text field and two buttons do
-        // not fit inside the cap, and what fell off the bottom was the field the dialog
-        // exists to offer.
-        //
-        // So the message takes the room that is left and scrolls when there is not
-        // enough of it, while the title, the field and the buttons keep theirs.
-        // `fill = false` so a message that fits is laid out exactly as it was before
-        // this existed — every confirmation in the application is unchanged — and a
-        // message too long for the frame loses its own lines rather than somebody
-        // else's control.
         Text(
             text = message,
             style = CastivioType.bodyMedium,
             color = colors.onBackgroundVariant,
-            modifier = Modifier
-                .weight(1f, fill = false)
-                .verticalScroll(rememberScrollState()),
         )
 
         if (field != null) {
