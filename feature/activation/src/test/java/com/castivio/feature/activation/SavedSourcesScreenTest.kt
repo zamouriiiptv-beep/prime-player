@@ -8,6 +8,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onNode
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -80,8 +85,8 @@ class SavedSourcesScreenTest {
         compose.onNodeWithTag(ActivationTags.SAVED_LIST).assertIsDisplayed()
         compose.onNodeWithText("Home").assertIsDisplayed()
         compose.onNodeWithText("Cabin").assertIsDisplayed()
-        // "In use" appears once: on the active one, and not on the other.
-        compose.onNodeWithText("In use").assertIsDisplayed()
+        // The mark appears on the active one, and not on the other.
+        compose.onNodeWithText("Active now").assertIsDisplayed()
     }
 
     /**
@@ -145,6 +150,10 @@ class SavedSourcesScreenTest {
         compose.onAllNodesWithTag(ActivationTags.SAVED_EDIT)[0].performClick()
 
         compose.onNodeWithTag(ActivationTags.SAVED_RENAME_DIALOG).assertIsDisplayed()
+        // Displayed, not merely present. The panel is capped at a fraction of the
+        // screen and the field is the thing that fell off the bottom of it: asserting
+        // existence would have passed while the control the dialog exists to offer was
+        // clipped on the frame this test is drawn at.
         compose.onNodeWithTag(ActivationTags.SAVED_RENAME_FIELD).assertIsDisplayed()
     }
 
@@ -185,7 +194,13 @@ class SavedSourcesScreenTest {
         )
 
         compose.onAllNodesWithTag(ActivationTags.SAVED_DELETE)[0].performClick()
-        compose.onNodeWithText("Delete").performClick()
+        // Every row draws the word "Delete" under its bin, so the one inside the
+        // dialog has to be named as such rather than found by its text alone.
+        compose.onNode(
+            hasText("Delete") and
+                hasClickAction() and
+                hasAnyAncestor(hasTestTag(ActivationTags.SAVED_DELETE_DIALOG)),
+        ).performClick()
 
         assertEquals(listOf("a"), deleted)
     }
