@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -99,6 +100,20 @@ fun CastivioDialog(
      * agreeing only until one of them was edited.
      */
     field: (@Composable ColumnScope.() -> Unit)? = null,
+    /**
+     * How the confirming button is drawn.
+     *
+     * [ButtonWeight.Ghost] by default, and the note on the button below says why: on a
+     * dialog guarding something irreversible, a filled affirmative is Castivio saying
+     * "this is the thing to do" while the focus order says the opposite.
+     *
+     * A dialog that asks for a value rather than for a yes is not guarding anything —
+     * saving a new name is as reversible as typing it again — and there the ghost reads
+     * as a label beside an outlined Cancel, which inverts the hierarchy: the action the
+     * dialog was opened for looks weaker than the way out of it. Such a caller passes
+     * [ButtonWeight.Primary]. Every existing one passes nothing and is unchanged.
+     */
+    confirmWeight: ButtonWeight = ButtonWeight.Ghost,
 ) {
     val colors = CastivioTheme.colors
     val safe = remember { FocusRequester() }
@@ -109,10 +124,23 @@ fun CastivioDialog(
     LaunchedEffect(Unit) { runCatching { safe.requestFocus() } }
 
     DialogPanel(title = title, onScrim = onDismiss, modifier = modifier) {
+        // **The message is the part that gives way, and only when it has to.**
+        //
+        // A question fits, and `fill = false` means it is laid out exactly as it always
+        // was. A question carrying a field, with the keyboard up, does not: the panel is
+        // a fraction of what the IME leaves, and something has to yield. It is the
+        // sentence, never the control the dialog was opened for and never the buttons
+        // that answer it.
+        //
+        // This was here once before, put in for a reason that turned out to be wrong and
+        // taken out again. The reason is real now: it is the keyboard, measured.
         Text(
             text = message,
             style = CastivioType.bodyMedium,
             color = colors.onBackgroundVariant,
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .verticalScroll(rememberScrollState()),
         )
 
         if (field != null) {
@@ -132,11 +160,12 @@ fun CastivioDialog(
             )
             CastivioButton(
                 text = confirmLabel,
-                // Not Primary. The primary fill is Castivio saying "this is
+                // Ghost by default. The primary fill is Castivio saying "this is
                 // the thing to do", and on a dialog guarding an irreversible
                 // action it is saying the opposite of what the focus order
                 // says. Ghost keeps it plainly available and plainly second.
-                weight = ButtonWeight.Ghost,
+                // See [confirmWeight] for the one kind of caller that differs.
+                weight = confirmWeight,
                 onClick = onConfirm,
             )
         }
@@ -222,6 +251,16 @@ private fun DialogPanel(
         modifier
             .fillMaxSize()
             .background(colors.scrim)
+            // **The keyboard is part of the room.** `enableEdgeToEdge` means the IME is
+            // drawn over the window rather than shrinking it, so without this the panel
+            // centres itself in a height that is no longer there and the field a dialog
+            // exists to offer sits behind the keys. Applied to the box the panel is
+            // measured and centred in, so `maxHeight` below describes the space that is
+            // actually free — which is what the panel's own cap is a fraction of.
+            //
+            // On the scrim rather than on the panel: the area under the keyboard needs
+            // no dimming, because the keyboard is already over it.
+            .imePadding()
             // The scrim absorbs presses rather than letting them through to a
             // screen that is no longer answering. That is what makes this modal
             // instead of a decoration drawn over something still live.
@@ -244,7 +283,21 @@ private fun DialogPanel(
                 // Never taller than most of the screen. On the 360dp frame that
                 // is 288dp, which is the number that makes the notice scroll
                 // rather than push its own close button off the bottom.
-                .heightIn(max = maxHeight * PANEL_MAX_FRACTION)
+                //
+                // **Unless most of the screen is already gone.** The fifth of the height
+                // this gives back is breathing room, and breathing room is the first
+                // thing a keyboard takes: with the IME up the box above it is a couple
+                // of hundred dp, and spending a fifth of that on margin is spending it
+                // on nothing a user can see. Below [TIGHT] the panel keeps a fixed
+                // margin instead of a proportional one, which is the same rule every
+                // other size in Castivio follows — a share, with a bound on it.
+                .heightIn(
+                    max = if (maxHeight < TIGHT) {
+                        (maxHeight - Spacing.md * 2).coerceAtLeast(0.dp)
+                    } else {
+                        maxHeight * PANEL_MAX_FRACTION
+                    },
+                )
                 .clip(shape)
                 .background(colors.backgroundElevated)
                 .border(BorderStroke(1.dp, colors.glassBorderSoft), shape)
@@ -254,8 +307,11 @@ private fun DialogPanel(
                     indication = null,
                     onClick = {},
                 )
-                .padding(m.padding),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                .padding(if (maxHeight < TIGHT) Spacing.md else m.padding),
+            // The rhythm tightens with the room, for the reason the cap does.
+            verticalArrangement = Arrangement.spacedBy(
+                if (maxHeight < TIGHT) Spacing.sm else Spacing.md,
+            ),
         ) {
             Text(
                 text = title,
@@ -304,6 +360,16 @@ internal fun dialogMetricsFor(width: Dp, height: Dp): DialogMetrics = DialogMetr
 
 /** Most of the screen, never all of it — a modal has to read as one. */
 private const val PANEL_MAX_FRACTION = 0.8f
+
+/**
+ * Below this much free height the panel stops giving a fifth of it away.
+ *
+ * Not a device rule: it is the height actually left over, which on a handset in
+ * landscape with the keyboard up is a fraction of the display. 320dp is under every
+ * frame this ships to with nothing covering them — the shortest is 360 — so a dialog
+ * with no keyboard in front of it is laid out exactly as it always was.
+ */
+private val TIGHT: Dp = 320.dp
 
 /* ------------------------------------------------------------------ the shares
  *

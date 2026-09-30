@@ -504,6 +504,8 @@ private fun RenameDialog(
         onConfirm = { onSave(name) },
         onDismiss = onDismiss,
         modifier = Modifier.testTag(ActivationTags.SAVED_RENAME_DIALOG),
+        // Filled: this one asks for a value, and nothing it does needs guarding.
+        confirmWeight = ButtonWeight.Primary,
         field = {
             CastivioTextField(
                 value = name,
