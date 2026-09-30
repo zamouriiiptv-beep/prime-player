@@ -124,20 +124,30 @@ class SourceAndMigrationTest {
     }
 
     /**
-     * **A source the user did not name is stored with no name, not with the host.**
+     * **A source the user did not name is given one here, and it is not the host.**
      *
-     * This is the fact the whole playlist menu hangs off. `register` used to replace a
-     * null label with `SourceIds.labelOf(source)` — `mytv.test · user` — which made
-     * "the user named it" and "we invented a name" indistinguishable from that write
-     * onwards, so no screen could offer its own placeholder without guessing. Keeping
-     * the absence lets Home number it `Playlist 1` and lets the saved-sources screen
-     * say `Unnamed playlist`, each choosing wording that suits its own width.
+     * This assertion has been turned around, deliberately and not because it was in the
+     * way. It used to read "stored without one": a null label stayed empty, the absence
+     * was the fact, and each screen invented its own placeholder — Home numbered it,
+     * the saved list called it unnamed. Honest data and a product where three unnamed
+     * subscriptions are three blanks nobody can choose between, each screen disagreeing
+     * with the next about what to call them, and the numbering shifting whenever a row
+     * above was deleted.
      *
-     * The column is `TEXT NOT NULL`, so empty is a value it could always hold: there
-     * is no migration here and rows written before this keep whatever label they have.
+     * So the name is decided once, at registration, by `nextPlaylistName`, and stored.
+     * From that write it is an ordinary name: shown wherever a typed name is shown, and
+     * renamed from the subscriptions screen exactly as a typed one is.
+     *
+     * Still not the host — that part has not changed and is asserted below. A name
+     * derived from the address changes when the address does, cannot be told from
+     * something the user typed, and puts part of a server URL on every screen that
+     * lists subscriptions.
+     *
+     * The column is `TEXT NOT NULL`, so there is no migration: rows written before this
+     * keep their blank, and what draws a blank row is the screen's business.
      */
     @Test
-    fun `a source registered without a name is stored without one`() = runBlocking {
+    fun `a source registered without a name is given the first free playlist number`() = runBlocking {
         val repository = repository()
 
         val stored = repository.register(
@@ -145,10 +155,47 @@ class SourceAndMigrationTest {
             label = null,
         )
 
-        assertEquals("", stored.label)
-        assertEquals("", repository.get(stored.id)?.label)
+        assertEquals("Playlist 1", stored.label)
+        assertEquals("Playlist 1", repository.get(stored.id)?.label)
         // Specifically not the host, which is what it used to be.
         assertFalse(stored.label.contains("mytv"))
+    }
+
+    /** The number counts up, and a name the user typed takes no number at all. */
+    @Test
+    fun `generated names do not collide with each other or with typed ones`() = runBlocking {
+        val repository = repository()
+
+        val first = repository.register(
+            PlaylistSource.Xtream(host = "http://one.test", username = "a", password = "p"),
+            label = null,
+        )
+        val named = repository.register(
+            PlaylistSource.Xtream(host = "http://two.test", username = "b", password = "p"),
+            label = "server 1",
+        )
+        val third = repository.register(
+            PlaylistSource.Xtream(host = "http://three.test", username = "c", password = "p"),
+            label = null,
+        )
+
+        assertEquals("Playlist 1", first.label)
+        assertEquals("server 1", named.label)
+        assertEquals("Playlist 2", third.label)
+    }
+
+    /** Re-registering keeps the name the row has, because the user may have changed it. */
+    @Test
+    fun `re-registering an existing source does not rename it`() = runBlocking {
+        val repository = repository()
+        val source = PlaylistSource.Xtream(host = "http://mytv.test", username = "user", password = "pw")
+
+        val first = repository.register(source, label = null)
+        repository.save(repository.get(first.id)!!.copy(label = "my box"))
+        val again = repository.register(source, label = null)
+
+        assertEquals("my box", again.label)
+        assertEquals("my box", repository.get(first.id)?.label)
     }
 
     /**
@@ -178,7 +225,9 @@ class SourceAndMigrationTest {
             assertEquals(2, repository.sources().first().size)
             assertEquals(1, database.sourceDao().all().first().count { it.isActive })
             assertEquals("zamouri1", repository.get(first.id)?.label)
-            assertEquals("", repository.get(second.id)?.label)
+            // The unnamed one was named on the way in. "zamouri1" is not a
+            // `Playlist n`, so it reserves no number and this is the first free one.
+            assertEquals("Playlist 1", repository.get(second.id)?.label)
         }
 
     @Test
