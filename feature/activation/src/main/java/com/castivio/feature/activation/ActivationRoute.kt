@@ -17,6 +17,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
@@ -745,7 +748,31 @@ internal fun ActivationSurface(
                 // build. The vertical half stays exactly where it was, because the
                 // frame is chosen from the height this measures and every budget in
                 // the project is written against that measurement.
-                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical))
+                //
+                // **`safeDrawing` minus the keyboard, and only on this branch.**
+                //
+                // `safeDrawing` is the union of the system bars, the cutout *and the
+                // IME*, so with a keyboard up it padded this whole screen into the strip
+                // above the keys — and everything drawn inside it went with it, the
+                // modal scrim included. What a photograph showed was a band of the
+                // application's own backdrop, lit, between a dialog and the keyboard:
+                // the screen had ended there and the window had not.
+                //
+                // A fixed viewport does not scroll, so shrinking it for the keyboard
+                // buys nothing and costs the bottom of the screen. None of the steps in
+                // this branch has a text field of its own — the address, the chooser,
+                // the saved list and the four media browsers — and the one thing here
+                // that takes typing is a dialog, which handles the inset itself and
+                // lifts its panel rather than its scrim.
+                //
+                // The scrolling branch below keeps the IME, and must: the two provider
+                // forms are what the keyboard is actually for, and there the inset is
+                // what keeps a field and its submit button reachable.
+                .windowInsetsPadding(
+                    WindowInsets.systemBars
+                        .union(WindowInsets.displayCutout)
+                        .only(WindowInsetsSides.Vertical),
+                )
                 .focusRequester(focus),
         ) { content() }
         return
