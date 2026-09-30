@@ -1,12 +1,9 @@
 package com.castivio.feature.licence
 
-import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Context
-import android.content.ContextWrapper
 import android.content.Intent
 import android.net.Uri
-import android.view.Window
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -16,14 +13,9 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.castivio.domain.entitlement.EntitlementState
@@ -77,7 +69,13 @@ fun LicenceRoute(
     }
     val context = LocalContext.current
 
-    ImmersiveWhileVisible()
+    // No immersive effect here. `MainActivity` hides the system bars for the whole
+    // window and hides them again after anything steals focus, so the policy has one
+    // owner. This file used to be a second: its `DisposableEffect` ended with
+    // `controller.show(systemBars)`, which put the phone's status bar and gesture pill
+    // back on the way out — leaving Home wearing furniture the application had already
+    // decided against, with nothing left to hide it again. `ActivationRoute` carried a
+    // copy of the same mistake, removed with this one.
 
     // ## Back, innermost thing first
     //
@@ -161,32 +159,6 @@ private fun LicenceSurface(modifier: Modifier = Modifier, content: @Composable (
 }
 
 /**
- * Nothing on screen but Castivio, for as long as this screen is on it.
- *
- * `BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE` rather than a sticky hide: the bars
- * come back on a swipe and go away again on their own. Hiding system UI a user
- * cannot retrieve is a different thing from hiding it, and the wrong one.
- *
- * **Restored on the way out**, so leaving the licence screen does not leave the
- * rest of the app immersive. A one-way call would do half the job and stay
- * invisible until somebody wondered where the clock went.
- */
-@Composable
-private fun ImmersiveWhileVisible() {
-    val view = LocalView.current
-    if (view.isInEditMode) return
-    val window = view.context.findWindow() ?: return
-
-    DisposableEffect(window) {
-        val controller = WindowCompat.getInsetsController(window, view)
-        controller.systemBarsBehavior =
-            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        controller.hide(WindowInsetsCompat.Type.systemBars())
-        onDispose { controller.show(WindowInsetsCompat.Type.systemBars()) }
-    }
-}
-
-/**
  * Open a link, and say whether anything happened.
  *
  * A television without a browser throws [ActivityNotFoundException], and a
@@ -204,9 +176,3 @@ private fun Context.openExternally(url: String): Boolean {
     return runCatching { startActivity(intent) }.isSuccess
 }
 
-/** The activity's window, through however many `ContextWrapper`s are in the way. */
-private tailrec fun Context.findWindow(): Window? = when (this) {
-    is Activity -> window
-    is ContextWrapper -> baseContext.findWindow()
-    else -> null
-}

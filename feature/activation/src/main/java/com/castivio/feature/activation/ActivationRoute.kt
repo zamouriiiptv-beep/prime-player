@@ -1,9 +1,5 @@
 package com.castivio.feature.activation
 
-import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
-import android.view.Window
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.EnterTransition
@@ -26,7 +22,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,13 +34,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.castivio.core.common.locale.CastivioLanguage
@@ -300,7 +291,24 @@ fun ActivationRoute(
         }
     }
 
-    BackHandler {
+    /**
+     * **What going back means here — one answer, for every way of asking.**
+     *
+     * There are two: the system's back key or gesture, and the "Back" control in each
+     * screen's own header. They used to disagree. The key asked this rule and left by
+     * the door the user came in through; the header control was wired straight to the
+     * parent step — `onStep(ActivationStep.Mac)` under the chooser and
+     * `onStep(ActivationStep.Choose)` under the saved subscriptions — so pressing it
+     * from Home's playlist menu climbed *into* screens the user had never seen and
+     * landed them on the device-activation address, which is meaningless to somebody
+     * who already has a subscription and reached this from a working app.
+     *
+     * Hoisted out of `BackHandler` and handed to the screens rather than corrected in
+     * the two places it was wrong: two exits from one screen answering the same
+     * question differently is the defect, and leaving them as two would only mean
+     * fixing it again the next time a screen grows a back control.
+     */
+    val goBack: () -> Unit = {
         when {
             // The overlay is the innermost thing on screen, so it is the first
             // thing back closes. On a television this is the only way out of it.
@@ -330,7 +338,19 @@ fun ActivationRoute(
         }
     }
 
-    ImmersiveWhileVisible()
+    BackHandler { goBack() }
+
+    // No immersive effect here any more. `MainActivity` hides the system bars for the
+    // whole window at startup and hides them again after anything steals focus, so the
+    // policy has an owner — and this file used to be a second one. Its `DisposableEffect`
+    // ended with `controller.show(systemBars)`, which put the phone's status bar and
+    // gesture pill back on the way out of the flow: leaving the gate at launch, or
+    // either of Home's two menu doors, dropped the user on a Home wearing furniture the
+    // application had already decided against, with nothing left to hide it again.
+    //
+    // A screen that can turn off a window policy it does not own is the fault. Removed
+    // rather than trimmed to its `hide` half, which would have been redundant with the
+    // activity and would have left the same claim of ownership for someone to restore.
 
     val fixedViewport = isFixedViewport(state, step)
 
@@ -354,6 +374,7 @@ fun ActivationRoute(
                 identity = identity,
                 activation = activation,
                 onStep = { step = it },
+                onBack = goBack,
                 onRefresh = identityModel::refresh,
                 onCopied = identityModel::copied,
                 onOpenLanguage = { pickingLanguage = true },
@@ -372,47 +393,6 @@ fun ActivationRoute(
             onDismiss = { pickingLanguage = false },
         )
     }
-}
-
-/**
- * Nothing on screen but Castivio, for as long as this screen is on it.
- *
- * Activation is the first thing a user sees and it is a full-frame composition:
- * a status bar's clock and battery sitting on top of the title, and a navigation
- * bar cutting into the QR, are somebody else's interface drawn over ours. The
- * device review photographed both.
- *
- * `BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE` rather than a sticky hide: the bars
- * come back on a swipe and go away again on their own. Hiding system UI that a
- * user cannot retrieve is a different thing from hiding it, and the wrong one.
- *
- * **Restored on the way out.** `onDispose` puts the bars back, so leaving
- * activation for the shell does not leave the rest of the app immersive. A
- * one-way call in `onCreate` would have done half the job and been invisible
- * until somebody wondered where the clock went.
- *
- * A television has no bars to hide and the controller call is a no-op there.
- */
-@Composable
-private fun ImmersiveWhileVisible() {
-    val view = LocalView.current
-    if (view.isInEditMode) return
-    val window = (view.context.findWindow()) ?: return
-
-    DisposableEffect(window) {
-        val controller = WindowCompat.getInsetsController(window, view)
-        controller.systemBarsBehavior =
-            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        controller.hide(WindowInsetsCompat.Type.systemBars())
-        onDispose { controller.show(WindowInsetsCompat.Type.systemBars()) }
-    }
-}
-
-/** The activity's window, through however many `ContextWrapper`s are in the way. */
-private tailrec fun Context.findWindow(): Window? = when (this) {
-    is Activity -> window
-    is ContextWrapper -> baseContext.findWindow()
-    else -> null
 }
 
 /**
@@ -477,6 +457,11 @@ private fun Steps(
     onCopied: (Copied) -> Unit,
     onOpenLanguage: () -> Unit,
     onPlay: (LocalMediaSelection) -> Unit,
+    /**
+     * What every screen's own Back control does: the route's one answer, the same one
+     * the back key gets. See `goBack` in [ActivationRoute] for why it is not a step.
+     */
+    onBack: () -> Unit,
 ) {
     // Read outside the transition: transitionSpec is not a composable lambda, so a
     // token fetched inside it would not compile -- and reading it once is what makes
@@ -522,7 +507,7 @@ private fun Steps(
                 // happens once there is something to reach for.
                 onLocalVideo = { onStep(ActivationStep.MediaSource) },
                 onSavedSources = { onStep(ActivationStep.SavedSources) },
-                onBack = { onStep(ActivationStep.Mac) },
+                onBack = onBack,
             )
 
             ActivationStep.MediaSource -> MediaSourceScreen(
@@ -530,7 +515,7 @@ private fun Steps(
                 onPickVideo = { onStep(ActivationStep.PickVideo) },
                 onAudioLibrary = { onStep(ActivationStep.AudioLibrary) },
                 onPickAudio = { onStep(ActivationStep.PickAudio) },
-                onBack = { onStep(ActivationStep.Choose) },
+                onBack = onBack,
             )
 
             // The four browse screens, reading the device.
@@ -547,7 +532,7 @@ private fun Steps(
                 VideoLibraryScreen(
                     videos = media.videos.map(LocalVideo::asTile),
                     onPlay = { index -> media.videos.getOrNull(index)?.let { onPlay(it.asSelection()) } },
-                    onBack = { onStep(ActivationStep.MediaSource) },
+                    onBack = onBack,
                     onNearEnd = host.loadMore,
                     permission = host.permission,
                 )
@@ -557,7 +542,7 @@ private fun Steps(
                 AudioLibraryScreen(
                     tracks = media.tracks.map(LocalTrack::asTile),
                     onPlay = { index -> media.tracks.getOrNull(index)?.let { onPlay(it.asSelection()) } },
-                    onBack = { onStep(ActivationStep.MediaSource) },
+                    onBack = onBack,
                     onNearEnd = host.loadMore,
                     permission = host.permission,
                 )
@@ -580,7 +565,7 @@ private fun Steps(
                         },
                     ),
                     onOpen = { index -> media.open(index, host, onPlay) },
-                    onBack = { onStep(ActivationStep.MediaSource) },
+                    onBack = onBack,
                     onNearEnd = host.loadMore,
                     permission = host.permission,
                     atRoot = media.folder == null,
@@ -604,7 +589,7 @@ private fun Steps(
                         },
                     ),
                     onOpen = { index -> media.open(index, host, onPlay) },
-                    onBack = { onStep(ActivationStep.MediaSource) },
+                    onBack = onBack,
                     onNearEnd = host.loadMore,
                     permission = host.permission,
                     atRoot = media.folder == null,
@@ -627,7 +612,7 @@ private fun Steps(
                         activation.usePlaylistUrl()
                         onStep(ActivationStep.Playlist)
                     },
-                    onBack = { onStep(ActivationStep.Choose) },
+                    onBack = onBack,
                 )
             }
 
@@ -744,8 +729,9 @@ internal fun ActivationSurface(
                 // back, the budget is 35dp with the bars hidden and 11dp with one
                 // swiped back, and `ActivationBudgetTest` asserts both.
                 //
-                // The screen also runs immersive (see [ImmersiveWhileVisible]), so
-                // on a settled device these are zero. Applying them anyway is the
+                // The whole window runs immersive — `MainActivity` hides the system
+                // bars and hides them again after anything steals focus — so on a
+                // settled device these are zero. Applying them anyway is the
                 // difference between a layout that is correct and one that is
                 // correct while the system cooperates.
                 // **Vertical only.** The horizontal half moved to `castivioStage`,
