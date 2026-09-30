@@ -47,7 +47,8 @@ body{background:#000}
 .artG{font-size:70px}
 .artW{font-size:12.98px;letter-spacing:.2em;color:#C7CBE8}
 
-.list{flex:1 1 auto;display:flex;flex-direction:column;gap:16.5px;min-width:0;overflow:hidden}
+.list{flex:1 1 auto;display:flex;flex-direction:column;min-width:0;min-height:0}
+.rows{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:16.5px}
 .card{border-radius:20.02px;border:1px solid var(--edge);background:var(--glassLow);
   padding:12.0px;display:flex;align-items:center;gap:12.0px;flex:0 0 auto;
   min-height:82.5px}
@@ -59,6 +60,7 @@ body{background:#000}
 .dA{background:linear-gradient(150deg,#2E6BFF,#1450C8)}
 .cm{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:4.5px}
 .r1{display:flex;align-items:center;gap:12.0px}
+.nm.unnamed{color:var(--muted);font-weight:600;font-style:italic}
 .nm{font-size:15.83px;font-weight:700;color:var(--white);white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis}
 .live{margin-inline-start:auto;flex:0 0 auto;height:21.0px;padding:0 9.0px;
@@ -79,8 +81,7 @@ body{background:#000}
 .act.del{border-color:rgba(255,90,90,.45);background:rgba(255,90,90,.10);color:var(--danger)}
 .ag{font-size:15.83px;line-height:1}
 
-.foot{display:flex;gap:16.0px;justify-content:flex-start;flex:0 0 auto;
-  margin-top:auto;padding-top:18.0px}
+.foot{display:flex;gap:16.0px;justify-content:flex-start;flex:0 0 auto;padding-top:18.0px}
 .btn{height:56px;padding:0 16.54px;border-radius:12.41px;display:flex;align-items:center;
   gap:6px;font-size:15.83px;font-weight:600;color:var(--white)}
 .b2{border:1px solid var(--edge);background:var(--glassLow)}
@@ -99,6 +100,10 @@ body{background:#000}
 .dr{display:flex;gap:16.0px;width:100%;margin-top:18.0px}
 .dr .btn{flex:1 1 0;justify-content:center}
 .bDel{background:var(--danger);color:#26070b}
+.dd.rn{border-color:rgba(155,107,255,.5);background:rgba(155,107,255,.14)}
+.fld{width:100%;height:56px;border-radius:12.41px;border:1px solid var(--edgeLit);
+  background:rgba(255,255,255,.05);display:flex;align-items:center;padding:0 12.0px;
+  font-size:15.83px;color:var(--white);margin-top:6.0px}
 </style>
 <div class="shot">
   <div class="glow warm"></div><div class="glow cool"></div>
@@ -111,14 +116,25 @@ body{background:#000}
     </div>
     <div class="sub">إدارة جميع الاشتراكات المحفوظة على هذا الجهاز</div>
     <div class="body">
-      <div class="art"><div class="artTv"><div class="artG">📺</div><div class="artW">CASTIVIO</div></div></div>
+      
       <div class="list">
+        <div class="rows">
         <div class="card on">
           <div class="cd dV">▤</div>
           <div class="cm">
-            <div class="r1"><span class="nm">My IPTV</span><div class="live"><span class="dot"></span>نشط الآن</div></div>
-            <div class="r2"><span class="k kX">Xtream</span><span>◍ user123</span><span class="sep">|</span><span class="host">⊕ example.com</span></div>
-            <div class="r3">مضاف في 2026/09/20</div>
+            <div class="r1"><span class="nm">server 1</span><div class="live"><span class="dot"></span>نشط الآن</div></div>
+            <div class="r2"><span class="k kX">Xtream</span><span>مضاف في 2026/09/20</span></div>
+          </div>
+          <div class="acts">
+            <div class="act"><span class="ag">✎</span>تعديل</div>
+            <div class="act del"><span class="ag">🗑</span>حذف</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="cd dV">▤</div>
+          <div class="cm">
+            <div class="r1"><span class="nm">server 2</span></div>
+            <div class="r2"><span class="k kX">Xtream</span><span>مضاف في 2026/09/22</span></div>
           </div>
           <div class="acts">
             <div class="act"><span class="ag">✎</span>تعديل</div>
@@ -128,9 +144,8 @@ body{background:#000}
         <div class="card">
           <div class="cd dA">▣</div>
           <div class="cm">
-            <div class="r1"><span class="nm">Arabic Channels</span></div>
-            <div class="r2"><span class="k kM">M3U</span><span class="host">⊕ m3u-provider.com/playlist.m3u</span></div>
-            <div class="r3">مضاف في 2026/09/18</div>
+            <div class="r1"><span class="nm">قائمة الأفلام</span></div>
+            <div class="r2"><span class="k kM">M3U</span><span>مضاف في 2026/09/25</span></div>
           </div>
           <div class="acts">
             <div class="act"><span class="ag">✎</span>تعديل</div>
@@ -138,16 +153,16 @@ body{background:#000}
           </div>
         </div>
         <div class="card">
-          <div class="cd dV">▤</div>
+          <div class="cd dA">▣</div>
           <div class="cm">
-            <div class="r1"><span class="nm">Movies &amp; Series</span></div>
-            <div class="r2"><span class="k kX">Xtream</span><span>◍ movies</span><span class="sep">|</span><span class="host">⊕ iptvserver.net</span></div>
-            <div class="r3">مضاف في 2026/09/15</div>
+            <div class="r1"><span class="nm unnamed">اشتراك بلا اسم</span></div>
+            <div class="r2"><span class="k kM">M3U</span><span>مضاف في 2026/09/28</span></div>
           </div>
           <div class="acts">
             <div class="act"><span class="ag">✎</span>تعديل</div>
             <div class="act del"><span class="ag">🗑</span>حذف</div>
           </div>
+        </div>
         </div>
         <div class="foot">
           <div class="btn b1">▤&nbsp; إضافة Xtream</div>
@@ -160,6 +175,6 @@ body{background:#000}
   <div class="dlg"><div class="dd">🗑</div>
     <div class="dh">هل أنت متأكد من حذف هذا الاشتراك؟</div>
     <div class="ds">سيتم حذف هذا الاشتراك من جهازك فقط.</div>
-    <div class="dr"><div class="btn b2">إلغاء</div><div class="btn bDel">🗑&nbsp; حذف</div></div>
+    <div class="dr"><div class="btn bDel">🗑&nbsp; حذف</div><div class="btn b2">إلغاء</div></div>
   </div>
 </div></html>
