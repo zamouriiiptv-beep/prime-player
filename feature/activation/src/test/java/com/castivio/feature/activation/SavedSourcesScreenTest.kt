@@ -149,6 +149,19 @@ class SavedSourcesScreenTest {
         compose.onAllNodesWithTag(ActivationTags.SAVED_EDIT)[0].performClick()
 
         compose.onNodeWithTag(ActivationTags.SAVED_RENAME_DIALOG).assertIsDisplayed()
+
+        // Printed before it is asserted, in the manner of this module's budget tests.
+        // "The component is not displayed" says only that; where the field actually
+        // landed, and inside what, is the difference between fixing this and guessing
+        // at it again.
+        val panel = compose.onNodeWithTag(ActivationTags.SAVED_RENAME_DIALOG).fetchSemanticsNode()
+        val field = compose.onNodeWithTag(ActivationTags.SAVED_RENAME_FIELD).fetchSemanticsNode()
+        println(
+            "rename dialog — panel ${panel.boundsInRoot} size ${panel.size} | " +
+                "field ${field.boundsInRoot} size ${field.size} | " +
+                "root ${panel.root?.semanticsOwner?.rootSemanticsNode?.boundsInRoot}",
+        )
+
         // Displayed, not merely present. The panel is capped at a fraction of the
         // screen and the field is the thing that fell off the bottom of it: asserting
         // existence would have passed while the control the dialog exists to offer was
