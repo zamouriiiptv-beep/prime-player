@@ -153,6 +153,27 @@ enum class ActivationFailure {
 data class ActivationUiState(
     val form: ActivationForm = ActivationForm.Xtream(),
     val phase: ActivationPhase = ActivationPhase.Editing,
+    /**
+     * **An import that has just finished and has not been acted on yet.**
+     *
+     * [phase] answers *what the operation is*, and `Succeeded` is its terminal answer:
+     * it is the record of what happened and it is what the screens are drawn from. This
+     * answers a different question — *has anyone been told yet* — and it is the only
+     * field on this state that a reader is expected to take away.
+     *
+     * The two have to be separate because the phase cannot be un-succeeded. A success is
+     * not something a user undoes, so there is no path out of it, and the view model that
+     * holds it is resolved against the activity's store and outlives the screen. A reader
+     * that reported "activated" on *seeing* `Succeeded` therefore reported it again on
+     * every later composition — and in the shell that report means "close me", so the
+     * subscription flow shut itself a quarter of a second after opening, which from Home
+     * reads as two menu items that do nothing.
+     *
+     * Null once it has been consumed, and null again on a fresh state. It is not a flag
+     * that says to ignore a success: it *is* the success, and taking it leaves nothing
+     * behind to find. The same shape `HomeState.refreshFault` has, cleared the same way.
+     */
+    val completed: ActivationPhase.Succeeded? = null,
 ) {
     /** True while something is running, which is when every field should be read-only. */
     val busy: Boolean

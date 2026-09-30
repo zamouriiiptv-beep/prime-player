@@ -272,23 +272,32 @@ fun ActivationRoute(
 
     val phase = state.phase
 
-    // **The completion is collected as an event, not read off the phase.**
+    // **The completion is taken off the state, not inferred from the phase.**
     //
     // This used to be `LaunchedEffect(phase) { if (phase is Succeeded) onActivated() }`,
     // and that is the whole of the defect it replaces. `ActivationViewModel` is resolved
     // against the activity's store, so it outlives this route; nothing ever takes the
-    // phase back out of `Succeeded`; and so every later composition of this route saw a
-    // success that had already been reported and reported it again. In the shell that
-    // seam means "close me", so after one successful import the subscription flow shut
-    // itself a quarter of a second after opening — which from Home reads as two menu
-    // items that do nothing.
+    // phase back out of `Succeeded`, because a success is not something a user undoes;
+    // and so every later composition of this route saw a success that had already been
+    // reported and reported it again. In the shell that seam means "close me", so after
+    // one successful import the subscription flow shut itself a quarter of a second
+    // after opening — which from Home reads as two menu items that do nothing.
     //
-    // `ActivationViewModel.activated` delivers each completion once. Keyed on the view
-    // model rather than on `Unit` so the collection follows the instance if the store
-    // ever hands this route a different one.
+    // `state.completed` is that success with the question "has anyone been told" still
+    // attached, and taking it answers the question. **Consumed before the report**, so a
+    // route torn down by that very report leaves nothing behind: a second entry reads
+    // null and stands still, while the phase beside it is untouched.
+    //
+    // `rememberUpdatedState` because the seam is a lambda the shell rebuilds on its own
+    // recompositions, and this effect must call the current one rather than the one that
+    // happened to be passed when the success arrived.
     val activated by rememberUpdatedState(onActivated)
-    LaunchedEffect(activation) {
-        activation.activated.collect { activated() }
+    val completed = state.completed
+    LaunchedEffect(completed) {
+        if (completed != null) {
+            activation.activationHandled()
+            activated()
+        }
     }
 
     BackHandler {

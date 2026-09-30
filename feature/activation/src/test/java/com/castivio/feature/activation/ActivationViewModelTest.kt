@@ -24,7 +24,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -399,10 +398,10 @@ class ActivationViewModelTest {
         assertEquals(ActivationPhase.Editing, model.state.value.phase)
     }
 
-    // ------------------------------------------------- finishing is an event, once
+    // ------------------------------------------- finishing is a state you take away
 
     /**
-     * **The defect this pair exists for.**
+     * **What the three tests below are protecting.**
      *
      * This view model is resolved against the activity's store, so it outlives the
      * screen that reads it, and nothing takes the phase back out of `Succeeded` — a
@@ -412,50 +411,75 @@ class ActivationViewModelTest {
      * subscription flow shut itself a quarter of a second after opening, which from
      * Home reads as two menu items that do nothing at all.
      *
-     * So the completion is delivered, not published. One import, one event.
+     * `completed` is the same success carrying the question the phase cannot: has
+     * anyone been told. Taking it answers the question and leaves nothing to re-read.
+     *
+     * Written against the state rather than through a composition, which is what keeps
+     * them JVM tests. `openRoute()` stands for `ActivationRoute` entering the
+     * composition and doing what its `LaunchedEffect` does — the whole of it, in the
+     * order it does it.
      */
-    @Test
-    fun `a successful import announces itself exactly once`() = runTest {
-        val model = viewModel()
-        val heard = mutableListOf<ActivationPhase.Succeeded>()
-        val listener = launch { model.activated.collect { heard += it } }
+    private fun ActivationViewModel.openRoute(): Int {
+        val completed = state.value.completed ?: return 0
+        // Consumed *before* the report, exactly as the route does it.
+        activationHandled()
+        return 1.also { assertTrue(completed.itemCount >= 0) }
+    }
 
+    /** A real import announces itself, once. */
+    @Test
+    fun `a new success reports exactly once`() = runTest {
+        val model = viewModel()
         model.fillXtream()
         model.submit()
         advanceUntilIdle()
 
         assertTrue("${model.state.value.phase}", model.state.value.phase is ActivationPhase.Succeeded)
-        assertEquals(1, heard.size)
-        listener.cancel()
+        assertEquals(1, model.openRoute())
+        assertNull("the success was not taken off the state", model.state.value.completed)
     }
 
     /**
-     * And a later reader of the same view model hears nothing.
+     * And opening the flow again finds nothing to act on.
      *
-     * This is the property the phase could never have, and the one that decides whether
-     * reopening the flow works: the second collector stands for the flow being entered
-     * again — a new composition, the same activity-scoped view model, the phase still
-     * `Succeeded`. It must find no completion to consume.
+     * The property the phase could never have, and the one that decides whether the two
+     * doors on Home work: same view model, same `Succeeded` phase, new composition.
      */
     @Test
-    fun `reopening the flow after a success hears nothing`() = runTest {
+    fun `reopening after a consumed success reports nothing`() = runTest {
         val model = viewModel()
-        val first = mutableListOf<ActivationPhase.Succeeded>()
-        val firstListener = launch { model.activated.collect { first += it } }
-
         model.fillXtream()
         model.submit()
         advanceUntilIdle()
-        firstListener.cancel()
+        model.openRoute()
 
-        // The flow closes and is opened again: same view model, same phase, new reader.
-        val second = mutableListOf<ActivationPhase.Succeeded>()
-        val secondListener = launch { model.activated.collect { second += it } }
+        // The flow closes and is opened again, twice, on the same view model.
+        assertEquals(0, model.openRoute())
+        assertEquals(0, model.openRoute())
+        assertTrue(
+            "the phase is the record of what happened and must survive",
+            model.state.value.phase is ActivationPhase.Succeeded,
+        )
+    }
+
+    /** And a *second* real import still closes the flow — once. */
+    @Test
+    fun `a later success after a consumed one reports again, once`() = runTest {
+        val model = viewModel()
+        model.fillXtream()
+        model.submit()
+        advanceUntilIdle()
+        model.openRoute()
+        assertEquals(0, model.openRoute())
+
+        // A second subscription is added from the same screen.
+        model.usePlaylistUrl()
+        model.name("Second")
+        model.playlistUrl("http://line.example.com:8080/get.php?username=ann&password=s3cret")
+        model.submit()
         advanceUntilIdle()
 
-        assertEquals(1, first.size)
-        assertTrue("heard a success that had already been delivered: $second", second.isEmpty())
-        assertTrue(model.state.value.phase is ActivationPhase.Succeeded)
-        secondListener.cancel()
+        assertEquals(1, model.openRoute())
+        assertEquals(0, model.openRoute())
     }
 }
