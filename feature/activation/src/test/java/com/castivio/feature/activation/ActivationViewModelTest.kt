@@ -24,6 +24,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -396,5 +397,65 @@ class ActivationViewModelTest {
         model.usePlaylistUrl()
 
         assertEquals(ActivationPhase.Editing, model.state.value.phase)
+    }
+
+    // ------------------------------------------------- finishing is an event, once
+
+    /**
+     * **The defect this pair exists for.**
+     *
+     * This view model is resolved against the activity's store, so it outlives the
+     * screen that reads it, and nothing takes the phase back out of `Succeeded` — a
+     * success is not something a user undoes. A screen that reported "activated" on
+     * *seeing* that phase therefore reported it again every time it was composed, and
+     * in the shell that seam means "close me": after one successful import, the
+     * subscription flow shut itself a quarter of a second after opening, which from
+     * Home reads as two menu items that do nothing at all.
+     *
+     * So the completion is delivered, not published. One import, one event.
+     */
+    @Test
+    fun `a successful import announces itself exactly once`() = runTest {
+        val model = viewModel()
+        val heard = mutableListOf<ActivationPhase.Succeeded>()
+        val listener = launch { model.activated.collect { heard += it } }
+
+        model.fillXtream()
+        model.submit()
+        advanceUntilIdle()
+
+        assertTrue("${model.state.value.phase}", model.state.value.phase is ActivationPhase.Succeeded)
+        assertEquals(1, heard.size)
+        listener.cancel()
+    }
+
+    /**
+     * And a later reader of the same view model hears nothing.
+     *
+     * This is the property the phase could never have, and the one that decides whether
+     * reopening the flow works: the second collector stands for the flow being entered
+     * again — a new composition, the same activity-scoped view model, the phase still
+     * `Succeeded`. It must find no completion to consume.
+     */
+    @Test
+    fun `reopening the flow after a success hears nothing`() = runTest {
+        val model = viewModel()
+        val first = mutableListOf<ActivationPhase.Succeeded>()
+        val firstListener = launch { model.activated.collect { first += it } }
+
+        model.fillXtream()
+        model.submit()
+        advanceUntilIdle()
+        firstListener.cancel()
+
+        // The flow closes and is opened again: same view model, same phase, new reader.
+        val second = mutableListOf<ActivationPhase.Succeeded>()
+        val secondListener = launch { model.activated.collect { second += it } }
+        advanceUntilIdle()
+
+        assertEquals(1, first.size)
+        assertTrue("heard a success that had already been delivered: $second", second.isEmpty())
+        assertTrue(model.state.value.phase is ActivationPhase.Succeeded)
+        secondListener.cancel()
     }
 }

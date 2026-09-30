@@ -31,6 +31,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -271,8 +272,23 @@ fun ActivationRoute(
 
     val phase = state.phase
 
-    LaunchedEffect(phase) {
-        if (phase is ActivationPhase.Succeeded) onActivated()
+    // **The completion is collected as an event, not read off the phase.**
+    //
+    // This used to be `LaunchedEffect(phase) { if (phase is Succeeded) onActivated() }`,
+    // and that is the whole of the defect it replaces. `ActivationViewModel` is resolved
+    // against the activity's store, so it outlives this route; nothing ever takes the
+    // phase back out of `Succeeded`; and so every later composition of this route saw a
+    // success that had already been reported and reported it again. In the shell that
+    // seam means "close me", so after one successful import the subscription flow shut
+    // itself a quarter of a second after opening — which from Home reads as two menu
+    // items that do nothing.
+    //
+    // `ActivationViewModel.activated` delivers each completion once. Keyed on the view
+    // model rather than on `Unit` so the collection follows the instance if the store
+    // ever hands this route a different one.
+    val activated by rememberUpdatedState(onActivated)
+    LaunchedEffect(activation) {
+        activation.activated.collect { activated() }
     }
 
     BackHandler {

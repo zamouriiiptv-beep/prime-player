@@ -10,9 +10,12 @@ import com.castivio.domain.activation.asForm
 import com.castivio.domain.time.TrustedTime
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -44,6 +47,35 @@ class ActivationViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(ActivationUiState())
     val state: StateFlow<ActivationUiState> = _state.asStateFlow()
+
+    /**
+     * **An import finished. Said once, to whoever is listening at the time.**
+     *
+     * `ActivationPhase.Succeeded` is a state, and this view model outlives the screen
+     * that reads it: `hiltViewModel()` resolves to the activity's store, so the phase
+     * survives the flow closing, Home being shown, and the flow being opened again. And
+     * nothing takes the phase back out of `Succeeded` — `cancel`, `retry`,
+     * `dismissFailure` and `editing` all return to `Editing`, but there is no path from
+     * a success to anything else, because a success is not something a user undoes.
+     *
+     * So a screen that watched the phase and reported "activated" on seeing `Succeeded`
+     * reported it again every time it was composed. In the shell that seam means "close
+     * me", and the subscription flow closed itself a quarter of a second after it opened
+     * — for the rest of the process, after any one successful import. From Home the two
+     * doors simply did not open.
+     *
+     * A [Channel] rather than a `StateFlow` because that is the actual shape of the
+     * thing: a completion happens once, is delivered once, and is gone. A later
+     * composition finds nothing to re-consume, which is the property the phase could
+     * never have.
+     *
+     * Buffered, not conflated and not dropping: an event must not be lost across the
+     * recomposition that follows it. In practice one cannot queue up — leaving the flow
+     * while an import runs goes through [cancel], which stops the job before it can
+     * finish — but a buffer is what makes that an observation rather than a requirement.
+     */
+    private val _activated = Channel<ActivationPhase.Succeeded>(Channel.BUFFERED)
+    val activated: Flow<ActivationPhase.Succeeded> = _activated.receiveAsFlow()
 
     private var running: Job? = null
 
@@ -108,7 +140,12 @@ class ActivationViewModel @Inject constructor(
             // fetched when it is first opened instead, by `LoadSection`, so what this
             // screen now proves is only that the credentials work.
             activate.activate(source, current.form.label, clock.nowMs(), fetchCatalogue = false)
-                .collect { phase -> _state.update { it.copy(phase = phase) } }
+                .collect { phase ->
+                    _state.update { it.copy(phase = phase) }
+                    // Announced where it happens, once, rather than inferred later from
+                    // the phase it leaves behind. See [activated].
+                    if (phase is ActivationPhase.Succeeded) _activated.send(phase)
+                }
         }
     }
 
