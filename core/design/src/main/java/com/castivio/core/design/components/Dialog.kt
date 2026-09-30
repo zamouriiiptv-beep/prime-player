@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
@@ -37,6 +39,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.dialog
@@ -325,7 +328,23 @@ private fun DialogPanel(
             dismissOnClickOutside = false,
         ),
     ) {
-        val window = (LocalView.current.parent as? DialogWindowProvider)?.window
+        // **Walked, not assumed.**
+        //
+        // This was `LocalView.current.parent as? DialogWindowProvider`, which is the
+        // shape every example uses and which assumes the window's host is exactly one
+        // view above the composition. A build went out where every line in the block
+        // below had no effect whatsoever — the decor still fitted the system windows,
+        // the dim was still the platform's, the bars still came back — and a null here
+        // is the one cause that explains all of them at once rather than each of them
+        // separately. A safe cast that is wrong fails silently; a walk cannot be wrong
+        // about how many views deep the host is.
+        val view = LocalView.current
+        val window = remember(view) {
+            generateSequence(view.parent) { it.parent }
+                .filterIsInstance<DialogWindowProvider>()
+                .firstOrNull()
+                ?.window
+        }
         SideEffect {
             window?.let {
                 it.setDimAmount(0f)
@@ -366,6 +385,7 @@ private fun DialogPanel(
             DialogScrim(
                 title = title,
                 onScrim = onScrim,
+                hasWindow = window != null,
                 modifier = modifier,
                 content = content,
             )
@@ -385,6 +405,7 @@ private fun DialogPanel(
 private fun DialogScrim(
     title: String,
     onScrim: () -> Unit,
+    hasWindow: Boolean,
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.(tight: Boolean) -> Unit,
 ) {
@@ -491,10 +512,52 @@ private fun DialogScrim(
                     color = colors.onBackground,
                     modifier = Modifier.semantics { heading() },
                 )
+
+                // TEMPORARY. Its own node rather than part of the title, so the tests
+                // that find a dialog by the exact words of its heading still find it.
+                if (PROBE) {
+                    Text(
+                        text = probe(hasWindow, maxHeight),
+                        style = CastivioType.labelSmall,
+                        color = colors.onBackgroundMuted,
+                    )
+                }
+
                 content(tight)
             }
         }
     }
+}
+
+/* ------------------------------------------------------------------- TEMPORARY
+ *
+ * A measurement, printed where a photograph can read it, and deleted in the commit
+ * after the one that reads it.
+ *
+ * Four builds have now been spent on this dialog and the keyboard, and the last of
+ * them changed nothing visible at all: the decor still fitted the system windows,
+ * the panel was still centred in the whole screen, the scrim still stopped short of
+ * both edges. Every explanation for that is a guess about framework behaviour this
+ * machine cannot run — Gradle cannot resolve the Android artifacts here, there is no
+ * emulator, and a Compose unit test has no keyboard to raise.
+ *
+ * So the next build is spent on evidence instead of a fifth guess. Three numbers
+ * answer it between them:
+ *
+ *  - **win** — whether the dialog's own window was found at all. `false` means every
+ *    line that configures that window is a no-op, which alone explains the whole
+ *    photograph.
+ *  - **ime** — the keyboard inset Compose can see *inside* the dialog. `0` with the
+ *    keyboard up means the decor is eating it, and no modifier can recover it.
+ *  - **h** — the height the panel is being measured in. 393 means the full screen;
+ *    something near 210 means the lift is working and the panel is simply too big.
+ */
+private const val PROBE = true
+
+@Composable
+private fun probe(hasWindow: Boolean, height: Dp): String {
+    val ime = with(LocalDensity.current) { WindowInsets.ime.getBottom(this).toDp() }
+    return "win=$hasWindow ime=${ime.value.toInt()} h=${height.value.toInt()}"
 }
 
 /**
