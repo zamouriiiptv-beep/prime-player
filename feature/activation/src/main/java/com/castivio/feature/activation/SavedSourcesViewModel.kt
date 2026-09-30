@@ -64,6 +64,42 @@ class SavedSourcesViewModel @Inject constructor(
         viewModelScope.launch { sources.setActive(id) }
     }
 
+    /**
+     * Give a subscription a different name, and nothing else.
+     *
+     * The whole of "edit" on this screen. It reads the row, replaces one field and
+     * writes it back rather than taking a [ProviderSource] from the caller: a screen
+     * that could hand this a whole record could hand it a changed address or a changed
+     * password, and renaming is not a door that should open onto those.
+     *
+     * A blank name is refused rather than stored. Every subscription has a name from
+     * the moment it is registered — the user's, or the first free `Playlist n` — and
+     * emptying one would put back the blank rows that naming exists to prevent.
+     */
+    fun rename(id: String, name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
+        viewModelScope.launch {
+            val source = sources.get(id) ?: return@launch
+            if (source.label == trimmed) return@launch
+            sources.save(source.copy(label = trimmed))
+        }
+    }
+
+    /**
+     * Remove a subscription from this device.
+     *
+     * **Including the one in use, and nothing is activated in its place.** Which
+     * subscription the app shows is the user's choice, and picking one for them at the
+     * moment they deleted another is the app making that choice on their behalf — on a
+     * screen whose whole purpose is that they make it themselves. What the screen owes
+     * them instead is a warning that says plainly what deleting the active one costs,
+     * which is why [SavedSourcesState.Ready.activeId] is on screen beside every row.
+     */
+    fun delete(id: String) {
+        viewModelScope.launch { sources.delete(id) }
+    }
+
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
     }

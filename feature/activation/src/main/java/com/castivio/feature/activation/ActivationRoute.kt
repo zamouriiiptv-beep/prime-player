@@ -602,6 +602,8 @@ private fun Steps(
                 SavedSourcesScreen(
                     state = savedState,
                     onChoose = saved::choose,
+                    onRename = saved::rename,
+                    onDelete = saved::delete,
                     // The same two calls the source choice makes, landing on the same
                     // two forms. A second way in, not a second implementation.
                     onAddXtream = {

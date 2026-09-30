@@ -61,16 +61,48 @@
     <string name="media_reading">Reading this device…</string>
     <string name="media_picker_root">Internal storage</string>
 
-    <!-- The subscriptions already on this box -->
-    <string name="saved_sources_title">Saved users</string>
+    <!-- The subscriptions already on this box.
+
+         The screen manages what is saved here; it is not where connection details are
+         read or changed. That is why no row carries a username, a password or a server
+         URL: a name, a kind and a date are what tell two subscriptions apart, and they
+         are the only things anybody needs to see to choose between them. -->
+    <string name="saved_sources_title">My subscriptions</string>
+    <string name="saved_sources_subtitle">Manage every subscription saved on this device</string>
     <string name="saved_sources_empty">No subscriptions saved on this device yet.</string>
     <string name="saved_sources_add_xtream">Add Xtream</string>
     <string name="saved_sources_add_m3u">Add M3U</string>
-    <string name="saved_sources_active">In use</string>
-    <!-- A subscription the user added without naming. `RoomSourceRepository` stores
-         no name rather than inventing one from the host, so the row supplies its own
-         placeholder; the address underneath is what actually identifies it here. -->
+    <string name="saved_sources_active">Active now</string>
+    <!-- Only for rows written before a name was decided at registration. Every
+         subscription registered since has one, so this is legacy data's fallback and
+         not a state the product can still produce. -->
     <string name="saved_sources_unnamed">Unnamed playlist</string>
+    <!-- "Added on 20/09/2026". The date is formatted by the platform for the reader's
+         locale, so the format is not written here. -->
+    <string name="saved_sources_added">Added on %1$s</string>
+
+    <!-- Renaming, which is the whole of "edit" on this screen. The second line is the
+         point of it: this changes what the subscription is called and nothing else, and
+         a user who pressed a pencil expecting the server form should find that out
+         before they start typing rather than after they save. -->
+    <string name="saved_sources_edit">Edit</string>
+    <string name="saved_sources_rename_title">Playlist name</string>
+    <string name="saved_sources_rename_detail">The name you see in your list of subscriptions. It does not change the connection details.</string>
+    <string name="saved_sources_rename_save">Save</string>
+
+    <!-- Deleting. Two warnings, because they are two different facts.
+
+         Any subscription may be deleted, the active one included, and nothing is
+         activated in its place — which subscription the app shows is the user's choice
+         to make, and making it for them at the moment they deleted another is the one
+         thing this screen must not do. So the second message says what will actually
+         happen rather than refusing the press. -->
+    <string name="saved_sources_delete">Delete</string>
+    <string name="saved_sources_delete_title">Delete this subscription?</string>
+    <string name="saved_sources_delete_detail">It will be removed from this device only.</string>
+    <string name="saved_sources_delete_active_title">This is the subscription in use</string>
+    <string name="saved_sources_delete_active_detail">Deleting it will stop it being used on this device. Do you want to continue?</string>
+    <string name="saved_sources_cancel">Cancel</string>
 
     <!-- The forms -->
     <string name="field_playlist_name">Playlist name</string>

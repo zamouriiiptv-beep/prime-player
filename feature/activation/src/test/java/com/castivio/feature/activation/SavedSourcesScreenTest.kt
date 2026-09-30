@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -121,6 +122,74 @@ class SavedSourcesScreenTest {
         assertEquals(listOf("xtream", "m3u"), pressed)
     }
 
+    // ------------------------------------------------------- renaming and deleting
+
+    /**
+     * The row carries no connection details, and this is the assertion that keeps it
+     * that way. The addresses are in the fixtures precisely so their absence on screen
+     * is a claim about the screen rather than about the data it was given.
+     */
+    @Test
+    fun `a row shows no address and no username`() {
+        compose.show(SavedSourcesState.Ready(saved = twoSources(), activeId = "b"))
+
+        compose.onNodeWithText("http://one.example", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("http://two.example", substring = true).assertDoesNotExist()
+    }
+
+    /** Edit opens the rename dialog, and the dialog opens on the name it will change. */
+    @Test
+    fun `edit opens the rename dialog on that subscription's name`() {
+        compose.show(SavedSourcesState.Ready(saved = twoSources(), activeId = "b"))
+
+        compose.onAllNodesWithTag(ActivationTags.SAVED_EDIT)[0].performClick()
+
+        compose.onNodeWithTag(ActivationTags.SAVED_RENAME_DIALOG).assertIsDisplayed()
+        compose.onNodeWithTag(ActivationTags.SAVED_RENAME_FIELD).assertIsDisplayed()
+    }
+
+    /**
+     * Deleting a subscription that is merely saved asks the ordinary question.
+     *
+     * The two titles are asserted apart because they are the whole of the requirement:
+     * one is a tidy-up and the other changes what the app shows next time it opens.
+     */
+    @Test
+    fun `deleting a saved subscription asks the ordinary question`() {
+        compose.show(SavedSourcesState.Ready(saved = twoSources(), activeId = "b"))
+
+        compose.onAllNodesWithTag(ActivationTags.SAVED_DELETE)[0].performClick()
+
+        compose.onNodeWithTag(ActivationTags.SAVED_DELETE_DIALOG).assertIsDisplayed()
+        compose.onNodeWithText("Delete this subscription?").assertIsDisplayed()
+    }
+
+    /** Deleting the one in use says so, rather than refusing the press. */
+    @Test
+    fun `deleting the subscription in use warns that it is the one in use`() {
+        compose.show(SavedSourcesState.Ready(saved = twoSources(), activeId = "a"))
+
+        compose.onAllNodesWithTag(ActivationTags.SAVED_DELETE)[0].performClick()
+
+        compose.onNodeWithText("This is the subscription in use").assertIsDisplayed()
+        compose.onNodeWithText("Delete this subscription?").assertDoesNotExist()
+    }
+
+    /** Confirming reports the id, and the screen writes nothing itself. */
+    @Test
+    fun `confirming a delete reports that subscription`() {
+        val deleted = mutableListOf<String>()
+        compose.show(
+            state = SavedSourcesState.Ready(saved = twoSources(), activeId = "b"),
+            onDelete = { deleted += it },
+        )
+
+        compose.onAllNodesWithTag(ActivationTags.SAVED_DELETE)[0].performClick()
+        compose.onNodeWithText("Delete").performClick()
+
+        assertEquals(listOf("a"), deleted)
+    }
+
     /* -------------------------------------------------------------------------- */
 
     private fun twoSources() = listOf(
@@ -131,6 +200,8 @@ class SavedSourcesScreenTest {
     private fun ComposeContentTestRule.show(
         state: SavedSourcesState,
         onChoose: (String) -> Unit = {},
+        onRename: (String, String) -> Unit = { _, _ -> },
+        onDelete: (String) -> Unit = {},
         onAddXtream: () -> Unit = {},
         onAddPlaylist: () -> Unit = {},
     ) = setContent {
@@ -140,6 +211,8 @@ class SavedSourcesScreenTest {
                     SavedSourcesScreen(
                         state = state,
                         onChoose = onChoose,
+                        onRename = onRename,
+                        onDelete = onDelete,
                         onAddXtream = onAddXtream,
                         onAddPlaylist = onAddPlaylist,
                         onBack = {},

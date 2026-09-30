@@ -8,6 +8,7 @@ import com.castivio.domain.ProviderSource
 import com.castivio.domain.SourceKind
 import com.castivio.domain.SourceRepository
 import com.castivio.domain.SyncState
+import com.castivio.domain.nextPlaylistName
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -33,23 +34,36 @@ class RoomSourceRepository(
      * the stored label against a re-derived one is a second implementation of the
      * derivation that drifts the first time either changes.
      *
-     * So the fact is kept rather than overwritten: no name is stored as no name, and a
-     * *display* fallback belongs to whichever screen is drawing it. That is a
-     * presentation decision — Home numbers them `Playlist 1`, `Playlist 2` — and
-     * presentation decisions do not belong in a table.
+     * **A name is now decided here, and it is deliberately not the host.** Leaving the
+     * column blank kept the data honest and left the product without an answer: three
+     * unnamed subscriptions are three blanks nobody can choose between, and a
+     * placeholder each screen worked out from a row's position renumbered itself the
+     * moment a row above it was deleted. So [nextPlaylistName] gives it the first
+     * `Playlist n` no other subscription is using, once, and that is stored.
      *
-     * Rows written before this change keep whatever label they were given, so a
-     * subscription the user did name still shows that name. Nothing is rewritten and
-     * no migration is needed: the column was already `TEXT NOT NULL`, and empty is a
-     * value it could always hold.
+     * The distinction the old comment was protecting — "the user named this" against
+     * "we invented a name" — is not worth what it cost, because after this the two are
+     * the same thing: a generated name is an ordinary name, shown like any other and
+     * renamed from the subscriptions screen exactly as a typed one is.
+     *
+     * Still not the host. A name derived from the address is one that changes when the
+     * address does, cannot be told from something the user typed, and puts part of a
+     * server URL on every screen that lists subscriptions.
+     *
+     * Rows written before this change keep whatever label they were given, including
+     * the blank ones, so nothing is rewritten and no migration is needed. What draws a
+     * blank row is the screen's business, as it was.
      */
     override suspend fun register(source: PlaylistSource, label: String?): ProviderSource {
         val id = SourceIds.of(source)
         val existing = dao.byId(id)
+        val named = label?.trim().orEmpty()
         val registered = ProviderSource(
             id = id,
             kind = SourceIds.kindOf(source),
-            label = label.orEmpty(),
+            // Re-registering a subscription that already exists keeps the name it has:
+            // the user may have renamed it since, and an import must not undo that.
+            label = named.ifEmpty { existing?.label?.ifBlank { null } ?: nextPlaylistName(dao.labels()) },
             url = when (source) {
                 is PlaylistSource.M3u -> source.url
                 is PlaylistSource.LocalFile -> source.uri

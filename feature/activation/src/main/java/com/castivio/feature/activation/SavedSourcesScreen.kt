@@ -1,5 +1,8 @@
 package com.castivio.feature.activation
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -11,84 +14,133 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Dns
+import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.core.os.ConfigurationCompat
 import com.castivio.core.design.components.ButtonWeight
 import com.castivio.core.design.components.CastivioButton
+import com.castivio.core.design.components.CastivioDialog
+import com.castivio.core.design.components.CastivioTextField
 import com.castivio.core.design.components.InteractiveGlassCard
-import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioBodyStyle
+import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioDescriptionColor
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Sizing
+import com.castivio.core.design.theme.boundedFraction
 import com.castivio.core.design.theme.castivioStage
 import com.castivio.domain.ProviderSource
+import com.castivio.domain.SourceKind
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
- * The subscriptions this box already holds.
- *
- * Reached from the fourth card on the source choice, and it is the one destination of
- * the four that had nowhere to go: Xtream and M3U open forms that have existed since
- * the flow was written, and a saved-subscription list did not exist at all.
+ * The subscriptions this device holds, and what the user may do to them.
  *
  * ## What it is, and what it deliberately is not
  *
- * It lists what `SourceRepository` holds, marks the one in use, and switches to
- * another when it is chosen. Adding a subscription is the two buttons at the bottom,
- * and they do not open anything new — they call the same `useXtream()` and
- * `usePlaylistUrl()` the source choice calls, and land on the same two forms. There is
- * one way to add a provider in this application and this screen is a second door onto
- * it, not a second implementation of it.
+ * It is a list of subscriptions, one row each, however many there are. A row says which
+ * subscription it is — the name, the kind of source, the day it was added — marks the
+ * one in use, and offers the two things this screen exists for: renaming it, and
+ * removing it from the device. Choosing a row makes it the one the app shows.
  *
- * Deleting is absent, and that is a decision rather than an omission: removing a
- * subscription drops its catalogue, its favourites and its progress with it, which
- * needs a confirmation and a story about what happens if it was the active one. That
- * is its own piece of work, and half of it shipped quietly would be worse than none.
+ * **A row carries no connection details.** No username, no password, no server URL.
+ * They are held by the repository and used by the importer, and putting them on a list
+ * would turn a screen anybody can glance at into one nobody can. What identifies a
+ * subscription to its owner is what they called it, and every subscription has a name:
+ * the one they typed, or the first free `Playlist n`, decided once when it was
+ * registered and stored with it. See `nextPlaylistName`.
+ *
+ * It is not a details page and not a form. Editing is renaming, and the dialog says so
+ * in as many words, because a user who presses a pencil expecting the server form
+ * should find out before they start typing rather than after they save.
+ *
+ * Adding is the two buttons at the bottom, and they do not open anything new — they
+ * call the same `useXtream()` and `usePlaylistUrl()` the source choice calls, and land
+ * on the same two forms. There is one way to add a provider in this application and
+ * this screen is a second door onto it, not a second implementation of it.
+ *
+ * ## Deleting the subscription in use
+ *
+ * Allowed, warned about, and followed by nothing. The user may delete any subscription
+ * including the active one; when it is the active one the confirmation says what that
+ * will actually cost instead of refusing the press; and afterwards no other
+ * subscription is promoted in its place. Which one the app shows is the user's choice,
+ * and making it for them at the moment they deleted another is the one thing a screen
+ * built for making that choice must not do.
  *
  * ## The frame
  *
  * The stage, the header and the four type steps are
  * [com.castivio.core.design.theme.CastivioMetrics]', computed from the measured size of
- * this surface. Before that this screen drew a bare title at `headlineMedium`, took
- * its margins from `DeviceClass.screenPadding` — one number for every handset and
- * tablet alike — and put Back in a full-width button under the list. A reader arriving
- * from the source choice met a different brand, a different title size and a Back in a
- * different place, on the screen that card had just opened.
+ * this surface. What a *row* needs beyond them — the disc, its padding, the gap between
+ * rows, the two action buttons, the badges — is this screen's own, and goes through
+ * [boundedFraction] like everything else: shares read off the 1280×720 reference, each
+ * with a floor that keeps the shortest surface usable and a ceiling that keeps the
+ * largest proportionate. They are not tokens and must not become tokens.
  *
  * It is a list, so it is the one step here that can be taller than the screen, and it
  * is given the *fixed* frame rather than the scrolling one. `ActivationSurface`'s
  * scrolling branch wraps its content in `verticalScroll`, and a `LazyColumn` inside an
  * unbounded height does not scroll, it crashes. Inside the fixed frame the list has a
- * bounded height and scrolls itself, which is what a list is supposed to do.
+ * bounded height and scrolls itself, which is what a list is supposed to do — and the
+ * two add buttons keep their place under it however many subscriptions there are.
  */
 @Composable
 internal fun SavedSourcesScreen(
     state: SavedSourcesState,
     onChoose: (String) -> Unit,
+    onRename: (String, String) -> Unit,
+    onDelete: (String) -> Unit,
     onAddXtream: () -> Unit,
     onAddPlaylist: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val tv = CastivioTheme.device.isTv
+
+    // Which subscription a dialog is open for, if any. Held here rather than in the
+    // view model because it is a question about this screen and not about the device:
+    // a dialog that survived the screen would be a dialog asking about a row that is
+    // no longer on it.
+    var renaming by remember { mutableStateOf<ProviderSource?>(null) }
+    var deleting by remember { mutableStateOf<ProviderSource?>(null) }
+
     BoxWithConstraints(modifier.fillMaxSize()) {
         val m = sourceMetricsFor(tv = tv, width = maxWidth, height = maxHeight)
+        val rows = rowMetricsFor(height = maxHeight, touchTarget = m.frame.touchTarget)
 
         Column(
             Modifier
@@ -101,6 +153,7 @@ internal fun SavedSourcesScreen(
                 headingTag = ActivationTags.SAVED_TITLE,
                 backTag = ActivationTags.SAVED_BACK,
                 onBack = onBack,
+                subtitle = stringResource(R.string.saved_sources_subtitle),
             )
             Spacer(Modifier.height(m.bandTop))
 
@@ -108,7 +161,14 @@ internal fun SavedSourcesScreen(
             // place while the list arrives. A `Column` whose children exceed its height
             // hands zero to whatever it measured last, and here that would be the only
             // two controls on the screen.
-            SavedBand(m, state, onChoose)
+            SavedBand(
+                m = m,
+                rows = rows,
+                state = state,
+                onChoose = onChoose,
+                onRename = { renaming = it },
+                onDelete = { deleting = it },
+            )
 
             Spacer(Modifier.height(m.gridGap))
             Row(
@@ -129,6 +189,43 @@ internal fun SavedSourcesScreen(
                 )
             }
         }
+
+        renaming?.let { source ->
+            RenameDialog(
+                source = source,
+                onSave = { name ->
+                    onRename(source.id, name)
+                    renaming = null
+                },
+                onDismiss = { renaming = null },
+            )
+        }
+
+        deleting?.let { source ->
+            val active = (state as? SavedSourcesState.Ready)?.activeId == source.id
+            // Two questions, not one with a clause bolted on. Deleting a subscription
+            // that is merely saved is a tidy-up; deleting the one the app is using
+            // changes what the app shows next time it opens, and a user is owed that
+            // sentence before they answer rather than after.
+            CastivioDialog(
+                title = stringResource(
+                    if (active) R.string.saved_sources_delete_active_title
+                    else R.string.saved_sources_delete_title,
+                ),
+                message = stringResource(
+                    if (active) R.string.saved_sources_delete_active_detail
+                    else R.string.saved_sources_delete_detail,
+                ),
+                confirmLabel = stringResource(R.string.saved_sources_delete),
+                dismissLabel = stringResource(R.string.saved_sources_cancel),
+                onConfirm = {
+                    onDelete(source.id)
+                    deleting = null
+                },
+                onDismiss = { deleting = null },
+                modifier = Modifier.testTag(ActivationTags.SAVED_DELETE_DIALOG),
+            )
+        }
     }
 }
 
@@ -143,8 +240,11 @@ internal fun SavedSourcesScreen(
 @Composable
 private fun ColumnScope.SavedBand(
     m: SourceMetrics,
+    rows: RowMetrics,
     state: SavedSourcesState,
     onChoose: (String) -> Unit,
+    onRename: (ProviderSource) -> Unit,
+    onDelete: (ProviderSource) -> Unit,
 ) {
     val band = Modifier.weight(1f).fillMaxWidth()
 
@@ -163,14 +263,17 @@ private fun ColumnScope.SavedBand(
         } else {
             LazyColumn(
                 modifier = band.testTag(ActivationTags.SAVED_LIST),
-                verticalArrangement = Arrangement.spacedBy(m.cardGap * ROW_GAP),
+                verticalArrangement = Arrangement.spacedBy(rows.gap),
             ) {
                 items(state.saved, key = { it.id }) { source ->
                     SavedSourceRow(
                         m = m,
+                        rows = rows,
                         source = source,
                         isActive = source.id == state.activeId,
                         onClick = { onChoose(source.id) },
+                        onRename = { onRename(source) },
+                        onDelete = { onDelete(source) },
                     )
                 }
             }
@@ -179,31 +282,30 @@ private fun ColumnScope.SavedBand(
 }
 
 /**
- * One saved subscription.
+ * One saved subscription: what it is called, what kind it is, when it arrived.
  *
- * The label leads and the address explains, which is the same hierarchy the source
- * cards use. The address is the one string on this screen that genuinely can be
- * unbounded -- an Xtream host with a port and a path, or a playlist URL with a token
- * in it -- so it is the one place an ellipsis is right: a row that grows to fit a
- * 300-character URL is a row that pushes every other subscription off the screen.
+ * The name leads because it is what the user chose and what they will recognise. Under
+ * it, the kind as a badge and the date as plain text — enough to tell two subscriptions
+ * with similar names apart, and the most a list has any business knowing.
  *
- * The row is at least the frame's own target tall before it is anything else, so a
- * subscription with a short label and no address is still something a remote can land
- * on and a thumb can hit.
+ * The name is the one string here that can be unbounded, so it is the one that
+ * ellipsises: a row that grew to fit a 300-character name is a row that pushes every
+ * other subscription off the screen.
  */
 @Composable
 private fun SavedSourceRow(
     m: SourceMetrics,
+    rows: RowMetrics,
     source: ProviderSource,
     isActive: Boolean,
     onClick: () -> Unit,
+    onRename: () -> Unit,
+    onDelete: () -> Unit,
 ) {
     val colors = CastivioTheme.colors
     val inUse = stringResource(R.string.saved_sources_active)
-    // A subscription the user added without naming has no label, because the
-    // repository stores that fact instead of replacing it with the host. The address
-    // on the second line is what identifies the row either way; this only keeps the
-    // first line from being an empty rectangle above it.
+    val xtream = source.kind == SourceKind.XTREAM
+    val hue = if (xtream) colors.hueViolet else colors.hueAzure
     val title = source.label.ifBlank { stringResource(R.string.saved_sources_unnamed) }
 
     InteractiveGlassCard(
@@ -214,27 +316,57 @@ private fun SavedSourceRow(
                 contentDescription = if (isActive) "$title. $inUse" else title
             },
         shape = RoundedCornerShape(m.radius),
-        fill = SolidColor(colors.glassFillStrong),
+        fill = SolidColor(if (isActive) colors.glassFillStrong else colors.glassFill),
     ) {
         Row(
             Modifier
                 .fillMaxWidth()
                 .defaultMinSize(minHeight = m.frame.touchTarget)
-                .padding(horizontal = m.cardPad, vertical = m.cardPad * ROW_GAP),
-            horizontalArrangement = Arrangement.spacedBy(m.cardGap),
+                .padding(rows.pad),
+            horizontalArrangement = Arrangement.spacedBy(rows.pad),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = castivioChipStyle(m.fsCard),
-                    color = colors.onBackground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+            Box(
+                Modifier
+                    .size(rows.disc)
+                    .background(hue.copy(alpha = DISC_FILL), RoundedCornerShape(rows.discRadius)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = if (xtream) Icons.Rounded.Dns else Icons.Rounded.Link,
+                    contentDescription = null,
+                    tint = colors.onBackground,
+                    modifier = Modifier.size(Sizing.iconMd),
                 )
-                source.url?.let { url ->
+            }
+
+            Column(
+                Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(rows.lineGap),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(rows.lineGap),
+                ) {
                     Text(
-                        text = url,
+                        text = title,
+                        style = castivioChipStyle(m.fsCard),
+                        color = colors.onBackground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    if (isActive) {
+                        ActiveBadge(rows, inUse, m.fsBadge)
+                    }
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(rows.lineGap),
+                ) {
+                    KindBadge(rows, source.kind, hue, m.fsBadge)
+                    Text(
+                        text = stringResource(R.string.saved_sources_added, addedOn(source.createdAtMs)),
                         style = castivioBodyStyle(m.fsDetail),
                         color = castivioDescriptionColor,
                         maxLines = 1,
@@ -242,26 +374,220 @@ private fun SavedSourceRow(
                     )
                 }
             }
-            if (isActive) {
-                // A tick and the word, not a tick alone: on a 10-foot display a
-                // 20dp glyph is the whole difference between "this one" and "not
-                // this one", and it is the difference a user cannot afford to miss.
-                Text(
-                    text = inUse,
-                    style = castivioChipStyle(m.fsBadge),
-                    color = colors.onBackground,
-                )
-                Icon(
-                    imageVector = Icons.Rounded.Check,
-                    contentDescription = null,
-                    tint = colors.onBackground,
-                    modifier = Modifier.size(Sizing.iconMd),
-                )
-            }
+
+            RowAction(
+                rows = rows,
+                icon = Icons.Rounded.Edit,
+                label = stringResource(R.string.saved_sources_edit),
+                fontSize = m.fsBadge,
+                tint = colors.onBackground,
+                edge = colors.edgeQuiet,
+                onClick = onRename,
+                tag = ActivationTags.SAVED_EDIT,
+            )
+            RowAction(
+                rows = rows,
+                icon = Icons.Rounded.Delete,
+                label = stringResource(R.string.saved_sources_delete),
+                fontSize = m.fsBadge,
+                tint = colors.danger,
+                edge = colors.discBorder(colors.danger),
+                onClick = onDelete,
+                tag = ActivationTags.SAVED_DELETE,
+            )
         }
     }
 }
 
-/** Between rows, and a row's own vertical padding — half the gap between cards. */
-private const val ROW_GAP = 0.5f
+/** "Active now", the one mark that has to be findable across a room. */
+@Composable
+private fun ActiveBadge(rows: RowMetrics, text: String, fontSize: Dp) {
+    val colors = CastivioTheme.colors
+    val shape = RoundedCornerShape(rows.badge / 2)
+    Row(
+        Modifier
+            .heightIn(min = rows.badge)
+            .background(colors.success.copy(alpha = BADGE_FILL), shape)
+            .border(BorderStroke(1.dp, colors.discBorder(colors.success)), shape)
+            .padding(horizontal = rows.badgePad),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(rows.badgePad / 2),
+    ) {
+        Box(Modifier.size(rows.dot).background(colors.success, CircleShape))
+        Text(
+            text = text,
+            style = castivioChipStyle(fontSize),
+            color = colors.success,
+            maxLines = 1,
+        )
+    }
+}
 
+/** Xtream or M3U, in the hue the row's disc already uses. */
+@Composable
+private fun KindBadge(rows: RowMetrics, kind: SourceKind, hue: Color, fontSize: Dp) {
+    val colors = CastivioTheme.colors
+    Text(
+        text = if (kind == SourceKind.XTREAM) XTREAM else M3U,
+        style = castivioChipStyle(fontSize),
+        color = colors.onBackground,
+        maxLines = 1,
+        modifier = Modifier
+            .background(hue.copy(alpha = BADGE_STRONG), RoundedCornerShape(rows.badge / 2))
+            .padding(horizontal = rows.badgePad, vertical = rows.badgePad / 3),
+    )
+}
+
+/**
+ * One of the two controls on the trailing end of a row.
+ *
+ * A glyph and the word, not a glyph alone: a pencil and a bin next to each other are
+ * two small shapes that differ by a few pixels, and the one that is hard to undo is
+ * not a shape to leave a user guessing at across a room.
+ */
+@Composable
+private fun RowAction(
+    rows: RowMetrics,
+    icon: ImageVector,
+    label: String,
+    fontSize: Dp,
+    tint: Color,
+    edge: Color,
+    onClick: () -> Unit,
+    tag: String,
+) {
+    val colors = CastivioTheme.colors
+    val shape = RoundedCornerShape(rows.actionRadius)
+    InteractiveGlassCard(
+        onClick = onClick,
+        modifier = Modifier
+            .size(rows.action)
+            .testTag(tag)
+            .semantics(mergeDescendants = true) { contentDescription = label },
+        shape = shape,
+        fill = SolidColor(colors.glassFill),
+    ) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .border(BorderStroke(1.dp, edge), shape),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(Sizing.iconSm))
+            Text(label, style = castivioChipStyle(fontSize), color = tint, maxLines = 1)
+        }
+    }
+}
+
+/**
+ * The one field "edit" opens.
+ *
+ * Built here rather than from `CastivioDialog`, which takes a message and two buttons
+ * and no content: this one needs a field between them. The scrim, the panel and the
+ * focus rule are the same shapes, and the day a second dialog in this application needs
+ * a field is the day this moves to `:core:design` — one caller is not yet a component.
+ */
+@Composable
+private fun RenameDialog(
+    source: ProviderSource,
+    onSave: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var name by remember(source.id) { mutableStateOf(source.label) }
+
+    CastivioDialog(
+        title = stringResource(R.string.saved_sources_rename_title),
+        message = stringResource(R.string.saved_sources_rename_detail),
+        confirmLabel = stringResource(R.string.saved_sources_rename_save),
+        dismissLabel = stringResource(R.string.saved_sources_cancel),
+        onConfirm = { onSave(name) },
+        onDismiss = onDismiss,
+        modifier = Modifier.testTag(ActivationTags.SAVED_RENAME_DIALOG),
+        field = {
+            CastivioTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = stringResource(R.string.saved_sources_rename_title),
+                modifier = Modifier.fillMaxWidth().testTag(ActivationTags.SAVED_RENAME_FIELD),
+            )
+        },
+    )
+}
+
+/**
+ * A timestamp as the interface's own date, memoised on both of its inputs.
+ *
+ * The skeleton rather than a pattern, for the reason `formatExpiry` gives on the
+ * licence screen: the platform knows what order and separators a language puts a day, a
+ * month and a year in, and this screen does not.
+ */
+@Composable
+private fun addedOn(atMs: Long): String {
+    val locale = ConfigurationCompat.getLocales(LocalConfiguration.current).get(0) ?: Locale.getDefault()
+    return remember(atMs, locale) {
+        val pattern = android.text.format.DateFormat.getBestDateTimePattern(locale, ADDED_SKELETON)
+        SimpleDateFormat(pattern, locale).format(Date(atMs))
+    }
+}
+
+/**
+ * What a row needs beyond the shared frame.
+ *
+ * A row is not a grid card: `SourceMetrics.disc` is the source choice's, a 96/720 disc
+ * in a square tile in a two-by-two grid, and borrowing it here produced a row tall
+ * enough to push both add buttons off a television. These are read off the same
+ * 1280×720 reference and bounded by the same rule.
+ */
+internal data class RowMetrics(
+    val disc: Dp,
+    val discRadius: Dp,
+    val pad: Dp,
+    val gap: Dp,
+    val lineGap: Dp,
+    val action: Dp,
+    val actionRadius: Dp,
+    val badge: Dp,
+    val badgePad: Dp,
+    val dot: Dp,
+)
+
+internal fun rowMetricsFor(height: Dp, touchTarget: Dp): RowMetrics {
+    val disc = height.boundedFraction(DISC, 40.dp, 64.dp)
+    return RowMetrics(
+        disc = disc,
+        discRadius = height.boundedFraction(DISC_RADIUS, 11.dp, 18.dp),
+        pad = height.boundedFraction(PAD, 8.dp, 18.dp),
+        gap = height.boundedFraction(GAP, 10.dp, 20.dp),
+        lineGap = height.boundedFraction(LINE_GAP, 4.dp, 10.dp),
+        // Never under the floor a remote and a thumb both need, whatever the share says.
+        action = maxOf(disc, touchTarget),
+        actionRadius = height.boundedFraction(ACTION_RADIUS, 9.dp, 16.dp),
+        badge = height.boundedFraction(BADGE, 18.dp, 28.dp),
+        badgePad = height.boundedFraction(BADGE_PAD, 6.dp, 12.dp),
+        dot = height.boundedFraction(DOT, 6.dp, 10.dp),
+    )
+}
+
+/* The shares, read off the 1280×720 reference the rest of the system is read off. */
+private const val DISC = 78f / 720f
+private const val DISC_RADIUS = 22f / 720f
+private const val PAD = 16f / 720f
+private const val GAP = 22f / 720f
+private const val LINE_GAP = 8f / 720f
+private const val ACTION_RADIUS = 18f / 720f
+private const val BADGE = 28f / 720f
+private const val BADGE_PAD = 12f / 720f
+private const val DOT = 10f / 720f
+
+/** How much of its hue a disc and a badge take. Opacity, not a colour. */
+private const val DISC_FILL = 0.92f
+private const val BADGE_STRONG = 0.85f
+private const val BADGE_FILL = 0.12f
+
+/** Day, month as a word, year — order and separators are the locale's business. */
+private const val ADDED_SKELETON = "dMMMy"
+
+/** The two kinds, as their providers spell them. Not translated: they are product names. */
+private const val XTREAM = "Xtream"
+private const val M3U = "M3U"

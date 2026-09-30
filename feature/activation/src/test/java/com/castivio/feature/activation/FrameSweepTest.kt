@@ -531,6 +531,8 @@ class FrameSweepTest {
             SavedSourcesScreen(
                 state = SavedSourcesState.Ready(saved = SWEEP_SOURCES, activeId = "a"),
                 onChoose = {},
+                onRename = { _, _ -> },
+                onDelete = {},
                 onAddXtream = {},
                 onAddPlaylist = {},
                 onBack = {},

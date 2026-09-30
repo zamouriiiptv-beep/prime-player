@@ -14,6 +14,16 @@ interface SourceDao {
     @Query("SELECT * FROM source ORDER BY created_at")
     fun all(): Flow<List<SourceEntity>>
 
+    /**
+     * Every name in use, for deciding what to call a subscription the user did not name.
+     *
+     * One column and not the rows: naming needs the labels and nothing else, and a
+     * registration that read every source in full to look at one string each would be a
+     * table scan hidden inside an insert.
+     */
+    @Query("SELECT label FROM source")
+    suspend fun labels(): List<String>
+
     @Query("SELECT * FROM source WHERE is_active = 1 ORDER BY created_at LIMIT 1")
     fun active(): Flow<SourceEntity?>
 

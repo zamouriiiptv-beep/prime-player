@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
@@ -87,6 +89,16 @@ fun CastivioDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Something to fill in between the message and the buttons, for the dialogs that
+     * ask for a value rather than for a yes.
+     *
+     * Optional, and null for every caller that was here before this existed, so a
+     * confirmation still draws exactly what it drew. A second dialog implementation
+     * with a field in it would have been two scrims, two panels and two focus rules
+     * agreeing only until one of them was edited.
+     */
+    field: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     val colors = CastivioTheme.colors
     val safe = remember { FocusRequester() }
@@ -102,6 +114,11 @@ fun CastivioDialog(
             style = CastivioType.bodyMedium,
             color = colors.onBackgroundVariant,
         )
+
+        if (field != null) {
+            Spacer(Modifier.height(Spacing.sm))
+            field()
+        }
 
         Row(
             Modifier.padding(top = Spacing.sm),

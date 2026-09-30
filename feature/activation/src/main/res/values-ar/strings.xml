@@ -42,12 +42,26 @@
     <string name="media_reading">جارٍ قراءة الجهاز…</string>
     <string name="media_picker_root">التخزين الداخلي</string>
 
-    <string name="saved_sources_title">قائمة المستخدمين</string>
+    <string name="saved_sources_title">اشتراكاتي</string>
+    <string name="saved_sources_subtitle">إدارة جميع الاشتراكات المحفوظة على هذا الجهاز</string>
     <string name="saved_sources_empty">لا توجد اشتراكات محفوظة على هذا الجهاز بعد.</string>
     <string name="saved_sources_add_xtream">إضافة Xtream</string>
     <string name="saved_sources_add_m3u">إضافة M3U</string>
-    <string name="saved_sources_active">قيد الاستخدام</string>
+    <string name="saved_sources_active">نشط الآن</string>
     <string name="saved_sources_unnamed">قائمة بلا اسم</string>
+    <string name="saved_sources_added">مضاف في %1$s</string>
+
+    <string name="saved_sources_edit">تعديل</string>
+    <string name="saved_sources_rename_title">اسم القائمة</string>
+    <string name="saved_sources_rename_detail">الاسم الذي تراه في قائمة اشتراكاتك. لا يغيّر بيانات الاتصال.</string>
+    <string name="saved_sources_rename_save">حفظ</string>
+
+    <string name="saved_sources_delete">حذف</string>
+    <string name="saved_sources_delete_title">هل أنت متأكد من حذف هذا الاشتراك؟</string>
+    <string name="saved_sources_delete_detail">سيتم حذف هذا الاشتراك من جهازك فقط.</string>
+    <string name="saved_sources_delete_active_title">هذا هو الاشتراك النشط حاليًا</string>
+    <string name="saved_sources_delete_active_detail">حذفه سيؤدي إلى إلغاء استخدامه على هذا الجهاز. هل تريد المتابعة؟</string>
+    <string name="saved_sources_cancel">إلغاء</string>
 
     <string name="field_playlist_name">اسم القائمة</string>
     <string name="field_optional">اختياري</string>
