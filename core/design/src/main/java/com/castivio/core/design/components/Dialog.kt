@@ -138,24 +138,27 @@ fun CastivioDialog(
     // have the remote pulled back under them.
     LaunchedEffect(Unit) { runCatching { safe.requestFocus() } }
 
-    DialogPanel(title = title, onScrim = onDismiss, modifier = modifier) {
+    DialogPanel(title = title, onScrim = onDismiss, modifier = modifier) { tight ->
         // **The message is the part that gives way, and only when it has to.**
         //
         // A question fits, and `fill = false` means it is laid out exactly as it always
-        // was. A question carrying a field, with the keyboard up, does not: the panel is
-        // a fraction of what the IME leaves, and something has to yield. It is the
-        // sentence, never the control the dialog was opened for and never the buttons
-        // that answer it.
+        // was: the sentence yields before the control the dialog was opened for and
+        // before the buttons that answer it, and only once there is nothing left to
+        // yield from.
         //
-        // This was here once before, put in for a reason that turned out to be wrong and
-        // taken out again. The reason is real now: it is the keyboard, measured.
+        // On a tight surface it yields nothing, because the panel around it is
+        // scrolling and a weight inside a scrolling column is a height measured
+        // against infinity — which is not a layout, it is a crash. There the whole
+        // panel gives way together, which is the point of it scrolling.
         Text(
             text = message,
             style = CastivioType.bodyMedium,
             color = colors.onBackgroundVariant,
-            modifier = Modifier
-                .weight(1f, fill = false)
-                .verticalScroll(rememberScrollState()),
+            modifier = if (tight) {
+                Modifier
+            } else {
+                Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())
+            },
         )
 
         if (field != null) {
@@ -219,18 +222,23 @@ fun CastivioNoticeDialog(
 
     LaunchedEffect(Unit) { runCatching { close.requestFocus() } }
 
-    DialogPanel(title = title, onScrim = onClose, modifier = modifier) {
+    DialogPanel(title = title, onScrim = onClose, modifier = modifier) { tight ->
         Text(
             text = body,
             style = CastivioType.bodySmall,
             color = colors.onBackgroundVariant,
-            modifier = Modifier
-                .weight(1f, fill = false)
-                .verticalScroll(rememberScrollState())
-                // Focusable so a remote can scroll it. Not focus-requested: the
-                // close button is still what the dialog opens on, and a user who
-                // only wants out should not have to travel to find the way.
-                .focusable(),
+            // Focusable so a remote can scroll it, whichever of the two is doing the
+            // scrolling. Not focus-requested: the close button is still what the
+            // dialog opens on, and a user who only wants out should not have to
+            // travel to find the way.
+            modifier = if (tight) {
+                Modifier.focusable()
+            } else {
+                Modifier
+                    .weight(1f, fill = false)
+                    .verticalScroll(rememberScrollState())
+                    .focusable()
+            },
         )
 
         Row(Modifier.padding(top = Spacing.sm)) {
@@ -295,7 +303,7 @@ private fun DialogPanel(
     title: String,
     onScrim: () -> Unit,
     modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit,
+    content: @Composable ColumnScope.(tight: Boolean) -> Unit,
 ) {
     // Captured on this side of the window boundary. See the note above.
     val context = LocalContext.current
@@ -321,6 +329,20 @@ private fun DialogPanel(
         SideEffect {
             window?.let {
                 it.setDimAmount(0f)
+                // **The insets have to reach the composition.**
+                //
+                // A new window's decor fits system windows by default, which consumes
+                // every inset before Compose sees it — including the keyboard's. The
+                // panel below is lifted by `imePadding()`, and a consumed inset hands
+                // it a zero: the photograph of that is a dialog centred in the whole
+                // screen with its field and its buttons behind the keys, which is
+                // exactly what the first build of this window did.
+                //
+                // Edge to edge instead, as `MainActivity` runs the window underneath,
+                // and the lift is Compose's. The soft input mode is set as well for
+                // the devices that still honour it; on anything modern it is ignored
+                // and the inset is what does the work.
+                WindowCompat.setDecorFitsSystemWindows(it, false)
                 it.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
                 // The insets controller needs a window that is attached to a display.
                 // It is, on a device; it is not under Robolectric, where a dialog has
@@ -364,7 +386,7 @@ private fun DialogScrim(
     title: String,
     onScrim: () -> Unit,
     modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit,
+    content: @Composable ColumnScope.(tight: Boolean) -> Unit,
 ) {
     val colors = CastivioTheme.colors
     val tv = CastivioTheme.device.isTv
@@ -397,6 +419,23 @@ private fun DialogScrim(
             val m = dialogMetricsFor(maxWidth, maxHeight)
             val shape = RoundedCornerShape(m.radius)
 
+            // **Below this, the panel scrolls as one and stops doing arithmetic.**
+            //
+            // A rename dialog on a landscape handset with the keyboard up has about
+            // 180dp to live in, and what it has to show measures 210: a title, an
+            // explanation, a labelled field and two buttons, before a single token is
+            // spent on margin. There is no share of 180 that is 210. Every version of
+            // this that tried to find one gave way somewhere a photograph could see —
+            // the buttons off the bottom, or the title off the top.
+            //
+            // So on a surface this short the panel is a scrolling sheet: it takes what
+            // height there is, everything it was asked to show is still in it, and
+            // reaching the last of it is a swipe rather than a redesign. Above the
+            // threshold nothing changes at all — the panel is laid out exactly as it
+            // always was, and [TIGHT] is under every frame this ships to with nothing
+            // covering them.
+            val tight = maxHeight < TIGHT
+
             Column(
                 Modifier
                     .widthIn(max = m.width)
@@ -408,12 +447,10 @@ private fun DialogScrim(
                     // this gives back is breathing room, and breathing room is the first
                     // thing a keyboard takes: with the IME up the box above it is a couple
                     // of hundred dp, and spending a fifth of that on margin is spending it
-                    // on nothing a user can see. Below [TIGHT] the panel keeps a fixed
-                    // margin instead of a proportional one, which is the same rule every
-                    // other size in Castivio follows — a share, with a bound on it.
+                    // on nothing a user can see.
                     .heightIn(
-                        max = if (maxHeight < TIGHT) {
-                            (maxHeight - Spacing.md * 2).coerceAtLeast(0.dp)
+                        max = if (tight) {
+                            (maxHeight - Spacing.sm * 2).coerceAtLeast(0.dp)
                         } else {
                             maxHeight * PANEL_MAX_FRACTION
                         },
@@ -427,10 +464,16 @@ private fun DialogScrim(
                         indication = null,
                         onClick = {},
                     )
-                    .padding(if (maxHeight < TIGHT) Spacing.md else m.padding),
+                    // After the border and the ground, so those stay put and the
+                    // contents move; before the padding, so the padding travels with
+                    // them and the last line does not end flush against the edge.
+                    .then(
+                        if (tight) Modifier.verticalScroll(rememberScrollState()) else Modifier,
+                    )
+                    .padding(if (tight) Spacing.sm else m.padding),
                 // The rhythm tightens with the room, for the reason the cap does.
                 verticalArrangement = Arrangement.spacedBy(
-                    if (maxHeight < TIGHT) Spacing.sm else Spacing.md,
+                    if (tight) Spacing.sm else Spacing.md,
                 ),
             ) {
                 Text(
@@ -448,7 +491,7 @@ private fun DialogScrim(
                     color = colors.onBackground,
                     modifier = Modifier.semantics { heading() },
                 )
-                content()
+                content(tight)
             }
         }
     }
@@ -483,12 +526,13 @@ internal fun dialogMetricsFor(width: Dp, height: Dp): DialogMetrics = DialogMetr
 private const val PANEL_MAX_FRACTION = 0.8f
 
 /**
- * Below this much free height the panel stops giving a fifth of it away.
+ * Below this much free height the panel stops giving a fifth of it away, and scrolls.
  *
  * Not a device rule: it is the height actually left over, which on a handset in
  * landscape with the keyboard up is a fraction of the display. 320dp is under every
  * frame this ships to with nothing covering them — the shortest is 360 — so a dialog
- * with no keyboard in front of it is laid out exactly as it always was.
+ * with no keyboard in front of it is laid out exactly as it always was, and the
+ * scrolling sheet is reached only by the case that needs it.
  */
 private val TIGHT: Dp = 320.dp
 

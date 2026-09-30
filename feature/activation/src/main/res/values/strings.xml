@@ -88,6 +88,11 @@
     <string name="saved_sources_edit">Edit</string>
     <string name="saved_sources_rename_title">Playlist name</string>
     <string name="saved_sources_rename_detail">The name you see in your list of subscriptions. It does not change the connection details.</string>
+    <!-- The field's own label, and deliberately not the dialog's title again. The two
+         were the same string, so the words "Playlist name" were drawn twice, one under
+         the other, with a sentence between them saying what they meant. The heading
+         names the dialog; this names the box. -->
+    <string name="saved_sources_rename_field">Name</string>
     <string name="saved_sources_rename_save">Save</string>
 
     <!-- Deleting. Two warnings, because they are two different facts.

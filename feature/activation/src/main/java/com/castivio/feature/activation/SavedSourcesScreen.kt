@@ -512,7 +512,7 @@ private fun RenameDialog(
             CastivioTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = stringResource(R.string.saved_sources_rename_title),
+                label = stringResource(R.string.saved_sources_rename_field),
                 modifier = Modifier.fillMaxWidth().testTag(ActivationTags.SAVED_RENAME_FIELD),
             )
         },
