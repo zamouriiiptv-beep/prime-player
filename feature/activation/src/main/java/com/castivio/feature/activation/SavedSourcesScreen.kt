@@ -483,10 +483,12 @@ private fun RowAction(
 /**
  * The one field "edit" opens.
  *
- * Built here rather than from `CastivioDialog`, which takes a message and two buttons
- * and no content: this one needs a field between them. The scrim, the panel and the
- * focus rule are the same shapes, and the day a second dialog in this application needs
- * a field is the day this moves to `:core:design` — one caller is not yet a component.
+ * `CastivioDialog` with a field in it, not a second dialog. It was briefly the latter —
+ * the same scrim, the same panel and the same focus rule written out again because the
+ * shared one took a message and two buttons and nothing between them — and two modals
+ * that agree only while nobody edits either is the thing `:core:design` exists to
+ * prevent. So the shared one grew a slot, every existing caller passes nothing and is
+ * drawn exactly as it was, and this passes a field.
  */
 @Composable
 private fun RenameDialog(

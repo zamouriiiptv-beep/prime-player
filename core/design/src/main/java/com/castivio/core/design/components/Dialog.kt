@@ -1,5 +1,6 @@
 package com.castivio.core.design.components
 
+import android.view.WindowManager
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,20 +25,32 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.dialog
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.DialogWindowProvider
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Spacing
@@ -70,13 +83,14 @@ import com.castivio.core.design.theme.boundedFraction
  * and focus order agree, in both text directions, because the row is laid out
  * with `start`/`end` and mirrors.
  *
- * ## It is not a platform `Dialog`
+ * ## It is a platform `Dialog`, and it took three rounds to admit it
  *
- * No `androidx.compose.ui.window.Dialog`. That gets its own window, which on this
- * app means a window without the edge-to-edge flags and without the immersive
- * behaviour the screens underneath set up — the system bars come back for the
- * lifetime of the dialog and the composition visibly jumps. Drawn in the same
- * window, it inherits all of that and costs nothing.
+ * It was not, for the reason the deleted note gave: a separate window does not
+ * inherit the immersive behaviour `MainActivity` sets up, so the system bars come
+ * back for the lifetime of the dialog. True, and answered in [DialogPanel] in
+ * four lines — while the thing drawing it in the main window was answering the
+ * keyboard by arithmetic, and getting it wrong three times running. See
+ * [DialogPanel] for what the window buys and what it costs.
  *
  * @param onDismiss the safe way out. Called by the dismiss button and by a press
  *   on the scrim. **Back is the caller's**, because only the caller knows what
@@ -237,6 +251,44 @@ fun CastivioNoticeDialog(
  * own scrim would drift from this one the first time either was touched, and the
  * invariant script's "a shared component is declared once" exists because that
  * has already happened here.
+ *
+ * ## Why it is a window of its own
+ *
+ * Because the keyboard is the system's problem and the system already solves it.
+ *
+ * Drawn inside the application's window, a modal with a field in it has to work out
+ * for itself how much of the screen the IME has taken and lift the panel by exactly
+ * that much. That arithmetic was attempted three times. Each attempt was defensible
+ * and each was wrong somewhere a photograph could see: the scrim padded and so cut
+ * short of the keys; the scrim whole but the panel centred in a height the IME had
+ * already claimed; the panel lifted correctly but the *screen* underneath shrunk too,
+ * because `WindowInsets.safeDrawing` includes the keyboard and a screen was padding
+ * with it.
+ *
+ * A dialog in its own window is told where the keyboard is by being resized around it.
+ * There is no arithmetic left to get wrong — which is what the browser on the same
+ * handset is doing, and why its dialog sat where ours did not.
+ *
+ * ## What the window costs, and the four lines that pay it
+ *
+ * A new window does not inherit `MainActivity`'s decor: not the hidden system bars,
+ * not the transparent dim, not the resize behaviour. So this sets all three on it,
+ * once, where they are visible together:
+ *
+ * - **the bars stay hidden**, with the same transient-by-swipe behaviour, or a clock
+ *   and a battery meter appear across a television for the life of a confirmation;
+ * - **the platform dim is switched off**, because Castivio draws its own scrim and two
+ *   dims stacked is a darker modal than the one that was approved;
+ * - **the window resizes for the keyboard** rather than being panned, which is the
+ *   whole reason for the window. Panning would drag the scrim up with the panel and
+ *   leave the application's own backdrop lit under it — the first bug, returned by a
+ *   different door.
+ *
+ * The other cost is the locale. A popup window re-provides `LocalContext` and
+ * `LocalConfiguration` from its own context, and this application has already shipped
+ * a menu that rendered English inside an Arabic interface for exactly that reason. So
+ * the three that decide what a string resolves to are captured outside the window and
+ * put back inside it.
  */
 @Composable
 private fun DialogPanel(
@@ -245,20 +297,78 @@ private fun DialogPanel(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    // Captured on this side of the window boundary. See the note above.
+    val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val direction = LocalLayoutDirection.current
+
+    Dialog(
+        // Back is answered by the window that has focus, which is now this one. Every
+        // caller's `BackHandler` sat in the window underneath and could not have been
+        // reached anyway; each of them did what dismissing does, so this is the same
+        // behaviour arriving by the shorter route.
+        onDismissRequest = onScrim,
+        properties = DialogProperties(
+            // The content is the scrim, so it has to fill the window rather than be
+            // centred in a platform-sized box inside it.
+            usePlatformDefaultWidth = false,
+            // And because it fills the window there is no "outside": the scrim below
+            // owns that press, as it always has.
+            dismissOnClickOutside = false,
+        ),
+    ) {
+        val window = (LocalView.current.parent as? DialogWindowProvider)?.window
+        SideEffect {
+            window?.let {
+                it.setDimAmount(0f)
+                it.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+                // The insets controller needs a window that is attached to a display.
+                // It is, on a device; it is not under Robolectric, where a dialog has
+                // no view root, asking for one throws, and there are no system bars to
+                // hide in the first place. Hiding the bars is decor, and decor that
+                // cannot be applied must not take the dialog down with it.
+                runCatching {
+                    WindowCompat.getInsetsController(it, it.decorView).apply {
+                        systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                        hide(WindowInsetsCompat.Type.systemBars())
+                    }
+                }
+            }
+        }
+
+        CompositionLocalProvider(
+            LocalContext provides context,
+            LocalConfiguration provides configuration,
+            LocalLayoutDirection provides direction,
+        ) {
+            DialogScrim(
+                title = title,
+                onScrim = onScrim,
+                modifier = modifier,
+                content = content,
+            )
+        }
+    }
+}
+
+/**
+ * The dim and the panel, once the window around them exists.
+ *
+ * The theme is read here rather than handed in: a dialog is a subcomposition of the
+ * composition that opened it, so `CastivioTheme` crosses the window boundary on its
+ * own. Only the three locals the platform *replaces* have to be carried across, and
+ * they are carried above.
+ */
+@Composable
+private fun DialogScrim(
+    title: String,
+    onScrim: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     val colors = CastivioTheme.colors
     val tv = CastivioTheme.device.isTv
 
-    // **The scrim is the window; the keyboard only moves the panel.**
-    //
-    // These were one box, with `imePadding()` on it, and that was wrong in a way a
-    // photograph showed at once: padding the scrim *shrinks* the scrim, so it stopped
-    // short of the keys and a band of the application's own backdrop stood lit between
-    // the dialog and the keyboard. A modal that dims part of what is behind it is not
-    // dimming anything.
-    //
-    // So the dim covers the whole window, and the inset is spent inside it, on the box
-    // the panel is measured and centred in. Nothing new is drawn: it is the same one
-    // scrim, no longer cut short.
     Box(
         modifier
             .fillMaxSize()
@@ -276,12 +386,11 @@ private fun DialogPanel(
             .semantics(mergeDescendants = false) { dialog() },
     ) {
         BoxWithConstraints(
-            // `enableEdgeToEdge` means the IME is drawn over the window rather than
-            // shrinking it, so without this the panel centres itself in a height that is no
-            // longer there and the field a dialog exists to offer sits behind the keys.
-            // Here rather than outside, so `maxHeight` describes the space that is actually
-            // free — which is what the panel's own cap is a fraction of — while the dim
-            // above stays the size of the window.
+            // Belt and braces, and it costs nothing: the window is resized around the
+            // keyboard, so this inset is zero and the modifier is a no-op. If a device
+            // ever pans instead of resizing, it is the panel that moves and the scrim
+            // that stays — which is the arrangement three rounds of photographs argued
+            // for, kept for the day something honours the soft-input mode differently.
             Modifier.fillMaxSize().imePadding(),
             contentAlignment = Alignment.Center,
         ) {

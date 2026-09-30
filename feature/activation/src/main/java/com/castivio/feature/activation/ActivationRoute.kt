@@ -762,8 +762,8 @@ internal fun ActivationSurface(
                 // buys nothing and costs the bottom of the screen. None of the steps in
                 // this branch has a text field of its own — the address, the chooser,
                 // the saved list and the four media browsers — and the one thing here
-                // that takes typing is a dialog, which handles the inset itself and
-                // lifts its panel rather than its scrim.
+                // that takes typing is a dialog, which is a window of its own and is
+                // resized around the keyboard by the system, not by this screen.
                 //
                 // The scrolling branch below keeps the IME, and must: the two provider
                 // forms are what the keyboard is actually for, and there the inset is
