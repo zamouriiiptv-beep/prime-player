@@ -210,6 +210,19 @@ internal fun SavedSourcesScreen(
                 ),
                 confirmLabel = stringResource(R.string.saved_sources_delete),
                 dismissLabel = stringResource(R.string.saved_sources_cancel),
+                // Filled, and filled in red. Everywhere else in this application a
+                // destructive confirmation is a ghost beside an outlined Cancel, and
+                // for the azure fill that is right — a blue button is the app saying
+                // "do this", which is not what a dialog guarding a deletion means.
+                //
+                // Red is not approval. It is the colour the bin on the row behind this
+                // dialog is already drawn in, so filling the button with it says what
+                // the press will cost rather than endorsing it, and the word stops
+                // being a label floating next to the only thing on screen that looks
+                // like a button. Which way out is the safe one is still said by the
+                // focus: it starts on Cancel, and a remote's first press cancels.
+                confirmWeight = ButtonWeight.Primary,
+                confirmFill = SolidColor(CastivioTheme.colors.danger),
                 onConfirm = {
                     onDelete(source.id)
                     deleting = null

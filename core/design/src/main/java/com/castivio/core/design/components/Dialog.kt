@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.semantics.dialog
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -113,8 +114,30 @@ fun CastivioDialog(
      * as a label beside an outlined Cancel, which inverts the hierarchy: the action the
      * dialog was opened for looks weaker than the way out of it. Such a caller passes
      * [ButtonWeight.Primary]. Every existing one passes nothing and is unchanged.
+     *
+     * A caller guarding something irreversible may also pass [ButtonWeight.Primary],
+     * with [confirmFill] — see that parameter for why the argument above does not hold
+     * once the fill is red.
      */
     confirmWeight: ButtonWeight = ButtonWeight.Ghost,
+    /**
+     * What the confirming button is painted with, when it is filled at all.
+     *
+     * Null is the default brush, which for [ButtonWeight.Primary] is the azure every
+     * affirmative action in the app is drawn with, and which a ghost never reaches.
+     *
+     * The reason this exists is the one case the note above argues against: a red fill.
+     * The objection to filling a destructive confirmation is that a fill is Castivio
+     * saying *this is the thing to do* while the focus order says the opposite — and
+     * that is an objection to the **azure**, which is the colour of approval. Red is
+     * not. A red fill says what the button will cost, which is the same thing the
+     * dialog's sentence says and the same thing the bin in the row behind it says, so
+     * the emphasis and the warning point the same way for once.
+     *
+     * The focus rule is untouched by it: the safe button still takes focus, and a
+     * remote's first press still cancels.
+     */
+    confirmFill: Brush? = null,
 ) {
     val colors = CastivioTheme.colors
     val safe = remember { FocusRequester() }
@@ -177,12 +200,13 @@ fun CastivioDialog(
             )
             CastivioButton(
                 text = confirmLabel,
-                // Ghost by default. The primary fill is Castivio saying "this is
+                // Ghost by default. The azure fill is Castivio saying "this is
                 // the thing to do", and on a dialog guarding an irreversible
                 // action it is saying the opposite of what the focus order
                 // says. Ghost keeps it plainly available and plainly second.
-                // See [confirmWeight] for the one kind of caller that differs.
+                // See [confirmWeight] and [confirmFill] for the callers that differ.
                 weight = confirmWeight,
+                fill = confirmFill,
                 onClick = onConfirm,
             )
         }
