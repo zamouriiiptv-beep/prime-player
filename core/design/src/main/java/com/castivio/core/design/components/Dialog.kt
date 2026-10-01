@@ -3,6 +3,7 @@ package com.castivio.core.design.components
 import android.os.Build
 import android.view.View
 import android.view.Window
+import android.view.WindowManager
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -383,16 +384,30 @@ private fun DialogPanel(
         SideEffect {
             window?.let {
                 it.setDimAmount(0f)
-                // **Nothing about insets is written here any more.**
+                // **The keyboard must shrink this window, not slide it.**
                 //
-                // `setDecorFitsSystemWindows` and `setSoftInputMode` were, and the probe
-                // showed what that was worth: the first was overwritten before it could
-                // matter, the second survived, and a block where half the writes hold is
-                // worse than no block — it reads as configuration while behaving as
-                // chance. Both belong to `DialogProperties`, which is applied by the
-                // thing that would otherwise overwrite them, and that is where the one
-                // that matters now lives.
+                // With `decorFitsSystemWindows = false` passed through `DialogProperties`,
+                // the measured soft input mode of this window is `0x20` — `ADJUST_PAN`.
+                // That is Compose's own value, read off the device rather than off its
+                // source: the same probe read `0x10` in the build where this line existed,
+                // and `0x20` in the build where it did not.
                 //
+                // Under pan the window manager never resizes the frame. It translates the
+                // whole window upward to keep the focused field in view, which is why
+                // `dec` and `cmp` stayed at 354 with the keys up and why the panel's title
+                // left the top of the screen while its buttons were cut off the bottom.
+                // No layout inside a window can compensate for the window being slid.
+                //
+                // There is no `softInputMode` in `DialogProperties`; `Window` is the only
+                // surface that carries it, and it is the one Compose itself writes to. It
+                // is also the one write in this block the probe has already shown to
+                // survive — `setDecorFitsSystemWindows` beside it did not, which is why
+                // that one moved to the property and this one did not.
+                //
+                // Deprecated since API 30 and kept deliberately: the modern replacement is
+                // the inset, and the inset is being delivered — `rootIme=178` — to a window
+                // that pans anyway.
+                it.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
                 // The dim stays: Castivio draws its own scrim, and nothing else in this
                 // window competes to set that.
                 //
