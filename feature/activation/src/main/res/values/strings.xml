@@ -78,6 +78,10 @@
     <!-- "Added on 20/09/2026". The date is formatted by the platform for the reader's
          locale, so the format is not written here. -->
     <string name="saved_sources_added">Added on %1$s</string>
+    <!-- "Expires on 14/03/2027", and only where the provider stated a date. An M3U
+         playlist has no subscription behind it and an Xtream panel need not give one,
+         so the absence of this line is a real state and never a dash or a zero. -->
+    <string name="saved_sources_expires">Expires on %1$s</string>
 
     <!-- Renaming, which is the whole of "edit" on this screen. The second line is the
          point of it: this changes what the subscription is called and nothing else, and

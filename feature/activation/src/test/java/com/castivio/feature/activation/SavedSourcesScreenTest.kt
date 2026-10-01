@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -25,6 +26,7 @@ import com.castivio.core.design.theme.LocalDeviceClass
 import com.castivio.domain.ProviderSource
 import com.castivio.domain.SourceKind
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -213,20 +215,23 @@ class SavedSourcesScreenTest {
         assertEquals(listOf("a"), deleted)
     }
 
-    // --------------------------------------------------------------- the row's columns
+    // ----------------------------------------------------------- the row's middle group
 
     /**
-     * The column that is usually empty still holds its share.
+     * The mark that is usually absent still holds the space it measured.
      *
-     * The row lays its facts out in columns so the width is carried by them rather than
-     * by a void between the name and the two actions. Every one of those columns is the
-     * same share of every row, and the one that tests that is the "in use" mark: it is
-     * on one row and absent from the others, so if the kind badge after it starts at the
-     * same place on both, the empty slot kept its place and every column after it is
-     * aligned too.
+     * The row's facts are one group, centred in what is left between the name and the
+     * two actions — which is what closed the void that used to sit behind a short name.
+     * A centred group re-centres whatever is left when an item goes, so the one item
+     * that comes and goes between subscriptions has to keep its width whether it is
+     * drawn or not.
      *
-     * A slot that collapsed when it was empty would put the kind in a different place on
-     * every line, which is the one way this layout can quietly stop being a layout.
+     * That item is the "in use" mark, and the kind badge directly after it is what
+     * tests it: if the badge starts at the same place on a row with the mark and a row
+     * without, the hidden mark kept its space and every fact after it is aligned too.
+     *
+     * A mark that collapsed would put the kind in a different place on every line,
+     * which is the one way this layout can quietly stop being a layout.
      */
     @Test
     fun `the kind badge starts at the same place whether or not the row is in use`() {
@@ -235,17 +240,109 @@ class SavedSourcesScreenTest {
         // **The unmerged tree.** The row merges its descendants so a screen reader
         // announces one subscription rather than five fragments, and a tag inside a
         // merged node is not in the merged tree at all. Asked for it there, the finder
-        // reports no such node — which reads as "the column is missing" and is not.
+        // reports no such node — which reads as "the badge is missing" and is not.
         val kinds = compose.onAllNodesWithTag(ActivationTags.SAVED_KIND, useUnmergedTree = true)
         val active = kinds[0].getUnclippedBoundsInRoot()
         val plain = kinds[1].getUnclippedBoundsInRoot()
 
         assertEquals(
-            "the mark's column collapsed: the kind moved by ${plain.left - active.left}",
+            "the mark's space collapsed: the kind moved by ${plain.left - active.left}",
             active.left.value,
             plain.left.value,
             1f,
         )
+    }
+
+    /**
+     * The hidden mark is hidden from a screen reader too.
+     *
+     * It is composed on every row so that the group does not move, which means the words
+     * "Active now" are in the tree of every subscription unless something takes them out
+     * of it. Left in, a reader would announce three subscriptions all in use and the
+     * finder below would match all three — so this asserts the one that is, and by
+     * matching exactly one node it asserts the other is not there at all.
+     */
+    @Test
+    fun `the mark is on the row in use and on no other`() {
+        compose.show(SavedSourcesState.Ready(saved = twoSources(), activeId = "a"))
+
+        compose.onNodeWithText("Active now").assertIsDisplayed()
+    }
+
+    /**
+     * The expiry is drawn where the provider gave one.
+     *
+     * Not stored on the row — see the view model: it is what the panel last said, kept
+     * by `ProviderStatusCatalogue` the moment a validator heard it. The screen's part is
+     * only to show it against the right subscription, so the state carries it against an
+     * id and this asserts the row finds its own.
+     */
+    @Test
+    fun `a subscription with a stated expiry shows it`() {
+        compose.show(
+            SavedSourcesState.Ready(
+                saved = twoSources(),
+                activeId = "a",
+                expiries = mapOf("a" to EXPIRY_MS),
+            ),
+        )
+
+        compose
+            .onAllNodesWithTag(ActivationTags.SAVED_EXPIRES, useUnmergedTree = true)
+            .assertCountEquals(1)
+        compose.onNodeWithText("Expires on", substring = true).assertIsDisplayed()
+    }
+
+    /**
+     * And nothing where the provider gave none, which is most rows.
+     *
+     * **This is the assertion that keeps a date from being invented.** An M3U playlist
+     * has no subscription behind it to expire, a panel need not state an end date, and a
+     * provider that has never been reached has said nothing at all — three different
+     * facts, none of which is a date. A dash or an epoch in that slot would read as a
+     * value that failed to load.
+     */
+    @Test
+    fun `a subscription with no stated expiry shows no expiry`() {
+        compose.show(SavedSourcesState.Ready(saved = twoSources(), activeId = "a"))
+
+        compose
+            .onAllNodesWithTag(ActivationTags.SAVED_EXPIRES, useUnmergedTree = true)
+            .assertCountEquals(0)
+        compose.onNodeWithText("Expires on", substring = true).assertDoesNotExist()
+    }
+
+    /**
+     * The longest row there is, on the narrowest frame it is drawn at.
+     *
+     * Four facts, a name, a disc and two actions on a 360dp handset is the one shape
+     * where the group's ceilings are reached rather than ignored, and the failure they
+     * exist to prevent is silent: a `Row` does not clip, so an item it has no room for
+     * is laid out past the card's edge and simply is not seen.
+     *
+     * So this measures the two ends of the group against the frame. Nothing may start
+     * before it or finish after it.
+     */
+    @Test
+    fun `on the narrowest frame the group stays inside the row`() {
+        compose.show(
+            state = SavedSourcesState.Ready(
+                saved = twoSources(),
+                activeId = "a",
+                expiries = mapOf("a" to EXPIRY_MS, "b" to EXPIRY_MS),
+            ),
+            width = 360.dp,
+        )
+
+        val kind = compose
+            .onAllNodesWithTag(ActivationTags.SAVED_KIND, useUnmergedTree = true)[0]
+            .getUnclippedBoundsInRoot()
+        val expiry = compose
+            .onAllNodesWithTag(ActivationTags.SAVED_EXPIRES, useUnmergedTree = true)[0]
+            .getUnclippedBoundsInRoot()
+
+        assertTrue("the kind badge starts at ${kind.left}", kind.left.value >= 0f)
+        assertTrue("the expiry ends at ${expiry.right}", expiry.right.value <= 360f)
     }
 
     // ------------------------------------------------------- the keyboard's surface
@@ -306,6 +403,9 @@ class SavedSourcesScreenTest {
 
     /* -------------------------------------------------------------------------- */
 
+    /** A date a panel could state. Any instant does; it is read back, never computed. */
+    private val EXPIRY_MS = 1_805_000_000_000L
+
     private fun twoSources() = listOf(
         ProviderSource(id = "a", kind = SourceKind.XTREAM, label = "Home", url = "http://one.example"),
         ProviderSource(id = "b", kind = SourceKind.M3U_URL, label = "Cabin", url = "http://two.example"),
@@ -317,10 +417,11 @@ class SavedSourcesScreenTest {
         onRename: (String, String) -> Unit = { _, _ -> },
         onDelete: (String) -> Unit = {},
         height: Dp = 393.dp,
+        width: Dp = 827.dp,
     ) = setContent {
         CastivioTheme {
             CompositionLocalProvider(LocalDeviceClass provides DeviceClass.Expanded) {
-                Stage(height) {
+                Stage(width, height) {
                     SavedSourcesScreen(
                         state = state,
                         onChoose = onChoose,
@@ -336,12 +437,15 @@ class SavedSourcesScreenTest {
     /**
      * The reporter's frame, which is the tightest this screen is drawn at.
      *
-     * The height is a parameter because one claim on this screen is about what is left
-     * of the frame rather than about the frame: a keyboard takes 212 of a handset's
-     * 393dp, and shortening the stage is how that is asserted without an emulator.
+     * Both sides are parameters, and for two different claims. The height, because one
+     * of them is about what is left of the frame rather than about the frame: a keyboard
+     * takes 212 of a handset's 393dp, and shortening the stage is how that is asserted
+     * without an emulator. The width, because the row's middle group only reaches its
+     * ceilings on the narrowest handset this ships to, and a test that never drew one
+     * would be testing the only frame where nothing is tight.
      */
     @Composable
-    private fun Stage(height: Dp = 393.dp, content: @Composable () -> Unit) {
-        Box(Modifier.requiredSize(827.dp, height)) { content() }
+    private fun Stage(width: Dp = 827.dp, height: Dp = 393.dp, content: @Composable () -> Unit) {
+        Box(Modifier.requiredSize(width, height)) { content() }
     }
 }

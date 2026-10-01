@@ -72,7 +72,9 @@ body{background:#07060f;padding:12px;display:flex;flex-direction:column;gap:10px
   display:flex;align-items:center;flex:0 0 auto;font-weight:600;white-space:nowrap}
 .kX{background:#7C4DFF}
 .fact{font-size:19px;color:rgba(166,166,191,.72);white-space:nowrap;flex:0 0 auto}
-.sep{color:rgba(166,166,191,.38);font-size:19px;flex:0 0 auto}
+.sep{color:rgba(166,166,191,.40);font-size:19px;flex:0 0 auto}
+/* the mark's place is held on a row that is not in use, so nothing after it moves */
+.held{visibility:hidden}
 
 /* left side: the two actions, unchanged */
 .acts{display:flex;gap:8px;flex:0 0 auto}
@@ -83,9 +85,9 @@ body{background:#07060f;padding:12px;display:flex;flex-direction:column;gap:10px
 .ag{font-size:22px;line-height:1}
 </style>
 
-<div class="cap">المقترح — المعلومات مجمّعة في الوسط
+<div class="cap">المعتمد — المعلومات مجمّعة في الوسط
   <span class="px">1280 × 720</span>
-  <span class="n">الهيدر والخلفية والبطاقة والأزرار كما هي · تغيّر توزيع السطر فقط</span></div>
+  <span class="n">الهيدر والخلفية والبطاقة والأزرار كما هي · مكان شارة «نشط الآن» محجوز في الصف الثاني</span></div>
 
 <div class="shot">
   <div class="glow warm"></div><div class="glow cool"></div>
@@ -108,8 +110,9 @@ body{background:#07060f;padding:12px;display:flex;flex-direction:column;gap:10px
         <div class="cdisc dV">▤</div>
         <div class="nm">Playlist 1</div>
         <div class="facts">
-          <span class="k kX">Xtream</span>
           <span class="live"><span class="dot"></span>نشط الآن</span>
+          <span class="sep">•</span>
+          <span class="k kX">Xtream</span>
           <span class="sep">•</span>
           <span class="fact">أضيف في 1 أكتوبر 2026</span>
           <span class="sep">•</span>
@@ -125,6 +128,8 @@ body{background:#07060f;padding:12px;display:flex;flex-direction:column;gap:10px
         <div class="cdisc dV">▤</div>
         <div class="nm">Playlist 2</div>
         <div class="facts">
+          <span class="live held"><span class="dot"></span>نشط الآن</span>
+          <span class="sep held">•</span>
           <span class="k kX">Xtream</span>
           <span class="sep">•</span>
           <span class="fact">أضيف في 1 أكتوبر 2026</span>

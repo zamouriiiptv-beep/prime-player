@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -36,11 +37,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -150,7 +153,11 @@ internal fun SavedSourcesScreen(
 
     BoxWithConstraints(modifier.fillMaxSize()) {
         val m = sourceMetricsFor(tv = tv, width = maxWidth, height = maxHeight)
-        val rows = rowMetricsFor(height = maxHeight, touchTarget = m.frame.touchTarget)
+        val rows = rowMetricsFor(
+            width = maxWidth,
+            height = maxHeight,
+            touchTarget = m.frame.touchTarget,
+        )
 
         Column(
             Modifier
@@ -261,6 +268,7 @@ private fun ColumnScope.SavedBand(
                         rows = rows,
                         source = source,
                         isActive = source.id == state.activeId,
+                        expiresAtMs = state.expiries[source.id],
                         onClick = { onChoose(source.id) },
                         onRename = { onRename(source) },
                         onDelete = { onDelete(source) },
@@ -283,27 +291,46 @@ private fun ColumnScope.SavedBand(
  * ellipsises: a row that grew to fit a 300-character name is a row that pushes every
  * other subscription off the screen.
  *
- * ## Four columns, not two lines and a void
+ * ## One group in the middle, not four columns
  *
- * The facts were stacked in a column that took `weight(1f)`, so they gathered at one
- * end of the row, the two actions sat at the other, and everything between them was
- * air. Measured on the television frame: 490dp of an 868dp row, which is more than half
- * the row, and it is worst exactly where the row is widest.
+ * The facts had a column each, every column the same share of every row. That carried
+ * the width honestly and read, on a 65-inch television, as four facts pushed apart by
+ * air: each column was wider than the thing in it, and the widest gap of all sat behind
+ * a short name like `Playlist 1`.
  *
- * So each fact has a column of its own and every column is the same share of every
- * row. Three things follow from that, and the third is the one worth having:
+ * So the facts are one group now. The name takes the width of the name and no more
+ * (capped by [RowMetrics.nameMax], because a name is the user's string and the only one
+ * here that can be unbounded), the two actions keep the trailing end, and the group
+ * between them takes everything left over and centres itself in it. The slack that used
+ * to pool in one place is divided in two and sits on either side of a group that reads
+ * as a single phrase.
  *
- *  - the slack has one place to go — the name, the only one of them that can use it;
- *  - the kinds sit under the kinds and the dates under the dates, so six subscriptions
- *    are scanned rather than read;
- *  - **the mark keeps its column on the rows that do not have one.** A slot that
- *    collapsed when it was empty would put the kind in a different place on every line,
- *    which is the whole of what a column is.
+ * ## The mark's place is held on every row
  *
- * Shares rather than a table of widths, for the reason everything else here is a share:
- * they are the same proportion on a television and on the shortest handset, and no
- * number has to be re-derived per frame. [NAME_SHARE] and the three beside it are read
- * off the approved drawing at 960×540.
+ * The group is centred, so a row that drops an item re-centres what is left and every
+ * fact after it moves. Exactly one item comes and goes between one subscription and the
+ * next — the "in use" mark — and it is the first of them, so losing it would shift the
+ * whole group on every row but one.
+ *
+ * It is therefore composed on every row and drawn on one: hidden by [placeHeld], which
+ * takes the badge out of the drawing and out of the semantics tree while leaving the
+ * space it measured. Reserved that way rather than by a width, because the width of
+ * "Active now" belongs to the translation and the frame, and a number here would be
+ * right in English on a television and wrong in Arabic on a handset.
+ *
+ * The expiry is the other item that can be absent, and it is *not* held open: a
+ * provider that states no date, and a playlist that has no subscription behind it at
+ * all, are the common case rather than the exception, and a reserved slot for them
+ * would be a permanent gap drawn in the name of alignment. It is last in the group for
+ * that reason — the one thing after it is nothing.
+ *
+ * ## Why the group's items still carry shares
+ *
+ * Every one of them takes `weight(share, fill = false)`, which on a wide frame is not a
+ * width at all: each item is as wide as its content and the shares never bind. They
+ * bind on the shortest handset, where the row has 160dp for all four, and what they buy
+ * there is that everything shrinks in proportion and ellipsises inside the row instead
+ * of the last fact being laid out past its edge.
  */
 @Composable
 private fun SavedSourceRow(
@@ -311,6 +338,7 @@ private fun SavedSourceRow(
     rows: RowMetrics,
     source: ProviderSource,
     isActive: Boolean,
+    expiresAtMs: Long?,
     onClick: () -> Unit,
     onRename: () -> Unit,
     onDelete: () -> Unit,
@@ -359,29 +387,63 @@ private fun SavedSourceRow(
                 color = colors.onBackground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(NAME_SHARE),
+                modifier = Modifier.widthIn(max = rows.nameMax),
             )
 
-            // Empty on every row but one, and it still takes its share. See the note
-            // above: this is the column that keeps the two after it from moving.
-            Box(Modifier.weight(ACTIVE_SHARE)) {
-                if (isActive) {
-                    ActiveBadge(rows, inUse, m.fsBadge)
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(
+                    rows.badgePad,
+                    Alignment.CenterHorizontally,
+                ),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Drawn on the one row in use, measured on all of them. See the note
+                // above: this is the item whose absence would move everything after it.
+                ActiveBadge(
+                    rows = rows,
+                    text = inUse,
+                    fontSize = m.fsBadge,
+                    modifier = Modifier
+                        .weight(ACTIVE_SHARE, fill = false)
+                        .placeHeld(isActive),
+                )
+                Separator(m.fsDetail, Modifier.placeHeld(isActive))
+
+                KindBadge(
+                    rows = rows,
+                    kind = source.kind,
+                    hue = hue,
+                    fontSize = m.fsBadge,
+                    modifier = Modifier
+                        .weight(KIND_SHARE, fill = false)
+                        .testTag(ActivationTags.SAVED_KIND),
+                )
+                Separator(m.fsDetail)
+
+                Fact(
+                    text = stringResource(
+                        R.string.saved_sources_added,
+                        dateOn(source.createdAtMs),
+                    ),
+                    fontSize = m.fsDetail,
+                    modifier = Modifier.weight(DATE_SHARE, fill = false),
+                )
+
+                // Absent far more often than present — every M3U playlist, and every
+                // panel that states no end date — so it is drawn only where the
+                // provider actually gave one, and nothing holds its place.
+                if (expiresAtMs != null) {
+                    Separator(m.fsDetail)
+                    Fact(
+                        text = stringResource(R.string.saved_sources_expires, dateOn(expiresAtMs)),
+                        fontSize = m.fsDetail,
+                        modifier = Modifier
+                            .weight(DATE_SHARE, fill = false)
+                            .testTag(ActivationTags.SAVED_EXPIRES),
+                    )
                 }
             }
-
-            Box(Modifier.weight(KIND_SHARE).testTag(ActivationTags.SAVED_KIND)) {
-                KindBadge(rows, source.kind, hue, m.fsBadge)
-            }
-
-            Text(
-                text = stringResource(R.string.saved_sources_added, addedOn(source.createdAtMs)),
-                style = castivioBodyStyle(m.fsDetail),
-                color = castivioDescriptionColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(DATE_SHARE),
-            )
 
             RowAction(
                 rows = rows,
@@ -407,13 +469,57 @@ private fun SavedSourceRow(
     }
 }
 
+/**
+ * Composed where a hidden item has to keep the space it measured.
+ *
+ * Two things at once, and both are needed or the other is a defect. The item is not
+ * drawn, and it is not in the semantics tree either — a transparent "Active now" that a
+ * screen reader still announced would tell a user every subscription was in use, and a
+ * finder looking for that text would match every row.
+ *
+ * It keeps its size, which is the whole purpose: the width of the thing itself, in this
+ * translation, at this frame's type step, which no constant could be.
+ */
+private fun Modifier.placeHeld(shown: Boolean): Modifier =
+    if (shown) this else this.alpha(0f).clearAndSetSemantics { }
+
+/** A dot between two facts, so the group reads as one phrase rather than a queue. */
+@Composable
+private fun Separator(fontSize: Dp, modifier: Modifier = Modifier) {
+    Text(
+        text = SEPARATOR,
+        style = castivioBodyStyle(fontSize),
+        color = castivioDescriptionColor.copy(alpha = SEPARATOR_FILL),
+        maxLines = 1,
+        modifier = modifier,
+    )
+}
+
+/** One of the quiet facts in the middle group: a date, and the word in front of it. */
+@Composable
+private fun Fact(text: String, fontSize: Dp, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        style = castivioBodyStyle(fontSize),
+        color = castivioDescriptionColor,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier,
+    )
+}
+
 /** "Active now", the one mark that has to be findable across a room. */
 @Composable
-private fun ActiveBadge(rows: RowMetrics, text: String, fontSize: Dp) {
+private fun ActiveBadge(
+    rows: RowMetrics,
+    text: String,
+    fontSize: Dp,
+    modifier: Modifier = Modifier,
+) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(rows.badge / 2)
     Row(
-        Modifier
+        modifier
             .heightIn(min = rows.badge)
             .background(colors.success.copy(alpha = BADGE_FILL), shape)
             .border(BorderStroke(1.dp, colors.discBorder(colors.success)), shape)
@@ -433,14 +539,21 @@ private fun ActiveBadge(rows: RowMetrics, text: String, fontSize: Dp) {
 
 /** Xtream or M3U, in the hue the row's disc already uses. */
 @Composable
-private fun KindBadge(rows: RowMetrics, kind: SourceKind, hue: Color, fontSize: Dp) {
+private fun KindBadge(
+    rows: RowMetrics,
+    kind: SourceKind,
+    hue: Color,
+    fontSize: Dp,
+    modifier: Modifier = Modifier,
+) {
     val colors = CastivioTheme.colors
     Text(
         text = if (kind == SourceKind.XTREAM) XTREAM else M3U,
         style = castivioChipStyle(fontSize),
         color = colors.onBackground,
         maxLines = 1,
-        modifier = Modifier
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier
             .background(hue.copy(alpha = BADGE_STRONG), RoundedCornerShape(rows.badge / 2))
             .padding(horizontal = rows.badgePad, vertical = rows.badgePad / 3),
     )
@@ -533,9 +646,13 @@ private fun RenameDialog(
  * The skeleton rather than a pattern, for the reason `formatExpiry` gives on the
  * licence screen: the platform knows what order and separators a language puts a day, a
  * month and a year in, and this screen does not.
+ *
+ * Both dates in a row go through it — when the subscription arrived and when it runs
+ * out — because two dates side by side written in two formats read as two different
+ * kinds of fact.
  */
 @Composable
-private fun addedOn(atMs: Long): String {
+private fun dateOn(atMs: Long): String {
     val locale = ConfigurationCompat.getLocales(LocalConfiguration.current).get(0) ?: Locale.getDefault()
     return remember(atMs, locale) {
         val pattern = android.text.format.DateFormat.getBestDateTimePattern(locale, ADDED_SKELETON)
@@ -561,9 +678,19 @@ internal data class RowMetrics(
     val badge: Dp,
     val badgePad: Dp,
     val dot: Dp,
+    /**
+     * How much of the row a name may take before it starts ellipsising.
+     *
+     * The one width here read off the frame's width rather than its height, because it
+     * bounds a horizontal thing: the name is the user's string, it can be three hundred
+     * characters, and without a ceiling one subscription would push the facts and both
+     * actions off the end of the row. A quarter of the frame, which is `Playlist 1`
+     * three times over.
+     */
+    val nameMax: Dp,
 )
 
-internal fun rowMetricsFor(height: Dp, touchTarget: Dp): RowMetrics {
+internal fun rowMetricsFor(width: Dp, height: Dp, touchTarget: Dp): RowMetrics {
     val disc = height.boundedFraction(DISC, 40.dp, 64.dp)
     return RowMetrics(
         disc = disc,
@@ -576,6 +703,7 @@ internal fun rowMetricsFor(height: Dp, touchTarget: Dp): RowMetrics {
         badge = height.boundedFraction(BADGE, 18.dp, 28.dp),
         badgePad = height.boundedFraction(BADGE_PAD, 6.dp, 12.dp),
         dot = height.boundedFraction(DOT, 6.dp, 10.dp),
+        nameMax = width.boundedFraction(NAME_MAX, 96.dp, 320.dp),
     )
 }
 
@@ -589,30 +717,37 @@ private const val BADGE = 28f / 720f
 private const val BADGE_PAD = 12f / 720f
 private const val DOT = 10f / 720f
 
+/** Off the frame's width, not its height. See [RowMetrics.nameMax]. */
+private const val NAME_MAX = 320f / 1280f
+
 /** How much of its hue a disc and a badge take. Opacity, not a colour. */
 private const val DISC_FILL = 0.92f
 private const val BADGE_STRONG = 0.85f
 private const val BADGE_FILL = 0.12f
 
-/* ------------------------------------------------------------ the row's columns
+/* ----------------------------------------------------- the middle group's ceilings
  *
- * Read off the approved drawing at 960×540, where the name took 309dp of the row's
- * flexible width, the mark 88, the kind 78 and the date 152. Shares rather than those
- * four numbers, so a television and the shortest handset lay the row out in the same
- * proportions and nothing has to be re-derived per frame.
+ * Not widths, and not read off a drawing. Every item in the group takes its share with
+ * `fill = false`, so on any frame with room the share is simply never reached and each
+ * item is as wide as its own content — which is what makes the group tight.
  *
- * The name's share is the large one because it is the only column whose content is the
- * user's: the other three hold a mark of fixed words, a product name of two, and a date.
- * Those three are as wide as they need and no wider, and what is left over is the name's
- * — which is the whole point of the row having columns at all.
+ * What they decide is the shortest handset, where the group has 160dp and the four
+ * facts want more. There the shares bind, and they say what a crowded row gives up
+ * first: the dates ellipsise before the mark does, and the mark before the kind, because
+ * a half-read date is still a date and half a badge is a shape.
  */
-private const val NAME_SHARE = 4f
 private const val ACTIVE_SHARE = 1.2f
 private const val KIND_SHARE = 1f
 private const val DATE_SHARE = 2f
 
 /** Day, month as a word, year — order and separators are the locale's business. */
 private const val ADDED_SKELETON = "dMMMy"
+
+/** Between two facts. Punctuation, not a word: it is the same mark in every language. */
+private const val SEPARATOR = "•"
+
+/** How much of the description's colour a separator keeps. Quieter than what it parts. */
+private const val SEPARATOR_FILL = 0.55f
 
 /** The two kinds, as their providers spell them. Not translated: they are product names. */
 private const val XTREAM = "Xtream"

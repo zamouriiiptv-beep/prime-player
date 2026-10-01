@@ -184,15 +184,26 @@ internal object ActivationTags {
     const val SAVED_BACK = "activation.savedBack"
 
     /**
-     * The kind badge, tagged for the one claim the row's columns rest on.
+     * The kind badge, tagged for the one claim the row's middle group rests on.
      *
-     * It is the column directly after the only one that is usually empty — the "in use"
-     * mark — so if it starts at the same place on a row that has that mark and a row
-     * that does not, the empty slot is holding its share and every column after it is
-     * aligned too. A slot that collapsed would move this one, which is why this is the
-     * badge that carries the tag and not the name beside it.
+     * It sits directly after the only item that comes and goes between one subscription
+     * and the next — the "in use" mark — in a group that centres itself, so if it starts
+     * at the same place on a row that has that mark and a row that does not, the hidden
+     * mark kept the space it measured and everything after it is aligned too. A mark
+     * that collapsed would move this badge, which is why this is the thing that carries
+     * the tag and not the name beside it.
      */
     const val SAVED_KIND = "activation.savedKind"
+
+    /**
+     * When the subscription runs out, on the rows that have an answer.
+     *
+     * Tagged rather than found by its words, because the assertion worth having is
+     * about the rows that *do not* have one: a playlist with no subscription behind it
+     * must draw no expiry at all, and "no node with this tag" is that claim where "no
+     * text containing a date" would only be a claim about one translation.
+     */
+    const val SAVED_EXPIRES = "activation.savedExpires"
     const val SAVED_EDIT = "activation.savedEdit"
     const val SAVED_DELETE = "activation.savedDelete"
     const val SAVED_DELETE_DIALOG = "activation.savedDeleteDialog"

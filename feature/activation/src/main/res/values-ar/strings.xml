@@ -47,7 +47,8 @@
     <string name="saved_sources_empty">لا توجد اشتراكات محفوظة على هذا الجهاز بعد.</string>
     <string name="saved_sources_active">نشط الآن</string>
     <string name="saved_sources_unnamed">قائمة بلا اسم</string>
-    <string name="saved_sources_added">مضاف في %1$s</string>
+    <string name="saved_sources_added">أضيف في %1$s</string>
+    <string name="saved_sources_expires">ينتهي في %1$s</string>
 
     <string name="saved_sources_edit">تعديل</string>
     <string name="saved_sources_rename_title">اسم القائمة</string>

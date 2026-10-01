@@ -529,7 +529,14 @@ class FrameSweepTest {
     fun `the saved subscriptions wear the header on every frame`() {
         compose.sweep {
             SavedSourcesScreen(
-                state = SavedSourcesState.Ready(saved = SWEEP_SOURCES, activeId = "a"),
+                state = SavedSourcesState.Ready(
+                    saved = SWEEP_SOURCES,
+                    activeId = "a",
+                    // The longest row there is: the mark, the kind and both dates. The
+                    // claim here is the header's, but the frame it is measured on is the
+                    // one the fullest list produces.
+                    expiries = mapOf("a" to SWEEP_EXPIRY_MS),
+                ),
                 onChoose = {},
                 onRename = { _, _ -> },
                 onDelete = {},
@@ -917,6 +924,9 @@ class FrameSweepTest {
                 kind = PickerEntry.EntryKind.File,
             ),
         )
+
+        /** A date an Xtream panel could state, so the sweep draws a row carrying one. */
+        const val SWEEP_EXPIRY_MS = 1_805_000_000_000L
 
         val SWEEP_SOURCES = listOf(
             ProviderSource(
