@@ -1,9 +1,5 @@
 package com.castivio.feature.home
 
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import android.view.View
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -64,7 +60,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -98,9 +93,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.castivio.core.design.components.CastivioClock
 import com.castivio.core.design.components.CastivioLockup
 import com.castivio.core.design.components.CastivioThemeSwitchChip
 import com.castivio.core.design.components.EmptyState
@@ -121,7 +116,6 @@ import com.castivio.core.design.theme.rememberMetrics
 import com.castivio.domain.MediaKind
 import com.castivio.domain.Recorded
 import com.castivio.domain.entitlement.EntitlementState
-import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -672,7 +666,7 @@ internal fun DashboardHeader(
                 )
             }
 
-            Clock(frame)
+            CastivioClock(fsTime = frame.fsTitle, fsDate = frame.fsChip)
             trailing()
         }
     }
@@ -819,67 +813,10 @@ private fun LanguageChip(frame: CastivioMetrics, onClick: () -> Unit, modifier: 
     }
 }
 
-/** The time, and the day under it. */
-@Composable
-private fun Clock(frame: CastivioMetrics, modifier: Modifier = Modifier) {
-    val colors = CastivioTheme.colors
-    val now = rememberMinute()
-    val locale = LocalConfiguration.current
-    // Isolated, both of them. A clock and a date are fixed-shape tokens: drawn
-    // unisolated in an Arabic composition, `16/09/2026` is reordered into
-    // `162026/09/` by the bidirectional algorithm. See [ltrIsolate].
-    val time = remember(now, locale) {
-        ltrToken(DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(now)))
-    }
-    val day = remember(now, locale) {
-        ltrToken(DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(now)))
-    }
-    Column(modifier, horizontalAlignment = Alignment.End) {
-        Text(
-            time,
-            style = castivioTitleStyle(frame.fsTitle),
-            color = colors.onBackgroundStrong,
-            maxLines = 1,
-        )
-        Text(
-            day,
-            style = castivioChipStyle(frame.fsChip),
-            color = colors.onBackgroundMuted,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-/**
- * The wall clock, to the minute, without a timer.
- *
- * `ACTION_TIME_TICK` cannot be declared in a manifest — the platform only delivers it
- * to a receiver registered at runtime, which is exactly the lifetime a
- * `DisposableEffect` has. `RECEIVER_NOT_EXPORTED` because nothing but the system
- * should be able to send it; on the API levels with no such flag `ContextCompat`
- * drops it.
- */
-@Composable
-internal fun rememberMinute(): Long {
-    val context = LocalContext.current
-    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    DisposableEffect(context) {
-        val receiver = object : BroadcastReceiver() {
-            override fun onReceive(from: Context?, intent: Intent?) {
-                now = System.currentTimeMillis()
-            }
-        }
-        ContextCompat.registerReceiver(
-            context,
-            receiver,
-            IntentFilter(Intent.ACTION_TIME_TICK),
-            ContextCompat.RECEIVER_NOT_EXPORTED,
-        )
-        onDispose { context.unregisterReceiver(receiver) }
-    }
-    return now
-}
+// The clock and its ticker were both here, private to this file, until the activation
+// header wanted the same pair in the same corner. They are `CastivioClock` and
+// `rememberMinute` in `:core:design` now — one declaration, one isolation rule for the
+// digits, one receiver. See the note on the component.
 
 /** Whether Castivio's own licence permits use — the one question every screen asks. */
 private val HomeState.licenceHolds: Boolean

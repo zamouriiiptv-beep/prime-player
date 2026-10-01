@@ -159,6 +159,9 @@ internal object ActivationTags {
     /** The dark/light control, which every header in the flow carries. */
     const val HEADER_THEME = "chooser.theme"
 
+    /** The time and the day beside it, the same pair Home's header carries. */
+    const val HEADER_CLOCK = "chooser.clock"
+
     /**
      * One tile, and one row, repeated.
      *

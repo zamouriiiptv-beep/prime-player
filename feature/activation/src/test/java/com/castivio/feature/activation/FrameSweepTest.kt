@@ -540,6 +540,7 @@ class FrameSweepTest {
         val marks = compose.all(ActivationTags.HEADER_MARK)
         val titles = compose.all(ActivationTags.SAVED_TITLE)
         val backs = compose.all(ActivationTags.SAVED_BACK)
+        val clocks = compose.all(ActivationTags.HEADER_CLOCK)
 
         passes.forEachIndexed { i, pass ->
             // The stage is untagged here, so the row's own span is the claim: the mark
@@ -553,6 +554,16 @@ class FrameSweepTest {
             assertTrue(
                 "$pass: the title is not between the mark and Back",
                 titles[i].left >= marks[i].right && titles[i].right <= backs[i].left,
+            )
+            // The clock took the step between the title and the controls, and it took
+            // it from the title rather than from them. Stated as an order on every
+            // frame, because the frame that can fail is the shortest one: a clock that
+            // did not fit would push Back off the row's own span, and the assertion
+            // above would then be the one that fails — which is the point of asserting
+            // both rather than either.
+            assertTrue(
+                "$pass: the clock is not between the title and Back",
+                clocks[i].left >= titles[i].right && clocks[i].right <= backs[i].left,
             )
             // The stage is untagged, so the row's own span stands in for it — the two
             // are the same span, which is what the assertion above this one just

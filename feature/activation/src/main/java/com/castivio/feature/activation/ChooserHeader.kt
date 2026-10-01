@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.ui.Alignment
 import com.castivio.core.design.components.CastivioBackChip
+import com.castivio.core.design.components.CastivioClock
 import com.castivio.core.design.components.CastivioThemeSwitchChip
 import com.castivio.core.design.components.CastivioHeader
 import com.castivio.core.design.components.CastivioHeaderTitle
@@ -118,12 +119,29 @@ internal fun ChooserHeader(
             // Back second, so Back keeps the outer end it holds on every screen in the
             // product. A control that moves aside to make room for a new one is a
             // control the reader has to look for.
+            //
+            // The clock leads them, which is the order Home already draws: the time,
+            // then the controls, then the way out at the far end. It is the same
+            // component Home draws, not a second one — a clock written twice is two
+            // tick rates and two answers to what the bidirectional algorithm does to
+            // `16/09/2026`.
+            //
+            // It costs the title width rather than the chips': `CastivioHeader`
+            // measures both ends at what they ask for and gives the title what is
+            // between, and the title is fitted text that yields. So the longest
+            // translation on the shortest frame loses a step of type, and no control
+            // loses any of its hit area.
             val reading = LocalLayoutDirection.current
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(m.chipsGap),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    CastivioClock(
+                        fsTime = m.fsTitle,
+                        fsDate = m.fsBadge,
+                        modifier = Modifier.testTag(ActivationTags.HEADER_CLOCK),
+                    )
                     CastivioThemeSwitchChip(
                         chip = m.back,
                         touchTarget = m.frame.touchTarget,
