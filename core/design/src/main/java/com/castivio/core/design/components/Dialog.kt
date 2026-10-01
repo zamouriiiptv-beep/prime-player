@@ -456,6 +456,11 @@ private fun DialogScrim(
             // covering them.
             val tight = maxHeight < TIGHT
 
+            // TEMPORARY. Read here, where `BoxWithConstraintsScope` is the receiver;
+            // inside the column below the receiver is `ColumnScope` and the implicit
+            // one is gone.
+            val available = maxHeight
+
             Column(
                 Modifier
                     .widthIn(max = m.width)
@@ -518,7 +523,7 @@ private fun DialogScrim(
                 // part of the design is a diagnostic somebody forgets to remove.
                 if (PROBE) {
                     Text(
-                        text = probe(hasWindow, walkedWindow, maxHeight),
+                        text = probe(hasWindow, walkedWindow, available),
                         style = CastivioType.labelMedium,
                         color = colors.danger,
                     )
