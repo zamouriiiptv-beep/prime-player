@@ -232,6 +232,12 @@ class SavedSourcesScreenTest {
      *
      * A mark that collapsed would put the kind in a different place on every line,
      * which is the one way this layout can quietly stop being a layout.
+     *
+     * The two fixtures are named `Home` and `Cabin`, which is four device-independent
+     * pixels apart, and that is not incidental any more: the first revision of this
+     * layout gave the name the width of the name, so the group was centred in what was
+     * left after it and those four pixels moved every fact by two. The name has a share
+     * now, and this is the assertion that caught it.
      */
     @Test
     fun `the kind badge starts at the same place whether or not the row is in use`() {
@@ -249,6 +255,49 @@ class SavedSourcesScreenTest {
             "the mark's space collapsed: the kind moved by ${plain.left - active.left}",
             active.left.value,
             plain.left.value,
+            1f,
+        )
+    }
+
+    /**
+     * And the same claim where the names are as far apart as names get.
+     *
+     * Four pixels is what two short English words differ by. A list holds `Playlist 1`
+     * beside a name somebody typed out in full, and a layout that drifts with the length
+     * of the name drifts by the width of a sentence there — so the fixtures here are the
+     * shortest name this screen produces and one long enough to be ellipsised, and the
+     * facts still line up.
+     */
+    @Test
+    fun `the facts line up however long the names are`() {
+        compose.show(
+            SavedSourcesState.Ready(
+                saved = listOf(
+                    ProviderSource(
+                        id = "a",
+                        kind = SourceKind.XTREAM,
+                        label = "Playlist 1",
+                        url = "http://one.example",
+                    ),
+                    ProviderSource(
+                        id = "b",
+                        kind = SourceKind.XTREAM,
+                        label = "The subscription my brother set up on the television",
+                        url = "http://two.example",
+                    ),
+                ),
+                activeId = "a",
+            ),
+        )
+
+        val kinds = compose.onAllNodesWithTag(ActivationTags.SAVED_KIND, useUnmergedTree = true)
+        val short = kinds[0].getUnclippedBoundsInRoot()
+        val long = kinds[1].getUnclippedBoundsInRoot()
+
+        assertEquals(
+            "the group drifted with the name: the kind moved by ${long.left - short.left}",
+            short.left.value,
+            long.left.value,
             1f,
         )
     }
@@ -313,25 +362,28 @@ class SavedSourcesScreenTest {
     }
 
     /**
-     * The longest row there is, on the narrowest frame it is drawn at.
+     * The longest row there is, on the shortest frame the sweep draws.
      *
-     * Four facts, a name, a disc and two actions on a 360dp handset is the one shape
-     * where the group's ceilings are reached rather than ignored, and the failure they
-     * exist to prevent is silent: a `Row` does not clip, so an item it has no room for
-     * is laid out past the card's edge and simply is not seen.
+     * 800×360 is the smallest handset this ships to — the activation flow is a fixed
+     * landscape viewport, so there is no narrower frame to defend against. Four facts, a
+     * name, a disc and two actions on it is the one shape where the group's ceilings are
+     * reached rather than ignored, and the failure they exist to prevent is silent: a
+     * `Row` does not clip, so an item it has no room for is laid out past the card's
+     * edge and simply is not seen.
      *
      * So this measures the two ends of the group against the frame. Nothing may start
      * before it or finish after it.
      */
     @Test
-    fun `on the narrowest frame the group stays inside the row`() {
+    fun `on the shortest frame the group stays inside the row`() {
         compose.show(
             state = SavedSourcesState.Ready(
                 saved = twoSources(),
                 activeId = "a",
                 expiries = mapOf("a" to EXPIRY_MS, "b" to EXPIRY_MS),
             ),
-            width = 360.dp,
+            width = 800.dp,
+            height = 360.dp,
         )
 
         val kind = compose
@@ -342,7 +394,7 @@ class SavedSourcesScreenTest {
             .getUnclippedBoundsInRoot()
 
         assertTrue("the kind badge starts at ${kind.left}", kind.left.value >= 0f)
-        assertTrue("the expiry ends at ${expiry.right}", expiry.right.value <= 360f)
+        assertTrue("the expiry ends at ${expiry.right}", expiry.right.value <= 800f)
     }
 
     // ------------------------------------------------------- the keyboard's surface

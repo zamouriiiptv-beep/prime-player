@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -153,11 +152,7 @@ internal fun SavedSourcesScreen(
 
     BoxWithConstraints(modifier.fillMaxSize()) {
         val m = sourceMetricsFor(tv = tv, width = maxWidth, height = maxHeight)
-        val rows = rowMetricsFor(
-            width = maxWidth,
-            height = maxHeight,
-            touchTarget = m.frame.touchTarget,
-        )
+        val rows = rowMetricsFor(height = maxHeight, touchTarget = m.frame.touchTarget)
 
         Column(
             Modifier
@@ -298,12 +293,25 @@ private fun ColumnScope.SavedBand(
  * air: each column was wider than the thing in it, and the widest gap of all sat behind
  * a short name like `Playlist 1`.
  *
- * So the facts are one group now. The name takes the width of the name and no more
- * (capped by [RowMetrics.nameMax], because a name is the user's string and the only one
- * here that can be unbounded), the two actions keep the trailing end, and the group
- * between them takes everything left over and centres itself in it. The slack that used
- * to pool in one place is divided in two and sits on either side of a group that reads
- * as a single phrase.
+ * So the facts are one group now. The name keeps a share of its own, the two actions
+ * keep the trailing end, and the group between them takes the rest and centres itself
+ * in it. The slack that used to pool in one place is divided in two and sits on either
+ * side of a group that reads as a single phrase.
+ *
+ * ## Why the name is still a share and not its own width
+ *
+ * It was its own width for one revision, which is the obvious reading of "tight": a
+ * short name takes a short column and the group starts right after it. What that costs
+ * is the thing this row is for — two subscriptions named `Home` and `Cabin` differ by
+ * 4dp, the group is centred in what is left after the name, and every fact in it sits
+ * 2dp off the one above. The drift is the name's length, so it is small between two
+ * English words and the width of a sentence between `Playlist 1` and a name somebody
+ * typed in full.
+ *
+ * A share is the same width on every row, so the group's region is too, and a column of
+ * facts is a column again. It is also what keeps the row inside the narrowest frame
+ * this ships to: shares shrink together, and a name with a width of its own would push
+ * the two actions off an 800dp handset before it ellipsised.
  *
  * ## The mark's place is held on every row
  *
@@ -387,11 +395,11 @@ private fun SavedSourceRow(
                 color = colors.onBackground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.widthIn(max = rows.nameMax),
+                modifier = Modifier.weight(NAME_SHARE),
             )
 
             Row(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(GROUP_SHARE),
                 horizontalArrangement = Arrangement.spacedBy(
                     rows.badgePad,
                     Alignment.CenterHorizontally,
@@ -678,19 +686,9 @@ internal data class RowMetrics(
     val badge: Dp,
     val badgePad: Dp,
     val dot: Dp,
-    /**
-     * How much of the row a name may take before it starts ellipsising.
-     *
-     * The one width here read off the frame's width rather than its height, because it
-     * bounds a horizontal thing: the name is the user's string, it can be three hundred
-     * characters, and without a ceiling one subscription would push the facts and both
-     * actions off the end of the row. A quarter of the frame, which is `Playlist 1`
-     * three times over.
-     */
-    val nameMax: Dp,
 )
 
-internal fun rowMetricsFor(width: Dp, height: Dp, touchTarget: Dp): RowMetrics {
+internal fun rowMetricsFor(height: Dp, touchTarget: Dp): RowMetrics {
     val disc = height.boundedFraction(DISC, 40.dp, 64.dp)
     return RowMetrics(
         disc = disc,
@@ -703,7 +701,6 @@ internal fun rowMetricsFor(width: Dp, height: Dp, touchTarget: Dp): RowMetrics {
         badge = height.boundedFraction(BADGE, 18.dp, 28.dp),
         badgePad = height.boundedFraction(BADGE_PAD, 6.dp, 12.dp),
         dot = height.boundedFraction(DOT, 6.dp, 10.dp),
-        nameMax = width.boundedFraction(NAME_MAX, 96.dp, 320.dp),
     )
 }
 
@@ -717,24 +714,44 @@ private const val BADGE = 28f / 720f
 private const val BADGE_PAD = 12f / 720f
 private const val DOT = 10f / 720f
 
-/** Off the frame's width, not its height. See [RowMetrics.nameMax]. */
-private const val NAME_MAX = 320f / 1280f
-
 /** How much of its hue a disc and a badge take. Opacity, not a colour. */
 private const val DISC_FILL = 0.92f
 private const val BADGE_STRONG = 0.85f
 private const val BADGE_FILL = 0.12f
 
+/* ------------------------------------------------------------ the row's two regions
+ *
+ * What is left of the row once the disc and the two actions have taken their fixed
+ * sizes, split between the name and the group of facts. Shares rather than widths, so a
+ * television and the shortest handset lay the row out in the same proportions and
+ * nothing has to be re-derived per frame — and so that both regions are the same width
+ * on every row, which is what lets the group above be a column of facts rather than
+ * four facts that drift with the length of the name beside them.
+ *
+ * The split is lopsided because the content is. Measured on the drawing at 1280x720,
+ * the four facts and the three dots between them come to 743dp of the 877 the row has
+ * to give — a mark, a product name and two dates each carrying the words in front of
+ * it. A name column of any generosity would cut the last date off, so the name takes
+ * what is left: 132dp there and 94 on the television, which is `Playlist 1` and a
+ * little, and an ellipsis beyond it.
+ *
+ * That is the trade and it is the right way round. A name ellipsised from its end is
+ * still recognisable — it is the user's own string and they are looking for the one
+ * they named. Half a date is not a date.
+ */
+private const val NAME_SHARE = 1.5f
+private const val GROUP_SHARE = 8.5f
+
 /* ----------------------------------------------------- the middle group's ceilings
  *
- * Not widths, and not read off a drawing. Every item in the group takes its share with
- * `fill = false`, so on any frame with room the share is simply never reached and each
- * item is as wide as its own content — which is what makes the group tight.
+ * Not widths. Every item in the group takes its share with `fill = false`, so on any
+ * frame with room the share is simply never reached and each item is as wide as its own
+ * content — which is what makes the group tight.
  *
- * What they decide is the shortest handset, where the group has 160dp and the four
- * facts want more. There the shares bind, and they say what a crowded row gives up
- * first: the dates ellipsise before the mark does, and the mark before the kind, because
- * a half-read date is still a date and half a badge is a shape.
+ * What they decide is the narrowest frame, where the four facts want more than the
+ * group has. There the shares bind, and they say what a crowded row gives up first: the
+ * dates ellipsise before the mark does, and the mark before the kind, because a
+ * half-read date is still a date and half a badge is a shape.
  */
 private const val ACTIVE_SHARE = 1.2f
 private const val KIND_SHARE = 1f
