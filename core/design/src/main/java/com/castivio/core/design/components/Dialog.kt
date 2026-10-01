@@ -3,7 +3,6 @@ package com.castivio.core.design.components
 import android.os.Build
 import android.view.View
 import android.view.Window
-import android.view.WindowManager
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -334,6 +333,19 @@ private fun DialogPanel(
             // And because it fills the window there is no "outside": the scrim below
             // owns that press, as it always has.
             dismissOnClickOutside = false,
+            // **Here, not in a `SideEffect`, because here is the only place it holds.**
+            //
+            // It was written by hand on the window instead, and the probe caught that
+            // doing nothing: `fits=263`, which is `systemBars` plus the legacy decor
+            // bit — the untouched default, where the call should have left `0`. Beside
+            // it `soft=0x10`, which is the `ADJUST_RESIZE` the same block set and which
+            // did survive. One write kept and one overwritten names the other writer:
+            // Compose's own `Dialog` re-applies `properties` after the content's
+            // effects run, and this property's default is `true`.
+            //
+            // So it is the property. A window configured through the API that owns it
+            // cannot be undone by the thing that owns it.
+            decorFitsSystemWindows = false,
         ),
     ) {
         val view = LocalView.current
@@ -371,21 +383,19 @@ private fun DialogPanel(
         SideEffect {
             window?.let {
                 it.setDimAmount(0f)
-                // **The insets have to reach the composition.**
+                // **Nothing about insets is written here any more.**
                 //
-                // A new window's decor fits system windows by default, which consumes
-                // every inset before Compose sees it — including the keyboard's. The
-                // panel below is lifted by `imePadding()`, and a consumed inset hands
-                // it a zero: the photograph of that is a dialog centred in the whole
-                // screen with its field and its buttons behind the keys, which is
-                // exactly what the first build of this window did.
+                // `setDecorFitsSystemWindows` and `setSoftInputMode` were, and the probe
+                // showed what that was worth: the first was overwritten before it could
+                // matter, the second survived, and a block where half the writes hold is
+                // worse than no block — it reads as configuration while behaving as
+                // chance. Both belong to `DialogProperties`, which is applied by the
+                // thing that would otherwise overwrite them, and that is where the one
+                // that matters now lives.
                 //
-                // Edge to edge instead, as `MainActivity` runs the window underneath,
-                // and the lift is Compose's. The soft input mode is set as well for
-                // the devices that still honour it; on anything modern it is ignored
-                // and the inset is what does the work.
-                WindowCompat.setDecorFitsSystemWindows(it, false)
-                it.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+                // The dim stays: Castivio draws its own scrim, and nothing else in this
+                // window competes to set that.
+                //
                 // The insets controller needs a window that is attached to a display.
                 // It is, on a device; it is not under Robolectric, where a dialog has
                 // no view root, asking for one throws, and there are no system bars to
