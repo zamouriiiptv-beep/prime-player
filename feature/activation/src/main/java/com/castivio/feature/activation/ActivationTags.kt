@@ -182,6 +182,17 @@ internal object ActivationTags {
     const val SAVED_EMPTY = "activation.savedEmpty"
     const val SAVED_LIST = "activation.savedList"
     const val SAVED_BACK = "activation.savedBack"
+
+    /**
+     * The kind badge, tagged for the one claim the row's columns rest on.
+     *
+     * It is the column directly after the only one that is usually empty — the "in use"
+     * mark — so if it starts at the same place on a row that has that mark and a row
+     * that does not, the empty slot is holding its share and every column after it is
+     * aligned too. A slot that collapsed would move this one, which is why this is the
+     * badge that carries the tag and not the name beside it.
+     */
+    const val SAVED_KIND = "activation.savedKind"
     const val SAVED_EDIT = "activation.savedEdit"
     const val SAVED_DELETE = "activation.savedDelete"
     const val SAVED_DELETE_DIALOG = "activation.savedDeleteDialog"

@@ -11,6 +11,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -210,6 +211,37 @@ class SavedSourcesScreenTest {
         ).performClick()
 
         assertEquals(listOf("a"), deleted)
+    }
+
+    // --------------------------------------------------------------- the row's columns
+
+    /**
+     * The column that is usually empty still holds its share.
+     *
+     * The row lays its facts out in columns so the width is carried by them rather than
+     * by a void between the name and the two actions. Every one of those columns is the
+     * same share of every row, and the one that tests that is the "in use" mark: it is
+     * on one row and absent from the others, so if the kind badge after it starts at the
+     * same place on both, the empty slot kept its place and every column after it is
+     * aligned too.
+     *
+     * A slot that collapsed when it was empty would put the kind in a different place on
+     * every line, which is the one way this layout can quietly stop being a layout.
+     */
+    @Test
+    fun `the kind badge starts at the same place whether or not the row is in use`() {
+        compose.show(SavedSourcesState.Ready(saved = twoSources(), activeId = "a"))
+
+        val kinds = compose.onAllNodesWithTag(ActivationTags.SAVED_KIND)
+        val active = kinds[0].getUnclippedBoundsInRoot()
+        val plain = kinds[1].getUnclippedBoundsInRoot()
+
+        assertEquals(
+            "the mark's column collapsed: the kind moved by ${plain.left - active.left}",
+            active.left.value,
+            plain.left.value,
+            1f,
+        )
     }
 
     // ------------------------------------------------------- the keyboard's surface

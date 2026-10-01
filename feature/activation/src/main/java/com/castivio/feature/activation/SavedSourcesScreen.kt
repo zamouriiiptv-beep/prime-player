@@ -274,13 +274,36 @@ private fun ColumnScope.SavedBand(
 /**
  * One saved subscription: what it is called, what kind it is, when it arrived.
  *
- * The name leads because it is what the user chose and what they will recognise. Under
- * it, the kind as a badge and the date as plain text — enough to tell two subscriptions
- * with similar names apart, and the most a list has any business knowing.
+ * The name leads because it is what the user chose and what they will recognise. Beside
+ * it, the mark if it is the one in use, the kind as a badge and the date as plain
+ * text — enough to tell two subscriptions with similar names apart, and the most a list
+ * has any business knowing.
  *
  * The name is the one string here that can be unbounded, so it is the one that
  * ellipsises: a row that grew to fit a 300-character name is a row that pushes every
  * other subscription off the screen.
+ *
+ * ## Four columns, not two lines and a void
+ *
+ * The facts were stacked in a column that took `weight(1f)`, so they gathered at one
+ * end of the row, the two actions sat at the other, and everything between them was
+ * air. Measured on the television frame: 490dp of an 868dp row, which is more than half
+ * the row, and it is worst exactly where the row is widest.
+ *
+ * So each fact has a column of its own and every column is the same share of every
+ * row. Three things follow from that, and the third is the one worth having:
+ *
+ *  - the slack has one place to go — the name, the only one of them that can use it;
+ *  - the kinds sit under the kinds and the dates under the dates, so six subscriptions
+ *    are scanned rather than read;
+ *  - **the mark keeps its column on the rows that do not have one.** A slot that
+ *    collapsed when it was empty would put the kind in a different place on every line,
+ *    which is the whole of what a column is.
+ *
+ * Shares rather than a table of widths, for the reason everything else here is a share:
+ * they are the same proportion on a television and on the shortest handset, and no
+ * number has to be re-derived per frame. [NAME_SHARE] and the three beside it are read
+ * off the approved drawing at 960×540.
  */
 @Composable
 private fun SavedSourceRow(
@@ -330,40 +353,35 @@ private fun SavedSourceRow(
                 )
             }
 
-            Column(
-                Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(rows.lineGap),
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(rows.lineGap),
-                ) {
-                    Text(
-                        text = title,
-                        style = castivioChipStyle(m.fsCard),
-                        color = colors.onBackground,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
-                    if (isActive) {
-                        ActiveBadge(rows, inUse, m.fsBadge)
-                    }
-                }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(rows.lineGap),
-                ) {
-                    KindBadge(rows, source.kind, hue, m.fsBadge)
-                    Text(
-                        text = stringResource(R.string.saved_sources_added, addedOn(source.createdAtMs)),
-                        style = castivioBodyStyle(m.fsDetail),
-                        color = castivioDescriptionColor,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+            Text(
+                text = title,
+                style = castivioChipStyle(m.fsCard),
+                color = colors.onBackground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(NAME_SHARE),
+            )
+
+            // Empty on every row but one, and it still takes its share. See the note
+            // above: this is the column that keeps the two after it from moving.
+            Box(Modifier.weight(ACTIVE_SHARE)) {
+                if (isActive) {
+                    ActiveBadge(rows, inUse, m.fsBadge)
                 }
             }
+
+            Box(Modifier.weight(KIND_SHARE).testTag(ActivationTags.SAVED_KIND)) {
+                KindBadge(rows, source.kind, hue, m.fsBadge)
+            }
+
+            Text(
+                text = stringResource(R.string.saved_sources_added, addedOn(source.createdAtMs)),
+                style = castivioBodyStyle(m.fsDetail),
+                color = castivioDescriptionColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(DATE_SHARE),
+            )
 
             RowAction(
                 rows = rows,
@@ -538,7 +556,6 @@ internal data class RowMetrics(
     val discRadius: Dp,
     val pad: Dp,
     val gap: Dp,
-    val lineGap: Dp,
     val action: Dp,
     val actionRadius: Dp,
     val badge: Dp,
@@ -553,7 +570,6 @@ internal fun rowMetricsFor(height: Dp, touchTarget: Dp): RowMetrics {
         discRadius = height.boundedFraction(DISC_RADIUS, 11.dp, 18.dp),
         pad = height.boundedFraction(PAD, 8.dp, 18.dp),
         gap = height.boundedFraction(GAP, 10.dp, 20.dp),
-        lineGap = height.boundedFraction(LINE_GAP, 4.dp, 10.dp),
         // Never under the floor a remote and a thumb both need, whatever the share says.
         action = maxOf(disc, touchTarget),
         actionRadius = height.boundedFraction(ACTION_RADIUS, 9.dp, 16.dp),
@@ -568,7 +584,6 @@ private const val DISC = 78f / 720f
 private const val DISC_RADIUS = 22f / 720f
 private const val PAD = 16f / 720f
 private const val GAP = 22f / 720f
-private const val LINE_GAP = 8f / 720f
 private const val ACTION_RADIUS = 18f / 720f
 private const val BADGE = 28f / 720f
 private const val BADGE_PAD = 12f / 720f
@@ -578,6 +593,23 @@ private const val DOT = 10f / 720f
 private const val DISC_FILL = 0.92f
 private const val BADGE_STRONG = 0.85f
 private const val BADGE_FILL = 0.12f
+
+/* ------------------------------------------------------------ the row's columns
+ *
+ * Read off the approved drawing at 960×540, where the name took 309dp of the row's
+ * flexible width, the mark 88, the kind 78 and the date 152. Shares rather than those
+ * four numbers, so a television and the shortest handset lay the row out in the same
+ * proportions and nothing has to be re-derived per frame.
+ *
+ * The name's share is the large one because it is the only column whose content is the
+ * user's: the other three hold a mark of fixed words, a product name of two, and a date.
+ * Those three are as wide as they need and no wider, and what is left over is the name's
+ * — which is the whole point of the row having columns at all.
+ */
+private const val NAME_SHARE = 4f
+private const val ACTIVE_SHARE = 1.2f
+private const val KIND_SHARE = 1f
+private const val DATE_SHARE = 2f
 
 /** Day, month as a word, year — order and separators are the locale's business. */
 private const val ADDED_SKELETON = "dMMMy"
