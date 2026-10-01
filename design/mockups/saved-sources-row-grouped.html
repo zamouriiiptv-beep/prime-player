@@ -1,0 +1,143 @@
+<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8">
+<style>
+:root{
+  --deep:#141031; --violet10:#1B1038; --azure10:#0A1E3D;
+  --edge:rgba(160,163,215,.20); --edgeLit:rgba(76,155,255,.75);
+  --glassLow:rgba(255,255,255,.055);
+  --white:#FFFFFF; --muted:#A6A6BF; --success:#3DD68C; --danger:#FF5A5A;
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Noto Sans Arabic","DejaVu Sans",sans-serif}
+body{background:#07060f;padding:12px;display:flex;flex-direction:column;gap:10px}
+.cap{color:#cfd3f0;font-size:14px;font-weight:700;display:flex;align-items:center;gap:10px;height:20px}
+.cap .n{font-family:"DejaVu Sans Mono",monospace;font-size:12px;color:#8e95d6;font-weight:400}
+.cap .px{border:1px solid rgba(76,155,255,.55);background:rgba(76,155,255,.12);
+  color:#9ec7ff;border-radius:6px;padding:1px 8px;font-size:11px}
+
+/* ---- the frame: 1280 x 720, reference geometry ---- */
+.shot{position:relative;width:1280px;height:720px;overflow:hidden;
+  background:linear-gradient(to bottom right,var(--deep) 0%,var(--violet10) 50%,var(--azure10) 100%)}
+.glow{position:absolute;border-radius:50%;pointer-events:none}
+.warm{width:1408px;height:1408px;left:-640px;top:324px;
+  background:radial-gradient(circle closest-side,rgba(110,75,216,.30),rgba(110,75,216,0))}
+.cool{width:1331px;height:1331px;left:563px;top:-302px;
+  background:radial-gradient(circle closest-side,rgba(46,107,255,.26),rgba(46,107,255,0))}
+
+.page{position:absolute;inset:0;padding:32px 61.3px 29.3px;display:flex;flex-direction:column}
+
+/* ---- header: untouched ---- */
+.head{display:flex;align-items:center;gap:34.7px;height:72px;flex:0 0 auto}
+.hs{display:flex;align-items:center;gap:11px;flex:0 0 auto}
+.pill{height:58px;padding:0 14.7px;border-radius:58px;border:1px solid var(--edge);
+  background:var(--glassLow);color:var(--white);font-size:18px;display:flex;align-items:center;gap:6px}
+.disc{width:58px;height:58px;border-radius:50%;border:1px solid var(--edge);
+  background:var(--glassLow);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px}
+.hdrClock{display:flex;flex-direction:column;align-items:flex-end;direction:ltr;line-height:1.15;flex:0 0 auto}
+.hdrTime{font-size:34px;font-weight:700;color:var(--white);white-space:nowrap}
+.hdrDate{font-size:18px;color:var(--muted);white-space:nowrap}
+.titles{flex:1 1 auto;text-align:center;min-width:0}
+.h1{font-size:34px;font-weight:700;color:var(--white);line-height:1.2}
+.brand{display:flex;align-items:center;gap:11px;flex:0 0 auto}
+.bm{width:54px;height:54px;border-radius:28%;
+  background:linear-gradient(135deg,#FF3D6E,#9B6BFF);display:flex;align-items:center;
+  justify-content:center;font-size:18px}
+.bn{font-size:18px;letter-spacing:.2em;color:var(--white);font-weight:600}
+.sub{height:32px;display:flex;align-items:center;justify-content:center;
+  font-size:19px;color:var(--muted);flex:0 0 auto}
+
+/* ---- the list ---- */
+.body{flex:1 1 auto;display:flex;min-height:0;margin-top:29.3px}
+.list{flex:1 1 auto;display:flex;flex-direction:column;min-width:0;min-height:0;gap:20px}
+
+/* card: same height, same radius, same fill as today */
+.card{border-radius:28px;border:1px solid var(--edge);background:var(--glassLow);
+  padding:16px;display:flex;align-items:center;gap:16px;flex:0 0 auto;min-height:96px}
+.card.on{border-color:var(--edgeLit);background:rgba(76,155,255,.10);
+  box-shadow:0 0 28px rgba(76,155,255,.42)}
+.cdisc{width:64px;height:64px;border-radius:18px;flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;font-size:26.88px}
+.dV{background:linear-gradient(150deg,#7C4DFF,#5B2BD6)}
+
+/* right side: icon + name, content-width */
+.nm{font-size:22px;font-weight:700;color:var(--white);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;max-width:320px;flex:0 1 auto}
+
+/* THE CHANGE: one group, tight, balanced in the middle of the leftover */
+.facts{flex:1 1 auto;min-width:0;display:flex;align-items:center;justify-content:center;
+  gap:12px;overflow:hidden}
+.live{flex:0 0 auto;height:28px;padding:0 12px;border-radius:28px;
+  border:1px solid rgba(61,214,140,.55);background:rgba(61,214,140,.12);
+  color:var(--success);font-size:18px;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--success)}
+.k{height:28px;padding:0 12px;border-radius:28px;color:#fff;font-size:18px;
+  display:flex;align-items:center;flex:0 0 auto;font-weight:600;white-space:nowrap}
+.kX{background:#7C4DFF}
+.fact{font-size:19px;color:rgba(166,166,191,.72);white-space:nowrap;flex:0 0 auto}
+.sep{color:rgba(166,166,191,.38);font-size:19px;flex:0 0 auto}
+
+/* left side: the two actions, unchanged */
+.acts{display:flex;gap:8px;flex:0 0 auto}
+.act{width:64px;height:64px;border-radius:16px;border:1px solid var(--edge);
+  background:var(--glassLow);display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:2px;font-size:18px;color:var(--white)}
+.act.del{border-color:rgba(255,90,90,.45);background:rgba(255,90,90,.10);color:var(--danger)}
+.ag{font-size:22px;line-height:1}
+</style>
+
+<div class="cap">المقترح — المعلومات مجمّعة في الوسط
+  <span class="px">1280 × 720</span>
+  <span class="n">الهيدر والخلفية والبطاقة والأزرار كما هي · تغيّر توزيع السطر فقط</span></div>
+
+<div class="shot">
+  <div class="glow warm"></div><div class="glow cool"></div>
+  <div class="page">
+
+    <div class="head">
+      <div class="hs">
+        <div class="pill">رجوع&nbsp;←</div>
+        <div class="disc">☀</div>
+        <div class="hdrClock"><div class="hdrTime">20:29</div><div class="hdrDate">1 أكتوبر 2026</div></div>
+      </div>
+      <div class="titles"><div class="h1">اشتراكاتي</div></div>
+      <div class="brand"><div class="bm">▶</div><div class="bn">CASTIVIO</div></div>
+    </div>
+    <div class="sub">إدارة جميع الاشتراكات المحفوظة على هذا الجهاز</div>
+
+    <div class="body"><div class="list">
+
+      <div class="card on">
+        <div class="cdisc dV">▤</div>
+        <div class="nm">Playlist 1</div>
+        <div class="facts">
+          <span class="k kX">Xtream</span>
+          <span class="live"><span class="dot"></span>نشط الآن</span>
+          <span class="sep">•</span>
+          <span class="fact">أضيف في 1 أكتوبر 2026</span>
+          <span class="sep">•</span>
+          <span class="fact">ينتهي في 14 مارس 2027</span>
+        </div>
+        <div class="acts">
+          <div class="act"><span class="ag">✎</span>تعديل</div>
+          <div class="act del"><span class="ag">🗑</span>حذف</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="cdisc dV">▤</div>
+        <div class="nm">Playlist 2</div>
+        <div class="facts">
+          <span class="k kX">Xtream</span>
+          <span class="sep">•</span>
+          <span class="fact">أضيف في 1 أكتوبر 2026</span>
+          <span class="sep">•</span>
+          <span class="fact">ينتهي في 2 يناير 2027</span>
+        </div>
+        <div class="acts">
+          <div class="act"><span class="ag">✎</span>تعديل</div>
+          <div class="act del"><span class="ag">🗑</span>حذف</div>
+        </div>
+      </div>
+
+    </div></div>
+  </div>
+</div>
+</html>
