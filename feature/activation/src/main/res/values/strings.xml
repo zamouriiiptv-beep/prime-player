@@ -70,8 +70,6 @@
     <string name="saved_sources_title">My subscriptions</string>
     <string name="saved_sources_subtitle">Manage every subscription saved on this device</string>
     <string name="saved_sources_empty">No subscriptions saved on this device yet.</string>
-    <string name="saved_sources_add_xtream">Add Xtream</string>
-    <string name="saved_sources_add_m3u">Add M3U</string>
     <string name="saved_sources_active">Active now</string>
     <!-- Only for rows written before a name was decided at registration. Every
          subscription registered since has one, so this is legacy data's fallback and

@@ -178,8 +178,6 @@ internal object ActivationTags {
     const val SAVED_TITLE = "activation.savedTitle"
     const val SAVED_EMPTY = "activation.savedEmpty"
     const val SAVED_LIST = "activation.savedList"
-    const val SAVED_ADD_XTREAM = "activation.savedAddXtream"
-    const val SAVED_ADD_M3U = "activation.savedAddM3u"
     const val SAVED_BACK = "activation.savedBack"
     const val SAVED_EDIT = "activation.savedEdit"
     const val SAVED_DELETE = "activation.savedDelete"

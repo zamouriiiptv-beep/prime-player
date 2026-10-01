@@ -533,8 +533,6 @@ class FrameSweepTest {
                 onChoose = {},
                 onRename = { _, _ -> },
                 onDelete = {},
-                onAddXtream = {},
-                onAddPlaylist = {},
                 onBack = {},
             )
         }

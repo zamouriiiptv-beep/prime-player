@@ -49,7 +49,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.os.ConfigurationCompat
 import com.castivio.core.design.components.ButtonWeight
-import com.castivio.core.design.components.CastivioButton
 import com.castivio.core.design.components.CastivioDialog
 import com.castivio.core.design.components.CastivioTextField
 import com.castivio.core.design.components.InteractiveGlassCard
@@ -115,8 +114,21 @@ import java.util.Locale
  * is given the *fixed* frame rather than the scrolling one. `ActivationSurface`'s
  * scrolling branch wraps its content in `verticalScroll`, and a `LazyColumn` inside an
  * unbounded height does not scroll, it crashes. Inside the fixed frame the list has a
- * bounded height and scrolls itself, which is what a list is supposed to do — and the
- * two add buttons keep their place under it however many subscriptions there are.
+ * bounded height and scrolls itself, which is what a list is supposed to do.
+ *
+ * ## There is no way to add a subscription from here
+ *
+ * There were two buttons under the list, Add Xtream and Add M3U, and they are gone. The
+ * source choice one step back is where a subscription is added — four cards, of which
+ * this screen is the fourth — and a screen reached *from* that chooser offering two of
+ * its own four options back again is the same decision asked twice, in two places that
+ * can disagree the first time either is edited.
+ *
+ * What that costs is the empty state: a device with nothing saved lands here on a list
+ * with nothing in it and no control to fix that. It is one Back press from the chooser
+ * that does, and Back is on the header of this screen, so it is a detour rather than a
+ * dead end — but it is a detour, and it is the price of not drawing the same two
+ * buttons in two places.
  */
 @Composable
 internal fun SavedSourcesScreen(
@@ -124,8 +136,6 @@ internal fun SavedSourcesScreen(
     onChoose: (String) -> Unit,
     onRename: (String, String) -> Unit,
     onDelete: (String) -> Unit,
-    onAddXtream: () -> Unit,
-    onAddPlaylist: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -157,10 +167,9 @@ internal fun SavedSourcesScreen(
             )
             Spacer(Modifier.height(m.bandTop))
 
-            // The band, weighted in all three states so the two add buttons keep their
-            // place while the list arrives. A `Column` whose children exceed its height
-            // hands zero to whatever it measured last, and here that would be the only
-            // two controls on the screen.
+            // The band, still weighted though nothing follows it any more: the three
+            // states have to occupy the same height whichever one is drawn, or the list
+            // arriving would move everything above it.
             SavedBand(
                 m = m,
                 rows = rows,
@@ -169,25 +178,6 @@ internal fun SavedSourcesScreen(
                 onRename = { renaming = it },
                 onDelete = { deleting = it },
             )
-
-            Spacer(Modifier.height(m.gridGap))
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(m.cardGap),
-            ) {
-                CastivioButton(
-                    text = stringResource(R.string.saved_sources_add_xtream),
-                    weight = ButtonWeight.Secondary,
-                    onClick = onAddXtream,
-                    modifier = Modifier.testTag(ActivationTags.SAVED_ADD_XTREAM),
-                )
-                CastivioButton(
-                    text = stringResource(R.string.saved_sources_add_m3u),
-                    weight = ButtonWeight.Secondary,
-                    onClick = onAddPlaylist,
-                    modifier = Modifier.testTag(ActivationTags.SAVED_ADD_M3U),
-                )
-            }
         }
 
         renaming?.let { source ->

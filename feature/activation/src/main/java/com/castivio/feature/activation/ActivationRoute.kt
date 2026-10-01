@@ -607,16 +607,9 @@ private fun Steps(
                     onChoose = saved::choose,
                     onRename = saved::rename,
                     onDelete = saved::delete,
-                    // The same two calls the source choice makes, landing on the same
-                    // two forms. A second way in, not a second implementation.
-                    onAddXtream = {
-                        activation.useXtream()
-                        onStep(ActivationStep.Xtream)
-                    },
-                    onAddPlaylist = {
-                        activation.usePlaylistUrl()
-                        onStep(ActivationStep.Playlist)
-                    },
+                    // No way in to the two forms from here any more. The source choice
+                    // one step back is where a subscription is added, and this screen is
+                    // one of the four cards on it — see the note on the screen itself.
                     onBack = onBack,
                 )
             }

@@ -49,16 +49,16 @@ class SavedSourcesScreenTest {
     /**
      * A fresh install has none, and that is a state rather than an error.
      *
-     * The two add buttons are present here too — an empty list with no way out of it
-     * would be a dead end reached by pressing a card.
+     * It says so, and it keeps the way back — which is now the only way to add one. The
+     * two add buttons that used to sit under the list are gone deliberately; see the
+     * assertion below that keeps them gone.
      */
     @Test
-    fun `with nothing saved it says so and still offers both ways to add one`() {
+    fun `with nothing saved it says so and keeps the way back`() {
         compose.show(SavedSourcesState.Ready(saved = emptyList(), activeId = null))
 
         compose.onNodeWithTag(ActivationTags.SAVED_EMPTY).assertIsDisplayed()
-        compose.onNodeWithTag(ActivationTags.SAVED_ADD_XTREAM).assertIsDisplayed()
-        compose.onNodeWithTag(ActivationTags.SAVED_ADD_M3U).assertIsDisplayed()
+        compose.onNodeWithTag(ActivationTags.SAVED_BACK).assertIsDisplayed()
     }
 
     /**
@@ -109,22 +109,25 @@ class SavedSourcesScreenTest {
     }
 
     /**
-     * The requirement this screen exists for: both ways to add a subscription are
-     * reachable from it, and they are the two that already exist.
+     * **This screen does not add subscriptions, and that is the assertion.**
+     *
+     * It used to, with two buttons under the list that called the same two flows the
+     * source choice calls. The replacement for that test is this one rather than
+     * nothing, because the reason they went is a decision and not an oversight: the
+     * chooser one step back is where a subscription is added, and this screen is the
+     * fourth card on it. Two places offering the same two options is one decision asked
+     * twice, and the first edit to either is where they start disagreeing.
+     *
+     * Asserted on the empty state, because that is where the temptation to put them
+     * back will come from — a list with nothing in it and no control to fix that. The
+     * way out is Back, which the test above holds.
      */
     @Test
-    fun `both add buttons reach the existing Xtream and M3U flows`() {
-        val pressed = mutableListOf<String>()
-        compose.show(
-            state = SavedSourcesState.Ready(saved = emptyList(), activeId = null),
-            onAddXtream = { pressed += "xtream" },
-            onAddPlaylist = { pressed += "m3u" },
-        )
+    fun `it offers no way to add a subscription`() {
+        compose.show(SavedSourcesState.Ready(saved = emptyList(), activeId = null))
 
-        compose.onNodeWithTag(ActivationTags.SAVED_ADD_XTREAM).performClick()
-        compose.onNodeWithTag(ActivationTags.SAVED_ADD_M3U).performClick()
-
-        assertEquals(listOf("xtream", "m3u"), pressed)
+        compose.onNodeWithText("Add Xtream").assertDoesNotExist()
+        compose.onNodeWithText("Add M3U").assertDoesNotExist()
     }
 
     // ------------------------------------------------------- renaming and deleting
@@ -277,8 +280,6 @@ class SavedSourcesScreenTest {
         onChoose: (String) -> Unit = {},
         onRename: (String, String) -> Unit = { _, _ -> },
         onDelete: (String) -> Unit = {},
-        onAddXtream: () -> Unit = {},
-        onAddPlaylist: () -> Unit = {},
         height: Dp = 393.dp,
     ) = setContent {
         CastivioTheme {
@@ -289,8 +290,6 @@ class SavedSourcesScreenTest {
                         onChoose = onChoose,
                         onRename = onRename,
                         onDelete = onDelete,
-                        onAddXtream = onAddXtream,
-                        onAddPlaylist = onAddPlaylist,
                         onBack = {},
                     )
                 }
