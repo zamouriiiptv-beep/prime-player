@@ -28,7 +28,10 @@ import com.castivio.data.database.entity.SourceEntity
         ProgrammeEntity::class,
         SourceEntity::class,
     ],
-    version = 1,
+    // 2: no table changed. The *derivation* of a source id did, so the stored rows
+    //    have to be re-keyed onto it — see `CastivioMigrations.REKEY_SOURCES`, which
+    //    explains why leaving them alone loses a subscription's catalogue silently.
+    version = 2,
     exportSchema = true,
 )
 abstract class CastivioDatabase : RoomDatabase() {

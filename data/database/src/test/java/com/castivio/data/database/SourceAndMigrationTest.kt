@@ -1,5 +1,6 @@
 package com.castivio.data.database
 
+import com.castivio.data.parsing.SourceIds
 import com.castivio.domain.PlaylistSource
 import com.castivio.domain.ProviderSource
 import com.castivio.domain.RefreshPolicy
@@ -368,6 +369,94 @@ class SourceAndMigrationTest {
     }
 
     // ------------------------------------------------------------------- fixtures
+
+    /* ------------------------------------------------------- re-keying the sources */
+
+    /**
+     * 1 → 2 moves a stored row onto the id the current rule gives it.
+     *
+     * The id is derived, not stored-and-trusted: `DefaultCatalogImporter` recomputes
+     * `SourceIds.of(source)` on every import and writes the catalogue under it. So a
+     * row left on an id the rule no longer produces keeps its name and its credentials
+     * and loses its catalogue the next time it refreshes — present and empty, which is
+     * the failure this migration exists to prevent.
+     *
+     * Stated against whatever the row happened to be keyed on rather than against the
+     * superseded derivation, because that is the claim: the stored id becomes the
+     * computed one, and the old rule is gone.
+     */
+    @Test
+    fun `the migration moves a source onto the id the current rule gives it`() = runBlocking {
+        repository().save(source("an-id-from-the-old-rule"))
+
+        migrateToTwo()
+
+        val expected = SourceIds.of(
+            PlaylistSource.Xtream(host = "http://host:8080", username = "user", password = "secret"),
+        )
+        assertNotNull("the row was not re-keyed", repository().get(expected))
+        assertNull("the old id is still there", repository().get("an-id-from-the-old-rule"))
+    }
+
+    /** Credentials and the name are what a user would notice losing, so they survive. */
+    @Test
+    fun `re-keying keeps the credentials, the name and which one is in use`() = runBlocking {
+        repository().save(source("legacy").copy(label = "My panel", isActive = true))
+
+        migrateToTwo()
+
+        val stored = repository().sources().first().single()
+        assertEquals("My panel", stored.label)
+        assertEquals("secret", stored.password)
+        assertEquals("user", stored.username)
+        assertTrue(stored.isActive)
+    }
+
+    /**
+     * The catalogue goes, because it is keyed on the id that just changed — and it is
+     * a cache, which is the trade this file's policy is built around.
+     */
+    @Test
+    fun `re-keying clears the catalogue and the belief that it is current`() = runBlocking {
+        Fixtures.import(database, Fixtures.livePlaylist(5))
+        repository().save(source("legacy"))
+        repository().recordCatalogueImport(
+            "legacy",
+            SyncState(etag = "\"v1\"", lastImportAtMs = now, itemCount = 5),
+        )
+
+        migrateToTwo()
+
+        assertEquals(0, countOf("media"))
+        assertEquals(0, countOf("media_fts"))
+        val stored = repository().sources().first().single()
+        assertNull(stored.sync.etag)
+        assertNull(stored.sync.lastImportAtMs)
+        assertEquals(0, stored.sync.itemCount)
+    }
+
+    /**
+     * A local file keys on its URI and that rule did not move, so its row is left
+     * exactly where it is. The migration changes what the new rule changes and nothing
+     * else.
+     */
+    @Test
+    fun `a source whose rule did not change keeps its id`() = runBlocking {
+        val local = ProviderSource(
+            id = "local-id",
+            kind = SourceKind.LOCAL_FILE,
+            label = "From storage",
+            url = "content://media/playlist.m3u",
+        )
+        repository().save(local)
+
+        migrateToTwo()
+
+        assertNotNull(repository().get("local-id"))
+    }
+
+    private fun migrateToTwo() =
+        CastivioMigrations.ALL.single().migrate(database.openHelper.writableDatabase)
 
     private fun source(id: String, password: String = "secret") = ProviderSource(
         id = id,
