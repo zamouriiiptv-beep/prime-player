@@ -18,7 +18,6 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.core.content.ContextCompat
 import com.castivio.core.design.theme.CastivioTheme
 import java.text.DateFormat
 import java.util.Date
@@ -89,9 +88,26 @@ fun CastivioClock(
  *
  * `ACTION_TIME_TICK` cannot be declared in a manifest — the platform only delivers it
  * to a receiver registered at runtime, which is exactly the lifetime a
- * `DisposableEffect` has. `RECEIVER_NOT_EXPORTED` because nothing but the system
- * should be able to send it; on the API levels with no such flag `ContextCompat`
- * drops it.
+ * `DisposableEffect` has.
+ *
+ * ## Registered plainly, and that is not an oversight
+ *
+ * It was `ContextCompat.registerReceiver(…, RECEIVER_NOT_EXPORTED)`, which reads like
+ * the careful choice and is the wrong one here twice over.
+ *
+ * `ACTION_TIME_TICK` is a *protected* broadcast: the framework declares it, and no
+ * application can send it. There is nothing for a not-exported flag to shut out.
+ * Android 14's rule that a dynamic receiver must declare its exposure says so itself —
+ * it does not apply to a receiver that only listens for system broadcasts, which this
+ * is and only this.
+ *
+ * And the flag is not free. On the API levels with no such flag, `ContextCompat`
+ * emulates it by demanding a `…DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` that AndroidX
+ * declares against the *application* id. A library module's unit-test package is not
+ * that application, so it does not have it, and the call throws. Fifty-three tests
+ * across three screens failed on it the moment this clock moved into a header four
+ * screens share — guarding an impossibility, at the price of the thing being guarded
+ * not running at all.
  */
 @Composable
 fun rememberMinute(): Long {
@@ -103,12 +119,7 @@ fun rememberMinute(): Long {
                 now = System.currentTimeMillis()
             }
         }
-        ContextCompat.registerReceiver(
-            context,
-            receiver,
-            IntentFilter(Intent.ACTION_TIME_TICK),
-            ContextCompat.RECEIVER_NOT_EXPORTED,
-        )
+        context.registerReceiver(receiver, IntentFilter(Intent.ACTION_TIME_TICK))
         onDispose { context.unregisterReceiver(receiver) }
     }
     return now
