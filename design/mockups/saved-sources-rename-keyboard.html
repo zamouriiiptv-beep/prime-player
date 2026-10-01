@@ -71,7 +71,10 @@ body{background:#000}
 
 /* ---- the state in question: IME open, landscape ---- */
 
-.scrim{position:absolute;inset:0;background:rgba(5,4,14,.62)}
+/* The shipped token: pure black at 45 per cent. Not a tinted 62, which is what this
+   file drew before the scrim was decided — a mockup that dims differently from the
+   build is a mockup nobody can check anything against. */
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.45)}
 
 /* The system keyboard. Illustrative only — never drawn by this app, and its
    colour and key shapes are not a claim about any real IME. What matters for
