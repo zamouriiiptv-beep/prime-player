@@ -1,0 +1,198 @@
+<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8">
+<style>
+:root{
+  --deep:#141031; --violet10:#1B1038; --azure10:#0A1E3D;
+  --edge:rgba(160,163,215,.20); --edgeLit:rgba(76,155,255,.75);
+  --glassLow:rgba(255,255,255,.055);
+  --white:#FFFFFF; --muted:#A6A6BF; --success:#3DD68C; --danger:#FF5A5A;
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Noto Sans Arabic","DejaVu Sans",sans-serif}
+body{background:#07060f;padding:14px;display:flex;flex-direction:column;gap:14px}
+.cap{color:#cfd3f0;font-size:13px;font-weight:700;display:flex;align-items:center;gap:10px}
+.cap b{color:#fff}
+.cap .num{font-family:"DejaVu Sans Mono",monospace;font-size:12px;color:#8e95d6}
+.pick{border:1px solid rgba(76,155,255,.55);background:rgba(76,155,255,.12);
+  color:#9ec7ff;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700}
+
+.shot{position:relative;width:873px;height:393px;overflow:hidden;
+  background:linear-gradient(to bottom right,var(--deep) 0%,var(--violet10) 50%,var(--azure10) 100%)}
+.glow{position:absolute;border-radius:50%;pointer-events:none}
+.warm{width:960px;height:960px;left:-436px;top:177px;
+  background:radial-gradient(circle closest-side,rgba(110,75,216,.30),rgba(110,75,216,0))}
+.cool{width:908px;height:908px;left:384px;top:-165px;
+  background:radial-gradient(circle closest-side,rgba(46,107,255,.26),rgba(46,107,255,0))}
+
+.page{position:absolute;inset:0;padding:17.47px 41.81px 15.99px;display:flex;flex-direction:column}
+.head{display:flex;align-items:center;gap:23.67px;height:40px;flex:0 0 auto}
+.hs{display:flex;align-items:center;gap:5.82px;flex:0 0 auto}
+.pill{height:32.04px;padding:0 10.03px;border-radius:32.04px;border:1px solid var(--edge);
+  background:var(--glassLow);color:var(--white);font-size:11px;display:flex;align-items:center;gap:5px}
+.disc{width:32.04px;height:32.04px;border-radius:50%;border:1px solid var(--edge);
+  background:var(--glassLow);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px}
+.titles{flex:1 1 auto;text-align:center;min-width:0}
+.h1{font-size:18.94px;font-weight:700;color:var(--white);line-height:1.2}
+.brand{display:flex;align-items:center;gap:5.82px;flex:0 0 auto}
+.bm{width:29.09px;height:29.09px;border-radius:28%;
+  background:linear-gradient(135deg,#FF3D6E,#9B6BFF);display:flex;align-items:center;
+  justify-content:center;font-size:11px}
+.bn{font-size:11px;letter-spacing:.2em;color:var(--white);font-weight:600}
+.sub{height:18.92px;display:flex;align-items:center;justify-content:center;
+  font-size:12px;color:var(--muted);flex:0 0 auto}
+.body{flex:1 1 auto;display:flex;min-height:0;margin-top:15.99px}
+.list{flex:1 1 auto;display:flex;flex-direction:column;min-width:0;min-height:0}
+.rows{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:12.01px}
+.card{border-radius:14.57px;border:1px solid var(--edge);background:var(--glassLow);
+  padding:8.73px;display:flex;align-items:center;gap:8.73px;flex:0 0 auto;min-height:65.46px}
+.card.on{border-color:var(--edgeLit);background:rgba(76,155,255,.10);
+  box-shadow:0 0 14.57px rgba(76,155,255,.42)}
+.cd{width:42.58px;height:42.58px;border-radius:11.92px;flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;font-size:17.88px}
+.dV{background:linear-gradient(150deg,#7C4DFF,#5B2BD6)}
+.dA{background:linear-gradient(150deg,#2E6BFF,#1450C8)}
+.cm{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3.27px}
+.r1{display:flex;align-items:center;gap:8.73px}
+.nm{font-size:13px;font-weight:700;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.live{margin-inline-start:auto;flex:0 0 auto;height:18px;padding:0 8.18px;border-radius:18px;
+  border:1px solid rgba(61,214,140,.55);background:rgba(61,214,140,.12);
+  color:var(--success);font-size:11px;display:flex;align-items:center;gap:5px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--success)}
+.r2{display:flex;align-items:center;gap:4.37px;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden}
+.k{height:18px;padding:0 8.18px;border-radius:18px;color:#fff;font-size:11px;
+  display:flex;align-items:center;flex:0 0 auto;font-weight:600}
+.kX{background:#7C4DFF} .kM{background:#2E6BFF}
+.acts{display:flex;gap:4.37px;flex:0 0 auto}
+.act{width:48px;height:48px;border-radius:9.03px;border:1px solid var(--edge);background:var(--glassLow);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  font-size:11px;color:var(--white)}
+.act.del{border-color:rgba(255,90,90,.45);background:rgba(255,90,90,.10);color:var(--danger)}
+.ag{font-size:13px;line-height:1}
+.foot{display:flex;gap:11.64px;flex:0 0 auto;padding-top:13.1px}
+.fbtn{height:48px;padding:0 15.04px;border-radius:9.03px;display:flex;align-items:center;
+  gap:6px;font-size:13px;font-weight:600;color:var(--white)}
+.b2{border:1px solid var(--edge);background:var(--glassLow)}
+.b1{background:linear-gradient(135deg,#7C4DFF,#5B2BD6);box-shadow:0 3px 14.57px rgba(124,77,255,.35)}
+
+/* the one thing under test */
+.scrim{position:absolute;inset:0}
+.s70{background:rgba(0,0,0,.70)}
+.s45{background:rgba(0,0,0,.45)}
+.s30{background:rgba(0,0,0,.30)}
+
+/* the panel, at the real metrics for 873x393dp with no keyboard:
+   width 509, padding 29, radius 22, title 15, rhythm 12 */
+.dlg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:509px;
+  border-radius:22px;border:1px solid var(--edge);background:rgba(22,18,45,.97);
+  padding:29px;display:flex;flex-direction:column;gap:12px;
+  box-shadow:0 10px 40px rgba(0,0,0,.6)}
+.dh{font-size:15px;font-weight:700;color:var(--white)}
+.ds{font-size:14px;line-height:1.57;color:var(--muted)}
+.lbl{font-size:12px;color:var(--muted);font-weight:600;margin-top:-4px}
+.fld{width:100%;height:48px;border-radius:9px;border:1px solid var(--edge);
+  background:rgba(255,255,255,.05);display:flex;align-items:center;padding:0 16px;
+  font-size:15px;color:var(--white);margin-top:-6px}
+.dr{display:flex;gap:12px;margin-top:8px}
+.btn{height:48px;flex:1 1 0;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:600;color:var(--white)}
+.tag{position:absolute;top:3px;inset-inline-start:7px;font-size:9px;color:#7c86c9;letter-spacing:.05em;z-index:99}
+</style>
+
+<div class="cap"><b>الآن</b> — <span class="num">scrim = 0xB3000000</span> — أسود صافٍ بنسبة 70٪. هذا هو السواد في صورتك.</div>
+<div class="shot">
+  <div class="glow warm"></div><div class="glow cool"></div>
+  <div class="tag">reference phone 873x393dp</div>
+  <div class="page">
+    <div class="head">
+      <div class="hs"><div class="pill">رجوع&nbsp;←</div><div class="disc">☀</div></div>
+      <div class="titles"><div class="h1">اشتراكاتي</div></div>
+      <div class="brand"><div class="bm">▶</div><div class="bn">CASTIVIO</div></div>
+    </div>
+    <div class="sub">إدارة جميع الاشتراكات المحفوظة على هذا الجهاز</div>
+    <div class="body"><div class="list"><div class="rows">
+      <div class="card on"><div class="cd dV">▤</div><div class="cm">
+        <div class="r1"><span class="nm">Playlist 1</span><div class="live"><span class="dot"></span>نشط الآن</div></div>
+        <div class="r2"><span class="k kX">Xtream</span><span>مضاف في 2026/09/20</span></div></div>
+        <div class="acts"><div class="act"><span class="ag">✎</span>تعديل</div><div class="act del"><span class="ag">🗑</span>حذف</div></div></div>
+      <div class="card"><div class="cd dA">▣</div><div class="cm">
+        <div class="r1"><span class="nm">قائمة الأفلام</span></div>
+        <div class="r2"><span class="k kM">M3U</span><span>مضاف في 2026/09/25</span></div></div>
+        <div class="acts"><div class="act"><span class="ag">✎</span>تعديل</div><div class="act del"><span class="ag">🗑</span>حذف</div></div></div>
+    </div>
+    <div class="foot"><div class="fbtn b1">▤&nbsp; إضافة Xtream</div><div class="fbtn b2">▣&nbsp; إضافة M3U</div></div>
+    </div></div>
+  </div>
+  <div class="scrim s70"></div>
+  <div class="dlg">
+    <div class="dh">اسم القائمة</div>
+    <div class="ds">الاسم الذي تراه في قائمة اشتراكاتك. لا يغيّر بيانات الاتصال.</div>
+    <div class="lbl">الاسم</div>
+    <div class="fld">Playlist 1</div>
+    <div class="dr"><div class="btn b1">حفظ</div><div class="btn b2">إلغاء</div></div>
+  </div>
+</div>
+
+<div class="cap"><b>مقترح</b> — <span class="num">0x73000000</span> — 45٪ <span class="pick">هذا ما أوصي به</span></div>
+<div class="shot">
+  <div class="glow warm"></div><div class="glow cool"></div>
+  <div class="page">
+    <div class="head">
+      <div class="hs"><div class="pill">رجوع&nbsp;←</div><div class="disc">☀</div></div>
+      <div class="titles"><div class="h1">اشتراكاتي</div></div>
+      <div class="brand"><div class="bm">▶</div><div class="bn">CASTIVIO</div></div>
+    </div>
+    <div class="sub">إدارة جميع الاشتراكات المحفوظة على هذا الجهاز</div>
+    <div class="body"><div class="list"><div class="rows">
+      <div class="card on"><div class="cd dV">▤</div><div class="cm">
+        <div class="r1"><span class="nm">Playlist 1</span><div class="live"><span class="dot"></span>نشط الآن</div></div>
+        <div class="r2"><span class="k kX">Xtream</span><span>مضاف في 2026/09/20</span></div></div>
+        <div class="acts"><div class="act"><span class="ag">✎</span>تعديل</div><div class="act del"><span class="ag">🗑</span>حذف</div></div></div>
+      <div class="card"><div class="cd dA">▣</div><div class="cm">
+        <div class="r1"><span class="nm">قائمة الأفلام</span></div>
+        <div class="r2"><span class="k kM">M3U</span><span>مضاف في 2026/09/25</span></div></div>
+        <div class="acts"><div class="act"><span class="ag">✎</span>تعديل</div><div class="act del"><span class="ag">🗑</span>حذف</div></div></div>
+    </div>
+    <div class="foot"><div class="fbtn b1">▤&nbsp; إضافة Xtream</div><div class="fbtn b2">▣&nbsp; إضافة M3U</div></div>
+    </div></div>
+  </div>
+  <div class="scrim s45"></div>
+  <div class="dlg">
+    <div class="dh">اسم القائمة</div>
+    <div class="ds">الاسم الذي تراه في قائمة اشتراكاتك. لا يغيّر بيانات الاتصال.</div>
+    <div class="lbl">الاسم</div>
+    <div class="fld">Playlist 1</div>
+    <div class="dr"><div class="btn b1">حفظ</div><div class="btn b2">إلغاء</div></div>
+  </div>
+</div>
+
+<div class="cap"><b>أخف</b> — <span class="num">0x4D000000</span> — 30٪. الشاشة أوضح، والحوار يبدأ يفقد سيادته.</div>
+<div class="shot">
+  <div class="glow warm"></div><div class="glow cool"></div>
+  <div class="page">
+    <div class="head">
+      <div class="hs"><div class="pill">رجوع&nbsp;←</div><div class="disc">☀</div></div>
+      <div class="titles"><div class="h1">اشتراكاتي</div></div>
+      <div class="brand"><div class="bm">▶</div><div class="bn">CASTIVIO</div></div>
+    </div>
+    <div class="sub">إدارة جميع الاشتراكات المحفوظة على هذا الجهاز</div>
+    <div class="body"><div class="list"><div class="rows">
+      <div class="card on"><div class="cd dV">▤</div><div class="cm">
+        <div class="r1"><span class="nm">Playlist 1</span><div class="live"><span class="dot"></span>نشط الآن</div></div>
+        <div class="r2"><span class="k kX">Xtream</span><span>مضاف في 2026/09/20</span></div></div>
+        <div class="acts"><div class="act"><span class="ag">✎</span>تعديل</div><div class="act del"><span class="ag">🗑</span>حذف</div></div></div>
+      <div class="card"><div class="cd dA">▣</div><div class="cm">
+        <div class="r1"><span class="nm">قائمة الأفلام</span></div>
+        <div class="r2"><span class="k kM">M3U</span><span>مضاف في 2026/09/25</span></div></div>
+        <div class="acts"><div class="act"><span class="ag">✎</span>تعديل</div><div class="act del"><span class="ag">🗑</span>حذف</div></div></div>
+    </div>
+    <div class="foot"><div class="fbtn b1">▤&nbsp; إضافة Xtream</div><div class="fbtn b2">▣&nbsp; إضافة M3U</div></div>
+    </div></div>
+  </div>
+  <div class="scrim s30"></div>
+  <div class="dlg">
+    <div class="dh">اسم القائمة</div>
+    <div class="ds">الاسم الذي تراه في قائمة اشتراكاتك. لا يغيّر بيانات الاتصال.</div>
+    <div class="lbl">الاسم</div>
+    <div class="fld">Playlist 1</div>
+    <div class="dr"><div class="btn b1">حفظ</div><div class="btn b2">إلغاء</div></div>
+  </div>
+</div>
+</html>
