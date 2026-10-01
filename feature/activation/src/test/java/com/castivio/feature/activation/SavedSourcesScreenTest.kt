@@ -232,7 +232,11 @@ class SavedSourcesScreenTest {
     fun `the kind badge starts at the same place whether or not the row is in use`() {
         compose.show(SavedSourcesState.Ready(saved = twoSources(), activeId = "a"))
 
-        val kinds = compose.onAllNodesWithTag(ActivationTags.SAVED_KIND)
+        // **The unmerged tree.** The row merges its descendants so a screen reader
+        // announces one subscription rather than five fragments, and a tag inside a
+        // merged node is not in the merged tree at all. Asked for it there, the finder
+        // reports no such node — which reads as "the column is missing" and is not.
+        val kinds = compose.onAllNodesWithTag(ActivationTags.SAVED_KIND, useUnmergedTree = true)
         val active = kinds[0].getUnclippedBoundsInRoot()
         val plain = kinds[1].getUnclippedBoundsInRoot()
 
