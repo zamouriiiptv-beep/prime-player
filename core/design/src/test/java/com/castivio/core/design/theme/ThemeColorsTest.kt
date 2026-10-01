@@ -269,6 +269,52 @@ class ThemeColorsTest {
         assertTrue(!dark.isSlate)
     }
 
+    /* ----------------------------------------------------------------- scrim */
+
+    /**
+     * A modal dims the screen it was opened from; it does not replace it.
+     *
+     * This is a band rather than a literal, because both edges of it are real failures
+     * and a literal only guards one of them. Too opaque and the screen behind a dialog
+     * reads as a black wall — which is what 70 per cent did on a ground that is already
+     * dark, and what a photograph of the rename dialog caught: the subscriptions it was
+     * opened from were simply gone. Too transparent and the panel stops reading as a
+     * window that wants an answer.
+     *
+     * Seven surfaces take this one value, so the band is asserted on the token rather
+     * than at any of them.
+     */
+    @Test
+    fun `the scrim dims the screen rather than replacing it`() {
+        listOf("dark" to dark.scrim, "slate" to slate.scrim).forEach { (name, scrim) ->
+            assertTrue(
+                "$name's scrim is ${scrim.alpha} opaque, which is a wall rather than a dim",
+                scrim.alpha <= 0.55f,
+            )
+            assertTrue(
+                "$name's scrim is ${scrim.alpha} opaque, too little to read as a modal",
+                scrim.alpha >= 0.35f,
+            )
+        }
+    }
+
+    /**
+     * And it carries no hue.
+     *
+     * A dim with a colour in it is a second opinion about the ground underneath, and
+     * this file already has one of those per theme. It is also what keeps the two
+     * grounds able to share the value at all.
+     */
+    @Test
+    fun `the scrim is black on both grounds, and the same black`() {
+        listOf("dark" to dark.scrim, "slate" to slate.scrim).forEach { (name, scrim) ->
+            assertEquals("$name's scrim has red in it", 0f, scrim.red, 0.001f)
+            assertEquals("$name's scrim has green in it", 0f, scrim.green, 0.001f)
+            assertEquals("$name's scrim has blue in it", 0f, scrim.blue, 0.001f)
+        }
+        assertEquals(dark.scrim, slate.scrim)
+    }
+
     /**
      * CIE L*, the perceptual lightness this ground was designed in.
      *

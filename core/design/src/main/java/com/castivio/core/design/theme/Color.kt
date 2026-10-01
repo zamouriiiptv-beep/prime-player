@@ -211,6 +211,25 @@ class CastivioColors(
     // Backgrounds
     val background: Color,
     val backgroundElevated: Color,
+    /**
+     * What a modal lays over the screen it was opened from.
+     *
+     * **It dims; it does not replace.** Both grounds are already dark, so a scrim heavy
+     * enough to read as a dim on a pale page reads as a black wall here — and a user
+     * looking at a black wall has lost the one piece of context a modal is supposed to
+     * keep: the screen they were on, and the row they pressed to get here. It shipped at
+     * 70 per cent and a photograph of the rename dialog is what settled it: the
+     * subscriptions behind it were gone.
+     *
+     * 45 is where the cards, the capsules and the backdrop's own gradient still read
+     * through while the panel is unmistakably in front. Lighter than this and the panel
+     * stops reading as a window that wants an answer.
+     *
+     * Pure black rather than a tinted one, on purpose: a dim that carries a hue is a
+     * second opinion about the ground underneath it, and this file already has one of
+     * those per theme. `StateMarks` takes its own alpha off this colour and is therefore
+     * unaffected by the value here, which is the behaviour it wanted.
+     */
     val scrim: Color,
 
     // Content
@@ -572,7 +591,7 @@ fun castivioDarkColors() = CastivioColors(
     isSlate = false,
     background = Palette.Void,
     backgroundElevated = Palette.Deep,
-    scrim = Color(0xB3000000),
+    scrim = Color(0x73000000),
 
     onBackground = Palette.White,
     onBackgroundVariant = Palette.Silver,
@@ -670,7 +689,7 @@ fun castivioSlateColors() = CastivioColors(
     // A card here is a solid with its own value, so "elevated" means the panel and not
     // a second gradient stop of the page.
     backgroundElevated = Palette.Panel,
-    scrim = Color(0xB3000000),
+    scrim = Color(0x73000000),
 
     // The void's own three, unchanged. On this ground they measure 17.9:1, 11.0:1 and
     // 12.2:1 against the page and 14.7, 9.0 and 10.0 against a card — well past AA on
