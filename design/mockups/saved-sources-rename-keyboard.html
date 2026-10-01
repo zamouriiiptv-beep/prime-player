@@ -1,0 +1,185 @@
+<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8">
+<style>
+:root{
+  --deep:#141031; --violet10:#1B1038; --azure10:#0A1E3D;
+  --violet50:#9B6BFF; --azure50:#4C9BFF;
+  --edge:rgba(160,163,215,.20); --edgeLit:rgba(76,155,255,.75);
+  --glassLow:rgba(255,255,255,.055);
+  --white:#FFFFFF; --muted:#A6A6BF; --success:#3DD68C; --danger:#FF5A5A;
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Noto Sans Arabic","DejaVu Sans",sans-serif}
+body{background:#000}
+.shot{position:relative;width:873px;height:393px;overflow:hidden;
+  background:linear-gradient(to bottom right,var(--deep) 0%,var(--violet10) 50%,var(--azure10) 100%)}
+.glow{position:absolute;border-radius:50%;pointer-events:none}
+.warm{width:960px;height:960px;left:-436px;top:177px;
+  background:radial-gradient(circle closest-side,rgba(110,75,216,.30),rgba(110,75,216,0))}
+.cool{width:908px;height:908px;left:384px;top:-165px;
+  background:radial-gradient(circle closest-side,rgba(46,107,255,.26),rgba(46,107,255,0))}
+.tag{position:absolute;top:3px;inset-inline-start:7px;font-size:9px;color:#7c86c9;letter-spacing:.05em;z-index:99}
+
+.page{position:absolute;inset:0;padding:17.47px 41.81px 15.99px;
+  display:flex;flex-direction:column}
+
+.head{display:flex;align-items:center;gap:23.67px;height:40px;flex:0 0 auto}
+.hs{display:flex;align-items:center;gap:5.82px;flex:0 0 auto}
+.pill{height:32.04px;padding:0 10.03px;border-radius:32.04px;border:1px solid var(--edge);
+  background:var(--glassLow);color:var(--white);font-size:11px;display:flex;align-items:center;gap:5px}
+.disc{width:32.04px;height:32.04px;border-radius:50%;border:1px solid var(--edge);
+  background:var(--glassLow);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px}
+.titles{flex:1 1 auto;text-align:center;min-width:0}
+.h1{font-size:18.94px;font-weight:700;color:var(--white);line-height:1.2}
+.brand{display:flex;align-items:center;gap:5.82px;flex:0 0 auto}
+.bm{width:29.09px;height:29.09px;border-radius:28%;
+  background:linear-gradient(135deg,#FF3D6E,#9B6BFF);display:flex;align-items:center;
+  justify-content:center;font-size:11px}
+.bn{font-size:11px;letter-spacing:.2em;color:var(--white);font-weight:600}
+
+.sub{height:18.92px;display:flex;align-items:center;justify-content:center;
+  font-size:12px;color:var(--muted);flex:0 0 auto}
+
+.body{flex:1 1 auto;display:flex;gap:13.1px;min-height:0;margin-top:15.99px}
+.list{flex:1 1 auto;display:flex;flex-direction:column;min-width:0;min-height:0}
+.rows{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:12.01px}
+.card{border-radius:14.57px;border:1px solid var(--edge);background:var(--glassLow);
+  padding:8.73px;display:flex;align-items:center;gap:8.73px;flex:0 0 auto;
+  min-height:65.46px}
+.card.on{border-color:var(--edgeLit);background:rgba(76,155,255,.10);
+  box-shadow:0 0 14.57px rgba(76,155,255,.42)}
+.cd{width:42.58px;height:42.58px;border-radius:11.92px;flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;font-size:17.88px}
+.dV{background:linear-gradient(150deg,#7C4DFF,#5B2BD6)}
+.cm{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3.27px}
+.r1{display:flex;align-items:center;gap:8.73px}
+.nm{font-size:13px;font-weight:700;color:var(--white);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.live{margin-inline-start:auto;flex:0 0 auto;height:18px;padding:0 8.18px;
+  border-radius:18px;border:1px solid rgba(61,214,140,.55);background:rgba(61,214,140,.12);
+  color:var(--success);font-size:11px;display:flex;align-items:center;gap:5px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--success)}
+.r2{display:flex;align-items:center;gap:4.37px;font-size:12px;color:var(--muted);
+  white-space:nowrap;overflow:hidden}
+.k{height:18px;padding:0 8.18px;border-radius:18px;color:#fff;font-size:11px;
+  display:flex;align-items:center;flex:0 0 auto;font-weight:600}
+.kX{background:#7C4DFF}
+.acts{display:flex;gap:4.37px;flex:0 0 auto}
+.act{width:48px;height:48px;border-radius:9.03px;border:1px solid var(--edge);
+  background:var(--glassLow);display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:2px;font-size:11px;color:var(--white)}
+.act.del{border-color:rgba(255,90,90,.45);background:rgba(255,90,90,.10);color:var(--danger)}
+.ag{font-size:13px;line-height:1}
+
+/* ---- the state in question: IME open, landscape ---- */
+
+.scrim{position:absolute;inset:0;background:rgba(5,4,14,.62)}
+
+/* The system keyboard. Illustrative only — never drawn by this app, and its
+   colour and key shapes are not a claim about any real IME. What matters for
+   this mockup is the one fact every past attempt got wrong: nothing of the
+   application sits between the dialog and this bar. */
+.ime{position:absolute;left:0;right:0;bottom:0;height:216px;
+  background:#1c1c1e;border-top:1px solid rgba(255,255,255,.08)}
+.imeBar{height:34px;display:flex;align-items:center;padding:0 10px;gap:8px;
+  color:#8e8e93;font-size:11px;border-bottom:1px solid rgba(255,255,255,.06)}
+.imeRows{padding:7px 6px;display:flex;flex-direction:column;gap:6px}
+.imeRow{display:flex;gap:5px;justify-content:center}
+.imeKey{flex:1 1 0;max-width:30px;height:28px;border-radius:5px;background:#3a3a3c}
+.imeKey.wide{max-width:120px}
+.imeLabel{position:absolute;inset-inline-end:10px;bottom:6px;font-size:9px;
+  color:#5a5a5e;letter-spacing:.05em}
+
+/* The panel. Flush above the keyboard — its own bottom edge *is* the
+   keyboard's top edge, with no gap and no strip of `.shot`'s own background
+   showing between them. */
+.dlgWrap{position:absolute;left:0;right:0;bottom:216px;top:0;
+  display:flex;align-items:flex-end;justify-content:center;padding:0 41.81px 0}
+.dlg{width:420px;max-width:100%;border-radius:16px;border:1px solid var(--edge);
+  background:rgba(22,18,45,.97);padding:14px 18px;display:flex;flex-direction:column;
+  gap:8px;box-shadow:0 -4px 24px rgba(0,0,0,.45)}
+.dh{font-size:15px;font-weight:700;color:var(--white)}
+.lbl{font-size:10.5px;color:var(--muted);font-weight:600}
+.fld{width:100%;height:40px;border-radius:9px;border:1px solid var(--edgeLit);
+  background:rgba(255,255,255,.05);display:flex;align-items:center;padding:0 10px;
+  font-size:13.5px;color:var(--white);gap:1px}
+.caret{width:1.5px;height:16px;background:var(--azure50)}
+.dr{display:flex;gap:10px;width:100%;margin-top:2px}
+.btn{flex:1 1 0;height:40px;border-radius:9px;display:flex;align-items:center;
+  justify-content:center;gap:6px;font-size:13px;font-weight:600;color:var(--white)}
+.b2{border:1px solid var(--edge);background:var(--glassLow)}
+.b1{background:linear-gradient(135deg,#7C4DFF,#5B2BD6);box-shadow:0 3px 14px rgba(124,77,255,.35)}
+
+.seam{position:absolute;left:0;right:0;bottom:216px;height:2px;background:var(--azure50);
+  box-shadow:0 0 6px var(--azure50)}
+.callout{position:absolute;right:16px;bottom:222px;text-align:end;
+  background:rgba(0,0,0,.55);border:1px solid rgba(76,155,255,.4);border-radius:8px;
+  padding:5px 10px;font-size:10.5px;color:#fff;white-space:nowrap}
+</style>
+<div class="shot">
+  <div class="glow warm"></div><div class="glow cool"></div>
+  <div class="tag">reference phone 873x393dp — تعديل الاسم، والكيبورد مفتوح</div>
+  <div class="page">
+    <div class="head">
+      <div class="hs"><div class="pill">رجوع&nbsp;←</div><div class="disc">☀</div></div>
+      <div class="titles"><div class="h1">اشتراكاتي</div></div>
+      <div class="brand"><div class="bm">▶</div><div class="bn">CASTIVIO</div></div>
+    </div>
+    <div class="sub">إدارة جميع الاشتراكات المحفوظة على هذا الجهاز</div>
+    <div class="body">
+      <div class="list">
+        <div class="rows">
+        <div class="card on">
+          <div class="cd dV">▤</div>
+          <div class="cm">
+            <div class="r1"><span class="nm">server 1</span><div class="live"><span class="dot"></span>نشط الآن</div></div>
+            <div class="r2"><span class="k kX">Xtream</span><span>مضاف في 2026/09/20</span></div>
+          </div>
+          <div class="acts">
+            <div class="act"><span class="ag">✎</span>تعديل</div>
+            <div class="act del"><span class="ag">🗑</span>حذف</div>
+          </div>
+        </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scrim"></div>
+
+  <div class="dlgWrap">
+    <div class="dlg">
+      <div class="dh">اسم القائمة</div>
+      <!-- الجملة الشارحة مخفية هنا فقط، لإفساح المساحة فوق الكيبورد -->
+      <div class="lbl">الاسم</div>
+      <div class="fld">Playlist 1<span class="caret"></span></div>
+      <div class="dr"><div class="btn b1">حفظ</div><div class="btn b2">إلغاء</div></div>
+    </div>
+  </div>
+
+  <div class="ime">
+    <div class="imeBar">⋯&nbsp;&nbsp;⚙&nbsp;&nbsp;⧉&nbsp;&nbsp;🌐&nbsp;&nbsp;☺</div>
+    <div class="imeRows">
+      <div class="imeRow">
+        <div class="imeKey"></div><div class="imeKey"></div><div class="imeKey"></div>
+        <div class="imeKey"></div><div class="imeKey"></div><div class="imeKey"></div>
+        <div class="imeKey"></div><div class="imeKey"></div><div class="imeKey"></div>
+      </div>
+      <div class="imeRow">
+        <div class="imeKey"></div><div class="imeKey"></div><div class="imeKey"></div>
+        <div class="imeKey"></div><div class="imeKey"></div><div class="imeKey"></div>
+        <div class="imeKey"></div><div class="imeKey"></div>
+      </div>
+      <div class="imeRow">
+        <div class="imeKey"></div><div class="imeKey"></div><div class="imeKey"></div>
+        <div class="imeKey"></div><div class="imeKey"></div><div class="imeKey"></div>
+        <div class="imeKey"></div>
+      </div>
+      <div class="imeRow">
+        <div class="imeKey wide"></div><div class="imeKey wide"></div>
+      </div>
+    </div>
+    <div class="imeLabel">لوحة مفاتيح النظام — توضيحية</div>
+  </div>
+
+  <div class="seam"></div>
+  <div class="callout">هنا بالضبط: لا فراغ ولا خلفية Castivio بين الحوار والكيبورد</div>
+</div></html>
