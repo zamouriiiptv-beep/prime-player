@@ -16,6 +16,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.DeviceClass
@@ -208,6 +209,62 @@ class SavedSourcesScreenTest {
         assertEquals(listOf("a"), deleted)
     }
 
+    // ------------------------------------------------------- the keyboard's surface
+
+    /**
+     * The rename dialog on what a keyboard leaves behind.
+     *
+     * Measured on the frame this ships to: a landscape handset is 393dp tall and the
+     * keyboard takes 212 of them. What the dialog must show measures 178dp and what it
+     * measures with its sentence in it is 210, so on a surface this short the sentence
+     * is the thing that goes — and the field the dialog was opened for, with both
+     * buttons that answer it, are the things that do not.
+     *
+     * The surface is shortened rather than a keyboard raised, because that is the same
+     * claim without an emulator: the panel asks how much room there is, not whether an
+     * IME is up, and a test that shortens the room tests the rule rather than the cause.
+     */
+    @Test
+    fun `on a surface a keyboard has shortened the rename dialog drops only its sentence`() {
+        compose.show(SavedSourcesState.Ready(saved = twoSources(), activeId = "b"), height = 181.dp)
+
+        compose.onAllNodesWithTag(ActivationTags.SAVED_EDIT)[0].performClick()
+
+        compose.onNodeWithText("The name you see in", substring = true).assertDoesNotExist()
+        compose
+            .onNodeWithTag(ActivationTags.SAVED_RENAME_FIELD, useUnmergedTree = true)
+            .assertIsDisplayed()
+        compose.onNodeWithText("Save").assertIsDisplayed()
+        compose.onNodeWithText("Cancel").assertIsDisplayed()
+    }
+
+    /** And with room for it, it is still there. A sentence dropped always is a sentence cut. */
+    @Test
+    fun `with room the rename dialog keeps its sentence`() {
+        compose.show(SavedSourcesState.Ready(saved = twoSources(), activeId = "b"))
+
+        compose.onAllNodesWithTag(ActivationTags.SAVED_EDIT)[0].performClick()
+
+        compose.onNodeWithText("The name you see in", substring = true).assertIsDisplayed()
+    }
+
+    /**
+     * A confirmation keeps its question on any surface.
+     *
+     * The rule is "the dialog that asks for a value drops its sentence", not "a short
+     * dialog drops its sentence", and the difference matters: a confirmation's message
+     * *is* the question, and a dialog with no field never has a keyboard in front of it
+     * to be shortened by. This is the assertion that keeps the two apart.
+     */
+    @Test
+    fun `a confirmation keeps its question even on a short surface`() {
+        compose.show(SavedSourcesState.Ready(saved = twoSources(), activeId = "b"), height = 181.dp)
+
+        compose.onAllNodesWithTag(ActivationTags.SAVED_DELETE)[0].performClick()
+
+        compose.onNodeWithText("It will be removed from this device only.").assertIsDisplayed()
+    }
+
     /* -------------------------------------------------------------------------- */
 
     private fun twoSources() = listOf(
@@ -222,10 +279,11 @@ class SavedSourcesScreenTest {
         onDelete: (String) -> Unit = {},
         onAddXtream: () -> Unit = {},
         onAddPlaylist: () -> Unit = {},
+        height: Dp = 393.dp,
     ) = setContent {
         CastivioTheme {
             CompositionLocalProvider(LocalDeviceClass provides DeviceClass.Expanded) {
-                Stage {
+                Stage(height) {
                     SavedSourcesScreen(
                         state = state,
                         onChoose = onChoose,
@@ -240,9 +298,15 @@ class SavedSourcesScreenTest {
         }
     }
 
-    /** The reporter's frame, which is the tightest this screen is drawn at. */
+    /**
+     * The reporter's frame, which is the tightest this screen is drawn at.
+     *
+     * The height is a parameter because one claim on this screen is about what is left
+     * of the frame rather than about the frame: a keyboard takes 212 of a handset's
+     * 393dp, and shortening the stage is how that is asserted without an emulator.
+     */
     @Composable
-    private fun Stage(content: @Composable () -> Unit) {
-        Box(Modifier.requiredSize(827.dp, 393.dp)) { content() }
+    private fun Stage(height: Dp = 393.dp, content: @Composable () -> Unit) {
+        Box(Modifier.requiredSize(827.dp, height)) { content() }
     }
 }

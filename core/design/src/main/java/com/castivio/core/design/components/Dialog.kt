@@ -124,33 +124,49 @@ fun CastivioDialog(
     // have the remote pulled back under them.
     LaunchedEffect(Unit) { runCatching { safe.requestFocus() } }
 
-    DialogPanel(title = title, onScrim = onDismiss, modifier = modifier) {
-        // **The message is the part that gives way, and only when it has to.**
+    DialogPanel(title = title, onScrim = onDismiss, modifier = modifier) { tight ->
+        // **The sentence is what gives way, and it gives way entirely.**
         //
-        // A question fits, and `fill = false` means it is laid out exactly as it always
-        // was. A question carrying a field, with the keyboard up, does not: the panel is
-        // a fraction of what the IME leaves, and something has to yield. It is the
-        // sentence, never the control the dialog was opened for and never the buttons
-        // that answer it.
+        // Measured, on the frame this ships to: a landscape handset is 393dp tall and
+        // the keyboard takes 212 of them, so a rename dialog has 181dp to live in. What
+        // it must show measures 178 — 24 of padding, 22 of title, 16 of rhythm, 68 for a
+        // labelled field and 48 for the buttons. There is no arrangement of 181 that is
+        // also 210, which is what the same panel measures with the sentence in it, so
+        // the sentence goes. Not shrunk, not scrolled: gone, and back the moment the
+        // keyboard is.
         //
-        // This was here once before, put in for a reason that turned out to be wrong and
-        // taken out again. The reason is real now: it is the keyboard, measured.
-        Text(
-            text = message,
-            style = CastivioType.bodyMedium,
-            color = colors.onBackgroundVariant,
-            modifier = Modifier
-                .weight(1f, fill = false)
-                .verticalScroll(rememberScrollState()),
-        )
+        // `weight(1f, fill = false)` was already letting it compress to nothing, and
+        // that was never enough — a child measured at zero still costs its share of the
+        // column's rhythm, and the spacer above the field costs another. Removing it
+        // outright is what buys the 24dp those two were holding.
+        //
+        // **Only when there is a field.** A confirmation's message is the question it
+        // exists to ask, and a dialog with no field never has a keyboard in front of it
+        // anyway. So every dialog that is not this one is drawn exactly as it was, in
+        // every case, which is also what keeps the existing tests honest.
+        val hideMessage = tight && field != null
+
+        if (!hideMessage) {
+            Text(
+                text = message,
+                style = CastivioType.bodyMedium,
+                color = colors.onBackgroundVariant,
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .verticalScroll(rememberScrollState()),
+            )
+        }
 
         if (field != null) {
-            Spacer(Modifier.height(Spacing.sm))
+            if (!hideMessage) Spacer(Modifier.height(Spacing.sm))
             field()
         }
 
         Row(
-            Modifier.padding(top = Spacing.sm),
+            // The column's own rhythm already separates this row from the field. The
+            // extra step above it is breathing room, and it is the third thing the
+            // keyboard takes — 8dp that the buttons would otherwise be clipped by.
+            Modifier.padding(top = if (tight) 0.dp else Spacing.sm),
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             CastivioButton(
@@ -205,7 +221,10 @@ fun CastivioNoticeDialog(
 
     LaunchedEffect(Unit) { runCatching { close.requestFocus() } }
 
-    DialogPanel(title = title, onScrim = onClose, modifier = modifier) {
+    // The body is the whole dialog, so it never gives way — the parameter is read and
+    // deliberately ignored. A notice has no field and therefore no keyboard in front of
+    // it; the only surface short enough to make it tight is one it already scrolls on.
+    DialogPanel(title = title, onScrim = onClose, modifier = modifier) { _ ->
         Text(
             text = body,
             style = CastivioType.bodySmall,
@@ -243,7 +262,13 @@ private fun DialogPanel(
     title: String,
     onScrim: () -> Unit,
     modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit,
+    /**
+     * @param tight whether the surface left over is short enough that the panel has to
+     *   drop something to fit on it. It is the measured height, not a question about the
+     *   keyboard: what the content owes an answer to is how much room there is, and the
+     *   keyboard is only the commonest reason for there being little.
+     */
+    content: @Composable ColumnScope.(tight: Boolean) -> Unit,
 ) {
     val colors = CastivioTheme.colors
     val tv = CastivioTheme.device.isTv
@@ -287,6 +312,7 @@ private fun DialogPanel(
         ) {
             val m = dialogMetricsFor(maxWidth, maxHeight)
             val shape = RoundedCornerShape(m.radius)
+            val tight = maxHeight < TIGHT
 
             Column(
                 Modifier
@@ -299,15 +325,15 @@ private fun DialogPanel(
                     // this gives back is breathing room, and breathing room is the first
                     // thing a keyboard takes: with the IME up the box above it is a couple
                     // of hundred dp, and spending a fifth of that on margin is spending it
-                    // on nothing a user can see. Below [TIGHT] the panel keeps a fixed
-                    // margin instead of a proportional one, which is the same rule every
-                    // other size in Castivio follows — a share, with a bound on it.
+                    // on nothing a user can see.
+                    //
+                    // Below [TIGHT] it reserves nothing at all. It kept a fixed 24dp back,
+                    // which is 24dp the panel then overflowed by and had clipped off its
+                    // own bottom — the buttons, measured: 178dp of content, 181dp of room,
+                    // and a cap of 157. A margin is what is left over after the content
+                    // fits, not something taken before it is measured.
                     .heightIn(
-                        max = if (maxHeight < TIGHT) {
-                            (maxHeight - Spacing.md * 2).coerceAtLeast(0.dp)
-                        } else {
-                            maxHeight * PANEL_MAX_FRACTION
-                        },
+                        max = if (tight) maxHeight else maxHeight * PANEL_MAX_FRACTION,
                     )
                     .clip(shape)
                     .background(colors.backgroundElevated)
@@ -318,10 +344,10 @@ private fun DialogPanel(
                         indication = null,
                         onClick = {},
                     )
-                    .padding(if (maxHeight < TIGHT) Spacing.md else m.padding),
+                    .padding(if (tight) Spacing.md else m.padding),
                 // The rhythm tightens with the room, for the reason the cap does.
                 verticalArrangement = Arrangement.spacedBy(
-                    if (maxHeight < TIGHT) Spacing.sm else Spacing.md,
+                    if (tight) Spacing.sm else Spacing.md,
                 ),
             ) {
                 Text(
@@ -339,7 +365,7 @@ private fun DialogPanel(
                     color = colors.onBackground,
                     modifier = Modifier.semantics { heading() },
                 )
-                content()
+                content(tight)
             }
         }
     }
