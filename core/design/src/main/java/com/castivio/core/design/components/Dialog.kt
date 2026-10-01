@@ -328,23 +328,20 @@ private fun DialogPanel(
             dismissOnClickOutside = false,
         ),
     ) {
-        // **Walked, not assumed.**
-        //
-        // This was `LocalView.current.parent as? DialogWindowProvider`, which is the
-        // shape every example uses and which assumes the window's host is exactly one
-        // view above the composition. A build went out where every line in the block
-        // below had no effect whatsoever — the decor still fitted the system windows,
-        // the dim was still the platform's, the bars still came back — and a null here
-        // is the one cause that explains all of them at once rather than each of them
-        // separately. A safe cast that is wrong fails silently; a walk cannot be wrong
-        // about how many views deep the host is.
         val view = LocalView.current
-        val window = remember(view) {
+        val window = (view.parent as? DialogWindowProvider)?.window
+
+        // TEMPORARY, and measured only. Whether the window's host is anywhere in the
+        // parent chain, which the cast above would miss if it were more than one view
+        // up. **Nothing is configured from it** — a build that both measured a cause
+        // and acted on it would not be able to say which of the two changed the
+        // photograph. It is read by the probe and by nothing else.
+        val walked = remember(view) {
             generateSequence(view.parent) { it.parent }
                 .filterIsInstance<DialogWindowProvider>()
-                .firstOrNull()
-                ?.window
+                .firstOrNull() != null
         }
+
         SideEffect {
             window?.let {
                 it.setDimAmount(0f)
@@ -386,6 +383,7 @@ private fun DialogPanel(
                 title = title,
                 onScrim = onScrim,
                 hasWindow = window != null,
+                walkedWindow = walked,
                 modifier = modifier,
                 content = content,
             )
@@ -406,6 +404,7 @@ private fun DialogScrim(
     title: String,
     onScrim: () -> Unit,
     hasWindow: Boolean,
+    walkedWindow: Boolean,
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.(tight: Boolean) -> Unit,
 ) {
@@ -515,11 +514,13 @@ private fun DialogScrim(
 
                 // TEMPORARY. Its own node rather than part of the title, so the tests
                 // that find a dialog by the exact words of its heading still find it.
+                // Drawn in the danger colour on purpose: a diagnostic that looks like
+                // part of the design is a diagnostic somebody forgets to remove.
                 if (PROBE) {
                     Text(
-                        text = probe(hasWindow, maxHeight),
-                        style = CastivioType.labelSmall,
-                        color = colors.onBackgroundMuted,
+                        text = probe(hasWindow, walkedWindow, maxHeight),
+                        style = CastivioType.labelMedium,
+                        color = colors.danger,
                     )
                 }
 
@@ -544,20 +545,28 @@ private fun DialogScrim(
  * So the next build is spent on evidence instead of a fifth guess. Three numbers
  * answer it between them:
  *
- *  - **win** — whether the dialog's own window was found at all. `false` means every
- *    line that configures that window is a no-op, which alone explains the whole
- *    photograph.
+ *  - **win** — whether the window was found by the cast the code actually configures
+ *    through. `false` means every line in that block is a no-op, which alone explains
+ *    the whole photograph.
+ *  - **walk** — whether the window's host is anywhere in the parent chain. `win=false
+ *    walk=true` says the host is simply further up than one view and the lookup is the
+ *    bug; `win=false walk=false` says a `Dialog` here has no host to reach at all and
+ *    the window cannot be configured from the composition by any means.
  *  - **ime** — the keyboard inset Compose can see *inside* the dialog. `0` with the
  *    keyboard up means the decor is eating it, and no modifier can recover it.
  *  - **h** — the height the panel is being measured in. 393 means the full screen;
- *    something near 210 means the lift is working and the panel is simply too big.
+ *    something near 180 means the lift is working and the panel is simply too big.
+ *
+ * Nothing here is wired to behaviour. This build changes no layout, no window and no
+ * inset — it only prints, so that whatever the next commit changes, the photograph
+ * before it is unambiguous.
  */
 private const val PROBE = true
 
 @Composable
-private fun probe(hasWindow: Boolean, height: Dp): String {
+private fun probe(hasWindow: Boolean, walkedWindow: Boolean, height: Dp): String {
     val ime = with(LocalDensity.current) { WindowInsets.ime.getBottom(this).toDp() }
-    return "win=$hasWindow ime=${ime.value.toInt()} h=${height.value.toInt()}"
+    return "win=$hasWindow walk=$walkedWindow ime=${ime.value.toInt()} h=${height.value.toInt()}"
 }
 
 /**
