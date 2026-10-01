@@ -1,5 +1,8 @@
 package com.castivio.core.design.components
 
+import android.os.Build
+import android.view.View
+import android.view.Window
 import android.view.WindowManager
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -31,7 +34,10 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +57,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -58,6 +65,7 @@ import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Spacing
 import com.castivio.core.design.theme.boundedFraction
+import kotlinx.coroutines.delay
 
 /**
  * A question the user has to answer before anything else happens.
@@ -342,6 +350,24 @@ private fun DialogPanel(
                 .firstOrNull() != null
         }
 
+        // TEMPORARY, and the reason it is a poll rather than a read in the block below.
+        //
+        // The configuring `SideEffect` runs on every recomposition — and **nothing
+        // recomposes when the keyboard opens**, because the only thing in this window
+        // that watches the keyboard is `imePadding()`, and it is being handed a zero.
+        // A value read there would be the value from before the keys appeared, which is
+        // the one state the question is not about. So it is read on a timer instead, and
+        // what is on screen is live. It measures and configures nothing.
+        var readout by remember { mutableStateOf("") }
+        if (PROBE) {
+            LaunchedEffect(window, view) {
+                while (true) {
+                    readout = windowReadout(window, view)
+                    delay(PROBE_POLL_MS)
+                }
+            }
+        }
+
         SideEffect {
             window?.let {
                 it.setDimAmount(0f)
@@ -384,6 +410,7 @@ private fun DialogPanel(
                 onScrim = onScrim,
                 hasWindow = window != null,
                 walkedWindow = walked,
+                readout = readout,
                 modifier = modifier,
                 content = content,
             )
@@ -405,6 +432,7 @@ private fun DialogScrim(
     onScrim: () -> Unit,
     hasWindow: Boolean,
     walkedWindow: Boolean,
+    readout: String,
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.(tight: Boolean) -> Unit,
 ) {
@@ -527,6 +555,11 @@ private fun DialogScrim(
                         style = CastivioType.labelMedium,
                         color = colors.danger,
                     )
+                    Text(
+                        text = readout,
+                        style = CastivioType.labelSmall,
+                        color = colors.danger,
+                    )
                 }
 
                 content(tight)
@@ -568,10 +601,59 @@ private fun DialogScrim(
  */
 private const val PROBE = true
 
+/** How often the window is re-read while the probe is in. Temporary, like the rest. */
+private const val PROBE_POLL_MS = 400L
+
 @Composable
 private fun probe(hasWindow: Boolean, walkedWindow: Boolean, height: Dp): String {
     val ime = with(LocalDensity.current) { WindowInsets.ime.getBottom(this).toDp() }
     return "win=$hasWindow walk=$walkedWindow ime=${ime.value.toInt()} h=${height.value.toInt()}"
+}
+
+/**
+ * The second line: the window itself, not Compose's view of it.
+ *
+ * `win=true walk=true ime=0 h=354` settled the first question and opened a sharper
+ * one. The window is held and every line that configures it ran — and the panel is
+ * still measured in 354dp of a 393dp screen whether the keyboard is up or down. So
+ * the decor is still fitting the system windows after being told not to, and the
+ * keyboard never reaches this window at all. These four say which.
+ *
+ *  - **fits** — `WindowManager.LayoutParams.fitInsetsTypes`, which is what
+ *    `setDecorFitsSystemWindows` actually writes: `0` is edge to edge and `7` is the
+ *    decor fitting the system bars. There is no public getter for
+ *    `decorFitsSystemWindows` itself, so this is the same fact one layer down rather
+ *    than a stand-in for it. `fits=7` means the call was overwritten after it ran —
+ *    and the only other writer in this window is Compose's own `Dialog`, which
+ *    re-applies `properties.decorFitsSystemWindows` and defaults it to true.
+ *  - **soft** — `attributes.softInputMode`, in hex. `0x10` is `ADJUST_RESIZE`, which
+ *    is what the block sets; `0x30` is `ADJUST_NOTHING`, which is what Compose sets
+ *    for a dialog whose decor does not fit. Either value names its writer.
+ *  - **rootIme** — the keyboard inset the *window* receives, read from the decor view
+ *    rather than from the composition. `0` here means the keyboard genuinely does not
+ *    reach this window and no amount of layout can recover it; a number here with
+ *    `ime=0` above means it reaches the window and the decor is eating it on the way.
+ *  - **dec/cmp** — the decor's height against the composition's, in dp. Equal means
+ *    nothing is being inset; a gap is the decor's padding, measured rather than
+ *    inferred.
+ */
+private fun windowReadout(window: Window?, view: View): String {
+    if (window == null) return "no window"
+    val density = view.resources.displayMetrics.density
+    fun dp(px: Int) = (px / density).toInt()
+
+    val soft = Integer.toHexString(window.attributes.softInputMode)
+    val fits = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        window.attributes.fitInsetsTypes.toString()
+    } else {
+        "n/a"
+    }
+    val root = ViewCompat.getRootWindowInsets(window.decorView)
+    val rootIme = root?.getInsets(WindowInsetsCompat.Type.ime())?.bottom?.let(::dp)?.toString() ?: "?"
+    val rootBar = root?.getInsets(WindowInsetsCompat.Type.systemBars())?.bottom?.let(::dp)?.toString() ?: "?"
+
+    return "fits=$fits soft=0x$soft rootIme=$rootIme bar=$rootBar " +
+        "dec=${dp(window.decorView.height)} cmp=${dp(view.height)}"
 }
 
 /**
