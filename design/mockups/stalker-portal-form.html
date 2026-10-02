@@ -1,0 +1,157 @@
+<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8">
+<style>
+:root{
+  --deep:#141031; --violet10:#1B1038; --azure10:#0A1E3D;
+  --edge:rgba(160,163,215,.20); --edgeLit:rgba(76,155,255,.75);
+  --glassLow:rgba(255,255,255,.055);
+  --white:#FFFFFF; --muted:#A6A6BF; --desc:rgba(166,166,191,.78);
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Noto Sans Arabic","DejaVu Sans",sans-serif}
+body{background:#07060f;padding:12px;display:flex;flex-direction:column;gap:10px}
+.cap{color:#cfd3f0;font-size:14px;font-weight:700;display:flex;align-items:center;gap:10px;height:20px}
+.cap .n{font-family:"DejaVu Sans Mono",monospace;font-size:12px;color:#8e95d6;font-weight:400}
+.cap .px{border:1px solid rgba(76,155,255,.55);background:rgba(76,155,255,.12);
+  color:#9ec7ff;border-radius:6px;padding:1px 8px;font-size:11px}
+
+.shot{position:relative;width:1280px;height:720px;overflow:hidden;
+  background:linear-gradient(to bottom right,var(--deep) 0%,var(--violet10) 50%,var(--azure10) 100%)}
+.glow{position:absolute;border-radius:50%;pointer-events:none}
+.warm{width:1408px;height:1408px;left:-640px;top:324px;
+  background:radial-gradient(circle closest-side,rgba(110,75,216,.30),rgba(110,75,216,0))}
+.cool{width:1331px;height:1331px;left:563px;top:-302px;
+  background:radial-gradient(circle closest-side,rgba(46,107,255,.26),rgba(46,107,255,0))}
+
+.page{position:absolute;inset:0;padding:32px 61.3px 29.3px;display:flex;flex-direction:column}
+
+/* the shared chooser header, unchanged */
+.head{display:flex;align-items:center;gap:34.7px;height:72px;flex:0 0 auto}
+.hs{display:flex;align-items:center;gap:11px;flex:0 0 auto}
+.pill{height:58px;padding:0 14.7px;border-radius:58px;border:1px solid var(--edge);
+  background:var(--glassLow);color:var(--white);font-size:18px;display:flex;align-items:center;gap:6px}
+.disc{width:58px;height:58px;border-radius:50%;border:1px solid var(--edge);
+  background:var(--glassLow);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px}
+.hdrClock{display:flex;flex-direction:column;align-items:flex-end;direction:ltr;line-height:1.15;flex:0 0 auto}
+.hdrTime{font-size:34px;font-weight:700;color:var(--white);white-space:nowrap}
+.hdrDate{font-size:18px;color:var(--muted);white-space:nowrap}
+.titles{flex:1 1 auto;text-align:center;min-width:0}
+.h1{font-size:34px;font-weight:700;color:var(--white);line-height:1.2}
+.brand{display:flex;align-items:center;gap:11px;flex:0 0 auto}
+.bm{width:54px;height:54px;border-radius:28%;
+  background:linear-gradient(135deg,#FF3D6E,#9B6BFF);display:flex;align-items:center;
+  justify-content:center;font-size:18px}
+.bn{font-size:18px;letter-spacing:.2em;color:var(--white);font-weight:600}
+.sub{height:32px;display:flex;align-items:center;justify-content:center;
+  font-size:19px;color:var(--muted);flex:0 0 auto}
+
+/* the form, built exactly like the M3U one: a glass card of fields, then Connect */
+.band{flex:1 1 auto;display:flex;flex-direction:column;gap:24px;margin-top:29.3px;min-height:0;
+  align-items:center;justify-content:flex-start}
+.form{width:720px;display:flex;flex-direction:column;gap:24px}
+.card{border-radius:28px;border:1px solid var(--edge);background:var(--glassLow);
+  padding:24px;display:flex;flex-direction:column;gap:16px}
+.lbl{font-size:16px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.lbl .opt{font-size:14px;color:rgba(166,166,191,.55)}
+.fld{height:60px;border-radius:16px;border:1px solid var(--edge);background:rgba(255,255,255,.05);
+  display:flex;align-items:center;padding:0 18px;font-size:19px;color:var(--white)}
+.fld.ph{color:rgba(166,166,191,.5);direction:ltr;justify-content:flex-start}
+.fld.on{border-color:var(--edgeLit);box-shadow:0 0 18px rgba(76,155,255,.22)}
+.note{font-size:16px;color:var(--desc);line-height:1.6}
+.cta{height:64px;border-radius:18px;display:flex;align-items:center;justify-content:center;
+  font-size:21px;font-weight:700;color:#fff;
+  background:linear-gradient(135deg,#2E6BFF,#1450C8);box-shadow:0 4px 30px rgba(46,107,255,.34)}
+.back{height:56px;padding:0 24px;border-radius:16px;border:1px solid var(--edge);
+  background:var(--glassLow);color:var(--white);font-size:19px;display:flex;align-items:center;
+  justify-content:center;align-self:flex-start}
+
+/* the television frame, sizes derived from 540 */
+.shot.tv{width:960px;height:540px}
+.tv .page{padding:24px 45.98px 21.97px}
+.tv .head{gap:26.03px;height:54px}
+.tv .pill{height:44.03px;padding:0 11.03px;border-radius:44.03px;font-size:12.98px}
+.tv .disc{width:44.03px;height:44.03px;font-size:12.98px}
+.tv .hdrTime{font-size:26.03px} .tv .hdrDate{font-size:12.98px}
+.tv .h1{font-size:26.03px}
+.tv .bm{width:39.98px;height:39.98px;font-size:12.98px} .tv .bn{font-size:12.98px}
+.tv .sub{height:26px;font-size:13.5px}
+.tv .band{margin-top:21.97px;gap:18px}
+.tv .form{width:560px;gap:18px}
+.tv .card{border-radius:20.02px;padding:18px;gap:12px}
+.tv .lbl{font-size:12.98px} .tv .lbl .opt{font-size:11.5px}
+.tv .fld{height:46px;border-radius:12px;padding:0 13px;font-size:14px}
+.tv .note{font-size:12.98px}
+.tv .cta{height:48px;border-radius:13px;font-size:15.8px}
+.tv .back{height:42px;padding:0 18px;border-radius:12px;font-size:14px}
+</style>
+
+<div class="cap">شاشة Stalker Portal — جديدة
+  <span class="px">1280 × 720</span>
+  <span class="n">رابط البوابة وزر اتصال فقط · لا MAC · مبنيّة كنموذج M3U حرفيًا</span></div>
+
+<div class="shot">
+  <div class="glow warm"></div><div class="glow cool"></div>
+  <div class="page">
+    <div class="head">
+      <div class="hs">
+        <div class="pill">رجوع&nbsp;←</div>
+        <div class="disc">☀</div>
+        <div class="hdrClock"><div class="hdrTime">22:34</div><div class="hdrDate">1 أكتوبر 2026</div></div>
+      </div>
+      <div class="titles"><div class="h1">Stalker Portal</div></div>
+      <div class="brand"><div class="bm">▶</div><div class="bn">CASTIVIO</div></div>
+    </div>
+    <div class="sub">أضف رابط البوابة الذي أرسله لك المزود</div>
+
+    <div class="band"><div class="form">
+      <div class="card">
+        <div>
+          <div class="lbl">اسم الاشتراك <span class="opt">اختياري</span></div>
+          <div class="fld ph" style="margin-top:8px">البوابة الرئيسية</div>
+        </div>
+        <div>
+          <div class="lbl">رابط البوابة (Portal URL)</div>
+          <div class="fld on ph" style="margin-top:8px">http://portal.example.com/c/</div>
+        </div>
+        <div class="note">يُستخدم عادةً مع أجهزة MAG وأنظمة Stalker.</div>
+      </div>
+      <div class="cta">اتصال</div>
+      <div class="back">رجوع</div>
+    </div></div>
+  </div>
+</div>
+
+<div class="cap">نفس الشاشة على إطار التلفاز
+  <span class="px">960 × 540</span>
+  <span class="n">الأحجام مشتقّة من ارتفاع 540</span></div>
+
+<div class="shot tv">
+  <div class="glow warm"></div><div class="glow cool"></div>
+  <div class="page">
+    <div class="head">
+      <div class="hs">
+        <div class="pill">رجوع&nbsp;←</div>
+        <div class="disc">☀</div>
+        <div class="hdrClock"><div class="hdrTime">22:34</div><div class="hdrDate">1 أكتوبر 2026</div></div>
+      </div>
+      <div class="titles"><div class="h1">Stalker Portal</div></div>
+      <div class="brand"><div class="bm">▶</div><div class="bn">CASTIVIO</div></div>
+    </div>
+    <div class="sub">أضف رابط البوابة الذي أرسله لك المزود</div>
+
+    <div class="band"><div class="form">
+      <div class="card">
+        <div>
+          <div class="lbl">اسم الاشتراك <span class="opt">اختياري</span></div>
+          <div class="fld ph" style="margin-top:6px">البوابة الرئيسية</div>
+        </div>
+        <div>
+          <div class="lbl">رابط البوابة (Portal URL)</div>
+          <div class="fld on ph" style="margin-top:6px">http://portal.example.com/c/</div>
+        </div>
+        <div class="note">يُستخدم عادةً مع أجهزة MAG وأنظمة Stalker.</div>
+      </div>
+      <div class="cta">اتصال</div>
+      <div class="back">رجوع</div>
+    </div></div>
+  </div>
+</div>
+</html>
