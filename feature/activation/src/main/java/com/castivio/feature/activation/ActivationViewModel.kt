@@ -54,6 +54,9 @@ class ActivationViewModel @Inject constructor(
 
     fun usePlaylistUrl() = editing { ActivationForm.Playlist() }
 
+    /** The Stalker card. One address, and the device names itself — see `StalkerHttpApi`. */
+    fun usePortal() = editing { ActivationForm.Portal() }
+
     /**
      * The user accepted the offer to read their playlist link as Xtream.
      *
@@ -71,6 +74,7 @@ class ActivationViewModel @Inject constructor(
         when (form) {
             is ActivationForm.Xtream -> form.copy(name = value)
             is ActivationForm.Playlist -> form.copy(name = value)
+            is ActivationForm.Portal -> form.copy(name = value)
         }
     }
 
@@ -82,6 +86,10 @@ class ActivationViewModel @Inject constructor(
 
     fun playlistUrl(value: String) = editForm { form ->
         (form as? ActivationForm.Playlist)?.copy(url = value) ?: form
+    }
+
+    fun portalUrl(value: String) = editForm { form ->
+        (form as? ActivationForm.Portal)?.copy(url = value) ?: form
     }
 
     // --------------------------------------------------------------- the attempt

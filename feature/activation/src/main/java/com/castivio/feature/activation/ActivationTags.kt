@@ -77,6 +77,18 @@ internal object ActivationTags {
     const val SOURCE_BACK = "activation.sourceBack"
 
     /**
+     * The portal form's two fields.
+     *
+     * Tagged rather than found by their labels, for the reason the rename field is:
+     * a text field merges its label, its value and its decoration into one node, and a
+     * finder matching the label would be asserting a translation rather than a field.
+     * What they gate is the claim the whole form rests on — two fields, and the second
+     * is an address, with nothing between them asking for a MAC.
+     */
+    const val PORTAL_NAME = "activation.portalName"
+    const val PORTAL_URL = "activation.portalUrl"
+
+    /**
      * The glass surface the grid and Back sit inside.
      *
      * Tagged because "the cards are in a container" is otherwise a claim only a

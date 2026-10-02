@@ -202,7 +202,13 @@ class LoadSection(
 val PlaylistSource.carriesEveryKind: Boolean
     get() = when (this) {
         is PlaylistSource.M3u, is PlaylistSource.LocalFile -> true
-        is PlaylistSource.Xtream, is PlaylistSource.Portal -> false
+        is PlaylistSource.Xtream -> false
+        // A portal's one fetch brings its channels and nothing else, because its
+        // channels are all it is asked for — see the importer. Reported as "every
+        // kind" so that opening Films marks the sections as looked at rather than
+        // re-running the same channel import three times in search of films that this
+        // import never asks for.
+        is PlaylistSource.Portal -> true
     }
 
 /**

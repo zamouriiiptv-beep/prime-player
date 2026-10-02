@@ -129,14 +129,12 @@ internal enum class ActivationStep {
     SavedSources,
 
     /**
-     * The portal address, reached from the chooser's Stalker card.
+     * The Stalker portal form, reached from the chooser's third card.
      *
-     * The same screen [Mac] draws, at a different place in the tree, and that is the
-     * whole of the difference between them. [Mac] is where this flow *opens* on a box
-     * with nothing on it, so back from it leaves the application; this is a card the
-     * user pressed on the chooser, so back from it returns to the chooser. One screen
-     * cannot answer both, and which answer is right is a fact about how the user got
-     * here rather than about the screen — which is what a step is for.
+     * A form like [Xtream] and [Playlist], not the address screen: [Mac] shows this
+     * device's own address so a user can give it to their provider, and this asks for
+     * the portal URL the provider sends back. Two ends of one errand, and neither
+     * screen can do the other's half.
      */
     Portal,
 
@@ -416,11 +414,11 @@ internal fun isFixedViewport(
     step: ActivationStep,
 ): Boolean =
     !state.busy && state.phase !is ActivationPhase.Failed && when (step) {
-        ActivationStep.Mac, ActivationStep.Portal,
-        ActivationStep.Choose, ActivationStep.SavedSources,
-        -> true
+        ActivationStep.Mac, ActivationStep.Choose, ActivationStep.SavedSources -> true
 
-        ActivationStep.Xtream, ActivationStep.Playlist -> false
+        // The three forms scroll: a keyboard takes most of a handset, and a form that
+        // owned its viewport would put Connect under it.
+        ActivationStep.Xtream, ActivationStep.Playlist, ActivationStep.Portal -> false
     }
 
 @Composable
@@ -477,22 +475,29 @@ private fun Steps(
                     activation.usePlaylistUrl()
                     onStep(ActivationStep.Playlist)
                 },
-                onPortal = { onStep(ActivationStep.Portal) },
+                onPortal = {
+                    activation.usePortal()
+                    onStep(ActivationStep.Portal)
+                },
                 onSavedSources = { onStep(ActivationStep.SavedSources) },
                 onBack = onBack,
             )
 
-            // The same screen the flow opens on, reached the other way round. Its
-            // "add a playlist" control leads back to the chooser, which is where the
-            // user pressed the card that opened this — so the two ways through agree
-            // rather than looping.
-            ActivationStep.Portal -> MacActivationScreen(
-                identity = identity,
-                onAddPlaylist = onBack,
-                onRefresh = onRefresh,
-                onCopied = onCopied,
-                onOpenLanguage = onOpenLanguage,
-            )
+            // The portal form, laid out exactly as the other two forms are: the screen
+            // asks, Back returns to the chooser, and the attempt is the view model's.
+            ActivationStep.Portal -> Column(
+                verticalArrangement = Arrangement.spacedBy(Spacing.xl),
+            ) {
+                PortalFormScreen(
+                    form = state.form as? ActivationForm.Portal ?: ActivationForm.Portal(),
+                    enabled = !state.busy,
+                    canSubmit = state.canSubmit,
+                    onName = activation::name,
+                    onUrl = activation::portalUrl,
+                    onSubmit = activation::submit,
+                )
+                BackButton(onClick = { onStep(ActivationStep.Choose) })
+            }
 
             ActivationStep.SavedSources -> {
                 val saved: SavedSourcesViewModel = hiltViewModel()

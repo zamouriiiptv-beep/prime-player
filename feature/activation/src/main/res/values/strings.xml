@@ -171,6 +171,9 @@
     <string name="source_m3u_hint">One long link, usually sent by e-mail.</string>
     <string name="source_users_hint">Rename or delete your playlists.</string>
     <string name="source_portal_hint">Usually used with MAG devices and Stalker systems.</string>
+    <string name="field_portal_url">Portal URL</string>
+    <string name="field_portal_url_placeholder">http://portal.example.com/c/</string>
+    <string name="field_portal_hint">Enter the portal URL your provider sent you.</string>
     <!-- The two folder choosers: the top of each picker's tree. -->
     <!-- The theme control in every header. Named by what pressing it does. -->
     <string name="action_theme_lighter">Switch to the lighter theme</string>

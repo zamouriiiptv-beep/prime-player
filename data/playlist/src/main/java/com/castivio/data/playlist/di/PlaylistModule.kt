@@ -2,7 +2,13 @@ package com.castivio.data.playlist.di
 
 import android.content.Context
 import com.castivio.core.common.AppDispatchers
+import com.castivio.core.common.Outcome
 import com.castivio.data.networking.HttpStreamSource
+import com.castivio.data.networking.StalkerHttpApi
+import com.castivio.data.networking.StalkerSession
+import com.castivio.data.parsing.StalkerChannel
+import com.castivio.data.parsing.StalkerImportEngine
+import com.castivio.domain.identity.DeviceIdentity
 import com.castivio.data.networking.XtreamHttpApi
 import com.castivio.data.parsing.XtreamImportEngine
 import com.castivio.data.playlist.AndroidLocalPlaylistReader
@@ -47,13 +53,18 @@ object PlaylistModule {
         localFiles: LocalPlaylistReader,
         client: OkHttpClient,
         dispatchers: AppDispatchers,
+        identity: DeviceIdentity,
     ): CatalogImporter = DefaultCatalogImporter(
         http = http,
         writerFactory = { writers.get() },
         sources = sources,
         localFiles = localFiles,
         xtreamApiFactory = { source -> source.toApi(client) },
-    dispatchers = dispatchers,
+        // The device address a portal handshake needs, from the one place that derives
+        // it. Never asked of the user: it is the address the activation screen already
+        // shows, which is what they gave their provider. See `StalkerHttpApi`.
+        portalApiFactory = { source -> source.toApi(client, identity.current().macAddress.value) },
+        dispatchers = dispatchers,
     )
 
     /**
@@ -98,4 +109,33 @@ object PlaylistModule {
 
     private fun PlaylistSource.Xtream.toApi(client: OkHttpClient): XtreamImportEngine.Api =
         XtreamHttpApi(client, host, username, password)
+
+    /**
+     * A portal's engine API, with the session it needs opened lazily.
+     *
+     * The handshake happens on the first page rather than here: a factory that
+     * performed a network call would be a factory that blocks whoever assembles the
+     * importer, and an import that is cancelled before it starts would have paid for a
+     * session nobody used.
+     */
+    private fun PlaylistSource.Portal.toApi(
+        client: OkHttpClient,
+        mac: String,
+    ): StalkerImportEngine.Api = object : StalkerImportEngine.Api {
+        private val api = StalkerHttpApi(client, url, mac)
+        private var session: StalkerSession? = null
+
+        private fun session(): StalkerSession? =
+            session ?: (api.handshake() as? Outcome.Success)?.value?.also { session = it }
+
+        override fun channels(page: Int, onChannel: (StalkerChannel) -> Unit): Int {
+            val open = session() ?: return 0
+            return (api.channels(open, page, onChannel) as? Outcome.Success)?.value ?: 0
+        }
+
+        // A portal command that carries an address is playable as it stands; one that
+        // does not is a `/media/…` reference the portal resolves per play, and there is
+        // nothing honest to write for it until that call exists.
+        override fun streamUrl(channel: StalkerChannel): String? = channel.directUrl
+    }
 }

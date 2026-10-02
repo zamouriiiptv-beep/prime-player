@@ -9,6 +9,7 @@ import com.castivio.data.networking.RemoteRequest
 import com.castivio.data.networking.RemoteResult
 import com.castivio.data.parsing.CatalogImportEngine
 import com.castivio.data.parsing.SourceIds
+import com.castivio.data.parsing.StalkerImportEngine
 import com.castivio.data.parsing.XtreamImportEngine
 import com.castivio.domain.CatalogImporter
 import com.castivio.domain.CatalogWriter
@@ -50,6 +51,14 @@ class DefaultCatalogImporter(
     private val sources: SourceRepository,
     private val localFiles: LocalPlaylistReader,
     private val xtreamApiFactory: (PlaylistSource.Xtream) -> XtreamImportEngine.Api,
+    /**
+     * A portal's channel list, behind the engine's contract.
+     *
+     * Nullable, and null in a build that cannot supply the device address a portal
+     * handshake needs. A portal then reports [AppError.NOT_CONFIGURED] instead of
+     * failing somewhere further in, and no other kind of source is affected.
+     */
+    private val portalApiFactory: ((PlaylistSource.Portal) -> StalkerImportEngine.Api?)? = null,
     private val dispatchers: AppDispatchers,
     private val clock: () -> Long = System::currentTimeMillis,
 ) : CatalogImporter {
@@ -64,7 +73,7 @@ class DefaultCatalogImporter(
             is PlaylistSource.M3u -> importM3uUrl(source, sourceId, stored, onProgress, cancelled)
             is PlaylistSource.LocalFile -> importLocalFile(source, sourceId, onProgress, cancelled)
             is PlaylistSource.Xtream -> importXtream(source, sourceId, onProgress, cancelled)
-            is PlaylistSource.Portal -> trySend(ImportProgress.Failed(AppError.NOT_FOUND))
+            is PlaylistSource.Portal -> importPortal(source, sourceId, onProgress, cancelled)
         }
         // No awaitClose: the work here is synchronous and finishes, so the flow
         // must complete when it returns. Keeping the channel open would leave every
@@ -250,6 +259,57 @@ class DefaultCatalogImporter(
         } catch (e: Exception) {
             writer.abort(e)
             onProgress(ImportProgress.Failed(AppError.MALFORMED_PLAYLIST))
+        }
+    }
+
+    /**
+     * A portal's channels, written as they arrive.
+     *
+     * One kind, and that is the honest shape of it: a Stalker `itv` list is television,
+     * and the film and series calls are answered by so few installations, and so
+     * differently, that importing a guess would fill a library with rows that fail when
+     * pressed. `carriesEveryKind` reports that, so a section that a portal has nothing
+     * for says it has nothing rather than spinning.
+     */
+    private fun importPortal(
+        source: PlaylistSource.Portal,
+        sourceId: String,
+        onProgress: (ImportProgress) -> Unit,
+        cancelled: () -> Boolean,
+    ) {
+        val api = portalApiFactory?.invoke(source)
+        if (api == null) {
+            onProgress(ImportProgress.Failed(AppError.NOT_CONFIGURED))
+            return
+        }
+        val writer = writerFactory()
+        val startedAt = clock()
+        try {
+            val written = StalkerImportEngine().importChannels(
+                sourceId = sourceId,
+                api = api,
+                writer = writer,
+                onProgress = onProgress,
+                isCancelled = cancelled,
+            )
+            if (cancelled()) {
+                writer.abort(null)
+                return
+            }
+            writer.finish(
+                ImportSummary(
+                    sourceId = sourceId,
+                    items = written,
+                    groups = 0,
+                    skipped = 0,
+                    byKind = mapOf(MediaKind.LIVE to written),
+                    durationMs = clock() - startedAt,
+                ),
+            )
+            onProgress(ImportProgress.Done(written, clock() - startedAt))
+        } catch (e: Exception) {
+            writer.abort(e)
+            onProgress(ImportProgress.Failed(AppError.UNKNOWN))
         }
     }
 

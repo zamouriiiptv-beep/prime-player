@@ -46,6 +46,7 @@ class ActivateProviderTest {
 
     private val xtream = PlaylistSource.Xtream("http://line.example.com:8080", "bob", "hunter2")
     private val m3u = PlaylistSource.M3u("http://line.example.com/playlist.m3u")
+    private val portal = PlaylistSource.Portal("http://portal.example.com:8080/c")
 
     // --------------------------------------------------------------- the harness
 
@@ -72,9 +73,22 @@ class ActivateProviderTest {
             return stored.getOrPut(id) {
                 ProviderSource(
                     id = id,
-                    kind = SourceKind.XTREAM,
+                    // What it was handed, rather than Xtream for everything. The portal
+                    // tests ask whether the address was stored at all, and a fake that
+                    // threw the address away could answer only "a row appeared".
+                    kind = when (source) {
+                        is PlaylistSource.Xtream -> SourceKind.XTREAM
+                        is PlaylistSource.M3u -> SourceKind.M3U_URL
+                        is PlaylistSource.LocalFile -> SourceKind.LOCAL_FILE
+                        is PlaylistSource.Portal -> SourceKind.PORTAL
+                    },
                     label = label ?: "New",
-                    url = null,
+                    url = when (source) {
+                        is PlaylistSource.Xtream -> source.host
+                        is PlaylistSource.M3u -> source.url
+                        is PlaylistSource.LocalFile -> source.uri
+                        is PlaylistSource.Portal -> source.url
+                    },
                 )
             }
         }
@@ -107,6 +121,7 @@ class ActivateProviderTest {
             fun idOf(source: PlaylistSource): String = when (source) {
                 is PlaylistSource.Xtream -> "xtream-1"
                 is PlaylistSource.M3u -> "m3u-1"
+                is PlaylistSource.Portal -> "portal-1"
                 else -> "other"
             }
         }
@@ -221,6 +236,56 @@ class ActivateProviderTest {
         assertEquals("Active", kept.label)
         assertEquals(t0, kept.atMs)
         assertTrue(kept.usable)
+    }
+
+    /**
+     * A portal connects the way the other two do: checked, saved, and nothing
+     * downloaded.
+     *
+     * This is the behaviour the three ways of adding a subscription are supposed to
+     * share, and the one a portal could most easily have broken — its catalogue is a
+     * single call that returns every channel, which is exactly the shape that invites
+     * an importer to be run at activation "while we are here". Pressing Connect must
+     * cost one handshake and one profile call, and the user must be on Home before any
+     * channel is fetched.
+     */
+    @Test
+    fun `a portal is checked and saved without downloading anything`() = runTest {
+        val sources = Sources()
+        val importer = importOf()
+        val statuses = Statuses()
+        val activate = activateProvider(Validator(usable()), importer, sources, statuses)
+
+        val phases = activate.activate(portal, "Main", t0, fetchCatalogue = false).toList()
+
+        val saved = sources.stored.getValue("portal-1")
+        assertEquals("the portal's address was not stored", portal.url, saved.url)
+        assertEquals(SourceKind.PORTAL, saved.kind)
+        assertEquals("a catalogue was downloaded during activation", 0, importer.started)
+        assertTrue("the flow never reported success", phases.any { it is ActivationPhase.Succeeded })
+        assertTrue("the portal's answer was not recorded", statuses.stored.containsKey("portal-1"))
+    }
+
+    /**
+     * A portal the device is not known to is refused, and nothing is written for it.
+     *
+     * The failure a user can actually act on: their provider bound the subscription to
+     * an address this box is not using. What must not happen is a saved subscription
+     * that cannot be reached — Home would then show a provider that is there and empty.
+     */
+    @Test
+    fun `a portal that refuses this device saves nothing`() = runTest {
+        val sources = Sources()
+        val activate = activateProvider(
+            Validator(Outcome.Failure(AppError.UNAUTHORIZED)),
+            importOf(),
+            sources,
+        )
+
+        val phases = activate.activate(portal, "Main", t0, fetchCatalogue = false).toList()
+
+        assertTrue("a refused portal was still saved", sources.stored.isEmpty())
+        assertTrue(phases.any { it is ActivationPhase.Failed })
     }
 
     /** The same guarantee on the path that also downloads, which is a different branch. */

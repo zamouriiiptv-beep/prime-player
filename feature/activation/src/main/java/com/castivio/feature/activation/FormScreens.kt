@@ -191,6 +191,87 @@ internal fun M3uFormScreen(
     }
 }
 
+/**
+ * The Stalker portal form: a name the user may give it, and the address.
+ *
+ * ## Why there is no MAC on it
+ *
+ * A portal does bind a subscription to a set-top box, and the handshake does carry an
+ * address — but the user has already given their provider that address, off the
+ * activation screen, which is how they got a portal URL in the first place. Castivio
+ * holds it, so `StalkerHttpApi` sends it. Asking for it here would be asking somebody
+ * to copy a number out of one screen of this application and into another.
+ *
+ * ## Why it is this file and not a screen of its own
+ *
+ * It is the M3U form with a different label and a different destination: the same
+ * glass card, the same field, the same Connect. A second file would be a second set of
+ * decisions about what a form looks like, agreeing with this one until the first edit
+ * to either.
+ */
+@Composable
+internal fun PortalFormScreen(
+    form: ActivationForm.Portal,
+    enabled: Boolean,
+    canSubmit: Boolean,
+    onName: (String) -> Unit,
+    onUrl: (String) -> Unit,
+    onSubmit: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = CastivioTheme.colors
+    val checked = form.checked
+
+    Column(
+        modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xl),
+    ) {
+        Text(
+            text = stringResource(R.string.source_portal_title),
+            style = CastivioType.headlineMedium,
+            color = colors.onBackground,
+            modifier = Modifier.semantics { heading() },
+        )
+
+        GlassCard(Modifier.fillMaxWidth()) {
+            Column(
+                Modifier.padding(Spacing.xl),
+                verticalArrangement = Arrangement.spacedBy(Spacing.lg),
+            ) {
+                CastivioTextField(
+                    value = form.name,
+                    onValueChange = onName,
+                    label = stringResource(R.string.field_playlist_name),
+                    hint = stringResource(R.string.field_optional),
+                    placeholder = stringResource(R.string.field_playlist_name_placeholder),
+                    error = checked.name.problem.message(),
+                    enabled = enabled,
+                    modifier = Modifier.testTag(ActivationTags.PORTAL_NAME),
+                )
+                CastivioTextField(
+                    value = form.url,
+                    onValueChange = onUrl,
+                    label = stringResource(R.string.field_portal_url),
+                    placeholder = stringResource(R.string.field_portal_url_placeholder),
+                    error = form.url.problemOnceTyped(checked.url.problem),
+                    enabled = enabled,
+                    keyboardType = KeyboardType.Uri,
+                    imeAction = ImeAction.Done,
+                    onImeAction = onSubmit,
+                    modifier = Modifier.testTag(ActivationTags.PORTAL_URL),
+                )
+                Text(
+                    text = stringResource(R.string.field_portal_hint),
+                    style = CastivioType.bodyMedium,
+                    color = colors.onBackgroundVariant,
+                )
+            }
+        }
+
+        ConnectButton(enabled = canSubmit, onClick = onSubmit)
+    }
+}
+
 @Composable
 private fun ConnectButton(enabled: Boolean, onClick: () -> Unit) {
     CastivioButton(
