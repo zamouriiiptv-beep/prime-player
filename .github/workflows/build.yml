@@ -131,8 +131,14 @@ jobs:
       #
       # The player modules are listed because they were not, and that is worse than
       # having no tests: the job reported success over two rounds of player work while
-      # :feature:player, :playback:engine-media3 and :data:localmedia never ran a single
-      # test. A gate nobody runs is still believed.
+      # :feature:player and :playback:engine-media3 never ran a single test. A gate
+      # nobody runs is still believed.
+      #
+      # The list names modules, so deleting one breaks this step rather than silently
+      # skipping it — Gradle refuses a task path whose project is gone. That is the
+      # right failure, and it is how :data:localmedia came out of the list: the module
+      # was removed with the local-media screens and this step was the thing that said
+      # so.
       #
       # The same three secrets are passed again, not because any test reads them — the
       # subtitle tests construct their credentials from literals against a MockWebServer,
@@ -154,7 +160,6 @@ jobs:
             :data:activation:testDebugUnitTest \
             :data:entitlement:testDebugUnitTest \
             :data:epg:testDebugUnitTest \
-            :data:localmedia:testDebugUnitTest \
             :data:subtitles:testDebugUnitTest \
             :feature:activation:testDebugUnitTest \
             :feature:home:testDebugUnitTest \
