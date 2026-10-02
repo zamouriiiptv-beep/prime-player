@@ -50,6 +50,20 @@ class HttpProviderValidator(
      * unsafe default is how this defect would come back.
      */
     private val dispatchers: AppDispatchers = DefaultDispatchers,
+    /**
+     * This device's address, for the one protocol that needs one.
+     *
+     * A portal binds a subscription to a set-top box and the box names itself with a
+     * MAC on every request — so a portal cannot be validated without one, and no other
+     * kind of source has any use for it. A lambda rather than the identity itself
+     * because this class has no business knowing how an address is derived, only how
+     * to send it.
+     *
+     * Null means this build cannot supply one. A portal is then unreachable and says
+     * so with [AppError.NOT_CONFIGURED]; every other kind of source is unaffected,
+     * which is why it is defaulted rather than required.
+     */
+    private val deviceMac: () -> String? = { null },
 ) : ProviderValidator {
 
     override suspend fun validate(source: PlaylistSource): Outcome<ProviderStatus> =
@@ -60,9 +74,44 @@ class HttpProviderValidator(
                 // A local file is either readable or not, and the importer says which;
                 // there is nothing to ask a server.
                 is PlaylistSource.LocalFile -> Outcome.Success(ProviderStatus(usable = true))
-                is PlaylistSource.Portal -> Outcome.Failure(AppError.NOT_FOUND)
+                is PlaylistSource.Portal -> validatePortal(source)
             }
         }
+
+    /**
+     * Opens a session on the portal and asks it about the account.
+     *
+     * Two calls rather than one, because a portal answers two different questions: the
+     * handshake says whether this installation knows this device, and the profile says
+     * whether the subscription behind it is alive. A handshake that succeeds and a
+     * profile that is blocked is a real state — the provider has the box and the
+     * subscription has run out — and reporting it as "connected" would put an empty
+     * catalogue in front of a user who needs to renew.
+     */
+    private fun validatePortal(source: PlaylistSource.Portal): Outcome<ProviderStatus> {
+        val mac = deviceMac() ?: return Outcome.Failure(AppError.NOT_CONFIGURED)
+        val api = StalkerHttpApi(client, source.url, mac, userAgent)
+
+        val session = when (val handshake = api.handshake()) {
+            is Outcome.Failure -> return handshake
+            is Outcome.Success -> handshake.value
+        }
+
+        return when (val profile = api.profile(session)) {
+            is Outcome.Failure -> profile
+            is Outcome.Success -> Outcome.Success(
+                ProviderStatus(
+                    usable = profile.value.isUsable,
+                    // A portal states no expiry of its own. Resellers write one into a
+                    // free-text field, and a date guessed out of free text is worse
+                    // than no date: Home draws "expires on" from this, and a wrong one
+                    // is a user told their working subscription has ended.
+                    expiresAtMs = null,
+                    statusLabel = profile.value.accountName,
+                ),
+            )
+        }
+    }
 
     private fun validateXtream(source: PlaylistSource.Xtream): Outcome<ProviderStatus> {
         val api = XtreamHttpApi(client, source.host, source.username, source.password, userAgent)

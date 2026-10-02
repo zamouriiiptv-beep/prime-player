@@ -8,6 +8,7 @@ import com.castivio.data.networking.HttpClientProvider
 import com.castivio.data.networking.HttpProviderValidator
 import com.castivio.data.networking.HttpStreamSource
 import com.castivio.domain.ProviderValidator
+import com.castivio.domain.identity.DeviceIdentity
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -62,7 +63,19 @@ object NetworkingModule {
         // The validator blocks, and moves itself off the caller's thread to do it.
         // Its caller is a view model collecting on the main thread; see the class.
         dispatchers: AppDispatchers,
-    ): ProviderValidator = HttpProviderValidator(client, streams, USER_AGENT, dispatchers)
+        // Only a portal uses it, and only because the protocol does: a Stalker
+        // installation binds a subscription to a set-top box and the box names itself
+        // with a MAC on every request. It is the address the activation screen already
+        // shows, so the user has given it to their provider once and is never asked for
+        // it again. See `HttpProviderValidator.deviceMac`.
+        identity: DeviceIdentity,
+    ): ProviderValidator = HttpProviderValidator(
+        client = client,
+        streams = streams,
+        userAgent = USER_AGENT,
+        dispatchers = dispatchers,
+        deviceMac = { identity.current().macAddress.value },
+    )
 
     /**
      * Providers do gate on the user agent, and some reject OkHttp's default
