@@ -174,6 +174,7 @@
     <string name="field_portal_url">Portal URL</string>
     <string name="field_portal_url_placeholder">http://portal.example.com/c/</string>
     <string name="field_portal_hint">Enter the portal URL your provider sent you.</string>
+    <string name="mac_installation_note">This address belongs to the app on this device. Clearing the app’s data gives this device a new one, and you would need to send it to your provider again.</string>
     <!-- The two folder choosers: the top of each picker's tree. -->
     <!-- The theme control in every header. Named by what pressing it does. -->
     <string name="action_theme_lighter">Switch to the lighter theme</string>

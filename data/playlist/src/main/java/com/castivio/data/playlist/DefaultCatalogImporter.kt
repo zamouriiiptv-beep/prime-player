@@ -73,7 +73,21 @@ class DefaultCatalogImporter(
             is PlaylistSource.M3u -> importM3uUrl(source, sourceId, stored, onProgress, cancelled)
             is PlaylistSource.LocalFile -> importLocalFile(source, sourceId, onProgress, cancelled)
             is PlaylistSource.Xtream -> importXtream(source, sourceId, onProgress, cancelled)
-            is PlaylistSource.Portal -> importPortal(source, sourceId, onProgress, cancelled)
+            // The whole catalogue: every section the portal serves, one call each.
+            is PlaylistSource.Portal -> for (kind in MediaKind.entries) {
+                if (cancelled()) break
+                importPortal(
+                    source = source,
+                    sourceId = sourceId,
+                    kind = kind,
+                    // The first section replaces what was there; the three after it add
+                    // to the same generation. A replacing write per kind would prune
+                    // the previous one at `finish()`.
+                    mode = if (kind == MediaKind.entries.first()) ImportMode.REPLACE else ImportMode.APPEND,
+                    onProgress = onProgress,
+                    cancelled = cancelled,
+                )
+            }
         }
         // No awaitClose: the work here is synchronous and finishes, so the flow
         // must complete when it returns. Keeping the channel open would leave every
@@ -160,6 +174,22 @@ class DefaultCatalogImporter(
                         cacheHits = CallMetrics.cacheHits().toInt(),
                     )
                 }
+            }.flowOn(dispatchers.io)
+
+            // A portal answers `itv`, `vod`, `series` and `radio` on separate calls, so
+            // a section here is a real request rather than a filter over one download —
+            // which is what lets Films be fetched when Films is opened and the rest be
+            // left alone. `APPEND` for the reason stated above: a replacing write would
+            // prune every row of every other kind at `finish()`.
+            is PlaylistSource.Portal -> channelFlow {
+                importPortal(
+                    source = source,
+                    sourceId = SourceIds.of(source),
+                    kind = kind,
+                    mode = ImportMode.APPEND,
+                    onProgress = { trySend(it) },
+                    cancelled = { !isActive },
+                )
             }.flowOn(dispatchers.io)
 
             else -> import(source)
@@ -274,6 +304,8 @@ class DefaultCatalogImporter(
     private fun importPortal(
         source: PlaylistSource.Portal,
         sourceId: String,
+        kind: MediaKind,
+        mode: ImportMode,
         onProgress: (ImportProgress) -> Unit,
         cancelled: () -> Boolean,
     ) {
@@ -285,10 +317,12 @@ class DefaultCatalogImporter(
         val writer = writerFactory()
         val startedAt = clock()
         try {
-            val written = StalkerImportEngine().importChannels(
+            val written = StalkerImportEngine().importKind(
                 sourceId = sourceId,
+                kind = kind,
                 api = api,
                 writer = writer,
+                mode = mode,
                 onProgress = onProgress,
                 isCancelled = cancelled,
             )
@@ -302,7 +336,7 @@ class DefaultCatalogImporter(
                     items = written,
                     groups = 0,
                     skipped = 0,
-                    byKind = mapOf(MediaKind.LIVE to written),
+                    byKind = mapOf(kind to written),
                     durationMs = clock() - startedAt,
                 ),
             )

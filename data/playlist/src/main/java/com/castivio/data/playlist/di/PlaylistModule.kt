@@ -7,7 +7,9 @@ import com.castivio.data.networking.HttpStreamSource
 import com.castivio.data.networking.StalkerHttpApi
 import com.castivio.data.networking.StalkerSession
 import com.castivio.data.parsing.StalkerChannel
+import com.castivio.data.parsing.StalkerItem
 import com.castivio.data.parsing.StalkerImportEngine
+import com.castivio.domain.MediaKind
 import com.castivio.domain.identity.DeviceIdentity
 import com.castivio.data.networking.XtreamHttpApi
 import com.castivio.data.parsing.XtreamImportEngine
@@ -141,9 +143,23 @@ object PlaylistModule {
             }
         }
 
-        // A portal command that carries an address is playable as it stands; one that
-        // does not is a `/media/…` reference the portal resolves per play, and there is
-        // nothing honest to write for it until that call exists.
-        override fun streamUrl(channel: StalkerChannel): String? = channel.directUrl
+        override fun items(kind: MediaKind, page: Int, onItem: (StalkerItem) -> Unit): Int {
+            val open = session() ?: return 0
+            return when (val answer = api.items(open, kind, page, onItem)) {
+                is Outcome.Success -> answer.value
+                is Outcome.Failure -> 0
+            }
+        }
+
+        // The protocol's own call, asked only for the commands that need it. A portal
+        // that refuses to resolve one is answered with null, and the engine writes no
+        // row — never a link assembled from parts.
+        override fun resolve(kind: MediaKind, command: String): String? {
+            val open = session() ?: return null
+            return when (val answer = api.createLink(open, kind, command)) {
+                is Outcome.Success -> answer.value
+                is Outcome.Failure -> null
+            }
+        }
     }
 }

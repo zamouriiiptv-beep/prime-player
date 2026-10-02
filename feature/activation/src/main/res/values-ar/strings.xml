@@ -117,6 +117,7 @@
     <string name="field_portal_url">رابط البوابة (Portal URL)</string>
     <string name="field_portal_url_placeholder">http://portal.example.com/c/</string>
     <string name="field_portal_hint">أدخل رابط البوابة الذي أرسله لك المزود.</string>
+    <string name="mac_installation_note">هذا العنوان مرتبط ببيانات التطبيق على هذا الجهاز. مسح بيانات التطبيق يمنح الجهاز عنوانًا جديدًا، وسيلزمك إرساله إلى مزوّد الخدمة من جديد.</string>
     <string name="action_theme_lighter">التبديل إلى الوضع الأفتح</string>
     <string name="action_theme_darker">التبديل إلى الوضع الأغمق</string>
     <string name="source_choice_subtitle">اختر الطريقة التي تريد من خلالها إضافة مصدر المحتوى</string>

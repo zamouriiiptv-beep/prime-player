@@ -51,7 +51,8 @@ class StalkerImportEngineTest {
             pages.getOrNull(page - 1)?.forEach(onChannel)
             return if (statesTotal) pages.sumOf { it.size } else 0
         }
-        override fun streamUrl(channel: StalkerChannel): String? = channel.directUrl
+        override fun items(kind: MediaKind, page: Int, onItem: (StalkerItem) -> Unit): Int = 0
+        override fun resolve(kind: MediaKind, command: String): String? = null
     }
 
     /* --------------------------------------------------------------------- paging */
@@ -117,7 +118,8 @@ class StalkerImportEngineTest {
                 }
                 return 0
             }
-            override fun streamUrl(channel: StalkerChannel): String? = channel.directUrl
+            override fun items(kind: MediaKind, page: Int, onItem: (StalkerItem) -> Unit): Int = 0
+            override fun resolve(kind: MediaKind, command: String): String? = null
         }
         val writer = Recorder()
 
@@ -224,5 +226,177 @@ class StalkerImportEngineTest {
 
         assertEquals(5, written)
         assertEquals(listOf(2, 2, 1), batches)
+    }
+
+    /* ----------------------------------------------------- films, shows and stations */
+
+    /** A portal serving one page of [items] for [serves], and nothing for anything else. */
+    private class Library(
+        private val serves: MediaKind,
+        private val items: List<StalkerItem>,
+        private val resolves: Boolean = true,
+    ) : StalkerImportEngine.Api {
+        var resolveCalls = 0
+        override fun channels(page: Int, onChannel: (StalkerChannel) -> Unit): Int = 0
+        override fun items(kind: MediaKind, page: Int, onItem: (StalkerItem) -> Unit): Int {
+            if (kind != serves || page != 1) return 0
+            items.forEach(onItem)
+            return items.size
+        }
+        override fun resolve(kind: MediaKind, command: String): String? {
+            resolveCalls++
+            return if (resolves) "http://host/resolved/${command.trimStart('/')}" else null
+        }
+    }
+
+    private fun film(id: String, name: String, cmd: String?, seconds: Int? = null) = StalkerItem(
+        id = id,
+        name = name,
+        command = cmd,
+        kind = MediaKind.MOVIE,
+        posterUrl = "http://host/p/$id.jpg",
+        year = "2021",
+        durationSeconds = seconds,
+        episodeCount = 0,
+    )
+
+    /**
+     * Each of the three item sections imports on its own call.
+     *
+     * The claim is that a section is a *request* rather than a filter over one
+     * download — which is what lets `LoadSection` fetch Films when Films is opened and
+     * leave the rest alone.
+     */
+    @Test
+    fun `films, series and radio each import under their own kind`() {
+        for (kind in listOf(MediaKind.MOVIE, MediaKind.SERIES, MediaKind.RADIO)) {
+            val writer = Recorder()
+            val portal = Library(kind, listOf(film("1", "One", "http://h/1").copy(kind = kind)))
+
+            val written = StalkerImportEngine().importKind("src", kind, portal, writer)
+
+            assertEquals("$kind imported nothing", 1, written)
+            assertEquals(kind, writer.items.single().kind)
+        }
+    }
+
+    /**
+     * A portal that does not serve a section imports nothing, and that is not a failure.
+     *
+     * An installation with no film library is an ordinary installation. What must not
+     * happen is rows invented to fill the screen.
+     */
+    @Test
+    fun `a portal that serves no films imports no films`() {
+        val writer = Recorder()
+        val portal = Library(MediaKind.SERIES, listOf(film("1", "Show", "http://h/1")))
+
+        val written = StalkerImportEngine().importKind("src", MediaKind.MOVIE, portal, writer)
+
+        assertEquals(0, written)
+        assertTrue(writer.items.isEmpty())
+        assertTrue("an empty section must still close its transaction", writer.committed)
+    }
+
+    /** A film's poster and running time reach the row, because a library screen shows them. */
+    @Test
+    fun `a film keeps its poster and its running time`() {
+        val writer = Recorder()
+        val portal = Library(MediaKind.MOVIE, listOf(film("7", "Dune", "http://h/7", seconds = 9300)))
+
+        StalkerImportEngine().importKind("src", MediaKind.MOVIE, portal, writer)
+
+        val row = writer.items.single()
+        assertEquals("http://host/p/7.jpg", row.artworkUrl)
+        assertEquals(9300, row.durationSeconds)
+    }
+
+    /* --------------------------------------------------------------- create_link */
+
+    /**
+     * A `/media/…` command is resolved through the portal, not guessed at.
+     *
+     * This is the row that used to be dropped. The protocol has a call for it, so the
+     * call is made — and a row that resolves is a row the user can play.
+     */
+    @Test
+    fun `a media command is resolved through the portal and kept`() {
+        val writer = Recorder()
+        val portal = Library(MediaKind.MOVIE, listOf(film("3", "Film", "/media/file_3.mpg")))
+
+        val written = StalkerImportEngine().importKind("src", MediaKind.MOVIE, portal, writer)
+
+        assertEquals(1, written)
+        assertEquals("http://host/resolved/media/file_3.mpg", writer.items.single().streamUrl)
+        assertEquals("the portal was asked once", 1, portal.resolveCalls)
+    }
+
+    /**
+     * A command that already carries an address costs no request.
+     *
+     * On a list of fifty thousand channels the difference between asking and not is an
+     * import and a denial of service against the user's own provider.
+     */
+    @Test
+    fun `a command that already carries an address is not sent back to the portal`() {
+        val writer = Recorder()
+        val portal = Library(MediaKind.MOVIE, listOf(film("3", "Film", "ffmpeg http://h/3.ts")))
+
+        StalkerImportEngine().importKind("src", MediaKind.MOVIE, portal, writer)
+
+        assertEquals("http://h/3.ts", writer.items.single().streamUrl)
+        assertEquals("the portal was asked for an address it had already given", 0, portal.resolveCalls)
+    }
+
+    /** And a command the portal will not resolve writes no row at all. */
+    @Test
+    fun `a command the portal refuses to resolve is not written`() {
+        val writer = Recorder()
+        val portal = Library(
+            serves = MediaKind.MOVIE,
+            items = listOf(film("3", "Film", "/media/file_3.mpg")),
+            resolves = false,
+        )
+
+        val written = StalkerImportEngine().importKind("src", MediaKind.MOVIE, portal, writer)
+
+        assertEquals(0, written)
+        assertTrue(writer.items.isEmpty())
+    }
+
+    /** A show with no command of its own writes no row, because there is nothing to play. */
+    @Test
+    fun `a series row with no command is not written`() {
+        val writer = Recorder()
+        val show = film("9", "The Wire", null).copy(kind = MediaKind.SERIES, episodeCount = 3)
+        val portal = Library(MediaKind.SERIES, listOf(show))
+
+        assertEquals(0, StalkerImportEngine().importKind("src", MediaKind.SERIES, portal, writer))
+    }
+
+    /**
+     * A film and a channel with the same provider id are two rows.
+     *
+     * Portals number their sections independently, so `id = 1` is a channel and a film
+     * on the same installation. Folding the kind into the row id is what keeps one
+     * from overwriting the other.
+     */
+    @Test
+    fun `an id that repeats across sections produces two rows`() {
+        val channels = Recorder()
+        StalkerImportEngine().importChannels(
+            "src",
+            Portal(listOf(listOf(channel("1"))), statesTotal = true),
+            channels,
+        )
+        val films = Recorder()
+        StalkerImportEngine().importKind(
+            "src",
+            MediaKind.MOVIE,
+            Library(MediaKind.MOVIE, listOf(film("1", "Film", "http://h/1"))),
+            films,
+        )
+
+        assertNotEquals(channels.items.single().id, films.items.single().id)
     }
 }

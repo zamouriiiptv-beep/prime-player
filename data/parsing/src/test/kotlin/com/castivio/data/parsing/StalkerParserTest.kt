@@ -1,5 +1,6 @@
 package com.castivio.data.parsing
 
+import com.castivio.domain.MediaKind
 import java.io.StringReader
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -138,5 +139,117 @@ class StalkerParserTest {
             StalkerChannel("1", "n", "http://host/live/1.ts", null, null, false).directUrl,
         )
         assertNull(StalkerChannel("1", "n", "/media/file_1.mpg", null, null, false).directUrl)
+    }
+
+    /* ------------------------------------------------------- films, shows, stations */
+
+    /**
+     * A film carries the things a library screen shows, and they are read.
+     *
+     * The year, the running time and the poster are the difference between a films
+     * grid and a list of titles. `time` is minutes on every portal seen and the
+     * catalogue counts seconds, so the conversion happens here rather than being left
+     * for a screen to guess at.
+     */
+    @Test
+    fun `a film is read with its poster, its year and its running time`() {
+        val json = """
+            {"js":{"total_items":1,"data":[
+              {"id":"55","name":"Dune","o_name":"Dune (2021)","cmd":"/media/file_55.mpg",
+               "screenshot_uri":"http://host/p/55.jpg","year":"2021","time":"155"}
+            ]}}
+        """.trimIndent()
+
+        val found = mutableListOf<StalkerItem>()
+        StalkerParser.items(StringReader(json), MediaKind.MOVIE) { found += it }
+
+        val film = found.single()
+        assertEquals("Dune", film.name)
+        assertEquals("2021", film.year)
+        assertEquals(155 * 60, film.durationSeconds)
+        assertEquals("http://host/p/55.jpg", film.posterUrl)
+        assertEquals(MediaKind.MOVIE, film.kind)
+    }
+
+    /**
+     * The kind is what was asked for, not what the row looks like.
+     *
+     * Portals put one-off specials under `series` and film-length documentaries under
+     * `vod`, and a parser that re-decided would be overruling the provider about its
+     * own catalogue.
+     */
+    @Test
+    fun `an item takes the kind the portal was asked for`() {
+        val json = """{"js":{"data":[{"id":"1","name":"Station","cmd":"http://h/1"}]}}"""
+        val radio = mutableListOf<StalkerItem>()
+        StalkerParser.items(StringReader(json), MediaKind.RADIO) { radio += it }
+        assertEquals(MediaKind.RADIO, radio.single().kind)
+    }
+
+    /**
+     * A show with no command of its own is kept when it has episodes under it.
+     *
+     * This is where a film and a show part company: a portal hands out one command per
+     * episode, so a series row legitimately has none. Dropping it for that reason — the
+     * rule that is right for a channel — would empty the Series section on every portal
+     * that behaves normally.
+     */
+    @Test
+    fun `a series with episodes is kept even with no command of its own`() {
+        val json = """{"js":{"data":[{"id":"9","name":"The Wire","series":[1,2,3]}]}}"""
+        val found = mutableListOf<StalkerItem>()
+        StalkerParser.items(StringReader(json), MediaKind.SERIES) { found += it }
+
+        assertEquals(1, found.size)
+        assertEquals(3, found.single().episodeCount)
+        assertNull(found.single().command)
+    }
+
+    /** And a row with neither a command nor episodes is nothing at all. */
+    @Test
+    fun `a row with nothing to play and no episodes is dropped`() {
+        val json = """{"js":{"data":[{"id":"9","name":"Placeholder"}]}}"""
+        val found = mutableListOf<StalkerItem>()
+        StalkerParser.items(StringReader(json), MediaKind.MOVIE) { found += it }
+        assertTrue(found.isEmpty())
+    }
+
+    @Test
+    fun `a row with no title is dropped, whatever else it carries`() {
+        val json = """{"js":{"data":[{"id":"9","cmd":"http://h/9"},{"id":"10","name":"Real","cmd":"http://h/10"}]}}"""
+        val found = mutableListOf<StalkerItem>()
+        StalkerParser.items(StringReader(json), MediaKind.MOVIE) { found += it }
+        assertEquals(listOf("Real"), found.map { it.name })
+    }
+
+    @Test
+    fun `an empty section reads as nothing rather than as an error`() {
+        val found = mutableListOf<StalkerItem>()
+        StalkerParser.items(StringReader("""{"js":false}"""), MediaKind.MOVIE) { found += it }
+        assertTrue(found.isEmpty())
+    }
+
+    /* ------------------------------------------------------------------ create_link */
+
+    /**
+     * What the portal resolved a `/media/…` command into.
+     *
+     * This is the call that makes those rows playable rather than guessed at: the
+     * protocol has an answer, and it is asked rather than imitated.
+     */
+    @Test
+    fun `a resolved link is the address the portal returned`() {
+        assertEquals(
+            "http://host/live/55.ts",
+            StalkerParser.parseLink(StringReader("""{"js":{"cmd":"ffmpeg http://host/live/55.ts"}}""")),
+        )
+    }
+
+    /** A refusal is a refusal, and is not turned into a link. */
+    @Test
+    fun `a link the portal would not resolve is null`() {
+        assertNull(StalkerParser.parseLink(StringReader("""{"js":false}""")))
+        assertNull(StalkerParser.parseLink(StringReader("""{"js":{"cmd":""}}""")))
+        assertNull(StalkerParser.parseLink(StringReader("""{"js":{"cmd":"/media/file_55.mpg"}}""")))
     }
 }

@@ -6,7 +6,9 @@ import com.castivio.data.parsing.JsonFormatException
 import com.castivio.data.parsing.PortalUrls
 import com.castivio.data.parsing.StalkerChannel
 import com.castivio.data.parsing.StalkerParser
+import com.castivio.data.parsing.StalkerItem
 import com.castivio.data.parsing.StalkerProfile
+import com.castivio.domain.MediaKind
 import java.io.IOException
 import java.io.InputStreamReader
 import java.io.InterruptedIOException
@@ -117,6 +119,54 @@ class StalkerHttpApi(
         Outcome.Success(total)
     }
 
+    /**
+     * One page of films, shows or stations.
+     *
+     * The portal's own type name for each — `vod`, `series`, `radio` — and the same
+     * ordered-list action the channels use. An installation that does not serve the
+     * type answers with an empty envelope, which reads here as zero items rather than
+     * as a failure: a portal with no film library is an ordinary portal.
+     */
+    fun items(
+        session: StalkerSession,
+        kind: MediaKind,
+        page: Int,
+        onItem: (StalkerItem) -> Unit,
+    ): Outcome<Int> {
+        val type = kind.portalType ?: return Outcome.Success(0)
+        return call(
+            session = session,
+            type = type,
+            action = "get_ordered_list",
+            parameters = mapOf("category" to "*", "p" to page.toString(), "sortby" to "name"),
+        ) { reader ->
+            var total = 0
+            StalkerParser.items(reader, kind, onTotal = { total = it }, onItem = onItem)
+            Outcome.Success(total)
+        }
+    }
+
+    /**
+     * What the portal resolves a command into.
+     *
+     * The protocol's own answer to a `/media/…` command, and the only honest way to
+     * turn one into an address. A refusal comes back as a failure rather than as a
+     * guess, and the importer writes no row for it.
+     */
+    fun createLink(session: StalkerSession, kind: MediaKind, command: String): Outcome<String> {
+        val type = kind.portalType ?: return Outcome.Failure(AppError.NOT_FOUND)
+        return call(
+            session = session,
+            type = type,
+            action = "create_link",
+            parameters = mapOf("cmd" to command, "forced_storage" to "0", "disable_ad" to "0"),
+        ) { reader ->
+            StalkerParser.parseLink(reader)
+                ?.let { Outcome.Success(it) }
+                ?: Outcome.Failure(AppError.NOT_FOUND)
+        }
+    }
+
     private fun tokenFrom(endpoint: String): Outcome<String> = try {
         open(PortalUrls.call(endpoint, type = "stb", action = "handshake"), token = null).use { reader ->
             StalkerParser.parseHandshake(reader)
@@ -196,6 +246,21 @@ class StalkerHttpApi(
         const val READ_BUFFER = 16 * 1024
     }
 }
+
+/**
+ * What a portal calls each of Castivio's four sections.
+ *
+ * Null for a kind the protocol has no type for, which there is none of today — it is
+ * there so that adding a fifth kind to [MediaKind] is a compile-time question here
+ * rather than a section that silently fetches channels.
+ */
+private val MediaKind.portalType: String?
+    get() = when (this) {
+        MediaKind.LIVE -> "itv"
+        MediaKind.MOVIE -> "vod"
+        MediaKind.SERIES -> "series"
+        MediaKind.RADIO -> "radio"
+    }
 
 /**
  * An open portal session: where it answered, and the token it gave.

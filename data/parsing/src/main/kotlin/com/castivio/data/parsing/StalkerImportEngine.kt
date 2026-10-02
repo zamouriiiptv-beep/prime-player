@@ -20,13 +20,24 @@ import com.castivio.domain.MediaKind
  * The HTTP side is `:data:networking`'s, behind [Api]. This never builds a URL and
  * never opens a socket.
  *
- * ## One kind, and it is live
+ * ## Four kinds, each asked for separately
  *
- * A Stalker portal's `itv` list is television. Films and series live behind separate
- * calls that many installations do not answer at all, and a portal that has them
- * describes them differently enough that guessing would produce a library of broken
- * rows. So this imports channels, honestly, and the sections that have nothing to
- * import say so rather than showing a partial guess.
+ * A portal answers `itv`, `vod`, `series` and `radio` on separate calls, so a section
+ * is a real request rather than a filter over one download — the same shape Xtream
+ * has, and the reason `LoadSection` can fetch one section when it is opened.
+ *
+ * **Not every portal answers all four.** An installation with no films answers the
+ * `vod` call with an empty list, or with the envelope's `false`, or with nothing this
+ * reader can use. All three mean the same thing and all three produce no rows: the
+ * section is empty, which is the truth, rather than filled with placeholders that fail
+ * when pressed.
+ *
+ * ## A command is not always an address
+ *
+ * `cmd` is an instruction. Often it carries a URL plainly; often it is `/media/…`,
+ * which the portal resolves per play through `create_link`. The engine asks — that is
+ * what [Api.resolve] is — and writes nothing for a row the portal would not resolve.
+ * No link is ever constructed here from parts.
  */
 class StalkerImportEngine(
     private val batchSize: Int = DEFAULT_BATCH,
@@ -35,7 +46,7 @@ class StalkerImportEngine(
     /** What the engine needs from the network, and nothing more. */
     interface Api {
         /**
-         * One page, handed over a channel at a time.
+         * One page of channels, handed over a channel at a time.
          *
          * @return the total the portal states, or zero when it states none — then an
          *   empty page is the only end-of-list signal there is.
@@ -43,14 +54,24 @@ class StalkerImportEngine(
         fun channels(page: Int, onChannel: (StalkerChannel) -> Unit): Int
 
         /**
-         * The playable address for a channel.
+         * One page of films, shows or stations, by the same contract as [channels].
          *
-         * Separate from the channel itself because a portal command is not always a
-         * URL: the `/media/…` form is resolved by the portal per play, and only the
-         * networking layer can ask it to. Null means this channel cannot be played,
-         * and a row is not written for it.
+         * A portal that does not serve [kind] answers with nothing, and nothing is
+         * what this hands over. It is not an error: a portal with no film library is
+         * an ordinary portal.
          */
-        fun streamUrl(channel: StalkerChannel): String?
+        fun items(kind: MediaKind, page: Int, onItem: (StalkerItem) -> Unit): Int
+
+        /**
+         * The playable address for a command, asked of the portal when it has to be.
+         *
+         * A command that carries a URL plainly needs no call and this is not asked.
+         * A `/media/…` command is resolved through the protocol's own `create_link`,
+         * which is the only honest way to turn one into an address. Null means the
+         * portal would not resolve it, and then no row is written — an invented link
+         * is a row that fails in the player instead of a row that is absent.
+         */
+        fun resolve(kind: MediaKind, command: String): String?
     }
 
     /**
@@ -70,6 +91,24 @@ class StalkerImportEngine(
         mode: ImportMode = ImportMode.REPLACE,
         onProgress: (ImportProgress) -> Unit = {},
         isCancelled: () -> Boolean = { false },
+    ): Int = importKind(sourceId, MediaKind.LIVE, api, writer, mode, onProgress, isCancelled)
+
+    /**
+     * Imports one section.
+     *
+     * [MediaKind.LIVE] reads the channel list; the other three read the item list for
+     * their own type. Everything after that — paging, batching, resolving a command,
+     * refusing a row that cannot be played — is the same for all four, which is why
+     * there is one loop rather than two that drift.
+     */
+    fun importKind(
+        sourceId: String,
+        kind: MediaKind,
+        api: Api,
+        writer: CatalogWriter,
+        mode: ImportMode = ImportMode.REPLACE,
+        onProgress: (ImportProgress) -> Unit = {},
+        isCancelled: () -> Boolean = { false },
     ): Int {
         writer.begin(sourceId, mode)
 
@@ -79,21 +118,33 @@ class StalkerImportEngine(
         var page = 1
         var total = 0
 
+        val flush = {
+            writer.writeItems(batch)
+            written += batch.size
+            batch.clear()
+            onProgress(ImportProgress.Importing(written, groupsReady = 0, kind = kind))
+        }
+
         while (!isCancelled()) {
             var onThisPage = 0
-            val stated = api.channels(page) { channel ->
-                onThisPage++
-                val url = api.streamUrl(channel)
-                // A channel the portal will not give an address for is not a row. A
-                // catalogue that listed it would be a list of names that do nothing
-                // when pressed, which is worse than a shorter list.
-                if (url != null) {
-                    batch += channel.asItem(sourceId, url, order++)
-                    if (batch.size >= batchSize) {
-                        writer.writeItems(batch)
-                        written += batch.size
-                        batch.clear()
-                        onProgress(ImportProgress.Importing(written, groupsReady = 0, kind = MediaKind.LIVE))
+            val stated = if (kind == MediaKind.LIVE) {
+                api.channels(page) { channel ->
+                    onThisPage++
+                    // A row the portal will not give an address for is not a row. A
+                    // catalogue that listed it would be a list of names that do nothing
+                    // when pressed, which is worse than a shorter list.
+                    playable(api, MediaKind.LIVE, channel.command)?.let { url ->
+                        batch += channel.asItem(sourceId, url, order++)
+                        if (batch.size >= batchSize) flush()
+                    }
+                }
+            } else {
+                api.items(kind, page) { item ->
+                    onThisPage++
+                    val url = item.command?.let { playable(api, kind, it) }
+                    if (url != null) {
+                        batch += item.asItem(sourceId, url, order++)
+                        if (batch.size >= batchSize) flush()
                     }
                 }
             }
@@ -118,6 +169,29 @@ class StalkerImportEngine(
         }
         return written
     }
+
+    /**
+     * The address for a command, asked of the portal only when it has to be.
+     *
+     * A command that already carries one costs no request, which on a list of fifty
+     * thousand channels is the difference between an import and a denial of service
+     * against the user's own provider.
+     */
+    private fun playable(api: Api, kind: MediaKind, command: String): String? =
+        StalkerParser.addressIn(command) ?: api.resolve(kind, command)
+
+    private fun StalkerItem.asItem(sourceId: String, url: String, order: Int) = CatalogItem(
+        id = StableIds.item(sourceId, "portal:${kind.name}:$id"),
+        sourceId = sourceId,
+        kind = kind,
+        title = name,
+        streamUrl = url,
+        artworkUrl = posterUrl,
+        providerRef = id,
+        providerOrder = order,
+        durationSeconds = durationSeconds,
+        epgChannelId = null,
+    )
 
     private fun StalkerChannel.asItem(sourceId: String, url: String, order: Int) = CatalogItem(
         id = StableIds.item(sourceId, "portal:$id"),

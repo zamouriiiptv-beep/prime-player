@@ -123,6 +123,133 @@ object StalkerParser {
         }
     }
 
+    /**
+     * One page of a `vod`, `series` or `radio` list.
+     *
+     * The same envelope the channels arrive in and a different row inside it, which is
+     * why this is a second function rather than a flag on the first: a film carries a
+     * year, a running time and a poster, a series carries the episodes it holds, and a
+     * radio station carries neither. Reading them through one shape would mean a row
+     * with six nullable fields and a comment explaining which three are real.
+     *
+     * [kind] is what the caller asked the portal for. It is carried onto the item
+     * rather than guessed from its fields, because a portal that returns films under
+     * `series` — and some do, for a category of one-off specials — is describing its
+     * own catalogue and not a parsing error.
+     */
+    fun items(
+        reader: Reader,
+        kind: MediaKind,
+        onTotal: (Int) -> Unit = {},
+        onItem: (StalkerItem) -> Unit,
+    ) {
+        val scanner = JsonScanner(reader)
+        scanner.readObject { field ->
+            if (field != "js") {
+                scanner.skip()
+                return@readObject
+            }
+            scanner.readObject { inner ->
+                when (inner) {
+                    "total_items" -> onTotal(scanner.int())
+                    "data" -> scanner.readArray {
+                        readItem(scanner, kind)?.let(onItem)
+                    }
+                    else -> scanner.skip()
+                }
+            }
+        }
+    }
+
+    /**
+     * What `create_link` resolved a command into, or null.
+     *
+     * The portal's answer to a `/media/…` command: the same envelope, with a `cmd`
+     * that this time is a real address. Null where the portal refused or answered with
+     * something that is not one — a refusal has to be reported rather than turned into
+     * a link nobody can play.
+     */
+    fun parseLink(reader: Reader): String? {
+        var command: String? = null
+        val scanner = JsonScanner(reader)
+        scanner.readObject { field ->
+            if (field == "js") {
+                scanner.readObject { inner ->
+                    when (inner) {
+                        "cmd" -> command = scanner.string()
+                        else -> scanner.skip()
+                    }
+                }
+            } else {
+                scanner.skip()
+            }
+        }
+        return command?.takeIf { it.isNotBlank() }?.let(::addressIn)
+    }
+
+    /**
+     * The address inside a portal command, when it carries one plainly.
+     *
+     * Portals send `ffmpeg http://host/stream` and `http://host/stream` about equally
+     * often, and both mean the same thing to a player. A command that names neither
+     * returns null, because inventing a URL for it would produce a link that fails in
+     * the player rather than an honest "this one could not be resolved".
+     */
+    fun addressIn(command: String): String? {
+        val trimmed = command.trim()
+        val start = trimmed.indexOf("http")
+        if (start < 0) return null
+        return trimmed.substring(start).substringBefore(' ').takeIf { it.length > "http://".length }
+    }
+
+    private fun readItem(scanner: JsonScanner, kind: MediaKind): StalkerItem? {
+        var id: String? = null
+        var name: String? = null
+        var command: String? = null
+        var poster: String? = null
+        var year: String? = null
+        var duration: Int? = null
+        var episodes = 0
+
+        scanner.readObject { field ->
+            when (field) {
+                "id" -> id = scanner.string()
+                // `name` is what a portal usually sends and `o_name` is the original
+                // title beside it. The first that is present wins rather than the last,
+                // so a portal sending both does not depend on field order.
+                "name" -> if (name == null) name = scanner.string() else scanner.skip()
+                "o_name" -> if (name == null) name = scanner.string() else scanner.skip()
+                "cmd" -> command = scanner.string()
+                "screenshot_uri" -> poster = scanner.string()
+                "year" -> year = scanner.string()
+                // Minutes, as every portal sends it. Converted at the edge rather than
+                // stored as minutes, because the catalogue counts seconds.
+                "time" -> duration = scanner.string()?.trim()?.toIntOrNull()?.times(60)
+                "series" -> scanner.readArray { episodes++; scanner.skip() }
+                else -> scanner.skip()
+            }
+        }
+
+        val itemId = id?.takeIf { it.isNotBlank() } ?: return null
+        val title = name?.takeIf { it.isNotBlank() } ?: return null
+        // A row with no command is a row with nothing to play. For a series that is
+        // normal — the episodes carry the commands — so a series row is kept when it
+        // holds episodes and dropped when it holds neither.
+        val cmd = command?.takeIf { it.isNotBlank() }
+        if (cmd == null && episodes == 0) return null
+
+        return StalkerItem(
+            id = itemId,
+            name = title,
+            command = cmd,
+            kind = kind,
+            posterUrl = poster?.takeIf { it.isNotBlank() },
+            year = year?.takeIf { it.isNotBlank() },
+            durationSeconds = duration?.takeIf { it > 0 },
+            episodeCount = episodes,
+        )
+    }
+
     private fun readChannel(scanner: JsonScanner): StalkerChannel? {
         var id: String? = null
         var name: String? = null
@@ -203,11 +330,30 @@ data class StalkerChannel(
      * inventing a URL for it would produce a link that 404s rather than an honest
      * "this needs the portal to resolve it".
      */
-    val directUrl: String?
-        get() {
-            val trimmed = command.trim()
-            val start = trimmed.indexOf("http")
-            if (start < 0) return null
-            return trimmed.substring(start).substringBefore(' ').takeIf { it.length > "http://".length }
-        }
+    val directUrl: String? get() = StalkerParser.addressIn(command)
+}
+
+/**
+ * One film, show or station, as the portal describes it.
+ *
+ * Separate from [StalkerChannel] because the two really are different rows: a channel
+ * is a name and a command, and this carries the things a library screen shows — a
+ * poster, a year, a running time — and, for a series, how many episodes sit under it.
+ *
+ * [command] is nullable here and is not on a channel. A series row often has none: the
+ * portal hands out one command per episode, fetched when the show is opened, and a
+ * parent row that invented one would be a show that plays its own title.
+ */
+data class StalkerItem(
+    val id: String,
+    val name: String,
+    val command: String?,
+    val kind: MediaKind,
+    val posterUrl: String?,
+    val year: String?,
+    val durationSeconds: Int?,
+    val episodeCount: Int,
+) {
+    /** The address inside [command], when there is one to take. See [StalkerChannel.directUrl]. */
+    val directUrl: String? get() = command?.let(StalkerParser::addressIn)
 }

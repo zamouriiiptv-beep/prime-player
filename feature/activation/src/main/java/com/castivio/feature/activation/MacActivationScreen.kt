@@ -68,6 +68,7 @@ import com.castivio.core.design.components.QrPlate
 import com.castivio.core.design.components.StatusLine
 import com.castivio.core.design.components.BODY_LEADING
 import com.castivio.core.design.components.castivioBodyStyle
+import com.castivio.domain.identity.IdentityProvenance
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioDescriptionColor
 import com.castivio.core.design.components.castivioFocusScale
@@ -695,6 +696,26 @@ private fun IdentityZone(
                     clipboard.setText(AnnotatedString(key))
                     onCopied(Copied.Key)
                 },
+            )
+        }
+
+        // Said only when it is true, and only about what is actually at stake.
+        //
+        // This address is derived, never read off hardware — Android has not let an
+        // application read a hardware address since Marshmallow, which
+        // `AndroidDeviceIdentity` states at length. What *does* vary is how durable
+        // the derivation is: from the operating system's own identifier it survives a
+        // reinstall, and minted here it lasts as long as the application's data. A
+        // provider has bound a subscription to whichever one was read out to them, so
+        // the second case is worth a sentence — and the sentence is about re-sending
+        // the address, not about a missing one.
+        if (identity.provenance == IdentityProvenance.INSTALLATION) {
+            Box(Modifier.height(m.capsuleGap))
+            Text(
+                text = stringResource(R.string.mac_installation_note),
+                style = castivioBodyStyle(m.fsCaption),
+                color = castivioDescriptionColor,
+                modifier = Modifier.testTag(ActivationTags.MAC_INSTALLATION_NOTE),
             )
         }
 

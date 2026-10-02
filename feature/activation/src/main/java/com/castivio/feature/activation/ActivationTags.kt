@@ -85,6 +85,15 @@ internal object ActivationTags {
      * What they gate is the claim the whole form rests on — two fields, and the second
      * is an address, with nothing between them asking for a MAC.
      */
+    /**
+     * The note shown when this device's identity is scoped to the app's data.
+     *
+     * Tagged because the claim is conditional: it must appear for an installation
+     * identity and must not appear for a device one, and "a sentence is absent" is
+     * only assertable against a handle.
+     */
+    const val MAC_INSTALLATION_NOTE = "activation.macInstallationNote"
+
     const val PORTAL_NAME = "activation.portalName"
     const val PORTAL_URL = "activation.portalUrl"
 
