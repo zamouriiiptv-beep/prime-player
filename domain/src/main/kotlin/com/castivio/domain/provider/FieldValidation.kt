@@ -113,6 +113,25 @@ object FieldValidation {
         return Validated(url.full)
     }
 
+    /**
+     * A Stalker or Ministra portal address, kept whole.
+     *
+     * The opposite of [serverUrl], and deliberately: an Xtream client builds its own
+     * paths from an origin, while a portal *is* a path. Providers hand out
+     * `http://host:8080/c/`, `http://host/stalker_portal/c/` and the bare origin, and
+     * which of them it is decides where the API lives — so what the user pasted is kept
+     * and `PortalUrls` is where it is read. Dropping the path here would turn two
+     * different portals on one host into one address.
+     */
+    fun portalUrl(raw: String): Validated {
+        val problem = lengthOrSpaces(raw, MAX_URL)
+        if (problem != null) return Validated(raw.trim(), problem)
+
+        val url = Url.parse(raw) ?: return Validated(raw.trim(), FieldProblem.INCOMPLETE_HOST)
+        url.problem()?.let { return Validated(url.full, it) }
+        return Validated(url.full)
+    }
+
     fun username(raw: String): Validated = credential(raw)
 
     fun password(raw: String): Validated = credential(raw)
@@ -210,6 +229,31 @@ data class M3uFormCheck(
             name = FieldValidation.playlistName(name),
             url = FieldValidation.playlistUrl(url),
             xtream = FieldValidation.detectXtream(url),
+        )
+    }
+}
+
+/**
+ * The portal form, checked.
+ *
+ * The same two fields the playlist form has and the same rules for both — an optional
+ * name and an address — because that is what a portal subscription is from this
+ * screen's side. What differs is behind the button, not in front of it.
+ */
+data class PortalFormCheck(
+    val name: Validated,
+    val url: Validated,
+) {
+    val canSubmit: Boolean get() = name.isValid && url.isValid
+
+    val label: String? get() = name.value.ifEmpty { null }
+
+    val source: PlaylistSource.Portal? get() = if (canSubmit) PlaylistSource.Portal(url.value) else null
+
+    companion object {
+        fun of(name: String, url: String) = PortalFormCheck(
+            name = FieldValidation.playlistName(name),
+            url = FieldValidation.portalUrl(url),
         )
     }
 }

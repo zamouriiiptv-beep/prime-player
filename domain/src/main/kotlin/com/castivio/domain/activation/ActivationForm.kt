@@ -3,6 +3,7 @@ package com.castivio.domain.activation
 import com.castivio.domain.PlaylistSource
 import com.castivio.domain.provider.FieldValidation
 import com.castivio.domain.provider.M3uFormCheck
+import com.castivio.domain.provider.PortalFormCheck
 import com.castivio.domain.provider.XtreamFormCheck
 
 /**
@@ -64,6 +65,26 @@ sealed interface ActivationForm {
          * the app can show. See [FieldValidation.detectXtream].
          */
         val detectedXtream: PlaylistSource.Xtream? get() = checked.xtream
+    }
+
+    /**
+     * A Stalker or Ministra portal: a name the user may give it, and the address.
+     *
+     * No MAC, and that is a decision rather than an omission. A handshake carries one,
+     * and Castivio already has the one that matters — the device address the user
+     * registered with their provider, shown on the activation screen. Asking for it
+     * again here would be asking the user to copy a number the application is holding.
+     */
+    data class Portal(
+        override val name: String = "",
+        val url: String = "",
+    ) : ActivationForm {
+
+        val checked: PortalFormCheck get() = PortalFormCheck.of(name, url)
+
+        override val canSubmit: Boolean get() = checked.canSubmit
+        override val label: String? get() = checked.label
+        override val source: PlaylistSource.Portal? get() = checked.source
     }
 }
 

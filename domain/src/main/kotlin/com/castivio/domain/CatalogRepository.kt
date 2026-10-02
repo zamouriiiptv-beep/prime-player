@@ -118,8 +118,31 @@ sealed interface PlaylistSource {
 
     data class Xtream(val host: String, val username: String, val password: String) : PlaylistSource
 
-    /** Resolved from the activation portal by device MAC. */
-    data class Portal(val mac: String, val deviceKey: String) : PlaylistSource
+    /**
+     * A Stalker or Ministra portal, identified by the address the provider sent.
+     *
+     * ## One field, and it is the URL
+     *
+     * This used to be `(mac, deviceKey)`, from a time when a portal was going to be
+     * resolved through Castivio's own activation service rather than talked to
+     * directly. Nothing ever constructed one — the validator and the importer both
+     * answered it with `NOT_FOUND`, and the repository stored `url = null` for it — so
+     * the shape was a placeholder for a feature rather than a description of one.
+     *
+     * A portal *is* its address, in the same way an Xtream account is its host and a
+     * playlist is its link: it is what the user was given, what they re-enter on a new
+     * box, and the only thing that tells two of them apart. So the URL is the field,
+     * and [com.castivio.data.parsing.SourceIds] keys the subscription on it.
+     *
+     * ## The MAC is not here, and is not asked for
+     *
+     * A portal handshake does carry an STB MAC, and Castivio has one already: the
+     * device address on the activation screen, which is what a user registers with
+     * their provider. It belongs to the device rather than to the subscription — the
+     * same portal on two boxes is two MACs and one address — so it is supplied by the
+     * identity at the moment of the call, not stored in the source.
+     */
+    data class Portal(val url: String) : PlaylistSource
 }
 
 sealed interface ImportProgress {

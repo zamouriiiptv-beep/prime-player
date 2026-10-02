@@ -68,7 +68,7 @@ class RoomSourceRepository(
                 is PlaylistSource.M3u -> source.url
                 is PlaylistSource.LocalFile -> source.uri
                 is PlaylistSource.Xtream -> source.host
-                is PlaylistSource.Portal -> null
+                is PlaylistSource.Portal -> source.url
             },
             username = (source as? PlaylistSource.Xtream)?.username,
             password = (source as? PlaylistSource.Xtream)?.password,

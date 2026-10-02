@@ -131,7 +131,7 @@ class LoadSection(
         val source = provider.asPlaylistSource()
         if (source == null) {
             // A stored provider whose credentials cannot be turned back into a
-            // fetchable source — a portal registration, or a row missing its host.
+            // fetchable source — a row missing its host or its address.
             // Not retryable: pressing again reconstructs exactly the same nothing.
             emit(SectionLoad.Failed(AppError.NOT_CONFIGURED, retryable = false))
             return@flow
@@ -226,7 +226,11 @@ fun ProviderSource.asPlaylistSource(): PlaylistSource? = when (kind) {
             null
         }
     }
-    SourceKind.PORTAL -> null
+    // A portal is its address, so the row holds everything needed to reach it again.
+    // It used to be `null` here, from when a portal had no address to be reconstructed
+    // from — and that null is what made every section on a portal subscription fail
+    // with NOT_CONFIGURED before a request was ever sent.
+    SourceKind.PORTAL -> url?.let { PlaylistSource.Portal(it) }
 }
 
 /**

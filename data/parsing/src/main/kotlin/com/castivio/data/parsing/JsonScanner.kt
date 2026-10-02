@@ -52,9 +52,20 @@ class JsonScanner(private val source: Reader) {
      * will be skipped.
      */
     fun readObject(onField: (name: String) -> Unit) {
+        val asMember = valuePending
         valuePending = false
         skipWhitespace()
-        if (peek() == 'n') { // null in place of an object — providers do this
+        // `null` in place of an object — providers do this — and, *inside* an object,
+        // anything else that is not one.
+        //
+        // The distinction is the whole of it. A member's value is the provider's to
+        // get wrong: a Stalker account with nothing to say answers `"js":false`, an
+        // empty one `"js":[]`, and both mean "no object here" rather than "this
+        // document is broken". A *document* that does not start with an object is a
+        // different event — an HTML error page served with a 200, which has to reach
+        // the caller as a parse failure and not as an empty result. So the tolerance
+        // stops at the top level, where `XtreamParserTest` holds it.
+        if (peek() == 'n' || (asMember && peek() != '{')) {
             skip()
             return
         }
@@ -83,9 +94,13 @@ class JsonScanner(private val source: Reader) {
 
     /** Reads an array, invoking [onElement] once per element. */
     fun readArray(onElement: () -> Unit) {
+        val asMember = valuePending
         valuePending = false
         skipWhitespace()
-        if (peek() == 'n') {
+        // The same rule [readObject] states, for the same reason: `"data":false` is how
+        // more than one portal says it has no channels, while a document that is not an
+        // array at all is a failure the caller has to hear about.
+        if (peek() == 'n' || (asMember && peek() != '[')) {
             skip()
             return
         }

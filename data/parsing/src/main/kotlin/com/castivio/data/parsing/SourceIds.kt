@@ -38,7 +38,7 @@ object SourceIds {
         is PlaylistSource.M3u -> hash(SourceKind.M3U_URL, m3uKey(source.url))
         is PlaylistSource.LocalFile -> hash(SourceKind.LOCAL_FILE, source.uri)
         is PlaylistSource.Xtream -> hash(SourceKind.XTREAM, account(source.host, source.username))
-        is PlaylistSource.Portal -> hash(SourceKind.PORTAL, source.mac.lowercase().replace("-", ":"))
+        is PlaylistSource.Portal -> hash(SourceKind.PORTAL, PortalUrls.identity(source.url))
     }
 
     fun kindOf(source: PlaylistSource): SourceKind = when (source) {
@@ -58,7 +58,7 @@ object SourceIds {
         is PlaylistSource.M3u -> hostOf(source.url) ?: source.url
         is PlaylistSource.LocalFile -> source.label ?: fileNameOf(source.uri)
         is PlaylistSource.Xtream -> "${hostOf(source.host) ?: source.host} · ${source.username}"
-        is PlaylistSource.Portal -> source.mac.uppercase()
+        is PlaylistSource.Portal -> hostOf(source.url) ?: source.url
     }
 
     /**
