@@ -1,8 +1,6 @@
 package com.castivio.feature.activation
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -18,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
-import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Dns
 import androidx.compose.material.icons.rounded.Group
 import androidx.compose.material.icons.rounded.SettingsInputAntenna
@@ -31,7 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -54,7 +50,6 @@ import com.castivio.core.design.components.castivioDescriptionColor
 import com.castivio.core.design.theme.CastivioMetrics
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
-import com.castivio.core.design.theme.Palette
 import com.castivio.core.design.theme.boundedFraction
 import com.castivio.core.design.theme.castivioMetrics
 import com.castivio.core.design.theme.castivioStage
@@ -253,13 +248,13 @@ internal fun SourceMetrics.cardHeight(frame: Dp): Dp = leadHeight(frame) * MINOR
  * other is two brands, and a header that reassembles itself is the kind of fault
  * nobody can point at and everybody feels.
  *
- * ## Recommended and focused are two pictures
+ * ## One lit card at a time, and it is the focused one
  *
- * The suggested card carries a violet edge and a glow; focus carries the azure ring
- * every focusable thing in this app carries. They must not be the same picture: a
- * television has to say where the remote is, and a D-pad whose position looks like a
- * recommendation is a D-pad the viewer has lost. [InteractiveGlassCard] takes the rest
- * colour and lets focus override it, so the ring keeps meaning exactly one thing.
+ * There used to be a second lit state: the suggested card carried a violet edge and a
+ * glow, beside the azure ring that focus carries. The two had to be told apart from
+ * across a room, which is a burden a screen only has to carry if it is making a
+ * recommendation — and this one no longer is. The cards are all drawn at rest the same
+ * way, so the ring means exactly one thing: here is the remote.
  *
  * ## Direction
  *
@@ -333,8 +328,10 @@ internal fun SourceChoiceScreen(
  *
  * So Xtream and the playlist take the full width, one above the other, and the two
  * that are not a new subscription sit under a rule that names them as what they are.
- * The hierarchy is carried by size and by the rule, not by colour or by a badge —
- * those still mean what they meant.
+ * The hierarchy is carried by size and by the rule, and by nothing else. There is no
+ * badge and no featured card: a "fastest" label on one of the two leading cards was a
+ * recommendation nobody had asked this screen to make, and with the two of them now
+ * the whole of the first tier, being first is the recommendation.
  *
  * ## The heights are weights, not numbers
  *
@@ -359,7 +356,7 @@ private fun SourceTiers(
             title = stringResource(R.string.source_xtream_title),
             detail = stringResource(R.string.source_xtream_detail),
             hint = stringResource(R.string.source_xtream_hint),
-            recommended = false, onClick = onXtream, tag = ActivationTags.SOURCE_XTREAM,
+            onClick = onXtream, tag = ActivationTags.SOURCE_XTREAM,
             modifier = Modifier.weight(1f).fillMaxWidth(),
         )
         SourceCard(
@@ -367,7 +364,7 @@ private fun SourceTiers(
             title = stringResource(R.string.source_m3u_title),
             detail = stringResource(R.string.source_m3u_detail),
             hint = stringResource(R.string.source_m3u_hint),
-            recommended = true, onClick = onPlaylist, tag = ActivationTags.SOURCE_M3U,
+            onClick = onPlaylist, tag = ActivationTags.SOURCE_M3U,
             modifier = Modifier.weight(1f).fillMaxWidth(),
         )
 
@@ -382,7 +379,7 @@ private fun SourceTiers(
                 title = stringResource(R.string.source_portal_title),
                 detail = stringResource(R.string.source_portal_detail),
                 hint = stringResource(R.string.source_portal_hint),
-                recommended = false, onClick = onPortal, tag = ActivationTags.SOURCE_PORTAL,
+                onClick = onPortal, tag = ActivationTags.SOURCE_PORTAL,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
             SourceCard(
@@ -390,7 +387,7 @@ private fun SourceTiers(
                 title = stringResource(R.string.source_users_title),
                 detail = stringResource(R.string.source_users_detail),
                 hint = stringResource(R.string.source_users_hint),
-                recommended = false, onClick = onSavedSources, tag = ActivationTags.SOURCE_USERS,
+                onClick = onSavedSources, tag = ActivationTags.SOURCE_USERS,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
         }
@@ -453,13 +450,11 @@ private fun SourceCard(
     title: String,
     detail: String,
     hint: String,
-    recommended: Boolean,
     onClick: () -> Unit,
     tag: String,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
-    val badge = stringResource(R.string.source_badge_fastest)
 
     InteractiveGlassCard(
         onClick = onClick,
@@ -469,13 +464,10 @@ private fun SourceCard(
             // a single item. Without it the disc, the name and the two sentences are
             // four focusable-looking fragments of one decision.
             .semantics(mergeDescendants = true) {
-                contentDescription = if (recommended) "$title. $badge. $detail $hint"
-                else "$title. $detail $hint"
+                contentDescription = "$title. $detail $hint"
             },
         shape = RoundedCornerShape(m.radius),
-        fill = if (recommended) SolidColor(colors.featuredFill) else colors.glassFillBrush,
-        restBorder = if (recommended) RECOMMENDED_EDGE else null,
-        restGlow = if (recommended) RECOMMENDED_GLOW else null,
+        fill = colors.glassFillBrush,
     ) {
         Row(
             Modifier.fillMaxSize().padding(m.cardPad),
@@ -484,31 +476,24 @@ private fun SourceCard(
         ) {
             Disc(m, hue, icon)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(m.cardPad * TEXT_GAP)) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(m.cardPad * BADGE_GAP),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    // Fitted, not clipped. A card's name is one line by design -- it
-                    // sits beside a badge and above a description, and wrapping it
-                    // would change the card's whole shape in the languages that need
-                    // two lines. So it *shrinks* to the width it has, down to an 11sp
-                    // floor, which is the other half of the rule: text may reflow or
-                    // scale, and may never be cut. `maxLines = 1` with an ellipsis was
-                    // the third thing, and it is the one that is not allowed -- a
-                    // reader sees "Xtream Cod…" and cannot tell it is the same product.
-                    CastivioFittedText(
-                        text = title,
-                        style = CastivioType.titleMedium.copy(
-                            fontSize = m.fsCard.value.sp,
-                            lineHeight = (m.fsCard.value * TITLE_LEADING).sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.sp,
-                        ),
-                        color = colors.onBackgroundStrong,
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
-                    if (recommended) Badge(m, badge)
-                }
+                // Fitted, not clipped. A card's name is one line by design -- it sits
+                // above a description, and wrapping it would change the card's whole
+                // shape in the languages that need two lines. So it *shrinks* to the
+                // width it has, down to an 11sp floor, which is the other half of the
+                // rule: text may reflow or scale, and may never be cut. `maxLines = 1`
+                // with an ellipsis was the third thing, and it is the one that is not
+                // allowed -- a reader sees "Xtream Cod…" and cannot tell it is the same
+                // product.
+                CastivioFittedText(
+                    text = title,
+                    style = CastivioType.titleMedium.copy(
+                        fontSize = m.fsCard.value.sp,
+                        lineHeight = (m.fsCard.value * TITLE_LEADING).sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.sp,
+                    ),
+                    color = colors.onBackgroundStrong,
+                )
                 Text(
                     text = buildAnnotatedString {
                         append(detail)
@@ -531,41 +516,6 @@ private fun SourceCard(
     }
 }
 
-/**
- * The recommendation, as a badge.
- *
- * A label rather than a ring, so it cannot be read as focus. It keeps its intrinsic
- * width and the name beside it yields, which is the header's rule one level down: a
- * badge is a fixed fact and a name is the thing here whose full size is not
- * load-bearing.
- */
-@Composable
-private fun Badge(m: SourceMetrics, text: String) {
-    val shape = RoundedCornerShape(percent = 50)
-    Row(
-        Modifier
-            .clip(shape)
-            .background(Brush.verticalGradient(listOf(BADGE_TOP, BADGE_FOOT)))
-            .border(BorderStroke(1.dp, BADGE_EDGE), shape)
-            .padding(horizontal = m.fsBadge * BADGE_PAD, vertical = m.fsBadge * BADGE_PAD_Y),
-        horizontalArrangement = Arrangement.spacedBy(m.fsBadge * BADGE_ICON_GAP),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            Icons.Rounded.Bolt,
-            contentDescription = null,
-            tint = Palette.Violet60,
-            modifier = Modifier.size(m.fsBadge * ICON_RATIO),
-        )
-        Text(
-            text = text,
-            style = castivioChipStyle(m.fsBadge).copy(fontWeight = FontWeight.Bold),
-            color = Palette.White,
-            maxLines = 1,
-        )
-    }
-}
-
 /* --------------------------------------------------------------------- ratios */
 
 
@@ -575,25 +525,6 @@ private const val TITLE_LEADING = 1.35f
 private const val ICON_RATIO = 1.25f
 
 private const val TEXT_GAP = 0.5f
-private const val BADGE_GAP = 0.9f
-private const val BADGE_PAD = 0.62f
-private const val BADGE_PAD_Y = 0.17f
-private const val BADGE_ICON_GAP = 0.34f
 
 
-/**
- * The suggested card's edge and the light around it.
- *
- * Violet, and deliberately not the azure the focus ring uses: the two say different
- * things and a viewer has to be able to tell which is which from across a room.
- *
- * `internal` because the local-media chooser marks its own default the same way, and
- * "the same way" has to mean the same two values. A second pair copied across is a
- * pair that agrees until one of them is adjusted.
- */
-internal val RECOMMENDED_EDGE = Palette.Violet60.copy(alpha = 0.85f)
-internal val RECOMMENDED_GLOW = Palette.Violet50.copy(alpha = 0.42f)
 
-private val BADGE_TOP = Palette.Violet50.copy(alpha = 0.42f)
-private val BADGE_FOOT = Palette.Violet40.copy(alpha = 0.30f)
-private val BADGE_EDGE = Palette.Violet60.copy(alpha = 0.46f)

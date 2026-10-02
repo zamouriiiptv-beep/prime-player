@@ -165,7 +165,6 @@
     <string name="licence_blocked_detail">This build has no licence service to ask, so it cannot let you in. The licence screen arrives in a later version.</string>
     <string name="licence_blocked_action">Close</string>
     <!-- The source chooser, redrawn as a grid. -->
-    <string name="source_badge_fastest">Fastest</string>
     <!-- The second line of each card: what the first one does not say, which is
          how a reader tells which of these they actually have. -->
     <string name="source_xtream_hint">Full support for Xtream features.</string>
