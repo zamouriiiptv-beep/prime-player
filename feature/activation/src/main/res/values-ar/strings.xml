@@ -12,35 +12,18 @@
 
     <string name="source_choice_title">اختر طريقة الإضافة</string>
     <string name="source_xtream_title">Xtream Codes</string>
-    <string name="source_xtream_detail">عنوان سيرفر واسم مستخدم وكلمة مرور.</string>
+    <string name="source_xtream_detail">أضف سيرفر واسم مستخدم وكلمة مرور.</string>
     <string name="source_m3u_title">قائمة M3U</string>
     <string name="source_m3u_detail">أضف رابط قائمة التشغيل بصيغة M3U.</string>
-    <string name="source_local_title">تشغيل فيديو من الجهاز</string>
-    <string name="source_local_detail">تشغيل ملف فيديو محفوظ على الجهاز.</string>
-    <string name="source_users_title">قائمة المستخدمين</string>
-    <string name="source_users_detail">أضف وبدّل بين اشتراكات Xtream وM3U.</string>
+    <string name="source_users_title">اشتراكاتي</string>
+    <string name="source_portal_title">Stalker Portal</string>
+    <string name="source_portal_detail">أضف رابط البوابة (Portal URL) الذي أرسله لك المزود.</string>
+    <string name="source_users_detail">إدارة اشتراكاتك الحالية.</string>
+    <string name="source_other_options">خيارات أخرى</string>
     <string name="source_terms">شروط الخدمة</string>
     <string name="source_terms_note"> — باستخدام التطبيق، فإنك توافق على شروط الاستخدام.</string>
 
-    <string name="media_source_title">اختر مصدر التشغيل</string>
-    <string name="media_video_library_title">مكتبة الفيديو</string>
-    <string name="media_video_library_detail">جميع الفيديوهات الموجودة على الجهاز.</string>
-    <string name="media_video_pick_title">اختيار فيديو</string>
-    <string name="media_video_pick_detail">اختيار ملف فيديو من الجهاز.</string>
-    <string name="media_audio_library_title">مكتبة الصوت</string>
-    <string name="media_audio_library_detail">جميع الملفات الصوتية الموجودة على الجهاز.</string>
-    <string name="media_mp3_pick_title">اختيار MP3</string>
-    <string name="media_mp3_pick_detail">اختيار ملف MP3 من الجهاز.</string>
 
-    <string name="media_video_library_empty">لا توجد فيديوهات على هذا الجهاز بعد.</string>
-    <string name="media_audio_library_empty">لا توجد ملفات صوتية على هذا الجهاز بعد.</string>
-    <string name="media_picker_filter_video">ملفات الفيديو فقط</string>
-    <string name="media_picker_filter_audio">ملفات MP3 فقط</string>
-    <string name="media_picker_empty">هذا المجلد فارغ.</string>
-    <string name="media_picker_parent">المجلد الأعلى</string>
-    <string name="media_permission_denied">يحتاج Castivio إذنًا لقراءة الوسائط الموجودة على هذا الجهاز.</string>
-    <string name="media_reading">جارٍ قراءة الجهاز…</string>
-    <string name="media_picker_root">التخزين الداخلي</string>
 
     <string name="saved_sources_title">اشتراكاتي</string>
     <string name="saved_sources_subtitle">إدارة جميع الاشتراكات المحفوظة على هذا الجهاز</string>
@@ -130,37 +113,9 @@
     <string name="source_badge_fastest">الأسرع</string>
     <string name="source_xtream_hint">دعم كامل لميزات Xtream.</string>
     <string name="source_m3u_hint">رابط واحد طويل يُرسل عادةً بالبريد.</string>
-    <string name="source_local_hint">دعم جميع الصيغ الشائعة.</string>
-    <string name="source_users_hint">إدارة سهلة لجميع اشتراكاتك.</string>
-    <string name="media_video_library_subtitle">تصفّح وشغّل جميع الفيديوهات المحفوظة على جهازك</string>
-    <string name="media_audio_library_subtitle">تصفّح جميع الملفات الصوتية الموجودة على جهازك</string>
-    <string name="media_video_folder_title">اختر مجلد الفيديو</string>
-    <string name="media_video_folder_subtitle">اختر المجلد الذي تريد تصفح الفيديوهات الموجودة بداخله</string>
-    <string name="media_audio_folder_title">اختر مجلد الصوت</string>
-    <string name="media_audio_folder_subtitle">اختر المجلد الذي تريد تصفح الملفات الصوتية الموجودة بداخله</string>
-    <plurals name="media_folder_videos">
-        <item quantity="zero">لا فيديوهات</item>
-        <item quantity="one">فيديو واحد</item>
-        <item quantity="two">فيديوهان</item>
-        <item quantity="few">%1$d فيديوهات</item>
-        <item quantity="many">%1$d فيديو</item>
-        <item quantity="other">%1$d فيديو</item>
-    </plurals>
-    <plurals name="media_folder_tracks">
-        <item quantity="zero">لا ملفات صوتية</item>
-        <item quantity="one">ملف صوتي واحد</item>
-        <item quantity="two">ملفان صوتيان</item>
-        <item quantity="few">%1$d ملفات صوتية</item>
-        <item quantity="many">%1$d ملف صوتي</item>
-        <item quantity="other">%1$d ملف صوتي</item>
-    </plurals>
+    <string name="source_users_hint">تعديل الاسم أو حذف القوائم.</string>
+    <string name="source_portal_hint">يُستخدم عادةً مع أجهزة MAG وأنظمة Stalker.</string>
     <string name="action_theme_lighter">التبديل إلى الوضع الأفتح</string>
     <string name="action_theme_darker">التبديل إلى الوضع الأغمق</string>
     <string name="source_choice_subtitle">اختر الطريقة التي تريد من خلالها إضافة مصدر المحتوى</string>
-    <string name="media_source_subtitle">أختر الطريقة التي تريد من خلالها تشغيل المحتوى</string>
-    <string name="media_trust_sources_title">مصادر متعددة</string>
-    <string name="media_trust_sync_title">مزامنة تلقائية</string>
-    <string name="media_trust_organised_title">تنظيم المحتوى</string>
-    <string name="source_trust_private_title">آمن وخاص</string>
-    <string name="source_trust_fast_title">سريع ومستقر</string>
 </resources>

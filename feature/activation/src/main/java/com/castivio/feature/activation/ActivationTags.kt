@@ -57,13 +57,22 @@ internal object ActivationTags {
     /**
      * The lower pair, which are destinations rather than forms.
      *
-     * Tagged on the same footing as the upper pair on purpose: the claim the gates
-     * make is that all four are *one* card repeated, equal in width and height and
-     * built from the same composable, and a claim about four things needs four
-     * handles.
+     * Tagged on the same footing as the upper pair on purpose: they are the same card
+     * composable at a different size, and the claims worth gating — that there are two
+     * of them, that they are equal to each other, that they sit under the rule rather
+     * than beside the leading pair — are all claims about where they were placed.
      */
-    const val SOURCE_LOCAL = "activation.sourceLocal"
+    const val SOURCE_PORTAL = "activation.sourcePortal"
     const val SOURCE_USERS = "activation.sourceUsers"
+
+    /**
+     * The rule that separates the two ways in from the two that are not.
+     *
+     * Tagged rather than found by its words: what the gates ask of it is positional —
+     * it is below both leading cards and above both of the others — and a finder that
+     * matched its text would be asserting a translation.
+     */
+    const val SOURCE_OTHERS = "activation.sourceOthers"
 
     const val SOURCE_BACK = "activation.sourceBack"
 
@@ -76,73 +85,6 @@ internal object ActivationTags {
      * Both need its bounds.
      */
     const val SOURCE_CONTAINER = "activation.sourceContainer"
-
-    /**
-     * The media source step, which the third card opens.
-     *
-     * Tagged on the same footing as the source choice's four, and for the same
-     * reason: the claim these gates make is that all four are *one* card repeated,
-     * equal in width and height, and a claim about four things needs four handles.
-     * The container and the heading are here because "the cards are inside the
-     * glass" and "the header did not grow" are otherwise claims only a screenshot
-     * can settle.
-     */
-    const val MEDIA_CONTAINER = "media.container"
-    const val MEDIA_HEADING = "media.heading"
-    const val MEDIA_VIDEO_LIBRARY = "media.videoLibrary"
-    const val MEDIA_VIDEO_PICK = "media.videoPick"
-    const val MEDIA_AUDIO_LIBRARY = "media.audioLibrary"
-    const val MEDIA_MP3_PICK = "media.mp3Pick"
-
-    /**
-     * Back, which on this screen is centred rather than at the start.
-     *
-     * That is the whole of what the tag is for: "centred on the container" is two
-     * numbers that have to agree — the gap to each inner edge — and neither is
-     * reachable without the control's own bounds.
-     */
-    const val MEDIA_BACK = "media.back"
-
-    /** The sentence under the heading, and the footnote under the four cards. */
-    const val MEDIA_SUBTITLE = "media.subtitle"
-    const val MEDIA_STRIP = "media.strip"
-
-    /**
-     * The two parts of a card that were missing from it, on all four of them.
-     *
-     * Tagged because their absence was invisible to every test this screen had: the
-     * cards were present, labelled, focusable and the right size, and what was wrong
-     * — no disc, no chevron, and contents pressed to the top of the card — could only
-     * be seen in a photograph of the running application.
-     */
-    const val MEDIA_DISC = "media.disc"
-    const val MEDIA_CHEVRON = "media.chevron"
-
-    /**
-     * The two libraries and the two pickers.
-     *
-     * One set of handles for the two libraries and one for the two pickers, because
-     * the video grid and the audio list are the same screen with a different box in
-     * the middle -- and a gate that asserts "the container holds the content and the
-     * footer, and the footer is inside it" is asking the same question of both.
-     */
-    const val LIBRARY_CONTAINER = "library.container"
-    /** The sentence under a library's name. */
-    const val LIBRARY_SUBTITLE = "library.subtitle"
-
-    const val LIBRARY_HEADING = "library.heading"
-    const val LIBRARY_GRID = "library.grid"
-    const val LIBRARY_LIST = "library.list"
-    const val LIBRARY_BACK = "library.back"
-
-    const val PICKER_CONTAINER = "picker.container"
-    /** The sentence under a picker's name, which only the top of the tree has. */
-    const val PICKER_SUBTITLE = "picker.subtitle"
-
-    const val PICKER_HEADING = "picker.heading"
-    const val PICKER_PATH = "picker.path"
-    const val PICKER_LIST = "picker.list"
-    const val PICKER_BACK = "picker.back"
 
     /**
      * The lockup in the shared header, on every screen that wears one.
@@ -162,22 +104,7 @@ internal object ActivationTags {
     /** The time and the day beside it, the same pair Home's header carries. */
     const val HEADER_CLOCK = "chooser.clock"
 
-    /**
-     * One tile, and one row, repeated.
-     *
-     * Deliberately not unique per item: what is asserted of them is asserted of all of
-     * them at once — every tile is 16:9 and every tile in a band is the same width,
-     * every row is at least a touch target tall. Those are claims about the set, and a
-     * tag per index would only let a test check the one it happened to name.
-     *
-     * One row tag rather than two, because the audio library's row and a picker's row
-     * are the same composable. Two tags would be two ways to describe one thing, and
-     * the day they disagree the disagreement is the bug.
-     */
-    const val BROWSE_TILE = "browse.tile"
-    const val BROWSE_ROW = "browse.row"
-
-    /** The saved-subscriptions step the fourth card opens. */
+    /** The saved-subscriptions step the chooser opens. */
     const val SAVED_TITLE = "activation.savedTitle"
     const val SAVED_EMPTY = "activation.savedEmpty"
     const val SAVED_LIST = "activation.savedList"

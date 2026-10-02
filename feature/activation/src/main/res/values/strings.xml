@@ -19,16 +19,17 @@
     <!-- Add manually -->
     <string name="source_choice_title">What did your provider give you?</string>
     <string name="source_xtream_title">Xtream Codes</string>
-    <string name="source_xtream_detail">A server address, a username and a password.</string>
+    <string name="source_xtream_detail">Add a server, a username and a password.</string>
     <string name="source_m3u_title">M3U playlist</string>
     <string name="source_m3u_detail">Add a playlist link in M3U format.</string>
-    <string name="source_local_title">Play a video from this device</string>
-    <string name="source_local_detail">Play a video file stored on this device.</string>
-    <string name="source_users_title">Saved users</string>
+    <string name="source_users_title">My subscriptions</string>
+    <string name="source_portal_title">Stalker Portal</string>
+    <string name="source_portal_detail">Add the portal URL your provider sent you.</string>
     <!-- Short on purpose: the four cards share one height, so a description that
          wraps in one of them makes all four taller. This one is the longest of the
          four and the first to wrap. -->
-    <string name="source_users_detail">Add or switch between Xtream and M3U.</string>
+    <string name="source_users_detail">Manage the subscriptions you already have.</string>
+    <string name="source_other_options">Other options</string>
     <string name="source_terms">Terms of Service</string>
     <!-- Follows `source_terms` on the same line, and it is one line: the footer
          shares Back's row, so a wrap would push the sentence out of it. -->
@@ -37,29 +38,11 @@
     <!-- The device's own media: browse everything, or pick one file. Nothing here
          names MediaStore or the document picker — those are how the four will be
          built, not what the user is choosing between. -->
-    <string name="media_source_title">What would you like to play?</string>
-    <string name="media_video_library_title">Video library</string>
-    <string name="media_video_library_detail">Every video on this device.</string>
-    <string name="media_video_pick_title">Choose a video</string>
-    <string name="media_video_pick_detail">Pick a video file from this device.</string>
-    <string name="media_audio_library_title">Audio library</string>
     <!-- The longest of the four, and so the first to wrap: the cards share one
          height, so a wrap in this one makes all four taller. -->
-    <string name="media_audio_library_detail">Every audio file on this device.</string>
-    <string name="media_mp3_pick_title">Choose an MP3</string>
-    <string name="media_mp3_pick_detail">Pick an MP3 file from this device.</string>
 
     <!-- What the four cards open. Nothing here names an API: "video files only" is
          what the user is being shown, "video/*" is how it will be asked for. -->
-    <string name="media_video_library_empty">No videos on this device yet.</string>
-    <string name="media_audio_library_empty">No audio files on this device yet.</string>
-    <string name="media_picker_filter_video">Video files only</string>
-    <string name="media_picker_filter_audio">MP3 files only</string>
-    <string name="media_picker_empty">This folder is empty.</string>
-    <string name="media_picker_parent">Parent folder</string>
-    <string name="media_permission_denied">Castivio needs permission to read the media on this device.</string>
-    <string name="media_reading">Reading this device…</string>
-    <string name="media_picker_root">Internal storage</string>
 
     <!-- The subscriptions already on this box.
 
@@ -187,33 +170,13 @@
          how a reader tells which of these they actually have. -->
     <string name="source_xtream_hint">Full support for Xtream features.</string>
     <string name="source_m3u_hint">One long link, usually sent by e-mail.</string>
-    <string name="source_local_hint">All common formats supported.</string>
-    <string name="source_users_hint">Easy management of all your subscriptions.</string>
-    <string name="media_video_library_subtitle">Browse and play every video saved on your device</string>
-    <string name="media_audio_library_subtitle">Browse every audio file on your device</string>
+    <string name="source_users_hint">Rename or delete your playlists.</string>
+    <string name="source_portal_hint">Usually used with MAG devices and Stalker systems.</string>
     <!-- The two folder choosers: the top of each picker's tree. -->
-    <string name="media_video_folder_title">Choose a video folder</string>
-    <string name="media_video_folder_subtitle">Choose the folder whose videos you want to browse</string>
-    <string name="media_audio_folder_title">Choose an audio folder</string>
-    <string name="media_audio_folder_subtitle">Choose the folder whose audio files you want to browse</string>
-    <plurals name="media_folder_videos">
-        <item quantity="one">%1$d video</item>
-        <item quantity="other">%1$d videos</item>
-    </plurals>
-    <plurals name="media_folder_tracks">
-        <item quantity="one">%1$d audio file</item>
-        <item quantity="other">%1$d audio files</item>
-    </plurals>
     <!-- The theme control in every header. Named by what pressing it does. -->
     <string name="action_theme_lighter">Switch to the lighter theme</string>
     <string name="action_theme_darker">Switch to the darker theme</string>
     <string name="source_choice_subtitle">Choose how you want to add your content source</string>
     <!-- The local-media chooser: the line under its name, and its own footnote. -->
-    <string name="media_source_subtitle">Choose how you want to play your content</string>
-    <string name="media_trust_sources_title">Multiple sources</string>
-    <string name="media_trust_sync_title">Automatic sync</string>
-    <string name="media_trust_organised_title">Organised content</string>
     <!-- The assurance strip under the four choices. -->
-    <string name="source_trust_private_title">Safe and private</string>
-    <string name="source_trust_fast_title">Fast and steady</string>
 </resources>

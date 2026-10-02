@@ -4,10 +4,10 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,13 +21,10 @@ import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Dns
 import androidx.compose.material.icons.rounded.Group
+import androidx.compose.material.icons.rounded.SettingsInputAntenna
 import androidx.compose.material.icons.rounded.Link
-import androidx.compose.material.icons.rounded.OndemandVideo
-import androidx.compose.material.icons.rounded.Speed
-import androidx.compose.material.icons.rounded.VerifiedUser
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -117,14 +114,8 @@ internal data class SourceMetrics(
     val chevron: Dp,
     val detailLines: Int,
     val subBand: Dp,
-    val strip: Dp,
-    val stripGap: Dp,
-    val stripDisc: Dp,
-    val stripCells: Int,
-    /* what the local-media browsers own: the grid of tiles and the list of rows */
-    val itemGap: Dp,
-    val tileGap: Dp,
-    val tileMin: Dp,
+    /** The height of the rule that separates the two ways in from the two that are not. */
+    val divider: Dp,
 ) {
     /* The frame's numbers, reachable as this screen's own. */
     val edge get() = frame.edge
@@ -178,33 +169,10 @@ internal fun sourceMetricsFor(tv: Boolean, width: Dp, height: Dp): SourceMetrics
         cardGap = height.boundedFraction(CARD_GAP, 11.dp, 22.dp),
         disc = height.boundedFraction(DISC, 50.dp, 76.dp),
         chevron = height.boundedFraction(CHEVRON, 17.dp, 26.dp),
-        strip = height.boundedFraction(STRIP, 30.dp, 44.dp),
-        stripGap = height.boundedFraction(STRIP_GAP, 8.dp, 16.dp),
-        stripDisc = height.boundedFraction(STRIP_DISC, 19.dp, 28.dp),
+        divider = height.boundedFraction(DIVIDER, 16.dp, 28.dp),
         detailLines = if (height >= FOURTH_LINE) 4 else 3,
-        stripCells = stripCellsFor(width - frame.edge * 2),
-        itemGap = height.boundedFraction(ITEM_GAP, 4.dp, 12.dp),
-        tileGap = height.boundedFraction(TILE_GAP, 8.dp, 24.dp),
-        tileMin = width.boundedFraction(TILE_MIN, 150.dp, 240.dp),
     )
 }
-
-/**
- * How many claims the footnote shows, from the width it has.
- *
- * ## Not a device rule, though it used to look like one
- *
- * The table said three cells on a television and a tablet and two on a phone, and the
- * reason was never the device: a cell holds a disc and one line of type, and a line
- * that does not fit is a line set smaller than the description above it — which is a
- * footnote nobody reads. What decides is how much width there is to divide.
- *
- * So the last claim is dropped when there is no room for it, which is why a screen
- * hands its claims over most-important-first, and the outcome on the four surfaces
- * that used to be table rows is identical to what the table said. See [AssuranceStrip].
- */
-private fun stripCellsFor(available: Dp): Int =
-    (available / STRIP_CELL).toInt().coerceIn(MIN_CELLS, MAX_CELLS)
 
 /* ------------------------------------------------------------------ the shares
  *
@@ -219,28 +187,17 @@ private const val CARD_PAD = 21.33f / 720f
 private const val CARD_GAP = 21.33f / 720f
 private const val DISC = 96f / 720f
 private const val CHEVRON = 32f / 720f
-private const val STRIP = 53.33f / 720f
-private const val STRIP_GAP = 18.67f / 720f
-private const val STRIP_DISC = 34.67f / 720f
+private const val DIVIDER = 26f / 720f
 
-/* ------------------------------------------------- what the browsers draw with
+/**
+ * How tall the row of two smaller cards is, against one of the leading pair.
  *
- * The last three device branches in this feature: `if (tv) 8 else 4` between rows,
- * `if (tv) 16 else 8` between tiles, and `if (tv) 240 else 150` for the narrowest a
- * tile may be. All three were drawn twice, so the share is read off the reference —
- * the television's drawing at 4/3 — and the television reproduces 8, 16 and 240
- * exactly while every other surface is interpolated instead of assigned.
- *
- * The minimum is a **width** share because a grid spends width, and it is a minimum
- * rather than a column count for the reason [stripCellsFor] gives: the tile keeps its
- * size and the grid changes how many fit. What that costs is written down in the
- * Phase 5 report — a 873dp handset draws three tiles of 255dp where it drew five of
- * 150, and a 1280dp tablet four of 273 where it drew seven of 157. Larger tiles on
- * both, and one rule instead of a table.
+ * Nine tenths rather than a half: the two under the rule are secondary, not small.
+ * They carry the same two sentences the leading cards do, and a row at half height
+ * would be two cards whose description had to be cut to fit — which is the hierarchy
+ * expressed by making the content worse rather than by making the card quieter.
  */
-private const val ITEM_GAP = 10.67f / 720f
-private const val TILE_GAP = 21.33f / 720f
-private const val TILE_MIN = 320f / 1280f
+private const val MINOR_SHARE = 0.9f
 
 /**
  * Where a card's description gets a fourth line.
@@ -252,26 +209,31 @@ private const val TILE_MIN = 320f / 1280f
  */
 private val FOURTH_LINE = 480.dp
 
-/** The narrowest a claim's disc and its line may be squeezed into. */
-private val STRIP_CELL = 280.dp
-
-private const val MIN_CELLS = 2
-private const val MAX_CELLS = 3
+/**
+ * What is left for the cards once everything fixed has been placed.
+ *
+ * The assurance strip used to be one of the terms and is gone from this screen: three
+ * bands of cards and a rule between them is what the frame now holds, and a footnote
+ * under all of it was the thing that did not fit. Its claims were about the product
+ * rather than about this decision, and the screen asks the decision.
+ */
+internal fun SourceMetrics.bandHeight(frame: Dp): Dp =
+    frame - stageTop - header - bandTop - stageBottom
 
 /**
- * What is left for the two rows of cards once everything fixed has been placed.
+ * One of the two leading cards.
  *
- * The subtitle used to be one of the terms. It said *add your preferred playback
- * method to start watching* under a heading that says *choose how to add* — the
- * same sentence twice, one of them in smaller type — and a reader deciding between
- * four cards got no help from either. Removing it gives the two rows 18–26dp back,
- * which is where a third line of description on the short frame comes from.
+ * The band holds two of them, the rule, and the row of two smaller ones, with a gap
+ * between each pair. The smaller row is [MINOR_SHARE] of a leading card, so the
+ * division is by `2 + MINOR_SHARE` rather than by three — which is the same arithmetic
+ * the weights in the layout do, written once more here so the budget is checking the
+ * layout rather than a copy of it.
  */
-internal fun SourceMetrics.gridHeight(frame: Dp): Dp =
-    frame - stageTop - header - bandTop - strip - stripGap - stageBottom
+internal fun SourceMetrics.leadHeight(frame: Dp): Dp =
+    (bandHeight(frame) - divider - gridGap * 3) / (2f + MINOR_SHARE)
 
-/** One card, which is half of that minus the gap between the rows. */
-internal fun SourceMetrics.cardHeight(frame: Dp): Dp = (gridHeight(frame) - gridGap) / 2
+/** One of the two smaller cards under the rule, which is the shortest card on screen. */
+internal fun SourceMetrics.cardHeight(frame: Dp): Dp = leadHeight(frame) * MINOR_SHARE
 
 /**
  * The four ways in, as a grid.
@@ -313,7 +275,7 @@ internal fun SourceMetrics.cardHeight(frame: Dp): Dp = (gridHeight(frame) - grid
 internal fun SourceChoiceScreen(
     onXtream: () -> Unit,
     onPlaylist: () -> Unit,
-    onLocalVideo: () -> Unit,
+    onPortal: () -> Unit,
     onSavedSources: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -339,65 +301,89 @@ internal fun SourceChoiceScreen(
             )
             Spacer(Modifier.height(m.bandTop))
 
-            // Weighted, so the grid is what is left rather than what it asked for.
-            // A weighted child cannot push its siblings out, which makes overflow
-            // structural instead of arithmetic: the strip and the sentence are placed
-            // first and the cards absorb the remainder.
-            SourceGrid(
+            // Weighted, so the cards are what is left rather than what they asked
+            // for. A weighted child cannot push its siblings out, which makes overflow
+            // structural instead of arithmetic.
+            SourceTiers(
                 m = m,
                 modifier = Modifier.weight(1f),
                 onXtream = onXtream,
                 onPlaylist = onPlaylist,
-                onLocalVideo = onLocalVideo,
+                onPortal = onPortal,
                 onSavedSources = onSavedSources,
             )
-
-            Spacer(Modifier.height(m.stripGap))
-            AssuranceStrip(m, SOURCE_CLAIMS)
         }
     }
 }
 
 
 
-/* ----------------------------------------------------------------------- grid */
+/* ---------------------------------------------------------------------- tiers */
 
+/**
+ * The four ways in, in two tiers rather than four equal quarters.
+ *
+ * ## Why they are not equal any more
+ *
+ * They were a two-by-two grid, which says the four things on it are four equally
+ * likely answers to the question in the heading. They are not, and the grid was the
+ * only thing claiming they were: two of them are how a subscription arrives, and the
+ * other two are a different kind of provider and the subscriptions already on the box.
+ * A user opening this screen has almost always come to do one of the first two.
+ *
+ * So Xtream and the playlist take the full width, one above the other, and the two
+ * that are not a new subscription sit under a rule that names them as what they are.
+ * The hierarchy is carried by size and by the rule, not by colour or by a badge —
+ * those still mean what they meant.
+ *
+ * ## The heights are weights, not numbers
+ *
+ * Each leading card takes a share, the smaller row takes [MINOR_SHARE] of one, and the
+ * rule takes its own fixed height. Nothing is declared in dp, so the band divides
+ * whatever the frame leaves and the screen cannot overflow on a surface nobody drew.
+ * [leadHeight] states the same arithmetic for the budget to check.
+ */
 @Composable
-private fun SourceGrid(
+private fun SourceTiers(
     m: SourceMetrics,
     modifier: Modifier,
     onXtream: () -> Unit,
     onPlaylist: () -> Unit,
-    onLocalVideo: () -> Unit,
+    onPortal: () -> Unit,
     onSavedSources: () -> Unit,
 ) {
     val colors = CastivioTheme.colors
     Column(modifier, verticalArrangement = Arrangement.spacedBy(m.gridGap)) {
-        // Two rows of `weight(1f)` inside a bounded column are exactly equal, measured
-        // once — no intrinsic pass, and no way for one row to grow at the other's cost.
-        Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(m.gridGap)) {
+        SourceCard(
+            m = m, hue = colors.hueViolet, icon = Icons.Rounded.Dns,
+            title = stringResource(R.string.source_xtream_title),
+            detail = stringResource(R.string.source_xtream_detail),
+            hint = stringResource(R.string.source_xtream_hint),
+            recommended = false, onClick = onXtream, tag = ActivationTags.SOURCE_XTREAM,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+        )
+        SourceCard(
+            m = m, hue = colors.hueAzure, icon = Icons.Rounded.Link,
+            title = stringResource(R.string.source_m3u_title),
+            detail = stringResource(R.string.source_m3u_detail),
+            hint = stringResource(R.string.source_m3u_hint),
+            recommended = true, onClick = onPlaylist, tag = ActivationTags.SOURCE_M3U,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+        )
+
+        OtherOptions(m)
+
+        Row(
+            Modifier.weight(MINOR_SHARE).fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(m.gridGap),
+        ) {
             SourceCard(
-                m = m, hue = colors.hueAzure, icon = Icons.Rounded.Dns,
-                title = stringResource(R.string.source_xtream_title),
-                detail = stringResource(R.string.source_xtream_detail),
-                hint = stringResource(R.string.source_xtream_hint),
-                recommended = false, onClick = onXtream, tag = ActivationTags.SOURCE_XTREAM,
-            )
-            SourceCard(
-                m = m, hue = colors.hueViolet, icon = Icons.Rounded.Link,
-                title = stringResource(R.string.source_m3u_title),
-                detail = stringResource(R.string.source_m3u_detail),
-                hint = stringResource(R.string.source_m3u_hint),
-                recommended = true, onClick = onPlaylist, tag = ActivationTags.SOURCE_M3U,
-            )
-        }
-        Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(m.gridGap)) {
-            SourceCard(
-                m = m, hue = colors.hueAmber, icon = Icons.Rounded.OndemandVideo,
-                title = stringResource(R.string.source_local_title),
-                detail = stringResource(R.string.source_local_detail),
-                hint = stringResource(R.string.source_local_hint),
-                recommended = false, onClick = onLocalVideo, tag = ActivationTags.SOURCE_LOCAL,
+                m = m, hue = colors.hueAmber, icon = Icons.Rounded.SettingsInputAntenna,
+                title = stringResource(R.string.source_portal_title),
+                detail = stringResource(R.string.source_portal_detail),
+                hint = stringResource(R.string.source_portal_hint),
+                recommended = false, onClick = onPortal, tag = ActivationTags.SOURCE_PORTAL,
+                modifier = Modifier.weight(1f).fillMaxHeight(),
             )
             SourceCard(
                 m = m, hue = colors.hueGreen, icon = Icons.Rounded.Group,
@@ -405,9 +391,48 @@ private fun SourceGrid(
                 detail = stringResource(R.string.source_users_detail),
                 hint = stringResource(R.string.source_users_hint),
                 recommended = false, onClick = onSavedSources, tag = ActivationTags.SOURCE_USERS,
+                modifier = Modifier.weight(1f).fillMaxHeight(),
             )
         }
     }
+}
+
+/**
+ * The rule between the tiers, and the three words on it.
+ *
+ * A heading would be a third voice on a screen that already has a question and four
+ * answers. A rule with a quiet label is the smallest thing that says "and these are
+ * the others" — it reads as punctuation rather than as a section, which is what the
+ * two cards under it deserve: available, and not what you came for.
+ */
+@Composable
+private fun OtherOptions(m: SourceMetrics) {
+    val colors = CastivioTheme.colors
+    Row(
+        Modifier.fillMaxWidth().height(m.divider),
+        horizontalArrangement = Arrangement.spacedBy(m.cardGap),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Rule(Modifier.weight(1f), colors.edgeQuiet)
+        Text(
+            text = stringResource(R.string.source_other_options),
+            style = castivioChipStyle(m.fsBadge),
+            color = colors.onBackgroundMuted,
+            maxLines = 1,
+            modifier = Modifier.testTag(ActivationTags.SOURCE_OTHERS),
+        )
+        Rule(Modifier.weight(1f), colors.edgeQuiet)
+    }
+}
+
+/** One side of the rule: a hairline that fades out towards the frame's edge. */
+@Composable
+private fun Rule(modifier: Modifier, ink: Color) {
+    Box(
+        modifier
+            .height(1.dp)
+            .background(Brush.horizontalGradient(listOf(Color.Transparent, ink, Color.Transparent))),
+    )
 }
 
 /**
@@ -421,7 +446,7 @@ private fun SourceGrid(
  * the line break.
  */
 @Composable
-private fun RowScope.SourceCard(
+private fun SourceCard(
     m: SourceMetrics,
     hue: Color,
     icon: ImageVector,
@@ -431,15 +456,14 @@ private fun RowScope.SourceCard(
     recommended: Boolean,
     onClick: () -> Unit,
     tag: String,
+    modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
     val badge = stringResource(R.string.source_badge_fastest)
 
     InteractiveGlassCard(
         onClick = onClick,
-        modifier = Modifier
-            .weight(1f)
-            .fillMaxHeight()
+        modifier = modifier
             .testTag(tag)
             // One node, one label, one target: a reader announces the whole choice as
             // a single item. Without it the disc, the name and the two sentences are
@@ -555,28 +579,6 @@ private const val BADGE_GAP = 0.9f
 private const val BADGE_PAD = 0.62f
 private const val BADGE_PAD_Y = 0.17f
 private const val BADGE_ICON_GAP = 0.34f
-
-
-/**
- * What this screen's footnote says.
- *
- * Two claims, and it used to be four. *Safe and private* and *full protection* were
- * one claim written twice — half a footnote spent saying the same thing to the same
- * reader — and *broad support* repeated the local-file card's own description from
- * 100dp away, where the sentence actually means something because it is attached to
- * the thing it describes.
- *
- * What the two survivors buy is width: a cell is half the strip rather than a
- * quarter, so the lines read at the frame's own chip step instead of at a step
- * invented locally to make four of them fit.
- */
-private val SOURCE_CLAIMS: List<StripClaim>
-    @Composable @ReadOnlyComposable get() = with(CastivioTheme.colors) {
-        listOf(
-            StripClaim(hueViolet, Icons.Rounded.VerifiedUser, R.string.source_trust_private_title),
-            StripClaim(hueAzure, Icons.Rounded.Speed, R.string.source_trust_fast_title),
-        )
-    }
 
 
 /**

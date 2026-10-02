@@ -36,7 +36,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -52,9 +51,6 @@ import com.castivio.core.design.theme.MotionLevel
 import com.castivio.core.design.theme.Spacing
 import com.castivio.core.design.theme.castivioStage
 import com.castivio.core.design.theme.rememberMetrics
-import com.castivio.domain.LocalMediaKind
-import com.castivio.domain.LocalTrack
-import com.castivio.domain.LocalVideo
 import com.castivio.domain.activation.ActivationForm
 import com.castivio.domain.activation.ActivationPhase
 import com.castivio.domain.activation.ActivationUiState
@@ -133,26 +129,16 @@ internal enum class ActivationStep {
     SavedSources,
 
     /**
-     * The device's own media, reached from the third card.
+     * The portal address, reached from the chooser's Stalker card.
      *
-     * A step for the same reasons [SavedSources] is one: it is part of choosing
-     * where something to play comes from, it goes back to [Choose], and it owns its
-     * viewport rather than scrolling.
+     * The same screen [Mac] draws, at a different place in the tree, and that is the
+     * whole of the difference between them. [Mac] is where this flow *opens* on a box
+     * with nothing on it, so back from it leaves the application; this is a card the
+     * user pressed on the chooser, so back from it returns to the chooser. One screen
+     * cannot answer both, and which answer is right is a fact about how the user got
+     * here rather than about the screen — which is what a step is for.
      */
-    MediaSource,
-
-    /**
-     * What the media source's four cards open.
-     *
-     * Steps rather than routes for the same reason every other screen in this flow
-     * is one: they belong to choosing what to play, each goes back to
-     * [MediaSource], and each owns its viewport. They are the first steps in the
-     * flow whose *content* scrolls -- the frame still does not.
-     */
-    VideoLibrary,
-    PickVideo,
-    AudioLibrary,
-    PickAudio,
+    Portal,
 
     Xtream,
     Playlist,
@@ -181,19 +167,11 @@ internal fun ActivationStep.parent(): ActivationStep? = when (this) {
     ActivationStep.Choose -> ActivationStep.Mac
 
     // Everything the source choice opens returns to it.
-    ActivationStep.MediaSource,
+    ActivationStep.Portal,
     ActivationStep.SavedSources,
     ActivationStep.Xtream,
     ActivationStep.Playlist,
     -> ActivationStep.Choose
-
-    // And everything the media source opens returns to *it*, which is the whole of the
-    // defect this function was written for.
-    ActivationStep.VideoLibrary,
-    ActivationStep.PickVideo,
-    ActivationStep.AudioLibrary,
-    ActivationStep.PickAudio,
-    -> ActivationStep.MediaSource
 }
 
 /**
@@ -227,15 +205,18 @@ fun ActivationRoute(
     language: CastivioLanguage,
     onLanguage: (CastivioLanguage) -> Unit,
     /**
-     * Play something the device holds.
+     * Play something the device holds. **Nothing in this flow raises it any more.**
      *
-     * One seam where there were four, and it carries the file. It has to: the screens now
-     * list the device's real media, so a press is a press on a *particular* video, and a
-     * lambda with no argument could only mean "the user pressed something" — which is what
-     * the four seams meant while the lists were fixtures, and is no longer enough.
+     * The screens that did — the media source and the four library and picker screens
+     * behind it — were removed with the local-video option, so no press inside this
+     * route reaches this lambda. It is still declared, and that is a decision rather
+     * than an oversight: `:app` wraps this route in `PlayerHost` to receive it, and
+     * `PlayerHost` is the player's seam. The change that removed the feature was
+     * instructed not to touch the player, so the seam is left whole and this is the
+     * end of it that keeps `:app` compiling untouched.
      *
-     * Still hoisted, and for the original reason: playing a file is somebody else's job.
-     * This module reads `MediaStore` and draws the result; `:app` owns what a press opens.
+     * It has a default, so a caller that does not care never sees it. Whoever removes
+     * `PlayerHost` removes this with it, in one change allowed to touch both sides.
      */
     onPlay: (LocalMediaSelection) -> Unit = {},
     /** Where the flow opens. See [ActivationEntry]. */
@@ -381,7 +362,6 @@ fun ActivationRoute(
                 onRefresh = identityModel::refresh,
                 onCopied = identityModel::copied,
                 onOpenLanguage = { pickingLanguage = true },
-                onPlay = onPlay,
             )
         }
     }
@@ -436,13 +416,8 @@ internal fun isFixedViewport(
     step: ActivationStep,
 ): Boolean =
     !state.busy && state.phase !is ActivationPhase.Failed && when (step) {
-        ActivationStep.Mac, ActivationStep.Choose, ActivationStep.SavedSources,
-        ActivationStep.MediaSource,
-        // The libraries and the pickers scroll *inside* their container. Putting
-        // them in the scrolling frame instead would nest one scroll in another and
-        // put Back below the fold, which is the defect this predicate exists for.
-        ActivationStep.VideoLibrary, ActivationStep.PickVideo,
-        ActivationStep.AudioLibrary, ActivationStep.PickAudio,
+        ActivationStep.Mac, ActivationStep.Portal,
+        ActivationStep.Choose, ActivationStep.SavedSources,
         -> true
 
         ActivationStep.Xtream, ActivationStep.Playlist -> false
@@ -459,7 +434,6 @@ private fun Steps(
     onRefresh: () -> Unit,
     onCopied: (Copied) -> Unit,
     onOpenLanguage: () -> Unit,
-    onPlay: (LocalMediaSelection) -> Unit,
     /**
      * What every screen's own Back control does: the route's one answer, the same one
      * the back key gets. See `goBack` in [ActivationRoute] for why it is not a step.
@@ -503,101 +477,22 @@ private fun Steps(
                     activation.usePlaylistUrl()
                     onStep(ActivationStep.Playlist)
                 },
-                // The card names a video on this device, and what is on this device is
-                // four things rather than one -- a library and a picker, for video and
-                // for audio. So it opens the chooser rather than reaching for a player
-                // it cannot see, and the four seams below are where the reaching
-                // happens once there is something to reach for.
-                onLocalVideo = { onStep(ActivationStep.MediaSource) },
+                onPortal = { onStep(ActivationStep.Portal) },
                 onSavedSources = { onStep(ActivationStep.SavedSources) },
                 onBack = onBack,
             )
 
-            ActivationStep.MediaSource -> MediaSourceScreen(
-                onVideoLibrary = { onStep(ActivationStep.VideoLibrary) },
-                onPickVideo = { onStep(ActivationStep.PickVideo) },
-                onAudioLibrary = { onStep(ActivationStep.AudioLibrary) },
-                onPickAudio = { onStep(ActivationStep.PickAudio) },
-                onBack = onBack,
+            // The same screen the flow opens on, reached the other way round. Its
+            // "add a playlist" control leads back to the chooser, which is where the
+            // user pressed the card that opened this — so the two ways through agree
+            // rather than looping.
+            ActivationStep.Portal -> MacActivationScreen(
+                identity = identity,
+                onAddPlaylist = onBack,
+                onRefresh = onRefresh,
+                onCopied = onCopied,
+                onOpenLanguage = onOpenLanguage,
             )
-
-            // The four browse screens, reading the device.
-            //
-            // `LocalMediaHost` owns the query, the paging and the permission; each screen
-            // below is handed a finished list. It is one host for four screens because
-            // they are four views of two queries, and four copies of "ask for the
-            // permission, page the cursor, tell the empty state from the unread one" is
-            // four places for those to drift.
-            //
-            // Nothing here is a fixture any more. There is no debug list behind these and
-            // no release list either: what is on the screen is what is on the device.
-            ActivationStep.VideoLibrary -> LocalMediaHost(LocalMediaKind.VIDEO) { media, host ->
-                VideoLibraryScreen(
-                    videos = media.videos.map(LocalVideo::asTile),
-                    onPlay = { index -> media.videos.getOrNull(index)?.let { onPlay(it.asSelection()) } },
-                    onBack = onBack,
-                    onNearEnd = host.loadMore,
-                    permission = host.permission,
-                )
-            }
-
-            ActivationStep.AudioLibrary -> LocalMediaHost(LocalMediaKind.AUDIO) { media, host ->
-                AudioLibraryScreen(
-                    tracks = media.tracks.map(LocalTrack::asTile),
-                    onPlay = { index -> media.tracks.getOrNull(index)?.let { onPlay(it.asSelection()) } },
-                    onBack = onBack,
-                    onNearEnd = host.loadMore,
-                    permission = host.permission,
-                )
-            }
-
-            ActivationStep.PickVideo -> LocalMediaHost(LocalMediaKind.VIDEO) { media, host ->
-                val resources = LocalContext.current.resources
-                FilePickerScreen(
-                    kind = PickerKind.Video,
-                    path = media.folder ?: stringResource(R.string.media_picker_root),
-                    entries = media.entries(
-                        parentLabel = stringResource(R.string.media_picker_parent),
-                        // Resolved through the resources rather than
-                        // `pluralStringResource`: this lambda is a plain
-                        // `(Int) -> String` handed to a mapping function, and a
-                        // composable cannot be called from one. The context is read
-                        // here, in composition, where it is allowed to be.
-                        folderCount = { n ->
-                            resources.getQuantityString(R.plurals.media_folder_videos, n, n)
-                        },
-                    ),
-                    onOpen = { index -> media.open(index, host, onPlay) },
-                    onBack = onBack,
-                    onNearEnd = host.loadMore,
-                    permission = host.permission,
-                    atRoot = media.folder == null,
-                )
-            }
-
-            ActivationStep.PickAudio -> LocalMediaHost(LocalMediaKind.AUDIO) { media, host ->
-                val resources = LocalContext.current.resources
-                FilePickerScreen(
-                    kind = PickerKind.Audio,
-                    path = media.folder ?: stringResource(R.string.media_picker_root),
-                    entries = media.entries(
-                        parentLabel = stringResource(R.string.media_picker_parent),
-                        // Resolved through the resources rather than
-                        // `pluralStringResource`: this lambda is a plain
-                        // `(Int) -> String` handed to a mapping function, and a
-                        // composable cannot be called from one. The context is read
-                        // here, in composition, where it is allowed to be.
-                        folderCount = { n ->
-                            resources.getQuantityString(R.plurals.media_folder_tracks, n, n)
-                        },
-                    ),
-                    onOpen = { index -> media.open(index, host, onPlay) },
-                    onBack = onBack,
-                    onNearEnd = host.loadMore,
-                    permission = host.permission,
-                    atRoot = media.folder == null,
-                )
-            }
 
             ActivationStep.SavedSources -> {
                 val saved: SavedSourcesViewModel = hiltViewModel()

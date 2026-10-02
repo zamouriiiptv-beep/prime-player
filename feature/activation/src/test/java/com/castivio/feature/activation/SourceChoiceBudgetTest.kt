@@ -27,8 +27,8 @@ import org.junit.Test
  * ## The question this file asks changed direction
  *
  * It used to add the content up and check it fitted the frame. The grid is sized from
- * the frame now — `weight(1f)` — and the cards take what the header and the assurance
- * strip leave, so overflow is structural: a weighted
+ * the frame now — `weight(1f)` — and the cards take what the header
+ * leaves, so overflow is structural: a weighted
  * child cannot push its siblings out, and the sum is the frame by construction.
  *
  * What can go wrong instead is the opposite. If the frame is short enough, the derived
@@ -100,7 +100,7 @@ class SourceChoiceBudgetTest {
         for (s in frames) {
             val m = metrics(s)
             val band = s.height - m.stageTop - m.stageBottom
-            val content = m.gridHeight(s.height) + m.strip
+            val content = m.bandHeight(s.height)
             val share = content.value / band.value
             println("source choice budget — $s content $content of $band")
             assertTrue(
@@ -165,34 +165,41 @@ class SourceChoiceBudgetTest {
     /**
      * Nothing on the screen is ever handed a negative height.
      *
-     * The grid is what is left once the header and the strip are placed, and "what is left" is the one number in this layout that
-     * can go below zero. A `Column` does not clip when it does -- it hands zero to
-     * whatever it measured last, which here is the four cards.
+     * The band is what is left once the header is placed, and "what is left" is the one
+     * number in this layout that can go below zero. A `Column` does not clip when it
+     * does -- it hands zero to whatever it measured last, which here is the cards.
      */
     @Test
-    fun `the grid is never handed less than nothing`() {
+    fun `the band is never handed less than nothing`() {
         for (s in frames) {
             for (inset in listOf(0.dp, INSET_ALLOWANCE)) {
                 val shorter = s.lessBar(inset)
-                val grid = metrics(shorter).gridHeight(shorter.height)
-                assertTrue("$s with a $inset bar: the grid is $grid", grid > 0.dp)
+                val m = metrics(shorter)
+                val band = m.bandHeight(shorter.height)
+                assertTrue("$s with a $inset bar: the band is $band", band > 0.dp)
+                assertTrue(
+                    "$s with a $inset bar: a leading card is ${m.leadHeight(shorter.height)}",
+                    m.leadHeight(shorter.height) > 0.dp,
+                )
             }
         }
     }
 
     /**
-     * A single column of four would not have fitted the handset, which is why the grid
-     * is two by two.
+     * A column of four would still not fit the handset, which is why only two of them
+     * take the full width.
      *
      * Stated as a test rather than left in a comment so the premise is checked against
-     * the same table as the conclusion.
+     * the same table as the conclusion. It is the reason the two that are not a new
+     * subscription share a row under the rule instead of each taking a band of their
+     * own: the hierarchy is affordable, four full-width cards are not.
      */
     @Test
-    fun `stacking the four cards would not have fitted the handset`() {
+    fun `stacking all four cards would not have fitted the handset`() {
         val m = metrics(HANDSET)
         val stacked = m.stageTop + m.header + m.bandTop +
-            (cardNeeds(HANDSET, 1) * 4 + m.gridGap * 3) +
-            m.stripGap + m.strip + m.stageBottom
+            (cardNeeds(HANDSET, 1) * 4 + m.gridGap * 3 + m.divider) +
+            m.stageBottom
 
         println("source choice budget — a single column would be $stacked")
 

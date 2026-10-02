@@ -132,34 +132,37 @@ class SourceChoiceLayoutTest {
      * and is backwards in the other.
      */
     @Test
-    fun `right to left puts Xtream top-right and the users card bottom-left`() {
+    fun `right to left puts the portal card right of the users card`() {
         compose.show(HANDSET, DeviceClass.Expanded, LayoutDirection.Rtl)
 
         val xtream = compose.bounds(ActivationTags.SOURCE_XTREAM)
         val m3u = compose.bounds(ActivationTags.SOURCE_M3U)
-        val local = compose.bounds(ActivationTags.SOURCE_LOCAL)
+        val portal = compose.bounds(ActivationTags.SOURCE_PORTAL)
         val users = compose.bounds(ActivationTags.SOURCE_USERS)
 
-        assertTrue("RTL: Xtream is not right of M3U", xtream.left > m3u.left)
-        assertTrue("RTL: the local card is not right of the users card", local.left > users.left)
-        assertTrue("RTL: Xtream is not above the local card", xtream.top < local.top)
+        // The leading pair is stacked now, so the direction claim they carry is that
+        // they still start at the same edge; the pair under the rule is the one laid
+        // out across the frame, and it is where mirroring can go wrong.
+        assertTrue("RTL: Xtream and M3U do not share an edge", abs((xtream.left - m3u.left).value) <= 1f)
+        assertTrue("RTL: the portal card is not right of the users card", portal.left > users.left)
+        assertTrue("RTL: Xtream is not above the portal card", xtream.top < portal.top)
 
         compose.assertFooterSurvivesMirroring(HANDSET, "RTL")
     }
 
     /** And the mirror of it, which is the same composition and no extra code. */
     @Test
-    fun `left to right puts Xtream top-left and the users card bottom-right`() {
+    fun `left to right puts the portal card left of the users card`() {
         compose.show(HANDSET, DeviceClass.Expanded, LayoutDirection.Ltr)
 
         val xtream = compose.bounds(ActivationTags.SOURCE_XTREAM)
         val m3u = compose.bounds(ActivationTags.SOURCE_M3U)
-        val local = compose.bounds(ActivationTags.SOURCE_LOCAL)
+        val portal = compose.bounds(ActivationTags.SOURCE_PORTAL)
         val users = compose.bounds(ActivationTags.SOURCE_USERS)
 
-        assertTrue("LTR: Xtream is not left of M3U", xtream.left < m3u.left)
-        assertTrue("LTR: the local card is not left of the users card", local.left < users.left)
-        assertTrue("LTR: Xtream is not above the local card", xtream.top < local.top)
+        assertTrue("LTR: Xtream and M3U do not share an edge", abs((xtream.left - m3u.left).value) <= 1f)
+        assertTrue("LTR: the portal card is not left of the users card", portal.left < users.left)
+        assertTrue("LTR: Xtream is not above the portal card", xtream.top < portal.top)
 
         compose.assertFooterSurvivesMirroring(HANDSET, "LTR")
     }
@@ -236,7 +239,7 @@ class SourceChoiceLayoutTest {
                         SourceChoiceScreen(
                             onXtream = { pressed += "xtream" },
                             onPlaylist = { pressed += "m3u" },
-                            onLocalVideo = { pressed += "local" },
+                            onPortal = { pressed += "portal" },
                             onSavedSources = { pressed += "users" },
                             onBack = { pressed += "back" },
                         )
@@ -248,7 +251,7 @@ class SourceChoiceLayoutTest {
         for ((tag, expected) in listOf(
             ActivationTags.SOURCE_XTREAM to "xtream",
             ActivationTags.SOURCE_M3U to "m3u",
-            ActivationTags.SOURCE_LOCAL to "local",
+            ActivationTags.SOURCE_PORTAL to "portal",
             ActivationTags.SOURCE_USERS to "users",
             ActivationTags.SOURCE_BACK to "back",
         )) {
@@ -281,37 +284,61 @@ class SourceChoiceLayoutTest {
                 "back ${back.top}..${back.bottom}",
         )
 
-        // Equal, to the dp, in both dimensions. This is the whole requirement: no card
-        // may be shorter because its description is shorter, and none may be wider.
-        val widths = cards.map { it.second.width }
-        val heights = cards.map { it.second.height }
+        val (xtream, m3u, portal, users) = cards.map { it.second }
+
+        // The leading pair: full width, equal to each other, one above the other.
+        // Equal heights is the requirement that outlived the grid — no card may be
+        // shorter because its description is shorter.
         assertTrue(
-            "${frame.width}: the cards are not equal in width — $widths",
-            abs((widths.max() - widths.min()).value) <= 1f,
+            "${frame.width}: the leading cards are not equal in width — " +
+                "${xtream.width} vs ${m3u.width}",
+            abs((xtream.width - m3u.width).value) <= 1f,
         )
         assertTrue(
-            "${frame.width}: the cards are not equal in height — $heights",
-            abs((heights.max() - heights.min()).value) <= 1f,
+            "${frame.width}: the leading cards are not equal in height — " +
+                "${xtream.height} vs ${m3u.height}",
+            abs((xtream.height - m3u.height).value) <= 1f,
+        )
+        assertTrue(
+            "${frame.width}: M3U is not under Xtream — ${m3u.top} against ${xtream.bottom}",
+            m3u.top >= xtream.bottom,
         )
 
-        val (xtream, m3u, local, users) = cards.map { it.second }
-
-        // Two rows of two: each pair shares a band, and the rows do not.
-        assertTrue("${frame.width}: row one is not one row", overlapVertically(xtream, m3u))
-        assertTrue("${frame.width}: row two is not one row", overlapVertically(local, users))
+        // The pair under the rule: side by side, equal to each other, and below both
+        // of the leading pair.
         assertTrue(
-            "${frame.width}: the rows overlap — row one ends ${xtream.bottom}, " +
-                "row two starts ${local.top}",
-            local.top >= xtream.bottom,
+            "${frame.width}: the lower pair is not equal — ${portal.width}x${portal.height} " +
+                "vs ${users.width}x${users.height}",
+            abs((portal.width - users.width).value) <= 1f &&
+                abs((portal.height - users.height).value) <= 1f,
+        )
+        assertTrue("${frame.width}: the lower pair is not one row", overlapVertically(portal, users))
+        assertTrue("${frame.width}: the lower pair overlaps horizontally", disjoint(portal, users))
+        assertTrue(
+            "${frame.width}: the lower pair is not below M3U — ${portal.top} against ${m3u.bottom}",
+            portal.top >= m3u.bottom,
         )
 
-        // Two columns: within a row the pair does not overlap, and the columns line up
-        // between the rows. A grid whose lower row is offset is not a grid.
-        assertTrue("${frame.width}: row one overlaps horizontally", disjoint(xtream, m3u))
-        assertTrue("${frame.width}: row two overlaps horizontally", disjoint(local, users))
+        // The rule between the tiers, which is what says they are two tiers and not
+        // three rows of cards.
+        val rule = bounds(ActivationTags.SOURCE_OTHERS)
         assertTrue(
-            "${frame.width}: the columns do not line up — ${xtream.left} vs ${local.left}",
-            abs((xtream.left - local.left).value) <= 1f,
+            "${frame.width}: the rule is not under the leading pair — ${rule.top} " +
+                "against ${m3u.bottom}",
+            rule.top >= m3u.bottom,
+        )
+        assertTrue(
+            "${frame.width}: the rule is not above the lower pair — ${rule.bottom} " +
+                "against ${portal.top}",
+            rule.bottom <= portal.top,
+        )
+
+        // And the hierarchy itself: a card under the rule is shorter than one above it.
+        // Without this the tiers are a rule with four equal cards around it.
+        assertTrue(
+            "${frame.width}: the lower cards are not shorter — ${portal.height} " +
+                "against ${xtream.height}",
+            portal.height < xtream.height,
         )
 
         // Heading above the grid, grid above the sentence — the sequence the scroll
@@ -324,8 +351,8 @@ class SourceChoiceLayoutTest {
         // which is what was asked for, so the assertion is inverted rather than
         // dropped. Putting it back under the cards fails here.
         val panel = bounds(ActivationTags.SOURCE_CONTAINER)
-        assertTrue("${frame.width}: the heading is not above the grid", heading.bottom <= xtream.top)
-        assertTrue("${frame.width}: Back is not above the grid", back.bottom <= xtream.top)
+        assertTrue("${frame.width}: the heading is not above the cards", heading.bottom <= xtream.top)
+        assertTrue("${frame.width}: Back is not above the cards", back.bottom <= xtream.top)
 
         // The stage really contains them: all four cards and Back inside its bounds,
         // none of them touching an edge. "Everything is on the screen" is otherwise
@@ -440,7 +467,7 @@ class SourceChoiceLayoutTest {
                     SourceChoiceScreen(
                         onXtream = {},
                         onPlaylist = {},
-                        onLocalVideo = {},
+                        onPortal = {},
                         onSavedSources = {},
                         onBack = {},
                     )
@@ -463,7 +490,7 @@ class SourceChoiceLayoutTest {
         val CARD_TAGS = listOf(
             ActivationTags.SOURCE_XTREAM,
             ActivationTags.SOURCE_M3U,
-            ActivationTags.SOURCE_LOCAL,
+            ActivationTags.SOURCE_PORTAL,
             ActivationTags.SOURCE_USERS,
         )
     }

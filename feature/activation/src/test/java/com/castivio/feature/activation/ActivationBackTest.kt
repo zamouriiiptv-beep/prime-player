@@ -28,32 +28,19 @@ import org.junit.Test
 class ActivationBackTest {
 
     /**
-     * The reported bug, as the four assertions it actually was.
+     * The portal is two steps away from itself, and only one of them is the root.
      *
-     * Written out one by one rather than as a loop over the four, because the report was
-     * about a specific journey and a test that reads like the report is a test somebody can
-     * check against it.
+     * `Mac` is where this flow opens on a box with nothing on it, so back from it leaves
+     * the application. `Portal` is the same screen reached from the chooser's Stalker
+     * card, so back from it returns to the chooser. The screen cannot answer both, which
+     * is why there are two steps rather than one — and this is the assertion that keeps
+     * anybody from collapsing them back into one on the grounds that they draw the same
+     * thing.
      */
     @Test
-    fun `back from a media screen returns to the media source, not to the source choice`() {
-        assertEquals(
-            "the video library went one screen too far",
-            ActivationStep.MediaSource,
-            ActivationStep.VideoLibrary.parent(),
-        )
-        assertEquals(
-            "the audio library went one screen too far",
-            ActivationStep.MediaSource,
-            ActivationStep.AudioLibrary.parent(),
-        )
-        assertEquals(ActivationStep.MediaSource, ActivationStep.PickVideo.parent())
-        assertEquals(ActivationStep.MediaSource, ActivationStep.PickAudio.parent())
-    }
-
-    /** And the step above them, which the same `else` was also answering by accident. */
-    @Test
-    fun `back from the media source returns to the source choice`() {
-        assertEquals(ActivationStep.Choose, ActivationStep.MediaSource.parent())
+    fun `back from the portal card returns to the source choice, not out of the app`() {
+        assertEquals(ActivationStep.Choose, ActivationStep.Portal.parent())
+        assertNull("the address step is still the root", ActivationStep.Mac.parent())
     }
 
     @Test
@@ -61,6 +48,7 @@ class ActivationBackTest {
         assertEquals(ActivationStep.Choose, ActivationStep.Xtream.parent())
         assertEquals(ActivationStep.Choose, ActivationStep.Playlist.parent())
         assertEquals(ActivationStep.Choose, ActivationStep.SavedSources.parent())
+        assertEquals(ActivationStep.Choose, ActivationStep.Portal.parent())
     }
 
     @Test
