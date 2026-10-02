@@ -125,12 +125,20 @@ object PlaylistModule {
         private val api = StalkerHttpApi(client, url, mac)
         private var session: StalkerSession? = null
 
-        private fun session(): StalkerSession? =
-            session ?: (api.handshake() as? Outcome.Success)?.value?.also { session = it }
+        private fun session(): StalkerSession? {
+            session?.let { return it }
+            return when (val opened = api.handshake()) {
+                is Outcome.Success -> opened.value.also { session = it }
+                is Outcome.Failure -> null
+            }
+        }
 
         override fun channels(page: Int, onChannel: (StalkerChannel) -> Unit): Int {
             val open = session() ?: return 0
-            return (api.channels(open, page, onChannel) as? Outcome.Success)?.value ?: 0
+            return when (val answer = api.channels(open, page, onChannel)) {
+                is Outcome.Success -> answer.value
+                is Outcome.Failure -> 0
+            }
         }
 
         // A portal command that carries an address is playable as it stands; one that

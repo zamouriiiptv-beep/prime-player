@@ -89,10 +89,11 @@ class StalkerHttpApi(
     }
 
     /** What the portal says about the account this token belongs to. */
-    fun profile(session: StalkerSession): Outcome<StalkerProfile> = call(session, "stb", "get_profile") {
-        StalkerParser.parseProfile(it)?.let(Outcome::Success)
-            ?: Outcome.Failure(AppError.MALFORMED_PLAYLIST)
-    }
+    fun profile(session: StalkerSession): Outcome<StalkerProfile> =
+        call(session, "stb", "get_profile") { reader ->
+            val parsed = StalkerParser.parseProfile(reader)
+            if (parsed == null) Outcome.Failure(AppError.MALFORMED_PLAYLIST) else Outcome.Success(parsed)
+        }
 
     /**
      * One page of live channels, handed over as they are read.
