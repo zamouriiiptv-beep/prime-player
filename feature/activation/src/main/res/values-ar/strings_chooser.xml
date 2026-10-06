@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  شاشة اختيار طريقة الإضافة، بالعربية.
+
+  هذه الحزمة مشمولة ببوابة اكتمال الترجمات في `check-invariants.sh`: كل مفتاح هنا
+  يجب أن يوجد غير فارغ في كل لغة. وصفا البطاقتين السفليتين مقيسان على عمود التلفاز
+  (265dp عند خطّ 13.5dp) ويسعان سطرًا واحدًا — وإطالتهما تُعيد القصّ.
+-->
+<resources>
+    <string name="source_choice_title">اختر طريقة إضافة المحتوى</string>
+    <string name="source_choice_subtitle">اختر الطريقة التي تريد من خلالها إضافة مصدر المحتوى</string>
+    <string name="source_xtream_title">Xtream Codes</string>
+    <string name="source_xtream_detail">أضف سيرفر واسم مستخدم وكلمة مرور.</string>
+    <string name="source_xtream_hint">دعم كامل لميزات Xtream.</string>
+    <string name="source_m3u_title">قائمة M3U</string>
+    <string name="source_m3u_detail">أضف رابط قائمة التشغيل بصيغة M3U.</string>
+    <string name="source_m3u_hint">رابط واحد طويل يُرسل عادةً بالبريد.</string>
+    <string name="source_portal_title">Stalker Portal</string>
+    <string name="source_portal_detail">رابط البوابة من مزوّدك.</string>
+    <string name="source_portal_hint">لأجهزة MAG.</string>
+    <string name="source_users_title">اشتراكاتي</string>
+    <string name="source_users_detail">اشتراكاتك المحفوظة.</string>
+    <string name="source_users_hint">تعديل أو حذف.</string>
+    <string name="source_other_options">خيارات أخرى</string>
+    <string name="action_back">رجوع</string>
+    <string name="action_theme_lighter">التبديل إلى الوضع الأفتح</string>
+    <string name="action_theme_darker">التبديل إلى الوضع الأغمق</string>
+</resources>

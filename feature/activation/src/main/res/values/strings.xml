@@ -16,23 +16,20 @@
 
     <!-- The honest state of the portal. Not a placeholder: this is what is true today. -->
 
-    <!-- Add manually -->
-    <string name="source_choice_title">What did your provider give you?</string>
-    <string name="source_xtream_title">Xtream Codes</string>
-    <string name="source_xtream_detail">Add a server, a username and a password.</string>
-    <string name="source_m3u_title">M3U playlist</string>
-    <string name="source_m3u_detail">Add a playlist link in M3U format.</string>
-    <string name="source_users_title">My subscriptions</string>
-    <string name="source_portal_title">Stalker Portal</string>
+    <!-- Add manually.
+
+         The heading names the task rather than asking a question. "What did your
+         provider give you?" put the reader in an interview: it needs them to already
+         know which of four kinds of thing they hold before the cards below have told
+         them. A heading that says what this screen is for lets the cards answer the
+         question instead of the title asking it. No question mark here in any
+         language. -->
     <!-- The two cards under the rule have a budget, and it is 19em of their own body
          type: a card there holds ONE line of description, and the detail and the hint
          are drawn as one paragraph, so the pair is what has to fit. The binding surface
          is the 960x540 television, not a phone — 265dp of column against 13.5dp type is
          19.63em, tighter than any handset. Both of these were over it and were cut on a
          device. Measured, not estimated; lengthening either half puts the cut back. -->
-    <string name="source_portal_detail">Provider portal URL.</string>
-    <string name="source_users_detail">Subscriptions.</string>
-    <string name="source_other_options">Other options</string>
     <string name="source_terms">Terms of Service</string>
     <!-- Follows `source_terms` on the same line, and it is one line: the footer
          shares Back's row, so a wrap would push the sentence out of it. -->
@@ -108,7 +105,6 @@
     <string name="field_playlist_url">M3U playlist URL</string>
     <string name="field_playlist_url_placeholder">http://example.com/get.php?…</string>
     <string name="action_connect">Connect</string>
-    <string name="action_back">Back</string>
 
     <!-- What is wrong with a field -->
     <string name="problem_required">This one is needed.</string>
@@ -170,22 +166,15 @@
     <!-- The source chooser, redrawn as a grid. -->
     <!-- The second sentence of each card: what the first one does not say, which is
          how a reader tells which of these they actually have. -->
-    <string name="source_xtream_hint">Full support for Xtream features.</string>
-    <string name="source_m3u_hint">One long link, usually sent by e-mail.</string>
     <!-- The two under the rule are the short ones, and `source_portal_detail` says why.
          Each carries the fact its detail does not — which box this is for, what the
          screen lets you do — in as few words as that holds. -->
-    <string name="source_users_hint">Rename or delete.</string>
-    <string name="source_portal_hint">MAG.</string>
     <string name="field_portal_url">Portal URL</string>
     <string name="field_portal_url_placeholder">http://portal.example.com/c/</string>
     <string name="field_portal_hint">Enter the portal URL your provider sent you.</string>
     <string name="mac_installation_note">This address belongs to the app on this device. Clearing the app’s data gives this device a new one, and you would need to send it to your provider again.</string>
     <!-- The two folder choosers: the top of each picker's tree. -->
     <!-- The theme control in every header. Named by what pressing it does. -->
-    <string name="action_theme_lighter">Switch to the lighter theme</string>
-    <string name="action_theme_darker">Switch to the darker theme</string>
-    <string name="source_choice_subtitle">Choose how you want to add your content source</string>
     <!-- The local-media chooser: the line under its name, and its own footnote. -->
     <!-- The assurance strip under the four choices. -->
 </resources>

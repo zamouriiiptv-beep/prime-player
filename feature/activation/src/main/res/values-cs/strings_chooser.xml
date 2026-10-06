@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The source chooser, in Czech.
+
+  Its strings lived only in `values/` and `values-ar/`, so every other language
+  rendered this screen in English while the rest of the application was translated.
+  A screen half in the reader's language is worse than one consistently in another:
+  it reads as a fault rather than as a limit.
+
+  Kept short on purpose. The two cards under the rule are half the width of the two
+  above them and hold one line of description each; a detail and a hint that together
+  run past that line are cut on the device. The English and Arabic were measured at
+  the television's own column before they were settled, and these follow them.
+-->
+<resources>
+    <string name="source_choice_title">Vyberte způsob přidání obsahu</string>
+    <string name="source_choice_subtitle">Vyberte, jak chcete přidat zdroj obsahu</string>
+    <string name="source_xtream_title">Xtream Codes</string>
+    <string name="source_xtream_detail">Zadejte server, uživatele a heslo.</string>
+    <string name="source_xtream_hint">Plná podpora funkcí Xtream.</string>
+    <string name="source_m3u_title">Playlist M3U</string>
+    <string name="source_m3u_detail">Přidejte odkaz na playlist ve formátu M3U.</string>
+    <string name="source_m3u_hint">Jeden dlouhý odkaz, obvykle e-mailem.</string>
+    <string name="source_portal_title">Stalker Portal</string>
+    <string name="source_portal_detail">URL portálu poskytovatele.</string>
+    <string name="source_portal_hint">MAG.</string>
+    <string name="source_users_title">Moje předplatné</string>
+    <string name="source_users_detail">Předplatné.</string>
+    <string name="source_users_hint">Přejmenovat nebo smazat.</string>
+    <string name="source_other_options">Další možnosti</string>
+    <string name="action_back">Zpět</string>
+    <string name="action_theme_lighter">Přepnout na světlý motiv</string>
+    <string name="action_theme_darker">Přepnout na tmavý motiv</string>
+</resources>

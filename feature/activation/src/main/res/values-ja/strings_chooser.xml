@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The source chooser, in Japanese.
+
+  Its strings lived only in `values/` and `values-ar/`, so every other language
+  rendered this screen in English while the rest of the application was translated.
+  A screen half in the reader's language is worse than one consistently in another:
+  it reads as a fault rather than as a limit.
+
+  Kept short on purpose. The two cards under the rule are half the width of the two
+  above them and hold one line of description each; a detail and a hint that together
+  run past that line are cut on the device. The English and Arabic were measured at
+  the television's own column before they were settled, and these follow them.
+-->
+<resources>
+    <string name="source_choice_title">コンテンツの追加方法を選択</string>
+    <string name="source_choice_subtitle">コンテンツソースの追加方法を選択してください</string>
+    <string name="source_xtream_title">Xtream Codes</string>
+    <string name="source_xtream_detail">サーバー、ユーザー名、パスワードを入力。</string>
+    <string name="source_xtream_hint">Xtream の全機能に対応。</string>
+    <string name="source_m3u_title">M3U プレイリスト</string>
+    <string name="source_m3u_detail">M3U 形式のプレイリストリンクを追加。</string>
+    <string name="source_m3u_hint">メールで届く長いリンク 1 本。</string>
+    <string name="source_portal_title">Stalker Portal</string>
+    <string name="source_portal_detail">プロバイダーのポータル URL。</string>
+    <string name="source_portal_hint">MAG。</string>
+    <string name="source_users_title">マイサブスクリプション</string>
+    <string name="source_users_detail">サブスク。</string>
+    <string name="source_users_hint">名前変更または削除。</string>
+    <string name="source_other_options">その他の方法</string>
+    <string name="action_back">戻る</string>
+    <string name="action_theme_lighter">明るいテーマに切り替え</string>
+    <string name="action_theme_darker">暗いテーマに切り替え</string>
+</resources>

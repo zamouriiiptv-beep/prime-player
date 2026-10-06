@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The source chooser, in Persian.
+
+  Its strings lived only in `values/` and `values-ar/`, so every other language
+  rendered this screen in English while the rest of the application was translated.
+  A screen half in the reader's language is worse than one consistently in another:
+  it reads as a fault rather than as a limit.
+
+  Kept short on purpose. The two cards under the rule are half the width of the two
+  above them and hold one line of description each; a detail and a hint that together
+  run past that line are cut on the device. The English and Arabic were measured at
+  the television's own column before they were settled, and these follow them.
+-->
+<resources>
+    <string name="source_choice_title">روش افزودن محتوا را انتخاب کنید</string>
+    <string name="source_choice_subtitle">انتخاب کنید چگونه منبع محتوای خود را اضافه کنید</string>
+    <string name="source_xtream_title">Xtream Codes</string>
+    <string name="source_xtream_detail">سرور، نام کاربری و رمز عبور را وارد کنید.</string>
+    <string name="source_xtream_hint">پشتیبانی کامل از Xtream.</string>
+    <string name="source_m3u_title">فهرست M3U</string>
+    <string name="source_m3u_detail">پیوند فهرست پخش با قالب M3U را اضافه کنید.</string>
+    <string name="source_m3u_hint">یک پیوند بلند، معمولاً از طریق ایمیل.</string>
+    <string name="source_portal_title">Stalker Portal</string>
+    <string name="source_portal_detail">نشانی پرتال ارائه‌دهنده.</string>
+    <string name="source_portal_hint">MAG.</string>
+    <string name="source_users_title">اشتراک‌های من</string>
+    <string name="source_users_detail">اشتراک‌ها.</string>
+    <string name="source_users_hint">تغییر نام یا حذف.</string>
+    <string name="source_other_options">گزینه‌های دیگر</string>
+    <string name="action_back">بازگشت</string>
+    <string name="action_theme_lighter">تغییر به پوستهٔ روشن</string>
+    <string name="action_theme_darker">تغییر به پوستهٔ تیره</string>
+</resources>

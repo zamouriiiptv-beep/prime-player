@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The source chooser, in English. The default locale, so this file is the base the
+  completeness gate measures every other language against.
+
+  ## Why these eighteen are a bundle of their own
+
+  They were in `strings.xml`, which no gate covers, and the result was a screen that
+  existed in two languages while the application shipped in thirty-nine: a reader who
+  switched to French got a French application and an English chooser. That is worse
+  than a screen consistently in another language, because it reads as a fault.
+
+  A bundle is the fix that holds. `check-invariants.sh` requires every key here to be
+  present and non-empty in every `values-*` directory, so the next string added to this
+  screen cannot reach a device untranslated.
+
+  ## The three that are not the chooser's own
+
+  `action_back` and the two theme labels are drawn by `ChooserHeader`, which the saved
+  subscriptions and the activation screen also wear. They live here because this is the
+  bundle that is gated and they are read on this screen; nothing else about them moved.
+
+  ## Length is a measured constraint on four of these
+
+  The two cards under the rule are half the width of the two above them and hold ONE
+  line of description each, and a card draws its detail and its hint as one paragraph.
+  The binding surface is the 960x540 television, not a handset: 265dp of column against
+  13.5dp type is 19.63em, tighter than any phone in the set. Every language was measured
+  in that column before it was settled. Lengthening a detail or a hint puts the cut back.
+-->
+<resources>
+    <string name="source_choice_title">Choose how to add content</string>
+    <string name="source_choice_subtitle">Choose how you want to add your content source</string>
+    <string name="source_xtream_title">Xtream Codes</string>
+    <string name="source_xtream_detail">Add a server, a username and a password.</string>
+    <string name="source_xtream_hint">Full support for Xtream features.</string>
+    <string name="source_m3u_title">M3U playlist</string>
+    <string name="source_m3u_detail">Add a playlist link in M3U format.</string>
+    <string name="source_m3u_hint">One long link, usually sent by e-mail.</string>
+    <string name="source_portal_title">Stalker Portal</string>
+    <string name="source_portal_detail">Provider portal URL.</string>
+    <string name="source_portal_hint">MAG.</string>
+    <string name="source_users_title">My subscriptions</string>
+    <string name="source_users_detail">Subscriptions.</string>
+    <string name="source_users_hint">Rename or delete.</string>
+    <string name="source_other_options">Other options</string>
+    <string name="action_back">Back</string>
+    <string name="action_theme_lighter">Switch to the lighter theme</string>
+    <string name="action_theme_darker">Switch to the darker theme</string>
+</resources>

@@ -219,7 +219,15 @@ fi
 # which is the third time in this file that a checker outlived the subset it was
 # aimed at. Every bundle a feature ships is named here, and the check below
 # walks all of them.
+#
+# `strings_chooser.xml` is the clearest case for naming them. Those eighteen
+# strings sat in the activation feature's `strings.xml`, which is not a declared
+# bundle and so is gated by nothing: the source chooser shipped in two languages
+# while the application shipped in thirty-nine, and no check said a word. A
+# screen that is user-facing belongs to a bundle on this list; "it is in a
+# strings file somewhere" is not the same claim.
 BUNDLES='feature/activation/src/main/res:strings_activation.xml
+feature/activation/src/main/res:strings_chooser.xml
 feature/licence/src/main/res:strings_licence.xml
 app/src/main/res:strings_exit.xml'
 

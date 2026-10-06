@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The source chooser, in Korean.
+
+  Its strings lived only in `values/` and `values-ar/`, so every other language
+  rendered this screen in English while the rest of the application was translated.
+  A screen half in the reader's language is worse than one consistently in another:
+  it reads as a fault rather than as a limit.
+
+  Kept short on purpose. The two cards under the rule are half the width of the two
+  above them and hold one line of description each; a detail and a hint that together
+  run past that line are cut on the device. The English and Arabic were measured at
+  the television's own column before they were settled, and these follow them.
+-->
+<resources>
+    <string name="source_choice_title">콘텐츠 추가 방법 선택</string>
+    <string name="source_choice_subtitle">콘텐츠 소스를 추가할 방법을 선택하세요</string>
+    <string name="source_xtream_title">Xtream Codes</string>
+    <string name="source_xtream_detail">서버, 사용자 이름, 비밀번호를 입력하세요.</string>
+    <string name="source_xtream_hint">Xtream 기능 전체 지원.</string>
+    <string name="source_m3u_title">M3U 재생목록</string>
+    <string name="source_m3u_detail">M3U 형식의 재생목록 링크를 추가하세요.</string>
+    <string name="source_m3u_hint">보통 이메일로 받는 긴 링크 하나.</string>
+    <string name="source_portal_title">Stalker Portal</string>
+    <string name="source_portal_detail">제공업체 포털 URL.</string>
+    <string name="source_portal_hint">MAG.</string>
+    <string name="source_users_title">내 구독</string>
+    <string name="source_users_detail">구독.</string>
+    <string name="source_users_hint">이름 변경 또는 삭제.</string>
+    <string name="source_other_options">다른 방법</string>
+    <string name="action_back">뒤로</string>
+    <string name="action_theme_lighter">밝은 테마로 전환</string>
+    <string name="action_theme_darker">어두운 테마로 전환</string>
+</resources>
