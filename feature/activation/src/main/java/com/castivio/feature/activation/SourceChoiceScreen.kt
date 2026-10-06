@@ -227,9 +227,26 @@ private const val DETAIL_LINES = 2
  * bands of cards and a rule between them is what the frame now holds, and a footnote
  * under all of it was the thing that did not fit. Its claims were about the product
  * rather than about this decision, and the screen asks the decision.
+ *
+ * ## [subBand] is part of the header, and this used to forget it
+ *
+ * The header is two bands when a screen gives it a sentence, and this one does.
+ * `CastivioHeader` measures the row, measures the sentence under it, and reports
+ * `layout(total, rowH + band)` -- so the `Column` here hands the cards whatever is left
+ * after *both*, while this subtracted only the row.
+ *
+ * The difference is [subBand]: 18dp on the shortest frame, 34 at the reference. It was
+ * never a rounding error, it was a band of the screen this arithmetic did not know
+ * existed, and it made every figure derived from here optimistic by exactly that much
+ * -- [leadHeight], the card height under it, and the budget that reads them. A frame
+ * could be passed here and clip on the device, which is the one direction a budget is
+ * not allowed to be wrong in.
+ *
+ * Nothing moves on screen. The layout was always a `Column` of weights taking what the
+ * header left; this is the statement of it, and the statement is what was wrong.
  */
 internal fun SourceMetrics.bandHeight(frame: Dp): Dp =
-    frame - stageTop - header - bandTop - stageBottom
+    frame - stageTop - header - subBand - bandTop - stageBottom
 
 /**
  * One of the two leading cards.
