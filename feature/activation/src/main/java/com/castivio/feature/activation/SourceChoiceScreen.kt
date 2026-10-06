@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
@@ -36,6 +37,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
@@ -109,6 +111,16 @@ internal data class SourceMetrics(
     val chevron: Dp,
     val detailLines: Int,
     val subBand: Dp,
+    /**
+     * The air above the sentence at the foot, and the line it is set on.
+     *
+     * Two numbers rather than one because they answer to different things: the air is a
+     * margin and may be tightened on a short frame, the line has to hold a line of body
+     * type and may not. [footLine]'s floor is what a 12dp body line actually measures,
+     * which is why it stops falling long before the air does.
+     */
+    val footAir: Dp,
+    val footLine: Dp,
     /** The height of the rule that separates the two ways in from the two that are not. */
     val divider: Dp,
 ) {
@@ -165,6 +177,8 @@ internal fun sourceMetricsFor(tv: Boolean, width: Dp, height: Dp): SourceMetrics
         disc = height.boundedFraction(DISC, 50.dp, 76.dp),
         chevron = height.boundedFraction(CHEVRON, 17.dp, 26.dp),
         divider = height.boundedFraction(DIVIDER, 16.dp, 28.dp),
+        footAir = height.boundedFraction(FOOT_AIR, 8.dp, 16.dp),
+        footLine = height.boundedFraction(FOOT_LINE, 16.dp, 24.dp),
         detailLines = DETAIL_LINES,
     )
 }
@@ -183,6 +197,23 @@ private const val CARD_GAP = 21.33f / 720f
 private const val DISC = 96f / 720f
 private const val CHEVRON = 32f / 720f
 private const val DIVIDER = 26f / 720f
+
+/**
+ * The sentence at the foot: its air, and its line.
+ *
+ * Read off the reference like everything else — 14dp of air over a 20dp line at 720 —
+ * and they add up to the 34dp the subtitle band used to take out of the same frame, so
+ * at the reference not one card moved when the sentence did.
+ *
+ * They are not equal to that band everywhere, and the direction is the honest one. The
+ * subtitle band was a generous box: 34dp for a 19dp line, nearly twice the type it
+ * held. A line and a margin stated separately cannot hide air inside themselves, so on
+ * a short frame — where [footLine]'s floor is the 16dp a 12dp body line really measures
+ * — the pair costs about 6dp more than the band did. The cards pay it, and the budget
+ * says so rather than the device finding out.
+ */
+private const val FOOT_AIR = 14f / 720f
+private const val FOOT_LINE = 20f / 720f
 
 /**
  * How tall the row of two smaller cards is, against one of the leading pair.
@@ -228,25 +259,26 @@ private const val DETAIL_LINES = 2
  * under all of it was the thing that did not fit. Its claims were about the product
  * rather than about this decision, and the screen asks the decision.
  *
- * ## [subBand] is part of the header, and this used to forget it
+ * ## The header's second row moved to the foot, and this counts it there
  *
- * The header is two bands when a screen gives it a sentence, and this one does.
- * `CastivioHeader` measures the row, measures the sentence under it, and reports
- * `layout(total, rowH + band)` -- so the `Column` here hands the cards whatever is left
- * after *both*, while this subtracted only the row.
+ * `CastivioHeader` is two bands when a screen gives it a sentence: it measures the row,
+ * measures the sentence under it, and reports `layout(total, rowH + band)`. This screen
+ * no longer gives it one, so [subBand] is not spent here any more and is not subtracted
+ * -- it stays on [SourceMetrics] because the saved-subscriptions header still wears its
+ * own sentence.
  *
- * The difference is [subBand]: 18dp on the shortest frame, 34 at the reference. It was
- * never a rounding error, it was a band of the screen this arithmetic did not know
- * existed, and it made every figure derived from here optimistic by exactly that much
- * -- [leadHeight], the card height under it, and the budget that reads them. A frame
- * could be passed here and clip on the device, which is the one direction a budget is
+ * What is spent instead is [footAir] and [footLine], at the other end of the same
+ * `Column` and for the same words. The sentence is a line of prose about the screen, and
+ * under four cards it reads as a footnote rather than as a heading's second line, which
+ * is where it was asked to go.
+ *
+ * Both ends are counted because neither is optional. A band that forgot either would
+ * promise the cards room the `Column` does not have, and the budget that reads this
+ * would pass a frame that clips on the device -- which is the one direction a budget is
  * not allowed to be wrong in.
- *
- * Nothing moves on screen. The layout was always a `Column` of weights taking what the
- * header left; this is the statement of it, and the statement is what was wrong.
  */
 internal fun SourceMetrics.bandHeight(frame: Dp): Dp =
-    frame - stageTop - header - subBand - bandTop - stageBottom
+    frame - stageTop - header - bandTop - footAir - footLine - stageBottom
 
 /**
  * One of the two leading cards.
@@ -318,14 +350,17 @@ internal fun SourceChoiceScreen(
                 .castivioStage(m.frame)
                 .testTag(ActivationTags.SOURCE_CONTAINER),
         ) {
+            // No sentence under the title. It says what the screen is, which is what
+            // four labelled cards under a question already say, and in the header it
+            // was charging the cards a band of their own height to repeat them. The
+            // same words are at the foot now, where a line about the screen reads as a
+            // footnote rather than as a second heading.
             ChooserHeader(
                 m = m,
                 title = stringResource(R.string.source_choice_title),
                 headingTag = ActivationTags.SOURCE_HEADING,
                 backTag = ActivationTags.SOURCE_BACK,
                 onBack = onBack,
-                subtitle = stringResource(R.string.source_choice_subtitle),
-                subtitleTag = ActivationTags.SOURCE_SUBTITLE,
             )
             Spacer(Modifier.height(m.bandTop))
 
@@ -339,6 +374,28 @@ internal fun SourceChoiceScreen(
                 onPlaylist = onPlaylist,
                 onPortal = onPortal,
                 onSavedSources = onSavedSources,
+            )
+
+            // A sibling of the tiers rather than a child of them, which is the whole of
+            // what it costs. Inside that `Column` it would also be charged a grid gap,
+            // and the air above it is a decision rather than a leftover -- so it is
+            // stated once, here, as `footAir`.
+            //
+            // No bar, no border, no fill. The legal line on the activation screen wears
+            // one because it is a different kind of sentence; this is the screen talking
+            // about itself and is the quietest thing on it.
+            Spacer(Modifier.height(m.footAir))
+            Text(
+                text = stringResource(R.string.source_choice_subtitle),
+                style = castivioBodyStyle(m.fsDetail),
+                color = CastivioTheme.colors.onBackgroundMuted,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(m.footLine)
+                    .wrapContentHeight(Alignment.CenterVertically)
+                    .testTag(ActivationTags.SOURCE_SUBTITLE),
             )
         }
     }
