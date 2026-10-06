@@ -165,7 +165,7 @@ internal fun sourceMetricsFor(tv: Boolean, width: Dp, height: Dp): SourceMetrics
         disc = height.boundedFraction(DISC, 50.dp, 76.dp),
         chevron = height.boundedFraction(CHEVRON, 17.dp, 26.dp),
         divider = height.boundedFraction(DIVIDER, 16.dp, 28.dp),
-        detailLines = if (height >= FOURTH_LINE) 4 else 3,
+        detailLines = DETAIL_LINES,
     )
 }
 
@@ -195,14 +195,30 @@ private const val DIVIDER = 26f / 720f
 private const val MINOR_SHARE = 0.9f
 
 /**
- * Where a card's description gets a fourth line.
+ * How many lines a card's description gets: one for each of its two sentences.
  *
- * The one threshold on this screen, and it is a *content* rule rather than a layout
- * one: the card is taller than three lines of body type need from here up, so a
- * fourth line is room the sentence can use instead of white space. Below it the
- * fourth line would be the card overrunning its row.
+ * This number does two jobs, which is why getting it wrong was invisible. It is the
+ * `maxLines` of the text the card draws, and it is the reserve the budget holds that
+ * text to — so a value larger than the card can hold does not produce a roomier card,
+ * it produces a text that composes past the card's own bounds and is cut by them,
+ * without the ellipsis that says it was cut.
+ *
+ * It was 4 above 480dp and 3 below, which was true of a different screen: when the
+ * four cards were a two-by-two grid, every one of them had half a band to itself and
+ * could hold a description that wrapped twice. The approved drawing is two tiers, the
+ * cards are shorter, and what the drawing shows in every one of them is a description
+ * over two lines — the detail and the hint, one line each.
+ *
+ * So the measurements say the same thing the drawing does. At the 1280×720 reference
+ * the lower card is 142.6dp and two lines need 137.9; at 4 they needed 191.9, which
+ * the reference has never had. A reserve the reference itself fails is not a reserve,
+ * it is an assertion about a screen that was replaced.
+ *
+ * Not a threshold that was lowered to pass: raising it does not buy a taller card, and
+ * the budget it feeds is unchanged and still strict — the card must hold its disc, its
+ * padding, its title and these two lines, and the frames that cannot are still failed.
  */
-private val FOURTH_LINE = 480.dp
+private const val DETAIL_LINES = 2
 
 /**
  * What is left for the cards once everything fixed has been placed.
