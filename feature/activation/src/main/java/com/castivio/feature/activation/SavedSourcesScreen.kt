@@ -39,7 +39,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -49,7 +48,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.core.os.ConfigurationCompat
+import com.castivio.core.common.format.CastivioDates
 import com.castivio.core.design.components.ButtonWeight
 import com.castivio.core.design.components.CastivioDialog
 import com.castivio.core.design.components.CastivioTextField
@@ -57,15 +56,13 @@ import com.castivio.core.design.components.InteractiveGlassCard
 import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioDescriptionColor
+import com.castivio.core.design.components.ltrToken
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.boundedFraction
 import com.castivio.core.design.theme.castivioStage
 import com.castivio.domain.ProviderSource
 import com.castivio.domain.SourceKind
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 /**
  * The subscriptions this device holds, and what the user may do to them.
@@ -662,24 +659,24 @@ private fun RenameDialog(
 }
 
 /**
- * A timestamp as the interface's own date, memoised on both of its inputs.
+ * A timestamp as the interface's own date.
  *
- * The skeleton rather than a pattern, for the reason `formatExpiry` gives on the
- * licence screen: the platform knows what order and separators a language puts a day, a
- * month and a year in, and this screen does not.
+ * It asked the platform for the best pattern for this language, which is the right
+ * question for prose and the wrong one for a row of facts: the same subscription was
+ * dated `6 Oct 2026` here and `06/10/2026` on Home. `CastivioDates` is the one answer
+ * now, and the argument for it lives there.
  *
  * Both dates in a row go through it — when the subscription arrived and when it runs
  * out — because two dates side by side written in two formats read as two different
  * kinds of fact.
+ *
+ * [ltrToken] because the shape is numeric now. An unisolated `6-10-2026` in an Arabic
+ * row can be reordered by the bidirectional algorithm, which produces a wrong date
+ * rather than an ugly one; the worded format this replaced did not have that failure,
+ * so the isolation arrives with the digits.
  */
 @Composable
-private fun dateOn(atMs: Long): String {
-    val locale = ConfigurationCompat.getLocales(LocalConfiguration.current).get(0) ?: Locale.getDefault()
-    return remember(atMs, locale) {
-        val pattern = android.text.format.DateFormat.getBestDateTimePattern(locale, ADDED_SKELETON)
-        SimpleDateFormat(pattern, locale).format(Date(atMs))
-    }
-}
+private fun dateOn(atMs: Long): String = remember(atMs) { ltrToken(CastivioDates.date(atMs)) }
 
 /**
  * What a row needs beyond the shared frame.
@@ -769,9 +766,6 @@ private const val GROUP_SHARE = 8.5f
 private const val ACTIVE_SHARE = 1.2f
 private const val KIND_SHARE = 1f
 private const val DATE_SHARE = 2f
-
-/** Day, month as a word, year — order and separators are the locale's business. */
-private const val ADDED_SKELETON = "dMMMy"
 
 /** Between two facts. Punctuation, not a word: it is the same mark in every language. */
 private const val SEPARATOR = "•"

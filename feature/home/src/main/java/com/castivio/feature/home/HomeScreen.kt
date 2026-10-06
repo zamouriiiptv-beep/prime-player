@@ -95,6 +95,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.castivio.core.common.format.CastivioDates
 import com.castivio.core.design.components.CastivioClock
 import com.castivio.core.design.components.CastivioLockup
 import com.castivio.core.design.components.CastivioThemeSwitchChip
@@ -116,9 +117,6 @@ import com.castivio.core.design.theme.rememberMetrics
 import com.castivio.domain.MediaKind
 import com.castivio.domain.Recorded
 import com.castivio.domain.entitlement.EntitlementState
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 /**
  * Home: the dashboard, composed to the frame it is handed rather than to a scroll.
@@ -2104,34 +2102,25 @@ private fun Fact(
  * card read "Expires on 8 abr 2…": the month name spent the width the year needed,
  * and the year is the part a reader is actually checking.
  *
- * `dd/MM/yyyy` is eight figures and two slashes in every language, so the card can be
- * measured once and trusted. The zero fill is part of that: `8/4/2027` is eight
- * characters on one device and ten on the next, which is a card that fits until it
- * does not.
+ * ## Where the shape is decided now
  *
- * ## Why [Locale.ROOT] and not the reader's locale
- *
- * Because "the same in every language" has to include the *digits* and the *calendar*.
- * A locale-aware formatter may render Arabic-Indic figures, and a locale carrying a
- * calendar extension — `ar-SA-u-ca-islamic` — would print a Hijri date, so the same
- * moment would be two different dates on two phones. `Locale.ROOT` pins Gregorian and
- * Latin figures, which is what this row has always drawn and what a user reads out to
- * a provider.
+ * In `CastivioDates`, and not here. This screen held one of five patterns scattered
+ * across the application that each produced a different date for the same instant;
+ * they are one pattern now, and the reasoning about digits, calendars and why the
+ * reader's locale is not consulted lives beside it.
  *
  * The sentence around it still runs in the reader's direction; only this token is
- * fixed. [ltrToken] is what keeps it that way — an unisolated `08/04/2027` inside an
- * Arabic paragraph is reordered into `2708/04/20` by the bidirectional algorithm.
+ * fixed. [ltrToken] is what keeps it that way — an unisolated `8-4-2027` inside an
+ * Arabic paragraph can be reordered by the bidirectional algorithm, which is a wrong
+ * date rather than an ugly one.
  *
  * `remember` keyed on the value, because building a formatter and running it is real
  * work and composition runs whenever anything on this screen moves.
  */
 @Composable
 internal fun rememberDate(atMs: Long): String = remember(atMs) {
-    ltrToken(SimpleDateFormat(EXPIRY_PATTERN, Locale.ROOT).format(Date(atMs)))
+    ltrToken(CastivioDates.date(atMs))
 }
-
-/** Frozen with [rememberDate]: eight figures and two slashes, zero-filled. */
-private const val EXPIRY_PATTERN = "dd/MM/yyyy"
 
 /**
  * How the board's width is divided: the rail, the stack, the hero.

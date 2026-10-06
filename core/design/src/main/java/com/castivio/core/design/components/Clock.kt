@@ -18,6 +18,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import com.castivio.core.common.format.CastivioDates
 import com.castivio.core.design.theme.CastivioTheme
 import java.text.DateFormat
 import java.util.Date
@@ -62,9 +63,9 @@ fun CastivioClock(
     val time = remember(now, locale) {
         ltrToken(DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(now)))
     }
-    val day = remember(now, locale) {
-        ltrToken(DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(now)))
-    }
+    // The date does not ask the locale anything, so it is not keyed on one: Castivio
+    // draws one date shape everywhere. See `CastivioDates`.
+    val day = remember(now) { ltrToken(CastivioDates.date(now)) }
 
     Column(modifier, horizontalAlignment = Alignment.End) {
         Text(

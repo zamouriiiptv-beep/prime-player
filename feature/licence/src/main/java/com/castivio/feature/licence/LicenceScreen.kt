@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.os.ConfigurationCompat
+import com.castivio.core.common.format.CastivioDates
 import com.castivio.core.design.components.ButtonWeight
 import com.castivio.core.design.components.CapsuleMetrics
 import com.castivio.core.design.components.CastivioButton
@@ -88,8 +89,6 @@ import com.castivio.core.design.theme.castivioStage
 import com.castivio.domain.entitlement.EntitlementState
 import com.castivio.domain.entitlement.Plan
 import com.castivio.domain.entitlement.PlanOffer
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 /**
@@ -929,52 +928,33 @@ private fun ExpiryLine(expiresAtMs: Long?, m: LicenceMetrics) {
 }
 
 /**
- * The expiry, as a date with the month **named** rather than numbered.
+ * The expiry, in the one date shape Castivio draws.
  *
- * ## Why not `DateFormat.MEDIUM`, which is the obvious call
+ * ## What this used to do, and why it stopped
  *
- * Because "medium" is not a shape, it is a slot, and CLDR fills that slot with
- * whatever each language conventionally uses — which for a good many of them is
- * all digits:
+ * It asked ICU for the best pattern for a `dMMMy` skeleton, so the month arrived as a
+ * **word** — `19 Feb 2027`, `19 févr. 2027`, `١٩ فبراير ٢٠٢٧` — and the argument was a
+ * good one: a row of numbers separated by slashes is ambiguous in exactly the way a
+ * date on a receipt must not be. Is `02/12/2027` the 2nd of December or the 12th of
+ * February?
  *
- * | locale | `MEDIUM` |
- * |---|---|
- * | en-GB | `19 Feb 2027` |
- * | ar | `19‏/02‏/2027` |
- * | de | `19.02.2027` |
- * | ja | `2027/02/19` |
+ * The product's answer is now that the shape is the same everywhere rather than
+ * idiomatic in each language, and `CastivioDates` carries it. That answer costs this
+ * screen the month name, and the ambiguity above is the price: `6-10-2026` is day-first
+ * and a reader who expects month-first will read it as the 10th of June. Day-month-year
+ * is what Castivio states, in one shape, on every screen.
  *
- * Arabic is the one that made this visible. Its medium pattern is `dd‏/MM‏/y`,
- * with a **right-to-left mark after each field**; those marks break the three
- * numbers into separate runs, and right-to-left layout then orders the runs
- * right to left. The string is "19/02/2027" and the screen reads `2027/02/19`.
- * Nothing is wrong with it — it is what an Arabic reader's platform produces —
- * and it is still not what a licence screen wants, because a row of numbers
- * separated by slashes is ambiguous in exactly the way a date on a receipt must
- * not be. Is that the 2nd of December or the 12th of February?
+ * ## The locale that is still in the signature
  *
- * ## What this asks for instead
- *
- * A **skeleton**: day, abbreviated month, year, with no opinion about order or
- * separators. `getBestDateTimePattern` hands that to ICU, which answers with the
- * pattern that language actually uses for those three fields —
- * `19 Feb 2027`, `Feb 19, 2027`, `19 févr. 2027`, `2027年2月19日`,
- * `١٩ فبراير ٢٠٢٧`. Still entirely the platform's decision, still localised in
- * all 38; the only thing specified is that the month is a word, which is what
- * removes the ambiguity.
- *
- * Reverting to plain `MEDIUM` is one line, if a numeric date is ever preferred.
+ * Unused, and kept on purpose. `LicencePolishTest` resolves the screen's own locale and
+ * passes it here so that it asserts the wiring rather than agreeing with a hard-coded
+ * en-US; the parameter is what lets that test keep asking the question. What changed is
+ * the answer, which is now the same for every value it is given -- and the test that
+ * required a letter in it is the one this commit has to be read against.
  */
-internal fun formatExpiry(expiresAtMs: Long, locale: Locale): String {
-    // Fully qualified: `android.text.format.DateFormat` and `java.text.DateFormat`
-    // are one import away from being confused for each other, and only one of
-    // them knows what a skeleton is.
-    val pattern = android.text.format.DateFormat.getBestDateTimePattern(locale, EXPIRY_SKELETON)
-    return SimpleDateFormat(pattern, locale).format(Date(expiresAtMs))
-}
-
-/** Day, month as a word, year. Order and separators are the locale's business. */
-private const val EXPIRY_SKELETON = "dMMMy"
+@Suppress("UNUSED_PARAMETER")
+internal fun formatExpiry(expiresAtMs: Long, locale: Locale): String =
+    CastivioDates.date(expiresAtMs)
 
 /**
  * "3 days remaining in your trial.", in the plural form the language uses.

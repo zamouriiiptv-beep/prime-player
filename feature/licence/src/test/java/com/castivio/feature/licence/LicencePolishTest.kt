@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.core.os.ConfigurationCompat
 import androidx.test.core.app.ApplicationProvider
+import com.castivio.core.common.format.CastivioDates
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.MotionLevel
 import com.castivio.domain.entitlement.EntitlementState
@@ -162,7 +163,7 @@ class LicencePolishTest {
      * resource with the same locale-formatted date — so a `%s` reaching the
      * screen unsubstituted fails here rather than on a device. Not the date's
      * own shape: that is ICU's, and the language-by-language claim about it is
-     * `the expiry month is named and not numbered in every language`.
+     * `the expiry is the same date in every language`.
      */
     @Test
     fun `an expired annual licence names the day it lapsed`() {
@@ -198,28 +199,59 @@ class LicencePolishTest {
     }
 
     /**
-     * The month is a word, in every language Castivio ships.
+     * The same date, in every language Castivio ships.
      *
-     * This is the assertion the first version did not make, and its absence is
-     * why a numeric Arabic date reached a device. `DateFormat.MEDIUM` looks like
-     * "a readable date" and is really "whatever this language puts in the medium
-     * slot" — which is `dd/MM/y` in Arabic, `2027/02/19` in Japanese and
-     * `19.02.2027` in German. A row of numbers separated by slashes is ambiguous
-     * in exactly the way a date on a receipt must not be.
+     * This assertion has changed sides, and deliberately. It used to require a month
+     * **name** — `19 Feb 2027`, `١٩ فبراير ٢٠٢٧` — because `DateFormat.MEDIUM` fills a
+     * slot with whatever a language conventionally uses, and for a good many of them
+     * that is all digits: `dd/MM/y` in Arabic, `2027/02/19` in Japanese, `19.02.2027`
+     * in German. Three screens of the same application dated the same subscription
+     * three different ways, and a reader had to work out it was the same fact.
      *
-     * So the claim is made directly: whatever the platform returns must contain
-     * a letter. Not which letters, and not in what order — that is ICU's
-     * business and testing it would be testing ICU.
+     * The product's answer is now one shape everywhere, `CastivioDates.PATTERN`, and
+     * the ambiguity the old rule guarded against is a stated cost: `6-10-2026` is
+     * day-first, and a reader expecting month-first will read it as the 10th of June.
+     * Castivio states day-month-year, on every screen, in every language.
+     *
+     * So the claim is the opposite one and is made just as directly. The default
+     * locale is moved under the call rather than only passed to it, because that is
+     * the input a regression would actually come through: a formatter reaching for
+     * `Locale.getDefault()` passes a test that only varies the argument.
      */
     @Test
-    fun `the expiry month is named and not numbered in every language`() {
-        for (tag in EVERY_LANGUAGE) {
-            val formatted = formatExpiry(EXPIRY_MS, Locale.forLanguageTag(tag))
-            assertTrue(
-                "$tag formats the expiry as \"$formatted\", which has no month name in it",
-                formatted.any { it.isLetter() },
-            )
+    fun `the expiry is the same date in every language`() {
+        val original = Locale.getDefault()
+        val seen = mutableMapOf<String, String>()
+        try {
+            for (tag in EVERY_LANGUAGE) {
+                val locale = Locale.forLanguageTag(tag)
+                Locale.setDefault(locale)
+                seen[tag] = formatExpiry(EXPIRY_MS, locale)
+            }
+        } finally {
+            Locale.setDefault(original)
         }
+
+        val distinct = seen.values.distinct()
+        assertEquals(
+            "the expiry is written ${distinct.size} ways across ${seen.size} languages: $seen",
+            1,
+            distinct.size,
+        )
+
+        // And the one way is the stated shape: day, month, year, in digits, with no
+        // leading zero on either field. Asserted against the central pattern's own
+        // output rather than a literal, so the two cannot drift apart.
+        val only = distinct.single()
+        assertTrue(
+            "the expiry reads \"$only\", which is not day-month-year in digits",
+            Regex("""\d{1,2}-\d{1,2}-\d{4}""").matches(only),
+        )
+        assertEquals(
+            "the screen does not agree with CastivioDates",
+            CastivioDates.date(EXPIRY_MS),
+            only,
+        )
     }
 
     /**

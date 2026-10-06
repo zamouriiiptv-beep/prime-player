@@ -83,6 +83,7 @@ import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemKey
+import com.castivio.core.common.format.CastivioDates
 import com.castivio.core.design.components.CastivioMiddleEllipsisText
 import com.castivio.core.design.components.DelayedSpinner
 import com.castivio.core.design.components.EmptyState
@@ -383,9 +384,7 @@ private fun BoardClock(m: ChannelsMetrics) {
     val time = remember(now) {
         ltrToken(SimpleDateFormat(CLOCK_TIME, Locale.ROOT).format(Date(now)))
     }
-    val day = remember(now) {
-        ltrToken(SimpleDateFormat(SHORT_DATE, Locale.ROOT).format(Date(now)))
-    }
+    val day = remember(now) { ltrToken(CastivioDates.date(now)) }
     // Its own bounded cell, for the reason the breadcrumb has one: nothing whose width
     // is text may decide where the rest of the band sits.
     Column(Modifier.width(m.dates), horizontalAlignment = Alignment.End) {
@@ -2461,7 +2460,7 @@ private fun dayLabel(startOfDayMs: Long): String {
     return when (startOfDayMs) {
         today -> stringResource(R.string.channels_guide_today)
         today + DAY_MS -> stringResource(R.string.channels_guide_tomorrow)
-        else -> DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(startOfDayMs))
+        else -> CastivioDates.date(startOfDayMs)
     }
 }
 
@@ -2589,20 +2588,12 @@ private const val FIELD_OF_HEADER = 0.62f
 private const val FIELD_OF_ROW = 0.86f
 
 /**
- * `16-09-2026`: two digits a field, hyphens, and the year in full.
- *
- * It was `yy`. Two digits are ambiguous in exactly the place this token is read -- a
- * subscription that ends in `26` is a date a viewer has to do arithmetic on -- and the
- * four characters it costs are four the reserved column was widened to hold.
- */
-private const val SHORT_DATE = "dd-MM-yyyy"
-
-/**
  * The clock: twenty-four hours, in every language.
  *
- * The same argument as [SHORT_DATE]. A twelve-hour clock is a locale's convention and
- * carries an `AM`/`PM` whose width is a different number of glyphs in each of the
- * thirty-seven languages, on a band that has no room to change size — and this is a
- * television screen, where the twenty-four-hour clock is what a viewer expects anyway.
+ * The same argument the date makes in `CastivioDates`. A twelve-hour clock is a
+ * locale's convention and carries an `AM`/`PM` whose width is a different number of
+ * glyphs in each of the thirty-seven languages, on a band that has no room to change
+ * size — and this is a television screen, where the twenty-four-hour clock is what a
+ * viewer expects anyway.
  */
 private const val CLOCK_TIME = "HH:mm"
