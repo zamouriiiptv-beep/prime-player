@@ -210,7 +210,12 @@ jobs:
             keytool -printcert -jarfile "$APK" | grep -Ei "SHA256:|SHA1:|Owner:"
           fi
 
+      # `always()`, like the schema and the test reports above it. The APK is built
+      # before the tests run and does not depend on them, so a red test step was
+      # discarding a file that had already been produced -- and the APK is exactly what
+      # somebody needs when a gate fails for a reason only a device can settle.
       - name: Upload APK
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: castivio-tv-debug
