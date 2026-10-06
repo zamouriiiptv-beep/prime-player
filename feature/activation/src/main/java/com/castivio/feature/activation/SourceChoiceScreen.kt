@@ -467,6 +467,10 @@ private fun SourceTiers(
             SourceCard(
                 m = m, hue = colors.hueAmber, icon = Icons.Rounded.SettingsInputAntenna,
                 title = stringResource(R.string.source_portal_title),
+                // Both sentences are short here, and measured rather than guessed. The
+                // two cards under the rule are half the width of the two above them,
+                // and at that width this pair ran to two lines in a card that holds
+                // one -- the end of it was cut on the device. They now fit on the line.
                 detail = stringResource(R.string.source_portal_detail),
                 hint = stringResource(R.string.source_portal_hint),
                 onClick = onPortal, tag = ActivationTags.SOURCE_PORTAL,

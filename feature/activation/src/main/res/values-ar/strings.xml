@@ -17,8 +17,8 @@
     <string name="source_m3u_detail">أضف رابط قائمة التشغيل بصيغة M3U.</string>
     <string name="source_users_title">اشتراكاتي</string>
     <string name="source_portal_title">Stalker Portal</string>
-    <string name="source_portal_detail">أضف رابط البوابة (Portal URL) الذي أرسله لك المزود.</string>
-    <string name="source_users_detail">إدارة اشتراكاتك الحالية.</string>
+    <string name="source_portal_detail">رابط البوابة من مزوّدك.</string>
+    <string name="source_users_detail">اشتراكاتك المحفوظة.</string>
     <string name="source_other_options">خيارات أخرى</string>
     <string name="source_terms">شروط الخدمة</string>
     <string name="source_terms_note"> — باستخدام التطبيق، فإنك توافق على شروط الاستخدام.</string>
@@ -112,8 +112,8 @@
     <!-- شاشة اختيار طريقة الإضافة. -->
     <string name="source_xtream_hint">دعم كامل لميزات Xtream.</string>
     <string name="source_m3u_hint">رابط واحد طويل يُرسل عادةً بالبريد.</string>
-    <string name="source_users_hint">تعديل الاسم أو حذف القوائم.</string>
-    <string name="source_portal_hint">يُستخدم عادةً مع أجهزة MAG وأنظمة Stalker.</string>
+    <string name="source_users_hint">تعديل أو حذف.</string>
+    <string name="source_portal_hint">لأجهزة MAG.</string>
     <string name="field_portal_url">رابط البوابة (Portal URL)</string>
     <string name="field_portal_url_placeholder">http://portal.example.com/c/</string>
     <string name="field_portal_hint">أدخل رابط البوابة الذي أرسله لك المزود.</string>

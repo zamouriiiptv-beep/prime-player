@@ -24,11 +24,14 @@
     <string name="source_m3u_detail">Add a playlist link in M3U format.</string>
     <string name="source_users_title">My subscriptions</string>
     <string name="source_portal_title">Stalker Portal</string>
-    <string name="source_portal_detail">Add the portal URL your provider sent you.</string>
-    <!-- Short on purpose: the four cards share one height, so a description that
-         wraps in one of them makes all four taller. This one is the longest of the
-         four and the first to wrap. -->
-    <string name="source_users_detail">Manage the subscriptions you already have.</string>
+    <!-- The two cards under the rule have a budget, and it is 19em of their own body
+         type: a card there holds ONE line of description, and the detail and the hint
+         are drawn as one paragraph, so the pair is what has to fit. The binding surface
+         is the 960x540 television, not a phone — 265dp of column against 13.5dp type is
+         19.63em, tighter than any handset. Both of these were over it and were cut on a
+         device. Measured, not estimated; lengthening either half puts the cut back. -->
+    <string name="source_portal_detail">Provider portal URL.</string>
+    <string name="source_users_detail">Subscriptions.</string>
     <string name="source_other_options">Other options</string>
     <string name="source_terms">Terms of Service</string>
     <!-- Follows `source_terms` on the same line, and it is one line: the footer
@@ -165,12 +168,15 @@
     <string name="licence_blocked_detail">This build has no licence service to ask, so it cannot let you in. The licence screen arrives in a later version.</string>
     <string name="licence_blocked_action">Close</string>
     <!-- The source chooser, redrawn as a grid. -->
-    <!-- The second line of each card: what the first one does not say, which is
+    <!-- The second sentence of each card: what the first one does not say, which is
          how a reader tells which of these they actually have. -->
     <string name="source_xtream_hint">Full support for Xtream features.</string>
     <string name="source_m3u_hint">One long link, usually sent by e-mail.</string>
-    <string name="source_users_hint">Rename or delete your playlists.</string>
-    <string name="source_portal_hint">Usually used with MAG devices and Stalker systems.</string>
+    <!-- The two under the rule are the short ones, and `source_portal_detail` says why.
+         Each carries the fact its detail does not — which box this is for, what the
+         screen lets you do — in as few words as that holds. -->
+    <string name="source_users_hint">Rename or delete.</string>
+    <string name="source_portal_hint">MAG.</string>
     <string name="field_portal_url">Portal URL</string>
     <string name="field_portal_url_placeholder">http://portal.example.com/c/</string>
     <string name="field_portal_hint">Enter the portal URL your provider sent you.</string>
