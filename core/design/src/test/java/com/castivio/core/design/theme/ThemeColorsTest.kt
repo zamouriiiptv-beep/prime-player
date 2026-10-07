@@ -55,14 +55,19 @@ class ThemeColorsTest {
     /**
      * The eleven that moved out of a file into a role, at the values they had there.
      *
-     * `Backdrop.kt` named `Deep`, `Violet10` and `Azure10` for its gradient, `Violet40`
-     * and `Azure40` for its two glows and `Azure80` for the motes; eleven call sites
-     * across the features named `EdgeQuiet`, `EdgeCard`, `EdgeAccent`, `White` and
-     * `Violet10`. None of them is allowed to have changed on the way.
+     * `Backdrop.kt` named `Violet40` and `Azure40` for its two glows and `Azure80` for
+     * the motes; eleven call sites across the features named `EdgeQuiet`, `EdgeCard`,
+     * `EdgeAccent`, `White` and `Violet10`. None of them is allowed to have changed on
+     * the way.
+     *
+     * The gradient's own stops were in this list and are not any more. They were
+     * `Deep`, `Violet10` and `Azure10` — surface colours the backdrop borrowed, which
+     * is the coupling `Palette.Backdrop*` exists to end. They are asserted on their own
+     * below, where the claim is about the ground rather than about a move that happened
+     * once.
      */
     @Test
     fun `the colours that moved out of the features kept their values`() {
-        assertEquals(listOf(Palette.Deep, Palette.Violet10, Palette.Azure10), dark.backdropStops)
         assertEquals(Palette.Violet40, dark.backdropWarmGlow)
         assertEquals(Palette.Azure40, dark.backdropCoolGlow)
         assertEquals(Palette.Azure80, dark.backdropMote)
@@ -107,6 +112,60 @@ class ThemeColorsTest {
                 "a slate backdrop stop is not lifted off the void: $stop",
                 stop.luminance() > dark.background.luminance(),
             )
+        }
+    }
+
+    /**
+     * Each ground's ramp, at the values it was approved at.
+     *
+     * Two stops rather than three on both: `linearGradient` interpolates, so a middle
+     * stop earns its line only by bending the ramp, and neither of these bends.
+     */
+    @Test
+    fun `each ground draws its own two-stop ramp`() {
+        assertEquals(
+            listOf(Palette.BackdropVoid, Palette.BackdropVoidLift),
+            dark.backdropStops,
+        )
+        assertEquals(
+            listOf(Palette.BackdropSlate, Palette.BackdropSlateLift),
+            slate.backdropStops,
+        )
+    }
+
+    /**
+     * **The ground is drawn from constants nothing else uses.**
+     *
+     * This is the assertion the previous arrangement could not make, and its absence is
+     * what made the page gradient impossible to tune. The void's ramp opened on
+     * `Palette.Deep`, which is simultaneously `backgroundElevated` — every card on that
+     * ground — and the value an invariant pins `android:windowBackground` to. Moving the
+     * gradient one shade therefore repainted the cards and the pre-Compose flash with
+     * it, and nothing in the suite would have said a word.
+     *
+     * So the rule is stated as a rule rather than as four remembered facts: no stop of
+     * either ramp may be equal to any surface either ground draws. Equality and not
+     * proximity — a ground and a card that *happen* to be near each other is a design
+     * decision, two roles sharing one constant is a coupling.
+     */
+    @Test
+    fun `no backdrop stop doubles as a surface`() {
+        for ((name, colors) in listOf("void" to dark, "slate" to slate)) {
+            val surfaces = mapOf(
+                "background" to colors.background,
+                "backgroundElevated" to colors.backgroundElevated,
+                "glassFill" to colors.glassFill,
+                "glassFillStrong" to colors.glassFillStrong,
+            )
+            for (stop in colors.backdropStops) {
+                for ((role, surface) in surfaces) {
+                    assertTrue(
+                        "the $name backdrop stop $stop is also $role, so the ground " +
+                            "cannot move without that surface moving with it",
+                        stop != surface,
+                    )
+                }
+            }
         }
     }
 

@@ -132,7 +132,13 @@ object Palette {
      * not, and a duplicate that happens to hold the same value is a duplicate that
      * will not hold it for long. */
 
-    /** The page: three stops, 7.81 L*, deliberately shallower than the void's ramp. */
+    /**
+     * The slate's flat page colour, 7.81 L*, and what `background` is on this ground.
+     *
+     * [SteelHigh] and [SteelLow] were the two ends of this ground's page gradient and
+     * are read by nothing since the ramp moved to [BackdropSlate]. They are left in
+     * place while that ramp is being judged on a device; they go when it is adopted.
+     */
     val Steel = Color(0xFF13152D)
     val SteelHigh = Color(0xFF111327)
     val SteelLow = Color(0xFF1B1F3F)
@@ -179,6 +185,43 @@ object Palette {
     val EdgeSteel = Color(0x33ACB4D6)
     val EdgeSteelStrong = Color(0x4DACB4D6)
     val EdgeSteelSoft = Color(0x1AACB4D6)
+
+    /* ------------------------------------------------- the backdrop's own ramp
+     *
+     * **Four entries that exist so the page gradient can move without anything else
+     * moving with it.**
+     *
+     * The backdrop used to borrow its stops from surfaces: the void's ramp opened on
+     * [Deep], which is also `backgroundElevated` — the card — and is also wired to
+     * `android:windowBackground` by an invariant. One constant doing three jobs means
+     * a change to the page gradient silently repaints every card on the ground and the
+     * colour the window flashes before Compose exists. That is not a gradient that can
+     * be tuned; it is three decisions welded together.
+     *
+     * So the ramp has its own names. Nothing but `backdropStops` may read them, and
+     * nothing they are near may be expressed in terms of them: a surface that wants to
+     * match the ground is a surface that will be wrong the next time the ground moves.
+     *
+     * Two stops a ground rather than three. `linearGradient` interpolates, so a middle
+     * stop is only worth its line when it bends the ramp — and neither of these does.
+     * What the mockups asked for is a long even wash from the near corner to the far
+     * one, which is two stops exactly.
+     *
+     * The glows are not here and do not change with them. Azure and violet are what
+     * Castivio is; the ground is what they are seen against.
+     */
+
+    /** The void's page: near-black, and neutral rather than violet. */
+    val BackdropVoid = Color(0xFF070A12)
+
+    /** Where that ramp lands, a little blue and still under 1% of white. */
+    val BackdropVoidLift = Color(0xFF0D1426)
+
+    /** The slate's page: the same shape, lifted clear of the void. */
+    val BackdropSlate = Color(0xFF151D2E)
+
+    /** Where the slate lands. The brightest ground Castivio draws, and still dark. */
+    val BackdropSlateLift = Color(0xFF202A44)
 
     // -- Status -------------------------------------------------------------
     val Success = Color(0xFF3DD68C)
@@ -633,7 +676,7 @@ fun castivioDarkColors() = CastivioColors(
         Palette.Violet50,
     ),
 
-    backdropStops = listOf(Palette.Deep, Palette.Violet10, Palette.Azure10),
+    backdropStops = listOf(Palette.BackdropVoid, Palette.BackdropVoidLift),
     backdropWarmGlow = Palette.Violet40,
     backdropCoolGlow = Palette.Azure40,
     backdropMote = Palette.Azure80,
@@ -740,7 +783,7 @@ fun castivioSlateColors() = CastivioColors(
         Palette.Violet50,
     ),
 
-    backdropStops = listOf(Palette.SteelHigh, Palette.Steel, Palette.SteelLow),
+    backdropStops = listOf(Palette.BackdropSlate, Palette.BackdropSlateLift),
     backdropWarmGlow = Palette.Violet40,
     backdropCoolGlow = Palette.Azure40,
     backdropMote = Palette.Azure80,
