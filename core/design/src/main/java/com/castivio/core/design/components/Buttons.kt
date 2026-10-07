@@ -55,7 +55,7 @@ private const val DISABLED_ALPHA = 0.45f
 enum class ButtonWeight {
     /** One per screen: the action we want taken. Gradient fill. */
     Primary,
-    /** The common case: glass with a hairline border. */
+    /** The common case: glass with a hairline border, or a `fill` the caller gives it. */
     Secondary,
     /** Lowest emphasis: no fill until focused. Toolbars, inline actions. */
     Ghost,
@@ -76,17 +76,33 @@ fun CastivioButton(
      */
     enabled: Boolean = true,
     /**
-     * A different ramp for the primary fill.
+     * A different ramp from the weight's own.
      *
-     * The default is `primaryBrush`, which is the azure every primary action in
-     * the app is drawn with. The activation screen's call to action is the width
-     * of a whole column, and a two-stop blue across that distance reads as a bar
-     * rather than as a button, so it passes `ctaBrush` instead. A parameter
-     * rather than a fourth `ButtonWeight`: the weight says what the control means
-     * and this says what it is painted with, and conflating the two is how a
-     * variant list starts growing.
+     * The defaults are `primaryBrush`, the azure every primary action in the app
+     * is drawn with, and `glassFillBrush` for a secondary. The activation screen
+     * overrides both: its two controls sit side by side and the pair has to say
+     * which is which, so the lead one takes `leadBrush` and the other takes the
+     * brand ramp carried at low weight rather than glass.
+     *
+     * A parameter rather than more `ButtonWeight`s: the weight says what the
+     * control means and this says what it is painted with, and conflating the two
+     * is how a variant list starts growing.
      */
     fill: Brush? = null,
+    /**
+     * The rim, where the fill cannot find its own edge.
+     *
+     * [fill]'s counterpart: that one says what the control is painted with and
+     * this one says where it stops. A [Secondary] draws `glassBorder` without it,
+     * as it always has. A [Primary] draws no rim at all without it — and still
+     * draws none unless a caller asks, because a focus ring added to every primary
+     * in the application is not a thing this parameter is for.
+     *
+     * Two fills need it. A vertical ramp that ends darker than the ground loses
+     * its lower corners, and a translucent one has no hard boundary to begin with.
+     * Both are on the activation screen's action row.
+     */
+    ring: Color? = null,
     /** Overrides the corner. Null keeps `Radius.sm`. */
     corner: Dp? = null,
     /** Overrides the label's type. Null keeps `labelLarge`. */
@@ -109,7 +125,8 @@ fun CastivioButton(
         Motion.focusSpec(), label = "btnElev",
     )
     val border by animateColorAsState(
-        if (focused) colors.focusRing else colors.glassBorder, Motion.focusSpec(), label = "btnBorder",
+        if (focused) colors.focusRing else ring ?: colors.glassBorder,
+        Motion.focusSpec(), label = "btnBorder",
     )
     val glow = when {
         weight == ButtonWeight.Primary -> colors.focusGlow
@@ -142,9 +159,21 @@ fun CastivioButton(
             .clip(shape)
             .then(
                 when (weight) {
-                    ButtonWeight.Primary -> Modifier.background(fill ?: colors.primaryBrush)
+                    ButtonWeight.Primary -> Modifier
+                        .background(fill ?: colors.primaryBrush)
+                        .then(
+                            if (ring == null) {
+                                Modifier
+                            } else {
+                                Modifier.border(BorderStroke(1.dp, border), shape)
+                            }
+                        )
+                    // The fill is the caller's where one is given. Glass is what a
+                    // secondary is *by default*, not what it has to be: the weight
+                    // says how much the control is meant to matter, and painting it
+                    // is a separate question that `fill` already asks of Primary.
                     ButtonWeight.Secondary -> Modifier
-                        .background(colors.glassFillBrush)
+                        .background(fill ?: colors.glassFillBrush)
                         .border(BorderStroke(1.dp, border), shape)
                     ButtonWeight.Ghost -> if (focused) {
                         Modifier.background(colors.glassFill)

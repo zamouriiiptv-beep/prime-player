@@ -37,6 +37,15 @@ object Palette {
 
     // -- Brand: azure ------------------------------------------------------
     val Azure10 = Color(0xFF0A1E3D)
+    /**
+     * Forty-five percent of the way from [Azure10] up to [Azure40].
+     *
+     * Not a new hue. It is a point the ramp between those two already passes
+     * through, named because a button's deep end has to be the same tomorrow as
+     * it was when the drawing was approved, and a fraction written at the call
+     * site is a fraction somebody rounds. White reads on it at 8.2:1.
+     */
+    val Azure30 = Color(0xFF1E48A8)
     val Azure40 = Color(0xFF2E6BFF)
     val Azure50 = Color(0xFF4C9BFF)
     val Azure60 = Color(0xFF6FB2FF)
@@ -247,6 +256,36 @@ object Palette {
     val Warning = Amber
     val Danger = Color(0xFFFF5A5A)
 }
+
+/**
+ * The brand ramp's four stops, in one place.
+ *
+ * Read by `ctaBrush` and by `ctaQuietBrush`, which are the loud and the quiet
+ * rendering of one gradient. Written out twice they were two gradients, and the
+ * second one would have been the one nobody updated.
+ */
+private val CTA_STOPS = arrayOf(
+    0.00f to Color(0xFF8B3FF5),
+    0.32f to Color(0xFF6A45EE),
+    0.72f to Color(0xFF3D63F5),
+    1.00f to Palette.Azure40,
+)
+
+/**
+ * How much of the brand ramp the stepped-down call to action carries.
+ *
+ * Measured rather than chosen: at this weight the fill composites to a blue-violet
+ * that holds white at better than 10:1 and sits at roughly two-thirds of the lead
+ * action's brightness, which is the gap that makes the order of the two legible
+ * without the quieter one looking disabled.
+ */
+private const val CTA_QUIET = 0.42f
+
+/** [CastivioColors.leadRing]'s weight. Enough to find the corner, not to outline it. */
+private const val LEAD_RING = 0.50f
+
+/** [CastivioColors.ctaQuietRing]'s weight, below [LEAD_RING] for the same reason the fill is. */
+private const val CTA_QUIET_RING = 0.30f
 
 /**
  * Semantic colour tokens. Screens use these names, never raw palette values,
@@ -500,22 +539,80 @@ class CastivioColors(
         get() = Brush.linearGradient(listOf(Palette.Violet40, Palette.Azure40))
 
     /**
-     * The one filled control on a screen, and the only place this ramp appears.
+     * The brand ramp at full weight: a call to action the width of a column.
      *
      * Four stops rather than [primaryBrush]'s three, and it starts a good way
-     * further into the violet: this is a call to action the width of a column,
-     * and a two-stop blue across that distance reads as a bar rather than as a
-     * button. Absolute left-to-right in both directions on purpose — the ramp is
-     * the brand's, like the wordmark, and a signature that reverses per locale is
-     * two signatures.
+     * further into the violet, because a two-stop blue across that distance reads
+     * as a bar rather than as a button. Absolute left-to-right in both directions
+     * on purpose — the ramp is the brand's, like the wordmark, and a signature
+     * that reverses per locale is two signatures.
+     *
+     * No screen draws it at present: the activation screen, which was the one that
+     * did, now gives its fill to Refresh and takes [ctaQuietBrush] for the call to
+     * action. It stays because it is the loud half of a pair and the pair is the
+     * point — a screen whose primary action *is* "add something" is the case this
+     * was shaped for, and removing it would mean deriving it back from the quiet
+     * one the next time there is such a screen.
      */
     val ctaBrush: Brush
+        get() = Brush.horizontalGradient(*CTA_STOPS)
+
+    /**
+     * The same ramp, carried rather than opaque.
+     *
+     * For a call to action that is no longer the loudest thing on its screen. The
+     * activation screen has two controls side by side and the one a returning user
+     * wants is Refresh, so Refresh took the fill and this is what Add playlist
+     * stepped down to: the brand's four stops, in the brand's direction, at
+     * [CTA_QUIET] over whatever is behind them.
+     *
+     * Carried rather than re-specified darker, because a second set of four stops
+     * is a second gradient to keep level with the first. The stops are shared with
+     * [ctaBrush] for the same reason.
+     */
+    val ctaQuietBrush: Brush
         get() = Brush.horizontalGradient(
-            0.00f to Color(0xFF8B3FF5),
-            0.32f to Color(0xFF6A45EE),
-            0.72f to Color(0xFF3D63F5),
-            1.00f to Palette.Azure40,
+            *Array(CTA_STOPS.size) { i ->
+                CTA_STOPS[i].first to CTA_STOPS[i].second.copy(alpha = CTA_QUIET)
+            },
         )
+
+    /**
+     * The lead action's fill: Castivio's blue, deepening downward.
+     *
+     * [Palette.Azure40] is the lightest blue in the palette that still carries
+     * white at 4.5:1, so it is the top of the ramp and nothing above it was
+     * available. Vertical rather than horizontal: across a button's 56dp the
+     * deepening reads as one blue with a lit upper edge, where the same two stops
+     * spread along a column would read as a fade.
+     *
+     * Blue and not the brand ramp on purpose. The control beside it keeps the
+     * violet, so the order of the two is carried by which family they belong to
+     * and not only by which is brighter — and brightness alone is the weaker
+     * signal of the pair.
+     */
+    val leadBrush: Brush
+        get() = Brush.verticalGradient(listOf(Palette.Azure40, Palette.Azure30))
+
+    /**
+     * The lead action's rim: its own blue, one step up and half carried.
+     *
+     * [leadBrush] ends darker than it starts, so without an edge the button's
+     * lower corners dissolve into the ground. This is that edge, and it is the
+     * fill's own family rather than white — a white rim on a saturated blue reads
+     * as a highlight that has been left on.
+     */
+    val leadRing: Color get() = Palette.Azure50.copy(alpha = LEAD_RING)
+
+    /**
+     * The stepped-down call to action's rim.
+     *
+     * What a translucent fill costs is its edge: at [CTA_QUIET] the button's
+     * boundary is a gradient of a gradient and reads as a smudge. The rim gives it
+     * back, in the violet the fill leads with, quiet enough that it does not become
+     * the emphasis the fill just gave up.
+     */
+    val ctaQuietRing: Color get() = Palette.Violet50.copy(alpha = CTA_QUIET_RING)
 
     /**
      * A field card: a pane sunk into the surface, not glass laid over it.

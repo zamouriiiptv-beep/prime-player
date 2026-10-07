@@ -807,27 +807,42 @@ private fun IdentityZone(
             // without the fill having to say it a second time. The weights are a
             // proportion of the row rather than of the labels, so Portuguese and
             // Arabic get the same pair of buttons.
+            // **Which of the two is the filled one.**
+            //
+            // It was Add playlist, on the reading that a screen called "add a
+            // playlist" is a screen whose action is to add one. That reading is
+            // right for a first run and wrong for every run after it: a user who
+            // has pasted a URL on their phone comes back to this screen to press
+            // Refresh, and a user whose subscription has lapsed comes back to
+            // press Refresh. Add playlist is the thing you do once.
+            //
+            // So Refresh takes the fill and Add playlist steps down to the same
+            // ramp carried at `CTA_QUIET`. Still one filled control, still the
+            // brand's two families, and the order of them is now the order they
+            // are actually used in.
             CastivioButton(
                 text = stringResource(R.string.add_playlist),
-                weight = ButtonWeight.Primary,
+                weight = ButtonWeight.Secondary,
                 onClick = onAddPlaylist,
                 modifier = Modifier.weight(ACTION_LEAD),
-                fill = CastivioTheme.colors.ctaBrush,
+                fill = CastivioTheme.colors.ctaQuietBrush,
+                ring = CastivioTheme.colors.ctaQuietRing,
                 corner = m.radius * BUTTON_CORNER,
                 labelStyle = buttonStyle(m.fsButton),
                 minHeight = m.button,
             )
             CastivioButton(
                 text = stringResource(refreshLabel(identity.refresh)),
-                weight = ButtonWeight.Secondary,
+                weight = ButtonWeight.Primary,
                 icon = Icons.Rounded.Refresh,
                 enabled = identity.refresh != RefreshState.Checking,
                 onClick = onRefresh,
                 modifier = Modifier.weight(1f),
+                fill = CastivioTheme.colors.leadBrush,
+                ring = CastivioTheme.colors.leadRing,
                 corner = m.radius * BUTTON_CORNER,
-                labelStyle = buttonStyle(m.fsButton * SECONDARY_LABEL),
+                labelStyle = buttonStyle(m.fsButton * LEAD_LABEL),
                 minHeight = m.button,
-                tint = CastivioTheme.colors.onBackgroundVariant,
             )
         }
 
@@ -1229,10 +1244,24 @@ private const val BUTTON_CORNER = 0.9f
  * ratio between them and nothing in the row is sized by its own label. Ten
  * percent is the smallest difference that still reads as an order when the two
  * sit side by side — below it they look like a mistake in the arithmetic, and far
- * above it Refresh looks like the thing you do when Add playlist has failed.
+ * above it the narrower one looks like a fallback rather than a choice.
+ *
+ * It is the *quieter* control that is the wider one, now that Refresh carries the
+ * fill. That is not an accident left over from the swap: width here is a
+ * typographic allowance, because Add playlist's label is the longer of the two in
+ * most of the 39 languages and it has no icon to lose. Emphasis is carried by the
+ * fill, which is the louder channel of the two and the one that was swapped.
  */
 private const val ACTION_LEAD = 1.1f
-private const val SECONDARY_LABEL = 0.92f
+
+/**
+ * Refresh's label against Add playlist's.
+ *
+ * It has an icon beside it and the other does not, so set at the same size the
+ * pair of them reads as the heavier object even before the fill is considered.
+ * Eight percent down is where the two labels look like the same type.
+ */
+private const val LEAD_LABEL = 0.92f
 
 /** The QR's quiet zone, as a share of the plate. */
 private const val QUIET_ZONE = 0.062f
