@@ -188,10 +188,14 @@ body{
 /* --------------------------------------------------------------- backdrop */
 .backdrop{position:absolute;inset:0;
   background:
-    radial-gradient(74% 96% at 4% 116%, rgba(126,62,255,.60) 0%, rgba(102,48,220,.23) 38%, rgba(70,30,170,0) 70%),
-    radial-gradient(46% 60% at 100% 6%,  rgba(38,84,220,.28) 0%, rgba(38,84,220,0) 66%),
-    radial-gradient(38% 52% at 84% 92%,  rgba(88,46,210,.24) 0%, rgba(88,46,210,0) 68%),
-    linear-gradient(178deg, #05040E 0%, #07061A 26%, #0B0826 58%, #150C3C 100%);
+    /* `paintBackdrop`, transcribed. The warm glow sits at (5%, 100%) with a
+       radius of 0.55w and the cool one at (95%, 30%) with 0.52w; both radii are
+       a share of the *width*, which a CSS percentage in this position would take
+       from the box's two axes instead -- so each is `calc()` off `--W`, and the
+       circle is the same size relative to the frame at all three. */
+    radial-gradient(calc(var(--W) * .55) calc(var(--W) * .55) at 5% 100%, rgba(110,75,216,.30) 0%, rgba(110,75,216,0) 100%),
+    radial-gradient(calc(var(--W) * .52) calc(var(--W) * .52) at 95% 30%, rgba(46,107,255,.26) 0%, rgba(46,107,255,0) 100%),
+    linear-gradient(to bottom right, #070A12 0%, #0D1426 100%);
 }
 .contours{position:absolute;left:0;right:0;bottom:0;height:62%;opacity:.8}
 
