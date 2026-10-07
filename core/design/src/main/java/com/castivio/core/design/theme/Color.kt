@@ -89,8 +89,27 @@ object Palette {
     // found by its lit edge rather than by its fill. Drawing the identity fields
     // as the lighter form is what removed the only dark the middle of the
     // activation screen had, and is why it read washed out.
-    val PaneHigh = Color(0xCC241D5C)
-    val PaneLow = Color(0xBD0F0B2C)
+    //
+    // These were `0xCC241D5C` and `0xBD0F0B2C`, and they did not do that.
+    // Measured off a render of the activation screen, in the middle of a capsule
+    // and away from its lit edge, the pane came out at **1.08x** the luminance of
+    // the ground beside it and the second capsule at 1.15x. It was not a recess;
+    // it was a panel sitting slightly above the page, and its blue ran 44 against
+    // the ground's 41 -- a *more* saturated violet than what surrounded it. The
+    // comment above described an intent the numbers never carried.
+    //
+    // It survived because the void used to be violet too: on `Deep`'s ground the
+    // pane was 1.41x, close enough to read as flat rather than as lifted. The
+    // ground is neutral now, so the same two colours read as a violet patch, and
+    // that is how this was found.
+    //
+    // The values below are on the backdrop's own axis -- the hue of
+    // `BackdropVoid` to `BackdropVoidLift`, not a violet of their own -- and they
+    // measure 0.57x and 0.62x against the ground, with the blue at 29 against its
+    // 41. Darker than the page and quieter than it, which is what a sunk pane is.
+    // The alphas are unchanged: this is still a solid, not glass.
+    val PaneHigh = Color(0xCC0B1228)
+    val PaneLow = Color(0xBD060A16)
 
     // -- Edges: one for a field, one for a quiet surface, one for the focus ---
     //
