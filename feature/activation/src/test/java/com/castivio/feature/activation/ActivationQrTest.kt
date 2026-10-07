@@ -1,5 +1,6 @@
 package com.castivio.feature.activation
 
+import androidx.compose.ui.unit.dp
 import com.castivio.core.common.config.ActivationDestination
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.BinaryBitmap
@@ -125,25 +126,84 @@ class ActivationQrTest {
         )
         val modules = matrix.width
 
-        // Plate minus its padding, over the modules the symbol actually has.
-        // Frames and their padding are `Metrics`; the numbers are restated rather
-        // than imported because this is the assertion that would catch a plate
-        // being shrunk, and reading them from the thing under test would not.
-        val plates = listOf(
-            Triple("800x360", 138.0, 8.0),
-            Triple("873x393", 157.0, 9.0),
-            Triple("TV 960x540", 208.0, 12.0),
-        )
+        // The plate each surface actually draws, taken from `metricsFor` rather than
+        // restated. These were three hand-written pairs -- 138/8, 157/9, 208/12 --
+        // and by the time anybody looked they matched nothing: the code drew 132,
+        // 139.7 and 192. A literal is only a guard while somebody keeps it level
+        // with the thing it guards, and this one had stopped. `the plate is the
+        // size each surface was drawn for` below is where the numbers are pinned
+        // now, and it pins them per surface where a drift is legible.
         val floor = 3.0
-        for ((frame, plate, padding) in plates) {
-            val pitch = (plate - padding * 2) / modules
+        for ((frame, width, height) in SURFACES) {
+            val m = metricsFor(tv = frame.startsWith("television"), width = width, height = height)
+            val symbol = m.plate - m.plate * PLATE_QUIET_ZONE * 2
+            val pitch = symbol.value / modules
             assertTrue(
-                "$frame: $modules modules in ${plate - padding * 2}dp is " +
+                "$frame: $modules modules in ${symbol.value}dp is " +
                     "${"%.2f".format(pitch)}dp per module, below the ${floor}dp floor",
                 pitch >= floor,
             )
+            println(
+                "activation QR — $frame plate ${m.plate.value}dp, symbol ${"%.1f".format(symbol.value)}dp, " +
+                    "${"%.3f".format(pitch)}dp per module"
+            )
         }
         println("activation QR — $modules modules for '${ActivationDestination.URL}'")
+    }
+
+    /**
+     * The plate each surface draws, pinned one surface at a time.
+     *
+     * The pitch test above says the symbol is never too small for a camera. It does
+     * not say the plate is the size the drawing gives it, and those are different
+     * claims: a plate could grow by a third and still pass a floor. This is the
+     * second one, and it is per surface because the interesting failure is a single
+     * frame drifting while the rest hold.
+     *
+     * 400dp is where the share and the floor both step down. Above it the three
+     * large frames reproduce the drawing; below it the column comes in with the
+     * surface. The two numbers that moved are the two phones, and they moved
+     * together with the rest of the QR column rather than on their own.
+     */
+    @Test
+    fun `the plate is the size each surface was drawn for`() {
+        val expected = mapOf(
+            "1280x720 reference" to 210.0f,
+            "1280x800 tablet" to 210.0f,
+            "television 960x540" to 192.0f,
+            "873x393 phone" to 135.4f,
+            "800x360 shortest phone" to 124.0f,
+        )
+        for ((frame, width, height) in SURFACES) {
+            val m = metricsFor(tv = frame.startsWith("television"), width = width, height = height)
+            val want = expected.getValue(frame)
+            assertEquals("$frame draws a ${m.plate} plate", want, m.plate.value, 0.1f)
+        }
+    }
+
+    /**
+     * The quiet zone does not move when the plate does.
+     *
+     * The plate's white padding is a share of the plate and so is the module, so
+     * their ratio is a constant: one module of ZXing margin plus `0.062 * 35 /
+     * (1 - 2 * 0.062)` of plate padding, which is 3.48 modules at every size this
+     * screen can draw. Asserted because the 124dp floor was approved on exactly that
+     * reasoning, and a change to either share would quietly break it.
+     *
+     * 3.48 is short of the four modules ISO/IEC 18004 asks for, and that is true of
+     * the shipped plate too -- it is a property of `QUIET_ZONE`, not of this floor.
+     * Decoders tolerate it; the number is pinned here so that if it is ever fixed,
+     * it is fixed deliberately.
+     */
+    @Test
+    fun `the quiet zone is the same in modules whatever the plate measures`() {
+        for ((frame, width, height) in SURFACES) {
+            val m = metricsFor(tv = frame.startsWith("television"), width = width, height = height)
+            val padding = m.plate * PLATE_QUIET_ZONE
+            val module = (m.plate - padding * 2) / QR_MATRIX_MODULES
+            val quiet = 1f + padding / module
+            assertEquals("$frame quiet zone", 3.48f, quiet, 0.02f)
+        }
     }
 
     /**
@@ -157,4 +217,63 @@ class ActivationQrTest {
     fun `the address shown to a person is the address in the symbol`() {
         assertEquals(ActivationDestination.display, decode().removePrefix("https://"))
     }
+
+    /**
+     * The address is a token, and a token does not wrap — it overflows.
+     *
+     * The caption above it is a sentence and survives a narrow column by taking a
+     * second line. `castivio.app/activate` has no space in it, so the column either
+     * holds it or cuts it, and a cut address is worse than none: a reader types what
+     * they can see and lands nowhere.
+     *
+     * Measured against the narrowest caption column this screen has. 800x360 is the
+     * shortest surface, but it is not the tightest for type — the tablet's column is
+     * 13.5 of its own body size against the short phone's 13.4, and the two reference
+     * phones are wider than either. So the floor is taken across all four rather than
+     * assumed to be the smallest frame.
+     */
+    @Test
+    fun `the written address fits the column it is drawn in, on every surface`() {
+        val address = ActivationDestination.display
+        for ((name, width, height) in SURFACES) {
+            val m = metricsFor(tv = name.startsWith("television"), width = width, height = height)
+            val column = m.zoneWidth - m.zonePad * 2
+            // The widest the token can be and still sit on one line: a monospace
+            // upper bound of 0.62em a character is generous for Inter's lower case,
+            // which is what this address is set in.
+            val widest = m.fsCaption * ADDRESS_EM_PER_CHAR * address.length
+            assertTrue(
+                "$name: \"$address\" wants up to $widest in a $column column",
+                widest <= column,
+            )
+        }
+    }
 }
+
+/** An upper bound on Inter's lower-case advance, for the address's fit check. */
+private const val ADDRESS_EM_PER_CHAR = 0.62f
+
+/**
+ * Every surface the activation screen ships to, as the plate tests read them.
+ *
+ * One list, because three tests ask the same question of the same five frames and
+ * three copies of a frame table is how a frame gets added to two of them.
+ */
+private val SURFACES = listOf(
+    Triple("1280x720 reference", 1280.dp, 720.dp),
+    Triple("1280x800 tablet", 1280.dp, 800.dp),
+    Triple("television 960x540", 960.dp, 540.dp),
+    Triple("873x393 phone", 873.dp, 393.dp),
+    Triple("800x360 shortest phone", 800.dp, 360.dp),
+)
+
+/**
+ * `QUIET_ZONE` from the screen, restated.
+ *
+ * It is private there and this is a share rather than a measurement — if it moves,
+ * the quiet-zone assertion is exactly the one that should fail and be read.
+ */
+private const val PLATE_QUIET_ZONE = 0.062f
+
+/** Version 4 at 33 data modules, plus ZXing's one-module margin on each side. */
+private const val QR_MATRIX_MODULES = 35f

@@ -27,7 +27,7 @@
     <string name="refresh_found">Подписка найдена</string>
     <string name="refresh_none">Теперь можно добавить первый плейлист.</string>
     <string name="refresh_error">Не удалось обновить — попробуйте снова</string>
-    <string name="qr_caption">Отсканируйте QR-код, чтобы активировать это устройство.</string>
+    <string name="qr_caption">Отсканируйте QR-код для активации устройства.</string>
     <string name="legal_player_only">Castivio — только плеер; он не предоставляет подписки или контент.</string>
     <string name="mac_spoken">MAC-адрес %s</string>
     <string name="language">Язык</string>

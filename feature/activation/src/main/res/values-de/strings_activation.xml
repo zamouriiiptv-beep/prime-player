@@ -27,7 +27,7 @@
     <string name="refresh_found">Abonnement gefunden</string>
     <string name="refresh_none">Du kannst jetzt deine erste Playlist hinzufügen.</string>
     <string name="refresh_error">Aktualisieren fehlgeschlagen — erneut versuchen</string>
-    <string name="qr_caption">Scannen Sie den QR-Code, um dieses Gerät zu aktivieren.</string>
+    <string name="qr_caption">QR-Code scannen, um das Gerät zu aktivieren.</string>
     <string name="legal_player_only">Castivio ist nur ein Player und bietet keine Abonnements oder Inhalte an.</string>
     <string name="mac_spoken">MAC-Adresse %s</string>
     <string name="language">Sprache</string>

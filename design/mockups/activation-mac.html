@@ -531,6 +531,17 @@ html[data-theme-chip="0"] .chip.theme{display:none}
   font-size:var(--fs-cap);line-height:1.5;color:var(--text-2);text-align:center;
   text-wrap:balance}
 .cap b{color:var(--white);font-weight:700}
+
+/* The address, written out, under the symbol that encodes it.
+   A QR is the one instruction on this screen that cannot be read -- no phone to
+   hand, a camera that will not focus, a viewer three metres from a television --
+   and this is its text equivalent, not an ornament beside it. Azure50, the step
+   the trial numeral already takes: the one thing in this panel a reader carries
+   off the screen and types somewhere else. Isolated, because a Latin address in
+   an Arabic column is exactly the run the bidi algorithm reorders. */
+.cap-url{font-size:var(--fs-cap);line-height:1.5;font-weight:600;color:var(--accent-num);
+  text-align:center;direction:ltr;unicode-bidi:isolate;letter-spacing:.2px;
+  text-shadow:0 1px 2px rgba(3,2,12,.60)}
 .cap .ico{flex:0 0 auto;color:var(--text-3);display:flex}
 .cap .ico svg{width:calc(var(--fs-cap) * 1.3);height:calc(var(--fs-cap) * 1.3)}
 
@@ -601,7 +612,8 @@ html[data-theme-chip="0"] .chip.theme{display:none}
 
       <div class="code-zone">
         <div class="plate" data-qr></div>
-        <div class="cap"><span class="ico" data-icon="phone"></span><span data-s="qr">امسح رمز <b>QR</b> باستخدام هاتفك لتفعيل هذا الجهاز</span></div>
+        <div class="cap"><span class="ico" data-icon="phone"></span><span data-s="qr">امسح رمز <b>QR</b> بهاتفك لتفعيل هذا الجهاز</span></div>
+        <div class="cap-url">castivio.app/activate</div>
       </div>
     </div>
 

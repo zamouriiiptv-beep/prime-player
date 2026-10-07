@@ -15,11 +15,16 @@ package com.castivio.core.common.config
  * files to change and 39 chances to change 38 of them. The screen composes it
  * into a localised sentence; the sentence is translated and the address is not.
  *
- * ## It is a placeholder, and it is meant to look like one
+ * ## The domain is settled; the pages are not
  *
- * The production address does not exist yet. [URL] is the only line that changes
- * when it does — nothing else in the app, in the QR encoder, or in any of the 37
- * languages holds a copy.
+ * `castivio.app` is the product's address and is final. The two paths below are
+ * still ahead of the service that will answer them, so what a visitor finds there
+ * is not yet guaranteed — but the host no longer is a placeholder, and this is the
+ * only line that changes when the paths move. Nothing else in the app, in the QR
+ * encoder, or in any of the 39 languages holds a copy.
+ *
+ * It was `castivio.com` until the domain was confirmed, which meant every shipped
+ * QR encoded a host the product does not own.
  *
  * ## What the QR may carry
  *
@@ -37,10 +42,10 @@ object ActivationDestination {
     /**
      * The address the QR encodes and the button opens.
      *
-     * Placeholder. When Castivio's activation page exists, this line changes and
-     * nothing else does.
+     * The host is final. When Castivio's activation page settles on a different
+     * path, this line changes and nothing else does.
      */
-    const val URL: String = "https://castivio.com/activate"
+    const val URL: String = "https://castivio.app/activate"
 
     /**
      * Where a user goes when the app cannot help them.
@@ -54,10 +59,10 @@ object ActivationDestination {
      * asking a remote to type an address into one it does not have is not an
      * escape hatch, it is a dead end with a label on it.
      *
-     * Placeholder, on the same terms as [URL]: when the page exists, this line
-     * changes and nothing else does.
+     * On the same terms as [URL]: the host is final, and when the page settles on
+     * a different path this line changes and nothing else does.
      */
-    const val SUPPORT_URL: String = "https://castivio.com/support"
+    const val SUPPORT_URL: String = "https://castivio.app/support"
 
     /**
      * The support page for *this* device.

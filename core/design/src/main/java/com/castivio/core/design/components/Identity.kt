@@ -51,6 +51,7 @@ import com.castivio.core.design.theme.Motion
 import com.castivio.core.design.theme.Palette
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Sizing
+import com.castivio.core.design.theme.Spacing
 
 /**
  * The device identity components, shared by every screen that shows one.
@@ -195,11 +196,32 @@ fun IdentityCapsule(
     labelStyle: TextStyle? = null,
     /** The control's glyph at rest. See [CopyButton]. */
     icon: ImageVector = Icons.Rounded.ContentCopy,
+    /**
+     * What kind of field this is, drawn after the value. [CapsuleForm.Card] only.
+     *
+     * Null keeps the row as it was, which is what the pill wants: at that size a
+     * second glyph beside the copy control is clutter, and the pill's label is
+     * already the first thing read.
+     *
+     * The card is the other case. It carries one value across a whole column, and
+     * naming the field with a picture is how the same two identifiers are marked
+     * everywhere else in Castivio — Home draws exactly these two glyphs beside
+     * exactly these two values. Passing them here is what makes the activation
+     * screen and the dashboard agree rather than each inventing a mark.
+     *
+     * It sits *after* the value rather than before the label, so the row reads
+     * label, value, mark, action: the name is against the field it names, the value
+     * stays the thing the eye lands on, and the control at the far end is the one
+     * element that does something rather than says something.
+     */
+    fieldIcon: ImageVector? = null,
+    /** [fieldIcon]'s colour. Null keeps `onBackgroundMuted`. */
+    fieldTint: Color? = null,
 ) {
     if (form == CapsuleForm.Card) {
         IdentityCard(
             metrics, label, value, valueStyle, copyLabel, isCopied, onCopy,
-            modifier, spoken, copyEnabled, tint, labelStyle, icon,
+            modifier, spoken, copyEnabled, tint, labelStyle, icon, fieldIcon, fieldTint,
         )
         return
     }
@@ -289,6 +311,8 @@ private fun IdentityCard(
     tint: CapsuleTint,
     labelStyle: TextStyle?,
     icon: ImageVector,
+    fieldIcon: ImageVector?,
+    fieldTint: Color?,
 ) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(metrics.corner)
@@ -337,6 +361,19 @@ private fun IdentityCard(
                 .clearAndSetSemantics { contentDescription = spoken ?: value },
         )
 
+        // The field's own mark, between the value and the control. Decorative to a
+        // screen reader: the label already says which field this is, and `spoken`
+        // says the value, so a third announcement would be the same fact a third
+        // time.
+        fieldIcon?.let { glyph ->
+            Icon(
+                imageVector = glyph,
+                contentDescription = null,
+                tint = fieldTint ?: colors.onBackgroundMuted,
+                modifier = Modifier.size(Sizing.iconMd),
+            )
+        }
+
         if (copyEnabled) {
             CopyButton(
                 size = metrics.target,
@@ -347,6 +384,16 @@ private fun IdentityCard(
                 ring = controlRing(tint),
                 iconTint = controlInk(tint),
                 icon = icon,
+                // One card gap is what the row gives every pair, and between these
+                // two it was not enough: a mark that says what the field is, a
+                // control that does something to it, and at a single gap they read
+                // as one two-part widget. [Spacing.sm] on top separates them —
+                // `start`, so the side is the script's and not the page's.
+                //
+                // Only where there is a mark to separate from. A row without one
+                // ends with its value, and an inset there would push the control
+                // off the end of a card nothing had asked to widen.
+                modifier = if (fieldIcon != null) Modifier.padding(start = Spacing.sm) else Modifier,
             )
         }
     }

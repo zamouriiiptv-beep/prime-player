@@ -416,7 +416,7 @@ private fun ComposeContentTestRule.assertActivationIsWhole(
     println(
         "activation text — title ${textSize("Add a playlist")} | " +
             "legal ${textSize("Castivio is a multimedia player")} | " +
-            "caption ${textSize("Scan the QR code with your phone")}",
+            "caption ${textSize("Scan the QR code to activate")}",
     )
 
     // The three bands first. A band with no height is the failure this file
@@ -486,7 +486,11 @@ private fun ComposeContentTestRule.assertActivationIsWhole(
     check("the reserved status line") { onNodeWithTag(ActivationTags.STATUS).assertExists() }
 
     byTag("the QR fixture", ActivationTags.QR, min = 100.dp)
-    byText("the QR caption", "Scan the QR code with your phone")
+    byText("the QR caption", "Scan the QR code to activate")
+    // The symbol's text equivalent. A composition that drew the QR and dropped this
+    // would leave a reader who cannot scan with no route at all, which is the one
+    // thing the pair exists to prevent.
+    byTag("the activation address", ActivationTags.ADDRESS)
 
     byText("the legal line", "Castivio is a multimedia player")
 

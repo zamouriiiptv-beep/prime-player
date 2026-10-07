@@ -20,12 +20,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Smartphone
+import androidx.compose.material.icons.rounded.VpnKey
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -54,6 +55,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.castivio.core.common.config.ActivationDestination
 import com.castivio.core.design.components.ButtonWeight
 import com.castivio.core.design.components.CapsuleForm
 import com.castivio.core.design.components.CapsuleMetrics
@@ -72,6 +74,7 @@ import com.castivio.domain.identity.IdentityProvenance
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioDescriptionColor
 import com.castivio.core.design.components.castivioFocusScale
+import com.castivio.core.design.components.ltrToken
 import com.castivio.core.design.components.castivioTitleStyle
 import com.castivio.core.design.components.emphasiseNumber
 import com.castivio.core.design.theme.CastivioMetrics
@@ -265,7 +268,7 @@ internal fun metricsFor(tv: Boolean, width: Dp, height: Dp): Metrics = Metrics(
     button = height.boundedFraction(BUTTON, Sizing.minTarget(tv), 60.dp),
     statusTop = height.boundedFraction(STATUS_TOP, 8.dp, 18.dp),
     statusHeight = height.boundedFraction(STATUS_HEIGHT, 16.dp, 26.dp),
-    plate = height.boundedFraction(PLATE, plateFloor(height), 210.dp),
+    plate = height.boundedFraction(plateShare(height), plateFloor(height), 210.dp),
     zoneWidth = width.boundedFraction(ZONE_WIDTH, 190.dp, 330.dp),
     zonePad = height.boundedFraction(ZONE_PAD, 6.dp, 18.dp),
     zoneGap = height.boundedFraction(ZONE_GAP, 5.dp, 12.dp),
@@ -280,11 +283,55 @@ internal fun metricsFor(tv: Boolean, width: Dp, height: Dp): Metrics = Metrics(
  *
  * The quiet zone scales with the plate, so a smaller plate is a smaller symbol and
  * not a crowded one; what a floor protects is the number of pixels a phone's camera
- * gets per module from arm's length. 132dp holds that on every surface this ships
- * to. Under [CRAMPED_PHONE] it is the one figure allowed to go lower, because the
- * alternative is the caption underneath it measuring zero.
+ * gets per module from arm's length.
+ *
+ * ## Three tiers, and the middle one is new
+ *
+ * 132dp was the floor on every surface above [CRAMPED_PHONE], and on the shortest
+ * phone it was the floor that *bound*: the share asks for 128dp there and the floor
+ * pushed it back up. That is what held the QR column at 96.7% of its band while the
+ * identity column beside it sat at 90.5% — a panel with 3% of air in it, which is
+ * what reads as a screen drawn at the wrong scale.
+ *
+ * 124dp between [COMPACT_SURFACE] and [CRAMPED_PHONE] is measured rather than
+ * guessed. The payload is a version 4 symbol, 33 modules, drawn with ZXing's margin
+ * of one into a 35-module bitmap; at 124dp the plate gives 108.6dp of symbol and
+ * **3.10dp a module**, against the 3.0dp floor `ActivationQrTest` holds. The quiet
+ * zone does not move at all: the padding is a share of the plate and so is the
+ * module, so it is 3.48 modules at every plate size this function can return.
+ *
+ * Under [CRAMPED_PHONE] it is still 112dp, unchanged, because there the alternative
+ * is the caption underneath measuring zero.
  */
-private fun plateFloor(height: Dp): Dp = if (height >= CRAMPED_PHONE) 132.dp else 112.dp
+private fun plateFloor(height: Dp): Dp = when {
+    height >= COMPACT_SURFACE -> 132.dp
+    height >= CRAMPED_PHONE -> 124.dp
+    else -> 112.dp
+}
+
+/**
+ * Which share of the height the plate takes.
+ *
+ * [PLATE] above [COMPACT_SURFACE], so the television and both large frames reproduce
+ * the approved drawing to the dp. [PLATE_COMPACT] below it, so the QR column comes in
+ * with the surface instead of holding its reference size while the frame shrinks
+ * around it.
+ *
+ * A share that changes at a stated threshold is this screen's own idea, not a new
+ * one: [plateFloor] has worked that way since [CRAMPED_PHONE] was written.
+ */
+private fun plateShare(height: Dp): Float =
+    if (height >= COMPACT_SURFACE) PLATE else PLATE_COMPACT
+
+/**
+ * Where a surface stops being tall enough to carry the drawing at its own scale.
+ *
+ * Above this the frame has room for the approved proportions; below it the band is
+ * short enough that holding them is what makes the screen read as zoomed. 400dp sits
+ * between the television's 540 and the reference phone's 393, so the three large
+ * frames are untouched by construction rather than by care.
+ */
+internal val COMPACT_SURFACE = 400.dp
 
 /* ------------------------------------------------------------------ the shares
  *
@@ -311,6 +358,16 @@ private const val BUTTON = 74.67f / 720f
 private const val STATUS_TOP = 21.33f / 720f
 private const val STATUS_HEIGHT = 32f / 720f
 private const val PLATE = 256f / 720f
+
+/**
+ * The plate's share below [COMPACT_SURFACE]: 248 against the drawing's 256.
+ *
+ * Three per cent off the symbol, and the number was chosen so that the share and the
+ * floor meet exactly on the shortest phone — 360 x 248/720 is 124.0, which is also
+ * [plateFloor] there. A share that lands above its own floor would have left the
+ * floor doing nothing, which is the mistake the first attempt at this made.
+ */
+private const val PLATE_COMPACT = 248f / 720f
 private const val ZONE_WIDTH = 325.3f / 1280f
 private const val ZONE_PAD = 18.67f / 720f
 private const val ZONE_GAP = 13.33f / 720f
@@ -356,17 +413,19 @@ internal fun Metrics.identityHeight(): Dp =
     capsule + capsuleGap + capsule + actionsTop + button + statusTop + statusHeight
 
 /**
- * What the code panel needs: the plate, its padding, the gap and the caption.
+ * What the code panel needs: the plate, its padding, two gaps and three lines.
  *
- * @param captionLines budgeted at **three**, which is one more than any of the
- *   twelve frame-and-language combinations in the drawing actually produces. The
- *   caption is a sentence and Castivio ships thirty-seven of them; two is what
- *   Arabic, English, Spanish and Portuguese take, and the spare line is for the
- *   one nobody measured. A budget that is exactly the measurement is a budget
- *   that fails the first time a translator is generous.
+ * Three lines of type, in two pieces: the caption's [captionLines] and the one the
+ * address under it takes. Two gaps, because the column spaces every child — plate to
+ * caption, caption to address — and a budget that counted one of them was a budget
+ * that would have been short by a gap the first time anybody drew what it describes.
+ *
+ * @param captionLines **two**, and measured rather than reserved. [CAPTION_LINES]
+ *   holds the sweep that settled it; a sentence that wraps to three on any surface
+ *   in any language puts this budget back under water.
  */
 internal fun Metrics.codeHeight(captionLines: Int = CAPTION_LINES): Dp =
-    plate + zonePad * 2 + zoneGap + fsCaption * BODY_LEADING * captionLines
+    plate + zonePad * 2 + zoneGap * 2 + fsCaption * BODY_LEADING * (captionLines + ADDRESS_LINES)
 
 /**
  * The first screen, where a subscription is added.
@@ -666,8 +725,14 @@ private fun IdentityZone(
             copyLabel = stringResource(R.string.copy_mac),
             isCopied = identity.addressCopied,
             enabled = address != null,
-            // The device saying what it is: the cool half of the brand.
-            tint = CapsuleTint.Azure,
+            // The chip Home marks this same address with.
+            fieldIcon = Icons.Rounded.Memory,
+            fieldTint = CastivioTheme.colors.onBackgroundMuted,
+            // No tint on the control. The field is named by the glyph at the row's
+            // start now, so a coloured disc at the other end would be a second
+            // answer to a question already answered -- and a plain copy button is
+            // what says "this value is copyable" without competing with the value.
+            tint = CapsuleTint.None,
             onCopy = {
                 clipboard.setText(AnnotatedString(address.orEmpty()))
                 onCopied(Copied.Address)
@@ -689,9 +754,10 @@ private fun IdentityZone(
                 copyLabel = stringResource(R.string.copy_key),
                 isCopied = identity.keyCopied,
                 enabled = true,
-                icon = Icons.Rounded.Key,
-                // What a licence is issued against: the warm half.
-                tint = CapsuleTint.Violet,
+                // The key Home marks this same value with, in Home's own amber.
+                fieldIcon = Icons.Rounded.VpnKey,
+                fieldTint = CastivioTheme.colors.hueAmber,
+                tint = CapsuleTint.None,
                 onCopy = {
                     clipboard.setText(AnnotatedString(key))
                     onCopied(Copied.Key)
@@ -833,22 +899,17 @@ private fun ActivationCard(
     onCopy: () -> Unit,
     modifier: Modifier = Modifier,
     /**
-     * The glyph on the control, which names the **field** rather than the action.
+     * What kind of field this is, drawn after the value.
      *
-     * Both discs carried the copy glyph and the drawing has never said they
-     * should: two circles a card's width apart, holding the same picture, read as
-     * one control repeated rather than as two different things, and the two
-     * things are the whole content of this screen. The address keeps copy; the
-     * device key takes a key.
-     *
-     * The action is unchanged and so is what a screen reader is told — "Copy
-     * device key" — and pressing it still swaps to a tick. Worth stating plainly,
-     * because a control whose picture describes its field and whose label
-     * describes its action is a compromise: it is the drawing's, it is what makes
-     * the pair legible at a glance, and the description is what a user who cannot
-     * see the glyph actually receives.
+     * These two glyphs are not chosen here. `HomeScreen` marks the same two facts
+     * in its footer with `Icons.Rounded.Memory` and `Icons.Rounded.VpnKey`, at
+     * `onBackgroundMuted` and `hueAmber`, and a user who learns a mark on one
+     * screen should meet the same mark on the other. They are taken from there
+     * rather than picked again.
      */
-    icon: ImageVector = Icons.Rounded.ContentCopy,
+    fieldIcon: ImageVector,
+    /** [fieldIcon]'s colour, also Home's. */
+    fieldTint: Color,
 ) {
     IdentityCapsule(
         metrics = CapsuleMetrics(
@@ -878,7 +939,8 @@ private fun ActivationCard(
         copyEnabled = enabled,
         tint = tint,
         form = CapsuleForm.Card,
-        icon = icon,
+        fieldIcon = fieldIcon,
+        fieldTint = fieldTint,
         labelStyle = CastivioType.labelMedium.copy(
             fontSize = m.fsLabel.value.sp,
             lineHeight = (m.fsLabel.value * LABEL_LEADING).sp,
@@ -890,7 +952,19 @@ private fun ActivationCard(
 /* --------------------------------------------------------------- code panel */
 
 /**
- * The plate, its panel and the caption that says what to do with it.
+ * The plate, its panel, the caption that says what to do with it, and the address.
+ *
+ * ## Why the address is written out as well as encoded
+ *
+ * A QR is the one instruction on this screen that cannot be read. No phone to hand, a
+ * camera that will not focus, or a viewer three metres from a television, and the
+ * symbol says nothing at all. The line under it is that symbol's text equivalent, not
+ * an ornament beside it — and it comes from `ActivationDestination.display`, which is
+ * derived from the same constant the encoder uses, so the written address and the
+ * scanned one cannot drift apart.
+ *
+ * It costs the line the caption gave up when six translations were shortened; see
+ * [CAPTION_LINES]. The panel is no taller than it was by anything but one gap.
  *
  * The plate is 192 / 174 / 164dp — an 11% step down from the first drawing, which
  * read as a poster rather than as a code to point a phone at — and what gives way
@@ -940,6 +1014,19 @@ private fun CodeZone(identity: ActivationIdentityState, m: Metrics) {
                 maxLines = CAPTION_LINES,
             )
         }
+        Text(
+            text = ltrToken(ActivationDestination.display),
+            style = castivioBodyStyle(m.fsCaption),
+            // Azure50, the step the trial's numeral already takes. The address is the
+            // one thing in this panel a reader is meant to carry off the screen and
+            // type somewhere else, and the brand's own blue is what says so without
+            // inventing a colour for it. 6.4:1 on this panel.
+            color = Palette.Azure50,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center,
+            maxLines = ADDRESS_LINES,
+            modifier = Modifier.testTag(ActivationTags.ADDRESS),
+        )
     }
 }
 
@@ -1150,9 +1237,32 @@ private const val SECONDARY_LABEL = 0.92f
 /** The QR's quiet zone, as a share of the plate. */
 private const val QUIET_ZONE = 0.062f
 
-/** The caption's phone glyph and its two-line budget. */
+/** The caption's phone glyph. */
 private const val CAPTION_ICON = 1.3f
-private const val CAPTION_LINES = 3
+
+/**
+ * One, and it cannot be more.
+ *
+ * The address is a single token with no space in it, so it does not wrap — it
+ * overflows. `ActivationQrTest` measures it against the narrowest column this screen
+ * has, which is why one line is a fact here and not an allowance.
+ */
+private const val ADDRESS_LINES = 1
+
+/**
+ * Two, and it is now a measurement rather than a reserve.
+ *
+ * It was three: two for the sentence and a spare for "the one nobody measured". All
+ * thirty-nine were then measured — every locale in every frame's real caption column,
+ * at that frame's own body size — and six were over: English, Bulgarian, German,
+ * Greek, Russian and Serbian. The spare was not spare; it was in use, and a seventh
+ * language would have overrun it unseen.
+ *
+ * Those six are shorter now and the sweep is 156 of 156 at two lines or fewer, so the
+ * third line is free. It is spent on [ActivationTags.ADDRESS], which is what makes
+ * the QR readable by somebody who cannot scan it — see [CodeZone].
+ */
+private const val CAPTION_LINES = 2
 
 /** The footer bar's inset, and the information glyph inside its disc. */
 private const val FOOTER_PAD = 0.34f

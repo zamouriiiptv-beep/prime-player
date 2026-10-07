@@ -27,7 +27,7 @@
     <string name="refresh_found">تم العثور على اشتراك</string>
     <string name="refresh_none">أضف أول قائمة تشغيل للبدء</string>
     <string name="refresh_error">تعذر التحديث — أعد المحاولة</string>
-    <string name="qr_caption">امسح رمز QR باستخدام هاتفك لتفعيل هذا الجهاز</string>
+    <string name="qr_caption">امسح رمز QR بهاتفك لتفعيل هذا الجهاز</string>
     <string name="legal_player_only">Castivio هو مشغل وسائط متعددة، ولا يوفر أي قنوات أو محتوى أو اشتراكات</string>
     <string name="mac_spoken">عنوان MAC %s</string>
     <string name="language">اللغة</string>

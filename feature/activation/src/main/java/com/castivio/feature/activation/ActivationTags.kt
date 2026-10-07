@@ -29,6 +29,16 @@ internal object ActivationTags {
     const val QR = "activation.qr"
 
     /**
+     * The activation address, written out under the symbol that encodes it.
+     *
+     * Tagged so a test can assert it is the destination constant and not a literal
+     * somebody typed. The screen states the address twice — once as a QR a phone
+     * scans, once as text a person reads — and the two disagreeing is the defect
+     * `ActivationDestination` exists to make impossible.
+     */
+    const val ADDRESS = "activation.address"
+
+    /**
      * The two buttons, as a row.
      *
      * Tagged because the text finders reach the label inside a button, not the
