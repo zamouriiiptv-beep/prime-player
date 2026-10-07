@@ -25,7 +25,7 @@
     <string name="refresh">Vernieuwen</string>
     <string name="refresh_checking">Controleren…</string>
     <string name="refresh_found">Abonnement gevonden</string>
-    <string name="refresh_none">Je kunt nu je eerste afspeellijst toevoegen.</string>
+    <string name="refresh_none">Voeg je eerste M3U- of Xtream-afspeellijst toe.</string>
     <string name="refresh_error">Vernieuwen mislukt — probeer opnieuw</string>
     <string name="qr_caption">Scan de QR-code om dit apparaat te activeren.</string>
     <string name="legal_player_only">Castivio is alleen een speler en levert geen abonnementen of content.</string>

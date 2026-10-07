@@ -25,7 +25,7 @@
     <string name="refresh">Frissítés</string>
     <string name="refresh_checking">Ellenőrzés…</string>
     <string name="refresh_found">Előfizetés megtalálva</string>
-    <string name="refresh_none">Most hozzáadhatod az első lejátszási listádat.</string>
+    <string name="refresh_none">Add hozzá az első M3U vagy Xtream lejátszási listádat.</string>
     <string name="refresh_error">A frissítés nem sikerült — próbáld újra</string>
     <string name="qr_caption">Olvassa be a QR-kódot az eszköz aktiválásához.</string>
     <string name="legal_player_only">A Castivio csak egy lejátszó, nem nyújt előfizetést vagy tartalmat.</string>

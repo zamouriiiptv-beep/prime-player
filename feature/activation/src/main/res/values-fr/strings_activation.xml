@@ -25,7 +25,7 @@
     <string name="refresh">Actualiser</string>
     <string name="refresh_checking">Vérification…</string>
     <string name="refresh_found">Abonnement trouvé</string>
-    <string name="refresh_none">Vous pouvez maintenant ajouter votre première playlist.</string>
+    <string name="refresh_none">Ajoutez votre première playlist M3U ou Xtream.</string>
     <string name="refresh_error">Échec de l’actualisation — réessayez</string>
     <string name="qr_caption">Scannez le code QR pour activer cet appareil.</string>
     <string name="legal_player_only">Castivio est uniquement un lecteur et ne fournit ni abonnements ni contenus.</string>

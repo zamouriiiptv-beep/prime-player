@@ -25,7 +25,7 @@
     <string name="refresh">รีเฟรช</string>
     <string name="refresh_checking">กำลังตรวจสอบ…</string>
     <string name="refresh_found">พบการสมัครสมาชิก</string>
-    <string name="refresh_none">ตอนนี้คุณเพิ่มเพลย์ลิสต์แรกได้แล้ว</string>
+    <string name="refresh_none">เพิ่มเพลย์ลิสต์ M3U หรือ Xtream รายการแรกของคุณ</string>
     <string name="refresh_error">รีเฟรชไม่สำเร็จ — ลองอีกครั้ง</string>
     <string name="qr_caption">สแกนคิวอาร์โค้ดเพื่อเปิดใช้งานอุปกรณ์นี้</string>
     <string name="legal_player_only">Castivio เป็นเพียงโปรแกรมเล่นเท่านั้น ไม่ได้ให้บริการสมัครสมาชิกหรือเนื้อหา</string>

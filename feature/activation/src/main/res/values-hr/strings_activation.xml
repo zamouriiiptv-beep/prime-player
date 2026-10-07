@@ -25,7 +25,7 @@
     <string name="refresh">Osvježi</string>
     <string name="refresh_checking">Provjera…</string>
     <string name="refresh_found">Pretplata pronađena</string>
-    <string name="refresh_none">Sada možete dodati svoju prvu playlistu.</string>
+    <string name="refresh_none">Dodajte svoju prvu M3U ili Xtream playlistu.</string>
     <string name="refresh_error">Osvježavanje nije uspjelo — pokušajte ponovno</string>
     <string name="qr_caption">Skenirajte QR kôd da biste aktivirali ovaj uređaj.</string>
     <string name="legal_player_only">Castivio je samo reproduktor i ne pruža pretplate ni sadržaj.</string>

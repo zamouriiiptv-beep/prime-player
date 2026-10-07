@@ -25,7 +25,7 @@
     <string name="refresh">刷新</string>
     <string name="refresh_checking">正在检查…</string>
     <string name="refresh_found">已找到订阅</string>
-    <string name="refresh_none">现在可以添加你的第一个播放列表了。</string>
+    <string name="refresh_none">添加你的第一个 M3U 或 Xtream 播放列表。</string>
     <string name="refresh_error">刷新失败 — 请重试</string>
     <string name="qr_caption">扫描二维码以激活此设备。</string>
     <string name="legal_player_only">Castivio 仅为播放器，不提供订阅或内容。</string>

@@ -25,7 +25,7 @@
     <string name="refresh">Rifresko</string>
     <string name="refresh_checking">Po kontrollohet…</string>
     <string name="refresh_found">U gjet abonim</string>
-    <string name="refresh_none">Tani mund të shtoni listën tuaj të parë të luajtjes.</string>
+    <string name="refresh_none">Shtoni listën tuaj të parë M3U ose Xtream.</string>
     <string name="refresh_error">Rifreskimi dështoi — provoni sërish</string>
     <string name="qr_caption">Skanoni kodin QR për ta aktivizuar këtë pajisje.</string>
     <string name="legal_player_only">Castivio është vetëm një luajtës dhe nuk ofron abonime apo përmbajtje.</string>

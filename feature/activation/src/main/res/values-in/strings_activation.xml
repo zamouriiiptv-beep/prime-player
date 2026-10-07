@@ -25,7 +25,7 @@
     <string name="refresh">Muat ulang</string>
     <string name="refresh_checking">Memeriksa…</string>
     <string name="refresh_found">Langganan ditemukan</string>
-    <string name="refresh_none">Sekarang Anda bisa menambahkan playlist pertama.</string>
+    <string name="refresh_none">Tambahkan playlist M3U atau Xtream pertama Anda.</string>
     <string name="refresh_error">Gagal memuat ulang — coba lagi</string>
     <string name="qr_caption">Pindai kode QR untuk mengaktifkan perangkat ini.</string>
     <string name="legal_player_only">Castivio hanya pemutar dan tidak menyediakan langganan atau konten.</string>

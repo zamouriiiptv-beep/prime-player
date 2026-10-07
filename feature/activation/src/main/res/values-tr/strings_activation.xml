@@ -25,7 +25,7 @@
     <string name="refresh">Yenile</string>
     <string name="refresh_checking">Kontrol ediliyor…</string>
     <string name="refresh_found">Abonelik bulundu</string>
-    <string name="refresh_none">Artık ilk oynatma listenizi ekleyebilirsiniz.</string>
+    <string name="refresh_none">İlk M3U veya Xtream oynatma listenizi ekleyin.</string>
     <string name="refresh_error">Yenilenemedi — tekrar deneyin</string>
     <string name="qr_caption">Bu cihazı etkinleştirmek için QR kodunu tarayın.</string>
     <string name="legal_player_only">Castivio yalnızca bir oynatıcıdır; abonelik veya içerik sağlamaz.</string>
