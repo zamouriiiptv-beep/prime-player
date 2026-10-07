@@ -207,14 +207,17 @@ class ActivationQrTest {
     }
 
     /**
-     * The button and the QR cannot drift.
+     * The scheme-less form cannot drift from the symbol.
      *
-     * They are two renderings of one constant, and this is the assertion that
-     * keeps it that way — the display form is derived from [ActivationDestination.URL],
-     * so a second hardcoded address anywhere makes these disagree.
+     * The screen writes [ActivationDestination.URL] out verbatim now, so what a
+     * reader sees and what a camera reads are the same string by construction and
+     * the test above already covers it. What is still worth holding is
+     * [ActivationDestination.display]: it is derived rather than written out, and
+     * this is the assertion that says so, so that a second hardcoded address — in
+     * this file, in a screen, anywhere — makes the two disagree here first.
      */
     @Test
-    fun `the address shown to a person is the address in the symbol`() {
+    fun `the scheme-less address is the address in the symbol`() {
         assertEquals(ActivationDestination.display, decode().removePrefix("https://"))
     }
 
@@ -226,22 +229,20 @@ class ActivationQrTest {
      * holds it or cuts it, and a cut address is worse than none: a reader types what
      * they can see and lands nowhere.
      *
-     * Measured against the narrowest caption column this screen has. 800x360 is the
-     * shortest surface, but it is not the tightest for type — the tablet's column is
-     * 13.5 of its own body size against the short phone's 13.4, and the two reference
-     * phones are wider than either. So the floor is taken across all four rather than
-     * assumed to be the smallest frame.
+     * Measured against every surface rather than against the smallest, because the
+     * tightest one is not the smallest. 800x360 has the narrowest column at 184.6dp,
+     * and 1280x800 has the widest type: `fsCaption` has reached its 19dp ceiling there
+     * while the column stopped growing at 330dp, so the tablet runs out of room by
+     * setting the address large rather than by being small. Both clear by about 11dp
+     * and nothing else is close.
      */
     @Test
     fun `the written address fits the column it is drawn in, on every surface`() {
-        val address = ActivationDestination.display
+        val address = ActivationDestination.URL
         for ((name, width, height) in SURFACES) {
             val m = metricsFor(tv = name.startsWith("television"), width = width, height = height)
             val column = m.zoneWidth - m.zonePad * 2
-            // The widest the token can be and still sit on one line: a monospace
-            // upper bound of 0.62em a character is generous for Inter's lower case,
-            // which is what this address is set in.
-            val widest = m.fsCaption * ADDRESS_EM_PER_CHAR * address.length
+            val widest = m.fsAddress * ADDRESS_EM_PER_CHAR * address.length
             assertTrue(
                 "$name: \"$address\" wants up to $widest in a $column column",
                 widest <= column,
@@ -250,8 +251,25 @@ class ActivationQrTest {
     }
 }
 
-/** An upper bound on Inter's lower-case advance, for the address's fit check. */
-private const val ADDRESS_EM_PER_CHAR = 0.62f
+/**
+ * An upper bound on this token's average advance, in the face it is drawn in.
+ *
+ * It was 0.62 — a monospace guess, left deliberately loose because the address was
+ * `castivio.app/activate` at the caption's own size and cleared its column by more
+ * than half. It no longer does: the scheme put eight characters back and
+ * `ADDRESS_STEP` set the line 10% larger, and the margin is now about 6%. A bound
+ * with 37% of slop in it cannot see a 6% margin, so it was not guarding anything.
+ *
+ * `https://castivio.app/activate` measures 173.5dp at 13.2dp of IBM Plex Sans
+ * SemiBold, which is 0.4534 em a character. 0.47 is that with 3.6% on top, for the
+ * difference between a browser's shaping of the file and Android's.
+ *
+ * **It is specific to this string.** A longer address does not merely scale it: the
+ * average advance depends on which characters, and a path full of wide letters
+ * would break the bound before it breaks the column. That is the right failure —
+ * this constant and the address are meant to be re-measured together.
+ */
+private const val ADDRESS_EM_PER_CHAR = 0.47f
 
 /**
  * Every surface the activation screen ships to, as the plate tests read them.

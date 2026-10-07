@@ -76,11 +76,19 @@ object ActivationDestination {
         if (macAddress.isNullOrBlank()) SUPPORT_URL else SUPPORT_URL + "?mac=" + macAddress.encoded()
 
     /**
-     * The same address, without the scheme, for showing to a person.
+     * The same address, without the scheme.
      *
-     * `https://` is noise on a screen somebody is reading off a television from
-     * three metres away, and it is not what they would type. Derived rather than
-     * written out a second time, so it cannot fall out of step with [URL].
+     * Written for the activation screen on the reasoning that `https://` is noise to
+     * somebody reading a television from three metres away and is not what they
+     * would type. That screen draws [URL] now, and the reason is a use nobody had
+     * thought of: the screenshot is how the address travels. A user sends the screen
+     * to whoever sells them a subscription, and a picture of an address is read
+     * rather than typed — the scheme is what makes it read as one.
+     *
+     * So nothing in the application draws this at the moment. It is kept, and kept
+     * derived from [URL] rather than written out a second time, because the
+     * typed-not-read case is a real one and the next screen that has it should not
+     * re-derive the stripping.
      */
     val display: String = URL.removePrefix("https://").removePrefix("http://").trimEnd('/')
 

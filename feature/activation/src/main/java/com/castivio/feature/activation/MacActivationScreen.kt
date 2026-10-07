@@ -214,6 +214,15 @@ internal data class Metrics(
     val fsTitle get() = frame.fsTitle
     val fsLabel get() = frame.fsLabel
     val fsCaption get() = frame.fsBody
+
+    /**
+     * The written address, a step above the caption around it.
+     *
+     * One value, read by the drawing and by [codeHeight], because a budget computed
+     * from a different size than the text is set at is a budget that is quietly
+     * wrong — the same reason `BODY_LEADING` is public rather than copied.
+     */
+    val fsAddress get() = fsCaption * ADDRESS_STEP
     val fsChip get() = frame.fsChip
 }
 
@@ -425,7 +434,9 @@ internal fun Metrics.identityHeight(): Dp =
  *   in any language puts this budget back under water.
  */
 internal fun Metrics.codeHeight(captionLines: Int = CAPTION_LINES): Dp =
-    plate + zonePad * 2 + zoneGap * 2 + fsCaption * BODY_LEADING * (captionLines + ADDRESS_LINES)
+    plate + zonePad * 2 + zoneGap * 2 +
+        fsCaption * BODY_LEADING * captionLines +
+        fsAddress * BODY_LEADING * ADDRESS_LINES
 
 /**
  * The first screen, where a subscription is added.
@@ -974,9 +985,21 @@ private fun ActivationCard(
  * A QR is the one instruction on this screen that cannot be read. No phone to hand, a
  * camera that will not focus, or a viewer three metres from a television, and the
  * symbol says nothing at all. The line under it is that symbol's text equivalent, not
- * an ornament beside it — and it comes from `ActivationDestination.display`, which is
- * derived from the same constant the encoder uses, so the written address and the
- * scanned one cannot drift apart.
+ * an ornament beside it — and it is `ActivationDestination.URL` itself, the same
+ * constant the encoder is handed, so the written address and the scanned one cannot
+ * drift apart.
+ *
+ * ## Why the scheme is written out, and why the line is larger than the caption
+ *
+ * Because the screenshot is the delivery mechanism. A user sends this screen to
+ * whoever sells them a subscription, and that person has to be able to read where
+ * to go — from a photograph of a television, at whatever size the messaging app
+ * compressed it to. `castivio.app/activate` is what a person would *type*, which is
+ * why the scheme was dropped; `https://castivio.app/activate` is what a person
+ * reading a picture recognises as an address, which is the job this line has turned
+ * out to have. [ADDRESS_STEP] sizes it above the sentence it sits under for the
+ * same reason: of everything in this panel it is the one thing that has to survive
+ * being looked at second-hand.
  *
  * It costs the line the caption gave up when six translations were shortened; see
  * [CAPTION_LINES]. The panel is no taller than it was by anything but one gap.
@@ -1030,8 +1053,8 @@ private fun CodeZone(identity: ActivationIdentityState, m: Metrics) {
             )
         }
         Text(
-            text = ltrToken(ActivationDestination.display),
-            style = castivioBodyStyle(m.fsCaption),
+            text = ltrToken(ActivationDestination.URL),
+            style = castivioBodyStyle(m.fsAddress),
             // Azure50, the step the trial's numeral already takes. The address is the
             // one thing in this panel a reader is meant to carry off the screen and
             // type somewhere else, and the brand's own blue is what says so without
@@ -1277,6 +1300,32 @@ private const val CAPTION_ICON = 1.3f
  * has, which is why one line is a fact here and not an allowance.
  */
 private const val ADDRESS_LINES = 1
+
+/**
+ * How much larger the written address is set than the caption above it.
+ *
+ * Ten per cent, and the ceiling rather than a preference. The address is a token
+ * with no space in it, so a column that cannot hold it does not wrap it — it clips
+ * it, and a clipped address is worse than none because a reader types what they can
+ * see and lands nowhere. Two surfaces decide the number, from opposite ends:
+ *
+ * - **800x360**, the narrowest caption column at 184.6dp. The token is 173.5dp at
+ *   13.2dp of type, which is 11.1dp of room.
+ * - **1280x800**, where `fsCaption` has reached its 19dp ceiling while the column
+ *   stopped growing at 330dp. The token is 277.5dp against 289.3dp — 11.8dp, and
+ *   the tighter of the two in proportion.
+ *
+ * At 1.125 the tablet is down to 4.8dp and at 1.15 it overflows, so this is not a
+ * round number with room above it. Measured in the face the line is actually drawn
+ * in, IBM Plex Sans SemiBold, which is also what `ADDRESS_EM_PER_CHAR` in
+ * `ActivationQrTest` now holds the bound for.
+ *
+ * It costs height as well as width: `codeHeight` reserves `fsAddress * leading` for
+ * this line, which is 10% of one line more than before. The sweep's worst margin is
+ * unchanged at 1.92dp, because on that surface it is the identity column that binds
+ * and not this one.
+ */
+private const val ADDRESS_STEP = 1.10f
 
 /**
  * Two, and it is now a measurement rather than a reserve.
