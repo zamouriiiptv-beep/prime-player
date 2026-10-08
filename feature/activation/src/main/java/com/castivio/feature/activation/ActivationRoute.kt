@@ -338,6 +338,20 @@ fun ActivationRoute(
 
     ActivationSurface(modifier, fixedViewport = fixedViewport) {
         when {
+            // **No step is excepted from these two, and the playlist step does not
+            // need to be.**
+            //
+            // It used to be: while Connect ran a check, the form was replaced by
+            // `ImportingScreen` and a failure by `ActivationFailureScreen`, and
+            // neither belonged on a screen whose whole content is the link the user
+            // just pasted. Both were excluded by name here.
+            //
+            // `ActivateProvider` ended the need for that rather than this file. A
+            // playlist has no account to ask about, so Connect registers it, makes it
+            // active and emits `Succeeded` — it never emits `Checking`, `Importing` or
+            // `Failed`, so neither branch below can be reached from this step. A guard
+            // against a state that cannot happen is a second place for the rule to
+            // live, and the rule lives in the use case.
             state.busy -> ImportingScreen(phase = phase, onCancel = activation::cancel)
 
             phase is ActivationPhase.Failed -> ActivationFailureScreen(
@@ -414,11 +428,21 @@ internal fun isFixedViewport(
     step: ActivationStep,
 ): Boolean =
     !state.busy && state.phase !is ActivationPhase.Failed && when (step) {
-        ActivationStep.Mac, ActivationStep.Choose, ActivationStep.SavedSources -> true
+        // The playlist step joins the three because it is a screen now rather than a
+        // form: it wears `ChooserHeader` at the chooser's own place, which needs the
+        // stage the chooser has, and under the header it divides a bounded band
+        // between two columns, which a scrolling parent's unbounded height makes
+        // impossible. The scrolling a keyboard calls for is kept inside the screen,
+        // around that band, so the IME moves the fields and not the way back.
+        ActivationStep.Mac,
+        ActivationStep.Choose,
+        ActivationStep.SavedSources,
+        ActivationStep.Playlist,
+        -> true
 
-        // The three forms scroll: a keyboard takes most of a handset, and a form that
-        // owned its viewport would put Connect under it.
-        ActivationStep.Xtream, ActivationStep.Playlist, ActivationStep.Portal -> false
+        // The other two forms scroll: a keyboard takes most of a handset, and a form
+        // that owned its viewport would put Connect under it.
+        ActivationStep.Xtream, ActivationStep.Portal -> false
     }
 
 @Composable
@@ -530,23 +554,25 @@ private fun Steps(
                 BackButton(onClick = { onStep(ActivationStep.Choose) })
             }
 
-            ActivationStep.Playlist -> Column(
-                verticalArrangement = Arrangement.spacedBy(Spacing.xl),
-            ) {
-                M3uFormScreen(
-                    form = state.form as? ActivationForm.Playlist ?: ActivationForm.Playlist(),
-                    enabled = !state.busy,
-                    canSubmit = state.canSubmit,
-                    onName = activation::name,
-                    onUrl = activation::playlistUrl,
-                    onSubmit = activation::submit,
-                    onUseXtream = {
-                        activation.acceptDetectedXtream()
-                        onStep(ActivationStep.Xtream)
-                    },
-                )
-                BackButton(onClick = { onStep(ActivationStep.Choose) })
-            }
+            // No `BackButton` under it. This step wears `ChooserHeader`, so Back is
+            // the chip at the header's far end -- the same control in the same place
+            // as on the chooser the user reached this from, which is what "the same
+            // header" has to mean to be worth anything.
+            ActivationStep.Playlist -> M3uFormScreen(
+                form = state.form as? ActivationForm.Playlist ?: ActivationForm.Playlist(),
+                enabled = !state.busy,
+                canSubmit = state.canSubmit,
+                onName = activation::name,
+                onUrl = activation::playlistUrl,
+                // Register, activate, open Home. No retry arm: there is no attempt to
+                // retry -- see `ActivateProvider.hasAccount`.
+                onSubmit = activation::submit,
+                onUseXtream = {
+                    activation.acceptDetectedXtream()
+                    onStep(ActivationStep.Xtream)
+                },
+                onBack = onBack,
+            )
         }
     }
 }
@@ -723,3 +749,4 @@ internal fun formMeasure(m: CastivioMetrics): Dp =
 
 /** Roughly how many body-step widths make a comfortable field. */
 private const val FORM_CHARS = 53.33f
+

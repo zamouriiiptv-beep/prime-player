@@ -105,6 +105,39 @@
     <string name="field_playlist_url">M3U playlist URL</string>
     <string name="field_playlist_url_placeholder">http://example.com/get.php?…</string>
     <string name="action_connect">Connect</string>
+    <string name="action_paste">Paste</string>
+
+    <!--
+      The playlist screen's left-hand half.
+
+      It says what the panel beside it does not. The panel is an instruction — type
+      this, press that — and this is the claim the instruction is in aid of, which is
+      the question most people arriving here are actually asking. Repeating the panel's
+      own title and sentence here would waste the half a reader looks at first.
+
+      The three facts are one line each and are measured against the 960x540 television,
+      where each card is about 128dp of column: a second line is a cut.
+    -->
+    <string name="playlist_pitch_title">All your channels in one list</string>
+    <string name="playlist_pitch_detail">One link opens live channels, films and series on this device.</string>
+    <string name="playlist_fact_devices_title">Every device</string>
+    <string name="playlist_fact_devices_detail">TV · phone · tablet</string>
+    <string name="playlist_fact_fast_title">Quick to add</string>
+    <string name="playlist_fact_fast_detail">No long wait</string>
+    <string name="playlist_fact_private_title">Private</string>
+    <string name="playlist_fact_private_detail">Your details stay here</string>
+
+    <!-- The four rows on the illustration's own menu. -->
+    <string name="playlist_rail_live">Live</string>
+    <string name="playlist_rail_movies">Films</string>
+    <string name="playlist_rail_series">Series</string>
+    <string name="playlist_rail_catchup">Catch up</string>
+
+    <!-- The panel, and the one line under its button that follows the screen's state. -->
+    <string name="playlist_panel_title">Add an M3U list</string>
+    <string name="playlist_panel_detail">Paste the playlist link your provider sent you.</string>
+    <string name="playlist_note_empty">Enter a valid link to turn on Connect.</string>
+    <string name="playlist_note_ready">Press Connect to read the list.</string>
 
     <!-- What is wrong with a field -->
     <string name="problem_required">This one is needed.</string>

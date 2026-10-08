@@ -108,6 +108,21 @@ internal object ActivationTags {
     const val PORTAL_URL = "activation.portalUrl"
 
     /**
+     * The playlist screen's own header and its way back.
+     *
+     * Tagged separately from the chooser's even though both are drawn by
+     * [ChooserHeader]: the claim worth asserting is that *this* screen has the shared
+     * header at the shared place, and a test that found the chooser's tag would pass
+     * on a screen that had accidentally been given the chooser's header instead of its
+     * own title.
+     */
+    const val PLAYLIST_HEADING = "activation.playlistHeading"
+    const val PLAYLIST_BACK = "activation.playlistBack"
+
+    /** The sentence under the button: the screen's one changing line, failure included. */
+    const val PLAYLIST_NOTE = "activation.playlistNote"
+
+    /**
      * The glass surface the grid and Back sit inside.
      *
      * Tagged because "the cards are in a container" is otherwise a claim only a

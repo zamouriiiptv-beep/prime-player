@@ -71,17 +71,42 @@ class ActivationFrameTest {
     }
 
     /**
-     * Every form scrolls, because every form can be taller than a landscape phone
+     * The two plain forms scroll, because a form can be taller than a landscape phone
      * once a keyboard is up.
+     *
+     * The portal was missing from this list and belongs in it: it is the same card
+     * with the same field, and the only reason it never showed the fault is that it
+     * is one field shorter than Xtream.
      */
     @Test
     fun `the forms scroll`() {
-        for (step in listOf(ActivationStep.Xtream, ActivationStep.Playlist)) {
+        for (step in listOf(ActivationStep.Xtream, ActivationStep.Portal)) {
             assertFalse(
                 "$step was given the fixed frame",
                 isFixedViewport(ActivationUiState(), step),
             )
         }
+    }
+
+    /**
+     * **The playlist step owns the viewport, and the scrolling this file used to
+     * require of it has moved rather than gone.**
+     *
+     * It was in the list above while it was a form: a headline, a card with two fields
+     * and a button, in the shared scrolling column with Back underneath. It is a
+     * screen now — it wears `ChooserHeader` at the chooser's own place, and under the
+     * header it divides a bounded band between an illustration and a panel. Both of
+     * those need what the fixed frame is: a stage of its own and a height that is a
+     * number rather than `Infinity`.
+     *
+     * The keyboard is still answered. `M3uFormScreen` puts `imePadding` and a scroll
+     * around the band alone, so with the IME up the fields move and the header and its
+     * Back do not — which is better than what it replaced, where a keyboard pushed the
+     * whole screen including the way out.
+     */
+    @Test
+    fun `the playlist step owns the viewport`() {
+        assertTrue(isFixedViewport(ActivationUiState(), ActivationStep.Playlist))
     }
 
     /**
@@ -127,6 +152,12 @@ class ActivationFrameTest {
             ActivationStep.Mac,
             ActivationStep.Choose,
             ActivationStep.SavedSources,
+            // The playlist step among them, although nothing can put it in this state:
+            // a playlist is never checked, so Connect emits no failure. The claim is
+            // about the predicate rather than about a reachable screen — if a failure
+            // ever did arrive here, `ActivationFailureScreen` is a column of prose and
+            // wants the frame that scrolls, like it does from every other step.
+            ActivationStep.Playlist,
         )) {
             assertFalse("$step kept the fixed frame while failed", isFixedViewport(failed, step))
         }

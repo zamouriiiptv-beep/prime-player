@@ -46,6 +46,35 @@
     <string name="field_playlist_url">رابط قائمة M3U</string>
     <string name="field_playlist_url_placeholder">http://example.com/get.php?…</string>
     <string name="action_connect">اتصال</string>
+    <string name="action_paste">لصق</string>
+
+    <!--
+      النصف الأيمن من شاشة قائمة التشغيل: ما لا تقوله اللوحة المجاورة.
+
+      اللوحة تعليمات — اكتب هنا، اضغط هناك — وهذا هو السبب الذي من أجله تُكتب تلك
+      التعليمات. تكرار عنوان اللوحة ووصفها هنا يُهدر النصف الذي تقع عليه العين أولًا.
+
+      البطاقات الثلاث سطر واحد لكل منها، مقيسة على تلفاز 960×540 حيث يسع العمود نحو
+      128dp — والسطر الثاني يعني القصّ.
+    -->
+    <string name="playlist_pitch_title">كل قنواتك في قائمة واحدة</string>
+    <string name="playlist_pitch_detail">رابط واحد يفتح البث المباشر والأفلام والمسلسلات على هذا الجهاز.</string>
+    <string name="playlist_fact_devices_title">يعمل على كل جهاز</string>
+    <string name="playlist_fact_devices_detail">تلفاز · هاتف · لوحي</string>
+    <string name="playlist_fact_fast_title">إضافة سريعة</string>
+    <string name="playlist_fact_fast_detail">بلا انتظار طويل</string>
+    <string name="playlist_fact_private_title">آمن وخاص</string>
+    <string name="playlist_fact_private_detail">بياناتك على جهازك</string>
+
+    <string name="playlist_rail_live">مباشر</string>
+    <string name="playlist_rail_movies">أفلام</string>
+    <string name="playlist_rail_series">مسلسلات</string>
+    <string name="playlist_rail_catchup">إعادة</string>
+
+    <string name="playlist_panel_title">إضافة قائمة M3U</string>
+    <string name="playlist_panel_detail">الصق رابط قائمة التشغيل الذي أرسله إليك مزوّدك.</string>
+    <string name="playlist_note_empty">أدخل رابطًا صحيحًا لتفعيل زر الاتصال.</string>
+    <string name="playlist_note_ready">اضغط اتصال لقراءة القائمة.</string>
 
     <string name="problem_required">هذا الحقل مطلوب.</string>
     <string name="problem_too_long">هذا أطول مما ينبغي.</string>
