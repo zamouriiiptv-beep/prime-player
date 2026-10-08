@@ -5,12 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import com.castivio.core.design.theme.castivioStage
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -196,7 +192,6 @@ internal fun M3uFormScreen(
     onName: (String) -> Unit,
     onUrl: (String) -> Unit,
     onSubmit: () -> Unit,
-    onUseXtream: () -> Unit,
     /** The route's one answer to Back, raised by the header's chip. */
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -224,48 +219,42 @@ internal fun M3uFormScreen(
             )
             Spacer(Modifier.height(m.bandTop))
 
-            // **The band is a fixed height inside a box that scrolls.**
+            // **The band, and nothing may leave it.**
             //
-            // Both halves matter. The height is fixed so the two columns can divide it
-            // -- the illustration takes what the words leave, the facts sit at the
-            // foot -- which a scrolling parent's unbounded height makes impossible.
-            // The box scrolls so a keyboard cannot cut the band off: with the IME up
-            // this box is shorter than its content and the content moves, which is
-            // what the three forms were given a scrolling frame for in the first
-            // place. With no keyboard the two are the same number to the dp and
-            // nothing scrolls, which is what the drawing requires at 1280x720.
-            BoxWithConstraints(
-                Modifier
-                    .weight(1f)
-                    .imePadding()
-                    .verticalScroll(rememberScrollState()),
-            ) {
-                // The stage's own width, measured rather than subtracted: `castivioStage`
-                // pays `max(edge, inset)` per side, so a display cutout wider than the
-                // edge makes `surface - edge * 2` an overstatement -- and an
-                // overstatement here is a `Modifier.width` larger than the box holding it.
+            // No scroll and no `imePadding`. Both were here and both were wrong for
+            // this screen: a scroll meant Connect could sit below the fold on the one
+            // device the project is tested on, and an IME inset on a window that does
+            // not resize -- `:app` is edge to edge, so the keyboard arrives as an
+            // inset rather than a resize -- would have shrunk the band and clipped the
+            // control instead.
+            //
+            // What replaces them is arithmetic. `m3uSpread` is handed this height and
+            // chooses a composition that fits it: at the reference the full drawing,
+            // on a short landscape handset the same drawing with its optional parts
+            // dropped and its padding tightened. `M3uSpreadTest` asserts the fit on
+            // every surface rather than trusting this comment.
+            Box(Modifier.weight(1f)) {
                 if (fitsSpread(surface, band)) {
-                    val metrics = m3uSpread(maxWidth)
+                    val metrics = m3uSpread(maxWidth - m.edge * 2, band, tv)
                     M3uSpread(
                         metrics = metrics,
-                        modifier = Modifier.align(Alignment.TopCenter).width(metrics.measure).height(band),
+                        modifier = Modifier.align(Alignment.TopCenter).width(metrics.measure),
                         form = form,
                         enabled = enabled,
                         canSubmit = canSubmit,
                         onName = onName,
                         onUrl = onUrl,
                         onSubmit = onSubmit,
-                        onUseXtream = onUseXtream,
                     )
                 } else {
                     M3uColumn(
                         form = form,
                         enabled = enabled,
                         canSubmit = canSubmit,
+                        chrome = m3uChrome(full = band >= COLUMN_FIXED + Sizing.minTarget(tv)),
                         onName = onName,
                         onUrl = onUrl,
                         onSubmit = onSubmit,
-                        onUseXtream = onUseXtream,
                         modifier = Modifier
                             .align(Alignment.TopCenter)
                             .widthIn(max = formMeasure(m.frame))
@@ -299,14 +288,19 @@ private fun M3uSpread(
     onName: (String) -> Unit,
     onUrl: (String) -> Unit,
     onSubmit: () -> Unit,
-    onUseXtream: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // **The band is the whole budget.** Nothing here scrolls and nothing may exceed
+    // it, so both columns are drawn at a density `m3uSpread` already proved fits:
+    // the illustration is capped by what the words leave, and the panel's optional
+    // parts are gone where the height could not hold them. Pinning the row to the
+    // band is what makes that a guarantee rather than a hope -- an overflow is a
+    // clipped Connect, and this is the one screen where that was shipped once.
     Row(
-        modifier,
+        modifier.height(metrics.band),
         horizontalArrangement = Arrangement.spacedBy(metrics.gap),
     ) {
-        PlaylistPitch(metrics, Modifier.width(metrics.left).fillMaxHeight())
+        PlaylistPitch(metrics, Modifier.width(metrics.left))
         PlaylistPanel(
             metrics = metrics,
             form = form,
@@ -315,8 +309,7 @@ private fun M3uSpread(
             onName = onName,
             onUrl = onUrl,
             onSubmit = onSubmit,
-            onUseXtream = onUseXtream,
-            modifier = Modifier.weight(1f).fillMaxHeight(),
+            modifier = Modifier.weight(1f),
         )
     }
 }
@@ -325,6 +318,8 @@ private fun M3uSpread(
 @Composable
 private fun PlaylistPitch(metrics: M3uMetrics, modifier: Modifier = Modifier) {
     val colors = CastivioTheme.colors
+    val chrome = metrics.chrome
+
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         CastivioPlaylistArt(
             labels = listOf(
@@ -333,54 +328,86 @@ private fun PlaylistPitch(metrics: M3uMetrics, modifier: Modifier = Modifier) {
                 stringResource(R.string.playlist_rail_series),
                 stringResource(R.string.playlist_rail_catchup),
             ),
-            modifier = Modifier.fillMaxWidth().weight(1f),
+            modifier = Modifier.fillMaxWidth().height(metrics.art),
         )
 
-        Spacer(Modifier.height(Spacing.md))
+        // **The line counts are a budget, not a preference.** The screen does not
+        // scroll, so what the words may cost has to be known before they are measured
+        // -- see `pitchNeeds`. A translation longer than its allowance is clipped to
+        // it rather than allowed to push the drawing off the bottom.
+        Spacer(Modifier.height(PITCH_GAP))
         Text(
             text = stringResource(R.string.playlist_pitch_title),
             style = CastivioType.headlineMedium,
             color = colors.onBackground,
             textAlign = TextAlign.Center,
+            maxLines = chrome.pitchTitleLines,
+            overflow = TextOverflow.Ellipsis,
         )
-        Spacer(Modifier.height(Spacing.xs))
+        Spacer(Modifier.height(TITLE_GAP))
         Text(
             text = stringResource(R.string.playlist_pitch_detail),
             style = CastivioType.bodyMedium,
             color = castivioDescriptionColor,
             textAlign = TextAlign.Center,
+            maxLines = chrome.pitchBodyLines,
+            overflow = TextOverflow.Ellipsis,
         )
 
-        Spacer(Modifier.height(Spacing.xxl))
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
-        ) {
-            Fact(
-                metrics = metrics,
-                hue = colors.hueViolet,
-                icon = Icons.Rounded.Devices,
-                title = stringResource(R.string.playlist_fact_devices_title),
-                detail = stringResource(R.string.playlist_fact_devices_detail),
-                modifier = Modifier.weight(1f),
-            )
-            Fact(
-                metrics = metrics,
-                hue = colors.hueAzure,
-                icon = Icons.Rounded.Bolt,
-                title = stringResource(R.string.playlist_fact_fast_title),
-                detail = stringResource(R.string.playlist_fact_fast_detail),
-                modifier = Modifier.weight(1f),
-            )
-            Fact(
-                metrics = metrics,
-                hue = colors.hueGreen,
-                icon = Icons.Rounded.Shield,
-                title = stringResource(R.string.playlist_fact_private_title),
-                detail = stringResource(R.string.playlist_fact_private_detail),
-                modifier = Modifier.weight(1f),
-            )
+        if (metrics.facts) {
+            Spacer(Modifier.height(FACTS_GAP))
+            Facts(metrics)
         }
+    }
+}
+
+/**
+ * The three claims, in a row.
+ *
+ * ## Why they are sometimes absent and never stacked
+ *
+ * A card is a disc, a name and a line under it, and the name is the binding figure:
+ * "يعمل على كل جهاز" is about 110dp of bold label, and the disc and the padding take
+ * another 70. Below [FACTS_ROW_MIN] the column cannot give three of those the 180dp
+ * each they need.
+ *
+ * Stacking them was the first answer and it was wrong: three cards down a column is
+ * 184dp where a row is 56, on exactly the surfaces that have no height to spare, and
+ * the screen does not scroll. So where they do not fit across, they are not drawn --
+ * they are the reassurance the left half offers, not anything a user has to reach,
+ * and the illustration and its claim say the same thing in less room.
+ */
+@Composable
+private fun Facts(metrics: M3uMetrics) {
+    val colors = CastivioTheme.colors
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+    ) {
+        Fact(
+            metrics = metrics,
+            hue = colors.hueViolet,
+            icon = Icons.Rounded.Devices,
+            title = stringResource(R.string.playlist_fact_devices_title),
+            detail = stringResource(R.string.playlist_fact_devices_detail),
+            modifier = Modifier.weight(1f),
+        )
+        Fact(
+            metrics = metrics,
+            hue = colors.hueAzure,
+            icon = Icons.Rounded.Bolt,
+            title = stringResource(R.string.playlist_fact_fast_title),
+            detail = stringResource(R.string.playlist_fact_fast_detail),
+            modifier = Modifier.weight(1f),
+        )
+        Fact(
+            metrics = metrics,
+            hue = colors.hueGreen,
+            icon = Icons.Rounded.Shield,
+            title = stringResource(R.string.playlist_fact_private_title),
+            detail = stringResource(R.string.playlist_fact_private_detail),
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
@@ -443,22 +470,21 @@ private fun PlaylistPanel(
     onName: (String) -> Unit,
     onUrl: (String) -> Unit,
     onSubmit: () -> Unit,
-    onUseXtream: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
+    val chrome = metrics.chrome
     val checked = form.checked
-    val offered = form.detectedXtream != null && enabled
 
     GlassCard(modifier) {
-        Column(Modifier.padding(Spacing.xl)) {
+        Column(Modifier.padding(chrome.pad)) {
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 CastivioDisc(
-                    size = metrics.panelDisc,
+                    size = if (chrome.full) metrics.panelDisc else chrome.disc,
                     hue = colors.hueAzure,
                     icon = Icons.Rounded.Link,
                 )
@@ -467,31 +493,47 @@ private fun PlaylistPanel(
                         text = stringResource(R.string.playlist_panel_title),
                         style = CastivioType.headlineMedium,
                         color = colors.onBackground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.semantics { heading() },
                     )
-                    Spacer(Modifier.height(Spacing.xs))
-                    Text(
-                        text = stringResource(R.string.playlist_panel_detail),
-                        style = CastivioType.bodyMedium,
-                        color = castivioDescriptionColor,
-                    )
+                    // The sentence goes first where the band is short. It is the one
+                    // thing on the panel that repeats: the header says the screen, the
+                    // title says the panel, and this says both again one line later.
+                    if (chrome.blurb) {
+                        Spacer(Modifier.height(Spacing.xs))
+                        Text(
+                            text = stringResource(R.string.playlist_panel_detail),
+                            style = CastivioType.bodyMedium,
+                            color = castivioDescriptionColor,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
 
-            Spacer(Modifier.height(Spacing.xl))
-            CastivioTextField(
-                value = form.name,
-                onValueChange = onName,
-                label = stringResource(R.string.field_playlist_name),
-                hint = stringResource(R.string.field_optional),
-                placeholder = stringResource(R.string.field_playlist_name_placeholder),
-                error = checked.name.problem.message(),
-                enabled = enabled,
-                labelIcon = Icons.Rounded.Home,
-                icon = Icons.Rounded.Home,
-            )
+            Spacer(Modifier.height(chrome.headGap))
 
-            Spacer(Modifier.height(Spacing.lg))
+            // The optional field, and the only control this screen will give up. Its
+            // own label says "optional", a subscription takes a name without it, and
+            // the saved-subscriptions screen renames one afterwards. Connect does not
+            // move for it.
+            if (chrome.name) {
+                CastivioTextField(
+                    value = form.name,
+                    onValueChange = onName,
+                    label = stringResource(R.string.field_playlist_name),
+                    hint = stringResource(R.string.field_optional),
+                    placeholder = stringResource(R.string.field_playlist_name_placeholder),
+                    error = checked.name.problem.message(),
+                    enabled = enabled,
+                    labelIcon = Icons.Rounded.Home,
+                    icon = Icons.Rounded.Home,
+                )
+                Spacer(Modifier.height(chrome.fieldGap))
+            }
+
             CastivioTextField(
                 value = form.url,
                 onValueChange = onUrl,
@@ -507,7 +549,7 @@ private fun PlaylistPanel(
                 trailing = { PasteChip(enabled = enabled, onPaste = onUrl) },
             )
 
-            Spacer(Modifier.height(Spacing.xl))
+            Spacer(Modifier.height(chrome.actionGap))
             ConnectButton(
                 enabled = canSubmit,
                 onClick = onSubmit,
@@ -515,64 +557,32 @@ private fun PlaylistPanel(
                 minHeight = metrics.button,
             )
 
-            Spacer(Modifier.height(Spacing.md))
+            Spacer(Modifier.height(chrome.noteGap))
 
-            // **One slot at the foot, and two things that can be in it.**
+            // **One line at the foot, and only ever this one.**
             //
-            // The offer and the next step are both "the thing this screen has to say
-            // right now", and stacking them would move the button they sit under every
-            // time one appeared.
+            // It used to share the slot with an offer to read the link as Xtream
+            // instead, and that offer is gone from this screen entirely — see the note
+            // on `M3uFormScreen`. What is left is a single sentence of a known height,
+            // which is also what makes the panel's budget exact: the offer was a
+            // two-line label beside a button, about 48dp where the budget had counted
+            // 20, and on a short band it would have pushed Connect out of the viewport
+            // the moment a user pasted a `get.php` link.
             //
-            // Nothing about a *failure* is said here, and that is the point rather than
-            // an omission: Connect on a playlist registers it, makes it active and
-            // opens Home — see `ActivateProvider.hasAccount`. There is no attempt to
-            // fail. Whether the link reads is Home's question, asked by the section
-            // loader where the answer is needed and where the retry lives.
+            // Nothing about a *failure* is said here either, and that is the point
+            // rather than an omission: Connect on a playlist registers it, makes it
+            // active and opens Home — see `ActivateProvider.hasAccount`. Whether the
+            // link reads is Home's question.
             //
             // What a *field* has wrong with it is still said by the field, under
             // itself, exactly as it is on the other two forms.
-            if (offered) {
-                CompactXtreamOffer(onUseXtream, Modifier.fillMaxWidth())
-            } else {
-                PanelNote(
-                    detail = stringResource(
-                        if (canSubmit) R.string.playlist_note_ready else R.string.playlist_note_empty,
-                    ),
-                    modifier = Modifier.fillMaxWidth().testTag(ActivationTags.PLAYLIST_NOTE),
-                )
-            }
+            PanelNote(
+                detail = stringResource(
+                    if (canSubmit) R.string.playlist_note_ready else R.string.playlist_note_empty,
+                ),
+                modifier = Modifier.fillMaxWidth().testTag(ActivationTags.PLAYLIST_NOTE),
+            )
         }
-    }
-}
-
-/**
- * The Xtream offer, at the size a panel with eighty dp of slack can pay for.
- *
- * `DetectedXtreamOffer`'s card is three elements and a hundred and seventy dp, which
- * is the right shape in a column that scrolls and does not fit in a band that does
- * not. Same words, same destination, one line and a control.
- */
-@Composable
-private fun CompactXtreamOffer(onUseXtream: () -> Unit, modifier: Modifier = Modifier) {
-    Row(
-        modifier,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = stringResource(R.string.detected_xtream_title),
-            style = CastivioType.bodySmall,
-            color = castivioDescriptionColor,
-            modifier = Modifier.weight(1f),
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-        CastivioButton(
-            text = stringResource(R.string.detected_xtream_accept),
-            weight = ButtonWeight.Ghost,
-            onClick = onUseXtream,
-            labelStyle = CastivioType.labelMedium,
-        )
     }
 }
 
@@ -646,75 +656,45 @@ private fun PasteChip(enabled: Boolean, onPaste: (String) -> Unit) {
     )
 }
 
-/**
- * The link providers actually e-mail. An offer, phrased as one — the field above still
- * says exactly what the user pasted, and pressing Connect still submits it as a
- * playlist.
- */
-@Composable
-private fun DetectedXtreamOffer(onUseXtream: () -> Unit) {
-    val colors = CastivioTheme.colors
-    GlassCard(Modifier.fillMaxWidth()) {
-        Column(
-            Modifier.padding(Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        ) {
-            Text(
-                text = stringResource(R.string.detected_xtream_title),
-                style = CastivioType.titleMedium,
-                color = colors.onBackground,
-            )
-            Text(
-                text = stringResource(R.string.detected_xtream_detail),
-                style = CastivioType.bodyMedium,
-                color = castivioDescriptionColor,
-            )
-            CastivioButton(
-                text = stringResource(R.string.detected_xtream_accept),
-                weight = ButtonWeight.Secondary,
-                onClick = onUseXtream,
-            )
-        }
-    }
-}
-
 /** The form as it has always been, for every surface too narrow to hold the spread. */
 @Composable
 private fun M3uColumn(
     form: ActivationForm.Playlist,
     enabled: Boolean,
     canSubmit: Boolean,
+    chrome: M3uChrome,
     onName: (String) -> Unit,
     onUrl: (String) -> Unit,
     onSubmit: () -> Unit,
-    onUseXtream: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val checked = form.checked
 
     Column(
         modifier,
-        verticalArrangement = Arrangement.spacedBy(Spacing.xl),
+        verticalArrangement = Arrangement.spacedBy(chrome.actionGap),
     ) {
         // No headline. The screen wears the chooser's header now, and the title in it
         // says the same words -- a second one here was the thing that made this form
         // look like a different screen from the one it is reached through.
         GlassCard(Modifier.fillMaxWidth()) {
             Column(
-                Modifier.padding(Spacing.xl),
-                verticalArrangement = Arrangement.spacedBy(Spacing.lg),
+                Modifier.padding(chrome.pad),
+                verticalArrangement = Arrangement.spacedBy(chrome.fieldGap),
             ) {
-                CastivioTextField(
-                    value = form.name,
-                    onValueChange = onName,
-                    label = stringResource(R.string.field_playlist_name),
-                    hint = stringResource(R.string.field_optional),
-                    placeholder = stringResource(R.string.field_playlist_name_placeholder),
-                    error = checked.name.problem.message(),
-                    enabled = enabled,
-                    labelIcon = Icons.Rounded.Home,
-                    icon = Icons.Rounded.Home,
-                )
+                if (chrome.name) {
+                    CastivioTextField(
+                        value = form.name,
+                        onValueChange = onName,
+                        label = stringResource(R.string.field_playlist_name),
+                        hint = stringResource(R.string.field_optional),
+                        placeholder = stringResource(R.string.field_playlist_name_placeholder),
+                        error = checked.name.problem.message(),
+                        enabled = enabled,
+                        labelIcon = Icons.Rounded.Home,
+                        icon = Icons.Rounded.Home,
+                    )
+                }
                 CastivioTextField(
                     value = form.url,
                     onValueChange = onUrl,
@@ -730,10 +710,6 @@ private fun M3uColumn(
                     trailing = { PasteChip(enabled = enabled, onPaste = onUrl) },
                 )
             }
-        }
-
-        if (form.detectedXtream != null && enabled) {
-            DetectedXtreamOffer(onUseXtream)
         }
 
         ConnectButton(
@@ -897,37 +873,89 @@ private fun ConnectButton(
  * Every figure is read off the approved 1280x720 drawing, whose stage is 1157.4 wide,
  * and every one of them is bounded — the rule `boundedFraction` exists for.
  */
-internal fun m3uSpread(width: Dp): M3uMetrics {
+internal fun m3uSpread(width: Dp, band: Dp, tv: Boolean): M3uMetrics {
     // A ceiling on the drawing itself, not only on its parts. A 1920dp set reports a
     // stage of 1776, and two columns stretched across it are a television's worth of
     // air between a picture and the field it explains -- `Sizing.maxContentWidth`'s
     // reasoning, at the width this particular composition stops improving at.
     val measure = width.coerceAtMost(SPREAD_MEASURE_MAX)
     val gap = measure.boundedFraction(GAP, 24.dp, 56.dp)
+    val left = minOf(
+        measure.boundedFraction(LEFT, 300.dp, 640.dp),
+        measure - gap - PANEL_MIN,
+    )
+    // Floored at the frame's own target, because that is what the control actually
+    // measures: `CastivioButton` takes `max(minTarget, minHeight)`, so on a television
+    // a 45dp share becomes 56 and a budget that believed the share would be 11dp short
+    // of the thing it was budgeting for.
+    val button = maxOf(measure.boundedFraction(BUTTON, 48.dp, 72.dp), Sizing.minTarget(tv))
+    val factHeight = measure.boundedFraction(FACT_H, 56.dp, 84.dp)
+
+    // **The band decides what is on the screen, because the screen does not scroll.**
+    //
+    // The panel at full dress is 368dp of fixed parts plus its button. Where the band
+    // cannot hold that, drawing it anyway would put Connect below the bottom of the
+    // screen with no way to reach it -- which is the defect this replaced.
+    val chrome = m3uChrome(full = band >= PANEL_FIXED + button)
+
+    // The three cards only where the column can draw them properly. Three names at
+    // 94dp are three names cut off; see [Facts].
+    val facts = chrome.full && left >= FACTS_ROW_MIN
+
     return M3uMetrics(
         measure = measure,
-        // The illustration's share, except where taking it would leave the panel too
-        // narrow for a URL. The form is the half with a job; the drawing gives way.
-        left = minOf(
-            measure.boundedFraction(LEFT, 300.dp, 640.dp),
-            measure - gap - PANEL_MIN,
-        ),
+        band = band,
+        left = left,
+        // **The drawing's own aspect, capped by what the words leave.**
+        //
+        // The aspect is what makes a set a set: 330dp at the reference, to the dp,
+        // which is what was approved. The cap is what makes the column *fit* -- the
+        // screen has no scroll, so a drawing that asks for more than the band has
+        // left is a drawing with its stand cut off. It is the only dimension on this
+        // screen that yields, and it is the right one: a smaller television is still
+        // a television, where half a Connect button is not a button.
+        art = minOf(
+            left.boundedFraction(ART_OF_COLUMN, ART_MIN, ART_MAX),
+            band - pitchNeeds(chrome) - if (facts) FACTS_GAP + factHeight else 0.dp,
+        ).coerceAtLeast(ART_MIN),
         gap = gap,
-        factHeight = measure.boundedFraction(FACT_H, 56.dp, 84.dp),
+        facts = facts,
+        chrome = chrome,
+        factHeight = factHeight,
         factDisc = measure.boundedFraction(FACT_DISC, 34.dp, 52.dp),
         panelDisc = measure.boundedFraction(PANEL_DISC, 56.dp, 88.dp),
-        button = measure.boundedFraction(BUTTON, 48.dp, 72.dp),
+        button = button,
     )
 }
+
+/** What the words under the illustration cost, at the lines they are allowed. */
+internal fun pitchNeeds(chrome: M3uChrome): Dp =
+    PITCH_GAP + LINE_TITLE * chrome.pitchTitleLines + TITLE_GAP + LINE_BODY * chrome.pitchBodyLines
+
+/** What the panel costs: its fixed parts at this density, plus the button it ends on. */
+internal fun panelNeeds(chrome: M3uChrome, button: Dp): Dp =
+    (if (chrome.full) PANEL_FIXED else PANEL_FIXED_COMPACT) + button
+
+/** The single column's, for the surfaces too narrow to hold two. */
+internal fun columnNeeds(chrome: M3uChrome, button: Dp): Dp =
+    (if (chrome.full) COLUMN_FIXED else COLUMN_FIXED_COMPACT) + button
 
 @Immutable
 internal data class M3uMetrics(
     /** How wide the whole spread is drawn, which is the stage up to a ceiling. */
     val measure: Dp,
+    /** The height the stage leaves under the header. Nothing may exceed it. */
+    val band: Dp,
     /** The illustration column. The panel takes the rest. */
     val left: Dp,
+    /** The drawing inside that column: its own aspect, capped by the band. */
+    val art: Dp,
     /** Between the two columns. */
     val gap: Dp,
+    /** Whether the three cards are drawn at all. */
+    val facts: Boolean,
+    /** What this band can afford to show, and how tightly. */
+    val chrome: M3uChrome,
     val factHeight: Dp,
     val factDisc: Dp,
     val panelDisc: Dp,
@@ -936,37 +964,144 @@ internal data class M3uMetrics(
 )
 
 /**
- * Whether this surface is worth drawing the spread on.
+ * What a band can afford: the two densities this screen is drawn at.
  *
- * ## One threshold, measured on what the screen actually got
+ * ## Why a composition and not a scale
  *
- * An earlier draft asked this twice — once outside the stage, to decide whether the
- * activation surface capped the column, and once inside it, to decide the layout —
- * and the two could only be kept honest by a gap between them that a test had to
- * police. The playlist step owns its viewport now, so there is one measurement and
- * one answer: the surface's width, and the band the header leaves.
+ * A landscape handset leaves 303dp under the header and the panel at full dress wants
+ * 416. The difference cannot be scaled away — the two fields are at the D-pad floor,
+ * the button is at the touch floor, and a layout that shrank them would be a drawing
+ * of a form nobody can press. So the *composition* changes instead, in the order the
+ * screen's own priorities give: the header, the form, the URL field and Paste, and
+ * Connect are never touched; the padding tightens, the panel's description and its
+ * optional name field go, and the three cards go.
  *
- * The band rather than the height, because the band is what the two columns divide
- * and it is what a header and a stage have already been taken out of. A 1400x540
- * window is wide and has 418dp of band; a 1400x400 one has 300 and gets the column.
+ * ## What is lost, and where it went
+ *
+ * Only two things, both of them named as optional by the screen itself. The playlist
+ * *name* is marked "optional" in its own label and is renameable afterwards from the
+ * saved subscriptions; the panel's description repeats, one line later, what the
+ * header and the title above it already say.
+ *
+ * Nothing is hidden that a user has to reach. Connect is drawn last and is inside the
+ * viewport on every surface, which `M3uSpreadTest` asserts rather than hopes.
+ */
+@Immutable
+internal data class M3uChrome(
+    val full: Boolean,
+    /** The panel's and the card's inner inset. */
+    val pad: Dp,
+    /** Under the panel's head. */
+    val headGap: Dp,
+    /** Between the two fields, where there are two. */
+    val fieldGap: Dp,
+    /** Above Connect. */
+    val actionGap: Dp,
+    /** Above the line under it. */
+    val noteGap: Dp,
+    /** The panel's own disc. Smaller when the band is short; it is a mark, not a control. */
+    val disc: Dp,
+    /** The optional playlist name. */
+    val name: Boolean,
+    /** The sentence under the panel's title. */
+    val blurb: Boolean,
+    val pitchTitleLines: Int,
+    val pitchBodyLines: Int,
+)
+
+internal fun m3uChrome(full: Boolean): M3uChrome =
+    if (full) {
+        M3uChrome(
+            full = true,
+            pad = Spacing.lg,
+            headGap = Spacing.xl,
+            fieldGap = Spacing.lg,
+            actionGap = Spacing.xl,
+            noteGap = Spacing.md,
+            disc = Dp.Unspecified,
+            name = true,
+            blurb = true,
+            pitchTitleLines = 2,
+            pitchBodyLines = 2,
+        )
+    } else {
+        M3uChrome(
+            full = false,
+            pad = Spacing.md,
+            headGap = Spacing.md,
+            fieldGap = Spacing.sm,
+            actionGap = Spacing.md,
+            noteGap = Spacing.xs,
+            disc = COMPACT_DISC,
+            name = false,
+            blurb = false,
+            pitchTitleLines = 1,
+            pitchBodyLines = 1,
+        )
+    }
+
+/**
+ * Whether this surface is wide enough for two columns.
+ *
+ * ## Width, and only width
+ *
+ * This asked about the height too, and the height was the wrong question twice over.
+ * It kept the drawing off the device the project is actually tested on — a landscape
+ * handset leaves about 300dp under the header, the threshold wanted 400, and the
+ * screen fell back to a form with two fields in it and nothing else. And it was
+ * answering a question the layout no longer asks: the columns wrap and the box
+ * scrolls, so a short surface costs a scroll rather than a clipped panel.
+ *
+ * What a short surface cannot buy back is *width*. Below [SPREAD_MIN_WIDTH] the stage
+ * cannot give the panel the 420dp a URL field with a Paste in it needs and still leave
+ * the illustration a column worth drawing in, so there the screen is one column.
+ *
+ * ## The band is asked again, at the floor that is actually load-bearing
+ *
+ * Not the 400dp it used to ask for — that figure was the *full* panel's and it kept
+ * the drawing off a handset that could have carried the compact one. This is
+ * [SPREAD_BAND_MIN], what the compact panel costs, and it excludes only the windows
+ * where even that would be cut: a 840x300 one has 222dp of band and the panel wants
+ * 244. There the screen is a single column, which fits in 200.
  *
  * @param width the surface, not the stage. The stage's own margins scale with it.
  * @param band [m3uBand].
  */
 internal fun fitsSpread(width: Dp, band: Dp): Boolean =
-    width >= SPREAD_MIN_WIDTH && band >= SPREAD_MIN_BAND
-
-/** The smallest television Castivio is designed against is 960x540. */
-internal val SPREAD_MIN_WIDTH: Dp = 960.dp
+    width >= SPREAD_MIN_WIDTH && band >= SPREAD_BAND_MIN
 
 /**
- * What the band has to leave once the words below the illustration are paid for.
+ * The narrowest surface that holds two columns.
  *
- * The pitch and the facts cost about 190dp at the type they are set in, and below
- * roughly 400 the drawing is smaller than the three cards under it — at which point
- * the left column is a caption with a thumbnail and the column layout says more.
+ * Derived rather than chosen: the panel's floor is [PANEL_MIN] and the illustration
+ * column's is 300dp, so the stage must leave 720dp plus the gap between them, and the
+ * stage is the surface less `edge` on each side. 840 clears that with room; 820 does
+ * not, and `M3uSpreadTest` holds the arithmetic to it.
+ *
+ * It was 960 -- the width of the smallest television -- which reads like a decision
+ * and was really an assumption that nothing smaller would want this drawing. The
+ * handset the project is tested on is 851dp wide.
  */
-internal val SPREAD_MIN_BAND: Dp = 400.dp
+internal val SPREAD_MIN_WIDTH: Dp = 840.dp
+
+/**
+ * The shortest band two columns fit in: the compact panel's fixed parts plus the
+ * smallest control a thumb can land on.
+ *
+ * Derived, like the width. Nothing the project ships to comes near it — the shortest
+ * frame in the sizing system is 800x360, which leaves 274.7 — so this is the guard on
+ * a window shape rather than a device, and below it the single column fits in 200.
+ */
+internal val SPREAD_BAND_MIN: Dp = 244.dp
+
+/**
+ * The narrowest illustration column that can hold three fact cards side by side.
+ *
+ * A card's name is the binding figure at about 110dp, and the disc and padding take
+ * 70 more. Three of those plus two gaps is 572, so a column under this does not draw
+ * them at all -- see [Facts] for why that is better than stacking them.
+ */
+internal val FACTS_ROW_MIN: Dp = 480.dp
 
 /* ------------------------------------------------- the spread, as shares of its stage
  *
@@ -975,6 +1110,54 @@ internal val SPREAD_MIN_BAND: Dp = 400.dp
  */
 
 private const val LEFT = 575f / 1157.4f
+
+/** 330 over 575: the drawing's own rectangle, as a share of the column it sits in. */
+private const val ART_OF_COLUMN = 330f / 575f
+
+/**
+ * The drawing's bounds. The floor is where a television stops being recognisable as
+ * one — below it the set, its menu and the sheet in front of it are a smudge — and
+ * the ceiling is the size it was approved at plus the room a 4K stage would add.
+ */
+private val ART_MIN: Dp = 100.dp
+private val ART_MAX: Dp = 360.dp
+
+/**
+ * What the panel costs apart from its button, at each density. Counted rather than
+ * measured, because the screen has to know before it lays out whether the band can
+ * hold it — see [m3uSpread].
+ *
+ * Counted to the dp against what the components actually measure, which is where an
+ * earlier pass of this was wrong twice: the name field's label row carries the word
+ * "optional" on `labelSmall`, whose leading is 18 and not 16; and `CastivioButton`
+ * floors itself at the frame's own D-pad target, so a television's is 56 whatever the
+ * share says. Both are in [button] and in the figures below now.
+ *
+ * Full: 16 pad + 80 head + 24 + 70 name + 16 + 76 url + 24 + [button] + 12 + 20 note
+ * + 16 pad. Compact: 12 + 40 head + 12 + 76 url + 12 + [button] + 4 + 20 + 12.
+ */
+private val PANEL_FIXED: Dp = 354.dp
+private val PANEL_FIXED_COMPACT: Dp = 188.dp
+
+/**
+ * The same for the single column, which carries the fields in a card of their own.
+ *
+ * Full: 194 card + 24 + [button] + 24 + 20 note. Compact: 100 card + 12 + 12 + 20.
+ */
+internal val COLUMN_FIXED: Dp = 262.dp
+private val COLUMN_FIXED_COMPACT: Dp = 144.dp
+
+/** The panel's mark where the band is short: a glyph, not a control, so it may shrink. */
+private val COMPACT_DISC: Dp = 40.dp
+
+/** `Spacing.md` above the pitch, `Spacing.xs` inside it, `Spacing.xxl` above the cards. */
+private val PITCH_GAP: Dp = Spacing.md
+private val TITLE_GAP: Dp = Spacing.xs
+private val FACTS_GAP: Dp = Spacing.xxl
+
+/** `CastivioType.headlineMedium` and `bodyMedium`, which the pitch is set in. */
+private val LINE_TITLE: Dp = 32.dp
+private val LINE_BODY: Dp = 22.dp
 private const val GAP = 40f / 1157.4f
 private const val FACT_H = 68f / 1157.4f
 private const val FACT_DISC = 44f / 1157.4f

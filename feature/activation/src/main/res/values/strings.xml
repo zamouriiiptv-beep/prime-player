@@ -147,10 +147,6 @@
     <string name="problem_incomplete_host">That does not look like a complete address.</string>
     <string name="problem_invalid_port">That port number is not valid.</string>
 
-    <!-- The Xtream link hiding in a playlist URL -->
-    <string name="detected_xtream_title">This looks like an Xtream link</string>
-    <string name="detected_xtream_detail">Read as Xtream it also brings categories, series and your subscription status. It works either way.</string>
-    <string name="detected_xtream_accept">Use Xtream instead</string>
 
     <!-- Importing -->
     <string name="importing_checking">Checking your details…</string>

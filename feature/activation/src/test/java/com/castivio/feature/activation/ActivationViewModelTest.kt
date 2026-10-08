@@ -190,33 +190,12 @@ class ActivationViewModelTest {
         assertFalse(model.state.value.canSubmit)
     }
 
-    /** The Slice 3 detection, finally reaching a user: an offer they accept, not a rewrite. */
-    @Test
-    fun `accepting a detected xtream link fills the xtream form`() {
-        val model = viewModel()
-        model.usePlaylistUrl()
-        model.name("Home")
-        model.playlistUrl("http://line.example.com:8080/get.php?username=bob&password=hunter2")
-
-        model.acceptDetectedXtream()
-
-        assertEquals(
-            ActivationForm.Xtream("Home", "http://line.example.com:8080", "bob", "hunter2"),
-            model.state.value.form,
-        )
-        assertTrue(model.state.value.canSubmit)
-    }
-
-    @Test
-    fun `accepting nothing changes nothing`() {
-        val model = viewModel()
-        model.usePlaylistUrl()
-        model.playlistUrl("http://line.example.com/playlist.m3u")
-
-        model.acceptDetectedXtream()
-
-        assertTrue(model.state.value.form is ActivationForm.Playlist)
-    }
+    // The two tests that stood here covered `acceptDetectedXtream`, which is gone: the
+    // playlist screen no longer offers to read a link as Xtream, so nothing called it.
+    // They are removed because the behaviour is, not because they were inconvenient --
+    // what they asserted was that accepting the offer filled the four Xtream fields,
+    // and there is no offer to accept. The detection they relied on is still tested,
+    // where it belongs: `ActivationFormTest` asserts `detectedXtream` and `asForm`.
 
     // --------------------------------------------------------------- submitting
 

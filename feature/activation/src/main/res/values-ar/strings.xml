@@ -83,9 +83,6 @@
     <string name="problem_incomplete_host">هذا لا يبدو عنوانًا كاملًا.</string>
     <string name="problem_invalid_port">رقم المنفذ غير صالح.</string>
 
-    <string name="detected_xtream_title">يبدو أن هذا رابط Xtream</string>
-    <string name="detected_xtream_detail">قراءته كـXtream تجلب أيضًا التصنيفات والمسلسلات وحالة اشتراكك. وهو يعمل بالطريقتين.</string>
-    <string name="detected_xtream_accept">استخدم Xtream بدلًا منه</string>
 
     <string name="importing_checking">جارٍ التحقق من بياناتك…</string>
     <string name="importing_reading">جارٍ قراءة قائمتك</string>

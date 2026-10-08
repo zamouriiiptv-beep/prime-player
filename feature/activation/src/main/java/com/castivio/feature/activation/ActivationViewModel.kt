@@ -6,7 +6,6 @@ import com.castivio.domain.activation.ActivateProvider
 import com.castivio.domain.activation.ActivationForm
 import com.castivio.domain.activation.ActivationPhase
 import com.castivio.domain.activation.ActivationUiState
-import com.castivio.domain.activation.asForm
 import com.castivio.domain.time.TrustedTime
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -57,16 +56,18 @@ class ActivationViewModel @Inject constructor(
     /** The Stalker card. One address, and the device names itself — see `StalkerHttpApi`. */
     fun usePortal() = editing { ActivationForm.Portal() }
 
-    /**
-     * The user accepted the offer to read their playlist link as Xtream.
-     *
-     * Only ever reached from a link that was already detected, so the fields are filled
-     * from what they pasted rather than asked for again.
-     */
-    fun acceptDetectedXtream() = editing { current ->
-        val playlist = current as? ActivationForm.Playlist ?: return@editing current
-        playlist.detectedXtream?.asForm(playlist.name) ?: current
-    }
+    // **There is no "read this as Xtream instead".**
+    //
+    // `acceptDetectedXtream` lived here: the playlist form offered to reopen the flow
+    // on the Xtream form when `ActivationForm.detectedXtream` could read credentials
+    // out of a pasted `get.php` link, and this filled the four fields from them.
+    //
+    // The offer is gone from the playlist screen, by instruction -- it is one screen
+    // with one job, and a link pasted into "add a playlist" is added as a playlist.
+    // With no caller left, the function went with it rather than waiting here for one.
+    // `ActivationForm.detectedXtream` is untouched: it is a property of the *form*,
+    // derived by the validator and asserted by `ActivationFormTest`, and nothing about
+    // removing a screen's offer makes the detection itself wrong.
 
     // -------------------------------------------------------------------- typing
 

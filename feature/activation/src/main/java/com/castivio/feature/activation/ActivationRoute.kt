@@ -567,10 +567,14 @@ private fun Steps(
                 // Register, activate, open Home. No retry arm: there is no attempt to
                 // retry -- see `ActivateProvider.hasAccount`.
                 onSubmit = activation::submit,
-                onUseXtream = {
-                    activation.acceptDetectedXtream()
-                    onStep(ActivationStep.Xtream)
-                },
+                // **No arm into Xtream, by instruction.** The playlist form used to
+                // offer "this looks like an Xtream link" when the validator could read
+                // one out of what was pasted, and pressing it reopened the flow on the
+                // Xtream form. The screen says one thing now and does it: a playlist
+                // link is added as a playlist, and the view model's `acceptDetectedXtream`
+                // went with the offer. `ActivationForm.detectedXtream` stays: it is the
+                // validator's reading of the link, not a screen's suggestion about it,
+                // and `ActivationFormTest` still asserts it.
                 onBack = onBack,
             )
         }
