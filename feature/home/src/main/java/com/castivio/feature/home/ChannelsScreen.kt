@@ -90,6 +90,7 @@ import com.castivio.core.design.components.EmptyState
 import com.castivio.core.design.components.ErrorState
 import com.castivio.core.design.components.LogoTile
 import com.castivio.core.design.components.ProviderArtwork
+import com.castivio.core.design.components.CastivioClock
 import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioTitleStyle
@@ -379,30 +380,25 @@ private fun BoardHeader(state: BrowseState, m: ChannelsMetrics, onSearch: () -> 
  */
 @Composable
 private fun BoardClock(m: ChannelsMetrics) {
-    val colors = CastivioTheme.colors
     val now = rememberMinute()
+    // The board's own 24-hour format, which is this screen's content decision: a
+    // column of start times reads as numbers, and `9:04 PM` breaks the column. The
+    // cell, the alignment, the two type steps and the two inks are the system's.
+    //
+    // It was a second clock written out in full here -- the same Column, the same End
+    // alignment, the same title-over-body pair -- which is two tick rates and two
+    // answers to what the bidirectional algorithm does to a date.
     val time = remember(now) {
         ltrToken(SimpleDateFormat(CLOCK_TIME, Locale.ROOT).format(Date(now)))
     }
-    val day = remember(now) { ltrToken(CastivioDates.date(now)) }
     // Its own bounded cell, for the reason the breadcrumb has one: nothing whose width
     // is text may decide where the rest of the band sits.
-    Column(Modifier.width(m.dates), horizontalAlignment = Alignment.End) {
-        Text(
-            text = time,
-            style = castivioTitleStyle(m.frame.fsLabel * CLOCK_OF_LABEL),
-            color = colors.onBackgroundStrong,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Text(
-            text = day,
-            style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
-            color = colors.onBackgroundMuted,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
+    CastivioClock(
+        fsTime = m.frame.fsLabel * CLOCK_OF_LABEL,
+        fsDate = m.frame.fsBody * LEGEND_OF_BODY,
+        modifier = Modifier.width(m.dates),
+        time = time,
+    )
 }
 
 /**

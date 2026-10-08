@@ -52,6 +52,7 @@ fun CastivioClock(
     fsTime: Dp,
     fsDate: Dp,
     modifier: Modifier = Modifier,
+    time: String? = null,
 ) {
     val colors = CastivioTheme.colors
     val now = rememberMinute()
@@ -60,7 +61,13 @@ fun CastivioClock(
     // Isolated, both of them. A clock and a date are fixed-shape tokens: drawn
     // unisolated in an Arabic composition, `16/09/2026` is reordered into
     // `162026/09/` by the bidirectional algorithm. See [ltrIsolate].
-    val time = remember(now, locale) {
+    //
+    // A caller may hand its own string in instead. The channels board keeps a 24-hour
+    // clock whatever the locale's short form is -- a board of start times reads as a
+    // column of numbers and `9:04 PM` breaks the column -- and that is a decision
+    // about *that screen's content*, not about how a clock looks. So the format is the
+    // caller's and everything else here is the system's.
+    val shown = time ?: remember(now, locale) {
         ltrToken(DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(now)))
     }
     // The date does not ask the locale anything, so it is not keyed on one: Castivio
@@ -69,7 +76,7 @@ fun CastivioClock(
 
     Column(modifier, horizontalAlignment = Alignment.End) {
         Text(
-            time,
+            shown,
             style = castivioTitleStyle(fsTime),
             color = colors.onBackgroundStrong,
             maxLines = 1,

@@ -98,6 +98,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.castivio.core.common.format.CastivioDates
 import com.castivio.core.design.components.CastivioClock
 import com.castivio.core.design.components.CastivioLockup
+import com.castivio.core.design.components.CastivioLanguageChip
 import com.castivio.core.design.components.CastivioThemeSwitchChip
 import com.castivio.core.design.components.EmptyState
 import com.castivio.core.design.components.GlassCard
@@ -289,7 +290,14 @@ fun HomeScreen(
                     toLighter = stringResource(R.string.home_theme_lighter),
                     toDarker = stringResource(R.string.home_theme_darker),
                 )
-                LanguageChip(frame, onLanguage)
+                CastivioLanguageChip(
+                    chip = frame.chip,
+                    touchTarget = frame.touchTarget,
+                    pad = frame.chipPad,
+                    fontSize = frame.fsChip,
+                    label = stringResource(R.string.home_language),
+                    onClick = onLanguage,
+                )
             }
 
             when {
@@ -759,57 +767,6 @@ private fun TermCard(
     }
 }
 
-/**
- * The language, in the corner the rest of the app keeps it in.
- *
- * The same pill the activation and licence screens draw: the word, then the globe,
- * at the outer end of the header with the theme control just inside it. It says
- * "Language" rather than naming the current one, because that is what the other
- * screens say and a header that disagreed with them about its own furniture would be
- * the kind of inconsistency nobody can point at.
- *
- * Local to this screen rather than shared, which is the same call the other screens
- * made: a chip is a screen's own furniture, and the one shared piece here — the theme
- * switch — is shared because it carries state, not because it is a pill.
- */
-@Composable
-private fun LanguageChip(frame: CastivioMetrics, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val colors = CastivioTheme.colors
-    val label = stringResource(R.string.home_language)
-    val shape = RoundedCornerShape(percent = 50)
-
-    Box(
-        modifier
-            .heightIn(min = frame.touchTarget)
-            .clickable(onClick = onClick)
-            .clearAndSetSemantics { contentDescription = label },
-        contentAlignment = Alignment.Center,
-    ) {
-        Row(
-            Modifier
-                .height(frame.chip)
-                .clip(shape)
-                .background(colors.glassFill)
-                .border(BorderStroke(1.dp, colors.edgeQuiet), shape)
-                .padding(horizontal = frame.chipPad),
-            horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = label,
-                style = castivioChipStyle(frame.fsChip),
-                color = colors.onBackgroundVariant,
-                maxLines = 1,
-            )
-            Icon(
-                imageVector = Icons.Rounded.Language,
-                contentDescription = null,
-                tint = colors.onBackgroundMuted,
-                modifier = Modifier.size(Sizing.iconMd),
-            )
-        }
-    }
-}
 
 // The clock and its ticker were both here, private to this file, until the activation
 // header wanted the same pair in the same corner. They are `CastivioClock` and

@@ -5,6 +5,15 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material.icons.rounded.Language
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.focus.onFocusChanged
+import com.castivio.core.design.theme.Motion
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -636,4 +645,77 @@ fun CastivioHeaderTitle(
         color = color,
         modifier = modifier.semantics { heading() },
     )
+}
+
+/**
+ * The language control, as one chip in the header of every screen that offers it.
+ *
+ * ## Why it is here
+ *
+ * It was written three times — in the activation screen, the licence screen and Home
+ * — and the three had drifted: one bordered itself with `edgeQuiet` and one with
+ * `glassBorder`, one spaced its glyph by `Spacing.sm` and one by half the chip's own
+ * padding, and one animated its border on focus while another did not. Three
+ * renderings of one control, on three screens a user moves between in a few seconds.
+ *
+ * It is [CastivioBackChip]'s twin and shares its geometry on purpose: the two sit in
+ * the same row on different screens, and a reader should not have to notice which.
+ * The glyph leads and the word follows, which is the row's own order.
+ *
+ * @param label what the chip says. Each screen keeps its own string — the activation
+ *   screen's, the licence screen's and Home's are three separate resources and this
+ *   does not merge them.
+ */
+@Composable
+fun CastivioLanguageChip(
+    chip: Dp,
+    touchTarget: Dp,
+    pad: Dp,
+    fontSize: Dp,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = CastivioTheme.colors
+    val interaction = remember { MutableInteractionSource() }
+    var focused by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(percent = 50)
+    val border by animateColorAsState(
+        if (focused) colors.focusRing else colors.edgeQuiet,
+        Motion.focusSpec(), label = "langChip",
+    )
+
+    Box(
+        modifier
+            .heightIn(min = touchTarget)
+            .onFocusChanged { focused = it.isFocused || it.hasFocus }
+            .clickable(interaction, indication = null, role = Role.Button, onClick = onClick)
+            .semantics(mergeDescendants = true) { contentDescription = label },
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(
+            Modifier
+                .height(chip)
+                .castivioFocusScale(Motion.focusScaleIcon, interaction)
+                .clip(shape)
+                .background(colors.glassFill)
+                .border(BorderStroke(1.dp, border), shape)
+                .padding(horizontal = pad),
+            horizontalArrangement = Arrangement.spacedBy(pad * CHIP_GAP),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Language,
+                contentDescription = null,
+                tint = colors.onBackgroundVariant,
+                modifier = Modifier.size(fontSize * CHIP_ICON),
+            )
+            Text(
+                text = label,
+                style = castivioChipStyle(fontSize),
+                color = colors.onBackgroundVariant,
+                maxLines = 1,
+            )
+        }
+    }
 }

@@ -36,22 +36,21 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.castivio.core.design.components.CastivioDisc
 import com.castivio.core.design.components.CastivioFittedText
 import com.castivio.core.design.components.CastivioChipsGap
 import com.castivio.core.design.components.InteractiveGlassCard
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioBodyStyle
+import com.castivio.core.design.components.castivioCardNameStyle
 import com.castivio.core.design.components.castivioDescriptionColor
 import com.castivio.core.design.theme.CastivioMetrics
 import com.castivio.core.design.theme.CastivioTheme
-import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.boundedFraction
 import com.castivio.core.design.theme.castivioMetrics
 import com.castivio.core.design.theme.castivioStage
@@ -568,7 +567,7 @@ private fun SourceCard(
             horizontalArrangement = Arrangement.spacedBy(m.cardGap),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Disc(m, hue, icon)
+            CastivioDisc(m.disc, hue, icon)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(m.cardPad * TEXT_GAP)) {
                 // Fitted, not clipped. A card's name is one line by design -- it sits
                 // above a description, and wrapping it would change the card's whole
@@ -580,12 +579,7 @@ private fun SourceCard(
                 // product.
                 CastivioFittedText(
                     text = title,
-                    style = CastivioType.titleMedium.copy(
-                        fontSize = m.fsCard.value.sp,
-                        lineHeight = (m.fsCard.value * TITLE_LEADING).sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.sp,
-                    ),
+                    style = castivioCardNameStyle(m.fsCard),
                     color = colors.onBackgroundStrong,
                 )
                 Text(
@@ -613,7 +607,6 @@ private fun SourceCard(
 /* --------------------------------------------------------------------- ratios */
 
 
-private const val TITLE_LEADING = 1.35f
 
 /** An icon beside type, as a multiple of that type's size. */
 private const val ICON_RATIO = 1.25f

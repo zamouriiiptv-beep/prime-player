@@ -1,11 +1,9 @@
 package com.castivio.feature.activation
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -29,6 +27,7 @@ import androidx.compose.material.icons.rounded.VpnKey
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,7 +36,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -65,22 +63,23 @@ import com.castivio.core.design.components.CastivioThemeSwitchChip
 import com.castivio.core.design.components.CastivioHeader
 import com.castivio.core.design.components.CastivioHeaderTitle
 import com.castivio.core.design.components.CastivioLockup
+import com.castivio.core.design.components.CastivioLanguageChip
 import com.castivio.core.design.components.IdentityCapsule
 import com.castivio.core.design.components.QrPlate
 import com.castivio.core.design.components.StatusLine
 import com.castivio.core.design.components.BODY_LEADING
 import com.castivio.core.design.components.castivioBodyStyle
+import com.castivio.core.design.components.castivioButtonStyle
+import com.castivio.core.design.components.castivioFieldLabelStyle
+import com.castivio.core.design.components.castivioValueStyle
 import com.castivio.domain.identity.IdentityProvenance
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioDescriptionColor
-import com.castivio.core.design.components.castivioFocusScale
 import com.castivio.core.design.components.ltrToken
 import com.castivio.core.design.components.castivioTitleStyle
 import com.castivio.core.design.components.emphasiseNumber
 import com.castivio.core.design.theme.CastivioMetrics
 import com.castivio.core.design.theme.CastivioTheme
-import com.castivio.core.design.theme.CastivioType
-import com.castivio.core.design.theme.Motion
 import com.castivio.core.design.theme.Palette
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.Spacing
@@ -583,7 +582,14 @@ private fun Header(m: Metrics, trialDays: Int?, onOpenLanguage: () -> Unit) {
                         modifier = Modifier.testTag(ActivationTags.HEADER_THEME),
                     )
                     CompositionLocalProvider(LocalLayoutDirection provides reading) {
-                        LanguageChip(m, onOpenLanguage)
+                        CastivioLanguageChip(
+                            chip = m.chip,
+                            touchTarget = m.frame.touchTarget,
+                            pad = m.chipPad,
+                            fontSize = m.fsChip,
+                            label = stringResource(R.string.language),
+                            onClick = onOpenLanguage,
+                        )
                     }
                 }
             }
@@ -648,68 +654,6 @@ private fun TrialChip(m: Metrics, badge: String, days: Int) {
     }
 }
 
-/**
- * The language control: a pill at the frame's chip, pressed at the frame's floor.
- *
- * The doc above this used to say it was "drawn at the chip's height and answering at
- * the frame's target". It was not — both the height and the minimum were `chip`, so on
- * a television the control a viewer aims a remote at was 44dp against a 56dp floor. The
- * sentence was true of the intent and false of the code, which is the worst of the two
- * ways for a comment to be wrong.
- *
- * It is now two boxes, the same arrangement `CastivioBackChip` uses and for the same
- * reason: the click, the focus and the label on the outer one, which is
- * [CastivioMetrics.touchTarget] tall; the fill, the border, the corner and the focus
- * scale on the pill, which is [CastivioMetrics.chip] and unchanged. Nothing looks
- * different. What changed is what answers.
- */
-@Composable
-private fun LanguageChip(m: Metrics, onClick: () -> Unit) {
-    val colors = CastivioTheme.colors
-    val interaction = remember { MutableInteractionSource() }
-    var focused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(percent = 50)
-    val border by animateColorAsState(
-        if (focused) colors.focusRing else colors.edgeQuiet,
-        Motion.focusSpec(),
-        label = "languageChipBorder",
-    )
-    val label = stringResource(R.string.language)
-
-    Box(
-        Modifier
-            .heightIn(min = m.frame.touchTarget)
-            .onFocusChanged { focused = it.isFocused || it.hasFocus }
-            .clickable(interaction, indication = null, onClick = onClick)
-            .clearAndSetSemantics { contentDescription = label },
-        contentAlignment = Alignment.Center,
-    ) {
-        Row(
-            Modifier
-                .height(m.chip)
-                .castivioFocusScale(Motion.focusScaleIcon, interaction)
-                .clip(shape)
-                .background(colors.glassFill)
-                .border(BorderStroke(1.dp, border), shape)
-                .padding(horizontal = m.chipPad),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = label,
-                style = castivioChipStyle(m.fsChip),
-                color = colors.onBackgroundVariant,
-                maxLines = 1,
-            )
-            Icon(
-                imageVector = Icons.Rounded.Language,
-                contentDescription = null,
-                tint = colors.onBackgroundMuted,
-                modifier = Modifier.size(Sizing.iconMd),
-            )
-        }
-    }
-}
 
 /* ----------------------------------------------------------- identity column */
 
@@ -839,7 +783,7 @@ private fun IdentityZone(
                 fill = CastivioTheme.colors.ctaQuietBrush,
                 ring = CastivioTheme.colors.ctaQuietRing,
                 corner = m.radius * BUTTON_CORNER,
-                labelStyle = buttonStyle(m.fsButton),
+                labelStyle = castivioButtonStyle(m.fsButton),
                 minHeight = m.button,
             )
             CastivioButton(
@@ -852,7 +796,7 @@ private fun IdentityZone(
                 fill = CastivioTheme.colors.leadBrush,
                 ring = CastivioTheme.colors.leadRing,
                 corner = m.radius * BUTTON_CORNER,
-                labelStyle = buttonStyle(m.fsButton * LEAD_LABEL),
+                labelStyle = castivioButtonStyle(m.fsButton * LEAD_LABEL),
                 minHeight = m.button,
             )
         }
@@ -967,11 +911,7 @@ private fun ActivationCard(
         form = CapsuleForm.Card,
         fieldIcon = fieldIcon,
         fieldTint = fieldTint,
-        labelStyle = CastivioType.labelMedium.copy(
-            fontSize = m.fsLabel.value.sp,
-            lineHeight = (m.fsLabel.value * LABEL_LEADING).sp,
-            letterSpacing = 0.sp,
-        ),
+        labelStyle = castivioFieldLabelStyle(m.fsLabel),
     )
 }
 
@@ -1146,18 +1086,10 @@ private fun FooterBar(m: Metrics) {
  * drawn. Removing it changes no pixel. What it removes is a branch that looked like it
  * decided something, which is the more expensive of the two things it was.
  */
+@Composable
+@ReadOnlyComposable
 private fun codeStyle(size: Dp, tracking: Float = CODE_TRACKING): TextStyle =
-    CastivioType.codeHero.copy(
-        fontSize = size.value.sp,
-        lineHeight = (size.value * CODE_LEADING).sp,
-        letterSpacing = tracking.sp,
-    )
-
-private fun buttonStyle(size: Dp): TextStyle = CastivioType.labelLarge.copy(
-    fontSize = size.value.sp,
-    lineHeight = (size.value * CHIP_LEADING).sp,
-    letterSpacing = 0.sp,
-)
+    castivioValueStyle(size, tracking)
 
 private fun refreshLabel(state: RefreshState): Int =
     if (state == RefreshState.Checking) R.string.refresh_checking else R.string.refresh
@@ -1249,9 +1181,6 @@ private const val WORD_RATIO = 0.80f
  * beside a 28dp one, and the frame table is long enough already.
  */
 
-private const val CHIP_LEADING = 1.45f
-private const val LABEL_LEADING = 1.4f
-private const val CODE_LEADING = 1.3f
 
 /** Between the six pairs, and between the six digits, which want more air. */
 private const val CODE_TRACKING = 1.5f

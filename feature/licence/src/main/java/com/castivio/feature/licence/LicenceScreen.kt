@@ -65,6 +65,7 @@ import com.castivio.core.design.components.ButtonWeight
 import com.castivio.core.design.components.CapsuleMetrics
 import com.castivio.core.design.components.CastivioButton
 import com.castivio.core.design.components.CastivioHeader
+import com.castivio.core.design.components.CastivioLanguageChip
 import com.castivio.core.design.components.CastivioHeaderTitle
 import com.castivio.core.design.components.CastivioLockup
 import com.castivio.core.design.components.IdentityCapsule
@@ -77,7 +78,6 @@ import com.castivio.core.design.components.StatusLine
 import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioDescriptionColor
-import com.castivio.core.design.components.castivioFocusScale
 import com.castivio.core.design.components.castivioTitleStyle
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
@@ -407,7 +407,14 @@ private fun Header(
                             }
                         }
 
-                        LanguageChip(m, onOpenLanguage)
+                        CastivioLanguageChip(
+                            chip = m.chip,
+                            touchTarget = m.frame.touchTarget,
+                            pad = m.chipPad,
+                            fontSize = m.fsChip,
+                            label = stringResource(R.string.licence_language),
+                            onClick = onOpenLanguage,
+                        )
                     }
                 }
             }
@@ -469,68 +476,6 @@ internal fun stateFadeMillis(level: MotionLevel): Int =
 /** Long enough to be seen, short enough not to be waited on. */
 internal const val STATE_FADE_MS = 220
 
-/**
- * The language control.
- *
- * The same chip the sibling screen carries, at the same size, in the same
- * corner. Its height is the frame's target rather than a drawn size: a control
- * that looks like a button has to answer like one, and the declared minimum is
- * the one enforced.
- */
-@Composable
-private fun LanguageChip(m: LicenceMetrics, onClick: () -> Unit) {
-    val colors = CastivioTheme.colors
-    val interaction = remember { MutableInteractionSource() }
-    var focused by remember { mutableStateOf(false) }
-    // A pill is round by definition, so half its own height — not the frame's
-    // `radius`, which is the corner the rectangles on the stage are cut with.
-    val shape = RoundedCornerShape(percent = 50)
-    val border by animateColorAsState(
-        if (focused) colors.focusRing else colors.glassBorder,
-        Motion.focusSpec(),
-        label = "licenceLanguageBorder",
-    )
-    val label = stringResource(R.string.licence_language)
-
-    // Two boxes, the arrangement `CastivioBackChip` uses and for the same reason: the
-    // pill is what a reader sees and is the frame's `chip`; the box around it is what a
-    // thumb presses and a remote lands on, and is the frame's `touchTarget`. This chip
-    // was `m.target` tall before -- the licence screen's own field, which happens to
-    // hold the floor -- so it grew the *visual* to satisfy a rule about fingers. Now it
-    // draws what the frame draws and answers at what the frame requires.
-    Box(
-        Modifier
-            .heightIn(min = m.frame.touchTarget)
-            .onFocusChanged { focused = it.isFocused || it.hasFocus }
-            .clickable(interaction, indication = null, onClick = onClick)
-            .clearAndSetSemantics { contentDescription = label },
-        contentAlignment = Alignment.Center,
-    ) {
-        Row(
-            Modifier
-                .heightIn(min = m.chip)
-                .castivioFocusScale(Motion.focusScaleIcon, interaction)
-                .clip(shape)
-                .background(colors.glassFill)
-                .border(BorderStroke(1.dp, border), shape)
-                .padding(horizontal = m.chipPad),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.Language,
-                contentDescription = null,
-                tint = colors.onBackgroundVariant,
-                modifier = Modifier.size(Sizing.iconSm),
-            )
-            Text(
-                text = label,
-                style = castivioChipStyle(m.fsChip),
-                color = colors.onBackground,
-            )
-        }
-    }
-}
 
 /**
  * The identity, the choice, and the one reserved line that reports on both.
