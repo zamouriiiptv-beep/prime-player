@@ -76,6 +76,20 @@ fun CastivioButton(
      */
     enabled: Boolean = true,
     /**
+     * The action is running, and the control says so where it was pressed.
+     *
+     * The glyph becomes a spinner and the label is the caller's — "جارٍ الاتصال…"
+     * rather than "اتصال". The button stops accepting presses without going through
+     * [enabled], so it keeps its fill and its ink: a control that dims the moment it
+     * is pressed reads as having failed, and the one thing a user needs here is that
+     * something is happening.
+     *
+     * It is on the button because the alternative is a screen of its own, and a form
+     * that replaces itself with a spinner loses what the user typed from view at the
+     * exact moment they are wondering whether it was right.
+     */
+    busy: Boolean = false,
+    /**
      * A different ramp from the weight's own.
      *
      * The defaults are `primaryBrush`, the azure every primary action in the app
@@ -182,7 +196,7 @@ fun CastivioButton(
                     }
                 }
             )
-            .clickable(interaction, indication = null, enabled = enabled, onClick = onClick)
+            .clickable(interaction, indication = null, enabled = enabled && !busy, onClick = onClick)
             .padding(horizontal = Spacing.xl, vertical = Spacing.md),
         contentAlignment = Alignment.Center,
     ) {
@@ -190,8 +204,10 @@ fun CastivioButton(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            if (icon != null) {
-                Icon(icon, null, tint = contentColor, modifier = Modifier.size(Sizing.iconMd))
+            when {
+                busy -> CastivioSpinner(size = Sizing.iconMd, tint = contentColor)
+                icon != null ->
+                    Icon(icon, null, tint = contentColor, modifier = Modifier.size(Sizing.iconMd))
             }
             Text(text, color = contentColor, style = labelStyle ?: CastivioType.labelLarge)
         }

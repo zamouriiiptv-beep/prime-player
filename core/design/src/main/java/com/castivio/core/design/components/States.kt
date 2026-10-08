@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -149,6 +150,40 @@ fun SkeletonRow(
 }
 
 /**
+ * The ring itself: Castivio's one "something is happening" mark.
+ *
+ * ## Why it is a component and not a `CircularProgressIndicator` at each call site
+ *
+ * Because the stroke is a *fraction* of the ring and nothing at a call site would
+ * know that. Material's indicator takes a size and a stroke independently, so a
+ * second caller drawing one at 26dp with the same 2dp stroke gets a visibly thinner
+ * ring than the first — the same drift that four slightly different card edges were,
+ * one component down.
+ *
+ * There was one caller, [DelayedSpinner], and the delay is the part that is *not*
+ * always wanted: a button that has already been pressed says so immediately, because
+ * there the question is not "is the app busy" but "did my press land". So the ring is
+ * here and the delay is the wrapper around it.
+ *
+ * @param size the ring's diameter. The default is the glyph step, which is what a
+ *   button swaps for its icon.
+ * @param tint the ring's colour. The default is the accent; a control on a filled
+ *   button passes its own ink, because the accent on a brand gradient is invisible.
+ */
+@Composable
+fun CastivioSpinner(
+    modifier: Modifier = Modifier,
+    size: Dp = Sizing.iconMd,
+    tint: Color = CastivioTheme.colors.accent,
+) {
+    CircularProgressIndicator(
+        modifier = modifier.size(size),
+        color = tint,
+        strokeWidth = size * STROKE_OF_RING,
+    )
+}
+
+/**
  * A spinner for an action the user just took — and only after a delay.
  *
  * Below [SPINNER_DELAY_MS] the work usually finishes first, and a spinner that
@@ -174,11 +209,7 @@ fun DelayedSpinner(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        androidx.compose.material3.CircularProgressIndicator(
-            modifier = Modifier.size(Sizing.iconMd),
-            color = colors.accent,
-            strokeWidth = 2.dp,
-        )
+        CastivioSpinner()
         if (label != null) {
             Text(text = label, style = CastivioType.bodyMedium, color = colors.onBackgroundVariant)
         }
@@ -302,6 +333,12 @@ const val SPINNER_DELAY_MS = 300L
 
 private const val SHIMMER_MS = Motion.deliberate * 2
 private const val SHIMMER_WIDTH = 0.25f
+
+/**
+ * The ring's stroke, as a share of its diameter: 2dp at the 20dp glyph step, which
+ * is what every spinner in the application was drawn at while there was one size.
+ */
+private const val STROKE_OF_RING = 0.1f
 
 /** Where the static highlight sits when animation is off: a fixed sheen, not flat grey. */
 private const val STATIC_SHIMMER = 0.5f
