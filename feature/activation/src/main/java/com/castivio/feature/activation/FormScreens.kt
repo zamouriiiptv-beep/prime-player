@@ -4,7 +4,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.widthIn
@@ -234,9 +233,17 @@ internal fun M3uFormScreen(
             // on a short landscape handset the same drawing with its optional parts
             // dropped and its padding tightened. `M3uSpreadTest` asserts the fit on
             // every surface rather than trusting this comment.
-            Box(Modifier.weight(1f)) {
+            //
+            // **It measures its own width rather than subtracting one.** Two reasons,
+            // and the second is why this is not a `Box`. `castivioStage` pays
+            // `max(edge, inset)` per side, so `surface - edge * 2` overstates the room
+            // on a handset whose display cutout is wider than the margin. And a
+            // `BoxScope` carries `@LayoutScopeMarker`, which hides the enclosing
+            // `BoxWithConstraints` -- reading the outer `maxWidth` from inside a plain
+            // `Box` does not compile, and that is what it failed on.
+            BoxWithConstraints(Modifier.weight(1f)) {
                 if (fitsSpread(surface, band)) {
-                    val metrics = m3uSpread(maxWidth - m.edge * 2, band, tv)
+                    val metrics = m3uSpread(maxWidth, band, tv)
                     M3uSpread(
                         metrics = metrics,
                         modifier = Modifier.align(Alignment.TopCenter).width(metrics.measure),
