@@ -50,6 +50,18 @@ class M3uSpreadTest {
         return m3uSpread(width - m.edge * 2, m3uBand(m, height), tv)
     }
 
+    /**
+     * `need` fits inside `band`, to the dp rather than to the bit.
+     *
+     * The illustration's height is `band - words`, so recomputing `art + words` is a
+     * subtraction and an addition of the same `Float`, which round-trips one unit in
+     * the last place above where it started: CI reported 407.98584 against 407.9858
+     * and called it an overflow. Four hundredths of a thousandth of a dp is not one —
+     * Compose rounds the layout to whole pixels long before it gets there — and a test
+     * that treats it as one is asserting the arithmetic of `Float`, not the claim.
+     */
+    private fun fits(need: Dp, band: Dp): Boolean = need.value <= band.value + TOLERANCE
+
     /** Where Connect's bottom edge sits inside the panel, counted from its top. */
     private fun connectEnds(s: M3uMetrics): Dp =
         if (s.chrome.full) {
@@ -87,9 +99,9 @@ class M3uSpreadTest {
         assertEquals("the illustration", 185.3f, s.art.value, 1f)
 
         assertEquals("Connect ends at", 200f, connectEnds(s).value, 1f)
-        assertTrue("Connect ends at ${connectEnds(s)} in $b", connectEnds(s) <= b)
-        assertTrue("the panel needs ${panelNeeds(s.chrome, s.button)}", panelNeeds(s.chrome, s.button) <= b)
-        assertTrue("the illustration column needs ${leftNeeds(s)}", leftNeeds(s) <= b)
+        assertTrue("Connect ends at ${connectEnds(s)} in $b", fits(connectEnds(s), b))
+        assertTrue("the panel needs ${panelNeeds(s.chrome, s.button)}", fits(panelNeeds(s.chrome, s.button), b))
+        assertTrue("the illustration column needs ${leftNeeds(s)}", fits(leftNeeds(s), b))
     }
 
     /**
@@ -127,9 +139,9 @@ class M3uSpreadTest {
         val b = band(CastivioReference.Width, CastivioReference.Height, tv = false)
         val s = spread(CastivioReference.Width, CastivioReference.Height, tv = false)
 
-        assertTrue("the illustration column needs ${leftNeeds(s)} of $b", leftNeeds(s) <= b)
-        assertTrue("the panel needs ${panelNeeds(s.chrome, s.button)} of $b", panelNeeds(s.chrome, s.button) <= b)
-        assertTrue("Connect ends at ${connectEnds(s)} of $b", connectEnds(s) <= b)
+        assertTrue("the illustration column needs ${leftNeeds(s)} of $b", fits(leftNeeds(s), b))
+        assertTrue("the panel needs ${panelNeeds(s.chrome, s.button)} of $b", fits(panelNeeds(s.chrome, s.button), b))
+        assertTrue("Connect ends at ${connectEnds(s)} of $b", fits(connectEnds(s), b))
     }
 
     /**
@@ -147,8 +159,8 @@ class M3uSpreadTest {
         assertEquals("the button is at the D-pad floor", Sizing.minTvTarget.value, s.button.value, 0.5f)
         assertTrue("the television draws the full panel", s.chrome.full)
         assertFalse("its column is too narrow for three cards", s.facts)
-        assertTrue("the panel needs ${panelNeeds(s.chrome, s.button)} of $b", panelNeeds(s.chrome, s.button) <= b)
-        assertTrue("the illustration column needs ${leftNeeds(s)} of $b", leftNeeds(s) <= b)
+        assertTrue("the panel needs ${panelNeeds(s.chrome, s.button)} of $b", fits(panelNeeds(s.chrome, s.button), b))
+        assertTrue("the illustration column needs ${leftNeeds(s)} of $b", fits(leftNeeds(s), b))
     }
 
     /** The thresholds are derived, and this is the derivation. */
@@ -193,9 +205,9 @@ class M3uSpreadTest {
                         val s = spread(width, height, tv)
                         val panel = s.measure - s.left - s.gap
 
-                        assertTrue("$where: the panel needs ${panelNeeds(s.chrome, s.button)} of $b", panelNeeds(s.chrome, s.button) <= b)
-                        assertTrue("$where: the column needs ${leftNeeds(s)} of $b", leftNeeds(s) <= b)
-                        assertTrue("$where: Connect ends at ${connectEnds(s)} of $b", connectEnds(s) <= b)
+                        assertTrue("$where: the panel needs ${panelNeeds(s.chrome, s.button)} of $b", fits(panelNeeds(s.chrome, s.button), b))
+                        assertTrue("$where: the column needs ${leftNeeds(s)} of $b", fits(leftNeeds(s), b))
+                        assertTrue("$where: Connect ends at ${connectEnds(s)} of $b", fits(connectEnds(s), b))
                         assertTrue("$where: the panel is $panel across", panel.value >= 420f - TOLERANCE)
                         assertTrue("$where: the illustration column is ${s.left}", s.left >= 300.dp)
                         assertTrue("$where: the spread is ${s.measure}", s.measure <= 1280.dp)
@@ -212,7 +224,7 @@ class M3uSpreadTest {
                         columns++
                         val chrome = m3uChrome(full = b >= COLUMN_FIXED + Sizing.minTarget(tv))
                         val needs = columnNeeds(chrome, Sizing.minTarget(tv))
-                        assertTrue("$where: the column needs $needs of $b", needs <= b)
+                        assertTrue("$where: the column needs $needs of $b", fits(needs, b))
                     }
                 }
             }
