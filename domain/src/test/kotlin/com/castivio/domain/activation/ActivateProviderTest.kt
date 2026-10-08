@@ -625,8 +625,11 @@ class ActivateProviderTest {
             sources,
         ).activate(m3u, nowMs = t0).toList()
 
+        // No `statusLabel`. The playlist was never asked, so nothing said "Active" --
+        // `usable()` is a *provider's* answer and this one gave none. What reaches the
+        // caller is the unasked status: not refused, and claiming nothing else.
         assertEquals(
-            ActivationPhase.Succeeded("m3u-1", 40_000, usable().value),
+            ActivationPhase.Succeeded("m3u-1", 40_000, ProviderStatus(usable = true)),
             phases.last(),
         )
         assertEquals("m3u-1", sources.activeId)
