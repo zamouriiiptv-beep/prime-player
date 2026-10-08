@@ -84,11 +84,38 @@ object Palette {
     val Faint = Color(0xFF6E6E8A)
 
     // -- Glass: translucent white layers used on top of the base -----------
+    //
+    // ## Three rungs, and the application has exactly three
+    //
+    // There were four in use and no order between them: a screen reached for
+    // `glassFill`, `glassFillStrong`, `paneBrush` or `codePanelBrush` by name and
+    // nothing said which was above which. Four names with no ladder is how one
+    // screen ends up at 4% and the screen it leads to at 74%, which reads as two
+    // applications however carefully each was drawn.
+    //
+    //   GlassLow   6%   the default. Every card, panel, field, chip and bar.
+    //   GlassHigh 12%   interaction: a control, a chosen row, a focused tile.
+    //   WellInk   40%   data a reader copies out. Sunk, never covering.
+    //
+    // `GlassMid` is kept because the *edge* soft step reads it, and nothing fills
+    // with it any more -- `glassFillStrong` is the 12% rung now.
     val GlassHigh = Color(0x1FFFFFFF)
     val GlassMid = Color(0x14FFFFFF)
-    val GlassLow = Color(0x0AFFFFFF)
+    val GlassLow = Color(0x0FFFFFFF)
     val GlassEdge = Color(0x3DFFFFFF)
     val GlassEdgeSoft = Color(0x14FFFFFF)
+
+    /**
+     * The well: a field sunk into the page, at 40% and no deeper.
+     *
+     * Dark rather than light, because a field is a recess and the rest of the
+     * ladder is a lift. 40% is the ceiling the system allows any surface: below it
+     * the ground still reads through, which is what keeps a field part of the page
+     * it is cut into. The pane it replaces was 74-80% and read as a slab laid over
+     * the backdrop -- opaque enough that the one ground every screen shares was
+     * invisible inside the two cards a user looks at longest.
+     */
+    val WellInk = Color(0x660A1024)
 
     // -- Panes: a field card, which is glass drawn the other way round -------
     //
@@ -116,7 +143,16 @@ object Palette {
     // `BackdropVoid` to `BackdropVoidLift`, not a violet of their own -- and they
     // measure 0.57x and 0.62x against the ground, with the blue at 29 against its
     // 41. Darker than the page and quieter than it, which is what a sunk pane is.
-    // The alphas are unchanged: this is still a solid, not glass.
+    //
+    // ## Nothing reads them any more
+    //
+    // The hue was right and the weight was not. At 80% and 74% the pane was a
+    // recess that no light reached through, so the one backdrop every screen in
+    // Castivio shares stopped at the edge of the two cards a user looks at
+    // longest -- and a card that hides the page it is on is a card from another
+    // application. `paneBrush` is `WellInk` at 40% now, on this same axis, and
+    // these four are kept only so that the number a future well is argued against
+    // is the one that was actually drawn.
     val PaneHigh = Color(0xCC0B1228)
     val PaneLow = Color(0xBD060A16)
 
@@ -286,6 +322,16 @@ private const val LEAD_RING = 0.50f
 
 /** [CastivioColors.ctaQuietRing]'s weight, below [LEAD_RING] for the same reason the fill is. */
 private const val CTA_QUIET_RING = 0.30f
+
+/**
+ * How much of the well's own weight its lit upper stop carries.
+ *
+ * A recess is read from its top edge: the light in this product comes from above,
+ * so the shallow end of the ramp is the top. Three quarters is the smallest step
+ * that still catches at 40% — below it the field is a flat patch and above it the
+ * ramp starts to look like a second surface laid inside the first.
+ */
+private const val WELL_LIT = 0.75f
 
 /**
  * Semantic colour tokens. Screens use these names, never raw palette values,
@@ -617,15 +663,27 @@ class CastivioColors(
     /**
      * A field card: a pane sunk into the surface, not glass laid over it.
      *
-     * Vertical, lighter at the top, so the lit rim along its upper edge reads as
-     * a highlight on a solid rather than as a border drawn round a hole.
+     * [surfaceWell]'s rung, drawn as a ramp so the field keeps the lit upper edge
+     * that says "recess" rather than "hole". The two stops are the well and three
+     * quarters of it, which over a dark page is a difference of a few per cent —
+     * enough to catch the light, not enough to be a second surface.
+     *
+     * ## It was 74-80%, and that is what this change is
+     *
+     * One recipe each per ground, opaque, and the backdrop was invisible inside it.
+     * On the one screen a user looks at longest — the two identity rows — the ground
+     * that every screen in Castivio shares did not reach the eye at all, and a card
+     * that hides the page it is on is a card from another application. At 40% the
+     * ramp still reads through: measured on the television frame, 41% of the
+     * backdrop's own left-to-right swing survives the card, against 19% before.
+     *
+     * One recipe for both grounds now, for [trialChipBrush]'s reason — a dark ink
+     * over a dark page is the same picture on either of them.
      */
     val paneBrush: Brush
-        get() = if (isSlate) {
-            Brush.verticalGradient(listOf(Palette.PaneSteelHigh, Palette.PaneSteelLow))
-        } else {
-            Brush.verticalGradient(listOf(Palette.PaneHigh, Palette.PaneLow))
-        }
+        get() = Brush.verticalGradient(
+            listOf(Palette.WellInk.copy(alpha = Palette.WellInk.alpha * WELL_LIT), Palette.WellInk),
+        )
 
     /**
      * A chip that carries information rather than a control.
@@ -646,22 +704,51 @@ class CastivioColors(
         get() = Brush.verticalGradient(listOf(Color(0x47564AD6), Color(0x38281E6E)))
 
     /**
-     * The one lit container on the identity screen.
+     * The container the QR plate sits in.
      *
-     * Diagonal rather than vertical, and violet at the corner the light comes
-     * from, so the panel reads as catching the ground's own bloom instead of
-     * carrying a colour of its own.
+     * [surfaceGlass], like every other panel in the product. It was a diagonal
+     * violet at 56-60% — the darkest and most saturated surface in Castivio, on a
+     * screen whose neighbour draws its cards at 6%. Measured against the ground
+     * immediately beside it the old panel came out *darker* by (-4, -7, -6), with
+     * green falling nearly twice as far as red: a violet slab on a blue page. The
+     * sign is the other way round now.
      *
-     * One recipe on both grounds, for [trialChipBrush]'s reason: this is a violet
-     * wash over a dark page, and both pages are dark.
+     * Kept as a brush rather than collapsed into [surfaceGlass] because the panel
+     * is the one surface wide and tall enough to want the sheen, and because the
+     * call site asks for a `Brush`.
      */
-    val codePanelBrush: Brush
-        get() = Brush.linearGradient(
-            listOf(Color(0x8F2E1A74), Color(0x94100B2E), Color(0x9909071C)),
-        )
+    val codePanelBrush: Brush get() = glassFillBrush
 
     /** The disc behind an information glyph: a tint, not a button. */
     val infoMarkFill: Color get() = Palette.Violet40.copy(alpha = 0.20f)
+
+    /* ------------------------------------------------------- the surface ladder
+     *
+     * Three rungs, named for what a surface *is* rather than for how it is made,
+     * and every screen in the application picks from these three. The older names
+     * below are kept and point at the same rungs, so a call site that says
+     * `glassFill` and one that says `surfaceGlass` cannot disagree.
+     *
+     * The rule the ladder exists to make sayable: **nothing in Castivio is painted
+     * above 40%.** A surface that hides the one ground every screen shares is a
+     * screen that has left the application.
+     */
+
+    /** The default surface: a card, a panel, a field, a bar, a chip. 6%. */
+    val surfaceGlass: Color get() = glassFill
+
+    /** Interaction: a control, a chosen row, a focused tile. 12%. */
+    val surfaceRaised: Color get() = glassFillStrong
+
+    /**
+     * A data field, sunk into the page. 40%, and the ceiling for anything.
+     *
+     * One recipe for both grounds. What makes a well read as a well is that it is
+     * *darker* than what surrounds it, and both grounds are dark, so the same ink
+     * at the same weight does the same job on each — unlike a lift, which has to
+     * be measured against the page it is lifting off.
+     */
+    val surfaceWell: Color get() = Palette.WellInk
 
     /** Vertical sheen that gives a glass panel its lit top edge. */
     val glassFillBrush: Brush
@@ -670,6 +757,16 @@ class CastivioColors(
     /** Border that fades from lit (top) to invisible (bottom). */
     val glassBorderBrush: Brush
         get() = Brush.verticalGradient(listOf(glassBorder, glassBorderSoft))
+
+    /**
+     * [glassBorderBrush]'s card counterpart: [edgeCard] at the top, fading out.
+     *
+     * A panel takes this and a chip takes the other, which is the one difference
+     * between the two edges in the system — a surface is outlined in the card
+     * family and a control in the quiet one.
+     */
+    val cardBorderBrush: Brush
+        get() = Brush.verticalGradient(listOf(edgeCard, glassBorderSoft))
 
     /* --------------------------------------------------------------- over video
      *
@@ -766,8 +863,12 @@ fun castivioDarkColors() = CastivioColors(
     accent = Palette.Ember,
 
     glassFill = Palette.GlassLow,
-    glassFillStrong = Palette.GlassMid,
-    glassBorder = Palette.GlassEdge,
+    glassFillStrong = Palette.GlassHigh,
+    // `GlassEdge` is pure white at 24%, which is a border with no hue in a palette
+    // whose whole point is one. It also had no counterpart on the slate, where this
+    // role was already a lavender -- so the same component drew a white edge on one
+    // ground and a coloured one on the other. Both are `EdgeQuiet`'s family now.
+    glassBorder = Palette.EdgeQuiet,
     glassBorderSoft = Palette.GlassEdgeSoft,
 
     focusRing = Palette.Azure60,
@@ -867,13 +968,21 @@ fun castivioSlateColors() = CastivioColors(
     secondaryContainer = Palette.Violet10,
     accent = Palette.Ember,
 
-    // The one role that genuinely changes shape. `glassFillBrush` reads these as its
-    // two stops, and on the void they are white at 4% and 8% — a film. Here they are
-    // the panel's own two values, so a card comes out as a solid standing 8.5 L* off
-    // the page instead of as a slightly paler patch of it. That difference is the
-    // entire finding this ground was built from.
-    glassFill = Palette.PanelLow,
-    glassFillStrong = Palette.PanelHigh,
+    // **The same two rungs as the void, and this is the change.**
+    //
+    // These were `PanelLow` and `PanelHigh` — opaque colours — on the reasoning that
+    // a card on a lifted ground should be a solid rather than a film. The cost was
+    // not visible from inside this file: `glassFill` meant *white at a few per cent*
+    // on one ground and *an opaque panel* on the other, so "glass" was not a material
+    // in this system, it was a name with two meanings. A screen drawn on the void did
+    // not look like itself on the slate, and no screen could be designed against both.
+    //
+    // It is one material now. White at 6% and 12% over whichever page is underneath,
+    // which on this lifted ground still lands a card clear of it — and the solid a
+    // card used to be is still available where a screen genuinely wants one, as
+    // `backgroundElevated`, which is what `a card stands off the slate` measures.
+    glassFill = Palette.GlassLow,
+    glassFillStrong = Palette.GlassHigh,
     glassBorder = Palette.EdgeSteel,
     glassBorderSoft = Palette.EdgeSteelSoft,
 

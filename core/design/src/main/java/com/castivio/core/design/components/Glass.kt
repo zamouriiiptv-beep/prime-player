@@ -55,7 +55,7 @@ fun GlassCard(
             .shadow(elevation, shape, ambientColor = Elevation.ambient, spotColor = Elevation.spot)
             .clip(shape)
             .background(colors.glassFillBrush)
-            .border(BorderStroke(1.dp, colors.glassBorderBrush), shape),
+            .border(BorderStroke(1.dp, colors.cardBorderBrush), shape),
     ) { content() }
 }
 
@@ -115,7 +115,12 @@ fun InteractiveGlassCard(
         if (focused) Elevation.level3 else Elevation.level2, Motion.focusSpec(), label = "elev",
     )
     val border by animateColorAsState(
-        if (focused) colors.focusRing else restBorder ?: colors.glassBorder,
+        // `edgeCard`, which is the application's one card edge. It was `glassBorder`
+        // -- the generic edge a chip and a button also draw -- so a card and the
+        // control beside it were outlined the same way and nothing in the drawing
+        // said which was which. A chip is a control and keeps the quiet edge; a card
+        // is a surface and has its own.
+        if (focused) colors.focusRing else restBorder ?: colors.edgeCard,
         Motion.focusSpec(),
         label = "border",
     )

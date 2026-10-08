@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import com.castivio.core.design.theme.CastivioColors
@@ -35,6 +36,82 @@ import com.castivio.core.design.theme.CastivioType
 fun castivioTitleStyle(fsTitle: Dp): TextStyle = CastivioType.headlineMedium.copy(
     fontSize = fsTitle.value.sp,
     lineHeight = (fsTitle.value * TITLE_LEADING).sp,
+    letterSpacing = 0.sp,
+)
+
+/**
+ * The style a card's own name is set in, from the frame's label step.
+ *
+ * ## Why this exists
+ *
+ * Because three screens were building it by hand. A card's name is the one step the
+ * system did not offer a function for, so the chooser wrote
+ * `CastivioType.titleMedium.copy(fontSize = …, lineHeight = … * 1.35f, Bold, 0.sp)`,
+ * the licence screen wrote its own, and the activation screen a third — and
+ * `TITLE_LEADING` ended up declared privately in two files, which is a constant with
+ * two homes and therefore one edit away from being two numbers.
+ *
+ * Bold rather than the title step's weight: a card's name sits beside a disc and
+ * above two lines of description, and at the same weight as its own prose it stops
+ * being a heading.
+ *
+ * @param fsCard [com.castivio.core.design.theme.CastivioMetrics.fsLabel].
+ */
+@Composable
+@ReadOnlyComposable
+fun castivioCardNameStyle(fsCard: Dp): TextStyle = CastivioType.titleMedium.copy(
+    fontSize = fsCard.value.sp,
+    lineHeight = (fsCard.value * TITLE_LEADING).sp,
+    fontWeight = FontWeight.Bold,
+    letterSpacing = 0.sp,
+)
+
+/**
+ * The style a value a reader copies out is set in: a MAC address, a device key.
+ *
+ * Monospace and tracked, because what makes a code readable is that its columns line
+ * up and its characters cannot be mistaken for one another — and the tracking is a
+ * parameter rather than a constant because six hex pairs and six digits want
+ * different air between them.
+ *
+ * @param fsValue the step the screen sets this value at.
+ * @param tracking how far apart the characters sit, in sp.
+ */
+@Composable
+@ReadOnlyComposable
+fun castivioValueStyle(fsValue: Dp, tracking: Float): TextStyle = CastivioType.codeHero.copy(
+    fontSize = fsValue.value.sp,
+    lineHeight = (fsValue.value * VALUE_LEADING).sp,
+    letterSpacing = tracking.sp,
+)
+
+/**
+ * The style a field's name is set in: the word to the left of a value.
+ *
+ * @param fsLabel [com.castivio.core.design.theme.CastivioMetrics.fsLabel].
+ */
+@Composable
+@ReadOnlyComposable
+fun castivioFieldLabelStyle(fsLabel: Dp): TextStyle = CastivioType.labelMedium.copy(
+    fontSize = fsLabel.value.sp,
+    lineHeight = (fsLabel.value * LABEL_LEADING).sp,
+    letterSpacing = 0.sp,
+)
+
+/**
+ * The style a button's label is set in, from whatever step the screen sizes it at.
+ *
+ * `CastivioButton` falls back to `labelLarge` at its own fixed size when a caller
+ * gives it nothing; this is the responsive form, for the screens whose buttons are a
+ * share of the frame.
+ *
+ * @param fsButton the step the screen sets its buttons at.
+ */
+@Composable
+@ReadOnlyComposable
+fun castivioButtonStyle(fsButton: Dp): TextStyle = CastivioType.labelLarge.copy(
+    fontSize = fsButton.value.sp,
+    lineHeight = (fsButton.value * CHIP_LEADING).sp,
     letterSpacing = 0.sp,
 )
 
@@ -120,4 +197,14 @@ val castivioDescriptionColor: Color
  */
 private const val TITLE_LEADING = 1.35f
 private const val CHIP_LEADING = 1.45f
+
+/** A field's name, which is a label and sits tighter than a chip's sentence. */
+private const val LABEL_LEADING = 1.4f
+
+/**
+ * A code's leading, which is tighter than prose because a code has no descenders to
+ * clear and is read as a block rather than as a line.
+ */
+private const val VALUE_LEADING = 1.3f
+
 const val BODY_LEADING = 1.5f

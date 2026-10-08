@@ -46,10 +46,12 @@ class CapsuleTintTest {
     /**
      * The pill is the brightness it has always been, redistributed.
      *
-     * `glassFill` is `GlassLow`, white at 3.9%. The brief was to change the
-     * glass's temperature and depth and *not* to make it brighter, so the two
-     * stops have to average what the flat fill was — otherwise the screen gains
-     * a lift nobody asked for and the tint gets blamed for it.
+     * `glassFill` is `GlassLow`, the surface ladder's first rung — white at 5.9%.
+     * The brief was to change the glass's temperature and depth and *not* to make
+     * it brighter, so the two stops have to average what the flat fill is —
+     * otherwise the screen gains a lift nobody asked for and the tint gets blamed
+     * for it. Asserted against the token rather than against a number, so when the
+     * rung moves this stays true by failing until the stops follow it.
      */
     @Test
     fun `the two stops average the flat fill they replace`() {

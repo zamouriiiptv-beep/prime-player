@@ -442,9 +442,18 @@ private fun Color.whitened(t: Float) = Color(
     blue = blue + (1f - blue) * t,
 )
 
-/** The label end, and the control end. Their mean is `glassFill`'s alpha. */
-private const val TINT_HI = 0.060f
-private const val TINT_LO = 0.022f
+/**
+ * The label end, and the control end. Their mean is `glassFill`'s alpha.
+ *
+ * They were 0.060 and 0.022, whose mean tracked `GlassLow` while it was white at
+ * 3.9%. `GlassLow` is the surface ladder's first rung now and sits at 5.9%, so
+ * these are that same pair carried up by the same factor — the spread between them
+ * is what the tint *is*, and it is unchanged. `the two stops average the flat fill
+ * they replace` is the assertion that keeps the two in step, and it is the reason
+ * this had to move rather than being noticed later on a screen.
+ */
+private const val TINT_HI = 0.086f
+private const val TINT_LO = 0.0316f
 
 /** Enough for the rim to have a temperature; short of drawing a coloured ring. */
 private const val EDGE_ALPHA = 0.28f
