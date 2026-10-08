@@ -300,9 +300,13 @@ class ActivateProviderTest {
             statuses,
         )
 
-        activate.activate(m3u, "Playlist", t0).toList()
+        // Xtream rather than a playlist, and that is the claim rather than a detail of
+        // the fixture: what is recorded is what a provider *said*, and a playlist says
+        // nothing -- it is adopted without being asked, so there is no answer to keep.
+        // See `a playlist is adopted without being asked anything` below.
+        activate.activate(xtream, "Nova", t0).toList()
 
-        assertEquals(expiry, statuses.stored.getValue("m3u-1").expiresAtMs)
+        assertEquals(expiry, statuses.stored.getValue("xtream-1").expiresAtMs)
     }
 
     /**
@@ -362,8 +366,11 @@ class ActivateProviderTest {
             sources,
         ).activate(m3u, nowMs = t0).toList()
 
-        assertEquals(ActivationPhase.Importing(0, 0, checkingForChanges = true), phases[1])
-        assertEquals(ActivationPhase.Importing(21_874, 0), phases[2])
+        // No `Checking` ahead of them. A playlist has nothing to be asked, so the
+        // first thing the user hears about is the import itself.
+        assertFalse("$phases", phases.any { it == ActivationPhase.Checking })
+        assertEquals(ActivationPhase.Importing(0, 0, checkingForChanges = true), phases[0])
+        assertEquals(ActivationPhase.Importing(21_874, 0), phases[1])
         assertTrue("${phases.last()}", phases.last() is ActivationPhase.Succeeded)
         assertEquals("m3u-1", sources.activeId)
     }
@@ -717,18 +724,20 @@ class ActivateProviderTest {
         val importer = importOf(ImportProgress.Done(21_874, 9_000))
         val activate = activateProvider(validator, importer, sources)
 
-        val first = activate.activate(m3u, nowMs = t0).toList()
+        // Xtream, because this is a claim about the *check* failing and being asked
+        // again, and a playlist is never checked. Everything else is unchanged.
+        val first = activate.activate(xtream, nowMs = t0).toList()
         assertEquals(ActivationPhase.Failed(ActivationFailure.UNREACHABLE), first.last())
         assertTrue((first.last() as ActivationPhase.Failed).retryable)
 
         // The network comes back.
         validator.answer = usable()
-        val second = activate.activate(m3u, nowMs = t0).toList()
+        val second = activate.activate(xtream, nowMs = t0).toList()
 
         assertEquals(2, validator.calls)
         assertEquals(1, importer.started)
         assertTrue("${second.last()}", second.last() is ActivationPhase.Succeeded)
-        assertEquals("m3u-1", sources.activeId)
+        assertEquals("xtream-1", sources.activeId)
     }
 
     @Test
@@ -786,6 +795,107 @@ class ActivateProviderTest {
         assertEquals(0, importer.started)
         assertTrue("${phases.last()}", phases.last() is ActivationPhase.Succeeded)
         assertEquals("m3u-1", sources.activeId)
+    }
+
+    // ---------------------------------------------- adopting a playlist, unasked
+
+    /**
+     * **Connect on a playlist saves it, makes it active and is done — no round trip.**
+     *
+     * The behaviour the playlist screen is built on. A user pastes a link, presses
+     * Connect and is on Home; whether the link reads is found out by the section
+     * loader a moment later, where the answer is needed anyway and where a retry
+     * exists. Asking first was the same request twice with the app held shut for the
+     * duration of the first one.
+     *
+     * `validator.calls` is the assertion that matters. The others would pass on a
+     * fast network.
+     */
+    @Test
+    fun `a playlist is adopted without being asked anything`() = runTest {
+        val sources = Sources()
+        val validator = Validator(usable())
+        val importer = importOf(ImportProgress.Done(40_000, 9_000))
+
+        val phases = activateProvider(validator, importer, sources)
+            .activate(m3u, "Playlist", t0, fetchCatalogue = false)
+            .toList()
+
+        assertEquals("nothing should have been asked", 0, validator.calls)
+        assertEquals("nothing should have been parsed", 0, importer.started)
+        assertEquals(listOf(ActivationPhase.Succeeded("m3u-1", 0, ProviderStatus(usable = true))), phases)
+        assertEquals(1, sources.registrations)
+        assertEquals("m3u-1", sources.activeId)
+    }
+
+    /**
+     * **A dead link still reaches Home.**
+     *
+     * The same validator answer that refuses an Xtream line outright — the host
+     * cannot be reached at all — and the playlist is adopted regardless, because it
+     * is never put to it. This is the test that would fail if a pre-flight check
+     * crept back in: the user would be stopped at the form by a network blip on a
+     * link that may well be fine, or be fine ten seconds later.
+     *
+     * What happens to a genuinely dead link is not nothing; it is `LoadSection`
+     * emitting `SectionLoad.Failed` on Home, with `retryable` set from the error.
+     */
+    @Test
+    fun `a playlist is adopted even when the network is down`() = runTest {
+        val sources = Sources()
+        val validator = Validator(Outcome.Failure(AppError.NETWORK_UNAVAILABLE))
+
+        val phases = activateProvider(validator, importOf(), sources)
+            .activate(m3u, "Playlist", t0, fetchCatalogue = false)
+            .toList()
+
+        assertEquals(0, validator.calls)
+        assertTrue("${phases.last()}", phases.last() is ActivationPhase.Succeeded)
+        assertEquals("m3u-1", sources.activeId)
+    }
+
+    /**
+     * Nothing is written to the status catalogue for a provider that was never asked.
+     *
+     * A recorded answer is a claim: Home draws "expires on" and the connection count
+     * from it. An invented one would be a fact in the dashboard that no server ever
+     * stated, and the next real check would be judged against it.
+     */
+    @Test
+    fun `an unasked playlist records no answer`() = runTest {
+        val statuses = Statuses()
+
+        activateProvider(Validator(usable(expiresAtMs = t0 + 90 * day)), importOf(), Sources(), statuses)
+            .activate(m3u, "Playlist", t0, fetchCatalogue = false)
+            .toList()
+
+        assertEquals(emptyMap<String, Recorded>(), statuses.stored)
+    }
+
+    /**
+     * **The other half of the rule, and the one that must not drift.**
+     *
+     * An account-bearing provider is still asked before anything is saved. The
+     * playlist path is a statement about playlists, not a loosening of activation —
+     * a wrong Xtream password still arrives as a wrong password rather than as an
+     * empty app.
+     */
+    @Test
+    fun `a provider with an account is still asked before it is saved`() = runTest {
+        for (source in listOf(xtream, portal)) {
+            val sources = Sources()
+            val validator = Validator(Outcome.Failure(AppError.UNAUTHORIZED))
+
+            val phases = activateProvider(validator, importOf(), sources)
+                .activate(source, null, t0, fetchCatalogue = false)
+                .toList()
+
+            assertEquals("$source was not asked", 1, validator.calls)
+            assertEquals("$source", ActivationPhase.Checking, phases.first())
+            assertTrue("$source: ${phases.last()}", phases.last() is ActivationPhase.Failed)
+            assertEquals("$source saved something", 0, sources.registrations)
+            assertNull("$source became active", sources.activeId)
+        }
     }
 
     /** A provider that says no is still refused. Connecting cannot save bad details. */

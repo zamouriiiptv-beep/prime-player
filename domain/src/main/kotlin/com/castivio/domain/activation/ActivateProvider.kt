@@ -20,10 +20,12 @@ import kotlinx.coroutines.withContext
  * Two guarantees hold across every path through this file, and they are the reason it
  * exists as one place rather than as steps scattered through a view model:
  *
- *  1. **Ask before importing.** The provider is validated first, so a wrong password,
- *     an expired subscription and an unreachable host arrive as three different
- *     answers instead of as "no channels" thirty seconds later. Nothing is written
- *     until that check passes.
+ *  1. **Ask before importing — where there is something to ask.** A provider with an
+ *     account is validated first, so a wrong password, an expired subscription and an
+ *     unreachable host arrive as three different answers instead of as "no channels"
+ *     thirty seconds later, and nothing is written until that check passes. A playlist
+ *     has no account and is adopted on the spot; see [hasAccount] for why asking it
+ *     anything would be the same request twice.
  *  2. **Nothing that already worked is lost.** A failure, a cancellation or a
  *     zero-item response leaves the previously committed catalogue exactly as it was —
  *     `ImportMode.REPLACE` prunes only after `finish()` commits, and the active source
@@ -77,18 +79,24 @@ class ActivateProvider(
          */
         fetchCatalogue: Boolean = true,
     ): Flow<ActivationPhase> = flow {
-        emit(ActivationPhase.Checking)
+        // **Only a provider with an account is asked one.** See [hasAccount]. A playlist
+        // is adopted on the spot: registered, made active, and the app opens on it.
+        val status = if (source.hasAccount) {
+            emit(ActivationPhase.Checking)
 
-        val status = when (val checked = validator.validate(source)) {
-            is Outcome.Failure -> {
-                emit(ActivationPhase.Failed(ActivationFailure.of(checked.error)))
-                return@flow
+            when (val checked = validator.validate(source)) {
+                is Outcome.Failure -> {
+                    emit(ActivationPhase.Failed(ActivationFailure.of(checked.error)))
+                    return@flow
+                }
+
+                is Outcome.Success -> checked.value
             }
-
-            is Outcome.Success -> checked.value
+        } else {
+            null
         }
 
-        if (!status.usable) {
+        if (status != null && !status.usable) {
             emit(ActivationPhase.Failed(refusal(status, nowMs)))
             return@flow
         }
@@ -105,10 +113,16 @@ class ActivateProvider(
      *
      * The two guarantees at the top of this file survive it. Nothing that already
      * worked is lost, because registering a provider writes no catalogue rows and
-     * `register` preserves the sync state of a source that was already there. And
-     * the provider was asked first, so this cannot save credentials that do not
-     * work — which is the whole reason it is a separate branch here rather than a
-     * screen skipping the use case.
+     * `register` preserves the sync state of a source that was already there. And a
+     * provider with an account was asked first, so this cannot save credentials that
+     * do not work — which is the whole reason it is a separate branch here rather
+     * than a screen skipping the use case.
+     *
+     * A playlist arrives here with [status] null, unasked. What that costs is a link
+     * that cannot be read being found out one screen later, by the section loader,
+     * which reports it where the user is looking and offers the retry. What it buys
+     * is Home opening immediately on the source the user just added, instead of after
+     * a round trip whose answer is fetched again a second afterwards.
      *
      * The `finally` clause the importing path needs has no counterpart, and that is
      * deliberate rather than an omission: there is no import to be cancelled halfway,
@@ -117,7 +131,7 @@ class ActivateProvider(
     private suspend fun kotlinx.coroutines.flow.FlowCollector<ActivationPhase>.connect(
         source: PlaylistSource,
         label: String?,
-        status: ProviderStatus,
+        status: ProviderStatus?,
         nowMs: Long,
     ) {
         val registered = sources.register(source, label)
@@ -127,7 +141,7 @@ class ActivateProvider(
     private suspend fun kotlinx.coroutines.flow.FlowCollector<ActivationPhase>.importCatalogue(
         source: PlaylistSource,
         label: String?,
-        status: ProviderStatus,
+        status: ProviderStatus?,
         nowMs: Long,
     ) {
         // Registered before the import so that the sync state written at the end has a
@@ -206,12 +220,16 @@ class ActivateProvider(
     private suspend fun kotlinx.coroutines.flow.FlowCollector<ActivationPhase>.succeed(
         sourceId: String,
         itemCount: Int,
-        status: ProviderStatus,
+        status: ProviderStatus?,
         nowMs: Long,
     ) {
-        statuses?.record(sourceId, status, nowMs)
+        // Null when nothing was asked, and then nothing is written. A recorded answer
+        // is a claim about a subscription -- Home draws "expires on" and the connection
+        // count from it -- and inventing one for a provider that was never questioned
+        // would put a fact in the dashboard that no server ever stated.
+        if (status != null) statuses?.record(sourceId, status, nowMs)
         sources.setActive(sourceId)
-        emit(ActivationPhase.Succeeded(sourceId, itemCount, status))
+        emit(ActivationPhase.Succeeded(sourceId, itemCount, status ?: UNASKED))
     }
 
     /**
@@ -228,3 +246,51 @@ class ActivateProvider(
             else -> ActivationFailure.PROVIDER_REFUSED
         }
 }
+
+/**
+ * Whether this kind of provider has an account to ask about before it is adopted.
+ *
+ * ## The distinction, and why it decides how fast the app opens
+ *
+ * An Xtream line and a Stalker portal each sit behind a panel that answers questions:
+ * is this password right, has the subscription run out, how many connections are in
+ * use. Those answers cannot be derived from the catalogue and they change what the app
+ * says to the user, so they are worth a round trip before anything is written — a
+ * wrong password arriving as "your password is wrong" rather than as an empty app
+ * thirty seconds later is the whole point of asking.
+ *
+ * A playlist has no panel and no account. The only thing that can be learnt about an
+ * M3U link is whether it reads, and the only way to learn it is to read it — which is
+ * exactly what the section loader does the moment Home opens. Asking first is
+ * therefore the same request twice: a wait before the app opens, for an answer that
+ * arrives again a second later from the thing that actually needs it.
+ *
+ * So a playlist is adopted rather than interrogated. Connect saves it, makes it the
+ * active source and opens Home; whether the link is good is Home's question, answered
+ * where the file is read and reported where the user is looking. The local-file case
+ * has always worked this way — `HttpProviderValidator` returns a usable status for it
+ * without asking anything, because "there is nothing to ask a server" — and this is
+ * that sentence applied to the kind it is equally true of.
+ *
+ * A `when` over the sealed type rather than a flag on each entry: a source kind added
+ * later cannot be left out of this decision without failing to compile.
+ */
+internal val PlaylistSource.hasAccount: Boolean
+    get() = when (this) {
+        is PlaylistSource.Xtream, is PlaylistSource.Portal -> true
+        is PlaylistSource.M3u, is PlaylistSource.LocalFile -> false
+    }
+
+/**
+ * What a provider that was never questioned is reported as.
+ *
+ * `usable = true` says only "nothing refused this", which is the truth: no server was
+ * asked. Every other field is at its own default, so there is no expiry to count down,
+ * no connection limit and no status label — a reader cannot mistake it for an answer,
+ * because an answer would have brought at least one of them.
+ *
+ * It is never recorded. [ActivateProvider.succeed] writes to the status catalogue only
+ * when a status was actually obtained; this exists because `ActivationPhase.Succeeded`
+ * carries a status and a success is a success either way.
+ */
+private val UNASKED = ProviderStatus(usable = true)
