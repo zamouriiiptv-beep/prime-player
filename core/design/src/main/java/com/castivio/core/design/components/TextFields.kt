@@ -35,6 +35,10 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -120,6 +124,50 @@ fun CastivioTextField(
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
     var focused by remember { mutableStateOf(false) }
+
+    // **A URL is read left to right in every language, and the paragraph it sits in
+    // has to say so.**
+    //
+    // Bidirectional text resolves a neutral character -- `?`, `/`, `:`, `&`, `=`, an
+    // ellipsis -- by looking at the strong characters on either side of it, and where
+    // there are none it falls back to the *paragraph's* direction. In Arabic that
+    // paragraph runs right to left, so a link whose last characters are neutral has
+    // them reordered to the visual front: `http://example.com/get.php?...` is drawn
+    // `...?http://example.com/get.php`, which is what a reader sees as a broken link
+    // and what was photographed on a device.
+    //
+    // It is not a font size, a field width, or a string that needs spaces put in it.
+    // It is the paragraph direction, and the fix is to state it: inside a field that
+    // holds a URL the text runs left to right, so every neutral between the scheme and
+    // the query resolves against the Latin around it and lands where it was typed.
+    //
+    // ## Why the keyboard decides it
+    //
+    // Because `KeyboardType.Uri` is already the field's own declaration that what goes
+    // in it is a URL -- the playlist link, the Xtream server and the portal address are
+    // the three that set it, and they are exactly the three with this defect. A
+    // parameter beside it would be the same fact stated twice, and a caller that set
+    // one without the other would be a field with a URL keyboard and Arabic reordering.
+    //
+    // ## The alignment is the layout's, not the paragraph's
+    //
+    // The text runs LTR; where that run *starts* is still the screen's business. In
+    // Arabic the field's start edge is the right one, so the run is aligned to the end
+    // of its own LTR paragraph -- which is that same edge -- and the control does not
+    // move a pixel. Nothing here changes the field's size, its padding, its icon, its
+    // trailing slot, or the direction of anything outside the text itself.
+    val url = keyboardType == KeyboardType.Uri
+    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    val valueStyle = CastivioType.bodyLarge.let {
+        if (!url) {
+            it
+        } else {
+            it.copy(
+                textDirection = TextDirection.Ltr,
+                textAlign = if (rtl) TextAlign.End else TextAlign.Start,
+            )
+        }
+    }
 
     val border by animateColorAsState(
         when {
@@ -216,19 +264,23 @@ fun CastivioTextField(
                         // twice.
                         Text(
                             text = placeholder,
-                            style = CastivioType.bodyLarge,
+                            style = valueStyle,
                             color = colors.onBackgroundMuted,
-                            modifier = Modifier.clearAndSetSemantics { },
+                            // The whole width, so an LTR run inside an Arabic field has
+                            // a line box to be aligned in. Without it the placeholder is
+                            // as wide as its own text and the alignment has nothing to
+                            // act on.
+                            modifier = Modifier.fillMaxWidth().clearAndSetSemantics { },
                         )
                     }
 
-                    CompositionLocalProvider(LocalTextStyle provides CastivioType.bodyLarge) {
+                    CompositionLocalProvider(LocalTextStyle provides valueStyle) {
                         BasicTextField(
                             value = value,
                             onValueChange = onValueChange,
                             enabled = enabled,
                             singleLine = true,
-                            textStyle = CastivioType.bodyLarge.copy(
+                            textStyle = valueStyle.copy(
                                 color = if (enabled) colors.onBackground else colors.onBackgroundMuted,
                             ),
                             cursorBrush = SolidColor(colors.focusRing),
