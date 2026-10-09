@@ -177,6 +177,104 @@ class M3uSpreadTest {
     }
 
     /**
+     * **The compact column recovers the name field well before it recovers
+     * everything else `full` buys.**
+     *
+     * The gap the two landscape handsets this project is tested on were both
+     * emptying: a band of 270 to 310dp affords the name field's own 78dp long
+     * before it affords the rest of `full`'s generous padding, and
+     * `m3uColumnChrome` is the one place that asks the cheaper question on its
+     * own. A width under [SPREAD_MIN_WIDTH] forces the single column at every
+     * height below, so what is under test here is never masked by the spread.
+     */
+    @Test
+    fun `the compact column shows the name field once the band can afford it alone`() {
+        val width = 700.dp
+
+        val tall = band(width, 393.dp, tv = false)
+        val short = band(width, 360.dp, tv = false)
+
+        val chromeTall = m3uColumnChrome(band = tall, button = Sizing.minTouchTarget)
+        val chromeShort = m3uColumnChrome(band = short, button = Sizing.minTouchTarget)
+
+        assertFalse("851x393's column is not at full dress", chromeTall.full)
+        assertTrue("851x393's compact column still shows the name field", chromeTall.name)
+        assertTrue(
+            "the name field needs ${columnNeeds(chromeTall, Sizing.minTouchTarget)} of $tall",
+            fits(columnNeeds(chromeTall, Sizing.minTouchTarget), tall),
+        )
+
+        assertFalse("800x360's column is not at full dress", chromeShort.full)
+        assertTrue("800x360's compact column shows it too", chromeShort.name)
+        assertTrue(
+            "the name field needs ${columnNeeds(chromeShort, Sizing.minTouchTarget)} of $short",
+            fits(columnNeeds(chromeShort, Sizing.minTouchTarget), short),
+        )
+    }
+
+    /**
+     * Below the derived threshold the name field is still given up, exactly as
+     * it always was. The new tier narrows *when* the field returns; it does
+     * not remove the floor under it.
+     */
+    @Test
+    fun `a band too short for the name field alone still falls back to the plain compact column`() {
+        val b = band(700.dp, 330.dp, tv = false)
+        val chrome = m3uColumnChrome(band = b, button = Sizing.minTouchTarget)
+
+        assertFalse("not at full dress", chrome.full)
+        assertFalse("the band at $b cannot afford the name field on its own", chrome.name)
+        assertTrue(
+            "the plain compact column needs ${columnNeeds(chrome, Sizing.minTouchTarget)} of $b",
+            fits(columnNeeds(chrome, Sizing.minTouchTarget), b),
+        )
+    }
+
+    /**
+     * The transition between the two compact tiers, swept to a tenth of a dp
+     * across every height between the shortest frame and the one just above
+     * where `full` itself takes over. The claim is the same one the big sweep
+     * makes for the whole screen -- nothing the column draws ever costs more
+     * than the band has -- narrowed to the one boundary this change added.
+     */
+    @Test
+    fun `the compact column's name field never costs more than the band has`() {
+        var worstMargin = Float.MAX_VALUE
+        var worstAt = ""
+        var withName = 0
+        var withoutName = 0
+
+        var height = 340.dp
+        while (height <= 410.dp) {
+            // A width under SPREAD_MIN_WIDTH, held fixed, so every height in
+            // this range draws the column rather than the spread.
+            val b = band(700.dp, height, tv = false)
+            val chrome = m3uColumnChrome(band = b, button = Sizing.minTouchTarget)
+            val needs = columnNeeds(chrome, Sizing.minTouchTarget)
+
+            assertTrue("$height: the column needs $needs of $b", fits(needs, b))
+
+            if (!chrome.full) {
+                if (chrome.name) withName++ else withoutName++
+            }
+
+            val margin = (b - needs).value
+            if (margin < worstMargin) {
+                worstMargin = margin
+                worstAt = "$height"
+            }
+            height += 0.1.dp
+        }
+
+        println(
+            "compact name-field sweep — $withName heights with the name field, " +
+                "$withoutName without, worst margin ${worstMargin}dp at $worstAt",
+        )
+        assertTrue("some swept height should show the compact name field", withName > 0)
+        assertTrue("some swept height should still fall back without it", withoutName > 0)
+    }
+
+    /**
      * **Nothing on this screen leaves the band, on any surface, ever.**
      *
      * The sweep the two shipped defects would both have been caught by. For every
@@ -188,6 +286,7 @@ class M3uSpreadTest {
     fun `nothing leaves the band on any surface`() {
         var spreads = 0
         var columns = 0
+        var columnsWithName = 0
         var tightest = Float.MAX_VALUE
         var tightestAt = ""
 
@@ -222,18 +321,23 @@ class M3uSpreadTest {
                         }
                     } else {
                         columns++
-                        val chrome = m3uChrome(full = b >= COLUMN_FIXED + Sizing.minTarget(tv))
+                        val chrome = m3uColumnChrome(band = b, button = Sizing.minTarget(tv))
                         val needs = columnNeeds(chrome, Sizing.minTarget(tv))
                         assertTrue("$where: the column needs $needs of $b", fits(needs, b))
+                        if (chrome.name && !chrome.full) columnsWithName++
                     }
                 }
             }
             height += 1.dp
         }
 
-        println("m3u fit sweep — $spreads spreads, $columns columns, tightest ${tightest}dp at $tightestAt")
+        println(
+            "m3u fit sweep — $spreads spreads, $columns columns " +
+                "($columnsWithName of them with the compact name field), tightest ${tightest}dp at $tightestAt",
+        )
         assertTrue("no surface drew the spread", spreads > 0)
         assertTrue("no surface drew the column", columns > 0)
+        assertTrue("no surface drew the compact column's name field", columnsWithName > 0)
     }
 
     private companion object {

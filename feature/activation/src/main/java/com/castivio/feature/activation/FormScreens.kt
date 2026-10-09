@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bolt
@@ -253,16 +254,18 @@ internal fun M3uFormScreen(
                         onName = onName,
                         onUrl = onUrl,
                         onSubmit = onSubmit,
+                        fieldMeasure = formMeasure(m.frame),
                     )
                 } else {
                     M3uColumn(
                         form = form,
                         enabled = enabled,
                         canSubmit = canSubmit,
-                        chrome = m3uChrome(full = band >= COLUMN_FIXED + Sizing.minTarget(tv)),
+                        chrome = m3uColumnChrome(band = band, button = Sizing.minTarget(tv)),
                         onName = onName,
                         onUrl = onUrl,
                         onSubmit = onSubmit,
+                        fieldMeasure = formMeasure(m.frame),
                         modifier = Modifier
                             .align(Alignment.TopCenter)
                             .widthIn(max = formMeasure(m.frame))
@@ -296,6 +299,8 @@ private fun M3uSpread(
     onName: (String) -> Unit,
     onUrl: (String) -> Unit,
     onSubmit: () -> Unit,
+    /** See [PlaylistPanel]'s own parameter of the same name. */
+    fieldMeasure: Dp,
     modifier: Modifier = Modifier,
 ) {
     // **The band is the whole budget.** Nothing here scrolls and nothing may exceed
@@ -317,6 +322,7 @@ private fun M3uSpread(
             onName = onName,
             onUrl = onUrl,
             onSubmit = onSubmit,
+            fieldMeasure = fieldMeasure,
             modifier = Modifier.weight(1f),
         )
     }
@@ -336,7 +342,10 @@ private fun PlaylistPitch(metrics: M3uMetrics, modifier: Modifier = Modifier) {
                 stringResource(R.string.playlist_rail_series),
                 stringResource(R.string.playlist_rail_catchup),
             ),
-            modifier = Modifier.fillMaxWidth().height(metrics.art),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(metrics.art)
+                .testTag(ActivationTags.PLAYLIST_ART),
         )
 
         // **The line counts are a budget, not a preference.** The screen does not
@@ -478,6 +487,22 @@ private fun PlaylistPanel(
     onName: (String) -> Unit,
     onUrl: (String) -> Unit,
     onSubmit: () -> Unit,
+    /**
+     * How wide a field's own box may grow, on this surface.
+     *
+     * The panel itself is `weight(1f)` of whatever the spread leaves it -- up to
+     * about 900dp on a wide television, where `metrics.left` has settled near its
+     * 300dp floor. A single-line field that wide is not a bigger field, it is a
+     * line a reader's eye has to travel across to reach the one thing typed into
+     * it, and a Paste chip stranded at the far edge of it.
+     *
+     * [formMeasure] rather than a number invented here: it is the same cap
+     * `M3uColumn`, Xtream's form and the portal's already read a field at, derived
+     * from the surface's own type step rather than fixed to one device class. The
+     * field is centred in whatever width is left over, so the card, the title row,
+     * Connect and the note under it are untouched -- only the two inputs narrow.
+     */
+    fieldMeasure: Dp,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
@@ -538,6 +563,11 @@ private fun PlaylistPanel(
                     enabled = enabled,
                     labelIcon = Icons.Rounded.Home,
                     icon = Icons.Rounded.Home,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentWidth(Alignment.CenterHorizontally)
+                        .widthIn(max = fieldMeasure)
+                        .testTag(ActivationTags.PLAYLIST_NAME),
                 )
                 Spacer(Modifier.height(chrome.fieldGap))
             }
@@ -555,6 +585,10 @@ private fun PlaylistPanel(
                 labelIcon = Icons.Rounded.Link,
                 icon = Icons.Rounded.Link,
                 trailing = { PasteChip(enabled = enabled, onPaste = onUrl) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentWidth(Alignment.CenterHorizontally)
+                    .widthIn(max = fieldMeasure),
             )
 
             Spacer(Modifier.height(chrome.actionGap))
@@ -674,6 +708,16 @@ private fun M3uColumn(
     onName: (String) -> Unit,
     onUrl: (String) -> Unit,
     onSubmit: () -> Unit,
+    /**
+     * See [PlaylistPanel]'s own parameter of the same name.
+     *
+     * A no-op here in practice -- this column is already capped at the same
+     * [formMeasure] one level up, by the caller's own modifier, so a field that
+     * fills it is already no wider than this. Carried through anyway, so the two
+     * branches state the same rule about a field's own box rather than one of
+     * them inheriting it by accident from a constraint next door.
+     */
+    fieldMeasure: Dp,
     modifier: Modifier = Modifier,
 ) {
     val checked = form.checked
@@ -701,6 +745,11 @@ private fun M3uColumn(
                         enabled = enabled,
                         labelIcon = Icons.Rounded.Home,
                         icon = Icons.Rounded.Home,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentWidth(Alignment.CenterHorizontally)
+                            .widthIn(max = fieldMeasure)
+                            .testTag(ActivationTags.PLAYLIST_NAME),
                     )
                 }
                 CastivioTextField(
@@ -716,6 +765,10 @@ private fun M3uColumn(
                     labelIcon = Icons.Rounded.Link,
                     icon = Icons.Rounded.Link,
                     trailing = { PasteChip(enabled = enabled, onPaste = onUrl) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentWidth(Alignment.CenterHorizontally)
+                        .widthIn(max = fieldMeasure),
                 )
             }
         }
@@ -944,9 +997,24 @@ internal fun pitchNeeds(chrome: M3uChrome): Dp =
 internal fun panelNeeds(chrome: M3uChrome, button: Dp): Dp =
     (if (chrome.full) PANEL_FIXED else PANEL_FIXED_COMPACT) + button
 
-/** The single column's, for the surfaces too narrow to hold two. */
+/**
+ * The single column's, for the surfaces too narrow to hold two.
+ *
+ * Read against [M3uChrome.name] rather than [M3uChrome.full]: a compact column
+ * that has restored the name field (see [m3uColumnChrome]) costs
+ * [COLUMN_FIXED_COMPACT_WITH_NAME], not [COLUMN_FIXED_COMPACT] -- and the one
+ * surface `chrome.full` cannot tell apart from the plainer compact dress.
+ */
 internal fun columnNeeds(chrome: M3uChrome, button: Dp): Dp =
-    (if (chrome.full) COLUMN_FIXED else COLUMN_FIXED_COMPACT) + button
+    (
+        if (chrome.full) {
+            COLUMN_FIXED
+        } else if (chrome.name) {
+            COLUMN_FIXED_COMPACT_WITH_NAME
+        } else {
+            COLUMN_FIXED_COMPACT
+        }
+        ) + button
 
 @Immutable
 internal data class M3uMetrics(
@@ -1047,6 +1115,43 @@ internal fun m3uChrome(full: Boolean): M3uChrome =
             pitchBodyLines = 1,
         )
     }
+
+/**
+ * [M3uColumn]'s own chrome: [m3uChrome]'s, with the optional name field restored
+ * once the band can afford it **on its own**.
+ *
+ * ## Why this is not `m3uChrome` itself
+ *
+ * [m3uChrome] is shared with [m3uSpread], and the panel's "full" threshold is the
+ * one place the two screens' compositions are allowed to differ -- a tablet or a
+ * television reads it unchanged. This function is the column's alone: it asks the
+ * same question [m3uChrome] already asked for `full`, and then asks a second,
+ * cheaper one the plain compact dress never got to ask.
+ *
+ * ## What the second question is
+ *
+ * A column a few dp short of `full`'s own threshold used to lose everything `full`
+ * buys at once -- the name field and the generous padding both, on the reasoning
+ * that priced them as one decision. They are not one decision. On a landscape
+ * handset the band is 270 to 310dp short of the reference and the name field costs
+ * 78 of those dp on its own ([COLUMN_FIXED_COMPACT_WITH_NAME] against
+ * [COLUMN_FIXED_COMPACT]) -- affordable on its own well before the rest of `full`'s
+ * dress is. [columnNeeds] is read against [M3uChrome.name] rather than
+ * [M3uChrome.full] for exactly this reason, so the budget this restores is counted
+ * rather than assumed.
+ *
+ * Nothing else about compact moves: the padding, the one-line pitch and the disc
+ * stay the figures [m3uChrome] already chose. Only whether the name field draws.
+ */
+internal fun m3uColumnChrome(band: Dp, button: Dp): M3uChrome {
+    val full = band >= COLUMN_FIXED + button
+    val chrome = m3uChrome(full = full)
+    return if (!full && band >= COLUMN_FIXED_COMPACT_WITH_NAME + button) {
+        chrome.copy(name = true)
+    } else {
+        chrome
+    }
+}
 
 /**
  * Whether this surface is wide enough for two columns.
@@ -1154,6 +1259,13 @@ private val PANEL_FIXED_COMPACT: Dp = 188.dp
  */
 internal val COLUMN_FIXED: Dp = 262.dp
 private val COLUMN_FIXED_COMPACT: Dp = 144.dp
+
+/**
+ * [COLUMN_FIXED_COMPACT], with the optional name field restored: one more 70dp
+ * name field and one compact `fieldGap` (`Spacing.sm`, 8dp) between it and the
+ * URL field -- 144 + 70 + 8 = 222. See [m3uColumnChrome].
+ */
+private val COLUMN_FIXED_COMPACT_WITH_NAME: Dp = 222.dp
 
 /** The panel's mark where the band is short: a glyph, not a control, so it may shrink. */
 private val COMPACT_DISC: Dp = 40.dp

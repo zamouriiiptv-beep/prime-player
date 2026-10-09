@@ -123,6 +123,25 @@ internal object ActivationTags {
     const val PLAYLIST_NOTE = "activation.playlistNote"
 
     /**
+     * The illustration `M3uSpread` draws and `M3uColumn` never does.
+     *
+     * Tagged so a layout test can tell the two compositions apart from their actual
+     * output rather than from the pure functions that are supposed to choose between
+     * them -- `fitsSpread` and `m3uSpread` can be correct in isolation while the
+     * composable tree that feeds them a width is wired wrong, and nothing short of
+     * asking Compose what it placed catches that.
+     */
+    const val PLAYLIST_ART = "activation.playlistArt"
+
+    /**
+     * The optional playlist name field, on whichever of the two compositions draws it.
+     *
+     * Tagged rather than found by its label, for the reason the portal fields are: a
+     * text field merges its label, its value and its decoration into one node.
+     */
+    const val PLAYLIST_NAME = "activation.playlistName"
+
+    /**
      * The glass surface the grid and Back sit inside.
      *
      * Tagged because "the cards are in a container" is otherwise a claim only a
