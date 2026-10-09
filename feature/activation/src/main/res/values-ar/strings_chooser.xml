@@ -12,7 +12,7 @@
     <string name="source_xtream_title">Xtream Codes</string>
     <string name="source_xtream_detail">أضف سيرفر واسم مستخدم وكلمة مرور.</string>
     <string name="source_xtream_hint">دعم كامل لميزات Xtream.</string>
-    <string name="source_m3u_title">قائمة M3U</string>
+    <string name="source_m3u_title">قائمة تشغيل M3U</string>
     <string name="source_m3u_detail">أضف رابط قائمة التشغيل بصيغة M3U.</string>
     <string name="source_m3u_hint">رابط واحد طويل يُرسل عادةً بالبريد.</string>
     <string name="source_portal_title">Stalker Portal</string>
