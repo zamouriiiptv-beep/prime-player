@@ -10,9 +10,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The playlist screen fits, on every surface, without scrolling.
+ * The playlist screen fits, on every surface, without scrolling — and never by leaving
+ * something out that a user was told would be there.
  *
- * ## The two defects this file exists to prevent, and both shipped
+ * ## The defects this file exists to prevent, and all three shipped
  *
  * **The drawing did not appear.** The thresholds asked for 960dp of width and 400dp of
  * band; a landscape handset is 851x393, which leaves 303dp under the header, so the
@@ -24,18 +25,27 @@ import org.junit.Test
  * it. Every gate stayed green through both, because no test asked what a handset
  * renders.
  *
+ * **Then the compact dress quietly dropped the playlist name, and the single column
+ * dropped the illustration outright** — not a bug in the arithmetic, the arithmetic
+ * working exactly as it was told to: "compact" meant "the name field is optional, so
+ * compact is where it goes," and the single column never drew an illustration in the
+ * first place. Both were legal moves against a budget that never charged for them.
+ * They are not legal any more — [m3uChrome] has no dial left that removes the name,
+ * and [M3uColumn] always draws above its card — so the budget is rewritten to prove it
+ * stays true everywhere rather than at the one width someone happened to screenshot.
+ *
  * ## So the claim here is arithmetic, not appearance
  *
- * The screen has no scroll. Its parts are therefore a budget: `m3uSpread` is handed
- * the band and picks a composition whose counted height fits inside it. These tests
- * recount that budget independently — the panel's fixed parts, the words under the
- * illustration, and the y of Connect's bottom edge — and assert all three against the
- * band on every surface the application ships to.
+ * The screen has no scroll. Its parts are therefore a budget: `m3uSpread` and
+ * `M3uColumn` are handed the band and pick a composition whose counted height fits
+ * inside it. These tests recount that budget independently — the panel's fixed parts,
+ * the words under the illustration, the column's own illustration, and the y of
+ * Connect's bottom edge — and assert all of it against the band on every surface the
+ * application ships to.
  *
  * The figures below are the components' real measurements, not their nominal ones: a
  * label row carrying "optional" is 18dp because `labelSmall` leads at 18, and a button
  * on a television is 56 because `CastivioButton` floors itself at the D-pad target.
- * Both were wrong in a first pass and both are why this is counted rather than eyed.
  */
 class M3uSpreadTest {
 
@@ -62,17 +72,34 @@ class M3uSpreadTest {
      */
     private fun fits(need: Dp, band: Dp): Boolean = need.value <= band.value + TOLERANCE
 
-    /** Where Connect's bottom edge sits inside the panel, counted from its top. */
+    /**
+     * Where Connect's bottom edge sits inside the panel, counted from its top.
+     *
+     * Full dress is the fixed drawing it always was. Compact is read off the chrome
+     * itself now rather than off a second set of flat numbers — `m3uChrome` is what
+     * decides how much air each gap gets, so a test that still hardcoded 12dp here
+     * would stop meaning anything the moment the band changed.
+     */
     private fun connectEnds(s: M3uMetrics): Dp =
         if (s.chrome.full) {
             16.dp + HEAD + 24.dp + NAME_FIELD + 16.dp + URL_FIELD + 24.dp + s.button
         } else {
-            12.dp + COMPACT_HEAD + 12.dp + URL_FIELD + 12.dp + s.button
+            val c = s.chrome
+            c.pad + COMPACT_HEAD + c.headGap + NAME_FIELD + c.fieldGap + URL_FIELD + c.actionGap + s.button
         }
 
     /** What the words under the illustration cost, plus the cards where they are drawn. */
     private fun leftNeeds(s: M3uMetrics): Dp =
         s.art + pitchNeeds(s.chrome) + if (s.facts) 32.dp + s.factHeight else 0.dp
+
+    /** The single column's own chrome and illustration, independently recomputed. */
+    private fun column(width: Dp, height: Dp, tv: Boolean): Triple<M3uChrome, Dp, Dp> {
+        val b = band(width, height, tv)
+        val button = Sizing.minTarget(tv)
+        val chrome = m3uChrome(full = b >= COLUMN_FIXED + button, band = b, button = button)
+        val art = (b - columnNeeds(chrome, button)).coerceIn(24.dp, 360.dp)
+        return Triple(chrome, button, art)
+    }
 
     /**
      * **The drawing reaches the handset the project is tested on, and Connect is on
@@ -80,8 +107,9 @@ class M3uSpreadTest {
      *
      * 851x393 in landscape: 40dp of header, 33.5 of stage, 303.5 of band. The panel
      * at full dress wants 402 of that, so the screen draws the compact composition —
-     * the illustration, its claim, the URL field, Paste and Connect — and the button
-     * ends 200dp down, with a hundred to spare.
+     * the illustration, its claim, the playlist name, the URL field, Paste and
+     * Connect — and every one of them is still there; only the panel's description
+     * and its disc gave way.
      */
     @Test
     fun `the handset draws the screen and keeps Connect inside it`() {
@@ -97,8 +125,9 @@ class M3uSpreadTest {
         assertEquals("the illustration column", 322.9f, s.left.value, 1f)
         assertEquals("the panel", 420f, (s.measure - s.left - s.gap).value, 1f)
         assertEquals("the illustration", 185.3f, s.art.value, 1f)
+        assertEquals("the panel's fixed parts", 255.5f, (panelNeeds(s.chrome, s.button) - s.button).value, 1f)
 
-        assertEquals("Connect ends at", 200f, connectEnds(s).value, 1f)
+        assertEquals("Connect ends at", 264.4f, connectEnds(s).value, 1f)
         assertTrue("Connect ends at ${connectEnds(s)} in $b", fits(connectEnds(s), b))
         assertTrue("the panel needs ${panelNeeds(s.chrome, s.button)}", fits(panelNeeds(s.chrome, s.button), b))
         assertTrue("the illustration column needs ${leftNeeds(s)}", fits(leftNeeds(s), b))
@@ -109,7 +138,8 @@ class M3uSpreadTest {
      *
      * Every figure read off the 1280x720 mockup, including the one the compact path
      * exists to protect: the illustration is 330dp, to the dp, and the three cards are
-     * in a row.
+     * in a row. Full dress never reads the band into its gaps — see `m3uChrome` — so
+     * nothing about this drawing moved when compact dress changed.
      */
     @Test
     fun `the reference reproduces the approved drawing`() {
@@ -177,21 +207,101 @@ class M3uSpreadTest {
     }
 
     /**
-     * **Nothing on this screen leaves the band, on any surface, ever.**
+     * **The compact panel never asks the playlist name to leave.**
      *
-     * The sweep the two shipped defects would both have been caught by. For every
-     * height from the shortest frame to 4K, at every aspect the application sees, on a
-     * thumb and on a remote: whichever composition the screen picks, the panel fits,
-     * the illustration column fits, and Connect's bottom edge is inside the viewport.
+     * The field that a first pass of this screen dropped the moment two fields and a
+     * button stopped fitting. It no longer can: [panelNeeds] counts [NAME_FIELD] on
+     * every path, so a band too short for it is a band the compact dress itself
+     * cannot be chosen at — proved here on the one handset the project is tested on,
+     * and by the sweep below everywhere else.
      */
     @Test
-    fun `nothing leaves the band on any surface`() {
+    fun `the compact panel never drops the playlist name`() {
+        val s = spread(851.dp, 393.dp, tv = false)
+        assertFalse("this band draws the compact panel", s.chrome.full)
+
+        // A structural floor, not a reading of the implementation: whatever the gaps
+        // come out to, the two fields and the button alone cannot be less than this,
+        // so the budget can only clear it by counting both of them in.
+        val floor = NAME_FIELD + URL_FIELD + s.button
+        assertTrue(
+            "the compact panel counts at least $floor (both fields and Connect), got ${panelNeeds(s.chrome, s.button)}",
+            panelNeeds(s.chrome, s.button).value >= floor.value - TOLERANCE,
+        )
+    }
+
+    /**
+     * **The single column still draws its illustration.**
+     *
+     * A surface too narrow for two columns used to fall back to a form with no
+     * picture in it at all — correct by the old budget, which never charged the
+     * column for one. [M3uColumn] draws it above the card now on every surface this
+     * reaches, at whatever height [columnNeeds] leaves over the card, Connect and the
+     * note.
+     */
+    @Test
+    fun `the single column still draws an illustration`() {
+        val w = 700.dp
+        val h = 420.dp
+        val b = band(w, h, tv = false)
+        assertFalse("a 700dp stage never holds two columns", fitsSpread(w, b))
+
+        val (chrome, button, art) = column(w, h, false)
+        assertFalse("this band draws the compact column", chrome.full)
+        assertTrue("the illustration is drawn, not zero", art > 0.dp)
+        assertTrue("nothing left the band", fits(columnNeeds(chrome, button) + art, b))
+    }
+
+    /** The same, at a band generous enough to draw the column at full dress. */
+    @Test
+    fun `the full-dress column draws its illustration too`() {
+        val w = 700.dp
+        val h = 600.dp
+        val b = band(w, h, tv = false)
+        assertFalse("a 700dp stage never holds two columns", fitsSpread(w, b))
+
+        val (chrome, button, art) = column(w, h, false)
+        assertTrue("this band affords the full column", chrome.full)
+        assertTrue("the illustration is drawn", art > 0.dp)
+        assertTrue("nothing left the band", fits(columnNeeds(chrome, button) + art, b))
+    }
+
+    /** The band this screen is guaranteed never to go negative on. */
+    @Test
+    fun `the band is never negative`() {
+        var h = 200.dp
+        while (h <= 2160.dp) {
+            for (tv in listOf(false, true)) {
+                assertTrue("$h tv=$tv: band is ${band(1280.dp, h, tv)}", band(1280.dp, h, tv) >= 0.dp)
+            }
+            h += 10.dp
+        }
+    }
+
+    /**
+     * **Nothing on this screen leaves the band, on any surface, ever — and nothing it
+     * draws is missing, either.**
+     *
+     * The sweep every shipped defect would have been caught by. For every height from
+     * the shortest frame this project ships to — 800x360, per `Metrics.kt` — to 4K, at
+     * every aspect the application sees, on a thumb and on a remote: whichever
+     * composition the screen picks, the panel or the column fits, the illustration is
+     * drawn and fits, and Connect's bottom edge is inside the viewport.
+     *
+     * Below 360dp the sweep is not run, and that is not a gap in it: nothing this
+     * project ships to is shorter, and below roughly 325dp the playlist name, the URL
+     * field and Connect alone — before a single gap is paid — already cost more than
+     * the band has, so no composition of them fits without either a scroll or dropping
+     * one, and dropping one is the defect this file exists to keep out.
+     */
+    @Test
+    fun `nothing leaves the band on any surface, and nothing it draws is missing`() {
         var spreads = 0
         var columns = 0
         var tightest = Float.MAX_VALUE
         var tightestAt = ""
 
-        var height = 300.dp
+        var height = 360.dp
         while (height <= 2160.dp) {
             for (aspect in listOf(16f / 9f, 1.6f, 1.78f, 1.85f, 2f, 2.17f, 2.4f, 2.8f, 3f)) {
                 val width = height * aspect
@@ -222,9 +332,17 @@ class M3uSpreadTest {
                         }
                     } else {
                         columns++
-                        val chrome = m3uChrome(full = b >= COLUMN_FIXED + Sizing.minTarget(tv))
-                        val needs = columnNeeds(chrome, Sizing.minTarget(tv))
+                        val (chrome, button, art) = column(width, height, tv)
+                        val needs = columnNeeds(chrome, button)
                         assertTrue("$where: the column needs $needs of $b", fits(needs, b))
+                        assertTrue("$where: the illustration is $art", art in 24.dp..360.dp)
+                        assertTrue("$where: the column with its illustration needs ${needs + art} of $b", fits(needs + art, b))
+
+                        val slack = (b - needs - art).value
+                        if (slack < tightest) {
+                            tightest = slack
+                            tightestAt = where
+                        }
                     }
                 }
             }
@@ -240,8 +358,8 @@ class M3uSpreadTest {
         /** The panel's head at full dress: a disc of 72, against a title and two lines. */
         val HEAD: Dp = 80.dp
 
-        /** And compact: a 40dp mark, which is taller than the one line beside it. */
-        val COMPACT_HEAD: Dp = 40.dp
+        /** And compact: a 32dp mark — `headlineMedium`'s own line, which is what binds now. */
+        val COMPACT_HEAD: Dp = 32.dp
 
         /** Label row 18 (`labelSmall` carries "optional"), gap 4, box at the touch floor. */
         val NAME_FIELD: Dp = 70.dp
