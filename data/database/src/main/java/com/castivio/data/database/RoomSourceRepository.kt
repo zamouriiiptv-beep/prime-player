@@ -124,7 +124,8 @@ class RoomSourceRepository(
 
     override suspend fun recordEpgImport(id: String, atMs: Long) = dao.recordEpgImport(id, atMs)
 
-    override suspend fun delete(id: String) = dao.delete(id)
+    /** The subscription and its catalogue, never another's. See [SourceDao.deleteWithCatalogue]. */
+    override suspend fun delete(id: String) = dao.deleteWithCatalogue(id)
 }
 
 private fun SourceEntity.syncState() = SyncState(

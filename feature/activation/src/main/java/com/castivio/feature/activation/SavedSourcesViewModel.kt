@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.castivio.domain.ProviderSource
 import com.castivio.domain.ProviderStatusCatalogue
+import com.castivio.domain.RemoveSource
 import com.castivio.domain.SourceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -62,6 +63,7 @@ import kotlinx.coroutines.launch
 class SavedSourcesViewModel @Inject constructor(
     private val sources: SourceRepository,
     private val statuses: ProviderStatusCatalogue,
+    private val removeSource: RemoveSource,
 ) : ViewModel() {
 
     val state: StateFlow<SavedSourcesState> =
@@ -155,9 +157,12 @@ class SavedSourcesViewModel @Inject constructor(
      * screen whose whole purpose is that they make it themselves. What the screen owes
      * them instead is a warning that says plainly what deleting the active one costs,
      * which is why [SavedSourcesState.Ready.activeId] is on screen beside every row.
+     *
+     * Everything kept about it goes with it — its channels, its section marks, its
+     * provider's last answer — and nothing kept about another. See [RemoveSource].
      */
     fun delete(id: String) {
-        viewModelScope.launch { sources.delete(id) }
+        viewModelScope.launch { removeSource(id) }
     }
 
     private companion object {

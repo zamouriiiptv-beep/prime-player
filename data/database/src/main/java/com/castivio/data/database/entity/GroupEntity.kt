@@ -9,7 +9,8 @@ import androidx.room.PrimaryKey
 @Entity(
     tableName = "media_group",
     indices = [
-        Index(name = "idx_group_kind_order", value = ["kind", "provider_order"]),
+        // Scoped to the active subscription, like the media reads.
+        Index(name = "idx_group_source_kind_order", value = ["source_id", "kind", "provider_order"]),
         Index(name = "idx_group_source_generation", value = ["source_id", "generation"]),
     ],
 )

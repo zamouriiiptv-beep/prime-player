@@ -34,11 +34,15 @@ interface FavoriteDao {
      * `INNER JOIN` on purpose: a favourite whose channel is gone from the current
      * playlist is kept in the table but not shown. It reappears by itself when
      * the provider restores the channel.
+     *
+     * The active subscription's favourites only — see [ACTIVE_SOURCE]. Another
+     * subscription's are kept, not shown, and come back with it, for the same reason.
      */
     @Query(
         """
         SELECT m.* FROM favorite f
         INNER JOIN media m ON m.id = f.media_id
+        WHERE m.source_id = $ACTIVE_SOURCE
         ORDER BY f.added_at DESC, m.id
         """,
     )
@@ -74,20 +78,26 @@ interface ProgressDao {
                p.duration_ms AS p_duration_ms, p.updated_at AS p_updated_at
         FROM playback_progress p
         INNER JOIN media m ON m.id = p.media_id
-        WHERE p.position_ms > 0
+        WHERE m.source_id = $ACTIVE_SOURCE
+          AND p.position_ms > 0
           AND (p.duration_ms IS NULL OR p.position_ms * 100 < p.duration_ms * 95)
         ORDER BY p.updated_at DESC, m.id
         """,
     )
     fun pageInProgress(): PagingSource<Int, MediaWithProgress>
 
-    /** History keeps finished items too — that is the point of a history. */
+    /**
+     * History keeps finished items too — that is the point of a history.
+     *
+     * The active subscription's, like everything a section reads: see [ACTIVE_SOURCE].
+     */
     @Query(
         """
         SELECT m.*, p.media_id AS p_media_id, p.position_ms AS p_position_ms,
                p.duration_ms AS p_duration_ms, p.updated_at AS p_updated_at
         FROM playback_progress p
         INNER JOIN media m ON m.id = p.media_id
+        WHERE m.source_id = $ACTIVE_SOURCE
         ORDER BY p.updated_at DESC, m.id
         """,
     )

@@ -42,7 +42,7 @@ object CastivioMigrations {
     // Declared below rather than here, and read through a getter rather than held in a
     // property: an `object`'s properties initialise top to bottom, so a list that
     // named a migration declared under it would be a list holding null.
-    val ALL: Array<Migration> get() = arrayOf(REKEY_SOURCES)
+    val ALL: Array<Migration> get() = arrayOf(REKEY_SOURCES, SCOPE_TO_SOURCE)
 
     /**
      * 1 → 2: the stored sources take the ids the current rule gives them.
@@ -174,6 +174,71 @@ object CastivioMigrations {
 
     /** A prefix no identity can carry, so the two-pass rename cannot collide. */
     private const val RENAMING = "\u0000renaming:"
+
+    /**
+     * 2 → 3: the catalogue is read one subscription at a time.
+     *
+     * **No table changes; three indices on `media` and one on `media_group` do.** Every
+     * browse, count and search read now filters on the active subscription, so the
+     * indices it uses lead with `source_id`. They replace the ones keyed on `kind` alone
+     * rather than joining them, so an import maintains the same number of indices per
+     * row as before.
+     *
+     * The statements are Room's own DDL for the entities' indices, character for
+     * character: Room compares what it finds against what it expects when the database
+     * opens, and an index that differs in name, column or order is a failed open.
+     *
+     * ## And the rows nothing owns
+     *
+     * Deleting a subscription removed its `source` row and nothing else, so its channels
+     * stayed in the catalogue — and, because the reads were not scoped, stayed on screen
+     * under whichever subscription came next. [removeOrphans] takes them out. It cannot
+     * reach a saved subscription's rows: since migration 2 every row is written under the
+     * id its subscription is stored with, so a row whose `source_id` matches no `source`
+     * belongs to one that was deleted. User data is not touched, as everywhere in this
+     * file: a favourite of a deleted channel stays stored and comes back if the same
+     * subscription is added again.
+     */
+    private val SCOPE_TO_SOURCE = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            for (index in RETIRED_INDICES) db.execSQL("DROP INDEX IF EXISTS `$index`")
+            for (statement in SCOPED_INDICES) db.execSQL(statement)
+            removeOrphans(db)
+        }
+    }
+
+    /**
+     * Removes catalogue rows whose subscription no longer exists.
+     *
+     * `media_fts` first, while `media` can still say which rows were whose: the search
+     * table is standalone — see `MediaFtsEntity` — so nothing empties it on its own.
+     */
+    internal fun removeOrphans(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "DELETE FROM media_fts WHERE media_id IN " +
+                "(SELECT id FROM media WHERE source_id NOT IN (SELECT id FROM source))",
+        )
+        db.execSQL("DELETE FROM media WHERE source_id NOT IN (SELECT id FROM source)")
+        db.execSQL("DELETE FROM media_group WHERE source_id NOT IN (SELECT id FROM source)")
+    }
+
+    private val RETIRED_INDICES = listOf(
+        "idx_media_kind_order",
+        "idx_media_kind_group_order",
+        "idx_media_kind_sort_title",
+        "idx_group_kind_order",
+    )
+
+    private val SCOPED_INDICES = listOf(
+        "CREATE INDEX IF NOT EXISTS `idx_media_source_kind_order` " +
+            "ON `media` (`source_id`, `kind`, `provider_order`)",
+        "CREATE INDEX IF NOT EXISTS `idx_media_source_kind_group_order` " +
+            "ON `media` (`source_id`, `kind`, `group_id`, `provider_order`)",
+        "CREATE INDEX IF NOT EXISTS `idx_media_source_kind_sort_title` " +
+            "ON `media` (`source_id`, `kind`, `sort_title`)",
+        "CREATE INDEX IF NOT EXISTS `idx_group_source_kind_order` " +
+            "ON `media_group` (`source_id`, `kind`, `provider_order`)",
+    )
 
     /**
      * Replaces catalogue tables, leaving user data untouched.

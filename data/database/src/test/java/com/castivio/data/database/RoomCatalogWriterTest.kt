@@ -164,12 +164,21 @@ class RoomCatalogWriterTest {
         Fixtures.import(database, Fixtures.livePlaylist(3), sourceId = "a")
         Fixtures.import(database, Fixtures.livePlaylist(3), sourceId = "b")
 
-        assertEquals(6, database.mediaDao().countNow("LIVE"))
+        // Counted per source in the table, not through the browse reads: those are
+        // scoped to the active subscription and would see one of the two.
+        assertEquals(3, rowsOf("a"))
+        assertEquals(3, rowsOf("b"))
 
         // Pruning one source must not touch the other.
         Fixtures.import(database, Fixtures.livePlaylist(1), sourceId = "a", now = 4_000L)
-        assertEquals(4, database.mediaDao().countNow("LIVE"))
+        assertEquals(1, rowsOf("a"))
+        assertEquals(3, rowsOf("b"))
     }
+
+    private fun rowsOf(sourceId: String): Int =
+        database.openHelper.writableDatabase
+            .query("SELECT COUNT(*) FROM media WHERE source_id = ?", arrayOf<Any>(sourceId))
+            .use { cursor -> if (cursor.moveToFirst()) cursor.getInt(0) else -1 }
 
     @Test
     fun `an empty playlist leaves the catalogue empty rather than broken`() = runBlocking {

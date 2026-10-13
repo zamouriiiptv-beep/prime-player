@@ -258,6 +258,113 @@ class CatalogQueriesTest {
         assertTrue(!page.hasMore)
     }
 
+    // ----------------------------------------------------- one subscription at a time
+    //
+    // Filmed on a device: a playlist subscription whose channels board listed the 9,302
+    // channels of an Xtream subscription the user had replaced. The reads filtered by
+    // kind alone, so every subscription ever imported was on every board.
+
+    @Test
+    fun `only the active subscription's channels are listed, counted and categorised`() = runBlocking {
+        Fixtures.import(database, Fixtures.livePlaylist(5) { "Sports" }, sourceId = "xtream")
+        Fixtures.import(database, Fixtures.livePlaylist(2) { "News" }, sourceId = "m3u")
+        Fixtures.activate(database, "m3u")
+        val media = database.mediaDao()
+
+        assertEquals(2, media.countNow("LIVE"))
+        assertEquals(2, media.countOf("LIVE").first())
+        assertEquals(2, media.pageByProvider("LIVE").firstPage(size = 60).size)
+        assertEquals(2, media.pageByNameAsc("LIVE").firstPage(size = 60).size)
+        assertEquals(2, media.pageByRecent("LIVE").firstPage(size = 60).size)
+        assertEquals(2, media.window("LIVE", 0, 60).size)
+        assertEquals(listOf("News"), database.groupDao().groupsNow("LIVE").map { it.name })
+        assertEquals(listOf("News"), repository().groups(MediaKind.LIVE).first().map { it.name })
+    }
+
+    @Test
+    fun `switching subscription switches what every read returns`() = runBlocking {
+        Fixtures.import(database, Fixtures.livePlaylist(5) { "Sports" }, sourceId = "xtream")
+        Fixtures.import(database, Fixtures.livePlaylist(2) { "News" }, sourceId = "m3u")
+        val repository = repository()
+
+        Fixtures.activate(database, "xtream")
+        assertEquals(5, repository.count(MediaKind.LIVE).first())
+        assertEquals(listOf("Sports"), repository.groups(MediaKind.LIVE).first().map { it.name })
+
+        Fixtures.activate(database, "m3u")
+        assertEquals(2, repository.count(MediaKind.LIVE).first())
+        assertEquals(listOf("News"), repository.groups(MediaKind.LIVE).first().map { it.name })
+    }
+
+    @Test
+    fun `a category of another subscription reads as empty`() = runBlocking {
+        Fixtures.import(database, Fixtures.livePlaylist(5) { "Sports" }, sourceId = "xtream")
+        Fixtures.import(database, Fixtures.livePlaylist(2) { "News" }, sourceId = "m3u")
+        val sports = database.openHelper.writableDatabase
+            .query("SELECT id FROM media_group WHERE source_id = 'xtream'")
+            .use { cursor -> cursor.moveToFirst(); cursor.getString(0) }
+        Fixtures.activate(database, "m3u")
+        val media = database.mediaDao()
+
+        assertEquals(0, media.countNowInGroup("LIVE", sports))
+        assertTrue(media.pageByProviderInGroup("LIVE", sports).firstPage().isEmpty())
+        assertTrue(media.windowInGroup("LIVE", sports, 0, 60).isEmpty())
+    }
+
+    @Test
+    fun `search finds only the active subscription's rows`() = runBlocking {
+        Fixtures.import(database, Fixtures.livePlaylist(5), sourceId = "xtream")
+        Fixtures.import(database, Fixtures.livePlaylist(2), sourceId = "m3u")
+        Fixtures.activate(database, "m3u")
+        val repository = repository()
+
+        assertEquals(2, repository.search("Channel", limit = 60).size)
+        assertEquals(2, repository.search("Channel", MediaKind.LIVE, limit = 60).size)
+    }
+
+    @Test
+    fun `series follow the active subscription`() = runBlocking {
+        Fixtures.import(database, Fixtures.mixedPlaylist(), sourceId = "xtream")
+        Fixtures.import(database, Fixtures.livePlaylist(2), sourceId = "m3u")
+
+        Fixtures.activate(database, "m3u")
+        assertTrue(database.mediaDao().pageSeries().firstPage().isEmpty())
+
+        Fixtures.activate(database, "xtream")
+        assertEquals(2, database.mediaDao().pageSeries().firstPage().size)
+    }
+
+    @Test
+    fun `favourites and history follow the active subscription and are kept for the other`() =
+        runBlocking {
+            Fixtures.import(database, Fixtures.livePlaylist(2), sourceId = "xtream")
+            Fixtures.import(database, Fixtures.livePlaylist(2), sourceId = "m3u")
+            Fixtures.activate(database, "xtream")
+            val channel = database.mediaDao().window("LIVE", 0, 1).single()
+            database.favoriteDao().add(com.castivio.data.database.entity.FavoriteEntity(channel.id, addedAt = 1))
+            database.progressDao().upsert(
+                com.castivio.data.database.entity.ProgressEntity(channel.id, positionMs = 1_000, durationMs = null, updatedAt = 1),
+            )
+
+            Fixtures.activate(database, "m3u")
+            assertTrue(database.favoriteDao().page().firstPage().isEmpty())
+            assertTrue(database.progressDao().pageHistory().firstPage().isEmpty())
+
+            Fixtures.activate(database, "xtream")
+            assertEquals(1, database.favoriteDao().page().firstPage().size)
+            assertEquals(1, database.progressDao().pageInProgress().firstPage().size)
+        }
+
+    @Test
+    fun `with no active subscription nothing is listed`() = runBlocking {
+        Fixtures.import(database, Fixtures.livePlaylist(3))
+        database.openHelper.writableDatabase.execSQL("UPDATE source SET is_active = 0")
+
+        assertEquals(0, database.mediaDao().countNow("LIVE"))
+        assertTrue(database.groupDao().groupsNow("LIVE").isEmpty())
+        assertTrue(repository().search("Channel", limit = 60).isEmpty())
+    }
+
     private fun repository() = RoomCatalogRepository(
         mediaDao = database.mediaDao(),
         groupDao = database.groupDao(),

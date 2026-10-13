@@ -23,6 +23,7 @@ import com.castivio.domain.SectionCatalogue
 import com.castivio.domain.PlaylistSource
 import com.castivio.domain.ProviderStatusCatalogue
 import com.castivio.domain.RefreshProvider
+import com.castivio.domain.RemoveSource
 import com.castivio.domain.ProviderValidator
 import com.castivio.domain.SourceRepository
 import com.castivio.domain.activation.ActivateProvider
@@ -96,6 +97,18 @@ object PlaylistModule {
         statuses: ProviderStatusCatalogue,
         sections: SectionCatalogue,
     ): RefreshProvider = RefreshProvider(sources, validator, statuses, sections)
+
+    /**
+     * Removing a subscription with everything kept about it: its catalogue, its section
+     * marks and its provider's recorded answer. See [RemoveSource].
+     */
+    @Provides
+    @Singleton
+    fun removeSource(
+        sources: SourceRepository,
+        marks: SectionCatalogue,
+        statuses: ProviderStatusCatalogue,
+    ): RemoveSource = RemoveSource(sources, marks, statuses)
 
     /**
      * Fetching one section, assembled where the importer it needs is already bound —

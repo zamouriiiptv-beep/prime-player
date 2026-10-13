@@ -1,5 +1,6 @@
 package com.castivio.data.database
 
+import com.castivio.data.database.entity.FavoriteEntity
 import com.castivio.data.parsing.SourceIds
 import com.castivio.domain.PlaylistSource
 import com.castivio.domain.ProviderSource
@@ -256,6 +257,112 @@ class SourceAndMigrationTest {
         assertNotNull(repository.get("b"))
     }
 
+    /**
+     * Deleting used to remove the `source` row and nothing else, and the channels it
+     * left behind were what an M3U subscription's board showed under its own name.
+     */
+    @Test
+    fun `deleting a source takes its catalogue with it and nobody else's`() = runBlocking {
+        Fixtures.import(database, Fixtures.livePlaylist(3), sourceId = "xtream")
+        Fixtures.import(database, Fixtures.livePlaylist(2) { "News" }, sourceId = "m3u")
+        guide("ch0", sourceId = "xtream")
+        guide("ch1", sourceId = "m3u")
+        assertEquals(5, countOf("media_fts"))
+
+        repository().delete("xtream")
+
+        assertNull(repository().get("xtream"))
+        assertEquals(0, rowsOf("media", "xtream"))
+        assertEquals(0, rowsOf("media_group", "xtream"))
+        assertEquals(0, rowsOf("programme", "xtream"))
+
+        assertNotNull(repository().get("m3u"))
+        assertEquals(2, rowsOf("media", "m3u"))
+        assertEquals(1, rowsOf("media_group", "m3u"))
+        assertEquals(1, rowsOf("programme", "m3u"))
+        assertEquals("the search index keeps the other subscription's rows", 2, countOf("media_fts"))
+    }
+
+    @Test
+    fun `deleting a source keeps favourites, so the same subscription added again finds them`() =
+        runBlocking {
+            Fixtures.import(database, Fixtures.livePlaylist(1), sourceId = "xtream")
+            val channel = database.mediaDao().window("LIVE", 0, 1).single()
+            database.favoriteDao().add(FavoriteEntity(channel.id, addedAt = 1))
+
+            repository().delete("xtream")
+
+            assertEquals(1, countOf("favorite"))
+            Fixtures.import(database, Fixtures.livePlaylist(1), sourceId = "xtream")
+            assertEquals(1, database.favoriteDao().page().firstPage().size)
+        }
+
+    // ------------------------------------------------------- 2 → 3: scoped reads
+
+    @Test
+    fun `the migration to three removes rows no saved subscription owns`() = runBlocking {
+        Fixtures.import(database, Fixtures.livePlaylist(3), sourceId = "kept")
+        Fixtures.import(database, Fixtures.livePlaylist(2) { "News" }, sourceId = "gone")
+        // What deleting a subscription used to do: the row, and nothing else.
+        database.openHelper.writableDatabase.execSQL("DELETE FROM source WHERE id = 'gone'")
+
+        migrateToThree()
+
+        assertEquals(0, rowsOf("media", "gone"))
+        assertEquals(0, rowsOf("media_group", "gone"))
+        assertEquals(3, rowsOf("media", "kept"))
+        assertEquals(1, rowsOf("media_group", "kept"))
+        assertEquals(3, countOf("media_fts"))
+        assertNotNull("the saved subscription is untouched", repository().get("kept"))
+    }
+
+    @Test
+    fun `the migration to three keeps user data and sync state`() = runBlocking {
+        repository().save(source("a"))
+        repository().recordCatalogueImport("a", SyncState(etag = "\"v1\"", lastImportAtMs = now, itemCount = 9))
+        database.favoriteDao().add(FavoriteEntity("orphan", addedAt = 1))
+
+        migrateToThree()
+
+        val stored = repository().get("a")!!
+        assertEquals("\"v1\"", stored.sync.etag)
+        assertEquals(9, stored.sync.itemCount)
+        assertEquals("favourites are user data and are never removed by a migration", 1, countOf("favorite"))
+    }
+
+    @Test
+    fun `the migration to three replaces the browse indices with scoped ones`() {
+        val db = database.openHelper.writableDatabase
+        // The database as version 2 left it: the indices keyed on `kind` alone.
+        for (index in listOf(
+            "idx_media_source_kind_order",
+            "idx_media_source_kind_group_order",
+            "idx_media_source_kind_sort_title",
+            "idx_group_source_kind_order",
+        )) {
+            db.execSQL("DROP INDEX IF EXISTS `$index`")
+        }
+        db.execSQL("CREATE INDEX IF NOT EXISTS `idx_media_kind_order` ON `media` (`kind`, `provider_order`)")
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `idx_media_kind_group_order` ON `media` (`kind`, `group_id`, `provider_order`)",
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `idx_media_kind_sort_title` ON `media` (`kind`, `sort_title`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `idx_group_kind_order` ON `media_group` (`kind`, `provider_order`)")
+
+        migrateToThree()
+
+        val media = indicesOf("media")
+        assertTrue(media.containsAll(listOf(
+            "idx_media_source_kind_order",
+            "idx_media_source_kind_group_order",
+            "idx_media_source_kind_sort_title",
+        )))
+        assertTrue(media.none { it in listOf("idx_media_kind_order", "idx_media_kind_group_order", "idx_media_kind_sort_title") })
+        val groups = indicesOf("media_group")
+        assertTrue("idx_group_source_kind_order" in groups)
+        assertTrue("idx_group_kind_order" !in groups)
+    }
+
     // --------------------------------------------------------------- refresh policy
 
     @Test
@@ -456,7 +563,28 @@ class SourceAndMigrationTest {
     }
 
     private fun migrateToTwo() =
-        CastivioMigrations.ALL.single().migrate(database.openHelper.writableDatabase)
+        CastivioMigrations.ALL.single { it.startVersion == 1 }.migrate(database.openHelper.writableDatabase)
+
+    private fun migrateToThree() =
+        CastivioMigrations.ALL.single { it.startVersion == 2 }.migrate(database.openHelper.writableDatabase)
+
+    private fun rowsOf(table: String, sourceId: String): Int =
+        database.openHelper.writableDatabase
+            .query("SELECT COUNT(*) FROM $table WHERE source_id = ?", arrayOf<Any>(sourceId))
+            .use { cursor -> if (cursor.moveToFirst()) cursor.getInt(0) else -1 }
+
+    private fun indicesOf(table: String): Set<String> =
+        database.openHelper.writableDatabase.query("PRAGMA index_list(`$table`)").use { cursor ->
+            val name = cursor.getColumnIndexOrThrow("name")
+            buildSet { while (cursor.moveToNext()) add(cursor.getString(name)) }
+        }
+
+    private fun guide(channel: String, sourceId: String) =
+        database.openHelper.writableDatabase.execSQL(
+            "INSERT INTO programme (channel_id, start_ms, stop_ms, title, description, source_id) " +
+                "VALUES (?, 0, 1, 'News', NULL, ?)",
+            arrayOf<Any>(channel, sourceId),
+        )
 
     private fun source(id: String, password: String = "secret") = ProviderSource(
         id = id,

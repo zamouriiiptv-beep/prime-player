@@ -8,11 +8,19 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface GroupDao {
 
-    /** Hundreds of rows at most, so the whole list is safe to observe. */
-    @Query("SELECT * FROM media_group WHERE kind = :kind ORDER BY provider_order, id")
+    /**
+     * Hundreds of rows at most, so the whole list is safe to observe.
+     *
+     * The active subscription's categories only — see [ACTIVE_SOURCE].
+     */
+    @Query(
+        "SELECT * FROM media_group WHERE source_id = $ACTIVE_SOURCE AND kind = :kind ORDER BY provider_order, id",
+    )
     fun groupsOf(kind: String): Flow<List<GroupEntity>>
 
-    @Query("SELECT * FROM media_group WHERE kind = :kind ORDER BY provider_order, id")
+    @Query(
+        "SELECT * FROM media_group WHERE source_id = $ACTIVE_SOURCE AND kind = :kind ORDER BY provider_order, id",
+    )
     suspend fun groupsNow(kind: String): List<GroupEntity>
 
     @Query("SELECT * FROM media_group WHERE id = :id")

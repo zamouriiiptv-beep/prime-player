@@ -76,4 +76,38 @@ interface SourceDao {
 
     @Query("DELETE FROM source WHERE id = :id")
     suspend fun delete(id: String)
+
+    /**
+     * A subscription and everything imported for it, in one transaction.
+     *
+     * Deleting the `source` row alone left its channels in the catalogue, where the
+     * unscoped reads went on showing them under whichever subscription came next.
+     * Every statement here is keyed on this one id, so no other subscription's rows can
+     * be reached. User data is left alone on purpose: a favourite or a watch position
+     * points at a media id, ids are derived from the subscription, and the same one added
+     * again finds them where they were.
+     *
+     * The search rows first, while `media` can still say which rows were this
+     * subscription's: the search table is standalone and nothing empties it on its own.
+     */
+    @Transaction
+    suspend fun deleteWithCatalogue(id: String) {
+        deleteSearchRowsOf(id)
+        deleteMediaOf(id)
+        deleteGroupsOf(id)
+        deleteProgrammesOf(id)
+        delete(id)
+    }
+
+    @Query("DELETE FROM media_fts WHERE media_id IN (SELECT id FROM media WHERE source_id = :id)")
+    suspend fun deleteSearchRowsOf(id: String)
+
+    @Query("DELETE FROM media WHERE source_id = :id")
+    suspend fun deleteMediaOf(id: String)
+
+    @Query("DELETE FROM media_group WHERE source_id = :id")
+    suspend fun deleteGroupsOf(id: String)
+
+    @Query("DELETE FROM programme WHERE source_id = :id")
+    suspend fun deleteProgrammesOf(id: String)
 }

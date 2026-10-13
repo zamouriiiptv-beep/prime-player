@@ -19,6 +19,11 @@ import kotlinx.coroutines.flow.Flow
  * Ordering always has `id` as the final tiebreak. Without it, rows with equal
  * `provider_order` can come back in a different order between pages and Paging
  * shows duplicates or gaps.
+ *
+ * Every browse, count, search and series read is scoped to the active subscription —
+ * see [ACTIVE_SOURCE] — and the indices lead with `source_id` for that reason. The
+ * reads by id are not: an id is already one subscription's, because it is derived from
+ * the source id.
  */
 @Dao
 interface MediaDao {
@@ -27,7 +32,7 @@ interface MediaDao {
 
     @Query(
         """
-        SELECT * FROM media WHERE kind = :kind
+        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind
         ORDER BY provider_order, id
         """,
     )
@@ -35,7 +40,7 @@ interface MediaDao {
 
     @Query(
         """
-        SELECT * FROM media WHERE kind = :kind AND group_id = :groupId
+        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind AND group_id = :groupId
         ORDER BY provider_order, id
         """,
     )
@@ -43,7 +48,7 @@ interface MediaDao {
 
     @Query(
         """
-        SELECT * FROM media WHERE kind = :kind
+        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind
         ORDER BY sort_title, id
         """,
     )
@@ -51,7 +56,7 @@ interface MediaDao {
 
     @Query(
         """
-        SELECT * FROM media WHERE kind = :kind AND group_id = :groupId
+        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind AND group_id = :groupId
         ORDER BY sort_title, id
         """,
     )
@@ -59,7 +64,7 @@ interface MediaDao {
 
     @Query(
         """
-        SELECT * FROM media WHERE kind = :kind
+        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind
         ORDER BY sort_title DESC, id
         """,
     )
@@ -67,7 +72,7 @@ interface MediaDao {
 
     @Query(
         """
-        SELECT * FROM media WHERE kind = :kind AND group_id = :groupId
+        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind AND group_id = :groupId
         ORDER BY sort_title DESC, id
         """,
     )
@@ -75,7 +80,7 @@ interface MediaDao {
 
     @Query(
         """
-        SELECT * FROM media WHERE kind = :kind
+        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind
         ORDER BY added_at DESC, provider_order, id
         """,
     )
@@ -83,7 +88,7 @@ interface MediaDao {
 
     @Query(
         """
-        SELECT * FROM media WHERE kind = :kind AND group_id = :groupId
+        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind AND group_id = :groupId
         ORDER BY added_at DESC, provider_order, id
         """,
     )
@@ -93,7 +98,7 @@ interface MediaDao {
 
     @Query(
         """
-        SELECT * FROM media WHERE kind = :kind
+        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind
         ORDER BY provider_order, id LIMIT :limit OFFSET :offset
         """,
     )
@@ -101,7 +106,7 @@ interface MediaDao {
 
     @Query(
         """
-        SELECT * FROM media WHERE kind = :kind AND group_id = :groupId
+        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind AND group_id = :groupId
         ORDER BY provider_order, id LIMIT :limit OFFSET :offset
         """,
     )
@@ -129,16 +134,16 @@ interface MediaDao {
 
     // -------------------------------------------------------------------- counts
 
-    @Query("SELECT COUNT(*) FROM media WHERE kind = :kind")
+    @Query("SELECT COUNT(*) FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind")
     fun countOf(kind: String): Flow<Int>
 
-    @Query("SELECT COUNT(*) FROM media WHERE kind = :kind AND group_id = :groupId")
+    @Query("SELECT COUNT(*) FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind AND group_id = :groupId")
     fun countOfGroup(kind: String, groupId: String): Flow<Int>
 
-    @Query("SELECT COUNT(*) FROM media WHERE kind = :kind")
+    @Query("SELECT COUNT(*) FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind")
     suspend fun countNow(kind: String): Int
 
-    @Query("SELECT COUNT(*) FROM media WHERE kind = :kind AND group_id = :groupId")
+    @Query("SELECT COUNT(*) FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind AND group_id = :groupId")
     suspend fun countNowInGroup(kind: String, groupId: String): Int
 
     // -------------------------------------------------------------------- search
@@ -155,7 +160,7 @@ interface MediaDao {
         """
         SELECT m.* FROM media_fts f
         INNER JOIN media m ON m.id = f.media_id
-        WHERE f.search_text MATCH :match
+        WHERE f.search_text MATCH :match AND m.source_id = $ACTIVE_SOURCE
         ORDER BY m.kind, m.provider_order
         LIMIT :limit
         """,
@@ -166,7 +171,7 @@ interface MediaDao {
         """
         SELECT m.* FROM media_fts f
         INNER JOIN media m ON m.id = f.media_id
-        WHERE f.search_text MATCH :match AND m.kind = :kind
+        WHERE f.search_text MATCH :match AND m.source_id = $ACTIVE_SOURCE AND m.kind = :kind
         ORDER BY m.provider_order
         LIMIT :limit
         """,
@@ -196,7 +201,7 @@ interface MediaDao {
                COUNT(DISTINCT season_number) AS seasonCount,
                min(provider_order) AS providerOrder
         FROM media
-        WHERE kind = 'SERIES' AND series_id IS NOT NULL
+        WHERE source_id = $ACTIVE_SOURCE AND kind = 'SERIES' AND series_id IS NOT NULL
         GROUP BY series_id
         ORDER BY providerOrder, seriesId
         """,
@@ -212,7 +217,7 @@ interface MediaDao {
                COUNT(DISTINCT season_number) AS seasonCount,
                min(provider_order) AS providerOrder
         FROM media
-        WHERE kind = 'SERIES' AND series_id IS NOT NULL AND group_id = :groupId
+        WHERE source_id = $ACTIVE_SOURCE AND kind = 'SERIES' AND series_id IS NOT NULL AND group_id = :groupId
         GROUP BY series_id
         ORDER BY providerOrder, seriesId
         """,

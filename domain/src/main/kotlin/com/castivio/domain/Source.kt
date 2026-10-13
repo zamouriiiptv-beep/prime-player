@@ -93,6 +93,14 @@ interface SourceRepository {
 
     suspend fun recordEpgImport(id: String, atMs: Long)
 
+    /**
+     * The subscription and the catalogue imported for it — channels, categories, search
+     * entries and guide — and nothing that belongs to another subscription. Favourites
+     * and watch positions stay, so the same subscription added again finds them.
+     *
+     * What lives outside this repository — section marks, the provider's recorded
+     * answer — is [RemoveSource]'s to forget.
+     */
     suspend fun delete(id: String)
 }
 

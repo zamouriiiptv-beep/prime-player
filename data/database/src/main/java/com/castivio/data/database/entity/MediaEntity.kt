@@ -22,12 +22,20 @@ import androidx.room.PrimaryKey
 @Entity(
     tableName = "media",
     indices = [
+        // Every browse read is scoped to the active subscription (see `ACTIVE_SOURCE`),
+        // so these lead with `source_id`. They replaced the same three keyed on `kind`
+        // alone, rather than joining them: the same number of indices to maintain on
+        // every inserted row, and an indexed `COUNT` for the section totals.
+        //
         // The default browse query, and the one used most.
-        Index(name = "idx_media_kind_order", value = ["kind", "provider_order"]),
+        Index(name = "idx_media_source_kind_order", value = ["source_id", "kind", "provider_order"]),
         // A category page.
-        Index(name = "idx_media_kind_group_order", value = ["kind", "group_id", "provider_order"]),
+        Index(
+            name = "idx_media_source_kind_group_order",
+            value = ["source_id", "kind", "group_id", "provider_order"],
+        ),
         // Name sort, and the alphabet jump-bar.
-        Index(name = "idx_media_kind_sort_title", value = ["kind", "sort_title"]),
+        Index(name = "idx_media_source_kind_sort_title", value = ["source_id", "kind", "sort_title"]),
         // The Series screen groups by this; season lists filter on it.
         Index(name = "idx_media_series", value = ["series_id", "season_number", "episode_number"]),
         // Pruning the previous import generation.

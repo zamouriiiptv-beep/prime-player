@@ -20,11 +20,43 @@ internal object Fixtures {
         now: Long = 1_000L,
         batchSize: Int = 50,
         isCancelled: () -> Boolean = { false },
-    ): ImportSummary = CatalogImportEngine(
-        writer = RoomCatalogWriter(database) { now },
-        batchSize = batchSize,
-        clock = { now },
-    ).importM3u(sourceId, lines.asSequence(), isCancelled = isCancelled)
+    ): ImportSummary {
+        register(database, sourceId, now)
+        return CatalogImportEngine(
+            writer = RoomCatalogWriter(database) { now },
+            batchSize = batchSize,
+            clock = { now },
+        ).importM3u(sourceId, lines.asSequence(), isCancelled = isCancelled)
+    }
+
+    /**
+     * Saves [sourceId] as a subscription, and makes it the active one if none is.
+     *
+     * The catalogue reads are scoped to the active subscription, so rows written under
+     * an id that no `source` row carries are invisible to them — which is the point of
+     * the scoping, and would leave every read in these tests reading nothing.
+     */
+    fun register(database: CastivioDatabase, sourceId: String, now: Long = 1_000L) {
+        val db = database.openHelper.writableDatabase
+        db.execSQL(
+            "INSERT OR IGNORE INTO source (id, kind, label, url, item_count, created_at, is_active) " +
+                "VALUES (?, 'M3U_URL', ?, ?, 0, ?, 0)",
+            arrayOf<Any>(sourceId, sourceId, "http://host/$sourceId.m3u", now),
+        )
+        db.execSQL(
+            "UPDATE source SET is_active = 1 WHERE id = ? " +
+                "AND NOT EXISTS (SELECT 1 FROM source WHERE is_active = 1)",
+            arrayOf<Any>(sourceId),
+        )
+    }
+
+    /** Makes [sourceId] the active subscription, the way switching playlists does. */
+    fun activate(database: CastivioDatabase, sourceId: String) {
+        database.openHelper.writableDatabase.execSQL(
+            "UPDATE source SET is_active = CASE WHEN id = ? THEN 1 ELSE 0 END",
+            arrayOf<Any>(sourceId),
+        )
+    }
 
     /** A small playlist covering all four kinds. */
     fun mixedPlaylist(): List<String> = listOf(

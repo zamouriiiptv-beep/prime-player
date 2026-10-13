@@ -31,7 +31,10 @@ import com.castivio.data.database.entity.SourceEntity
     // 2: no table changed. The *derivation* of a source id did, so the stored rows
     //    have to be re-keyed onto it — see `CastivioMigrations.REKEY_SOURCES`, which
     //    explains why leaving them alone loses a subscription's catalogue silently.
-    version = 2,
+    // 3: the catalogue reads are scoped to the active subscription, so the browse
+    //    indices lead with `source_id`, and the rows of subscriptions that no longer
+    //    exist are removed — see `CastivioMigrations.SCOPE_TO_SOURCE`.
+    version = 3,
     exportSchema = true,
 )
 abstract class CastivioDatabase : RoomDatabase() {
