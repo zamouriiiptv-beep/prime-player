@@ -525,8 +525,8 @@ class SourceAndMigrationTest {
      */
     @Test
     fun `re-keying clears the catalogue and the belief that it is current`() = runBlocking {
-        Fixtures.import(database, Fixtures.livePlaylist(5))
         repository().save(source("legacy"))
+        Fixtures.import(database, Fixtures.livePlaylist(5), sourceId = "legacy")
         repository().recordCatalogueImport(
             "legacy",
             SyncState(etag = "\"v1\"", lastImportAtMs = now, itemCount = 5),
