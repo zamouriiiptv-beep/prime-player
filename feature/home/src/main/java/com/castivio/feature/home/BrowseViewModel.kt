@@ -117,6 +117,13 @@ data class BrowseState(
      * and still be empty because nobody has fetched it.
      */
     val fetch: SectionLoad? = null,
+    /**
+     * [fetch]'s figures when it failed with some, formatted once here — see [fetchReadout].
+     *
+     * Null when the fetch did not fail, or failed with nothing to show. Whether it is
+     * drawn is the screen's to decide: only a debuggable build prints it.
+     */
+    val fetchReadout: String? = null,
 )
 
 /**
@@ -259,6 +266,7 @@ class BrowseViewModel @Inject constructor(
             sourceId = provider?.id,
             loading = false,
             fetch = providerAndFetch.second,
+            fetchReadout = (providerAndFetch.second as? SectionLoad.Failed)?.diagnosis?.let(::fetchReadout),
             mac = mac,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_GRACE_MS), BrowseState())

@@ -8,6 +8,8 @@ import com.castivio.data.parsing.XtreamImportEngine
 import com.castivio.data.parsing.XtreamUrls
 import com.castivio.domain.CatalogItem
 import com.castivio.domain.CatalogWriter
+import com.castivio.domain.FetchDiagnosis
+import com.castivio.domain.FetchStage
 import com.castivio.domain.ImportMode
 import com.castivio.domain.ImportProgress
 import com.castivio.domain.ImportSummary
@@ -245,6 +247,100 @@ class DefaultCatalogImporterTest {
         assertNothingFrom(source.url)
     }
 
+    // ---------------------------------------------------- what the screen is told
+    //
+    // The same failure as the log line, as figures for the error screen: a viewer with a
+    // television and no computer has no logcat. Five breakdowns used to reach that screen
+    // as one sentence; each of these is one of them, told apart.
+
+    @Test
+    fun `a status the app has no name for is shown as the answer it was`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(458).setBody("blocked"))
+        val source = PlaylistSource.M3u(server.url(PANEL_LINK).toString())
+
+        val failed = importer().import(source).toList().last() as ImportProgress.Failed
+
+        assertEquals(AppError.UNKNOWN, failed.error)
+        assertEquals(
+            FetchDiagnosis(FetchStage.ANSWER, httpStatus = 458, exception = null, bytesReceived = null),
+            failed.diagnosis,
+        )
+        assertNoSecretIn(failed.diagnosis)
+    }
+
+    @Test
+    fun `a provider that cannot be reached is shown as no answer`() = runBlocking {
+        val source = PlaylistSource.M3u("http://127.0.0.1:1$PANEL_LINK")
+
+        val failed = importer().import(source).toList().last() as ImportProgress.Failed
+
+        val diagnosis = failed.diagnosis!!
+        assertEquals(FetchStage.CONNECT, diagnosis.stage)
+        assertNull("nothing answered", diagnosis.httpStatus)
+        assertEquals("ConnectException", diagnosis.exception)
+        assertNull("no body was opened", diagnosis.bytesReceived)
+        assertNoSecretIn(diagnosis)
+    }
+
+    /**
+     * The link is never sent, and the exception that says so quotes it. The screen gets
+     * the class and nothing of the message.
+     */
+    @Test
+    fun `a link the http client will not send is shown as never sent`() = runBlocking {
+        val source = PlaylistSource.M3u("htp://127.0.0.1$PANEL_LINK")
+
+        val failed = importer().import(source).toList().last() as ImportProgress.Failed
+
+        assertEquals(
+            FetchDiagnosis(FetchStage.PREPARE, exception = "IllegalArgumentException"),
+            failed.diagnosis,
+        )
+        assertNoSecretIn(failed.diagnosis)
+    }
+
+    @Test
+    fun `a playlist cut off half way says how much was read and how much was kept`() = runBlocking {
+        val body = playlist(2_500)
+        server.enqueue(
+            MockResponse()
+                .setBody(body)
+                .setSocketPolicy(SocketPolicy.DISCONNECT_DURING_RESPONSE_BODY),
+        )
+        val source = PlaylistSource.M3u(server.url(PANEL_LINK).toString())
+
+        val failed = importer().import(source).toList().last() as ImportProgress.Failed
+
+        val diagnosis = failed.diagnosis!!
+        assertEquals(FetchStage.READ, diagnosis.stage)
+        assertEquals(200, diagnosis.httpStatus)
+        assertTrue("an exception says why the read stopped", diagnosis.exception != null)
+        val bytes = diagnosis.bytesReceived!!
+        assertTrue("part of the body arrived: $bytes", bytes in 1 until body.length)
+        // Half the file is about 1,250 entries: one batch of a thousand committed, the rest
+        // read and rolled back with the batch in flight.
+        assertEquals(1_000, diagnosis.itemsSaved)
+        assertTrue("read ${diagnosis.itemsRead}", diagnosis.itemsRead in 1_001 until 2_500)
+        assertNoSecretIn(diagnosis)
+    }
+
+    @Test
+    fun `a playlist the database will not keep is shown as a saving failure`() = runBlocking {
+        server.enqueue(MockResponse().setHeader("Content-Type", "audio/x-mpegurl").setBody(playlist(3)))
+        val source = PlaylistSource.M3u(server.url(PANEL_LINK).toString())
+
+        val failed = importer(writer = ThrowingWriter()).import(source).toList().last() as ImportProgress.Failed
+
+        val diagnosis = failed.diagnosis!!
+        assertEquals(FetchStage.SAVE, diagnosis.stage)
+        assertEquals(200, diagnosis.httpStatus)
+        assertEquals("IllegalStateException", diagnosis.exception)
+        assertEquals("every entry was read", 3, diagnosis.itemsRead)
+        assertEquals("none was kept", 0, diagnosis.itemsSaved)
+        assertTrue(diagnosis.bytesReceived!! > 0)
+        assertNoSecretIn(diagnosis)
+    }
+
     @Test
     fun `progress says how much of the playlist has arrived`() = runBlocking {
         server.enqueue(MockResponse().setBody(playlist(2_500)))
@@ -404,6 +500,14 @@ class DefaultCatalogImporterTest {
             for (secret in secrets) {
                 assertFalse("'$secret' reached the log: $line", line.contains(secret, ignoreCase = true))
             }
+        }
+    }
+
+    /** The screen's figures are photographed and sent on, so the account is never in them. */
+    private fun assertNoSecretIn(diagnosis: FetchDiagnosis?) {
+        val shown = diagnosis.toString()
+        for (secret in listOf("u7sam9", "p4ss9w0rd", "get.php", "127.0.0.1", "username", "password")) {
+            assertFalse("'$secret' reached the screen: $shown", shown.contains(secret, ignoreCase = true))
         }
     }
 

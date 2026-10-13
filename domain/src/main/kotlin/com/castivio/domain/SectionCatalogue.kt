@@ -81,8 +81,14 @@ sealed interface SectionLoad {
     /**
      * @param retryable false for the failures no amount of trying will fix — a
      *   playlist the parser could not read is not a slow server.
+     * @param diagnosis the importer's figures for this failure, passed through unchanged.
+     *   Null where there are none — see [ImportProgress.Failed.diagnosis].
      */
-    data class Failed(val error: AppError, val retryable: Boolean) : SectionLoad
+    data class Failed(
+        val error: AppError,
+        val retryable: Boolean,
+        val diagnosis: FetchDiagnosis? = null,
+    ) : SectionLoad
 }
 
 /**
@@ -168,7 +174,13 @@ class LoadSection(
 
                 is ImportProgress.Failed -> {
                     failed = true
-                    emit(SectionLoad.Failed(progress.error, retryable = progress.error.retryable))
+                    emit(
+                        SectionLoad.Failed(
+                            progress.error,
+                            retryable = progress.error.retryable,
+                            diagnosis = progress.diagnosis,
+                        ),
+                    )
                 }
             }
         }

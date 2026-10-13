@@ -2,6 +2,8 @@ package com.castivio.data.playlist
 
 import com.castivio.data.networking.RemoteResult
 import com.castivio.data.networking.kind
+import com.castivio.domain.FetchDiagnosis
+import com.castivio.domain.FetchStage
 import com.castivio.domain.ImportSummary
 
 /**
@@ -59,6 +61,41 @@ internal object M3uImportReport {
         append(" took=").append(tookMs).append("ms")
     }
 
+    /**
+     * The same failure as [line], as figures for the screen that reports it.
+     *
+     * Built from the facts the line is built from, under the same rule: a stage, a status,
+     * class names and counts, and nothing of the address. Where the line says `body`, this
+     * splits it in two, because "the playlist could not be read" and "it could not be
+     * kept" are different things to do next.
+     *
+     * @param savingFailed whether the database writer threw, rather than the download or
+     *   the parser before it.
+     * @param receivedBytes what had arrived of the body; null when none was opened.
+     */
+    fun diagnosisOf(
+        failure: RemoteResult.Failure,
+        savingFailed: Boolean,
+        receivedBytes: Long?,
+        itemsRead: Int,
+        itemsSaved: Int,
+    ): FetchDiagnosis = FetchDiagnosis(
+        stage = when {
+            savingFailed -> FetchStage.SAVE
+            failure.stage == RemoteResult.Stage.BODY -> FetchStage.READ
+            failure.statusCode != null -> FetchStage.ANSWER
+            // The one failure the HTTP layer reports before a call exists: a link OkHttp
+            // would not turn into a request. Everything else unanswered was sent.
+            failure.cause is IllegalArgumentException -> FetchStage.PREPARE
+            else -> FetchStage.CONNECT
+        },
+        httpStatus = failure.statusCode,
+        exception = failure.cause?.let(FetchDiagnosis::nameOf),
+        bytesReceived = receivedBytes,
+        itemsRead = itemsRead,
+        itemsSaved = itemsSaved,
+    )
+
     /** `http` or `https`, and nothing else of the address. */
     fun schemeOf(url: String): String? =
         url.trim().substringBefore("://", missingDelimiterValue = "").lowercase()
@@ -81,20 +118,14 @@ internal object M3uImportReport {
      * The exception's class, and its root cause's when that is a different one —
      * `SSLHandshakeException<-CertPathValidatorException` says what a bare handshake
      * failure does not. Class names only; see the class note for why never a message.
+     *
+     * [FetchDiagnosis.nameOf] does the naming, so this line and the screen that shows the
+     * same failure cannot name it two different ways.
      */
-    private fun exceptionName(cause: Throwable?): String {
-        if (cause == null) return NONE
-        val root = generateSequence(cause) { it.cause }.take(MAX_CAUSES).last()
-        val outer = nameOf(cause)
-        val inner = nameOf(root)
-        return if (root === cause || inner == outer) outer else "$outer<-$inner"
-    }
-
-    private fun nameOf(error: Throwable): String =
-        error.javaClass.simpleName.ifEmpty { error.javaClass.name.substringAfterLast('.') }
+    private fun exceptionName(cause: Throwable?): String =
+        if (cause == null) NONE else FetchDiagnosis.nameOf(cause)
 
     private const val NONE = "-"
     private const val MAX_TYPE = 64
-    private const val MAX_CAUSES = 8
     private const val TYPE_PUNCTUATION = "/+.-"
 }

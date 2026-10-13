@@ -14,8 +14,10 @@ import com.castivio.data.parsing.SourceIds
 import com.castivio.data.parsing.StalkerImportEngine
 import com.castivio.data.parsing.XtreamImportEngine
 import com.castivio.domain.CatalogImporter
+import com.castivio.domain.CatalogItem
 import com.castivio.domain.CatalogWriter
 import com.castivio.domain.ImportMode
+import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaKind
 import com.castivio.domain.ImportProgress
 import com.castivio.domain.ImportSummary
@@ -254,7 +256,7 @@ class DefaultCatalogImporter(
         PerformanceLog.importConcurrency(1)
         PerformanceLog.requestStarted()
 
-        val writer = writerFactory()
+        val writer = WatchedWriter(writerFactory())
         val request = RemoteRequest(
             url = source.url,
             etag = stored?.sync?.etag,
@@ -263,6 +265,10 @@ class DefaultCatalogImporter(
         )
         val startedAt = clock()
         var answer: Received? = null
+        // How far a failure had got, for the screen that reports it: entries read off the
+        // stream, and rows the engine had committed when it last reported.
+        var read = 0
+        var saved = 0
 
         val result: RemoteResult<ImportSummary> = try {
             http.streamCounting(request) { reader, received ->
@@ -273,6 +279,7 @@ class DefaultCatalogImporter(
                     reader = reader,
                     onProgress = { progress ->
                         if (progress is ImportProgress.Importing) {
+                            saved = progress.itemsImported
                             PerformanceLog.importProgress(progress.groupsReady, progress.itemsImported)
                             onProgress(progress.copy(bytes = received.bytes))
                         } else {
@@ -280,6 +287,7 @@ class DefaultCatalogImporter(
                         }
                     },
                     cancelled = cancelled,
+                    onEntryRead = { read++ },
                 )
             }
         } catch (e: CancellationException) {
@@ -309,7 +317,18 @@ class DefaultCatalogImporter(
                 is RemoteResult.Failure -> {
                     PerformanceLog.requestFailed()
                     writer.abort(result.cause)
-                    onProgress(ImportProgress.Failed(result.error))
+                    onProgress(
+                        ImportProgress.Failed(
+                            error = result.error,
+                            diagnosis = M3uImportReport.diagnosisOf(
+                                failure = result,
+                                savingFailed = writer.threw,
+                                receivedBytes = answer?.bytes,
+                                itemsRead = read,
+                                itemsSaved = saved,
+                            ),
+                        ),
+                    )
                 }
 
                 is RemoteResult.Success -> {
@@ -437,16 +456,24 @@ class DefaultCatalogImporter(
         }
     }
 
+    /**
+     * @param onEntryRead told of every entry line as it passes on its way to the parser, so
+     *   a failure can say how much of the playlist had been read. Counted out here rather
+     *   than in the parser, which is left exactly as it is; null costs nothing per line.
+     */
     private fun runImport(
         writer: CatalogWriter,
         sourceId: String,
         reader: Reader,
         onProgress: (ImportProgress) -> Unit,
         cancelled: () -> Boolean,
+        onEntryRead: (() -> Unit)? = null,
     ): ImportSummary = CatalogImportEngine(writer, clock = clock).importM3u(
         sourceId = sourceId,
         // Line by line: the whole point is that the playlist is never a String.
-        lines = reader.buffered().lineSequence(),
+        lines = reader.buffered().lineSequence().let { lines ->
+            if (onEntryRead == null) lines else lines.onEach { if (it.startsWith(M3U_ENTRY)) onEntryRead() }
+        },
         onProgress = onProgress,
         isCancelled = cancelled,
     )
@@ -479,5 +506,45 @@ class DefaultCatalogImporter(
         is com.castivio.data.parsing.JsonFormatException -> AppError.MALFORMED_PLAYLIST
         is java.io.IOException -> AppError.NETWORK_UNAVAILABLE
         else -> AppError.UNKNOWN
+    }
+}
+
+/**
+ * The line an M3U entry starts with, as the parser reads it — counted on the way past,
+ * never parsed here.
+ */
+private const val M3U_ENTRY = "#EXTINF:"
+
+/**
+ * The writer, with a note of whether it was the one that threw.
+ *
+ * An exception out of a playlist import has two possible authors — the download and the
+ * parser on one side, SQLite on the other — and they are different things to report: a
+ * playlist that could not be read, and one that could not be kept. The class name does
+ * not always say which (an `IllegalStateException` can come from either), so the writer
+ * is asked directly. Every call goes through to the real writer unchanged.
+ */
+private class WatchedWriter(private val delegate: CatalogWriter) : CatalogWriter by delegate {
+
+    var threw = false
+        private set
+
+    override fun begin(sourceId: String, mode: ImportMode) = watched { delegate.begin(sourceId, mode) }
+
+    override fun writeGroups(groups: List<MediaGroup>) = watched { delegate.writeGroups(groups) }
+
+    override fun writeItems(items: List<CatalogItem>) = watched { delegate.writeItems(items) }
+
+    override fun commit() = watched { delegate.commit() }
+
+    override fun finish(summary: ImportSummary) = watched { delegate.finish(summary) }
+
+    private inline fun watched(block: () -> Unit) {
+        try {
+            block()
+        } catch (e: Exception) {
+            threw = true
+            throw e
+        }
     }
 }

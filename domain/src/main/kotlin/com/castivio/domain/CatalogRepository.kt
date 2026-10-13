@@ -184,5 +184,13 @@ sealed interface ImportProgress {
         val bytes: Long = 0,
     ) : ImportProgress
     data class Done(val totalItems: Int, val durationMs: Long) : ImportProgress
-    data class Failed(val error: com.castivio.core.common.AppError) : ImportProgress
+
+    /**
+     * @param diagnosis how far the download got, from an importer that can say. Null from
+     *   one that cannot, and the screen then has only [error]'s sentence to give.
+     */
+    data class Failed(
+        val error: com.castivio.core.common.AppError,
+        val diagnosis: FetchDiagnosis? = null,
+    ) : ImportProgress
 }

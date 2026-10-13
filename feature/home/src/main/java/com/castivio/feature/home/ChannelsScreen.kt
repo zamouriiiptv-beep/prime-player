@@ -69,6 +69,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -524,6 +525,10 @@ private fun Board(
 ) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(m.panelRadius)
+    // Whether this APK may print a failure's figures: debuggable, as for the performance
+    // panel, and for the same reason -- a property of the installed package, read once.
+    val context = LocalContext.current
+    val instrumented = remember(context) { PerformanceLog.isVisibleIn(context) }
 
     Column(
         modifier
@@ -555,7 +560,11 @@ private fun Board(
             ) {
                 ErrorState(
                     title = stringResource(R.string.channels_fetch_failed),
-                    detail = stringResource(fetch.error.fetchFailureDetail()),
+                    // In a debuggable build, the failure's figures in place of the sentence:
+                    // stage, status, exception, bytes, entries. "Something went wrong"
+                    // could not be diagnosed from a television. See `fetchReadout`.
+                    detail = state.fetchReadout?.takeIf { instrumented }
+                        ?: stringResource(fetch.error.fetchFailureDetail()),
                     actionLabel = stringResource(R.string.browse_fetch_retry),
                     onAction = { model.retryFetch() },
                 )

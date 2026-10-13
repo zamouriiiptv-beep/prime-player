@@ -81,6 +81,22 @@ class LoadSectionTest {
         assertEquals(SectionLoad.Failed(AppError.UNAUTHORIZED, retryable = false), failure)
     }
 
+    /**
+     * The figures are the importer's and the screen's, and this class is only between
+     * them. Dropping them here is how a failure that said "HTTP 458, nothing read"
+     * reached the viewer as "something went wrong".
+     */
+    @Test
+    fun `a failure keeps the importer's diagnosis on its way to the screen`() = runTest {
+        val diagnosis = FetchDiagnosis(FetchStage.ANSWER, httpStatus = 458, bytesReceived = null)
+        val importer = Importer(listOf(ImportProgress.Failed(AppError.UNKNOWN, diagnosis)))
+        val load = LoadSection(Sources(xtream()), importer, Marks())
+
+        val failure = load.load(MediaKind.LIVE, now).toList().last()
+
+        assertEquals(SectionLoad.Failed(AppError.UNKNOWN, retryable = true, diagnosis = diagnosis), failure)
+    }
+
     // --------------------------------------------------------- one file, every kind
 
     /**

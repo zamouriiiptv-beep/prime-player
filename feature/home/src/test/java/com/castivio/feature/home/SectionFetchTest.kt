@@ -1,6 +1,8 @@
 package com.castivio.feature.home
 
 import com.castivio.core.common.AppError
+import com.castivio.domain.FetchDiagnosis
+import com.castivio.domain.FetchStage
 import com.castivio.domain.SectionLoad
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
@@ -242,7 +244,15 @@ class SectionFetchTest {
         fetch.ensure("m3u")
         runCurrent()
 
-        assertEquals(SectionLoad.Failed(AppError.UNKNOWN, retryable = true), fetch.state.value)
+        assertEquals(
+            SectionLoad.Failed(
+                AppError.UNKNOWN,
+                retryable = true,
+                // Named, and only by its class: "writer exploded" stays out of it.
+                diagnosis = FetchDiagnosis(FetchStage.OTHER, exception = "IllegalStateException"),
+            ),
+            fetch.state.value,
+        )
     }
 
     @Test

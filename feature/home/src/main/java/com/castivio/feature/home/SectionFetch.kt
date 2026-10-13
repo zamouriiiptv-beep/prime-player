@@ -1,6 +1,8 @@
 package com.castivio.feature.home
 
 import com.castivio.core.common.AppError
+import com.castivio.domain.FetchDiagnosis
+import com.castivio.domain.FetchStage
 import com.castivio.domain.SectionLoad
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -117,8 +119,18 @@ internal class SectionFetch(
         running = scope.launch {
             load(force)
                 // A loader that throws is a failure the user can read and retry, not an
-                // exception that takes the screen's scope down with it.
-                .catch { emit(SectionLoad.Failed(AppError.UNKNOWN, retryable = true)) }
+                // exception that takes the screen's scope down with it. It is named, too:
+                // this is the one failure no importer reports, so without its class the
+                // error screen would have nothing to say about it but "unknown".
+                .catch { error ->
+                    emit(
+                        SectionLoad.Failed(
+                            AppError.UNKNOWN,
+                            retryable = true,
+                            diagnosis = FetchDiagnosis(FetchStage.OTHER, exception = FetchDiagnosis.nameOf(error)),
+                        ),
+                    )
+                }
                 .collect { next ->
                     answer.value = next
                     onAnswer(next)
