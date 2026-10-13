@@ -136,10 +136,18 @@ import com.castivio.domain.activation.ActivationForm
  * ## The remote
  *
  * Down goes name, server, username, password, Connect -- the order on the screen,
- * because the order on the screen is the order 2D focus search finds. Paste and the
- * password's show and hide sit inside their fields, one press across rather than a stop
- * on the way down. The keyboard's Next goes down the same way, and Done on the password
- * is Connect.
+ * because the order on the screen is the order 2D focus search finds. Paste in the
+ * server, the username and the password sits inside its field at the far end, and the
+ * password's show and hide beside the lock at the near one: across from the field
+ * either way rather than a stop on the way down. The keyboard's Next goes down the same
+ * way, and Done on the password is Connect.
+ *
+ * ## Paste in three fields, at the price of the same height in three fields
+ *
+ * The username and the password carry the server's Paste, the same chip at the same
+ * inset, so all three boxes are the playlist link's box: taller than a plain field by
+ * the chip's floor, which a remote needs, and the same as one another. The smallest
+ * television pays for it in spacing -- see [xtreamFrame] -- and nothing else does.
  */
 @Composable
 internal fun XtreamFormScreen(
@@ -302,6 +310,7 @@ private fun XtreamFrame(
                 onImeAction = next,
                 labelIcon = Icons.Rounded.Person,
                 icon = Icons.Rounded.Person,
+                trailing = { PasteChip(enabled = enabled, onPaste = onUsername) },
                 errorBelow = frame.scroll,
                 modifier = Modifier.fillMaxWidth().testTag(ActivationTags.XTREAM_USERNAME),
             )
@@ -321,10 +330,14 @@ private fun XtreamFrame(
                 onImeAction = onSubmit,
                 labelIcon = Icons.Rounded.Lock,
                 icon = Icons.Rounded.Lock,
-                trailing = {
+                // The show and hide beside the lock, and Paste alone at the far end where
+                // the server's and the username's are. The box is built exactly as
+                // theirs -- the same Paste at the same inset -- so the three are one
+                // height, and the show and hide is a target as tall as that Paste.
+                leading = {
                     RevealToggle(revealed = revealed, enabled = enabled, onToggle = { revealed = !revealed })
                 },
-                trailingFlush = true,
+                trailing = { PasteChip(enabled = enabled, onPaste = onPassword) },
                 errorBelow = frame.scroll,
                 modifier = Modifier.fillMaxWidth().testTag(ActivationTags.XTREAM_PASSWORD),
             )
@@ -352,16 +365,22 @@ private fun XtreamFrame(
  * Show or hide the password, inside the field it shows.
  *
  * Inside for the reason Paste is (see [PasteChip]): beside the field it would be a stop
- * on the remote's way down the form, and here it is one press across from the field it
- * belongs to. As tall as the field's box and flush to its edge -- `trailingFlush` --
- * so the password is exactly as tall as the username above it.
+ * on the remote's way down the form. It sits by the lock that names the field, with the
+ * field's Paste at the other end, so the two are never side by side to be pressed for
+ * each other. A square at the target floor, which is the Paste chip's own floor, so it
+ * adds nothing to the box's height.
  *
  * It looks like part of the field until it has focus, and then like every other
  * focused control in Castivio: the lift, and the ring, inset so that it does not draw
  * over the field's own edge.
  */
 @Composable
-private fun RevealToggle(revealed: Boolean, enabled: Boolean, onToggle: () -> Unit) {
+private fun RevealToggle(
+    revealed: Boolean,
+    enabled: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
     var focused by remember { mutableStateOf(false) }
@@ -373,8 +392,8 @@ private fun RevealToggle(revealed: Boolean, enabled: Boolean, onToggle: () -> Un
     )
 
     Box(
-        Modifier
-            .width(Sizing.minTarget(CastivioTheme.device.isTv))
+        modifier
+            .size(Sizing.minTarget(CastivioTheme.device.isTv))
             .castivioFocusScale(Motion.focusScaleIcon, interaction)
             .onFocusChanged { focused = it.isFocused }
             .clickable(interaction, indication = null, enabled = enabled, role = Role.Button, onClick = onToggle)
@@ -1335,7 +1354,7 @@ internal data class FormFrameMetrics(
  * on the screen before this one and shipped wrong both times (see `isFixedViewport`).
  * The band is the thing that has or has not got room, and asking it gives the answer
  * the devices would -- a handset's landscape band is 275 to 333dp against a floor of
- * 350, the smallest television's is 418 against 366 -- and the right answer for the
+ * 366, the smallest television's is 418 against 398 -- and the right answer for the
  * windows no device list names, such as a tablet split into a short half.
  *
  * Where it holds, the frame is the whole band, so the margin under the frame is the
@@ -1372,12 +1391,13 @@ internal fun xtreamFrame(width: Dp, height: Dp, band: Dp, bandTop: Dp, button: D
 }
 
 /**
- * What the Xtream form measures with no spacing at all: the name field, the server
- * with Paste, the username and the password, Connect and the note -- with no error
- * under any field, because where this is the budget an error is said in the note.
+ * What the Xtream form measures with no spacing at all: the name field; the server, the
+ * username and the password, each a box with Paste in it; Connect and the note -- with
+ * no error under any field, because where this is the budget an error is said in the
+ * note. The password's show and hide is no taller than its Paste and adds nothing.
  */
 internal fun xtreamFloor(button: Dp): Dp =
-    FRAME_NAME_FIELD + FRAME_URL_CHROME + button + FRAME_LABELLED_FIELD * 2 + button + FRAME_NOTE
+    FRAME_NAME_FIELD + (FRAME_URL_CHROME + button) * 3 + button + FRAME_NOTE
 
 @Immutable
 internal data class XtreamFrameMetrics(
@@ -1605,12 +1625,6 @@ private val FRAME_NAME_FIELD: Dp = 70.dp
 
 /** Label row 16, `Spacing.xs`, and `Spacing.xs` above and below a Paste chip floored at the button's target. */
 private val FRAME_URL_CHROME: Dp = 28.dp
-
-/**
- * Label row 16, `Spacing.xs`, a box at the touch floor: the username, and the password,
- * whose show and hide is flush inside that box and so adds nothing to it.
- */
-private val FRAME_LABELLED_FIELD: Dp = 68.dp
 
 /** One line of `bodySmall`. */
 private val FRAME_NOTE: Dp = 20.dp

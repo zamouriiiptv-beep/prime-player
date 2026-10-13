@@ -7,13 +7,9 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -125,6 +121,18 @@ fun CastivioTextField(
      */
     trailing: (@Composable () -> Unit)? = null,
     /**
+     * A control between [icon] and the text, inside the box.
+     *
+     * For a control that belongs with what the field *is* rather than with what is done
+     * to its text -- a password's show and hide, beside the lock that names the field --
+     * where [trailing] holds the second kind. The box's inset is still decided by
+     * [trailing], so a field with both is exactly as tall as one with [trailing] alone
+     * while this control is no taller than that one.
+     *
+     * Null on every caller but one, which draws exactly what it drew.
+     */
+    leading: (@Composable () -> Unit)? = null,
+    /**
      * Whether [error] is written under the field.
      *
      * Off only where a screen has no height to give the line and says the message
@@ -132,21 +140,10 @@ fun CastivioTextField(
      * is still announced: what is withheld is the line, not the fact.
      */
     errorBelow: Boolean = true,
-    /**
-     * [trailing] as tall as the box itself and flush to its trailing edge, for a control
-     * that is part of the field rather than a chip inside it -- a password's show and
-     * hide.
-     *
-     * The line keeps the inset a plain field gives it, so the box is exactly as tall as
-     * its neighbours' at any font scale, and the control is handed that whole height.
-     * Inset the way Paste is, a 48dp control would make the box 56 against their 48.
-     */
-    trailingFlush: Boolean = false,
 ) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
     var focused by remember { mutableStateOf(false) }
-    val flush = trailingFlush && trailing != null
 
     // **A URL is read left to right in every language, and the paragraph it sits in
     // has to say so.**
@@ -256,45 +253,18 @@ fun CastivioTextField(
                     start = Spacing.lg,
                     // A trailing control brings its own breathing room, so the box's
                     // own inset would be paid twice on that side.
-                    end = when {
-                        trailing == null -> Spacing.lg
-                        flush -> 0.dp
-                        else -> Spacing.sm
-                    },
+                    end = if (trailing == null) Spacing.lg else Spacing.sm,
                     // Same again down the field. A trailing control is floored at the
                     // frame's own target -- 56dp on a remote -- so the full inset above
                     // and below it would make a field with a Paste in it 80dp tall
-                    // against its neighbour's 72. A flush one pays none here: the line
-                    // carries the plain field's inset itself, below.
-                    top = when {
-                        trailing == null -> Spacing.md
-                        flush -> 0.dp
-                        else -> Spacing.xs
-                    },
-                    bottom = when {
-                        trailing == null -> Spacing.md
-                        flush -> 0.dp
-                        else -> Spacing.xs
-                    },
+                    // against its neighbour's 72.
+                    top = if (trailing == null) Spacing.md else Spacing.xs,
+                    bottom = if (trailing == null) Spacing.md else Spacing.xs,
                 ),
             contentAlignment = Alignment.CenterStart,
         ) {
             Row(
-                Modifier
-                    .fillMaxWidth()
-                    // As tall as the box, which is what the flush control is then
-                    // stretched to: the line and its inset where they are the taller,
-                    // asked for before anything in the row is laid out, and the box's
-                    // own touch floor where they are not -- one line of body type and
-                    // its inset come to less than the floor, and a control stretched
-                    // to the row alone would stop short of the box it sits in.
-                    .then(
-                        if (flush) {
-                            Modifier.heightIn(min = Sizing.minTouchTarget).height(IntrinsicSize.Min)
-                        } else {
-                            Modifier
-                        },
-                    ),
+                Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -307,14 +277,9 @@ fun CastivioTextField(
                     )
                 }
 
-                Box(
-                    Modifier
-                        .weight(1f)
-                        // The plain field's own inset, carried by the line when the
-                        // box gives its own up to a flush control.
-                        .then(if (flush) Modifier.padding(vertical = Spacing.md) else Modifier),
-                    contentAlignment = Alignment.CenterStart,
-                ) {
+                if (leading != null) leading()
+
+                Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                     if (value.isEmpty() && placeholder != null) {
                         // Cleared from the semantics tree: the label already names the
                         // field, and a reader that says the placeholder as well says it
@@ -364,15 +329,7 @@ fun CastivioTextField(
                     }
                 }
 
-                if (trailing != null) {
-                    if (flush) {
-                        // The row's whole height, handed down as a floor, so the
-                        // control needs no knowledge of the box it sits in.
-                        Box(Modifier.fillMaxHeight(), propagateMinConstraints = true) { trailing() }
-                    } else {
-                        trailing()
-                    }
-                }
+                if (trailing != null) trailing()
             }
         }
 

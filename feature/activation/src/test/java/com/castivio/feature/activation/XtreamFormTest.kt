@@ -8,6 +8,8 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.NativeKeyEvent
+import androidx.compose.ui.platform.ClipboardManager
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -23,9 +25,11 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -34,6 +38,7 @@ import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performKeyPress
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
@@ -129,8 +134,9 @@ class XtreamFormTest {
 
     /**
      * Every element, once: the header's title and Back, the frame, the four fields in the
-     * order a provider's e-mail lists them, Paste, the show and hide, Connect and the
-     * note -- which, on an empty form, says what to fill in.
+     * order a provider's e-mail lists them, a Paste in each of the server, the username
+     * and the password, the show and hide, Connect and the note -- which, on an empty
+     * form, says what to fill in.
      */
     private fun ComposeContentTestRule.assertWholeForm(s: Surface) {
         for (tag in listOf(
@@ -146,7 +152,8 @@ class XtreamFormTest {
         )) {
             onAllNodes(hasTestTag(tag), useUnmergedTree = true).assertCountEquals(1)
         }
-        onNodeWithText(PASTE).assertExists("$s: the server field has no Paste")
+        onAllNodesWithText(PASTE).assertCountEquals(PASTED.size)
+        for (tag in PASTED) paste(tag).assertExists("$s: $tag has no Paste")
         onNodeWithText(CONNECT).assertExists("$s: there is no Connect")
         onNodeWithText(NOTE_EMPTY).assertExists("$s: the note does not say what to fill in")
 
@@ -260,6 +267,68 @@ class XtreamFormTest {
         assertEquals("Done on the password did not connect", 1, submits)
     }
 
+    /* ---------------------------------------------------------------- Paste */
+
+    /**
+     * Each Paste puts what is on the clipboard into its own field, and into no other.
+     *
+     * Three chips drawn by one composable is exactly the shape where a copied argument
+     * goes unnoticed: two of them wired to the same field look identical on a screenshot
+     * and paste a password into the username on a device.
+     */
+    @Test
+    fun `each Paste puts the clipboard into its own field`() {
+        val typed = mutableListOf<Pair<String, String>>()
+        val clipboard = FakeClipboard()
+        compose.show(TABLET, clipboard = clipboard, onField = { field, value -> typed += field to value })
+
+        for (tag in PASTED) {
+            clipboard.text = "  from $tag  "
+            typed.clear()
+            compose.paste(tag).performClick()
+            assertEquals("$tag's Paste", listOf(tag to "from $tag"), typed)
+        }
+    }
+
+    /**
+     * **In the password, the show and hide sits by the lock and Paste at the far end**:
+     * both inside the field and never on each other, the show and hide between the lock
+     * and the password -- on the right in Arabic, the left in English -- and Paste past the
+     * password, in the one column the server's and the username's Paste share.
+     */
+    @Test
+    fun `in the password, the show and hide is by the lock and Paste at the far end`() = placed(LayoutDirection.Ltr)
+
+    @Test
+    fun `and mirrored in Arabic`() = placed(LayoutDirection.Rtl)
+
+    private fun placed(direction: LayoutDirection) {
+        compose.show(TABLET, form = FILLED, direction = direction)
+        val field = bounds(ActivationTags.XTREAM_PASSWORD)
+        val input = compose.textField(ActivationTags.XTREAM_PASSWORD).getUnclippedBoundsInRoot()
+        val paste = compose.paste(ActivationTags.XTREAM_PASSWORD).getUnclippedBoundsInRoot()
+        val eye = bounds(ActivationTags.XTREAM_REVEAL)
+
+        for ((what, box) in listOf("Paste" to paste, "the show and hide" to eye)) {
+            assertTrue(
+                "$direction: $what ${box.left}..${box.right} leaves the field ${field.left}..${field.right}",
+                box.left >= field.left && box.right <= field.right && box.top >= field.top && box.bottom <= field.bottom,
+            )
+        }
+        assertTrue("$direction: Paste and the show and hide overlap", paste.right <= eye.left || eye.right <= paste.left)
+        if (direction == LayoutDirection.Ltr) {
+            assertTrue("LTR: the order is not show and hide, password, Paste", eye.right <= input.left && input.right <= paste.left)
+        } else {
+            assertTrue("RTL: the order is not show and hide, password, Paste", eye.left >= input.right && input.left >= paste.right)
+        }
+
+        // Paste where the other two fields have theirs, so the three are one column.
+        for (tag in listOf(ActivationTags.XTREAM_SERVER, ActivationTags.XTREAM_USERNAME)) {
+            val other = compose.paste(tag).getUnclippedBoundsInRoot()
+            assertEquals("$direction: the password's Paste is not under the $tag's", other.left.value, paste.left.value, 0.5f)
+        }
+    }
+
     /* ---------------------------------------------------- the show and hide */
 
     /** Hidden until it is shown, by touch, and the control says which it will do. */
@@ -277,55 +346,76 @@ class XtreamFormTest {
     }
 
     @Test
-    fun `a remote reaches the show and hide across from the password, and presses it`() =
-        revealByRemote(LayoutDirection.Ltr, FocusDirection.Right)
+    fun `a remote reaches Paste and the show and hide from their fields, and presses them`() =
+        acrossByRemote(LayoutDirection.Ltr, toEnd = FocusDirection.Right, toStart = FocusDirection.Left)
 
-    /** In Arabic the field's trailing edge is its left one, and so is the way across. */
+    /** In Arabic a field's far end is its left one, and the lock's side its right. */
     @Test
-    fun `in Arabic the way across is to the left`() =
-        revealByRemote(LayoutDirection.Rtl, FocusDirection.Left)
+    fun `in Arabic Paste is to the left and the show and hide to the right`() =
+        acrossByRemote(LayoutDirection.Rtl, toEnd = FocusDirection.Left, toStart = FocusDirection.Right)
 
-    private fun revealByRemote(direction: LayoutDirection, across: FocusDirection) {
-        compose.show(SMALL_TV, form = FILLED, direction = direction)
+    /**
+     * Toward the far end of the username is its Paste, and the centre button pastes into
+     * the username. Toward the far end of the password is its Paste, and toward the lock
+     * the show and hide, and each does what it says.
+     */
+    private fun acrossByRemote(direction: LayoutDirection, toEnd: FocusDirection, toStart: FocusDirection) {
+        val typed = mutableListOf<Pair<String, String>>()
+        compose.show(
+            SMALL_TV,
+            form = FILLED,
+            direction = direction,
+            clipboard = FakeClipboard("copied"),
+            onField = { field, value -> typed += field to value },
+        )
+
+        compose.textField(ActivationTags.XTREAM_USERNAME).performSemanticsAction(SemanticsActions.RequestFocus)
+        compose.runOnIdle { focus.moveFocus(toEnd) }
+        compose.paste(ActivationTags.XTREAM_USERNAME).assertIsFocused().pressCenter()
+        assertEquals("the username's Paste", listOf(ActivationTags.XTREAM_USERNAME to "copied"), typed)
+
+        typed.clear()
         compose.textField(ActivationTags.XTREAM_PASSWORD).performSemanticsAction(SemanticsActions.RequestFocus)
+        compose.runOnIdle { focus.moveFocus(toEnd) }
+        compose.paste(ActivationTags.XTREAM_PASSWORD).assertIsFocused().pressCenter()
+        assertEquals("the password's Paste", listOf(ActivationTags.XTREAM_PASSWORD to "copied"), typed)
 
-        compose.runOnIdle { focus.moveFocus(across) }
+        compose.textField(ActivationTags.XTREAM_PASSWORD).performSemanticsAction(SemanticsActions.RequestFocus)
+        compose.runOnIdle { focus.moveFocus(toStart) }
         val toggle = compose.onNodeWithTag(ActivationTags.XTREAM_REVEAL)
         toggle.assertIsFocused()
-
         toggle.pressCenter()
         compose.textField(ActivationTags.XTREAM_PASSWORD).assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Password))
         compose.onNodeWithContentDescription(HIDE).assertExists()
     }
 
     /**
-     * **The show and hide does not change the field's height.** The password is exactly
-     * as tall as the username above it, hidden and shown -- which is what `trailingFlush`
-     * exists to guarantee: the line keeps a plain field's inset and the control takes the
-     * height that leaves, rather than adding its own. And it is a whole target, never
-     * shorter than a thumb's floor, because it is handed the box's whole height.
+     * **The three fields with Paste are one height**, hidden or shown: the password's box
+     * is built exactly as the server's and the username's are, and the show and hide is
+     * as tall as the Paste at the other end -- a whole target, never under a thumb's floor,
+     * and never what makes the box taller.
      */
     @Test
-    fun `the password is exactly as tall as the username, hidden or shown`() = sameHeight(fontScale = 1f)
+    fun `the three fields with Paste are one height, hidden or shown`() = sameHeight(fontScale = 1f)
 
-    /**
-     * At a large font the line grows, and the show and hide grows with it. A control of
-     * its own fixed height would leave the password shorter than the username here,
-     * which is the case that does not show at the default scale.
-     */
+    /** And at a large font, where a box built differently would be the first to drift. */
     @Test
-    fun `the password keeps the username's height at a large font scale`() = sameHeight(fontScale = 1.5f)
+    fun `the three fields with Paste keep one height at a large font scale`() = sameHeight(fontScale = 1.5f)
 
     private fun sameHeight(fontScale: Float) {
         compose.show(TABLET, form = FILLED, fontScale = fontScale)
 
-        val username = bounds(ActivationTags.XTREAM_USERNAME).height.value
-        assertEquals("hidden", username, bounds(ActivationTags.XTREAM_PASSWORD).height.value, 0.5f)
+        val server = bounds(ActivationTags.XTREAM_SERVER).height.value
+        for (tag in listOf(ActivationTags.XTREAM_USERNAME, ActivationTags.XTREAM_PASSWORD)) {
+            assertEquals("$tag against the server", server, bounds(tag).height.value, 0.5f)
+        }
         val toggle = bounds(ActivationTags.XTREAM_REVEAL).height
+        val paste = compose.paste(ActivationTags.XTREAM_PASSWORD).getUnclippedBoundsInRoot().height
         assertTrue("the show and hide is $toggle tall", toggle >= Sizing.minTouchTarget)
+        assertEquals("the show and hide against the Paste at the other end", paste.value, toggle.value, 0.5f)
 
         compose.onNodeWithContentDescription(SHOW).performClick()
-        assertEquals("shown", username, bounds(ActivationTags.XTREAM_PASSWORD).height.value, 0.5f)
+        assertEquals("shown", server, bounds(ActivationTags.XTREAM_PASSWORD).height.value, 0.5f)
     }
 
     /* -------------------------------------------------------------------------- */
@@ -337,12 +427,17 @@ class XtreamFormTest {
         onSubmit: () -> Unit = {},
         direction: LayoutDirection = LayoutDirection.Ltr,
         fontScale: Float = 1f,
+        clipboard: ClipboardManager? = null,
+        onField: (field: String, value: String) -> Unit = { _, _ -> },
     ) = setContent {
         CastivioTheme {
             CompositionLocalProvider(
-                LocalDeviceClass provides if (s.tv) DeviceClass.Television else DeviceClass.Expanded,
-                LocalLayoutDirection provides direction,
-                LocalDensity provides Density(LocalDensity.current.density, fontScale),
+                *listOfNotNull(
+                    LocalDeviceClass provides if (s.tv) DeviceClass.Television else DeviceClass.Expanded,
+                    LocalLayoutDirection provides direction,
+                    LocalDensity provides Density(LocalDensity.current.density, fontScale),
+                    clipboard?.let { LocalClipboardManager provides it },
+                ).toTypedArray(),
             ) {
                 focus = LocalFocusManager.current
                 Box(Modifier.requiredSize(s.width, s.height)) {
@@ -353,10 +448,10 @@ class XtreamFormTest {
                             form = form,
                             enabled = true,
                             canSubmit = canSubmit,
-                            onName = {},
-                            onServerUrl = {},
-                            onUsername = {},
-                            onPassword = {},
+                            onName = { onField(ActivationTags.XTREAM_NAME, it) },
+                            onServerUrl = { onField(ActivationTags.XTREAM_SERVER, it) },
+                            onUsername = { onField(ActivationTags.XTREAM_USERNAME, it) },
+                            onPassword = { onField(ActivationTags.XTREAM_PASSWORD, it) },
                             onSubmit = onSubmit,
                             onBack = {},
                         )
@@ -370,8 +465,21 @@ class XtreamFormTest {
     private fun ComposeContentTestRule.textField(tag: String): SemanticsNodeInteraction =
         onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag(tag)), useUnmergedTree = true)
 
+    /** The Paste inside the tagged field. */
+    private fun ComposeContentTestRule.paste(tag: String): SemanticsNodeInteraction =
+        onNode(hasText(PASTE) and hasAnyAncestor(hasTestTag(tag)))
+
     private fun bounds(tag: String): DpRect =
         compose.onNodeWithTag(tag, useUnmergedTree = true).getUnclippedBoundsInRoot()
+
+    /** A clipboard the test fills, so Paste reads what the test put there and nothing else. */
+    private class FakeClipboard(var text: String? = null) : ClipboardManager {
+        override fun setText(annotatedString: AnnotatedString) {
+            text = annotatedString.text
+        }
+
+        override fun getText(): AnnotatedString? = text?.let { AnnotatedString(it) }
+    }
 
     /** The remote's centre button, down and up, delivered to whatever has focus. */
     private fun SemanticsNodeInteraction.pressCenter() {
@@ -393,6 +501,13 @@ class XtreamFormTest {
 
         val FIELDS = listOf(
             ActivationTags.XTREAM_NAME,
+            ActivationTags.XTREAM_SERVER,
+            ActivationTags.XTREAM_USERNAME,
+            ActivationTags.XTREAM_PASSWORD,
+        )
+
+        /** The fields that carry a Paste, in the order the form draws them. */
+        val PASTED = listOf(
             ActivationTags.XTREAM_SERVER,
             ActivationTags.XTREAM_USERNAME,
             ActivationTags.XTREAM_PASSWORD,

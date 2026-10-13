@@ -59,13 +59,14 @@ class XtreamFrameTest {
         xtreamFrame(s.width, s.height, band(s), metrics(s).bandTop, button(s))
 
     /**
-     * The frame's contents, top to bottom: the pad, the name, the server with Paste, the
-     * username, the password, Connect, the note and the pad -- and [errorsUnder] lines of
-     * error under fields, for the arrangement that writes them there.
+     * The frame's contents, top to bottom: the pad, the name, the server, the username and
+     * the password -- each of the three a box with Paste in it -- Connect, the note and the
+     * pad, and [errorsUnder] lines of error under fields, for the arrangement that writes
+     * them there.
      */
     private fun content(f: XtreamFrameMetrics, button: Dp, errorsUnder: Int = 0): Dp =
-        f.pad + NAME_FIELD + f.fieldGap + URL_CHROME + button + f.fieldGap + LABELLED_FIELD +
-            f.fieldGap + LABELLED_FIELD + f.actionGap + button + f.noteGap + NOTE + f.pad +
+        f.pad + NAME_FIELD + f.fieldGap + URL_CHROME + button + f.fieldGap + URL_CHROME + button +
+            f.fieldGap + URL_CHROME + button + f.actionGap + button + f.noteGap + NOTE + f.pad +
             ERROR_LINE * errorsUnder
 
     /** `need` fits `room` to the dp rather than to the bit; see `M3uSpreadTest.fits`. */
@@ -76,13 +77,13 @@ class XtreamFrameTest {
         for (button in listOf(Sizing.minTouchTarget, Sizing.minTvTarget)) {
             assertEquals(
                 "the floor with a ${button.value}dp button",
-                (NAME_FIELD + URL_CHROME + button + LABELLED_FIELD * 2 + button + NOTE).value,
+                (NAME_FIELD + (URL_CHROME + button) * 3 + button + NOTE).value,
                 xtreamFloor(button).value,
                 TOLERANCE,
             )
         }
-        assertEquals("a thumb's floor", 350f, xtreamFloor(Sizing.minTouchTarget).value, TOLERANCE)
-        assertEquals("a remote's floor", 366f, xtreamFloor(Sizing.minTvTarget).value, TOLERANCE)
+        assertEquals("a thumb's floor", 366f, xtreamFloor(Sizing.minTouchTarget).value, TOLERANCE)
+        assertEquals("a remote's floor", 398f, xtreamFloor(Sizing.minTvTarget).value, TOLERANCE)
     }
 
     /**
@@ -132,7 +133,8 @@ class XtreamFrameTest {
     /**
      * **Televisions and tablets hold the whole form, without a scroll.** The frame is the
      * whole band -- so the margin under it is the stage's, which the sizing system draws
-     * equal to the gap above it -- and the form fits inside it with every gap still a gap.
+     * equal to the gap above it -- and the form fits inside it with every gap still a gap,
+     * however small the smallest television makes it.
      */
     @Test
     fun `televisions and tablets hold the whole form without scrolling`() {
@@ -151,15 +153,16 @@ class XtreamFrameTest {
                 "above Connect" to f.actionGap,
                 "above the note" to f.noteGap,
             )) {
-                assertTrue("$s: $gap is $value", value >= Spacing.xs)
+                assertTrue("$s: $gap is $value", value > 0.dp)
             }
         }
     }
 
     /**
      * The smallest television is the tight one, and these are its numbers: 418dp of band
-     * against a 366dp form, so the spacing is a little under half its full size. Every
-     * control keeps its height; only the air between them gives.
+     * against a 398dp form -- three boxes carrying Paste at a remote's floor -- so the
+     * spacing is under a fifth of its full size. Every control keeps its height; only the
+     * air between them gives, and none of it runs out.
      */
     @Test
     fun `the smallest television shares out what the controls leave`() {
@@ -167,10 +170,10 @@ class XtreamFrameTest {
         val f = frame(s)
 
         assertEquals("the band", 418f, band(s).value, 0.1f)
-        assertEquals("inside the frame", 7.4f, f.pad.value, 0.1f)
-        assertEquals("between the fields", 7.4f, f.fieldGap.value, 0.1f)
-        assertEquals("above Connect", 9.9f, f.actionGap.value, 0.1f)
-        assertEquals("above the note", 5f, f.noteGap.value, 0.1f)
+        assertEquals("inside the frame", 2.9f, f.pad.value, 0.1f)
+        assertEquals("between the fields", 2.9f, f.fieldGap.value, 0.1f)
+        assertEquals("above Connect", 3.8f, f.actionGap.value, 0.1f)
+        assertEquals("above the note", 1.9f, f.noteGap.value, 0.1f)
         assertEquals("what is left over", 0f, (f.height - content(f, button(s))).value, 0.05f)
     }
 
@@ -266,11 +269,8 @@ class XtreamFrameTest {
         /** Label row 18 (`labelSmall` carries "optional"), `Spacing.xs`, a box at the touch floor. */
         val NAME_FIELD: Dp = 70.dp
 
-        /** The server field less its Paste chip, which floors at the button's own target. */
+        /** A field with Paste in it, less the chip: the server, the username, the password. */
         val URL_CHROME: Dp = 28.dp
-
-        /** Label row 16, `Spacing.xs`, a box at the touch floor: the username, and the password. */
-        val LABELLED_FIELD: Dp = 68.dp
 
         /** One line of `bodySmall`. */
         val NOTE: Dp = 20.dp
