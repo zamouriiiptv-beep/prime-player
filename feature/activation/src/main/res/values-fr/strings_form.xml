@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The playlist and portal forms, in French: the two fields, Paste, Connect,
+  the line under Connect and what a field says is wrong with it.
+
+  A declared bundle, gated by check-invariants.sh: every key here must exist,
+  and not be empty, in every language.
+-->
+<resources>
+    <string name="field_playlist_name">Nom de la playlist</string>
+    <string name="field_optional">Facultatif</string>
+    <string name="field_playlist_name_placeholder">Maison</string>
+    <string name="field_playlist_url">URL de la playlist M3U</string>
+    <string name="field_portal_url">URL du portail</string>
+    <string name="action_paste">Coller</string>
+    <string name="action_connect">Connecter</string>
+    <string name="playlist_note_empty">Saisissez un lien valide pour activer Connecter.</string>
+    <string name="playlist_note_ready">Appuyez sur Connecter pour lire la liste.</string>
+    <string name="portal_note_ready">Appuyez sur Connecter pour ouvrir le portail.</string>
+    <string name="problem_required">Ce champ est obligatoire.</string>
+    <string name="problem_too_long">C’est plus long que la limite autorisée.</string>
+    <string name="problem_contains_spaces">Il y a un espace. Un lien ne peut pas en contenir.</string>
+    <string name="problem_unsupported_scheme">Castivio ne peut ouvrir que des liens http et https.</string>
+    <string name="problem_incomplete_host">Cela ne ressemble pas à une adresse complète.</string>
+    <string name="problem_invalid_port">Le numéro de port n’est pas valide.</string>
+</resources>

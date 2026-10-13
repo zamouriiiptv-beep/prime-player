@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The playlist and portal forms, in Finnish: the two fields, Paste, Connect,
+  the line under Connect and what a field says is wrong with it.
+
+  A declared bundle, gated by check-invariants.sh: every key here must exist,
+  and not be empty, in every language.
+-->
+<resources>
+    <string name="field_playlist_name">Soittolistan nimi</string>
+    <string name="field_optional">Valinnainen</string>
+    <string name="field_playlist_name_placeholder">Koti</string>
+    <string name="field_playlist_url">M3U-soittolistan URL</string>
+    <string name="field_portal_url">Portaalin URL</string>
+    <string name="action_paste">Liitä</string>
+    <string name="action_connect">Yhdistä</string>
+    <string name="playlist_note_empty">Anna kelvollinen linkki, niin Yhdistä otetaan käyttöön.</string>
+    <string name="playlist_note_ready">Lue lista painamalla Yhdistä.</string>
+    <string name="portal_note_ready">Avaa portaali painamalla Yhdistä.</string>
+    <string name="problem_required">Tämä kenttä on pakollinen.</string>
+    <string name="problem_too_long">Teksti on liian pitkä.</string>
+    <string name="problem_contains_spaces">Siinä on välilyönti. Linkissä ei voi olla välilyöntejä.</string>
+    <string name="problem_unsupported_scheme">Castivio voi avata vain http- ja https-linkkejä.</string>
+    <string name="problem_incomplete_host">Tämä ei näytä täydelliseltä osoitteelta.</string>
+    <string name="problem_invalid_port">Porttinumero ei kelpaa.</string>
+</resources>

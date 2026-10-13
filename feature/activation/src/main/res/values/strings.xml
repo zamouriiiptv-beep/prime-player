@@ -95,17 +95,11 @@
     <string name="saved_sources_cancel">Cancel</string>
 
     <!-- The forms -->
-    <string name="field_playlist_name">Playlist name</string>
-    <string name="field_optional">Optional</string>
-    <string name="field_playlist_name_placeholder">Home</string>
     <string name="field_server_url">Server URL</string>
     <string name="field_server_url_placeholder">http://example.com:8080</string>
     <string name="field_username">Username</string>
     <string name="field_password">Password</string>
-    <string name="field_playlist_url">M3U playlist URL</string>
     <string name="field_playlist_url_placeholder">http://example.com/get.php?…</string>
-    <string name="action_connect">Connect</string>
-    <string name="action_paste">Paste</string>
 
     <!--
       The playlist screen's left-hand half.
@@ -136,16 +130,7 @@
     <!-- The panel, and the one line under its button that follows the screen's state. -->
     <string name="playlist_panel_title">Add an M3U list</string>
     <string name="playlist_panel_detail">Paste the playlist link your provider sent you.</string>
-    <string name="playlist_note_empty">Enter a valid link to turn on Connect.</string>
-    <string name="playlist_note_ready">Press Connect to read the list.</string>
 
-    <!-- What is wrong with a field -->
-    <string name="problem_required">This one is needed.</string>
-    <string name="problem_too_long">That is longer than it should be.</string>
-    <string name="problem_contains_spaces">There is a space in there. A link cannot contain one.</string>
-    <string name="problem_unsupported_scheme">Castivio can only open http and https links.</string>
-    <string name="problem_incomplete_host">That does not look like a complete address.</string>
-    <string name="problem_invalid_port">That port number is not valid.</string>
 
 
     <!-- Importing -->
@@ -198,9 +183,7 @@
     <!-- The two under the rule are the short ones, and `source_portal_detail` says why.
          Each carries the fact its detail does not — which box this is for, what the
          screen lets you do — in as few words as that holds. -->
-    <string name="field_portal_url">Portal URL</string>
     <string name="field_portal_url_placeholder">http://portal.example.com/c/</string>
-    <string name="portal_note_ready">Press Connect to open the portal.</string>
     <string name="mac_installation_note">This address belongs to the app on this device. Clearing the app’s data gives this device a new one, and you would need to send it to your provider again.</string>
     <!-- The two folder choosers: the top of each picker's tree. -->
     <!-- The theme control in every header. Named by what pressing it does. -->

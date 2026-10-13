@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The playlist and portal forms, in Serbian: the two fields, Paste, Connect,
+  the line under Connect and what a field says is wrong with it.
+
+  A declared bundle, gated by check-invariants.sh: every key here must exist,
+  and not be empty, in every language.
+-->
+<resources>
+    <string name="field_playlist_name">Назив листе</string>
+    <string name="field_optional">Опционо</string>
+    <string name="field_playlist_name_placeholder">Дом</string>
+    <string name="field_playlist_url">URL M3U листе</string>
+    <string name="field_portal_url">URL портала</string>
+    <string name="action_paste">Налепи</string>
+    <string name="action_connect">Повежи</string>
+    <string name="playlist_note_empty">Унесите важећу везу да бисте укључили „Повежи“.</string>
+    <string name="playlist_note_ready">Притисните „Повежи“ да бисте учитали листу.</string>
+    <string name="portal_note_ready">Притисните „Повежи“ да бисте отворили портал.</string>
+    <string name="problem_required">Ово поље је обавезно.</string>
+    <string name="problem_too_long">Дуже је од дозвољеног.</string>
+    <string name="problem_contains_spaces">Садржи размак. Веза не сме да садржи размаке.</string>
+    <string name="problem_unsupported_scheme">Castivio може да отвори само http и https везе.</string>
+    <string name="problem_incomplete_host">Ово не изгледа као потпуна адреса.</string>
+    <string name="problem_invalid_port">Број порта није важећи.</string>
+</resources>

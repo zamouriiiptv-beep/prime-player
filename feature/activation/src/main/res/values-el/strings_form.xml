@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The playlist and portal forms, in Greek: the two fields, Paste, Connect,
+  the line under Connect and what a field says is wrong with it.
+
+  A declared bundle, gated by check-invariants.sh: every key here must exist,
+  and not be empty, in every language.
+-->
+<resources>
+    <string name="field_playlist_name">Όνομα λίστας</string>
+    <string name="field_optional">Προαιρετικό</string>
+    <string name="field_playlist_name_placeholder">Σπίτι</string>
+    <string name="field_playlist_url">URL λίστας M3U</string>
+    <string name="field_portal_url">URL πύλης</string>
+    <string name="action_paste">Επικόλληση</string>
+    <string name="action_connect">Σύνδεση</string>
+    <string name="playlist_note_empty">Εισαγάγετε έγκυρο σύνδεσμο για να ενεργοποιηθεί η «Σύνδεση».</string>
+    <string name="playlist_note_ready">Πατήστε «Σύνδεση» για να διαβαστεί η λίστα.</string>
+    <string name="portal_note_ready">Πατήστε «Σύνδεση» για να ανοίξει η πύλη.</string>
+    <string name="problem_required">Αυτό το πεδίο είναι υποχρεωτικό.</string>
+    <string name="problem_too_long">Είναι μεγαλύτερο από το επιτρεπτό.</string>
+    <string name="problem_contains_spaces">Υπάρχει κενό. Ένας σύνδεσμος δεν μπορεί να περιέχει κενά.</string>
+    <string name="problem_unsupported_scheme">Το Castivio ανοίγει μόνο συνδέσμους http και https.</string>
+    <string name="problem_incomplete_host">Δεν μοιάζει με πλήρη διεύθυνση.</string>
+    <string name="problem_invalid_port">Ο αριθμός θύρας δεν είναι έγκυρος.</string>
+</resources>

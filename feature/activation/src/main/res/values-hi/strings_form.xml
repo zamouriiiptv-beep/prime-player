@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The playlist and portal forms, in Hindi: the two fields, Paste, Connect,
+  the line under Connect and what a field says is wrong with it.
+
+  A declared bundle, gated by check-invariants.sh: every key here must exist,
+  and not be empty, in every language.
+-->
+<resources>
+    <string name="field_playlist_name">प्लेलिस्ट का नाम</string>
+    <string name="field_optional">वैकल्पिक</string>
+    <string name="field_playlist_name_placeholder">घर</string>
+    <string name="field_playlist_url">M3U प्लेलिस्ट URL</string>
+    <string name="field_portal_url">पोर्टल URL</string>
+    <string name="action_paste">पेस्ट करें</string>
+    <string name="action_connect">कनेक्ट करें</string>
+    <string name="playlist_note_empty">“कनेक्ट करें” चालू करने के लिए एक मान्य लिंक डालें।</string>
+    <string name="playlist_note_ready">सूची पढ़ने के लिए “कनेक्ट करें” दबाएँ।</string>
+    <string name="portal_note_ready">पोर्टल खोलने के लिए “कनेक्ट करें” दबाएँ।</string>
+    <string name="problem_required">यह फ़ील्ड ज़रूरी है।</string>
+    <string name="problem_too_long">यह अनुमति से ज़्यादा लंबा है।</string>
+    <string name="problem_contains_spaces">इसमें एक स्पेस है। लिंक में स्पेस नहीं हो सकता।</string>
+    <string name="problem_unsupported_scheme">Castivio सिर्फ़ http और https लिंक खोल सकता है।</string>
+    <string name="problem_incomplete_host">यह पूरा पता नहीं लगता।</string>
+    <string name="problem_invalid_port">पोर्ट नंबर मान्य नहीं है।</string>
+</resources>

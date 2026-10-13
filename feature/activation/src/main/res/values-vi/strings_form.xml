@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The playlist and portal forms, in Vietnamese: the two fields, Paste, Connect,
+  the line under Connect and what a field says is wrong with it.
+
+  A declared bundle, gated by check-invariants.sh: every key here must exist,
+  and not be empty, in every language.
+-->
+<resources>
+    <string name="field_playlist_name">Tên danh sách</string>
+    <string name="field_optional">Không bắt buộc</string>
+    <string name="field_playlist_name_placeholder">Nhà</string>
+    <string name="field_playlist_url">URL danh sách M3U</string>
+    <string name="field_portal_url">URL cổng thông tin</string>
+    <string name="action_paste">Dán</string>
+    <string name="action_connect">Kết nối</string>
+    <string name="playlist_note_empty">Nhập liên kết hợp lệ để bật Kết nối.</string>
+    <string name="playlist_note_ready">Nhấn Kết nối để đọc danh sách.</string>
+    <string name="portal_note_ready">Nhấn Kết nối để mở cổng thông tin.</string>
+    <string name="problem_required">Trường này là bắt buộc.</string>
+    <string name="problem_too_long">Dài hơn mức cho phép.</string>
+    <string name="problem_contains_spaces">Có khoảng trắng. Liên kết không được chứa khoảng trắng.</string>
+    <string name="problem_unsupported_scheme">Castivio chỉ mở được liên kết http và https.</string>
+    <string name="problem_incomplete_host">Đây có vẻ không phải là địa chỉ đầy đủ.</string>
+    <string name="problem_invalid_port">Số cổng không hợp lệ.</string>
+</resources>

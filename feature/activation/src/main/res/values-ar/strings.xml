@@ -36,17 +36,11 @@
     <string name="saved_sources_delete_active_detail">حذفه سيؤدي إلى إلغاء استخدامه على هذا الجهاز. هل تريد المتابعة؟</string>
     <string name="saved_sources_cancel">إلغاء</string>
 
-    <string name="field_playlist_name">اسم القائمة</string>
-    <string name="field_optional">اختياري</string>
-    <string name="field_playlist_name_placeholder">المنزل</string>
     <string name="field_server_url">رابط السيرفر</string>
     <string name="field_server_url_placeholder">http://example.com:8080</string>
     <string name="field_username">اسم المستخدم</string>
     <string name="field_password">كلمة المرور</string>
-    <string name="field_playlist_url">رابط قائمة M3U</string>
     <string name="field_playlist_url_placeholder">http://example.com/get.php?…</string>
-    <string name="action_connect">اتصال</string>
-    <string name="action_paste">لصق</string>
 
     <!--
       النصف الأيمن من شاشة قائمة التشغيل: ما لا تقوله اللوحة المجاورة.
@@ -73,15 +67,7 @@
 
     <string name="playlist_panel_title">إضافة قائمة M3U</string>
     <string name="playlist_panel_detail">الصق رابط قائمة التشغيل الذي أرسله إليك مزوّدك.</string>
-    <string name="playlist_note_empty">أدخل رابطًا صحيحًا لتفعيل زر الاتصال.</string>
-    <string name="playlist_note_ready">اضغط اتصال لقراءة القائمة.</string>
 
-    <string name="problem_required">هذا الحقل مطلوب.</string>
-    <string name="problem_too_long">هذا أطول مما ينبغي.</string>
-    <string name="problem_contains_spaces">هناك مسافة في الرابط، والروابط لا تحتوي مسافات.</string>
-    <string name="problem_unsupported_scheme">Castivio يفتح روابط http و https فقط.</string>
-    <string name="problem_incomplete_host">هذا لا يبدو عنوانًا كاملًا.</string>
-    <string name="problem_invalid_port">رقم المنفذ غير صالح.</string>
 
 
     <string name="importing_checking">جارٍ التحقق من بياناتك…</string>
@@ -125,8 +111,6 @@
     <string name="licence_blocked_detail">لا توجد في هذه النسخة خدمة ترخيص ليسألها، فلا يستطيع السماح بالدخول. شاشة الترخيص تأتي في نسخة لاحقة.</string>
     <string name="licence_blocked_action">إغلاق</string>
     <!-- شاشة اختيار طريقة الإضافة. -->
-    <string name="field_portal_url">رابط البوابة (Portal URL)</string>
     <string name="field_portal_url_placeholder">http://portal.example.com/c/</string>
-    <string name="portal_note_ready">اضغط اتصال لفتح البوابة.</string>
     <string name="mac_installation_note">هذا العنوان مرتبط ببيانات التطبيق على هذا الجهاز. مسح بيانات التطبيق يمنح الجهاز عنوانًا جديدًا، وسيلزمك إرساله إلى مزوّد الخدمة من جديد.</string>
 </resources>

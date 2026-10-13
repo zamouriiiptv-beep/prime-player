@@ -228,6 +228,7 @@ fi
 # strings file somewhere" is not the same claim.
 BUNDLES='feature/activation/src/main/res:strings_activation.xml
 feature/activation/src/main/res:strings_chooser.xml
+feature/activation/src/main/res:strings_form.xml
 feature/licence/src/main/res:strings_licence.xml
 app/src/main/res:strings_exit.xml'
 
