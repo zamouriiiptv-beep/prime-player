@@ -4,6 +4,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.castivio.core.design.theme.CastivioReference
 import com.castivio.core.design.theme.Sizing
+import com.castivio.core.design.theme.Spacing
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -176,130 +177,34 @@ class M3uSpreadTest {
         assertTrue("the handset's band can", fitsSpread(1280.dp, SPREAD_BAND_MIN))
     }
 
-    /**
-     * **The compact column's title is the cheapest of its three optional
-     * steps, and both landscape handsets this project is tested on can
-     * already afford it.**
-     *
-     * A width under [SPREAD_MIN_WIDTH] forces the single column at every
-     * height below, so what is under test here is never masked by the
-     * spread. The title costs one line of `headlineMedium` plus a compact
-     * `headGap` -- 44dp -- against the name field's own 78; both handsets
-     * clear the cheaper threshold with room to spare, and neither clears the
-     * name field's.
-     */
-    @Test
-    fun `the compact column shows its title at both landscape handsets, but not the name field yet`() {
-        val width = 700.dp
-
-        val tall = band(width, 393.dp, tv = false)
-        val short = band(width, 360.dp, tv = false)
-
-        val dressTall = m3uColumnChrome(band = tall, button = Sizing.minTouchTarget)
-        val dressShort = m3uColumnChrome(band = short, button = Sizing.minTouchTarget)
-
-        assertFalse("851x393's column is not at full dress", dressTall.chrome.full)
-        assertTrue("851x393's compact column shows the title", dressTall.title)
-        assertFalse("851x393's band is a few dp short of the name field's own threshold", dressTall.chrome.name)
-        assertTrue(
-            "the title needs ${columnNeeds(dressTall, Sizing.minTouchTarget)} of $tall",
-            fits(columnNeeds(dressTall, Sizing.minTouchTarget), tall),
-        )
-
-        assertFalse("800x360's column is not at full dress", dressShort.chrome.full)
-        assertTrue("800x360's compact column shows the title too", dressShort.title)
-        assertFalse("800x360 is further still from the name field's threshold", dressShort.chrome.name)
-        assertTrue(
-            "the title needs ${columnNeeds(dressShort, Sizing.minTouchTarget)} of $short",
-            fits(columnNeeds(dressShort, Sizing.minTouchTarget), short),
-        )
-    }
+    /** Both fields, Connect and the note, recounted here rather than read from [columnFloor]. */
+    private fun columnContent(c: M3uColumnMetrics, button: Dp): Dp =
+        NAME_FIELD + c.fieldGap + URL_CHROME + button + c.actionGap + button + c.noteGap + NOTE
 
     /**
-     * Taller than either handset, but still below [SPREAD_MIN_WIDTH]'s own
-     * width: the band can afford the title *and* the name field together.
-     * Proof the name-field tier still exists, now priced with the title
-     * ahead of it rather than priced alone.
+     * **Both landscape handsets draw the whole column, name field included.** At 851x393
+     * and at 800x360, the shortest frame the project ships to, the frame's margin underneath
+     * equals the gap above it and the form fits inside with spacing a reader can still use.
+     * A width under [SPREAD_MIN_WIDTH] forces the column at both heights.
      */
     @Test
-    fun `a taller compact column affords the title and the name field together`() {
-        val b = band(700.dp, 410.dp, tv = false)
-        val dress = m3uColumnChrome(band = b, button = Sizing.minTouchTarget)
+    fun `both landscape handsets draw the whole column with equal margins`() {
+        val button = Sizing.minTouchTarget
+        assertEquals("the column's floor", (NAME_FIELD + URL_CHROME + button + button + NOTE).value, columnFloor(button).value, 0.01f)
 
-        assertFalse("not at full dress", dress.chrome.full)
-        assertTrue("the title shows", dress.title)
-        assertTrue("the band at $b can now afford the name field too", dress.chrome.name)
-        assertTrue(
-            "the column needs ${columnNeeds(dress, Sizing.minTouchTarget)} of $b",
-            fits(columnNeeds(dress, Sizing.minTouchTarget), b),
-        )
-    }
-
-    /**
-     * Below the derived threshold even the title is given up, falling back to
-     * exactly the column this screen drew before the container existed --
-     * [COLUMN_FIXED_COMPACT] is that same figure, unchanged.
-     */
-    @Test
-    fun `a band too short for the title falls back to the bare column`() {
-        val b = band(700.dp, 290.dp, tv = false)
-        val dress = m3uColumnChrome(band = b, button = Sizing.minTouchTarget)
-
-        assertFalse("not at full dress", dress.chrome.full)
-        assertFalse("the band at $b cannot afford the title on its own", dress.title)
-        assertFalse("and so cannot afford the name field either", dress.chrome.name)
-        assertTrue(
-            "the bare column needs ${columnNeeds(dress, Sizing.minTouchTarget)} of $b",
-            fits(columnNeeds(dress, Sizing.minTouchTarget), b),
-        )
-    }
-
-    /**
-     * The three boundaries the column's ladder added, swept to a tenth of a
-     * dp from the shortest frame to just past where `full` itself takes
-     * over. The claim is the same one the big sweep makes for the whole
-     * screen -- nothing the column draws ever costs more than the band has.
-     */
-    @Test
-    fun `the compact column's ladder never costs more than the band has`() {
-        var worstMargin = Float.MAX_VALUE
-        var worstAt = ""
-        var bare = 0
-        var titleOnly = 0
-        var titleAndName = 0
-
-        var height = 260.dp
-        while (height <= 470.dp) {
-            // A width under SPREAD_MIN_WIDTH, held fixed, so every height in
-            // this range draws the column rather than the spread.
+        for (height in listOf(393.dp, 360.dp)) {
             val b = band(700.dp, height, tv = false)
-            val dress = m3uColumnChrome(band = b, button = Sizing.minTouchTarget)
-            val needs = columnNeeds(dress, Sizing.minTouchTarget)
+            val top = metrics(700.dp, height, tv = false).bandTop
+            val c = m3uColumn(b, top, button)
+            val inside = (c.height - columnContent(c, button)) / 2
 
-            assertTrue("$height: the column needs $needs of $b", fits(needs, b))
-
-            when {
-                dress.chrome.full -> {}
-                dress.chrome.name -> titleAndName++
-                dress.title -> titleOnly++
-                else -> bare++
-            }
-
-            val margin = (b - needs).value
-            if (margin < worstMargin) {
-                worstMargin = margin
-                worstAt = "$height"
-            }
-            height += 0.1.dp
+            assertEquals("$height: the margin under the frame", top.value, (b - c.height).value, 0.01f)
+            assertTrue("$height: the column needs ${columnContent(c, button)} of ${c.height}", fits(columnContent(c, button), c.height))
+            assertTrue("$height: $inside above the name field and under the note", inside >= Spacing.sm)
+            assertTrue("$height: the gap between the fields is ${c.fieldGap}", c.fieldGap >= Spacing.sm)
+            assertTrue("$height: the gap above Connect is ${c.actionGap}", c.actionGap >= Spacing.md)
+            assertTrue("$height: the gap above the note is ${c.noteGap}", c.noteGap >= Spacing.xs)
         }
-
-        println(
-            "compact column ladder sweep — $bare bare, $titleOnly title-only, " +
-                "$titleAndName title+name, worst margin ${worstMargin}dp at $worstAt",
-        )
-        assertTrue("some swept height should be bare", bare > 0)
-        assertTrue("some swept height should show the title alone", titleOnly > 0)
-        assertTrue("some swept height should show the title and the name field", titleAndName > 0)
     }
 
     /**
@@ -314,7 +219,7 @@ class M3uSpreadTest {
     fun `nothing leaves the band on any surface`() {
         var spreads = 0
         var columns = 0
-        var columnsWithName = 0
+        var belowFloor = 0
         var tightest = Float.MAX_VALUE
         var tightestAt = ""
 
@@ -349,10 +254,18 @@ class M3uSpreadTest {
                         }
                     } else {
                         columns++
-                        val dress = m3uColumnChrome(band = b, button = Sizing.minTarget(tv))
-                        val needs = columnNeeds(dress, Sizing.minTarget(tv))
-                        assertTrue("$where: the column needs $needs of $b", fits(needs, b))
-                        if (dress.chrome.name && !dress.chrome.full) columnsWithName++
+                        val button = Sizing.minTarget(tv)
+                        if (b < columnFloor(button)) {
+                            // The name field is never dropped, so a band shorter than both
+                            // fields, Connect and the note cannot hold the column at all --
+                            // which must only ever be a window shorter than any frame shipped.
+                            assertTrue("$where: the column's contents need ${columnFloor(button)} of $b", height < SHORTEST_FRAME)
+                            belowFloor++
+                        } else {
+                            val c = m3uColumn(b, metrics(width, height, tv).bandTop, button)
+                            assertTrue("$where: the frame is ${c.height} of $b", fits(c.height, b))
+                            assertTrue("$where: the column needs ${columnContent(c, button)} of ${c.height}", fits(columnContent(c, button), c.height))
+                        }
                     }
                 }
             }
@@ -361,11 +274,10 @@ class M3uSpreadTest {
 
         println(
             "m3u fit sweep — $spreads spreads, $columns columns " +
-                "($columnsWithName of them with the compact name field), tightest ${tightest}dp at $tightestAt",
+                "($belowFloor below the column's floor, all shorter than $SHORTEST_FRAME), tightest ${tightest}dp at $tightestAt",
         )
         assertTrue("no surface drew the spread", spreads > 0)
-        assertTrue("no surface drew the column", columns > 0)
-        assertTrue("no surface drew the compact column's name field", columnsWithName > 0)
+        assertTrue("no surface drew the column", columns > belowFloor)
     }
 
     private companion object {
@@ -380,6 +292,15 @@ class M3uSpreadTest {
 
         /** Label row 16, gap 4, and a box floored by the Paste chip inside it. */
         val URL_FIELD: Dp = 76.dp
+
+        /** [URL_FIELD] less its chip: the Paste chip floors at the button's own target, 56 on a remote. */
+        val URL_CHROME: Dp = 28.dp
+
+        /** One line of `bodySmall`. */
+        val NOTE: Dp = 20.dp
+
+        /** 800x360: the shortest frame in the sizing system. */
+        val SHORTEST_FRAME: Dp = 360.dp
 
         /** A floor reached by subtracting `Float` dp cannot be asserted to the last bit. */
         const val TOLERANCE = 0.01f

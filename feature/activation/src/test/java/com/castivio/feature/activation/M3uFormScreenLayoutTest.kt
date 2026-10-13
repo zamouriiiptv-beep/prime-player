@@ -102,6 +102,19 @@ class M3uFormScreenLayoutTest {
         compose.setContent { Screen(820.dp, 393.dp) }
 
         compose.onNodeWithTag(ActivationTags.PLAYLIST_ART).assertDoesNotExist()
+        compose.onNodeWithTag(ActivationTags.PLAYLIST_NAME)
+            .assertExists("the column dropped the playlist name field at 820x393")
+    }
+
+    /** The shortest frame the project ships to still draws the whole form, name field included. */
+    @Test
+    fun `the shortest frame draws the column with the name field and the note`() {
+        compose.setContent { Screen(800.dp, 360.dp) }
+
+        compose.onNodeWithTag(ActivationTags.PLAYLIST_ART).assertDoesNotExist()
+        compose.onNodeWithTag(ActivationTags.PLAYLIST_NAME)
+            .assertExists("the column dropped the playlist name field at 800x360")
+        compose.onNodeWithTag(ActivationTags.PLAYLIST_NOTE).assertExists()
     }
 }
 

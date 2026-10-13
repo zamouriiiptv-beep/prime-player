@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.widthIn
@@ -260,19 +261,20 @@ internal fun M3uFormScreen(
                         fieldMeasure = formMeasure(m.frame),
                     )
                 } else {
+                    val column = m3uColumn(band = band, bandTop = m.bandTop, button = Sizing.minTarget(tv))
                     M3uColumn(
                         form = form,
                         enabled = enabled,
                         canSubmit = canSubmit,
-                        dress = m3uColumnChrome(band = band, button = Sizing.minTarget(tv)),
+                        metrics = column,
                         onName = onName,
                         onUrl = onUrl,
                         onSubmit = onSubmit,
                         fieldMeasure = formMeasure(m.frame),
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-                            .widthIn(max = formMeasure(m.frame))
-                            .fillMaxWidth(),
+                            .fillMaxWidth()
+                            .height(column.height),
                     )
                 }
             }
@@ -702,32 +704,17 @@ private fun PasteChip(enabled: Boolean, onPaste: (String) -> Unit) {
 }
 
 /**
- * The form as it has always been, for every surface too narrow to hold the spread --
- * now one framed container rather than a card with the button and the note loose
- * outside it.
- *
- * ## Why one container and not a card plus two siblings
- *
- * The card used to hold only the two fields, with Connect and the note stacked
- * under it at the outer column's own gap. That was the shape a field needed, not
- * the shape a *form* asks for: a single bordered frame, with everything belonging
- * to the attempt inside it, is what makes the panel read as one thing a user is
- * filling in rather than three things that happen to be stacked.
- *
- * ## Why a title at all, here
- *
- * [M3uSpread]'s panel has always had one; this column never did, because it used
- * to be two fields under the chooser's own header and nothing else. Framed as its
- * own container now, it reads as a form with no name on it without one -- the same
- * [R.string.playlist_panel_title] the panel already carries, so the two
- * compositions say the same thing rather than agreeing by coincidence.
+ * The form for every surface too narrow to hold the spread: one framed container
+ * across the stage, holding the name field, the URL field with Paste, Connect and the
+ * note -- always all four. The frame takes [M3uColumnMetrics.height]; the form inside
+ * it keeps the field measure and sits centred, so spare height is shared above and below.
  */
 @Composable
 private fun M3uColumn(
     form: ActivationForm.Playlist,
     enabled: Boolean,
     canSubmit: Boolean,
-    dress: M3uColumnDress,
+    metrics: M3uColumnMetrics,
     onName: (String) -> Unit,
     onUrl: (String) -> Unit,
     onSubmit: () -> Unit,
@@ -737,49 +724,20 @@ private fun M3uColumn(
 ) {
     val colors = CastivioTheme.colors
     val checked = form.checked
-    val chrome = dress.chrome
     val shape = RoundedCornerShape(Radius.xl)
 
-    // The same surface `GlassCard` draws -- its own shadow, fill and clip -- with
-    // one thing GlassCard has no parameter for: a border of the brand's own two
-    // hues rather than the neutral edge every other card wears. A frame that is
-    // going to hold the whole attempt, title included, earns the one accent this
-    // screen has to spend; a field inside it does not need a second one.
-    Column(
+    // GlassCard's own shadow, fill and clip, plus the one thing it has no parameter
+    // for: a border in the brand's two hues.
+    Box(
         modifier
             .shadow(Elevation.level2, shape, ambientColor = Elevation.ambient, spotColor = Elevation.spot)
             .clip(shape)
             .background(colors.glassFillBrush)
             .border(BorderStroke(1.dp, Brush.linearGradient(listOf(colors.hueViolet, colors.hueAzure))), shape)
-            .padding(chrome.pad),
+            .padding(horizontal = Spacing.lg),
+        contentAlignment = Alignment.Center,
     ) {
-        // The first optional part to go, and the cheapest: the row costs one line
-        // of `headlineMedium` -- `LINE_TITLE`, the same figure the pitch is
-        // counted against -- plus the gap under it, well before the name field's
-        // own 78dp is affordable. See `m3uColumnChrome`.
-        if (dress.title) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                CastivioDisc(size = COLUMN_TITLE_DISC, hue = colors.hueAzure, icon = Icons.Rounded.Link)
-                Text(
-                    text = stringResource(R.string.playlist_panel_title),
-                    style = CastivioType.headlineMedium,
-                    color = colors.onBackground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f).semantics { heading() },
-                )
-            }
-            Spacer(Modifier.height(chrome.headGap))
-        }
-
-        // The optional field, and the only control this screen will give up
-        // beneath the title. Its own label says "optional", a subscription takes
-        // a name without it, and the saved-subscriptions screen renames one
-        // afterwards. Connect does not move for it.
-        if (chrome.name) {
+        Column(Modifier.widthIn(max = fieldMeasure).fillMaxWidth()) {
             CastivioTextField(
                 value = form.name,
                 onValueChange = onName,
@@ -790,48 +748,41 @@ private fun M3uColumn(
                 enabled = enabled,
                 labelIcon = Icons.Rounded.Home,
                 icon = Icons.Rounded.Home,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentWidth(Alignment.CenterHorizontally)
-                    .widthIn(max = fieldMeasure)
-                    .testTag(ActivationTags.PLAYLIST_NAME),
+                modifier = Modifier.fillMaxWidth().testTag(ActivationTags.PLAYLIST_NAME),
             )
-            Spacer(Modifier.height(chrome.fieldGap))
+
+            Spacer(Modifier.height(metrics.fieldGap))
+            CastivioTextField(
+                value = form.url,
+                onValueChange = onUrl,
+                label = stringResource(R.string.field_playlist_url),
+                placeholder = stringResource(R.string.field_playlist_url_placeholder),
+                error = form.url.problemOnceTyped(checked.url.problem),
+                enabled = enabled,
+                keyboardType = KeyboardType.Uri,
+                imeAction = ImeAction.Done,
+                onImeAction = onSubmit,
+                labelIcon = Icons.Rounded.Link,
+                icon = Icons.Rounded.Link,
+                trailing = { PasteChip(enabled = enabled, onPaste = onUrl) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Spacer(Modifier.height(metrics.actionGap))
+            ConnectButton(
+                enabled = canSubmit,
+                onClick = onSubmit,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Spacer(Modifier.height(metrics.noteGap))
+            PanelNote(
+                detail = stringResource(
+                    if (canSubmit) R.string.playlist_note_ready else R.string.playlist_note_empty,
+                ),
+                modifier = Modifier.fillMaxWidth().testTag(ActivationTags.PLAYLIST_NOTE),
+            )
         }
-
-        CastivioTextField(
-            value = form.url,
-            onValueChange = onUrl,
-            label = stringResource(R.string.field_playlist_url),
-            placeholder = stringResource(R.string.field_playlist_url_placeholder),
-            error = form.url.problemOnceTyped(checked.url.problem),
-            enabled = enabled,
-            keyboardType = KeyboardType.Uri,
-            imeAction = ImeAction.Done,
-            onImeAction = onSubmit,
-            labelIcon = Icons.Rounded.Link,
-            icon = Icons.Rounded.Link,
-            trailing = { PasteChip(enabled = enabled, onPaste = onUrl) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentWidth(Alignment.CenterHorizontally)
-                .widthIn(max = fieldMeasure),
-        )
-
-        Spacer(Modifier.height(chrome.actionGap))
-        ConnectButton(
-            enabled = canSubmit,
-            onClick = onSubmit,
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        Spacer(Modifier.height(chrome.noteGap))
-        PanelNote(
-            detail = stringResource(
-                if (canSubmit) R.string.playlist_note_ready else R.string.playlist_note_empty,
-            ),
-            modifier = Modifier.fillMaxWidth().testTag(ActivationTags.PLAYLIST_NOTE),
-        )
     }
 }
 
@@ -1045,25 +996,38 @@ internal fun panelNeeds(chrome: M3uChrome, button: Dp): Dp =
     (if (chrome.full) PANEL_FIXED else PANEL_FIXED_COMPACT) + button
 
 /**
- * The single column's, for the surfaces too narrow to hold two.
+ * The single column, from the band it is given.
  *
- * Read against [M3uChrome.name] rather than [M3uChrome.full]: a compact column
- * that has restored the name field (see [m3uColumnChrome]) costs
- * [COLUMN_FIXED_COMPACT_WITH_NAME], not [COLUMN_FIXED_COMPACT] -- and the one
- * surface `chrome.full` cannot tell apart from the plainer compact dress.
+ * Every control is at its touch floor and cannot give height back, so spacing is what
+ * yields: the frame keeps a bottom margin equal to [bandTop] above it, and the gaps
+ * shrink together where that frame is too short for them at full size.
  */
-internal fun columnNeeds(dress: M3uColumnDress, button: Dp): Dp =
-    (
-        if (dress.chrome.full) {
-            COLUMN_FIXED
-        } else if (dress.chrome.name) {
-            COLUMN_FIXED_COMPACT_WITH_NAME
-        } else if (dress.title) {
-            COLUMN_FIXED_COMPACT_TITLE
-        } else {
-            COLUMN_FIXED_COMPACT
-        }
-        ) + button
+internal fun m3uColumn(band: Dp, bandTop: Dp, button: Dp): M3uColumnMetrics {
+    val floor = columnFloor(button)
+    val height = (band - bandTop).coerceAtLeast(floor).coerceAtMost(band)
+    val share = ((height - floor) / COLUMN_SPACING).coerceIn(0f, 1f)
+    return M3uColumnMetrics(
+        height = height,
+        fieldGap = COLUMN_FIELD_GAP * share,
+        actionGap = COLUMN_ACTION_GAP * share,
+        noteGap = COLUMN_NOTE_GAP * share,
+    )
+}
+
+/** What the column's contents measure with no spacing at all: both fields, Connect, the note. */
+internal fun columnFloor(button: Dp): Dp = COLUMN_NAME_FIELD + COLUMN_URL_CHROME + button + button + COLUMN_NOTE
+
+@Immutable
+internal data class M3uColumnMetrics(
+    /** The frame: the band less a bottom margin equal to the gap above it, where that fits. */
+    val height: Dp,
+    /** Between the name field and the URL field. */
+    val fieldGap: Dp,
+    /** Above Connect. */
+    val actionGap: Dp,
+    /** Above the note. */
+    val noteGap: Dp,
+)
 
 @Immutable
 internal data class M3uMetrics(
@@ -1166,56 +1130,6 @@ internal fun m3uChrome(full: Boolean): M3uChrome =
     }
 
 /**
- * What [M3uColumn] draws: [m3uChrome]'s dress, plus whether the band can also
- * afford the title row the column did not used to carry.
- */
-@Immutable
-internal data class M3uColumnDress(
-    val chrome: M3uChrome,
-    /** The frame's own title. The first optional part to go, and the cheapest. */
-    val title: Boolean,
-)
-
-/**
- * [M3uColumn]'s own dress: [m3uChrome]'s, graduated one step further than the
- * panel's ever needs to be.
- *
- * ## Why this is not `m3uChrome` itself
- *
- * [m3uChrome] is shared with [m3uSpread], and the panel's "full" threshold is the
- * one place the two screens' compositions are allowed to differ -- a tablet or a
- * television reads it unchanged. This function is the column's alone.
- *
- * ## A ladder, not a switch
- *
- * The column used to be two fields with nothing to say about itself, so `full`
- * and `compact` were the whole of it. Framed as one container with a title now,
- * a short band has three things it might not afford in order of what they cost:
- * the title row (one line of `headlineMedium`, cheapest), the optional name field
- * (78dp more), and the rest of `full`'s own generous dress (most expensive). Each
- * returns only once the band affords it **on its own**, which is what keeps a
- * handset a few dp short of the name field's threshold from also losing the title
- * it could already afford.
- *
- * [columnNeeds] reads [M3uChrome.name] and [M3uColumnDress.title] rather than
- * [M3uChrome.full] alone, so the budget each step restores is counted rather
- * than assumed -- the same rule [the earlier name-field tier][COLUMN_FIXED_COMPACT_WITH_NAME]
- * was written for.
- */
-internal fun m3uColumnChrome(band: Dp, button: Dp): M3uColumnDress {
-    val full = band >= COLUMN_FIXED + button
-    if (full) return M3uColumnDress(chrome = m3uChrome(full = true), title = true)
-
-    val withName = band >= COLUMN_FIXED_COMPACT_WITH_NAME + button
-    if (withName) {
-        return M3uColumnDress(chrome = m3uChrome(full = false).copy(name = true), title = true)
-    }
-
-    val withTitle = band >= COLUMN_FIXED_COMPACT_TITLE + button
-    return M3uColumnDress(chrome = m3uChrome(full = false), title = withTitle)
-}
-
-/**
  * Whether this surface is wide enough for two columns.
  *
  * ## Width, and only width
@@ -1314,43 +1228,24 @@ private val ART_MAX: Dp = 360.dp
 private val PANEL_FIXED: Dp = 354.dp
 private val PANEL_FIXED_COMPACT: Dp = 188.dp
 
-/**
- * The same for the single column, now one framed container with its own title
- * rather than a card with the button and the note loose outside it.
- *
- * Full: 32 pad + 32 title + 24 headGap + 70 name + 16 fieldGap + 76 url + 24
- * actionGap + [button] + 12 noteGap + 20 note = 306. Compact, bare (no title, no
- * name -- the column exactly as it drew before this container existed): 24 pad +
- * 76 url + 12 actionGap + [button] + 4 noteGap + 20 note = 136.
- */
-internal val COLUMN_FIXED: Dp = 306.dp
-private val COLUMN_FIXED_COMPACT: Dp = 136.dp
+/** Label row 18 (`labelSmall` carries "optional"), `Spacing.xs`, a box at the touch floor. */
+private val COLUMN_NAME_FIELD: Dp = 70.dp
 
-/**
- * [COLUMN_FIXED_COMPACT] with the title row restored: one more line of
- * `headlineMedium` ([LINE_TITLE], 32dp -- the row's own disc is smaller and the
- * text sets its height) plus one compact `headGap` (`Spacing.md`, 12dp) between
- * it and the URL field -- 136 + 32 + 12 = 180. The cheapest of the column's three
- * optional steps; see [m3uColumnChrome].
- */
-private val COLUMN_FIXED_COMPACT_TITLE: Dp = 180.dp
+/** Label row 16, `Spacing.xs`, and `Spacing.xs` above and below a Paste chip floored at the button's target. */
+private val COLUMN_URL_CHROME: Dp = 28.dp
 
-/**
- * [COLUMN_FIXED_COMPACT_TITLE] with the optional name field restored too: one
- * more 70dp name field and one compact `fieldGap` (`Spacing.sm`, 8dp) between it
- * and the URL field -- 180 + 70 + 8 = 258. See [m3uColumnChrome].
- */
-private val COLUMN_FIXED_COMPACT_WITH_NAME: Dp = 258.dp
+/** One line of `bodySmall`. */
+private val COLUMN_NOTE: Dp = 20.dp
+
+/** The column's gaps at full size; [m3uColumn] shrinks them together, never past zero. */
+private val COLUMN_PAD: Dp = Spacing.md
+private val COLUMN_FIELD_GAP: Dp = Spacing.md
+private val COLUMN_ACTION_GAP: Dp = Spacing.lg
+private val COLUMN_NOTE_GAP: Dp = Spacing.sm
+private val COLUMN_SPACING: Dp = COLUMN_PAD * 2 + COLUMN_FIELD_GAP + COLUMN_ACTION_GAP + COLUMN_NOTE_GAP
 
 /** The panel's mark where the band is short: a glyph, not a control, so it may shrink. */
 private val COMPACT_DISC: Dp = 40.dp
-
-/**
- * The column's own title disc -- decorative only, and deliberately smaller than
- * [LINE_TITLE]: the text beside it is what sets the row's height, so a disc at or
- * under this size costs the budget nothing beyond the line it sits in.
- */
-private val COLUMN_TITLE_DISC: Dp = 28.dp
 
 /** `Spacing.md` above the pitch, `Spacing.xs` inside it, `Spacing.xxl` above the cards. */
 private val PITCH_GAP: Dp = Spacing.md
