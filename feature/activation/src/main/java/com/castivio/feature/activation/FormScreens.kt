@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.widthIn
 import com.castivio.core.design.theme.castivioStage
@@ -171,23 +172,22 @@ internal fun XtreamFormScreen(
  *
  * ## One composition, two surfaces
  *
- * [M3uSpread] where [fitsSpread] says so and [M3uColumn] otherwise, and the second one
- * is the form exactly as it has always been under the header. Not a breakpoint in the
+ * [M3uSpread] where [fitsSpread] says so and [SourceFormFrame] otherwise, the framed
+ * form under the header. Not a breakpoint in the
  * sizing system's sense — that system returns sizes and forbids a layout that
  * changes — but a choice this screen makes about itself, in the one place the
  * application has a reason for it: an illustration and a form side by side need about
  * 820dp of stage, a handset in landscape has 750, and a drawing squeezed to a third of
  * its size is worth less than the vertical room it costs.
  *
- * Xtream and the portal keep the column at every size, and that is deliberate too.
- * Neither has anything to say on a left-hand side.
+ * Where the spread does not fit, the screen draws [SourceFormFrame] -- the same frame
+ * the portal draws at every size, so the two forms cannot drift apart. Xtream keeps
+ * its plain column.
  *
- * ## It owns its viewport, like the chooser and unlike the other two forms
+ * ## It owns its viewport, like the chooser and unlike the Xtream form
  *
  * Which is what lets it wear [ChooserHeader] at the chooser's own place, and what gives
- * the band a bounded height to divide. The scrolling the other two forms need — a
- * keyboard takes most of a handset — is kept, and kept where it belongs: around the
- * band, under the header, so a keyboard moves the fields and never the way back.
+ * the band a bounded height to divide. See [SourceFormScreen].
  */
 @Composable
 internal fun M3uFormScreen(
@@ -202,81 +202,103 @@ internal fun M3uFormScreen(
     modifier: Modifier = Modifier,
 ) {
     val tv = CastivioTheme.device.isTv
+    val checked = form.checked
+
+    SourceFormScreen(
+        title = stringResource(R.string.source_m3u_title),
+        headingTag = ActivationTags.PLAYLIST_HEADING,
+        backTag = ActivationTags.PLAYLIST_BACK,
+        onBack = onBack,
+        modifier = modifier,
+    ) { surface, surfaceHeight, m, band ->
+        if (fitsSpread(surface, band)) {
+            val metrics = m3uSpread(maxWidth, band, tv)
+            M3uSpread(
+                metrics = metrics,
+                modifier = Modifier.align(Alignment.TopCenter).width(metrics.measure),
+                form = form,
+                enabled = enabled,
+                canSubmit = canSubmit,
+                onName = onName,
+                onUrl = onUrl,
+                onSubmit = onSubmit,
+                fieldMeasure = formMeasure(m.frame),
+            )
+        } else {
+            val frame = formFrame(surface, surfaceHeight, band, m.bandTop, Sizing.minTarget(tv))
+            SourceFormFrame(
+                frame = frame,
+                fieldMeasure = formMeasure(m.frame),
+                name = form.name,
+                nameError = checked.name.problem.message(),
+                url = form.url,
+                urlError = form.url.problemOnceTyped(checked.url.problem),
+                urlLabel = stringResource(R.string.field_playlist_url),
+                urlPlaceholder = stringResource(R.string.field_playlist_url_placeholder),
+                note = stringResource(if (canSubmit) R.string.playlist_note_ready else R.string.playlist_note_empty),
+                enabled = enabled,
+                canSubmit = canSubmit,
+                onName = onName,
+                onUrl = onUrl,
+                onSubmit = onSubmit,
+                nameTag = ActivationTags.PLAYLIST_NAME,
+                urlTag = ActivationTags.PLAYLIST_URL,
+                noteTag = ActivationTags.PLAYLIST_NOTE,
+                modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth().height(frame.height),
+            )
+        }
+    }
+}
+
+/**
+ * The stage both source forms share: the chooser's header with this screen's own title,
+ * the chooser's gap under it, and the band that [content] is given -- with the surface's
+ * own width and height, its metrics, and the band's height.
+ */
+@Composable
+private fun SourceFormScreen(
+    title: String,
+    headingTag: String,
+    backTag: String,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable BoxWithConstraintsScope.(surface: Dp, surfaceHeight: Dp, m: SourceMetrics, band: Dp) -> Unit,
+) {
+    val tv = CastivioTheme.device.isTv
 
     BoxWithConstraints(modifier.fillMaxSize()) {
         val surface = maxWidth
-        val m = sourceMetricsFor(tv = tv, width = surface, height = maxHeight)
-        val band = m3uBand(m, maxHeight)
+        val surfaceHeight = maxHeight
+        val m = sourceMetricsFor(tv = tv, width = surface, height = surfaceHeight)
+        val band = m3uBand(m, surfaceHeight)
 
         Column(Modifier.fillMaxSize().castivioStage(m.frame)) {
             // The chooser's header, the same component at the same place with this
             // screen's own title -- which is what puts Back where a reader who has just
-            // come from the chooser already knows it is.
+            // come from the chooser already knows it is. The title is the words on the
+            // card the user just pressed, from the gated chooser bundle.
             ChooserHeader(
                 m = m,
-                // The words on the card the user just pressed, from the gated chooser
-                // bundle -- so the screen is named the same way in all thirty-seven
-                // languages, and named the same thing it was reached by.
-                title = stringResource(R.string.source_m3u_title),
-                headingTag = ActivationTags.PLAYLIST_HEADING,
-                backTag = ActivationTags.PLAYLIST_BACK,
+                title = title,
+                headingTag = headingTag,
+                backTag = backTag,
                 onBack = onBack,
             )
             Spacer(Modifier.height(m.bandTop))
 
             // **The band, and nothing may leave it.**
             //
-            // No scroll and no `imePadding`. Both were here and both were wrong for
-            // this screen: a scroll meant Connect could sit below the fold on the one
-            // device the project is tested on, and an IME inset on a window that does
-            // not resize -- `:app` is edge to edge, so the keyboard arrives as an
-            // inset rather than a resize -- would have shrunk the band and clipped the
-            // control instead.
+            // No scroll and no `imePadding`: a scroll meant Connect could sit below the
+            // fold, and an IME inset on a window that does not resize -- `:app` is edge
+            // to edge -- would have shrunk the band and clipped the control instead.
+            // What replaces them is arithmetic, asserted on every surface by
+            // `M3uSpreadTest`.
             //
-            // What replaces them is arithmetic. `m3uSpread` is handed this height and
-            // chooses a composition that fits it: at the reference the full drawing,
-            // on a short landscape handset the same drawing with its optional parts
-            // dropped and its padding tightened. `M3uSpreadTest` asserts the fit on
-            // every surface rather than trusting this comment.
-            //
-            // **It measures its own width rather than subtracting one.** Two reasons,
-            // and the second is why this is not a `Box`. `castivioStage` pays
-            // `max(edge, inset)` per side, so `surface - edge * 2` overstates the room
-            // on a handset whose display cutout is wider than the margin. And a
-            // `BoxScope` carries `@LayoutScopeMarker`, which hides the enclosing
-            // `BoxWithConstraints` -- reading the outer `maxWidth` from inside a plain
-            // `Box` does not compile, and that is what it failed on.
+            // A `BoxWithConstraints` rather than a `Box`, so [content] can read the
+            // stage's own width: `castivioStage` pays `max(edge, inset)` per side, and
+            // `surface - edge * 2` would overstate the room beside a display cutout.
             BoxWithConstraints(Modifier.weight(1f)) {
-                if (fitsSpread(surface, band)) {
-                    val metrics = m3uSpread(maxWidth, band, tv)
-                    M3uSpread(
-                        metrics = metrics,
-                        modifier = Modifier.align(Alignment.TopCenter).width(metrics.measure),
-                        form = form,
-                        enabled = enabled,
-                        canSubmit = canSubmit,
-                        onName = onName,
-                        onUrl = onUrl,
-                        onSubmit = onSubmit,
-                        fieldMeasure = formMeasure(m.frame),
-                    )
-                } else {
-                    val column = m3uColumn(band = band, bandTop = m.bandTop, button = Sizing.minTarget(tv))
-                    M3uColumn(
-                        form = form,
-                        enabled = enabled,
-                        canSubmit = canSubmit,
-                        metrics = column,
-                        onName = onName,
-                        onUrl = onUrl,
-                        onSubmit = onSubmit,
-                        fieldMeasure = formMeasure(m.frame),
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .fillMaxWidth()
-                            .height(column.height),
-                    )
-                }
+                content(surface, surfaceHeight, m, band)
             }
         }
     }
@@ -502,7 +524,7 @@ private fun PlaylistPanel(
      * it, and a Paste chip stranded at the far edge of it.
      *
      * [formMeasure] rather than a number invented here: it is the same cap
-     * `M3uColumn`, Xtream's form and the portal's already read a field at, derived
+     * [SourceFormFrame] and Xtream's form already read a field at, derived
      * from the surface's own type step rather than fixed to one device class. The
      * field is centred in whatever width is left over, so the card, the title row,
      * Connect and the note under it are untouched -- only the two inputs narrow.
@@ -640,10 +662,10 @@ private fun PlaylistPanel(
  * the same place either way, because a message that appears and disappears moves the
  * button it sits under.
  *
- * It is never an error. A field says what is wrong with a field, under that field; and
- * a playlist's Connect cannot fail, because it asks nobody anything. The one ink is
- * therefore the quiet one, and there is no second branch for a state that does not
- * exist.
+ * It is never an error. A field says what is wrong with a field, under that field; a
+ * playlist's Connect cannot fail, because it asks nobody anything, and a portal's
+ * failure replaces the whole form with its own screen. The one ink is therefore the
+ * quiet one, and there is no second branch for a state this line never shows.
  */
 @Composable
 private fun PanelNote(detail: String, modifier: Modifier = Modifier) {
@@ -704,26 +726,34 @@ private fun PasteChip(enabled: Boolean, onPaste: (String) -> Unit) {
 }
 
 /**
- * The form for every surface too narrow to hold the spread: one framed container
- * across the stage, holding the name field, the URL field with Paste, Connect and the
- * note -- always all four. The frame takes [M3uColumnMetrics.height]; the form inside
- * it keeps the field measure and sits centred, so spare height is shared above and below.
+ * The framed form both source screens draw: the name field, the URL field with Paste,
+ * Connect and the note -- always all four. The frame takes [FormFrameMetrics.height]; the
+ * form inside it keeps the field measure and sits centred, so spare height is shared
+ * above and below. Only the words and the tags differ between the two screens.
  */
 @Composable
-private fun M3uColumn(
-    form: ActivationForm.Playlist,
+private fun SourceFormFrame(
+    frame: FormFrameMetrics,
+    /** See [PlaylistPanel]'s own parameter of the same name. */
+    fieldMeasure: Dp,
+    name: String,
+    nameError: String?,
+    url: String,
+    urlError: String?,
+    urlLabel: String,
+    urlPlaceholder: String,
+    note: String,
     enabled: Boolean,
     canSubmit: Boolean,
-    metrics: M3uColumnMetrics,
     onName: (String) -> Unit,
     onUrl: (String) -> Unit,
     onSubmit: () -> Unit,
-    /** See [PlaylistPanel]'s own parameter of the same name. */
-    fieldMeasure: Dp,
+    nameTag: String,
+    urlTag: String,
+    noteTag: String,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
-    val checked = form.checked
     val shape = RoundedCornerShape(Radius.xl)
 
     // GlassCard's own shadow, fill and clip, plus the one thing it has no parameter
@@ -734,30 +764,30 @@ private fun M3uColumn(
             .clip(shape)
             .background(colors.glassFillBrush)
             .border(BorderStroke(1.dp, Brush.linearGradient(listOf(colors.hueViolet, colors.hueAzure))), shape)
-            .padding(horizontal = Spacing.lg),
+            .padding(horizontal = frame.padH),
         contentAlignment = Alignment.Center,
     ) {
         Column(Modifier.widthIn(max = fieldMeasure).fillMaxWidth()) {
             CastivioTextField(
-                value = form.name,
+                value = name,
                 onValueChange = onName,
                 label = stringResource(R.string.field_playlist_name),
                 hint = stringResource(R.string.field_optional),
                 placeholder = stringResource(R.string.field_playlist_name_placeholder),
-                error = checked.name.problem.message(),
+                error = nameError,
                 enabled = enabled,
                 labelIcon = Icons.Rounded.Home,
                 icon = Icons.Rounded.Home,
-                modifier = Modifier.fillMaxWidth().testTag(ActivationTags.PLAYLIST_NAME),
+                modifier = Modifier.fillMaxWidth().testTag(nameTag),
             )
 
-            Spacer(Modifier.height(metrics.fieldGap))
+            Spacer(Modifier.height(frame.fieldGap))
             CastivioTextField(
-                value = form.url,
+                value = url,
                 onValueChange = onUrl,
-                label = stringResource(R.string.field_playlist_url),
-                placeholder = stringResource(R.string.field_playlist_url_placeholder),
-                error = form.url.problemOnceTyped(checked.url.problem),
+                label = urlLabel,
+                placeholder = urlPlaceholder,
+                error = urlError,
                 enabled = enabled,
                 keyboardType = KeyboardType.Uri,
                 imeAction = ImeAction.Done,
@@ -765,22 +795,20 @@ private fun M3uColumn(
                 labelIcon = Icons.Rounded.Link,
                 icon = Icons.Rounded.Link,
                 trailing = { PasteChip(enabled = enabled, onPaste = onUrl) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().testTag(urlTag),
             )
 
-            Spacer(Modifier.height(metrics.actionGap))
+            Spacer(Modifier.height(frame.actionGap))
             ConnectButton(
                 enabled = canSubmit,
                 onClick = onSubmit,
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            Spacer(Modifier.height(metrics.noteGap))
+            Spacer(Modifier.height(frame.noteGap))
             PanelNote(
-                detail = stringResource(
-                    if (canSubmit) R.string.playlist_note_ready else R.string.playlist_note_empty,
-                ),
-                modifier = Modifier.fillMaxWidth().testTag(ActivationTags.PLAYLIST_NOTE),
+                detail = note,
+                modifier = Modifier.fillMaxWidth().testTag(noteTag),
             )
         }
     }
@@ -799,10 +827,10 @@ private fun M3uColumn(
  *
  * ## Why it is this file and not a screen of its own
  *
- * It is the M3U form with a different label and a different destination: the same
- * glass card, the same field, the same Connect. A second file would be a second set of
- * decisions about what a form looks like, agreeing with this one until the first edit
- * to either.
+ * It is the playlist screen with a different title, label, example and destination:
+ * the same header, the same frame, the same field with Paste, the same Connect. It
+ * draws the frame at every size -- the spread's illustration is about playlists and
+ * has nothing to say about a portal -- and the sizing system scales it from there.
  */
 @Composable
 internal fun PortalFormScreen(
@@ -812,58 +840,41 @@ internal fun PortalFormScreen(
     onName: (String) -> Unit,
     onUrl: (String) -> Unit,
     onSubmit: () -> Unit,
+    /** The route's one answer to Back, raised by the header's chip. */
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = CastivioTheme.colors
+    val tv = CastivioTheme.device.isTv
     val checked = form.checked
 
-    Column(
-        modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Spacing.xl),
-    ) {
-        Text(
-            text = stringResource(R.string.source_portal_title),
-            style = CastivioType.headlineMedium,
-            color = colors.onBackground,
-            modifier = Modifier.semantics { heading() },
+    SourceFormScreen(
+        title = stringResource(R.string.source_portal_title),
+        headingTag = ActivationTags.PORTAL_HEADING,
+        backTag = ActivationTags.PORTAL_BACK,
+        onBack = onBack,
+        modifier = modifier,
+    ) { surface, surfaceHeight, m, band ->
+        val frame = formFrame(surface, surfaceHeight, band, m.bandTop, Sizing.minTarget(tv))
+        SourceFormFrame(
+            frame = frame,
+            fieldMeasure = formMeasure(m.frame),
+            name = form.name,
+            nameError = checked.name.problem.message(),
+            url = form.url,
+            urlError = form.url.problemOnceTyped(checked.url.problem),
+            urlLabel = stringResource(R.string.field_portal_url),
+            urlPlaceholder = stringResource(R.string.field_portal_url_placeholder),
+            note = stringResource(if (canSubmit) R.string.portal_note_ready else R.string.playlist_note_empty),
+            enabled = enabled,
+            canSubmit = canSubmit,
+            onName = onName,
+            onUrl = onUrl,
+            onSubmit = onSubmit,
+            nameTag = ActivationTags.PORTAL_NAME,
+            urlTag = ActivationTags.PORTAL_URL,
+            noteTag = ActivationTags.PORTAL_NOTE,
+            modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth().height(frame.height),
         )
-
-        GlassCard(Modifier.fillMaxWidth()) {
-            Column(
-                Modifier.padding(Spacing.xl),
-                verticalArrangement = Arrangement.spacedBy(Spacing.lg),
-            ) {
-                CastivioTextField(
-                    value = form.name,
-                    onValueChange = onName,
-                    label = stringResource(R.string.field_playlist_name),
-                    hint = stringResource(R.string.field_optional),
-                    placeholder = stringResource(R.string.field_playlist_name_placeholder),
-                    error = checked.name.problem.message(),
-                    enabled = enabled,
-                    modifier = Modifier.testTag(ActivationTags.PORTAL_NAME),
-                )
-                CastivioTextField(
-                    value = form.url,
-                    onValueChange = onUrl,
-                    label = stringResource(R.string.field_portal_url),
-                    placeholder = stringResource(R.string.field_portal_url_placeholder),
-                    error = form.url.problemOnceTyped(checked.url.problem),
-                    enabled = enabled,
-                    keyboardType = KeyboardType.Uri,
-                    imeAction = ImeAction.Done,
-                    onImeAction = onSubmit,
-                    modifier = Modifier.testTag(ActivationTags.PORTAL_URL),
-                )
-                Text(
-                    text = stringResource(R.string.field_portal_hint),
-                    style = CastivioType.bodyMedium,
-                    color = colors.onBackgroundVariant,
-                )
-            }
-        }
-
-        ConnectButton(enabled = canSubmit, onClick = onSubmit, modifier = Modifier.fillMaxWidth())
     }
 }
 
@@ -996,31 +1007,40 @@ internal fun panelNeeds(chrome: M3uChrome, button: Dp): Dp =
     (if (chrome.full) PANEL_FIXED else PANEL_FIXED_COMPACT) + button
 
 /**
- * The single column, from the band it is given.
+ * The source form's frame, from the surface and the band it is given.
  *
- * Every control is at its touch floor and cannot give height back, so spacing is what
+ * The spacing inside it is the sizing system's: bounded shares of the surface's height
+ * (and of its width, across), read off 851x393 where this frame was approved. Every
+ * control is at its touch floor and cannot give height back, so spacing is also what
  * yields: the frame keeps a bottom margin equal to [bandTop] above it, and the gaps
  * shrink together where that frame is too short for them at full size.
  */
-internal fun m3uColumn(band: Dp, bandTop: Dp, button: Dp): M3uColumnMetrics {
-    val floor = columnFloor(button)
-    val height = (band - bandTop).coerceAtLeast(floor).coerceAtMost(band)
-    val share = ((height - floor) / COLUMN_SPACING).coerceIn(0f, 1f)
-    return M3uColumnMetrics(
-        height = height,
-        fieldGap = COLUMN_FIELD_GAP * share,
-        actionGap = COLUMN_ACTION_GAP * share,
-        noteGap = COLUMN_NOTE_GAP * share,
+internal fun formFrame(width: Dp, height: Dp, band: Dp, bandTop: Dp, button: Dp): FormFrameMetrics {
+    val floor = formFrameFloor(button)
+    val frame = (band - bandTop).coerceAtLeast(floor).coerceAtMost(band)
+    val pad = height.boundedFraction(FRAME_PAD, Spacing.sm, Spacing.xl)
+    val fieldGap = height.boundedFraction(FRAME_FIELD_GAP, Spacing.sm, Spacing.xl)
+    val actionGap = height.boundedFraction(FRAME_ACTION_GAP, Spacing.md, Spacing.xxl)
+    val noteGap = height.boundedFraction(FRAME_NOTE_GAP, Spacing.xs, Spacing.lg)
+    val share = ((frame - floor) / (pad * 2 + fieldGap + actionGap + noteGap)).coerceIn(0f, 1f)
+    return FormFrameMetrics(
+        height = frame,
+        padH = width.boundedFraction(FRAME_PAD_H, Spacing.md, Spacing.xxl),
+        fieldGap = fieldGap * share,
+        actionGap = actionGap * share,
+        noteGap = noteGap * share,
     )
 }
 
-/** What the column's contents measure with no spacing at all: both fields, Connect, the note. */
-internal fun columnFloor(button: Dp): Dp = COLUMN_NAME_FIELD + COLUMN_URL_CHROME + button + button + COLUMN_NOTE
+/** What the frame's contents measure with no spacing at all: both fields, Connect, the note. */
+internal fun formFrameFloor(button: Dp): Dp = FRAME_NAME_FIELD + FRAME_URL_CHROME + button + button + FRAME_NOTE
 
 @Immutable
-internal data class M3uColumnMetrics(
+internal data class FormFrameMetrics(
     /** The frame: the band less a bottom margin equal to the gap above it, where that fits. */
     val height: Dp,
+    /** Either side of the form, inside the frame. */
+    val padH: Dp,
     /** Between the name field and the URL field. */
     val fieldGap: Dp,
     /** Above Connect. */
@@ -1229,20 +1249,23 @@ private val PANEL_FIXED: Dp = 354.dp
 private val PANEL_FIXED_COMPACT: Dp = 188.dp
 
 /** Label row 18 (`labelSmall` carries "optional"), `Spacing.xs`, a box at the touch floor. */
-private val COLUMN_NAME_FIELD: Dp = 70.dp
+private val FRAME_NAME_FIELD: Dp = 70.dp
 
 /** Label row 16, `Spacing.xs`, and `Spacing.xs` above and below a Paste chip floored at the button's target. */
-private val COLUMN_URL_CHROME: Dp = 28.dp
+private val FRAME_URL_CHROME: Dp = 28.dp
 
 /** One line of `bodySmall`. */
-private val COLUMN_NOTE: Dp = 20.dp
+private val FRAME_NOTE: Dp = 20.dp
 
-/** The column's gaps at full size; [m3uColumn] shrinks them together, never past zero. */
-private val COLUMN_PAD: Dp = Spacing.md
-private val COLUMN_FIELD_GAP: Dp = Spacing.md
-private val COLUMN_ACTION_GAP: Dp = Spacing.lg
-private val COLUMN_NOTE_GAP: Dp = Spacing.sm
-private val COLUMN_SPACING: Dp = COLUMN_PAD * 2 + COLUMN_FIELD_GAP + COLUMN_ACTION_GAP + COLUMN_NOTE_GAP
+/**
+ * The frame's spacing as shares of the 720dp reference height, so that the 393dp handset
+ * the frame was approved on gets 12, 12, 16 and 8 -- and 1280 across for the 16 either side.
+ */
+private const val FRAME_PAD = 22f / 720f
+private const val FRAME_FIELD_GAP = 22f / 720f
+private const val FRAME_ACTION_GAP = 29.3f / 720f
+private const val FRAME_NOTE_GAP = 14.7f / 720f
+private const val FRAME_PAD_H = 24f / 1280f
 
 /** The panel's mark where the band is short: a glyph, not a control, so it may shrink. */
 private val COMPACT_DISC: Dp = 40.dp

@@ -177,33 +177,78 @@ class M3uSpreadTest {
         assertTrue("the handset's band can", fitsSpread(1280.dp, SPREAD_BAND_MIN))
     }
 
-    /** Both fields, Connect and the note, recounted here rather than read from [columnFloor]. */
-    private fun columnContent(c: M3uColumnMetrics, button: Dp): Dp =
-        NAME_FIELD + c.fieldGap + URL_CHROME + button + c.actionGap + button + c.noteGap + NOTE
+    /** Both fields, Connect and the note, recounted here rather than read from [formFrameFloor]. */
+    private fun frameContent(f: FormFrameMetrics, button: Dp): Dp =
+        NAME_FIELD + f.fieldGap + URL_CHROME + button + f.actionGap + button + f.noteGap + NOTE
+
+    private fun frame(width: Dp, height: Dp, tv: Boolean): FormFrameMetrics =
+        formFrame(width, height, band(width, height, tv), metrics(width, height, tv).bandTop, Sizing.minTarget(tv))
 
     /**
-     * **Both landscape handsets draw the whole column, name field included.** At 851x393
+     * **Both landscape handsets draw the whole frame, name field included.** At 851x393
      * and at 800x360, the shortest frame the project ships to, the frame's margin underneath
      * equals the gap above it and the form fits inside with spacing a reader can still use.
-     * A width under [SPREAD_MIN_WIDTH] forces the column at both heights.
+     * A width under [SPREAD_MIN_WIDTH] forces the playlist's column at both heights; the
+     * portal draws this frame at every width.
      */
     @Test
-    fun `both landscape handsets draw the whole column with equal margins`() {
+    fun `both landscape handsets draw the whole frame with equal margins`() {
         val button = Sizing.minTouchTarget
-        assertEquals("the column's floor", (NAME_FIELD + URL_CHROME + button + button + NOTE).value, columnFloor(button).value, 0.01f)
+        assertEquals("the frame's floor", (NAME_FIELD + URL_CHROME + button + button + NOTE).value, formFrameFloor(button).value, 0.01f)
 
         for (height in listOf(393.dp, 360.dp)) {
             val b = band(700.dp, height, tv = false)
             val top = metrics(700.dp, height, tv = false).bandTop
-            val c = m3uColumn(b, top, button)
-            val inside = (c.height - columnContent(c, button)) / 2
+            val f = frame(700.dp, height, tv = false)
+            val inside = (f.height - frameContent(f, button)) / 2
 
-            assertEquals("$height: the margin under the frame", top.value, (b - c.height).value, 0.01f)
-            assertTrue("$height: the column needs ${columnContent(c, button)} of ${c.height}", fits(columnContent(c, button), c.height))
+            assertEquals("$height: the margin under the frame", top.value, (b - f.height).value, 0.01f)
+            assertTrue("$height: the frame needs ${frameContent(f, button)} of ${f.height}", fits(frameContent(f, button), f.height))
             assertTrue("$height: $inside above the name field and under the note", inside >= Spacing.sm)
-            assertTrue("$height: the gap between the fields is ${c.fieldGap}", c.fieldGap >= Spacing.sm)
-            assertTrue("$height: the gap above Connect is ${c.actionGap}", c.actionGap >= Spacing.md)
-            assertTrue("$height: the gap above the note is ${c.noteGap}", c.noteGap >= Spacing.xs)
+            assertTrue("$height: the gap between the fields is ${f.fieldGap}", f.fieldGap >= Spacing.sm)
+            assertTrue("$height: the gap above Connect is ${f.actionGap}", f.actionGap >= Spacing.md)
+            assertTrue("$height: the gap above the note is ${f.noteGap}", f.noteGap >= Spacing.xs)
+        }
+    }
+
+    /**
+     * **The handset the frame was approved on keeps exactly what was approved.** The
+     * spacing is the sizing system's now, read off 851x393 so that it lands where the
+     * fixed figures were: 12 between the fields, 16 above Connect, 8 above the note, 16
+     * either side.
+     */
+    @Test
+    fun `the approved handset keeps its spacing`() {
+        val f = frame(851.dp, 393.dp, tv = false)
+
+        assertEquals("the gap between the fields", 12f, f.fieldGap.value, 0.05f)
+        assertEquals("the gap above Connect", 16f, f.actionGap.value, 0.05f)
+        assertEquals("the gap above the note", 8f, f.noteGap.value, 0.05f)
+        assertEquals("either side of the form", 16f, f.padH.value, 0.05f)
+    }
+
+    /**
+     * **Larger surfaces get more room between the same controls, and never without
+     * limit.** The fields and buttons stay at their own sizes; only the spacing follows
+     * the surface, up to the bound each gap is given.
+     */
+    @Test
+    fun `the frame's spacing grows with the surface and stays within its bounds`() {
+        val phone = frame(851.dp, 393.dp, tv = false)
+
+        for ((name, f, tv) in listOf(
+            Triple("television 960x540", frame(960.dp, 540.dp, tv = true), true),
+            Triple("tablet 1280x800", frame(1280.dp, 800.dp, tv = false), false),
+            Triple("1080p set", frame(1920.dp, 1080.dp, tv = true), true),
+        )) {
+            assertTrue("$name: the gap between the fields is ${f.fieldGap}", f.fieldGap > phone.fieldGap && f.fieldGap <= Spacing.xl)
+            assertTrue("$name: the gap above Connect is ${f.actionGap}", f.actionGap > phone.actionGap && f.actionGap <= Spacing.xxl)
+            assertTrue("$name: the gap above the note is ${f.noteGap}", f.noteGap > phone.noteGap && f.noteGap <= Spacing.lg)
+            assertTrue("$name: either side of the form is ${f.padH}", f.padH >= phone.padH && f.padH <= Spacing.xxl)
+            assertTrue(
+                "$name: the frame needs ${frameContent(f, Sizing.minTarget(tv))} of ${f.height}",
+                fits(frameContent(f, Sizing.minTarget(tv)), f.height),
+            )
         }
     }
 
@@ -219,6 +264,7 @@ class M3uSpreadTest {
     fun `nothing leaves the band on any surface`() {
         var spreads = 0
         var columns = 0
+        var frames = 0
         var belowFloor = 0
         var tightest = Float.MAX_VALUE
         var tightestAt = ""
@@ -254,18 +300,22 @@ class M3uSpreadTest {
                         }
                     } else {
                         columns++
-                        val button = Sizing.minTarget(tv)
-                        if (b < columnFloor(button)) {
-                            // The name field is never dropped, so a band shorter than both
-                            // fields, Connect and the note cannot hold the column at all --
-                            // which must only ever be a window shorter than any frame shipped.
-                            assertTrue("$where: the column's contents need ${columnFloor(button)} of $b", height < SHORTEST_FRAME)
-                            belowFloor++
-                        } else {
-                            val c = m3uColumn(b, metrics(width, height, tv).bandTop, button)
-                            assertTrue("$where: the frame is ${c.height} of $b", fits(c.height, b))
-                            assertTrue("$where: the column needs ${columnContent(c, button)} of ${c.height}", fits(columnContent(c, button), c.height))
-                        }
+                    }
+
+                    // The frame: the playlist's wherever the spread does not fit, and the
+                    // portal's on every surface, so it is asserted on every surface.
+                    val button = Sizing.minTarget(tv)
+                    if (b < formFrameFloor(button)) {
+                        // The name field is never dropped, so a band shorter than both
+                        // fields, Connect and the note cannot hold the frame at all --
+                        // which must only ever be a window shorter than any frame shipped.
+                        assertTrue("$where: the frame's contents need ${formFrameFloor(button)} of $b", height < SHORTEST_FRAME)
+                        belowFloor++
+                    } else {
+                        frames++
+                        val f = formFrame(width, height, b, metrics(width, height, tv).bandTop, button)
+                        assertTrue("$where: the frame is ${f.height} of $b", fits(f.height, b))
+                        assertTrue("$where: the frame needs ${frameContent(f, button)} of ${f.height}", fits(frameContent(f, button), f.height))
                     }
                 }
             }
@@ -273,11 +323,12 @@ class M3uSpreadTest {
         }
 
         println(
-            "m3u fit sweep — $spreads spreads, $columns columns " +
-                "($belowFloor below the column's floor, all shorter than $SHORTEST_FRAME), tightest ${tightest}dp at $tightestAt",
+            "m3u fit sweep — $spreads spreads, $columns columns, $frames frames " +
+                "($belowFloor below the frame's floor, all shorter than $SHORTEST_FRAME), tightest ${tightest}dp at $tightestAt",
         )
         assertTrue("no surface drew the spread", spreads > 0)
-        assertTrue("no surface drew the column", columns > belowFloor)
+        assertTrue("no surface drew the column", columns > 0)
+        assertTrue("no surface held the frame", frames > 0)
     }
 
     private companion object {

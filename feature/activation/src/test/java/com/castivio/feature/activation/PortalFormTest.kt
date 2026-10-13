@@ -1,6 +1,9 @@
 package com.castivio.feature.activation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
@@ -9,10 +12,12 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.DeviceClass
 import com.castivio.core.design.theme.LocalDeviceClass
 import com.castivio.domain.activation.ActivationForm
+import com.castivio.domain.activation.ActivationUiState
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -105,8 +110,49 @@ class PortalFormTest {
                     onName = {},
                     onUrl = {},
                     onSubmit = onSubmit,
+                    onBack = {},
                 )
             }
         }
+    }
+
+    /**
+     * **The portal is the playlist screen with its own words.** The shared header with
+     * its own title and Back, and the frame under it -- name, address with Paste, Connect
+     * and the note -- inside the container production builds, at the shortest frame the
+     * project ships to.
+     */
+    @Test
+    fun `it wears the shared header and frame at the shortest frame`() {
+        compose.setContent {
+            CastivioTheme {
+                Box(Modifier.requiredSize(800.dp, 360.dp)) {
+                    ActivationSurface(
+                        fixedViewport = isFixedViewport(ActivationUiState(), ActivationStep.Portal),
+                    ) {
+                        PortalFormScreen(
+                            form = ActivationForm.Portal(),
+                            enabled = true,
+                            canSubmit = false,
+                            onName = {},
+                            onUrl = {},
+                            onSubmit = {},
+                            onBack = {},
+                        )
+                    }
+                }
+            }
+        }
+
+        for (tag in listOf(
+            ActivationTags.PORTAL_HEADING,
+            ActivationTags.PORTAL_BACK,
+            ActivationTags.PORTAL_NAME,
+            ActivationTags.PORTAL_URL,
+            ActivationTags.PORTAL_NOTE,
+        )) {
+            compose.onNodeWithTag(tag, useUnmergedTree = true).assertExists("$tag is missing at 800x360")
+        }
+        compose.onNodeWithText("Paste").assertExists("the address field has no Paste")
     }
 }

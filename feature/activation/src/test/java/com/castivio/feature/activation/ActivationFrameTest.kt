@@ -71,21 +71,25 @@ class ActivationFrameTest {
     }
 
     /**
-     * The two plain forms scroll, because a form can be taller than a landscape phone
+     * The plain form scrolls, because four fields can be taller than a landscape phone
      * once a keyboard is up.
-     *
-     * The portal was missing from this list and belongs in it: it is the same card
-     * with the same field, and the only reason it never showed the fault is that it
-     * is one field shorter than Xtream.
      */
     @Test
-    fun `the forms scroll`() {
-        for (step in listOf(ActivationStep.Xtream, ActivationStep.Portal)) {
-            assertFalse(
-                "$step was given the fixed frame",
-                isFixedViewport(ActivationUiState(), step),
-            )
-        }
+    fun `the Xtream form scrolls`() {
+        assertFalse(
+            "Xtream was given the fixed frame",
+            isFixedViewport(ActivationUiState(), ActivationStep.Xtream),
+        )
+    }
+
+    /**
+     * **The portal step owns the viewport, as the playlist step does.** It is the same
+     * screen with its own words -- the shared header, and a frame sized to the bounded
+     * band under it, which a scrolling parent's unbounded height cannot give.
+     */
+    @Test
+    fun `the portal step owns the viewport`() {
+        assertTrue(isFixedViewport(ActivationUiState(), ActivationStep.Portal))
     }
 
     /**

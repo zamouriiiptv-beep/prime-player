@@ -66,7 +66,7 @@ class M3uFormScreenLayoutTest {
 
         compose.onNodeWithTag(ActivationTags.PLAYLIST_ART)
             .assertExists(
-                "the illustration is missing at 851x393 -- M3uColumn was drawn " +
+                "the illustration is missing at 851x393 -- the framed column was drawn " +
                     "where fitsSpread(851.dp, 303.5.dp) says M3uSpread should have been",
             )
     }

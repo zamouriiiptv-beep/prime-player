@@ -107,6 +107,11 @@ internal object ActivationTags {
     const val PORTAL_NAME = "activation.portalName"
     const val PORTAL_URL = "activation.portalUrl"
 
+    /** The portal screen's own header, its way back and its note: the playlist's three, its own handles. */
+    const val PORTAL_HEADING = "activation.portalHeading"
+    const val PORTAL_BACK = "activation.portalBack"
+    const val PORTAL_NOTE = "activation.portalNote"
+
     /**
      * The playlist screen's own header and its way back.
      *
@@ -123,7 +128,7 @@ internal object ActivationTags {
     const val PLAYLIST_NOTE = "activation.playlistNote"
 
     /**
-     * The illustration `M3uSpread` draws and `M3uColumn` never does.
+     * The illustration `M3uSpread` draws and `SourceFormFrame` never does.
      *
      * Tagged so a layout test can tell the two compositions apart from their actual
      * output rather than from the pure functions that are supposed to choose between
@@ -140,6 +145,9 @@ internal object ActivationTags {
      * text field merges its label, its value and its decoration into one node.
      */
     const val PLAYLIST_NAME = "activation.playlistName"
+
+    /** The playlist URL field in the shared frame, tagged as the portal's is. */
+    const val PLAYLIST_URL = "activation.playlistUrl"
 
     /**
      * The glass surface the grid and Back sit inside.

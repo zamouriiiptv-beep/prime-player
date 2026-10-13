@@ -428,21 +428,20 @@ internal fun isFixedViewport(
     step: ActivationStep,
 ): Boolean =
     !state.busy && state.phase !is ActivationPhase.Failed && when (step) {
-        // The playlist step joins the three because it is a screen now rather than a
-        // form: it wears `ChooserHeader` at the chooser's own place, which needs the
-        // stage the chooser has, and under the header it divides a bounded band
-        // between two columns, which a scrolling parent's unbounded height makes
-        // impossible. The scrolling a keyboard calls for is kept inside the screen,
-        // around that band, so the IME moves the fields and not the way back.
+        // The playlist and portal steps join the three because they are screens now
+        // rather than forms: each wears `ChooserHeader` at the chooser's own place, which
+        // needs the stage the chooser has, and under the header sizes its frame to a
+        // bounded band, which a scrolling parent's unbounded height makes impossible.
         ActivationStep.Mac,
         ActivationStep.Choose,
         ActivationStep.SavedSources,
         ActivationStep.Playlist,
+        ActivationStep.Portal,
         -> true
 
-        // The other two forms scroll: a keyboard takes most of a handset, and a form
-        // that owned its viewport would put Connect under it.
-        ActivationStep.Xtream, ActivationStep.Portal -> false
+        // The Xtream form scrolls: a keyboard takes most of a handset, and a form of four
+        // fields that owned its viewport would put Connect under it.
+        ActivationStep.Xtream -> false
     }
 
 @Composable
@@ -507,21 +506,18 @@ private fun Steps(
                 onBack = onBack,
             )
 
-            // The portal form, laid out exactly as the other two forms are: the screen
-            // asks, Back returns to the chooser, and the attempt is the view model's.
-            ActivationStep.Portal -> Column(
-                verticalArrangement = Arrangement.spacedBy(Spacing.xl),
-            ) {
-                PortalFormScreen(
-                    form = state.form as? ActivationForm.Portal ?: ActivationForm.Portal(),
-                    enabled = !state.busy,
-                    canSubmit = state.canSubmit,
-                    onName = activation::name,
-                    onUrl = activation::portalUrl,
-                    onSubmit = activation::submit,
-                )
-                BackButton(onClick = { onStep(ActivationStep.Choose) })
-            }
+            // The portal screen, laid out as the playlist's is: it wears `ChooserHeader`,
+            // so Back is the header's chip rather than a button under the form, and the
+            // attempt is the view model's.
+            ActivationStep.Portal -> PortalFormScreen(
+                form = state.form as? ActivationForm.Portal ?: ActivationForm.Portal(),
+                enabled = !state.busy,
+                canSubmit = state.canSubmit,
+                onName = activation::name,
+                onUrl = activation::portalUrl,
+                onSubmit = activation::submit,
+                onBack = onBack,
+            )
 
             ActivationStep.SavedSources -> {
                 val saved: SavedSourcesViewModel = hiltViewModel()
