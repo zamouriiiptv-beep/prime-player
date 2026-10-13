@@ -9,7 +9,6 @@ import java.io.InputStream
 import java.io.InputStreamReader
 import java.io.InterruptedIOException
 import java.io.Reader
-import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import java.util.zip.CRC32
 import java.util.zip.GZIPInputStream
@@ -42,7 +41,24 @@ class HttpStreamSource(private val client: OkHttpClient) {
      * The stream is closed before this returns — a leaked response body holds a
      * socket, and a TV box has few to spare.
      */
-    fun <T> stream(request: RemoteRequest, consume: (Reader) -> T): RemoteResult<T> {
+    fun <T> stream(request: RemoteRequest, consume: (Reader) -> T): RemoteResult<T> =
+        streamCounting(request) { reader, _ -> consume(reader) }
+
+    /**
+     * [stream], with [consume] also told what it is reading: the status and type the
+     * provider answered with, and how much of the body has arrived so far.
+     *
+     * A playlist import reports progress per committed batch, and a batch is a thousand
+     * rows; on a slow line that is a long time to show nothing. The count lets it say
+     * how far the download has got, and the status and type let a failure that happens
+     * while reading say what the provider had sent.
+     *
+     * A failure while the body is being read is reported as [RemoteResult.Stage.BODY]:
+     * the provider answered, and the answer did not arrive whole. That is a different
+     * problem from not reaching the provider, and a log that cannot tell them apart
+     * sends whoever reads it to look at the wrong thing.
+     */
+    fun <T> streamCounting(request: RemoteRequest, consume: (Reader, Received) -> T): RemoteResult<T> {
         val call = try {
             client.newCall(request.toOkHttp())
         } catch (e: IllegalArgumentException) {
@@ -52,32 +68,42 @@ class HttpStreamSource(private val client: OkHttpClient) {
 
         return try {
             call.execute().use { response ->
+                val type = response.header("Content-Type")
                 when {
                     response.code == HTTP_NOT_MODIFIED -> RemoteResult.NotModified
-                    !response.isSuccessful -> RemoteResult.Failure(response.code.toAppError(), response.code)
+                    !response.isSuccessful ->
+                        RemoteResult.Failure(response.code.toAppError(), response.code, contentType = type)
                     else -> {
-                        val body = response.body ?: return RemoteResult.Failure(AppError.SERVER_ERROR, response.code)
-                        val counting = HashingInputStream(decompressIfNeeded(body.byteStream()))
-                        val value = InputStreamReader(counting, Charsets.UTF_8)
-                            .buffered(READ_BUFFER)
-                            .use(consume)
-                        RemoteResult.Success(
-                            value = value,
-                            etag = response.header("ETag"),
-                            lastModified = response.header("Last-Modified"),
-                            contentHash = counting.fingerprint(),
-                        )
+                        val body = response.body
+                            ?: return RemoteResult.Failure(AppError.SERVER_ERROR, response.code, contentType = type)
+                        try {
+                            val counting = HashingInputStream(decompressIfNeeded(body.byteStream()))
+                            val received = Received(response.code, type, counting)
+                            val value = InputStreamReader(counting, Charsets.UTF_8)
+                                .buffered(READ_BUFFER)
+                                .use { reader -> consume(reader, received) }
+                            RemoteResult.Success(
+                                value = value,
+                                etag = response.header("ETag"),
+                                lastModified = response.header("Last-Modified"),
+                                contentHash = counting.fingerprint(),
+                                statusCode = response.code,
+                                contentType = type,
+                            )
+                        } catch (e: IOException) {
+                            RemoteResult.Failure(
+                                error = e.toAppError(),
+                                statusCode = response.code,
+                                cause = e,
+                                contentType = type,
+                                stage = RemoteResult.Stage.BODY,
+                            )
+                        }
                     }
                 }
             }
-        } catch (e: SocketTimeoutException) {
-            RemoteResult.Failure(AppError.TIMEOUT, null, e)
-        } catch (e: InterruptedIOException) {
-            RemoteResult.Failure(AppError.TIMEOUT, null, e)
-        } catch (e: UnknownHostException) {
-            RemoteResult.Failure(AppError.NETWORK_UNAVAILABLE, null, e)
         } catch (e: IOException) {
-            RemoteResult.Failure(AppError.NETWORK_UNAVAILABLE, null, e)
+            RemoteResult.Failure(e.toAppError(), null, e)
         }
     }
 
@@ -118,6 +144,8 @@ class HttpStreamSource(private val client: OkHttpClient) {
                 // completed import, which streams the whole body. The validators above
                 // are what a probe is actually asked for.
                 contentHash = result.contentHash,
+                statusCode = result.statusCode,
+                contentType = result.contentType,
             )
             is RemoteResult.Failure -> result
         }
@@ -158,6 +186,13 @@ class HttpStreamSource(private val client: OkHttpClient) {
         408, 429 -> AppError.TIMEOUT
         in 500..599 -> AppError.SERVER_ERROR
         else -> AppError.UNKNOWN
+    }
+
+    /** `SocketTimeoutException` is an `InterruptedIOException`, so this covers both. */
+    private fun IOException.toAppError(): AppError = when (this) {
+        is InterruptedIOException -> AppError.TIMEOUT
+        is UnknownHostException -> AppError.NETWORK_UNAVAILABLE
+        else -> AppError.NETWORK_UNAVAILABLE
     }
 
     private companion object {
@@ -223,8 +258,25 @@ class HashingInputStream(private val delegate: InputStream) : InputStream() {
 
     override fun close() = delegate.close()
 
+    /** How many bytes have passed through so far. Rises while the stream is read. */
+    val bytesRead: Long get() = bytes
+
     /** Only meaningful once the stream has been read to the end. */
     fun fingerprint(): String = "crc32:${crc.value.toString(16)}:$bytes"
+}
+
+/**
+ * What [HttpStreamSource.streamCounting] tells a reader about the answer it is reading.
+ *
+ * The status and type are the provider's own; [bytes] is the body as it reaches the
+ * reader, after any gzip was undone, and rises while the reader reads.
+ */
+class Received internal constructor(
+    val statusCode: Int,
+    val contentType: String?,
+    private val counting: HashingInputStream,
+) {
+    val bytes: Long get() = counting.bytesRead
 }
 
 data class RemoteRequest(
@@ -247,11 +299,58 @@ sealed interface RemoteResult<out T> {
         val etag: String?,
         val lastModified: String?,
         val contentHash: String,
+        val statusCode: Int = HTTP_OK,
+        val contentType: String? = null,
     ) : RemoteResult<T>
 
     data class Failure(
         val error: AppError,
         val statusCode: Int? = null,
         val cause: Throwable? = null,
+        /** The response's own `Content-Type`, when there was a response to have one. */
+        val contentType: String? = null,
+        val stage: Stage = Stage.REQUEST,
     ) : RemoteResult<Nothing>
+
+    /** Whether the provider had answered when a failure happened. */
+    enum class Stage {
+        /** Before an answer: the address, the network, the handshake, or an error status. */
+        REQUEST,
+
+        /** After a successful answer began: the body did not arrive, or could not be read, whole. */
+        BODY,
+    }
 }
+
+private const val HTTP_OK = 200
+
+/**
+ * Which of four different problems a failed request was.
+ *
+ * The four a person reading a log has to tell apart, because each sends them somewhere
+ * else: the provider said no, the provider could not be reached, the provider was too
+ * slow, or the provider's answer could not be read. [RemoteResult.Failure.error] is the
+ * coarser vocabulary the screens speak; this is the one a diagnosis needs.
+ */
+enum class FailureKind {
+    /** The provider answered, and the answer was an error status. */
+    REFUSED,
+
+    /** No answer at all: the address, the network, the TLS handshake, the socket. */
+    CONNECTION,
+
+    /** An answer was awaited, or was arriving, and did not come in time. */
+    TIMEOUT,
+
+    /** The provider answered with success, and the body could not be read to the end. */
+    READ,
+}
+
+val RemoteResult.Failure.kind: FailureKind
+    get() = when {
+        // `SocketTimeoutException` is an `InterruptedIOException`.
+        cause is InterruptedIOException -> FailureKind.TIMEOUT
+        stage == RemoteResult.Stage.BODY -> FailureKind.READ
+        statusCode != null -> FailureKind.REFUSED
+        else -> FailureKind.CONNECTION
+    }

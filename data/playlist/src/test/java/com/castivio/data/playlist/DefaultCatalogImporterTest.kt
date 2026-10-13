@@ -25,9 +25,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.SocketPolicy
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -50,6 +52,9 @@ class DefaultCatalogImporterTest {
     private lateinit var server: MockWebServer
     private lateinit var writer: RecordingWriter
     private lateinit var sources: FakeSourceRepository
+
+    /** What the importer wrote to its log, in order. */
+    private val logged = mutableListOf<String>()
 
     @Before
     fun setUp() {
@@ -128,6 +133,129 @@ class DefaultCatalogImporterTest {
         val progress = importer().import(source).toList()
 
         assertEquals(AppError.UNAUTHORIZED, (progress.last() as ImportProgress.Failed).error)
+    }
+
+    // -------------------------------------------------- why a playlist did not arrive
+    //
+    // A failed M3U import used to leave no trace: the status and the exception were
+    // handed to the writer's `abort`, which ignored them. These say which of four
+    // different problems it was, and that the log never carries the link that was
+    // asked for -- the link is the account's username and password.
+
+    @Test
+    fun `a refused playlist is logged with the status it was refused with`() = runBlocking {
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(403)
+                .setHeader("Content-Type", "text/html; charset=UTF-8")
+                .setBody("<html>Access denied</html>"),
+        )
+        val source = PlaylistSource.M3u(server.url(PANEL_LINK).toString())
+
+        val progress = importer().import(source).toList()
+
+        assertEquals(AppError.UNAUTHORIZED, (progress.last() as ImportProgress.Failed).error)
+        val line = outcome()
+        assertTrue(line, line.contains("failed kind=REFUSED error=UNAUTHORIZED http=403 type=text/html stage=request"))
+        assertTrue(line, line.contains("scheme=http"))
+        assertNothingFrom(source.url)
+    }
+
+    @Test
+    fun `a provider that cannot be reached is logged as a connection problem`() = runBlocking {
+        val source = PlaylistSource.M3u("http://127.0.0.1:1$PANEL_LINK")
+
+        val progress = importer().import(source).toList()
+
+        assertEquals(AppError.NETWORK_UNAVAILABLE, (progress.last() as ImportProgress.Failed).error)
+        val line = outcome()
+        assertTrue(line, line.contains("kind=CONNECTION error=NETWORK_UNAVAILABLE http=- type=- stage=request"))
+        assertTrue(line, line.contains("exception=ConnectException"))
+        assertNothingFrom(source.url)
+    }
+
+    @Test
+    fun `a provider that never starts answering is logged as a timeout`() = runBlocking {
+        server.enqueue(MockResponse().setBody(playlist(3)).setHeadersDelay(5, TimeUnit.SECONDS))
+        val source = PlaylistSource.M3u(server.url(PANEL_LINK).toString())
+
+        val progress = importer().import(source).toList()
+
+        assertEquals(AppError.TIMEOUT, (progress.last() as ImportProgress.Failed).error)
+        val line = outcome()
+        assertTrue(line, line.contains("kind=TIMEOUT error=TIMEOUT http=- type=- stage=request"))
+        assertTrue(line, line.contains("exception=SocketTimeoutException"))
+        assertNothingFrom(source.url)
+    }
+
+    @Test
+    fun `a playlist cut off half way is logged as a read error, not a connection error`() =
+        runBlocking {
+            server.enqueue(
+                MockResponse()
+                    .setHeader("Content-Type", "audio/x-mpegurl")
+                    .setBody(playlist(200))
+                    .setSocketPolicy(SocketPolicy.DISCONNECT_DURING_RESPONSE_BODY),
+            )
+            val source = PlaylistSource.M3u(server.url(PANEL_LINK).toString())
+
+            val progress = importer().import(source).toList()
+
+            assertTrue(progress.last() is ImportProgress.Failed)
+            val line = outcome()
+            assertTrue(line, line.contains("kind=READ"))
+            assertTrue(line, line.contains("http=200 type=audio/x-mpegurl stage=body"))
+            assertTrue("the writer must not keep a half-read playlist", writer.aborted)
+            assertNothingFrom(source.url)
+        }
+
+    @Test
+    fun `a playlist that cannot be written is a failure the screen can show, not a crash`() =
+        runBlocking {
+            server.enqueue(MockResponse().setHeader("Content-Type", "audio/x-mpegurl").setBody(playlist(3)))
+            val source = PlaylistSource.M3u(server.url(PANEL_LINK).toString())
+            val broken = ThrowingWriter()
+
+            // Before, the writer's exception left this flow and took the screen's scope
+            // down with it. `toList` completing at all is half of what is being checked.
+            val progress = importer(writer = broken).import(source).toList()
+
+            assertEquals(AppError.UNKNOWN, (progress.last() as ImportProgress.Failed).error)
+            assertTrue(broken.aborted)
+            val line = outcome()
+            assertTrue(line, line.contains("kind=READ error=UNKNOWN http=200 type=audio/x-mpegurl stage=body"))
+            assertTrue(line, line.contains("exception=IllegalStateException"))
+            assertNothingFrom(source.url)
+        }
+
+    @Test
+    fun `a playlist that arrives is logged with its status, type and size`() = runBlocking {
+        server.enqueue(
+            MockResponse()
+                .setHeader("Content-Type", "audio/x-mpegurl; charset=utf-8")
+                .setBody(playlist(3)),
+        )
+        val source = PlaylistSource.M3u(server.url(PANEL_LINK).toString())
+
+        importer().import(source).toList()
+
+        val line = outcome()
+        assertTrue(line, line.startsWith("M3U import ok http=200 type=audio/x-mpegurl items=3 bytes="))
+        assertTrue(line, line.endsWith("scheme=http took=0ms"))
+        assertNothingFrom(source.url)
+    }
+
+    @Test
+    fun `progress says how much of the playlist has arrived`() = runBlocking {
+        server.enqueue(MockResponse().setBody(playlist(2_500)))
+        val source = PlaylistSource.M3u(server.url(PANEL_LINK).toString())
+
+        val progress = importer().import(source).toList()
+
+        val importing = progress.filterIsInstance<ImportProgress.Importing>()
+        assertEquals("one report per committed batch of a thousand", 2, importing.size)
+        assertTrue(importing.all { it.bytes > 0 })
+        assertEquals("never backwards", importing.map { it.bytes }.sorted(), importing.map { it.bytes })
     }
 
     @Test
@@ -236,6 +364,7 @@ class DefaultCatalogImporterTest {
     private fun importer(
         localFiles: LocalPlaylistReader = FakeLocalReader(null),
         xtreamApi: XtreamImportEngine.Api = FakeXtreamApi(),
+        writer: CatalogWriter = this.writer,
     ) = DefaultCatalogImporter(
         http = HttpStreamSource(
             OkHttpClient.Builder()
@@ -249,7 +378,34 @@ class DefaultCatalogImporterTest {
         xtreamApiFactory = { xtreamApi },
         dispatchers = TestDispatchers,
         clock = { now },
+        // Captured rather than sent to `android.util.Log`, which this module's unit tests
+        // only have as stubs that throw.
+        log = { logged += it },
     )
+
+    /** The importer's one-line outcome. Exactly one per playlist import. */
+    private fun outcome(): String = logged.single { it.startsWith("M3U import") }
+
+    /**
+     * Nothing from the address may reach the log: not the user, not the password, not
+     * the host, not the path. A log is what a user pastes into a support message.
+     */
+    private fun assertNothingFrom(url: String) {
+        val parsed = url.toHttpUrl()
+        val secrets = listOfNotNull(
+            parsed.queryParameter("username"),
+            parsed.queryParameter("password"),
+            parsed.host,
+            parsed.encodedPath,
+            "username",
+            "password",
+        )
+        for (line in logged) {
+            for (secret in secrets) {
+                assertFalse("'$secret' reached the log: $line", line.contains(secret, ignoreCase = true))
+            }
+        }
+    }
 
     private fun stored(id: String, etag: String?, items: Int) = ProviderSource(
         id = id,
@@ -258,6 +414,11 @@ class DefaultCatalogImporterTest {
         url = server.url("/p.m3u").toString(),
         sync = SyncState(etag = etag, lastImportAtMs = now - 1, itemCount = items),
     )
+
+    private companion object {
+        /** The shape every panel hands out, with an account the log must never show. */
+        const val PANEL_LINK = "/get.php?username=u7sam9&password=p4ss9w0rd&type=m3u_plus&output=ts"
+    }
 
     private object TestDispatchers : AppDispatchers {
         override val main: CoroutineDispatcher = Dispatchers.Unconfined
@@ -308,6 +469,22 @@ class DefaultCatalogImporterTest {
         override fun commit() = Unit
         override fun finish(summary: ImportSummary) { finished = summary }
         override fun abort(cause: Throwable?) { aborted = true }
+    }
+
+    /** A writer whose database refuses the rows, the way a constraint violation would. */
+    private class ThrowingWriter : CatalogWriter {
+        var aborted = false
+
+        override fun begin(sourceId: String, mode: ImportMode) = Unit
+        override fun writeGroups(groups: List<MediaGroup>) = Unit
+        override fun writeItems(items: List<CatalogItem>) {
+            throw IllegalStateException("the database refused the rows")
+        }
+        override fun commit() = Unit
+        override fun finish(summary: ImportSummary) = Unit
+        override fun abort(cause: Throwable?) {
+            aborted = true
+        }
     }
 
     private class FakeSourceRepository : SourceRepository {

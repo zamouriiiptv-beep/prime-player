@@ -1,10 +1,12 @@
 package com.castivio.data.playlist
 
+import android.util.Log
 import com.castivio.core.common.AppError
 import com.castivio.core.common.AppDispatchers
 import com.castivio.core.platform.PerformanceLog
 import com.castivio.data.networking.CallMetrics
 import com.castivio.data.networking.HttpStreamSource
+import com.castivio.data.networking.Received
 import com.castivio.data.networking.RemoteRequest
 import com.castivio.data.networking.RemoteResult
 import com.castivio.data.parsing.CatalogImportEngine
@@ -21,6 +23,7 @@ import com.castivio.domain.PlaylistSource
 import com.castivio.domain.ProviderSource
 import com.castivio.domain.SourceRepository
 import com.castivio.domain.SyncState
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
@@ -61,6 +64,12 @@ class DefaultCatalogImporter(
     private val portalApiFactory: ((PlaylistSource.Portal) -> StalkerImportEngine.Api?)? = null,
     private val dispatchers: AppDispatchers,
     private val clock: () -> Long = System::currentTimeMillis,
+    /**
+     * Where the playlist import's one-line outcome goes. Logcat, under the tag the
+     * network tally already uses; a parameter so a test can read what was written and
+     * prove that no address or credential is in it.
+     */
+    private val log: (String) -> Unit = { Log.i(CallMetrics.TAG, it) },
 ) : CatalogImporter {
 
     override fun import(source: PlaylistSource): Flow<ImportProgress> = channelFlow {
@@ -237,6 +246,14 @@ class DefaultCatalogImporter(
         cancelled: () -> Boolean,
     ) {
         onProgress(ImportProgress.CheckingForChanges)
+        // The figures the Xtream path gives the on-device panel, for the same window: one
+        // request, what it cost and how much arrived. A playlist panel that stayed on the
+        // previous subscription's numbers was showing figures nobody had measured. Nothing
+        // here changes what is requested.
+        CallMetrics.reset()
+        PerformanceLog.importConcurrency(1)
+        PerformanceLog.requestStarted()
+
         val writer = writerFactory()
         val request = RemoteRequest(
             url = source.url,
@@ -244,25 +261,75 @@ class DefaultCatalogImporter(
             lastModified = stored?.sync?.lastModified,
             userAgent = source.userAgent ?: stored?.userAgent,
         )
+        val startedAt = clock()
+        var answer: Received? = null
 
-        when (val result = http.stream(request) { reader -> runImport(writer, sourceId, reader, onProgress, cancelled) }) {
-            is RemoteResult.NotModified -> {
-                // Nothing downloaded, nothing parsed, nothing written.
-                writer.abort(null)
-                onProgress(ImportProgress.UpToDate)
+        val result: RemoteResult<ImportSummary> = try {
+            http.streamCounting(request) { reader, received ->
+                answer = received
+                runImport(
+                    writer = writer,
+                    sourceId = sourceId,
+                    reader = reader,
+                    onProgress = { progress ->
+                        if (progress is ImportProgress.Importing) {
+                            PerformanceLog.importProgress(progress.groupsReady, progress.itemsImported)
+                            onProgress(progress.copy(bytes = received.bytes))
+                        } else {
+                            onProgress(progress)
+                        }
+                    },
+                    cancelled = cancelled,
+                )
             }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Not the network: what arrived could not be turned into rows -- the parser or
+            // the writer threw. It used to escape this flow and take the screen's scope
+            // with it; it is now a failure the user can read and retry, the way the Xtream
+            // path has always treated the same thing.
+            RemoteResult.Failure(
+                error = AppError.UNKNOWN,
+                statusCode = answer?.statusCode,
+                cause = e,
+                contentType = answer?.contentType,
+                stage = RemoteResult.Stage.BODY,
+            )
+        }
 
-            is RemoteResult.Failure -> {
-                writer.abort(result.cause)
-                onProgress(ImportProgress.Failed(result.error))
-            }
+        try {
+            when (result) {
+                is RemoteResult.NotModified -> {
+                    // Nothing downloaded, nothing parsed, nothing written.
+                    writer.abort(null)
+                    onProgress(ImportProgress.UpToDate)
+                }
 
-            is RemoteResult.Success -> {
-                val summary = result.value
-                // The hash is only meaningful for a stream read to the end.
-                val hash = if (summary.cancelled) stored?.sync?.contentHash else result.contentHash
-                record(sourceId, summary, result.etag, result.lastModified, hash)
+                is RemoteResult.Failure -> {
+                    PerformanceLog.requestFailed()
+                    writer.abort(result.cause)
+                    onProgress(ImportProgress.Failed(result.error))
+                }
+
+                is RemoteResult.Success -> {
+                    val summary = result.value
+                    // The hash is only meaningful for a stream read to the end.
+                    val hash = if (summary.cancelled) stored?.sync?.contentHash else result.contentHash
+                    record(sourceId, summary, result.etag, result.lastModified, hash)
+                }
             }
+        } finally {
+            // One line saying how it ended -- see `M3uImportReport` for what it may and
+            // may not contain -- then the window's tally, both under the tag the Xtream
+            // summary already uses, so one `adb logcat -s CastivioNet` shows either.
+            log(M3uImportReport.line(result, M3uImportReport.schemeOf(source.url), clock() - startedAt, answer?.bytes))
+            CallMetrics.report("import m3u").forEach(log)
+            PerformanceLog.network(
+                requests = CallMetrics.totalCalls().toInt(),
+                serverMs = CallMetrics.callTimeMs(),
+                cacheHits = CallMetrics.cacheHits().toInt(),
+            )
         }
     }
 

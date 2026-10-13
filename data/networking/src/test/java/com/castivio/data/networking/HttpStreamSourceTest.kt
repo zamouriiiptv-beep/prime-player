@@ -4,6 +4,7 @@ import com.castivio.core.common.AppError
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.SocketPolicy
 import okhttp3.ResponseBody
 import okio.Buffer
 import okio.BufferedSource
@@ -177,6 +178,97 @@ class HttpStreamSourceTest {
         val result = source.stream(RemoteRequest("http://localhost:1/never")) { it.readText() }
 
         assertEquals(AppError.NETWORK_UNAVAILABLE, (result as RemoteResult.Failure).error)
+        assertEquals(FailureKind.CONNECTION, result.kind)
+        assertEquals(RemoteResult.Stage.REQUEST, result.stage)
+    }
+
+    // --------------------------------------------- which of four failures it was
+    //
+    // A refusal, an unreachable provider, a slow one and an answer that broke off half
+    // way send whoever is diagnosing them to four different places. The status, the
+    // type and the stage are what tell them apart.
+
+    @Test
+    fun `a refusal carries the status and the type the provider answered with`() {
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(403)
+                .setHeader("Content-Type", "text/html; charset=UTF-8")
+                .setBody("<html>Access denied</html>"),
+        )
+
+        val result = source.stream(RemoteRequest(server.url("/get.php").toString())) { it.readText() }
+
+        val failure = result as RemoteResult.Failure
+        assertEquals(403, failure.statusCode)
+        assertEquals("text/html; charset=UTF-8", failure.contentType)
+        assertEquals(RemoteResult.Stage.REQUEST, failure.stage)
+        assertEquals(FailureKind.REFUSED, failure.kind)
+    }
+
+    @Test
+    fun `an answer that breaks off half way is a read failure, not a connection failure`() {
+        server.enqueue(
+            MockResponse()
+                .setHeader("Content-Type", "audio/x-mpegurl")
+                .setBody("#EXTM3U\n" + "#EXTINF:-1,Channel\nhttp://host/1.ts\n".repeat(500))
+                .setSocketPolicy(SocketPolicy.DISCONNECT_DURING_RESPONSE_BODY),
+        )
+
+        val result = source.stream(RemoteRequest(server.url("/get.php").toString())) { it.readText() }
+
+        val failure = result as RemoteResult.Failure
+        assertEquals(AppError.NETWORK_UNAVAILABLE, failure.error)
+        assertEquals("the provider had answered", 200, failure.statusCode)
+        assertEquals("audio/x-mpegurl", failure.contentType)
+        assertEquals(RemoteResult.Stage.BODY, failure.stage)
+        assertEquals(FailureKind.READ, failure.kind)
+    }
+
+    @Test
+    fun `a body too slow to arrive is still a timeout`() {
+        server.enqueue(MockResponse().setBody("#EXTM3U").throttleBody(1, 5, TimeUnit.SECONDS))
+
+        val result = source.stream(RemoteRequest(server.url("/slow.m3u").toString())) { it.readText() }
+
+        val failure = result as RemoteResult.Failure
+        assertEquals(AppError.TIMEOUT, failure.error)
+        assertEquals(RemoteResult.Stage.BODY, failure.stage)
+        assertEquals("a timeout outranks the stage it happened in", FailureKind.TIMEOUT, failure.kind)
+    }
+
+    @Test
+    fun `an answer that never starts is a timeout before the body`() {
+        server.enqueue(MockResponse().setBody("#EXTM3U").setHeadersDelay(5, TimeUnit.SECONDS))
+
+        val result = source.stream(RemoteRequest(server.url("/slow.m3u").toString())) { it.readText() }
+
+        val failure = result as RemoteResult.Failure
+        assertEquals(AppError.TIMEOUT, failure.error)
+        assertEquals(RemoteResult.Stage.REQUEST, failure.stage)
+        assertEquals(FailureKind.TIMEOUT, failure.kind)
+    }
+
+    @Test
+    fun `a reader is told how much has arrived while it reads`() {
+        val body = "#EXTM3U\n" + "#EXTINF:-1,Channel\nhttp://host/1.ts\n".repeat(2_000)
+        server.enqueue(MockResponse().setHeader("Content-Type", "audio/x-mpegurl").setBody(body))
+        val seen = mutableListOf<Long>()
+
+        val result = source.streamCounting(RemoteRequest(server.url("/get.php").toString())) { reader, received ->
+            assertEquals(200, received.statusCode)
+            assertEquals("audio/x-mpegurl", received.contentType)
+            reader.buffered().lineSequence().forEachIndexed { index, _ ->
+                if (index % 1_000 == 0) seen += received.bytes
+            }
+            received.bytes
+        }
+
+        val success = result as RemoteResult.Success
+        assertEquals("every byte counted by the end", body.length.toLong(), success.value)
+        assertEquals(200, success.statusCode)
+        assertEquals("audio/x-mpegurl", success.contentType)
+        assertEquals("never backwards", seen.sorted(), seen)
     }
 
     @Test
