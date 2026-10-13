@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The playlist and portal forms, in Polish: the two fields, Paste, Connect,
-  the line under Connect and what a field says is wrong with it.
+  The playlist, portal and Xtream forms, in Polish: their fields, Paste,
+  Connect, the line under Connect and what a field says is wrong with it.
 
   A declared bundle, gated by check-invariants.sh: every key here must exist,
   and not be empty, in every language.
@@ -12,11 +12,19 @@
     <string name="field_playlist_name_placeholder">Dom</string>
     <string name="field_playlist_url">URL playlisty M3U</string>
     <string name="field_portal_url">URL portalu</string>
+    <string name="field_server_url">URL serwera</string>
+    <string name="field_username">Nazwa użytkownika</string>
+    <string name="field_password">Hasło</string>
     <string name="action_paste">Wklej</string>
     <string name="action_connect">Połącz</string>
+    <string name="action_show_password">Pokaż hasło</string>
+    <string name="action_hide_password">Ukryj hasło</string>
     <string name="playlist_note_empty">Wpisz poprawny link, aby włączyć Połącz.</string>
     <string name="playlist_note_ready">Naciśnij Połącz, aby odczytać listę.</string>
     <string name="portal_note_ready">Naciśnij Połącz, aby otworzyć portal.</string>
+    <string name="xtream_note_empty">Wpisz URL serwera, nazwę użytkownika i hasło, aby włączyć Połącz.</string>
+    <string name="xtream_note_ready">Naciśnij Połącz, aby się zalogować.</string>
+    <string name="xtream_note_problem">%1$s: %2$s</string>
     <string name="problem_required">To pole jest wymagane.</string>
     <string name="problem_too_long">Tekst jest dłuższy niż dozwolony.</string>
     <string name="problem_contains_spaces">Zawiera spację. Link nie może zawierać spacji.</string>

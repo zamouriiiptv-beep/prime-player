@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The playlist and portal forms, in Swedish: the two fields, Paste, Connect,
-  the line under Connect and what a field says is wrong with it.
+  The playlist, portal and Xtream forms, in Swedish: their fields, Paste,
+  Connect, the line under Connect and what a field says is wrong with it.
 
   A declared bundle, gated by check-invariants.sh: every key here must exist,
   and not be empty, in every language.
@@ -12,11 +12,19 @@
     <string name="field_playlist_name_placeholder">Hem</string>
     <string name="field_playlist_url">URL till M3U-spellistan</string>
     <string name="field_portal_url">Portal-URL</string>
+    <string name="field_server_url">Server-URL</string>
+    <string name="field_username">Användarnamn</string>
+    <string name="field_password">Lösenord</string>
     <string name="action_paste">Klistra in</string>
     <string name="action_connect">Anslut</string>
+    <string name="action_show_password">Visa lösenord</string>
+    <string name="action_hide_password">Dölj lösenord</string>
     <string name="playlist_note_empty">Ange en giltig länk för att aktivera Anslut.</string>
     <string name="playlist_note_ready">Tryck på Anslut för att läsa listan.</string>
     <string name="portal_note_ready">Tryck på Anslut för att öppna portalen.</string>
+    <string name="xtream_note_empty">Ange server-URL, användarnamn och lösenord för att aktivera Anslut.</string>
+    <string name="xtream_note_ready">Tryck på Anslut för att logga in.</string>
+    <string name="xtream_note_problem">%1$s: %2$s</string>
     <string name="problem_required">Det här fältet är obligatoriskt.</string>
     <string name="problem_too_long">Det är längre än tillåtet.</string>
     <string name="problem_contains_spaces">Det finns ett mellanslag. En länk får inte innehålla mellanslag.</string>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The playlist and portal forms, in Japanese: the two fields, Paste, Connect,
-  the line under Connect and what a field says is wrong with it.
+  The playlist, portal and Xtream forms, in Japanese: their fields, Paste,
+  Connect, the line under Connect and what a field says is wrong with it.
 
   A declared bundle, gated by check-invariants.sh: every key here must exist,
   and not be empty, in every language.
@@ -12,11 +12,19 @@
     <string name="field_playlist_name_placeholder">自宅</string>
     <string name="field_playlist_url">M3U プレイリストの URL</string>
     <string name="field_portal_url">ポータルの URL</string>
+    <string name="field_server_url">サーバーの URL</string>
+    <string name="field_username">ユーザー名</string>
+    <string name="field_password">パスワード</string>
     <string name="action_paste">貼り付け</string>
     <string name="action_connect">接続</string>
+    <string name="action_show_password">パスワードを表示</string>
+    <string name="action_hide_password">パスワードを隠す</string>
     <string name="playlist_note_empty">有効なリンクを入力すると「接続」が使えます。</string>
     <string name="playlist_note_ready">「接続」を押すとリストを読み込みます。</string>
     <string name="portal_note_ready">「接続」を押すとポータルを開きます。</string>
+    <string name="xtream_note_empty">サーバーの URL、ユーザー名、パスワードを入力すると「接続」が使えます。</string>
+    <string name="xtream_note_ready">「接続」を押すとサインインします。</string>
+    <string name="xtream_note_problem">%1$s：%2$s</string>
     <string name="problem_required">この項目は必須です。</string>
     <string name="problem_too_long">長すぎます。</string>
     <string name="problem_contains_spaces">スペースが含まれています。リンクにスペースは使えません。</string>

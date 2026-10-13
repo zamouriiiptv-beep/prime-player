@@ -71,15 +71,42 @@ class ActivationFrameTest {
     }
 
     /**
-     * The plain form scrolls, because four fields can be taller than a landscape phone
-     * once a keyboard is up.
+     * **The Xtream step owns the viewport, and its scroll has moved inside it.**
+     *
+     * It was the one form left in the scrolling frame, because four fields are taller
+     * than a landscape handset, more so with a keyboard up. That is still answered --
+     * the form scrolls inside its own frame where the band cannot hold it -- but it is
+     * answered under the shared header rather than by scrolling the header away with
+     * the form, which needs the fixed frame's bounded band like the other two forms.
+     * Where the scroll is, and that it is only where it has to be, is
+     * `XtreamFrameTest`'s and `XtreamFormTest`'s.
      */
     @Test
-    fun `the Xtream form scrolls`() {
-        assertFalse(
-            "Xtream was given the fixed frame",
+    fun `the Xtream step owns the viewport`() {
+        assertTrue(
+            "Xtream was given the scrolling frame",
             isFixedViewport(ActivationUiState(), ActivationStep.Xtream),
         )
+    }
+
+    /**
+     * The step that actually reaches these states: an Xtream attempt is checked against
+     * the provider, so its progress and its failures are real screens here and not the
+     * hypothetical ones they are from the address step. Both are prose, and both take
+     * the scrolling frame they take from everywhere else.
+     */
+    @Test
+    fun `an Xtream attempt and its failure scroll`() {
+        for (phase in listOf(
+            ActivationPhase.Checking,
+            ActivationPhase.Importing(itemsFound = 12_000, groupsReady = 40),
+            ActivationPhase.Failed(ActivationFailure.entries.first()),
+        )) {
+            assertFalse(
+                "$phase kept the Xtream step's fixed frame",
+                isFixedViewport(ActivationUiState(phase = phase), ActivationStep.Xtream),
+            )
+        }
     }
 
     /**
@@ -147,7 +174,7 @@ class ActivationFrameTest {
 
     /**
      * A failure takes the scrolling frame from whichever step raised it, including
-     * the two that are fixed at rest.
+     * every one that is fixed at rest.
      */
     @Test
     fun `a failure scrolls from the fixed steps as well`() {
@@ -162,6 +189,8 @@ class ActivationFrameTest {
             // ever did arrive here, `ActivationFailureScreen` is a column of prose and
             // wants the frame that scrolls, like it does from every other step.
             ActivationStep.Playlist,
+            ActivationStep.Portal,
+            ActivationStep.Xtream,
         )) {
             assertFalse("$step kept the fixed frame while failed", isFixedViewport(failed, step))
         }

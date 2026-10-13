@@ -36,10 +36,7 @@
     <string name="saved_sources_delete_active_detail">حذفه سيؤدي إلى إلغاء استخدامه على هذا الجهاز. هل تريد المتابعة؟</string>
     <string name="saved_sources_cancel">إلغاء</string>
 
-    <string name="field_server_url">رابط السيرفر</string>
     <string name="field_server_url_placeholder">http://example.com:8080</string>
-    <string name="field_username">اسم المستخدم</string>
-    <string name="field_password">كلمة المرور</string>
     <string name="field_playlist_url_placeholder">http://example.com/get.php?…</string>
 
     <!--

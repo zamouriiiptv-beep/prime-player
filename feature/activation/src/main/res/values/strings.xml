@@ -95,10 +95,7 @@
     <string name="saved_sources_cancel">Cancel</string>
 
     <!-- The forms -->
-    <string name="field_server_url">Server URL</string>
     <string name="field_server_url_placeholder">http://example.com:8080</string>
-    <string name="field_username">Username</string>
-    <string name="field_password">Password</string>
     <string name="field_playlist_url_placeholder">http://example.com/get.php?…</string>
 
     <!--

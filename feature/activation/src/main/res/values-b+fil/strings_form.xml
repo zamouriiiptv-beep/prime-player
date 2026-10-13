@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The playlist and portal forms, in Filipino: the two fields, Paste, Connect,
-  the line under Connect and what a field says is wrong with it.
+  The playlist, portal and Xtream forms, in Filipino: their fields, Paste,
+  Connect, the line under Connect and what a field says is wrong with it.
 
   A declared bundle, gated by check-invariants.sh: every key here must exist,
   and not be empty, in every language.
@@ -12,11 +12,19 @@
     <string name="field_playlist_name_placeholder">Bahay</string>
     <string name="field_playlist_url">URL ng M3U playlist</string>
     <string name="field_portal_url">URL ng portal</string>
+    <string name="field_server_url">URL ng server</string>
+    <string name="field_username">Username</string>
+    <string name="field_password">Password</string>
     <string name="action_paste">I-paste</string>
     <string name="action_connect">Kumonekta</string>
+    <string name="action_show_password">Ipakita ang password</string>
+    <string name="action_hide_password">Itago ang password</string>
     <string name="playlist_note_empty">Maglagay ng wastong link para mapagana ang Kumonekta.</string>
     <string name="playlist_note_ready">Pindutin ang Kumonekta para basahin ang listahan.</string>
     <string name="portal_note_ready">Pindutin ang Kumonekta para buksan ang portal.</string>
+    <string name="xtream_note_empty">Ilagay ang URL ng server, username at password para mapagana ang Kumonekta.</string>
+    <string name="xtream_note_ready">Pindutin ang Kumonekta para mag-sign in.</string>
+    <string name="xtream_note_problem">%1$s: %2$s</string>
     <string name="problem_required">Kailangan ito.</string>
     <string name="problem_too_long">Masyado itong mahaba.</string>
     <string name="problem_contains_spaces">May puwang dito. Hindi puwedeng may puwang ang link.</string>

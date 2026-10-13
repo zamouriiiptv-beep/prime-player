@@ -1,13 +1,20 @@
 package com.castivio.feature.activation
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.BoxWithConstraintsScope
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.widthIn
 import com.castivio.core.design.theme.castivioStage
 import androidx.compose.foundation.layout.Column
@@ -19,30 +26,48 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.ContentPaste
 import androidx.compose.material.icons.rounded.Devices
+import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Link
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -59,9 +84,11 @@ import com.castivio.core.design.components.CastivioPlaylistArt
 import com.castivio.core.design.components.CastivioTextField
 import com.castivio.core.design.components.GlassCard
 import com.castivio.core.design.components.castivioDescriptionColor
+import com.castivio.core.design.components.castivioFocusScale
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Elevation
+import com.castivio.core.design.theme.Motion
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.Spacing
@@ -69,7 +96,8 @@ import com.castivio.core.design.theme.boundedFraction
 import com.castivio.domain.activation.ActivationForm
 
 /**
- * The two forms.
+ * The Xtream form: a name the user may give it, the server, the username and the
+ * password.
  *
  * Field order is the order the provider's e-mail lists them, not the order the protocol
  * needs — somebody is copying from one to the other, and a form that reshuffles them
@@ -78,6 +106,40 @@ import com.castivio.domain.activation.ActivationForm
  * Errors appear as the user types rather than on submit. The alternative is the pattern
  * this whole flow exists to be better than: a button that always looks live, then a
  * failure that names none of the four fields.
+ *
+ * ## The playlist and portal screens' header and frame, with four fields in it
+ *
+ * The same [ChooserHeader] with this screen's own title and Back, and the same frame
+ * under it, so the three forms are one screen with different words. What four fields
+ * change is the height: they do not fit a handset's band in landscape at any spacing,
+ * and [xtreamFrame] decides between two arrangements from the band itself -- see it
+ * for why the band and not the device.
+ *
+ *  - **Where the band holds the form** -- a television, a tablet -- the frame reaches
+ *    the bottom of the band, so the margin under it is the stage's own and matches the
+ *    gap above it, and the spacing shares whatever the controls leave. Nothing scrolls,
+ *    so nothing may grow: a field with something wrong turns red, and what is wrong is
+ *    said in the line under Connect, which is one line whatever it says.
+ *  - **Where it does not** -- a handset -- the frame is the one the other two screens
+ *    draw there, the spacing is the sizing system's at full size, and the form scrolls
+ *    inside the frame under a header that stays where it is. A field's error is written
+ *    under the field, as on the other two.
+ *
+ * ## The keyboard
+ *
+ * The window does not resize for it -- `:app` is edge to edge -- so the frame does:
+ * `imePadding` takes the keys' height off the room the frame is placed in, the frame
+ * keeps the part above them, and the form scrolls inside that part, which is what keeps
+ * the field being typed in above the keys. Where the form fits, the scroll is only
+ * switched on while a keyboard is up; at rest there is nothing on this screen to scroll.
+ *
+ * ## The remote
+ *
+ * Down goes name, server, username, password, Connect -- the order on the screen,
+ * because the order on the screen is the order 2D focus search finds. Paste and the
+ * password's show and hide sit inside their fields, one press across rather than a stop
+ * on the way down. The keyboard's Next goes down the same way, and Done on the password
+ * is Connect.
  */
 @Composable
 internal fun XtreamFormScreen(
@@ -89,67 +151,247 @@ internal fun XtreamFormScreen(
     onUsername: (String) -> Unit,
     onPassword: (String) -> Unit,
     onSubmit: () -> Unit,
+    /** The route's one answer to Back, raised by the header's chip. */
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = CastivioTheme.colors
-    val checked = form.checked
+    val tv = CastivioTheme.device.isTv
 
-    Column(
-        modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Spacing.xl),
-    ) {
-        Text(
-            text = stringResource(R.string.source_xtream_title),
-            style = CastivioType.headlineMedium,
-            color = colors.onBackground,
-            modifier = Modifier.semantics { heading() },
-        )
+    SourceFormScreen(
+        title = stringResource(R.string.source_xtream_title),
+        headingTag = ActivationTags.XTREAM_HEADING,
+        backTag = ActivationTags.XTREAM_BACK,
+        onBack = onBack,
+        modifier = modifier,
+    ) { surface, surfaceHeight, m, band ->
+        val frame = xtreamFrame(surface, surfaceHeight, band, m.bandTop, Sizing.minTarget(tv))
 
-        GlassCard(Modifier.fillMaxWidth()) {
-            Column(
-                Modifier.padding(Spacing.xl),
-                verticalArrangement = Arrangement.spacedBy(Spacing.lg),
-            ) {
-                CastivioTextField(
-                    value = form.name,
-                    onValueChange = onName,
-                    label = stringResource(R.string.field_playlist_name),
-                    hint = stringResource(R.string.field_optional),
-                    placeholder = stringResource(R.string.field_playlist_name_placeholder),
-                    // Only ever shown once it is wrong; an empty optional field is not.
-                    error = checked.name.problem.message(),
-                    enabled = enabled,
-                )
-                CastivioTextField(
-                    value = form.serverUrl,
-                    onValueChange = onServerUrl,
-                    label = stringResource(R.string.field_server_url),
-                    placeholder = stringResource(R.string.field_server_url_placeholder),
-                    error = form.serverUrl.problemOnceTyped(checked.serverUrl.problem),
-                    enabled = enabled,
-                    keyboardType = KeyboardType.Uri,
-                )
-                CastivioTextField(
-                    value = form.username,
-                    onValueChange = onUsername,
-                    label = stringResource(R.string.field_username),
-                    error = form.username.problemOnceTyped(checked.username.problem),
-                    enabled = enabled,
-                )
-                CastivioTextField(
-                    value = form.password,
-                    onValueChange = onPassword,
-                    label = stringResource(R.string.field_password),
-                    error = form.password.problemOnceTyped(checked.password.problem),
-                    enabled = enabled,
-                    secret = true,
-                    imeAction = ImeAction.Done,
-                    onImeAction = onSubmit,
-                )
-            }
+        // On the room the frame is placed in rather than on the band, which the playlist
+        // and portal screens share and which does not answer the keyboard. The frame's
+        // own `height` is a preferred size, so with the keys up it is whatever is left.
+        Box(Modifier.fillMaxSize().imePadding()) {
+            XtreamFrame(
+                frame = frame,
+                fieldMeasure = formMeasure(m.frame),
+                form = form,
+                enabled = enabled,
+                canSubmit = canSubmit,
+                onName = onName,
+                onServerUrl = onServerUrl,
+                onUsername = onUsername,
+                onPassword = onPassword,
+                onSubmit = onSubmit,
+                modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth().height(frame.height),
+            )
         }
+    }
+}
 
-        ConnectButton(enabled = canSubmit, onClick = onSubmit, modifier = Modifier.fillMaxWidth())
+/** The frame, and the four fields, Connect and the note inside it. */
+@Composable
+private fun XtreamFrame(
+    frame: XtreamFrameMetrics,
+    /** See [PlaylistPanel]'s own parameter of the same name. */
+    fieldMeasure: Dp,
+    form: ActivationForm.Xtream,
+    enabled: Boolean,
+    canSubmit: Boolean,
+    onName: (String) -> Unit,
+    onServerUrl: (String) -> Unit,
+    onUsername: (String) -> Unit,
+    onPassword: (String) -> Unit,
+    onSubmit: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val checked = form.checked
+    val focus = LocalFocusManager.current
+    // Down, not Next: Next is the order of composition, which visits Paste between the
+    // server and the username; Down is the order on the screen.
+    val next: () -> Unit = { focus.moveFocus(FocusDirection.Down) }
+
+    // Hidden each time the screen is opened. Saveable, so a configuration change in the
+    // middle of typing does not hide it again under the user's thumb.
+    var revealed by rememberSaveable { mutableStateOf(false) }
+
+    // A flag rather than the inset itself, so the frame recomposes when the keyboard
+    // comes and goes and not on every frame of the keys sliding in.
+    val ime = WindowInsets.ime
+    val density = LocalDensity.current
+    val keyboard by remember(ime, density) { derivedStateOf { ime.getBottom(density) > 0 } }
+
+    val nameLabel = stringResource(R.string.field_playlist_name)
+    val serverLabel = stringResource(R.string.field_server_url)
+    val usernameLabel = stringResource(R.string.field_username)
+    val passwordLabel = stringResource(R.string.field_password)
+
+    // Only ever shown once they are wrong; an empty field is not, optional or not.
+    val nameError = checked.name.problem.message()
+    val serverError = form.serverUrl.problemOnceTyped(checked.serverUrl.problem)
+    val usernameError = form.username.problemOnceTyped(checked.username.problem)
+    val passwordError = form.password.problemOnceTyped(checked.password.problem)
+
+    // **Where the form does not scroll, the first thing wrong is said under Connect.**
+    //
+    // Under its field it would need a line the frame has not got: the frame is the
+    // band, and every dp of the band is already spent. The note's line is spent too,
+    // on something less urgent, so the error takes it -- named by its field, because
+    // "this one is needed" means nothing a button's height away from the field it is
+    // about. The field itself still turns red and still announces it.
+    val problem = when {
+        frame.scroll -> null
+        nameError != null -> nameLabel to nameError
+        serverError != null -> serverLabel to serverError
+        usernameError != null -> usernameLabel to usernameError
+        passwordError != null -> passwordLabel to passwordError
+        else -> null
+    }
+    val note = if (problem != null) {
+        stringResource(R.string.xtream_note_problem, problem.first, problem.second)
+    } else {
+        stringResource(if (canSubmit) R.string.xtream_note_ready else R.string.xtream_note_empty)
+    }
+
+    SourceFrameBox(padH = frame.padH, modifier = modifier.testTag(ActivationTags.XTREAM_FRAME)) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState(), enabled = frame.scroll || keyboard)
+                .padding(vertical = frame.pad)
+                .wrapContentWidth(Alignment.CenterHorizontally)
+                .widthIn(max = fieldMeasure),
+        ) {
+            CastivioTextField(
+                value = form.name,
+                onValueChange = onName,
+                label = nameLabel,
+                hint = stringResource(R.string.field_optional),
+                placeholder = stringResource(R.string.field_playlist_name_placeholder),
+                error = nameError,
+                enabled = enabled,
+                onImeAction = next,
+                labelIcon = Icons.Rounded.Home,
+                icon = Icons.Rounded.Home,
+                errorBelow = frame.scroll,
+                modifier = Modifier.fillMaxWidth().testTag(ActivationTags.XTREAM_NAME),
+            )
+
+            Spacer(Modifier.height(frame.fieldGap))
+            CastivioTextField(
+                value = form.serverUrl,
+                onValueChange = onServerUrl,
+                label = serverLabel,
+                placeholder = stringResource(R.string.field_server_url_placeholder),
+                error = serverError,
+                enabled = enabled,
+                keyboardType = KeyboardType.Uri,
+                onImeAction = next,
+                labelIcon = Icons.Rounded.Link,
+                icon = Icons.Rounded.Link,
+                trailing = { PasteChip(enabled = enabled, onPaste = onServerUrl) },
+                errorBelow = frame.scroll,
+                modifier = Modifier.fillMaxWidth().testTag(ActivationTags.XTREAM_SERVER),
+            )
+
+            Spacer(Modifier.height(frame.fieldGap))
+            CastivioTextField(
+                value = form.username,
+                onValueChange = onUsername,
+                label = usernameLabel,
+                error = usernameError,
+                enabled = enabled,
+                onImeAction = next,
+                labelIcon = Icons.Rounded.Person,
+                icon = Icons.Rounded.Person,
+                errorBelow = frame.scroll,
+                modifier = Modifier.fillMaxWidth().testTag(ActivationTags.XTREAM_USERNAME),
+            )
+
+            Spacer(Modifier.height(frame.fieldGap))
+            CastivioTextField(
+                value = form.password,
+                onValueChange = onPassword,
+                label = passwordLabel,
+                error = passwordError,
+                enabled = enabled,
+                secret = !revealed,
+                // A password keyboard whether it is shown or not: it is what tells the
+                // keyboard not to learn it or offer it back as a suggestion.
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Done,
+                onImeAction = onSubmit,
+                labelIcon = Icons.Rounded.Lock,
+                icon = Icons.Rounded.Lock,
+                trailing = {
+                    RevealToggle(revealed = revealed, enabled = enabled, onToggle = { revealed = !revealed })
+                },
+                trailingFlush = true,
+                errorBelow = frame.scroll,
+                modifier = Modifier.fillMaxWidth().testTag(ActivationTags.XTREAM_PASSWORD),
+            )
+
+            Spacer(Modifier.height(frame.actionGap))
+            ConnectButton(
+                enabled = canSubmit,
+                onClick = onSubmit,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Spacer(Modifier.height(frame.noteGap))
+            PanelNote(
+                detail = note,
+                error = problem != null,
+                // One line where the frame cannot grow, so the frame's arithmetic holds.
+                maxLines = if (frame.scroll) Int.MAX_VALUE else 1,
+                modifier = Modifier.fillMaxWidth().testTag(ActivationTags.XTREAM_NOTE),
+            )
+        }
+    }
+}
+
+/**
+ * Show or hide the password, inside the field it shows.
+ *
+ * Inside for the reason Paste is (see [PasteChip]): beside the field it would be a stop
+ * on the remote's way down the form, and here it is one press across from the field it
+ * belongs to. As tall as the field's box and flush to its edge -- `trailingFlush` --
+ * so the password is exactly as tall as the username above it.
+ *
+ * It looks like part of the field until it has focus, and then like every other
+ * focused control in Castivio: the lift, and the ring, inset so that it does not draw
+ * over the field's own edge.
+ */
+@Composable
+private fun RevealToggle(revealed: Boolean, enabled: Boolean, onToggle: () -> Unit) {
+    val colors = CastivioTheme.colors
+    val interaction = remember { MutableInteractionSource() }
+    var focused by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(Radius.xs)
+    val ring by animateColorAsState(
+        if (focused) colors.focusRing else colors.focusRing.copy(alpha = 0f),
+        Motion.focusSpec(),
+        label = "revealRing",
+    )
+
+    Box(
+        Modifier
+            .width(Sizing.minTarget(CastivioTheme.device.isTv))
+            .castivioFocusScale(Motion.focusScaleIcon, interaction)
+            .onFocusChanged { focused = it.isFocused }
+            .clickable(interaction, indication = null, enabled = enabled, role = Role.Button, onClick = onToggle)
+            .testTag(ActivationTags.XTREAM_REVEAL)
+            .padding(Spacing.xs)
+            .border(BorderStroke(1.dp, ring), shape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = if (revealed) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
+            // Named by what pressing it does, as the theme control is.
+            contentDescription = stringResource(
+                if (revealed) R.string.action_hide_password else R.string.action_show_password,
+            ),
+            tint = if (focused) colors.onBackground else colors.onBackgroundMuted,
+            modifier = Modifier.size(Sizing.iconMd),
+        )
     }
 }
 
@@ -181,10 +423,10 @@ internal fun XtreamFormScreen(
  * its size is worth less than the vertical room it costs.
  *
  * Where the spread does not fit, the screen draws [SourceFormFrame] -- the same frame
- * the portal draws at every size, so the two forms cannot drift apart. Xtream keeps
- * its plain column.
+ * the portal draws at every size, so the two forms cannot drift apart. Xtream draws
+ * the same frame around its four fields; see [XtreamFormScreen].
  *
- * ## It owns its viewport, like the chooser and unlike the Xtream form
+ * ## It owns its viewport, like the chooser and the other two forms
  *
  * Which is what lets it wear [ChooserHeader] at the chooser's own place, and what gives
  * the band a bounded height to divide. See [SourceFormScreen].
@@ -251,9 +493,9 @@ internal fun M3uFormScreen(
 }
 
 /**
- * The stage both source forms share: the chooser's header with this screen's own title,
- * the chooser's gap under it, and the band that [content] is given -- with the surface's
- * own width and height, its metrics, and the band's height.
+ * The stage the three source forms share: the chooser's header with this screen's own
+ * title, the chooser's gap under it, and the band that [content] is given -- with the
+ * surface's own width and height, its metrics, and the band's height.
  */
 @Composable
 private fun SourceFormScreen(
@@ -288,11 +530,13 @@ private fun SourceFormScreen(
 
             // **The band, and nothing may leave it.**
             //
-            // No scroll and no `imePadding`: a scroll meant Connect could sit below the
-            // fold, and an IME inset on a window that does not resize -- `:app` is edge
-            // to edge -- would have shrunk the band and clipped the control instead.
-            // What replaces them is arithmetic, asserted on every surface by
-            // `M3uSpreadTest`.
+            // No scroll and no `imePadding` on the band: a scroll meant Connect could
+            // sit below the fold, and an IME inset on a window that does not resize --
+            // `:app` is edge to edge -- would have shrunk the band and clipped the
+            // control instead. What replaces them is arithmetic, asserted on every
+            // surface by `M3uSpreadTest`. The Xtream form, whose four fields a handset
+            // cannot hold, scrolls and answers the keyboard inside its own frame and
+            // leaves the band to the other two as it is; see [XtreamFormScreen].
             //
             // A `BoxWithConstraints` rather than a `Box`, so [content] can read the
             // stage's own width: `castivioStage` pays `max(edge, inset)` per side, and
@@ -662,30 +906,47 @@ private fun PlaylistPanel(
  * the same place either way, because a message that appears and disappears moves the
  * button it sits under.
  *
- * It is never an error. A field says what is wrong with a field, under that field; a
- * playlist's Connect cannot fail, because it asks nobody anything, and a portal's
- * failure replaces the whole form with its own screen. The one ink is therefore the
- * quiet one, and there is no second branch for a state this line never shows.
+ * On the playlist and portal screens it is never an error. A field says what is wrong
+ * with a field, under that field; a playlist's Connect cannot fail, because it asks
+ * nobody anything, and a portal's failure replaces the whole form with its own screen.
+ *
+ * The Xtream form is the one exception, and only where it does not scroll: there a
+ * field's error has no line of its own to go to, so it takes this one -- in the
+ * error's ink, on one line, in place of the sentence it displaces. See
+ * [XtreamFormScreen].
+ *
+ * @param error whether [detail] is a field's error rather than the next step.
+ * @param maxLines one where the frame's height is fixed and the line must not wrap.
+ *   Unbounded otherwise, as it always was.
  */
 @Composable
-private fun PanelNote(detail: String, modifier: Modifier = Modifier) {
+private fun PanelNote(
+    detail: String,
+    modifier: Modifier = Modifier,
+    error: Boolean = false,
+    maxLines: Int = Int.MAX_VALUE,
+) {
     val colors = CastivioTheme.colors
+    val ink = if (error) colors.danger else colors.onBackgroundMuted
     Row(
         modifier,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            imageVector = Icons.Rounded.Info,
+            imageVector = if (error) Icons.Rounded.ErrorOutline else Icons.Rounded.Info,
             contentDescription = null, // the sentence beside it is the message
-            tint = colors.onBackgroundMuted,
+            tint = ink,
             modifier = Modifier.size(Sizing.iconSm),
         )
         Text(
             text = detail,
             style = CastivioType.bodySmall,
-            color = colors.onBackgroundMuted,
+            color = ink,
             textAlign = TextAlign.Center,
+            maxLines = maxLines,
+            // Clip is `Text`'s own default, kept where the line is unbounded.
+            overflow = if (maxLines == Int.MAX_VALUE) TextOverflow.Clip else TextOverflow.Ellipsis,
         )
     }
 }
@@ -730,6 +991,8 @@ private fun PasteChip(enabled: Boolean, onPaste: (String) -> Unit) {
  * Connect and the note -- always all four. The frame takes [FormFrameMetrics.height]; the
  * form inside it keeps the field measure and sits centred, so spare height is shared
  * above and below. Only the words and the tags differ between the two screens.
+ *
+ * The frame itself is [SourceFrameBox], which the Xtream form draws around its own four.
  */
 @Composable
 private fun SourceFormFrame(
@@ -753,20 +1016,7 @@ private fun SourceFormFrame(
     noteTag: String,
     modifier: Modifier = Modifier,
 ) {
-    val colors = CastivioTheme.colors
-    val shape = RoundedCornerShape(Radius.xl)
-
-    // GlassCard's own shadow, fill and clip, plus the one thing it has no parameter
-    // for: a border in the brand's two hues.
-    Box(
-        modifier
-            .shadow(Elevation.level2, shape, ambientColor = Elevation.ambient, spotColor = Elevation.spot)
-            .clip(shape)
-            .background(colors.glassFillBrush)
-            .border(BorderStroke(1.dp, Brush.linearGradient(listOf(colors.hueViolet, colors.hueAzure))), shape)
-            .padding(horizontal = frame.padH),
-        contentAlignment = Alignment.Center,
-    ) {
+    SourceFrameBox(padH = frame.padH, modifier = modifier) {
         Column(Modifier.widthIn(max = fieldMeasure).fillMaxWidth()) {
             CastivioTextField(
                 value = name,
@@ -812,6 +1062,32 @@ private fun SourceFormFrame(
             )
         }
     }
+}
+
+/**
+ * The frame itself, which the three source forms draw: GlassCard's own shadow, fill and
+ * clip, plus the one thing it has no parameter for -- a border in the brand's two hues.
+ * [content] is centred in it, [padH] in from either side.
+ */
+@Composable
+private fun SourceFrameBox(
+    padH: Dp,
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    val colors = CastivioTheme.colors
+    val shape = RoundedCornerShape(Radius.xl)
+
+    Box(
+        modifier
+            .shadow(Elevation.level2, shape, ambientColor = Elevation.ambient, spotColor = Elevation.spot)
+            .clip(shape)
+            .background(colors.glassFillBrush)
+            .border(BorderStroke(1.dp, Brush.linearGradient(listOf(colors.hueViolet, colors.hueAzure))), shape)
+            .padding(horizontal = padH),
+        contentAlignment = Alignment.Center,
+        content = content,
+    )
 }
 
 /**
@@ -1049,6 +1325,82 @@ internal data class FormFrameMetrics(
     val noteGap: Dp,
 )
 
+/**
+ * The Xtream frame, from the surface and the band it is given.
+ *
+ * ## One question, asked of the band
+ *
+ * Whether the band holds the form's controls at all, at no spacing -- [xtreamFloor].
+ * Not whether this is a handset: that question was asked of `DeviceClass` and of `isTv`
+ * on the screen before this one and shipped wrong both times (see `isFixedViewport`).
+ * The band is the thing that has or has not got room, and asking it gives the answer
+ * the devices would -- a handset's landscape band is 275 to 333dp against a floor of
+ * 350, the smallest television's is 418 against 366 -- and the right answer for the
+ * windows no device list names, such as a tablet split into a short half.
+ *
+ * Where it holds, the frame is the whole band, so the margin under the frame is the
+ * stage's own bottom margin -- which the sizing system draws equal to the gap above
+ * the frame -- and the spacing is the sizing system's, shared out of what the controls
+ * leave where the band cannot afford it at full size. Every control keeps its height.
+ *
+ * Where it does not, the frame is [formFrame]'s, the one the playlist and portal
+ * screens draw on the same surface, and the spacing is the sizing system's at full
+ * size: the form scrolls inside the frame, so it has no reason to be cramped.
+ */
+internal fun xtreamFrame(width: Dp, height: Dp, band: Dp, bandTop: Dp, button: Dp): XtreamFrameMetrics {
+    val floor = xtreamFloor(button)
+    val pad = height.boundedFraction(FRAME_PAD, Spacing.sm, Spacing.xl)
+    val fieldGap = height.boundedFraction(FRAME_FIELD_GAP, Spacing.sm, Spacing.xl)
+    val actionGap = height.boundedFraction(FRAME_ACTION_GAP, Spacing.md, Spacing.xxl)
+    val noteGap = height.boundedFraction(FRAME_NOTE_GAP, Spacing.xs, Spacing.lg)
+    val fits = band >= floor
+    val frame = if (fits) band else formFrame(width, height, band, bandTop, button).height
+    val share = if (fits) {
+        ((frame - floor) / (pad * 2 + fieldGap * 3 + actionGap + noteGap)).coerceIn(0f, 1f)
+    } else {
+        1f
+    }
+    return XtreamFrameMetrics(
+        height = frame,
+        padH = width.boundedFraction(FRAME_PAD_H, Spacing.md, Spacing.xxl),
+        pad = pad * share,
+        fieldGap = fieldGap * share,
+        actionGap = actionGap * share,
+        noteGap = noteGap * share,
+        scroll = !fits,
+    )
+}
+
+/**
+ * What the Xtream form measures with no spacing at all: the name field, the server
+ * with Paste, the username and the password, Connect and the note -- with no error
+ * under any field, because where this is the budget an error is said in the note.
+ */
+internal fun xtreamFloor(button: Dp): Dp =
+    FRAME_NAME_FIELD + FRAME_URL_CHROME + button + FRAME_LABELLED_FIELD * 2 + button + FRAME_NOTE
+
+@Immutable
+internal data class XtreamFrameMetrics(
+    /** The frame: the whole band where the form fits, [formFrame]'s where it scrolls. */
+    val height: Dp,
+    /** Either side of the form, inside the frame. */
+    val padH: Dp,
+    /** Above the name field and under the note, inside the frame. */
+    val pad: Dp,
+    /** Between one field and the next. */
+    val fieldGap: Dp,
+    /** Above Connect. */
+    val actionGap: Dp,
+    /** Above the note. */
+    val noteGap: Dp,
+    /**
+     * Whether the form scrolls inside the frame -- and with it, where a field's error
+     * goes: under the field where the form scrolls and the line has somewhere to push,
+     * in the note where it does not and the frame cannot grow.
+     */
+    val scroll: Boolean,
+)
+
 @Immutable
 internal data class M3uMetrics(
     /** How wide the whole spread is drawn, which is the stage up to a ceiling. */
@@ -1253,6 +1605,12 @@ private val FRAME_NAME_FIELD: Dp = 70.dp
 
 /** Label row 16, `Spacing.xs`, and `Spacing.xs` above and below a Paste chip floored at the button's target. */
 private val FRAME_URL_CHROME: Dp = 28.dp
+
+/**
+ * Label row 16, `Spacing.xs`, a box at the touch floor: the username, and the password,
+ * whose show and hide is flush inside that box and so adds nothing to it.
+ */
+private val FRAME_LABELLED_FIELD: Dp = 68.dp
 
 /** One line of `bodySmall`. */
 private val FRAME_NOTE: Dp = 20.dp

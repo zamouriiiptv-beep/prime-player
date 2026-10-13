@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The playlist and portal forms, in Korean: the two fields, Paste, Connect,
-  the line under Connect and what a field says is wrong with it.
+  The playlist, portal and Xtream forms, in Korean: their fields, Paste,
+  Connect, the line under Connect and what a field says is wrong with it.
 
   A declared bundle, gated by check-invariants.sh: every key here must exist,
   and not be empty, in every language.
@@ -12,11 +12,19 @@
     <string name="field_playlist_name_placeholder">집</string>
     <string name="field_playlist_url">M3U 재생목록 URL</string>
     <string name="field_portal_url">포털 URL</string>
+    <string name="field_server_url">서버 URL</string>
+    <string name="field_username">사용자 이름</string>
+    <string name="field_password">비밀번호</string>
     <string name="action_paste">붙여넣기</string>
     <string name="action_connect">연결</string>
+    <string name="action_show_password">비밀번호 표시</string>
+    <string name="action_hide_password">비밀번호 숨기기</string>
     <string name="playlist_note_empty">유효한 링크를 입력하면 ‘연결’이 활성화됩니다.</string>
     <string name="playlist_note_ready">‘연결’을 눌러 목록을 읽으세요.</string>
     <string name="portal_note_ready">‘연결’을 눌러 포털을 여세요.</string>
+    <string name="xtream_note_empty">서버 URL, 사용자 이름, 비밀번호를 입력하면 ‘연결’이 활성화됩니다.</string>
+    <string name="xtream_note_ready">‘연결’을 눌러 로그인하세요.</string>
+    <string name="xtream_note_problem">%1$s: %2$s</string>
     <string name="problem_required">필수 항목입니다.</string>
     <string name="problem_too_long">허용된 길이보다 깁니다.</string>
     <string name="problem_contains_spaces">공백이 있습니다. 링크에는 공백을 넣을 수 없습니다.</string>

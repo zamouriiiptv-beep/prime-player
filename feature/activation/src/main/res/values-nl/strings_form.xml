@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The playlist and portal forms, in Dutch: the two fields, Paste, Connect,
-  the line under Connect and what a field says is wrong with it.
+  The playlist, portal and Xtream forms, in Dutch: their fields, Paste,
+  Connect, the line under Connect and what a field says is wrong with it.
 
   A declared bundle, gated by check-invariants.sh: every key here must exist,
   and not be empty, in every language.
@@ -12,11 +12,19 @@
     <string name="field_playlist_name_placeholder">Thuis</string>
     <string name="field_playlist_url">URL van M3U-afspeellijst</string>
     <string name="field_portal_url">Portal-URL</string>
+    <string name="field_server_url">Server-URL</string>
+    <string name="field_username">Gebruikersnaam</string>
+    <string name="field_password">Wachtwoord</string>
     <string name="action_paste">Plakken</string>
     <string name="action_connect">Verbinden</string>
+    <string name="action_show_password">Wachtwoord tonen</string>
+    <string name="action_hide_password">Wachtwoord verbergen</string>
     <string name="playlist_note_empty">Voer een geldige link in om Verbinden in te schakelen.</string>
     <string name="playlist_note_ready">Druk op Verbinden om de lijst te lezen.</string>
     <string name="portal_note_ready">Druk op Verbinden om de portal te openen.</string>
+    <string name="xtream_note_empty">Voer server-URL, gebruikersnaam en wachtwoord in om Verbinden in te schakelen.</string>
+    <string name="xtream_note_ready">Druk op Verbinden om in te loggen.</string>
+    <string name="xtream_note_problem">%1$s: %2$s</string>
     <string name="problem_required">Dit veld is verplicht.</string>
     <string name="problem_too_long">Dit is langer dan toegestaan.</string>
     <string name="problem_contains_spaces">Er staat een spatie in. Een link mag geen spaties bevatten.</string>

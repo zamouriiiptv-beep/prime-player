@@ -7,7 +7,6 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -36,19 +35,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.castivio.core.common.locale.CastivioLanguage
-import com.castivio.core.design.components.ButtonWeight
-import com.castivio.core.design.components.CastivioButton
 import com.castivio.core.design.theme.CastivioMetrics
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Motion
 import com.castivio.core.design.theme.MotionLevel
-import com.castivio.core.design.theme.Spacing
 import com.castivio.core.design.theme.castivioStage
 import com.castivio.core.design.theme.rememberMetrics
 import com.castivio.domain.activation.ActivationForm
@@ -428,20 +423,23 @@ internal fun isFixedViewport(
     step: ActivationStep,
 ): Boolean =
     !state.busy && state.phase !is ActivationPhase.Failed && when (step) {
-        // The playlist and portal steps join the three because they are screens now
-        // rather than forms: each wears `ChooserHeader` at the chooser's own place, which
-        // needs the stage the chooser has, and under the header sizes its frame to a
-        // bounded band, which a scrolling parent's unbounded height makes impossible.
+        // The three source forms join them because each is a screen now: each wears
+        // `ChooserHeader` at the chooser's own place, which needs the stage the chooser
+        // has, and under the header sizes its frame to a bounded band, which a scrolling
+        // parent's unbounded height makes impossible.
+        //
+        // Xtream was the exception, on the grounds that a keyboard takes most of a
+        // handset and four fields that owned the viewport would put Connect under it.
+        // That is still true and still answered -- inside the frame rather than by the
+        // whole screen, so the header and its Back stay where they are while the form
+        // scrolls. See `XtreamFormScreen`.
         ActivationStep.Mac,
         ActivationStep.Choose,
         ActivationStep.SavedSources,
         ActivationStep.Playlist,
         ActivationStep.Portal,
+        ActivationStep.Xtream,
         -> true
-
-        // The Xtream form scrolls: a keyboard takes most of a handset, and a form of four
-        // fields that owned its viewport would put Connect under it.
-        ActivationStep.Xtream -> false
     }
 
 @Composable
@@ -534,23 +532,22 @@ private fun Steps(
                 )
             }
 
-            ActivationStep.Xtream -> Column(
-                verticalArrangement = Arrangement.spacedBy(Spacing.xl),
-            ) {
-                XtreamFormScreen(
-                    form = state.form as? ActivationForm.Xtream ?: ActivationForm.Xtream(),
-                    enabled = !state.busy,
-                    canSubmit = state.canSubmit,
-                    onName = activation::name,
-                    onServerUrl = activation::serverUrl,
-                    onUsername = activation::username,
-                    onPassword = activation::password,
-                    onSubmit = activation::submit,
-                )
-                BackButton(onClick = { onStep(ActivationStep.Choose) })
-            }
+            // Laid out as the portal's is: it wears `ChooserHeader`, so Back is the
+            // header's chip -- the route's one answer, the same as the back key -- rather
+            // than a button under the form, and the attempt is the view model's.
+            ActivationStep.Xtream -> XtreamFormScreen(
+                form = state.form as? ActivationForm.Xtream ?: ActivationForm.Xtream(),
+                enabled = !state.busy,
+                canSubmit = state.canSubmit,
+                onName = activation::name,
+                onServerUrl = activation::serverUrl,
+                onUsername = activation::username,
+                onPassword = activation::password,
+                onSubmit = activation::submit,
+                onBack = onBack,
+            )
 
-            // No `BackButton` under it. This step wears `ChooserHeader`, so Back is
+            // No Back button under it. This step wears `ChooserHeader`, so Back is
             // the chip at the header's far end -- the same control in the same place
             // as on the chooser the user reached this from, which is what "the same
             // header" has to mean to be worth anything.
@@ -577,17 +574,6 @@ private fun Steps(
     }
 }
 
-/** One declaration, used by the three steps that have somewhere to go back to. */
-@Composable
-internal fun BackButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    CastivioButton(
-        text = stringResource(R.string.action_back),
-        weight = ButtonWeight.Ghost,
-        onClick = onClick,
-        modifier = modifier,
-    )
-}
-
 /**
  * The frame every step sits in.
  *
@@ -611,10 +597,10 @@ internal fun ActivationSurface(
      * infinite height constraint leaves a `weight` nothing to divide, so the
      * band measures zero and the screen renders as a header above a legal line.
      *
-     * The forms want precisely the opposite -- they overflow, so they scroll,
-     * and a text field is unreadable at 873dp so they are capped to a measure.
-     * Two requirements, two layouts, chosen here rather than compromised into
-     * one that serves neither.
+     * The import and the failure want precisely the opposite -- they overflow,
+     * so they scroll, and a line of prose is unreadable at 873dp so they are
+     * capped to a measure. Two requirements, two layouts, chosen here rather
+     * than compromised into one that serves neither.
      */
     fixedViewport: Boolean = false,
     content: @Composable () -> Unit,
@@ -678,15 +664,14 @@ internal fun ActivationSurface(
                 // the screen had ended there and the window had not.
                 //
                 // A fixed viewport does not scroll, so shrinking it for the keyboard
-                // buys nothing and costs the bottom of the screen. None of the steps in
-                // this branch has a text field of its own — the address, the chooser,
-                // the saved list and the four media browsers — and the one thing here
-                // that takes typing is a dialog, which handles the inset itself and
-                // lifts its panel rather than its scrim.
+                // buys nothing and costs the bottom of the screen. A screen here that
+                // takes typing answers the keyboard inside itself: a dialog lifts its
+                // panel rather than its scrim, and the Xtream form shortens its own
+                // frame to the room above the keys and scrolls inside it, under a
+                // header that does not move.
                 //
-                // The scrolling branch below keeps the IME, and must: the two provider
-                // forms are what the keyboard is actually for, and there the inset is
-                // what keeps a field and its submit button reachable.
+                // The scrolling branch below keeps the IME, as it always has. The form
+                // it was kept for, Xtream's, is drawn in this branch now.
                 .windowInsetsPadding(
                     WindowInsets.systemBars
                         .union(WindowInsets.displayCutout)
@@ -706,10 +691,11 @@ internal fun ActivationSurface(
     // or tablet ever reaches, so the rule was really "720 on a set, uncapped on
     // everything else", and a text field on a 1280dp tablet was 1232dp wide.
     //
-    // The four screens this frame carries — the two provider forms, the import and
-    // the failure — are the last in the application that had never been measured
-    // against the reference. Their margins are the stage's now and their measure is
-    // the type's, bounded, which is the rule `LegalScreen` already reads by.
+    // The screens this frame carries — the import and the failure, and the provider
+    // forms until each moved to the fixed frame — were the last in the application
+    // that had never been measured against the reference. Their margins are the
+    // stage's now and their measure is the type's, bounded, which is the rule
+    // `LegalScreen` already reads by.
     BoxWithConstraints(
         modifier
             .fillMaxSize()

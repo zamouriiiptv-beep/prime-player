@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The playlist and portal forms, in Urdu: the two fields, Paste, Connect,
-  the line under Connect and what a field says is wrong with it.
+  The playlist, portal and Xtream forms, in Urdu: their fields, Paste,
+  Connect, the line under Connect and what a field says is wrong with it.
 
   A declared bundle, gated by check-invariants.sh: every key here must exist,
   and not be empty, in every language.
@@ -12,11 +12,19 @@
     <string name="field_playlist_name_placeholder">گھر</string>
     <string name="field_playlist_url">M3U فہرست کا URL</string>
     <string name="field_portal_url">پورٹل کا URL</string>
+    <string name="field_server_url">سرور کا URL</string>
+    <string name="field_username">صارف نام</string>
+    <string name="field_password">پاس ورڈ</string>
     <string name="action_paste">پیسٹ کریں</string>
     <string name="action_connect">کنیکٹ کریں</string>
+    <string name="action_show_password">پاس ورڈ دکھائیں</string>
+    <string name="action_hide_password">پاس ورڈ چھپائیں</string>
     <string name="playlist_note_empty">«کنیکٹ کریں» فعال کرنے کے لیے درست لنک درج کریں۔</string>
     <string name="playlist_note_ready">فہرست پڑھنے کے لیے «کنیکٹ کریں» دبائیں۔</string>
     <string name="portal_note_ready">پورٹل کھولنے کے لیے «کنیکٹ کریں» دبائیں۔</string>
+    <string name="xtream_note_empty">«کنیکٹ کریں» فعال کرنے کے لیے سرور کا URL، صارف نام اور پاس ورڈ درج کریں۔</string>
+    <string name="xtream_note_ready">سائن ان کرنے کے لیے «کنیکٹ کریں» دبائیں۔</string>
+    <string name="xtream_note_problem">%1$s: %2$s</string>
     <string name="problem_required">یہ خانہ ضروری ہے۔</string>
     <string name="problem_too_long">یہ اجازت سے زیادہ لمبا ہے۔</string>
     <string name="problem_contains_spaces">اس میں خالی جگہ ہے۔ لنک میں خالی جگہ نہیں ہو سکتی۔</string>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The playlist and portal forms, in Simplified Chinese: the two fields, Paste, Connect,
-  the line under Connect and what a field says is wrong with it.
+  The playlist, portal and Xtream forms, in Simplified Chinese: their fields, Paste,
+  Connect, the line under Connect and what a field says is wrong with it.
 
   A declared bundle, gated by check-invariants.sh: every key here must exist,
   and not be empty, in every language.
@@ -12,11 +12,19 @@
     <string name="field_playlist_name_placeholder">家庭</string>
     <string name="field_playlist_url">M3U 播放列表链接</string>
     <string name="field_portal_url">门户链接</string>
+    <string name="field_server_url">服务器地址</string>
+    <string name="field_username">用户名</string>
+    <string name="field_password">密码</string>
     <string name="action_paste">粘贴</string>
     <string name="action_connect">连接</string>
+    <string name="action_show_password">显示密码</string>
+    <string name="action_hide_password">隐藏密码</string>
     <string name="playlist_note_empty">输入有效链接以启用“连接”。</string>
     <string name="playlist_note_ready">点击“连接”读取列表。</string>
     <string name="portal_note_ready">点击“连接”打开门户。</string>
+    <string name="xtream_note_empty">输入服务器地址、用户名和密码以启用“连接”。</string>
+    <string name="xtream_note_ready">点击“连接”登录。</string>
+    <string name="xtream_note_problem">%1$s：%2$s</string>
     <string name="problem_required">此项为必填项。</string>
     <string name="problem_too_long">内容过长。</string>
     <string name="problem_contains_spaces">包含空格。链接中不能有空格。</string>

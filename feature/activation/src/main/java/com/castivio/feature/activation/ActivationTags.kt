@@ -150,6 +150,26 @@ internal object ActivationTags {
     const val PLAYLIST_URL = "activation.playlistUrl"
 
     /**
+     * The Xtream screen: its header and way back, the frame, the four fields, the show
+     * and hide inside the password, and the line under Connect.
+     *
+     * The fields are tagged for the reason the portal's are: a text field merges its
+     * label, its value and its decoration into one node. The frame is what "scrolls on a
+     * handset and nowhere else" is asserted against, and the note is where the form says
+     * what a field has wrong wherever it does not scroll -- both claims about a place,
+     * and a place needs a handle.
+     */
+    const val XTREAM_HEADING = "activation.xtreamHeading"
+    const val XTREAM_BACK = "activation.xtreamBack"
+    const val XTREAM_FRAME = "activation.xtreamFrame"
+    const val XTREAM_NAME = "activation.xtreamName"
+    const val XTREAM_SERVER = "activation.xtreamServer"
+    const val XTREAM_USERNAME = "activation.xtreamUsername"
+    const val XTREAM_PASSWORD = "activation.xtreamPassword"
+    const val XTREAM_REVEAL = "activation.xtreamReveal"
+    const val XTREAM_NOTE = "activation.xtreamNote"
+
+    /**
      * The glass surface the grid and Back sit inside.
      *
      * Tagged because "the cards are in a container" is otherwise a claim only a

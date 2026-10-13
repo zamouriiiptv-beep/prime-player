@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The playlist and portal forms, in Slovak: the two fields, Paste, Connect,
-  the line under Connect and what a field says is wrong with it.
+  The playlist, portal and Xtream forms, in Slovak: their fields, Paste,
+  Connect, the line under Connect and what a field says is wrong with it.
 
   A declared bundle, gated by check-invariants.sh: every key here must exist,
   and not be empty, in every language.
@@ -12,11 +12,19 @@
     <string name="field_playlist_name_placeholder">Domov</string>
     <string name="field_playlist_url">URL playlistu M3U</string>
     <string name="field_portal_url">URL portálu</string>
+    <string name="field_server_url">URL servera</string>
+    <string name="field_username">Používateľské meno</string>
+    <string name="field_password">Heslo</string>
     <string name="action_paste">Vložiť</string>
     <string name="action_connect">Pripojiť</string>
+    <string name="action_show_password">Zobraziť heslo</string>
+    <string name="action_hide_password">Skryť heslo</string>
     <string name="playlist_note_empty">Zadajte platný odkaz, aby ste zapli Pripojiť.</string>
     <string name="playlist_note_ready">Stlačte Pripojiť na načítanie zoznamu.</string>
     <string name="portal_note_ready">Stlačte Pripojiť na otvorenie portálu.</string>
+    <string name="xtream_note_empty">Zadajte URL servera, používateľské meno a heslo, aby ste zapli Pripojiť.</string>
+    <string name="xtream_note_ready">Stlačte Pripojiť na prihlásenie.</string>
+    <string name="xtream_note_problem">%1$s: %2$s</string>
     <string name="problem_required">Toto pole je povinné.</string>
     <string name="problem_too_long">Je to dlhšie, ako je povolené.</string>
     <string name="problem_contains_spaces">Obsahuje medzeru. Odkaz nemôže obsahovať medzery.</string>
