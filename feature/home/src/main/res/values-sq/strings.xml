@@ -51,6 +51,10 @@
     <string name="browse_fetch_failed">%1$s nuk u ngarkua dot</string>
     <string name="browse_fetch_failed_retryable">Ofruesi juaj nuk u përgjigj në kohë. Zakonisht është i zënë, jo jashtë funksionit.</string>
     <string name="browse_fetch_failed_final">Ofruesi juaj e refuzoi kërkesën. Kontrolloni abonimin, ose shtojeni sërish nga faqja kryesore.</string>
+    <string name="browse_fetch_failed_network">Ofruesi juaj nuk u arrit. Kontrolloni lidhjen e kësaj pajisjeje dhe provoni përsëri.</string>
+    <string name="browse_fetch_failed_server">Serveri i ofruesit tuaj raportoi një gabim. Provoni përsëri pas disa minutash.</string>
+    <string name="browse_fetch_failed_unreadable">Lista që dërgoi ofruesi juaj nuk mund të lexohej. Kontrolloni linkun ose pyesni ofruesin tuaj.</string>
+    <string name="browse_fetch_failed_unknown">Diçka shkoi keq gjatë ngarkimit. Provoni përsëri.</string>
     <string name="browse_fetch_retry">Provo sërish</string>
     <string name="gate_wordmark">Castivio</string>
     <string name="gate_version">Versioni %1$s</string>
@@ -110,7 +114,6 @@
     <string name="channels_empty_title">S\'ka kanale këtu</string>
     <string name="channels_empty_detail">Kjo kategori ende s\'ka asgjë. Provoni një tjetër, ose shkarkojeni sërish seksionin.</string>
     <string name="channels_fetch_failed">TV drejtpërdrejt nuk u shkarkua dot</string>
-    <string name="channels_notice_failed">Ofruesi juaj nuk u përgjigj. Po shfaqen kanalet që tashmë ndodhen në këtë pajisje.</string>
     <string name="channels_guide_now">TANI</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Sot</string>

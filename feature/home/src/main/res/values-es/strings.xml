@@ -51,6 +51,10 @@
     <string name="browse_fetch_failed">No se ha podido cargar %1$s</string>
     <string name="browse_fetch_failed_retryable">Tu proveedor no ha respondido a tiempo. Suele estar ocupado, no caído.</string>
     <string name="browse_fetch_failed_final">Tu proveedor ha rechazado la petición. Revisa la suscripción, o vuelve a añadirla desde el inicio.</string>
+    <string name="browse_fetch_failed_network">No se ha podido conectar con tu proveedor. Revisa la conexión de este dispositivo y vuelve a intentarlo.</string>
+    <string name="browse_fetch_failed_server">El servidor de tu proveedor ha informado de un error. Vuelve a intentarlo en unos minutos.</string>
+    <string name="browse_fetch_failed_unreadable">No se ha podido leer la lista que envió tu proveedor. Revisa el enlace o consulta a tu proveedor.</string>
+    <string name="browse_fetch_failed_unknown">Algo ha fallado durante la carga. Vuelve a intentarlo.</string>
     <string name="browse_fetch_retry">Reintentar</string>
     <string name="gate_wordmark">Castivio</string>
     <string name="gate_version">Versión %1$s</string>
@@ -110,7 +114,6 @@
     <string name="channels_empty_title">Aquí no hay canales</string>
     <string name="channels_empty_detail">Esta categoría todavía está vacía. Prueba con otra, o vuelve a descargar la sección.</string>
     <string name="channels_fetch_failed">No se ha podido descargar la TV en directo</string>
-    <string name="channels_notice_failed">Tu proveedor no ha respondido. Se muestran los canales ya presentes en este dispositivo.</string>
     <string name="channels_guide_now">AHORA</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Hoy</string>

@@ -51,6 +51,10 @@
     <string name="browse_fetch_failed">%1$s не можа да се зареди</string>
     <string name="browse_fetch_failed_retryable">Вашият доставчик не отговори навреме. Обикновено е зает, а не спрял.</string>
     <string name="browse_fetch_failed_final">Вашият доставчик отказа заявката. Проверете абонамента или го добавете отново от Начало.</string>
+    <string name="browse_fetch_failed_network">Доставчикът ви не може да бъде достигнат. Проверете връзката на това устройство и опитайте отново.</string>
+    <string name="browse_fetch_failed_server">Сървърът на доставчика ви отчете грешка. Опитайте отново след няколко минути.</string>
+    <string name="browse_fetch_failed_unreadable">Списъкът, изпратен от доставчика ви, не може да бъде прочетен. Проверете линка или се обърнете към доставчика си.</string>
+    <string name="browse_fetch_failed_unknown">Нещо се обърка при зареждането. Опитайте отново.</string>
     <string name="browse_fetch_retry">Опитайте пак</string>
     <string name="gate_wordmark">Castivio</string>
     <string name="gate_version">Версия %1$s</string>
@@ -110,7 +114,6 @@
     <string name="channels_empty_title">Тук няма канали</string>
     <string name="channels_empty_detail">В тази категория още няма нищо. Опитайте друга или изтеглете раздела отново.</string>
     <string name="channels_fetch_failed">Телевизията на живо не можа да се изтегли</string>
-    <string name="channels_notice_failed">Вашият доставчик не отговори. Показват се каналите, които вече са на това устройство.</string>
     <string name="channels_guide_now">СЕГА</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Днес</string>

@@ -51,6 +51,10 @@
     <string name="browse_fetch_failed">Kunde inte läsa in %1$s</string>
     <string name="browse_fetch_failed_retryable">Din leverantör svarade inte i tid. Den är oftast upptagen snarare än nere.</string>
     <string name="browse_fetch_failed_final">Din leverantör avvisade begäran. Kontrollera abonnemanget, eller lägg till det igen från startsidan.</string>
+    <string name="browse_fetch_failed_network">Det gick inte att nå din leverantör. Kontrollera enhetens anslutning och försök igen.</string>
+    <string name="browse_fetch_failed_server">Din leverantörs server rapporterade ett fel. Försök igen om några minuter.</string>
+    <string name="browse_fetch_failed_unreadable">Listan som din leverantör skickade kunde inte läsas. Kontrollera länken eller fråga din leverantör.</string>
+    <string name="browse_fetch_failed_unknown">Något gick fel vid inläsningen. Försök igen.</string>
     <string name="browse_fetch_retry">Försök igen</string>
     <string name="gate_wordmark">Castivio</string>
     <string name="gate_version">Version %1$s</string>
@@ -110,7 +114,6 @@
     <string name="channels_empty_title">Inga kanaler här</string>
     <string name="channels_empty_detail">Den här kategorin är tom än så länge. Prova en annan, eller hämta sektionen igen.</string>
     <string name="channels_fetch_failed">Live-TV kunde inte hämtas</string>
-    <string name="channels_notice_failed">Din leverantör svarade inte. Visar de kanaler som redan finns på den här enheten.</string>
     <string name="channels_guide_now">NU</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">I dag</string>

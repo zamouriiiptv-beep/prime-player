@@ -51,6 +51,10 @@
     <string name="browse_fetch_failed">%1$s을(를) 불러오지 못했습니다</string>
     <string name="browse_fetch_failed_retryable">공급자가 제시간에 응답하지 않았습니다. 중단된 것이 아니라 대개 혼잡한 상태입니다.</string>
     <string name="browse_fetch_failed_final">공급자가 요청을 거부했습니다. 구독을 확인하거나 홈에서 다시 추가하세요.</string>
+    <string name="browse_fetch_failed_network">공급자에 연결할 수 없습니다. 이 기기의 연결을 확인한 후 다시 시도하세요.</string>
+    <string name="browse_fetch_failed_server">공급자의 서버에서 오류를 보고했습니다. 몇 분 후에 다시 시도하세요.</string>
+    <string name="browse_fetch_failed_unreadable">공급자가 보낸 목록을 읽을 수 없습니다. 링크를 확인하거나 공급자에게 문의하세요.</string>
+    <string name="browse_fetch_failed_unknown">불러오는 중에 문제가 발생했습니다. 다시 시도하세요.</string>
     <string name="browse_fetch_retry">다시 시도</string>
     <string name="gate_wordmark">Castivio</string>
     <string name="gate_version">버전 %1$s</string>
@@ -110,7 +114,6 @@
     <string name="channels_empty_title">여기에는 채널이 없습니다</string>
     <string name="channels_empty_detail">이 카테고리에는 아직 아무것도 없습니다. 다른 카테고리를 보거나 섹션을 다시 내려받으세요.</string>
     <string name="channels_fetch_failed">실시간 TV를 내려받지 못했습니다</string>
-    <string name="channels_notice_failed">공급자가 응답하지 않았습니다. 이 기기에 있는 채널을 표시합니다.</string>
     <string name="channels_guide_now">현재</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">오늘</string>

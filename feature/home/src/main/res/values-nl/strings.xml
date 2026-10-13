@@ -51,6 +51,10 @@
     <string name="browse_fetch_failed">%1$s kon niet worden geladen</string>
     <string name="browse_fetch_failed_retryable">Je provider antwoordde niet op tijd. Meestal is hij druk in plaats van uit de lucht.</string>
     <string name="browse_fetch_failed_final">Je provider weigerde het verzoek. Controleer het abonnement, of voeg het opnieuw toe vanaf het startscherm.</string>
+    <string name="browse_fetch_failed_network">Je provider is niet bereikbaar. Controleer de verbinding van dit apparaat en probeer het opnieuw.</string>
+    <string name="browse_fetch_failed_server">De server van je provider meldde een fout. Probeer het over een paar minuten opnieuw.</string>
+    <string name="browse_fetch_failed_unreadable">De lijst die je provider stuurde kon niet worden gelezen. Controleer de link of vraag het je provider.</string>
+    <string name="browse_fetch_failed_unknown">Er ging iets mis bij het laden. Probeer het opnieuw.</string>
     <string name="browse_fetch_retry">Opnieuw proberen</string>
     <string name="gate_wordmark">Castivio</string>
     <string name="gate_version">Versie %1$s</string>
@@ -110,7 +114,6 @@
     <string name="channels_empty_title">Hier zijn geen zenders</string>
     <string name="channels_empty_detail">Deze categorie is nog leeg. Probeer een andere, of download de sectie opnieuw.</string>
     <string name="channels_fetch_failed">Live-tv kon niet worden gedownload</string>
-    <string name="channels_notice_failed">Je provider antwoordde niet. De zenders die al op dit apparaat staan worden getoond.</string>
     <string name="channels_guide_now">NU</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Vandaag</string>

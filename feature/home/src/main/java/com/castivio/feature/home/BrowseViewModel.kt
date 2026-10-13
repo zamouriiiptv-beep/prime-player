@@ -25,14 +25,16 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.Locale
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -91,6 +93,13 @@ data class BrowseState(
     val shownGroups: List<MediaGroup> = emptyList(),
     val providerLabel: String? = null,
     /**
+     * The active subscription's id, null when there is none.
+     *
+     * Not drawn. The gate keys on it, so a screen still open while the subscription
+     * changes asks for its section again — see [SectionFetch].
+     */
+    val sourceId: String? = null,
+    /**
      * This device's address, for the loading gate to print while the section arrives.
      *
      * Derived once per holder rather than asked for per frame: [DeviceIdentity.current]
@@ -129,21 +138,49 @@ class BrowseViewModel @Inject constructor(
     private val pager: CatalogPager,
     private val loadSection: LoadSection,
     private val clock: TrustedTime,
-    sources: SourceRepository,
+    private val sources: SourceRepository,
     identity: DeviceIdentity,
 ) : ViewModel() {
 
     /** Read once, for the reason [BrowseState.mac] gives. */
     private val mac: String = identity.current().macAddress.value
 
-    private val fetch = MutableStateFlow<SectionLoad?>(null)
-    private var fetching: Job? = null
-
-    /** Whether this holder has already started a measurement. See [show]. */
-    private var timed = false
-
     private val section = MutableStateFlow(CatalogSection.Live)
     private val chosen = MutableStateFlow<String?>(null)
+
+    /**
+     * Whether this section is on the device for the active subscription, and the one
+     * fetch allowed to ask. The rules — a failure waits for the user, one press is one
+     * attempt, a new subscription forgets the previous one's answer — are
+     * [SectionFetch]'s, where they are tested without a device.
+     */
+    private val fetch = SectionFetch(
+        scope = viewModelScope,
+        load = { force ->
+            // The outermost boundary Phase A named. `LoadSection` itself is pure Kotlin
+            // and may not import `androidx` -- the invariant script fails the build on
+            // that -- so the section is opened around its collection, which begins and
+            // ends at the same two instants the loader does.
+            loadSection.load(section.value.kind, clock.nowMs(), force = force)
+                .onStart { Trace.beginSection(CastivioTrace.FETCH) }
+                .onCompletion { Trace.endSection() }
+        },
+        onRunStarted = { PerformanceLog.begin(section.value.perf) },
+        onAnswer = ::report,
+    )
+
+    init {
+        // Watched for the holder's whole life, not only while a screen is open: the
+        // holder outlives its screen, because the shell has no back stack to clear it.
+        // A subscription switched from Home would otherwise leave this section holding
+        // the previous one's fetch, still running, and its answer, still on show.
+        viewModelScope.launch {
+            sources.active()
+                .map { it?.id }
+                .distinctUntilChanged()
+                .collect { fetch.sourceChanged(it) }
+        }
+    }
 
     /**
      * The order, which the provider's own is the default for.
@@ -197,15 +234,12 @@ class BrowseViewModel @Inject constructor(
             section.flatMapLatest { catalog.count(it.kind, null) },
         ) { shown, whole -> shown to whole },
         combine(
-            // `takeIf`, because a playlist the user did not name now stores no name
-            // rather than the host: absent and empty mean the same thing to every
-            // reader of this, and only one of them has a fallback. Without it the
-            // empty-section title reads " carries no Films".
-            sources.active().map { it?.label?.takeIf(String::isNotBlank) },
-            fetch,
+            sources.active(),
+            fetch.state,
             railFilter,
         ) { provider, state, filter -> Triple(provider, state, filter) },
     ) { current, available, asked, counts, providerAndFetch ->
+        val provider = providerAndFetch.first
         val filter = providerAndFetch.third
         BrowseState(
             section = current,
@@ -217,7 +251,12 @@ class BrowseViewModel @Inject constructor(
             sectionTotal = counts.second,
             groupFilter = filter,
             shownGroups = available.filtered(filter),
-            providerLabel = providerAndFetch.first,
+            // `takeIf`, because a playlist the user did not name now stores no name
+            // rather than the host: absent and empty mean the same thing to every
+            // reader of this, and only one of them has a fallback. Without it the
+            // empty-section title reads " carries no Films".
+            providerLabel = provider?.label?.takeIf(String::isNotBlank),
+            sourceId = provider?.id,
             loading = false,
             fetch = providerAndFetch.second,
             mac = mac,
@@ -236,57 +275,19 @@ class BrowseViewModel @Inject constructor(
      * Called by the screen on first composition, so the holder is told what it is for.
      *
      * Idempotent, because composition is: re-declaring the same section must not clear
-     * the category the user has open.
+     * the category the user has open, and must not ask again for a section whose fetch
+     * failed — that is the user's to ask, with the retry button. See [SectionFetch].
      */
     fun show(current: CatalogSection) {
         if (section.value != current) {
             section.value = current
             chosen.value = null
-            fetch.value = null
+            fetch.forget()
         }
-        // A new run of the stopwatch, once per entry into this section. The holder is
-        // keyed by section in the composition, so leaving Channels and coming back is a
-        // new holder and therefore a new measurement -- which is the point: the second
-        // visit reads from the database and the first did not, and a panel showing the
-        // first visit's numbers over the second would be the most misleading thing on
-        // the screen. `timed` is the guard, because composition calls this again for a
-        // rotation or a recomposition, and neither is a new open.
-        if (!timed) {
-            timed = true
-            PerformanceLog.begin(current.perf)
-        }
-        ensureFetched(current, force = false)
-    }
-
-    /**
-     * Fetch this section if it is not already on the device.
-     *
-     * Guarded by the running job rather than by the state, because composition calls
-     * [show] again for reasons that are not a navigation — a rotation, a theme switch,
-     * a recomposition after the count moved — and a second import of the same kind
-     * racing the first would interleave writes to the same rows.
-     *
-     * `LoadSection` decides whether there is anything to do; this only decides not to
-     * ask twice at once.
-     */
-    private fun ensureFetched(current: CatalogSection, force: Boolean) {
-        if (fetching?.isActive == true) return
-        fetching = viewModelScope.launch {
-            // The outermost boundary Phase A named. `LoadSection` itself is pure Kotlin
-            // and may not import `androidx` -- the invariant script fails the build on
-            // that -- so the section is opened around its collection, which begins and
-            // ends at the same two instants the loader does.
-            Trace.beginSection(CastivioTrace.FETCH)
-            try {
-                loadSection.load(current.kind, clock.nowMs(), force = force)
-                    .collect {
-                        fetch.value = it
-                        report(it)
-                    }
-            } finally {
-                Trace.endSection()
-            }
-        }
+        // The active subscription is read at the moment of asking rather than taken from
+        // the watcher in `init`. The two are separate queries, and a screen that saw a
+        // switch before the watcher did must not be answered about the previous one.
+        viewModelScope.launch { fetch.ensure(sources.activeNow()?.id) }
     }
 
     /**
@@ -321,15 +322,15 @@ class BrowseViewModel @Inject constructor(
         }
     }
 
-    /** After a failure, or when the user asks for this section again deliberately. */
+    /**
+     * After a failure, or when the user asks for this section again deliberately.
+     *
+     * One press is one attempt: a press while an attempt is running is not a second
+     * question. A deliberate retry is a new experiment, so it gets a new run rather
+     * than overwriting the failed one's numbers into the same row.
+     */
     fun retryFetch(force: Boolean = false) {
-        fetching?.cancel()
-        fetching = null
-        fetch.value = null
-        // A deliberate retry is a new experiment, so it gets a new run rather than
-        // overwriting the failed one's numbers into the same row.
-        PerformanceLog.begin(section.value.perf)
-        ensureFetched(section.value, force = force)
+        fetch.retry(force)
     }
 
     /** What the rail's field was typed into. Empty shows every category again. */

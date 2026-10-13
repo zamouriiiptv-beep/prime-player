@@ -51,6 +51,10 @@
     <string name="browse_fetch_failed">Kohdetta %1$s ei voitu ladata</string>
     <string name="browse_fetch_failed_retryable">Palveluntarjoajasi ei vastannut ajoissa. Yleensä se on kiireinen eikä poissa käytöstä.</string>
     <string name="browse_fetch_failed_final">Palveluntarjoajasi hylkäsi pyynnön. Tarkista tilaus tai lisää se uudelleen aloitusnäytöstä.</string>
+    <string name="browse_fetch_failed_network">Palveluntarjoajaasi ei tavoitettu. Tarkista tämän laitteen yhteys ja yritä uudelleen.</string>
+    <string name="browse_fetch_failed_server">Palveluntarjoajasi palvelin ilmoitti virheestä. Yritä uudelleen muutaman minuutin kuluttua.</string>
+    <string name="browse_fetch_failed_unreadable">Palveluntarjoajasi lähettämää luetteloa ei voitu lukea. Tarkista linkki tai kysy palveluntarjoajaltasi.</string>
+    <string name="browse_fetch_failed_unknown">Lataamisessa tapahtui virhe. Yritä uudelleen.</string>
     <string name="browse_fetch_retry">Yritä uudelleen</string>
     <string name="gate_wordmark">Castivio</string>
     <string name="gate_version">Versio %1$s</string>
@@ -110,7 +114,6 @@
     <string name="channels_empty_title">Täällä ei ole kanavia</string>
     <string name="channels_empty_detail">Tässä luokassa ei ole vielä mitään. Kokeile toista tai lataa osio uudelleen.</string>
     <string name="channels_fetch_failed">Suoraa TV:tä ei voitu ladata</string>
-    <string name="channels_notice_failed">Palveluntarjoajasi ei vastannut. Näytetään kanavat, jotka ovat jo tällä laitteella.</string>
     <string name="channels_guide_now">NYT</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Tänään</string>

@@ -51,6 +51,10 @@
     <string name="browse_fetch_failed">%1$s nu a putut fi încărcat</string>
     <string name="browse_fetch_failed_retryable">Furnizorul dvs. nu a răspuns la timp. De obicei este ocupat, nu picat.</string>
     <string name="browse_fetch_failed_final">Furnizorul dvs. a refuzat cererea. Verificați abonamentul sau adăugați-l din nou din Acasă.</string>
+    <string name="browse_fetch_failed_network">Furnizorul dvs. nu poate fi contactat. Verificați conexiunea acestui dispozitiv, apoi încercați din nou.</string>
+    <string name="browse_fetch_failed_server">Serverul furnizorului dvs. a raportat o eroare. Încercați din nou peste câteva minute.</string>
+    <string name="browse_fetch_failed_unreadable">Lista trimisă de furnizorul dvs. nu a putut fi citită. Verificați linkul sau întrebați furnizorul.</string>
+    <string name="browse_fetch_failed_unknown">Ceva nu a funcționat la încărcare. Încercați din nou.</string>
     <string name="browse_fetch_retry">Încercați din nou</string>
     <string name="gate_wordmark">Castivio</string>
     <string name="gate_version">Versiunea %1$s</string>
@@ -110,7 +114,6 @@
     <string name="channels_empty_title">Niciun canal aici</string>
     <string name="channels_empty_detail">Această categorie nu are încă nimic. Încercați alta sau descărcați secțiunea din nou.</string>
     <string name="channels_fetch_failed">TV live nu a putut fi descărcat</string>
-    <string name="channels_notice_failed">Furnizorul dvs. nu a răspuns. Se afișează canalele aflate deja pe acest dispozitiv.</string>
     <string name="channels_guide_now">ACUM</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Astăzi</string>

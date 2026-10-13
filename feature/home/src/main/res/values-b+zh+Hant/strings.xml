@@ -51,6 +51,10 @@
     <string name="browse_fetch_failed">無法載入%1$s</string>
     <string name="browse_fetch_failed_retryable">你的供應商未在時間內回應。通常是忙碌，而不是故障。</string>
     <string name="browse_fetch_failed_final">你的供應商拒絕了這項要求。請檢查訂閱，或從首頁重新新增。</string>
+    <string name="browse_fetch_failed_network">無法連線到你的供應商。請檢查這部裝置的網路連線，然後重試。</string>
+    <string name="browse_fetch_failed_server">你的供應商伺服器回報了錯誤。請幾分鐘後再試。</string>
+    <string name="browse_fetch_failed_unreadable">無法讀取供應商傳來的清單。請檢查連結，或詢問你的供應商。</string>
+    <string name="browse_fetch_failed_unknown">載入時發生問題。請重試。</string>
     <string name="browse_fetch_retry">再試一次</string>
     <string name="gate_wordmark">Castivio</string>
     <string name="gate_version">版本 %1$s</string>
@@ -110,7 +114,6 @@
     <string name="channels_empty_title">這裡沒有頻道</string>
     <string name="channels_empty_detail">這個分類目前還是空的。換一個分類，或重新下載這個區塊。</string>
     <string name="channels_fetch_failed">直播電視下載失敗</string>
-    <string name="channels_notice_failed">你的供應商沒有回應。正在顯示本機已有的頻道。</string>
     <string name="channels_guide_now">現正播出</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">今天</string>

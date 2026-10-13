@@ -538,13 +538,14 @@ fun SectionGate(
     model: BrowseViewModel = hiltViewModel(key = section.name),
     content: @Composable () -> Unit,
 ) {
+    val state by model.state.collectAsStateWithLifecycle()
+
     // Told here rather than in the screen, because the screen is not composed yet. It is
     // the same idempotent call the screen makes, on the same holder -- `hiltViewModel`
     // with the same key resolves to the same instance -- so the section is asked for
-    // once whichever of the two runs first.
-    LaunchedEffect(section) { model.show(section) }
-
-    val state by model.state.collectAsStateWithLifecycle()
+    // once whichever of the two runs first. Keyed on the subscription as well: one that
+    // changes while this gate is on screen is a new question, and nothing else asks it.
+    LaunchedEffect(section, state.sourceId) { model.show(section) }
 
     var graceExpired by remember(section) { mutableStateOf(false) }
     LaunchedEffect(section) {

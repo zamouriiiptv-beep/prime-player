@@ -51,6 +51,10 @@
     <string name="browse_fetch_failed">%1$s を読み込めませんでした</string>
     <string name="browse_fetch_failed_retryable">プロバイダーから時間内に応答がありませんでした。停止ではなく混雑している場合がほとんどです。</string>
     <string name="browse_fetch_failed_final">プロバイダーがリクエストを拒否しました。サブスクリプションを確認するか、ホームから追加し直してください。</string>
+    <string name="browse_fetch_failed_network">プロバイダーに接続できませんでした。この端末の接続を確認してから、もう一度お試しください。</string>
+    <string name="browse_fetch_failed_server">プロバイダーのサーバーがエラーを報告しました。数分後にもう一度お試しください。</string>
+    <string name="browse_fetch_failed_unreadable">プロバイダーから届いたリストを読み取れませんでした。リンクを確認するか、プロバイダーにお問い合わせください。</string>
+    <string name="browse_fetch_failed_unknown">読み込み中に問題が発生しました。もう一度お試しください。</string>
     <string name="browse_fetch_retry">再試行</string>
     <string name="gate_wordmark">Castivio</string>
     <string name="gate_version">バージョン %1$s</string>
@@ -110,7 +114,6 @@
     <string name="channels_empty_title">ここにチャンネルはありません</string>
     <string name="channels_empty_detail">このカテゴリーにはまだ何もありません。別のカテゴリーを試すか、セクションを再ダウンロードしてください。</string>
     <string name="channels_fetch_failed">ライブTVをダウンロードできませんでした</string>
-    <string name="channels_notice_failed">プロバイダーから応答がありません。この端末にあるチャンネルを表示しています。</string>
     <string name="channels_guide_now">現在</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">今日</string>

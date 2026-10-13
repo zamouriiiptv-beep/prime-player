@@ -350,10 +350,7 @@ private fun FetchFailed(section: CatalogSection, fetch: SectionLoad.Failed, onRe
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         ErrorState(
             title = stringResource(R.string.browse_fetch_failed, stringResource(section.label)),
-            detail = stringResource(
-                if (fetch.retryable) R.string.browse_fetch_failed_retryable
-                else R.string.browse_fetch_failed_final,
-            ),
+            detail = stringResource(fetch.error.fetchFailureDetail()),
             actionLabel = stringResource(R.string.browse_fetch_retry),
             onAction = onRetry,
         )

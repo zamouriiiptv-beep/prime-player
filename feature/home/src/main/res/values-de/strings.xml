@@ -51,6 +51,10 @@
     <string name="browse_fetch_failed">%1$s konnte nicht geladen werden</string>
     <string name="browse_fetch_failed_retryable">Dein Anbieter hat nicht rechtzeitig geantwortet. Meist ist er ausgelastet und nicht ausgefallen.</string>
     <string name="browse_fetch_failed_final">Dein Anbieter hat die Anfrage abgelehnt. Prüfe das Abonnement oder füge es vom Startbildschirm erneut hinzu.</string>
+    <string name="browse_fetch_failed_network">Dein Anbieter war nicht erreichbar. Prüfe die Verbindung dieses Geräts und versuche es erneut.</string>
+    <string name="browse_fetch_failed_server">Der Server deines Anbieters hat einen Fehler gemeldet. Versuche es in ein paar Minuten erneut.</string>
+    <string name="browse_fetch_failed_unreadable">Die Liste deines Anbieters konnte nicht gelesen werden. Prüfe den Link oder frage deinen Anbieter.</string>
+    <string name="browse_fetch_failed_unknown">Beim Laden ist etwas schiefgelaufen. Versuche es erneut.</string>
     <string name="browse_fetch_retry">Erneut versuchen</string>
     <string name="gate_wordmark">Castivio</string>
     <string name="gate_version">Version %1$s</string>
@@ -110,7 +114,6 @@
     <string name="channels_empty_title">Hier gibt es keine Sender</string>
     <string name="channels_empty_detail">Diese Kategorie ist noch leer. Probiere eine andere oder lade den Bereich erneut herunter.</string>
     <string name="channels_fetch_failed">Live-TV konnte nicht heruntergeladen werden</string>
-    <string name="channels_notice_failed">Dein Anbieter hat nicht geantwortet. Es werden die Sender gezeigt, die bereits auf diesem Gerät sind.</string>
     <string name="channels_guide_now">JETZT</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Heute</string>

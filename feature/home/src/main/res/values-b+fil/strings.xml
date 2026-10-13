@@ -51,6 +51,10 @@
     <string name="browse_fetch_failed">Hindi ma-load ang %1$s</string>
     <string name="browse_fetch_failed_retryable">Hindi sumagot sa oras ang provider mo. Karaniwang abala lang ito, hindi sira.</string>
     <string name="browse_fetch_failed_final">Tinanggihan ng provider mo ang kahilingan. Suriin ang subscription, o idagdag itong muli mula sa Home.</string>
+    <string name="browse_fetch_failed_network">Hindi maabot ang provider mo. Suriin ang koneksyon ng device na ito, saka subukang muli.</string>
+    <string name="browse_fetch_failed_server">Nag-ulat ng error ang server ng provider mo. Subukang muli pagkalipas ng ilang minuto.</string>
+    <string name="browse_fetch_failed_unreadable">Hindi mabasa ang listahang ipinadala ng provider mo. Suriin ang link, o magtanong sa provider mo.</string>
+    <string name="browse_fetch_failed_unknown">May nangyaring mali habang naglo-load. Subukang muli.</string>
     <string name="browse_fetch_retry">Subukan ulit</string>
     <string name="gate_wordmark">Castivio</string>
     <string name="gate_version">Bersyon %1$s</string>
@@ -110,7 +114,6 @@
     <string name="channels_empty_title">Walang channel dito</string>
     <string name="channels_empty_detail">Wala pang laman ang kategoryang ito. Sumubok ng iba, o i-download muli ang seksyon.</string>
     <string name="channels_fetch_failed">Hindi na-download ang Live TV</string>
-    <string name="channels_notice_failed">Hindi sumagot ang provider mo. Ipinapakita ang mga channel na nasa device na.</string>
     <string name="channels_guide_now">NGAYON</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Ngayon</string>

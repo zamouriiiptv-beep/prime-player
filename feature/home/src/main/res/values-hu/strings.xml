@@ -51,6 +51,10 @@
     <string name="browse_fetch_failed">A(z) %1$s nem tölthető be</string>
     <string name="browse_fetch_failed_retryable">A szolgáltatója nem válaszolt időben. Rendszerint csak leterhelt, nem pedig elérhetetlen.</string>
     <string name="browse_fetch_failed_final">A szolgáltatója elutasította a kérést. Ellenőrizze az előfizetést, vagy adja hozzá újra a Kezdőlapról.</string>
+    <string name="browse_fetch_failed_network">A szolgáltatója nem érhető el. Ellenőrizze ennek az eszköznek a kapcsolatát, majd próbálja újra.</string>
+    <string name="browse_fetch_failed_server">A szolgáltatója szervere hibát jelzett. Próbálja újra néhány perc múlva.</string>
+    <string name="browse_fetch_failed_unreadable">A szolgáltató által küldött lista nem olvasható. Ellenőrizze a hivatkozást, vagy forduljon a szolgáltatójához.</string>
+    <string name="browse_fetch_failed_unknown">Hiba történt a betöltés közben. Próbálja újra.</string>
     <string name="browse_fetch_retry">Újra</string>
     <string name="gate_wordmark">Castivio</string>
     <string name="gate_version">%1$s verzió</string>
@@ -110,7 +114,6 @@
     <string name="channels_empty_title">Itt nincsenek csatornák</string>
     <string name="channels_empty_detail">Ebben a kategóriában még nincs semmi. Próbáljon másikat, vagy töltse le újra a szakaszt.</string>
     <string name="channels_fetch_failed">Az Élő TV nem tölthető le</string>
-    <string name="channels_notice_failed">A szolgáltatója nem válaszolt. Az eszközön már meglévő csatornák láthatók.</string>
     <string name="channels_guide_now">MOST</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Ma</string>

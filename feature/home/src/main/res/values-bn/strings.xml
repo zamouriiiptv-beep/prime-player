@@ -51,6 +51,10 @@
     <string name="browse_fetch_failed">%1$s লোড করা যায়নি</string>
     <string name="browse_fetch_failed_retryable">আপনার সরবরাহকারী সময়মতো উত্তর দেয়নি। সাধারণত সে ব্যস্ত থাকে, বন্ধ নয়।</string>
     <string name="browse_fetch_failed_final">আপনার সরবরাহকারী অনুরোধটি প্রত্যাখ্যান করেছে। সাবস্ক্রিপশন যাচাই করুন, অথবা হোম থেকে আবার যোগ করুন।</string>
+    <string name="browse_fetch_failed_network">আপনার সরবরাহকারীর কাছে পৌঁছানো যায়নি। এই ডিভাইসের সংযোগ যাচাই করুন, তারপর আবার চেষ্টা করুন।</string>
+    <string name="browse_fetch_failed_server">আপনার সরবরাহকারীর সার্ভার একটি ত্রুটি জানিয়েছে। কয়েক মিনিট পরে আবার চেষ্টা করুন।</string>
+    <string name="browse_fetch_failed_unreadable">আপনার সরবরাহকারীর পাঠানো তালিকাটি পড়া যায়নি। লিংকটি যাচাই করুন, অথবা আপনার সরবরাহকারীকে জিজ্ঞাসা করুন।</string>
+    <string name="browse_fetch_failed_unknown">লোড করার সময় একটি সমস্যা হয়েছে। আবার চেষ্টা করুন।</string>
     <string name="browse_fetch_retry">আবার চেষ্টা করুন</string>
     <string name="gate_wordmark">Castivio</string>
     <string name="gate_version">সংস্করণ %1$s</string>
@@ -110,7 +114,6 @@
     <string name="channels_empty_title">এখানে কোনো চ্যানেল নেই</string>
     <string name="channels_empty_detail">এই বিভাগে এখনও কিছু নেই। অন্যটি দেখুন, অথবা বিভাগটি আবার ডাউনলোড করুন।</string>
     <string name="channels_fetch_failed">লাইভ টিভি ডাউনলোড করা যায়নি</string>
-    <string name="channels_notice_failed">আপনার সরবরাহকারী উত্তর দেয়নি। এই ডিভাইসে থাকা চ্যানেলগুলো দেখানো হচ্ছে।</string>
     <string name="channels_guide_now">এখন</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">আজ</string>

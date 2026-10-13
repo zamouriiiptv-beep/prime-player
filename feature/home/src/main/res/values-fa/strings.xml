@@ -51,6 +51,10 @@
     <string name="browse_fetch_failed">%1$s بارگیری نشد</string>
     <string name="browse_fetch_failed_retryable">ارائه‌دهندهٔ شما به‌موقع پاسخ نداد. معمولاً شلوغ است، نه از کار افتاده.</string>
     <string name="browse_fetch_failed_final">ارائه‌دهندهٔ شما درخواست را رد کرد. اشتراک را بررسی کنید، یا از صفحهٔ خانه دوباره بیفزایید.</string>
+    <string name="browse_fetch_failed_network">دسترسی به ارائه‌دهندهٔ شما ممکن نشد. اتصال این دستگاه را بررسی کنید و دوباره تلاش کنید.</string>
+    <string name="browse_fetch_failed_server">سرور ارائه‌دهندهٔ شما خطایی گزارش کرد. چند دقیقهٔ دیگر دوباره تلاش کنید.</string>
+    <string name="browse_fetch_failed_unreadable">فهرستی که ارائه‌دهندهٔ شما فرستاد خوانده نشد. پیوند را بررسی کنید یا از ارائه‌دهنده بپرسید.</string>
+    <string name="browse_fetch_failed_unknown">هنگام بارگیری مشکلی پیش آمد. دوباره تلاش کنید.</string>
     <string name="browse_fetch_retry">تلاش دوباره</string>
     <string name="gate_wordmark">Castivio</string>
     <string name="gate_version">نسخهٔ %1$s</string>
@@ -110,7 +114,6 @@
     <string name="channels_empty_title">اینجا کانالی نیست</string>
     <string name="channels_empty_detail">این دسته هنوز چیزی ندارد. دستهٔ دیگری را بیازمایید، یا این بخش را دوباره دانلود کنید.</string>
     <string name="channels_fetch_failed">تلویزیون زنده دانلود نشد</string>
-    <string name="channels_notice_failed">ارائه‌دهندهٔ شما پاسخ نداد. کانال‌های موجود روی این دستگاه نمایش داده می‌شوند.</string>
     <string name="channels_guide_now">اکنون</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">امروز</string>

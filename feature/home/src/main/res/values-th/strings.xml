@@ -51,6 +51,10 @@
     <string name="browse_fetch_failed">โหลด %1$s ไม่สำเร็จ</string>
     <string name="browse_fetch_failed_retryable">ผู้ให้บริการของคุณไม่ตอบกลับในเวลาที่กำหนด ส่วนใหญ่เกิดจากงานหนาแน่น ไม่ใช่ระบบล่ม</string>
     <string name="browse_fetch_failed_final">ผู้ให้บริการของคุณปฏิเสธคำขอ ตรวจสอบการสมัคร หรือเพิ่มใหม่จากหน้าหลัก</string>
+    <string name="browse_fetch_failed_network">ไม่สามารถติดต่อผู้ให้บริการของคุณได้ ตรวจสอบการเชื่อมต่อของอุปกรณ์นี้ แล้วลองอีกครั้ง</string>
+    <string name="browse_fetch_failed_server">เซิร์ฟเวอร์ของผู้ให้บริการแจ้งข้อผิดพลาด ลองอีกครั้งในอีกไม่กี่นาที</string>
+    <string name="browse_fetch_failed_unreadable">ไม่สามารถอ่านรายการที่ผู้ให้บริการส่งมาได้ ตรวจสอบลิงก์ หรือสอบถามผู้ให้บริการของคุณ</string>
+    <string name="browse_fetch_failed_unknown">เกิดปัญหาระหว่างการโหลด ลองอีกครั้ง</string>
     <string name="browse_fetch_retry">ลองอีกครั้ง</string>
     <string name="gate_wordmark">Castivio</string>
     <string name="gate_version">เวอร์ชัน %1$s</string>
@@ -110,7 +114,6 @@
     <string name="channels_empty_title">ไม่มีช่องที่นี่</string>
     <string name="channels_empty_detail">หมวดนี้ยังไม่มีอะไร ลองหมวดอื่น หรือดาวน์โหลดส่วนนี้ใหม่</string>
     <string name="channels_fetch_failed">ดาวน์โหลดทีวีสดไม่สำเร็จ</string>
-    <string name="channels_notice_failed">ผู้ให้บริการของคุณไม่ตอบกลับ กำลังแสดงช่องที่มีอยู่แล้วในอุปกรณ์นี้</string>
     <string name="channels_guide_now">ตอนนี้</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">วันนี้</string>

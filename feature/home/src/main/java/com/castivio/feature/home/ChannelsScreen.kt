@@ -555,10 +555,7 @@ private fun Board(
             ) {
                 ErrorState(
                     title = stringResource(R.string.channels_fetch_failed),
-                    detail = stringResource(
-                        if (fetch.retryable) R.string.browse_fetch_failed_retryable
-                        else R.string.browse_fetch_failed_final,
-                    ),
+                    detail = stringResource(fetch.error.fetchFailureDetail()),
                     actionLabel = stringResource(R.string.browse_fetch_retry),
                     onAction = { model.retryFetch() },
                 )
@@ -622,8 +619,10 @@ private fun FetchNotice(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(m.factGap),
     ) {
+        // The cause, not a blanket "did not answer": a refused playlist and an
+        // unreachable one are different things to do next. See `fetchFailureDetail`.
         Text(
-            text = stringResource(R.string.channels_notice_failed),
+            text = stringResource(fetch.error.fetchFailureDetail()),
             style = castivioBodyStyle(m.frame.fsBody),
             color = colors.onBackground,
             maxLines = 1,

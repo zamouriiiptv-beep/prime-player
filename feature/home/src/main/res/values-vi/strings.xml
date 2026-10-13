@@ -51,6 +51,10 @@
     <string name="browse_fetch_failed">Không tải được %1$s</string>
     <string name="browse_fetch_failed_retryable">Nhà cung cấp không trả lời kịp. Thường là do bận chứ không phải ngừng hoạt động.</string>
     <string name="browse_fetch_failed_final">Nhà cung cấp đã từ chối yêu cầu. Hãy kiểm tra thuê bao, hoặc thêm lại từ Trang chính.</string>
+    <string name="browse_fetch_failed_network">Không thể kết nối với nhà cung cấp. Hãy kiểm tra kết nối của thiết bị này rồi thử lại.</string>
+    <string name="browse_fetch_failed_server">Máy chủ của nhà cung cấp đã báo lỗi. Hãy thử lại sau vài phút.</string>
+    <string name="browse_fetch_failed_unreadable">Không thể đọc danh sách nhà cung cấp gửi đến. Hãy kiểm tra liên kết, hoặc hỏi nhà cung cấp.</string>
+    <string name="browse_fetch_failed_unknown">Đã xảy ra sự cố khi tải. Hãy thử lại.</string>
     <string name="browse_fetch_retry">Thử lại</string>
     <string name="gate_wordmark">Castivio</string>
     <string name="gate_version">Phiên bản %1$s</string>
@@ -110,7 +114,6 @@
     <string name="channels_empty_title">Không có kênh nào ở đây</string>
     <string name="channels_empty_detail">Danh mục này chưa có gì. Hãy thử danh mục khác, hoặc tải lại mục này.</string>
     <string name="channels_fetch_failed">Không tải được TV trực tiếp</string>
-    <string name="channels_notice_failed">Nhà cung cấp không trả lời. Đang hiển thị các kênh đã có trên thiết bị này.</string>
     <string name="channels_guide_now">BÂY GIỜ</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Hôm nay</string>

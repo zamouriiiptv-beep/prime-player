@@ -51,6 +51,10 @@
     <string name="browse_fetch_failed">Tidak dapat memuatkan %1$s</string>
     <string name="browse_fetch_failed_retryable">Pembekal anda tidak menjawab dalam masa yang ada. Kebiasaannya ia sibuk, bukan tergendala.</string>
     <string name="browse_fetch_failed_final">Pembekal anda menolak permintaan. Semak langganan, atau tambah semula dari Laman Utama.</string>
+    <string name="browse_fetch_failed_network">Pembekal anda tidak dapat dihubungi. Semak sambungan peranti ini, kemudian cuba lagi.</string>
+    <string name="browse_fetch_failed_server">Pelayan pembekal anda melaporkan ralat. Cuba lagi dalam beberapa minit.</string>
+    <string name="browse_fetch_failed_unreadable">Senarai yang dihantar oleh pembekal anda tidak dapat dibaca. Semak pautan, atau tanya pembekal anda.</string>
+    <string name="browse_fetch_failed_unknown">Berlaku masalah semasa memuatkan. Cuba lagi.</string>
     <string name="browse_fetch_retry">Cuba lagi</string>
     <string name="gate_wordmark">Castivio</string>
     <string name="gate_version">Versi %1$s</string>
@@ -110,7 +114,6 @@
     <string name="channels_empty_title">Tiada saluran di sini</string>
     <string name="channels_empty_detail">Kategori ini belum mempunyai apa-apa. Cuba yang lain, atau muat turun bahagian ini semula.</string>
     <string name="channels_fetch_failed">TV Langsung tidak dapat dimuat turun</string>
-    <string name="channels_notice_failed">Pembekal anda tidak menjawab. Memaparkan saluran yang sedia ada pada peranti ini.</string>
     <string name="channels_guide_now">SEKARANG</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Hari ini</string>

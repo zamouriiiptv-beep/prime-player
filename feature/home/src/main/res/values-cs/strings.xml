@@ -51,6 +51,10 @@
     <string name="browse_fetch_failed">%1$s se nepodařilo načíst</string>
     <string name="browse_fetch_failed_retryable">Váš poskytovatel neodpověděl včas. Obvykle bývá zaneprázdněný, nikoli mimo provoz.</string>
     <string name="browse_fetch_failed_final">Váš poskytovatel požadavek odmítl. Zkontrolujte předplatné, nebo ho znovu přidejte z domovské obrazovky.</string>
+    <string name="browse_fetch_failed_network">Poskytovatele se nepodařilo zastihnout. Zkontrolujte připojení tohoto zařízení a zkuste to znovu.</string>
+    <string name="browse_fetch_failed_server">Server vašeho poskytovatele nahlásil chybu. Zkuste to znovu za několik minut.</string>
+    <string name="browse_fetch_failed_unreadable">Seznam, který poskytovatel poslal, nelze přečíst. Zkontrolujte odkaz, nebo se obraťte na poskytovatele.</string>
+    <string name="browse_fetch_failed_unknown">Při načítání se něco pokazilo. Zkuste to znovu.</string>
     <string name="browse_fetch_retry">Zkusit znovu</string>
     <string name="gate_wordmark">Castivio</string>
     <string name="gate_version">Verze %1$s</string>
@@ -110,7 +114,6 @@
     <string name="channels_empty_title">Tady nejsou žádné kanály</string>
     <string name="channels_empty_detail">V této kategorii zatím nic není. Zkuste jinou, nebo sekci stáhněte znovu.</string>
     <string name="channels_fetch_failed">Živé vysílání se nepodařilo stáhnout</string>
-    <string name="channels_notice_failed">Váš poskytovatel neodpověděl. Zobrazují se kanály, které už jsou v tomto zařízení.</string>
     <string name="channels_guide_now">TEĎ</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Dnes</string>

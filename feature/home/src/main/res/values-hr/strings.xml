@@ -51,6 +51,10 @@
     <string name="browse_fetch_failed">%1$s se nije moglo učitati</string>
     <string name="browse_fetch_failed_retryable">Vaš davatelj nije odgovorio na vrijeme. Obično je zauzet, a ne ugašen.</string>
     <string name="browse_fetch_failed_final">Vaš davatelj je odbio zahtjev. Provjerite pretplatu ili je ponovno dodajte s početne stranice.</string>
+    <string name="browse_fetch_failed_network">Vaš davatelj nije dostupan. Provjerite vezu ovog uređaja pa pokušajte ponovno.</string>
+    <string name="browse_fetch_failed_server">Poslužitelj vašeg davatelja prijavio je pogrešku. Pokušajte ponovno za nekoliko minuta.</string>
+    <string name="browse_fetch_failed_unreadable">Popis koji je poslao vaš davatelj nije moguće pročitati. Provjerite poveznicu ili se obratite davatelju.</string>
+    <string name="browse_fetch_failed_unknown">Nešto je pošlo po zlu tijekom učitavanja. Pokušajte ponovno.</string>
     <string name="browse_fetch_retry">Pokušaj ponovno</string>
     <string name="gate_wordmark">Castivio</string>
     <string name="gate_version">Verzija %1$s</string>
@@ -110,7 +114,6 @@
     <string name="channels_empty_title">Ovdje nema kanala</string>
     <string name="channels_empty_detail">U ovoj kategoriji još nema ničega. Pokušajte drugu ili ponovno preuzmite odjeljak.</string>
     <string name="channels_fetch_failed">Televizija uživo nije se mogla preuzeti</string>
-    <string name="channels_notice_failed">Vaš davatelj nije odgovorio. Prikazuju se kanali koji su već na ovom uređaju.</string>
     <string name="channels_guide_now">SADA</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Danas</string>

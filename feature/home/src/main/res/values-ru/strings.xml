@@ -51,6 +51,10 @@
     <string name="browse_fetch_failed">Не удалось загрузить: %1$s</string>
     <string name="browse_fetch_failed_retryable">Провайдер не ответил вовремя. Обычно он занят, а не отключён.</string>
     <string name="browse_fetch_failed_final">Провайдер отклонил запрос. Проверьте подписку или добавьте её заново с главного экрана.</string>
+    <string name="browse_fetch_failed_network">Не удалось связаться с провайдером. Проверьте подключение этого устройства и повторите попытку.</string>
+    <string name="browse_fetch_failed_server">Сервер провайдера сообщил об ошибке. Повторите попытку через несколько минут.</string>
+    <string name="browse_fetch_failed_unreadable">Не удалось прочитать список, присланный провайдером. Проверьте ссылку или обратитесь к провайдеру.</string>
+    <string name="browse_fetch_failed_unknown">При загрузке что-то пошло не так. Повторите попытку.</string>
     <string name="browse_fetch_retry">Повторить</string>
     <string name="gate_wordmark">Castivio</string>
     <string name="gate_version">Версия %1$s</string>
@@ -110,7 +114,6 @@
     <string name="channels_empty_title">Здесь нет каналов</string>
     <string name="channels_empty_detail">Эта категория пока пуста. Попробуйте другую или загрузите раздел заново.</string>
     <string name="channels_fetch_failed">Не удалось загрузить прямой эфир</string>
-    <string name="channels_notice_failed">Провайдер не ответил. Показаны каналы, уже сохранённые на устройстве.</string>
     <string name="channels_guide_now">СЕЙЧАС</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Сегодня</string>

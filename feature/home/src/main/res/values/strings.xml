@@ -83,6 +83,12 @@
     <string name="browse_fetch_failed">Could not load %1$s</string>
     <string name="browse_fetch_failed_retryable">Your provider did not answer in time. It is usually busy rather than down.</string>
     <string name="browse_fetch_failed_final">Your provider refused the request. Check the subscription, or add it again from Home.</string>
+    <!-- One sentence per cause of a failed fetch, so a viewer is told what to do next:
+         check the connection, wait for the provider, or ask it. See FetchFailureText.kt. -->
+    <string name="browse_fetch_failed_network">Could not reach your provider. Check this device\'s connection, then try again.</string>
+    <string name="browse_fetch_failed_server">Your provider\'s server reported an error. Try again in a few minutes.</string>
+    <string name="browse_fetch_failed_unreadable">The list your provider sent could not be read. Check the link, or ask your provider.</string>
+    <string name="browse_fetch_failed_unknown">Something went wrong while loading. Try again.</string>
     <string name="browse_fetch_retry">Try again</string>
 
 
@@ -234,9 +240,6 @@
     <string name="channels_empty_detail">This category has nothing in it yet. Try another, or download the section again.</string>
     <string name="channels_fetch_failed">Live TV could not be downloaded</string>
 
-    <!-- Said over a board that already has channels on it, so it is a line rather
-         than a wall: the catalogue behind it is usable. %1$s is a running count. -->
-    <string name="channels_notice_failed">Your provider did not answer. Showing the channels already on this device.</string>
 
     <!-- The remote legend along the foot of the board. These name what the *remote\'s*
          keys do; only Back is pressable, because a thumb has no key for it. -->

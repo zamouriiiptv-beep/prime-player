@@ -51,6 +51,10 @@
     <string name="browse_fetch_failed">%1$s yüklenemedi</string>
     <string name="browse_fetch_failed_retryable">Sağlayıcınız zamanında yanıt vermedi. Genellikle çökmüş değil, yoğundur.</string>
     <string name="browse_fetch_failed_final">Sağlayıcınız isteği reddetti. Aboneliği kontrol edin ya da Ana sayfadan yeniden ekleyin.</string>
+    <string name="browse_fetch_failed_network">Sağlayıcınıza ulaşılamadı. Bu cihazın bağlantısını kontrol edip yeniden deneyin.</string>
+    <string name="browse_fetch_failed_server">Sağlayıcınızın sunucusu bir hata bildirdi. Birkaç dakika sonra yeniden deneyin.</string>
+    <string name="browse_fetch_failed_unreadable">Sağlayıcınızın gönderdiği liste okunamadı. Linki kontrol edin ya da sağlayıcınıza danışın.</string>
+    <string name="browse_fetch_failed_unknown">Yükleme sırasında bir sorun oluştu. Yeniden deneyin.</string>
     <string name="browse_fetch_retry">Yeniden dene</string>
     <string name="gate_wordmark">Castivio</string>
     <string name="gate_version">Sürüm %1$s</string>
@@ -110,7 +114,6 @@
     <string name="channels_empty_title">Burada kanal yok</string>
     <string name="channels_empty_detail">Bu kategoride henüz bir şey yok. Başka birini deneyin ya da bölümü yeniden indirin.</string>
     <string name="channels_fetch_failed">Canlı TV indirilemedi</string>
-    <string name="channels_notice_failed">Sağlayıcınız yanıt vermedi. Bu cihazdaki kanallar gösteriliyor.</string>
     <string name="channels_guide_now">ŞİMDİ</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Bugün</string>

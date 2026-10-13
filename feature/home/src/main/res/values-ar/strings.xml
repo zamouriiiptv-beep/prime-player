@@ -71,6 +71,10 @@
     <string name="browse_fetch_failed">تعذّر تحميل %1$s</string>
     <string name="browse_fetch_failed_retryable">لم يردّ مزوّدك في الوقت المتاح. غالبًا يكون مشغولًا لا معطّلًا.</string>
     <string name="browse_fetch_failed_final">رفض مزوّدك الطلب. تحقّق من الاشتراك، أو أضفه من جديد من الصفحة الرئيسية.</string>
+    <string name="browse_fetch_failed_network">تعذّر الوصول إلى مزوّدك. تحقّق من اتصال هذا الجهاز، ثم أعد المحاولة.</string>
+    <string name="browse_fetch_failed_server">أبلغ خادم مزوّدك عن خطأ. أعد المحاولة بعد بضع دقائق.</string>
+    <string name="browse_fetch_failed_unreadable">تعذّرت قراءة القائمة التي أرسلها مزوّدك. تحقّق من الرابط، أو راجع مزوّدك.</string>
+    <string name="browse_fetch_failed_unknown">حدث خطأ أثناء التحميل. أعد المحاولة.</string>
     <string name="browse_fetch_retry">حاول مرة أخرى</string>
 
     <string name="gate_wordmark">Castivio</string>
@@ -159,7 +163,6 @@
     <string name="channels_empty_title">لا توجد قنوات هنا</string>
     <string name="channels_empty_detail">هذه الباقة فارغة حتى الآن. جرّب باقة أخرى، أو حمّل القسم من جديد.</string>
     <string name="channels_fetch_failed">تعذّر تحميل البث المباشر</string>
-    <string name="channels_notice_failed">لم يردّ مزوّدك. تُعرض القنوات الموجودة على هذا الجهاز.</string>
 
     <string name="channels_guide_now">الآن</string>
     <string name="channels_time_range">%1$s – %2$s</string>

@@ -51,6 +51,10 @@
     <string name="browse_fetch_failed">%1$s لوڈ نہ ہو سکا</string>
     <string name="browse_fetch_failed_retryable">آپ کے فراہم کنندہ نے وقت پر جواب نہیں دیا۔ عام طور پر وہ مصروف ہوتا ہے، بند نہیں۔</string>
     <string name="browse_fetch_failed_final">آپ کے فراہم کنندہ نے درخواست رد کر دی۔ رکنیت جانچیں، یا ہوم سے دوبارہ شامل کریں۔</string>
+    <string name="browse_fetch_failed_network">آپ کے فراہم کنندہ تک رسائی نہیں ہو سکی۔ اس آلے کا کنکشن جانچیں، پھر دوبارہ کوشش کریں۔</string>
+    <string name="browse_fetch_failed_server">آپ کے فراہم کنندہ کے سرور نے ایک خرابی بتائی۔ چند منٹ بعد دوبارہ کوشش کریں۔</string>
+    <string name="browse_fetch_failed_unreadable">آپ کے فراہم کنندہ کی بھیجی ہوئی فہرست پڑھی نہیں جا سکی۔ لنک جانچیں، یا اپنے فراہم کنندہ سے پوچھیں۔</string>
+    <string name="browse_fetch_failed_unknown">لوڈ کرتے وقت کچھ غلط ہو گیا۔ دوبارہ کوشش کریں۔</string>
     <string name="browse_fetch_retry">دوبارہ کوشش کریں</string>
     <string name="gate_wordmark">Castivio</string>
     <string name="gate_version">ورژن %1$s</string>
@@ -110,7 +114,6 @@
     <string name="channels_empty_title">یہاں کوئی چینل نہیں</string>
     <string name="channels_empty_detail">اس زمرے میں ابھی کچھ نہیں۔ کوئی اور آزمائیں، یا یہ حصہ دوبارہ ڈاؤن لوڈ کریں۔</string>
     <string name="channels_fetch_failed">لائیو ٹی وی ڈاؤن لوڈ نہ ہو سکا</string>
-    <string name="channels_notice_failed">آپ کے فراہم کنندہ نے جواب نہیں دیا۔ اس آلے پر موجود چینل دکھائے جا رہے ہیں۔</string>
     <string name="channels_guide_now">ابھی</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">آج</string>

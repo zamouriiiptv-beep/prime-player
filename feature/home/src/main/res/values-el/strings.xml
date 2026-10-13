@@ -51,6 +51,10 @@
     <string name="browse_fetch_failed">Αδυναμία φόρτωσης του %1$s</string>
     <string name="browse_fetch_failed_retryable">Ο πάροχός σας δεν απάντησε έγκαιρα. Συνήθως είναι απασχολημένος, όχι εκτός λειτουργίας.</string>
     <string name="browse_fetch_failed_final">Ο πάροχός σας απέρριψε το αίτημα. Ελέγξτε τη συνδρομή ή προσθέστε την ξανά από την Αρχική.</string>
+    <string name="browse_fetch_failed_network">Δεν ήταν δυνατή η σύνδεση με τον πάροχό σας. Ελέγξτε τη σύνδεση αυτής της συσκευής και δοκιμάστε ξανά.</string>
+    <string name="browse_fetch_failed_server">Ο διακομιστής του παρόχου σας ανέφερε σφάλμα. Δοκιμάστε ξανά σε λίγα λεπτά.</string>
+    <string name="browse_fetch_failed_unreadable">Η λίστα που έστειλε ο πάροχός σας δεν ήταν δυνατό να διαβαστεί. Ελέγξτε τον σύνδεσμο ή ρωτήστε τον πάροχό σας.</string>
+    <string name="browse_fetch_failed_unknown">Κάτι πήγε στραβά κατά τη φόρτωση. Δοκιμάστε ξανά.</string>
     <string name="browse_fetch_retry">Δοκιμάστε ξανά</string>
     <string name="gate_wordmark">Castivio</string>
     <string name="gate_version">Έκδοση %1$s</string>
@@ -110,7 +114,6 @@
     <string name="channels_empty_title">Δεν υπάρχουν κανάλια εδώ</string>
     <string name="channels_empty_detail">Αυτή η κατηγορία δεν έχει τίποτα ακόμη. Δοκιμάστε άλλη ή κατεβάστε ξανά την ενότητα.</string>
     <string name="channels_fetch_failed">Η ζωντανή TV δεν μπόρεσε να ληφθεί</string>
-    <string name="channels_notice_failed">Ο πάροχός σας δεν απάντησε. Εμφανίζονται τα κανάλια που υπάρχουν ήδη σε αυτή τη συσκευή.</string>
     <string name="channels_guide_now">ΤΩΡΑ</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Σήμερα</string>
