@@ -336,7 +336,7 @@ class FrameSweepTest {
                 ),
                 mark = marks[i],
                 title = titles[i],
-                back = backs[i],
+                chips = clocks[i],
             )
             assertTrue(
                 "$pass: Back's box is ${backs[i].height}, below the " +
@@ -393,8 +393,16 @@ class FrameSweepTest {
      *
      * This harness only ever renders one language, so the clamp is not expected to bite
      * here — the branch is stated because the layout has it, not because it is reached.
+     *
+     * ## The far clamp is the chips', which the clock now leads
+     *
+     * It was Back's left edge when this was written, because Back was the whole of the
+     * row's far end. The clock and the theme control have joined it since, and the header
+     * clamps against the group, so a title stopped by the clock was neither centred nor
+     * against Back and failed here while doing exactly what the layout says. [chips] is
+     * the group's leading node -- the clock -- which is where the clamp actually is.
      */
-    private fun assertCentred(pass: Pass, panel: DpRect, mark: DpRect, title: DpRect, back: DpRect) {
+    private fun assertCentred(pass: Pass, panel: DpRect, mark: DpRect, title: DpRect, chips: DpRect) {
         val gap = pass.frame.headGap
         val width = title.right - title.left
         val stageCentre = (panel.left + panel.right) / 2
@@ -402,16 +410,16 @@ class FrameSweepTest {
 
         val centred = abs((titleCentre - stageCentre).value) <= 1f
         val againstMark = abs((title.left - (mark.right + gap)).value) <= 1f
-        val againstBack = abs((title.right - (back.left - gap)).value) <= 1f
+        val againstChips = abs((title.right - (chips.left - gap)).value) <= 1f
 
         assertTrue(
             "$pass: the title is centred on ${titleCentre}, the stage on $stageCentre — " +
                 "off by ${titleCentre - stageCentre}, and it is not against either clamp " +
-                "(mark ends ${mark.right}, Back starts ${back.left}, title is $width wide, " +
+                "(mark ends ${mark.right}, the chips start ${chips.left}, title is $width wide, " +
                 "gap $gap). A title centred in the remainder rather than on the row is the " +
                 "fault this states: the two ends are different widths, so those are " +
                 "different points.",
-            centred || againstMark || againstBack,
+            centred || againstMark || againstChips,
         )
     }
 
@@ -435,6 +443,7 @@ class FrameSweepTest {
         val backs = all(back)
         val subs = subtitle?.let { all(it) }
         val themes = all(ActivationTags.HEADER_THEME)
+        val clocks = all(ActivationTags.HEADER_CLOCK)
 
         passes.forEachIndexed { i, pass ->
             val panel = stages[i]
@@ -489,7 +498,7 @@ class FrameSweepTest {
                     "(${mark.right}) and Back (${backBox.left})",
                 title.left >= mark.right && title.right <= backBox.left,
             )
-            assertCentred(pass, panel, mark, title, backBox)
+            assertCentred(pass, panel, mark, title, chips = clocks[i])
 
             // One row: the three share a band. A title pushed onto a second line, or a
             // chip fallen below the lockup, breaks this and nothing else.
