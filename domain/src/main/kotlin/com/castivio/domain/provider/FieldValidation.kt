@@ -137,25 +137,54 @@ object FieldValidation {
     fun password(raw: String): Validated = credential(raw)
 
     /**
-     * The Xtream credentials hiding inside a playlist URL, or null.
+     * The Xtream account a playlist URL names, read from the URL alone, or null.
      *
      * Users paste `http://host:8080/get.php?username=X&password=Y&type=m3u_plus` into
      * the M3U box constantly, because it is the link their provider sent them. It works
-     * either way, but as Xtream it also gets categories, series, catch-up and a status
-     * the app can read — so recognising it and offering to switch is worth the twenty
-     * lines.
+     * either way, but read through the panel's API it also gets categories, series,
+     * catch-up and a status the app can read. The subscription stays the playlist the
+     * user added — its link, its id, its row in the list; only the reading changes, and
+     * that is decided where a stored subscription is turned back into something to
+     * fetch: `asPlaylistSource`.
      *
-     * An offer, not a correction: this returns what was found and the screen asks. A
-     * client that silently rewrites what someone typed is a client they stop trusting.
+     * ## What makes a link an account
+     *
+     *  - **`get.php` at the root of the server.** That is the panel's playlist endpoint,
+     *    and its API answers beside it at `player_api.php`. A link to anything else makes
+     *    no such promise however its query looks, and `get.php` under a sub-path would be
+     *    read at the wrong address: the Xtream path builds every URL from the origin.
+     *  - **One username and one password, neither empty.** `user` is accepted as the
+     *    username's other spelling, as `SourceIds` does. A name given twice with two
+     *    different values cannot be read one way, and is left to be what it says it is:
+     *    a playlist.
+     *  - **Decoded the way the server decodes them.** An escape is a byte of UTF-8, `+` is
+     *    a space, and what follows `#` is never sent. A value whose bytes are not UTF-8
+     *    makes the link unreadable as an account rather than a guess at one: a password
+     *    decoded wrongly is a different password.
+     *
+     * `type` and `output` shape the playlist's response, not the account, so a link reads
+     * the same with them, without them, and in any order.
+     *
+     * Reading an account is not proof of one. Whether it exists, whether the password is
+     * right and whether the panel answers its API is for the panel to say, and the
+     * importer falls back to the playlist itself when the API says no.
      */
     fun detectXtream(raw: String): PlaylistSource.Xtream? {
         val url = Url.parse(raw) ?: return null
         if (url.problem() != null) return null
-        val user = url.parameter("username") ?: return null
-        val pass = url.parameter("password") ?: return null
-        if (user.isEmpty() || pass.isEmpty()) return null
+        if (!url.path.equals(XTREAM_PLAYLIST_PATH, ignoreCase = true)) return null
+        val user = url.single(USERNAME_KEYS)?.takeIf(::isCredential) ?: return null
+        val pass = url.single(PASSWORD_KEYS)?.takeIf(::isCredential) ?: return null
         return PlaylistSource.Xtream(url.origin, user, pass)
     }
+
+    private fun isCredential(value: String): Boolean = value.isNotEmpty() && value.length <= MAX_CREDENTIAL
+
+    /** The panel's playlist endpoint, at the root of the server. */
+    private const val XTREAM_PLAYLIST_PATH = "/get.php"
+
+    private val USERNAME_KEYS = setOf("username", "user")
+    private val PASSWORD_KEYS = setOf("password")
 
     private fun credential(raw: String): Validated {
         // Trimmed rather than rejected: a trailing space from a copy is the single most
@@ -286,13 +315,21 @@ private class Url(
         else -> null
     }
 
-    /** The first value for [name] in the query string, decoded enough to be usable. */
-    fun parameter(name: String): String? = query
-        .removePrefix("?")
-        .split('&')
-        .firstOrNull { it.startsWith("$name=") }
-        ?.substringAfter('=')
-        ?.let(::decode)
+    /**
+     * The one value the query gives under any of [names], decoded; null when none does,
+     * when two of them disagree, or when one is not UTF-8.
+     *
+     * Names are matched exactly, as the server matches them. The query is read as it is
+     * sent: everything after `#` is the fragment, which never leaves the device.
+     */
+    fun single(names: Set<String>): String? {
+        val values = query.removePrefix("?").substringBefore('#')
+            .split('&')
+            .filter { it.substringBefore('=') in names }
+            .map { decode(it.substringAfter('=', "")) ?: return null }
+            .distinct()
+        return values.singleOrNull()
+    }
 
     /**
      * Hostname syntax, and nothing beyond it.
@@ -366,22 +403,62 @@ private class Url(
             return authority.substring(0, colon) to authority.substring(colon + 1)
         }
 
-        private fun decode(value: String): String {
+        /**
+         * Percent-decoding as the server does it, or null when the result is not text.
+         *
+         * An escape is one byte, and the bytes together are UTF-8: `%C3%A9` is `é`, where
+         * the decoder this replaces made each escape a character of its own and produced
+         * `Ã©` — a password the panel would refuse, built from one it would accept. `+` is
+         * a space, as in any query. A `%` that does not start an escape is kept as it is.
+         * Bytes that are not UTF-8 are refused rather than repaired: a repaired password
+         * is a different password.
+         */
+        private fun decode(value: String): String? {
             if ('%' !in value && '+' !in value) return value
-            val out = StringBuilder(value.length)
+            val bytes = ArrayList<Byte>(value.length)
+            val literal = StringBuilder()
+            fun flush() {
+                if (literal.isEmpty()) return
+                literal.toString().encodeToByteArray().forEach { bytes.add(it) }
+                literal.clear()
+            }
             var i = 0
             while (i < value.length) {
                 val c = value[i]
+                val high = if (c == '%' && i + 2 < value.length) hexDigit(value[i + 1]) else -1
+                val low = if (high >= 0) hexDigit(value[i + 2]) else -1
                 when {
-                    c == '+' -> { out.append(' '); i++ }
-                    c == '%' && i + 2 < value.length -> {
-                        val hex = value.substring(i + 1, i + 3).toIntOrNull(16)
-                        if (hex == null) { out.append(c); i++ } else { out.append(hex.toChar()); i += 3 }
+                    low >= 0 -> {
+                        flush()
+                        bytes.add(((high shl 4) or low).toByte())
+                        i += 3
                     }
-                    else -> { out.append(c); i++ }
+                    c == '+' -> {
+                        flush()
+                        bytes.add(SPACE)
+                        i++
+                    }
+                    else -> {
+                        literal.append(c)
+                        i++
+                    }
                 }
             }
-            return out.toString()
+            flush()
+            return try {
+                bytes.toByteArray().decodeToString(throwOnInvalidSequence = true)
+            } catch (e: CharacterCodingException) {
+                null
+            }
         }
+
+        private fun hexDigit(c: Char): Int = when (c) {
+            in '0'..'9' -> c - '0'
+            in 'a'..'f' -> c - 'a' + 10
+            in 'A'..'F' -> c - 'A' + 10
+            else -> -1
+        }
+
+        private const val SPACE: Byte = 0x20
     }
 }

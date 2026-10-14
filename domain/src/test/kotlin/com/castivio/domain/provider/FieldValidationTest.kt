@@ -268,6 +268,139 @@ class FieldValidationTest {
         }
     }
 
+    /**
+     * An escape is a byte, and the bytes are UTF-8. The decoder this replaced turned each
+     * escape into a character of its own, so `%C3%A9` became `Ã©` — and the panel was sent
+     * a password it had never issued.
+     */
+    @Test
+    fun `an encoded password is decoded as UTF-8, not byte by byte`() {
+        val detected = FieldValidation.detectXtream(
+            "http://line.example.com/get.php?username=b%C3%B6b&password=caf%C3%A9%E2%82%AC",
+        )
+
+        assertEquals(PlaylistSource.Xtream("http://line.example.com", "böb", "café€"), detected)
+    }
+
+    /** The characters that change a URL's meaning when sent raw, sent encoded. */
+    @Test
+    fun `encoded reserved characters come back as themselves`() {
+        val detected = FieldValidation.detectXtream(
+            "http://line.example.com/get.php?username=sam&password=a%26b%3Dc%2Bd%40e%2Ff%3Fg%23h%25i",
+        )
+
+        assertEquals("a&b=c+d@e/f?g#h%i", detected?.password)
+    }
+
+    /** As the server reads a query: `+` is a space, and a lone `%` is a `%`. */
+    @Test
+    fun `a plus is a space and a percent that starts nothing is kept`() {
+        val detected = FieldValidation.detectXtream(
+            "http://line.example.com/get.php?username=sam&password=open+sesame%zz%",
+        )
+
+        assertEquals("open sesame%zz%", detected?.password)
+    }
+
+    /** A password decoded into something else is a different password; better none. */
+    @Test
+    fun `bytes that are not UTF-8 make the link unreadable as an account`() {
+        assertNull(FieldValidation.detectXtream("http://line.example.com/get.php?username=sam&password=%FF%FE"))
+    }
+
+    /** What follows `#` is the fragment: it is never sent, so it is never the password. */
+    @Test
+    fun `the fragment is not part of the password`() {
+        val detected = FieldValidation.detectXtream(
+            "http://line.example.com/get.php?username=sam&password=hunter2#channels",
+        )
+
+        assertEquals("hunter2", detected?.password)
+    }
+
+    /**
+     * The Xtream path builds every request from the origin, so `get.php` under a sub-path
+     * would be read at the wrong address. It stays a playlist.
+     */
+    @Test
+    fun `a playlist endpoint under a sub-path is not read as an account`() {
+        val links = listOf(
+            "http://line.example.com/panel/get.php?username=sam&password=hunter2",
+            "http://line.example.com/c/get.php?username=sam&password=hunter2",
+        )
+
+        for (link in links) {
+            assertNull(link, FieldValidation.detectXtream(link))
+        }
+    }
+
+    /** Credentials in a query do not make an endpoint a panel's. */
+    @Test
+    fun `credentials on an endpoint that is not get php are not an account`() {
+        val links = listOf(
+            "http://line.example.com/playlist.m3u?username=sam&password=hunter2",
+            "http://line.example.com/list.php?username=sam&password=hunter2",
+            "http://line.example.com/player_api.php?username=sam&password=hunter2",
+        )
+
+        for (link in links) {
+            assertNull(link, FieldValidation.detectXtream(link))
+        }
+    }
+
+    @Test
+    fun `the scheme, the port and a trailing slash are read as the server is`() {
+        assertEquals(
+            PlaylistSource.Xtream("https://line.example.com:2083", "sam", "hunter2"),
+            FieldValidation.detectXtream("https://line.example.com:2083/get.php/?username=sam&password=hunter2"),
+        )
+        // No scheme is the bare host a provider sends, read as plain http as elsewhere.
+        assertEquals(
+            PlaylistSource.Xtream("http://line.example.com", "sam", "hunter2"),
+            FieldValidation.detectXtream("line.example.com/GET.PHP?username=sam&password=hunter2"),
+        )
+    }
+
+    @Test
+    fun `user is the other spelling of username`() {
+        assertEquals(
+            PlaylistSource.Xtream("http://line.example.com", "sam", "hunter2"),
+            FieldValidation.detectXtream("http://line.example.com/get.php?user=sam&password=hunter2&type=m3u"),
+        )
+    }
+
+    /** Two different answers to "who" is no answer; the same one twice is still one. */
+    @Test
+    fun `a name given twice is read only when both say the same`() {
+        assertNull(FieldValidation.detectXtream("http://line.example.com/get.php?username=sam&username=ann&password=x"))
+        assertNull(FieldValidation.detectXtream("http://line.example.com/get.php?username=sam&user=ann&password=x"))
+        assertEquals(
+            "sam",
+            FieldValidation.detectXtream("http://line.example.com/get.php?username=sam&username=sam&password=x")?.username,
+        )
+    }
+
+    /** Names are matched as the server matches them: exactly. */
+    @Test
+    fun `a parameter is not found inside another one's name`() {
+        assertNull(FieldValidation.detectXtream("http://line.example.com/get.php?xusername=sam&password=x"))
+        assertNull(FieldValidation.detectXtream("http://line.example.com/get.php?Username=sam&password=x"))
+    }
+
+    @Test
+    fun `a link that is not a valid address is not an account`() {
+        val links = listOf(
+            "ftp://line.example.com/get.php?username=sam&password=hunter2",
+            "http://line.example.com:99999/get.php?username=sam&password=hunter2",
+            "http:///get.php?username=sam&password=hunter2",
+            "http://line.example.com/get.php?username=sam&password=${"p".repeat(FieldValidation.MAX_CREDENTIAL + 1)}",
+        )
+
+        for (link in links) {
+            assertNull(link, FieldValidation.detectXtream(link))
+        }
+    }
+
     // -------------------------------------------------------------- credentials
 
     @Test
