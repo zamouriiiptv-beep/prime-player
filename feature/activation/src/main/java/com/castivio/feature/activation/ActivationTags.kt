@@ -197,6 +197,15 @@ internal object ActivationTags {
     /** The time and the day beside it, the same pair Home's header carries. */
     const val HEADER_CLOCK = "chooser.clock"
 
+    /**
+     * The lit mark beside the title, on the four screens a chooser card opens.
+     *
+     * Tagged so "it is beside the title, on the same edge in both languages" is a
+     * claim a test can make, which is the claim that goes wrong silently: a `Row`
+     * that inherited the reader's direction would put it after an Arabic title.
+     */
+    const val HEADER_GLYPH = "chooser.glyph"
+
     /** The saved-subscriptions step the chooser opens. */
     const val SAVED_TITLE = "activation.savedTitle"
     const val SAVED_EMPTY = "activation.savedEmpty"

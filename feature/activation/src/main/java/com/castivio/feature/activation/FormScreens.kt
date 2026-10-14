@@ -32,14 +32,17 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.ContentPaste
+import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Devices
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Link
+import androidx.compose.material.icons.rounded.LiveTv
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.Icon
@@ -85,6 +88,7 @@ import com.castivio.core.design.components.CastivioTextField
 import com.castivio.core.design.components.GlassCard
 import com.castivio.core.design.components.castivioDescriptionColor
 import com.castivio.core.design.components.castivioFocusScale
+import com.castivio.core.design.components.castivioGlyphGlow
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Elevation
@@ -167,6 +171,8 @@ internal fun XtreamFormScreen(
 
     SourceFormScreen(
         title = stringResource(R.string.source_xtream_title),
+        glyph = Icons.Rounded.Storage,
+        hue = CastivioTheme.colors.hueViolet,
         headingTag = ActivationTags.XTREAM_HEADING,
         backTag = ActivationTags.XTREAM_BACK,
         onBack = onBack,
@@ -212,6 +218,7 @@ private fun XtreamFrame(
     modifier: Modifier = Modifier,
 ) {
     val checked = form.checked
+    val colors = CastivioTheme.colors
     val focus = LocalFocusManager.current
     // Down, not Next: Next is the order of composition, which visits Paste between the
     // server and the username; Down is the order on the screen.
@@ -277,6 +284,7 @@ private fun XtreamFrame(
                 error = nameError,
                 enabled = enabled,
                 onImeAction = next,
+                labelIconHue = colors.hueViolet,
                 labelIcon = Icons.Rounded.Home,
                 icon = Icons.Rounded.Home,
                 errorBelow = frame.scroll,
@@ -293,6 +301,7 @@ private fun XtreamFrame(
                 enabled = enabled,
                 keyboardType = KeyboardType.Uri,
                 onImeAction = next,
+                labelIconHue = colors.hueAzure,
                 labelIcon = Icons.Rounded.Link,
                 icon = Icons.Rounded.Link,
                 trailing = { PasteChip(enabled = enabled, onPaste = onServerUrl) },
@@ -308,6 +317,7 @@ private fun XtreamFrame(
                 error = usernameError,
                 enabled = enabled,
                 onImeAction = next,
+                labelIconHue = colors.hueGreen,
                 labelIcon = Icons.Rounded.Person,
                 icon = Icons.Rounded.Person,
                 trailing = { PasteChip(enabled = enabled, onPaste = onUsername) },
@@ -328,6 +338,7 @@ private fun XtreamFrame(
                 keyboardType = KeyboardType.Password,
                 imeAction = ImeAction.Done,
                 onImeAction = onSubmit,
+                labelIconHue = colors.hueAmber,
                 labelIcon = Icons.Rounded.Lock,
                 icon = Icons.Rounded.Lock,
                 // The show and hide beside the lock, and Paste alone at the far end where
@@ -467,6 +478,9 @@ internal fun M3uFormScreen(
 
     SourceFormScreen(
         title = stringResource(R.string.source_m3u_title),
+        glyph = Icons.Rounded.Description,
+        hue = CastivioTheme.colors.hueAzure,
+        badge = M3U,
         headingTag = ActivationTags.PLAYLIST_HEADING,
         backTag = ActivationTags.PLAYLIST_BACK,
         onBack = onBack,
@@ -522,7 +536,11 @@ private fun SourceFormScreen(
     headingTag: String,
     backTag: String,
     onBack: () -> Unit,
+    /** The mark of the card that opened this form, in its hue. See `GlyphTitle`. */
+    glyph: ImageVector,
+    hue: Color,
     modifier: Modifier = Modifier,
+    badge: String? = null,
     content: @Composable BoxWithConstraintsScope.(surface: Dp, surfaceHeight: Dp, m: SourceMetrics, band: Dp) -> Unit,
 ) {
     val tv = CastivioTheme.device.isTv
@@ -544,6 +562,9 @@ private fun SourceFormScreen(
                 headingTag = headingTag,
                 backTag = backTag,
                 onBack = onBack,
+                glyph = glyph,
+                hue = hue,
+                badge = badge,
             )
             Spacer(Modifier.height(m.bandTop))
 
@@ -851,6 +872,7 @@ private fun PlaylistPanel(
                     placeholder = stringResource(R.string.field_playlist_name_placeholder),
                     error = checked.name.problem.message(),
                     enabled = enabled,
+                    labelIconHue = colors.hueViolet,
                     labelIcon = Icons.Rounded.Home,
                     icon = Icons.Rounded.Home,
                     modifier = Modifier
@@ -872,6 +894,7 @@ private fun PlaylistPanel(
                 keyboardType = KeyboardType.Uri,
                 imeAction = ImeAction.Done,
                 onImeAction = onSubmit,
+                labelIconHue = colors.hueAzure,
                 labelIcon = Icons.Rounded.Link,
                 icon = Icons.Rounded.Link,
                 trailing = { PasteChip(enabled = enabled, onPaste = onUrl) },
@@ -955,8 +978,12 @@ private fun PanelNote(
         Icon(
             imageVector = if (error) Icons.Rounded.ErrorOutline else Icons.Rounded.Info,
             contentDescription = null, // the sentence beside it is the message
-            tint = ink,
-            modifier = Modifier.size(Sizing.iconSm),
+            // A mark that is a next step in the hue Home gives its own note, lit like
+            // the glyphs above the fields; a mark that is an error keeps the error ink.
+            tint = if (error) ink else colors.discGlyph(colors.hueViolet),
+            modifier = Modifier
+                .size(Sizing.iconSm)
+                .then(if (error) Modifier else Modifier.castivioGlyphGlow(colors.hueViolet, colors.discTop)),
         )
         Text(
             text = detail,
@@ -1035,6 +1062,7 @@ private fun SourceFormFrame(
     noteTag: String,
     modifier: Modifier = Modifier,
 ) {
+    val colors = CastivioTheme.colors
     SourceFrameBox(padH = frame.padH, modifier = modifier) {
         Column(Modifier.widthIn(max = fieldMeasure).fillMaxWidth()) {
             CastivioTextField(
@@ -1045,6 +1073,7 @@ private fun SourceFormFrame(
                 placeholder = stringResource(R.string.field_playlist_name_placeholder),
                 error = nameError,
                 enabled = enabled,
+                labelIconHue = colors.hueViolet,
                 labelIcon = Icons.Rounded.Home,
                 icon = Icons.Rounded.Home,
                 modifier = Modifier.fillMaxWidth().testTag(nameTag),
@@ -1061,6 +1090,7 @@ private fun SourceFormFrame(
                 keyboardType = KeyboardType.Uri,
                 imeAction = ImeAction.Done,
                 onImeAction = onSubmit,
+                labelIconHue = colors.hueAzure,
                 labelIcon = Icons.Rounded.Link,
                 icon = Icons.Rounded.Link,
                 trailing = { PasteChip(enabled = enabled, onPaste = onUrl) },
@@ -1144,6 +1174,8 @@ internal fun PortalFormScreen(
 
     SourceFormScreen(
         title = stringResource(R.string.source_portal_title),
+        glyph = Icons.Rounded.LiveTv,
+        hue = CastivioTheme.colors.hueAmber,
         headingTag = ActivationTags.PORTAL_HEADING,
         backTag = ActivationTags.PORTAL_BACK,
         onBack = onBack,
@@ -1181,8 +1213,18 @@ internal fun PortalFormScreen(
  * A primary dimmed to [DISABLED_ALPHA] is still unmistakably the brand ramp, so an
  * empty form shows a faded purple bar that reads as "loading" rather than as "not
  * yet". Unpressable is a different statement from busy, and it has to look different:
- * the control falls back to the panel's own glass with the quiet edge, which says it
- * is a place where a button will be.
+ * the control falls back to the panel's own glass, which says it is a place where a
+ * button will be.
+ *
+ * ## And the glass is not faded on top of that
+ *
+ * It used to be. The glass got `CastivioButton`'s disabled dimming as well, and the
+ * word on it the muted ink, so on an empty form -- the state every user meets first --
+ * the screen's one action all but vanished, which was reported from a device. The
+ * glass already says "not yet"; the word says what will happen, in the ink the field
+ * labels above it use, and the rim is the one the live button wears, so it is the same
+ * control waiting rather than a different one. It is still unfocusable and does
+ * nothing when pressed, which is the part of disabled that is not a colour.
  *
  * ## The ramp is `ctaBrush` and not `primaryBrush`
  *
@@ -1217,8 +1259,10 @@ private fun ConnectButton(
         modifier = modifier,
         enabled = enabled,
         fill = if (enabled) colors.ctaBrush else SolidColor(colors.surfaceGlass),
-        ring = if (enabled) colors.ctaQuietRing else colors.edgeQuiet,
+        ring = colors.ctaQuietRing,
         minHeight = minHeight,
+        disabledAlpha = 1f,
+        disabledInk = colors.onBackgroundVariant,
     )
 }
 

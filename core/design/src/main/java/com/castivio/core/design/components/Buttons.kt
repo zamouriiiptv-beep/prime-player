@@ -123,6 +123,19 @@ fun CastivioButton(
     labelStyle: TextStyle? = null,
     /** A floor above the frame's own. The D-pad minimum still applies under it. */
     minHeight: Dp? = null,
+    /**
+     * How far a disabled button fades, and the ink its label takes while it does.
+     *
+     * The defaults are the dimming [enabled] describes, and every button but one keeps
+     * them. The exception is a control whose [fill] already says "not yet" by itself:
+     * the source forms' Connect falls back to plain glass when the form is empty, and
+     * glass faded to [DISABLED_ALPHA] with the label in the muted ink on top of it
+     * left the screen's one action close to invisible. Such a caller passes 1 and a
+     * readable ink, and the fill alone carries the state -- it is still unfocusable
+     * and unclickable, which is the half of disabled that is not a colour.
+     */
+    disabledAlpha: Float = DISABLED_ALPHA,
+    disabledInk: Color? = null,
 ) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
@@ -148,13 +161,13 @@ fun CastivioButton(
         else -> Elevation.spot
     }
     val contentColor = when {
-        !enabled -> colors.onBackgroundMuted
+        !enabled -> disabledInk ?: colors.onBackgroundMuted
         else -> tint ?: colors.onBackground
     }
 
     Box(
         modifier = modifier
-            .alpha(if (enabled) 1f else DISABLED_ALPHA)
+            .alpha(if (enabled) 1f else disabledAlpha)
             .castivioFocusScale(Motion.focusScaleButton, interaction)
             .focusProperties { canFocus = enabled }
             .onFocusChanged { focused = it.isFocused || it.hasFocus }

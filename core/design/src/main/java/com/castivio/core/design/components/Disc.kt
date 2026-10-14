@@ -11,6 +11,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
@@ -81,3 +83,33 @@ fun CastivioDisc(
  * kind of difference nobody can point at and everybody sees.
  */
 const val DISC_ICON = 0.5f
+
+/**
+ * The disc's light without the disc: a glyph in its hue, lit from behind.
+ *
+ * For a glyph that says what it means by its colour but stands bare -- beside a
+ * label, beside a title, at the head of a note -- where a disc would be a second
+ * object in a line that has room for one. It is [CastivioDisc]'s radial fill turned
+ * outward: the hue at [strength] behind the glyph's centre and nothing at [reach]
+ * times its size, so the two read as one family on the same screen.
+ *
+ * Drawn behind and past the glyph's own box, so it takes no space and moves nothing.
+ *
+ * @param strength the hue's opacity at the centre. Callers pass the ground's own
+ *   `discTop`, scaled where a glyph is meant to carry further, so a light ground gets
+ *   the softer light it gives its discs.
+ * @param reach how far the light goes, as a multiple of the glyph's own size.
+ */
+fun Modifier.castivioGlyphGlow(hue: Color, strength: Float, reach: Float = 1f): Modifier =
+    drawBehind {
+        val radius = size.minDimension * reach
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(hue.copy(alpha = strength), hue.copy(alpha = 0f)),
+                center = center,
+                radius = radius,
+            ),
+            radius = radius,
+            center = center,
+        )
+    }

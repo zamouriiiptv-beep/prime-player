@@ -1,13 +1,23 @@
 package com.castivio.feature.activation
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.sp
@@ -21,6 +31,8 @@ import com.castivio.core.design.components.CastivioHeader
 import com.castivio.core.design.components.CastivioHeaderTitle
 import com.castivio.core.design.components.CastivioLockup
 import com.castivio.core.design.components.castivioBodyStyle
+import com.castivio.core.design.components.castivioChipStyle
+import com.castivio.core.design.components.castivioGlyphGlow
 import com.castivio.core.design.components.castivioTitleStyle
 import com.castivio.core.design.theme.CastivioTheme
 
@@ -64,8 +76,13 @@ import com.castivio.core.design.theme.CastivioTheme
  * is the opposite of what a subtitle is for.
  *
  * @param headingTag tagged per screen, so a layout test can say *this* screen's title
- *   is above *this* screen's content rather than that some heading exists.
+ *   is above *this* screen's content rather than that some heading exists. With a
+ *   [glyph] it tags the mark and the name together: that pair is what the row centres
+ *   and clamps, so it is what a test of centring has to measure.
  * @param subtitle the sentence, or nothing. The header grows only when there is one.
+ * @param glyph the mark of the chooser card that opened this screen, drawn beside the
+ *   name in [hue] -- or nothing, which is the chooser itself. See [GlyphTitle].
+ * @param badge a word on the mark's corner, for a mark that is a file of one kind.
  */
 @Composable
 internal fun ChooserHeader(
@@ -77,6 +94,9 @@ internal fun ChooserHeader(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     subtitleTag: String? = null,
+    glyph: ImageVector? = null,
+    hue: Color? = null,
+    badge: String? = null,
 ) {
     CastivioHeader(
         height = m.header,
@@ -103,12 +123,28 @@ internal fun ChooserHeader(
             )
         },
         title = {
-            CastivioHeaderTitle(
-                text = title,
-                style = castivioTitleStyle(m.fsTitle),
-                color = CastivioTheme.colors.onBackgroundStrong,
-                modifier = Modifier.testTag(headingTag),
-            )
+            if (glyph == null || hue == null) {
+                CastivioHeaderTitle(
+                    text = title,
+                    style = castivioTitleStyle(m.fsTitle),
+                    color = CastivioTheme.colors.onBackgroundStrong,
+                    modifier = Modifier.testTag(headingTag),
+                )
+            } else {
+                GlyphTitle(
+                    m = m,
+                    glyph = glyph,
+                    hue = hue,
+                    badge = badge,
+                    modifier = Modifier.testTag(headingTag),
+                ) {
+                    CastivioHeaderTitle(
+                        text = title,
+                        style = castivioTitleStyle(m.fsTitle),
+                        color = CastivioTheme.colors.onBackgroundStrong,
+                    )
+                }
+            }
         },
         chips = {
             // The row is pinned left to right so the control keeps its edge; the words
@@ -167,5 +203,101 @@ internal fun ChooserHeader(
     )
 }
 
+/**
+ * A screen's name with the mark of the card that opened it.
+ *
+ * ## Why the mark comes with the user
+ *
+ * The chooser tells its four ways in apart by a glyph in a hue, and the screen a card
+ * opens used to keep only the card's words. Carried across, the mark is the thread
+ * between the choice and the place it led: violet for Xtream, azure for a playlist,
+ * amber for a portal, green for the subscriptions already saved -- the four hues the
+ * chooser already spends, in the same order.
+ *
+ * It is bare and lit rather than in a disc. A disc is a card's mark; a header has the
+ * lockup at one end and the chips at the other, and a third round object between them
+ * would read as a fourth control.
+ *
+ * ## Which side it is on
+ *
+ * Left of the name, in both languages. The header row is pinned left to right -- the
+ * lockup holds the same physical edge everywhere -- and the mark is part of that row's
+ * picture, not of the sentence, so the pair is laid out left to right and the name is
+ * handed the reader's direction back for its own words. `HEADER_GLYPH` is tagged so a
+ * test can hold it there.
+ *
+ * ## Why the pair is what centres
+ *
+ * The row centres its title slot and clamps it against the ends. The pair is the slot,
+ * so it is the pair that is centred and the pair that yields: when a long name meets a
+ * short frame, the name's fitted text gives up a step and the mark keeps its size.
+ */
+@Composable
+private fun GlyphTitle(
+    m: SourceMetrics,
+    glyph: ImageVector,
+    hue: Color,
+    badge: String?,
+    modifier: Modifier = Modifier,
+    title: @Composable () -> Unit,
+) {
+    val colors = CastivioTheme.colors
+    val size = m.fsTitle * TITLE_GLYPH
+    val reading = LocalLayoutDirection.current
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+        Row(
+            modifier,
+            horizontalArrangement = Arrangement.spacedBy(m.fsTitle * TITLE_GLYPH_GAP),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.size(size).testTag(ActivationTags.HEADER_GLYPH)) {
+                Icon(
+                    imageVector = glyph,
+                    contentDescription = null, // the name beside it says it
+                    tint = colors.discGlyph(hue),
+                    modifier = Modifier
+                        .size(size)
+                        .castivioGlyphGlow(hue, colors.discTop * TITLE_GLOW, TITLE_GLOW_REACH),
+                )
+                if (badge != null) {
+                    // The saved row's kind pill, at the mark's own scale. Silent: the
+                    // name beside it already says the word, and a reader that said it
+                    // twice would be reading the drawing rather than the screen.
+                    Text(
+                        text = badge,
+                        style = castivioChipStyle(size * BADGE_TYPE),
+                        color = colors.onBackground,
+                        maxLines = 1,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .offset(x = size * BADGE_OUT, y = size * BADGE_DROP)
+                            .background(hue.copy(alpha = BADGE_STRONG), RoundedCornerShape(size * BADGE_CORNER))
+                            .padding(horizontal = size * BADGE_PAD)
+                            .clearAndSetSemantics { },
+                    )
+                }
+            }
+            CompositionLocalProvider(LocalLayoutDirection provides reading) { title() }
+        }
+    }
+}
+
 /** The wordmark against the question — the activation screen's figure, unchanged. */
 private const val WORD_RATIO = 0.80f
+
+/* The mark beside the name, as multiples of the name's own type step, so it is the same
+ * picture on a phone and on a television: the size, the air before the name, and how
+ * far past a disc's own light the halo is pushed -- further than a field's glyph,
+ * because this one is read from across the room. */
+private const val TITLE_GLYPH = 1.35f
+private const val TITLE_GLYPH_GAP = 0.5f
+private const val TITLE_GLOW = 1.3f
+private const val TITLE_GLOW_REACH = 1.1f
+
+/* The badge on the mark's corner, as fractions of the mark: its type, how far it
+ * stands out past the mark's edge and below it, its corner and its side padding. */
+private const val BADGE_TYPE = 0.25f
+private const val BADGE_OUT = 0.14f
+private const val BADGE_DROP = 0.04f
+private const val BADGE_CORNER = 0.1f
+private const val BADGE_PAD = 0.05f

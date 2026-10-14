@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -140,6 +141,18 @@ fun CastivioTextField(
      * is still announced: what is withheld is the line, not the fact.
      */
     errorBelow: Boolean = true,
+    /**
+     * The hue [labelIcon] is drawn in, and lit by, or null for the quiet ink.
+     *
+     * The glyph above the box says what the field is about, and on the source forms it
+     * says it in the colour that meaning wears everywhere else -- a link is azure on the
+     * chooser, a key is amber on Home. The glyph *inside* the box is not given one: it
+     * sits beside what the user types, and a coloured mark there competes with the text
+     * it is meant to stand next to.
+     *
+     * Null on every caller but those forms, which draws exactly what it drew.
+     */
+    labelIconHue: Color? = null,
 ) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
@@ -216,8 +229,16 @@ fun CastivioTextField(
                 Icon(
                     imageVector = labelIcon,
                     contentDescription = null, // the label beside it says it
-                    tint = colors.onBackgroundMuted,
-                    modifier = Modifier.size(Sizing.iconSm),
+                    tint = labelIconHue?.let(colors::discGlyph) ?: colors.onBackgroundMuted,
+                    modifier = Modifier
+                        .size(Sizing.iconSm)
+                        .then(
+                            if (labelIconHue == null) {
+                                Modifier
+                            } else {
+                                Modifier.castivioGlyphGlow(labelIconHue, colors.discTop)
+                            }
+                        ),
                 )
             }
             Text(

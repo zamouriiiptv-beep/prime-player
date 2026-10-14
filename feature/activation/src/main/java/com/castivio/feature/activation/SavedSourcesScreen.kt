@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Dns
+import androidx.compose.material.icons.rounded.Group
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -163,6 +164,10 @@ internal fun SavedSourcesScreen(
                 backTag = ActivationTags.SAVED_BACK,
                 onBack = onBack,
                 subtitle = stringResource(R.string.saved_sources_subtitle),
+                // The fourth card's mark, in its hue: the screen a card opens wears
+                // that card's glyph beside its name, as the three forms do.
+                glyph = Icons.Rounded.Group,
+                hue = CastivioTheme.colors.hueGreen,
             )
             Spacer(Modifier.height(m.bandTop))
 
@@ -724,9 +729,15 @@ private const val BADGE = 28f / 720f
 private const val BADGE_PAD = 12f / 720f
 private const val DOT = 10f / 720f
 
-/** How much of its hue a disc and a badge take. Opacity, not a colour. */
+/**
+ * How much of its hue a disc and a badge take. Opacity, not a colour.
+ *
+ * [BADGE_STRONG] is the module's and not this file's: the M3U badge on the playlist
+ * form's title is the same pill as the one on a saved row, and two numbers for one
+ * pill is how the two stop matching.
+ */
 private const val DISC_FILL = 0.92f
-private const val BADGE_STRONG = 0.85f
+internal const val BADGE_STRONG = 0.85f
 private const val BADGE_FILL = 0.12f
 
 /* ------------------------------------------------------------ the row's two regions
@@ -773,6 +784,11 @@ private const val SEPARATOR = "•"
 /** How much of the description's colour a separator keeps. Quieter than what it parts. */
 private const val SEPARATOR_FILL = 0.55f
 
-/** The two kinds, as their providers spell them. Not translated: they are product names. */
+/**
+ * The two kinds, as their providers spell them. Not translated: they are product names.
+ *
+ * [M3U] is module-wide because the playlist form's title wears the same word on the
+ * same pill.
+ */
 private const val XTREAM = "Xtream"
-private const val M3U = "M3U"
+internal const val M3U = "M3U"
