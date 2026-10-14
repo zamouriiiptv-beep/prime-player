@@ -567,7 +567,16 @@ private fun SourceCard(
             horizontalArrangement = Arrangement.spacedBy(m.cardGap),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            CastivioDisc(m.disc, hue, icon)
+            // Round, and never taller than the card has room for. `size` gives way only
+            // on the axis that is constrained, so a card shorter than its disc and its
+            // padding -- the pair under the rule on a phone or a 960×540 television, all
+            // four at 800×360 -- kept the disc's width, took the card's height, and drew
+            // an oval. The slot still does exactly that; the circle inside it takes the
+            // height it is left, so it stays round, stays centred where it was, and the
+            // name and description beside it do not move.
+            BoxWithConstraints(Modifier.size(m.disc), contentAlignment = Alignment.Center) {
+                CastivioDisc(if (maxHeight < maxWidth) maxHeight else m.disc, hue, icon)
+            }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(m.cardPad * TEXT_GAP)) {
                 // Fitted, not clipped. A card's name is one line by design -- it sits
                 // above a description, and wrapping it would change the card's whole
