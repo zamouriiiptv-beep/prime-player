@@ -1,6 +1,7 @@
 package com.castivio.domain
 
 import com.castivio.core.common.AppError
+import com.castivio.domain.provider.FieldValidation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
@@ -190,7 +191,14 @@ class LoadSection(
             // A single-file provider hands over every kind in one pass, so marking
             // only the one that was asked for would download the same file again on
             // the next section. See [PlaylistSource.carriesEveryKind].
-            if (source.carriesEveryKind) {
+            //
+            // Asked of the subscription as it stands now rather than as it was read
+            // before the import: a playlist read through its panel can have been read as
+            // the playlist after all -- the importer falls back when the panel's API says
+            // no -- and then every section arrived in that one download, as for any
+            // playlist.
+            val settled = sources.get(provider.id)?.asPlaylistSource() ?: source
+            if (settled.carriesEveryKind) {
                 for (other in MediaKind.entries) {
                     if (other != kind) marks.markLoaded(provider.id, other, nowMs)
                 }
@@ -209,11 +217,13 @@ class LoadSection(
  * a property of the source rather than as an `if` inside the loader.
  *
  * Xtream is the opposite and the reason this exists: live, VOD and series are three
- * separate endpoints, so a section really can be fetched on its own.
+ * separate endpoints, so a section really can be fetched on its own. A playlist read
+ * through its panel's API is that case too, whatever the user added it as.
  */
 val PlaylistSource.carriesEveryKind: Boolean
     get() = when (this) {
-        is PlaylistSource.M3u, is PlaylistSource.LocalFile -> true
+        is PlaylistSource.M3u -> xtream == null
+        is PlaylistSource.LocalFile -> true
         // Xtream and a portal are the same case and the reason this exists: live,
         // films, series and radio are separate calls on both, so a section really can
         // be fetched on its own when it is opened.
@@ -227,9 +237,12 @@ val PlaylistSource.carriesEveryKind: Boolean
  * column holds the playlist link, the file URI or the Xtream host, and the two
  * credential columns hold the rest — so this is a re-reading rather than a guess.
  * Null for a portal, which has no stored address to go back to.
+ *
+ * It is also where a playlist is told which way it is read — see [panelAccount] — so
+ * that every reader of a subscription reads it the same way.
  */
 fun ProviderSource.asPlaylistSource(): PlaylistSource? = when (kind) {
-    SourceKind.M3U_URL -> url?.let { PlaylistSource.M3u(it, userAgent) }
+    SourceKind.M3U_URL -> url?.let { PlaylistSource.M3u(it, userAgent, xtream = panelAccount(it)) }
     SourceKind.LOCAL_FILE -> url?.let { PlaylistSource.LocalFile(it, label) }
     SourceKind.XTREAM -> {
         val host = url
@@ -247,6 +260,30 @@ fun ProviderSource.asPlaylistSource(): PlaylistSource? = when (kind) {
     // with NOT_CONFIGURED before a request was ever sent.
     SourceKind.PORTAL -> url?.let { PlaylistSource.Portal(it) }
 }
+
+/**
+ * The panel account an M3U subscription is read through, or null to read its playlist.
+ *
+ * ## Through the panel when the link names one
+ *
+ * `get.php?username=…&password=…` is an Xtream account fetched as one file. Read through
+ * the panel's API instead, each section arrives on its own and comes with categories,
+ * series and a status — and the panel's API often answers when its playlist endpoint
+ * does not. The link is read here, locally; nothing is asked of the network to decide.
+ * See [FieldValidation.detectXtream] for what makes a link an account.
+ *
+ * ## Not when the catalogue on the device came from the playlist
+ *
+ * A subscription whose playlist was imported to the end keeps being read as a playlist.
+ * The two readings give the same channel different ids — a playlist row is keyed on its
+ * stream URL, an API row on its stream id — so switching would put every channel on the
+ * screen twice, and favourites and history, which follow ids, would stay behind with the
+ * old rows. `contentHash` is the mark of that import: only a playlist read to its end
+ * records one, and the API path never does. A migration that forgets sync state without
+ * dropping the catalogue would erase that mark, which `CastivioMigrations` has to know.
+ */
+private fun ProviderSource.panelAccount(link: String): PlaylistSource.Xtream? =
+    if (sync.contentHash != null) null else FieldValidation.detectXtream(link)
 
 /**
  * Whether pressing the button again could plausibly work.

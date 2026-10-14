@@ -11,9 +11,11 @@ import com.castivio.domain.EpgProgramme
 import com.castivio.domain.EpgSummary
 import com.castivio.domain.EpgWriter
 import com.castivio.domain.NowNextRefresher
+import com.castivio.domain.PlaylistSource
 import com.castivio.domain.ProviderSource
 import com.castivio.domain.SourceKind
 import com.castivio.domain.SourceRepository
+import com.castivio.domain.asPlaylistSource
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 
@@ -112,9 +114,18 @@ class XtreamNowNextRefresher(
      *
      * Only Xtream has this endpoint. An M3U provider gets its guide from XMLTV and that
      * is not a failure, so this returns null and both callers return zero quietly.
+     *
+     * A playlist read through its panel has the endpoint too, and its rows the panel's
+     * stream ids: it is asked with the account its link names, under its own id. Which
+     * way it is read is `asPlaylistSource`'s decision, the one the section loader made,
+     * so a playlist whose rows came from the file is not asked by stream id.
      */
     private suspend fun xtreamSource(): ProviderSource? {
         val source = sources.activeNow() ?: return null
+        val panel = (source.asPlaylistSource() as? PlaylistSource.M3u)?.xtream
+        if (panel != null) {
+            return source.copy(url = panel.host, username = panel.username, password = panel.password)
+        }
         if (source.kind != SourceKind.XTREAM) return null
         if (source.url == null || source.username == null || source.password == null) return null
         return source

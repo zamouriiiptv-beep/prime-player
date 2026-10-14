@@ -5,6 +5,7 @@ import com.castivio.core.common.AppError
 import com.castivio.core.common.AppDispatchers
 import com.castivio.core.platform.PerformanceLog
 import com.castivio.data.networking.CallMetrics
+import com.castivio.data.networking.HttpStatusException
 import com.castivio.data.networking.HttpStreamSource
 import com.castivio.data.networking.Received
 import com.castivio.data.networking.RemoteRequest
@@ -16,6 +17,7 @@ import com.castivio.data.parsing.XtreamImportEngine
 import com.castivio.domain.CatalogImporter
 import com.castivio.domain.CatalogItem
 import com.castivio.domain.CatalogWriter
+import com.castivio.domain.FetchDiagnosis
 import com.castivio.domain.ImportMode
 import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaKind
@@ -25,6 +27,7 @@ import com.castivio.domain.PlaylistSource
 import com.castivio.domain.ProviderSource
 import com.castivio.domain.SourceRepository
 import com.castivio.domain.SyncState
+import com.castivio.domain.panelFailureAllowsPlaylist
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.Flow
@@ -81,9 +84,19 @@ class DefaultCatalogImporter(
         val onProgress: (ImportProgress) -> Unit = { trySend(it) }
 
         when (source) {
-            is PlaylistSource.M3u -> importM3uUrl(source, sourceId, stored, onProgress, cancelled)
+            is PlaylistSource.M3u -> {
+                val panel = source.xtream
+                if (panel == null) {
+                    importM3uUrl(source, sourceId, stored, onProgress, cancelled)
+                } else {
+                    // The whole catalogue through the panel, as for an Xtream subscription,
+                    // and the playlist once when the panel's API says no.
+                    importXtream(panel, sourceId, onProgress, cancelled)
+                        ?.let { playlistAfter(it, source, sourceId, stored, onProgress, cancelled) }
+                }
+            }
             is PlaylistSource.LocalFile -> importLocalFile(source, sourceId, onProgress, cancelled)
-            is PlaylistSource.Xtream -> importXtream(source, sourceId, onProgress, cancelled)
+            is PlaylistSource.Xtream -> importXtream(source, sourceId, onProgress, cancelled)?.let(onProgress)
             // The whole catalogue: every section the portal serves, one call each.
             is PlaylistSource.Portal -> for (kind in MediaKind.entries) {
                 if (cancelled()) break
@@ -121,71 +134,40 @@ class DefaultCatalogImporter(
      * [ImportMode.APPEND], necessarily. A replacing write prunes every row of another
      * generation at `finish()`, which after a per-kind import is every row of every
      * other kind — the films would delete the channels.
+     *
+     * An M3U read through its panel — see [PlaylistSource.M3u.xtream] — takes the Xtream
+     * path, under its own id, and falls back to its playlist once when the panel's API
+     * says no.
      */
     override fun importKind(source: PlaylistSource, kind: MediaKind): Flow<ImportProgress> =
         when (source) {
             is PlaylistSource.Xtream -> channelFlow {
-                val sourceId = SourceIds.of(source)
-                val writer = writerFactory()
-                // Phase B instrumentation, and the only reason these two lines exist:
-                // how many requests one section costs is a property of the *user's*
-                // provider, so it cannot be learned from this repository or from a
-                // fixture -- only from a real subscription on a real device. The window
-                // is this import; the tally is printed at the end of it.
-                //
-                // Nothing here changes what is requested, in what order, or with what
-                // headers. See `CallMetrics`.
-                CallMetrics.reset()
-                // The limit actually in force, read from the engine rather than restated,
-                // so the panel cannot claim a concurrency the import is not using.
-                PerformanceLog.importConcurrency(XtreamImportEngine.DEFAULT_CONCURRENCY)
-                try {
-                    val summary = XtreamImportEngine(writer, clock = clock).importCatalogue(
-                        sourceId = sourceId,
-                        api = xtreamApiFactory(source),
-                        kinds = setOf(kind),
-                        onProgress = { progress ->
-                            // The importer's own running totals, forwarded to the panel
-                            // as they arrive. Counting them a second time here is how
-                            // the progress line and the panel end up disagreeing.
-                            //
-                            // The byte count is added *here* rather than in the engine,
-                            // and that is the layering rather than a convenience: the
-                            // engine is pure Kotlin and takes plain `Reader`s, so it has
-                            // no idea how much came down the socket. This class is the
-                            // one place that sees both the parser's progress and the
-                            // HTTP counters, so it is where the two meet.
-                            if (progress is ImportProgress.Importing) {
-                                PerformanceLog.importProgress(progress.groupsReady, progress.itemsImported)
-                                trySend(progress.copy(bytes = CallMetrics.totalBytes()))
-                            } else {
-                                trySend(progress)
-                            }
-                        },
-                        isCancelled = { !isActive },
-                        mode = ImportMode.APPEND,
-                    )
-                    // No validators for Xtream, and none to preserve: `record` reads
-                    // the stored row and writes back what this pass learned.
-                    record(sourceId, summary, etag = null, lastModified = null, contentHash = null)
-                } catch (e: Exception) {
-                    trySend(ImportProgress.Failed(e.toAppError()))
-                } finally {
-                    // `finally`, so a cancelled or failed section still reports what it
-                    // managed to ask for -- which is the interesting case for a user
-                    // whose first open times out.
-                    CallMetrics.logSummary("import $kind")
-                    // And the same figures to the on-device panel. Published from
-                    // here rather than read from a screen because this is what owns
-                    // the window: the counters were reset above, and this is where
-                    // they stop being about this section.
-                    PerformanceLog.network(
-                        requests = CallMetrics.totalCalls().toInt(),
-                        serverMs = CallMetrics.callTimeMs(),
-                        cacheHits = CallMetrics.cacheHits().toInt(),
-                    )
-                }
+                importXtreamKind(
+                    account = source,
+                    sourceId = SourceIds.of(source),
+                    kind = kind,
+                    mode = ImportMode.APPEND,
+                    onProgress = { trySend(it) },
+                    cancelled = { !isActive },
+                )?.let { trySend(it) }
             }.flowOn(dispatchers.io)
+
+            is PlaylistSource.M3u -> source.xtream?.let { panel ->
+                channelFlow {
+                    val sourceId = SourceIds.of(source)
+                    val stored = sources.get(sourceId)
+                    val onProgress: (ImportProgress) -> Unit = { trySend(it) }
+                    val cancelled = { !isActive }
+                    importXtreamKind(
+                        account = panel,
+                        sourceId = sourceId,
+                        kind = kind,
+                        mode = firstReadingMode(stored),
+                        onProgress = onProgress,
+                        cancelled = cancelled,
+                    )?.let { playlistAfter(it, source, sourceId, stored, onProgress, cancelled) }
+                }.flowOn(dispatchers.io)
+            } ?: import(source)
 
             // A portal answers `itv`, `vod`, `series` and `radio` on separate calls, so
             // a section here is a real request rather than a filter over one download —
@@ -217,7 +199,8 @@ class DefaultCatalogImporter(
         val stored = sources.get(SourceIds.of(source)) ?: return false
         if (stored.sync.lastImportAtMs == null || stored.sync.itemCount == 0) return false
         val url = when (source) {
-            is PlaylistSource.M3u -> source.url
+            // Read through its panel, a playlist is the Xtream case below.
+            is PlaylistSource.M3u -> if (source.xtream != null) return false else source.url
             // Xtream is category-addressable, so "up to date" is not a useful
             // question: nothing was downloaded wholesale to begin with.
             else -> return false
@@ -240,12 +223,18 @@ class DefaultCatalogImporter(
         }
     }
 
+    /**
+     * @param after the panel's failure, when this is the playlist read in its place — see
+     *   [playlistAfter]. Carried into this import's own failure, so the screen can say
+     *   both.
+     */
     private suspend fun importM3uUrl(
         source: PlaylistSource.M3u,
         sourceId: String,
         stored: ProviderSource?,
         onProgress: (ImportProgress) -> Unit,
         cancelled: () -> Boolean,
+        after: FetchDiagnosis? = null,
     ) {
         onProgress(ImportProgress.CheckingForChanges)
         // The figures the Xtream path gives the on-device panel, for the same window: one
@@ -326,6 +315,7 @@ class DefaultCatalogImporter(
                                 receivedBytes = answer?.bytes,
                                 itemsRead = read,
                                 itemsSaved = saved,
+                                after = after,
                             ),
                         ),
                     )
@@ -433,28 +423,193 @@ class DefaultCatalogImporter(
         }
     }
 
+    /**
+     * The whole catalogue from a panel's API, written under [sourceId].
+     *
+     * @return null when it arrived or was cancelled; otherwise the failure, with its
+     *   diagnosis, for the caller to report — or, for a playlist read through its panel,
+     *   to fall back from.
+     */
     private suspend fun importXtream(
-        source: PlaylistSource.Xtream,
+        account: PlaylistSource.Xtream,
         sourceId: String,
         onProgress: (ImportProgress) -> Unit,
         cancelled: () -> Boolean,
-    ) {
-        val writer = writerFactory()
-        try {
+    ): ImportProgress.Failed? {
+        val writer = WatchedWriter(writerFactory())
+        CallMetrics.reset()
+        val startedAt = clock()
+        var saved = 0
+        return try {
             val summary = XtreamImportEngine(writer, clock = clock).importCatalogue(
                 sourceId = sourceId,
-                api = xtreamApiFactory(source),
+                api = xtreamApiFactory(account),
                 kinds = XtreamImportEngine.DEFAULT_KINDS,
-                onProgress = onProgress,
+                onProgress = { progress ->
+                    if (progress is ImportProgress.Importing) saved = progress.itemsImported
+                    onProgress(progress)
+                },
                 isCancelled = cancelled,
             )
             // No validators to store: an Xtream catalogue is assembled from many
             // responses, so freshness is the import timestamp and nothing else.
             record(sourceId, summary, etag = null, lastModified = null, contentHash = null)
+            null
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            onProgress(ImportProgress.Failed(e.toAppError()))
+            xtreamFailure(e, writer, saved, clock() - startedAt)
         }
     }
+
+    /**
+     * One section from a panel's API, written under [sourceId].
+     *
+     * The Xtream subscription's own path, and the one a playlist read through its panel
+     * takes too: under the playlist's id, so its rows, favourites and history stay with
+     * the subscription the user added.
+     *
+     * @return null when the section arrived or was cancelled; otherwise the failure, with
+     *   its diagnosis, for the caller to report or to fall back from.
+     */
+    private suspend fun importXtreamKind(
+        account: PlaylistSource.Xtream,
+        sourceId: String,
+        kind: MediaKind,
+        mode: ImportMode,
+        onProgress: (ImportProgress) -> Unit,
+        cancelled: () -> Boolean,
+    ): ImportProgress.Failed? {
+        val writer = WatchedWriter(writerFactory())
+        // Phase B instrumentation, and the only reason these two lines exist: how many
+        // requests one section costs is a property of the *user's* provider, so it cannot
+        // be learned from this repository or from a fixture -- only from a real
+        // subscription on a real device. The window is this import; the tally is printed
+        // at the end of it.
+        //
+        // Nothing here changes what is requested, in what order, or with what headers.
+        // See `CallMetrics`.
+        CallMetrics.reset()
+        // The limit actually in force, read from the engine rather than restated, so the
+        // panel cannot claim a concurrency the import is not using.
+        PerformanceLog.importConcurrency(XtreamImportEngine.DEFAULT_CONCURRENCY)
+        val startedAt = clock()
+        var saved = 0
+        return try {
+            val summary = XtreamImportEngine(writer, clock = clock).importCatalogue(
+                sourceId = sourceId,
+                api = xtreamApiFactory(account),
+                kinds = setOf(kind),
+                onProgress = { progress ->
+                    // The importer's own running totals, forwarded to the panel as they
+                    // arrive. Counting them a second time here is how the progress line
+                    // and the panel end up disagreeing.
+                    //
+                    // The byte count is added *here* rather than in the engine, and that
+                    // is the layering rather than a convenience: the engine is pure Kotlin
+                    // and takes plain `Reader`s, so it has no idea how much came down the
+                    // socket. This class is the one place that sees both the parser's
+                    // progress and the HTTP counters, so it is where the two meet.
+                    if (progress is ImportProgress.Importing) {
+                        saved = progress.itemsImported
+                        PerformanceLog.importProgress(progress.groupsReady, progress.itemsImported)
+                        onProgress(progress.copy(bytes = CallMetrics.totalBytes()))
+                    } else {
+                        onProgress(progress)
+                    }
+                },
+                isCancelled = cancelled,
+                mode = mode,
+            )
+            // No validators for Xtream, and none to preserve: `record` reads the stored
+            // row and writes back what this pass learned.
+            record(sourceId, summary, etag = null, lastModified = null, contentHash = null)
+            null
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            xtreamFailure(e, writer, saved, clock() - startedAt)
+        } finally {
+            // `finally`, so a cancelled or failed section still reports what it managed
+            // to ask for -- which is the interesting case for a user whose first open
+            // times out. Through [log], which is `Log.i` under the same tag on a device.
+            CallMetrics.report("import $kind").forEach(log)
+            // And the same figures to the on-device panel. Published from here rather
+            // than read from a screen because this is what owns the window: the counters
+            // were reset above, and this is where they stop being about this section.
+            PerformanceLog.network(
+                requests = CallMetrics.totalCalls().toInt(),
+                serverMs = CallMetrics.callTimeMs(),
+                cacheHits = CallMetrics.cacheHits().toInt(),
+            )
+        }
+    }
+
+    /**
+     * A panel's failure as the screen and the log are told it: the error, and the figures
+     * — see [XtreamImportReport] for what they may and may not contain.
+     */
+    private fun xtreamFailure(e: Exception, writer: WatchedWriter, saved: Int, tookMs: Long): ImportProgress.Failed {
+        val error = e.toAppError()
+        val diagnosis = XtreamImportReport.diagnosisOf(
+            error = e,
+            savingFailed = writer.threw,
+            receivedBytes = CallMetrics.totalBytes().takeIf { CallMetrics.totalCalls() > 0 },
+            itemsRead = writer.written,
+            itemsSaved = saved,
+        )
+        log(XtreamImportReport.line(error, diagnosis, tookMs))
+        return ImportProgress.Failed(error, diagnosis)
+    }
+
+    /**
+     * After a playlist's panel said no: the playlist itself, once — or the failure as it is.
+     *
+     * Once, because the panel already had its try and this is the other one: no loop, and
+     * a press of Retry is a new attempt from the panel. Not at all when the network is the
+     * reason or the database is — see [panelFailureAllowsPlaylist], which the refresh obeys
+     * too. The playlist's own failure, if it has one, carries the panel's beside it, so the
+     * screen can say what both said.
+     *
+     * And only while the panel has delivered nothing. The playlist arrives whole and keys
+     * its channels by stream URL, so reading it after the panel has delivered a section
+     * would replace that section's rows — and leave the favourites and history made on
+     * them pointing at channels that are gone — to make up for another section the panel
+     * refused. A panel that answered once has said what it serves; its refusal of the next
+     * section is reported as it is.
+     */
+    private suspend fun playlistAfter(
+        failure: ImportProgress.Failed,
+        source: PlaylistSource.M3u,
+        sourceId: String,
+        stored: ProviderSource?,
+        onProgress: (ImportProgress) -> Unit,
+        cancelled: () -> Boolean,
+    ) {
+        val panelDelivered = stored?.sync?.lastImportAtMs != null
+        if (panelDelivered || !panelFailureAllowsPlaylist(failure.error, failure.diagnosis?.stage)) {
+            onProgress(failure)
+            return
+        }
+        log("M3U fallback after Xtream failed error=${failure.error.name}: reading the playlist once")
+        importM3uUrl(source, sourceId, stored, onProgress, cancelled, after = failure.diagnosis)
+    }
+
+    /**
+     * How the first section a playlist reads through its panel is written: replacing.
+     *
+     * A subscription whose playlist was read to the end is never read through its panel
+     * — see `asPlaylistSource` — but one whose playlist import was cut short can be, and
+     * the rows that import left are keyed differently from the API's: the same channel
+     * twice on screen. A replacing write prunes every row of an older generation when it
+     * commits, which is exactly those. From the second section on, nothing is left over
+     * and the write appends, for the reason [importKind] gives.
+     *
+     * The first is the one with no import recorded yet: the Xtream path records one when a
+     * section arrives, and a playlist import that was cut short records nothing.
+     */
+    private fun firstReadingMode(stored: ProviderSource?): ImportMode =
+        if (stored?.sync?.lastImportAtMs == null) ImportMode.REPLACE else ImportMode.APPEND
 
     /**
      * @param onEntryRead told of every entry line as it passes on its way to the parser, so
@@ -501,6 +656,10 @@ class DefaultCatalogImporter(
     }
 
     private fun Exception.toAppError(): AppError = when (this) {
+        // A status the panel answered with says what it meant. It is an IOException too,
+        // so without this line a 403 read as "no network" -- the one reading that rules
+        // out trying the playlist, and the sentence that sends a user to check their Wi-Fi.
+        is HttpStatusException -> error
         is java.net.SocketTimeoutException -> AppError.TIMEOUT
         is java.net.UnknownHostException -> AppError.NETWORK_UNAVAILABLE
         is com.castivio.data.parsing.JsonFormatException -> AppError.MALFORMED_PLAYLIST
@@ -529,11 +688,21 @@ private class WatchedWriter(private val delegate: CatalogWriter) : CatalogWriter
     var threw = false
         private set
 
+    /**
+     * Items handed to the database, committed or not: what a panel import had read when
+     * it stopped. A playlist import counts its entries as they pass instead.
+     */
+    var written = 0
+        private set
+
     override fun begin(sourceId: String, mode: ImportMode) = watched { delegate.begin(sourceId, mode) }
 
     override fun writeGroups(groups: List<MediaGroup>) = watched { delegate.writeGroups(groups) }
 
-    override fun writeItems(items: List<CatalogItem>) = watched { delegate.writeItems(items) }
+    override fun writeItems(items: List<CatalogItem>) = watched {
+        written += items.size
+        delegate.writeItems(items)
+    }
 
     override fun commit() = watched { delegate.commit() }
 

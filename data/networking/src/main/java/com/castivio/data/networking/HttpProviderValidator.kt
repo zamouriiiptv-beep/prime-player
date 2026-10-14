@@ -7,6 +7,7 @@ import com.castivio.core.common.Outcome
 import com.castivio.domain.PlaylistSource
 import com.castivio.domain.ProviderStatus
 import com.castivio.domain.ProviderValidator
+import com.castivio.domain.panelFailureAllowsPlaylist
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 
@@ -70,7 +71,8 @@ class HttpProviderValidator(
         withContext(dispatchers.io) {
             when (source) {
                 is PlaylistSource.Xtream -> validateXtream(source)
-                is PlaylistSource.M3u -> validateUrl(source.url, source.userAgent ?: userAgent)
+                is PlaylistSource.M3u -> source.xtream?.let { panel -> validateThroughPanel(panel, source) }
+                    ?: validateUrl(source.url, source.userAgent ?: userAgent)
                 // A local file is either readable or not, and the importer says which;
                 // there is nothing to ask a server.
                 is PlaylistSource.LocalFile -> Outcome.Success(ProviderStatus(usable = true))
@@ -135,6 +137,24 @@ class HttpProviderValidator(
             }
         }
     }
+
+    /**
+     * A playlist read through its panel, asked what an Xtream subscription is asked.
+     *
+     * The account call is where Home's expiry and connection count come from, so it goes
+     * first. When it says no for a reason that is not the network or the database, the
+     * playlist is asked instead, once — the rule the import follows, in
+     * [panelFailureAllowsPlaylist], so a refresh cannot call a subscription unreachable
+     * that a section has just loaded from its playlist.
+     *
+     * Only Home's refresh asks this: adding a playlist asks nothing, and opens Home.
+     */
+    private fun validateThroughPanel(panel: PlaylistSource.Xtream, source: PlaylistSource.M3u): Outcome<ProviderStatus> =
+        when (val answer = validateXtream(panel)) {
+            is Outcome.Success -> answer
+            is Outcome.Failure ->
+                if (panelFailureAllowsPlaylist(answer.error)) validateUrl(source.url, source.userAgent ?: userAgent) else answer
+        }
 
     /**
      * For a playlist URL there is no account API, so reachability and authorisation

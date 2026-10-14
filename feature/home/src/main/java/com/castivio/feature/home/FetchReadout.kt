@@ -25,9 +25,14 @@ import java.util.Locale
  *
  * ## Why every line is always there
  *
- * Five rows, in the same order, on every failure, with `-` for a figure that does not
+ * Six rows, in the same order, on every failure, with `-` for a figure that does not
  * exist. Two photographs can then be compared row by row, and a missing status reads as
  * "the provider never answered" instead of as a row somebody forgot.
+ *
+ * The last says which way the subscription was read — the playlist or the panel's API —
+ * and, when the playlist was the second try, what the panel said first. A playlist
+ * subscription can be read either way, so without it the five figures above it could
+ * belong to either request.
  *
  * Formatted by the state holder, not in composition — see [BrowseState.fetchReadout].
  */
@@ -38,7 +43,16 @@ internal fun fetchReadout(diagnosis: FetchDiagnosis): String = listOf(
     "Received: ${diagnosis.bytesReceived?.let { "${count(it)} bytes" } ?: NONE}",
     // Every entry of the playlist, films and episodes included: one file holds them all.
     "Channels: ${count(diagnosis.itemsRead.toLong())} read · ${count(diagnosis.itemsSaved.toLong())} saved",
+    "Route: ${route(diagnosis)}",
 ).joinToString(separator = "\n")
+
+/** `XTREAM`, `M3U`, or `M3U after XTREAM ANSWER · HTTP 403 · HttpStatusException`. */
+private fun route(diagnosis: FetchDiagnosis): String {
+    val taken = diagnosis.route?.name ?: return NONE
+    val first = diagnosis.after ?: return taken
+    return "$taken after ${first.route?.name ?: NONE} ${first.stage.name}" +
+        " · HTTP ${first.httpStatus ?: NONE} · ${first.exception ?: NONE}"
+}
 
 /** What each stage means, in the few words that fit beside its name. */
 private val FetchStage.meaning: String

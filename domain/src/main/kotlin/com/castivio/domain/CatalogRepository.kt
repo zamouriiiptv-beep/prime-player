@@ -106,7 +106,22 @@ interface CatalogImporter {
 }
 
 sealed interface PlaylistSource {
-    data class M3u(val url: String, val userAgent: String? = null) : PlaylistSource
+    data class M3u(
+        val url: String,
+        val userAgent: String? = null,
+        /**
+         * The panel account this playlist is read through, when it is read through one.
+         *
+         * Set by [ProviderSource.asPlaylistSource] and nowhere else, so the section loader,
+         * the refresh and the guide cannot read one subscription two ways. Null from the
+         * form: what the user typed is a playlist and is saved as one, with its link and
+         * its id. Only the reading changes, and nothing on screen says so.
+         *
+         * Not part of the identity: `SourceIds` keys an M3U on its link whichever way it is
+         * read, so the rows, the favourites and the history stay with the subscription.
+         */
+        val xtream: Xtream? = null,
+    ) : PlaylistSource
 
     /**
      * A playlist the user picked from storage.

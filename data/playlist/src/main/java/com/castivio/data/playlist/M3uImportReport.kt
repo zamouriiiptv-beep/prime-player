@@ -3,6 +3,7 @@ package com.castivio.data.playlist
 import com.castivio.data.networking.RemoteResult
 import com.castivio.data.networking.kind
 import com.castivio.domain.FetchDiagnosis
+import com.castivio.domain.FetchRoute
 import com.castivio.domain.FetchStage
 import com.castivio.domain.ImportSummary
 
@@ -72,6 +73,7 @@ internal object M3uImportReport {
      * @param savingFailed whether the database writer threw, rather than the download or
      *   the parser before it.
      * @param receivedBytes what had arrived of the body; null when none was opened.
+     * @param after the panel's failure, when this playlist was read in its place.
      */
     fun diagnosisOf(
         failure: RemoteResult.Failure,
@@ -79,6 +81,7 @@ internal object M3uImportReport {
         receivedBytes: Long?,
         itemsRead: Int,
         itemsSaved: Int,
+        after: FetchDiagnosis? = null,
     ): FetchDiagnosis = FetchDiagnosis(
         stage = when {
             savingFailed -> FetchStage.SAVE
@@ -94,6 +97,8 @@ internal object M3uImportReport {
         bytesReceived = receivedBytes,
         itemsRead = itemsRead,
         itemsSaved = itemsSaved,
+        route = FetchRoute.M3U,
+        after = after,
     )
 
     /** `http` or `https`, and nothing else of the address. */

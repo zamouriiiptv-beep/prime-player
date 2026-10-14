@@ -2,6 +2,7 @@ package com.castivio.data.playlist
 
 import com.castivio.core.common.AppDispatchers
 import com.castivio.core.common.AppError
+import com.castivio.data.networking.HttpStatusException
 import com.castivio.data.networking.HttpStreamSource
 import com.castivio.data.parsing.SourceIds
 import com.castivio.data.parsing.XtreamImportEngine
@@ -9,6 +10,7 @@ import com.castivio.data.parsing.XtreamUrls
 import com.castivio.domain.CatalogItem
 import com.castivio.domain.CatalogWriter
 import com.castivio.domain.FetchDiagnosis
+import com.castivio.domain.FetchRoute
 import com.castivio.domain.FetchStage
 import com.castivio.domain.ImportMode
 import com.castivio.domain.ImportProgress
@@ -20,6 +22,7 @@ import com.castivio.domain.ProviderSource
 import com.castivio.domain.SourceKind
 import com.castivio.domain.SourceRepository
 import com.castivio.domain.SyncState
+import com.castivio.domain.asPlaylistSource
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -57,6 +60,9 @@ class DefaultCatalogImporterTest {
 
     /** What the importer wrote to its log, in order. */
     private val logged = mutableListOf<String>()
+
+    /** Every panel account an API was built for, in order. */
+    private val accounts = mutableListOf<PlaylistSource.Xtream>()
 
     @Before
     fun setUp() {
@@ -262,7 +268,13 @@ class DefaultCatalogImporterTest {
 
         assertEquals(AppError.UNKNOWN, failed.error)
         assertEquals(
-            FetchDiagnosis(FetchStage.ANSWER, httpStatus = 458, exception = null, bytesReceived = null),
+            FetchDiagnosis(
+                FetchStage.ANSWER,
+                httpStatus = 458,
+                exception = null,
+                bytesReceived = null,
+                route = FetchRoute.M3U,
+            ),
             failed.diagnosis,
         )
         assertNoSecretIn(failed.diagnosis)
@@ -293,7 +305,7 @@ class DefaultCatalogImporterTest {
         val failed = importer().import(source).toList().last() as ImportProgress.Failed
 
         assertEquals(
-            FetchDiagnosis(FetchStage.PREPARE, exception = "IllegalArgumentException"),
+            FetchDiagnosis(FetchStage.PREPARE, exception = "IllegalArgumentException", route = FetchRoute.M3U),
             failed.diagnosis,
         )
         assertNoSecretIn(failed.diagnosis)
@@ -339,6 +351,205 @@ class DefaultCatalogImporterTest {
         assertEquals("none was kept", 0, diagnosis.itemsSaved)
         assertTrue(diagnosis.bytesReceived!! > 0)
         assertNoSecretIn(diagnosis)
+    }
+
+    // ------------------------------------------ a playlist read through its panel
+    //
+    // A `get.php?username=…&password=…` link names a panel account. The subscription stays
+    // the playlist the user added -- its link, its id -- and is read through the panel's
+    // API, one section at a time, with the playlist itself tried once when the API says no
+    // for a reason that is not the network.
+
+    @Test
+    fun `a playlist that names a panel account is read through the api, under its own id`() = runBlocking {
+        val link = server.url(PANEL_LINK).toString()
+        val source = routed(link)
+
+        val progress = importer().importKind(source, MediaKind.LIVE).toList()
+
+        assertEquals("the playlist was never downloaded", 0, server.requestCount)
+        assertEquals(
+            listOf(PlaylistSource.Xtream(server.url("/").toString().trimEnd('/'), "u7sam9", "p4ss9w0rd")),
+            accounts,
+        )
+        val playlistId = SourceIds.of(PlaylistSource.M3u(link))
+        assertEquals(listOf(playlistId), writer.began.map { it.first })
+        assertEquals(2, writer.items.size)
+        assertTrue(progress.last() is ImportProgress.Done)
+        val recorded = sources.get(playlistId)!!.sync
+        assertNull("the api path never marks a playlist catalogue", recorded.contentHash)
+        assertEquals(now, recorded.lastImportAtMs)
+    }
+
+    @Test
+    fun `a playlist that names no account is downloaded as before`() = runBlocking {
+        server.enqueue(MockResponse().setBody(playlist(3)))
+        val source = routed(server.url("/lists/family.m3u").toString())
+
+        val progress = importer().importKind(source, MediaKind.LIVE).toList()
+
+        assertNull(source.xtream)
+        assertEquals(1, server.requestCount)
+        assertTrue("no panel was asked", accounts.isEmpty())
+        assertEquals(3, (progress.last() as ImportProgress.Done).totalItems)
+    }
+
+    /**
+     * What the link encoded, the API is sent encoded the same way: the decoded password
+     * goes back through the encoder every panel request uses.
+     */
+    @Test
+    fun `credentials with special characters reach the panel as the link encoded them`() = runBlocking {
+        val encodedPassword = "p%40ss%20w%C3%B6rd%2B%26%23"
+        val link = server.url("/get.php?username=sam&password=$encodedPassword&type=m3u_plus").toString()
+
+        importer().importKind(routed(link), MediaKind.LIVE).toList()
+
+        val account = accounts.single()
+        assertEquals("p@ss wörd+&#", account.password)
+        val asked = XtreamUrls.api(account.host, account.username, account.password, action = "get_live_categories")
+        assertTrue(asked, asked.contains("password=$encodedPassword&"))
+    }
+
+    /**
+     * Rows a cut-short playlist import left are keyed differently from the API's, so the
+     * first section read through the panel replaces them; later sections append, or each
+     * would prune the one before.
+     */
+    @Test
+    fun `the first section read through the panel replaces, the next ones append`() = runBlocking {
+        val link = server.url(PANEL_LINK).toString()
+        sources.save(stored(SourceIds.of(PlaylistSource.M3u(link)), etag = null, items = 0).copy(url = link, sync = SyncState()))
+
+        importer().importKind(routed(link), MediaKind.LIVE).toList()
+        importer().importKind(routed(link), MediaKind.MOVIE).toList()
+
+        assertEquals(listOf(ImportMode.REPLACE, ImportMode.APPEND), writer.began.map { it.second })
+    }
+
+    @Test
+    fun `a panel that refuses its api is followed by the playlist, once`() = runBlocking {
+        val link = server.url(PANEL_LINK).toString()
+        val id = SourceIds.of(PlaylistSource.M3u(link))
+        sources.save(stored(id, etag = null, items = 0).copy(url = link, sync = SyncState()))
+        server.enqueue(MockResponse().setHeader("Content-Type", "audio/x-mpegurl").setBody(playlist(3)))
+        val panel = FailingXtreamApi(HttpStatusException(403))
+
+        val progress = importer(xtreamApi = panel).importKind(routed(link), MediaKind.LIVE).toList()
+
+        assertEquals("one try at the api", 1, panel.calls)
+        assertEquals("one try at the playlist", 1, server.requestCount)
+        assertEquals(3, (progress.last() as ImportProgress.Done).totalItems)
+        // The catalogue came from the file, so the subscription is read that way from now
+        // on: the two readings key channels differently and must not be mixed.
+        assertTrue(sources.get(id)!!.sync.contentHash!!.startsWith("crc32:"))
+        assertNull((sources.get(id)!!.asPlaylistSource() as PlaylistSource.M3u).xtream)
+        assertTrue(logged.toString(), logged.any { it.startsWith("Xtream import failed stage=ANSWER error=UNAUTHORIZED http=403") })
+        assertNothingFrom(link)
+    }
+
+    /**
+     * The panel delivered Live and refuses Films. Reading the playlist now would replace the
+     * channels it delivered with rows keyed another way, and the favourites made on them
+     * would point at nothing — so the refusal is reported as it is.
+     */
+    @Test
+    fun `a panel that has delivered a section is not swapped for the playlist`() = runBlocking {
+        val link = server.url(PANEL_LINK).toString()
+        val id = SourceIds.of(PlaylistSource.M3u(link))
+        sources.save(stored(id, etag = null, items = 2).copy(url = link, sync = SyncState(lastImportAtMs = now, itemCount = 2)))
+
+        val failed = importer(xtreamApi = FailingXtreamApi(HttpStatusException(403)))
+            .importKind(routed(link), MediaKind.MOVIE).toList().last() as ImportProgress.Failed
+
+        assertEquals(AppError.UNAUTHORIZED, failed.error)
+        assertEquals(FetchRoute.XTREAM, failed.diagnosis!!.route)
+        assertEquals("the playlist was never asked", 0, server.requestCount)
+        assertNull("still read through the panel", sources.get(id)!!.sync.contentHash)
+    }
+
+    /** The playlist is on the same server: asking it too would double the wait for nothing. */
+    @Test
+    fun `a panel that cannot be reached is not followed by the playlist`() = runBlocking {
+        val link = server.url(PANEL_LINK).toString()
+        val cases = listOf(
+            java.net.ConnectException("failed to connect to $link") to AppError.NETWORK_UNAVAILABLE,
+            java.net.SocketTimeoutException("timeout reading $link") to AppError.TIMEOUT,
+        )
+
+        for ((cause, error) in cases) {
+            val failed = importer(xtreamApi = FailingXtreamApi(cause))
+                .importKind(routed(link), MediaKind.LIVE).toList().last() as ImportProgress.Failed
+
+            assertEquals(error, failed.error)
+            val diagnosis = failed.diagnosis!!
+            assertEquals(FetchRoute.XTREAM, diagnosis.route)
+            assertEquals(FetchStage.CONNECT, diagnosis.stage)
+            assertEquals(cause.javaClass.simpleName, diagnosis.exception)
+            assertNull("no playlist after a network failure", diagnosis.after)
+            assertNoSecretIn(diagnosis)
+        }
+        assertEquals("the playlist was never asked", 0, server.requestCount)
+        assertNothingFrom(link)
+    }
+
+    @Test
+    fun `when the playlist fails too, the failure says what both said`() = runBlocking {
+        val link = server.url(PANEL_LINK).toString()
+        server.enqueue(MockResponse().setResponseCode(458))
+
+        val failed = importer(xtreamApi = FailingXtreamApi(HttpStatusException(403)))
+            .importKind(routed(link), MediaKind.LIVE).toList().last() as ImportProgress.Failed
+
+        val diagnosis = failed.diagnosis!!
+        assertEquals(FetchRoute.M3U, diagnosis.route)
+        assertEquals(FetchStage.ANSWER, diagnosis.stage)
+        assertEquals(458, diagnosis.httpStatus)
+        val panel = diagnosis.after!!
+        assertEquals(FetchRoute.XTREAM, panel.route)
+        assertEquals(FetchStage.ANSWER, panel.stage)
+        assertEquals(403, panel.httpStatus)
+        assertEquals(1, server.requestCount)
+        assertNoSecretIn(diagnosis)
+        assertNothingFrom(link)
+    }
+
+    /** The database is the same for both readings, so the playlist would fail the same way. */
+    @Test
+    fun `a database failure on the panel's path is not followed by the playlist`() = runBlocking {
+        val link = server.url(PANEL_LINK).toString()
+
+        val failed = importer(writer = ThrowingWriter())
+            .importKind(routed(link), MediaKind.LIVE).toList().last() as ImportProgress.Failed
+
+        assertEquals(FetchStage.SAVE, failed.diagnosis!!.stage)
+        assertEquals(FetchRoute.XTREAM, failed.diagnosis!!.route)
+        assertEquals("IllegalStateException", failed.diagnosis!!.exception)
+        assertEquals(0, server.requestCount)
+    }
+
+    /**
+     * An Xtream subscription's own refusal, which used to read as "no network": the status
+     * travels in an IOException, and IOException was the first thing matched.
+     */
+    @Test
+    fun `a refusal by an xtream panel reads as a refusal, not as no network`() = runBlocking {
+        val source = PlaylistSource.Xtream("http://panel:8080", "user", "pass")
+
+        val failed = importer(xtreamApi = FailingXtreamApi(HttpStatusException(401)))
+            .importKind(source, MediaKind.LIVE).toList().last() as ImportProgress.Failed
+
+        assertEquals(AppError.UNAUTHORIZED, failed.error)
+        assertEquals(
+            FetchDiagnosis(
+                stage = FetchStage.ANSWER,
+                httpStatus = 401,
+                exception = "HttpStatusException",
+                route = FetchRoute.XTREAM,
+            ),
+            failed.diagnosis,
+        )
+        assertEquals("an xtream subscription has no playlist to try", 0, server.requestCount)
     }
 
     @Test
@@ -471,7 +682,10 @@ class DefaultCatalogImporterTest {
         writerFactory = { writer },
         sources = sources,
         localFiles = localFiles,
-        xtreamApiFactory = { xtreamApi },
+        xtreamApiFactory = { account ->
+            accounts += account
+            xtreamApi
+        },
         dispatchers = TestDispatchers,
         clock = { now },
         // Captured rather than sent to `android.util.Log`, which this module's unit tests
@@ -502,6 +716,17 @@ class DefaultCatalogImporterTest {
             }
         }
     }
+
+    /**
+     * The subscription as the section loader would hand it over: a stored playlist row,
+     * read back by `asPlaylistSource`, which decides whether it is read through a panel.
+     */
+    private fun routed(link: String): PlaylistSource.M3u = ProviderSource(
+        id = SourceIds.of(PlaylistSource.M3u(link)),
+        kind = SourceKind.M3U_URL,
+        label = "Playlist 1",
+        url = link,
+    ).asPlaylistSource() as PlaylistSource.M3u
 
     /** The screen's figures are photographed and sent on, so the account is never in them. */
     private fun assertNoSecretIn(diagnosis: FetchDiagnosis?) {
@@ -561,13 +786,35 @@ class DefaultCatalogImporterTest {
             XtreamUrls.stream("http://panel:8080", "user", "pass", kind, streamId, extension)
     }
 
+    /** A panel whose API throws [failure] on every call, and counts them. */
+    private class FailingXtreamApi(private val failure: Exception) : XtreamImportEngine.Api {
+        var calls = 0
+
+        override fun categories(kind: MediaKind): Reader = fail()
+        override fun streams(kind: MediaKind, categoryId: String): Reader = fail()
+        override fun series(categoryId: String): Reader = fail()
+        override fun seriesInfo(seriesId: String): Reader = fail()
+        override fun streamUrl(kind: MediaKind, streamId: String, extension: String?): String =
+            "http://panel/$streamId"
+
+        private fun fail(): Nothing {
+            calls++
+            throw failure
+        }
+    }
+
     private class RecordingWriter : CatalogWriter {
         val items = mutableListOf<CatalogItem>()
         val groups = mutableListOf<MediaGroup>()
         var finished: ImportSummary? = null
         var aborted = false
 
-        override fun begin(sourceId: String, mode: ImportMode) = Unit
+        /** Every import begun, with the source id and the mode it was written in. */
+        val began = mutableListOf<Pair<String, ImportMode>>()
+
+        override fun begin(sourceId: String, mode: ImportMode) {
+            began += sourceId to mode
+        }
         override fun writeGroups(groups: List<MediaGroup>) { this.groups += groups }
         override fun writeItems(items: List<CatalogItem>) { this.items += items }
         override fun commit() = Unit

@@ -204,6 +204,51 @@ class XtreamNowNextRefresherTest {
         assertTrue("nothing may be written", writer.programmes.isEmpty())
     }
 
+    /**
+     * A playlist read through its panel has the endpoint too, and its rows carry the
+     * panel's stream ids: it is asked with the account its link names, under its own id.
+     */
+    @Test
+    fun `a playlist read through its panel is asked with the account its link names`() = runBlocking {
+        val writer = RecordingEpgWriter()
+        val api = FakeShortEpg(mapOf("11" to listOf(entry("nova.1", "Cup Final", now))))
+        val playlist = ProviderSource(
+            id = "playlist-1",
+            kind = SourceKind.M3U_URL,
+            label = "Playlist 1",
+            url = "http://line.example.com:8080/get.php?username=sam&password=hunter2&type=m3u_plus",
+        )
+
+        val written = refresher(writer, api, stored = playlist).refresh(listOf(ChannelRef("a", "11", "nova.1")))
+
+        assertEquals(1, written)
+        val asked = askedWith.single()
+        assertEquals("playlist-1", asked.id)
+        assertEquals("http://line.example.com:8080", asked.url)
+        assertEquals("sam", asked.username)
+        assertEquals("hunter2", asked.password)
+    }
+
+    /** Rows that came from the file are keyed by stream URL, not stream id: not asked. */
+    @Test
+    fun `a playlist whose rows came from the file is not asked`() = runBlocking {
+        val writer = RecordingEpgWriter()
+        val api = FakeShortEpg(mapOf("11" to listOf(entry("nova.1", "Cup Final", now))))
+        val legacy = ProviderSource(
+            id = "playlist-1",
+            kind = SourceKind.M3U_URL,
+            label = "Playlist 1",
+            url = "http://line.example.com:8080/get.php?username=sam&password=hunter2",
+            sync = SyncState(contentHash = "crc32:1a2b3c4d", lastImportAtMs = now, itemCount = 7_622),
+        )
+
+        val written = refresher(writer, api, stored = legacy).refresh(listOf(ChannelRef("a", "11", "nova.1")))
+
+        assertEquals(0, written)
+        assertTrue(api.requested.isEmpty())
+        assertTrue(askedWith.isEmpty())
+    }
+
     @Test
     fun `an empty request list does no work`() = runBlocking {
         val writer = RecordingEpgWriter()
@@ -223,16 +268,23 @@ class XtreamNowNextRefresherTest {
         stopMs = startMs + 3_600_000L,
     )
 
+    /** Every provider an API was built for, as the refresher handed it over. */
+    private val askedWith = mutableListOf<ProviderSource>()
+
     private fun refresher(
         writer: EpgWriter,
         api: ShortEpgSource,
         kind: SourceKind = SourceKind.XTREAM,
+        stored: ProviderSource = FakeSources.row(kind),
     ) = XtreamNowNextRefresher(
         client = OkHttpClient(),
         writerFactory = { writer },
-        sources = FakeSources(kind),
+        sources = FakeSources(stored),
         dispatchers = TestDispatchers,
-        apiFactory = { _, _ -> api },
+        apiFactory = { _, source ->
+            askedWith += source
+            api
+        },
     )
 
     private object TestDispatchers : AppDispatchers {
@@ -258,16 +310,19 @@ class XtreamNowNextRefresherTest {
         }
     }
 
-    private class FakeSources(kind: SourceKind) : SourceRepository {
-        private val stored = ProviderSource(
-            id = "src",
-            kind = kind,
-            label = "test",
-            url = "http://panel:8080",
-            username = "u",
-            password = "p",
-            sync = SyncState(),
-        )
+    private class FakeSources(private val stored: ProviderSource) : SourceRepository {
+
+        companion object {
+            fun row(kind: SourceKind) = ProviderSource(
+                id = "src",
+                kind = kind,
+                label = "test",
+                url = "http://panel:8080",
+                username = "u",
+                password = "p",
+                sync = SyncState(),
+            )
+        }
 
         override suspend fun register(source: PlaylistSource, label: String?): ProviderSource = stored
         override fun sources(): Flow<List<ProviderSource>> = flowOf(listOf(stored))

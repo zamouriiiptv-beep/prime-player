@@ -1,5 +1,7 @@
 package com.castivio.domain
 
+import com.castivio.core.common.AppError
+
 /**
  * How far a failed download got, in figures a screen can print.
  *
@@ -25,6 +27,10 @@ package com.castivio.domain
  *   is a different finding from a body that was opened and sent nothing.
  * @param itemsRead playlist entries read so far, whether or not they reached the database.
  * @param itemsSaved rows committed to the database so far. A failed import keeps them.
+ * @param route which way the subscription was being read when it failed. Null when that
+ *   is not known — an exception from outside the download says nothing about it.
+ * @param after the panel's failure, when this one is the playlist's that followed it: the
+ *   one fallback an M3U subscription read through its panel makes. Null otherwise.
  */
 data class FetchDiagnosis(
     val stage: FetchStage,
@@ -33,6 +39,8 @@ data class FetchDiagnosis(
     val bytesReceived: Long? = null,
     val itemsRead: Int = 0,
     val itemsSaved: Int = 0,
+    val route: FetchRoute? = null,
+    val after: FetchDiagnosis? = null,
 ) {
     companion object {
         /**
@@ -84,3 +92,29 @@ enum class FetchStage {
     /** The app failed outside the download itself, before the request or after the rows. */
     OTHER,
 }
+
+/** The two ways a subscription's catalogue is read. */
+enum class FetchRoute {
+    /** The playlist file, downloaded whole. */
+    M3U,
+
+    /** The panel's API, one section at a time. */
+    XTREAM,
+}
+
+/**
+ * Whether a panel's API failing leaves the playlist beside it worth one try.
+ *
+ * Not when the network is the reason — no connection, no name, no answer in time: the
+ * playlist is on the same server, and asking it too would double the wait for the same
+ * answer. Not when the database is: the playlist would be written to the same one.
+ * Everything else — a refusal, a missing endpoint, a status nobody names, an answer that
+ * is not the API's — says something about the API and nothing about the playlist.
+ *
+ * One rule for the import and the refresh, so a refresh cannot call a subscription
+ * unreachable that a section has just loaded from.
+ *
+ * @param stage where the panel's attempt stopped, when that is known.
+ */
+fun panelFailureAllowsPlaylist(error: AppError, stage: FetchStage? = null): Boolean =
+    error != AppError.NETWORK_UNAVAILABLE && error != AppError.TIMEOUT && stage != FetchStage.SAVE
