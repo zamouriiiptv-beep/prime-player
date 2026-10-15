@@ -3,6 +3,7 @@ package com.castivio.data.playlist.di
 import android.content.Context
 import com.castivio.core.common.AppDispatchers
 import com.castivio.core.common.Outcome
+import com.castivio.core.platform.PerformanceLog
 import com.castivio.data.networking.HttpStreamSource
 import com.castivio.data.networking.StalkerHttpApi
 import com.castivio.data.networking.StalkerSession
@@ -57,6 +58,7 @@ object PlaylistModule {
         client: OkHttpClient,
         dispatchers: AppDispatchers,
         identity: DeviceIdentity,
+        @ApplicationContext context: Context,
     ): CatalogImporter = DefaultCatalogImporter(
         http = http,
         writerFactory = { writers.get() },
@@ -68,6 +70,9 @@ object PlaylistModule {
         // shows, which is what they gave their provider. See `StalkerHttpApi`.
         portalApiFactory = { source -> source.toApi(client, identity.current().macAddress.value) },
         dispatchers = dispatchers,
+        // The catalogue and its search index counted around each section import, for the
+        // performance readout: in the builds that draw it, and in no other.
+        checks = PerformanceLog.isVisibleIn(context),
     )
 
     /**

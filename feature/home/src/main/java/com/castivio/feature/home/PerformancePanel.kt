@@ -2,6 +2,8 @@ package com.castivio.feature.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -25,8 +28,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
@@ -90,18 +95,21 @@ import kotlinx.coroutines.flow.map
  * |---|---|---|
  * | `Full Load` | section opened → the import committed | `SectionLoad.Done` |
  * | the bar and its names | the full load, cut at each moment the load passed | `PerformanceLog.phase` |
- * | `TTID` | section opened → first frame drawn | the gate's own composition |
+ * | `TTID`, in the title | section opened → first frame drawn | the gate's own composition |
  * | `TTFC` | section opened → first row on screen | the pager's first non-empty window |
- * | `Network` | the calls' total time, and their wait for a first byte | OkHttp's `EventListener` |
- * | `Database · commit` | SQLite's commits, summed; the other steps under it | `RoomCatalogWriter` |
- * | `Requests` | attempts, by action, with failures by reason | the HTTP clients |
+ * | `∥` and `reader` | a pass's requests: asking, bytes arriving, parsing, waiting for the writer | the engine's reader |
+ * | `writer` | the same pass: rows, search rows, commits, idle | the engine's writer and `RoomCatalogWriter` |
+ * | `then` | after the last row: prune, counts, search rebuild | `RoomCatalogWriter.finish` |
+ * | `calls` | each action's requests: time, wait for an answer, size | OkHttp's `EventListener` |
+ * | `records`, `orphans` | the streams at each stage, and the category ids orphans named | the engine |
+ * | `search` | the search index before the import and after it | `RoomCatalogWriter.check` |
  *
- * The bar's spans **are** addable: they are the full load cut at its moments, and they sum
- * to it. `Network` and `Database` are deliberately **not** — they are where the time
- * went, overlapping each other and the spans, and a panel that summed them would invent
- * a total nothing took. `Network` is a *sum over calls* and not a span, so against a
- * concurrent import it exceeds the wall clock by roughly the overlap — 135.58 s of calls
- * inside a 48.75 s load is four workers, not a slow provider.
+ * The bar's spans **are** addable: they are the full load cut at its moments, and their
+ * figures sum to it to the hundredth. The lines under `∥` are deliberately **not** -- they
+ * ran at the same time, inside the spans, the reader on its threads and the writer on its
+ * own, and a panel that added them to the bar or to each other would invent a total
+ * nothing took. Several readers at once are summed, and say so: 135.58 s of calls inside a
+ * 48.75 s load is four workers, not a slow provider.
  *
  * A line whose moment was never reached is **absent**, never zero. A warm open has no
  * `Full Load` and no `Database` because it imported nothing and wrote nothing —
@@ -109,8 +117,10 @@ import kotlinx.coroutines.flow.map
  * and somebody would write the zero down. Which lines exist is decided by
  * [performanceReadout], where it is a unit test; this file only draws them.
  *
- * The final figures are on screen for as long as the gate is, which ends with the load;
- * the whole run is also printed to `adb logcat -s CastivioPerf` when it settles.
+ * The gate gives way to the section in the frame the run settles, so the finished readout
+ * is not a screen anybody can read: the whole run is printed to `adb logcat -s
+ * CastivioPerf` when it settles, and a debuggable build copies the same lines to the
+ * clipboard -- see `MeasurementClipboard`.
  */
 @Composable
 internal fun PerformancePanel(
@@ -168,6 +178,9 @@ private fun Readout(
                 .clip(shape)
                 .background(colors.glassFill)
                 .border(1.dp, colors.glassBorderSoft, shape)
+                // A short phone held sideways has fewer lines than a finished reading: the
+                // card stops at the stage's edge and the rest is a drag away, never cut off.
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = Spacing.md, vertical = Spacing.sm),
         ) {
             Text(
@@ -190,6 +203,8 @@ private fun Readout(
                     is ReadoutLine.Note -> Note(line.text)
                     is ReadoutLine.Cuts -> Cuts(line.spans)
                     is ReadoutLine.Legend -> Legend(line.spans)
+                    is ReadoutLine.Parallel -> ParallelHeading(line.pieces)
+                    is ReadoutLine.Tagged -> TaggedLine(line)
                 }
             }
         }
@@ -301,6 +316,69 @@ private fun Legend(spans: List<PhaseSpan>) {
     )
 }
 
+/**
+ * The heading over a pass's two sides, behind the mark that says they ran at the same time.
+ */
+@Composable
+private fun ParallelHeading(pieces: List<Piece>) {
+    val colors = CastivioTheme.colors
+    Text(
+        text = buildAnnotatedString {
+            withStyle(SpanStyle(color = colors.secondary)) { append(PARALLEL_MARK) }
+            appendPieces(pieces, figureStyle(colors))
+        },
+        style = TAG_STYLE,
+        color = colors.onBackgroundVariant,
+        modifier = Modifier.padding(top = Spacing.xxs),
+    )
+}
+
+/**
+ * A line under its tag: the tag in a column of its own, so the lines of a group start at the
+ * same edge, and the line wrapping under itself rather than under the tag.
+ */
+@Composable
+private fun TaggedLine(line: ReadoutLine.Tagged) {
+    val colors = CastivioTheme.colors
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(top = if (line.opensGroup) Spacing.xxs else Spacing.none),
+        horizontalArrangement = Arrangement.spacedBy(TAG_GAP),
+    ) {
+        Text(
+            text = line.tag,
+            style = TAG_STYLE,
+            color = if (line.parallel) colors.secondary else colors.onBackgroundVariant,
+            maxLines = 1,
+            modifier = Modifier
+                .width(TAG_WIDTH)
+                .alignByBaseline(),
+        )
+        Text(
+            text = buildAnnotatedString { appendPieces(line.pieces, figureStyle(colors)) },
+            style = CastivioType.labelSmall,
+            color = line.ink.color(colors),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .weight(1f)
+                .alignByBaseline(),
+        )
+    }
+}
+
+/** A line's pieces, its times in the figure face. */
+private fun AnnotatedString.Builder.appendPieces(pieces: List<Piece>, figure: SpanStyle) {
+    for (piece in pieces) {
+        if (piece.figure) withStyle(figure) { append(piece.text) } else append(piece.text)
+    }
+}
+
+/** Times in the readout's figure face, a step brighter than the words around them. */
+private fun figureStyle(colors: CastivioColors) =
+    SpanStyle(fontFamily = CastivioType.codeSmall.fontFamily, color = colors.onBackgroundVariant)
+
 private fun ReadoutInk.color(colors: CastivioColors): Color = when (this) {
     ReadoutInk.STRONG -> colors.onBackground
     ReadoutInk.VARIANT -> colors.onBackgroundVariant
@@ -322,8 +400,11 @@ private const val TICK_MS = 250L
 /** Wide enough for the longest row, narrow enough to stay a panel on the gate. */
 private val READOUT_MAX_WIDTH = 340.dp
 
-/** Beside the gate's column there is a pane to fill, up to this. */
-internal val READOUT_SPLIT_MAX_WIDTH = 400.dp
+/**
+ * Beside the gate's column there is a pane to fill, up to this: the widest a reading's
+ * lines need, so a television does not stretch them into a single line nobody can follow.
+ */
+internal val READOUT_SPLIT_MAX_WIDTH = 480.dp
 
 private val CUTS_HEIGHT = 6.dp
 private val CUTS_ABOVE = 5.dp
@@ -332,6 +413,19 @@ private val CUTS_GAP = 1.dp
 
 /** The span that is a part of the next one's work: the first rows of the streams. */
 private const val SOFT_ALPHA = 0.55f
+
+/**
+ * The tags' column: room for the longest of them, `orphans` and `failures`, in the widest
+ * face a device may substitute for the app's own, which cut them at 50.
+ */
+private val TAG_WIDTH = 58.dp
+private val TAG_GAP = 6.dp
+
+/** A tag, and the heading over a pass: the readout's small type, a weight heavier. */
+private val TAG_STYLE = CastivioType.labelSmall.copy(fontWeight = FontWeight.SemiBold)
+
+/** Marks what ran at the same time. */
+private const val PARALLEL_MARK = "∥ "
 
 private const val LEGEND_DOT = "●"
 private const val LEGEND_GAP = "   "

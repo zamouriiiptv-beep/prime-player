@@ -282,14 +282,18 @@ class PerformanceLogTest {
     @Test
     fun `database steps are reported beside the commits and do not outlive the run`() {
         PerformanceLog.addDatabaseNanos(10_000_000)
-        PerformanceLog.addDatabaseStep(DatabaseStep.INSERT, 30_000_000)
-        PerformanceLog.addDatabaseStep(DatabaseStep.INSERT, 20_000_000)
+        PerformanceLog.addDatabaseStep(DatabaseStep.ROWS, 30_000_000)
+        PerformanceLog.addDatabaseStep(DatabaseStep.ROWS, 20_000_000)
+        PerformanceLog.addDatabaseStep(DatabaseStep.SEARCH_ROWS, 9_000_000)
         PerformanceLog.addDatabaseStep(DatabaseStep.COUNTS, 7_000_000)
         PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
 
         val report = PerformanceLog.current.value!!
         assertEquals(10L, report.databaseMs)
-        assertEquals(mapOf(DatabaseStep.INSERT to 50L, DatabaseStep.COUNTS to 7L), report.databaseSteps)
+        assertEquals(
+            mapOf(DatabaseStep.ROWS to 50L, DatabaseStep.SEARCH_ROWS to 9L, DatabaseStep.COUNTS to 7L),
+            report.databaseSteps,
+        )
 
         PerformanceLog.begin(PerfSection.CHANNELS)
         PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
@@ -322,12 +326,187 @@ class PerformanceLogTest {
         assertTrue("an address reached the log", lines.none { it.contains("http") || it.contains("://") })
     }
 
+    // ------------------------------------------------------- one load, one run, from zero
+
+    /**
+     * **An import that starts after a run has settled is a load of its own.**
+     *
+     * A section opened again after Refresh forgot its marks starts its import with no press
+     * to begin a run. It used to write its counters into the last run's finished report --
+     * "Records 4000" under a load that had ended, eight requests where there were two.
+     */
+    @Test
+    fun `an import that starts after its run has settled starts a run of its own`() {
+        PerformanceLog.requestStarted("get_live_streams")
+        PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
+        val finished = PerformanceLog.current.value!!
+
+        PerformanceLog.importStarted(PerfSection.RADIO)
+        val next = PerformanceLog.current.value!!
+
+        assertEquals(finished.run + 1, next.run)
+        assertEquals(PerfSection.RADIO, next.section)
+        assertTrue(next.running)
+        PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
+        assertNull("the previous run's attempts leaked into the new one", PerformanceLog.current.value!!.requestsStarted)
+    }
+
+    /** The import a press started is that press's run, not a second one. */
+    @Test
+    fun `an import that starts while its run is going joins it`() {
+        val pressed = PerformanceLog.current.value!!
+        PerformanceLog.importStarted(PerfSection.RADIO)
+        val now = PerformanceLog.current.value!!
+
+        assertEquals(pressed.run, now.run)
+        assertEquals("the press named the section", PerfSection.CHANNELS, now.section)
+    }
+
+    /**
+     * **A finished report never changes.** It is a reading somebody may be photographing; a
+     * late progress event, a pass, a check or the next load's first numbers must not move it.
+     */
+    @Test
+    fun `nothing an import reports after its run has settled changes it`() {
+        PerformanceLog.phase(PerfPhase.IMPORT)
+        PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
+        val settled = PerformanceLog.current.value!!
+
+        PerformanceLog.importProgress(categories = 835, records = 4_000)
+        PerformanceLog.saveMode("APPEND")
+        PerformanceLog.pass(pass())
+        PerformanceLog.recordCounts(records())
+        PerformanceLog.check(before = false, check = check(searchRows = 9))
+        PerformanceLog.phase(PerfPhase.STREAMS)
+        PerformanceLog.note("streams", "late")
+
+        assertEquals(settled, PerformanceLog.current.value)
+    }
+
+    /** What the measurement build adds to a run is kept with that run, and only that run. */
+    @Test
+    fun `the save mode, the passes, the records and the checks are kept with their run`() {
+        PerformanceLog.saveMode("REPLACE")
+        PerformanceLog.saveMode("REPLACE")
+        PerformanceLog.check(before = true, check = check(searchRows = 0))
+        PerformanceLog.pass(pass())
+        PerformanceLog.recordCounts(records())
+        PerformanceLog.check(before = false, check = check(searchRows = 50))
+        PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
+
+        val report = PerformanceLog.current.value!!
+        assertEquals("a mode is named once", listOf("REPLACE"), report.saveModes)
+        assertEquals(listOf(pass()), report.passes)
+        assertEquals(records(), report.recordCounts)
+        assertEquals(0, report.checkBefore!!.searchRows)
+        assertEquals(50, report.checkAfter!!.searchRows)
+
+        PerformanceLog.begin(PerfSection.CHANNELS)
+        val next = PerformanceLog.current.value!!
+        assertTrue(next.saveModes.isEmpty() && next.passes.isEmpty())
+        assertNull(next.recordCounts)
+        assertNull(next.checkBefore)
+    }
+
+    /**
+     * The database's steps are on the running report as soon as a pass or a moment says so:
+     * the readout leaves the screen in the frame the run settles, so a figure published only
+     * then is a figure nobody sees.
+     */
+    @Test
+    fun `the database's steps are on the running report once a pass or a moment is reported`() {
+        PerformanceLog.addDatabaseStep(DatabaseStep.ROWS, 12_000_000)
+        PerformanceLog.pass(pass())
+        assertEquals(mapOf(DatabaseStep.ROWS to 12L), PerformanceLog.current.value!!.databaseSteps)
+
+        PerformanceLog.addDatabaseStep(DatabaseStep.COUNTS, 4_000_000)
+        PerformanceLog.phase(PerfPhase.FINISHED)
+        assertEquals(4L, PerformanceLog.current.value!!.databaseSteps[DatabaseStep.COUNTS])
+        assertTrue(PerformanceLog.current.value!!.running)
+    }
+
+    /** The calls by action reach the run with the window they were counted in. */
+    @Test
+    fun `the calls by action are kept with the run`() {
+        val calls = listOf(CallTimes("get_live_streams", 1, 0, 28_100, 920, 19_189_759))
+        PerformanceLog.network(requests = 1, serverMs = 28_100, cacheHits = 0, waitMs = 920, calls = calls)
+        PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
+        assertEquals(calls, PerformanceLog.current.value!!.calls)
+    }
+
+    /**
+     * **The log's stages add up to the full load it prints.** The figures are rounded
+     * together, so the sum a reader works out from the line is the one the line states.
+     */
+    @Test
+    fun `the log's stages add up to the full load it prints`() {
+        PerformanceLog.phase(PerfPhase.IMPORT)
+        Thread.sleep(SETTLE_MS)
+        PerformanceLog.phase(PerfPhase.CATEGORIES)
+        Thread.sleep(SETTLE_MS)
+        PerformanceLog.phase(PerfPhase.FINISHED)
+        Thread.sleep(SETTLE_MS)
+        PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
+
+        val lines = PerformanceLog.current.value!!.lines()
+        val full = lines.single { it.startsWith("full load ") }.removePrefix("full load ").substringBefore(" s")
+        val stages = lines.single { it.startsWith("stages ") }
+        val figures = stages.substringBefore(" = ").removePrefix("stages ").split(" + ").map { it.substringAfterLast(' ') }
+        assertEquals(listOf("import", "categories", "finished", "done").size, figures.size)
+        assertEquals(full, stages.substringAfter(" = ").removeSuffix(" s"))
+        assertEquals(full, hundredthsText(figures.sumOf { it.replace(".", "").toLong() }))
+    }
+
+    /** A pass's two sides are printed as the sums they are, never added to each other. */
+    @Test
+    fun `the log prints each side of a pass as its own sum`() {
+        PerformanceLog.pass(pass())
+        PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
+
+        val lines = PerformanceLog.current.value!!.lines()
+        assertTrue(lines.contains("at the same time, one reply LIVE · 1 request · 1 at once · window 29.77 s"))
+        assertTrue(lines.contains("  reader ask 0.92 + network 2.85 + parse 1.95 + waiting for save 23.98 = 29.70 s"))
+        assertTrue(lines.contains("  writer write 27.73 + commit 0.57 + idle 1.47 + other 0.00 = 29.77 s"))
+    }
+
+    /** Told once, with the run as it settled -- what a debuggable build puts on the clipboard. */
+    @Test
+    fun `the settled run is handed on once, as it settled`() {
+        val told = ArrayList<SectionReport>()
+        PerformanceLog.onSettled = { told += it }
+        try {
+            PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
+            PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
+        } finally {
+            PerformanceLog.onSettled = null
+        }
+        assertEquals(listOf(PerformanceLog.current.value!!), told)
+    }
+
     /** Every section this phase was asked to time has a name of its own. */
     @Test
     fun `the four sections are distinct`() {
         assertEquals(4, PerfSection.entries.size)
         assertEquals(PerfSection.entries.size, PerfSection.entries.toSet().size)
     }
+
+    private fun pass() = PassTimes(
+        kind = "LIVE", oneReply = true, parallelReaders = 1, requests = 1,
+        windowMs = 29_770, readerMs = 29_700, askMs = 920, readMs = 2_850, handOverMs = 23_980,
+        writeMs = 27_730, commitMs = 570, idleMs = 1_470,
+    )
+
+    private fun records() = RecordCounts(
+        parsed = 55_550, filed = 55_213, orphans = 337,
+        written = mapOf("LIVE" to 54_130, "RADIO" to 1_083),
+        categories = mapOf("LIVE" to 830, "RADIO" to 5),
+        orphanCategories = listOf("1201" to 214, "none" to 37),
+    )
+
+    private fun check(searchRows: Int) = IndexCheck(
+        rows = mapOf("LIVE" to 50), allRows = 50, searchRows = searchRows, duplicated = 0,
+        sampleResults = 5, sampleRows = 5, tookMs = 3,
+    )
 
     private companion object {
         /** Long enough that a second reading would differ if it were taken. */

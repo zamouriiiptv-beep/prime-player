@@ -7,6 +7,8 @@ import com.castivio.data.networking.HttpStreamSource
 import com.castivio.data.parsing.SourceIds
 import com.castivio.data.parsing.XtreamImportEngine
 import com.castivio.data.parsing.XtreamUrls
+import com.castivio.core.platform.PerfSection
+import com.castivio.domain.CatalogCheck
 import com.castivio.domain.CatalogItem
 import com.castivio.domain.CatalogWriter
 import com.castivio.domain.FetchDiagnosis
@@ -63,6 +65,9 @@ class DefaultCatalogImporterTest {
 
     /** Every panel account an API was built for, in order. */
     private val accounts = mutableListOf<PlaylistSource.Xtream>()
+
+    /** Every section import the importer said was starting, in order. */
+    private val started = mutableListOf<PerfSection>()
 
     @Before
     fun setUp() {
@@ -683,6 +688,80 @@ class DefaultCatalogImporterTest {
         assertTrue(logged.joinToString("\n"), logged.any { it.contains("import LIVE: LIVE: asked per category") })
     }
 
+    // ----------------------------------------------------------- the measurement build
+
+    /**
+     * **Every section import says it is starting.** That is what gives a load nobody pressed
+     * for -- a section opened again after Refresh forgot its marks -- a run of its own on
+     * the panel, instead of its numbers landing in the last one's finished report.
+     */
+    @Test
+    fun `every section import says it is starting, as the section it is`() = runBlocking {
+        val panel = PlaylistSource.Xtream("http://panel:8080", "user", "pass")
+
+        importer(xtreamApi = OneReplyXtreamApi()).importKind(panel, MediaKind.LIVE).toList()
+        importer(xtreamApi = OneReplyXtreamApi()).importKind(panel, MediaKind.RADIO).toList()
+        importer(xtreamApi = FakeXtreamApi()).importKind(panel, MediaKind.MOVIE).toList()
+
+        assertEquals(listOf(PerfSection.CHANNELS, PerfSection.RADIO, PerfSection.MOVIES), started)
+    }
+
+    /**
+     * The catalogue and its search index are counted before a section import writes and
+     * after it has finished -- in a debuggable build, which asks for it, and in no other.
+     */
+    @Test
+    fun `the catalogue is checked before and after a section import only when asked`() = runBlocking {
+        val panel = PlaylistSource.Xtream("http://panel:8080", "user", "pass")
+
+        importer(xtreamApi = OneReplyXtreamApi()).importKind(panel, MediaKind.LIVE).toList()
+        assertEquals("a release build counted the index", emptyList<String>(), writer.checked)
+
+        importer(xtreamApi = OneReplyXtreamApi(), checks = true).importKind(panel, MediaKind.LIVE).toList()
+        assertEquals(listOf(SourceIds.of(panel), SourceIds.of(panel)), writer.checked)
+    }
+
+    /** Each pass over the streams reaches the log with its times, beside the way they came. */
+    @Test
+    fun `each pass of a section import is logged with its times`() = runBlocking {
+        val panel = PlaylistSource.Xtream("http://panel:8080", "user", "pass")
+
+        importer(xtreamApi = OneReplyXtreamApi()).importKind(panel, MediaKind.LIVE).toList()
+
+        val passes = logged.filter { it.startsWith("import LIVE: PassTimes(") }
+        assertEquals(logged.joinToString("\n"), 1, passes.size)
+        assertTrue(passes.single().contains("oneReply=true"))
+        assertTrue(passes.single().contains("requests=1"))
+    }
+
+    /**
+     * The records are counted from the passes whose rows make the catalogue. A reply that
+     * broke after handing a batch over was followed by a walk that wrote every row again;
+     * counting both would put those rows in the reading twice.
+     */
+    @Test
+    fun `a reply that broke halfway is not counted beside the walk that replaced it`() = runBlocking {
+        val panel = PlaylistSource.Xtream("http://panel:8080", "user", "pass")
+
+        importer(xtreamApi = BrokenReplyXtreamApi(streams = 1_200)).importKind(panel, MediaKind.LIVE).toList()
+
+        val records = logged.single { it.startsWith("import LIVE: RecordCounts(") }
+        assertTrue(records, records.contains("parsed=1200, filed=1200, orphans=0"))
+        assertTrue(records, records.contains("written={LIVE=1200}"))
+    }
+
+    /** A reply that arrived whole is the catalogue, and its orphans are counted with it. */
+    @Test
+    fun `a reply that arrived whole is counted, orphans and all`() = runBlocking {
+        val panel = PlaylistSource.Xtream("http://panel:8080", "user", "pass")
+
+        importer(xtreamApi = OneReplyXtreamApi(orphans = 3)).importKind(panel, MediaKind.LIVE).toList()
+
+        val records = logged.single { it.startsWith("import LIVE: RecordCounts(") }
+        assertTrue(records, records.contains("parsed=5, filed=2, orphans=3"))
+        assertTrue(records, records.contains("orphanCategories=[(9, 3)]"))
+    }
+
     /**
      * The id must survive a password change, or a user fixing their credentials
      * loses every favourite.
@@ -709,6 +788,7 @@ class DefaultCatalogImporterTest {
         localFiles: LocalPlaylistReader = FakeLocalReader(null),
         xtreamApi: XtreamImportEngine.Api = FakeXtreamApi(),
         writer: CatalogWriter = this.writer,
+        checks: Boolean = false,
     ) = DefaultCatalogImporter(
         http = HttpStreamSource(
             OkHttpClient.Builder()
@@ -728,6 +808,10 @@ class DefaultCatalogImporterTest {
         // Captured rather than sent to `android.util.Log`, which this module's unit tests
         // only have as stubs that throw.
         log = { logged += it },
+        checks = checks,
+        // Watched rather than handed to the stopwatch, for the same reason: its clock is
+        // Android's.
+        importStarted = { started += it },
     )
 
     /** The importer's one-line outcome. Exactly one per playlist import. */
@@ -829,7 +913,10 @@ class DefaultCatalogImporterTest {
      * The counts are behind a lock: the engine asks for categories from several workers at
      * once, and a plain list loses an entry when two of them add at the same moment.
      */
-    private class OneReplyXtreamApi : XtreamImportEngine.Api {
+    private class OneReplyXtreamApi(
+        /** Streams in the reply naming category 9, which the panel does not list. */
+        private val orphans: Int = 0,
+    ) : XtreamImportEngine.Api {
         private val panel = FakeXtreamApi()
         val wholeSectionAsks: MutableList<MediaKind> = java.util.Collections.synchronizedList(mutableListOf())
         val categoryAsks: MutableList<Pair<MediaKind, String>> = java.util.Collections.synchronizedList(mutableListOf())
@@ -843,9 +930,10 @@ class DefaultCatalogImporterTest {
 
         override fun allStreams(kind: MediaKind): Reader? {
             wholeSectionAsks += kind
+            val hidden = (1..orphans).joinToString("") { """,{"stream_id":"9$it","name":"Hidden $it","category_id":"9"}""" }
             return StringReader(
                 """[{"stream_id":"21","name":"Radio Mars","category_id":"2"},""" +
-                    """{"stream_id":"11","name":"Nova Sports","category_id":"1"}]""",
+                    """{"stream_id":"11","name":"Nova Sports","category_id":"1"}$hidden]""",
             )
         }
 
@@ -853,6 +941,40 @@ class DefaultCatalogImporterTest {
         override fun seriesInfo(seriesId: String): Reader = panel.seriesInfo(seriesId)
         override fun streamUrl(kind: MediaKind, streamId: String, extension: String?): String =
             panel.streamUrl(kind, streamId, extension)
+    }
+
+    /**
+     * One category of [streams] channels, whose reply breaks a little before its end: after
+     * the engine has handed a full batch of it over, so the walk that follows writes those
+     * rows a second time.
+     */
+    private class BrokenReplyXtreamApi(streams: Int) : XtreamImportEngine.Api {
+        private val list = (1..streams).joinToString(",", "[", "]") { """{"stream_id":"$it","name":"Channel $it","category_id":"1"}""" }
+
+        override fun categories(kind: MediaKind): Reader =
+            StringReader(if (kind == MediaKind.LIVE) """[{"category_id":"1","category_name":"Sports"}]""" else "[]")
+
+        override fun streams(kind: MediaKind, categoryId: String): Reader = StringReader(list)
+
+        override fun allStreams(kind: MediaKind): Reader = object : Reader() {
+            private val delegate = StringReader(list)
+            private val breakAfter = list.length * 9 / 10
+            private var served = 0
+
+            override fun read(cbuf: CharArray, off: Int, len: Int): Int {
+                if (served >= breakAfter) throw java.io.IOException("connection reset")
+                val read = delegate.read(cbuf, off, minOf(len, breakAfter - served))
+                if (read > 0) served += read
+                return read
+            }
+
+            override fun close() = delegate.close()
+        }
+
+        override fun series(categoryId: String): Reader = StringReader("[]")
+        override fun seriesInfo(seriesId: String): Reader = StringReader("{}")
+        override fun streamUrl(kind: MediaKind, streamId: String, extension: String?): String =
+            XtreamUrls.stream("http://panel:8080", "user", "pass", kind, streamId, extension)
     }
 
     /** A panel whose API throws [failure] on every call, and counts them. */
@@ -880,6 +1002,14 @@ class DefaultCatalogImporterTest {
 
         /** Every import begun, with the source id and the mode it was written in. */
         val began = mutableListOf<Pair<String, ImportMode>>()
+
+        /** Every check asked for, by source id, in order. */
+        val checked = mutableListOf<String>()
+
+        override fun check(sourceId: String): CatalogCheck? {
+            checked += sourceId
+            return null
+        }
 
         override fun begin(sourceId: String, mode: ImportMode) {
             began += sourceId to mode

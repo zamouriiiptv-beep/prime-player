@@ -1,9 +1,18 @@
 package com.castivio.data.database
 
+import com.castivio.core.platform.DatabaseStep
+import com.castivio.core.platform.PerfMode
+import com.castivio.core.platform.PerfSection
+import com.castivio.core.platform.PerformanceLog
+import com.castivio.domain.CatalogItem
+import com.castivio.domain.ImportMode
+import com.castivio.domain.ImportSummary
+import com.castivio.domain.MediaKind
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -187,6 +196,97 @@ class RoomCatalogWriterTest {
         assertEquals(0, summary.items)
         assertEquals(0, database.mediaDao().countNow("LIVE"))
         assertTrue(repository().search("anything", limit = 10).isEmpty())
+    }
+
+    // ------------------------------------------------------------ the measurement build
+
+    /**
+     * The check a debuggable build takes before an import and after it, against real
+     * SQLite: the rows by kind, the search index's entries, the rows it holds more than
+     * once, and a search run the app's own way.
+     */
+    @Test
+    fun `the check counts the rows, the search index and a search the app's way`() {
+        Fixtures.import(database, Fixtures.livePlaylist(3))
+
+        val check = RoomCatalogWriter(database).check("src")!!
+
+        assertEquals(mapOf(MediaKind.LIVE to 3), check.rows)
+        assertEquals(3, check.allRows)
+        assertEquals("one entry per row", 3, check.searchRows)
+        assertEquals(0, check.duplicatedInSearch)
+        assertEquals(3, check.sampleResults)
+        assertEquals(3, check.sampleRows)
+    }
+
+    /**
+     * A row the index holds twice is the reading the check exists to take, so it is counted
+     * from what is stored rather than assumed: here the second entry is put there by hand,
+     * the way a reload that indexed the row again would leave it.
+     */
+    @Test
+    fun `the check counts a row the search index holds twice, and a search that returns it twice`() {
+        Fixtures.import(database, Fixtures.livePlaylist(3))
+        database.openHelper.writableDatabase.execSQL(
+            "INSERT INTO media_fts (media_id, search_text) SELECT id, search_text FROM media WHERE source_id = 'src' LIMIT 1",
+        )
+
+        val check = RoomCatalogWriter(database).check("src")!!
+
+        assertEquals(4, check.searchRows)
+        assertEquals(1, check.duplicatedInSearch)
+        assertEquals("the row comes back twice", 4, check.sampleResults)
+        assertEquals(3, check.sampleRows)
+    }
+
+    @Test
+    fun `the check of a source with no rows has nothing to search for`() {
+        val check = RoomCatalogWriter(database).check("nothing")!!
+
+        assertTrue(check.rows.isEmpty())
+        assertNull(check.sampleResults)
+        assertNull(check.sampleRows)
+    }
+
+    /**
+     * Rows and their search entries were one figure, and the question it could not answer
+     * was how much of it the index was. A replacing import writes no entry per row -- it
+     * rebuilds the index once -- so it reports no search rows at all, and says how it saved.
+     */
+    @Test
+    fun `rows and search rows are timed apart, and search rows only where they are written`() {
+        PerformanceLog.begin(PerfSection.CHANNELS)
+        Fixtures.import(database, Fixtures.livePlaylist(3))
+        PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
+        val replaced = PerformanceLog.current.value!!
+
+        assertEquals(listOf("REPLACE"), replaced.saveModes)
+        assertTrue(DatabaseStep.ROWS in replaced.databaseSteps)
+        assertFalse("a replacing import indexed row by row", DatabaseStep.SEARCH_ROWS in replaced.databaseSteps)
+        assertTrue(DatabaseStep.SEARCH in replaced.databaseSteps)
+
+        PerformanceLog.begin(PerfSection.CHANNELS)
+        appendLive(3)
+        PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
+        val appended = PerformanceLog.current.value!!
+
+        assertEquals(listOf("APPEND"), appended.saveModes)
+        assertTrue(DatabaseStep.SEARCH_ROWS in appended.databaseSteps)
+        assertFalse("an append rebuilt the index", DatabaseStep.SEARCH in appended.databaseSteps)
+    }
+
+    /** Rows written straight through the writer, appending, as a section import does. */
+    private fun appendLive(count: Int) {
+        val writer = RoomCatalogWriter(database) { 2_000L }
+        writer.begin("src", ImportMode.APPEND)
+        writer.writeItems(
+            (0 until count).map {
+                CatalogItem(id = "appended-$it", sourceId = "src", kind = MediaKind.LIVE, title = "Appended $it", streamUrl = "http://host/a/$it.ts")
+            },
+        )
+        writer.finish(
+            ImportSummary(sourceId = "src", items = count, groups = 0, skipped = 0, byKind = mapOf(MediaKind.LIVE to count), durationMs = 1),
+        )
     }
 
     private fun repository() = RoomCatalogRepository(

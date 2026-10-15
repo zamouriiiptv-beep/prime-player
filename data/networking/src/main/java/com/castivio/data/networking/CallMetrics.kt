@@ -56,6 +56,12 @@ object CallMetrics {
         val meanMs: Double get() = if (count == 0L) 0.0 else totalMs / count
         val kilobytes: Long get() = bytes.get() / 1024
 
+        /** The part of [totalMs] before each answer began: the server, not the transfer. */
+        val waitMs: Double get() = waitNanos.get() / 1_000_000.0
+
+        /** What the answers carried, exactly, for a reading that wants more than kilobytes. */
+        val byteCount: Long get() = bytes.get()
+
         override fun toString(): String = "%s: %d calls, %d failed, mean %.0f ms, slowest %.0f ms, %d KB"
             .format(action, count, failed, meanMs, slowestMs, kilobytes)
     }

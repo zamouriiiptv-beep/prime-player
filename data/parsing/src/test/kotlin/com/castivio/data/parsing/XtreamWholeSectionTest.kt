@@ -1,5 +1,6 @@
 package com.castivio.data.parsing
 
+import com.castivio.data.parsing.XtreamImportEngine.PassReport
 import com.castivio.data.parsing.XtreamImportEngine.Phase
 import com.castivio.data.parsing.XtreamImportEngine.StreamStrategy
 import com.castivio.data.parsing.XtreamImportEngine.StreamsReport
@@ -14,6 +15,7 @@ import java.io.IOException
 import java.io.Reader
 import java.io.StringReader
 import java.util.Collections
+import java.util.concurrent.atomic.AtomicLong
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -397,6 +399,144 @@ class XtreamWholeSectionTest {
         assertTrue("the reply was left open", reader.closed)
         assertTrue("the whole reply was written for nobody", rows < 5)
         assertFalse(writer.finishedCalled)
+    }
+
+    // ------------------------------------------------------------ what a pass cost
+
+    /**
+     * **The records at each stage of the one reply, and the ids its orphans named.**
+     *
+     * What the reply held is what was filed plus what was left: a stream naming a category
+     * the panel did not list, or naming none, is parsed and never written, and the reading
+     * says which ids they named so the provider's list can be checked against them.
+     */
+    @Test
+    fun `one reply reports what it parsed, filed and orphaned, and the ids the orphans named`() {
+        val passes = mutableListOf<PassReport>()
+        val reply = WHOLE_ROWS +
+            row("98", "Hidden One", "77", number = 8) +
+            row("99", "Hidden Two", "77", number = 9) +
+            """{"num":7,"name":"Loose","stream_id":"97","stream_icon":"http://cdn/97.png","epg_channel_id":"epg.97"}"""
+
+        XtreamImportEngine(RecordingWriter()).importCatalogue(
+            "src",
+            panel(wholeSection = { StringReader(reply.joinToString(",", "[", "]")) }),
+            kinds = setOf(MediaKind.LIVE),
+            wholeSection = setOf(MediaKind.LIVE),
+            onPass = { passes += it },
+        )
+
+        val pass = passes.single()
+        assertTrue(pass.oneReply)
+        assertEquals(1, pass.requests)
+        assertEquals(1, pass.parallelReaders)
+        assertEquals(8, pass.parsed)
+        assertEquals(5, pass.filed)
+        assertEquals(3, pass.orphans)
+        assertEquals("the reply is what was filed and what was left", pass.parsed, pass.filed + pass.orphans)
+        assertEquals(mapOf("77" to 2, XtreamImportEngine.NO_CATEGORY to 1), pass.orphanCategories)
+        assertEquals(mapOf(MediaKind.LIVE to 2, MediaKind.RADIO to 1), pass.categories)
+    }
+
+    /**
+     * **Each side of a pass adds up to its own time, and the two are never one sum.**
+     *
+     * On a clock that moves a millisecond every time it is read, from whichever thread: the
+     * reader's asking, reading and waiting fit inside the reader's time with parsing the rest,
+     * and the writer's writing, committing and idling fit inside the window with its
+     * bookkeeping the rest.
+     */
+    @Test
+    fun `each side of a pass adds up to its own time, on the engine's clock`() {
+        val clock = AtomicLong()
+        val passes = mutableListOf<PassReport>()
+
+        XtreamImportEngine(RecordingWriter(), batchSize = 2, nanoClock = { clock.addAndGet(1_000_000) }).importCatalogue(
+            "src",
+            panel(),
+            kinds = setOf(MediaKind.LIVE),
+            wholeSection = setOf(MediaKind.LIVE),
+            onPass = { passes += it },
+        )
+
+        val pass = passes.single()
+        assertTrue("the reader's parts are longer than the reader", pass.askNanos + pass.readNanos + pass.handOverNanos <= pass.readerNanos)
+        assertEquals(pass.readerNanos, pass.askNanos + pass.readNanos + pass.parseNanos + pass.handOverNanos)
+        assertTrue("the writer's parts are longer than the window", pass.writeNanos + pass.commitNanos + pass.idleNanos <= pass.windowNanos)
+        assertEquals(pass.windowNanos, pass.writeNanos + pass.commitNanos + pass.idleNanos + pass.writerOtherNanos)
+        assertTrue("the request was not timed", pass.askNanos > 0)
+        assertTrue("the answer's reads were not timed", pass.readNanos > 0)
+        assertTrue("the writing was not timed", pass.writeNanos > 0)
+        assertTrue("the commit was not timed", pass.commitNanos > 0)
+    }
+
+    @Test
+    fun `a walk reports its requests, how many ran at once, and no orphans`() {
+        val passes = mutableListOf<PassReport>()
+
+        XtreamImportEngine(RecordingWriter()).importCatalogue("src", panel(), kinds = setOf(MediaKind.LIVE), onPass = { passes += it })
+
+        val walk = passes.single()
+        assertFalse(walk.oneReply)
+        assertEquals(3, walk.requests)
+        assertEquals("as many at once as there were categories, under the limit", 3, walk.parallelReaders)
+        assertEquals(5, walk.filed)
+        assertEquals("a category's streams are all filed under it", walk.filed, walk.parsed)
+        assertEquals(0, walk.orphans)
+    }
+
+    /** A refusal costs a request, and the reading shows it before the walk that followed. */
+    @Test
+    fun `a refused reply is a pass of one request, and the walk after it is another`() {
+        val passes = mutableListOf<PassReport>()
+
+        XtreamImportEngine(RecordingWriter()).importCatalogue(
+            "src",
+            panel(wholeSection = { throw WholeSectionUnsupported("HTTP 404") }),
+            kinds = setOf(MediaKind.LIVE),
+            wholeSection = setOf(MediaKind.LIVE),
+            onPass = { passes += it },
+        )
+
+        assertEquals(listOf(true, false), passes.map { it.oneReply })
+        assertEquals(listOf(1, 3), passes.map { it.requests })
+        assertEquals(0, passes.first().filed)
+    }
+
+    /** An API with no way to ask made no request, and reports no reply. */
+    @Test
+    fun `an API that cannot ask for the whole section reports only the walk`() {
+        val passes = mutableListOf<PassReport>()
+
+        XtreamImportEngine(RecordingWriter()).importCatalogue(
+            "src",
+            panel(wholeSection = null),
+            kinds = setOf(MediaKind.LIVE),
+            wholeSection = setOf(MediaKind.LIVE),
+            onPass = { passes += it },
+        )
+
+        assertEquals(listOf(false), passes.map { it.oneReply })
+    }
+
+    /** Only counts are wanted, so a reply naming a thousand ids keeps a hundred and a sum. */
+    @Test
+    fun `orphan ids are counted one by one up to a bound, and together past it`() {
+        val passes = mutableListOf<PassReport>()
+        val orphans = (1..XtreamImportEngine.MAX_ORPHAN_IDS + 5).map { row("9$it", "Hidden $it", "x$it", number = 100 + it) }
+
+        XtreamImportEngine(RecordingWriter()).importCatalogue(
+            "src",
+            panel(wholeSection = { StringReader((WHOLE_ROWS + orphans).joinToString(",", "[", "]")) }),
+            kinds = setOf(MediaKind.LIVE),
+            wholeSection = setOf(MediaKind.LIVE),
+            onPass = { passes += it },
+        )
+
+        val pass = passes.single()
+        assertEquals(XtreamImportEngine.MAX_ORPHAN_IDS + 1, pass.orphanCategories.size)
+        assertEquals(5, pass.orphanCategories[XtreamImportEngine.OTHER_IDS])
+        assertEquals("no orphan is lost from the count", pass.orphans, pass.orphanCategories.values.sum())
     }
 
     // ------------------------------------------------------------------ fixtures

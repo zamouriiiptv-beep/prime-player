@@ -3,8 +3,13 @@ package com.castivio.data.playlist
 import android.util.Log
 import com.castivio.core.common.AppError
 import com.castivio.core.common.AppDispatchers
+import com.castivio.core.platform.CallTimes
+import com.castivio.core.platform.IndexCheck
+import com.castivio.core.platform.PassTimes
 import com.castivio.core.platform.PerfPhase
+import com.castivio.core.platform.PerfSection
 import com.castivio.core.platform.PerformanceLog
+import com.castivio.core.platform.RecordCounts
 import com.castivio.data.networking.CallMetrics
 import com.castivio.data.networking.HttpStatusException
 import com.castivio.data.networking.HttpStreamSource
@@ -34,6 +39,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.onStart
 import java.io.Reader
 
 /**
@@ -76,6 +82,18 @@ class DefaultCatalogImporter(
      * prove that no address or credential is in it.
      */
     private val log: (String) -> Unit = { Log.i(CallMetrics.TAG, it) },
+    /**
+     * Whether a section import counts the catalogue and its search index before and after
+     * it writes. Debuggable builds only -- the readout is theirs -- because the count reads
+     * the whole index and is part of the load's time; see [checkCatalogue].
+     */
+    private val checks: Boolean = false,
+    /**
+     * Told that a section's import is starting: `PerformanceLog.importStarted`, which opens a
+     * run for a load nobody pressed for. A parameter because the stopwatch reads Android's
+     * clock, which a unit test of this class does not have.
+     */
+    private val importStarted: (PerfSection) -> Unit = PerformanceLog::importStarted,
 ) : CatalogImporter {
 
     override fun import(source: PlaylistSource): Flow<ImportProgress> = channelFlow {
@@ -141,6 +159,13 @@ class DefaultCatalogImporter(
      * says no.
      */
     override fun importKind(source: PlaylistSource, kind: MediaKind): Flow<ImportProgress> =
+        importKindUnmeasured(source, kind)
+            // Every section import is a load of its own on the panel: one started by a
+            // press already has its run, and one that started on its own -- a section
+            // opened again after Refresh forgot its marks -- gets one, from zero.
+            .onStart { importStarted(kind.perfSection) }
+
+    private fun importKindUnmeasured(source: PlaylistSource, kind: MediaKind): Flow<ImportProgress> =
         when (source) {
             is PlaylistSource.Xtream -> channelFlow {
                 importXtreamKind(
@@ -520,8 +545,15 @@ class DefaultCatalogImporter(
         // panel cannot claim a concurrency the import is not using.
         PerformanceLog.importConcurrency(XtreamImportEngine.DEFAULT_CONCURRENCY)
         PerformanceLog.phase(PerfPhase.IMPORT)
+        // The catalogue and its search index as they stand before this import writes, in a
+        // span of their own -- see [checks].
+        checkCatalogue(writer, sourceId, before = true)
         val startedAt = clock()
         var saved = 0
+        val passes = ArrayList<XtreamImportEngine.PassReport>(2)
+        // Whether the one reply's rows are part of the catalogue: they are not when it was
+        // refused or broke, and the walk after it wrote every row again.
+        var replyUsed = false
         return try {
             val summary = XtreamImportEngine(writer, clock = clock).importCatalogue(
                 sourceId = sourceId,
@@ -534,10 +566,16 @@ class DefaultCatalogImporter(
                 // The engine falls back to the walk by itself; see `wholeSection`.
                 wholeSection = if (kind == MediaKind.LIVE || kind == MediaKind.RADIO) setOf(MediaKind.LIVE) else emptySet(),
                 onStreams = { report ->
+                    replyUsed = report.strategy == XtreamImportEngine.StreamStrategy.WHOLE_SECTION
                     PerformanceLog.note(NOTE_STREAMS, report.toString())
                     log("import $kind: $report")
                 },
                 onPhase = { phase -> PerformanceLog.phase(phase.perf) },
+                onPass = { pass ->
+                    passes += pass
+                    PerformanceLog.pass(pass.times())
+                    log("import $kind: ${pass.times()}")
+                },
                 onProgress = { progress ->
                     // The importer's own running totals, forwarded to the panel as they
                     // arrive. Counting them a second time here is how the progress line
@@ -559,6 +597,12 @@ class DefaultCatalogImporter(
                 isCancelled = cancelled,
                 mode = mode,
             )
+            val counts = countsOf(passes.filter { replyUsed || !it.oneReply }, summary)
+            PerformanceLog.recordCounts(counts)
+            log("import $kind: $counts")
+            // And again once it has written, so the reading can say what the import did to
+            // the index: grown by a copy of every row, or stayed one entry per row.
+            checkCatalogue(writer, sourceId, before = false)
             // No validators for Xtream, and none to preserve: `record` reads the stored
             // row and writes back what this pass learned.
             record(sourceId, summary, etag = null, lastModified = null, contentHash = null)
@@ -581,8 +625,71 @@ class DefaultCatalogImporter(
                 serverMs = CallMetrics.callTimeMs(),
                 cacheHits = CallMetrics.cacheHits().toInt(),
                 waitMs = CallMetrics.waitTimeMs(),
+                calls = CallMetrics.snapshot().map { tally ->
+                    CallTimes(
+                        action = tally.action,
+                        count = tally.count.toInt(),
+                        failed = tally.failed.toInt(),
+                        totalMs = tally.totalMs.toLong(),
+                        waitMs = tally.waitMs.toLong(),
+                        bytes = tally.byteCount,
+                    )
+                },
             )
         }
+    }
+
+    /**
+     * The catalogue and its search index counted, in debuggable builds, as its own span.
+     *
+     * Its own span, [PerfPhase.CHECKED_BEFORE] or [PerfPhase.CHECKED_AFTER], so the time it
+     * takes is shown beside the import's and never inside one of its stages. Nothing when
+     * [checks] is off -- every release build -- not even the span.
+     */
+    private fun checkCatalogue(writer: CatalogWriter, sourceId: String, before: Boolean) {
+        if (!checks) return
+        writer.check(sourceId)?.let { check ->
+            PerformanceLog.check(
+                before = before,
+                check = IndexCheck(
+                    rows = check.rows.mapKeys { it.key.name },
+                    allRows = check.allRows,
+                    searchRows = check.searchRows,
+                    duplicated = check.duplicatedInSearch,
+                    sampleResults = check.sampleResults,
+                    sampleRows = check.sampleRows,
+                    tookMs = check.tookMs,
+                ),
+            )
+        }
+        PerformanceLog.phase(if (before) PerfPhase.CHECKED_BEFORE else PerfPhase.CHECKED_AFTER)
+    }
+
+    /**
+     * The import's records, stage by stage: parsed out of the replies, filed under a
+     * category, left as orphans, and written -- from the engine's own counts.
+     *
+     * [passes] are the ones whose rows make the catalogue: the reply and the walk of its
+     * gaps, or the walk alone when the reply was refused or broke. A reply that broke had
+     * handed rows over that the walk then wrote again, and counting both passes would count
+     * those rows twice.
+     */
+    private fun countsOf(passes: List<XtreamImportEngine.PassReport>, summary: ImportSummary): RecordCounts {
+        val orphanIds = LinkedHashMap<String, Int>()
+        for (pass in passes) {
+            for ((id, count) in pass.orphanCategories) orphanIds[id] = (orphanIds[id] ?: 0) + count
+        }
+        val categories = LinkedHashMap<String, Int>()
+        // The first pass covers every category; a later one is the gaps, already counted.
+        passes.firstOrNull()?.categories?.forEach { (kind, count) -> categories[kind.name] = count }
+        return RecordCounts(
+            parsed = passes.sumOf { it.parsed },
+            filed = passes.sumOf { it.filed },
+            orphans = passes.sumOf { it.orphans },
+            written = summary.byKind.entries.associate { it.key.name to it.value },
+            categories = categories,
+            orphanCategories = orphanIds.entries.sortedByDescending { it.value }.map { it.key to it.value },
+        )
     }
 
     /**
@@ -732,6 +839,33 @@ private val XtreamImportEngine.Phase.perf: PerfPhase
         XtreamImportEngine.Phase.STREAMS -> PerfPhase.STREAMS
         XtreamImportEngine.Phase.FINISHED -> PerfPhase.FINISHED
     }
+
+/** The section a kind's import is filed under on the panel, as the screens file it. */
+private val MediaKind.perfSection: PerfSection
+    get() = when (this) {
+        MediaKind.LIVE -> PerfSection.CHANNELS
+        MediaKind.MOVIE -> PerfSection.MOVIES
+        MediaKind.SERIES -> PerfSection.SERIES
+        MediaKind.RADIO -> PerfSection.RADIO
+    }
+
+/** A pass as the panel reads it: the engine's nanoseconds, in milliseconds. */
+private fun XtreamImportEngine.PassReport.times(): PassTimes = PassTimes(
+    kind = kind.name,
+    oneReply = oneReply,
+    parallelReaders = parallelReaders,
+    requests = requests,
+    windowMs = windowNanos.ms(),
+    readerMs = readerNanos.ms(),
+    askMs = askNanos.ms(),
+    readMs = readNanos.ms(),
+    handOverMs = handOverNanos.ms(),
+    writeMs = writeNanos.ms(),
+    commitMs = commitNanos.ms(),
+    idleMs = idleNanos.ms(),
+)
+
+private fun Long.ms(): Long = this / 1_000_000
 
 /**
  * The writer, with a note of whether it was the one that threw.

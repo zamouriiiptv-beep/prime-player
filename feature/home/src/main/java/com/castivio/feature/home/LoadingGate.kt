@@ -58,7 +58,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.castivio.core.platform.PerformanceLog
 import com.castivio.domain.SectionLoad
-import java.util.Locale
 import kotlinx.coroutines.delay
 import com.castivio.core.design.R as DesignR
 
@@ -103,10 +102,13 @@ import com.castivio.core.design.R as DesignR
  * ## Beside the readout, in a debug build
  *
  * A debuggable build draws [PerformancePanel] here, and on a surface wider than it is
- * tall the gate gives the readout the second half of the screen instead of the space
- * under the facts — on a phone held sideways there was no such space, and the readout
- * ran off the bottom of it. The column is the same column in either half. A release
- * build has no readout, so it never splits: its gate is centred as it always was.
+ * tall the gate gives the readout three fifths of the screen beside its column instead of
+ * the space under the facts — on a phone held sideways there was no such space, and the
+ * readout ran off the bottom of it. Three fifths rather than half because a measurement
+ * build's reading runs to more lines than half a phone has room for, and two fifths is
+ * still wide enough for the column's facts side by side. The column is the same column in
+ * either share. A release build has no readout, so it never splits: its gate is centred as
+ * it always was.
  */
 @Composable
 internal fun LoadingGate(
@@ -138,7 +140,7 @@ internal fun LoadingGate(
         // sideways, a television -- because that is where height runs out first. Under it
         // otherwise, which is where it always was.
         val split = measuring && maxWidth > maxHeight
-        val pane = (maxWidth - m.edge * 2 - m.edge / 2) / 2
+        val pane = (maxWidth - m.edge * 2 - m.edge / 2) * (GATE_SHARE / (GATE_SHARE + READOUT_SHARE))
         // Read out here, not inside the column. `ColumnScope` and `BoxWithConstraints`
         // are both `@LayoutScopeMarker`, so the inner scope hides the outer one's
         // `maxWidth` -- which is the marker doing its job: a size read through two
@@ -155,7 +157,7 @@ internal fun LoadingGate(
             ) {
                 Box(
                     Modifier
-                        .weight(1f)
+                        .weight(GATE_SHARE)
                         .fillMaxHeight(),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -164,7 +166,7 @@ internal fun LoadingGate(
                 }
                 Box(
                     Modifier
-                        .weight(1f)
+                        .weight(READOUT_SHARE)
                         .fillMaxHeight()
                         .padding(vertical = m.stageTop),
                     contentAlignment = Alignment.Center,
@@ -529,23 +531,6 @@ internal fun Context.versionName(): String? = runCatching {
     packageManager.getPackageInfo(packageName, 0).versionName
 }.getOrNull()
 
-/**
- * `7.2 MB`, from bytes.
- *
- * Binary units, because that is what a download is measured in and what every other
- * tool on the device will agree with. [Locale.ROOT] for the separator, for the reason
- * `PerformancePanel` gives: a figure that changes shape with the interface language is
- * a figure that gets transcribed wrongly.
- */
-internal fun formatBytes(bytes: Long): String = when {
-    bytes <= 0L -> "0 KB"
-    bytes < MEGABYTE -> "${bytes / KILOBYTE} KB"
-    else -> String.format(Locale.ROOT, "%.1f MB", bytes.toDouble() / MEGABYTE)
-}
-
-private const val KILOBYTE = 1024L
-private const val MEGABYTE = 1024L * 1024L
-
 /* ------------------------------------------------------------------- the shares */
 
 /** The mark's height as a share of the surface. */
@@ -561,6 +546,10 @@ private const val FADE = 0.82f
 private const val SPIN_MS = 1500
 
 private const val TRACK_OF_WIDTH = 0.42f
+
+/* A debuggable build's split, as weights: the gate's column two parts, the readout three. */
+private const val GATE_SHARE = 2f
+private const val READOUT_SHARE = 3f
 
 /* Type steps, as ratios of the frame's own, so the gate tracks the product's scale. */
 private const val WORD_OF_TITLE = 1.5f

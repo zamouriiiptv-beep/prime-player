@@ -11,7 +11,7 @@ re-rendered when a token changes.
 | `shell-home.html` | Shell (rail, top bar), Home, the rail focused, a section the provider does not carry, phone Home, tablet section, and the state-language reference sheet |
 | `activation-mac.html` | The first screen, where a subscription is added — phone landscape 873x393 and 800x360, television 960x540, in nine stress languages |
 | `tv-sections.html` | Live TV, Movies and Series on a television — the browse screens a remote drives, categories then content |
-| `gate-performance.html` | The loading gate in a debuggable build, the performance readout beside it — mid-load, a load in one reply, a load walked category by category; phone 851x393 and 800x360 |
+| `gate-performance.html` | The loading gate in a debuggable build, the measurement readout beside it in three fifths of the screen — mid-load, a reload that appended, a first load that replaced, a refused reply walked category by category; phone 851x393 and 800x360 |
 
 ## What a mockup is, after the sizing migration
 

@@ -8,6 +8,8 @@ import com.castivio.domain.ImportSummary
 import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaKind
 import java.io.Reader
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
@@ -59,6 +61,11 @@ class XtreamImportEngine(
      * provider that starts refusing the user.
      */
     private val concurrency: Int = DEFAULT_CONCURRENCY,
+    /**
+     * The clock a [PassReport] is measured on: monotonic, in nanoseconds. A parameter so a
+     * test can step it; nothing the import does depends on what it says.
+     */
+    private val nanoClock: () -> Long = System::nanoTime,
 ) {
     init {
         require(batchSize in 1..CatalogImportEngine.MAX_BATCH) { "batchSize $batchSize out of range" }
@@ -162,6 +169,69 @@ class XtreamImportEngine(
     }
 
     /**
+     * What one pass over a section's streams cost, measured on both of the sides that run
+     * it at the same time. A measurement only: nothing the import does reads it.
+     *
+     * ## Two sides, one window
+     *
+     * A pass is readers and a writer working at once. The readers ask, receive and parse;
+     * the writer -- this engine's own thread -- writes what they hand over. Each side's
+     * figures add up to its own time and never to the other's: the reader's waiting for the
+     * save and the writer's writing are the same seconds seen from two threads, and adding
+     * them would count those seconds twice.
+     *
+     *  - **Reader**, summed over every request of the pass: [askNanos] connecting, sending
+     *    and waiting for the answer to begin; [readNanos] inside the answer's own reads,
+     *    bytes arriving; [handOverNanos] blocked handing a batch to the writer because it
+     *    was still busy with the last; and [parseNanos], whatever is left of [readerNanos].
+     *    With several requests in flight at once ([parallelReaders]) the sums exceed the
+     *    window, as four people's hours exceed the hour they worked together.
+     *  - **Writer**, one thread, inside [windowNanos]: [writeNanos] handing rows to the
+     *    database, [commitNanos] committing them, [idleNanos] waiting for the next batch,
+     *    and [writerOtherNanos] for the bookkeeping between.
+     *
+     * Counts and category ids only, never a name or an address.
+     */
+    data class PassReport(
+        val kind: MediaKind,
+        /** The whole section in one reply, or its categories one by one. */
+        val oneReply: Boolean,
+        /** How many requests could be in flight at once: one for the reply. */
+        val parallelReaders: Int,
+        /** Requests the pass made. */
+        val requests: Int,
+        /** The pass on the wall clock, from its first request to its last row written. */
+        val windowNanos: Long,
+        val askNanos: Long,
+        val readNanos: Long,
+        val handOverNanos: Long,
+        /** Every request's time from asking to its last batch handed over, summed. */
+        val readerNanos: Long,
+        val writeNanos: Long,
+        val commitNanos: Long,
+        val idleNanos: Long,
+        /** Streams the readers parsed. */
+        val parsed: Int,
+        /** Rows filed under a category and handed to the writer. */
+        val filed: Int,
+        /** Streams naming a category the panel did not list: parsed, never written. */
+        val orphans: Int,
+        /**
+         * Those streams by the category id they named, and how many named each; "none"
+         * for a stream that named no category at all.
+         */
+        val orphanCategories: Map<String, Int>,
+        /** The categories the pass covered, by the kind each was filed as. */
+        val categories: Map<MediaKind, Int>,
+    ) {
+        /** The reader's time that was neither asking, receiving nor waiting: parsing. */
+        val parseNanos: Long get() = (readerNanos - askNanos - readNanos - handOverNanos).coerceAtLeast(0)
+
+        /** The writer's time that was neither writing, committing nor waiting. */
+        val writerOtherNanos: Long get() = (windowNanos - writeNanos - commitNanos - idleNanos).coerceAtLeast(0)
+    }
+
+    /**
      * Imports categories and their contents for [kinds].
      *
      * @param isCancelled checked between categories and between batches — a
@@ -214,6 +284,8 @@ class XtreamImportEngine(
         onStreams: (StreamsReport) -> Unit = {},
         /** Told as the import reaches each [Phase]. The engine has no clock; the caller does. */
         onPhase: (Phase) -> Unit = {},
+        /** Told what each pass over a section's streams cost. See [PassReport]. */
+        onPass: (PassReport) -> Unit = {},
     ): ImportSummary {
         val started = clock()
         val batch = ArrayList<CatalogItem>(batchSize)
@@ -223,6 +295,8 @@ class XtreamImportEngine(
         var cancelled = false
         var done = 0
         val failures = ArrayList<Pair<String, Throwable>>()
+        // Time spent committing, for [PassReport]: a pass reads it before and after.
+        var commitNanos = 0L
 
         // ------------------------------------------------------ the commit policy
         //
@@ -251,7 +325,9 @@ class XtreamImportEngine(
                 pending >= COMMIT_ROWS ||
                 now - lastCommitAt >= COMMIT_INTERVAL_MS
             if (!due) return
+            val commitStarted = nanoClock()
             writer.commit()
+            commitNanos += nanoClock() - commitStarted
             if (!committedOnce) onPhase(Phase.FIRST_COMMIT)
             committedOnce = true
             pending = 0
@@ -275,16 +351,29 @@ class XtreamImportEngine(
          *   one reply does not: every category in it finishes only when the reply does. So
          *   it reports the bar's numerator as unknown and the screen counts rows instead,
          *   as it does for a playlist — see [ImportProgress.Importing.categoriesDone].
+         * @param meter where the pass's [PassReport] is measured into. The producers add the
+         *   readers' side; this function adds the writer's and the window.
          */
         fun pass(
             countCategories: Boolean,
+            meter: PassMeter,
             produce: suspend (SendChannel<CategoryEvent>) -> Unit,
         ) {
             val events = Channel<CategoryEvent>(capacity = concurrency)
+            val passStarted = nanoClock()
+            val commitsBefore = commitNanos
 
             fun progress(kind: MediaKind) = onProgress(
                 ImportProgress.Importing(imported, groups, kind, if (countCategories) done else null),
             )
+
+            // `flush`, timed: the writer's share of the pass.
+            fun write(): Int {
+                val writeStarted = nanoClock()
+                val written = flush(batch)
+                meter.writeNanos += nanoClock() - writeStarted
+                return written
+            }
 
             runBlocking {
                 val producers = launch {
@@ -295,16 +384,23 @@ class XtreamImportEngine(
                     }
                 }
 
-                for (event in events) {
+                // Every event until the channel closes, as `for (event in events)` took them,
+                // with the wait for each one timed: the writer idle, the readers behind it.
+                while (true) {
+                    val waitStarted = nanoClock()
+                    val next = events.receiveCatching()
+                    meter.idleNanos += nanoClock() - waitStarted
+                    val event = next.getOrNull() ?: break
                     when (event) {
                         is CategoryEvent.Items -> {
+                            meter.filed += event.items.size
                             for (item in event.items) {
                                 // By the row's own kind: a batch from the one reply carries
                                 // stations and channels together.
                                 perKind[item.kind.ordinal]++
                                 batch.add(item)
                                 if (batch.size >= batchSize) {
-                                    val written = flush(batch)
+                                    val written = write()
                                     imported += written
                                     pending += written
                                     commitIfDue()
@@ -323,7 +419,7 @@ class XtreamImportEngine(
                             // on a real provider, against 2.39s to first content. The
                             // rows were being made durable 38 at a time for the benefit
                             // of a reader that only needed the first batch.
-                            val written = flush(batch)
+                            val written = write()
                             imported += written
                             pending += written
                             commitIfDue()
@@ -375,6 +471,8 @@ class XtreamImportEngine(
                 if (cancelled) producers.cancel()
                 producers.join()
             }
+            meter.windowNanos = nanoClock() - passStarted
+            meter.commitNanos = commitNanos - commitsBefore
         }
 
         writer.begin(sourceId, mode)
@@ -428,12 +526,18 @@ class XtreamImportEngine(
                     val importedBefore = imported
                     val perKindBefore = perKind.copyOf()
                     var read: WholeSectionRead = WholeSectionRead.NotOffered
-                    pass(countCategories = false) { events ->
+                    val meter = PassMeter(nanoClock)
+                    pass(countCategories = false, meter = meter) { events ->
                         read = withContext(Dispatchers.IO) {
-                            readWholeSection(sourceId, api, endpointKind, ordered, events, isCancelled)
+                            readWholeSection(sourceId, api, endpointKind, ordered, events, isCancelled, meter)
                         }
                     }
                     val outcome = read
+                    // Reported whatever the reply came to, unless it was never asked: a refusal
+                    // costs a request too, and the reading should show it.
+                    if (outcome !is WholeSectionRead.NotOffered) {
+                        onPass(meter.report(endpointKind, oneReply = true, parallelReaders = 1, categories = ordered.byKind()))
+                    }
                     // Stopped while reading: nothing to fall back to and nothing to report,
                     // because the import is not going on.
                     if (cancelled || isCancelled()) emptyList() else when (outcome) {
@@ -493,20 +597,29 @@ class XtreamImportEngine(
                 // service aimed at the user's own provider, and the panel it talks to
                 // is usually a single PHP host.
                 if (perCategory.isNotEmpty() && !cancelled && !isCancelled()) {
-                    pass(countCategories = true) { events ->
+                    val meter = PassMeter(nanoClock)
+                    pass(countCategories = true, meter = meter) { events ->
                         val gate = Semaphore(concurrency)
                         coroutineScope {
                             for (plan in perCategory) {
                                 launch(Dispatchers.IO) {
                                     gate.withPermit {
                                         if (!isCancelled()) {
-                                            fetchCategory(sourceId, api, plan, events)
+                                            fetchCategory(sourceId, api, plan, events, meter)
                                         }
                                     }
                                 }
                             }
                         }
                     }
+                    onPass(
+                        meter.report(
+                            endpointKind,
+                            oneReply = false,
+                            parallelReaders = minOf(concurrency, perCategory.size),
+                            categories = perCategory.byKind(),
+                        ),
+                    )
                 }
 
                 // Asked again outside the consumer loop, because a run cancelled before
@@ -697,10 +810,34 @@ class XtreamImportEngine(
         api: Api,
         plan: CategoryPlan,
         events: kotlinx.coroutines.channels.SendChannel<CategoryEvent>,
+        meter: PassMeter,
+    ) {
+        val readerStarted = nanoClock()
+        try {
+            fetchCategoryMeasured(sourceId, api, plan, events, meter)
+        } finally {
+            meter.readerNanos.addAndGet(nanoClock() - readerStarted)
+        }
+    }
+
+    /** [fetchCategory]'s work, with the asking, the reading and the handing over timed. */
+    private suspend fun fetchCategoryMeasured(
+        sourceId: String,
+        api: Api,
+        plan: CategoryPlan,
+        events: kotlinx.coroutines.channels.SendChannel<CategoryEvent>,
+        meter: PassMeter,
     ) {
         val kind = plan.kind
         val groupId = plan.groupId
         val category = plan.category
+
+        // A batch handed to the writer, the wait for room timed: the reader held up by it.
+        fun hand(items: List<CatalogItem>) {
+            val handStarted = nanoClock()
+            events.trySendBlocking(CategoryEvent.Items(kind, items))
+            meter.handOverNanos.addAndGet(nanoClock() - handStarted)
+        }
 
         try {
             // Provider order, preserved under concurrency.
@@ -716,28 +853,30 @@ class XtreamImportEngine(
             val batch = ArrayList<CatalogItem>(batchSize)
 
             when (kind) {
-                MediaKind.SERIES -> api.series(category.id).use { reader ->
-                    XtreamParser.parseSeries(reader) { series ->
+                MediaKind.SERIES -> meter.ask { api.series(category.id) }.use { raw ->
+                    XtreamParser.parseSeries(TimedReader(raw, nanoClock, meter.readNanos)) { series ->
                         batch.add(seriesShell(sourceId, series, groupId, position++))
                         if (batch.size >= batchSize) {
-                            events.trySendBlocking(CategoryEvent.Items(kind, ArrayList(batch)))
+                            hand(ArrayList(batch))
                             batch.clear()
                         }
                     }
                 }
 
-                else -> api.streams(kind, category.id).use { reader ->
-                    XtreamParser.parseStreams(reader) { stream ->
+                else -> meter.ask { api.streams(kind, category.id) }.use { raw ->
+                    XtreamParser.parseStreams(TimedReader(raw, nanoClock, meter.readNanos)) { stream ->
                         batch.add(item(sourceId, api, kind, stream, groupId, position++))
                         if (batch.size >= batchSize) {
-                            events.trySendBlocking(CategoryEvent.Items(kind, ArrayList(batch)))
+                            hand(ArrayList(batch))
                             batch.clear()
                         }
                     }
                 }
             }
+            val lastStarted = nanoClock()
             if (batch.isNotEmpty()) events.send(CategoryEvent.Items(kind, batch))
             events.send(CategoryEvent.Finished(kind))
+            meter.handOverNanos.addAndGet(nanoClock() - lastStarted)
         } catch (t: Throwable) {
             // Rethrown only for cancellation, which is not a failure of the category:
             // swallowing it would leave a worker running after the import was stopped.
@@ -767,6 +906,25 @@ class XtreamImportEngine(
         plans: List<CategoryPlan>,
         events: SendChannel<CategoryEvent>,
         isCancelled: () -> Boolean,
+        meter: PassMeter,
+    ): WholeSectionRead {
+        val readerStarted = nanoClock()
+        try {
+            return readWholeSectionMeasured(sourceId, api, kind, plans, events, isCancelled, meter)
+        } finally {
+            meter.readerNanos.addAndGet(nanoClock() - readerStarted)
+        }
+    }
+
+    /** [readWholeSection]'s work, with the asking, the reading and the handing over timed. */
+    private fun readWholeSectionMeasured(
+        sourceId: String,
+        api: Api,
+        kind: MediaKind,
+        plans: List<CategoryPlan>,
+        events: SendChannel<CategoryEvent>,
+        isCancelled: () -> Boolean,
+        meter: PassMeter,
     ): WholeSectionRead {
         val byId = HashMap<String, CategoryPlan>(plans.size * 2)
         for (plan in plans) byId[plan.category.id] = plan
@@ -776,7 +934,11 @@ class XtreamImportEngine(
         var orphans = 0
 
         val reader = try {
-            api.allStreams(kind) ?: return WholeSectionRead.NotOffered
+            // Null is an API that cannot ask, which made no request: not counted as one.
+            meter.ask { api.allStreams(kind) } ?: run {
+                meter.requests.decrementAndGet()
+                return WholeSectionRead.NotOffered
+            }
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: WholeSectionUnsupported) {
@@ -788,19 +950,21 @@ class XtreamImportEngine(
         return try {
             reader.use {
                 val batch = ArrayList<CatalogItem>(batchSize)
-                XtreamParser.parseStreams(reader) { stream ->
+                XtreamParser.parseStreams(TimedReader(reader, nanoClock, meter.readNanos)) { stream ->
+                    meter.parsed++
                     val plan = stream.categoryId?.let(byId::get)
                     if (plan == null) {
                         orphans++
+                        meter.orphan(stream.categoryId)
                         return@parseStreams
                     }
                     received[plan.index] = true
                     val position = plan.index * CATEGORY_STRIDE + positions[plan.index]++
                     batch.add(item(sourceId, api, plan.kind, stream, plan.groupId, position))
                     streams++
-                    if (batch.size >= batchSize) handOver(events, plan.kind, batch, isCancelled)
+                    if (batch.size >= batchSize) handOver(events, plan.kind, batch, isCancelled, meter)
                 }
-                if (batch.isNotEmpty()) handOver(events, batch.last().kind, batch, isCancelled)
+                if (batch.isNotEmpty()) handOver(events, batch.last().kind, batch, isCancelled, meter)
             }
             // A list naming none of the panel's categories is a refusal in the shape of an
             // answer: an empty list, or one keyed some other way. Either way nothing in it
@@ -829,12 +993,105 @@ class XtreamImportEngine(
         kind: MediaKind,
         batch: MutableList<CatalogItem>,
         isCancelled: () -> Boolean,
+        meter: PassMeter,
     ) {
-        if (isCancelled() || events.trySendBlocking(CategoryEvent.Items(kind, ArrayList(batch))).isClosed) {
-            throw kotlinx.coroutines.CancellationException("the import stopped consuming")
-        }
+        if (isCancelled()) throw kotlinx.coroutines.CancellationException("the import stopped consuming")
+        // The wait for room, timed: the reader held up by the writer.
+        val handStarted = nanoClock()
+        val sent = events.trySendBlocking(CategoryEvent.Items(kind, ArrayList(batch)))
+        meter.handOverNanos.addAndGet(nanoClock() - handStarted)
+        if (sent.isClosed) throw kotlinx.coroutines.CancellationException("the import stopped consuming")
         batch.clear()
     }
+
+    /**
+     * A pass's measurements while it runs: the readers' side added from as many threads as
+     * there are requests in flight, the writer's from the engine's own. Read once, into a
+     * [PassReport], when the pass has ended and every reader has returned.
+     */
+    private class PassMeter(private val clock: () -> Long) {
+        val askNanos = AtomicLong()
+        val readNanos = AtomicLong()
+        val handOverNanos = AtomicLong()
+        val readerNanos = AtomicLong()
+        val requests = AtomicInteger()
+
+        // The one reply's reader only: one thread, read after it has returned.
+        var parsed = 0
+        var orphans = 0
+        private val orphanCategories = LinkedHashMap<String, Int>()
+
+        // The writer's side: the engine's own thread.
+        var windowNanos = 0L
+        var writeNanos = 0L
+        var commitNanos = 0L
+        var idleNanos = 0L
+        var filed = 0
+
+        /** A request made and timed until its answer begins. */
+        inline fun <T> ask(open: () -> T): T {
+            requests.incrementAndGet()
+            val started = now()
+            try {
+                return open()
+            } finally {
+                askNanos.addAndGet(now() - started)
+            }
+        }
+
+        fun now(): Long = clock()
+
+        /** A stream filed under no category the panel listed, by the id it named. */
+        fun orphan(categoryId: String?) {
+            orphans++
+            val key = categoryId?.takeIf { it.isNotBlank() } ?: NO_CATEGORY
+            // Bounded: a reply could name any number of ids, and only counts are wanted.
+            val counted = if (key in orphanCategories || orphanCategories.size < MAX_ORPHAN_IDS) key else OTHER_IDS
+            orphanCategories[counted] = (orphanCategories[counted] ?: 0) + 1
+        }
+
+        fun report(kind: MediaKind, oneReply: Boolean, parallelReaders: Int, categories: Map<MediaKind, Int>) =
+            PassReport(
+                kind = kind,
+                oneReply = oneReply,
+                parallelReaders = parallelReaders,
+                requests = requests.get(),
+                windowNanos = windowNanos,
+                askNanos = askNanos.get(),
+                readNanos = readNanos.get(),
+                handOverNanos = handOverNanos.get(),
+                readerNanos = readerNanos.get(),
+                writeNanos = writeNanos,
+                commitNanos = commitNanos,
+                idleNanos = idleNanos,
+                // A category's streams are all filed under it: nothing parsed is left out.
+                parsed = if (oneReply) parsed else filed,
+                filed = filed,
+                orphans = orphans,
+                orphanCategories = LinkedHashMap(orphanCategories),
+                categories = categories,
+            )
+    }
+
+    /** A reader that adds the time spent inside its reads to [into]: the bytes arriving. */
+    private class TimedReader(
+        private val delegate: Reader,
+        private val clock: () -> Long,
+        private val into: AtomicLong,
+    ) : Reader() {
+        override fun read(cbuf: CharArray, off: Int, len: Int): Int {
+            val started = clock()
+            try {
+                return delegate.read(cbuf, off, len)
+            } finally {
+                into.addAndGet(clock() - started)
+            }
+        }
+
+        override fun close() = delegate.close()
+    }
+
+    private fun List<CategoryPlan>.byKind(): Map<MediaKind, Int> = groupingBy { it.kind }.eachCount()
 
     /**
      * The reason a report names: a refusal by what the panel answered — `HTTP 404` —
@@ -925,6 +1182,15 @@ class XtreamImportEngine(
 
     companion object {
         val DEFAULT_KINDS: Set<MediaKind> = setOf(MediaKind.LIVE, MediaKind.MOVIE, MediaKind.SERIES)
+
+        /** [PassReport.orphanCategories]'s key for a stream that named no category. */
+        const val NO_CATEGORY = "none"
+
+        /** Its key for the ids past [MAX_ORPHAN_IDS], counted together. */
+        const val OTHER_IDS = "other ids"
+
+        /** Distinct orphan ids counted one by one; enough to read, never a reply's worth. */
+        const val MAX_ORPHAN_IDS = 100
 
         /**
          * Requests in flight at once, by default.

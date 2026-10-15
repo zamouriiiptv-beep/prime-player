@@ -51,7 +51,41 @@ interface CatalogWriter {
 
     /** Import failed or was cancelled; roll back to the last [commit]. */
     fun abort(cause: Throwable?)
+
+    /**
+     * What the catalogue and its search index hold for [sourceId], read without writing.
+     *
+     * A measurement, asked for before an import and after it so a reading can say what the
+     * import did to the index. Null where the writer cannot say -- every writer but the
+     * database's -- and never called on the way to anything a viewer sees.
+     */
+    fun check(sourceId: String): CatalogCheck? = null
 }
+
+/**
+ * The catalogue's own account of one source, taken by [CatalogWriter.check].
+ *
+ * Counts only: no title, no address, nothing a log line could leak.
+ */
+data class CatalogCheck(
+    /** This source's rows, by kind. */
+    val rows: Map<MediaKind, Int>,
+    /** Every source's rows: what the search index is built from. */
+    val allRows: Int,
+    /** Entries in the search index, every source. One per row when it is in step. */
+    val searchRows: Int,
+    /** Rows the search index holds more than one entry for. Zero when it is in step. */
+    val duplicatedInSearch: Int,
+    /**
+     * One search a viewer could type, run the way the app runs it: how many results came
+     * back, and how many different rows they were. The two differ when results repeat.
+     * Null when this source has no row to take a word from.
+     */
+    val sampleResults: Int?,
+    val sampleRows: Int?,
+    /** How long the check itself took, so it can be told apart from the import. */
+    val tookMs: Long,
+)
 
 /** How a write relates to what is already stored. */
 enum class ImportMode {

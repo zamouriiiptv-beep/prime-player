@@ -61,6 +61,7 @@ object PerformanceLog {
      * the first did not. [SectionReport.run] increments so two runs of the same section
      * are visibly different rather than merely equal.
      */
+    @Synchronized
     fun begin(section: PerfSection) {
         runs += 1
         lastNetwork = null
@@ -73,6 +74,52 @@ object PerformanceLog {
             run = runs,
             startedAtNanos = SystemClock.elapsedRealtimeNanos(),
         )
+    }
+
+    /**
+     * An import of [section] is starting.
+     *
+     * A run that is still going is this import's own: the section was just opened, and
+     * [begin] already started the clock at the press. Anything else means the import
+     * started on its own -- a section opened again after Refresh forgot its marks -- and
+     * that is a load of its own, so it starts a run of its own, from zero, rather than
+     * writing its numbers into the last one's finished report.
+     */
+    @Synchronized
+    fun importStarted(section: PerfSection) {
+        val report = _current.value
+        if (report == null || !report.running) begin(section)
+    }
+
+    /** How the writer is saving this run: `REPLACE` or `APPEND`, each named once. */
+    fun saveMode(mode: String) = updateRunning { report ->
+        if (mode in report.saveModes) report else report.copy(saveModes = report.saveModes + mode)
+    }
+
+    /**
+     * One pass over a section's streams, as the engine measured it -- with the database's
+     * steps as they stand, so the writer's rows and search rows can be read beside it while
+     * the import is still finishing.
+     */
+    fun pass(pass: PassTimes) = updateRunning { it.copy(passes = it.passes + pass, databaseSteps = stepsSoFar()) }
+
+    /** How many records each stage of the run saw. */
+    fun recordCounts(counts: RecordCounts) = updateRunning { it.copy(recordCounts = counts) }
+
+    /** The catalogue and its search index, counted before the import ([before]) or after it. */
+    fun check(before: Boolean, check: IndexCheck) = updateRunning {
+        if (before) it.copy(checkBefore = check) else it.copy(checkAfter = check)
+    }
+
+    /**
+     * [change] applied to the run in progress, and to nothing else.
+     *
+     * A finished report is a reading somebody may be photographing; nothing that arrives
+     * after it settled -- a late progress event, the next load's first numbers -- may
+     * change it. The next load starts a run of its own.
+     */
+    private inline fun updateRunning(crossinline change: (SectionReport) -> SectionReport) {
+        _current.update { report -> if (report == null || !report.running) report else change(report) }
     }
 
     /**
@@ -134,8 +181,15 @@ object PerformanceLog {
      * Written before `SectionLoad.Done` reaches a view model, because `LoadSection`
      * emits that only after the importer's flow has completed.
      */
-    fun network(requests: Int, serverMs: Long, cacheHits: Int, waitMs: Long? = null) {
-        lastNetwork = NetworkWindow(requests, serverMs, cacheHits, waitMs)
+    fun network(
+        requests: Int,
+        serverMs: Long,
+        cacheHits: Int,
+        waitMs: Long? = null,
+        /** The same window by action: each request's time, its wait, its size. */
+        calls: List<CallTimes> = emptyList(),
+    ) {
+        lastNetwork = NetworkWindow(requests, serverMs, cacheHits, waitMs, calls)
     }
 
     /** Cleared with every [begin], so a warm open cannot inherit a cold one's counts. */
@@ -193,14 +247,12 @@ object PerformanceLog {
      * `categories` and `records` are the importer's own running totals rather than a
      * second count kept here, so the panel and the progress line cannot disagree.
      */
-    fun importProgress(categories: Int, records: Int) {
-        _current.update { report ->
-            report?.withCounts()?.copy(
-                categories = categories,
-                records = records,
-                concurrency = concurrencyLimit,
-            )
-        }
+    fun importProgress(categories: Int, records: Int) = updateRunning { report ->
+        report.withCounts().copy(
+            categories = categories,
+            records = records,
+            concurrency = concurrencyLimit,
+        )
     }
 
     /** The request counters as they stand, folded into a report. */
@@ -225,13 +277,22 @@ object PerformanceLog {
      * on the run's own monotonic clock, so the cuts and the full load share a zero.
      */
 
-    /** The run reached [phase]. The first report wins; a later one is the same moment again. */
+    /**
+     * The run reached [phase]. The first report wins; a later one is the same moment again.
+     *
+     * The database's steps are folded in at the same time, so the end of an import -- the
+     * prune, the counts, the rebuild -- is on the panel from the moment it is done rather than
+     * from the moment the run settles, which is the moment the panel leaves the screen.
+     */
     fun phase(phase: PerfPhase) {
         _current.update { report ->
             when {
                 report == null || report.mode != PerfMode.RUNNING -> report
                 report.phases.any { it.phase == phase } -> report
-                else -> report.copy(phases = report.phases + RunPhase(phase, report.sinceStartMs()))
+                else -> report.copy(
+                    phases = report.phases + RunPhase(phase, report.sinceStartMs()),
+                    databaseSteps = stepsSoFar(),
+                )
             }
         }
     }
@@ -255,6 +316,10 @@ object PerformanceLog {
     }
 
     private val databaseSteps = ConcurrentHashMap<DatabaseStep, AtomicLong>()
+
+    /** The steps as they stand, in milliseconds. */
+    private fun stepsSoFar(): Map<DatabaseStep, Long> =
+        databaseSteps.entries.associate { it.key to it.value.get() / 1_000_000 }
 
     /**
      * How many requests the import is allowed to have in flight at once.
@@ -296,13 +361,32 @@ object PerformanceLog {
             // Same rule: a warm open writes nothing, so it has no database time. Zero
             // here would read as "SQLite was instant" rather than "SQLite was not asked".
             databaseMs = (databaseNanos.get() / 1_000_000).takeIf { it > 0 || fullLoad },
-            databaseSteps = databaseSteps.entries.associate { it.key to it.value.get() / 1_000_000 },
+            databaseSteps = stepsSoFar(),
+            calls = window?.calls.orEmpty(),
         )
         _current.value = settledReport
         settledReport.lines().forEach { Log.i(TAG, it) }
+        onSettled?.invoke(settledReport)
     }
 
-    private data class NetworkWindow(val requests: Int, val serverMs: Long, val cacheHits: Int, val waitMs: Long?)
+    /**
+     * Told of every run as it settles, after it is printed.
+     *
+     * Null by default, which is every release build. A debuggable one hands the reading on
+     * through it -- see `MeasurementClipboard` in the app -- because the loading screen that
+     * drew the readout gives way to the section in the same frame the run settles, so the
+     * finished readout is never on screen long enough to be read, and the log needs a cable.
+     */
+    @Volatile
+    var onSettled: ((SectionReport) -> Unit)? = null
+
+    private data class NetworkWindow(
+        val requests: Int,
+        val serverMs: Long,
+        val cacheHits: Int,
+        val waitMs: Long?,
+        val calls: List<CallTimes>,
+    )
 
     /**
      * Where a settled run is printed, beside the panel: `adb logcat -s CastivioPerf`.
@@ -465,6 +549,24 @@ data class SectionReport(
 
     /** SQLite by step, in milliseconds, beside [databaseMs], which is the commits alone. */
     val databaseSteps: Map<DatabaseStep, Long> = emptyMap(),
+
+    /* ------------------------------------------------- the measurement build's detail */
+
+    /** How the writer saved: `REPLACE`, `APPEND`, or both, in the order they began. */
+    val saveModes: List<String> = emptyList(),
+
+    /** Each pass over a section's streams: what the readers and the writer did at once. */
+    val passes: List<PassTimes> = emptyList(),
+
+    /** How many records each stage saw, from the reply to the rows written. */
+    val recordCounts: RecordCounts? = null,
+
+    /** Every request of the import window by action: time, wait for an answer, size. */
+    val calls: List<CallTimes> = emptyList(),
+
+    /** The catalogue and its search index before the import, and after it. */
+    val checkBefore: IndexCheck? = null,
+    val checkAfter: IndexCheck? = null,
 ) {
     /** Milliseconds since this run began, on the monotonic clock. */
     fun sinceStartMs(): Long = (SystemClock.elapsedRealtimeNanos() - startedAtNanos) / 1_000_000
@@ -479,17 +581,65 @@ data class SectionReport(
      * printed, and an Xtream URL carries the user's password.
      */
     fun lines(): List<String> = buildList {
-        add("── ${section.name} · run $run · ${mode.name} ──")
+        add("── ${section.name} · run $run · ${mode.name}${saveModes.joinToString("") { " · $it" }} ──")
         add("full load ${fullLoadMs.seconds()} · ttid ${ttidMs.seconds()} · ttfc ${firstContentMs.seconds()}")
-        if (phases.isNotEmpty()) add("phases " + phases.joinToString(" · ") { "${it.phase.label} ${it.atMs.seconds()}" })
+        // The stages one after another, and their sum: the full load when there is one, to the
+        // hundredth, because the figures are rounded so that they add up -- see `hundredthsAddingUp`.
+        val cut = spans()
+        if (cut.isNotEmpty()) {
+            val whole = cut.sumOf { it.ms }
+            add(
+                "stages " + cut.labelled(hundredthsAddingUp(cut.map { it.ms }, whole)) { it.label } +
+                    " = " + hundredthsText(hundredths(whole)) + " s" + if (fullLoadMs == null) " so far" else "",
+            )
+            add("phases " + phases.joinToString(" · ") { "${it.phase.label} ${it.atMs.seconds()}" })
+        }
         notes.forEach { (key, value) -> add("$key: $value") }
+        passes.forEach { pass ->
+            add(
+                "at the same time, ${if (pass.oneReply) "one reply" else "per category"} ${pass.kind}" +
+                    " · ${pass.requests} request${if (pass.requests == 1) "" else "s"}" +
+                    " · ${pass.parallelReaders} at once · window ${pass.windowMs.seconds()}",
+            )
+            val reader = pass.readerParts()
+            add(
+                "  reader${if (pass.parallelReaders > 1) "s, summed," else ""} " +
+                    reader.labelled(hundredthsAddingUp(reader.map { it.ms }, pass.readerMs)) { it.label } +
+                    " = ${pass.readerMs.seconds()}",
+            )
+            val writer = writerParts(pass)
+            add(
+                "  writer " + writer.labelled(hundredthsAddingUp(writer.map { it.ms }, pass.windowMs)) { it.label } +
+                    " = ${pass.windowMs.seconds()}",
+            )
+        }
+        if (finishParts().any { it.second != null }) {
+            add("then " + finishParts().joinToString(" · ") { (label, ms) -> "$label ${ms.seconds()}" })
+        }
+        recordCounts?.let { r ->
+            add(
+                "records reply ${r.parsed.grouped()} → filed ${r.filed.grouped()} · orphans ${r.orphans.grouped()}" +
+                    " · written ${r.written.byName()} · categories ${r.categories.byName()}",
+            )
+            if (r.orphanCategories.isNotEmpty()) {
+                add("orphan categories " + r.orphanCategories.joinToString(" · ") { "${it.first} ×${it.second.grouped()}" })
+            }
+        }
+        calls.forEach { call ->
+            add(
+                "call ${call.action} ×${call.count} (fail ${call.failed}) · ${call.totalMs.seconds()}" +
+                    " · wait ${call.waitMs.seconds()} · ${call.bytes.grouped()} bytes",
+            )
+        }
+        checkBefore?.let { add("index before: ${it.describe()}") }
+        checkAfter?.let { add("index after: ${it.describe()}") }
         add(
             "network ${serverMs.seconds()} in calls · ${serverWaitMs.seconds()} waiting · ${requests ?: 0} calls" +
                 " · categories ${categories ?: 0} · records ${records ?: 0}",
         )
         add(
             "database commit ${databaseMs.seconds()}" +
-                databaseSteps.entries.joinToString("") { " · ${it.key.label} ${it.value.seconds()}" },
+                databaseSteps.entries.sortedBy { it.key.ordinal }.joinToString("") { " · ${it.key.label} ${it.value.seconds()}" },
         )
         if (byAction.isNotEmpty()) {
             add(
@@ -503,8 +653,108 @@ data class SectionReport(
         }
     }
 
-    private fun Long?.seconds(): String = this?.let { String.format(Locale.ROOT, "%.2f s", it / 1000.0) } ?: "–"
+    private fun Long?.seconds(): String = this?.let { hundredthsText(hundredths(it)) + " s" } ?: "–"
+
+    /** `ask 0.92 + network 2.85`: the parts with the figures they were given, as a sum. */
+    private fun <T> List<T>.labelled(figures: List<Long>, label: (T) -> String): String =
+        indices.joinToString(" + ") { "${label(this[it])} ${hundredthsText(figures[it])}" }
+
+    private fun Int.grouped(): String = String.format(Locale.ROOT, "%,d", this)
+
+    private fun Long.grouped(): String = String.format(Locale.ROOT, "%,d", this)
+
+    private fun Map<String, Int>.byName(): String = entries.joinToString(", ") { "${it.key} ${it.value.grouped()}" }
+
+    private fun IndexCheck.describe(): String =
+        "rows ${rows.byName()} · all rows ${allRows.grouped()}" +
+            " · search entries ${searchRows.grouped()} · ids indexed more than once ${duplicated.grouped()}" +
+            " · sample search ${sampleResults?.grouped() ?: "–"} results for ${sampleRows?.grouped() ?: "–"} rows" +
+            " · took ${tookMs.seconds()}"
 }
+
+/**
+ * One pass over a section's streams, in milliseconds: what the readers and the writer did
+ * at the same time. See the engine's `PassReport`, which this is a copy of.
+ *
+ * Each side adds up to its own time and never to the other's. The reader's figures are
+ * summed over [parallelReaders] requests in flight at once, so with more than one they
+ * exceed [windowMs]; the writer's are one thread inside it.
+ */
+data class PassTimes(
+    val kind: String,
+    val oneReply: Boolean,
+    val parallelReaders: Int,
+    val requests: Int,
+    /** The pass on the wall clock, from its first request to its last row written. */
+    val windowMs: Long,
+    /** Every request's time, from asking to its last batch handed over, summed. */
+    val readerMs: Long,
+    /** Connecting, sending, waiting for the answer to begin. */
+    val askMs: Long,
+    /** Inside the answer's reads: the bytes arriving. */
+    val readMs: Long,
+    /** Blocked handing a batch to the writer while it was busy with the last. */
+    val handOverMs: Long,
+    /** Handing rows to the database: rows and search entries together. */
+    val writeMs: Long,
+    val commitMs: Long,
+    /** Waiting for the next batch: the readers behind the writer. */
+    val idleMs: Long,
+) {
+    /**
+     * The reader's remaining time: parsing. The remainder of the figures as they are shown,
+     * so the reader's four parts add up to [readerMs] to the millisecond.
+     */
+    val parseMs: Long get() = (readerMs - askMs - readMs - handOverMs).coerceAtLeast(0)
+
+    /** The writer's bookkeeping between the three, by the same rule: the four make [windowMs]. */
+    val otherMs: Long get() = (windowMs - writeMs - commitMs - idleMs).coerceAtLeast(0)
+}
+
+/** How many records each stage of a run saw. Kinds by name. */
+data class RecordCounts(
+    /** Streams parsed out of the replies. */
+    val parsed: Int,
+    /** Filed under a category the panel listed, and handed to the writer. */
+    val filed: Int,
+    /** Parsed, naming a category the panel did not list, and not written. */
+    val orphans: Int,
+    /** Rows written, by kind. */
+    val written: Map<String, Int>,
+    /** The categories the import covered, by the kind each was filed as. */
+    val categories: Map<String, Int>,
+    /** The orphans by the category id they named, most first. */
+    val orphanCategories: List<Pair<String, Int>>,
+)
+
+/** One action's requests in an import window. */
+data class CallTimes(
+    val action: String,
+    val count: Int,
+    val failed: Int,
+    /** Every call's time, summed: from asking until its answer was read to the end. */
+    val totalMs: Long,
+    /** The part of [totalMs] before each answer began. */
+    val waitMs: Long,
+    val bytes: Long,
+)
+
+/** The catalogue and its search index, counted at one moment. Kinds by name. */
+data class IndexCheck(
+    /** This source's rows, by kind. */
+    val rows: Map<String, Int>,
+    /** Every source's rows: what the search index is built from. */
+    val allRows: Int,
+    /** Entries in the search index. One per row when it is in step. */
+    val searchRows: Int,
+    /** Rows the index holds more than one entry for. */
+    val duplicated: Int,
+    /** A sample search run the app's way: results, and the different rows among them. */
+    val sampleResults: Int?,
+    val sampleRows: Int?,
+    /** How long counting took: part of the load's time, shown so it can be set aside. */
+    val tookMs: Long,
+)
 
 /** One moment a run passed through, and when, in milliseconds from its start. */
 data class RunPhase(val phase: PerfPhase, val atMs: Long)
@@ -521,6 +771,13 @@ enum class PerfPhase(val label: String) {
     /** The importer took the section over from the screen. */
     IMPORT("import"),
 
+    /**
+     * The catalogue and its search index were counted before anything was written: a
+     * measurement in debuggable builds, given its own span so its time is never mistaken
+     * for the import's.
+     */
+    CHECKED_BEFORE("checks before"),
+
     /** The provider's category list arrived. */
     CATEGORIES("categories"),
 
@@ -536,6 +793,9 @@ enum class PerfPhase(val label: String) {
     /** The writer has finished: old rows pruned, counts and search rebuilt. */
     FINISHED("finished"),
 
+    /** Counted again after the import, like [CHECKED_BEFORE] and for the same reason. */
+    CHECKED_AFTER("checks after"),
+
     /** The section is marked as loaded, so the next open reads from the device. */
     RECORDED("recorded"),
 }
@@ -546,12 +806,16 @@ data class ActionCount(val started: Int, val failed: Int, val retried: Int)
 /**
  * The parts of SQLite's work an import reports besides its commits.
  *
- * Each is measured where the writer does it, once per batch or once per import --
- * never per row, which would cost more than the write.
+ * Each is reported where the writer does it, once per batch or once per import -- never
+ * per row, which would cost more than the write. Rows and their search entries are timed
+ * row by row, because they alternate inside a batch, and added up before they are told.
  */
 enum class DatabaseStep(val label: String) {
-    /** Writing rows into the open transaction, between commits. */
-    INSERT("insert"),
+    /** Writing rows into `media`, with its indices, between commits. */
+    ROWS("rows"),
+
+    /** Writing each row's search entry, which an appending import does row by row. */
+    SEARCH_ROWS("search rows"),
 
     /** Dropping the previous generation, after a replacing import. */
     PRUNE("prune"),
@@ -559,6 +823,6 @@ enum class DatabaseStep(val label: String) {
     /** Recounting every group's rows at the end of an import. */
     COUNTS("counts"),
 
-    /** Rebuilding the search index, after a replacing import. */
-    SEARCH("search"),
+    /** Rebuilding the whole search index in one statement, after a replacing import. */
+    SEARCH("search rebuild"),
 }
