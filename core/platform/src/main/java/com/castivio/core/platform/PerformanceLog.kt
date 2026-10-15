@@ -3,9 +3,15 @@ package com.castivio.core.platform
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.os.SystemClock
+import android.util.Log
+import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 /**
  * A stopwatch the user can read, on the device, without a cable.
@@ -59,9 +65,9 @@ object PerformanceLog {
         runs += 1
         lastNetwork = null
         databaseNanos.set(0)
-        requestsStarted.set(0)
-        requestsFailed.set(0)
-        retries.set(0)
+        databaseSteps.clear()
+        actions.clear()
+        failureCounts.clear()
         _current.value = SectionReport(
             section = section,
             run = runs,
@@ -128,8 +134,8 @@ object PerformanceLog {
      * Written before `SectionLoad.Done` reaches a view model, because `LoadSection`
      * emits that only after the importer's flow has completed.
      */
-    fun network(requests: Int, serverMs: Long, cacheHits: Int) {
-        lastNetwork = NetworkWindow(requests, serverMs, cacheHits)
+    fun network(requests: Int, serverMs: Long, cacheHits: Int, waitMs: Long? = null) {
+        lastNetwork = NetworkWindow(requests, serverMs, cacheHits, waitMs)
     }
 
     /** Cleared with every [begin], so a warm open cannot inherit a cold one's counts. */
@@ -143,23 +149,42 @@ object PerformanceLog {
      * was incremented at least once.
      */
 
-    private val requestsStarted = java.util.concurrent.atomic.AtomicInteger()
-    private val requestsFailed = java.util.concurrent.atomic.AtomicInteger()
-    private val retries = java.util.concurrent.atomic.AtomicInteger()
+    /*
+     * Counted per action -- the provider's own name for the request, `get_live_streams`,
+     * never its address -- because a total said 1,673 attempts and 365 failures beside an
+     * import of 836 calls, and a total cannot say which requests those were. The run's
+     * window, from the section opening: wider than the importer's, on purpose, so a
+     * request that is not the import's still shows up as one.
+     */
+    private val actions = ConcurrentHashMap<String, ActionCounter>()
+    private val failureCounts = ConcurrentHashMap<String, AtomicInteger>()
 
-    /** One HTTP call is about to be made. Called by the Xtream client, per attempt. */
-    fun requestStarted() {
-        requestsStarted.incrementAndGet()
+    private class ActionCounter {
+        val started = AtomicInteger()
+        val failed = AtomicInteger()
+        val retried = AtomicInteger()
     }
 
-    /** A call gave up after its retries. A category may survive this; see the engine. */
-    fun requestFailed() {
-        requestsFailed.incrementAndGet()
+    private fun counter(action: String) = actions.getOrPut(action) { ActionCounter() }
+
+    /** One HTTP attempt is about to be made, retries included. */
+    fun requestStarted(action: String) {
+        counter(action).started.incrementAndGet()
     }
 
-    /** A call failed transiently and is being tried again. */
-    fun requestRetried() {
-        retries.incrementAndGet()
+    /**
+     * An attempt gave up -- after its retries, or at once for a failure no retry could
+     * change -- for [reason]: an HTTP status, `timeout`, `unknown host`, or an exception's
+     * class name. Never a URL. A category may survive this; see the engine.
+     */
+    fun requestFailed(action: String, reason: String) {
+        counter(action).failed.incrementAndGet()
+        failureCounts.getOrPut("$action · $reason") { AtomicInteger() }.incrementAndGet()
+    }
+
+    /** An attempt failed transiently and is being made again. */
+    fun requestRetried(action: String) {
+        counter(action).retried.incrementAndGet()
     }
 
     /**
@@ -169,16 +194,67 @@ object PerformanceLog {
      * second count kept here, so the panel and the progress line cannot disagree.
      */
     fun importProgress(categories: Int, records: Int) {
-        val report = _current.value ?: return
-        _current.value = report.copy(
-            categories = categories,
-            records = records,
-            requestsStarted = requestsStarted.get(),
-            requestsFailed = requestsFailed.get(),
-            retries = retries.get(),
-            concurrency = concurrencyLimit,
+        _current.update { report ->
+            report?.withCounts()?.copy(
+                categories = categories,
+                records = records,
+                concurrency = concurrencyLimit,
+            )
+        }
+    }
+
+    /** The request counters as they stand, folded into a report. */
+    private fun SectionReport.withCounts(): SectionReport {
+        val byAction = actions.entries.associate { (action, count) ->
+            action to ActionCount(count.started.get(), count.failed.get(), count.retried.get())
+        }
+        return copy(
+            requestsStarted = byAction.values.sumOf { it.started }.takeIf { byAction.isNotEmpty() },
+            requestsFailed = byAction.values.sumOf { it.failed }.takeIf { byAction.isNotEmpty() },
+            retries = byAction.values.sumOf { it.retried }.takeIf { byAction.isNotEmpty() },
+            byAction = byAction,
+            failureReasons = failureCounts.entries.associate { it.key to it.value.get() },
         )
     }
+
+    /* ---------------------------------------------------------- where the time went
+     *
+     * The 48.75 seconds of a full load, cut at the moments the load passes through, so
+     * a later change can say which part of them it removed. Reported by whoever reaches
+     * each moment -- the importer, the engine through it, the writer -- and timed here,
+     * on the run's own monotonic clock, so the cuts and the full load share a zero.
+     */
+
+    /** The run reached [phase]. The first report wins; a later one is the same moment again. */
+    fun phase(phase: PerfPhase) {
+        _current.update { report ->
+            when {
+                report == null || report.mode != PerfMode.RUNNING -> report
+                report.phases.any { it.phase == phase } -> report
+                else -> report.copy(phases = report.phases + RunPhase(phase, report.sinceStartMs()))
+            }
+        }
+    }
+
+    /** A fact about how the run went that is not a time: which way the streams came. */
+    fun note(key: String, value: String) {
+        _current.update { report ->
+            if (report == null || report.mode != PerfMode.RUNNING) report else report.copy(notes = report.notes + (key to value))
+        }
+    }
+
+    /**
+     * SQLite's share by step, accumulated.
+     *
+     * Beside [addDatabaseNanos], which is the commits alone and always was: the rows are
+     * written between commits and the end of an import does three more things, and a
+     * figure that leaves those out reads as the whole of the database when it is a part.
+     */
+    fun addDatabaseStep(step: DatabaseStep, nanos: Long) {
+        databaseSteps.getOrPut(step) { AtomicLong() }.addAndGet(nanos)
+    }
+
+    private val databaseSteps = ConcurrentHashMap<DatabaseStep, AtomicLong>()
 
     /**
      * How many requests the import is allowed to have in flight at once.
@@ -209,20 +285,32 @@ object PerformanceLog {
         val window = lastNetwork
         val requests = window?.requests ?: 0
         val cached = window != null && requests > 0 && window.cacheHits >= requests
-        _current.value = report.copy(
+        val settledReport = report.withCounts().copy(
             mode = if (mode == PerfMode.COLD && cached) PerfMode.CACHE_HIT else mode,
             requests = requests,
             // Null rather than zero when nothing was asked of the provider: a warm open
             // did not take the server no time, it did not ask it anything.
             serverMs = window?.serverMs?.takeIf { requests > 0 },
+            serverWaitMs = window?.waitMs?.takeIf { requests > 0 },
             fullLoadMs = if (fullLoad) report.sinceStartMs() else null,
             // Same rule: a warm open writes nothing, so it has no database time. Zero
             // here would read as "SQLite was instant" rather than "SQLite was not asked".
             databaseMs = (databaseNanos.get() / 1_000_000).takeIf { it > 0 || fullLoad },
+            databaseSteps = databaseSteps.entries.associate { it.key to it.value.get() / 1_000_000 },
         )
+        _current.value = settledReport
+        settledReport.lines().forEach { Log.i(TAG, it) }
     }
 
-    private data class NetworkWindow(val requests: Int, val serverMs: Long, val cacheHits: Int)
+    private data class NetworkWindow(val requests: Int, val serverMs: Long, val cacheHits: Int, val waitMs: Long?)
+
+    /**
+     * Where a settled run is printed, beside the panel: `adb logcat -s CastivioPerf`.
+     *
+     * The panel is on the loading screen, and the loading screen is gone the moment the
+     * load ends; the log is what keeps the run's whole breakdown once it has.
+     */
+    const val TAG = "CastivioPerf"
 
     /** Whether the performance panel may be drawn: a debuggable build, and nothing else. */
     fun isVisibleIn(context: Context): Boolean =
@@ -352,10 +440,125 @@ data class SectionReport(
 
     /** How many requests the import may have in flight at once. */
     val concurrency: Int? = null,
+
+    /* ------------------------------------------------------ where the time went */
+
+    /** The moments the run passed through, in the order it reached them. */
+    val phases: List<RunPhase> = emptyList(),
+
+    /** Facts about how it ran that are not times: which way the streams came. */
+    val notes: Map<String, String> = emptyMap(),
+
+    /** Attempts by action, retries included, from the section opening. */
+    val byAction: Map<String, ActionCount> = emptyMap(),
+
+    /** Failed attempts by `action · reason`. */
+    val failureReasons: Map<String, Int> = emptyMap(),
+
+    /**
+     * How long the calls waited for the server's first answer, summed: the part of
+     * [serverMs] before a response began. The rest of a call is the body arriving and
+     * being parsed -- the call does not end until it has been read -- so the two are
+     * different costs, and only this one shrinks when there are fewer requests.
+     */
+    val serverWaitMs: Long? = null,
+
+    /** SQLite by step, in milliseconds, beside [databaseMs], which is the commits alone. */
+    val databaseSteps: Map<DatabaseStep, Long> = emptyMap(),
 ) {
     /** Milliseconds since this run began, on the monotonic clock. */
     fun sinceStartMs(): Long = (SystemClock.elapsedRealtimeNanos() - startedAtNanos) / 1_000_000
 
     /** True while the panel should keep showing a running clock rather than a result. */
     val running: Boolean get() = mode == PerfMode.RUNNING
+
+    /**
+     * The run as lines for a log: times, cuts, requests by action and failures by reason.
+     *
+     * Names and numbers only -- an action, a status, a class name -- because this is
+     * printed, and an Xtream URL carries the user's password.
+     */
+    fun lines(): List<String> = buildList {
+        add("── ${section.name} · run $run · ${mode.name} ──")
+        add("full load ${fullLoadMs.seconds()} · ttid ${ttidMs.seconds()} · ttfc ${firstContentMs.seconds()}")
+        if (phases.isNotEmpty()) add("phases " + phases.joinToString(" · ") { "${it.phase.label} ${it.atMs.seconds()}" })
+        notes.forEach { (key, value) -> add("$key: $value") }
+        add(
+            "network ${serverMs.seconds()} in calls · ${serverWaitMs.seconds()} waiting · ${requests ?: 0} calls" +
+                " · categories ${categories ?: 0} · records ${records ?: 0}",
+        )
+        add(
+            "database commit ${databaseMs.seconds()}" +
+                databaseSteps.entries.joinToString("") { " · ${it.key.label} ${it.value.seconds()}" },
+        )
+        if (byAction.isNotEmpty()) {
+            add(
+                "attempts " + byAction.entries.sortedByDescending { it.value.started }.joinToString(" · ") {
+                    "${it.key} ${it.value.started} (fail ${it.value.failed}, retry ${it.value.retried})"
+                },
+            )
+        }
+        if (failureReasons.isNotEmpty()) {
+            add("failures " + failureReasons.entries.sortedByDescending { it.value }.joinToString(" · ") { "${it.key} ×${it.value}" })
+        }
+    }
+
+    private fun Long?.seconds(): String = this?.let { String.format(Locale.ROOT, "%.2f s", it / 1000.0) } ?: "–"
+}
+
+/** One moment a run passed through, and when, in milliseconds from its start. */
+data class RunPhase(val phase: PerfPhase, val atMs: Long)
+
+/**
+ * The moments a load is cut at, in the order a load passes them.
+ *
+ * Named once, here, so every path — a panel, a playlist, a portal — cuts at the same
+ * names, a reading of one can be set beside a reading of another, and the panel can tell
+ * them apart without matching on text. A path reports only the moments it has: a
+ * playlist has no categories to ask for, so it goes from [IMPORT] to [FIRST_COMMIT].
+ */
+enum class PerfPhase(val label: String) {
+    /** The importer took the section over from the screen. */
+    IMPORT("import"),
+
+    /** The provider's category list arrived. */
+    CATEGORIES("categories"),
+
+    /** Every category is written as a group, in the provider's order. */
+    GROUPS("groups"),
+
+    /** The first rows are committed: the earliest a list could show anything. */
+    FIRST_COMMIT("first commit"),
+
+    /** Every stream has arrived and been written. */
+    STREAMS("streams"),
+
+    /** The writer has finished: old rows pruned, counts and search rebuilt. */
+    FINISHED("finished"),
+
+    /** The section is marked as loaded, so the next open reads from the device. */
+    RECORDED("recorded"),
+}
+
+/** One action's attempts in a run: begun, given up, and made again. */
+data class ActionCount(val started: Int, val failed: Int, val retried: Int)
+
+/**
+ * The parts of SQLite's work an import reports besides its commits.
+ *
+ * Each is measured where the writer does it, once per batch or once per import --
+ * never per row, which would cost more than the write.
+ */
+enum class DatabaseStep(val label: String) {
+    /** Writing rows into the open transaction, between commits. */
+    INSERT("insert"),
+
+    /** Dropping the previous generation, after a replacing import. */
+    PRUNE("prune"),
+
+    /** Recounting every group's rows at the end of an import. */
+    COUNTS("counts"),
+
+    /** Rebuilding the search index, after a replacing import. */
+    SEARCH("search"),
 }

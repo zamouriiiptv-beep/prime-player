@@ -4,6 +4,7 @@ import android.util.Log
 import com.castivio.core.common.AppError
 import com.castivio.core.common.Outcome
 import com.castivio.data.parsing.JsonFormatException
+import com.castivio.data.parsing.WholeSectionUnsupported
 import com.castivio.data.parsing.XtreamAccount
 import com.castivio.data.parsing.XtreamEpgEntry
 import com.castivio.data.parsing.XtreamImportEngine
@@ -221,18 +222,19 @@ class XtreamHttpApi(
      * a cancelled import can linger inside a backoff is one second.
      */
     private fun openWithRetry(url: String, noCache: Boolean = false): Reader {
+        val action = actionOf(url)
         var attempt = 0
         while (true) {
-            PerformanceLog.requestStarted()
+            PerformanceLog.requestStarted(action)
             try {
                 return openNow(url, noCache)
             } catch (e: IOException) {
                 if (attempt >= MAX_RETRIES || !isTransient(e)) {
-                    PerformanceLog.requestFailed()
+                    PerformanceLog.requestFailed(action, reasonOf(e))
                     throw e
                 }
                 attempt++
-                PerformanceLog.requestRetried()
+                PerformanceLog.requestRetried(action)
                 try {
                     Thread.sleep(BACKOFF_MS * attempt)
                 } catch (interrupted: InterruptedException) {
@@ -240,9 +242,47 @@ class XtreamHttpApi(
                     // the original failure stand rather than starting another attempt
                     // nobody is waiting for.
                     Thread.currentThread().interrupt()
-                    PerformanceLog.requestFailed()
+                    PerformanceLog.requestFailed(action, reasonOf(e))
                     throw e
                 }
+            }
+        }
+    }
+
+    /**
+     * A section's streams in one reply: the streams action, with no category.
+     *
+     * ## One attempt, never retried
+     *
+     * This is a question the panel may not answer, and the engine has an answer of its
+     * own ready — the category-by-category walk — so a failure here is a reason to stop
+     * asking, not to ask harder. [openWithRetry]'s two retries would turn a panel that
+     * times out on the big reply into three timeouts before the walk began.
+     *
+     * ## What counts as a refusal
+     *
+     * Any error status: the panel heard the question and declined it. It is reported as
+     * [WholeSectionUnsupported], so the engine's report can say "refused" rather than
+     * "failed"; a timeout or a dropped connection is thrown as it is. Both end in the
+     * walk. A reply that arrives but is not a list is the parser's to notice.
+     *
+     * Series are not offered: their list is a different action with a different shape,
+     * and nothing asks for them in one reply.
+     */
+    override fun allStreams(kind: MediaKind): Reader? {
+        if (kind == MediaKind.SERIES) return null
+        val url = XtreamUrls.api(base, username, password, action = kind.streamsAction())
+        val action = actionOf(url)
+        return trace(traceName(url)) {
+            PerformanceLog.requestStarted(action)
+            try {
+                openNow(url)
+            } catch (e: HttpStatusException) {
+                PerformanceLog.requestFailed(action, reasonOf(e))
+                throw WholeSectionUnsupported("HTTP ${e.statusCode}", e)
+            } catch (e: IOException) {
+                PerformanceLog.requestFailed(action, reasonOf(e))
+                throw e
             }
         }
     }
@@ -302,9 +342,21 @@ class XtreamHttpApi(
     }
 
     /** `Castivio.Api.get_live_streams`, and never the host, the user or the password. */
-    private fun traceName(url: String): String {
-        val action = url.substringAfter("action=", "").substringBefore('&')
-        return if (action.isEmpty()) "${CastivioTrace.API}.account" else "${CastivioTrace.API}.$action"
+    private fun traceName(url: String): String = "${CastivioTrace.API}.${actionOf(url)}"
+
+    /**
+     * The request's name for a counter: its `action`, or `account` for the call that has
+     * none. One query parameter and nothing else, so no address or credential is counted.
+     */
+    private fun actionOf(url: String): String =
+        url.substringAfter("action=", "").substringBefore('&').ifEmpty { "account" }
+
+    /** Why an attempt gave up, in a word a counter can hold: a status, never a URL. */
+    private fun reasonOf(e: IOException): String = when (e) {
+        is HttpStatusException -> "HTTP ${e.statusCode}"
+        is UnknownHostException -> "unknown host"
+        is InterruptedIOException -> "timeout"
+        else -> e.javaClass.simpleName
     }
 
     /**

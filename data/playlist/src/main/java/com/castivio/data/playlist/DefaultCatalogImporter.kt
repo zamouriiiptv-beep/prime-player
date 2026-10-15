@@ -3,6 +3,7 @@ package com.castivio.data.playlist
 import android.util.Log
 import com.castivio.core.common.AppError
 import com.castivio.core.common.AppDispatchers
+import com.castivio.core.platform.PerfPhase
 import com.castivio.core.platform.PerformanceLog
 import com.castivio.data.networking.CallMetrics
 import com.castivio.data.networking.HttpStatusException
@@ -243,7 +244,8 @@ class DefaultCatalogImporter(
         // here changes what is requested.
         CallMetrics.reset()
         PerformanceLog.importConcurrency(1)
-        PerformanceLog.requestStarted()
+        PerformanceLog.phase(PerfPhase.IMPORT)
+        PerformanceLog.requestStarted(PLAYLIST_ACTION)
 
         val writer = WatchedWriter(writerFactory())
         val request = RemoteRequest(
@@ -269,9 +271,13 @@ class DefaultCatalogImporter(
                     onProgress = { progress ->
                         if (progress is ImportProgress.Importing) {
                             saved = progress.itemsImported
+                            // The playlist engine reports after each committed batch, so
+                            // its first report is its first commit.
+                            PerformanceLog.phase(PerfPhase.FIRST_COMMIT)
                             PerformanceLog.importProgress(progress.groupsReady, progress.itemsImported)
                             onProgress(progress.copy(bytes = received.bytes))
                         } else {
+                            if (progress is ImportProgress.Done) PerformanceLog.phase(PerfPhase.FINISHED)
                             onProgress(progress)
                         }
                     },
@@ -304,7 +310,10 @@ class DefaultCatalogImporter(
                 }
 
                 is RemoteResult.Failure -> {
-                    PerformanceLog.requestFailed()
+                    PerformanceLog.requestFailed(
+                        PLAYLIST_ACTION,
+                        result.statusCode?.let { "HTTP $it" } ?: result.cause?.javaClass?.simpleName ?: result.error.name,
+                    )
                     writer.abort(result.cause)
                     onProgress(
                         ImportProgress.Failed(
@@ -326,6 +335,7 @@ class DefaultCatalogImporter(
                     // The hash is only meaningful for a stream read to the end.
                     val hash = if (summary.cancelled) stored?.sync?.contentHash else result.contentHash
                     record(sourceId, summary, result.etag, result.lastModified, hash)
+                    PerformanceLog.phase(PerfPhase.RECORDED)
                 }
             }
         } finally {
@@ -338,6 +348,7 @@ class DefaultCatalogImporter(
                 requests = CallMetrics.totalCalls().toInt(),
                 serverMs = CallMetrics.callTimeMs(),
                 cacheHits = CallMetrics.cacheHits().toInt(),
+                waitMs = CallMetrics.waitTimeMs(),
             )
         }
     }
@@ -391,6 +402,12 @@ class DefaultCatalogImporter(
             return
         }
         val writer = writerFactory()
+        // The same window the other two paths open, so a portal's load is measured in the
+        // same terms instead of showing whatever the previous section's import left behind.
+        // One page at a time, which is what the engine does.
+        CallMetrics.reset()
+        PerformanceLog.importConcurrency(1)
+        PerformanceLog.phase(PerfPhase.IMPORT)
         val startedAt = clock()
         try {
             val written = StalkerImportEngine().importKind(
@@ -416,10 +433,19 @@ class DefaultCatalogImporter(
                     durationMs = clock() - startedAt,
                 ),
             )
+            PerformanceLog.phase(PerfPhase.FINISHED)
             onProgress(ImportProgress.Done(written, clock() - startedAt))
         } catch (e: Exception) {
             writer.abort(e)
             onProgress(ImportProgress.Failed(AppError.UNKNOWN))
+        } finally {
+            CallMetrics.report("import portal $kind").forEach(log)
+            PerformanceLog.network(
+                requests = CallMetrics.totalCalls().toInt(),
+                serverMs = CallMetrics.callTimeMs(),
+                cacheHits = CallMetrics.cacheHits().toInt(),
+                waitMs = CallMetrics.waitTimeMs(),
+            )
         }
     }
 
@@ -493,6 +519,7 @@ class DefaultCatalogImporter(
         // The limit actually in force, read from the engine rather than restated, so the
         // panel cannot claim a concurrency the import is not using.
         PerformanceLog.importConcurrency(XtreamImportEngine.DEFAULT_CONCURRENCY)
+        PerformanceLog.phase(PerfPhase.IMPORT)
         val startedAt = clock()
         var saved = 0
         return try {
@@ -500,6 +527,11 @@ class DefaultCatalogImporter(
                 sourceId = sourceId,
                 api = xtreamApiFactory(account),
                 kinds = setOf(kind),
+                onStreams = { report ->
+                    PerformanceLog.note(NOTE_STREAMS, report.toString())
+                    log("import $kind: $report")
+                },
+                onPhase = { phase -> PerformanceLog.phase(phase.perf) },
                 onProgress = { progress ->
                     // The importer's own running totals, forwarded to the panel as they
                     // arrive. Counting them a second time here is how the progress line
@@ -524,6 +556,7 @@ class DefaultCatalogImporter(
             // No validators for Xtream, and none to preserve: `record` reads the stored
             // row and writes back what this pass learned.
             record(sourceId, summary, etag = null, lastModified = null, contentHash = null)
+            PerformanceLog.phase(PerfPhase.RECORDED)
             null
         } catch (e: CancellationException) {
             throw e
@@ -541,6 +574,7 @@ class DefaultCatalogImporter(
                 requests = CallMetrics.totalCalls().toInt(),
                 serverMs = CallMetrics.callTimeMs(),
                 cacheHits = CallMetrics.cacheHits().toInt(),
+                waitMs = CallMetrics.waitTimeMs(),
             )
         }
     }
@@ -673,6 +707,25 @@ class DefaultCatalogImporter(
  * never parsed here.
  */
 private const val M3U_ENTRY = "#EXTINF:"
+
+/** Which way a section's streams came, as the engine reported it. */
+private const val NOTE_STREAMS = "streams"
+
+/** A playlist download's name in the request counters, where a panel's is its action. */
+private const val PLAYLIST_ACTION = "playlist"
+
+/**
+ * The engine's moments, as the panel names them. The engine is in a module that may not
+ * see the platform's stopwatch, so it reports its own and they are translated here.
+ */
+private val XtreamImportEngine.Phase.perf: PerfPhase
+    get() = when (this) {
+        XtreamImportEngine.Phase.CATEGORIES -> PerfPhase.CATEGORIES
+        XtreamImportEngine.Phase.GROUPS -> PerfPhase.GROUPS
+        XtreamImportEngine.Phase.FIRST_COMMIT -> PerfPhase.FIRST_COMMIT
+        XtreamImportEngine.Phase.STREAMS -> PerfPhase.STREAMS
+        XtreamImportEngine.Phase.FINISHED -> PerfPhase.FINISHED
+    }
 
 /**
  * The writer, with a note of whether it was the one that threw.

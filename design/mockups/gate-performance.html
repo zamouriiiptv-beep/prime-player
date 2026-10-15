@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Gate Performance Readout</title>
+<!--
+  The loading gate in a debuggable build, with the performance readout beside it.
+  Frames: ?frame=running | done | fallback (851x393, the phone this was approved on, at 2.75)
+          ?frame=done-800 | fallback-800 (800x360, the shortest landscape surface, at 2)
+  Every figure in the readout is an example of its shape, not a measurement.
+  The page writes a fit report into document.title: the card must sit between the stage
+  lines, and no line may run past the card's width.
+-->
+<style>
+/* The app's own faces, from the repository, so the drawing measures what Compose draws. */
+@font-face{font-family:"Castivio Sans";font-weight:400;src:url("../../core/design/src/main/res/font/inter_regular.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:500;src:url("../../core/design/src/main/res/font/inter_medium.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:600;src:url("../../core/design/src/main/res/font/inter_semibold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Sans";font-weight:700;src:url("../../core/design/src/main/res/font/inter_bold.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:400;src:url("../../core/design/src/main/res/font/plex_arabic_regular.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:500;src:url("../../core/design/src/main/res/font/plex_arabic_medium.ttf") format("truetype")}
+@font-face{font-family:"Castivio Arabic";font-weight:600;src:url("../../core/design/src/main/res/font/plex_arabic_semibold.ttf") format("truetype")}
+
+/* Tokens, transcribed from Color.kt / Type.kt / Spacing.kt / Shape.kt. Dark theme only:
+   the gate draws over the app backdrop, which has no light variant. */
+:root{
+  --void:#08071A;
+  --white:#FFFFFF;          /* onBackground, onBackgroundStrong */
+  --silver:#C9C9DA;         /* onBackgroundVariant */
+  --muted:#A6A6BF;          /* onBackgroundMuted */
+  --azure:#4C9BFF;          /* primary */
+  --violet:#9B6BFF;         /* secondary */
+  --aqua:#2FBF9F;           /* live */
+  --amber:#FFB020;          /* warning */
+  --glass-low:rgba(255,255,255,.059);   /* glassFill  0x0F */
+  --glass-edge:rgba(255,255,255,.078);  /* glassBorderSoft 0x14 */
+  --divider:rgba(255,255,255,.122);     /* divider 0x1F */
+  --mono:"DejaVu Sans Mono","Droid Sans Mono",monospace; /* FontFamily.Monospace */
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--void)}
+body{font-family:"Castivio Sans","Castivio Arabic",sans-serif;color:var(--white);overflow:hidden}
+
+/* The theme's backdrop, approximated: navy, darker at the start edge. */
+.screen{position:relative;overflow:hidden;
+  background:
+    radial-gradient(120% 90% at 50% 105%, rgba(52,62,96,.55), transparent 60%),
+    linear-gradient(100deg,#171d36 0%,#1d2242 42%,#22305a 100%)}
+.screen::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:radial-gradient(rgba(255,255,255,.18) 1px,transparent 1.2px);
+  background-size:173px 131px;background-position:37px 21px;opacity:.35}
+
+/* ---------------------------------------------------------------- the split */
+.split{position:absolute;inset:0;display:flex;direction:rtl;z-index:1}
+.pane{flex:1 1 0;min-width:0;position:relative;display:flex;align-items:center;justify-content:center}
+
+/* -------------------------------------------------------------- the gate column */
+.gate{display:flex;flex-direction:column;align-items:center}
+.wordmark{display:flex;align-items:center;direction:rtl}
+.wordmark img{display:block;object-fit:contain}
+.wordmark .words{display:flex;flex-direction:column;align-items:flex-start}
+.word{font-weight:700;line-height:1.15;color:var(--white);direction:ltr}
+.version{font-family:"Castivio Arabic","Castivio Sans";font-weight:500;color:var(--violet);line-height:1.4}
+.spinner{position:relative}
+.spinner i{position:absolute;inset:0;display:flex;justify-content:center}
+.spinner i b{display:block;border-radius:999px}
+.say{font-family:"Castivio Arabic","Castivio Sans";font-weight:600;color:var(--silver);line-height:1.45;text-align:center;white-space:nowrap}
+.tally{font-family:"Castivio Arabic","Castivio Sans";font-weight:500;color:var(--white);line-height:1.45;white-space:nowrap;unicode-bidi:plaintext}
+.track{border-radius:999px;background:var(--divider);overflow:hidden}
+.track b{display:block;height:100%;border-radius:999px;background:var(--violet)}
+.facts{display:flex;direction:rtl}
+.fact{background:var(--glass-low);border:1px solid var(--glass-edge);border-radius:12px;display:flex;flex-direction:column;align-items:flex-start}
+.fact .k{font-family:"Castivio Arabic","Castivio Sans";font-weight:500;color:var(--muted);line-height:1.45}
+.fact .v{font-weight:500;line-height:1.45;direction:ltr}
+.once{position:absolute;inset-inline:0;bottom:0;text-align:center;font-family:"Castivio Arabic","Castivio Sans";font-weight:500;color:var(--muted);line-height:1.45}
+
+/* ------------------------------------------------------------- the readout
+   LayoutDirection.Ltr inside, as PerformancePanel already forces: every string is a
+   Latin identifier or a number. */
+.readout{direction:ltr;background:var(--glass-low);border:1px solid var(--glass-edge);border-radius:12px;
+  padding:8px 12px;display:flex;flex-direction:column}
+.head{font-size:11px;line-height:18px;letter-spacing:1.2px;font-weight:600;color:var(--silver);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;white-space:nowrap}
+.row .l{font-size:12.5px;line-height:20px;font-weight:500}
+.row .v{font-family:var(--mono);font-size:13px;line-height:18px;font-weight:500}
+.row.detail{padding-inline-start:12px}
+.row.detail .l{font-size:11px;line-height:18px;letter-spacing:.4px}
+.strong{color:var(--white)}
+.variant{color:var(--silver)}
+.quiet{color:var(--muted)}
+.warn{color:var(--amber)}
+.line{font-size:11px;line-height:18px;letter-spacing:.4px;font-weight:500;color:var(--muted);padding-inline-start:12px}
+.line.clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.group{margin-top:2px}
+
+/* Where the time went: the spans between the moments the run passed, to scale. */
+.cuts{display:flex;gap:1px;height:6px;margin:5px 0 4px;border-radius:999px;overflow:hidden}
+.cuts b{display:block;height:100%;min-width:2px}
+.legend{display:flex;flex-wrap:wrap;column-gap:10px;row-gap:0;font-size:11px;line-height:18px;letter-spacing:.4px;font-weight:500;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.legend span::before{content:"";width:6px;height:6px;border-radius:999px;background:var(--dot)}
+.legend em{font-style:normal;font-family:var(--mono);color:var(--silver)}
+
+.c-quiet{--dot:var(--muted)} .c-azure{--dot:var(--azure)} .c-aqua{--dot:var(--aqua)}
+.c-violet{--dot:var(--violet)} .c-violet-soft{--dot:rgba(155,107,255,.55)}
+</style>
+</head>
+<body>
+<div class="screen" id="screen">
+  <div class="split" id="split">
+    <div class="pane" id="gatePane"></div>
+    <div class="pane" id="panelPane"></div>
+  </div>
+</div>
+
+<script>
+/* ------------------------------------------------------------------ frames
+   Every figure below is illustrative: the shape of the readout, not a measurement. */
+const SAMPLE_MAC = "4E:B6:93:1B:2A:E5";
+const FRAMES = {
+  running: {w: 851, h: 393, gate: {items: "31,480", mb: "10.3 MB", fraction: null},
+    report: {mode: "RUNNING", elapsed: 6250, ttid: 190,
+      phases: [["import",40],["categories",620],["groups",680],["first commit",1200]],
+      categories: 835, records: 31480,
+      requests: [837-835, 0, 0], actions: [["get_live_categories",1,0,0],["get_live_streams",1,0,0]],
+      failures: [], concurrency: 4}},
+  done: {w: 851, h: 393, gate: {done: 835, total: 835, mb: "18.1 MB", fraction: 1},
+    report: {mode: "COLD", ttid: 190, full: 11420,
+      phases: [["import",40],["categories",620],["groups",680],["first commit",1200],["streams",9860],["finished",10980],["recorded",11400]],
+      network: [9050, 710], note: "LIVE: one reply, 55202 rows, 0 orphaned, 0 categories asked again",
+      commit: 380, steps: [["insert",2300],["prune",30],["counts",410],["search",380]],
+      categories: 835, records: 55202,
+      requests: [2,0,0], actions: [["get_live_categories",1,0,0],["get_live_streams",1,0,0]], failures: []}},
+  fallback: {w: 851, h: 393, gate: {done: 835, total: 835, mb: "18.1 MB", fraction: 1},
+    report: {mode: "COLD", ttid: 190, full: 48750,
+      phases: [["import",40],["categories",610],["groups",670],["first commit",1520],["streams",47210],["finished",48330],["recorded",48720]],
+      network: [136100, 52400], note: "LIVE: one reply refused (HTTP 404), asked per category",
+      commit: 1290, steps: [["insert",2940],["prune",40],["counts",950],["search",710]],
+      categories: 835, records: 55202,
+      requests: [837,1,0], actions: [["get_live_streams",836,1,0],["get_live_categories",1,0,0]],
+      failures: [["get_live_streams · HTTP 404",1]]}},
+};
+FRAMES["fallback-800"] = Object.assign({}, FRAMES.fallback, {w: 800, h: 360});
+FRAMES["done-800"] = Object.assign({}, FRAMES.done, {w: 800, h: 360});
+
+const COLOR = {"import":"c-quiet","categories":"c-azure","groups":"c-aqua","first commit":"c-violet-soft",
+  "streams":"c-violet","finished":"c-aqua","recorded":"c-quiet","done":"c-quiet"};
+const INK = {"c-quiet":"var(--muted)","c-azure":"var(--azure)","c-aqua":"var(--aqua)",
+  "c-violet-soft":"rgba(155,107,255,.55)","c-violet":"var(--violet)"};
+
+/* castivioMetrics and LoadingGate's shares, transcribed. */
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+function metrics(W, H){
+  return {
+    edge: clamp(W*61.3/1280, 24, 72), stageTop: clamp(H*32/720, 12, 40),
+    fsTitle: clamp(H*34.7/720, 18, 36), fsBody: clamp(H*18/720, 12, 19),
+    logo: clamp(H*118/720, 48, 132), gap: clamp(H*14/720, 6, 20),
+  };
+}
+const s = ms => (ms/1000).toFixed(2) + " s";
+const n2 = ms => (ms/1000).toFixed(2);
+
+function gateColumn(f, m, paneWidth){
+  const g = f.gate;
+  const spinner = m.logo*0.46, dot = spinner/7;
+  let dots = "";
+  for (let i = 0; i < 7; i++){
+    const step = i/7, col = i%2===0 ? "155,107,255" : "76,155,255";
+    dots += `<i style="transform:rotate(${(step*360+38).toFixed(1)}deg)"><b style="width:${dot}px;height:${dot}px;background:rgba(${col},${(1-step*0.82).toFixed(2)})"></b></i>`;
+  }
+  const tally = g.fraction === null
+    ? `${g.items} عنصرًا · ${g.mb}`
+    : `${g.done} / ${g.total} تصنيفًا · ${g.mb}`;
+  // The track keeps the release width (0.42 of the screen) unless the pane is narrower.
+  const track = Math.min(f.w*0.42, paneWidth);
+  return `
+  <div class="gate" style="gap:${m.gap}px">
+    <div class="wordmark" style="gap:${m.edge/2}px">
+      <img src="../../core/design/src/main/res/drawable-nodpi/castivio_logo.png" style="width:${m.logo}px;height:${m.logo}px" alt="">
+      <div class="words">
+        <div class="word" style="font-size:${(m.fsTitle*1.5).toFixed(2)}px">Castivio</div>
+        <div class="version" style="font-size:${m.fsBody}px">الإصدار 1.0.0</div>
+      </div>
+    </div>
+    <div class="spinner" style="width:${spinner}px;height:${spinner}px">${dots}</div>
+    <div class="say" style="font-size:${(m.fsBody*1.15).toFixed(2)}px">جارٍ تحميل البث المباشر…</div>
+    <div class="tally" style="font-size:${(m.fsBody*1.1).toFixed(2)}px">${tally}</div>
+    <div class="track" style="width:${track}px;height:${m.gap/2}px"><b style="width:${(g.fraction||0)*100}%"></b></div>
+    <div style="height:${m.gap/2}px"></div>
+    <div class="facts" style="gap:${m.edge/2}px">
+      <div class="fact" style="padding:${m.edge/4}px ${m.edge/2}px">
+        <span class="k" style="font-size:${(m.fsBody*0.82).toFixed(2)}px">عنوان MAC</span>
+        <span class="v" style="font-size:${m.fsBody}px;color:var(--violet)">${SAMPLE_MAC}</span>
+      </div>
+      <div class="fact" style="padding:${m.edge/4}px ${m.edge/2}px">
+        <span class="k" style="font-size:${(m.fsBody*0.82).toFixed(2)}px">المزوّد</span>
+        <span class="v" style="font-size:${m.fsBody}px;color:var(--aqua)">Playlist 1</span>
+      </div>
+    </div>
+  </div>
+  <div class="once" style="font-size:${(m.fsBody*0.82).toFixed(2)}px;padding:${m.stageTop}px ${m.edge/2}px">يحدث هذا مرة واحدة. في المرة القادمة يُفتح القسم فورًا.</div>`;
+}
+
+/* The spans between consecutive moments, the last one closed by the full load. */
+function spans(r){
+  const out = []; let prev = 0;
+  for (const [name, at] of r.phases){ out.push([name, at - prev]); prev = at; }
+  if (r.full != null) out.push(["done", r.full - prev]);
+  return out;
+}
+
+function readout(f){
+  const r = f.report;
+  const rows = [];
+  rows.push(`<div class="head">CHANNELS · run 1 · ${r.mode}</div>`);
+  if (r.mode === "RUNNING") rows.push(row("Elapsed", s(r.elapsed), "quiet"));
+  if (r.full != null) rows.push(row("Full Load", s(r.full), "strong"));
+  const cut = spans(r);
+  if (r.full != null){
+    rows.push(`<div class="cuts">${cut.map(([k,v]) => `<b style="flex:${Math.max(v,1)} 1 0;background:${INK[COLOR[k]]}"></b>`).join("")}</div>`);
+  }
+  if (cut.length) rows.push(`<div class="legend">${cut.map(([k,v]) => `<span class="${COLOR[k]}">${k} <em>${n2(v)}</em></span>`).join("")}</div>`);
+  rows.push(row("TTID", s(r.ttid), "strong"));
+  if (r.network){
+    rows.push(row("Network", `${s(r.network[0])} · wait ${s(r.network[1])}`, "variant", "group"));
+  }
+  if (r.note) rows.push(`<div class="line clamp2">${r.note}</div>`);
+  if (r.commit != null){
+    rows.push(row("Database · commit", s(r.commit), "variant", "group"));
+    rows.push(`<div class="line">${r.steps.map(([k,v]) => `${k} ${n2(v)}`).join(" · ")} s</div>`);
+  }
+  rows.push(row("Categories · Records", `${r.categories} · ${r.records}`, "variant", "group"));
+  rows.push(row("Requests  (fail · retry)", `${r.requests[0]}  (${r.requests[1]} · ${r.requests[2]})`, "variant"));
+  for (const [a, st, fl, rt] of r.actions.slice(0, 3)) rows.push(row(a, `${st}  (${fl} · ${rt})`, "quiet", "detail"));
+  for (const [why, count] of r.failures.slice(0, 2)) rows.push(row(why, `×${count}`, "warn", "detail"));
+  if (r.concurrency) rows.push(row("Concurrency", `${r.concurrency} in flight`, "quiet"));
+  return `<div class="readout" id="readout">${rows.join("")}</div>`;
+}
+function row(label, value, ink, extra){
+  const cls = extra === "detail" ? "row detail" : "row" + (extra === "group" ? " group" : "");
+  return `<div class="${cls} ${ink}"><span class="l">${label}</span><span class="v">${value}</span></div>`;
+}
+
+const params = new URLSearchParams(location.search);
+const f = FRAMES[params.get("frame") || "done"];
+const m = metrics(f.w, f.h);
+const screen = document.getElementById("screen");
+screen.style.width = f.w + "px"; screen.style.height = f.h + "px";
+const split = document.getElementById("split");
+split.style.padding = `0 ${m.edge}px`; split.style.gap = `${m.edge/2}px`;
+const paneWidth = (f.w - 2*m.edge - m.edge/2)/2;
+document.getElementById("gatePane").innerHTML = gateColumn(f, m, paneWidth);
+const panelPane = document.getElementById("panelPane");
+panelPane.style.padding = `${m.stageTop}px 0`;
+panelPane.innerHTML = readout(f);
+const card = document.getElementById("readout");
+card.style.width = Math.min(paneWidth, 400) + "px";
+
+/* Fit report, read by the render script: the card must sit inside the stage. */
+requestAnimationFrame(() => {
+  const box = card.getBoundingClientRect();
+  document.title = JSON.stringify({frame: params.get("frame"), cardTop: +box.top.toFixed(1),
+    cardBottom: +box.bottom.toFixed(1), limitTop: +m.stageTop.toFixed(1), limitBottom: +(f.h - m.stageTop).toFixed(1),
+    width: +box.width.toFixed(1), overflowX: [...card.querySelectorAll(".row,.line,.legend,.head")].some(e => e.scrollWidth > e.clientWidth + 0.5)});
+});
+</script>
+</body>
+</html>

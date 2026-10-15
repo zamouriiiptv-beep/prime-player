@@ -73,6 +73,31 @@ class CallMetricsTest {
     }
 
     /**
+     * **The wait for an answer, apart from the answer arriving.**
+     *
+     * A call does not end until its body has been read, so its time is the server's wait
+     * plus the transfer plus whatever reads the body. The wait is the part a request costs
+     * merely by being made, which is what fewer requests saves; it has to be measurable
+     * apart, and it can never exceed the call it is part of.
+     */
+    @Test
+    fun `the wait for headers is measured apart from the body`() {
+        server.enqueue(
+            MockResponse()
+                .setHeadersDelay(150, TimeUnit.MILLISECONDS)
+                .setBody("[" + "0,".repeat(20_000) + "0]")
+                .throttleBody(16_384, 40, TimeUnit.MILLISECONDS),
+        )
+
+        get("/player_api.php?username=u&password=p&action=get_live_streams")
+
+        val wait = CallMetrics.waitTimeMs()
+        val whole = CallMetrics.callTimeMs()
+        assertTrue("the headers' delay was not counted: $wait ms", wait >= 140)
+        assertTrue("the body's transfer was counted as waiting: $wait of $whole ms", wait < whole)
+    }
+
+    /**
      * **No credential ever reaches a counter, a log line or a report.**
      *
      * This object's entire purpose is to be printed, so the rule is not a precaution.

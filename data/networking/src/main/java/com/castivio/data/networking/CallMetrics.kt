@@ -45,6 +45,7 @@ object CallMetrics {
         internal val calls = AtomicLong()
         internal val failures = AtomicLong()
         internal val totalNanos = AtomicLong()
+        internal val waitNanos = AtomicLong()
         internal val slowestNanos = AtomicLong()
         internal val bytes = AtomicLong()
 
@@ -82,6 +83,17 @@ object CallMetrics {
      * second cannot say whose fault it is.
      */
     fun callTimeMs(): Long = (tallies.values.sumOf { it.totalNanos.get() } / 1_000_000)
+
+    /**
+     * How much of [callTimeMs] was spent waiting for the server's first answer: from the
+     * call's start to its response headers, summed.
+     *
+     * The rest of a call is its body arriving and being parsed — a call does not end until
+     * its body has been read, and the import reads it as it parses — so the two are
+     * different costs. This is the one a request costs merely by being made, and the one
+     * that shrinks when the same rows come in fewer requests.
+     */
+    fun waitTimeMs(): Long = (tallies.values.sumOf { it.waitNanos.get() } / 1_000_000)
 
     /**
      * How much came back, across every call in the window.
@@ -144,6 +156,7 @@ object CallMetrics {
         add("served from cache: ${cacheHits()} of $calls")
         val sum = tallies.values.sumOf { it.totalNanos.get() } / 1_000_000.0
         add("time in calls: %.0f ms (sum) against %.0f ms (span)".format(sum, spanMs()))
+        add("of which waiting for an answer: %d ms (sum)".format(waitTimeMs()))
         if (spanMs() > 0) {
             // Above 1.0 means requests overlapped; at or below it they were serial.
             add("overlap factor: %.2f — 1.00 is fully sequential".format(sum / spanMs()))
@@ -156,11 +169,12 @@ object CallMetrics {
         report(title).forEach { Log.i(TAG, it) }
     }
 
-    internal fun record(action: String, nanos: Long, bytes: Long, failed: Boolean) {
+    internal fun record(action: String, nanos: Long, bytes: Long, failed: Boolean, waitNanos: Long = 0) {
         val tally = tallies.computeIfAbsent(action, ::Tally)
         tally.calls.incrementAndGet()
         if (failed) tally.failures.incrementAndGet()
         tally.totalNanos.addAndGet(nanos)
+        tally.waitNanos.addAndGet(waitNanos)
         tally.bytes.addAndGet(bytes)
         // A plain compare-and-set loop: `updateAndGet` would be tidier and is API 24,
         // and this module ships to API 21.
@@ -234,9 +248,21 @@ class CallMetricsListener : EventListener() {
             nanos = now - begin,
             bytes = bytesRead,
             failed = failed,
+            // Up to the headers, or the whole call when there were none to wait for.
+            waitNanos = (if (headersAt > 0) headersAt else now) - begin,
         )
         bytesRead = 0
+        headersAt = 0
     }
+
+    /**
+     * When the response's headers arrived, on the same clock as [started].
+     *
+     * Per listener instance, like [bytesRead]: one listener per call through [FACTORY].
+     * `callStart` is read from a thread local because it was written that way; the
+     * headers are reported on the thread that executes the call, which is the same one.
+     */
+    private var headersAt: Long = 0
 
     /**
      * How much came back, from the one event that knows.
@@ -264,6 +290,7 @@ class CallMetricsListener : EventListener() {
         CallMetrics.recordCacheHit()
 
     override fun responseHeadersEnd(call: Call, response: Response) {
+        if (headersAt == 0L) headersAt = System.nanoTime()
         // A cached response has no body event, so the declared length is the only size
         // signal. Overwritten by `responseBodyEnd` when a body really is read.
         if (bytesRead == 0L) bytesRead = response.body?.contentLength()?.coerceAtLeast(0) ?: 0

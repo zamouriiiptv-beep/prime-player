@@ -218,6 +218,110 @@ class PerformanceLogTest {
         assertNull("a warm open wrote nothing", PerformanceLog.current.value!!.databaseMs)
     }
 
+    // ------------------------------------------------------------ step 0: the breakdown
+
+    /**
+     * A total said 1,673 attempts and 365 failures beside an import of 836 calls, and a
+     * total cannot say which requests those were. By action, and by reason, it can.
+     */
+    @Test
+    fun `attempts are counted by action and failures by reason`() {
+        repeat(3) { PerformanceLog.requestStarted("get_live_streams") }
+        PerformanceLog.requestRetried("get_live_streams")
+        PerformanceLog.requestFailed("get_live_streams", "HTTP 404")
+        PerformanceLog.requestStarted("get_live_categories")
+        PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
+
+        val report = PerformanceLog.current.value!!
+        assertEquals(ActionCount(started = 3, failed = 1, retried = 1), report.byAction["get_live_streams"])
+        assertEquals(ActionCount(started = 1, failed = 0, retried = 0), report.byAction["get_live_categories"])
+        assertEquals(mapOf("get_live_streams · HTTP 404" to 1), report.failureReasons)
+        assertEquals("the totals are the actions' sum", 4, report.requestsStarted)
+        assertEquals(1, report.requestsFailed)
+        assertEquals(1, report.retries)
+    }
+
+    @Test
+    fun `a new run forgets the previous run's attempts`() {
+        PerformanceLog.requestStarted("get_live_streams")
+        PerformanceLog.requestFailed("get_live_streams", "timeout")
+        PerformanceLog.begin(PerfSection.CHANNELS)
+        PerformanceLog.settled(PerfMode.WARM, fullLoad = false)
+
+        val report = PerformanceLog.current.value!!
+        assertTrue(report.byAction.isEmpty())
+        assertTrue(report.failureReasons.isEmpty())
+        assertNull("no attempt is not zero attempts", report.requestsStarted)
+    }
+
+    /** The cuts are kept in the order they were reached, each once, and only while running. */
+    @Test
+    fun `phases are kept in order, once each, until the run settles`() {
+        PerformanceLog.phase(PerfPhase.IMPORT)
+        PerformanceLog.phase(PerfPhase.CATEGORIES)
+        PerformanceLog.phase(PerfPhase.IMPORT)
+        PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
+        PerformanceLog.phase(PerfPhase.STREAMS)
+
+        val phases = PerformanceLog.current.value!!.phases
+        assertEquals(listOf(PerfPhase.IMPORT, PerfPhase.CATEGORIES), phases.map { it.phase })
+        assertTrue("a later cut cannot precede an earlier one", phases[1].atMs >= phases[0].atMs)
+    }
+
+    @Test
+    fun `a note says how the run went, and is kept with it`() {
+        PerformanceLog.note("streams", "LIVE: one reply")
+        PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
+        assertEquals(mapOf("streams" to "LIVE: one reply"), PerformanceLog.current.value!!.notes)
+    }
+
+    /**
+     * The commits were the whole of "Database" and are a part of it. The rest is reported
+     * beside them, by step, and belongs to one run like the commits do.
+     */
+    @Test
+    fun `database steps are reported beside the commits and do not outlive the run`() {
+        PerformanceLog.addDatabaseNanos(10_000_000)
+        PerformanceLog.addDatabaseStep(DatabaseStep.INSERT, 30_000_000)
+        PerformanceLog.addDatabaseStep(DatabaseStep.INSERT, 20_000_000)
+        PerformanceLog.addDatabaseStep(DatabaseStep.COUNTS, 7_000_000)
+        PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
+
+        val report = PerformanceLog.current.value!!
+        assertEquals(10L, report.databaseMs)
+        assertEquals(mapOf(DatabaseStep.INSERT to 50L, DatabaseStep.COUNTS to 7L), report.databaseSteps)
+
+        PerformanceLog.begin(PerfSection.CHANNELS)
+        PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
+        assertTrue("the previous run's steps leaked", PerformanceLog.current.value!!.databaseSteps.isEmpty())
+    }
+
+    @Test
+    fun `the wait for answers is reported beside the time in calls`() {
+        PerformanceLog.network(requests = 836, serverMs = 135_580, cacheHits = 0, waitMs = 101_000)
+        PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
+
+        val report = PerformanceLog.current.value!!
+        assertEquals(135_580L, report.serverMs)
+        assertEquals(101_000L, report.serverWaitMs)
+    }
+
+    /** The log is printed, so it carries names and numbers and never an address. */
+    @Test
+    fun `the log names actions and reasons and never an address`() {
+        PerformanceLog.phase(PerfPhase.IMPORT)
+        PerformanceLog.requestStarted("get_live_streams")
+        PerformanceLog.requestFailed("get_live_streams", "HTTP 404")
+        PerformanceLog.network(requests = 1, serverMs = 900, cacheHits = 0, waitMs = 300)
+        PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
+
+        val lines = PerformanceLog.current.value!!.lines()
+        assertTrue(lines.any { it.startsWith("phases import ") })
+        assertTrue(lines.any { it.contains("get_live_streams 1 (fail 1, retry 0)") })
+        assertTrue(lines.any { it.contains("get_live_streams · HTTP 404 ×1") })
+        assertTrue("an address reached the log", lines.none { it.contains("http") || it.contains("://") })
+    }
+
     /** Every section this phase was asked to time has a name of its own. */
     @Test
     fun `the four sections are distinct`() {

@@ -647,6 +647,20 @@ class DefaultCatalogImporterTest {
     }
 
     /**
+     * Which way the streams came is part of the reading: the panel and the log both say
+     * it, so a measurement taken category by category is never mistaken for one taken in
+     * one reply, or the other way round.
+     */
+    @Test
+    fun `an xtream import says which way its streams came`() = runBlocking {
+        val source = PlaylistSource.Xtream("http://panel:8080", "user", "pass")
+
+        importer(xtreamApi = FakeXtreamApi()).importKind(source, MediaKind.LIVE).toList()
+
+        assertTrue(logged.joinToString("\n"), logged.any { it.contains("import LIVE: LIVE: asked per category") })
+    }
+
+    /**
      * The id must survive a password change, or a user fixing their credentials
      * loses every favourite.
      */

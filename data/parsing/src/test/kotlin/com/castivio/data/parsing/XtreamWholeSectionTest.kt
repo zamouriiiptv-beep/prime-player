@@ -1,0 +1,530 @@
+package com.castivio.data.parsing
+
+import com.castivio.data.parsing.XtreamImportEngine.Phase
+import com.castivio.data.parsing.XtreamImportEngine.StreamStrategy
+import com.castivio.data.parsing.XtreamImportEngine.StreamsReport
+import com.castivio.domain.CatalogItem
+import com.castivio.domain.CatalogWriter
+import com.castivio.domain.ImportMode
+import com.castivio.domain.ImportProgress
+import com.castivio.domain.ImportSummary
+import com.castivio.domain.MediaGroup
+import com.castivio.domain.MediaKind
+import java.io.IOException
+import java.io.Reader
+import java.io.StringReader
+import java.util.Collections
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+/**
+ * A live section in one reply, and every way that reply can fail to be the answer.
+ *
+ * The claim worth gating is equivalence: the one reply and the category-by-category walk
+ * must leave the same rows behind — the same ids, under the same groups, in the same
+ * order, with the stations still filed as radio — because the viewer cannot tell which
+ * of the two ran and must never be able to. Everything else here is a way the reply can
+ * fall short (refused, not a list, empty, broken halfway, missing categories), and each
+ * must end with the walk's result rather than with less.
+ */
+class XtreamWholeSectionTest {
+
+    // ------------------------------------------------------------- equivalence
+
+    @Test
+    fun `one reply leaves exactly the rows the walk leaves`() {
+        val walked = RecordingWriter().also { writer ->
+            XtreamImportEngine(writer).importCatalogue("src", panel(), kinds = setOf(MediaKind.LIVE), mode = ImportMode.APPEND)
+        }
+        val reports = mutableListOf<StreamsReport>()
+        val replied = RecordingWriter().also { writer ->
+            XtreamImportEngine(writer).importCatalogue(
+                "src",
+                panel(),
+                kinds = setOf(MediaKind.LIVE),
+                mode = ImportMode.APPEND,
+                wholeSection = setOf(MediaKind.LIVE),
+                onStreams = { reports += it },
+            )
+        }
+
+        assertEquals(walked.rows(), replied.rows())
+        assertEquals(walked.groups, replied.groups)
+        assertEquals(StreamStrategy.WHOLE_SECTION, reports.single().strategy)
+        assertEquals(5, reports.single().streams)
+        assertEquals(0, reports.single().gapFilled)
+    }
+
+    /** The point of it: one request for the streams, not one per category. */
+    @Test
+    fun `one reply asks for no category on its own`() {
+        val api = panel()
+
+        XtreamImportEngine(RecordingWriter()).importCatalogue(
+            "src",
+            api,
+            kinds = setOf(MediaKind.LIVE),
+            wholeSection = setOf(MediaKind.LIVE),
+        )
+
+        assertEquals(1, api.wholeSectionRequests)
+        assertEquals(emptyList<String>(), api.categoryStreamRequests)
+    }
+
+    @Test
+    fun `stations in the one reply are filed as radio`() {
+        val writer = RecordingWriter()
+
+        XtreamImportEngine(writer).importCatalogue(
+            "src",
+            panel(),
+            kinds = setOf(MediaKind.LIVE),
+            wholeSection = setOf(MediaKind.LIVE),
+        )
+
+        val radio = writer.items.single { it.title == "Atlas FM" }
+        assertEquals(MediaKind.RADIO, radio.kind)
+        assertEquals(StableIds.group("src", MediaKind.RADIO, "Radio FM"), radio.groupId)
+    }
+
+    /** Opening Radio walks the live categories, so it takes the one reply too. */
+    @Test
+    fun `radio asked for on its own takes the one reply`() {
+        val api = panel()
+        val writer = RecordingWriter()
+
+        XtreamImportEngine(writer).importCatalogue(
+            "src",
+            api,
+            kinds = setOf(MediaKind.RADIO),
+            wholeSection = setOf(MediaKind.LIVE),
+        )
+
+        assertEquals(1, api.wholeSectionRequests)
+        assertEquals(5, writer.items.size)
+    }
+
+    /**
+     * Where the panel numbers its channels the number is the order, whichever way the
+     * rows arrived; where it does not, the order is the category's and then the reply's.
+     */
+    @Test
+    fun `the order is the panel's numbering, then the categories' own`() {
+        val writer = RecordingWriter()
+
+        XtreamImportEngine(writer).importCatalogue(
+            "src",
+            panel(),
+            kinds = setOf(MediaKind.LIVE),
+            wholeSection = setOf(MediaKind.LIVE),
+        )
+
+        assertEquals(
+            listOf("Nova Sports 1", "Atlas Sport", "Atlas News", "Nova News", "Atlas FM"),
+            writer.items.sortedBy { it.providerOrder }.map { it.title },
+        )
+    }
+
+    // ------------------------------------------------ when the reply is not the answer
+
+    @Test
+    fun `a refused reply falls back to the walk and loses nothing`() {
+        val reports = mutableListOf<StreamsReport>()
+        val api = panel(wholeSection = { throw WholeSectionUnsupported("HTTP 404") })
+        val writer = RecordingWriter()
+
+        XtreamImportEngine(writer).importCatalogue(
+            "src",
+            api,
+            kinds = setOf(MediaKind.LIVE),
+            wholeSection = setOf(MediaKind.LIVE),
+            onStreams = { reports += it },
+        )
+
+        assertEquals(walkedRows(), writer.rows())
+        assertEquals(listOf("1", "2", "3"), api.categoryStreamRequests.sorted())
+        assertEquals(StreamStrategy.REFUSED, reports.single().strategy)
+        // What the panel answered, which is what the panel reading needs; not a class name.
+        assertEquals("HTTP 404", reports.single().cause)
+        assertEquals("LIVE: one reply refused (HTTP 404), asked per category", reports.single().toString())
+    }
+
+    /** An object, or a page of HTML, where a list was asked for. */
+    @Test
+    fun `a reply that is not a list is a refusal`() {
+        val reports = mutableListOf<StreamsReport>()
+        val writer = RecordingWriter()
+
+        XtreamImportEngine(writer).importCatalogue(
+            "src",
+            panel(wholeSection = { StringReader("""{"user_info":{"auth":1}}""") }),
+            kinds = setOf(MediaKind.LIVE),
+            wholeSection = setOf(MediaKind.LIVE),
+            onStreams = { reports += it },
+        )
+
+        assertEquals(walkedRows(), writer.rows())
+        assertEquals(StreamStrategy.REFUSED, reports.single().strategy)
+    }
+
+    /** Some panels answer the question without a category with nothing at all. */
+    @Test
+    fun `an empty reply is a refusal`() {
+        val reports = mutableListOf<StreamsReport>()
+        val writer = RecordingWriter()
+
+        XtreamImportEngine(writer).importCatalogue(
+            "src",
+            panel(wholeSection = { StringReader("[]") }),
+            kinds = setOf(MediaKind.LIVE),
+            wholeSection = setOf(MediaKind.LIVE),
+            onStreams = { reports += it },
+        )
+
+        assertEquals(walkedRows(), writer.rows())
+        assertEquals(StreamStrategy.REFUSED, reports.single().strategy)
+        assertNull("an empty answer has no exception to name", reports.single().cause)
+    }
+
+    /**
+     * A reply that breaks halfway has written rows the walk then writes again. They are
+     * the same rows under the same ids, so the catalogue is right; the count must be too.
+     */
+    @Test
+    fun `a reply that breaks halfway falls back and counts each row once`() {
+        val reports = mutableListOf<StreamsReport>()
+        val writer = RecordingWriter()
+        val api = panel(wholeSection = { BreakingReader(WHOLE_REPLY, breakAfter = WHOLE_REPLY.length / 2) })
+
+        val summary = XtreamImportEngine(writer, batchSize = 1).importCatalogue(
+            "src",
+            api,
+            kinds = setOf(MediaKind.LIVE),
+            wholeSection = setOf(MediaKind.LIVE),
+            onStreams = { reports += it },
+        )
+
+        assertEquals(StreamStrategy.FAILED, reports.single().strategy)
+        assertEquals("IOException", reports.single().cause)
+        assertEquals(walkedRows(), writer.rows())
+        assertEquals("each row counted once", 5, summary.items)
+        assertEquals(4, summary.count(MediaKind.LIVE))
+        assertEquals(1, summary.count(MediaKind.RADIO))
+    }
+
+    @Test
+    fun `no answer at all falls back to the walk`() {
+        val reports = mutableListOf<StreamsReport>()
+        val writer = RecordingWriter()
+
+        XtreamImportEngine(writer).importCatalogue(
+            "src",
+            panel(wholeSection = { throw IOException("timeout") }),
+            kinds = setOf(MediaKind.LIVE),
+            wholeSection = setOf(MediaKind.LIVE),
+            onStreams = { reports += it },
+        )
+
+        assertEquals(walkedRows(), writer.rows())
+        assertEquals(StreamStrategy.FAILED, reports.single().strategy)
+    }
+
+    /** A panel that leaves a category out of the big reply must not lose its channels. */
+    @Test
+    fun `a category the reply left empty is asked for on its own`() {
+        val reports = mutableListOf<StreamsReport>()
+        val partial = WHOLE_ROWS.filterNot { it.contains("\"category_id\":\"2\"") }
+        val api = panel(wholeSection = { StringReader(partial.joinToString(",", "[", "]")) })
+        val writer = RecordingWriter()
+
+        XtreamImportEngine(writer).importCatalogue(
+            "src",
+            api,
+            kinds = setOf(MediaKind.LIVE),
+            wholeSection = setOf(MediaKind.LIVE),
+            onStreams = { reports += it },
+        )
+
+        assertEquals(listOf("2"), api.categoryStreamRequests)
+        assertEquals(walkedRows(), writer.rows())
+        assertEquals(1, reports.single().gapFilled)
+    }
+
+    /** The walk never asks for them, so writing them would make the two disagree. */
+    @Test
+    fun `streams naming a category the panel did not list are not written`() {
+        val reports = mutableListOf<StreamsReport>()
+        val withOrphan = WHOLE_ROWS + row("99", "Hidden Channel", "77", number = 9)
+        val writer = RecordingWriter()
+
+        XtreamImportEngine(writer).importCatalogue(
+            "src",
+            panel(wholeSection = { StringReader(withOrphan.joinToString(",", "[", "]")) }),
+            kinds = setOf(MediaKind.LIVE),
+            wholeSection = setOf(MediaKind.LIVE),
+            onStreams = { reports += it },
+        )
+
+        assertEquals(walkedRows(), writer.rows())
+        assertEquals(1, reports.single().orphans)
+        assertTrue(writer.items.none { it.title == "Hidden Channel" })
+    }
+
+    // ------------------------------------------------------------- what is asked
+
+    @Test
+    fun `a caller that does not ask gets the walk, and is told so`() {
+        val reports = mutableListOf<StreamsReport>()
+        val api = panel()
+
+        XtreamImportEngine(RecordingWriter()).importCatalogue(
+            "src",
+            api,
+            kinds = setOf(MediaKind.LIVE),
+            onStreams = { reports += it },
+        )
+
+        assertEquals(0, api.wholeSectionRequests)
+        assertEquals(StreamStrategy.PER_CATEGORY, reports.single().strategy)
+    }
+
+    /** Films are not part of this change: asked per category even beside a one-reply live. */
+    @Test
+    fun `films are walked even when live takes the one reply`() {
+        val api = panel()
+
+        XtreamImportEngine(RecordingWriter()).importCatalogue(
+            "src",
+            api,
+            kinds = setOf(MediaKind.LIVE, MediaKind.MOVIE),
+            wholeSection = setOf(MediaKind.LIVE),
+        )
+
+        assertEquals(1, api.wholeSectionRequests)
+        assertEquals(listOf(MediaKind.MOVIE to "5"), api.streamRequests.filter { it.first == MediaKind.MOVIE })
+    }
+
+    // -------------------------------------------------------- progress and phases
+
+    /**
+     * Inside the one reply no category is finished until all are, so the bar's numerator
+     * is unknown — the screen then counts rows, as it does for a playlist — and it is
+     * whole again once the reply has ended.
+     */
+    @Test
+    fun `during the one reply the bar counts rows, and ends whole`() {
+        val seen = mutableListOf<ImportProgress.Importing>()
+
+        XtreamImportEngine(RecordingWriter(), batchSize = 1).importCatalogue(
+            "src",
+            panel(wholeSection = { StringReader(WHOLE_ROWS.filterNot { it.contains("\"category_id\":\"2\"") }.joinToString(",", "[", "]")) }),
+            kinds = setOf(MediaKind.LIVE),
+            wholeSection = setOf(MediaKind.LIVE),
+            onProgress = { if (it is ImportProgress.Importing) seen += it },
+        )
+
+        assertTrue("the reply reported rows", seen.any { it.categoriesDone == null && it.itemsImported > 0 })
+        assertEquals("the walk of the gap counts categories", 3, seen.last().categoriesDone)
+        assertEquals(3, seen.last().groupsReady)
+    }
+
+    /**
+     * The usual case, and the one with no walk after it: the reply filled every category,
+     * so nothing else will report. The bar has to be whole the moment the reply ends, not
+     * empty through the commit and the counts until the import is done.
+     */
+    @Test
+    fun `a reply that leaves nothing to ask for ends with the bar whole`() {
+        val api = panel()
+        val seen = mutableListOf<ImportProgress.Importing>()
+
+        XtreamImportEngine(RecordingWriter(), batchSize = 1).importCatalogue(
+            "src",
+            api,
+            kinds = setOf(MediaKind.LIVE),
+            wholeSection = setOf(MediaKind.LIVE),
+            onProgress = { if (it is ImportProgress.Importing) seen += it },
+        )
+
+        assertEquals("a category was asked for again", emptyList<String>(), api.categoryStreamRequests)
+        assertEquals(3, seen.last().categoriesDone)
+        assertEquals(3, seen.last().groupsReady)
+        assertEquals("the last report lost rows", 5, seen.last().itemsImported)
+    }
+
+    @Test
+    fun `the phases are reported once each, in order`() {
+        val phases = mutableListOf<Phase>()
+
+        XtreamImportEngine(RecordingWriter()).importCatalogue(
+            "src",
+            panel(),
+            kinds = setOf(MediaKind.LIVE),
+            wholeSection = setOf(MediaKind.LIVE),
+            onPhase = { phases += it },
+        )
+
+        assertEquals(
+            listOf(Phase.CATEGORIES, Phase.GROUPS, Phase.FIRST_COMMIT, Phase.STREAMS, Phase.FINISHED),
+            phases,
+        )
+    }
+
+    /** A reply of tens of megabytes must not be read to its end for nobody. */
+    @Test
+    fun `a cancelled import stops reading the reply`() {
+        val reader = TrackedReader(WHOLE_REPLY)
+        var rows = 0
+        val writer = object : RecordingWriter() {
+            override fun writeItems(items: List<CatalogItem>) {
+                super.writeItems(items)
+                rows += items.size
+            }
+        }
+
+        val summary = XtreamImportEngine(writer, batchSize = 1).importCatalogue(
+            "src",
+            panel(wholeSection = { reader }),
+            kinds = setOf(MediaKind.LIVE),
+            wholeSection = setOf(MediaKind.LIVE),
+            isCancelled = { rows >= 1 },
+        )
+
+        assertTrue(summary.cancelled)
+        assertTrue("the reply was left open", reader.closed)
+        assertTrue("the whole reply was written for nobody", rows < 5)
+        assertFalse(writer.finishedCalled)
+    }
+
+    // ------------------------------------------------------------------ fixtures
+
+    private fun walkedRows(): List<Row> = RecordingWriter().also { writer ->
+        XtreamImportEngine(writer).importCatalogue("src", panel(), kinds = setOf(MediaKind.LIVE))
+    }.rows()
+
+    private fun panel(wholeSection: (() -> Reader)? = { StringReader(WHOLE_REPLY) }) = Panel(wholeSection)
+
+    /**
+     * Three live categories, one of them radio, and one film category.
+     *
+     * The request log is behind a lock: the walk asks from several workers at once, and a
+     * plain list loses an entry when two of them add at the same moment.
+     */
+    private class Panel(private val wholeSection: (() -> Reader)?) : XtreamImportEngine.Api {
+        var wholeSectionRequests = 0
+        val streamRequests: MutableList<Pair<MediaKind, String>> = Collections.synchronizedList(mutableListOf())
+        val categoryStreamRequests: List<String>
+            get() = synchronized(streamRequests) { streamRequests.filter { it.first != MediaKind.MOVIE }.map { it.second } }
+
+        override fun categories(kind: MediaKind): Reader = StringReader(
+            when (kind) {
+                MediaKind.MOVIE -> """[{"category_id":"5","category_name":"Films"}]"""
+                else -> """[{"category_id":"1","category_name":"Sports"},""" +
+                    """{"category_id":"2","category_name":"News"},""" +
+                    """{"category_id":"3","category_name":"Radio FM"}]"""
+            },
+        )
+
+        override fun streams(kind: MediaKind, categoryId: String): Reader {
+            streamRequests += kind to categoryId
+            val rows = if (kind == MediaKind.MOVIE) {
+                listOf(row("51", "Dune", "5", number = 0))
+            } else {
+                WHOLE_ROWS.filter { it.contains("\"category_id\":\"$categoryId\"") }
+            }
+            return StringReader(rows.joinToString(",", "[", "]"))
+        }
+
+        override fun allStreams(kind: MediaKind): Reader? {
+            val open = wholeSection ?: return null
+            wholeSectionRequests++
+            return open()
+        }
+
+        override fun series(categoryId: String): Reader = StringReader("[]")
+        override fun seriesInfo(seriesId: String): Reader = StringReader("{}")
+        override fun streamUrl(kind: MediaKind, streamId: String, extension: String?): String =
+            XtreamUrls.stream("http://host", "u", "p", kind, streamId, extension)
+    }
+
+    /** What a row is, for comparing two imports: everything a viewer could see differ. */
+    private data class Row(val id: String, val title: String, val kind: MediaKind, val groupId: String?, val order: Int)
+
+    private open class RecordingWriter : CatalogWriter {
+        val items = mutableListOf<CatalogItem>()
+        val groups = mutableListOf<MediaGroup>()
+        var finishedCalled = false
+
+        fun rows(): List<Row> = items
+            .associateBy { it.id } // the writer replaces by id; so does this
+            .values
+            .map { Row(it.id, it.title, it.kind, it.groupId, it.providerOrder) }
+            .sortedBy { it.id }
+
+        override fun begin(sourceId: String, mode: ImportMode) = Unit
+        override fun writeGroups(groups: List<MediaGroup>) {
+            this.groups += groups
+        }
+
+        override fun writeItems(items: List<CatalogItem>) {
+            this.items += items
+        }
+
+        override fun commit() = Unit
+        override fun finish(summary: ImportSummary) {
+            finishedCalled = true
+        }
+
+        override fun abort(cause: Throwable?) = Unit
+    }
+
+    private class TrackedReader(content: String) : Reader() {
+        private val delegate = StringReader(content)
+        var closed = false
+            private set
+
+        override fun read(cbuf: CharArray, off: Int, len: Int): Int = delegate.read(cbuf, off, len)
+        override fun close() {
+            closed = true
+            delegate.close()
+        }
+    }
+
+    /** A reply whose connection drops after [breakAfter] characters. */
+    private class BreakingReader(content: String, private val breakAfter: Int) : Reader() {
+        private val delegate = StringReader(content)
+        private var served = 0
+
+        override fun read(cbuf: CharArray, off: Int, len: Int): Int {
+            if (served >= breakAfter) throw IOException("connection reset")
+            val read = delegate.read(cbuf, off, minOf(len, breakAfter - served))
+            if (read > 0) served += read
+            return read
+        }
+
+        override fun close() = delegate.close()
+    }
+
+    private companion object {
+        fun row(id: String, name: String, category: String, number: Int): String =
+            """{"num":$number,"name":"$name","stream_id":"$id","stream_icon":"http://cdn/$id.png",""" +
+                """"epg_channel_id":"epg.$id","category_id":"$category"}"""
+
+        /**
+         * The panel's live streams, in the order a panel sends them without a category:
+         * not grouped by category, which is the case the filing has to get right.
+         */
+        val WHOLE_ROWS = listOf(
+            row("13", "Atlas News", "2", number = 3),
+            row("11", "Nova Sports 1", "1", number = 1),
+            row("31", "Atlas FM", "3", number = 5),
+            row("14", "Nova News", "2", number = 4),
+            row("12", "Atlas Sport", "1", number = 2),
+        )
+
+        val WHOLE_REPLY = WHOLE_ROWS.joinToString(",", "[", "]")
+    }
+}

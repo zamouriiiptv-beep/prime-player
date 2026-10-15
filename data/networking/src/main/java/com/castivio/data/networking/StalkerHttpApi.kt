@@ -2,6 +2,7 @@ package com.castivio.data.networking
 
 import com.castivio.core.common.AppError
 import com.castivio.core.common.Outcome
+import com.castivio.core.platform.PerformanceLog
 import com.castivio.data.parsing.JsonFormatException
 import com.castivio.data.parsing.PortalUrls
 import com.castivio.data.parsing.StalkerChannel
@@ -230,16 +231,40 @@ class StalkerHttpApi(
         if (userAgent != null) builder.header("User-Agent", userAgent)
         if (token != null) builder.header("Authorization", "Bearer $token")
 
-        val response = client.newCall(builder.build()).execute()
-        if (!response.isSuccessful) {
-            response.close()
-            throw HttpStatusException(response.code)
+        // Counted like the panel's calls, by the portal's own names for them, so a
+        // portal's load can be read in the same terms -- and never by its address, which
+        // is the subscription.
+        val action = actionOf(url)
+        PerformanceLog.requestStarted(action)
+        try {
+            val response = client.newCall(builder.build()).execute()
+            if (!response.isSuccessful) {
+                response.close()
+                throw HttpStatusException(response.code)
+            }
+            val body = response.body ?: run {
+                response.close()
+                throw HttpStatusException(response.code)
+            }
+            return InputStreamReader(body.byteStream(), Charsets.UTF_8).buffered(READ_BUFFER)
+        } catch (e: IOException) {
+            PerformanceLog.requestFailed(action, reasonOf(e))
+            throw e
         }
-        val body = response.body ?: run {
-            response.close()
-            throw HttpStatusException(response.code)
-        }
-        return InputStreamReader(body.byteStream(), Charsets.UTF_8).buffered(READ_BUFFER)
+    }
+
+    /** `itv.get_ordered_list`: the call's type and action, and nothing else from its URL. */
+    private fun actionOf(url: String): String {
+        fun parameter(name: String) = url.substringAfter("$name=", "").substringBefore('&')
+        return listOf(parameter("type"), parameter("action")).filter { it.isNotEmpty() }.joinToString(".").ifEmpty { "portal" }
+    }
+
+    /** Why a call gave up, in a word a counter can hold: a status, never a URL. */
+    private fun reasonOf(e: IOException): String = when (e) {
+        is HttpStatusException -> "HTTP ${e.statusCode}"
+        is UnknownHostException -> "unknown host"
+        is InterruptedIOException -> "timeout"
+        else -> e.javaClass.simpleName
     }
 
     private companion object {

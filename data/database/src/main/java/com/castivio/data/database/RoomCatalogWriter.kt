@@ -4,6 +4,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteStatement
 import androidx.tracing.trace
 import com.castivio.core.platform.CastivioTrace
+import com.castivio.core.platform.DatabaseStep
 import com.castivio.core.platform.PerformanceLog
 import com.castivio.domain.CatalogItem
 import com.castivio.domain.CatalogWriter
@@ -96,6 +97,17 @@ class RoomCatalogWriter(
     override fun writeItems(items: List<CatalogItem>) {
         val source = requireStarted()
         val statement = itemStatement ?: error("writeItems before begin")
+        // Timed per batch, like the commit: the rows' own share of SQLite, which the
+        // commit figure never included because it is spent before the commit is.
+        val startedAt = System.nanoTime()
+        try {
+            insert(source, statement, items)
+        } finally {
+            PerformanceLog.addDatabaseStep(DatabaseStep.INSERT, System.nanoTime() - startedAt)
+        }
+    }
+
+    private fun insert(source: String, statement: SupportSQLiteStatement, items: List<CatalogItem>) {
         for (item in items) {
             statement.clearBindings()
             statement.bindString(1, item.id)
@@ -183,20 +195,24 @@ class RoomCatalogWriter(
                 // The generation swap. Everything the provider no longer lists
                 // disappears here, in one statement, after the new catalogue is
                 // already visible.
-                execSQL("DELETE FROM media WHERE source_id = ? AND generation != ?", arrayOf(source, generation))
-                execSQL("DELETE FROM media_group WHERE source_id = ? AND generation != ?", arrayOf(source, generation))
+                timed(DatabaseStep.PRUNE) {
+                    execSQL("DELETE FROM media WHERE source_id = ? AND generation != ?", arrayOf(source, generation))
+                    execSQL("DELETE FROM media_group WHERE source_id = ? AND generation != ?", arrayOf(source, generation))
+                }
             }
-            execSQL(
-                """
-                UPDATE media_group SET item_count =
-                    (SELECT COUNT(*) FROM media WHERE media.group_id = media_group.id)
-                WHERE source_id = ?
-                """,
-                arrayOf(source),
-            )
+            timed(DatabaseStep.COUNTS) {
+                execSQL(
+                    """
+                    UPDATE media_group SET item_count =
+                        (SELECT COUNT(*) FROM media WHERE media.group_id = media_group.id)
+                    WHERE source_id = ?
+                    """,
+                    arrayOf(source),
+                )
+            }
             // An append has already indexed its own rows; rebuilding here would be
             // seconds of work to add a season.
-            if (mode == ImportMode.REPLACE) rebuildSearchIndex()
+            if (mode == ImportMode.REPLACE) timed(DatabaseStep.SEARCH) { rebuildSearchIndex() }
         }
 
         db.restoreNormalPragmas()
@@ -237,6 +253,23 @@ class RoomCatalogWriter(
             SELECT id, search_text FROM media
             """,
         )
+    }
+
+    /**
+     * One step of the end of an import, timed for the on-device panel.
+     *
+     * The three steps after the last commit were the part of a load nothing measured: the
+     * commit figure stops before them and the full load includes them. Timed one by one,
+     * because they scale differently -- the prune with what was replaced, the counts with
+     * the groups, the index with every row -- and a single number would not say which.
+     */
+    private inline fun timed(step: DatabaseStep, block: () -> Unit) {
+        val startedAt = System.nanoTime()
+        try {
+            block()
+        } finally {
+            PerformanceLog.addDatabaseStep(step, System.nanoTime() - startedAt)
+        }
     }
 
     private fun release() {

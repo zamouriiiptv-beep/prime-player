@@ -56,6 +56,7 @@ import com.castivio.core.design.theme.boundedFraction
 import com.castivio.core.design.theme.castivioMetrics
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.castivio.core.platform.PerformanceLog
 import com.castivio.domain.SectionLoad
 import java.util.Locale
 import kotlinx.coroutines.delay
@@ -98,6 +99,14 @@ import com.castivio.core.design.R as DesignR
  * There is no fake progress here. A bar that advances on a timer is the one thing a
  * loading screen must never do, because the moment it reaches the end and nothing has
  * happened, every number on the screen stops being believed.
+ *
+ * ## Beside the readout, in a debug build
+ *
+ * A debuggable build draws [PerformancePanel] here, and on a surface wider than it is
+ * tall the gate gives the readout the second half of the screen instead of the space
+ * under the facts — on a phone held sideways there was no such space, and the readout
+ * ran off the bottom of it. The column is the same column in either half. A release
+ * build has no readout, so it never splits: its gate is centred as it always was.
  */
 @Composable
 internal fun LoadingGate(
@@ -108,10 +117,12 @@ internal fun LoadingGate(
     provider: String?,
     modifier: Modifier = Modifier,
 ) {
-    val colors = CastivioTheme.colors
     val tv = CastivioTheme.device.isTv
     val context = LocalContext.current
     val version = remember(context) { context.versionName() }
+    // Whether this build draws the readout at all, and so whether the gate makes room for
+    // it. The panel asks the same question and the platform gives the same answer.
+    val measuring = remember(context) { PerformanceLog.isVisibleIn(context) }
 
     // No background of its own. The theme draws Castivio's backdrop behind every
     // screen, and this one is not covering another -- it *is* the section's screen
@@ -123,58 +134,125 @@ internal fun LoadingGate(
         val m = castivioMetrics(maxWidth, maxHeight, tv)
         val logo = maxHeight.boundedFraction(LOGO, 48.dp, 132.dp)
         val gap = maxHeight.boundedFraction(GAP, 6.dp, 20.dp)
+        // Beside the column where the surface is wider than it is tall -- a phone held
+        // sideways, a television -- because that is where height runs out first. Under it
+        // otherwise, which is where it always was.
+        val split = measuring && maxWidth > maxHeight
+        val pane = (maxWidth - m.edge * 2 - m.edge / 2) / 2
         // Read out here, not inside the column. `ColumnScope` and `BoxWithConstraints`
         // are both `@LayoutScopeMarker`, so the inner scope hides the outer one's
         // `maxWidth` -- which is the marker doing its job: a size read through two
-        // nested scopes is rarely the size the author meant.
-        val track = maxWidth * TRACK_OF_WIDTH
+        // nested scopes is rarely the size the author meant. The release width, unless
+        // the column's half of a split is narrower than that.
+        val track = if (split) minOf(maxWidth * TRACK_OF_WIDTH, pane) else maxWidth * TRACK_OF_WIDTH
 
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = m.edge),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(gap),
-        ) {
-            Wordmark(logo = logo, version = version, m = m)
-
-            Spinner(size = logo * SPINNER_OF_LOGO)
-
-            Text(
-                text = stringResource(R.string.browse_fetch_title, stringResource(section.label)),
-                style = castivioTitleStyle(m.fsBody * SAY_OF_BODY),
-                color = colors.onBackgroundVariant,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-
-            Tally(fetch = fetch, m = m)
-
-            Track(fetch = fetch, width = track, height = gap / 2)
-
-            Spacer(Modifier.height(gap / 2))
-
-            Facts(mac = mac, provider = provider, m = m)
-
-            // Debug builds only, and this is the screen it belongs on: the wait it
-            // measures is the wait happening right here. See `PerformancePanel`.
-            PerformancePanel(Modifier.padding(top = gap))
+        if (split) {
+            Row(
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = m.edge),
+                horizontalArrangement = Arrangement.spacedBy(m.edge / 2),
+            ) {
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    GateColumn(section, fetch, mac, provider, version, m, logo, gap, track, Modifier.fillMaxWidth())
+                    OnceNote(m, sides = m.edge / 2, modifier = Modifier.align(Alignment.BottomCenter))
+                }
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .padding(vertical = m.stageTop),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    PerformancePanel(Modifier.fillMaxWidth(), maxWidth = READOUT_SPLIT_MAX_WIDTH)
+                }
+            }
+        } else {
+            GateColumn(
+                section, fetch, mac, provider, version, m, logo, gap, track,
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = m.edge),
+            ) {
+                // Debug builds only, and this is the screen it belongs on: the wait it
+                // measures is the wait happening right here. See `PerformancePanel`.
+                PerformancePanel(Modifier.padding(top = gap))
+            }
+            OnceNote(m, sides = m.edge, modifier = Modifier.align(Alignment.BottomCenter))
         }
+    }
+}
+
+/**
+ * The gate itself: the mark, the spinner, what is loading, how far, and whose.
+ *
+ * The same column whether it fills the screen or half of it. [below] is what follows the
+ * facts in the column — the readout, when it is not beside it.
+ */
+@Composable
+private fun GateColumn(
+    section: CatalogSection,
+    fetch: SectionLoad.Loading?,
+    mac: String,
+    provider: String?,
+    version: String?,
+    m: CastivioMetrics,
+    logo: Dp,
+    gap: Dp,
+    track: Dp,
+    modifier: Modifier = Modifier,
+    below: @Composable () -> Unit = {},
+) {
+    val colors = CastivioTheme.colors
+    Column(
+        modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(gap),
+    ) {
+        Wordmark(logo = logo, version = version, m = m)
+
+        Spinner(size = logo * SPINNER_OF_LOGO)
 
         Text(
-            text = stringResource(R.string.browse_fetch_once),
-            style = castivioBodyStyle(m.fsBody * LEGAL_OF_BODY),
-            color = colors.onBackgroundMuted,
+            text = stringResource(R.string.browse_fetch_title, stringResource(section.label)),
+            style = castivioTitleStyle(m.fsBody * SAY_OF_BODY),
+            color = colors.onBackgroundVariant,
             textAlign = TextAlign.Center,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .padding(horizontal = m.edge, vertical = m.stageTop),
         )
+
+        Tally(fetch = fetch, m = m)
+
+        Track(fetch = fetch, width = track, height = gap / 2)
+
+        Spacer(Modifier.height(gap / 2))
+
+        Facts(mac = mac, provider = provider, m = m)
+
+        below()
     }
+}
+
+/** "This runs once", at the foot of whatever the gate's column stands in. */
+@Composable
+private fun OnceNote(m: CastivioMetrics, sides: Dp, modifier: Modifier = Modifier) {
+    Text(
+        text = stringResource(R.string.browse_fetch_once),
+        style = castivioBodyStyle(m.fsBody * LEGAL_OF_BODY),
+        color = CastivioTheme.colors.onBackgroundMuted,
+        textAlign = TextAlign.Center,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = sides, vertical = m.stageTop),
+    )
 }
 
 /* ------------------------------------------------------------------ the mark */

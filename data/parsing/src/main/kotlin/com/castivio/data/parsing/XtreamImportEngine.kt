@@ -10,15 +10,18 @@ import com.castivio.domain.MediaKind
 import java.io.Reader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.channels.trySendBlocking
+import kotlinx.coroutines.withContext
 
 /**
- * Imports an Xtream catalogue, category by category.
+ * Imports an Xtream catalogue: a section in one reply where the panel serves that, and
+ * category by category where it does not or for what the reply left out.
  *
  * This is the single biggest performance win available in the whole app, and it
  * is an API shape rather than an optimisation: Xtream is addressable by category,
@@ -35,6 +38,10 @@ import kotlinx.coroutines.channels.trySendBlocking
  * cost one request each (`get_series_info`), so fetching 600 of them up front
  * would take minutes for data almost none of which gets looked at. [importEpisodes]
  * fills in a single show when the user opens it.
+ *
+ * A section's streams can also be asked for in one reply — see `wholeSection` on
+ * [importCatalogue] — which turns a request per category into one request per section
+ * for the panels that answer it, and falls back to this walk for the ones that do not.
  *
  * Blocking, like the writer it feeds. Call it on an IO dispatcher.
  */
@@ -73,6 +80,85 @@ class XtreamImportEngine(
 
         /** The playable URL for a stream, built by the networking layer. */
         fun streamUrl(kind: MediaKind, streamId: String, extension: String?): String
+
+        /**
+         * Every stream of [kind] in one reply — the streams action without a category —
+         * or null when this API does not ask that question.
+         *
+         * Not every panel answers it, and nothing here assumes one does: a refusal is
+         * [WholeSectionUnsupported], any other failure is thrown as it is, and the engine
+         * falls back to asking category by category either way. Null by default, so an
+         * implementation that says nothing is one that is asked per category, as before.
+         */
+        fun allStreams(kind: MediaKind): Reader? = null
+    }
+
+    /** The moments an import passes through, for a caller that owns a clock to time. */
+    enum class Phase {
+        /** The category list has been read. */
+        CATEGORIES,
+
+        /** Every category is written as a group, before any stream. */
+        GROUPS,
+
+        /** The first rows are durable, and a count query can see them. */
+        FIRST_COMMIT,
+
+        /** Every stream that is coming has arrived. */
+        STREAMS,
+
+        /** The writer has finished: prune, counts and search index included. */
+        FINISHED,
+    }
+
+    /** How one section's streams were fetched. */
+    enum class StreamStrategy {
+        /** One reply for the whole section, then each category it left empty on its own. */
+        WHOLE_SECTION,
+
+        /**
+         * The panel refused the one-reply question — an error status, a reply that is not
+         * a list, or a list naming none of its own categories — so every category was
+         * asked for on its own.
+         */
+        REFUSED,
+
+        /** It failed partway or before an answer, so every category was asked on its own. */
+        FAILED,
+
+        /** Category by category from the start: not asked, or not askable. */
+        PER_CATEGORY,
+    }
+
+    /**
+     * What happened to one section's streams, reported once per section.
+     *
+     * Counts and a class name, never an address: it is printed, and an Xtream URL carries
+     * the user's password.
+     */
+    data class StreamsReport(
+        val kind: MediaKind,
+        val strategy: StreamStrategy,
+        /** Rows the one reply delivered. Zero when it was not used. */
+        val streams: Int = 0,
+        /**
+         * Streams in that reply naming a category the panel did not list. Not written: the
+         * category-by-category walk never asks for them either, so writing them would make
+         * the two ways of fetching disagree about what the panel serves.
+         */
+        val orphans: Int = 0,
+        /** Categories the reply left empty, then asked for one by one. */
+        val gapFilled: Int = 0,
+        /** Why the one reply was not used, by class name. */
+        val cause: String? = null,
+    ) {
+        override fun toString(): String = when (strategy) {
+            StreamStrategy.WHOLE_SECTION ->
+                "$kind: one reply, $streams rows, $orphans orphaned, $gapFilled categories asked again"
+            StreamStrategy.REFUSED -> "$kind: one reply refused (${cause ?: "empty"}), asked per category"
+            StreamStrategy.FAILED -> "$kind: one reply failed (${cause ?: "unknown"}), asked per category"
+            StreamStrategy.PER_CATEGORY -> "$kind: asked per category"
+        }
     }
 
     /**
@@ -98,6 +184,36 @@ class XtreamImportEngine(
          * row of every other kind.
          */
         mode: ImportMode = ImportMode.REPLACE,
+        /**
+         * The kinds whose streams are first asked for in one reply rather than one
+         * category at a time.
+         *
+         * ## Why one reply
+         *
+         * Asked category by category, a section costs one round trip per category, and
+         * the round trips are what the time goes on: the measured live section was 836
+         * requests averaging 0.16s, four at a time, for 18 MB — while another player read
+         * the same 18 MB from the same panel in two requests and about seven seconds. The
+         * reply is the same list the per-category replies are pieces of, so it streams
+         * through the same parser into the same batches, and every row is filed under the
+         * category its own `category_id` names.
+         *
+         * ## Why only a first attempt
+         *
+         * Nothing guarantees a panel serves it. A refusal, a reply that is not a list, a
+         * list naming none of the panel's categories, or a failure partway, and every
+         * category is asked for on its own exactly as before — the rows the reply wrote are
+         * rewritten, since ids are stable and the writer replaces. A category the reply
+         * left empty is asked for on its own too, so a panel that leaves some out of the
+         * big reply loses nothing. See [StreamsReport] for what is reported.
+         *
+         * Empty by default: a caller that does not opt in is asked per category.
+         */
+        wholeSection: Set<MediaKind> = emptySet(),
+        /** Told how each section's streams were fetched. */
+        onStreams: (StreamsReport) -> Unit = {},
+        /** Told as the import reaches each [Phase]. The engine has no clock; the caller does. */
+        onPhase: (Phase) -> Unit = {},
     ): ImportSummary {
         val started = clock()
         val batch = ArrayList<CatalogItem>(batchSize)
@@ -136,9 +252,129 @@ class XtreamImportEngine(
                 now - lastCommitAt >= COMMIT_INTERVAL_MS
             if (!due) return
             writer.commit()
+            if (!committedOnce) onPhase(Phase.FIRST_COMMIT)
             committedOnce = true
             pending = 0
             lastCommitAt = now
+        }
+
+        /**
+         * One pass of category events, drained onto the writer on this thread.
+         *
+         * The producers only ever *parse*. The writer is one SQLite transaction and is not
+         * thread-safe, so every write happens here, draining the channel — which is also
+         * what keeps memory O(batch) rather than O(category): a producer hands batches
+         * over as it parses them and blocks when the channel is full, so the most ever in
+         * flight is the channel's capacity plus one batch per producer.
+         *
+         * Shared by the two ways a section's streams are fetched — category by category,
+         * and the whole section in one reply — so a batch is written, committed and
+         * reported the same way whichever of them produced it.
+         *
+         * @param countCategories whether this pass finishes categories one at a time. The
+         *   one reply does not: every category in it finishes only when the reply does. So
+         *   it reports the bar's numerator as unknown and the screen counts rows instead,
+         *   as it does for a playlist — see [ImportProgress.Importing.categoriesDone].
+         */
+        fun pass(
+            countCategories: Boolean,
+            produce: suspend (SendChannel<CategoryEvent>) -> Unit,
+        ) {
+            val events = Channel<CategoryEvent>(capacity = concurrency)
+
+            fun progress(kind: MediaKind) = onProgress(
+                ImportProgress.Importing(imported, groups, kind, if (countCategories) done else null),
+            )
+
+            runBlocking {
+                val producers = launch {
+                    try {
+                        produce(events)
+                    } finally {
+                        events.close()
+                    }
+                }
+
+                for (event in events) {
+                    when (event) {
+                        is CategoryEvent.Items -> {
+                            for (item in event.items) {
+                                // By the row's own kind: a batch from the one reply carries
+                                // stations and channels together.
+                                perKind[item.kind.ordinal]++
+                                batch.add(item)
+                                if (batch.size >= batchSize) {
+                                    val written = flush(batch)
+                                    imported += written
+                                    pending += written
+                                    commitIfDue()
+                                    progress(event.kind)
+                                }
+                            }
+                            // Written as each category arrives, and *committed* on the
+                            // policy above rather than here. Both halves matter and
+                            // they are no longer the same decision.
+                            //
+                            // Writing per category is what keeps memory O(batch) and
+                            // what lets the first rows be committed the instant they
+                            // exist. Committing per category is what made a 495-category
+                            // section pay for 495 transactions -- 19,003 rows across
+                            // them is a full commit every 38 rows, measured at 23.98s
+                            // on a real provider, against 2.39s to first content. The
+                            // rows were being made durable 38 at a time for the benefit
+                            // of a reader that only needed the first batch.
+                            val written = flush(batch)
+                            imported += written
+                            pending += written
+                            commitIfDue()
+                            progress(event.kind)
+                        }
+
+                        // ----------------------------------------- partial failure
+                        //
+                        // One category that would not load no longer takes the
+                        // catalogue with it. Before this, the whole import threw and
+                        // `writer.abort` ended it, so a single bad request after 400
+                        // good ones left the user with an activation screen. The
+                        // failure is counted and named; the other categories carry on.
+                        is CategoryEvent.Failed -> {
+                            // A failure ends a category as surely as a success does,
+                            // so the bar counts it. One that stalled at 833 of 834
+                            // because a single request was refused would be a bar
+                            // that lies about being stuck.
+                            done++
+                            failures.add(event.category to event.cause)
+                            progress(event.kind)
+                        }
+
+                        // Reported, not merely counted. Counting it silently would
+                        // leave the last category's completion unannounced -- the bar
+                        // sitting at 833 of 834 until the whole import ended -- and
+                        // an empty category would never move it at all, because a
+                        // category with no rows sends no `Items` to report against.
+                        is CategoryEvent.Finished -> {
+                            done++
+                            progress(event.kind)
+                        }
+                    }
+                    if (isCancelled()) {
+                        cancelled = true
+                        break
+                    }
+                }
+
+                // The channel is cancelled *before* the producers, and the order is
+                // load-bearing rather than tidy. A producer hands batches over with
+                // `trySendBlocking`, which parks the OS thread rather than suspending
+                // the coroutine — so `producers.cancel()` cannot reach one that is
+                // waiting for room, and the `join()` below would wait for a thread that
+                // is waiting for a consumer that has already stopped consuming.
+                // Cancelling the channel first makes those sends fail, which releases
+                // the thread and lets the cancel land.
+                events.cancel()
+                if (cancelled) producers.cancel()
+                producers.join()
+            }
         }
 
         writer.begin(sourceId, mode)
@@ -155,26 +391,10 @@ class XtreamImportEngine(
                     XtreamParser.parseCategories(reader, endpointKind) { list.add(it) }
                     list
                 }
+                onPhase(Phase.CATEGORIES)
 
-                // ------------------------------------------------ bounded concurrency
-                //
-                // This was a strictly sequential `for (category in categories)`, one
-                // round trip at a time, and on a real subscription that is 497 calls at
-                // ~0.4s each before the first row could be read. It is replaced by a
-                // fixed number of workers pulling from the same list, never by
-                // `async` per category: 497 sockets opened at once is a denial of
-                // service aimed at the user's own provider, and the panel it talks to
-                // is usually a single PHP host.
-                //
-                // The writer is untouched by all of this. It is one SQLite transaction
-                // and is not thread-safe, so workers only ever *parse*; every write
-                // happens on this thread, draining the channel below. That is also what
-                // keeps memory O(batch) rather than O(category): a worker hands over
-                // batches as it parses them and blocks when the channel is full, so the
-                // most that is ever in flight is the channel's capacity plus one batch
-                // per worker.
                 // Groups are written here, in the provider's own order, before a single
-                // worker starts — not emitted by the workers as they finish.
+                // stream is fetched — not emitted by the producers as they finish.
                 //
                 // They arrive out of order otherwise, and `RoomCatalogWriter` numbers
                 // them by insertion, so the category rail would come out in a different
@@ -197,14 +417,86 @@ class XtreamImportEngine(
                     writer.writeGroups(listOf(MediaGroup(plan.groupId, plan.category.name, plan.kind)))
                     groups++
                 }
+                onPhase(Phase.GROUPS)
 
-                val events = Channel<CategoryEvent>(capacity = concurrency)
+                // ------------------------------------------------------- the streams
+                //
+                // The whole section in one reply first, where the caller asked for it, and
+                // category by category for whatever that leaves: everything when the reply
+                // was refused or failed, the categories it left empty when it was not.
+                val perCategory: List<CategoryPlan> = if (endpointKind in wholeSection && !isCancelled()) {
+                    val importedBefore = imported
+                    val perKindBefore = perKind.copyOf()
+                    var read: WholeSectionRead = WholeSectionRead.NotOffered
+                    pass(countCategories = false) { events ->
+                        read = withContext(Dispatchers.IO) {
+                            readWholeSection(sourceId, api, endpointKind, ordered, events, isCancelled)
+                        }
+                    }
+                    val outcome = read
+                    // Stopped while reading: nothing to fall back to and nothing to report,
+                    // because the import is not going on.
+                    if (cancelled || isCancelled()) emptyList() else when (outcome) {
+                        is WholeSectionRead.Read -> {
+                            val gaps = ordered.filter { !outcome.received[it.index] }
+                            // Every category the reply filled is finished; the bar counts
+                            // them now and the ones asked for again as they arrive.
+                            done += ordered.size - gaps.size
+                            // Said now rather than left to the walk of the gaps: with no
+                            // gaps there is no walk, and the bar would sit empty through the
+                            // commit and the counts that still follow, reading as stuck.
+                            onProgress(ImportProgress.Importing(imported, groups, requested, done))
+                            onStreams(
+                                StreamsReport(
+                                    kind = endpointKind,
+                                    strategy = StreamStrategy.WHOLE_SECTION,
+                                    streams = outcome.streams,
+                                    orphans = outcome.orphans,
+                                    gapFilled = gaps.size,
+                                ),
+                            )
+                            gaps
+                        }
 
-                runBlocking {
-                    val producers = launch {
+                        else -> {
+                            // Whatever the reply wrote is written again by the walk below --
+                            // ids are stable and the writer replaces -- so it is counted once,
+                            // by the walk, rather than twice.
+                            imported = importedBefore
+                            perKindBefore.copyInto(perKind)
+                            onStreams(
+                                StreamsReport(
+                                    kind = endpointKind,
+                                    strategy = when (outcome) {
+                                        is WholeSectionRead.Refused -> StreamStrategy.REFUSED
+                                        is WholeSectionRead.Failed -> StreamStrategy.FAILED
+                                        else -> StreamStrategy.PER_CATEGORY
+                                    },
+                                    cause = outcome.cause?.reportName(),
+                                ),
+                            )
+                            ordered
+                        }
+                    }
+                } else {
+                    onStreams(StreamsReport(kind = endpointKind, strategy = StreamStrategy.PER_CATEGORY))
+                    ordered
+                }
+
+                // ------------------------------------------------ bounded concurrency
+                //
+                // This was a strictly sequential `for (category in categories)`, one
+                // round trip at a time, and on a real subscription that is 497 calls at
+                // ~0.4s each before the first row could be read. It is replaced by a
+                // fixed number of workers pulling from the same list, never by
+                // `async` per category: 497 sockets opened at once is a denial of
+                // service aimed at the user's own provider, and the panel it talks to
+                // is usually a single PHP host.
+                if (perCategory.isNotEmpty() && !cancelled && !isCancelled()) {
+                    pass(countCategories = true) { events ->
                         val gate = Semaphore(concurrency)
                         coroutineScope {
-                            for (plan in ordered) {
+                            for (plan in perCategory) {
                                 launch(Dispatchers.IO) {
                                     gate.withPermit {
                                         if (!isCancelled()) {
@@ -214,90 +506,7 @@ class XtreamImportEngine(
                                 }
                             }
                         }
-                        events.close()
                     }
-
-                    for (event in events) {
-                        when (event) {
-                            is CategoryEvent.Items -> {
-                                for (item in event.items) {
-                                    perKind[event.kind.ordinal]++
-                                    batch.add(item)
-                                    if (batch.size >= batchSize) {
-                                        val written = flush(batch)
-                                        imported += written
-                                        pending += written
-                                        commitIfDue()
-                                        onProgress(ImportProgress.Importing(imported, groups, event.kind, done))
-                                    }
-                                }
-                                // Written as each category arrives, and *committed* on the
-                                // policy above rather than here. Both halves matter and
-                                // they are no longer the same decision.
-                                //
-                                // Writing per category is what keeps memory O(batch) and
-                                // what lets the first rows be committed the instant they
-                                // exist. Committing per category is what made a 495-category
-                                // section pay for 495 transactions -- 19,003 rows across
-                                // them is a full commit every 38 rows, measured at 23.98s
-                                // on a real provider, against 2.39s to first content. The
-                                // rows were being made durable 38 at a time for the benefit
-                                // of a reader that only needed the first batch.
-                                val written = flush(batch)
-                                imported += written
-                                pending += written
-                                commitIfDue()
-                                onProgress(ImportProgress.Importing(imported, groups, event.kind, done))
-                            }
-
-                            // ----------------------------------------- partial failure
-                            //
-                            // One category that would not load no longer takes the
-                            // catalogue with it. Before this, the whole import threw and
-                            // `writer.abort` ended it, so a single bad request after 400
-                            // good ones left the user with an activation screen. The
-                            // failure is counted and named; the other categories carry on.
-                            is CategoryEvent.Failed -> {
-                                // A failure ends a category as surely as a success does,
-                                // so the bar counts it. One that stalled at 833 of 834
-                                // because a single request was refused would be a bar
-                                // that lies about being stuck.
-                                done++
-                                failures.add(event.category to event.cause)
-                                onProgress(
-                                    ImportProgress.Importing(imported, groups, event.kind, done),
-                                )
-                            }
-
-                            // Reported, not merely counted. Counting it silently would
-                            // leave the last category's completion unannounced -- the bar
-                            // sitting at 833 of 834 until the whole import ended -- and
-                            // an empty category would never move it at all, because a
-                            // category with no rows sends no `Items` to report against.
-                            is CategoryEvent.Finished -> {
-                                done++
-                                onProgress(
-                                    ImportProgress.Importing(imported, groups, event.kind, done),
-                                )
-                            }
-                        }
-                        if (isCancelled()) {
-                            cancelled = true
-                            break
-                        }
-                    }
-
-                    // The channel is cancelled *before* the producers, and the order is
-                    // load-bearing rather than tidy. A worker hands batches over with
-                    // `trySendBlocking`, which parks the OS thread rather than
-                    // suspending the coroutine — so `producers.cancel()` cannot reach a
-                    // worker that is waiting for room, and the `join()` below would wait
-                    // for a thread that is waiting for a consumer that has already
-                    // stopped consuming. Cancelling the channel first makes those sends
-                    // throw, which releases the thread and lets the cancel land.
-                    events.cancel()
-                    if (cancelled) producers.cancel()
-                    producers.join()
                 }
 
                 // Asked again outside the consumer loop, because a run cancelled before
@@ -305,6 +514,7 @@ class XtreamImportEngine(
                 // the only place `cancelled` was set is inside a loop that never ran.
                 if (isCancelled()) cancelled = true
             }
+            onPhase(Phase.STREAMS)
 
             val tail = flush(batch)
             imported += tail
@@ -336,6 +546,7 @@ class XtreamImportEngine(
                 writer.abort(null)
             } else {
                 writer.finish(summary)
+                onPhase(Phase.FINISHED)
                 onProgress(ImportProgress.Done(imported, summary.durationMs))
             }
             return summary
@@ -535,6 +746,121 @@ class XtreamImportEngine(
         }
     }
 
+    /**
+     * Every stream of [kind] from one reply, filed under the category each names.
+     *
+     * Read off the writer's thread like a category is, and handed over in the same
+     * batches through the same channel. A row's position is its category's index times
+     * the stride plus its place among that category's rows in the reply — the same
+     * shape [fetchCategory] gives it — and where the panel numbers its channels, the
+     * number wins either way, so the order a viewer sees does not depend on which of the
+     * two fetched it.
+     *
+     * Never throws for the panel's sake: what went wrong is the result, so the caller
+     * can fall back. Only cancellation is thrown, because that is not a failure of the
+     * reply.
+     */
+    private fun readWholeSection(
+        sourceId: String,
+        api: Api,
+        kind: MediaKind,
+        plans: List<CategoryPlan>,
+        events: SendChannel<CategoryEvent>,
+        isCancelled: () -> Boolean,
+    ): WholeSectionRead {
+        val byId = HashMap<String, CategoryPlan>(plans.size * 2)
+        for (plan in plans) byId[plan.category.id] = plan
+        val received = BooleanArray(plans.size)
+        val positions = IntArray(plans.size)
+        var streams = 0
+        var orphans = 0
+
+        val reader = try {
+            api.allStreams(kind) ?: return WholeSectionRead.NotOffered
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: WholeSectionUnsupported) {
+            return WholeSectionRead.Refused(e)
+        } catch (e: Exception) {
+            return WholeSectionRead.Failed(e)
+        }
+
+        return try {
+            reader.use {
+                val batch = ArrayList<CatalogItem>(batchSize)
+                XtreamParser.parseStreams(reader) { stream ->
+                    val plan = stream.categoryId?.let(byId::get)
+                    if (plan == null) {
+                        orphans++
+                        return@parseStreams
+                    }
+                    received[plan.index] = true
+                    val position = plan.index * CATEGORY_STRIDE + positions[plan.index]++
+                    batch.add(item(sourceId, api, plan.kind, stream, plan.groupId, position))
+                    streams++
+                    if (batch.size >= batchSize) handOver(events, plan.kind, batch, isCancelled)
+                }
+                if (batch.isNotEmpty()) handOver(events, batch.last().kind, batch, isCancelled)
+            }
+            // A list naming none of the panel's categories is a refusal in the shape of an
+            // answer: an empty list, or one keyed some other way. Either way nothing in it
+            // can be filed, and every category has to be asked for on its own.
+            if (streams == 0) WholeSectionRead.Refused(null) else WholeSectionRead.Read(streams, orphans, received)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: JsonFormatException) {
+            // Not a list at all — an object, a page of HTML — before a single row is a
+            // refusal; partway through a list it is a broken reply.
+            if (streams == 0) WholeSectionRead.Refused(e) else WholeSectionRead.Failed(e)
+        } catch (e: Exception) {
+            WholeSectionRead.Failed(e)
+        }
+    }
+
+    /**
+     * Passes a batch to the writer's thread, or stops the read when nobody is consuming.
+     *
+     * `trySendBlocking` parks this thread while the channel is full, which is the
+     * backpressure; a closed channel means the import stopped, and a reply of tens of
+     * megabytes must not be read to its end for a consumer that has already gone.
+     */
+    private fun handOver(
+        events: SendChannel<CategoryEvent>,
+        kind: MediaKind,
+        batch: MutableList<CatalogItem>,
+        isCancelled: () -> Boolean,
+    ) {
+        if (isCancelled() || events.trySendBlocking(CategoryEvent.Items(kind, ArrayList(batch))).isClosed) {
+            throw kotlinx.coroutines.CancellationException("the import stopped consuming")
+        }
+        batch.clear()
+    }
+
+    /**
+     * The reason a report names: a refusal by what the panel answered — `HTTP 404` —
+     * and anything else by its class. Never another exception's message, which may quote
+     * the address the request went to, and that address carries the password.
+     */
+    private fun Throwable.reportName(): String =
+        (this as? WholeSectionUnsupported)?.message ?: javaClass.simpleName
+
+    /** What the one reply came to. */
+    private sealed interface WholeSectionRead {
+        val cause: Throwable? get() = null
+
+        /** This API cannot ask the question. */
+        data object NotOffered : WholeSectionRead
+
+        /** Read to its end; [received] is which categories it filled, by plan index. */
+        class Read(val streams: Int, val orphans: Int, val received: BooleanArray) : WholeSectionRead
+
+        /** The panel said no, in so many words or in an empty answer. */
+        class Refused(override val cause: Throwable?) : WholeSectionRead
+
+        /** No answer, or a broken one. Not a verdict on the panel. */
+        class Failed(override val cause: Throwable) : WholeSectionRead
+    }
+
     /** One category, with everything decided about it before any request is made. */
     private data class CategoryPlan(
         val index: Int,
@@ -657,3 +983,17 @@ class XtreamImportEngine(
         const val COMMIT_INTERVAL_MS = 500L
     }
 }
+
+/**
+ * A panel's answer that it does not serve a section in one reply.
+ *
+ * Thrown by an [XtreamImportEngine.Api] for a refusal it can recognise — an error status
+ * for the request without a category — so the engine can tell "no" from "no answer". It
+ * changes nothing about what happens next: either way the categories are asked for one
+ * by one. What it changes is the report, which says the panel refused rather than that
+ * the network failed.
+ *
+ * Its message is printed in that report, on the debug panel and in the log, so it says
+ * what the panel answered — `HTTP 404` — and never where the question was sent.
+ */
+class WholeSectionUnsupported(message: String, cause: Throwable? = null) : Exception(message, cause)
