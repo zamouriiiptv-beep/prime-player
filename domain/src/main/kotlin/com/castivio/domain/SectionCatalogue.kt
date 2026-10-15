@@ -187,10 +187,10 @@ class LoadSection(
         }
 
         if (!failed) {
-            marks.markLoaded(provider.id, kind, nowMs)
-            // A single-file provider hands over every kind in one pass, so marking
-            // only the one that was asked for would download the same file again on
-            // the next section. See [PlaylistSource.carriesEveryKind].
+            // Every section the fetch actually delivered, not only the one that was asked
+            // for: marking less would download the same thing again on the next press. A
+            // single-file provider hands over every kind in one pass, and an Xtream panel's
+            // live categories carry its radio. See [PlaylistSource.kindsArrivingWith].
             //
             // Asked of the subscription as it stands now rather than as it was read
             // before the import: a playlist read through its panel can have been read as
@@ -198,10 +198,8 @@ class LoadSection(
             // no -- and then every section arrived in that one download, as for any
             // playlist.
             val settled = sources.get(provider.id)?.asPlaylistSource() ?: source
-            if (settled.carriesEveryKind) {
-                for (other in MediaKind.entries) {
-                    if (other != kind) marks.markLoaded(provider.id, other, nowMs)
-                }
+            for (arrived in settled.kindsArrivingWith(kind)) {
+                marks.markLoaded(provider.id, arrived, nowMs)
             }
             emit(SectionLoad.Done(items))
         }
@@ -224,11 +222,39 @@ val PlaylistSource.carriesEveryKind: Boolean
     get() = when (this) {
         is PlaylistSource.M3u -> xtream == null
         is PlaylistSource.LocalFile -> true
-        // Xtream and a portal are the same case and the reason this exists: live,
-        // films, series and radio are separate calls on both, so a section really can
-        // be fetched on its own when it is opened.
+        // Xtream and a portal are the same case and the reason this exists: live, films
+        // and series are separate calls on both, so a section really can be fetched on
+        // its own when it is opened. Radio is where they differ -- see
+        // [kindsArrivingWith].
         is PlaylistSource.Xtream, is PlaylistSource.Portal -> false
     }
+
+/**
+ * Every section one fetch of [kind] writes, [kind] included.
+ *
+ * ## Why radio is not always its own fetch
+ *
+ * An Xtream panel has no radio endpoint. Its stations are live categories with a radio
+ * name, so the engine walks every live category whichever of the two was opened, and
+ * writes both sections from the one walk. Marking only the section that was asked for
+ * left the other unmarked, and opening it then walked all the live categories again for
+ * rows that were already on the device — a walk of 836 requests on the subscription the
+ * channels section was measured on.
+ * A playlist read through its panel is read the same way, so it is the same case.
+ *
+ * A portal is not: `radio` is a call of its own there, beside `itv`, so a portal's live
+ * fetch brings no stations and must not claim to.
+ */
+fun PlaylistSource.kindsArrivingWith(kind: MediaKind): Set<MediaKind> = when {
+    carriesEveryKind -> MediaKind.entries.toSet()
+    readsRadioFromLive && (kind == MediaKind.LIVE || kind == MediaKind.RADIO) ->
+        setOf(MediaKind.LIVE, MediaKind.RADIO)
+    else -> setOf(kind)
+}
+
+/** Whether this source's radio is found among its live categories rather than asked for. */
+private val PlaylistSource.readsRadioFromLive: Boolean
+    get() = this is PlaylistSource.Xtream || (this is PlaylistSource.M3u && xtream != null)
 
 /**
  * A stored provider, back as something that can be fetched from.

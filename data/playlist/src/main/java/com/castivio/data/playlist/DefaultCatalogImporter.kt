@@ -527,6 +527,12 @@ class DefaultCatalogImporter(
                 sourceId = sourceId,
                 api = xtreamApiFactory(account),
                 kinds = setOf(kind),
+                // Channels, and the radio found among their categories, in one reply where
+                // the panel serves that -- and a playlist read through its panel comes
+                // through here too, so it gets the same. Films and series are still asked
+                // for category by category: they are a later step, measured on their own.
+                // The engine falls back to the walk by itself; see `wholeSection`.
+                wholeSection = if (kind == MediaKind.LIVE || kind == MediaKind.RADIO) setOf(MediaKind.LIVE) else emptySet(),
                 onStreams = { report ->
                     PerformanceLog.note(NOTE_STREAMS, report.toString())
                     log("import $kind: $report")

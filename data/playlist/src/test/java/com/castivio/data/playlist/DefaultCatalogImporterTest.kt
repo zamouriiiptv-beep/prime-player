@@ -427,6 +427,29 @@ class DefaultCatalogImporterTest {
         assertEquals(listOf(ImportMode.REPLACE, ImportMode.APPEND), writer.began.map { it.second })
     }
 
+    /**
+     * The channels in one reply, for an Xtream account and — through the very same path —
+     * for a playlist read through its panel, the conversion the user never sees. Films are
+     * still asked for category by category: they are a later step.
+     */
+    @Test
+    fun `channels are asked for in one reply, whichever way the subscription was added`() = runBlocking {
+        val panel = OneReplyXtreamApi()
+        val account = PlaylistSource.Xtream("http://panel:8080", "user", "pass")
+        val link = server.url(PANEL_LINK).toString()
+
+        importer(xtreamApi = panel).importKind(account, MediaKind.LIVE).toList()
+        importer(xtreamApi = panel).importKind(routed(link), MediaKind.LIVE).toList()
+        importer(xtreamApi = panel).importKind(account, MediaKind.MOVIE).toList()
+
+        assertEquals(listOf(MediaKind.LIVE, MediaKind.LIVE), panel.wholeSectionAsks)
+        assertTrue("a live category was asked for on its own", panel.categoryAsks.none { it.first == MediaKind.LIVE })
+        assertEquals("two subscriptions, a channel and a station each", 4, writer.items.size)
+        assertEquals(2, writer.items.count { it.kind == MediaKind.RADIO })
+        assertTrue(logged.any { it.contains("LIVE: one reply, 2 rows") })
+        assertNothingFrom(link)
+    }
+
     @Test
     fun `a panel that refuses its api is followed by the playlist, once`() = runBlocking {
         val link = server.url(PANEL_LINK).toString()
@@ -798,6 +821,38 @@ class DefaultCatalogImporterTest {
         override fun seriesInfo(seriesId: String): Reader = StringReader("{}")
         override fun streamUrl(kind: MediaKind, streamId: String, extension: String?): String =
             XtreamUrls.stream("http://panel:8080", "user", "pass", kind, streamId, extension)
+    }
+
+    /**
+     * [FakeXtreamApi]'s panel, answering the live section in one reply and keeping count.
+     *
+     * The counts are behind a lock: the engine asks for categories from several workers at
+     * once, and a plain list loses an entry when two of them add at the same moment.
+     */
+    private class OneReplyXtreamApi : XtreamImportEngine.Api {
+        private val panel = FakeXtreamApi()
+        val wholeSectionAsks: MutableList<MediaKind> = java.util.Collections.synchronizedList(mutableListOf())
+        val categoryAsks: MutableList<Pair<MediaKind, String>> = java.util.Collections.synchronizedList(mutableListOf())
+
+        override fun categories(kind: MediaKind): Reader = panel.categories(kind)
+
+        override fun streams(kind: MediaKind, categoryId: String): Reader {
+            categoryAsks += kind to categoryId
+            return panel.streams(kind, categoryId)
+        }
+
+        override fun allStreams(kind: MediaKind): Reader? {
+            wholeSectionAsks += kind
+            return StringReader(
+                """[{"stream_id":"21","name":"Radio Mars","category_id":"2"},""" +
+                    """{"stream_id":"11","name":"Nova Sports","category_id":"1"}]""",
+            )
+        }
+
+        override fun series(categoryId: String): Reader = panel.series(categoryId)
+        override fun seriesInfo(seriesId: String): Reader = panel.seriesInfo(seriesId)
+        override fun streamUrl(kind: MediaKind, streamId: String, extension: String?): String =
+            panel.streamUrl(kind, streamId, extension)
     }
 
     /** A panel whose API throws [failure] on every call, and counts them. */

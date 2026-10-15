@@ -118,7 +118,7 @@ class LoadSectionTest {
         }
     }
 
-    /** Xtream addresses each kind separately, so a fetch settles exactly one. */
+    /** Xtream addresses films, series and live separately, so a films fetch settles films. */
     @Test
     fun `xtream marks only the section that was asked for`() = runTest {
         val importer = Importer(listOf(ImportProgress.Done(600, 12)))
@@ -130,6 +130,68 @@ class LoadSectionTest {
         assertEquals(now, marks.loadedAt("xtream", MediaKind.MOVIE))
         assertNull(marks.loadedAt("xtream", MediaKind.LIVE))
         assertNull(marks.loadedAt("xtream", MediaKind.SERIES))
+        assertNull(marks.loadedAt("xtream", MediaKind.RADIO))
+    }
+
+    // ------------------------------------------------------ live and radio, one walk
+
+    /**
+     * An Xtream panel's stations are live categories, so one walk writes both sections.
+     * Leaving radio unmarked is what made opening it walk every live category again.
+     */
+    @Test
+    fun `xtream channels bring the radio with them, and the radio the channels`() = runTest {
+        for ((asked, other) in listOf(MediaKind.LIVE to MediaKind.RADIO, MediaKind.RADIO to MediaKind.LIVE)) {
+            val marks = Marks()
+            val load = LoadSection(Sources(xtream()), Importer(listOf(ImportProgress.Done(55_202, 48_750))), marks)
+
+            load.load(asked, now).toList()
+
+            assertEquals("$asked was not marked", now, marks.loadedAt("xtream", asked))
+            assertEquals("$other arrived with $asked and was not marked", now, marks.loadedAt("xtream", other))
+            assertNull(marks.loadedAt("xtream", MediaKind.MOVIE))
+            assertNull(marks.loadedAt("xtream", MediaKind.SERIES))
+        }
+    }
+
+    /** The point of the mark, stated as the request it saves. */
+    @Test
+    fun `opening radio after the channels fetches nothing`() = runTest {
+        val importer = Importer(listOf(ImportProgress.Done(55_202, 48_750)))
+        val marks = Marks()
+        val load = LoadSection(Sources(xtream()), importer, marks)
+
+        load.load(MediaKind.LIVE, now).toList()
+        val radio = load.load(MediaKind.RADIO, now).toList()
+
+        assertEquals(listOf(SectionLoad.Ready), radio)
+        assertEquals(listOf(MediaKind.LIVE), importer.calls)
+    }
+
+    /** A playlist read through its panel is read section by section, the Xtream way. */
+    @Test
+    fun `a playlist read through its panel marks the channels and the radio together`() = runTest {
+        val marks = Marks()
+        val load = LoadSection(Sources(panelPlaylist()), Importer(listOf(ImportProgress.Done(55_202, 48_750))), marks)
+
+        load.load(MediaKind.LIVE, now).toList()
+
+        assertEquals(now, marks.loadedAt("panel", MediaKind.LIVE))
+        assertEquals(now, marks.loadedAt("panel", MediaKind.RADIO))
+        assertNull(marks.loadedAt("panel", MediaKind.MOVIE))
+        assertNull(marks.loadedAt("panel", MediaKind.SERIES))
+    }
+
+    /** A portal answers `radio` on a call of its own, so its channels bring no stations. */
+    @Test
+    fun `a portal's channels do not claim its radio`() = runTest {
+        val marks = Marks()
+        val load = LoadSection(Sources(portal()), Importer(listOf(ImportProgress.Done(900, 30))), marks)
+
+        load.load(MediaKind.LIVE, now).toList()
+
+        assertEquals(now, marks.loadedAt("portal", MediaKind.LIVE))
+        assertNull(marks.loadedAt("portal", MediaKind.RADIO))
     }
 
     // ------------------------------------------------------------------ the edges
@@ -206,6 +268,21 @@ class LoadSectionTest {
         kind = SourceKind.M3U_URL,
         label = "Playlist",
         url = "http://example.com/list.m3u",
+    )
+
+    /** A `get.php` link that names a panel account, so it is read through the panel. */
+    private fun panelPlaylist() = ProviderSource(
+        id = "panel",
+        kind = SourceKind.M3U_URL,
+        label = "Playlist 1",
+        url = "http://line.example.com:8080/get.php?username=sam&password=hunter2&type=m3u_plus&output=ts",
+    )
+
+    private fun portal() = ProviderSource(
+        id = "portal",
+        kind = SourceKind.PORTAL,
+        label = "Portal",
+        url = "http://portal.example.com/c/",
     )
 
     private class Sources(private val active: ProviderSource?) : SourceRepository {
