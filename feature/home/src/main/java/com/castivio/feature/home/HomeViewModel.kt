@@ -21,6 +21,7 @@ import com.castivio.domain.identity.DeviceIdentity
 import com.castivio.domain.time.TrustedTime
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -28,7 +29,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -424,6 +427,27 @@ class HomeViewModel @Inject constructor(
     private val arrived = MutableStateFlow<Set<MediaKind>>(emptySet())
 
     init {
+        // A subscription with no answer from its provider is asked once, quietly, when Home
+        // shows it: the expiry date belongs on the card before any section is loaded, and
+        // adding a playlist asks nothing. The same question as [refresh], without letting
+        // the sections go stale -- see [RefreshProvider.askIfNeverAsked]. Asked again for
+        // the next subscription the menu switches to; a failure leaves the card as it was,
+        // for the next Home or a press of refresh.
+        viewModelScope.launch {
+            // `sources.active()` and not [provider]: this runs before the properties below
+            // it are initialised, and [provider] is one of them.
+            sources.active().map { it?.id }.distinctUntilChanged().collectLatest { id ->
+                if (id == null) return@collectLatest
+                try {
+                    refresher.askIfNeverAsked(clock.nowMs())
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // Nobody pressed anything, so there is nobody to tell: the card keeps
+                    // saying the provider was not checked, which is still the truth.
+                }
+            }
+        }
         viewModelScope.launch {
             var before: Map<MediaKind, SectionRun>? = null
             loads.runs.collect { runs ->

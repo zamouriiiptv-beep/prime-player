@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -83,11 +84,17 @@ class RefreshProviderTest {
             recorded += sourceId to status
         }
 
-        override fun of(sourceId: String): Flow<Recorded?> = MutableStateFlow(null)
+        /** The last answer filed under [sourceId], read back the way the store reads it. */
+        override fun of(sourceId: String): Flow<Recorded?> = MutableStateFlow(
+            recorded.lastOrNull { it.first == sourceId }?.let { (_, status) ->
+                Recorded(usable = status.usable, expiresAtMs = status.expiresAtMs, label = status.statusLabel, atMs = 0)
+            },
+        )
+
         override suspend fun forget(sourceId: String) = Unit
     }
 
-    /** Records every id whose section marks were cleared. */
+    /** Records every id whose kept playlist was discarded. */
     private class Copies : PlaylistCopies {
         val discarded = mutableListOf<String>()
         override suspend fun discard(sourceId: String) {
@@ -95,6 +102,7 @@ class RefreshProviderTest {
         }
     }
 
+    /** Records every id whose section marks were cleared. */
     private class Sections : SectionCatalogue {
         val forgotten = mutableListOf<String>()
         override suspend fun loadedAt(sourceId: String, kind: MediaKind): Long? = null
@@ -104,6 +112,14 @@ class RefreshProviderTest {
             forgotten += sourceId
         }
     }
+
+    /** A `get.php` link that names a panel account, so it is read, and asked, through the panel. */
+    private fun panelPlaylist() = ProviderSource(
+        id = "playlist-1",
+        kind = SourceKind.M3U_URL,
+        label = "Playlist 1",
+        url = "http://line.example.com:8080/get.php?username=sam&password=hunter2&type=m3u_plus&output=ts",
+    )
 
     private fun xtream(id: String, host: String) = ProviderSource(
         id = id,
@@ -269,6 +285,75 @@ class RefreshProviderTest {
         refresher.refresh(now)
 
         assertTrue(copies.discarded.isEmpty())
+    }
+
+    // ------------------------------------------------- asked once, by Home itself
+
+    /**
+     * Adding a playlist asks nothing, so a playlist read through its panel had no expiry
+     * to show until refresh was pressed. Home asks it once instead -- the same question --
+     * and the sections stay exactly as they were.
+     */
+    @Test
+    fun `a subscription never asked is asked once, and its sections are left alone`() = runBlocking {
+        val playlist = panelPlaylist()
+        val validator = Validator { Outcome.Success(ProviderStatus(usable = true, expiresAtMs = now + 1, statusLabel = "Active")) }
+        val statuses = Statuses()
+        val marks = Sections()
+        val copies = Copies()
+        val refresher = RefreshProvider(Sources(playlist), validator, statuses, marks, copies)
+
+        val outcome = refresher.askIfNeverAsked(now)
+
+        assertTrue(outcome is Refreshed.Updated)
+        assertEquals("asked through the panel its link names", "sam", (validator.asked.single() as PlaylistSource.M3u).xtream?.username)
+        assertEquals(listOf(playlist.id), statuses.recorded.map { it.first })
+        assertEquals(now + 1, statuses.recorded.single().second.expiresAtMs)
+        assertTrue("no section was let go stale", marks.forgotten.isEmpty())
+        assertTrue("no kept playlist was discarded", copies.discarded.isEmpty())
+    }
+
+    @Test
+    fun `a subscription already answered is not asked again`() = runBlocking {
+        val validator = Validator()
+        val refresher = RefreshProvider(Sources(xtream("first", "http://one.test")), validator, Statuses())
+
+        refresher.askIfNeverAsked(now)
+        val second = refresher.askIfNeverAsked(now)
+
+        assertNull(second)
+        assertEquals(1, validator.asked.size)
+    }
+
+    /** A playlist with no panel behind it, and a file, state no date: there is nothing to ask. */
+    @Test
+    fun `a source with no account behind it is not asked`() = runBlocking {
+        val validator = Validator()
+        val plain = ProviderSource(id = "plain", kind = SourceKind.M3U_URL, label = "plain", url = "http://cdn.example.com/lists/family.m3u")
+        val file = ProviderSource(id = "file", kind = SourceKind.LOCAL_FILE, label = "file", url = "content://downloads/list.m3u")
+
+        assertNull(RefreshProvider(Sources(plain), validator, Statuses()).askIfNeverAsked(now))
+        assertNull(RefreshProvider(Sources(file), validator, Statuses()).askIfNeverAsked(now))
+        assertTrue(validator.asked.isEmpty())
+    }
+
+    @Test
+    fun `an ask that fails records nothing, so the next one asks again`() = runBlocking {
+        val statuses = Statuses()
+        val validator = Validator { Outcome.Failure(AppError.TIMEOUT) }
+        val refresher = RefreshProvider(Sources(xtream("first", "http://one.test")), validator, statuses)
+
+        val first = refresher.askIfNeverAsked(now)
+        refresher.askIfNeverAsked(now)
+
+        assertEquals(Refreshed.Unreachable(AppError.TIMEOUT), first)
+        assertTrue(statuses.recorded.isEmpty())
+        assertEquals(2, validator.asked.size)
+    }
+
+    @Test
+    fun `with nothing active there is nobody to ask`() = runBlocking {
+        assertNull(RefreshProvider(Sources(), Validator(), Statuses()).askIfNeverAsked(now))
     }
 
     /** Nothing active is not a failure, and it must not look like one to the screen. */

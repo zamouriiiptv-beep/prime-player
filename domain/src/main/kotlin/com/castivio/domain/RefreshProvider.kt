@@ -1,6 +1,7 @@
 package com.castivio.domain
 
 import com.castivio.core.common.Outcome
+import kotlinx.coroutines.flow.first
 
 /**
  * Ask the active provider again what it says about the subscription.
@@ -115,4 +116,48 @@ class RefreshProvider(
             }
         }
     }
+
+    /**
+     * Asks the active provider when no answer from it has been recorded yet, and leaves
+     * its sections as they are.
+     *
+     * The expiry date on Home is the provider's answer, recorded when it was asked. Adding
+     * a playlist asks nothing -- Home opens at once -- so a playlist read through its panel
+     * had no date to show until refresh was pressed, and refresh is the press that also
+     * lets every section go stale. This is the same small question, asked by Home itself
+     * the first time it shows a subscription with no answer, and nothing more: no section
+     * is forgotten and no kept playlist discarded.
+     *
+     * @return null when there was nothing to ask: no subscription, an answer already
+     *   recorded, or a source with no account behind it -- a playlist with no panel and a
+     *   file state no date. Otherwise what asking produced, recorded as [refresh] records
+     *   it; a failure records nothing, so the next Home asks again.
+     */
+    suspend fun askIfNeverAsked(nowMs: Long): Refreshed? {
+        val active = sources.activeNow() ?: return null
+        if (statuses.of(active.id).first() != null) return null
+        val source = active.asPlaylistSource() ?: return null
+        if (!source.answersWithAnAccount) return null
+
+        return when (val answer = validator.validate(source)) {
+            is Outcome.Failure -> Refreshed.Unreachable(answer.error)
+            is Outcome.Success -> {
+                statuses.record(active.id, answer.value, nowMs)
+                Refreshed.Updated(answer.value)
+            }
+        }
+    }
 }
+
+/**
+ * Whether asking this source is answered with an account -- a status, an expiry, a count
+ * of connections: a panel's, a portal's, or a playlist's read through its panel. A playlist
+ * on its own and a file only say whether they can be read, which the section loader learns
+ * by reading them.
+ */
+private val PlaylistSource.answersWithAnAccount: Boolean
+    get() = when (this) {
+        is PlaylistSource.Xtream, is PlaylistSource.Portal -> true
+        is PlaylistSource.M3u -> xtream != null
+        is PlaylistSource.LocalFile -> false
+    }
