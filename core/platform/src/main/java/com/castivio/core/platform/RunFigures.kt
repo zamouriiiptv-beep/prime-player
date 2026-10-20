@@ -57,30 +57,27 @@ fun PassTimes.readerParts(): List<TimePart> = listOf(
 /**
  * The writer's side of [pass], part by part, adding up to the pass's window.
  *
- * The rows are split into the table's and the search index's where the split belongs to
- * this pass alone: the writer times the two per row but reports them for the whole run, so
- * they are this pass's only when the run had no other. With two passes the writer's time
- * is one figure, `write`, and the split is left to the log's database line. Whatever the
- * named parts do not cover is `other`: the writer's bookkeeping between them.
+ * The rows are the writer's own figure where it belongs to this pass alone: the writer
+ * times them per row but reports them for the whole run, so they are this pass's only when
+ * the run had no other. With two passes the writer's time is one figure, `write`, and the
+ * rows are left to the log's database line. Whatever the named parts do not cover is
+ * `other`: the writer's bookkeeping between them.
  */
 fun SectionReport.writerParts(pass: PassTimes): List<TimePart> {
     val rows = databaseSteps[DatabaseStep.ROWS]
     val writing = if (passes.size == 1 && rows != null) {
-        listOfNotNull(
-            TimePart(DatabaseStep.ROWS.label, rows),
-            databaseSteps[DatabaseStep.SEARCH_ROWS]?.let { TimePart(DatabaseStep.SEARCH_ROWS.label, it) },
-        )
+        TimePart(DatabaseStep.ROWS.label, rows)
     } else {
-        listOf(TimePart(WRITE, pass.writeMs))
+        TimePart(WRITE, pass.writeMs)
     }
-    val named = writing + TimePart(COMMIT, pass.commitMs) + TimePart(IDLE, pass.idleMs)
+    val named = listOf(writing, TimePart(COMMIT, pass.commitMs), TimePart(IDLE, pass.idleMs))
     return named + TimePart(OTHER, (pass.windowMs - named.sumOf { it.ms }).coerceAtLeast(0L))
 }
 
 /**
  * What the writer does after the last row, in order: the old generation pruned, every
- * category counted, the search index rebuilt. Null for a step this run did not take -- an
- * appending import prunes nothing and rebuilds nothing.
+ * category counted, the rows written indexed for search. Null for a step this run did not
+ * take -- an appending import prunes nothing.
  */
 fun SectionReport.finishParts(): List<Pair<String, Long?>> =
     FINISH_STEPS.map { step -> step.label to databaseSteps[step] }

@@ -198,15 +198,79 @@ class RoomCatalogWriterTest {
         assertTrue(repository().search("anything", limit = 10).isEmpty())
     }
 
+    // ------------------------------------------------------------ the search index
+
+    /**
+     * A section load appends, and the index used to take an entry per row written and keep
+     * the row's old one: every reload added another copy, and search returned each
+     * channel once per load.
+     */
+    @Test
+    fun `a section loaded again is found by search once, not once per load`() = runBlocking {
+        repeat(3) { appendLive(3) }
+
+        assertEquals(3, rowsOf("src"))
+        assertEquals("one entry per row, however often the section loaded", 3, entries())
+        assertEquals(3, entriesOnTheirRow())
+        assertEquals(listOf("appended-1"), repository().search("Appended 1", limit = 10).map { it.id })
+    }
+
+    @Test
+    fun `an append after a replacement and a replacement after an append keep one entry per row`() = runBlocking {
+        Fixtures.import(database, Fixtures.livePlaylist(3))
+        appendLive(2)
+        assertEquals(5, entries())
+        assertEquals(5, entriesOnTheirRow())
+
+        // A replacement prunes the appended rows the playlist does not list, and their entries.
+        Fixtures.import(database, Fixtures.livePlaylist(3), now = 5_000L)
+
+        assertEquals(3, rowsOf("src"))
+        assertEquals(3, entries())
+        assertEquals(3, entriesOnTheirRow())
+        assertTrue(repository().search("Appended", limit = 10).isEmpty())
+        assertEquals(1, repository().search("Channel 2", limit = 10).size)
+    }
+
+    @Test
+    fun `a load of one subscription leaves another's search alone`() = runBlocking {
+        Fixtures.import(database, Fixtures.livePlaylist(2), sourceId = "other")
+        Fixtures.import(database, Fixtures.livePlaylist(3), sourceId = "src")
+        appendLive(2)
+        appendLive(2)
+
+        assertEquals(7, entries())
+        assertEquals(7, entriesOnTheirRow())
+        Fixtures.activate(database, "other")
+        assertEquals(2, repository().search("Channel", limit = 10).size)
+    }
+
+    /** The rows committed before a load stopped stay, so search finds them as well. */
+    @Test
+    fun `rows an import committed before it stopped are found by search`() = runBlocking {
+        Fixtures.register(database, "src")
+        val writer = RoomCatalogWriter(database) { 2_000L }
+        writer.begin("src", ImportMode.APPEND)
+        writer.writeItems(listOf(liveItem("kept-0", "Kept Zero"), liveItem("kept-1", "Kept One")))
+        writer.commit()
+        // The batch in flight when the connection dropped, which is rolled back.
+        writer.writeItems(listOf(liveItem("lost-0", "Lost Zero")))
+        writer.abort(java.io.IOException("connection reset"))
+
+        assertEquals(2, rowsOf("src"))
+        assertEquals(listOf("kept-1"), repository().search("Kept One", limit = 10).map { it.id })
+        assertTrue(repository().search("Lost", limit = 10).isEmpty())
+        assertEquals(2, entriesOnTheirRow())
+    }
+
     // ------------------------------------------------------------ the measurement build
 
     /**
-     * Rows and their search entries were one figure, and the question it could not answer
-     * was how much of it the index was. A replacing import writes no entry per row -- it
-     * rebuilds the index once -- so it reports no search rows at all, and says how it saved.
+     * Both kinds of import index once, at the end, and say so: neither writes an entry per
+     * row any more, and only a replacement prunes.
      */
     @Test
-    fun `rows and search rows are timed apart, and search rows only where they are written`() {
+    fun `both kinds of import index once at the end, and say how they saved`() {
         PerformanceLog.begin(PerfSection.CHANNELS)
         Fixtures.import(database, Fixtures.livePlaylist(3))
         PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
@@ -214,7 +278,7 @@ class RoomCatalogWriterTest {
 
         assertEquals(listOf("REPLACE"), replaced.saveModes)
         assertTrue(DatabaseStep.ROWS in replaced.databaseSteps)
-        assertFalse("a replacing import indexed row by row", DatabaseStep.SEARCH_ROWS in replaced.databaseSteps)
+        assertTrue(DatabaseStep.PRUNE in replaced.databaseSteps)
         assertTrue(DatabaseStep.SEARCH in replaced.databaseSteps)
 
         PerformanceLog.begin(PerfSection.CHANNELS)
@@ -223,23 +287,39 @@ class RoomCatalogWriterTest {
         val appended = PerformanceLog.current.value!!
 
         assertEquals(listOf("APPEND"), appended.saveModes)
-        assertTrue(DatabaseStep.SEARCH_ROWS in appended.databaseSteps)
-        assertFalse("an append rebuilt the index", DatabaseStep.SEARCH in appended.databaseSteps)
+        assertTrue(DatabaseStep.ROWS in appended.databaseSteps)
+        assertFalse("an append pruned", DatabaseStep.PRUNE in appended.databaseSteps)
+        assertTrue(DatabaseStep.SEARCH in appended.databaseSteps)
     }
 
     /** Rows written straight through the writer, appending, as a section import does. */
     private fun appendLive(count: Int) {
+        Fixtures.register(database, "src")
         val writer = RoomCatalogWriter(database) { 2_000L }
         writer.begin("src", ImportMode.APPEND)
-        writer.writeItems(
-            (0 until count).map {
-                CatalogItem(id = "appended-$it", sourceId = "src", kind = MediaKind.LIVE, title = "Appended $it", streamUrl = "http://host/a/$it.ts")
-            },
-        )
-        writer.finish(
-            ImportSummary(sourceId = "src", items = count, groups = 0, skipped = 0, byKind = mapOf(MediaKind.LIVE to count), durationMs = 1),
-        )
+        writer.writeItems((0 until count).map { liveItem("appended-$it", "Appended $it") })
+        writer.finish(summaryOf(count))
     }
+
+    private fun liveItem(id: String, title: String) = CatalogItem(
+        id = id,
+        sourceId = "src",
+        kind = MediaKind.LIVE,
+        title = title,
+        streamUrl = "http://host/a/$id.ts",
+    )
+
+    private fun summaryOf(count: Int) =
+        ImportSummary(sourceId = "src", items = count, groups = 0, skipped = 0, byKind = mapOf(MediaKind.LIVE to count), durationMs = 1)
+
+    private fun entries(): Int = countOf("SELECT COUNT(*) FROM media_fts")
+
+    /** Entries that are their row's: the docid its rowid, and the id its id. */
+    private fun entriesOnTheirRow(): Int =
+        countOf("SELECT COUNT(*) FROM media_fts f INNER JOIN media m ON m.rowid = f.docid AND m.id = f.media_id")
+
+    private fun countOf(sql: String): Int =
+        database.openHelper.writableDatabase.query(sql).use { cursor -> if (cursor.moveToFirst()) cursor.getInt(0) else -1 }
 
     private fun repository() = RoomCatalogRepository(
         mediaDao = database.mediaDao(),

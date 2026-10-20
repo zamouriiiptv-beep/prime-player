@@ -284,14 +284,14 @@ class PerformanceLogTest {
         PerformanceLog.addDatabaseNanos(10_000_000)
         PerformanceLog.addDatabaseStep(DatabaseStep.ROWS, 30_000_000)
         PerformanceLog.addDatabaseStep(DatabaseStep.ROWS, 20_000_000)
-        PerformanceLog.addDatabaseStep(DatabaseStep.SEARCH_ROWS, 9_000_000)
         PerformanceLog.addDatabaseStep(DatabaseStep.COUNTS, 7_000_000)
+        PerformanceLog.addDatabaseStep(DatabaseStep.SEARCH, 9_000_000)
         PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
 
         val report = PerformanceLog.current.value!!
         assertEquals(10L, report.databaseMs)
         assertEquals(
-            mapOf(DatabaseStep.ROWS to 50L, DatabaseStep.SEARCH_ROWS to 9L, DatabaseStep.COUNTS to 7L),
+            mapOf(DatabaseStep.ROWS to 50L, DatabaseStep.COUNTS to 7L, DatabaseStep.SEARCH to 9L),
             report.databaseSteps,
         )
 

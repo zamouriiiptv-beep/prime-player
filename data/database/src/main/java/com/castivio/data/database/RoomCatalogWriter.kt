@@ -11,7 +11,6 @@ import com.castivio.domain.CatalogWriter
 import com.castivio.domain.ImportMode
 import com.castivio.domain.ImportSummary
 import com.castivio.domain.MediaGroup
-import com.castivio.domain.MediaKind
 
 /**
  * Writes the catalogue to SQLite as fast as the storage allows.
@@ -33,6 +32,9 @@ import com.castivio.domain.MediaKind
  *    re-download and nothing else, so the trade is clearly worth it — and it is
  *    restored afterwards. The journal deliberately stays WAL throughout: see
  *    `applyImportPragmas` for why that one line decided time-to-first-content.
+ *  - **The search index once, at the end.** Not row by row beside the rows, and not
+ *    rebuilt whole either: the rows this import wrote, in two statements, after the
+ *    last of them. See `indexWrittenRows`.
  *
  * Blocking, like the interface it implements. Call it on an IO dispatcher.
  */
@@ -47,9 +49,10 @@ class RoomCatalogWriter(
     private var now = 0L
     private var groupOrder = 0
     private var inTransaction = false
+    private var lastRowIdBefore = 0L
+    private var wroteRows = false
     private var itemStatement: SupportSQLiteStatement? = null
     private var groupStatement: SupportSQLiteStatement? = null
-    private var ftsStatement: SupportSQLiteStatement? = null
 
     override fun begin(sourceId: String, mode: ImportMode) {
         val db = database.openHelper.writableDatabase
@@ -71,16 +74,18 @@ class RoomCatalogWriter(
                 sourceId,
             )
         }
+        // Every row this import writes lands above it, a row written again included:
+        // `INSERT OR REPLACE` allocates the new rowid before it deletes the old row. That
+        // is how the index knows, at the end, which rows are this import's.
+        lastRowIdBefore = db.longOf("SELECT IFNULL(MAX(rowid), 0) FROM media")
+        wroteRows = false
         db.applyImportPragmas()
         // Which way this import writes decides which steps it pays for -- a replacing write
-        // prunes and rebuilds the search index at the end, an appending one indexes per row
-        // -- so a reading of its steps means nothing without it.
+        // prunes the old generation at the end, an appending one does not -- so a reading
+        // of its steps means nothing without it.
         PerformanceLog.saveMode(mode.name)
         itemStatement = db.compileStatement(INSERT_ITEM)
         groupStatement = db.compileStatement(INSERT_GROUP)
-        // Only APPEND maintains the index per row; REPLACE rebuilds it in two
-        // statements at the end, which is far cheaper across 400,000 rows.
-        ftsStatement = if (mode == ImportMode.APPEND) db.compileStatement(INSERT_FTS) else null
         db.begin()
     }
 
@@ -99,80 +104,45 @@ class RoomCatalogWriter(
         }
     }
 
+    /**
+     * One batch of rows into `media`, with its six indices -- and nothing else: the search
+     * index takes them at the end of the import. Timed per batch, never per row.
+     */
     override fun writeItems(items: List<CatalogItem>) {
         val source = requireStarted()
         val statement = itemStatement ?: error("writeItems before begin")
-        insert(source, statement, items)
-    }
-
-    /**
-     * The batch's rows, and their search entries where this import indexes per row.
-     *
-     * Timed in two halves, per row, and reported per batch: the row into `media` with its
-     * six indices, and the entry into `media_fts`. Together they were one figure, and the
-     * one question it could not answer was how much of it the search index was. Reading
-     * the clock four times a row costs well under a millisecond a thousand rows.
-     */
-    private fun insert(source: String, statement: SupportSQLiteStatement, items: List<CatalogItem>) {
-        var rowNanos = 0L
-        var searchNanos = 0L
-        try {
-            insertTimed(source, statement, items) { row, search ->
-                rowNanos += row
-                searchNanos += search
-            }
-        } finally {
-            PerformanceLog.addDatabaseStep(DatabaseStep.ROWS, rowNanos)
-            if (ftsStatement != null) PerformanceLog.addDatabaseStep(DatabaseStep.SEARCH_ROWS, searchNanos)
+        if (items.isEmpty()) return
+        wroteRows = true
+        timed(DatabaseStep.ROWS) {
+            for (item in items) insert(source, statement, item)
         }
     }
 
-    private inline fun insertTimed(
-        source: String,
-        statement: SupportSQLiteStatement,
-        items: List<CatalogItem>,
-        spent: (row: Long, search: Long) -> Unit,
-    ) {
-        for (item in items) {
-            val rowStarted = System.nanoTime()
-            statement.clearBindings()
-            statement.bindString(1, item.id)
-            statement.bindString(2, source)
-            statement.bindString(3, item.kind.name)
-            statement.bindString(4, item.title)
-            statement.bindString(5, sortTitle(item.title))
-            statement.bindString(6, searchText(item.title, item.seriesTitle))
-            statement.bindString(7, item.streamUrl)
-            statement.bindNullable(8, item.artworkUrl)
-            statement.bindNullable(9, item.groupId)
-            statement.bindNullable(10, item.epgChannelId)
-            statement.bindNullable(11, item.providerRef)
-            statement.bindLong(12, item.providerOrder.toLong())
-            statement.bindNullable(13, item.durationSeconds)
-            statement.bindNullable(14, item.seriesId)
-            statement.bindNullable(15, item.seriesTitle)
-            statement.bindNullable(16, item.seasonNumber)
-            statement.bindNullable(17, item.episodeNumber)
-            statement.bindLong(18, generation)
-            // Bound twice: the statement keeps an existing row's added_at so a
-            // nightly refresh does not make the whole library "recently added".
-            statement.bindString(19, item.id)
-            statement.bindLong(20, now)
-            val rowId = statement.executeInsert()
-            val searchStarted = System.nanoTime()
-
-            // The FTS row is keyed by the media row's own rowid, so an append that
-            // touches a row already indexed replaces its entry rather than adding a
-            // second one and returning the item twice from search.
-            ftsStatement?.let { fts ->
-                fts.clearBindings()
-                fts.bindLong(1, rowId)
-                fts.bindString(2, item.id)
-                fts.bindString(3, searchText(item.title, item.seriesTitle))
-                fts.executeInsert()
-            }
-            spent(searchStarted - rowStarted, if (ftsStatement != null) System.nanoTime() - searchStarted else 0L)
-        }
+    private fun insert(source: String, statement: SupportSQLiteStatement, item: CatalogItem) {
+        statement.clearBindings()
+        statement.bindString(1, item.id)
+        statement.bindString(2, source)
+        statement.bindString(3, item.kind.name)
+        statement.bindString(4, item.title)
+        statement.bindString(5, sortTitle(item.title))
+        statement.bindString(6, searchText(item.title, item.seriesTitle))
+        statement.bindString(7, item.streamUrl)
+        statement.bindNullable(8, item.artworkUrl)
+        statement.bindNullable(9, item.groupId)
+        statement.bindNullable(10, item.epgChannelId)
+        statement.bindNullable(11, item.providerRef)
+        statement.bindLong(12, item.providerOrder.toLong())
+        statement.bindNullable(13, item.durationSeconds)
+        statement.bindNullable(14, item.seriesId)
+        statement.bindNullable(15, item.seriesTitle)
+        statement.bindNullable(16, item.seasonNumber)
+        statement.bindNullable(17, item.episodeNumber)
+        statement.bindLong(18, generation)
+        // Bound twice: the statement keeps an existing row's added_at so a
+        // nightly refresh does not make the whole library "recently added".
+        statement.bindString(19, item.id)
+        statement.bindLong(20, now)
+        statement.executeInsert()
     }
 
     /**
@@ -238,9 +208,7 @@ class RoomCatalogWriter(
                     arrayOf(source),
                 )
             }
-            // An append has already indexed its own rows; rebuilding here would be
-            // seconds of work to add a season.
-            if (mode == ImportMode.REPLACE) timed(DatabaseStep.SEARCH) { rebuildSearchIndex() }
+            timed(DatabaseStep.SEARCH) { indexWrittenRows() }
         }
 
         db.restoreNormalPragmas()
@@ -252,8 +220,13 @@ class RoomCatalogWriter(
         val db = runCatching { database.openHelper.writableDatabase }.getOrNull()
         if (db != null) {
             // Rolls back the batch in flight; everything already committed stays,
-            // because a partial catalogue beats an empty one.
+            // because a partial catalogue beats an empty one -- and is found by search
+            // like a whole one. Quietly: an import that failed on the database itself
+            // may fail here again, and that is no reason to lose the rows.
             db.endTransactionQuietly()
+            if (sourceId != null && wroteRows) {
+                runCatching { db.transaction { timed(DatabaseStep.SEARCH) { indexWrittenRows() } } }
+            }
             db.restoreNormalPragmas()
             database.invalidationTracker.refreshVersionsAsync()
         }
@@ -262,34 +235,35 @@ class RoomCatalogWriter(
     }
 
     /**
-     * Rebuilds the whole FTS index in two statements.
+     * The search index for what this import wrote, in two statements after its last row.
      *
-     * Cheaper *and* simpler than maintaining it per row: inserting into the
-     * index during import would add a second write per row on the hot path, and
-     * keeping a standalone index in sync through `INSERT OR REPLACE` (which
-     * assigns a new rowid) is exactly the kind of bookkeeping that rots into
-     * stale search results.
+     * Every entry's `docid` is its row's rowid, and `INSERT OR REPLACE` gives a row it
+     * writes again a new one. So the entries this import made stale -- a row written
+     * again, or the old generation a replacement pruned -- are the ones whose docid is no
+     * longer a row, and the rows it wrote are the ones above [lastRowIdBefore]. Nothing
+     * else writes the index, so a row above it has no entry yet.
      *
-     * Search is therefore complete when the import completes — which is also the
-     * only point at which searching the catalogue is a meaningful thing to do.
+     * Kept row by row instead, the entry was a second statement per row on the hot path
+     * and the stale one stayed behind: every reload added another copy of the section, and
+     * search returned each channel once per load. Rebuilt whole instead, it cost every row
+     * of every section and subscription, three hundred stations or not.
+     *
+     * Search is complete when the import completes -- the rows of a load still running
+     * are found once it ends.
      */
-    private fun SupportSQLiteDatabase.rebuildSearchIndex() {
-        execSQL("DELETE FROM media_fts")
-        execSQL(
-            """
-            INSERT INTO media_fts (media_id, search_text)
-            SELECT id, search_text FROM media
-            """,
-        )
+    private fun SupportSQLiteDatabase.indexWrittenRows() {
+        execSQL("DELETE FROM media_fts WHERE docid NOT IN (SELECT rowid FROM media)")
+        execSQL(INDEX_WRITTEN, arrayOf(lastRowIdBefore))
     }
 
     /**
-     * One step of the end of an import, timed for the on-device panel.
+     * One step of an import's database work, timed for the log: the rows, batch by batch,
+     * and the three steps after the last commit.
      *
-     * The three steps after the last commit were the part of a load nothing measured: the
-     * commit figure stops before them and the full load includes them. Timed one by one,
-     * because they scale differently -- the prune with what was replaced, the counts with
-     * the groups, the index with every row -- and a single number would not say which.
+     * Those three were the part of a load nothing measured: the commit figure stops before
+     * them and the full load includes them. Timed one by one, because they scale
+     * differently -- the prune with what was replaced, the counts with the groups, the
+     * index with the rows written -- and a single number would not say which.
      */
     private inline fun timed(step: DatabaseStep, block: () -> Unit) {
         val startedAt = System.nanoTime()
@@ -303,10 +277,8 @@ class RoomCatalogWriter(
     private fun release() {
         runCatching { itemStatement?.close() }
         runCatching { groupStatement?.close() }
-        runCatching { ftsStatement?.close() }
         itemStatement = null
         groupStatement = null
-        ftsStatement = null
         sourceId = null
     }
 
@@ -411,19 +383,16 @@ class RoomCatalogWriter(
          * It has to be listed: a Kotlin default does not become a SQL default, so
          * omitting the NOT NULL column would fail every insert.
          */
-        /**
-         * `docid` is FTS4's name for the row's rowid, bound to the media row's
-         * rowid so an append can replace an item's index entry instead of adding a
-         * duplicate one.
-         */
-        const val INSERT_FTS = """
-            INSERT OR REPLACE INTO media_fts (docid, media_id, search_text) VALUES (?, ?, ?)
-        """
-
         const val INSERT_GROUP = """
             INSERT OR REPLACE INTO media_group (
                 id, source_id, name, kind, provider_order, item_count, generation
             ) VALUES (?, ?, ?, ?, ?, 0, ?)
+        """
+
+        /** `docid` is FTS4's name for an entry's rowid: here, always its row's. */
+        const val INDEX_WRITTEN = """
+            INSERT INTO media_fts (docid, media_id, search_text)
+            SELECT rowid, id, search_text FROM media WHERE rowid > ?
         """
     }
 }

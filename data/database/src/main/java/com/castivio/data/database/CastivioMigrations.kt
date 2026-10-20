@@ -42,7 +42,7 @@ object CastivioMigrations {
     // Declared below rather than here, and read through a getter rather than held in a
     // property: an `object`'s properties initialise top to bottom, so a list that
     // named a migration declared under it would be a list holding null.
-    val ALL: Array<Migration> get() = arrayOf(REKEY_SOURCES, SCOPE_TO_SOURCE)
+    val ALL: Array<Migration> get() = arrayOf(REKEY_SOURCES, SCOPE_TO_SOURCE, KEY_SEARCH_BY_ROW)
 
     /**
      * 1 → 2: the stored sources take the ids the current rule gives them.
@@ -204,6 +204,29 @@ object CastivioMigrations {
             for (index in RETIRED_INDICES) db.execSQL("DROP INDEX IF EXISTS `$index`")
             for (statement in SCOPED_INDICES) db.execSQL(statement)
             removeOrphans(db)
+        }
+    }
+
+    /**
+     * 3 → 4: every search entry keyed by its row's rowid, and one entry per row.
+     *
+     * **No table changes.** The rule for `media_fts`'s `docid` did: an import now indexes
+     * the rows it wrote once, at its end, and finds the entries it made stale by number --
+     * a docid that is no longer a row -- which holds only if every docid is its row's
+     * rowid. The index this replaces broke that twice: a replacing import rebuilt it with
+     * docids of SQLite's choosing, and an appending one added an entry per row written
+     * without removing the row's old one, so each reload of a section added another copy
+     * and search returned a channel once per load.
+     *
+     * Rebuilt, rather than repaired entry by entry: the rows are all there and the text
+     * is theirs, so two statements produce exactly the index an import maintains, with
+     * nothing to reconcile. It costs one pass over the catalogue, once, on the first open
+     * after the update; no row, no subscription and no user data is touched.
+     */
+    private val KEY_SEARCH_BY_ROW = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("DELETE FROM media_fts")
+            db.execSQL("INSERT INTO media_fts (docid, media_id, search_text) SELECT rowid, id, search_text FROM media")
         }
     }
 

@@ -105,24 +105,18 @@ class RunFiguresTest {
         assertEquals(pass().readerMs, parts.sumOf { it.ms })
     }
 
-    /** With one pass, the rows the writer timed for the whole run are that pass's, and are split. */
+    /** With one pass, the rows the writer timed for the whole run are that pass's. */
     @Test
-    fun `one pass's writer is split into rows and search rows and adds up to the window`() {
+    fun `one pass's writer is its rows, commits and idle, adding up to the window`() {
         val report = report(fullLoadMs = null).copy(
             passes = listOf(pass()),
-            databaseSteps = mapOf(DatabaseStep.ROWS to 20_130L, DatabaseStep.SEARCH_ROWS to 7_600L, DatabaseStep.COUNTS to 4_830L),
+            databaseSteps = mapOf(DatabaseStep.ROWS to 20_130L, DatabaseStep.COUNTS to 4_830L),
         )
         val parts = report.writerParts(pass())
 
-        assertEquals(listOf("rows", "search rows", "commit", "idle", "other"), parts.map { it.label })
+        assertEquals(listOf("rows", "commit", "idle", "other"), parts.map { it.label })
+        assertEquals(20_130L, parts.first().ms)
         assertEquals(pass().windowMs, parts.sumOf { it.ms })
-    }
-
-    @Test
-    fun `a replacing pass has no search rows to split out`() {
-        val report = report(fullLoadMs = null).copy(passes = listOf(pass()), databaseSteps = mapOf(DatabaseStep.ROWS to 27_000L))
-
-        assertEquals(listOf("rows", "commit", "idle", "other"), report.writerParts(pass()).map { it.label })
     }
 
     @Test
@@ -139,10 +133,12 @@ class RunFiguresTest {
 
     @Test
     fun `the steps after the last row are named in order, a step not taken as null`() {
-        val appended = report(fullLoadMs = null).copy(databaseSteps = mapOf(DatabaseStep.COUNTS to 4_830L))
+        val appended = report(fullLoadMs = null).copy(
+            databaseSteps = mapOf(DatabaseStep.COUNTS to 4_830L, DatabaseStep.SEARCH to 170L),
+        )
 
         assertEquals(
-            listOf("prune" to null, "counts" to 4_830L, "search rebuild" to null),
+            listOf("prune" to null, "counts" to 4_830L, "search index" to 170L),
             appended.finishParts(),
         )
     }

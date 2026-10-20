@@ -98,8 +98,8 @@ object PerformanceLog {
 
     /**
      * One pass over a section's streams, as the engine measured it -- with the database's
-     * steps as they stand, so the writer's rows and search rows can be read beside it while
-     * the import is still finishing.
+     * steps as they stand, so the writer's rows can be read beside it while the import is
+     * still finishing.
      */
     fun pass(pass: PassTimes) = updateRunning { it.copy(passes = it.passes + pass, databaseSteps = stepsSoFar()) }
 
@@ -745,7 +745,7 @@ enum class PerfPhase(val label: String) {
     /** Every stream has arrived and been written. */
     STREAMS("streams"),
 
-    /** The writer has finished: old rows pruned, counts and search rebuilt. */
+    /** The writer has finished: old rows pruned, categories counted, rows indexed for search. */
     FINISHED("finished"),
 
     /** The section is marked as loaded, so the next open reads from the device. */
@@ -759,15 +759,12 @@ data class ActionCount(val started: Int, val failed: Int, val retried: Int)
  * The parts of SQLite's work an import reports besides its commits.
  *
  * Each is reported where the writer does it, once per batch or once per import -- never
- * per row, which would cost more than the write. Rows and their search entries are timed
- * row by row, because they alternate inside a batch, and added up before they are told.
+ * per row, which would cost more than the write. Rows are timed row by row, because the
+ * write loop is the one place the time is spent, and added up before they are told.
  */
 enum class DatabaseStep(val label: String) {
     /** Writing rows into `media`, with its indices, between commits. */
     ROWS("rows"),
-
-    /** Writing each row's search entry, which an appending import does row by row. */
-    SEARCH_ROWS("search rows"),
 
     /** Dropping the previous generation, after a replacing import. */
     PRUNE("prune"),
@@ -775,6 +772,6 @@ enum class DatabaseStep(val label: String) {
     /** Recounting every group's rows at the end of an import. */
     COUNTS("counts"),
 
-    /** Rebuilding the whole search index in one statement, after a replacing import. */
-    SEARCH("search rebuild"),
+    /** Indexing the rows the import wrote for search, once, at the end of every import. */
+    SEARCH("search index"),
 }

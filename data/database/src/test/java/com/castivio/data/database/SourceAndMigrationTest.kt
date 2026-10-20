@@ -363,6 +363,44 @@ class SourceAndMigrationTest {
         assertTrue("idx_group_kind_order" !in groups)
     }
 
+    // ------------------------------------------------ 3 → 4: search keyed by row
+
+    @Test
+    fun `the migration to four leaves one search entry per row, keyed by the row`() = runBlocking {
+        Fixtures.import(database, Fixtures.livePlaylist(3))
+        val db = database.openHelper.writableDatabase
+        // The index as version 3 left it: entries numbered by SQLite rather than after
+        // their row, and the entry a reload added for a row beside the one already there.
+        db.execSQL("DELETE FROM media_fts")
+        db.execSQL("INSERT INTO media_fts (docid, media_id, search_text) SELECT rowid + 1000, id, search_text FROM media")
+        db.execSQL("INSERT INTO media_fts (media_id, search_text) SELECT id, search_text FROM media")
+        assertEquals(6, countOf("media_fts"))
+
+        migrateToFour()
+
+        assertEquals("the rows are not touched", 3, countOf("media"))
+        assertEquals(3, countOf("media_fts"))
+        assertEquals(
+            3,
+            db.query("SELECT COUNT(*) FROM media_fts f INNER JOIN media m ON m.rowid = f.docid AND m.id = f.media_id")
+                .use { cursor -> if (cursor.moveToFirst()) cursor.getInt(0) else -1 },
+        )
+    }
+
+    @Test
+    fun `the migration to four keeps user data and sync state`() = runBlocking {
+        repository().save(source("a"))
+        repository().recordCatalogueImport("a", SyncState(etag = "\"v1\"", lastImportAtMs = now, itemCount = 9))
+        database.favoriteDao().add(FavoriteEntity("orphan", addedAt = 1))
+
+        migrateToFour()
+
+        val stored = repository().get("a")!!
+        assertEquals("\"v1\"", stored.sync.etag)
+        assertEquals(9, stored.sync.itemCount)
+        assertEquals(1, countOf("favorite"))
+    }
+
     // --------------------------------------------------------------- refresh policy
 
     @Test
@@ -567,6 +605,9 @@ class SourceAndMigrationTest {
 
     private fun migrateToThree() =
         CastivioMigrations.ALL.single { it.startVersion == 2 }.migrate(database.openHelper.writableDatabase)
+
+    private fun migrateToFour() =
+        CastivioMigrations.ALL.single { it.startVersion == 3 }.migrate(database.openHelper.writableDatabase)
 
     private fun rowsOf(table: String, sourceId: String): Int =
         database.openHelper.writableDatabase

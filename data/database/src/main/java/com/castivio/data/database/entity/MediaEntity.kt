@@ -139,8 +139,12 @@ data class MediaEntity(
  *
  * Not an external-content table: Room would then maintain it with triggers that
  * fire per inserted row, and this app inserts 400,000 rows in a burst. The
- * importer writes both tables in the same batch instead, which is one prepared
+ * importer indexes the rows it wrote once, at the end of the import, in one
  * statement rather than a trigger program per row.
+ *
+ * Every entry's `docid` is its row's rowid — the one thing that lets an import
+ * find the entries it made stale by number. `CastivioMigrations` keys an index
+ * built before that rule; `RoomCatalogWriter.indexWrittenRows` keeps it.
  */
 @Entity(tableName = "media_fts")
 @Fts4(notIndexed = ["media_id"])

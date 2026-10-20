@@ -34,7 +34,10 @@ import com.castivio.data.database.entity.SourceEntity
     // 3: the catalogue reads are scoped to the active subscription, so the browse
     //    indices lead with `source_id`, and the rows of subscriptions that no longer
     //    exist are removed — see `CastivioMigrations.SCOPE_TO_SOURCE`.
-    version = 3,
+    // 4: no table changed. Every search entry is keyed by its row's rowid, which an
+    //    import relies on to find the entries it made stale — see
+    //    `CastivioMigrations.KEY_SEARCH_BY_ROW`.
+    version = 4,
     exportSchema = true,
 )
 abstract class CastivioDatabase : RoomDatabase() {

@@ -49,7 +49,10 @@ interface CatalogWriter {
      */
     fun finish(summary: ImportSummary)
 
-    /** Import failed or was cancelled; roll back to the last [commit]. */
+    /**
+     * Import failed or was cancelled; roll back to the last [commit]. What was
+     * committed stays, and is indexed like the rows of a finished import.
+     */
     fun abort(cause: Throwable?)
 }
 
@@ -63,9 +66,10 @@ enum class ImportMode {
     REPLACE,
 
     /**
-     * An addition to what is already there: a lazily loaded season, one category.
-     * Nothing is pruned, and the search index is updated per row instead of
-     * rebuilt — a full rebuild would be seconds of work to add twelve episodes.
+     * An addition to what is already there: a lazily loaded season, one section.
+     * Nothing is pruned. The search index takes the rows written, as it does
+     * after a replacement — never the whole library again, which would be seconds
+     * of work to add twelve episodes.
      */
     APPEND,
 }
