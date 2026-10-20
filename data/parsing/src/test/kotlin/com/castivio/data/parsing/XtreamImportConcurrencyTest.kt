@@ -202,7 +202,7 @@ class XtreamImportConcurrencyTest {
         var finished = false
         var aborted = false
 
-        override fun begin(sourceId: String, mode: ImportMode) = Unit
+        override fun begin(sourceId: String, mode: ImportMode, sections: Set<MediaKind>) = Unit
         override fun writeGroups(groups: List<MediaGroup>) { this.groups += groups }
         override fun writeItems(items: List<CatalogItem>) { this.items += items }
         override fun commit() = Unit

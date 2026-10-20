@@ -23,6 +23,8 @@ import com.castivio.domain.CatalogImporter
 import com.castivio.domain.CatalogItem
 import com.castivio.domain.CatalogWriter
 import com.castivio.domain.FetchDiagnosis
+import com.castivio.domain.FetchRoute
+import com.castivio.domain.FetchStage
 import com.castivio.domain.ImportMode
 import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaKind
@@ -50,7 +52,8 @@ import java.io.Reader
  *  - **M3U URL** — a conditional GET. If the provider answers `304`, the import is
  *    over in one request. If it has no validators, the stream is hashed as it is
  *    read, so an unchanged playlist still skips the *import* even though the
- *    download could not be skipped.
+ *    download could not be skipped. A section is downloaded once and the playlist
+ *    kept, so the sections after it are read from the device — see [PlaylistCopyStore].
  *  - **Local file** — no validators exist at all, so the hash is the only signal.
  *  - **Xtream** — no full download in the first place: categories, then only what
  *    is asked for.
@@ -65,6 +68,11 @@ class DefaultCatalogImporter(
     private val sources: SourceRepository,
     private val localFiles: LocalPlaylistReader,
     private val xtreamApiFactory: (PlaylistSource.Xtream) -> XtreamImportEngine.Api,
+    /**
+     * Where a playlist's download is kept for the sections after the first. Null keeps
+     * nothing: every section is then downloaded, and still written alone.
+     */
+    private val copies: KeptPlaylists? = null,
     /**
      * A portal's channel list, behind the engine's contract.
      *
@@ -151,14 +159,14 @@ class DefaultCatalogImporter(
      * path, under its own id, and falls back to its playlist once when the panel's API
      * says no.
      */
-    override fun importKind(source: PlaylistSource, kind: MediaKind): Flow<ImportProgress> =
-        importKindUnmeasured(source, kind)
+    override fun importKind(source: PlaylistSource, kind: MediaKind, fresh: Boolean): Flow<ImportProgress> =
+        importKindUnmeasured(source, kind, fresh)
             // Every section import is a load of its own on the panel: one started by a
             // press already has its run, and one that started on its own -- a section
             // opened again after Refresh forgot its marks -- gets one, from zero.
             .onStart { importStarted(kind.perfSection) }
 
-    private fun importKindUnmeasured(source: PlaylistSource, kind: MediaKind): Flow<ImportProgress> =
+    private fun importKindUnmeasured(source: PlaylistSource, kind: MediaKind, fresh: Boolean): Flow<ImportProgress> =
         when (source) {
             is PlaylistSource.Xtream -> channelFlow {
                 importXtreamKind(
@@ -171,12 +179,15 @@ class DefaultCatalogImporter(
                 )?.let { trySend(it) }
             }.flowOn(dispatchers.io)
 
-            is PlaylistSource.M3u -> source.xtream?.let { panel ->
-                channelFlow {
-                    val sourceId = SourceIds.of(source)
-                    val stored = sources.get(sourceId)
-                    val onProgress: (ImportProgress) -> Unit = { trySend(it) }
-                    val cancelled = { !isActive }
+            is PlaylistSource.M3u -> channelFlow {
+                val sourceId = SourceIds.of(source)
+                val stored = sources.get(sourceId)
+                val onProgress: (ImportProgress) -> Unit = { trySend(it) }
+                val cancelled = { !isActive }
+                val panel = source.xtream
+                if (panel == null) {
+                    importM3uSection(source, sourceId, stored, kind, fresh, onProgress, cancelled)
+                } else {
                     importXtreamKind(
                         account = panel,
                         sourceId = sourceId,
@@ -184,9 +195,11 @@ class DefaultCatalogImporter(
                         mode = firstReadingMode(stored),
                         onProgress = onProgress,
                         cancelled = cancelled,
-                    )?.let { playlistAfter(it, source, sourceId, stored, onProgress, cancelled) }
-                }.flowOn(dispatchers.io)
-            } ?: import(source)
+                    )?.let { failure ->
+                        playlistAfter(failure, source, sourceId, stored, onProgress, cancelled, sections = setOf(kind))
+                    }
+                }
+            }.flowOn(dispatchers.io)
 
             // A portal answers `itv`, `vod`, `series` and `radio` on separate calls, so
             // a section here is a real request rather than a filter over one download —
@@ -243,9 +256,34 @@ class DefaultCatalogImporter(
     }
 
     /**
+     * One section of a playlist: read from the copy this device keeps of it, or downloaded
+     * -- once, and kept for the sections after it -- when there is no copy, or when [fresh]
+     * asks for the provider's latest. Either way only [kind]'s rows are written, and only
+     * they are replaced.
+     */
+    private suspend fun importM3uSection(
+        source: PlaylistSource.M3u,
+        sourceId: String,
+        stored: ProviderSource?,
+        kind: MediaKind,
+        fresh: Boolean,
+        onProgress: (ImportProgress) -> Unit,
+        cancelled: () -> Boolean,
+    ) {
+        val sections = setOf(kind)
+        if (!fresh) {
+            val kept = copies?.open(sourceId)
+            if (kept != null && readCopy(kept, sourceId, stored, sections, onProgress, cancelled)) return
+        }
+        importM3uUrl(source, sourceId, stored, onProgress, cancelled, sections = sections)
+    }
+
+    /**
      * @param after the panel's failure, when this is the playlist read in its place — see
      *   [playlistAfter]. Carried into this import's own failure, so the screen can say
      *   both.
+     * @param sections what is written and replaced: the whole catalogue, or the section a
+     *   screen asked for -- and then the download is kept for the sections after it.
      */
     private suspend fun importM3uUrl(
         source: PlaylistSource.M3u,
@@ -254,6 +292,7 @@ class DefaultCatalogImporter(
         onProgress: (ImportProgress) -> Unit,
         cancelled: () -> Boolean,
         after: FetchDiagnosis? = null,
+        sections: Set<MediaKind> = MediaKind.entries.toSet(),
     ) {
         onProgress(ImportProgress.CheckingForChanges)
         // The figures the Xtream path gives the on-device panel, for the same window: one
@@ -266,10 +305,17 @@ class DefaultCatalogImporter(
         PerformanceLog.requestStarted(PLAYLIST_ACTION)
 
         val writer = WatchedWriter(writerFactory())
+        // A section's download is kept for the sections after it. And it asks whether the
+        // playlist changed only when there is a copy to read if it did not: "not modified"
+        // with nothing kept would leave the section nothing to read from.
+        val oneSection = sections.size < MediaKind.entries.size
+        var kept = if (oneSection) copies?.open(sourceId) else null
+        val copy = if (oneSection) copies?.begin(sourceId) else null
+        val conditional = !oneSection || kept != null
         val request = RemoteRequest(
             url = source.url,
-            etag = stored?.sync?.etag,
-            lastModified = stored?.sync?.lastModified,
+            etag = stored?.sync?.etag?.takeIf { conditional },
+            lastModified = stored?.sync?.lastModified?.takeIf { conditional },
             userAgent = source.userAgent ?: stored?.userAgent,
         )
         val startedAt = clock()
@@ -285,7 +331,7 @@ class DefaultCatalogImporter(
                 runImport(
                     writer = writer,
                     sourceId = sourceId,
-                    reader = reader,
+                    reader = copy?.tee(reader) ?: reader,
                     onProgress = { progress ->
                         if (progress is ImportProgress.Importing) {
                             saved = progress.itemsImported
@@ -301,9 +347,12 @@ class DefaultCatalogImporter(
                     },
                     cancelled = cancelled,
                     onEntryRead = { read++ },
+                    sections = sections,
                 )
             }
         } catch (e: CancellationException) {
+            copy?.drop()
+            kept?.close()
             throw e
         } catch (e: Exception) {
             // Not the network: what arrived could not be turned into rows -- the parser or
@@ -324,10 +373,25 @@ class DefaultCatalogImporter(
                 is RemoteResult.NotModified -> {
                     // Nothing downloaded, nothing parsed, nothing written.
                     writer.abort(null)
-                    onProgress(ImportProgress.UpToDate)
+                    copy?.drop()
+                    val unchanged = kept
+                    kept = null
+                    if (unchanged == null) {
+                        onProgress(ImportProgress.UpToDate)
+                    } else if (!readCopy(unchanged, sourceId, stored, sections, onProgress, cancelled, ownWindow = false)) {
+                        // The provider says the copy is the playlist, and the copy could not
+                        // be read: it is gone now, and the next press downloads it whole.
+                        onProgress(
+                            ImportProgress.Failed(
+                                AppError.UNKNOWN,
+                                FetchDiagnosis(stage = FetchStage.READ, route = FetchRoute.M3U, after = after),
+                            ),
+                        )
+                    }
                 }
 
                 is RemoteResult.Failure -> {
+                    copy?.drop()
                     PerformanceLog.requestFailed(
                         PLAYLIST_ACTION,
                         result.statusCode?.let { "HTTP $it" } ?: result.cause?.javaClass?.simpleName ?: result.error.name,
@@ -350,6 +414,8 @@ class DefaultCatalogImporter(
 
                 is RemoteResult.Success -> {
                     val summary = result.value
+                    // Kept only when read to its end: a cancelled download is not the playlist.
+                    if (summary.cancelled) copy?.drop() else if (copy?.keep() == true) log("M3U kept for the next sections")
                     // The hash is only meaningful for a stream read to the end.
                     val hash = if (summary.cancelled) stored?.sync?.contentHash else result.contentHash
                     record(sourceId, summary, result.etag, result.lastModified, hash)
@@ -357,6 +423,7 @@ class DefaultCatalogImporter(
                 }
             }
         } finally {
+            kept?.close()
             // One line saying how it ended -- see `M3uImportReport` for what it may and
             // may not contain -- then the window's tally, both under the tag the Xtream
             // summary already uses, so one `adb logcat -s CastivioNet` shows either.
@@ -368,6 +435,104 @@ class DefaultCatalogImporter(
                 cacheHits = CallMetrics.cacheHits().toInt(),
                 waitMs = CallMetrics.waitTimeMs(),
             )
+        }
+    }
+
+    /**
+     * A section read from the copy this device kept of the playlist: the parse a download
+     * gets, and no request.
+     *
+     * The download's validators and hash are recorded again as they were -- nothing was
+     * downloaded, so nothing about the download changed -- and the playlist stays a
+     * playlist: its hash is what says so, see `asPlaylistSource`.
+     *
+     * @param ownWindow whether this read is the run's measurement on its own. False after a
+     *   provider's "not modified": the request is the run's, and its figures stay in it.
+     * @return false when the copy could not be read, after discarding it: the caller
+     *   downloads in its place. True otherwise, a database that would not keep the rows
+     *   included -- that failure is reported here, like any import's, because the copy was
+     *   not the problem and downloading would meet the same database.
+     */
+    private suspend fun readCopy(
+        kept: Reader,
+        sourceId: String,
+        stored: ProviderSource?,
+        sections: Set<MediaKind>,
+        onProgress: (ImportProgress) -> Unit,
+        cancelled: () -> Boolean,
+        ownWindow: Boolean = true,
+    ): Boolean {
+        if (ownWindow) {
+            // The window a download opens, so the run is measured as a run of its own: no
+            // calls, and whatever the section before it counted is not this one's.
+            CallMetrics.reset()
+            PerformanceLog.importConcurrency(1)
+            PerformanceLog.phase(PerfPhase.IMPORT)
+        }
+        // Said at once, as a download says it is asking: a section with few rows in a long
+        // playlist commits its first batch near the end, and its card would wait until then.
+        onProgress(ImportProgress.Importing(itemsImported = 0, groupsReady = 0, kind = sections.first()))
+        val writer = WatchedWriter(writerFactory())
+        val startedAt = clock()
+        var read = 0
+        var saved = 0
+        return try {
+            val summary = kept.use { reader ->
+                runImport(
+                    writer = writer,
+                    sourceId = sourceId,
+                    reader = reader,
+                    onProgress = { progress ->
+                        if (progress is ImportProgress.Importing) {
+                            saved = progress.itemsImported
+                            PerformanceLog.phase(PerfPhase.FIRST_COMMIT)
+                            PerformanceLog.importProgress(progress.groupsReady, progress.itemsImported)
+                        } else if (progress is ImportProgress.Done) {
+                            PerformanceLog.phase(PerfPhase.FINISHED)
+                        }
+                        onProgress(progress)
+                    },
+                    cancelled = cancelled,
+                    onEntryRead = { read++ },
+                    sections = sections,
+                )
+            }
+            record(sourceId, summary, stored?.sync?.etag, stored?.sync?.lastModified, stored?.sync?.contentHash)
+            PerformanceLog.phase(PerfPhase.RECORDED)
+            log("M3U ${sections.joinToString()} read from the kept copy: ${summary.items} rows in ${clock() - startedAt} ms")
+            true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            if (writer.threw) {
+                log("M3U ${sections.joinToString()} from the kept copy could not be saved: ${FetchDiagnosis.nameOf(e)}")
+                onProgress(
+                    ImportProgress.Failed(
+                        AppError.UNKNOWN,
+                        FetchDiagnosis(
+                            stage = FetchStage.SAVE,
+                            exception = FetchDiagnosis.nameOf(e),
+                            itemsRead = read,
+                            itemsSaved = saved,
+                            route = FetchRoute.M3U,
+                        ),
+                    ),
+                )
+                true
+            } else {
+                copies?.discard(sourceId)
+                log("M3U kept copy unreadable (${FetchDiagnosis.nameOf(e)}): downloading instead")
+                false
+            }
+        } finally {
+            if (ownWindow) {
+                PerformanceLog.network(
+                    requests = CallMetrics.totalCalls().toInt(),
+                    serverMs = CallMetrics.callTimeMs(),
+                    cacheHits = CallMetrics.cacheHits().toInt(),
+                    waitMs = CallMetrics.waitTimeMs(),
+                )
+            }
         }
     }
 
@@ -694,6 +859,7 @@ class DefaultCatalogImporter(
         stored: ProviderSource?,
         onProgress: (ImportProgress) -> Unit,
         cancelled: () -> Boolean,
+        sections: Set<MediaKind> = MediaKind.entries.toSet(),
     ) {
         val panelDelivered = stored?.sync?.lastImportAtMs != null
         if (panelDelivered || !panelFailureAllowsPlaylist(failure.error, failure.diagnosis?.stage)) {
@@ -701,7 +867,7 @@ class DefaultCatalogImporter(
             return
         }
         log("M3U fallback after Xtream failed error=${failure.error.name}: reading the playlist once")
-        importM3uUrl(source, sourceId, stored, onProgress, cancelled, after = failure.diagnosis)
+        importM3uUrl(source, sourceId, stored, onProgress, cancelled, after = failure.diagnosis, sections = sections)
     }
 
     /**
@@ -724,6 +890,7 @@ class DefaultCatalogImporter(
      * @param onEntryRead told of every entry line as it passes on its way to the parser, so
      *   a failure can say how much of the playlist had been read. Counted out here rather
      *   than in the parser, which is left exactly as it is; null costs nothing per line.
+     * @param sections the kinds written and replaced -- see [CatalogImportEngine.importM3u].
      */
     private fun runImport(
         writer: CatalogWriter,
@@ -732,6 +899,7 @@ class DefaultCatalogImporter(
         onProgress: (ImportProgress) -> Unit,
         cancelled: () -> Boolean,
         onEntryRead: (() -> Unit)? = null,
+        sections: Set<MediaKind> = MediaKind.entries.toSet(),
     ): ImportSummary = CatalogImportEngine(writer, clock = clock).importM3u(
         sourceId = sourceId,
         // Line by line: the whole point is that the playlist is never a String.
@@ -740,6 +908,7 @@ class DefaultCatalogImporter(
         },
         onProgress = onProgress,
         isCancelled = cancelled,
+        sections = sections,
     )
 
     private suspend fun record(
@@ -850,7 +1019,8 @@ private class WatchedWriter(private val delegate: CatalogWriter) : CatalogWriter
     var written = 0
         private set
 
-    override fun begin(sourceId: String, mode: ImportMode) = watched { delegate.begin(sourceId, mode) }
+    override fun begin(sourceId: String, mode: ImportMode, sections: Set<MediaKind>) =
+        watched { delegate.begin(sourceId, mode, sections) }
 
     override fun writeGroups(groups: List<MediaGroup>) = watched { delegate.writeGroups(groups) }
 

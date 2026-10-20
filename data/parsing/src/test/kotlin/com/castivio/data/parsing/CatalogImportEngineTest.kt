@@ -245,6 +245,73 @@ class CatalogImportEngineTest {
         assertTrue(progress.none { it is ImportProgress.Done })
     }
 
+    /**
+     * A playlist holds every kind in one file, so a section read on its own reads every
+     * entry and writes its own: the films, in the places they hold in the whole playlist,
+     * under their own categories, and a write that replaces the films alone.
+     */
+    @Test
+    fun `a section read on its own writes its own kind and replaces only it`() {
+        val writer = RecordingWriter()
+        val lines = listOf(
+            "#EXTM3U",
+            """#EXTINF:-1 group-title="Sports",Nova Sports""",
+            "http://host/live/u/p/1.ts",
+            """#EXTINF:7200 group-title="VOD Action",The Long Return""",
+            "http://host/movie/u/p/2.mp4",
+            """#EXTINF:-1 group-title="Radio MA",Radio Mars""",
+            "http://host/live/u/p/3.ts",
+            """#EXTINF:5400 group-title="VOD Drama",Quiet Harbour""",
+            "http://host/movie/u/p/4.mp4",
+            """#EXTINF:-1 group-title="Series",Show S01E01""",
+            "http://host/series/u/p/5.mkv",
+        )
+
+        val summary = CatalogImportEngine(writer).importM3u("src", lines.asSequence(), sections = setOf(MediaKind.MOVIE))
+
+        assertEquals(listOf("The Long Return", "Quiet Harbour"), writer.items.map { it.title })
+        assertTrue(writer.items.all { it.kind == MediaKind.MOVIE })
+        assertEquals("their places in the whole playlist", listOf(1, 3), writer.items.map { it.providerOrder })
+        assertEquals(listOf("VOD Action", "VOD Drama"), writer.groups.map { it.name })
+        assertEquals(mapOf(MediaKind.MOVIE to 2), summary.byKind)
+        assertEquals(ImportMode.REPLACE, writer.mode)
+        assertEquals(setOf(MediaKind.MOVIE), writer.sections)
+    }
+
+    @Test
+    fun `the whole playlist is written and replaced when no section is named`() {
+        val writer = RecordingWriter()
+
+        CatalogImportEngine(writer).importM3u("src", playlist(3).lineSequence())
+
+        assertEquals(ImportMode.REPLACE, writer.mode)
+        assertEquals(MediaKind.entries.toSet(), writer.sections)
+    }
+
+    /**
+     * A load of the radio passes over every channel and film of a long playlist and has
+     * nothing to commit between them, so it is asked whether to stop as it reads, not
+     * only as it writes.
+     */
+    @Test
+    fun `a section with no rows in a long playlist can still be called off`() {
+        val writer = RecordingWriter()
+        val counted = CountingSequence(playlist(10_000).lineSequence())
+
+        val summary = CatalogImportEngine(writer, batchSize = 100).importM3u(
+            sourceId = "src",
+            lines = counted.sequence,
+            isCancelled = { true },
+            sections = setOf(MediaKind.RADIO),
+        )
+
+        assertTrue(summary.cancelled)
+        assertTrue("read ${counted.read} lines after cancelling", counted.read < 250)
+        assertTrue(writer.items.isEmpty())
+        assertTrue(writer.aborted)
+        assertNull(writer.finished)
+    }
+
     @Test
     fun `a writer failure aborts and propagates`() {
         val writer = RecordingWriter(failOnBatch = 1)
@@ -325,13 +392,15 @@ class CatalogImportEngineTest {
         var commits = 0
         var began: String? = null
         var mode: ImportMode? = null
+        var sections: Set<MediaKind>? = null
         var finished: ImportSummary? = null
         var aborted = false
         var abortCause: Throwable? = null
 
-        override fun begin(sourceId: String, mode: ImportMode) {
+        override fun begin(sourceId: String, mode: ImportMode, sections: Set<MediaKind>) {
             began = sourceId
             this.mode = mode
+            this.sections = sections
         }
 
         override fun writeGroups(groups: List<MediaGroup>) {

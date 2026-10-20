@@ -264,6 +264,32 @@ class RoomCatalogWriterTest {
         assertEquals(2, entriesOnTheirRow())
     }
 
+    // ------------------------------------------------------------ one section replaced
+
+    /**
+     * A section read on its own from a kept playlist replaces that section and nothing
+     * else: the films it no longer lists go, with their category, and every other
+     * section stays as it was written, whatever its generation.
+     */
+    @Test
+    fun `a replacement of one section prunes that section alone`() = runBlocking {
+        Fixtures.import(database, Fixtures.mixedPlaylist())
+        val writer = RoomCatalogWriter(database) { 2_000L }
+        writer.begin("src", ImportMode.REPLACE, setOf(MediaKind.MOVIE))
+        writer.writeItems(listOf(liveItem("only-film", "Only Film").copy(kind = MediaKind.MOVIE)))
+        writer.finish(summaryOf(1))
+
+        val media = database.mediaDao()
+        assertEquals(1, media.countNow("MOVIE"))
+        assertEquals(3, media.countNow("LIVE"))
+        assertEquals(4, media.countNow("SERIES"))
+        assertEquals(1, media.countNow("RADIO"))
+        assertTrue("the films' old category went with them", database.groupDao().groupsNow("MOVIE").isEmpty())
+        assertEquals(listOf("Sports", "News"), database.groupDao().groupsNow("LIVE").map { it.name })
+        assertEquals(rowsOf("src"), entriesOnTheirRow())
+        assertEquals(listOf("only-film"), repository().search("Only Film", limit = 10).map { it.id })
+    }
+
     // ------------------------------------------------------------ the counts
 
     /**

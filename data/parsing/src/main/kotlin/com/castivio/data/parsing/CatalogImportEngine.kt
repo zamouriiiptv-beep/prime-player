@@ -2,6 +2,7 @@ package com.castivio.data.parsing
 
 import com.castivio.domain.CatalogItem
 import com.castivio.domain.CatalogWriter
+import com.castivio.domain.ImportMode
 import com.castivio.domain.ImportProgress
 import com.castivio.domain.ImportSummary
 import com.castivio.domain.MediaGroup
@@ -42,14 +43,19 @@ class CatalogImportEngine(
      *   entire point of this class.
      * @param onProgress called on the calling thread after each committed
      *   batch, then once with [ImportProgress.Done].
-     * @param isCancelled checked between batches. Cheap to poll and precise
-     *   enough: a batch is milliseconds of work.
+     * @param isCancelled checked every [batchSize] entries read, written or passed
+     *   over. Cheap to poll and precise enough: a batch is milliseconds of work.
+     * @param sections the kinds to write, every one by default. A playlist holds every
+     *   kind in one file, so a section read on its own reads every entry and writes its
+     *   own: the others are classified and passed over, and the write replaces this
+     *   section alone -- see [CatalogWriter.begin].
      */
     fun importM3u(
         sourceId: String,
         lines: Sequence<String>,
         onProgress: (ImportProgress) -> Unit = {},
         isCancelled: () -> Boolean = { false },
+        sections: Set<MediaKind> = MediaKind.entries.toSet(),
     ): ImportSummary {
         val started = clock()
 
@@ -62,6 +68,7 @@ class CatalogImportEngine(
 
         var imported = 0
         var order = 0
+        var sinceCheck = 0
         var cancelled = false
 
         // Cancellation stops the *source*, not just the callback. Draining a
@@ -69,11 +76,24 @@ class CatalogImportEngine(
         // network and CPU busy for a screen the user has already left.
         val guarded = lines.takeWhile { !cancelled }
 
-        writer.begin(sourceId)
+        writer.begin(sourceId, ImportMode.REPLACE, sections)
         try {
             val stats = M3uParser.parse(guarded) { entry ->
                 val classification = MediaClassifier.classify(entry)
                 val kind = classification.kind
+                // The provider's order is the whole playlist's, whichever section is read,
+                // so a section reads in the same order however it arrived.
+                val position = order++
+
+                // Asked between batches of entries rather than of rows: a load of the radio
+                // passes over every channel and film in the file, and writes nothing to
+                // ask between for most of it.
+                if (++sinceCheck >= batchSize) {
+                    sinceCheck = 0
+                    if (isCancelled()) cancelled = true
+                }
+                if (kind !in sections) return@parse
+
                 perKind[kind.ordinal]++
 
                 val group = entry.groupTitle?.trim()?.takeIf { it.isNotEmpty() }?.let { name ->
@@ -85,7 +105,7 @@ class CatalogImportEngine(
                     }
                 }
 
-                batch.add(toItem(sourceId, entry, classification, group?.id, order++))
+                batch.add(toItem(sourceId, entry, classification, group?.id, position))
 
                 if (batch.size >= batchSize) {
                     imported += flush(batch, newGroups)

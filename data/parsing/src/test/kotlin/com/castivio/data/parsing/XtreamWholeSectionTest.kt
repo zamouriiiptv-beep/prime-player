@@ -643,7 +643,7 @@ class XtreamWholeSectionTest {
             .map { Row(it.id, it.title, it.kind, it.groupId, it.providerOrder) }
             .sortedBy { it.id }
 
-        override fun begin(sourceId: String, mode: ImportMode) = Unit
+        override fun begin(sourceId: String, mode: ImportMode, sections: Set<MediaKind>) = Unit
         override fun writeGroups(groups: List<MediaGroup>) {
             this.groups += groups
         }

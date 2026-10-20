@@ -88,18 +88,22 @@ interface CatalogImporter {
     /**
      * One kind of the catalogue, for a screen that was just opened.
      *
-     * Defaulted to [import] rather than left abstract, and that is the honest answer
-     * for most sources rather than a convenience: an M3U playlist is a single file
-     * holding channels, films and episodes together, so "just the films" is not a
-     * request that exists. Only an implementation that can address a kind on its own
-     * — Xtream does, with three separate endpoints — has anything to override this
-     * with, and only it should.
+     * Defaulted to [import] rather than left abstract: a source that can be read only
+     * whole has nothing better to offer. An implementation that can do better overrides
+     * it -- Xtream addresses each kind on its own endpoint, and a playlist is downloaded
+     * once, kept on the device, and read one section at a time from the copy (see
+     * [PlaylistCopies]).
      *
-     * An implementation that does override it must append rather than replace: this
-     * is called once per section, and a replacing write would prune the sections
-     * fetched before it. See [ImportMode].
+     * An implementation that does override it must not prune another section: this is
+     * called once per section, and a write that replaced the whole catalogue would delete
+     * the sections fetched before it. It appends, or replaces only [kind]. See
+     * [ImportMode] and [CatalogWriter.begin].
+     *
+     * @param fresh the provider's latest is wanted -- a refresh -- rather than whatever of
+     *   it this device already holds: a playlist's kept copy is read only when it is false.
      */
-    fun importKind(source: PlaylistSource, kind: MediaKind): Flow<ImportProgress> = import(source)
+    fun importKind(source: PlaylistSource, kind: MediaKind, fresh: Boolean = false): Flow<ImportProgress> =
+        import(source)
 
     /** True when the provider's content is unchanged and import can be skipped. */
     suspend fun isUpToDate(source: PlaylistSource): Boolean

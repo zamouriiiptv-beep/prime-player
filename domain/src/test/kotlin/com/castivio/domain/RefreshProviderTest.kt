@@ -88,6 +88,13 @@ class RefreshProviderTest {
     }
 
     /** Records every id whose section marks were cleared. */
+    private class Copies : PlaylistCopies {
+        val discarded = mutableListOf<String>()
+        override suspend fun discard(sourceId: String) {
+            discarded += sourceId
+        }
+    }
+
     private class Sections : SectionCatalogue {
         val forgotten = mutableListOf<String>()
         override suspend fun loadedAt(sourceId: String, kind: MediaKind): Long? = null
@@ -227,6 +234,41 @@ class RefreshProviderTest {
         assertEquals(AppError.TIMEOUT, (outcome as Refreshed.Unreachable).error)
         assertTrue(statuses.recorded.isEmpty())
         assertTrue(marks.forgotten.isEmpty())
+    }
+
+    /**
+     * A playlist's kept copy goes with the marks: the next section opened has to come from
+     * the provider, and the copy would answer it from the device instead. Only the active
+     * subscription's, and only when the provider answered.
+     */
+    @Test
+    fun `a successful refresh discards only the active playlist's kept copy`() = runBlocking {
+        val first = xtream("first", "http://one.test")
+        val second = xtream("second", "http://two.test")
+        val sources = Sources(first, second)
+        val copies = Copies()
+        val refresher = RefreshProvider(sources, Validator(), Statuses(), Sections(), copies)
+
+        sources.setActive(second.id)
+        refresher.refresh(now)
+
+        assertEquals(listOf("second"), copies.discarded)
+    }
+
+    @Test
+    fun `a failed refresh keeps the kept copy`() = runBlocking {
+        val copies = Copies()
+        val refresher = RefreshProvider(
+            Sources(xtream("first", "http://one.test")),
+            Validator { Outcome.Failure(AppError.TIMEOUT) },
+            Statuses(),
+            Sections(),
+            copies,
+        )
+
+        refresher.refresh(now)
+
+        assertTrue(copies.discarded.isEmpty())
     }
 
     /** Nothing active is not a failure, and it must not look like one to the screen. */

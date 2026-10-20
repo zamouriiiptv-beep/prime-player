@@ -37,12 +37,13 @@ class PanelRouteTest {
         assertFalse("read section by section", source.carriesEveryKind)
     }
 
+    /** Read as a playlist: downloaded once, kept, and read a section at a time from the copy. */
     @Test
     fun `a playlist link that names no account is read as a playlist`() {
         val source = playlist("http://cdn.example.com/lists/family.m3u").asPlaylistSource() as PlaylistSource.M3u
 
         assertNull(source.xtream)
-        assertTrue(source.carriesEveryKind)
+        assertFalse("a section at a time, from the kept copy", source.carriesEveryKind)
     }
 
     /**
@@ -57,7 +58,7 @@ class PanelRouteTest {
         val source = legacy.asPlaylistSource() as PlaylistSource.M3u
 
         assertNull(source.xtream)
-        assertTrue(source.carriesEveryKind)
+        assertFalse("a section at a time, from the kept copy", source.carriesEveryKind)
     }
 
     /** An import that never finished recorded no catalogue, so it does not hold the route. */
@@ -96,11 +97,12 @@ class PanelRouteTest {
     }
 
     /**
-     * The panel said no and the playlist was read instead: every section arrived in that
-     * one download, so every section is marked, exactly as for any playlist.
+     * The panel said no and the playlist was read instead, for the section asked for: that
+     * section is marked, exactly as for any playlist, and the others are read from the
+     * download it kept when they are opened.
      */
     @Test
-    fun `a playlist read in its panel's place marks every section`() = runTest {
+    fun `a playlist read in its panel's place marks the section it read`() = runTest {
         val sources = Sources(playlist(PANEL_LINK))
         val importer = Importer(listOf(ImportProgress.Done(7_622, 4_000))) {
             // What the importer's fallback leaves behind: a playlist catalogue, recorded.
@@ -110,8 +112,9 @@ class PanelRouteTest {
 
         LoadSection(sources, importer, marks).load(MediaKind.LIVE, now).toList()
 
-        for (kind in MediaKind.entries) {
-            assertEquals(kind.name, now, marks.loadedAt(sources.row.id, kind))
+        assertEquals(now, marks.loadedAt(sources.row.id, MediaKind.LIVE))
+        for (kind in listOf(MediaKind.MOVIE, MediaKind.SERIES, MediaKind.RADIO)) {
+            assertNull(kind.name, marks.loadedAt(sources.row.id, kind))
         }
     }
 
@@ -156,7 +159,7 @@ class PanelRouteTest {
 
         override fun import(source: PlaylistSource): Flow<ImportProgress> = flowOf()
 
-        override fun importKind(source: PlaylistSource, kind: MediaKind): Flow<ImportProgress> = flow {
+        override fun importKind(source: PlaylistSource, kind: MediaKind, fresh: Boolean): Flow<ImportProgress> = flow {
             asked += source
             during()
             events.forEach { emit(it) }

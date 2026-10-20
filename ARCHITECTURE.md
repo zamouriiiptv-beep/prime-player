@@ -196,6 +196,11 @@ beside the rows, and never the whole library again for one section.
    import even though the download could not be skipped.
 3. Xtream → nothing is downloaded wholesale in the first place: categories, then
    only what the user opens.
+4. A playlist → downloaded once, by the first section opened, and kept in the
+   app's cache; every section is written on its own, and the ones after the first
+   are read from the copy with no request. A section's refresh asks the provider
+   with the stored validators and reads the copy on a `304`; Home's refresh and a
+   subscription's removal discard the copy.
 
 ## Device identity and time
 

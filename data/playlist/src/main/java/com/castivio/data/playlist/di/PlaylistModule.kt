@@ -22,9 +22,11 @@ import com.castivio.data.parsing.XtreamImportEngine
 import com.castivio.data.playlist.AndroidLocalPlaylistReader
 import com.castivio.data.playlist.DefaultCatalogImporter
 import com.castivio.data.playlist.LocalPlaylistReader
+import com.castivio.data.playlist.PlaylistCopyStore
 import com.castivio.domain.CatalogImporter
 import com.castivio.domain.CatalogWriter
 import com.castivio.domain.LoadSection
+import com.castivio.domain.PlaylistCopies
 import com.castivio.domain.SectionLoad
 import com.castivio.domain.SectionLoads
 import com.castivio.domain.time.TrustedTime
@@ -42,6 +44,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
+import java.io.File
 import javax.inject.Provider
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
@@ -59,6 +62,18 @@ object PlaylistModule {
     fun localPlaylistReader(@ApplicationContext context: Context): LocalPlaylistReader =
         AndroidLocalPlaylistReader(context)
 
+    /**
+     * The playlists kept for the sections after the first, in the app's cache: derived
+     * data, downloaded again when the system reclaims the space. See [PlaylistCopyStore].
+     */
+    @Provides
+    @Singleton
+    fun playlistCopyStore(@ApplicationContext context: Context): PlaylistCopyStore =
+        PlaylistCopyStore(File(context.cacheDir, "playlists"))
+
+    @Provides
+    fun playlistCopies(store: PlaylistCopyStore): PlaylistCopies = store
+
     @Provides
     @Singleton
     fun catalogImporter(
@@ -71,12 +86,14 @@ object PlaylistModule {
         client: OkHttpClient,
         dispatchers: AppDispatchers,
         identity: DeviceIdentity,
+        copies: PlaylistCopyStore,
     ): CatalogImporter = DefaultCatalogImporter(
         http = http,
         writerFactory = { writers.get() },
         sources = sources,
         localFiles = localFiles,
         xtreamApiFactory = { source -> source.toApi(client) },
+        copies = copies,
         // The device address a portal handshake needs, from the one place that derives
         // it. Never asked of the user: it is the address the activation screen already
         // shows, which is what they gave their provider. See `StalkerHttpApi`.
@@ -110,11 +127,12 @@ object PlaylistModule {
         validator: ProviderValidator,
         statuses: ProviderStatusCatalogue,
         sections: SectionCatalogue,
-    ): RefreshProvider = RefreshProvider(sources, validator, statuses, sections)
+        copies: PlaylistCopies,
+    ): RefreshProvider = RefreshProvider(sources, validator, statuses, sections, copies)
 
     /**
      * Removing a subscription with everything kept about it: its catalogue, its section
-     * marks and its provider's recorded answer. See [RemoveSource].
+     * marks, its provider's recorded answer and a playlist's kept copy. See [RemoveSource].
      */
     @Provides
     @Singleton
@@ -122,7 +140,8 @@ object PlaylistModule {
         sources: SourceRepository,
         marks: SectionCatalogue,
         statuses: ProviderStatusCatalogue,
-    ): RemoveSource = RemoveSource(sources, marks, statuses)
+        copies: PlaylistCopies,
+    ): RemoveSource = RemoveSource(sources, marks, statuses, copies)
 
     /**
      * Fetching one section, assembled where the importer it needs is already bound —

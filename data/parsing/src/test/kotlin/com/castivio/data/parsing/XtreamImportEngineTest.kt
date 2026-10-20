@@ -475,7 +475,7 @@ class XtreamImportEngineTest {
         var itemsAtFirstCommit = -1
         var finished = false
 
-        override fun begin(sourceId: String, mode: ImportMode) = Unit
+        override fun begin(sourceId: String, mode: ImportMode, sections: Set<MediaKind>) = Unit
         override fun writeGroups(groups: List<MediaGroup>) = Unit
         override fun writeItems(items: List<CatalogItem>) {
             this.items += items.size
@@ -591,7 +591,7 @@ class XtreamImportEngineTest {
         var finished: ImportSummary? = null
         var aborted = false
 
-        override fun begin(sourceId: String, mode: ImportMode) {
+        override fun begin(sourceId: String, mode: ImportMode, sections: Set<MediaKind>) {
             this.mode = mode
         }
 

@@ -28,8 +28,17 @@ interface CatalogWriter {
      * The [mode] is not a hint. An [ImportMode.APPEND] write that was treated as
      * a replacement would prune every row that is not in it — which, for a lazily
      * loaded season of one series, means deleting the entire library.
+     *
+     * Nor are [sections]: what a replacement replaces. Every section by default, the
+     * source's catalogue as a whole; one, for a section read on its own from a
+     * playlist kept on the device — and then the other sections' rows are not this
+     * import's to prune. An append prunes nothing, whatever they say.
      */
-    fun begin(sourceId: String, mode: ImportMode = ImportMode.REPLACE)
+    fun begin(
+        sourceId: String,
+        mode: ImportMode = ImportMode.REPLACE,
+        sections: Set<MediaKind> = MediaKind.entries.toSet(),
+    )
 
     /**
      * Groups discovered so far, first-seen order preserved. Called before the
@@ -59,9 +68,10 @@ interface CatalogWriter {
 /** How a write relates to what is already stored. */
 enum class ImportMode {
     /**
-     * The source's catalogue as a whole. Rows are written under a new generation
-     * and the previous one is dropped at the end, so a refresh removes what the
-     * provider no longer lists without the library ever being empty.
+     * The source's catalogue as a whole, or the sections [CatalogWriter.begin] names.
+     * Rows are written under a new generation and the previous one is dropped at the
+     * end, so a refresh removes what the provider no longer lists without the library
+     * ever being empty.
      */
     REPLACE,
 

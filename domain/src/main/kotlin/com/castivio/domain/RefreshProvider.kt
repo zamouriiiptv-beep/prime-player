@@ -59,6 +59,12 @@ class RefreshProvider(
      * made to supply a catalogue they have no opinion about.
      */
     private val sections: SectionCatalogue? = null,
+    /**
+     * The playlists this device keeps, one per subscription. Discarded with the marks, and
+     * for the same reason: the next section opened has to come from the provider, and a
+     * kept copy would answer it from the device instead. Nullable like [sections].
+     */
+    private val copies: PlaylistCopies? = null,
 ) {
 
     /**
@@ -104,6 +110,7 @@ class RefreshProvider(
             is Outcome.Success -> {
                 statuses.record(active.id, answer.value, nowMs)
                 sections?.forget(active.id)
+                copies?.discard(active.id)
                 Refreshed.Updated(answer.value)
             }
         }

@@ -15,10 +15,11 @@ import org.junit.Test
  * Fetching one section, and the four decisions that are only visible here.
  *
  * The interesting cases are all about *not* downloading: a section already on the
- * device, a provider that cannot be turned back into a fetchable source, a single-file
- * provider whose one download settles every section. None of them can be seen on a
- * screen — they all render as "the rows appeared" — and each of them is a download the
- * user either pays for or does not.
+ * device, a provider that cannot be turned back into a fetchable source, a file from
+ * storage whose one reading settles every section, a playlist whose kept download
+ * answers the sections after the first. None of them can be seen on a screen — they all
+ * render as "the rows appeared" — and each of them is a download the user either pays
+ * for or does not.
  */
 class LoadSectionTest {
 
@@ -97,24 +98,44 @@ class LoadSectionTest {
         assertEquals(SectionLoad.Failed(AppError.UNKNOWN, retryable = true, diagnosis = diagnosis), failure)
     }
 
-    // --------------------------------------------------------- one file, every kind
+    // ------------------------------------------------------- one file, one section
 
     /**
-     * An M3U is one file holding channels, films and episodes together, so the first
-     * section opened has already paid for the other three. Marking only the one that
-     * was asked for would download the same file again on the next section — three
-     * times the bytes for a catalogue that arrived on the first press.
+     * A playlist is one file holding every kind, and it is downloaded once and kept: each
+     * section is read from the copy and written on its own, so the first section opened
+     * waits for its own rows rather than for the whole library's -- and marks only itself.
+     * The next section reads the copy rather than downloading again.
      */
     @Test
-    fun `a playlist marks every section, because one file carried them all`() = runTest {
+    fun `a playlist marks only the section it read`() = runTest {
         val importer = Importer(listOf(ImportProgress.Done(40_000, 900)))
         val marks = Marks()
         val load = LoadSection(Sources(m3u()), importer, marks)
 
         load.load(MediaKind.LIVE, now).toList()
 
+        assertEquals(now, marks.loadedAt("m3u", MediaKind.LIVE))
+        for (kind in listOf(MediaKind.MOVIE, MediaKind.SERIES, MediaKind.RADIO)) {
+            assertNull("$kind was marked by a load of the channels", marks.loadedAt("m3u", kind))
+        }
+        assertEquals(listOf(MediaKind.LIVE), importer.calls)
+    }
+
+    /**
+     * A file picked from storage is read whole, so the first section opened has paid for
+     * the other three. Marking only the one asked for would read the same file again on
+     * the next section.
+     */
+    @Test
+    fun `a file from storage marks every section, because one reading carried them all`() = runTest {
+        val importer = Importer(listOf(ImportProgress.Done(40_000, 900)))
+        val marks = Marks()
+        val load = LoadSection(Sources(localFile()), importer, marks)
+
+        load.load(MediaKind.LIVE, now).toList()
+
         for (kind in MediaKind.entries) {
-            assertEquals("$kind was not marked", now, marks.loadedAt("m3u", kind))
+            assertEquals("$kind was not marked", now, marks.loadedAt("file", kind))
         }
     }
 
@@ -233,6 +254,22 @@ class LoadSectionTest {
         assertEquals(now, marks.loadedAt("xtream", MediaKind.LIVE))
     }
 
+    /**
+     * A refresh wants the provider's latest; a first open takes what the device already
+     * holds of it. The importer is told which, because a playlist's kept copy answers the
+     * one and must not answer the other.
+     */
+    @Test
+    fun `a refresh asks the provider, and a first open may be answered from the device`() = runTest {
+        val importer = Importer(listOf(ImportProgress.Done(7, 1)))
+        val load = LoadSection(Sources(m3u()), importer, Marks())
+
+        load.load(MediaKind.MOVIE, now).toList()
+        load.load(MediaKind.MOVIE, now, force = true).toList()
+
+        assertEquals(listOf(false, true), importer.fresh)
+    }
+
     /** Progress rises and never falls, whatever order the engine reports kinds in. */
     @Test
     fun `progress never goes backwards`() = runTest {
@@ -271,6 +308,13 @@ class LoadSectionTest {
         url = "http://example.com/list.m3u",
     )
 
+    private fun localFile() = ProviderSource(
+        id = "file",
+        kind = SourceKind.LOCAL_FILE,
+        label = "Playlist file",
+        url = "content://downloads/list.m3u",
+    )
+
     /** A `get.php` link that names a panel account, so it is read through the panel. */
     private fun panelPlaylist() = ProviderSource(
         id = "panel",
@@ -303,12 +347,16 @@ class LoadSectionTest {
     private class Importer(private val script: List<ImportProgress> = emptyList()) : CatalogImporter {
         val calls = mutableListOf<MediaKind>()
 
+        /** Whether each section import asked for the provider's latest, in order. */
+        val fresh = mutableListOf<Boolean>()
+
         override fun import(source: PlaylistSource): Flow<ImportProgress> = flow {
             for (step in script) emit(step)
         }
 
-        override fun importKind(source: PlaylistSource, kind: MediaKind): Flow<ImportProgress> {
+        override fun importKind(source: PlaylistSource, kind: MediaKind, fresh: Boolean): Flow<ImportProgress> {
             calls += kind
+            this.fresh += fresh
             return import(source)
         }
 

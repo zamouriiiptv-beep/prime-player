@@ -29,7 +29,7 @@ class StalkerImportEngineTest {
         var committed = false
         var finished = false
 
-        override fun begin(sourceId: String, mode: ImportMode) { began = mode }
+        override fun begin(sourceId: String, mode: ImportMode, sections: Set<MediaKind>) { began = mode }
         override fun writeGroups(groups: List<MediaGroup>) = Unit
         override fun writeItems(items: List<CatalogItem>) { this.items += items }
         override fun commit() { committed = true }
@@ -210,7 +210,7 @@ class StalkerImportEngineTest {
         val batches = mutableListOf<Int>()
         val writer = object : CatalogWriter {
             val all = mutableListOf<CatalogItem>()
-            override fun begin(sourceId: String, mode: ImportMode) = Unit
+            override fun begin(sourceId: String, mode: ImportMode, sections: Set<MediaKind>) = Unit
             override fun writeGroups(groups: List<MediaGroup>) = Unit
             override fun writeItems(items: List<CatalogItem>) {
                 batches += items.size

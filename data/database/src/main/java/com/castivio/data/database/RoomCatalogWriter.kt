@@ -11,6 +11,7 @@ import com.castivio.domain.CatalogWriter
 import com.castivio.domain.ImportMode
 import com.castivio.domain.ImportSummary
 import com.castivio.domain.MediaGroup
+import com.castivio.domain.MediaKind
 
 /**
  * Writes the catalogue to SQLite as fast as the storage allows.
@@ -45,6 +46,7 @@ class RoomCatalogWriter(
 
     private var sourceId: String? = null
     private var mode = ImportMode.REPLACE
+    private var sections: Set<MediaKind> = MediaKind.entries.toSet()
     private var generation = 1L
     private var now = 0L
     private var groupOrder = 0
@@ -54,10 +56,12 @@ class RoomCatalogWriter(
     private var itemStatement: SupportSQLiteStatement? = null
     private var groupStatement: SupportSQLiteStatement? = null
 
-    override fun begin(sourceId: String, mode: ImportMode) {
+    override fun begin(sourceId: String, mode: ImportMode, sections: Set<MediaKind>) {
+        require(sections.isNotEmpty()) { "an import of no section" }
         val db = database.openHelper.writableDatabase
         this.sourceId = sourceId
         this.mode = mode
+        this.sections = sections
         now = clock()
         groupOrder = 0
         generation = when (mode) {
@@ -81,8 +85,8 @@ class RoomCatalogWriter(
         wroteRows = false
         db.applyImportPragmas()
         // Which way this import writes decides which steps it pays for -- a replacing write
-        // prunes the old generation at the end, an appending one does not -- so a reading
-        // of its steps means nothing without it.
+        // prunes the old generation of what it replaces at the end, an appending one does
+        // not -- so a reading of its steps means nothing without it.
         PerformanceLog.saveMode(mode.name)
         itemStatement = db.compileStatement(INSERT_ITEM)
         groupStatement = db.compileStatement(INSERT_GROUP)
@@ -192,10 +196,14 @@ class RoomCatalogWriter(
             if (mode == ImportMode.REPLACE) {
                 // The generation swap. Everything the provider no longer lists
                 // disappears here, in one statement, after the new catalogue is
-                // already visible.
+                // already visible -- in the sections this import replaces, and only
+                // there: a section read on its own from a kept playlist leaves the
+                // others' rows, of whatever generation, where they are.
                 timed(DatabaseStep.PRUNE) {
-                    execSQL("DELETE FROM media WHERE source_id = ? AND generation != ?", arrayOf(source, generation))
-                    execSQL("DELETE FROM media_group WHERE source_id = ? AND generation != ?", arrayOf(source, generation))
+                    val kinds = sections.joinToString(", ") { "?" }
+                    val args = (listOf<Any>(source, generation) + sections.map { it.name }).toTypedArray()
+                    execSQL("DELETE FROM media WHERE source_id = ? AND generation != ? AND kind IN ($kinds)", args)
+                    execSQL("DELETE FROM media_group WHERE source_id = ? AND generation != ? AND kind IN ($kinds)", args)
                 }
             }
             timed(DatabaseStep.COUNTS) { execSQL(COUNT_GROUPS, arrayOf(source)) }

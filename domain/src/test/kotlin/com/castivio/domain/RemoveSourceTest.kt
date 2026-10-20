@@ -10,7 +10,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * Removing a subscription removes what is kept about it in all three places, and
+ * Removing a subscription removes what is kept about it in all four places, and
  * nothing kept about any other.
  */
 class RemoveSourceTest {
@@ -19,7 +19,8 @@ class RemoveSourceTest {
     private val sources = Sources(events)
     private val marks = Marks(events)
     private val statuses = Statuses(events)
-    private val remove = RemoveSource(sources, marks, statuses)
+    private val copies = Copies(events)
+    private val remove = RemoveSource(sources, marks, statuses, copies)
 
     @Test
     fun `a removed subscription leaves no marks, no status and no row behind`() = runTest {
@@ -57,8 +58,19 @@ class RemoveSourceTest {
         remove("m3u")
 
         // Interrupted between the two, this order costs a re-download; the other would
-        // leave marks claiming rows that are gone.
-        assertEquals(listOf("forget marks m3u", "forget status m3u", "delete m3u"), events)
+        // leave marks claiming rows that are gone. The copy goes with the marks.
+        assertEquals(listOf("forget marks m3u", "discard copy m3u", "forget status m3u", "delete m3u"), events)
+    }
+
+    /** The provider's whole file, every link in it, is not kept for a subscription the user removed. */
+    @Test
+    fun `a removed playlist's kept copy goes with it, and nobody else's`() = runTest {
+        sources.save(provider("m3u"))
+        sources.save(provider("other"))
+
+        remove("m3u")
+
+        assertEquals(listOf("m3u"), copies.discarded)
     }
 
     private fun provider(id: String) = ProviderSource(id = id, kind = SourceKind.M3U_URL, label = id, url = "http://host/$id")
@@ -94,6 +106,15 @@ class RemoveSourceTest {
         override suspend fun forget(sourceId: String) {
             events += "forget marks $sourceId"
             at.keys.removeAll { it.first == sourceId }
+        }
+    }
+
+    private class Copies(private val events: MutableList<String>) : PlaylistCopies {
+        val discarded = mutableListOf<String>()
+
+        override suspend fun discard(sourceId: String) {
+            events += "discard copy $sourceId"
+            discarded += sourceId
         }
     }
 

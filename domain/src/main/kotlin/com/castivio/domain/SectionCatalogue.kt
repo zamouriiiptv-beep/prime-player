@@ -153,7 +153,9 @@ class LoadSection(
         var items = 0
         var failed = false
 
-        importer.importKind(source, kind).collect { progress ->
+        // A refresh asks the provider; a first open may be answered by what the device
+        // already holds of it -- a playlist's kept copy.
+        importer.importKind(source, kind, fresh = force).collect { progress ->
             when (progress) {
                 is ImportProgress.CheckingForChanges -> emit(SectionLoad.Loading(items, 0))
 
@@ -195,14 +197,14 @@ class LoadSection(
         if (!failed) {
             // Every section the fetch actually delivered, not only the one that was asked
             // for: marking less would download the same thing again on the next press. A
-            // single-file provider hands over every kind in one pass; a panel or a portal
-            // hands over the one section asked for. See [PlaylistSource.kindsArrivingWith].
+            // file picked from storage hands over every kind in one pass; a panel, a portal
+            // and a playlist hand over the one section asked for. See
+            // [PlaylistSource.kindsArrivingWith].
             //
             // Asked of the subscription as it stands now rather than as it was read
             // before the import: a playlist read through its panel can have been read as
             // the playlist after all -- the importer falls back when the panel's API says
-            // no -- and then every section arrived in that one download, as for any
-            // playlist.
+            // no -- and it is then a playlist like any other.
             val settled = sources.get(provider.id)?.asPlaylistSource() ?: source
             for (arrived in settled.kindsArrivingWith(kind)) {
                 marks.markLoaded(provider.id, arrived, nowMs)
@@ -215,23 +217,23 @@ class LoadSection(
 /**
  * Whether one fetch of this source brings the whole catalogue with it.
  *
- * An M3U playlist is one file containing channels, films and episodes together;
- * there is no request that asks it for only the films. So the first section opened
- * pays for all of them, and the other three are free — which is worth recording as
- * a property of the source rather than as an `if` inside the loader.
+ * A file picked from storage is read whole: the first section opened pays for all of
+ * them, and the other three are free — which is worth recording as a property of the
+ * source rather than as an `if` inside the loader.
  *
- * Xtream is the opposite and the reason this exists: live, VOD and series are three
- * separate endpoints, so a section really can be fetched on its own. A playlist read
- * through its panel's API is that case too, whatever the user added it as.
+ * Every other source is fetched a section at a time. Xtream and a portal ask a separate
+ * endpoint for each kind. A playlist is one file holding every kind, and no request asks
+ * it for the films alone — but it is downloaded once and kept, and each section is read
+ * from the copy and written on its own, so the first section opened waits for its own
+ * rows rather than for the whole library's. See [PlaylistCopies].
  */
 val PlaylistSource.carriesEveryKind: Boolean
     get() = when (this) {
-        is PlaylistSource.M3u -> xtream == null
         is PlaylistSource.LocalFile -> true
-        // Xtream and a portal are the same case and the reason this exists: live, films
-        // and series are separate calls on both, so a section really can be fetched on
-        // its own when it is opened -- and radio too, see [kindsArrivingWith].
-        is PlaylistSource.Xtream, is PlaylistSource.Portal -> false
+        // Live, films, series and radio are each a fetch of their own: separate calls on a
+        // panel and on a portal, and separate readings of a playlist's kept copy -- see
+        // [kindsArrivingWith].
+        is PlaylistSource.M3u, is PlaylistSource.Xtream, is PlaylistSource.Portal -> false
     }
 
 /**
@@ -245,7 +247,8 @@ val PlaylistSource.carriesEveryKind: Boolean
  * stations. Now a load of the channels writes the channels and passes over the stations,
  * and a load of the radio asks for the radio categories alone, so each section is the
  * fetch of its own and is marked on its own. A playlist read through its panel is read
- * the same way, and a portal answers `radio` on a call of its own anyway.
+ * the same way, a portal answers `radio` on a call of its own anyway, and a playlist's
+ * kept copy is read for its stations alone.
  */
 fun PlaylistSource.kindsArrivingWith(kind: MediaKind): Set<MediaKind> =
     if (carriesEveryKind) MediaKind.entries.toSet() else setOf(kind)

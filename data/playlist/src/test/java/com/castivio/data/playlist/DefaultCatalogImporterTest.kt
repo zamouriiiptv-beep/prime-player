@@ -42,7 +42,10 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
+import java.io.File
 import java.io.Reader
 import java.io.StringReader
 import java.util.concurrent.TimeUnit
@@ -58,6 +61,9 @@ class DefaultCatalogImporterTest {
     private lateinit var server: MockWebServer
     private lateinit var writer: RecordingWriter
     private lateinit var sources: FakeSourceRepository
+
+    @get:Rule
+    val folder = TemporaryFolder()
 
     /** What the importer wrote to its log, in order. */
     private val logged = mutableListOf<String>()
@@ -777,6 +783,142 @@ class DefaultCatalogImporterTest {
         assertEquals(first, second)
     }
 
+    // ------------------------------------------------------ a playlist, kept and read again
+
+    /**
+     * The first section opened downloads the playlist and writes its own rows; the
+     * download is kept, so the sections after it are read from the device.
+     */
+    @Test
+    fun `a section of a playlist is downloaded once, written alone, and the download kept`() = runBlocking {
+        server.enqueue(MockResponse().setBody(MIXED).setHeader("ETag", "\"v1\""))
+        val copies = PlaylistCopyStore(folder.root)
+        val source = routed(server.url("/lists/family.m3u").toString())
+
+        val progress = importer(copies = copies).importKind(source, MediaKind.LIVE).toList()
+
+        assertEquals(1, server.requestCount)
+        assertEquals(listOf("Channel 0", "Channel 1"), writer.items.map { it.title })
+        assertEquals("a replacement of the channels alone", listOf(setOf(MediaKind.LIVE)), writer.scopes)
+        assertEquals(listOf(ImportMode.REPLACE), writer.began.map { it.second })
+        assertEquals(2, (progress.last() as ImportProgress.Done).totalItems)
+        assertEquals(MIXED, copies.open(SourceIds.of(source))!!.use(Reader::readText))
+        assertNothingFrom(source.url)
+    }
+
+    @Test
+    fun `the next section is read from the kept download, with no request`() = runBlocking {
+        server.enqueue(MockResponse().setBody(MIXED))
+        val copies = PlaylistCopyStore(folder.root)
+        val source = routed(server.url("/lists/family.m3u").toString())
+        importer(copies = copies).importKind(source, MediaKind.LIVE).toList()
+        writer.items.clear()
+
+        val progress = importer(copies = copies).importKind(source, MediaKind.MOVIE).toList()
+
+        assertEquals("nothing asked of the provider", 1, server.requestCount)
+        assertEquals(listOf("Film 0"), writer.items.map { it.title })
+        assertEquals(setOf(MediaKind.MOVIE), writer.scopes.last())
+        assertTrue("its card is told at once that it is under way", progress.first() is ImportProgress.Importing)
+        assertEquals(1, (progress.last() as ImportProgress.Done).totalItems)
+        assertTrue(logged.any { it.startsWith("M3U MOVIE read from the kept copy") })
+        assertNothingFrom(source.url)
+    }
+
+    /** A refresh asks whether the playlist changed; unchanged, the section is read from the copy. */
+    @Test
+    fun `a refresh asks whether the playlist changed, and reads the copy when it did not`() = runBlocking {
+        server.enqueue(MockResponse().setBody(MIXED).setHeader("ETag", "\"v1\""))
+        server.enqueue(MockResponse().setResponseCode(304))
+        val copies = PlaylistCopyStore(folder.root)
+        val source = routed(server.url("/lists/family.m3u").toString())
+        importer(copies = copies).importKind(source, MediaKind.LIVE).toList()
+        server.takeRequest()
+        writer.items.clear()
+
+        val progress = importer(copies = copies).importKind(source, MediaKind.LIVE, fresh = true).toList()
+
+        assertEquals("\"v1\"", server.takeRequest().getHeader("If-None-Match"))
+        assertEquals(listOf("Channel 0", "Channel 1"), writer.items.map { it.title })
+        assertTrue("a section is read, not declared up to date", progress.none { it is ImportProgress.UpToDate })
+        assertEquals(2, (progress.last() as ImportProgress.Done).totalItems)
+    }
+
+    @Test
+    fun `a refresh that brings a changed playlist keeps the new one`() = runBlocking {
+        val changed = MIXED.replace("Channel 1", "Channel One")
+        server.enqueue(MockResponse().setBody(MIXED).setHeader("ETag", "\"v1\""))
+        server.enqueue(MockResponse().setBody(changed).setHeader("ETag", "\"v2\""))
+        val copies = PlaylistCopyStore(folder.root)
+        val source = routed(server.url("/lists/family.m3u").toString())
+        importer(copies = copies).importKind(source, MediaKind.LIVE).toList()
+        writer.items.clear()
+
+        importer(copies = copies).importKind(source, MediaKind.LIVE, fresh = true).toList()
+
+        assertEquals(listOf("Channel 0", "Channel One"), writer.items.map { it.title })
+        assertEquals(changed, copies.open(SourceIds.of(source))!!.use(Reader::readText))
+        assertEquals("\"v2\"", sources.get(SourceIds.of(source))!!.sync.etag)
+    }
+
+    /**
+     * Validators are sent only with a copy to fall back on: a "not modified" with nothing
+     * kept would leave the section nothing to read.
+     */
+    @Test
+    fun `with nothing kept, the playlist is asked for whole, whatever validators are stored`() = runBlocking {
+        val source = routed(server.url("/lists/family.m3u").toString())
+        sources.save(stored(SourceIds.of(source), etag = "\"v1\"", items = 2).copy(url = source.url))
+        server.enqueue(MockResponse().setBody(MIXED))
+
+        importer(copies = PlaylistCopyStore(folder.root)).importKind(source, MediaKind.MOVIE).toList()
+
+        assertNull(server.takeRequest().getHeader("If-None-Match"))
+        assertEquals(listOf("Film 0"), writer.items.map { it.title })
+    }
+
+    @Test
+    fun `a refresh that fails keeps the download kept before it`() = runBlocking {
+        server.enqueue(MockResponse().setBody(MIXED))
+        server.enqueue(MockResponse().setResponseCode(500))
+        val copies = PlaylistCopyStore(folder.root)
+        val source = routed(server.url("/lists/family.m3u").toString())
+        importer(copies = copies).importKind(source, MediaKind.LIVE).toList()
+
+        val progress = importer(copies = copies).importKind(source, MediaKind.LIVE, fresh = true).toList()
+
+        assertTrue(progress.last() is ImportProgress.Failed)
+        assertEquals(MIXED, copies.open(SourceIds.of(source))!!.use(Reader::readText))
+    }
+
+    /** A full disk costs the next section a download, never this section its rows. */
+    @Test
+    fun `a download the disk will not keep still writes its section`() = runBlocking {
+        server.enqueue(MockResponse().setBody(MIXED))
+        val source = routed(server.url("/lists/family.m3u").toString())
+        File(folder.root, SourceIds.of(source) + ".m3u.part").mkdirs()
+        val copies = PlaylistCopyStore(folder.root)
+
+        val progress = importer(copies = copies).importKind(source, MediaKind.LIVE).toList()
+
+        assertEquals(2, (progress.last() as ImportProgress.Done).totalItems)
+        assertNull(copies.open(SourceIds.of(source)))
+    }
+
+    /** A copy that cannot be read is dropped and the playlist downloaded in its place. */
+    @Test
+    fun `a kept copy that cannot be read is replaced by a download`() = runBlocking {
+        server.enqueue(MockResponse().setBody(MIXED))
+        val source = routed(server.url("/lists/family.m3u").toString())
+        val copies = UnreadableCopies(folder.root)
+
+        val progress = importer(copies = copies).importKind(source, MediaKind.MOVIE).toList()
+
+        assertEquals(1, server.requestCount)
+        assertEquals(listOf("Film 0"), writer.items.map { it.title })
+        assertEquals(1, (progress.last() as ImportProgress.Done).totalItems)
+    }
+
     // ------------------------------------------------------------------ fixtures
 
     private fun playlist(entries: Int): String = buildString {
@@ -791,6 +933,7 @@ class DefaultCatalogImporterTest {
         localFiles: LocalPlaylistReader = FakeLocalReader(null),
         xtreamApi: XtreamImportEngine.Api = FakeXtreamApi(),
         writer: CatalogWriter = this.writer,
+        copies: KeptPlaylists? = null,
     ) = DefaultCatalogImporter(
         http = HttpStreamSource(
             OkHttpClient.Builder()
@@ -805,6 +948,7 @@ class DefaultCatalogImporterTest {
             accounts += account
             xtreamApi
         },
+        copies = copies,
         dispatchers = TestDispatchers,
         clock = { now },
         // Captured rather than sent to `android.util.Log`, which this module's unit tests
@@ -869,6 +1013,46 @@ class DefaultCatalogImporterTest {
     private companion object {
         /** The shape every panel hands out, with an account the log must never show. */
         const val PANEL_LINK = "/get.php?username=u7sam9&password=p4ss9w0rd&type=m3u_plus&output=ts"
+
+        /** Two channels and a film, in the order a provider mixes them. */
+        val MIXED = buildString {
+            appendLine("#EXTM3U")
+            appendLine("""#EXTINF:-1 group-title="Sports",Channel 0""")
+            appendLine("http://host/live/u/p/0.ts")
+            appendLine("""#EXTINF:7200 group-title="VOD",Film 0""")
+            appendLine("http://host/movie/u/p/10.mp4")
+            appendLine("""#EXTINF:-1 group-title="Sports",Channel 1""")
+            appendLine("http://host/live/u/p/1.ts")
+        }
+    }
+
+    /** A store that has a copy, and a copy that breaks after its first characters, until discarded. */
+    private class UnreadableCopies(directory: File) : KeptPlaylists {
+        private val store = PlaylistCopyStore(directory)
+        private var discarded = false
+
+        override fun open(sourceId: String): Reader? = if (discarded) store.open(sourceId) else BreakingReader()
+
+        override fun begin(sourceId: String): PlaylistCopy = store.begin(sourceId)
+
+        override suspend fun discard(sourceId: String) {
+            discarded = true
+            store.discard(sourceId)
+        }
+    }
+
+    private class BreakingReader : Reader() {
+        private var served = false
+
+        override fun read(buffer: CharArray, offset: Int, length: Int): Int {
+            if (served) throw java.io.IOException("the flash gave up")
+            served = true
+            val start = "#EXTM3U\n".toCharArray()
+            start.copyInto(buffer, offset)
+            return start.size
+        }
+
+        override fun close() = Unit
     }
 
     private object TestDispatchers : AppDispatchers {
@@ -1004,8 +1188,12 @@ class DefaultCatalogImporterTest {
         /** Every import begun, with the source id and the mode it was written in. */
         val began = mutableListOf<Pair<String, ImportMode>>()
 
-        override fun begin(sourceId: String, mode: ImportMode) {
+        /** The sections each import begun writes and replaces, in order. */
+        val scopes = mutableListOf<Set<MediaKind>>()
+
+        override fun begin(sourceId: String, mode: ImportMode, sections: Set<MediaKind>) {
             began += sourceId to mode
+            scopes += sections
         }
         override fun writeGroups(groups: List<MediaGroup>) { this.groups += groups }
         override fun writeItems(items: List<CatalogItem>) { this.items += items }
@@ -1018,7 +1206,7 @@ class DefaultCatalogImporterTest {
     private class ThrowingWriter : CatalogWriter {
         var aborted = false
 
-        override fun begin(sourceId: String, mode: ImportMode) = Unit
+        override fun begin(sourceId: String, mode: ImportMode, sections: Set<MediaKind>) = Unit
         override fun writeGroups(groups: List<MediaGroup>) = Unit
         override fun writeItems(items: List<CatalogItem>) {
             throw IllegalStateException("the database refused the rows")
