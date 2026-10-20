@@ -52,6 +52,7 @@ import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.material.icons.rounded.PlaylistAdd
 import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material.icons.rounded.Radio
+import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Settings
@@ -666,11 +667,16 @@ internal fun DashboardHeader(
                 // one. Composing it here keeps the two compositions — "expires on a
                 // date" and "a plan, and when it runs out" — beside the facts they
                 // are made from, and leaves `TermCard` with nothing to arbitrate.
+                val tone = providerTone(state.subscription)
                 TermCard(
-                    icon = Icons.Rounded.CheckCircle,
+                    icon = if (tone == ProviderTone.Unchecked) Icons.Rounded.RadioButtonUnchecked else Icons.Rounded.CheckCircle,
                     label = stringResource(R.string.home_term_provider),
                     value = providerSentence(state.subscription),
-                    hue = if (state.subscription?.usable == false) colors.danger else colors.hueGreen,
+                    hue = when (tone) {
+                        ProviderTone.Usable -> colors.hueGreen
+                        ProviderTone.Refused -> colors.danger
+                        ProviderTone.Unchecked -> colors.onBackgroundMuted
+                    },
                     reading = reading,
                     frame = frame,
                     modifier = Modifier.weight(1f),
@@ -816,6 +822,23 @@ internal fun subscriptionLabel(status: Recorded?): String {
         status.usable -> stringResource(R.string.home_account_active)
         else -> stringResource(R.string.home_account_inactive)
     }
+}
+
+/**
+ * How the provider card is drawn: the three answers [subscriptionLabel] tells apart.
+ *
+ * "Not checked" is not "active". Drawn in the active green with a tick, it read as a
+ * subscription vouched for by a question nobody had asked. In the muted ink, with an
+ * empty circle where the tick goes, it reads as what it is: a blank, which the first
+ * answer fills -- and Home asks that question by itself, see
+ * [com.castivio.domain.RefreshProvider.askIfNeverAsked].
+ */
+internal enum class ProviderTone { Usable, Refused, Unchecked }
+
+internal fun providerTone(status: Recorded?): ProviderTone = when {
+    status == null -> ProviderTone.Unchecked
+    status.usable -> ProviderTone.Usable
+    else -> ProviderTone.Refused
 }
 
 /**
