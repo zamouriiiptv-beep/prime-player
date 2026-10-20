@@ -81,7 +81,7 @@
     <string name="home_add_playlist">प्लेलिस्ट जोड़ें</string>
     <string name="home_my_subscriptions">मेरी सदस्यताएँ</string>
     <string name="home_language">भाषा</string>
-    <string name="home_time_shift">Time Shift</string>
+    <string name="home_latest">नए जोड़े गए</string>
     <string name="home_exit">बाहर निकलें</string>
     <string name="home_device_mac">MAC: %1$s</string>
     <string name="home_device_state">डिवाइस: %1$s</string>

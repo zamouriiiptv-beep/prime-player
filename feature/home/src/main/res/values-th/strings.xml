@@ -81,7 +81,7 @@
     <string name="home_add_playlist">เพิ่มเพลย์ลิสต์</string>
     <string name="home_my_subscriptions">การสมัครของฉัน</string>
     <string name="home_language">ภาษา</string>
-    <string name="home_time_shift">Time Shift</string>
+    <string name="home_latest">เพิ่มล่าสุด</string>
     <string name="home_exit">ออก</string>
     <string name="home_device_mac">MAC: %1$s</string>
     <string name="home_device_state">อุปกรณ์: %1$s</string>

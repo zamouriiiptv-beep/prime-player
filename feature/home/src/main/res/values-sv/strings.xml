@@ -81,7 +81,7 @@
     <string name="home_add_playlist">Lägg till lista</string>
     <string name="home_my_subscriptions">Mina abonnemang</string>
     <string name="home_language">Språk</string>
-    <string name="home_time_shift">Time Shift</string>
+    <string name="home_latest">Nytillskott</string>
     <string name="home_exit">Avsluta</string>
     <string name="home_device_mac">MAC: %1$s</string>
     <string name="home_device_state">Enhet: %1$s</string>

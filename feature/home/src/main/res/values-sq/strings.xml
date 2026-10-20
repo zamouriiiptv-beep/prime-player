@@ -81,7 +81,7 @@
     <string name="home_add_playlist">Shto një listë</string>
     <string name="home_my_subscriptions">Abonimet e mia</string>
     <string name="home_language">Gjuha</string>
-    <string name="home_time_shift">Time Shift</string>
+    <string name="home_latest">Të rejat</string>
     <string name="home_exit">Dil</string>
     <string name="home_device_mac">MAC: %1$s</string>
     <string name="home_device_state">Pajisja: %1$s</string>

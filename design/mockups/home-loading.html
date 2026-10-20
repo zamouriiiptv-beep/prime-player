@@ -155,7 +155,7 @@ const ICON = {
   alert:'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z',
   refresh:'M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z',
   playlist:'M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z',
-  history:'M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z',
+  sparkle:'M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z',
   settings:'M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z',
   power:'M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z',
   lockOpen:'M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h1.9c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm0 12H6V10h12v10z',
@@ -176,7 +176,7 @@ const STR = {
     fromProvider:'من خادم الاشتراك', done:'اكتمل التحميل', queued:'في الانتظار',
     failed:'تعذّر التحميل', failedLive:'تعذّر تحميل القنوات', retry:'اضغط لإعادة المحاولة', retryShort:'اضغط للإعادة',
     opensWhenDone:'يُفتح عند اكتمال التحميل', seconds:'%s ث',
-    rail:['تحديث','تبديل القائمة','Time Shift','الإعدادات','خروج'],
+    rail:['تحديث','تبديل القائمة','آخر الإضافات','الإعدادات','خروج'],
     provider:'الاشتراك', licence:'رخصة Castivio', language:'اللغة',
     device:'الجهاز: ', activated:'مُفعَّل', mac:'ماك: ', key:'مفتاح الجهاز: ',
     disclaimer:'Castivio مشغّل وسائط. لا يوفّر قنوات ولا أفلامًا ولا اشتراكات — أنت من يضيفها.',
@@ -189,7 +189,7 @@ const STR = {
     fromProvider:'From your provider', done:'Loaded', queued:'Waiting its turn',
     failed:'Couldn’t load', failedLive:'Couldn’t load the channels', retry:'Press to try again', retryShort:'Press to retry',
     opensWhenDone:'Opens when it has loaded', seconds:'%s s',
-    rail:['Refresh','Change list','Time Shift','Settings','Exit'],
+    rail:['Refresh','Change list','New additions','Settings','Exit'],
     provider:'Subscription', licence:'Castivio licence', language:'Language',
     device:'Device: ', activated:'Activated', mac:'MAC: ', key:'Device key: ',
     disclaimer:'Castivio is a media player. It does not provide channels, films or subscriptions — you add your own.',
@@ -300,7 +300,7 @@ function board(fr) {
   const m = metrics(w, h);
   const vars = Object.entries(m).map(([k, v]) => `--${k}:${v.toFixed(2)}px`).join(';');
   const rail = T.rail.map((label, i) => {
-    const icon = ['refresh', 'playlist', 'history', 'settings', 'power'][i];
+    const icon = ['refresh', 'playlist', 'sparkle', 'settings', 'power'][i];
     return `<div class="util${i === 4 ? ' quit' : ''}">${svg(icon)}${label}</div>`;
   }).join('');
   const st = fr.cards;

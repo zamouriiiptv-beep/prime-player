@@ -38,10 +38,10 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ErrorOutline
-import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.LiveTv
@@ -180,10 +180,11 @@ import com.castivio.domain.entitlement.EntitlementState
  *
  * ## What is deliberately not drawn
  *
- * `Time Shift` has no catch-up engine, so there is no button for it. Nothing on this
- * screen fetches anything: the sections are still brought onto the device by the
- * section that was opened, and the subscription pair in the header is what the
- * provider said when it was last asked rather than a fresh call.
+ * Time shift and catch-up. Both act on what is playing, so they belong to the player
+ * and will be built there; the rail card that used to carry them is the newest
+ * additions now. Nothing on this screen fetches anything: the sections are still
+ * brought onto the device by the section that was opened, and the subscription pair in
+ * the header is what the provider said when it was last asked rather than a fresh call.
  */
 @Composable
 fun HomeScreen(
@@ -208,8 +209,11 @@ fun HomeScreen(
      */
     onManageSources: () -> Unit,
     onSettings: () -> Unit,
-    /** Catch-up, which has no engine yet: the caller says so rather than doing nothing. */
-    onTimeShift: () -> Unit,
+    /**
+     * The newest channels, films and series, whose screen is not built yet: the caller
+     * says so rather than doing nothing.
+     */
+    onLatest: () -> Unit,
     /** Opens the language chooser. */
     onLanguage: () -> Unit,
     /** Ask to leave. The confirmation is the application's, not this screen's. */
@@ -360,7 +364,7 @@ fun HomeScreen(
                         onChoosePlaylist = model::choosePlaylist,
                         onAddPlaylist = onAddPlaylist,
                         onManageSources = onManageSources,
-                        onTimeShift = onTimeShift,
+                        onLatest = onLatest,
                         onSettings = onSettings,
                         onExit = onExit,
                         modifier = Modifier.fillMaxWidth().weight(1f),
@@ -1026,7 +1030,7 @@ private fun SectionBoard(
     onChoosePlaylist: (String) -> Unit,
     onAddPlaylist: () -> Unit,
     onManageSources: () -> Unit,
-    onTimeShift: () -> Unit,
+    onLatest: () -> Unit,
     onSettings: () -> Unit,
     onExit: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1068,7 +1072,7 @@ private fun SectionBoard(
             onChoosePlaylist = onChoosePlaylist,
             onAddPlaylist = onAddPlaylist,
             onManageSources = onManageSources,
-            onTimeShift = onTimeShift,
+            onLatest = onLatest,
             onSettings = onSettings,
             onExit = onExit,
             modifier = Modifier
@@ -1593,10 +1597,13 @@ private fun arrivedFill(): Brush {
  * which is what moves the two facts in the header. It downloads no catalogue — see
  * [com.castivio.domain.RefreshProvider].
  *
- * **Time Shift** has no catch-up engine in this build, and it is on the rail anyway
- * because it was asked for twice. What it must not be is silent: pressing it says
- * so, in the app's own words for a part of Castivio that is not ready yet, rather
- * than doing nothing and teaching the user that the rail cannot be trusted.
+ * **New additions** -- the newest channels, films and series -- is on the rail before
+ * its screen is: that screen is built after the section screens it takes its cards
+ * from. What it must not be until then is silent: pressing it says so, in the app's
+ * own words for a part of Castivio that is not ready yet, rather than doing nothing and
+ * teaching the user that the rail cannot be trusted. It took Time Shift's card, which
+ * said the same; time shift and catch-up act on what is playing, so they go to the
+ * player.
  *
  * The language is not here. It sits in the header at the outer end, with the theme
  * control just inside it — the corner the other five screens keep it in.
@@ -1610,7 +1617,7 @@ private fun UtilityRail(
     onChoosePlaylist: (String) -> Unit,
     onAddPlaylist: () -> Unit,
     onManageSources: () -> Unit,
-    onTimeShift: () -> Unit,
+    onLatest: () -> Unit,
     onSettings: () -> Unit,
     onExit: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1634,7 +1641,7 @@ private fun UtilityRail(
             onAdd = onAddPlaylist,
             onManage = onManageSources,
         )
-        Utility(Icons.Rounded.History, stringResource(R.string.home_time_shift), frame, onTimeShift)
+        Utility(Icons.Rounded.AutoAwesome, stringResource(R.string.home_latest), frame, onLatest)
         Utility(Icons.Rounded.Settings, stringResource(R.string.home_settings), frame, onSettings)
         Utility(Icons.Rounded.PowerSettingsNew, stringResource(R.string.home_exit), frame, onExit)
     }

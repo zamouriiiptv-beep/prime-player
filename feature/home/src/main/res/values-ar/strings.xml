@@ -134,9 +134,7 @@
     <string name="home_add_playlist">إضافة قائمة</string>
     <string name="home_my_subscriptions">اشتراكاتي</string>
     <string name="home_language">اللغة</string>
-    <!-- Untranslated, as the approved row has it: the feature is known by its
-         English name and the Arabic rendering is three times as wide. -->
-    <string name="home_time_shift">Time Shift</string>
+    <string name="home_latest">آخر الإضافات</string>
     <string name="home_exit">خروج</string>
 
     <!-- The label is Arabic; the value is not. Six hexadecimal pairs are not a word

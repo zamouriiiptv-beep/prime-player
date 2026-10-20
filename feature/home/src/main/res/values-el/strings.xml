@@ -81,7 +81,7 @@
     <string name="home_add_playlist">Προσθήκη λίστας</string>
     <string name="home_my_subscriptions">Οι συνδρομές μου</string>
     <string name="home_language">Γλώσσα</string>
-    <string name="home_time_shift">Time Shift</string>
+    <string name="home_latest">Πρόσφατα</string>
     <string name="home_exit">Έξοδος</string>
     <string name="home_device_mac">MAC: %1$s</string>
     <string name="home_device_state">Συσκευή: %1$s</string>

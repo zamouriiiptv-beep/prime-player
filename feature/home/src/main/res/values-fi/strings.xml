@@ -81,7 +81,7 @@
     <string name="home_add_playlist">Lisää lista</string>
     <string name="home_my_subscriptions">Omat tilaukset</string>
     <string name="home_language">Kieli</string>
-    <string name="home_time_shift">Time Shift</string>
+    <string name="home_latest">Uutuudet</string>
     <string name="home_exit">Poistu</string>
     <string name="home_device_mac">MAC: %1$s</string>
     <string name="home_device_state">Laite: %1$s</string>

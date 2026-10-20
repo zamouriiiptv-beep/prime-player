@@ -81,7 +81,7 @@
     <string name="home_add_playlist">Dodaj listu</string>
     <string name="home_my_subscriptions">Moje pretplate</string>
     <string name="home_language">Jezik</string>
-    <string name="home_time_shift">Time Shift</string>
+    <string name="home_latest">Novo dodano</string>
     <string name="home_exit">Izlaz</string>
     <string name="home_device_mac">MAC: %1$s</string>
     <string name="home_device_state">Uređaj: %1$s</string>

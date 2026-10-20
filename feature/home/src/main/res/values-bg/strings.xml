@@ -81,7 +81,7 @@
     <string name="home_add_playlist">Добавяне на плейлист</string>
     <string name="home_my_subscriptions">Моите абонаменти</string>
     <string name="home_language">Език</string>
-    <string name="home_time_shift">Time Shift</string>
+    <string name="home_latest">Ново</string>
     <string name="home_exit">Изход</string>
     <string name="home_device_mac">MAC: %1$s</string>
     <string name="home_device_state">Устройство: %1$s</string>

@@ -81,7 +81,7 @@
     <string name="home_add_playlist">Adaugă o listă</string>
     <string name="home_my_subscriptions">Abonamentele mele</string>
     <string name="home_language">Limbă</string>
-    <string name="home_time_shift">Time Shift</string>
+    <string name="home_latest">Nou adăugate</string>
     <string name="home_exit">Ieșire</string>
     <string name="home_device_mac">MAC: %1$s</string>
     <string name="home_device_state">Dispozitiv: %1$s</string>

@@ -81,7 +81,7 @@
     <string name="home_add_playlist">Lijst toevoegen</string>
     <string name="home_my_subscriptions">Mijn abonnementen</string>
     <string name="home_language">Taal</string>
-    <string name="home_time_shift">Time Shift</string>
+    <string name="home_latest">Nieuw binnen</string>
     <string name="home_exit">Afsluiten</string>
     <string name="home_device_mac">MAC: %1$s</string>
     <string name="home_device_state">Apparaat: %1$s</string>

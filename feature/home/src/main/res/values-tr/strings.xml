@@ -81,7 +81,7 @@
     <string name="home_add_playlist">Liste ekle</string>
     <string name="home_my_subscriptions">Aboneliklerim</string>
     <string name="home_language">Dil</string>
-    <string name="home_time_shift">Time Shift</string>
+    <string name="home_latest">Yeniler</string>
     <string name="home_exit">Çıkış</string>
     <string name="home_device_mac">MAC: %1$s</string>
     <string name="home_device_state">Cihaz: %1$s</string>

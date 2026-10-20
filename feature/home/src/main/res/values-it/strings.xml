@@ -81,7 +81,7 @@
     <string name="home_add_playlist">Aggiungi lista</string>
     <string name="home_my_subscriptions">I miei abbonamenti</string>
     <string name="home_language">Lingua</string>
-    <string name="home_time_shift">Time Shift</string>
+    <string name="home_latest">Novità</string>
     <string name="home_exit">Esci</string>
     <string name="home_device_mac">MAC: %1$s</string>
     <string name="home_device_state">Dispositivo: %1$s</string>

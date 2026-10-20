@@ -81,7 +81,7 @@
     <string name="home_add_playlist">Pridať playlist</string>
     <string name="home_my_subscriptions">Moje predplatné</string>
     <string name="home_language">Jazyk</string>
-    <string name="home_time_shift">Time Shift</string>
+    <string name="home_latest">Novo pridané</string>
     <string name="home_exit">Ukončiť</string>
     <string name="home_device_mac">MAC: %1$s</string>
     <string name="home_device_state">Zariadenie: %1$s</string>

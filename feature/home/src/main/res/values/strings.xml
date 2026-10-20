@@ -150,8 +150,10 @@
     <string name="home_my_subscriptions">My subscriptions</string>
     <!-- The header chip, worded as the other screens word theirs. -->
     <string name="home_language">Language</string>
-    <!-- Catch-up. There is no engine for it in this build, and pressing it says so. -->
-    <string name="home_time_shift">Time Shift</string>
+    <!-- The rail entry for the newest channels, films and series. The rail card
+         leaves about 80dp for it on a phone: a short phrase, and the icon says
+         "new" as well. -->
+    <string name="home_latest">New additions</string>
     <!-- Leaves Castivio. The confirmation belongs to the application, not to Home. -->
     <string name="home_exit">Exit</string>
 

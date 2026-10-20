@@ -81,7 +81,7 @@
     <string name="home_add_playlist">Tambah playlist</string>
     <string name="home_my_subscriptions">Langganan saya</string>
     <string name="home_language">Bahasa</string>
-    <string name="home_time_shift">Time Shift</string>
+    <string name="home_latest">Terbaru</string>
     <string name="home_exit">Keluar</string>
     <string name="home_device_mac">MAC: %1$s</string>
     <string name="home_device_state">Perangkat: %1$s</string>

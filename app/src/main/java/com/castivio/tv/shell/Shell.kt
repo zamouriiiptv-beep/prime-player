@@ -182,15 +182,19 @@ private sealed interface Overlay {
     data object Language : Overlay
 
     /**
-     * Catch-up, which this build does not have.
+     * The newest channels, films and series, whose screen this build does not have yet.
      *
-     * The control is on Home because the approved row has it. What it opens is the
-     * app's own sentence for a part of Castivio that is not ready yet — the same
-     * `NOT_CONFIGURED` copy every other screen uses — rather than nothing at all. A
-     * button that does nothing when pressed teaches a user that the row is decorative;
-     * one that explains itself teaches them the feature is coming.
+     * The control is on Home's rail now; its screen is built after the section screens
+     * it takes its cards from. What it opens until then is the app's own sentence for a
+     * part of Castivio that is not ready yet — the same `NOT_CONFIGURED` copy every other
+     * screen uses — rather than nothing at all. A button that does nothing when pressed
+     * teaches a user that the row is decorative; one that explains itself teaches them
+     * the feature is coming.
+     *
+     * It took Time Shift's place. Time shift and catch-up act on what is playing, so
+     * they are built into the player, not opened from Home.
      */
-    data object TimeShift : Overlay
+    data object Latest : Overlay
 }
 
 /**
@@ -352,7 +356,7 @@ fun ShellScreen(
                         onManageSources = { overlay = Overlay.AddSource(ActivationEntry.SavedSources) },
                         onSettings = { dest = Dest.Settings },
                         onLanguage = { overlay = Overlay.Language },
-                        onTimeShift = { overlay = Overlay.TimeShift },
+                        onLatest = { overlay = Overlay.Latest },
                         // No `onAbout`: "about" is this build's licence, its device and its
                         // version, and Settings already opens exactly that screen through
                         // `onShowLicence` below. Home's rail carried a second door to the
@@ -443,7 +447,7 @@ fun ShellScreen(
             // that difference is the caller's -- the screen itself has no
             // opinion about where back goes.
             is Overlay.Licence -> LicenceWithLanguage(onLeave = { overlay = null })
-            is Overlay.TimeShift -> NotReadyOverlay(onBack = { overlay = null })
+            is Overlay.Latest -> NotReadyOverlay(onBack = { overlay = null })
             is Overlay.Language -> {
                 val locale = LocalLocaleController.current
                 LanguagePicker(
