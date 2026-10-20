@@ -72,6 +72,8 @@
     <string name="home_theme_lighter">Vaihda vaaleaan teemaan</string>
     <string name="home_theme_darker">Vaihda tummaan teemaan</string>
     <string name="home_refresh">Päivitä</string>
+    <string name="home_refresh_failed">Epäonnistui</string>
+    <string name="home_refresh_done">Päivitetty</string>
 
     <string name="home_refresh_no_provider">Lisää ensin tilaus.</string>
     <string name="home_refresh_unreachable">Palveluntarjoajasi ei vastannut. Yritä hetken kuluttua uudelleen.</string>

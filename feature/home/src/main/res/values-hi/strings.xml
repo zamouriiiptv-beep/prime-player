@@ -72,6 +72,8 @@
     <string name="home_theme_lighter">हल्की थीम पर जाएँ</string>
     <string name="home_theme_darker">गहरी थीम पर जाएँ</string>
     <string name="home_refresh">रीफ़्रेश</string>
+    <string name="home_refresh_failed">रीफ़्रेश विफल</string>
+    <string name="home_refresh_done">रीफ़्रेश हो गया</string>
 
     <string name="home_refresh_no_provider">पहले एक सदस्यता जोड़ें।</string>
     <string name="home_refresh_unreachable">आपके प्रदाता ने जवाब नहीं दिया। थोड़ी देर बाद फिर कोशिश करें।</string>

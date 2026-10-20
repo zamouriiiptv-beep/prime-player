@@ -72,6 +72,8 @@
     <string name="home_theme_lighter">Zum helleren Design wechseln</string>
     <string name="home_theme_darker">Zum dunkleren Design wechseln</string>
     <string name="home_refresh">Aktualisieren</string>
+    <string name="home_refresh_failed">Fehler</string>
+    <string name="home_refresh_done">Aktualisiert</string>
 
     <string name="home_refresh_no_provider">Fügen Sie zuerst ein Abonnement hinzu.</string>
     <string name="home_refresh_unreachable">Ihr Anbieter hat nicht geantwortet. Versuchen Sie es gleich noch einmal.</string>
@@ -105,7 +107,7 @@
     <string name="home_load_failed_live">Sender konnten nicht geladen werden</string>
     <string name="home_load_refresh_failed">Konnte nicht aktualisiert werden</string>
     <string name="home_load_retry">Drücke, um es erneut zu versuchen</string>
-    <string name="home_load_retry_short">Erneut versuchen</string>
+    <string name="home_load_retry_short">Wiederholen</string>
     <string name="home_load_opens">Öffnet sich, sobald es geladen ist</string>
     <string name="home_load_percent">%1$d\u00A0%%</string>
     <string name="home_load_seconds">%1$d s</string>

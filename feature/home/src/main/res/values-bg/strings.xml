@@ -72,6 +72,8 @@
     <string name="home_theme_lighter">Превключване към светла тема</string>
     <string name="home_theme_darker">Превключване към тъмна тема</string>
     <string name="home_refresh">Обнови</string>
+    <string name="home_refresh_failed">Не се обнови</string>
+    <string name="home_refresh_done">Обновено</string>
 
     <string name="home_refresh_no_provider">Първо добавете абонамент.</string>
     <string name="home_refresh_unreachable">Вашият доставчик не отговори. Опитайте пак след малко.</string>

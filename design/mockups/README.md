@@ -12,7 +12,7 @@ re-rendered when a token changes.
 | `activation-mac.html` | The first screen, where a subscription is added — phone landscape 873x393 and 800x360, television 960x540, in nine stress languages |
 | `tv-sections.html` | Live TV, Movies and Series on a television — the browse screens a remote drives, categories then content |
 | `gate-performance.html` | **A record, not a specification**: the loading gate and the measurement readout beside it, both removed when a section's load moved onto its card on Home (`home-loading.html`). Kept so the readout can be brought back from a drawing rather than from memory |
-| `home-loading.html` | Home with a section's load drawn in its own card, the gate gone — pressed, waiting its turn, loaded, pressed before it has loaded, empty, failed, refreshing; phone 833x385 in Arabic and English, television 960x540, and the bar's colour against the reference's. `?frame=sheet&set=a\|b\|c` stacks the frames with their captions |
+| `home-loading.html` | Home with a section's load drawn in its own card, the gate gone — pressed, waiting its turn, loaded, pressed before it has loaded, empty, failed, refreshing; phone 833x385 in Arabic and English, television 960x540, and the bar's colour against the reference's; and how a refresh went, said on its own rail card — failed, until the next press, or answered, for a few seconds. `?frame=sheet&set=a\|b\|c\|d` stacks the frames with their captions |
 
 ## What a mockup is, after the sizing migration
 

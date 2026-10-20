@@ -72,6 +72,8 @@
     <string name="home_theme_lighter">Prepnúť na svetlý motív</string>
     <string name="home_theme_darker">Prepnúť na tmavý motív</string>
     <string name="home_refresh">Obnoviť</string>
+    <string name="home_refresh_failed">Neobnovené</string>
+    <string name="home_refresh_done">Obnovené</string>
 
     <string name="home_refresh_no_provider">Najprv pridajte predplatné.</string>
     <string name="home_refresh_unreachable">Váš poskytovateľ neodpovedal. Skúste to o chvíľu znova.</string>

@@ -72,6 +72,8 @@
     <string name="home_theme_lighter">رفتن به پوستهٔ روشن</string>
     <string name="home_theme_darker">رفتن به پوستهٔ تیره</string>
     <string name="home_refresh">تازه‌سازی</string>
+    <string name="home_refresh_failed">تازه‌سازی نشد</string>
+    <string name="home_refresh_done">تازه‌سازی شد</string>
 
     <string name="home_refresh_no_provider">نخست یک اشتراک بیفزایید.</string>
     <string name="home_refresh_unreachable">ارائه‌دهندهٔ شما پاسخ نداد. کمی بعد دوباره تلاش کنید.</string>

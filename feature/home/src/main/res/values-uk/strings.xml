@@ -72,6 +72,8 @@
     <string name="home_theme_lighter">Перемкнути на світлу тему</string>
     <string name="home_theme_darker">Перемкнути на темну тему</string>
     <string name="home_refresh">Оновити</string>
+    <string name="home_refresh_failed">Не оновлено</string>
+    <string name="home_refresh_done">Оновлено</string>
 
     <string name="home_refresh_no_provider">Спершу додайте передплату.</string>
     <string name="home_refresh_unreachable">Ваш постачальник не відповів. Спробуйте ще раз за хвилину.</string>
@@ -105,7 +107,7 @@
     <string name="home_load_failed_live">Не вдалося завантажити канали</string>
     <string name="home_load_refresh_failed">Не вдалося оновити</string>
     <string name="home_load_retry">Натисніть, щоб спробувати ще раз</string>
-    <string name="home_load_retry_short">Спробувати ще раз</string>
+    <string name="home_load_retry_short">Повторити</string>
     <string name="home_load_opens">Відкриється після завантаження</string>
     <string name="home_load_percent">%1$d%%</string>
     <string name="home_load_seconds">%1$d с</string>

@@ -138,6 +138,12 @@
     <!-- Asks the provider again what it says. It downloads no catalogue — sections
          are still fetched by the section that was opened. -->
     <string name="home_refresh">Refresh</string>
+    <!-- The refresh card, when the press failed: it says so until it is pressed
+         again, which is the retry. The rail card leaves about 80dp for it on a
+         phone; the full sentence below is what a screen reader reads. -->
+    <string name="home_refresh_failed">Refresh failed</string>
+    <!-- The refresh card, for a few seconds after the provider answered. -->
+    <string name="home_refresh_done">Refreshed</string>
 
     <string name="home_refresh_no_provider">Add a subscription first.</string>
     <string name="home_refresh_unreachable">Your provider did not answer. Try again in a moment.</string>

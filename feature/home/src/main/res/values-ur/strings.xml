@@ -72,6 +72,8 @@
     <string name="home_theme_lighter">ہلکے تھیم پر جائیں</string>
     <string name="home_theme_darker">گہرے تھیم پر جائیں</string>
     <string name="home_refresh">تازہ کریں</string>
+    <string name="home_refresh_failed">تازہ نہ ہو سکا</string>
+    <string name="home_refresh_done">تازہ ہو گیا</string>
 
     <string name="home_refresh_no_provider">پہلے ایک رکنیت شامل کریں۔</string>
     <string name="home_refresh_unreachable">آپ کے فراہم کنندہ نے جواب نہیں دیا۔ تھوڑی دیر بعد دوبارہ کوشش کریں۔</string>

@@ -125,6 +125,8 @@
     <string name="home_theme_darker">التبديل إلى الوضع الأغمق</string>
 
     <string name="home_refresh">تحديث</string>
+    <string name="home_refresh_failed">تعذّر التحديث</string>
+    <string name="home_refresh_done">تم التحديث</string>
 
     <string name="home_refresh_no_provider">أضف اشتراكًا أولًا.</string>
     <string name="home_refresh_unreachable">لم يردّ مزوّدك. حاول بعد قليل.</string>

@@ -72,6 +72,8 @@
     <string name="home_theme_lighter">Overschakelen naar het lichte thema</string>
     <string name="home_theme_darker">Overschakelen naar het donkere thema</string>
     <string name="home_refresh">Verversen</string>
+    <string name="home_refresh_failed">Niet ververst</string>
+    <string name="home_refresh_done">Ververst</string>
 
     <string name="home_refresh_no_provider">Voeg eerst een abonnement toe.</string>
     <string name="home_refresh_unreachable">Uw provider antwoordde niet. Probeer het zo meteen opnieuw.</string>
@@ -105,7 +107,7 @@
     <string name="home_load_failed_live">Kon de zenders niet laden</string>
     <string name="home_load_refresh_failed">Kon niet verversen</string>
     <string name="home_load_retry">Druk om het opnieuw te proberen</string>
-    <string name="home_load_retry_short">Opnieuw proberen</string>
+    <string name="home_load_retry_short">Opnieuw</string>
     <string name="home_load_opens">Opent zodra het geladen is</string>
     <string name="home_load_percent">%1$d%%</string>
     <string name="home_load_seconds">%1$d s</string>

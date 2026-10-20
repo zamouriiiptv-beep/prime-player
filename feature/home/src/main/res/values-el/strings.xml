@@ -72,6 +72,8 @@
     <string name="home_theme_lighter">Εναλλαγή σε φωτεινό θέμα</string>
     <string name="home_theme_darker">Εναλλαγή σε σκούρο θέμα</string>
     <string name="home_refresh">Ανανέωση</string>
+    <string name="home_refresh_failed">Αποτυχία</string>
+    <string name="home_refresh_done">Ανανεώθηκε</string>
 
     <string name="home_refresh_no_provider">Προσθέστε πρώτα μια συνδρομή.</string>
     <string name="home_refresh_unreachable">Ο πάροχός σας δεν απάντησε. Δοκιμάστε ξανά σε λίγο.</string>

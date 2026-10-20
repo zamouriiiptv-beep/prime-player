@@ -313,6 +313,43 @@ class RefreshProviderTest {
         assertTrue("no kept playlist was discarded", copies.discarded.isEmpty())
     }
 
+    /**
+     * **The refresh that failed on a device.** A playlist whose rows came from its file --
+     * the import that runs when the panel refuses a first section reads it to its end -- is
+     * still a panel account, and the question about the account goes to the panel. It used
+     * to go to the file: a probe of the heaviest request the panel serves, failing where the
+     * panel answered, with no date in it even when it succeeded.
+     */
+    @Test
+    fun `a playlist read from its file is still asked about through the panel its link names`() = runBlocking {
+        val playlist = panelPlaylist().copy(sync = SyncState(contentHash = "read-to-its-end", lastImportAtMs = now - 1))
+        val validator = Validator { Outcome.Success(ProviderStatus(usable = true, expiresAtMs = now + 1, statusLabel = "Active")) }
+        val statuses = Statuses()
+        val refresher = RefreshProvider(Sources(playlist), validator, statuses, Sections(), Copies())
+
+        val outcome = refresher.refresh(now)
+
+        assertTrue(outcome is Refreshed.Updated)
+        val asked = validator.asked.single() as PlaylistSource.M3u
+        assertEquals("the panel the link names", "sam", asked.xtream?.username)
+        assertEquals("the playlist is still itself", playlist.url, asked.url)
+        assertEquals(now + 1, statuses.recorded.single().second.expiresAtMs)
+    }
+
+    /** And Home's own first question takes the same way, so the date shows without a press. */
+    @Test
+    fun `a playlist read from its file is asked once through its panel`() = runBlocking {
+        val playlist = panelPlaylist().copy(sync = SyncState(contentHash = "read-to-its-end", lastImportAtMs = now - 1))
+        val validator = Validator { Outcome.Success(ProviderStatus(usable = true, expiresAtMs = now + 1, statusLabel = "Active")) }
+        val statuses = Statuses()
+
+        val outcome = RefreshProvider(Sources(playlist), validator, statuses).askIfNeverAsked(now)
+
+        assertTrue(outcome is Refreshed.Updated)
+        assertEquals("sam", (validator.asked.single() as PlaylistSource.M3u).xtream?.username)
+        assertEquals(listOf(playlist.id), statuses.recorded.map { it.first })
+    }
+
     @Test
     fun `a subscription already answered is not asked again`() = runBlocking {
         val validator = Validator()

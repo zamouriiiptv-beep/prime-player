@@ -72,6 +72,8 @@
     <string name="home_theme_lighter">Переключить на светлую тему</string>
     <string name="home_theme_darker">Переключить на тёмную тему</string>
     <string name="home_refresh">Обновить</string>
+    <string name="home_refresh_failed">Не обновлено</string>
+    <string name="home_refresh_done">Обновлено</string>
 
     <string name="home_refresh_no_provider">Сначала добавьте подписку.</string>
     <string name="home_refresh_unreachable">Ваш поставщик не ответил. Попробуйте ещё раз через минуту.</string>

@@ -72,6 +72,8 @@
     <string name="home_theme_lighter">Açık temaya geç</string>
     <string name="home_theme_darker">Koyu temaya geç</string>
     <string name="home_refresh">Yenile</string>
+    <string name="home_refresh_failed">Yenilenemedi</string>
+    <string name="home_refresh_done">Yenilendi</string>
 
     <string name="home_refresh_no_provider">Önce bir abonelik ekleyin.</string>
     <string name="home_refresh_unreachable">Sağlayıcınız yanıt vermedi. Birazdan tekrar deneyin.</string>

@@ -72,6 +72,8 @@
     <string name="home_theme_lighter">Пређи на светлу тему</string>
     <string name="home_theme_darker">Пређи на тамну тему</string>
     <string name="home_refresh">Освежи</string>
+    <string name="home_refresh_failed">Неуспешно</string>
+    <string name="home_refresh_done">Освежено</string>
 
     <string name="home_refresh_no_provider">Прво додајте претплату.</string>
     <string name="home_refresh_unreachable">Ваш добављач није одговорио. Покушајте поново за који тренутак.</string>

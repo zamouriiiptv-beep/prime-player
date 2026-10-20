@@ -72,6 +72,8 @@
     <string name="home_theme_lighter">Prijeđi na svijetlu temu</string>
     <string name="home_theme_darker">Prijeđi na tamnu temu</string>
     <string name="home_refresh">Osvježi</string>
+    <string name="home_refresh_failed">Neuspjelo</string>
+    <string name="home_refresh_done">Osvježeno</string>
 
     <string name="home_refresh_no_provider">Najprije dodajte pretplatu.</string>
     <string name="home_refresh_unreachable">Vaš davatelj nije odgovorio. Pokušajte ponovno za koji trenutak.</string>

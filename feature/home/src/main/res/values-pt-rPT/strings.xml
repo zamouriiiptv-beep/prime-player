@@ -72,6 +72,8 @@
     <string name="home_theme_lighter">Mudar para o tema claro</string>
     <string name="home_theme_darker">Mudar para o tema escuro</string>
     <string name="home_refresh">Atualizar</string>
+    <string name="home_refresh_failed">Falhou</string>
+    <string name="home_refresh_done">Atualizado</string>
 
     <string name="home_refresh_no_provider">Adicione primeiro uma subscrição.</string>
     <string name="home_refresh_unreachable">O seu fornecedor não respondeu. Tente novamente daqui a pouco.</string>

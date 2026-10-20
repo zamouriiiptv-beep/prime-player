@@ -72,6 +72,8 @@
     <string name="home_theme_lighter">Przełącz na jaśniejszy motyw</string>
     <string name="home_theme_darker">Przełącz na ciemniejszy motyw</string>
     <string name="home_refresh">Odśwież</string>
+    <string name="home_refresh_failed">Błąd</string>
+    <string name="home_refresh_done">Odświeżono</string>
 
     <string name="home_refresh_no_provider">Najpierw dodaj subskrypcję.</string>
     <string name="home_refresh_unreachable">Twój dostawca nie odpowiedział. Spróbuj ponownie za chwilę.</string>
@@ -105,7 +107,7 @@
     <string name="home_load_failed_live">Nie udało się wczytać kanałów</string>
     <string name="home_load_refresh_failed">Nie udało się odświeżyć</string>
     <string name="home_load_retry">Naciśnij, aby spróbować ponownie</string>
-    <string name="home_load_retry_short">Spróbuj ponownie</string>
+    <string name="home_load_retry_short">Ponów</string>
     <string name="home_load_opens">Otworzy się po wczytaniu</string>
     <string name="home_load_percent">%1$d%%</string>
     <string name="home_load_seconds">%1$d s</string>

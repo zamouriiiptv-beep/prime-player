@@ -72,6 +72,8 @@
     <string name="home_theme_lighter">Váltás világos témára</string>
     <string name="home_theme_darker">Váltás sötét témára</string>
     <string name="home_refresh">Frissítés</string>
+    <string name="home_refresh_failed">Sikertelen</string>
+    <string name="home_refresh_done">Frissítve</string>
 
     <string name="home_refresh_no_provider">Először adjon hozzá egy előfizetést.</string>
     <string name="home_refresh_unreachable">A szolgáltatója nem válaszolt. Próbálja újra egy pillanat múlva.</string>

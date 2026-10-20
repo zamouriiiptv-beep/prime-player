@@ -138,12 +138,20 @@ data class HomeState(
     /**
      * Why the last refresh failed, or null when it did not fail.
      *
-     * Only the two outcomes a user can act on are carried. `Updated` needs no field:
-     * the recorded answer is a flow this screen is already collecting, so a changed
-     * status moves the header on its own, and a status that did not change has nothing
-     * to announce.
+     * Said on the refresh card itself, until the next press of it -- which is the retry.
+     * It was a notice floating over the footer, where it covered the device's address:
+     * the one value on the screen a user is asked to read out.
      */
     val refreshFault: RefreshFault? = null,
+    /**
+     * A refresh answered moments ago: the card says so for a few seconds, the way a
+     * section's card says it has just loaded.
+     *
+     * A changed answer moves the header on its own, but an unchanged one moves nothing,
+     * and a press that ends in nothing visible reads as a button that does not work --
+     * the defect [refreshing] was added for, one step later.
+     */
+    val refreshed: Boolean = false,
     val loading: Boolean = true,
 ) {
     /** True once a provider has been configured, whatever it did or did not carry. */
@@ -314,6 +322,9 @@ class HomeViewModel @Inject constructor(
         // call whose answer would be recorded over the first for no benefit, and would
         // let the spinner stop while a request was still running.
         if (_refresh.value.busy) return
+        // A press inside the last answer's few seconds is a refresh of its own: the earlier
+        // answer's timer must not end the new one's early.
+        answered?.cancel()
         viewModelScope.launch {
             _refresh.value = RefreshUi(busy = true)
             // `nowMs` read here, not held: the answer is stamped with the instant it
@@ -326,19 +337,21 @@ class HomeViewModel @Inject constructor(
                     Refreshed.NoProvider -> RefreshFault.NoProvider
                     is Refreshed.Unreachable -> RefreshFault.Unreachable
                 },
+                done = outcome is Refreshed.Updated,
             )
+            // A failure stays until the card is pressed again: one that went on a timer is
+            // one a viewer looks up to find already gone. Only an answer goes by itself.
+            if (outcome is Refreshed.Updated) {
+                answered = viewModelScope.launch {
+                    delay(REFRESHED_MS)
+                    _refresh.update { it.copy(done = false) }
+                }
+            }
         }
     }
 
-    /**
-     * Dismiss the failure notice.
-     *
-     * The screen owns when the message goes, not a timer here: a notice that vanished
-     * on its own schedule is one a user can look up and find already gone.
-     */
-    fun clearRefreshFault() {
-        _refresh.value = _refresh.value.copy(fault = null)
-    }
+    /** The timer that ends the card's "refreshed", while one is running. */
+    private var answered: Job? = null
 
     /**
      * What the refresh control is doing, and what the last attempt produced.
@@ -548,6 +561,7 @@ class HomeViewModel @Inject constructor(
             activePlaylistId = source?.id,
             refreshing = refresh.busy,
             refreshFault = refresh.fault,
+            refreshed = refresh.done,
             loading = false,
         )
         base.copy(
@@ -566,13 +580,16 @@ class HomeViewModel @Inject constructor(
     private data class Library(val active: ProviderSource?, val all: List<Playlist>)
 
     /** See [_refresh]. */
-    private data class RefreshUi(val busy: Boolean = false, val fault: RefreshFault? = null)
+    private data class RefreshUi(val busy: Boolean = false, val fault: RefreshFault? = null, val done: Boolean = false)
 
     private companion object {
         const val SUBSCRIPTION_GRACE_MS = 5_000L
 
         /** How long a card says its section has just loaded before it goes back to its count. */
         const val LOADED_MS = 3_000L
+
+        /** How long the refresh card says the provider answered: as long as a section's card. */
+        const val REFRESHED_MS = LOADED_MS
 
         /** How long a card pressed on its way says when it will open. */
         const val HINT_MS = 2_000L

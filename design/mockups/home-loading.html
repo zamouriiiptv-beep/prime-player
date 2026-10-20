@@ -14,7 +14,8 @@
   green with a tick, a failure is the danger red with a sentence. Figures are examples.
 
     ?frame=<name>               one frame at its device size (833x385 phone, 960x540 TV)
-    ?frame=sheet&set=a|b|c      frames stacked with their captions, for review
+    ?frame=sheet&set=a|b|c|d    frames stacked with their captions, for review; d is how
+                                a refresh went, said on its own rail card
     &lang=en                    left to right, in English
 -->
 <html lang="ar" dir="rtl">
@@ -76,6 +77,16 @@ svg{display:block;flex:none}
   background:linear-gradient(to bottom,var(--glassMid),var(--glassLow));
   display:flex;align-items:center;gap:calc(var(--chipPad) * .7);padding:0 var(--chipPad);font-size:var(--fsChip);color:var(--silver);white-space:nowrap}
 .util svg{width:16px;height:16px;fill:var(--violet50)} .util.quit svg{fill:#FF9B9B}
+/* A refresh says how it went on its own card: a failure in the failure red until the next
+   press -- which is the retry -- with what to do under it; an answer in the success green
+   for a few seconds, as a section's card says it has just loaded. */
+.util.bad{border-color:rgba(255,90,90,.55);background:linear-gradient(to bottom,rgba(255,90,90,.12),rgba(255,90,90,.04))}
+.util.bad svg{fill:var(--danger)}
+.util .ucol{display:flex;flex-direction:column;min-width:0;line-height:1.25}
+.util .ubad{color:var(--danger)}
+.util.good{border-color:rgba(61,214,140,.55);background:linear-gradient(to bottom,rgba(61,214,140,.13),rgba(61,214,140,.04))}
+.util.good svg{fill:var(--success)} .util .ugood{color:var(--success)}
+.util .usub{font-size:calc(var(--fsChip) * .85);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 .foot{flex:none;display:flex;flex-direction:column;gap:var(--foot)}
 .facts{display:flex;gap:var(--chipPad)}
@@ -177,6 +188,7 @@ const STR = {
     failed:'تعذّر التحميل', failedLive:'تعذّر تحميل القنوات', retry:'اضغط لإعادة المحاولة', retryShort:'اضغط للإعادة',
     opensWhenDone:'يُفتح عند اكتمال التحميل', seconds:'%s ث',
     rail:['تحديث','تبديل القائمة','آخر الإضافات','الإعدادات','خروج'],
+    refreshFailed:'تعذّر التحديث', retryRail:'اضغط للإعادة', refreshDone:'تم التحديث',
     provider:'الاشتراك', licence:'رخصة Castivio', language:'اللغة',
     device:'الجهاز: ', activated:'مُفعَّل', mac:'ماك: ', key:'مفتاح الجهاز: ',
     disclaimer:'Castivio مشغّل وسائط. لا يوفّر قنوات ولا أفلامًا ولا اشتراكات — أنت من يضيفها.',
@@ -190,6 +202,7 @@ const STR = {
     failed:'Couldn’t load', failedLive:'Couldn’t load the channels', retry:'Press to try again', retryShort:'Press to retry',
     opensWhenDone:'Opens when it has loaded', seconds:'%s s',
     rail:['Refresh','Change list','New additions','Settings','Exit'],
+    refreshFailed:'Refresh failed', retryRail:'Press to retry', refreshDone:'Refreshed',
     provider:'Subscription', licence:'Castivio licence', language:'Language',
     device:'Device: ', activated:'Activated', mac:'MAC: ', key:'Device key: ',
     disclaimer:'Castivio is a media player. It does not provide channels, films or subscriptions — you add your own.',
@@ -301,6 +314,12 @@ function board(fr) {
   const vars = Object.entries(m).map(([k, v]) => `--${k}:${v.toFixed(2)}px`).join(';');
   const rail = T.rail.map((label, i) => {
     const icon = ['refresh', 'playlist', 'sparkle', 'settings', 'power'][i];
+    if (i === 0 && fr.railFault) {
+      return `<div class="util bad">${svg('alert')}<div class="ucol"><span class="ubad">${T.refreshFailed}</span><span class="usub">${T.retryRail}</span></div></div>`;
+    }
+    if (i === 0 && fr.railDone) {
+      return `<div class="util good">${svg('check')}<div class="ucol"><span class="ugood">${T.refreshDone}</span></div></div>`;
+    }
     return `<div class="util${i === 4 ? ' quit' : ''}">${svg(icon)}${label}</div>`;
   }).join('');
   const st = fr.cards;
@@ -336,6 +355,7 @@ function board(fr) {
 
 // ------------------------------------------------------------------ the frames
 const U = {k: 'unfetched'};
+const SETTLED = {live: {k: 'counted', n: 54130}, movies: {k: 'counted', n: 12640}, series: {k: 'counted', n: 2318}, radio: {k: 'counted', n: 1083}};
 const FRAMES = {
   'press-live': {cards: {live: {k: 'loading', n: 24310, focus: true}, movies: U, series: U, radio: U},
     cap: '<span class="n">١ — الضغط على البث المباشر.</span> تُحمَّل القنوات وحدها، والمشاهد باقٍ في Home يرى البطاقة. رد Xtream الواحد لا يذكر عدد القنوات قبل نهايته، فلا نسبة مئوية: <b>العدد يتزايد</b> و<span class="a">الشريط يتحرك</span>.'},
@@ -353,10 +373,19 @@ const FRAMES = {
     cap: '<span class="n">٧ — تحديث قسم له محتوى.</span> العدد يبقى، والكلمة <span class="a">«جارٍ التحديث…»</span> والشريط تحته؛ والقسم يُفتح أثناء التحديث بما لديه.'},
   'movies-en': {lang: 'en', cards: {live: {k: 'counted', n: 54130}, movies: {k: 'loading', pct: 48}, series: U, radio: {k: 'counted', n: 1083}},
     cap: '<span class="n">٨ — الإطار ٤ بالإنجليزية، من اليسار إلى اليمين.</span>'},
+  'refresh-failed': {railFault: 'release', cards: SETTLED,
+    cap: '<span class="n">١١ — تحديث لم يصله جواب.</span> يُكتب الفشل على زر «تحديث» نفسه، بالأحمر وبعلامة التعجّب، كما يكتب كل قسم فشله على بطاقته: <span class="r">«تعذّر التحديث»</span> و«اضغط للإعادة» — كما تقول البطاقات «تعذّر التحميل». الجملة الكاملة، «لم يردّ مزوّدك. حاول بعد قليل.»، يقرؤها قارئ الشاشة. لا شيء يُغطّى، والتذييل كما هو. يبقى حتى الضغطة التالية، وهي نفسها إعادة المحاولة.'},
+  'refresh-done': {railDone: true, cards: SETTLED,
+    cap: '<span class="n">١٢ — تحديث أجاب عنه المزوّد.</span> <span class="g">✓ «تم التحديث»</span> لثلاث ثوانٍ، كما تقول بطاقة القسم «اكتمل التحميل»، ثم يعود الزر «تحديث». جواب لم يتغيّر لا يحرّك شيئًا في الترويسة، فلولا هذا لبدا الضغط كأنه لم يفعل شيئًا.'},
+  'refresh-failed-en': {lang: 'en', railFault: 'release', cards: SETTLED,
+    cap: '<span class="n">١٣ — الإطار ١١ بالإنجليزية.</span>'},
+  'refresh-failed-tv': {dev: 'tv', railFault: 'release', cards: SETTLED,
+    cap: '<span class="n">١٤ — الإطار ١١ على التلفاز، 960×540.</span>'},
   'tv': {dev: 'tv', cards: {live: {k: 'done', n: 54130}, movies: U, series: U, radio: {k: 'loading', pct: 60, focus: true}},
     cap: '<span class="n">٩ — الإطار ٣ على التلفاز، 960×540.</span> التركيز على الراديو بالريموت.'},
 };
-const SETS = {a: ['press-live', 'queued', 'live-done', 'movies'], b: ['pressed', 'fail-empty', 'refresh'], c: ['movies-en', 'tv', 'compare']};
+const SETS = {a: ['press-live', 'queued', 'live-done', 'movies'], b: ['pressed', 'fail-empty', 'refresh'], c: ['movies-en', 'tv', 'compare'],
+  d: ['refresh-failed', 'refresh-done', 'refresh-failed-en', 'refresh-failed-tv']};
 
 function compare() {
   // Two panels at the phone's own panel size: the reference's colours, and the state language's.

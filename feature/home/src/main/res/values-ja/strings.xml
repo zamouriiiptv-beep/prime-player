@@ -72,6 +72,8 @@
     <string name="home_theme_lighter">明るいテーマに切り替える</string>
     <string name="home_theme_darker">暗いテーマに切り替える</string>
     <string name="home_refresh">更新</string>
+    <string name="home_refresh_failed">更新失敗</string>
+    <string name="home_refresh_done">更新完了</string>
 
     <string name="home_refresh_no_provider">先にサブスクを追加してください。</string>
     <string name="home_refresh_unreachable">プロバイダーから応答がありません。少し後でもう一度お試しください。</string>

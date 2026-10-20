@@ -101,10 +101,11 @@ class RefreshProvider(
      */
     suspend fun refresh(nowMs: Long): Refreshed {
         val active = sources.activeNow() ?: return Refreshed.NoProvider
-        // A portal registration has no address to go back to, so it cannot be asked
-        // again. Reported as "no provider to ask" rather than as a failure, because
-        // nothing went wrong and a retry would reconstruct the same nothing.
-        val source = active.asPlaylistSource() ?: return Refreshed.NoProvider
+        // A registration with no address to go back to cannot be asked again. Reported as
+        // "no provider to ask" rather than as a failure, because nothing went wrong and a
+        // retry would reconstruct the same nothing. Through the panel a playlist's link
+        // names, however its rows were read: see `asAccountSource`.
+        val source = active.asAccountSource() ?: return Refreshed.NoProvider
 
         return when (val answer = validator.validate(source)) {
             is Outcome.Failure -> Refreshed.Unreachable(answer.error)
@@ -128,6 +129,9 @@ class RefreshProvider(
      * the first time it shows a subscription with no answer, and nothing more: no section
      * is forgotten and no kept playlist discarded.
      *
+     * A playlist whose link names a panel is asked through it even when its rows were read
+     * from the file, as [refresh] asks it -- see [asAccountSource].
+     *
      * @return null when there was nothing to ask: no subscription, an answer already
      *   recorded, or a source with no account behind it -- a playlist with no panel and a
      *   file state no date. Otherwise what asking produced, recorded as [refresh] records
@@ -136,7 +140,7 @@ class RefreshProvider(
     suspend fun askIfNeverAsked(nowMs: Long): Refreshed? {
         val active = sources.activeNow() ?: return null
         if (statuses.of(active.id).first() != null) return null
-        val source = active.asPlaylistSource() ?: return null
+        val source = active.asAccountSource() ?: return null
         if (!source.answersWithAnAccount) return null
 
         return when (val answer = validator.validate(source)) {

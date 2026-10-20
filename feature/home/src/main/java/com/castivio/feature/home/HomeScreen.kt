@@ -10,7 +10,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,7 +27,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -98,6 +96,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -373,77 +372,6 @@ fun HomeScreen(
                 }
             }
         }
-
-        // **Floating, so it cannot move the board.**
-        //
-        // A notice that took a row in the column above would push the footer and
-        // re-measure the section cards the moment a request failed — the layout
-        // changing shape to report that nothing changed. Drawn in the frame instead,
-        // over the footer, it says what happened and costs the board nothing.
-        state.refreshFault?.let { fault ->
-            RefreshNotice(
-                fault = fault,
-                frame = frame,
-                onDismiss = model::clearRefreshFault,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = frame.edge),
-            )
-        }
-    }
-}
-
-/**
- * What a refresh that produced no answer has to say.
- *
- * Two sentences, because the two failures need opposite ones: a provider that was
- * never there is asking for a subscription, and a provider that did not answer is
- * asking for another press in a minute. The same split `Refreshed` draws in the
- * domain, arriving here rather than being decided again.
- *
- * Dismissed by pressing it, and by nothing else. A notice on a timer is one a viewer
- * looks up to find already gone, and on a television there is no "swipe away" — the
- * press that acknowledges it is the only gesture every input has.
- */
-@Composable
-private fun RefreshNotice(
-    fault: RefreshFault,
-    frame: CastivioMetrics,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val colors = CastivioTheme.colors
-    val shape = RoundedCornerShape(frame.radius / 2)
-    val message = stringResource(
-        when (fault) {
-            RefreshFault.NoProvider -> R.string.home_refresh_no_provider
-            RefreshFault.Unreachable -> R.string.home_refresh_unreachable
-        },
-    )
-    Row(
-        modifier
-            .heightIn(min = frame.touchTarget)
-            .clip(shape)
-            .clickable(onClick = onDismiss)
-            .background(colors.glassFillBrush)
-            .border(BorderStroke(1.dp, colors.discBorder(colors.danger)), shape)
-            .padding(horizontal = frame.chipPad),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
-    ) {
-        Icon(
-            Icons.Rounded.Info,
-            contentDescription = null,
-            tint = colors.danger,
-            modifier = Modifier.size(Sizing.iconSm),
-        )
-        Text(
-            message,
-            style = castivioBodyStyle(frame.fsChip),
-            color = colors.onBackgroundVariant,
-            maxLines = NOTICE_LINES,
-            overflow = TextOverflow.Ellipsis,
-        )
     }
 }
 
@@ -1579,6 +1507,13 @@ private fun arrivedFill(): Brush {
     return Brush.verticalGradient(listOf(success.copy(alpha = ARRIVED_FILL_TOP), success.copy(alpha = ARRIVED_FILL_BOTTOM)))
 }
 
+/** The failure red on the glass, in the proportions [arrivedFill] gives the success green. */
+@Composable
+private fun failedFill(): Brush {
+    val danger = CastivioTheme.colors.danger
+    return Brush.verticalGradient(listOf(danger.copy(alpha = ARRIVED_FILL_TOP), danger.copy(alpha = ARRIVED_FILL_BOTTOM)))
+}
+
 // --------------------------------------------------------------- the utilities
 
 /**
@@ -1595,7 +1530,9 @@ private fun arrivedFill(): Brush {
  *
  * **Refresh** re-asks the provider the one cheap question and records the answer,
  * which is what moves the two facts in the header. It downloads no catalogue — see
- * [com.castivio.domain.RefreshProvider].
+ * [com.castivio.domain.RefreshProvider]. What came of the press is said on the card
+ * itself, in the words and colours the section cards use for the same outcomes: see
+ * [refreshLook].
  *
  * **New additions** -- the newest channels, films and series -- is on the rail before
  * its screen is: that screen is built after the section screens it takes its cards
@@ -1623,16 +1560,36 @@ private fun UtilityRail(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(rhythm.rail)) {
-        // The refresh control, which says whether it is working.
+        // The refresh control, which says whether it is working and how it went.
         //
-        // The card is the same card at the same size: only the glyph is swapped for a
-        // spinner, so the rail's geometry cannot move while a request is in flight.
-        // Disabled while busy, because the press has already been taken — a second one
-        // would start a second request whose answer overwrites the first's.
-        if (state.refreshing) {
-            UtilityBusy(stringResource(R.string.home_refresh), frame)
-        } else {
-            Utility(Icons.Rounded.Refresh, stringResource(R.string.home_refresh), frame, onRefresh)
+        // The card is the same card at the same size in every look: only its glyph, its
+        // words and its tint change, so the rail's geometry cannot move while a request
+        // is in flight or to report how one ended. Disabled while busy, because the
+        // press has already been taken — a second one would start a second request
+        // whose answer overwrites the first's.
+        when (val look = refreshLook(state)) {
+            RefreshLook.Busy -> UtilityBusy(stringResource(R.string.home_refresh), frame)
+            is RefreshLook.Failed -> UtilityOutcome(
+                icon = Icons.Rounded.ErrorOutline,
+                hue = CastivioTheme.colors.danger,
+                fill = failedFill(),
+                word = stringResource(R.string.home_refresh_failed),
+                detail = stringResource(R.string.home_load_retry_short),
+                spoken = stringResource(refreshSentence(look.fault)),
+                frame = frame,
+                onClick = onRefresh,
+            )
+            RefreshLook.Answered -> UtilityOutcome(
+                icon = Icons.Rounded.CheckCircle,
+                hue = CastivioTheme.colors.success,
+                fill = arrivedFill(),
+                word = stringResource(R.string.home_refresh_done),
+                detail = null,
+                spoken = stringResource(R.string.home_refresh_done),
+                frame = frame,
+                onClick = onRefresh,
+            )
+            RefreshLook.Idle -> Utility(Icons.Rounded.Refresh, stringResource(R.string.home_refresh), frame, onRefresh)
         }
         PlaylistPicker(
             state = state,
@@ -2078,6 +2035,107 @@ private fun ColumnScope.UtilityBusy(label: String, frame: CastivioMetrics) {
 }
 
 /**
+ * The refresh card when it has an outcome to say: a failure in the failure red, until the
+ * next press, or an answer in the success green, for a few seconds.
+ *
+ * The section cards' language for the same two outcomes -- the tinted glass and edge, the
+ * circled mark, the word in the hue -- on a card that keeps its size. The second, quieter
+ * line is what to do, where there is something to do; a screen reader is given the
+ * sentence the card has no room for.
+ */
+@Composable
+private fun ColumnScope.UtilityOutcome(
+    icon: ImageVector,
+    hue: Color,
+    fill: Brush,
+    word: String,
+    detail: String?,
+    spoken: String,
+    frame: CastivioMetrics,
+    onClick: () -> Unit,
+) {
+    InteractiveGlassCard(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .weight(1f)
+            .semantics(mergeDescendants = true) { contentDescription = spoken },
+        shape = RoundedCornerShape(frame.radius / 2),
+        fill = fill,
+        restBorder = hue.copy(alpha = ARRIVED_EDGE_ALPHA),
+    ) {
+        Row(
+            Modifier.fillMaxSize().padding(horizontal = frame.chipPad),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = hue,
+                modifier = Modifier.size(Sizing.iconSm),
+            )
+            Column(verticalArrangement = Arrangement.Center) {
+                Text(
+                    word,
+                    style = castivioChipStyle(frame.fsChip),
+                    color = hue,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.clearAndSetSemantics {},
+                )
+                if (detail != null) {
+                    Text(
+                        detail,
+                        style = castivioChipStyle(frame.fsChip * DETAIL_RATIO),
+                        color = CastivioTheme.colors.onBackgroundMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.clearAndSetSemantics {},
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Which look the refresh card wears: at rest, asking, failed, or just answered.
+ *
+ * Asking wins over everything, because a press in flight is the newest fact -- a failure
+ * from before it is being retried. A failure stays until that press; an answer is said for
+ * a few seconds and goes by itself. One press never leaves both set.
+ */
+internal sealed interface RefreshLook {
+    data object Idle : RefreshLook
+    data object Busy : RefreshLook
+    data class Failed(val fault: RefreshFault) : RefreshLook
+    data object Answered : RefreshLook
+}
+
+internal fun refreshLook(state: HomeState): RefreshLook {
+    val fault = state.refreshFault
+    return when {
+        state.refreshing -> RefreshLook.Busy
+        fault != null -> RefreshLook.Failed(fault)
+        state.refreshed -> RefreshLook.Answered
+        else -> RefreshLook.Idle
+    }
+}
+
+/**
+ * What a failed refresh is read out as: the sentence the card has no room for.
+ *
+ * Two, because the two failures need opposite ones: a provider that was never there is
+ * asking for a subscription, and a provider that did not answer is asking for another
+ * press in a minute. The same split `Refreshed` draws in the domain.
+ */
+internal fun refreshSentence(fault: RefreshFault): Int = when (fault) {
+    RefreshFault.NoProvider -> R.string.home_refresh_no_provider
+    RefreshFault.Unreachable -> R.string.home_refresh_unreachable
+}
+
+/**
  * A ground rectangle written during layout and read during drawing.
  *
  * Deliberately *not* snapshot state. `onGloballyPositioned` runs at the end of the
@@ -2513,8 +2571,8 @@ private const val ARRIVED_FILL_BOTTOM = 0.04f
  */
 private const val DISCLAIMER_LINES = 2
 
-/** The failure notice wraps rather than truncating; two lines is every translation. */
-private const val NOTICE_LINES = 2
+/** A rail card's second line: a step quieter than its word, as the section cards' captions are. */
+private const val DETAIL_RATIO = 0.85f
 
 /** The busy ring inside a rail card, in proportion to the glyph it replaces. */
 private val BUSY_STROKE = 2.dp

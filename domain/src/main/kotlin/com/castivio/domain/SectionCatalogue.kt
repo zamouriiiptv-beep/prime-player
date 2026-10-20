@@ -309,6 +309,25 @@ private fun ProviderSource.panelAccount(link: String): PlaylistSource.Xtream? =
     if (sync.contentHash != null) null else FieldValidation.detectXtream(link)
 
 /**
+ * The subscription as its provider is asked about it: whether it is usable, and until when.
+ *
+ * [asPlaylistSource] but for one thing. A playlist whose link names a panel account is asked
+ * through that panel even when its catalogue is read from the playlist. The reading follows
+ * the rows already on the device -- see [panelAccount] -- and an answer about the account
+ * writes no rows, so nothing ties the question to that reading.
+ *
+ * Asked the other way, it was a probe of the playlist file: the heaviest request a panel
+ * serves, and one that says nothing about the account. Once a playlist had been read to its
+ * end -- by the import that runs when the panel refuses a first section -- refresh probed
+ * the file and failed where the panel would have answered, and the expiry date could never
+ * be shown again: a playlist on its own has none, so it was not even asked.
+ */
+fun ProviderSource.asAccountSource(): PlaylistSource? = when (kind) {
+    SourceKind.M3U_URL -> url?.let { PlaylistSource.M3u(it, userAgent, xtream = FieldValidation.detectXtream(it)) }
+    else -> asPlaylistSource()
+}
+
+/**
  * Whether pressing the button again could plausibly work.
  *
  * The same split the activation screen already makes, stated once here so a section

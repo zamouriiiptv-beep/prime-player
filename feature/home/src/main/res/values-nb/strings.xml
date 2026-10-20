@@ -72,6 +72,8 @@
     <string name="home_theme_lighter">Bytt til lyst tema</string>
     <string name="home_theme_darker">Bytt til mørkt tema</string>
     <string name="home_refresh">Oppdater</string>
+    <string name="home_refresh_failed">Mislyktes</string>
+    <string name="home_refresh_done">Oppdatert</string>
 
     <string name="home_refresh_no_provider">Legg til et abonnement først.</string>
     <string name="home_refresh_unreachable">Leverandøren din svarte ikke. Prøv igjen om litt.</string>

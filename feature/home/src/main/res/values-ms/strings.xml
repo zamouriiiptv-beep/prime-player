@@ -72,6 +72,8 @@
     <string name="home_theme_lighter">Tukar ke tema cerah</string>
     <string name="home_theme_darker">Tukar ke tema gelap</string>
     <string name="home_refresh">Segar semula</string>
+    <string name="home_refresh_failed">Gagal</string>
+    <string name="home_refresh_done">Selesai</string>
 
     <string name="home_refresh_no_provider">Tambah langganan dahulu.</string>
     <string name="home_refresh_unreachable">Pembekal anda tidak menjawab. Cuba lagi sebentar lagi.</string>

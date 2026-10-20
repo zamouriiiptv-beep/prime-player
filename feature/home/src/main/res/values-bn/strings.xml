@@ -72,6 +72,8 @@
     <string name="home_theme_lighter">হালকা থিমে যান</string>
     <string name="home_theme_darker">গাঢ় থিমে যান</string>
     <string name="home_refresh">রিফ্রেশ</string>
+    <string name="home_refresh_failed">রিফ্রেশ হয়নি</string>
+    <string name="home_refresh_done">রিফ্রেশ হয়েছে</string>
 
     <string name="home_refresh_no_provider">প্রথমে একটি সাবস্ক্রিপশন যোগ করুন।</string>
     <string name="home_refresh_unreachable">আপনার সরবরাহকারী উত্তর দেয়নি। একটু পরে আবার চেষ্টা করুন।</string>

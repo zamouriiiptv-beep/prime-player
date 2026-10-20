@@ -72,6 +72,8 @@
     <string name="home_theme_lighter">Lumipat sa mas maliwanag na tema</string>
     <string name="home_theme_darker">Lumipat sa mas madilim na tema</string>
     <string name="home_refresh">I-refresh</string>
+    <string name="home_refresh_failed">Nabigo</string>
+    <string name="home_refresh_done">Na-refresh na</string>
 
     <string name="home_refresh_no_provider">Magdagdag muna ng subscription.</string>
     <string name="home_refresh_unreachable">Hindi sumagot ang provider mo. Subukan ulit mamaya.</string>
