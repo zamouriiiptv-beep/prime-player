@@ -59,6 +59,7 @@
     <string name="home_term_licence">Άδεια Castivio</string>
     <string name="home_account_active">Ενεργή</string>
     <string name="home_account_inactive">Ανενεργή</string>
+    <string name="home_account_expired">Έληξε</string>
     <string name="home_account_unknown">Δεν ελέγχθηκε</string>
     <string name="home_licence_trial">Δοκιμαστική</string>
     <string name="home_licence_annual">Ετήσια</string>

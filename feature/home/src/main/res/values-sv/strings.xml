@@ -59,6 +59,7 @@
     <string name="home_term_licence">Castivio-licens</string>
     <string name="home_account_active">Aktivt</string>
     <string name="home_account_inactive">Inaktivt</string>
+    <string name="home_account_expired">Utgånget</string>
     <string name="home_account_unknown">Inte kontrollerat</string>
     <string name="home_licence_trial">Prova</string>
     <string name="home_licence_annual">Årlig</string>

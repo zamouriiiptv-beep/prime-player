@@ -59,6 +59,7 @@
     <string name="home_term_licence">Castivio lisansı</string>
     <string name="home_account_active">Etkin</string>
     <string name="home_account_inactive">Etkin değil</string>
+    <string name="home_account_expired">Süresi doldu</string>
     <string name="home_account_unknown">Denetlenmedi</string>
     <string name="home_licence_trial">Deneme</string>
     <string name="home_licence_annual">Yıllık</string>

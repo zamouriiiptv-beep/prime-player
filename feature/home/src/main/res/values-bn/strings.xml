@@ -59,6 +59,7 @@
     <string name="home_term_licence">Castivio লাইসেন্স</string>
     <string name="home_account_active">সক্রিয়</string>
     <string name="home_account_inactive">নিষ্ক্রিয়</string>
+    <string name="home_account_expired">মেয়াদ শেষ</string>
     <string name="home_account_unknown">যাচাই করা হয়নি</string>
     <string name="home_licence_trial">ট্রায়াল</string>
     <string name="home_licence_annual">বার্ষিক</string>

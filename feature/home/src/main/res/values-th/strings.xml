@@ -59,6 +59,7 @@
     <string name="home_term_licence">ใบอนุญาต Castivio</string>
     <string name="home_account_active">ใช้งานอยู่</string>
     <string name="home_account_inactive">ไม่ได้ใช้งาน</string>
+    <string name="home_account_expired">หมดอายุ</string>
     <string name="home_account_unknown">ยังไม่ได้ตรวจสอบ</string>
     <string name="home_licence_trial">ทดลองใช้</string>
     <string name="home_licence_annual">รายปี</string>

@@ -59,6 +59,7 @@
     <string name="home_term_licence">Giấy phép Castivio</string>
     <string name="home_account_active">Đang hoạt động</string>
     <string name="home_account_inactive">Không hoạt động</string>
+    <string name="home_account_expired">Đã hết hạn</string>
     <string name="home_account_unknown">Chưa kiểm tra</string>
     <string name="home_licence_trial">Dùng thử</string>
     <string name="home_licence_annual">Hằng năm</string>

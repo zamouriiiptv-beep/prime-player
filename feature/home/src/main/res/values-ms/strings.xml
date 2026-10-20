@@ -59,6 +59,7 @@
     <string name="home_term_licence">Lesen Castivio</string>
     <string name="home_account_active">Aktif</string>
     <string name="home_account_inactive">Tidak aktif</string>
+    <string name="home_account_expired">Tamat tempoh</string>
     <string name="home_account_unknown">Belum disemak</string>
     <string name="home_licence_trial">Percubaan</string>
     <string name="home_licence_annual">Tahunan</string>

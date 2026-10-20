@@ -59,6 +59,7 @@
     <string name="home_term_licence">Castivio लाइसेंस</string>
     <string name="home_account_active">सक्रिय</string>
     <string name="home_account_inactive">निष्क्रिय</string>
+    <string name="home_account_expired">समाप्त</string>
     <string name="home_account_unknown">जाँचा नहीं गया</string>
     <string name="home_licence_trial">ट्रायल</string>
     <string name="home_licence_annual">वार्षिक</string>

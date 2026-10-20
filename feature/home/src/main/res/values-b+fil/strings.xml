@@ -59,6 +59,7 @@
     <string name="home_term_licence">Lisensya ng Castivio</string>
     <string name="home_account_active">Aktibo</string>
     <string name="home_account_inactive">Hindi aktibo</string>
+    <string name="home_account_expired">Tapos na</string>
     <string name="home_account_unknown">Hindi pa nasusuri</string>
     <string name="home_licence_trial">Trial</string>
     <string name="home_licence_annual">Taunan</string>

@@ -59,6 +59,7 @@
     <string name="home_term_licence">Castivio 라이선스</string>
     <string name="home_account_active">활성</string>
     <string name="home_account_inactive">비활성</string>
+    <string name="home_account_expired">만료됨</string>
     <string name="home_account_unknown">확인 안 됨</string>
     <string name="home_licence_trial">체험판</string>
     <string name="home_licence_annual">연간</string>

@@ -59,6 +59,7 @@
     <string name="home_term_licence">Licença do Castivio</string>
     <string name="home_account_active">Ativa</string>
     <string name="home_account_inactive">Inativa</string>
+    <string name="home_account_expired">Expirada</string>
     <string name="home_account_unknown">Não verificada</string>
     <string name="home_licence_trial">Teste</string>
     <string name="home_licence_annual">Anual</string>

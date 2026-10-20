@@ -669,7 +669,11 @@ internal fun DashboardHeader(
                 // are made from, and leaves `TermCard` with nothing to arbitrate.
                 val tone = providerTone(state.subscription)
                 TermCard(
-                    icon = if (tone == ProviderTone.Unchecked) Icons.Rounded.RadioButtonUnchecked else Icons.Rounded.CheckCircle,
+                    icon = when (tone) {
+                        ProviderTone.Usable -> Icons.Rounded.CheckCircle
+                        ProviderTone.Refused -> Icons.Rounded.ErrorOutline
+                        ProviderTone.Unchecked -> Icons.Rounded.RadioButtonUnchecked
+                    },
                     label = stringResource(R.string.home_term_provider),
                     value = providerSentence(state.subscription),
                     hue = when (tone) {
@@ -799,39 +803,61 @@ private val HomeState.licenceHolds: Boolean
     get() = entitlement?.allowsUse == true
 
 /**
- * What the provider said about the subscription.
+ * What the provider said about the subscription: the card's word, and the date it runs
+ * out where there is one to show.
  *
- * Three answers and not two. A provider that has never been asked is not the same as
- * one that answered "no": the first is a blank the user can fill by refreshing, the
- * second is a fact about their subscription, and a card that showed "Inactive" for
- * both would be accusing a working provider of being dead.
+ * Four answers and not two. A provider that has never been asked is not the same as one
+ * that answered "no": the first is a blank the user can fill by refreshing, the second is
+ * a fact about their subscription, and a card that showed "Inactive" for both would be
+ * accusing a working provider of being dead. And a subscription that ran out is not one
+ * refused for another reason: it is the one a user puts right by renewing, so it says so.
  *
- * The panel's own word is preferred where it gave one — "Active", "Expired",
- * "Banned" — because that is the word the user will see if they log into their
- * provider, and translating it into ours would make the two disagree.
+ * **Always in the reader's language.** The card used to show the panel's own word where
+ * it gave one -- "Active", "Expired", "Banned" -- and panels send it in English whatever
+ * the reader reads, so an Arabic screen said "Expired". The words are ours now.
+ *
+ * **No date for a subscription that ran out**, although the answer may carry one: the
+ * date slot means "runs out on", which is future tense, and the word says what happened
+ * -- the reasoning [licenceTerm] gives for an expired licence.
  */
-@Composable
-internal fun subscriptionLabel(status: Recorded?): String {
-    if (status == null) return stringResource(R.string.home_account_unknown)
-    // Bound to a local first: `label` is a property of a class in another module, so
-    // the compiler will not carry a null check across the dot however plainly the
-    // check reads.
-    val panel = status.label
-    return when {
-        !panel.isNullOrBlank() -> panel
-        status.usable -> stringResource(R.string.home_account_active)
-        else -> stringResource(R.string.home_account_inactive)
-    }
+internal fun providerTerm(status: Recorded?): Term = when {
+    status == null -> Term(R.string.home_account_unknown, null)
+    status.usable -> Term(R.string.home_account_active, status.expiresAtMs)
+    status.ranOut -> Term(R.string.home_account_expired, null)
+    else -> Term(R.string.home_account_inactive, null)
 }
 
 /**
- * How the provider card is drawn: the three answers [subscriptionLabel] tells apart.
+ * Whether the answer was that the subscription ran out: its date had passed when the
+ * provider was asked, or the panel said so in its own word.
+ *
+ * "Passed" is the validator's own rule, a date strictly before the moment of asking,
+ * so a panel that still says "Active" over a date gone by is called what the validator
+ * called it: expired, which is why it was refused.
+ */
+private val Recorded.ranOut: Boolean
+    get() {
+        // Bound to locals first: these are properties of a class in another module, so
+        // the compiler will not carry a null check across the dot however plainly it reads.
+        val at = expiresAtMs
+        val word = label
+        return (at != null && at < atMs) || word.equals(PANEL_EXPIRED, ignoreCase = true)
+    }
+
+/** The word an Xtream panel's `user_info.status` uses for a subscription that ran out. */
+private const val PANEL_EXPIRED = "Expired"
+
+/**
+ * How the provider card is drawn, for the answers [providerTerm] tells apart.
  *
  * "Not checked" is not "active". Drawn in the active green with a tick, it read as a
  * subscription vouched for by a question nobody had asked. In the muted ink, with an
  * empty circle where the tick goes, it reads as what it is: a blank, which the first
  * answer fills -- and Home asks that question by itself, see
  * [com.castivio.domain.RefreshProvider.askIfNeverAsked].
+ *
+ * Nor is a refusal a tick in red. Expired or inactive, it carries the mark every
+ * failure on Home carries -- the circled exclamation of a section that could not load.
  */
 internal enum class ProviderTone { Usable, Refused, Unchecked }
 
@@ -861,11 +887,12 @@ internal fun providerTone(status: Recorded?): ProviderTone = when {
  *
  * A provider that stated no date falls back to its word, which is the one case where
  * the word carries the whole line: "Not checked" is a real answer and an empty second
- * line is not. Three answers, not two — see [subscriptionLabel].
+ * line is not. Four answers, not two — see [providerTerm].
  */
 @Composable
 private fun providerSentence(status: Recorded?): String {
-    val at = status?.expiresAtMs ?: return subscriptionLabel(status)
+    val term = providerTerm(status)
+    val at = term.atMs ?: return stringResource(term.word)
     return rememberDate(at)
 }
 

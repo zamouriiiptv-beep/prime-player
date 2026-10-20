@@ -59,6 +59,7 @@
     <string name="home_term_licence">Castivio licenc</string>
     <string name="home_account_active">Aktív</string>
     <string name="home_account_inactive">Nem aktív</string>
+    <string name="home_account_expired">Lejárt</string>
     <string name="home_account_unknown">Nincs ellenőrizve</string>
     <string name="home_licence_trial">Próba</string>
     <string name="home_licence_annual">Éves</string>

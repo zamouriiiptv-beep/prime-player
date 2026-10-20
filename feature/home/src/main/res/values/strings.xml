@@ -105,11 +105,13 @@
     <string name="home_term_provider">Subscription</string>
     <string name="home_term_licence">Castivio licence</string>
 
-    <!-- Used only where the provider gave no word of its own. Its own word is
-         preferred, untranslated, because that is what the user sees on their
-         provider's panel and ours disagreeing with theirs helps nobody. -->
+    <!-- The provider's answer, in the reader's language and never in the
+         panel's own word, which panels send in English whatever the reader
+         reads. Each agrees with home_term_provider in its language. -->
     <string name="home_account_active">Active</string>
     <string name="home_account_inactive">Inactive</string>
+    <!-- The subscription ran out: said as a word, not as the date it lapsed on. -->
+    <string name="home_account_expired">Expired</string>
     <!-- Never asked, which is not the same as refused. -->
     <string name="home_account_unknown">Not checked</string>
 

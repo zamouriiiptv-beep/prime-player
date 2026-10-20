@@ -59,6 +59,7 @@
     <string name="home_term_licence">Licenca Castivio</string>
     <string name="home_account_active">Aktiv</string>
     <string name="home_account_inactive">Joaktiv</string>
+    <string name="home_account_expired">I skaduar</string>
     <string name="home_account_unknown">I pakontrolluar</string>
     <string name="home_licence_trial">Provë</string>
     <string name="home_licence_annual">Vjetore</string>

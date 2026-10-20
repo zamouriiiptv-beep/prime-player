@@ -59,6 +59,7 @@
     <string name="home_term_licence">Castivio-lisenssi</string>
     <string name="home_account_active">Voimassa</string>
     <string name="home_account_inactive">Ei voimassa</string>
+    <string name="home_account_expired">Vanhentunut</string>
     <string name="home_account_unknown">Ei tarkistettu</string>
     <string name="home_licence_trial">Kokeilu</string>
     <string name="home_licence_annual">Vuosittainen</string>

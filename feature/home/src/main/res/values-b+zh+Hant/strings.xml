@@ -59,6 +59,7 @@
     <string name="home_term_licence">Castivio 授權</string>
     <string name="home_account_active">有效</string>
     <string name="home_account_inactive">無效</string>
+    <string name="home_account_expired">已到期</string>
     <string name="home_account_unknown">未檢查</string>
     <string name="home_licence_trial">試用</string>
     <string name="home_licence_annual">年度</string>

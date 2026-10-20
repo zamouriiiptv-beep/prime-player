@@ -59,6 +59,7 @@
     <string name="home_term_licence">Ліцензія Castivio</string>
     <string name="home_account_active">Активна</string>
     <string name="home_account_inactive">Неактивна</string>
+    <string name="home_account_expired">Завершилася</string>
     <string name="home_account_unknown">Не перевірена</string>
     <string name="home_licence_trial">Пробна</string>
     <string name="home_licence_annual">Річна</string>

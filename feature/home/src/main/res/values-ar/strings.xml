@@ -109,6 +109,7 @@
 
     <string name="home_account_active">نشط</string>
     <string name="home_account_inactive">غير نشط</string>
+    <string name="home_account_expired">منتهٍ</string>
     <string name="home_account_unknown">لم يُفحص</string>
 
     <string name="home_licence_trial">تجريبية</string>

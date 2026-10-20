@@ -59,6 +59,7 @@
     <string name="home_term_licence">Castivio licenca</string>
     <string name="home_account_active">Aktivna</string>
     <string name="home_account_inactive">Neaktivna</string>
+    <string name="home_account_expired">Istekla</string>
     <string name="home_account_unknown">Neprovjerena</string>
     <string name="home_licence_trial">Probna</string>
     <string name="home_licence_annual">Godišnja</string>

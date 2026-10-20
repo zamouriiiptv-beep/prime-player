@@ -59,6 +59,7 @@
     <string name="home_term_licence">پروانهٔ Castivio</string>
     <string name="home_account_active">فعال</string>
     <string name="home_account_inactive">غیرفعال</string>
+    <string name="home_account_expired">منقضی</string>
     <string name="home_account_unknown">بررسی‌نشده</string>
     <string name="home_licence_trial">آزمایشی</string>
     <string name="home_licence_annual">سالانه</string>
