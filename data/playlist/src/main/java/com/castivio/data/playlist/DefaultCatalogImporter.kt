@@ -549,12 +549,12 @@ class DefaultCatalogImporter(
                 sourceId = sourceId,
                 api = xtreamApiFactory(account),
                 kinds = setOf(kind),
-                // Channels, and the radio found among their categories, in one reply where
-                // the panel serves that -- and a playlist read through its panel comes
-                // through here too, so it gets the same. Films and series are still asked
-                // for category by category: they are a later step, measured on their own.
+                // The channels in one reply where the panel serves that -- and a playlist read
+                // through its panel comes through here too, so it gets the same. The radio is
+                // its own few categories, asked for one by one rather than inside the whole
+                // live list; films and series are still asked for category by category.
                 // The engine falls back to the walk by itself; see `wholeSection`.
-                wholeSection = if (kind == MediaKind.LIVE || kind == MediaKind.RADIO) setOf(MediaKind.LIVE) else emptySet(),
+                wholeSection = if (kind == MediaKind.LIVE) setOf(MediaKind.LIVE) else emptySet(),
                 onStreams = { report ->
                     replyUsed = report.strategy == XtreamImportEngine.StreamStrategy.WHOLE_SECTION
                     PerformanceLog.note(NOTE_STREAMS, report.toString())
@@ -647,6 +647,7 @@ class DefaultCatalogImporter(
             parsed = passes.sumOf { it.parsed },
             filed = passes.sumOf { it.filed },
             orphans = passes.sumOf { it.orphans },
+            elsewhere = passes.sumOf { it.elsewhere },
             written = summary.byKind.entries.associate { it.key.name to it.value },
             categories = categories,
             orphanCategories = orphanIds.entries.sortedByDescending { it.value }.map { it.key to it.value },

@@ -378,7 +378,7 @@ class DefaultCatalogImporterTest {
         )
         val playlistId = SourceIds.of(PlaylistSource.M3u(link))
         assertEquals(listOf(playlistId), writer.began.map { it.first })
-        assertEquals(2, writer.items.size)
+        assertEquals("the channel; the station is the radio's own load", 1, writer.items.size)
         assertTrue(progress.last() is ImportProgress.Done)
         val recorded = sources.get(playlistId)!!.sync
         assertNull("the api path never marks a playlist catalogue", recorded.contentHash)
@@ -448,10 +448,26 @@ class DefaultCatalogImporterTest {
 
         assertEquals(listOf(MediaKind.LIVE, MediaKind.LIVE), panel.wholeSectionAsks)
         assertTrue("a live category was asked for on its own", panel.categoryAsks.none { it.first == MediaKind.LIVE })
-        assertEquals("two subscriptions, a channel and a station each", 4, writer.items.size)
-        assertEquals(2, writer.items.count { it.kind == MediaKind.RADIO })
-        assertTrue(logged.any { it.contains("LIVE: one reply, 2 rows") })
+        assertEquals("two subscriptions, a channel each", 2, writer.items.size)
+        assertEquals("the stations are the radio's own load", 0, writer.items.count { it.kind == MediaKind.RADIO })
+        assertTrue(logged.any { it.contains("LIVE: one reply, 1 rows, 0 orphaned, 1 left to another section") })
         assertNothingFrom(link)
+    }
+
+    /**
+     * The radio is a few categories of the live list, so it is asked for by those alone:
+     * never the whole list, which would download every channel to keep the stations.
+     */
+    @Test
+    fun `radio is asked for by its own categories and writes no channel`() = runBlocking {
+        val panel = OneReplyXtreamApi()
+        val account = PlaylistSource.Xtream("http://panel:8080", "user", "pass")
+
+        importer(xtreamApi = panel).importKind(account, MediaKind.RADIO).toList()
+
+        assertEquals("the whole live list was asked for", emptyList<MediaKind>(), panel.wholeSectionAsks)
+        assertEquals(listOf("2"), panel.categoryAsks.map { it.second })
+        assertEquals(listOf(MediaKind.RADIO), writer.items.map { it.kind })
     }
 
     @Test
@@ -734,7 +750,10 @@ class DefaultCatalogImporterTest {
         assertTrue(records, records.contains("written={LIVE=1200}"))
     }
 
-    /** A reply that arrived whole is the catalogue, and its orphans are counted with it. */
+    /**
+     * A reply that arrived whole is the catalogue, and its orphans are counted with it --
+     * apart from the station in it, which is the radio's and is counted as such.
+     */
     @Test
     fun `a reply that arrived whole is counted, orphans and all`() = runBlocking {
         val panel = PlaylistSource.Xtream("http://panel:8080", "user", "pass")
@@ -742,7 +761,7 @@ class DefaultCatalogImporterTest {
         importer(xtreamApi = OneReplyXtreamApi(orphans = 3)).importKind(panel, MediaKind.LIVE).toList()
 
         val records = logged.single { it.startsWith("import LIVE: RecordCounts(") }
-        assertTrue(records, records.contains("parsed=5, filed=2, orphans=3"))
+        assertTrue(records, records.contains("parsed=5, filed=1, orphans=3, elsewhere=1"))
         assertTrue(records, records.contains("orphanCategories=[(9, 3)]"))
     }
 

@@ -133,14 +133,14 @@ class LoadSectionTest {
         assertNull(marks.loadedAt("xtream", MediaKind.RADIO))
     }
 
-    // ------------------------------------------------------ live and radio, one walk
+    // ------------------------------------------------------ live and radio, each alone
 
     /**
-     * An Xtream panel's stations are live categories, so one walk writes both sections.
-     * Leaving radio unmarked is what made opening it walk every live category again.
+     * An Xtream panel's stations are live categories, but each section is loaded on its
+     * own: the channels write no station and the radio no channel, so each marks itself.
      */
     @Test
-    fun `xtream channels bring the radio with them, and the radio the channels`() = runTest {
+    fun `xtream channels and radio are each marked alone`() = runTest {
         for ((asked, other) in listOf(MediaKind.LIVE to MediaKind.RADIO, MediaKind.RADIO to MediaKind.LIVE)) {
             val marks = Marks()
             val load = LoadSection(Sources(xtream()), Importer(listOf(ImportProgress.Done(55_202, 48_750))), marks)
@@ -148,36 +148,37 @@ class LoadSectionTest {
             load.load(asked, now).toList()
 
             assertEquals("$asked was not marked", now, marks.loadedAt("xtream", asked))
-            assertEquals("$other arrived with $asked and was not marked", now, marks.loadedAt("xtream", other))
+            assertNull("$other was marked by a load of $asked", marks.loadedAt("xtream", other))
             assertNull(marks.loadedAt("xtream", MediaKind.MOVIE))
             assertNull(marks.loadedAt("xtream", MediaKind.SERIES))
         }
     }
 
-    /** The point of the mark, stated as the request it saves. */
+    /** Opening the radio after the channels fetches the radio, and only the radio. */
     @Test
-    fun `opening radio after the channels fetches nothing`() = runTest {
-        val importer = Importer(listOf(ImportProgress.Done(55_202, 48_750)))
+    fun `opening radio after the channels fetches the radio alone`() = runTest {
+        val importer = Importer(listOf(ImportProgress.Done(1_083, 2)))
         val marks = Marks()
         val load = LoadSection(Sources(xtream()), importer, marks)
 
         load.load(MediaKind.LIVE, now).toList()
         val radio = load.load(MediaKind.RADIO, now).toList()
 
-        assertEquals(listOf(SectionLoad.Ready), radio)
-        assertEquals(listOf(MediaKind.LIVE), importer.calls)
+        assertEquals(SectionLoad.Done(1_083), radio.last())
+        assertEquals(listOf(MediaKind.LIVE, MediaKind.RADIO), importer.calls)
+        assertEquals("and the channels are not fetched again", listOf(SectionLoad.Ready), load.load(MediaKind.LIVE, now).toList())
     }
 
     /** A playlist read through its panel is read section by section, the Xtream way. */
     @Test
-    fun `a playlist read through its panel marks the channels and the radio together`() = runTest {
+    fun `a playlist read through its panel marks only the section it loaded`() = runTest {
         val marks = Marks()
         val load = LoadSection(Sources(panelPlaylist()), Importer(listOf(ImportProgress.Done(55_202, 48_750))), marks)
 
         load.load(MediaKind.LIVE, now).toList()
 
         assertEquals(now, marks.loadedAt("panel", MediaKind.LIVE))
-        assertEquals(now, marks.loadedAt("panel", MediaKind.RADIO))
+        assertNull(marks.loadedAt("panel", MediaKind.RADIO))
         assertNull(marks.loadedAt("panel", MediaKind.MOVIE))
         assertNull(marks.loadedAt("panel", MediaKind.SERIES))
     }

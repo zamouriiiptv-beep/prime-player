@@ -603,6 +603,7 @@ data class SectionReport(
         recordCounts?.let { r ->
             add(
                 "records reply ${r.parsed.grouped()} → filed ${r.filed.grouped()} · orphans ${r.orphans.grouped()}" +
+                    (if (r.elsewhere > 0) " · another section's ${r.elsewhere.grouped()}" else "") +
                     " · written ${r.written.byName()} · categories ${r.categories.byName()}",
             )
             if (r.orphanCategories.isNotEmpty()) {
@@ -695,6 +696,8 @@ data class RecordCounts(
     val filed: Int,
     /** Parsed, naming a category the panel did not list, and not written. */
     val orphans: Int,
+    /** Parsed, filed under another section's category, and left to that section's own load. */
+    val elsewhere: Int = 0,
     /** Rows written, by kind. */
     val written: Map<String, Int>,
     /** The categories the import covered, by the kind each was filed as. */

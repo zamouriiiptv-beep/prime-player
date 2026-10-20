@@ -31,6 +31,11 @@ import org.junit.Test
  * of the two ran and must never be able to. Everything else here is a way the reply can
  * fall short (refused, not a list, empty, broken halfway, missing categories), and each
  * must end with the walk's result rather than with less.
+ *
+ * Most of it reads the whole live endpoint, channels and stations together, as a whole
+ * catalogue does ([LIVE_ENDPOINT]). What a section loaded on its own takes from the reply
+ * -- the channels, with the stations passed over, and the radio by its own categories --
+ * is tested on its own below.
  */
 class XtreamWholeSectionTest {
 
@@ -39,14 +44,14 @@ class XtreamWholeSectionTest {
     @Test
     fun `one reply leaves exactly the rows the walk leaves`() {
         val walked = RecordingWriter().also { writer ->
-            XtreamImportEngine(writer).importCatalogue("src", panel(), kinds = setOf(MediaKind.LIVE), mode = ImportMode.APPEND)
+            XtreamImportEngine(writer).importCatalogue("src", panel(), kinds = LIVE_ENDPOINT, mode = ImportMode.APPEND)
         }
         val reports = mutableListOf<StreamsReport>()
         val replied = RecordingWriter().also { writer ->
             XtreamImportEngine(writer).importCatalogue(
                 "src",
                 panel(),
-                kinds = setOf(MediaKind.LIVE),
+                kinds = LIVE_ENDPOINT,
                 mode = ImportMode.APPEND,
                 wholeSection = setOf(MediaKind.LIVE),
                 onStreams = { reports += it },
@@ -68,7 +73,7 @@ class XtreamWholeSectionTest {
         XtreamImportEngine(RecordingWriter()).importCatalogue(
             "src",
             api,
-            kinds = setOf(MediaKind.LIVE),
+            kinds = LIVE_ENDPOINT,
             wholeSection = setOf(MediaKind.LIVE),
         )
 
@@ -83,7 +88,7 @@ class XtreamWholeSectionTest {
         XtreamImportEngine(writer).importCatalogue(
             "src",
             panel(),
-            kinds = setOf(MediaKind.LIVE),
+            kinds = LIVE_ENDPOINT,
             wholeSection = setOf(MediaKind.LIVE),
         )
 
@@ -92,9 +97,12 @@ class XtreamWholeSectionTest {
         assertEquals(StableIds.group("src", MediaKind.RADIO, "Radio FM"), radio.groupId)
     }
 
-    /** Opening Radio walks the live categories, so it takes the one reply too. */
+    /**
+     * The radio on its own walks its own categories: the one reply is the whole live list,
+     * and taking it for the stations would download every channel to keep a handful.
+     */
     @Test
-    fun `radio asked for on its own takes the one reply`() {
+    fun `radio asked for on its own walks its own categories, never the whole list`() {
         val api = panel()
         val writer = RecordingWriter()
 
@@ -105,8 +113,39 @@ class XtreamWholeSectionTest {
             wholeSection = setOf(MediaKind.LIVE),
         )
 
-        assertEquals(1, api.wholeSectionRequests)
-        assertEquals(5, writer.items.size)
+        assertEquals(0, api.wholeSectionRequests)
+        assertEquals(listOf("3"), api.categoryStreamRequests)
+        assertEquals(listOf("Atlas FM"), writer.items.map { it.title })
+        assertEquals(listOf(MediaKind.RADIO), writer.groups.map { it.kind })
+    }
+
+    /**
+     * The channels on their own take the one reply and pass over the stations in it: not
+     * written, not a group, and not orphans either -- they are the radio's, and counted so.
+     */
+    @Test
+    fun `channels asked for on their own pass over the stations in the reply`() {
+        val reports = mutableListOf<StreamsReport>()
+        val passes = mutableListOf<PassReport>()
+        val writer = RecordingWriter()
+
+        XtreamImportEngine(writer).importCatalogue(
+            "src",
+            panel(),
+            kinds = setOf(MediaKind.LIVE),
+            wholeSection = setOf(MediaKind.LIVE),
+            onStreams = { reports += it },
+            onPass = { passes += it },
+        )
+
+        assertTrue(writer.items.none { it.kind == MediaKind.RADIO })
+        assertTrue(writer.groups.none { it.kind == MediaKind.RADIO })
+        assertEquals(4, writer.items.size)
+        assertEquals(0, reports.single().orphans)
+        assertEquals(1, reports.single().elsewhere)
+        val pass = passes.single()
+        assertEquals("the reply is what was filed, orphaned and left to another section", pass.parsed, pass.filed + pass.orphans + pass.elsewhere)
+        assertEquals(1, pass.elsewhere)
     }
 
     /**
@@ -120,7 +159,7 @@ class XtreamWholeSectionTest {
         XtreamImportEngine(writer).importCatalogue(
             "src",
             panel(),
-            kinds = setOf(MediaKind.LIVE),
+            kinds = LIVE_ENDPOINT,
             wholeSection = setOf(MediaKind.LIVE),
         )
 
@@ -141,7 +180,7 @@ class XtreamWholeSectionTest {
         XtreamImportEngine(writer).importCatalogue(
             "src",
             api,
-            kinds = setOf(MediaKind.LIVE),
+            kinds = LIVE_ENDPOINT,
             wholeSection = setOf(MediaKind.LIVE),
             onStreams = { reports += it },
         )
@@ -163,7 +202,7 @@ class XtreamWholeSectionTest {
         XtreamImportEngine(writer).importCatalogue(
             "src",
             panel(wholeSection = { StringReader("""{"user_info":{"auth":1}}""") }),
-            kinds = setOf(MediaKind.LIVE),
+            kinds = LIVE_ENDPOINT,
             wholeSection = setOf(MediaKind.LIVE),
             onStreams = { reports += it },
         )
@@ -181,7 +220,7 @@ class XtreamWholeSectionTest {
         XtreamImportEngine(writer).importCatalogue(
             "src",
             panel(wholeSection = { StringReader("[]") }),
-            kinds = setOf(MediaKind.LIVE),
+            kinds = LIVE_ENDPOINT,
             wholeSection = setOf(MediaKind.LIVE),
             onStreams = { reports += it },
         )
@@ -204,7 +243,7 @@ class XtreamWholeSectionTest {
         val summary = XtreamImportEngine(writer, batchSize = 1).importCatalogue(
             "src",
             api,
-            kinds = setOf(MediaKind.LIVE),
+            kinds = LIVE_ENDPOINT,
             wholeSection = setOf(MediaKind.LIVE),
             onStreams = { reports += it },
         )
@@ -225,7 +264,7 @@ class XtreamWholeSectionTest {
         XtreamImportEngine(writer).importCatalogue(
             "src",
             panel(wholeSection = { throw IOException("timeout") }),
-            kinds = setOf(MediaKind.LIVE),
+            kinds = LIVE_ENDPOINT,
             wholeSection = setOf(MediaKind.LIVE),
             onStreams = { reports += it },
         )
@@ -245,7 +284,7 @@ class XtreamWholeSectionTest {
         XtreamImportEngine(writer).importCatalogue(
             "src",
             api,
-            kinds = setOf(MediaKind.LIVE),
+            kinds = LIVE_ENDPOINT,
             wholeSection = setOf(MediaKind.LIVE),
             onStreams = { reports += it },
         )
@@ -265,7 +304,7 @@ class XtreamWholeSectionTest {
         XtreamImportEngine(writer).importCatalogue(
             "src",
             panel(wholeSection = { StringReader(withOrphan.joinToString(",", "[", "]")) }),
-            kinds = setOf(MediaKind.LIVE),
+            kinds = LIVE_ENDPOINT,
             wholeSection = setOf(MediaKind.LIVE),
             onStreams = { reports += it },
         )
@@ -285,7 +324,7 @@ class XtreamWholeSectionTest {
         XtreamImportEngine(RecordingWriter()).importCatalogue(
             "src",
             api,
-            kinds = setOf(MediaKind.LIVE),
+            kinds = LIVE_ENDPOINT,
             onStreams = { reports += it },
         )
 
@@ -323,7 +362,7 @@ class XtreamWholeSectionTest {
         XtreamImportEngine(RecordingWriter(), batchSize = 1).importCatalogue(
             "src",
             panel(wholeSection = { StringReader(WHOLE_ROWS.filterNot { it.contains("\"category_id\":\"2\"") }.joinToString(",", "[", "]")) }),
-            kinds = setOf(MediaKind.LIVE),
+            kinds = LIVE_ENDPOINT,
             wholeSection = setOf(MediaKind.LIVE),
             onProgress = { if (it is ImportProgress.Importing) seen += it },
         )
@@ -346,7 +385,7 @@ class XtreamWholeSectionTest {
         XtreamImportEngine(RecordingWriter(), batchSize = 1).importCatalogue(
             "src",
             api,
-            kinds = setOf(MediaKind.LIVE),
+            kinds = LIVE_ENDPOINT,
             wholeSection = setOf(MediaKind.LIVE),
             onProgress = { if (it is ImportProgress.Importing) seen += it },
         )
@@ -364,7 +403,7 @@ class XtreamWholeSectionTest {
         XtreamImportEngine(RecordingWriter()).importCatalogue(
             "src",
             panel(),
-            kinds = setOf(MediaKind.LIVE),
+            kinds = LIVE_ENDPOINT,
             wholeSection = setOf(MediaKind.LIVE),
             onPhase = { phases += it },
         )
@@ -390,7 +429,7 @@ class XtreamWholeSectionTest {
         val summary = XtreamImportEngine(writer, batchSize = 1).importCatalogue(
             "src",
             panel(wholeSection = { reader }),
-            kinds = setOf(MediaKind.LIVE),
+            kinds = LIVE_ENDPOINT,
             wholeSection = setOf(MediaKind.LIVE),
             isCancelled = { rows >= 1 },
         )
@@ -421,7 +460,7 @@ class XtreamWholeSectionTest {
         XtreamImportEngine(RecordingWriter()).importCatalogue(
             "src",
             panel(wholeSection = { StringReader(reply.joinToString(",", "[", "]")) }),
-            kinds = setOf(MediaKind.LIVE),
+            kinds = LIVE_ENDPOINT,
             wholeSection = setOf(MediaKind.LIVE),
             onPass = { passes += it },
         )
@@ -454,7 +493,7 @@ class XtreamWholeSectionTest {
         XtreamImportEngine(RecordingWriter(), batchSize = 2, nanoClock = { clock.addAndGet(1_000_000) }).importCatalogue(
             "src",
             panel(),
-            kinds = setOf(MediaKind.LIVE),
+            kinds = LIVE_ENDPOINT,
             wholeSection = setOf(MediaKind.LIVE),
             onPass = { passes += it },
         )
@@ -474,7 +513,7 @@ class XtreamWholeSectionTest {
     fun `a walk reports its requests, how many ran at once, and no orphans`() {
         val passes = mutableListOf<PassReport>()
 
-        XtreamImportEngine(RecordingWriter()).importCatalogue("src", panel(), kinds = setOf(MediaKind.LIVE), onPass = { passes += it })
+        XtreamImportEngine(RecordingWriter()).importCatalogue("src", panel(), kinds = LIVE_ENDPOINT, onPass = { passes += it })
 
         val walk = passes.single()
         assertFalse(walk.oneReply)
@@ -493,7 +532,7 @@ class XtreamWholeSectionTest {
         XtreamImportEngine(RecordingWriter()).importCatalogue(
             "src",
             panel(wholeSection = { throw WholeSectionUnsupported("HTTP 404") }),
-            kinds = setOf(MediaKind.LIVE),
+            kinds = LIVE_ENDPOINT,
             wholeSection = setOf(MediaKind.LIVE),
             onPass = { passes += it },
         )
@@ -511,7 +550,7 @@ class XtreamWholeSectionTest {
         XtreamImportEngine(RecordingWriter()).importCatalogue(
             "src",
             panel(wholeSection = null),
-            kinds = setOf(MediaKind.LIVE),
+            kinds = LIVE_ENDPOINT,
             wholeSection = setOf(MediaKind.LIVE),
             onPass = { passes += it },
         )
@@ -528,7 +567,7 @@ class XtreamWholeSectionTest {
         XtreamImportEngine(RecordingWriter()).importCatalogue(
             "src",
             panel(wholeSection = { StringReader((WHOLE_ROWS + orphans).joinToString(",", "[", "]")) }),
-            kinds = setOf(MediaKind.LIVE),
+            kinds = LIVE_ENDPOINT,
             wholeSection = setOf(MediaKind.LIVE),
             onPass = { passes += it },
         )
@@ -542,7 +581,7 @@ class XtreamWholeSectionTest {
     // ------------------------------------------------------------------ fixtures
 
     private fun walkedRows(): List<Row> = RecordingWriter().also { writer ->
-        XtreamImportEngine(writer).importCatalogue("src", panel(), kinds = setOf(MediaKind.LIVE))
+        XtreamImportEngine(writer).importCatalogue("src", panel(), kinds = LIVE_ENDPOINT)
     }.rows()
 
     private fun panel(wholeSection: (() -> Reader)? = { StringReader(WHOLE_REPLY) }) = Panel(wholeSection)
@@ -666,5 +705,8 @@ class XtreamWholeSectionTest {
         )
 
         val WHOLE_REPLY = WHOLE_ROWS.joinToString(",", "[", "]")
+
+        /** The live endpoint whole: its channels and the stations among them, as a whole catalogue asks. */
+        val LIVE_ENDPOINT = setOf(MediaKind.LIVE, MediaKind.RADIO)
     }
 }

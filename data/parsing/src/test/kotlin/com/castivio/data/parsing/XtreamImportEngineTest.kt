@@ -95,26 +95,56 @@ class XtreamImportEngineTest {
 
     /**
      * Xtream has no radio endpoint — stations arrive in live categories, and the
-     * category name is the only signal there is.
+     * category name is the only signal there is. Asked for together, as a whole
+     * catalogue asks, the two are told apart in the one walk.
      */
     @Test
     fun `a radio category becomes radio, not live`() {
         val writer = RecordingWriter()
-        val api = FakeApi(
-            liveCategories = listOf("1" to "Sports", "2" to "| AR | RADIO"),
-            liveStreams = mapOf(
-                "1" to listOf(stream("11", "Nova Sports")),
-                "2" to listOf(stream("21", "Radio Mars")),
-            ),
-        )
 
-        val summary = XtreamImportEngine(writer).importCatalogue("src", api, kinds = setOf(MediaKind.LIVE))
+        val summary = XtreamImportEngine(writer).importCatalogue("src", liveAndRadio(), kinds = setOf(MediaKind.LIVE, MediaKind.RADIO))
 
         assertEquals(1, summary.count(MediaKind.LIVE))
         assertEquals(1, summary.count(MediaKind.RADIO))
         assertEquals(MediaKind.RADIO, writer.groups.first { it.name.contains("RADIO") }.kind)
         assertEquals(MediaKind.RADIO, writer.items.single { it.title == "Radio Mars" }.kind)
     }
+
+    /** A load of the channels is a load of the channels: no station, no radio group, no radio request. */
+    @Test
+    fun `channels asked for alone leave the radio categories alone`() {
+        val writer = RecordingWriter()
+        val api = liveAndRadio()
+
+        val summary = XtreamImportEngine(writer).importCatalogue("src", api, kinds = setOf(MediaKind.LIVE))
+
+        assertEquals(listOf("Nova Sports"), writer.items.map { it.title })
+        assertEquals(listOf("Sports"), writer.groups.map { it.name })
+        assertEquals(0, summary.count(MediaKind.RADIO))
+        assertEquals(listOf("1"), api.streamRequests.map { it.second })
+    }
+
+    /** And a load of the radio walks the radio categories alone, touching no channel. */
+    @Test
+    fun `radio asked for alone walks only the radio categories`() {
+        val writer = RecordingWriter()
+        val api = liveAndRadio()
+
+        val summary = XtreamImportEngine(writer).importCatalogue("src", api, kinds = setOf(MediaKind.RADIO))
+
+        assertEquals(listOf(MediaKind.RADIO), writer.items.map { it.kind })
+        assertEquals(listOf(MediaKind.RADIO), writer.groups.map { it.kind })
+        assertEquals(0, summary.count(MediaKind.LIVE))
+        assertEquals(listOf("2"), api.streamRequests.map { it.second })
+    }
+
+    private fun liveAndRadio() = FakeApi(
+        liveCategories = listOf("1" to "Sports", "2" to "| AR | RADIO"),
+        liveStreams = mapOf(
+            "1" to listOf(stream("11", "Nova Sports")),
+            "2" to listOf(stream("21", "Radio Mars")),
+        ),
+    )
 
     @Test
     fun `series are imported as shells with no episode numbers`() {

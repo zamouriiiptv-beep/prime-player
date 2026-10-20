@@ -195,8 +195,8 @@ class LoadSection(
         if (!failed) {
             // Every section the fetch actually delivered, not only the one that was asked
             // for: marking less would download the same thing again on the next press. A
-            // single-file provider hands over every kind in one pass, and an Xtream panel's
-            // live categories carry its radio. See [PlaylistSource.kindsArrivingWith].
+            // single-file provider hands over every kind in one pass; a panel or a portal
+            // hands over the one section asked for. See [PlaylistSource.kindsArrivingWith].
             //
             // Asked of the subscription as it stands now rather than as it was read
             // before the import: a playlist read through its panel can have been read as
@@ -230,37 +230,25 @@ val PlaylistSource.carriesEveryKind: Boolean
         is PlaylistSource.LocalFile -> true
         // Xtream and a portal are the same case and the reason this exists: live, films
         // and series are separate calls on both, so a section really can be fetched on
-        // its own when it is opened. Radio is where they differ -- see
-        // [kindsArrivingWith].
+        // its own when it is opened -- and radio too, see [kindsArrivingWith].
         is PlaylistSource.Xtream, is PlaylistSource.Portal -> false
     }
 
 /**
  * Every section one fetch of [kind] writes, [kind] included.
  *
- * ## Why radio is not always its own fetch
+ * ## Why radio is its own fetch, on a panel too
  *
- * An Xtream panel has no radio endpoint. Its stations are live categories with a radio
- * name, so the engine walks every live category whichever of the two was opened, and
- * writes both sections from the one walk. Marking only the section that was asked for
- * left the other unmarked, and opening it then walked all the live categories again for
- * rows that were already on the device — a walk of 836 requests on the subscription the
- * channels section was measured on.
- * A playlist read through its panel is read the same way, so it is the same case.
- *
- * A portal is not: `radio` is a call of its own there, beside `itv`, so a portal's live
- * fetch brings no stations and must not claim to.
+ * An Xtream panel has no radio endpoint: its stations are live categories with a radio
+ * name. They used to come with the channels -- one walk, both sections written and both
+ * marked -- and opening the radio then meant the channels too, rewritten for a few hundred
+ * stations. Now a load of the channels writes the channels and passes over the stations,
+ * and a load of the radio asks for the radio categories alone, so each section is the
+ * fetch of its own and is marked on its own. A playlist read through its panel is read
+ * the same way, and a portal answers `radio` on a call of its own anyway.
  */
-fun PlaylistSource.kindsArrivingWith(kind: MediaKind): Set<MediaKind> = when {
-    carriesEveryKind -> MediaKind.entries.toSet()
-    readsRadioFromLive && (kind == MediaKind.LIVE || kind == MediaKind.RADIO) ->
-        setOf(MediaKind.LIVE, MediaKind.RADIO)
-    else -> setOf(kind)
-}
-
-/** Whether this source's radio is found among its live categories rather than asked for. */
-private val PlaylistSource.readsRadioFromLive: Boolean
-    get() = this is PlaylistSource.Xtream || (this is PlaylistSource.M3u && xtream != null)
+fun PlaylistSource.kindsArrivingWith(kind: MediaKind): Set<MediaKind> =
+    if (carriesEveryKind) MediaKind.entries.toSet() else setOf(kind)
 
 /**
  * A stored provider, back as something that can be fetched from.

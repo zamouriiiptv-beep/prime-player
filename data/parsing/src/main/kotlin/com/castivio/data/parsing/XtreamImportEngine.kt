@@ -154,6 +154,11 @@ class XtreamImportEngine(
          * the two ways of fetching disagree about what the panel serves.
          */
         val orphans: Int = 0,
+        /**
+         * Streams in that reply filed under another section's categories -- the stations in
+         * a load of the channels -- and left to that section's own load. Not written.
+         */
+        val elsewhere: Int = 0,
         /** Categories the reply left empty, then asked for one by one. */
         val gapFilled: Int = 0,
         /** Why the one reply was not used, by class name. */
@@ -161,7 +166,9 @@ class XtreamImportEngine(
     ) {
         override fun toString(): String = when (strategy) {
             StreamStrategy.WHOLE_SECTION ->
-                "$kind: one reply, $streams rows, $orphans orphaned, $gapFilled categories asked again"
+                "$kind: one reply, $streams rows, $orphans orphaned" +
+                    (if (elsewhere > 0) ", $elsewhere left to another section" else "") +
+                    ", $gapFilled categories asked again"
             StreamStrategy.REFUSED -> "$kind: one reply refused (${cause ?: "empty"}), asked per category"
             StreamStrategy.FAILED -> "$kind: one reply failed (${cause ?: "unknown"}), asked per category"
             StreamStrategy.PER_CATEGORY -> "$kind: asked per category"
@@ -223,6 +230,8 @@ class XtreamImportEngine(
         val orphanCategories: Map<String, Int>,
         /** The categories the pass covered, by the kind each was filed as. */
         val categories: Map<MediaKind, Int>,
+        /** Streams of another section's categories in the one reply: parsed, left to that section. */
+        val elsewhere: Int = 0,
     ) {
         /** The reader's time that was neither asking, receiving nor waiting: parsing. */
         val parseNanos: Long get() = (readerNanos - askNanos - readNanos - handOverNanos).coerceAtLeast(0)
@@ -501,7 +510,7 @@ class XtreamImportEngine(
                 // list, never from whichever reply landed first. Affordable because the
                 // category list is one small request already held in memory — the
                 // repository's own contract calls it safe to hold.
-                val ordered = categories.withIndex().map { (index, category) ->
+                val classified = categories.withIndex().map { (index, category) ->
                     // A category named "RADIO" holds stations, not channels; they get
                     // their own kind so no live query has to exclude them.
                     val kind = if (endpointKind == MediaKind.LIVE && MediaClassifier.isRadioLabel(category.name)) {
@@ -511,6 +520,15 @@ class XtreamImportEngine(
                     }
                     CategoryPlan(index, category, kind, StableIds.group(sourceId, kind, category.name))
                 }
+                // **Only the sections asked for.** The live categories carry the stations,
+                // but a load of the channels is a load of the channels: it writes no radio
+                // group and no station, and a load of the radio walks the radio categories
+                // and touches no channel. Each section is fetched, written and marked on its
+                // own. Positions stay the provider's, so both read in the provider's order.
+                val ordered = classified.filter { it.kind in kinds }
+                // The categories left to another section's load: their streams in the one
+                // reply are passed over rather than counted as orphans of this one.
+                val elsewhere = classified.filter { it.kind !in kinds }.mapTo(HashSet()) { it.category.id }
                 for (plan in ordered) {
                     writer.writeGroups(listOf(MediaGroup(plan.groupId, plan.category.name, plan.kind)))
                     groups++
@@ -522,14 +540,18 @@ class XtreamImportEngine(
                 // The whole section in one reply first, where the caller asked for it, and
                 // category by category for whatever that leaves: everything when the reply
                 // was refused or failed, the categories it left empty when it was not.
-                val perCategory: List<CategoryPlan> = if (endpointKind in wholeSection && !isCancelled()) {
+                // The one reply only for a pass whose own endpoint it is: radio asked for on its
+                // own would download every channel in the panel to keep a few hundred stations,
+                // so it walks its own categories instead -- a handful of small requests.
+                val oneReply = endpointKind in wholeSection && requested == endpointKind
+                val perCategory: List<CategoryPlan> = if (oneReply && !isCancelled()) {
                     val importedBefore = imported
                     val perKindBefore = perKind.copyOf()
                     var read: WholeSectionRead = WholeSectionRead.NotOffered
                     val meter = PassMeter(nanoClock)
                     pass(countCategories = false, meter = meter) { events ->
                         read = withContext(Dispatchers.IO) {
-                            readWholeSection(sourceId, api, endpointKind, ordered, events, isCancelled, meter)
+                            readWholeSection(sourceId, api, endpointKind, ordered, elsewhere, events, isCancelled, meter)
                         }
                     }
                     val outcome = read
@@ -556,6 +578,7 @@ class XtreamImportEngine(
                                     strategy = StreamStrategy.WHOLE_SECTION,
                                     streams = outcome.streams,
                                     orphans = outcome.orphans,
+                                    elsewhere = outcome.elsewhere,
                                     gapFilled = gaps.size,
                                 ),
                             )
@@ -904,13 +927,14 @@ class XtreamImportEngine(
         api: Api,
         kind: MediaKind,
         plans: List<CategoryPlan>,
+        elsewhere: Set<String>,
         events: SendChannel<CategoryEvent>,
         isCancelled: () -> Boolean,
         meter: PassMeter,
     ): WholeSectionRead {
         val readerStarted = nanoClock()
         try {
-            return readWholeSectionMeasured(sourceId, api, kind, plans, events, isCancelled, meter)
+            return readWholeSectionMeasured(sourceId, api, kind, plans, elsewhere, events, isCancelled, meter)
         } finally {
             meter.readerNanos.addAndGet(nanoClock() - readerStarted)
         }
@@ -922,16 +946,20 @@ class XtreamImportEngine(
         api: Api,
         kind: MediaKind,
         plans: List<CategoryPlan>,
+        elsewhere: Set<String>,
         events: SendChannel<CategoryEvent>,
         isCancelled: () -> Boolean,
         meter: PassMeter,
     ): WholeSectionRead {
         val byId = HashMap<String, CategoryPlan>(plans.size * 2)
         for (plan in plans) byId[plan.category.id] = plan
-        val received = BooleanArray(plans.size)
-        val positions = IntArray(plans.size)
+        // Indexed by the provider's position, which another section's categories leave gaps in.
+        val slots = (plans.maxOfOrNull { it.index } ?: -1) + 1
+        val received = BooleanArray(slots)
+        val positions = IntArray(slots)
         var streams = 0
         var orphans = 0
+        var passedOver = 0
 
         val reader = try {
             // Null is an API that cannot ask, which made no request: not counted as one.
@@ -954,8 +982,14 @@ class XtreamImportEngine(
                     meter.parsed++
                     val plan = stream.categoryId?.let(byId::get)
                     if (plan == null) {
-                        orphans++
-                        meter.orphan(stream.categoryId)
+                        if (stream.categoryId?.let(elsewhere::contains) == true) {
+                            // Another section's, and that section's own load fetches it.
+                            passedOver++
+                            meter.elsewhere++
+                        } else {
+                            orphans++
+                            meter.orphan(stream.categoryId)
+                        }
                         return@parseStreams
                     }
                     received[plan.index] = true
@@ -969,7 +1003,7 @@ class XtreamImportEngine(
             // A list naming none of the panel's categories is a refusal in the shape of an
             // answer: an empty list, or one keyed some other way. Either way nothing in it
             // can be filed, and every category has to be asked for on its own.
-            if (streams == 0) WholeSectionRead.Refused(null) else WholeSectionRead.Read(streams, orphans, received)
+            if (streams == 0) WholeSectionRead.Refused(null) else WholeSectionRead.Read(streams, orphans, passedOver, received)
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: JsonFormatException) {
@@ -1019,6 +1053,7 @@ class XtreamImportEngine(
         // The one reply's reader only: one thread, read after it has returned.
         var parsed = 0
         var orphans = 0
+        var elsewhere = 0
         private val orphanCategories = LinkedHashMap<String, Int>()
 
         // The writer's side: the engine's own thread.
@@ -1070,6 +1105,7 @@ class XtreamImportEngine(
                 orphans = orphans,
                 orphanCategories = LinkedHashMap(orphanCategories),
                 categories = categories,
+                elsewhere = elsewhere,
             )
     }
 
@@ -1109,7 +1145,7 @@ class XtreamImportEngine(
         data object NotOffered : WholeSectionRead
 
         /** Read to its end; [received] is which categories it filled, by plan index. */
-        class Read(val streams: Int, val orphans: Int, val received: BooleanArray) : WholeSectionRead
+        class Read(val streams: Int, val orphans: Int, val elsewhere: Int, val received: BooleanArray) : WholeSectionRead
 
         /** The panel said no, in so many words or in an empty answer. */
         class Refused(override val cause: Throwable?) : WholeSectionRead
@@ -1181,7 +1217,12 @@ class XtreamImportEngine(
     }
 
     companion object {
-        val DEFAULT_KINDS: Set<MediaKind> = setOf(MediaKind.LIVE, MediaKind.MOVIE, MediaKind.SERIES)
+        /**
+         * The whole catalogue. Radio is named, because a section is now written only when
+         * it is asked for: asked for beside the channels, the stations come in the same walk
+         * of the live categories, filed as radio.
+         */
+        val DEFAULT_KINDS: Set<MediaKind> = setOf(MediaKind.LIVE, MediaKind.MOVIE, MediaKind.SERIES, MediaKind.RADIO)
 
         /** [PassReport.orphanCategories]'s key for a stream that named no category. */
         const val NO_CATEGORY = "none"
