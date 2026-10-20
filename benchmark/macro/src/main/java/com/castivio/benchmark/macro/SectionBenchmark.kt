@@ -152,7 +152,7 @@ class SectionBenchmark {
     }
 
     /**
-     * Presses whichever of [labels] this build actually shows.
+     * Presses whichever of [labels] this build actually shows, until the section opens.
      *
      * Several rather than one because the label is a translated string and the device
      * running the benchmark is in whatever locale it is in. Matching on text is fragile
@@ -160,15 +160,21 @@ class SectionBenchmark {
      * shipped screen to make a benchmark easier is a change to the app under test, which
      * is the one thing a measurement phase may not do.
      *
+     * Pressed again every [PRESS_AGAIN_MS] because a section that is not on the device yet
+     * does not open on the first press: it loads on its own card on Home, and opens on the
+     * first press after its load has ended. A press while it loads asks nothing again, so
+     * pressing on a cadence costs the measurement nothing.
+     *
      * Returns without pressing if none is found, so a run against a build whose Home
      * looks different reports frames and nothing else rather than failing at the tap.
      */
     private fun androidx.benchmark.macro.MacrobenchmarkScope.openSection(labels: List<String>) {
-        for (label in labels) {
-            val target = device.findObject(By.textContains(label)) ?: continue
+        val label = labels.firstOrNull { device.findObject(By.textContains(it)) != null } ?: return
+        val deadline = System.currentTimeMillis() + CONTENT_TIMEOUT_MS
+        while (System.currentTimeMillis() < deadline) {
+            val target = device.findObject(By.textContains(label)) ?: return
             target.click()
-            device.wait(Until.hasObject(By.scrollable(true)), CONTENT_TIMEOUT_MS)
-            return
+            if (device.wait(Until.hasObject(By.scrollable(true)), PRESS_AGAIN_MS) == true) return
         }
     }
 
@@ -194,6 +200,9 @@ class SectionBenchmark {
         const val SCROLLS = 6
         const val GESTURE_MARGIN = 5
         const val CONTENT_TIMEOUT_MS = 60_000L
+
+        /** How often an unopened section's card is pressed again while its load runs. */
+        const val PRESS_AGAIN_MS = 2_000L
 
         val LIVE_LABELS = listOf("Live", "Channels", "القنوات", "مباشر")
         val MOVIE_LABELS = listOf("Movies", "Films", "أفلام")

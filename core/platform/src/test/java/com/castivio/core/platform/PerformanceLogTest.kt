@@ -364,7 +364,7 @@ class PerformanceLogTest {
 
     /**
      * **A finished report never changes.** It is a reading somebody may be photographing; a
-     * late progress event, a pass, a check or the next load's first numbers must not move it.
+     * late progress event, a pass or the next load's first numbers must not move it.
      */
     @Test
     fun `nothing an import reports after its run has settled changes it`() {
@@ -376,7 +376,6 @@ class PerformanceLogTest {
         PerformanceLog.saveMode("APPEND")
         PerformanceLog.pass(pass())
         PerformanceLog.recordCounts(records())
-        PerformanceLog.check(before = false, check = check(searchRows = 9))
         PerformanceLog.phase(PerfPhase.STREAMS)
         PerformanceLog.note("streams", "late")
 
@@ -385,27 +384,22 @@ class PerformanceLogTest {
 
     /** What the measurement build adds to a run is kept with that run, and only that run. */
     @Test
-    fun `the save mode, the passes, the records and the checks are kept with their run`() {
+    fun `the save mode, the passes and the records are kept with their run`() {
         PerformanceLog.saveMode("REPLACE")
         PerformanceLog.saveMode("REPLACE")
-        PerformanceLog.check(before = true, check = check(searchRows = 0))
         PerformanceLog.pass(pass())
         PerformanceLog.recordCounts(records())
-        PerformanceLog.check(before = false, check = check(searchRows = 50))
         PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
 
         val report = PerformanceLog.current.value!!
         assertEquals("a mode is named once", listOf("REPLACE"), report.saveModes)
         assertEquals(listOf(pass()), report.passes)
         assertEquals(records(), report.recordCounts)
-        assertEquals(0, report.checkBefore!!.searchRows)
-        assertEquals(50, report.checkAfter!!.searchRows)
 
         PerformanceLog.begin(PerfSection.CHANNELS)
         val next = PerformanceLog.current.value!!
         assertTrue(next.saveModes.isEmpty() && next.passes.isEmpty())
         assertNull(next.recordCounts)
-        assertNull(next.checkBefore)
     }
 
     /**
@@ -469,20 +463,6 @@ class PerformanceLogTest {
         assertTrue(lines.contains("  writer write 27.73 + commit 0.57 + idle 1.47 + other 0.00 = 29.77 s"))
     }
 
-    /** Told once, with the run as it settled -- what a debuggable build puts on the clipboard. */
-    @Test
-    fun `the settled run is handed on once, as it settled`() {
-        val told = ArrayList<SectionReport>()
-        PerformanceLog.onSettled = { told += it }
-        try {
-            PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
-            PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
-        } finally {
-            PerformanceLog.onSettled = null
-        }
-        assertEquals(listOf(PerformanceLog.current.value!!), told)
-    }
-
     /** Every section this phase was asked to time has a name of its own. */
     @Test
     fun `the four sections are distinct`() {
@@ -501,11 +481,6 @@ class PerformanceLogTest {
         written = mapOf("LIVE" to 54_130, "RADIO" to 1_083),
         categories = mapOf("LIVE" to 830, "RADIO" to 5),
         orphanCategories = listOf("1201" to 214, "none" to 37),
-    )
-
-    private fun check(searchRows: Int) = IndexCheck(
-        rows = mapOf("LIVE" to 50), allRows = 50, searchRows = searchRows, duplicated = 0,
-        sampleResults = 5, sampleRows = 5, tookMs = 3,
     )
 
     private companion object {

@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">От А до Я</string>
     <string name="browse_sort_name_desc">От Я до А</string>
     <string name="browse_sort_recent">Най-нови</string>
-    <string name="browse_fetch_title">Зареждане на %1$s…</string>
-    <string name="browse_fetch_once">Това се случва веднъж. Следващия път разделът се отваря веднага.</string>
     <string name="browse_fetch_failed">%1$s не можа да се зареди</string>
     <string name="browse_fetch_failed_retryable">Вашият доставчик не отговори навреме. Обикновено е зает, а не спрял.</string>
     <string name="browse_fetch_failed_final">Вашият доставчик отказа заявката. Проверете абонамента или го добавете отново от Начало.</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">Нещо се обърка при зареждането. Опитайте отново.</string>
     <string name="browse_fetch_retry">Опитайте пак</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">Версия %1$s</string>
-    <string name="gate_tally">%1$s / %2$s категории · %3$s</string>
-    <string name="gate_items">%1$s елемента · %2$s</string>
-    <string name="gate_starting">Свързване с вашия доставчик…</string>
-    <string name="gate_mac">MAC адрес</string>
-    <string name="gate_provider">Доставчик</string>
     <string name="home_term_provider">Абонамент</string>
     <string name="home_term_licence">Лиценз на Castivio</string>
     <string name="home_account_active">Активен</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">Няма сериали</string>
     <string name="home_section_no_radio">Няма станции</string>
     <string name="home_fetched_at">На това устройство · %1$s</string>
+
+    <string name="home_load_waiting">Изчаква реда си</string>
+    <string name="home_load_loading">Зареждане…</string>
+    <string name="home_load_loading_live">Зареждане на каналите…</string>
+    <string name="home_load_refreshing">Обновяване…</string>
+    <string name="home_load_source">От вашия доставчик</string>
+    <string name="home_load_done">Заредено</string>
+    <string name="home_load_failed">Не можа да се зареди</string>
+    <string name="home_load_failed_live">Каналите не можаха да се заредят</string>
+    <string name="home_load_refresh_failed">Не можа да се обнови</string>
+    <string name="home_load_retry">Натиснете, за да опитате пак</string>
+    <string name="home_load_retry_short">Опитайте пак</string>
+    <string name="home_load_opens">Отваря се, когато се зареди</string>
+    <string name="home_load_percent">%1$d%%</string>
+    <string name="home_load_seconds">%1$d с</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Всички канали</string>
     <string name="channels_favorites">Любими</string>

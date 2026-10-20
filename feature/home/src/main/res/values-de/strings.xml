@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">A bis Z</string>
     <string name="browse_sort_name_desc">Z bis A</string>
     <string name="browse_sort_recent">Zuletzt</string>
-    <string name="browse_fetch_title">%1$s wird geladen…</string>
-    <string name="browse_fetch_once">Das passiert nur einmal. Beim nächsten Mal öffnet sich der Bereich sofort.</string>
     <string name="browse_fetch_failed">%1$s konnte nicht geladen werden</string>
     <string name="browse_fetch_failed_retryable">Dein Anbieter hat nicht rechtzeitig geantwortet. Meist ist er ausgelastet und nicht ausgefallen.</string>
     <string name="browse_fetch_failed_final">Dein Anbieter hat die Anfrage abgelehnt. Prüfe das Abonnement oder füge es vom Startbildschirm erneut hinzu.</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">Beim Laden ist etwas schiefgelaufen. Versuche es erneut.</string>
     <string name="browse_fetch_retry">Erneut versuchen</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">Version %1$s</string>
-    <string name="gate_tally">%1$s / %2$s Kategorien · %3$s</string>
-    <string name="gate_items">%1$s Einträge · %2$s</string>
-    <string name="gate_starting">Verbindung zu deinem Anbieter…</string>
-    <string name="gate_mac">MAC-Adresse</string>
-    <string name="gate_provider">Anbieter</string>
     <string name="home_term_provider">Abonnement</string>
     <string name="home_term_licence">Castivio-Lizenz</string>
     <string name="home_account_active">Aktiv</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">Keine Serien</string>
     <string name="home_section_no_radio">Keine Sender</string>
     <string name="home_fetched_at">Auf diesem Gerät · %1$s</string>
+
+    <string name="home_load_waiting">In der Warteschlange</string>
+    <string name="home_load_loading">Wird geladen…</string>
+    <string name="home_load_loading_live">Sender werden geladen…</string>
+    <string name="home_load_refreshing">Wird aktualisiert…</string>
+    <string name="home_load_source">Von deinem Anbieter</string>
+    <string name="home_load_done">Geladen</string>
+    <string name="home_load_failed">Konnte nicht geladen werden</string>
+    <string name="home_load_failed_live">Sender konnten nicht geladen werden</string>
+    <string name="home_load_refresh_failed">Konnte nicht aktualisiert werden</string>
+    <string name="home_load_retry">Drücke, um es erneut zu versuchen</string>
+    <string name="home_load_retry_short">Erneut versuchen</string>
+    <string name="home_load_opens">Öffnet sich, sobald es geladen ist</string>
+    <string name="home_load_percent">%1$d\u00A0%%</string>
+    <string name="home_load_seconds">%1$d s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Alle Sender</string>
     <string name="channels_favorites">Favoriten</string>

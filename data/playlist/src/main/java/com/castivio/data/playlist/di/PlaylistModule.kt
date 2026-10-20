@@ -1,8 +1,13 @@
 package com.castivio.data.playlist.di
 
 import android.content.Context
+import android.os.SystemClock
+import androidx.tracing.Trace
 import com.castivio.core.common.AppDispatchers
 import com.castivio.core.common.Outcome
+import com.castivio.core.platform.CastivioTrace
+import com.castivio.core.platform.PerfMode
+import com.castivio.core.platform.PerfSection
 import com.castivio.core.platform.PerformanceLog
 import com.castivio.data.networking.HttpStreamSource
 import com.castivio.data.networking.StalkerHttpApi
@@ -20,6 +25,9 @@ import com.castivio.data.playlist.LocalPlaylistReader
 import com.castivio.domain.CatalogImporter
 import com.castivio.domain.CatalogWriter
 import com.castivio.domain.LoadSection
+import com.castivio.domain.SectionLoad
+import com.castivio.domain.SectionLoads
+import com.castivio.domain.time.TrustedTime
 import com.castivio.domain.SectionCatalogue
 import com.castivio.domain.PlaylistSource
 import com.castivio.domain.ProviderStatusCatalogue
@@ -36,6 +44,11 @@ import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import javax.inject.Provider
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onStart
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -58,7 +71,6 @@ object PlaylistModule {
         client: OkHttpClient,
         dispatchers: AppDispatchers,
         identity: DeviceIdentity,
-        @ApplicationContext context: Context,
     ): CatalogImporter = DefaultCatalogImporter(
         http = http,
         writerFactory = { writers.get() },
@@ -70,9 +82,6 @@ object PlaylistModule {
         // shows, which is what they gave their provider. See `StalkerHttpApi`.
         portalApiFactory = { source -> source.toApi(client, identity.current().macAddress.value) },
         dispatchers = dispatchers,
-        // The catalogue and its search index counted around each section import, for the
-        // performance readout: in the builds that draw it, and in no other.
-        checks = PerformanceLog.isVisibleIn(context),
     )
 
     /**
@@ -126,6 +135,58 @@ object PlaylistModule {
         importer: CatalogImporter,
         marks: SectionCatalogue,
     ): LoadSection = LoadSection(sources, importer, marks)
+
+    /**
+     * The one queue every section's load goes through, for as long as the app runs.
+     *
+     * Collected on the main thread, as the section screens collected their loads before it:
+     * the importer moves its own work off that thread, and the trace section opened here has
+     * to end on the thread it began on. Each load is a run of the stopwatch of its own, and
+     * ends in the log line it always ended in -- see [settle].
+     */
+    @Provides
+    @Singleton
+    fun sectionLoads(
+        loadSection: LoadSection,
+        sources: SourceRepository,
+        clock: TrustedTime,
+        dispatchers: AppDispatchers,
+    ): SectionLoads = SectionLoads(
+        scope = CoroutineScope(SupervisorJob() + dispatchers.main),
+        activeSource = sources.active().map { it?.id },
+        load = { kind, force ->
+            loadSection.load(kind, clock.nowMs(), force = force)
+                .onStart { Trace.beginSection(CastivioTrace.FETCH) }
+                .onCompletion { Trace.endSection() }
+        },
+        monotonicMs = SystemClock::elapsedRealtime,
+        onRunStarted = { kind -> PerformanceLog.begin(kind.perfSection) },
+        onAnswer = { _, load -> settle(load) },
+    )
+
+    /**
+     * Tells the stopwatch how a load ended, from what the loader said and nothing inferred.
+     *
+     * `Ready` means the section was marked and nothing was imported: warm, with no import to
+     * have an end. `Done` means the importer reached the end and committed: a full load, which
+     * the log turns into a cache hit itself when every call came from OkHttp's cache.
+     */
+    private fun settle(load: SectionLoad) {
+        when (load) {
+            is SectionLoad.Ready -> PerformanceLog.settled(PerfMode.WARM, fullLoad = false)
+            is SectionLoad.Done -> PerformanceLog.settled(PerfMode.COLD, fullLoad = true)
+            is SectionLoad.Failed, is SectionLoad.NoSource -> PerformanceLog.settled(PerfMode.UNKNOWN, fullLoad = false)
+            is SectionLoad.Loading, is SectionLoad.Queued -> Unit
+        }
+    }
+
+    private val MediaKind.perfSection: PerfSection
+        get() = when (this) {
+            MediaKind.LIVE -> PerfSection.CHANNELS
+            MediaKind.MOVIE -> PerfSection.MOVIES
+            MediaKind.SERIES -> PerfSection.SERIES
+            MediaKind.RADIO -> PerfSection.RADIO
+        }
 
     private fun PlaylistSource.Xtream.toApi(client: OkHttpClient): XtreamImportEngine.Api =
         XtreamHttpApi(client, host, username, password)

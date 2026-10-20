@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">A až Z</string>
     <string name="browse_sort_name_desc">Z až A</string>
     <string name="browse_sort_recent">Nejnovější</string>
-    <string name="browse_fetch_title">Načítání %1$s…</string>
-    <string name="browse_fetch_once">Proběhne jen jednou. Příště se tato sekce otevře okamžitě.</string>
     <string name="browse_fetch_failed">%1$s se nepodařilo načíst</string>
     <string name="browse_fetch_failed_retryable">Váš poskytovatel neodpověděl včas. Obvykle bývá zaneprázdněný, nikoli mimo provoz.</string>
     <string name="browse_fetch_failed_final">Váš poskytovatel požadavek odmítl. Zkontrolujte předplatné, nebo ho znovu přidejte z domovské obrazovky.</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">Při načítání se něco pokazilo. Zkuste to znovu.</string>
     <string name="browse_fetch_retry">Zkusit znovu</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">Verze %1$s</string>
-    <string name="gate_tally">%1$s / %2$s kategorií · %3$s</string>
-    <string name="gate_items">%1$s položek · %2$s</string>
-    <string name="gate_starting">Navazuje se spojení s poskytovatelem…</string>
-    <string name="gate_mac">MAC adresa</string>
-    <string name="gate_provider">Poskytovatel</string>
     <string name="home_term_provider">Předplatné</string>
     <string name="home_term_licence">Licence Castivio</string>
     <string name="home_account_active">Aktivní</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">Žádné seriály</string>
     <string name="home_section_no_radio">Žádné stanice</string>
     <string name="home_fetched_at">V tomto zařízení · %1$s</string>
+
+    <string name="home_load_waiting">Čeká na řadu</string>
+    <string name="home_load_loading">Načítání…</string>
+    <string name="home_load_loading_live">Načítání kanálů…</string>
+    <string name="home_load_refreshing">Obnovování…</string>
+    <string name="home_load_source">Od vašeho poskytovatele</string>
+    <string name="home_load_done">Načteno</string>
+    <string name="home_load_failed">Nepodařilo se načíst</string>
+    <string name="home_load_failed_live">Kanály se nepodařilo načíst</string>
+    <string name="home_load_refresh_failed">Nepodařilo se obnovit</string>
+    <string name="home_load_retry">Stisknutím to zkusíte znovu</string>
+    <string name="home_load_retry_short">Zkusit znovu</string>
+    <string name="home_load_opens">Otevře se po načtení</string>
+    <string name="home_load_percent">%1$d\u00A0%%</string>
+    <string name="home_load_seconds">%1$d s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Všechny kanály</string>
     <string name="channels_favorites">Oblíbené</string>

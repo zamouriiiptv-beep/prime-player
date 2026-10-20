@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">الف تا ی</string>
     <string name="browse_sort_name_desc">ی تا الف</string>
     <string name="browse_sort_recent">تازه‌ترین</string>
-    <string name="browse_fetch_title">در حال بارگیری %1$s…</string>
-    <string name="browse_fetch_once">این یک بار انجام می‌شود. دفعهٔ بعد این بخش بی‌درنگ باز می‌شود.</string>
     <string name="browse_fetch_failed">%1$s بارگیری نشد</string>
     <string name="browse_fetch_failed_retryable">ارائه‌دهندهٔ شما به‌موقع پاسخ نداد. معمولاً شلوغ است، نه از کار افتاده.</string>
     <string name="browse_fetch_failed_final">ارائه‌دهندهٔ شما درخواست را رد کرد. اشتراک را بررسی کنید، یا از صفحهٔ خانه دوباره بیفزایید.</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">هنگام بارگیری مشکلی پیش آمد. دوباره تلاش کنید.</string>
     <string name="browse_fetch_retry">تلاش دوباره</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">نسخهٔ %1$s</string>
-    <string name="gate_tally">%1$s / %2$s دسته · %3$s</string>
-    <string name="gate_items">%1$s مورد · %2$s</string>
-    <string name="gate_starting">در حال تماس با ارائه‌دهندهٔ شما…</string>
-    <string name="gate_mac">نشانی MAC</string>
-    <string name="gate_provider">ارائه‌دهنده</string>
     <string name="home_term_provider">اشتراک</string>
     <string name="home_term_licence">پروانهٔ Castivio</string>
     <string name="home_account_active">فعال</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">بدون سریال</string>
     <string name="home_section_no_radio">بدون ایستگاه</string>
     <string name="home_fetched_at">روی همین دستگاه · %1$s</string>
+
+    <string name="home_load_waiting">در صف انتظار</string>
+    <string name="home_load_loading">در حال بارگیری…</string>
+    <string name="home_load_loading_live">در حال بارگیری کانال‌ها…</string>
+    <string name="home_load_refreshing">در حال تازه‌سازی…</string>
+    <string name="home_load_source">از ارائه‌دهندهٔ شما</string>
+    <string name="home_load_done">بارگیری شد</string>
+    <string name="home_load_failed">بارگیری نشد</string>
+    <string name="home_load_failed_live">کانال‌ها بارگیری نشدند</string>
+    <string name="home_load_refresh_failed">تازه‌سازی نشد</string>
+    <string name="home_load_retry">برای تلاش دوباره فشار دهید</string>
+    <string name="home_load_retry_short">تلاش دوباره</string>
+    <string name="home_load_opens">پس از پایان بارگیری باز می‌شود</string>
+    <string name="home_load_percent">%1$d٪</string>
+    <string name="home_load_seconds">%1$d ثانیه</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">همهٔ کانال‌ها</string>
     <string name="channels_favorites">برگزیده‌ها</string>

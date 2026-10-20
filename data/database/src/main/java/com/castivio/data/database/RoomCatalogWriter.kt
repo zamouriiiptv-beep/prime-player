@@ -6,7 +6,6 @@ import androidx.tracing.trace
 import com.castivio.core.platform.CastivioTrace
 import com.castivio.core.platform.DatabaseStep
 import com.castivio.core.platform.PerformanceLog
-import com.castivio.domain.CatalogCheck
 import com.castivio.domain.CatalogItem
 import com.castivio.domain.CatalogWriter
 import com.castivio.domain.ImportMode
@@ -174,98 +173,6 @@ class RoomCatalogWriter(
             }
             spent(searchStarted - rowStarted, if (ftsStatement != null) System.nanoTime() - searchStarted else 0L)
         }
-    }
-
-    /**
-     * Counts of what is stored for [sourceId] and in the search index, read and never
-     * written. A measurement for debuggable builds, taken before an import and after it.
-     *
-     * The index is counted through its own size table, one row per entry, rather than
-     * through the full-text table, which would read every entry's text to count it; the
-     * duplicated ids through its content table for the same reason. Each falls back to the
-     * full-text table where SQLite names those differently. Null if any of it fails: a
-     * measurement that cannot be taken is absent, never guessed.
-     */
-    override fun check(sourceId: String): CatalogCheck? = runCatching {
-        val startedAt = System.nanoTime()
-        val db = database.openHelper.writableDatabase
-        val rows = LinkedHashMap<MediaKind, Int>()
-        db.query("SELECT kind, COUNT(*) FROM media WHERE source_id = ? GROUP BY kind", arrayOf<Any?>(sourceId)).use { cursor ->
-            while (cursor.moveToNext()) {
-                val kind = MediaKind.entries.firstOrNull { it.name == cursor.getString(0) } ?: continue
-                rows[kind] = cursor.getInt(1)
-            }
-        }
-        val searchRows = db.firstIntOf(
-            "SELECT COUNT(*) FROM media_fts_docsize",
-            "SELECT COUNT(*) FROM media_fts",
-        )
-        val duplicated = db.firstIntOf(
-            "SELECT COUNT(*) FROM (SELECT c0media_id FROM media_fts_content GROUP BY c0media_id HAVING COUNT(*) > 1)",
-            "SELECT COUNT(*) FROM (SELECT media_id FROM media_fts GROUP BY media_id HAVING COUNT(*) > 1)",
-        )
-        val match = db.sampleWord(sourceId)?.let(FtsQuery::build)
-        var results: Int? = null
-        var distinct: Int? = null
-        if (match != null) {
-            // The app's own search, with a word from one of this source's titles turned
-            // into a MATCH the way a typed one is, and the same join -- so a result that
-            // comes back twice here comes back twice on screen.
-            db.query(
-                """
-                SELECT COUNT(*), COUNT(DISTINCT m.id) FROM media_fts f
-                INNER JOIN media m ON m.id = f.media_id
-                WHERE f.search_text MATCH ? AND m.source_id = ?
-                """,
-                arrayOf<Any?>(match, sourceId),
-            ).use { cursor ->
-                if (cursor.moveToFirst()) {
-                    results = cursor.getInt(0)
-                    distinct = cursor.getInt(1)
-                }
-            }
-        }
-        CatalogCheck(
-            rows = rows,
-            allRows = db.firstIntOf("SELECT COUNT(*) FROM media"),
-            searchRows = searchRows,
-            duplicatedInSearch = duplicated,
-            sampleResults = results,
-            sampleRows = distinct,
-            tookMs = (System.nanoTime() - startedAt) / 1_000_000,
-        )
-    }.getOrNull()
-
-    /** The first of [sql] that SQLite accepts, as one integer. */
-    private fun SupportSQLiteDatabase.firstIntOf(vararg sql: String): Int {
-        var failure: Throwable? = null
-        for (statement in sql) {
-            try {
-                return query(statement).use { cursor -> if (cursor.moveToFirst()) cursor.getInt(0) else 0 }
-            } catch (e: Exception) {
-                failure = e
-            }
-        }
-        throw failure ?: IllegalArgumentException("no statement")
-    }
-
-    /**
-     * A word to search for: the first of [SAMPLE_WORD_MIN] letters or digits in a row in
-     * one of this source's titles, cut where [FtsQuery] cuts a typed one.
-     */
-    private fun SupportSQLiteDatabase.sampleWord(sourceId: String): String? {
-        val text = query("SELECT search_text FROM media WHERE source_id = ? LIMIT 1", arrayOf<Any?>(sourceId))
-            .use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null } ?: return null
-        var start = -1
-        for (i in 0..text.length) {
-            val inWord = i < text.length && text[i].isLetterOrDigit()
-            if (inWord && start < 0) start = i
-            if (!inWord && start >= 0) {
-                if (i - start >= SAMPLE_WORD_MIN) return text.substring(start, i)
-                start = -1
-            }
-        }
-        return null
     }
 
     /**
@@ -480,9 +387,6 @@ class RoomCatalogWriter(
     }
 
     private companion object {
-        /** The shortest word [check] searches for: shorter ones match half the catalogue. */
-        const val SAMPLE_WORD_MIN = 3
-
         /**
          * One statement for the whole import.
          *

@@ -318,13 +318,14 @@ private fun CategoryEntry(
 }
 
 /**
- * The section, or the reason it is not here yet.
+ * The section, or the reason it is not here.
  *
- * A *running* fetch never reaches here — [LoadingGate] holds the whole screen while one
- * is in flight, so by the time this pane is composed the section has either arrived or
- * failed. What is left is the failure, which still outranks the rows: the pager cannot
- * tell "nothing arrived" apart from "your provider carries no films", and before this
- * existed both rendered the second sentence.
+ * Home opens a section once it is on the device, so a load this pane sees is a refresh
+ * running behind rows that are already here -- and those rows are what is drawn. A failure
+ * takes the pane only when there is nothing under it: the pager cannot tell "nothing
+ * arrived" apart from "your provider carries no films", and before this existed both
+ * rendered the second sentence. A refresh that failed over a working section leaves it
+ * working; Home's card says it failed.
  */
 @Composable
 private fun Pane(
@@ -335,11 +336,12 @@ private fun Pane(
     onPlay: (CatalogSelection) -> Unit,
     onOpenShow: (SeriesSummary) -> Unit,
 ) {
-    when (val fetch = state.fetch) {
-        is SectionLoad.Failed -> FetchFailed(section, fetch, onRetry = { model.retryFetch() })
-        // Ready, Done, NoSource and "not asked yet" all mean: draw what is stored.
-        // NoSource included -- a section with no provider behind it is empty for a
-        // reason the section's own empty state already explains.
+    val fetch = state.fetch
+    when {
+        fetch is SectionLoad.Failed && state.sectionTotal == 0 ->
+            FetchFailed(section, fetch, onRetry = model::refresh)
+        // Everything else means: draw what is stored. NoSource included -- a section with
+        // no provider behind it is empty for a reason its own empty state already explains.
         else -> Content(section, state, m, model, onPlay, onOpenShow)
     }
 }
@@ -414,9 +416,10 @@ private fun <T : Any> Paged(
         if (hasContent && !contentSeen) {
             contentSeen = true
             CastivioTrace.instant(CastivioTrace.FIRST_CONTENT)
-            // The same instant, to the panel a user can read without a cable. One
-            // boundary, two reporters -- not two definitions of "first content".
-            PerformanceLog.firstContent()
+            // The same instant, to the log. One boundary, two reporters -- not two
+            // definitions of "first content". Named, so a load of another section running
+            // behind this one is not credited with this section's rows.
+            PerformanceLog.firstContent(section.perf)
         }
     }
 

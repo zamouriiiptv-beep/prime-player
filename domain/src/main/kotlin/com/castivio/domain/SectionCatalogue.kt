@@ -60,6 +60,12 @@ sealed interface SectionLoad {
     data object NoSource : SectionLoad
 
     /**
+     * Asked for, and waiting its turn behind another section's load. Only [SectionLoads]
+     * says this: [LoadSection] runs when it is called and never waits.
+     */
+    data object Queued : SectionLoad
+
+    /**
      * @param items how many rows have been committed so far. Rising, never resetting.
      * @param groups how many categories this source has in total — the denominator.
      * @param groupsDone how many of them have finished, succeeded or failed. With

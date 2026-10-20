@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">От А до Я</string>
     <string name="browse_sort_name_desc">От Я до А</string>
     <string name="browse_sort_recent">Недавние</string>
-    <string name="browse_fetch_title">Загрузка: %1$s…</string>
-    <string name="browse_fetch_once">Это происходит один раз. В следующий раз раздел откроется сразу.</string>
     <string name="browse_fetch_failed">Не удалось загрузить: %1$s</string>
     <string name="browse_fetch_failed_retryable">Провайдер не ответил вовремя. Обычно он занят, а не отключён.</string>
     <string name="browse_fetch_failed_final">Провайдер отклонил запрос. Проверьте подписку или добавьте её заново с главного экрана.</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">При загрузке что-то пошло не так. Повторите попытку.</string>
     <string name="browse_fetch_retry">Повторить</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">Версия %1$s</string>
-    <string name="gate_tally">%1$s / %2$s категорий · %3$s</string>
-    <string name="gate_items">Элементов: %1$s · %2$s</string>
-    <string name="gate_starting">Соединение с провайдером…</string>
-    <string name="gate_mac">MAC-адрес</string>
-    <string name="gate_provider">Провайдер</string>
     <string name="home_term_provider">Подписка</string>
     <string name="home_term_licence">Лицензия Castivio</string>
     <string name="home_account_active">Активна</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">Нет сериалов</string>
     <string name="home_section_no_radio">Нет станций</string>
     <string name="home_fetched_at">На этом устройстве · %1$s</string>
+
+    <string name="home_load_waiting">Ждёт своей очереди</string>
+    <string name="home_load_loading">Загрузка…</string>
+    <string name="home_load_loading_live">Загрузка каналов…</string>
+    <string name="home_load_refreshing">Обновление…</string>
+    <string name="home_load_source">От вашего провайдера</string>
+    <string name="home_load_done">Загружено</string>
+    <string name="home_load_failed">Не удалось загрузить</string>
+    <string name="home_load_failed_live">Не удалось загрузить каналы</string>
+    <string name="home_load_refresh_failed">Не удалось обновить</string>
+    <string name="home_load_retry">Нажмите, чтобы повторить</string>
+    <string name="home_load_retry_short">Повторить</string>
+    <string name="home_load_opens">Откроется после загрузки</string>
+    <string name="home_load_percent">%1$d\u00A0%%</string>
+    <string name="home_load_seconds">%1$d с</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Все каналы</string>
     <string name="channels_favorites">Избранное</string>

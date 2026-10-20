@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">A–Ö</string>
     <string name="browse_sort_name_desc">Ö–A</string>
     <string name="browse_sort_recent">Uusimmat</string>
-    <string name="browse_fetch_title">Ladataan %1$s…</string>
-    <string name="browse_fetch_once">Tämä tehdään kerran. Ensi kerralla osio avautuu heti.</string>
     <string name="browse_fetch_failed">Kohdetta %1$s ei voitu ladata</string>
     <string name="browse_fetch_failed_retryable">Palveluntarjoajasi ei vastannut ajoissa. Yleensä se on kiireinen eikä poissa käytöstä.</string>
     <string name="browse_fetch_failed_final">Palveluntarjoajasi hylkäsi pyynnön. Tarkista tilaus tai lisää se uudelleen aloitusnäytöstä.</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">Lataamisessa tapahtui virhe. Yritä uudelleen.</string>
     <string name="browse_fetch_retry">Yritä uudelleen</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">Versio %1$s</string>
-    <string name="gate_tally">%1$s / %2$s luokkaa · %3$s</string>
-    <string name="gate_items">%1$s kohdetta · %2$s</string>
-    <string name="gate_starting">Otetaan yhteyttä palveluntarjoajaasi…</string>
-    <string name="gate_mac">MAC-osoite</string>
-    <string name="gate_provider">Palveluntarjoaja</string>
     <string name="home_term_provider">Tilaus</string>
     <string name="home_term_licence">Castivio-lisenssi</string>
     <string name="home_account_active">Voimassa</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">Ei sarjoja</string>
     <string name="home_section_no_radio">Ei asemia</string>
     <string name="home_fetched_at">Tällä laitteella · %1$s</string>
+
+    <string name="home_load_waiting">Odottaa vuoroaan</string>
+    <string name="home_load_loading">Ladataan…</string>
+    <string name="home_load_loading_live">Ladataan kanavia…</string>
+    <string name="home_load_refreshing">Päivitetään…</string>
+    <string name="home_load_source">Palveluntarjoajaltasi</string>
+    <string name="home_load_done">Ladattu</string>
+    <string name="home_load_failed">Lataus epäonnistui</string>
+    <string name="home_load_failed_live">Kanavien lataus epäonnistui</string>
+    <string name="home_load_refresh_failed">Päivitys epäonnistui</string>
+    <string name="home_load_retry">Yritä uudelleen painamalla</string>
+    <string name="home_load_retry_short">Yritä uudelleen</string>
+    <string name="home_load_opens">Avautuu, kun lataus on valmis</string>
+    <string name="home_load_percent">%1$d\u00A0%%</string>
+    <string name="home_load_seconds">%1$d s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Kaikki kanavat</string>
     <string name="channels_favorites">Suosikit</string>

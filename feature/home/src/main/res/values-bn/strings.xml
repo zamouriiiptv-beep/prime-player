@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">অ থেকে হ</string>
     <string name="browse_sort_name_desc">হ থেকে অ</string>
     <string name="browse_sort_recent">সাম্প্রতিক</string>
-    <string name="browse_fetch_title">%1$s লোড হচ্ছে…</string>
-    <string name="browse_fetch_once">এটি একবারই হয়। পরের বার এই বিভাগ সঙ্গে সঙ্গে খুলবে।</string>
     <string name="browse_fetch_failed">%1$s লোড করা যায়নি</string>
     <string name="browse_fetch_failed_retryable">আপনার সরবরাহকারী সময়মতো উত্তর দেয়নি। সাধারণত সে ব্যস্ত থাকে, বন্ধ নয়।</string>
     <string name="browse_fetch_failed_final">আপনার সরবরাহকারী অনুরোধটি প্রত্যাখ্যান করেছে। সাবস্ক্রিপশন যাচাই করুন, অথবা হোম থেকে আবার যোগ করুন।</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">লোড করার সময় একটি সমস্যা হয়েছে। আবার চেষ্টা করুন।</string>
     <string name="browse_fetch_retry">আবার চেষ্টা করুন</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">সংস্করণ %1$s</string>
-    <string name="gate_tally">%1$s / %2$s বিভাগ · %3$s</string>
-    <string name="gate_items">%1$sটি আইটেম · %2$s</string>
-    <string name="gate_starting">আপনার সরবরাহকারীর সঙ্গে যোগাযোগ করা হচ্ছে…</string>
-    <string name="gate_mac">MAC ঠিকানা</string>
-    <string name="gate_provider">সরবরাহকারী</string>
     <string name="home_term_provider">সাবস্ক্রিপশন</string>
     <string name="home_term_licence">Castivio লাইসেন্স</string>
     <string name="home_account_active">সক্রিয়</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">কোনো সিরিজ নেই</string>
     <string name="home_section_no_radio">কোনো স্টেশন নেই</string>
     <string name="home_fetched_at">এই ডিভাইসে · %1$s</string>
+
+    <string name="home_load_waiting">পালার অপেক্ষায়</string>
+    <string name="home_load_loading">লোড হচ্ছে…</string>
+    <string name="home_load_loading_live">চ্যানেল লোড হচ্ছে…</string>
+    <string name="home_load_refreshing">রিফ্রেশ হচ্ছে…</string>
+    <string name="home_load_source">আপনার সরবরাহকারীর কাছ থেকে</string>
+    <string name="home_load_done">লোড হয়েছে</string>
+    <string name="home_load_failed">লোড করা যায়নি</string>
+    <string name="home_load_failed_live">চ্যানেল লোড করা যায়নি</string>
+    <string name="home_load_refresh_failed">রিফ্রেশ করা যায়নি</string>
+    <string name="home_load_retry">আবার চেষ্টা করতে চাপুন</string>
+    <string name="home_load_retry_short">আবার চেষ্টা করুন</string>
+    <string name="home_load_opens">লোড হলে খুলবে</string>
+    <string name="home_load_percent">%1$d%%</string>
+    <string name="home_load_seconds">%1$d সে.</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">সব চ্যানেল</string>
     <string name="channels_favorites">প্রিয়</string>

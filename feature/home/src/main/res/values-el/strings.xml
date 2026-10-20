@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">Α έως Ω</string>
     <string name="browse_sort_name_desc">Ω έως Α</string>
     <string name="browse_sort_recent">Πρόσφατα</string>
-    <string name="browse_fetch_title">Φόρτωση %1$s…</string>
-    <string name="browse_fetch_once">Αυτό γίνεται μία φορά. Την επόμενη φορά η ενότητα ανοίγει αμέσως.</string>
     <string name="browse_fetch_failed">Αδυναμία φόρτωσης του %1$s</string>
     <string name="browse_fetch_failed_retryable">Ο πάροχός σας δεν απάντησε έγκαιρα. Συνήθως είναι απασχολημένος, όχι εκτός λειτουργίας.</string>
     <string name="browse_fetch_failed_final">Ο πάροχός σας απέρριψε το αίτημα. Ελέγξτε τη συνδρομή ή προσθέστε την ξανά από την Αρχική.</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">Κάτι πήγε στραβά κατά τη φόρτωση. Δοκιμάστε ξανά.</string>
     <string name="browse_fetch_retry">Δοκιμάστε ξανά</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">Έκδοση %1$s</string>
-    <string name="gate_tally">%1$s / %2$s κατηγορίες · %3$s</string>
-    <string name="gate_items">%1$s στοιχεία · %2$s</string>
-    <string name="gate_starting">Επικοινωνία με τον πάροχό σας…</string>
-    <string name="gate_mac">Διεύθυνση MAC</string>
-    <string name="gate_provider">Πάροχος</string>
     <string name="home_term_provider">Συνδρομή</string>
     <string name="home_term_licence">Άδεια Castivio</string>
     <string name="home_account_active">Ενεργή</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">Καμία σειρά</string>
     <string name="home_section_no_radio">Κανένας σταθμός</string>
     <string name="home_fetched_at">Σε αυτή τη συσκευή · %1$s</string>
+
+    <string name="home_load_waiting">Σε αναμονή</string>
+    <string name="home_load_loading">Φόρτωση…</string>
+    <string name="home_load_loading_live">Φόρτωση καναλιών…</string>
+    <string name="home_load_refreshing">Ανανέωση…</string>
+    <string name="home_load_source">Από τον πάροχό σας</string>
+    <string name="home_load_done">Φορτώθηκε</string>
+    <string name="home_load_failed">Αδυναμία φόρτωσης</string>
+    <string name="home_load_failed_live">Αδυναμία φόρτωσης των καναλιών</string>
+    <string name="home_load_refresh_failed">Αδυναμία ανανέωσης</string>
+    <string name="home_load_retry">Πατήστε για να δοκιμάσετε ξανά</string>
+    <string name="home_load_retry_short">Δοκιμάστε ξανά</string>
+    <string name="home_load_opens">Ανοίγει μόλις φορτωθεί</string>
+    <string name="home_load_percent">%1$d%%</string>
+    <string name="home_load_seconds">%1$d δευτ.</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Όλα τα κανάλια</string>
     <string name="channels_favorites">Αγαπημένα</string>

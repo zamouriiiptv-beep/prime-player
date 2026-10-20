@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">ا سے ی</string>
     <string name="browse_sort_name_desc">ی سے ا</string>
     <string name="browse_sort_recent">تازہ ترین</string>
-    <string name="browse_fetch_title">%1$s لوڈ ہو رہا ہے…</string>
-    <string name="browse_fetch_once">یہ ایک بار ہوتا ہے۔ اگلی بار یہ حصہ فوراً کھلے گا۔</string>
     <string name="browse_fetch_failed">%1$s لوڈ نہ ہو سکا</string>
     <string name="browse_fetch_failed_retryable">آپ کے فراہم کنندہ نے وقت پر جواب نہیں دیا۔ عام طور پر وہ مصروف ہوتا ہے، بند نہیں۔</string>
     <string name="browse_fetch_failed_final">آپ کے فراہم کنندہ نے درخواست رد کر دی۔ رکنیت جانچیں، یا ہوم سے دوبارہ شامل کریں۔</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">لوڈ کرتے وقت کچھ غلط ہو گیا۔ دوبارہ کوشش کریں۔</string>
     <string name="browse_fetch_retry">دوبارہ کوشش کریں</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">ورژن %1$s</string>
-    <string name="gate_tally">%1$s / %2$s زمرے · %3$s</string>
-    <string name="gate_items">%1$s اشیاء · %2$s</string>
-    <string name="gate_starting">آپ کے فراہم کنندہ سے رابطہ ہو رہا ہے…</string>
-    <string name="gate_mac">MAC پتہ</string>
-    <string name="gate_provider">فراہم کنندہ</string>
     <string name="home_term_provider">رکنیت</string>
     <string name="home_term_licence">Castivio لائسنس</string>
     <string name="home_account_active">فعال</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">کوئی سیریز نہیں</string>
     <string name="home_section_no_radio">کوئی اسٹیشن نہیں</string>
     <string name="home_fetched_at">اسی آلے پر · %1$s</string>
+
+    <string name="home_load_waiting">باری کا انتظار</string>
+    <string name="home_load_loading">لوڈ ہو رہا ہے…</string>
+    <string name="home_load_loading_live">چینلز لوڈ ہو رہے ہیں…</string>
+    <string name="home_load_refreshing">تازہ ہو رہا ہے…</string>
+    <string name="home_load_source">آپ کے فراہم کنندہ سے</string>
+    <string name="home_load_done">لوڈ ہو گیا</string>
+    <string name="home_load_failed">لوڈ نہ ہو سکا</string>
+    <string name="home_load_failed_live">چینلز لوڈ نہ ہو سکے</string>
+    <string name="home_load_refresh_failed">تازہ نہ ہو سکا</string>
+    <string name="home_load_retry">دوبارہ کوشش کے لیے دبائیں</string>
+    <string name="home_load_retry_short">دوبارہ کوشش کریں</string>
+    <string name="home_load_opens">لوڈ ہونے پر کھلے گا</string>
+    <string name="home_load_percent">%1$d%%</string>
+    <string name="home_load_seconds">%1$d سیکنڈ</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">تمام چینلز</string>
     <string name="channels_favorites">پسندیدہ</string>

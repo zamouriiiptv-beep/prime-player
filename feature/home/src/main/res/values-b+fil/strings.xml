@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">A hanggang Z</string>
     <string name="browse_sort_name_desc">Z hanggang A</string>
     <string name="browse_sort_recent">Pinakabago</string>
-    <string name="browse_fetch_title">Iniloload ang %1$s…</string>
-    <string name="browse_fetch_once">Isang beses lang ito. Sa susunod, agad na bubukas ang seksyong ito.</string>
     <string name="browse_fetch_failed">Hindi ma-load ang %1$s</string>
     <string name="browse_fetch_failed_retryable">Hindi sumagot sa oras ang provider mo. Karaniwang abala lang ito, hindi sira.</string>
     <string name="browse_fetch_failed_final">Tinanggihan ng provider mo ang kahilingan. Suriin ang subscription, o idagdag itong muli mula sa Home.</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">May nangyaring mali habang naglo-load. Subukang muli.</string>
     <string name="browse_fetch_retry">Subukan ulit</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">Bersyon %1$s</string>
-    <string name="gate_tally">%1$s / %2$s kategorya · %3$s</string>
-    <string name="gate_items">%1$s item · %2$s</string>
-    <string name="gate_starting">Kinakausap ang provider mo…</string>
-    <string name="gate_mac">MAC address</string>
-    <string name="gate_provider">Provider</string>
     <string name="home_term_provider">Subscription</string>
     <string name="home_term_licence">Lisensya ng Castivio</string>
     <string name="home_account_active">Aktibo</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">Walang serye</string>
     <string name="home_section_no_radio">Walang istasyon</string>
     <string name="home_fetched_at">Nasa device na ito · %1$s</string>
+
+    <string name="home_load_waiting">Naghihintay ng pagkakataon</string>
+    <string name="home_load_loading">Iniloload…</string>
+    <string name="home_load_loading_live">Iniloload ang mga channel…</string>
+    <string name="home_load_refreshing">Nire-refresh…</string>
+    <string name="home_load_source">Mula sa provider mo</string>
+    <string name="home_load_done">Na-load na</string>
+    <string name="home_load_failed">Hindi ma-load</string>
+    <string name="home_load_failed_live">Hindi ma-load ang mga channel</string>
+    <string name="home_load_refresh_failed">Hindi ma-refresh</string>
+    <string name="home_load_retry">Pindutin para subukan ulit</string>
+    <string name="home_load_retry_short">Subukan ulit</string>
+    <string name="home_load_opens">Magbubukas kapag na-load na</string>
+    <string name="home_load_percent">%1$d%%</string>
+    <string name="home_load_seconds">%1$d s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Lahat ng Channel</string>
     <string name="channels_favorites">Mga Paborito</string>

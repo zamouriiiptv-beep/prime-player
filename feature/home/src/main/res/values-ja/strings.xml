@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">A から Z</string>
     <string name="browse_sort_name_desc">Z から A</string>
     <string name="browse_sort_recent">新着順</string>
-    <string name="browse_fetch_title">%1$s を読み込み中…</string>
-    <string name="browse_fetch_once">これは一度だけです。次回からこのセクションはすぐに開きます。</string>
     <string name="browse_fetch_failed">%1$s を読み込めませんでした</string>
     <string name="browse_fetch_failed_retryable">プロバイダーから時間内に応答がありませんでした。停止ではなく混雑している場合がほとんどです。</string>
     <string name="browse_fetch_failed_final">プロバイダーがリクエストを拒否しました。サブスクリプションを確認するか、ホームから追加し直してください。</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">読み込み中に問題が発生しました。もう一度お試しください。</string>
     <string name="browse_fetch_retry">再試行</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">バージョン %1$s</string>
-    <string name="gate_tally">%1$s / %2$s カテゴリー · %3$s</string>
-    <string name="gate_items">%1$s 件 · %2$s</string>
-    <string name="gate_starting">プロバイダーに接続しています…</string>
-    <string name="gate_mac">MAC アドレス</string>
-    <string name="gate_provider">プロバイダー</string>
     <string name="home_term_provider">サブスク</string>
     <string name="home_term_licence">Castivio ライセンス</string>
     <string name="home_account_active">有効</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">シリーズなし</string>
     <string name="home_section_no_radio">局なし</string>
     <string name="home_fetched_at">この端末に保存済み · %1$s</string>
+
+    <string name="home_load_waiting">順番待ち</string>
+    <string name="home_load_loading">読み込み中…</string>
+    <string name="home_load_loading_live">チャンネルを読み込み中…</string>
+    <string name="home_load_refreshing">更新中…</string>
+    <string name="home_load_source">プロバイダーから</string>
+    <string name="home_load_done">読み込み完了</string>
+    <string name="home_load_failed">読み込めませんでした</string>
+    <string name="home_load_failed_live">チャンネルを読み込めませんでした</string>
+    <string name="home_load_refresh_failed">更新できませんでした</string>
+    <string name="home_load_retry">押すと再試行します</string>
+    <string name="home_load_retry_short">再試行</string>
+    <string name="home_load_opens">読み込みが完了すると開きます</string>
+    <string name="home_load_percent">%1$d%%</string>
+    <string name="home_load_seconds">%1$d秒</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">すべてのチャンネル</string>
     <string name="channels_favorites">お気に入り</string>

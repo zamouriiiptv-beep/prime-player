@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">De la A la Z</string>
     <string name="browse_sort_name_desc">De la Z la A</string>
     <string name="browse_sort_recent">Recente</string>
-    <string name="browse_fetch_title">Se încarcă %1$s…</string>
-    <string name="browse_fetch_once">Se face o singură dată. Data viitoare secțiunea se deschide imediat.</string>
     <string name="browse_fetch_failed">%1$s nu a putut fi încărcat</string>
     <string name="browse_fetch_failed_retryable">Furnizorul dvs. nu a răspuns la timp. De obicei este ocupat, nu picat.</string>
     <string name="browse_fetch_failed_final">Furnizorul dvs. a refuzat cererea. Verificați abonamentul sau adăugați-l din nou din Acasă.</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">Ceva nu a funcționat la încărcare. Încercați din nou.</string>
     <string name="browse_fetch_retry">Încercați din nou</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">Versiunea %1$s</string>
-    <string name="gate_tally">%1$s / %2$s categorii · %3$s</string>
-    <string name="gate_items">%1$s elemente · %2$s</string>
-    <string name="gate_starting">Se contactează furnizorul dvs.…</string>
-    <string name="gate_mac">Adresă MAC</string>
-    <string name="gate_provider">Furnizor</string>
     <string name="home_term_provider">Abonament</string>
     <string name="home_term_licence">Licența Castivio</string>
     <string name="home_account_active">Activ</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">Niciun serial</string>
     <string name="home_section_no_radio">Niciun post</string>
     <string name="home_fetched_at">Pe acest dispozitiv · %1$s</string>
+
+    <string name="home_load_waiting">Își așteaptă rândul</string>
+    <string name="home_load_loading">Se încarcă…</string>
+    <string name="home_load_loading_live">Se încarcă canalele…</string>
+    <string name="home_load_refreshing">Se reîncarcă…</string>
+    <string name="home_load_source">De la furnizorul dvs.</string>
+    <string name="home_load_done">Încărcat</string>
+    <string name="home_load_failed">Nu s-a putut încărca</string>
+    <string name="home_load_failed_live">Canalele nu au putut fi încărcate</string>
+    <string name="home_load_refresh_failed">Nu s-a putut reîncărca</string>
+    <string name="home_load_retry">Apăsați pentru a încerca din nou</string>
+    <string name="home_load_retry_short">Încercați din nou</string>
+    <string name="home_load_opens">Se deschide după încărcare</string>
+    <string name="home_load_percent">%1$d\u00A0%%</string>
+    <string name="home_load_seconds">%1$d s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Toate canalele</string>
     <string name="channels_favorites">Favorite</string>

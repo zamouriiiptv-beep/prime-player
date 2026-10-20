@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">A deri Z</string>
     <string name="browse_sort_name_desc">Z deri A</string>
     <string name="browse_sort_recent">Më të rejat</string>
-    <string name="browse_fetch_title">Po ngarkohet %1$s…</string>
-    <string name="browse_fetch_once">Kjo ndodh një herë. Herën tjetër ky seksion hapet menjëherë.</string>
     <string name="browse_fetch_failed">%1$s nuk u ngarkua dot</string>
     <string name="browse_fetch_failed_retryable">Ofruesi juaj nuk u përgjigj në kohë. Zakonisht është i zënë, jo jashtë funksionit.</string>
     <string name="browse_fetch_failed_final">Ofruesi juaj e refuzoi kërkesën. Kontrolloni abonimin, ose shtojeni sërish nga faqja kryesore.</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">Diçka shkoi keq gjatë ngarkimit. Provoni përsëri.</string>
     <string name="browse_fetch_retry">Provo sërish</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">Versioni %1$s</string>
-    <string name="gate_tally">%1$s / %2$s kategori · %3$s</string>
-    <string name="gate_items">%1$s artikuj · %2$s</string>
-    <string name="gate_starting">Po lidhemi me ofruesin tuaj…</string>
-    <string name="gate_mac">Adresa MAC</string>
-    <string name="gate_provider">Ofruesi</string>
     <string name="home_term_provider">Abonimi</string>
     <string name="home_term_licence">Licenca Castivio</string>
     <string name="home_account_active">Aktiv</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">Asnjë serial</string>
     <string name="home_section_no_radio">Asnjë stacion</string>
     <string name="home_fetched_at">Në këtë pajisje · %1$s</string>
+
+    <string name="home_load_waiting">Në pritje të radhës</string>
+    <string name="home_load_loading">Po ngarkohet…</string>
+    <string name="home_load_loading_live">Po ngarkohen kanalet…</string>
+    <string name="home_load_refreshing">Po rifreskohet…</string>
+    <string name="home_load_source">Nga ofruesi juaj</string>
+    <string name="home_load_done">U ngarkua</string>
+    <string name="home_load_failed">Nuk u ngarkua dot</string>
+    <string name="home_load_failed_live">Kanalet nuk u ngarkuan dot</string>
+    <string name="home_load_refresh_failed">Nuk u rifreskua dot</string>
+    <string name="home_load_retry">Shtypni për të provuar sërish</string>
+    <string name="home_load_retry_short">Provo sërish</string>
+    <string name="home_load_opens">Hapet pasi të ngarkohet</string>
+    <string name="home_load_percent">%1$d%%</string>
+    <string name="home_load_seconds">%1$d s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Të gjitha kanalet</string>
     <string name="channels_favorites">Të parapëlqyerat</string>

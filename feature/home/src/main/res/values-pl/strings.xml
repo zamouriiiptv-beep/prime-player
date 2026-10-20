@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">Od A do Z</string>
     <string name="browse_sort_name_desc">Od Z do A</string>
     <string name="browse_sort_recent">Ostatnie</string>
-    <string name="browse_fetch_title">Wczytywanie: %1$s…</string>
-    <string name="browse_fetch_once">Dzieje się to raz. Następnym razem sekcja otworzy się od razu.</string>
     <string name="browse_fetch_failed">Nie udało się wczytać: %1$s</string>
     <string name="browse_fetch_failed_retryable">Twój dostawca nie odpowiedział na czas. Zwykle jest obciążony, a nie wyłączony.</string>
     <string name="browse_fetch_failed_final">Twój dostawca odrzucił żądanie. Sprawdź subskrypcję albo dodaj ją ponownie z ekranu głównego.</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">Podczas wczytywania coś poszło nie tak. Spróbuj ponownie.</string>
     <string name="browse_fetch_retry">Spróbuj ponownie</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">Wersja %1$s</string>
-    <string name="gate_tally">%1$s / %2$s kategorii · %3$s</string>
-    <string name="gate_items">Elementy: %1$s · %2$s</string>
-    <string name="gate_starting">Łączenie z dostawcą…</string>
-    <string name="gate_mac">Adres MAC</string>
-    <string name="gate_provider">Dostawca</string>
     <string name="home_term_provider">Subskrypcja</string>
     <string name="home_term_licence">Licencja Castivio</string>
     <string name="home_account_active">Aktywna</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">Brak seriali</string>
     <string name="home_section_no_radio">Brak stacji</string>
     <string name="home_fetched_at">Na tym urządzeniu · %1$s</string>
+
+    <string name="home_load_waiting">Czeka na swoją kolej</string>
+    <string name="home_load_loading">Wczytywanie…</string>
+    <string name="home_load_loading_live">Wczytywanie kanałów…</string>
+    <string name="home_load_refreshing">Odświeżanie…</string>
+    <string name="home_load_source">Od Twojego dostawcy</string>
+    <string name="home_load_done">Wczytano</string>
+    <string name="home_load_failed">Nie udało się wczytać</string>
+    <string name="home_load_failed_live">Nie udało się wczytać kanałów</string>
+    <string name="home_load_refresh_failed">Nie udało się odświeżyć</string>
+    <string name="home_load_retry">Naciśnij, aby spróbować ponownie</string>
+    <string name="home_load_retry_short">Spróbuj ponownie</string>
+    <string name="home_load_opens">Otworzy się po wczytaniu</string>
+    <string name="home_load_percent">%1$d%%</string>
+    <string name="home_load_seconds">%1$d s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Wszystkie kanały</string>
     <string name="channels_favorites">Ulubione</string>

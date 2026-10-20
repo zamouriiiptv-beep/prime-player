@@ -8,9 +8,7 @@ import coil.disk.DiskCache
 import coil.memory.MemoryCache
 import com.castivio.core.platform.DeviceCapabilities
 import com.castivio.core.platform.MemoryClass
-import com.castivio.core.platform.PerformanceLog
 import com.castivio.tv.debug.CrashReport
-import com.castivio.tv.debug.MeasurementClipboard
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.HiltAndroidApp
@@ -110,10 +108,6 @@ class CastivioApp : Application(), ImageLoaderFactory {
             // `CrashReport` for why that is worth a class.
             CrashReport.install(this)
         }
-        // The same question the performance readout asks before it draws, so the reading is
-        // handed on in exactly the builds that measure. It only sets a callback: nothing is
-        // read or written until a load ends. See `MeasurementClipboard`.
-        if (PerformanceLog.isVisibleIn(this)) MeasurementClipboard.install(this)
     }
 
     /**

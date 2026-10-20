@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">A đến Z</string>
     <string name="browse_sort_name_desc">Z đến A</string>
     <string name="browse_sort_recent">Mới nhất</string>
-    <string name="browse_fetch_title">Đang tải %1$s…</string>
-    <string name="browse_fetch_once">Việc này chỉ chạy một lần. Lần sau mục này sẽ mở ngay.</string>
     <string name="browse_fetch_failed">Không tải được %1$s</string>
     <string name="browse_fetch_failed_retryable">Nhà cung cấp không trả lời kịp. Thường là do bận chứ không phải ngừng hoạt động.</string>
     <string name="browse_fetch_failed_final">Nhà cung cấp đã từ chối yêu cầu. Hãy kiểm tra thuê bao, hoặc thêm lại từ Trang chính.</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">Đã xảy ra sự cố khi tải. Hãy thử lại.</string>
     <string name="browse_fetch_retry">Thử lại</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">Phiên bản %1$s</string>
-    <string name="gate_tally">%1$s / %2$s danh mục · %3$s</string>
-    <string name="gate_items">%1$s mục · %2$s</string>
-    <string name="gate_starting">Đang liên hệ nhà cung cấp…</string>
-    <string name="gate_mac">Địa chỉ MAC</string>
-    <string name="gate_provider">Nhà cung cấp</string>
     <string name="home_term_provider">Thuê bao</string>
     <string name="home_term_licence">Giấy phép Castivio</string>
     <string name="home_account_active">Đang hoạt động</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">Không có phim bộ</string>
     <string name="home_section_no_radio">Không có đài</string>
     <string name="home_fetched_at">Trên thiết bị này · %1$s</string>
+
+    <string name="home_load_waiting">Đang chờ lượt</string>
+    <string name="home_load_loading">Đang tải…</string>
+    <string name="home_load_loading_live">Đang tải kênh…</string>
+    <string name="home_load_refreshing">Đang làm mới…</string>
+    <string name="home_load_source">Từ nhà cung cấp của bạn</string>
+    <string name="home_load_done">Đã tải xong</string>
+    <string name="home_load_failed">Không tải được</string>
+    <string name="home_load_failed_live">Không tải được kênh</string>
+    <string name="home_load_refresh_failed">Không làm mới được</string>
+    <string name="home_load_retry">Nhấn để thử lại</string>
+    <string name="home_load_retry_short">Thử lại</string>
+    <string name="home_load_opens">Sẽ mở khi tải xong</string>
+    <string name="home_load_percent">%1$d%%</string>
+    <string name="home_load_seconds">%1$d giây</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Tất cả kênh</string>
     <string name="channels_favorites">Yêu thích</string>

@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">A till Ö</string>
     <string name="browse_sort_name_desc">Ö till A</string>
     <string name="browse_sort_recent">Senaste</string>
-    <string name="browse_fetch_title">Läser in %1$s…</string>
-    <string name="browse_fetch_once">Det här sker en gång. Nästa gång öppnas sektionen direkt.</string>
     <string name="browse_fetch_failed">Kunde inte läsa in %1$s</string>
     <string name="browse_fetch_failed_retryable">Din leverantör svarade inte i tid. Den är oftast upptagen snarare än nere.</string>
     <string name="browse_fetch_failed_final">Din leverantör avvisade begäran. Kontrollera abonnemanget, eller lägg till det igen från startsidan.</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">Något gick fel vid inläsningen. Försök igen.</string>
     <string name="browse_fetch_retry">Försök igen</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">Version %1$s</string>
-    <string name="gate_tally">%1$s / %2$s kategorier · %3$s</string>
-    <string name="gate_items">%1$s objekt · %2$s</string>
-    <string name="gate_starting">Kontaktar din leverantör…</string>
-    <string name="gate_mac">MAC-adress</string>
-    <string name="gate_provider">Leverantör</string>
     <string name="home_term_provider">Abonnemang</string>
     <string name="home_term_licence">Castivio-licens</string>
     <string name="home_account_active">Aktivt</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">Inga serier</string>
     <string name="home_section_no_radio">Inga stationer</string>
     <string name="home_fetched_at">På den här enheten · %1$s</string>
+
+    <string name="home_load_waiting">Väntar på sin tur</string>
+    <string name="home_load_loading">Läser in…</string>
+    <string name="home_load_loading_live">Läser in kanaler…</string>
+    <string name="home_load_refreshing">Uppdaterar…</string>
+    <string name="home_load_source">Från din leverantör</string>
+    <string name="home_load_done">Inläst</string>
+    <string name="home_load_failed">Kunde inte läsa in</string>
+    <string name="home_load_failed_live">Kunde inte läsa in kanalerna</string>
+    <string name="home_load_refresh_failed">Kunde inte uppdatera</string>
+    <string name="home_load_retry">Tryck för att försöka igen</string>
+    <string name="home_load_retry_short">Försök igen</string>
+    <string name="home_load_opens">Öppnas när inläsningen är klar</string>
+    <string name="home_load_percent">%1$d\u00A0%%</string>
+    <string name="home_load_seconds">%1$d s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Alla kanaler</string>
     <string name="channels_favorites">Favoriter</string>

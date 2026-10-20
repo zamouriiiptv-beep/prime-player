@@ -10,6 +10,9 @@ import com.castivio.domain.Recorded
 import com.castivio.domain.RefreshProvider
 import com.castivio.domain.Refreshed
 import com.castivio.domain.SectionCatalogue
+import com.castivio.domain.SectionLoad
+import com.castivio.domain.SectionLoads
+import com.castivio.domain.SectionRun
 import com.castivio.domain.SourceKind
 import com.castivio.domain.SourceRepository
 import com.castivio.domain.entitlement.EntitlementRepository
@@ -19,6 +22,8 @@ import com.castivio.domain.time.TrustedTime
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -28,6 +33,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
@@ -78,6 +84,11 @@ data class HomeState(
      * the count would collapse the two and re-download an empty section forever.
      */
     val sections: Map<MediaKind, Long> = emptyMap(),
+    /**
+     * What each section's card says about its load: waiting, arriving, arrived a moment
+     * ago, failed -- or nothing, beside its count. See [CardLoad]; decided in [cardLoad].
+     */
+    val loads: Map<MediaKind, CardLoad> = emptyMap(),
     /**
      * This device's address, which is what a provider activating by MAC asks for.
      *
@@ -145,6 +156,20 @@ data class HomeState(
 
     /** True once every section has been asked for at least once. */
     val everySectionFetched: Boolean get() = MediaKind.entries.all { it in sections }
+
+    /** The indexed `COUNT` for [kind]. */
+    fun countOf(kind: MediaKind): Int = when (kind) {
+        MediaKind.LIVE -> liveCount
+        MediaKind.MOVIE -> movieCount
+        MediaKind.SERIES -> seriesCount
+        MediaKind.RADIO -> radioCount
+    }
+
+    /**
+     * Whether [kind] is here to open: it has rows, or it was loaded and the provider sent
+     * none -- which opens to its own empty state rather than to nothing.
+     */
+    fun onDevice(kind: MediaKind): Boolean = countOf(kind) > 0 || sections[kind] != null
 
     /**
      * The provider really does carry nothing, as opposed to nothing having been
@@ -231,6 +256,17 @@ private data class Counts(
 )
 
 /**
+ * What the cards say about loads, carried together for the same reason as [Counts]: the
+ * queue's latest answers, the sections that arrived a moment ago, the card last pressed
+ * while it was on its way.
+ */
+private data class CardInputs(
+    val runs: Map<MediaKind, SectionRun>,
+    val arrived: Set<MediaKind>,
+    val hinted: MediaKind?,
+)
+
+/**
  * Reads Home, and re-reads it when the catalogue underneath changes.
  *
  * The counts are flows, so an import finishing behind this screen moves the numbers
@@ -253,6 +289,7 @@ class HomeViewModel @Inject constructor(
     identity: DeviceIdentity,
     private val refresher: RefreshProvider,
     private val clock: TrustedTime,
+    private val loads: SectionLoads,
 ) : ViewModel() {
 
     private val mac: String = identity.current().macAddress.value
@@ -330,6 +367,84 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch { sources.setActive(id) }
     }
 
+    /**
+     * A section's card was pressed. True when the screen should open the section now.
+     *
+     * A section on the device opens at once, with what it holds -- and one whose mark a
+     * provider refresh forgot is fetched again behind it, the import a press of it always
+     * started, now without a screen in front of the rows. A section that is not here is
+     * asked for, and the viewer stays on Home to watch its card; pressed again while it is
+     * on its way, the card says when it will open. A failed one is asked again: one press,
+     * one attempt, and nothing retries on its own.
+     */
+    fun press(section: CatalogSection): Boolean {
+        val kind = section.kind
+        val current = state.value
+        val arriving = when (loads.runs.value[kind]?.load) {
+            is SectionLoad.Queued, is SectionLoad.Loading -> true
+            else -> false
+        }
+        return when (pressOf(current.onDevice(kind), marked = current.sections[kind] != null, arriving = arriving)) {
+            Press.Open -> true
+            Press.OpenAndFetch -> {
+                loads.request(kind)
+                true
+            }
+            Press.Hint -> {
+                hint(kind)
+                false
+            }
+            Press.Fetch -> {
+                loads.request(kind)
+                false
+            }
+        }
+    }
+
+    /** The card pressed while its section is on its way: [HINT_MS] of "opens when loaded". */
+    private fun hint(kind: MediaKind) {
+        hintJob?.cancel()
+        hinted.value = kind
+        hintJob = viewModelScope.launch {
+            delay(HINT_MS)
+            hinted.value = null
+        }
+    }
+
+    private val hinted = MutableStateFlow<MediaKind?>(null)
+    private var hintJob: Job? = null
+
+    /**
+     * Sections whose load ended moments ago, for the card's [LOADED_MS] of "loaded".
+     *
+     * Watched for the holder's whole life rather than while Home is on screen, and only
+     * from the second answer on: a load that ended before anybody was watching is simply
+     * a count, not news.
+     */
+    private val arrived = MutableStateFlow<Set<MediaKind>>(emptySet())
+
+    init {
+        viewModelScope.launch {
+            var before: Map<MediaKind, SectionRun>? = null
+            loads.runs.collect { runs ->
+                val previous = before
+                before = runs
+                if (previous != null) arrivedBetween(previous, runs).forEach(::arrive)
+            }
+        }
+    }
+
+    private fun arrive(kind: MediaKind) {
+        arrived.update { it + kind }
+        viewModelScope.launch {
+            delay(LOADED_MS)
+            arrived.update { it - kind }
+        }
+    }
+
+    private val cardInputs: Flow<CardInputs> =
+        combine(loads.runs, arrived, hinted) { runs, done, pressed -> CardInputs(runs, done, pressed) }
+
     private val counts: Flow<Counts> = combine(
         catalog.count(MediaKind.LIVE),
         catalog.count(MediaKind.MOVIE),
@@ -382,14 +497,17 @@ class HomeViewModel @Inject constructor(
         library,
         counts,
         entitlement.state,
-        sections,
+        // The marks and the cards' inputs together: both say what each section is doing,
+        // and `combine` is typed to five.
+        sections.combine(cardInputs) { marks, inputs -> marks to inputs },
         // Paired with the recorded status because both are answers about the same
         // question — what the provider says — and because `combine` is typed to five.
         subscription.combine(_refresh) { recorded, refresh -> recorded to refresh },
-    ) { shelf, tally, licence, fetched, answer ->
+    ) { shelf, tally, licence, fetchedAndCards, answer ->
         val (status, refresh) = answer
+        val (fetched, cards) = fetchedAndCards
         val source = shelf.active
-        HomeState(
+        val base = HomeState(
             provider = source?.label,
             sourceKind = source?.kind,
             importedCount = source?.sync?.itemCount ?: 0,
@@ -408,6 +526,16 @@ class HomeViewModel @Inject constructor(
             refreshFault = refresh.fault,
             loading = false,
         )
+        base.copy(
+            loads = MediaKind.entries.associateWith { kind ->
+                cardLoad(
+                    run = cards.runs[kind],
+                    onDevice = base.onDevice(kind),
+                    justArrived = kind in cards.arrived,
+                    hinted = cards.hinted == kind,
+                )
+            },
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_GRACE_MS), HomeState())
 
     /** See [library]. */
@@ -418,5 +546,11 @@ class HomeViewModel @Inject constructor(
 
     private companion object {
         const val SUBSCRIPTION_GRACE_MS = 5_000L
+
+        /** How long a card says its section has just loaded before it goes back to its count. */
+        const val LOADED_MS = 3_000L
+
+        /** How long a card pressed on its way says when it will open. */
+        const val HINT_MS = 2_000L
     }
 }

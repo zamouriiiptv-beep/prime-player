@@ -42,8 +42,8 @@ object CastivioTrace {
     /**
      * One section of the catalogue being fetched, from the first request to the last
      * commit. The outermost boundary Phase A identified: `LoadSection.load` is pure
-     * Kotlin, so the section is opened around its collection in the view model, which
-     * begins and ends at the same instants.
+     * Kotlin, so the section is opened around its collection by the queue every section
+     * loads through, `SectionLoads`, which begins and ends at the same instants.
      */
     const val FETCH = "Castivio.Fetch"
 

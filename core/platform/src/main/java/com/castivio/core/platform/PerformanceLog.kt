@@ -106,11 +106,6 @@ object PerformanceLog {
     /** How many records each stage of the run saw. */
     fun recordCounts(counts: RecordCounts) = updateRunning { it.copy(recordCounts = counts) }
 
-    /** The catalogue and its search index, counted before the import ([before]) or after it. */
-    fun check(before: Boolean, check: IndexCheck) = updateRunning {
-        if (before) it.copy(checkBefore = check) else it.copy(checkAfter = check)
-    }
-
     /**
      * [change] applied to the run in progress, and to nothing else.
      *
@@ -162,9 +157,14 @@ object PerformanceLog {
      * Recorded once per run. A section that scrolls, re-sorts or loads a second page
      * reaches this composable again, and the first of those is the only one that
      * answers the question "how long did I stare at nothing".
+     *
+     * [section], when named, is the screen's own, and the row counts only for a run of that
+     * section: loads run behind the screens now, and the first row of Radio is not the first
+     * content of a Movies load that happens to be running while Radio is open.
      */
-    fun firstContent() {
+    fun firstContent(section: PerfSection? = null) {
         val report = _current.value ?: return
+        if (section != null && report.section != section) return
         if (report.firstContentMs != null) return
         _current.value = report.copy(firstContentMs = report.sinceStartMs())
     }
@@ -366,19 +366,7 @@ object PerformanceLog {
         )
         _current.value = settledReport
         settledReport.lines().forEach { Log.i(TAG, it) }
-        onSettled?.invoke(settledReport)
     }
-
-    /**
-     * Told of every run as it settles, after it is printed.
-     *
-     * Null by default, which is every release build. A debuggable one hands the reading on
-     * through it -- see `MeasurementClipboard` in the app -- because the loading screen that
-     * drew the readout gives way to the section in the same frame the run settles, so the
-     * finished readout is never on screen long enough to be read, and the log needs a cable.
-     */
-    @Volatile
-    var onSettled: ((SectionReport) -> Unit)? = null
 
     private data class NetworkWindow(
         val requests: Int,
@@ -563,10 +551,6 @@ data class SectionReport(
 
     /** Every request of the import window by action: time, wait for an answer, size. */
     val calls: List<CallTimes> = emptyList(),
-
-    /** The catalogue and its search index before the import, and after it. */
-    val checkBefore: IndexCheck? = null,
-    val checkAfter: IndexCheck? = null,
 ) {
     /** Milliseconds since this run began, on the monotonic clock. */
     fun sinceStartMs(): Long = (SystemClock.elapsedRealtimeNanos() - startedAtNanos) / 1_000_000
@@ -631,8 +615,6 @@ data class SectionReport(
                     " · wait ${call.waitMs.seconds()} · ${call.bytes.grouped()} bytes",
             )
         }
-        checkBefore?.let { add("index before: ${it.describe()}") }
-        checkAfter?.let { add("index after: ${it.describe()}") }
         add(
             "network ${serverMs.seconds()} in calls · ${serverWaitMs.seconds()} waiting · ${requests ?: 0} calls" +
                 " · categories ${categories ?: 0} · records ${records ?: 0}",
@@ -664,12 +646,6 @@ data class SectionReport(
     private fun Long.grouped(): String = String.format(Locale.ROOT, "%,d", this)
 
     private fun Map<String, Int>.byName(): String = entries.joinToString(", ") { "${it.key} ${it.value.grouped()}" }
-
-    private fun IndexCheck.describe(): String =
-        "rows ${rows.byName()} · all rows ${allRows.grouped()}" +
-            " · search entries ${searchRows.grouped()} · ids indexed more than once ${duplicated.grouped()}" +
-            " · sample search ${sampleResults?.grouped() ?: "–"} results for ${sampleRows?.grouped() ?: "–"} rows" +
-            " · took ${tookMs.seconds()}"
 }
 
 /**
@@ -739,23 +715,6 @@ data class CallTimes(
     val bytes: Long,
 )
 
-/** The catalogue and its search index, counted at one moment. Kinds by name. */
-data class IndexCheck(
-    /** This source's rows, by kind. */
-    val rows: Map<String, Int>,
-    /** Every source's rows: what the search index is built from. */
-    val allRows: Int,
-    /** Entries in the search index. One per row when it is in step. */
-    val searchRows: Int,
-    /** Rows the index holds more than one entry for. */
-    val duplicated: Int,
-    /** A sample search run the app's way: results, and the different rows among them. */
-    val sampleResults: Int?,
-    val sampleRows: Int?,
-    /** How long counting took: part of the load's time, shown so it can be set aside. */
-    val tookMs: Long,
-)
-
 /** One moment a run passed through, and when, in milliseconds from its start. */
 data class RunPhase(val phase: PerfPhase, val atMs: Long)
 
@@ -771,13 +730,6 @@ enum class PerfPhase(val label: String) {
     /** The importer took the section over from the screen. */
     IMPORT("import"),
 
-    /**
-     * The catalogue and its search index were counted before anything was written: a
-     * measurement in debuggable builds, given its own span so its time is never mistaken
-     * for the import's.
-     */
-    CHECKED_BEFORE("checks before"),
-
     /** The provider's category list arrived. */
     CATEGORIES("categories"),
 
@@ -792,9 +744,6 @@ enum class PerfPhase(val label: String) {
 
     /** The writer has finished: old rows pruned, counts and search rebuilt. */
     FINISHED("finished"),
-
-    /** Counted again after the import, like [CHECKED_BEFORE] and for the same reason. */
-    CHECKED_AFTER("checks after"),
 
     /** The section is marked as loaded, so the next open reads from the device. */
     RECORDED("recorded"),

@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">A til Å</string>
     <string name="browse_sort_name_desc">Å til A</string>
     <string name="browse_sort_recent">Nyeste</string>
-    <string name="browse_fetch_title">Laster %1$s…</string>
-    <string name="browse_fetch_once">Dette skjer én gang. Neste gang åpnes seksjonen med en gang.</string>
     <string name="browse_fetch_failed">Kunne ikke laste %1$s</string>
     <string name="browse_fetch_failed_retryable">Leverandøren din svarte ikke i tide. Den er som regel opptatt heller enn nede.</string>
     <string name="browse_fetch_failed_final">Leverandøren din avviste forespørselen. Sjekk abonnementet, eller legg det til på nytt fra startsiden.</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">Noe gikk galt under innlastingen. Prøv igjen.</string>
     <string name="browse_fetch_retry">Prøv igjen</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">Versjon %1$s</string>
-    <string name="gate_tally">%1$s / %2$s kategorier · %3$s</string>
-    <string name="gate_items">%1$s elementer · %2$s</string>
-    <string name="gate_starting">Kontakter leverandøren din…</string>
-    <string name="gate_mac">MAC-adresse</string>
-    <string name="gate_provider">Leverandør</string>
     <string name="home_term_provider">Abonnement</string>
     <string name="home_term_licence">Castivio-lisens</string>
     <string name="home_account_active">Aktivt</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">Ingen serier</string>
     <string name="home_section_no_radio">Ingen stasjoner</string>
     <string name="home_fetched_at">På denne enheten · %1$s</string>
+
+    <string name="home_load_waiting">Venter på tur</string>
+    <string name="home_load_loading">Laster…</string>
+    <string name="home_load_loading_live">Laster kanaler…</string>
+    <string name="home_load_refreshing">Oppdaterer…</string>
+    <string name="home_load_source">Fra leverandøren din</string>
+    <string name="home_load_done">Lastet</string>
+    <string name="home_load_failed">Kunne ikke laste</string>
+    <string name="home_load_failed_live">Kunne ikke laste kanalene</string>
+    <string name="home_load_refresh_failed">Kunne ikke oppdatere</string>
+    <string name="home_load_retry">Trykk for å prøve igjen</string>
+    <string name="home_load_retry_short">Prøv igjen</string>
+    <string name="home_load_opens">Åpnes når innlastingen er ferdig</string>
+    <string name="home_load_percent">%1$d\u00A0%%</string>
+    <string name="home_load_seconds">%1$d s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Alle kanaler</string>
     <string name="channels_favorites">Favoritter</string>

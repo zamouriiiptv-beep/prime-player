@@ -201,54 +201,6 @@ class RoomCatalogWriterTest {
     // ------------------------------------------------------------ the measurement build
 
     /**
-     * The check a debuggable build takes before an import and after it, against real
-     * SQLite: the rows by kind, the search index's entries, the rows it holds more than
-     * once, and a search run the app's own way.
-     */
-    @Test
-    fun `the check counts the rows, the search index and a search the app's way`() {
-        Fixtures.import(database, Fixtures.livePlaylist(3))
-
-        val check = RoomCatalogWriter(database).check("src")!!
-
-        assertEquals(mapOf(MediaKind.LIVE to 3), check.rows)
-        assertEquals(3, check.allRows)
-        assertEquals("one entry per row", 3, check.searchRows)
-        assertEquals(0, check.duplicatedInSearch)
-        assertEquals(3, check.sampleResults)
-        assertEquals(3, check.sampleRows)
-    }
-
-    /**
-     * A row the index holds twice is the reading the check exists to take, so it is counted
-     * from what is stored rather than assumed: here the second entry is put there by hand,
-     * the way a reload that indexed the row again would leave it.
-     */
-    @Test
-    fun `the check counts a row the search index holds twice, and a search that returns it twice`() {
-        Fixtures.import(database, Fixtures.livePlaylist(3))
-        database.openHelper.writableDatabase.execSQL(
-            "INSERT INTO media_fts (media_id, search_text) SELECT id, search_text FROM media WHERE source_id = 'src' LIMIT 1",
-        )
-
-        val check = RoomCatalogWriter(database).check("src")!!
-
-        assertEquals(4, check.searchRows)
-        assertEquals(1, check.duplicatedInSearch)
-        assertEquals("the row comes back twice", 4, check.sampleResults)
-        assertEquals(3, check.sampleRows)
-    }
-
-    @Test
-    fun `the check of a source with no rows has nothing to search for`() {
-        val check = RoomCatalogWriter(database).check("nothing")!!
-
-        assertTrue(check.rows.isEmpty())
-        assertNull(check.sampleResults)
-        assertNull(check.sampleRows)
-    }
-
-    /**
      * Rows and their search entries were one figure, and the question it could not answer
      * was how much of it the index was. A replacing import writes no entry per row -- it
      * rebuilds the index once -- so it reports no search rows at all, and says how it saved.

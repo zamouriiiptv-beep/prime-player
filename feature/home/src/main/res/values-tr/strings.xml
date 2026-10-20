@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">A\'dan Z\'ye</string>
     <string name="browse_sort_name_desc">Z\'den A\'ya</string>
     <string name="browse_sort_recent">En yeni</string>
-    <string name="browse_fetch_title">%1$s yükleniyor…</string>
-    <string name="browse_fetch_once">Bu bir kez çalışır. Bir dahaki sefere bu bölüm hemen açılır.</string>
     <string name="browse_fetch_failed">%1$s yüklenemedi</string>
     <string name="browse_fetch_failed_retryable">Sağlayıcınız zamanında yanıt vermedi. Genellikle çökmüş değil, yoğundur.</string>
     <string name="browse_fetch_failed_final">Sağlayıcınız isteği reddetti. Aboneliği kontrol edin ya da Ana sayfadan yeniden ekleyin.</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">Yükleme sırasında bir sorun oluştu. Yeniden deneyin.</string>
     <string name="browse_fetch_retry">Yeniden dene</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">Sürüm %1$s</string>
-    <string name="gate_tally">%1$s / %2$s kategori · %3$s</string>
-    <string name="gate_items">%1$s öğe · %2$s</string>
-    <string name="gate_starting">Sağlayıcınıza bağlanılıyor…</string>
-    <string name="gate_mac">MAC adresi</string>
-    <string name="gate_provider">Sağlayıcı</string>
     <string name="home_term_provider">Abonelik</string>
     <string name="home_term_licence">Castivio lisansı</string>
     <string name="home_account_active">Etkin</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">Dizi yok</string>
     <string name="home_section_no_radio">İstasyon yok</string>
     <string name="home_fetched_at">Bu cihazda · %1$s</string>
+
+    <string name="home_load_waiting">Sırasını bekliyor</string>
+    <string name="home_load_loading">Yükleniyor…</string>
+    <string name="home_load_loading_live">Kanallar yükleniyor…</string>
+    <string name="home_load_refreshing">Yenileniyor…</string>
+    <string name="home_load_source">Sağlayıcınızdan</string>
+    <string name="home_load_done">Yüklendi</string>
+    <string name="home_load_failed">Yüklenemedi</string>
+    <string name="home_load_failed_live">Kanallar yüklenemedi</string>
+    <string name="home_load_refresh_failed">Yenilenemedi</string>
+    <string name="home_load_retry">Yeniden denemek için basın</string>
+    <string name="home_load_retry_short">Yeniden dene</string>
+    <string name="home_load_opens">Yükleme bitince açılır</string>
+    <string name="home_load_percent">%%%1$d</string>
+    <string name="home_load_seconds">%1$d sn</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Tüm Kanallar</string>
     <string name="channels_favorites">Favoriler</string>

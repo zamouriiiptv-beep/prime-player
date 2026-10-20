@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">A-tól Z-ig</string>
     <string name="browse_sort_name_desc">Z-től A-ig</string>
     <string name="browse_sort_recent">Legújabb</string>
-    <string name="browse_fetch_title">%1$s betöltése…</string>
-    <string name="browse_fetch_once">Ez egyszer fut le. Legközelebb ez a szakasz azonnal megnyílik.</string>
     <string name="browse_fetch_failed">A(z) %1$s nem tölthető be</string>
     <string name="browse_fetch_failed_retryable">A szolgáltatója nem válaszolt időben. Rendszerint csak leterhelt, nem pedig elérhetetlen.</string>
     <string name="browse_fetch_failed_final">A szolgáltatója elutasította a kérést. Ellenőrizze az előfizetést, vagy adja hozzá újra a Kezdőlapról.</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">Hiba történt a betöltés közben. Próbálja újra.</string>
     <string name="browse_fetch_retry">Újra</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">%1$s verzió</string>
-    <string name="gate_tally">%1$s / %2$s kategória · %3$s</string>
-    <string name="gate_items">%1$s elem · %2$s</string>
-    <string name="gate_starting">Kapcsolódás a szolgáltatójához…</string>
-    <string name="gate_mac">MAC-cím</string>
-    <string name="gate_provider">Szolgáltató</string>
     <string name="home_term_provider">Előfizetés</string>
     <string name="home_term_licence">Castivio licenc</string>
     <string name="home_account_active">Aktív</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">Nincs sorozat</string>
     <string name="home_section_no_radio">Nincs állomás</string>
     <string name="home_fetched_at">Ezen az eszközön · %1$s</string>
+
+    <string name="home_load_waiting">Sorára vár</string>
+    <string name="home_load_loading">Betöltés…</string>
+    <string name="home_load_loading_live">Csatornák betöltése…</string>
+    <string name="home_load_refreshing">Frissítés…</string>
+    <string name="home_load_source">A szolgáltatójától</string>
+    <string name="home_load_done">Betöltve</string>
+    <string name="home_load_failed">Nem sikerült betölteni</string>
+    <string name="home_load_failed_live">A csatornákat nem sikerült betölteni</string>
+    <string name="home_load_refresh_failed">Nem sikerült frissíteni</string>
+    <string name="home_load_retry">Nyomja meg az újrapróbáláshoz</string>
+    <string name="home_load_retry_short">Újra</string>
+    <string name="home_load_opens">Betöltés után megnyílik</string>
+    <string name="home_load_percent">%1$d%%</string>
+    <string name="home_load_seconds">%1$d mp</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Összes csatorna</string>
     <string name="channels_favorites">Kedvencek</string>

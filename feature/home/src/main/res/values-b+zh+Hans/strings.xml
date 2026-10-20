@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">A 到 Z</string>
     <string name="browse_sort_name_desc">Z 到 A</string>
     <string name="browse_sort_recent">最新</string>
-    <string name="browse_fetch_title">正在加载%1$s…</string>
-    <string name="browse_fetch_once">这一步只执行一次。下次打开该板块会立即显示。</string>
     <string name="browse_fetch_failed">无法加载%1$s</string>
     <string name="browse_fetch_failed_retryable">你的服务商未在规定时间内响应。通常是繁忙，而不是故障。</string>
     <string name="browse_fetch_failed_final">你的服务商拒绝了该请求。请检查订阅，或从主页重新添加。</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">加载时出现问题。请重试。</string>
     <string name="browse_fetch_retry">重试</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">版本 %1$s</string>
-    <string name="gate_tally">%1$s / %2$s 个分类 · %3$s</string>
-    <string name="gate_items">%1$s 个项目 · %2$s</string>
-    <string name="gate_starting">正在连接你的服务商…</string>
-    <string name="gate_mac">MAC 地址</string>
-    <string name="gate_provider">服务商</string>
     <string name="home_term_provider">订阅</string>
     <string name="home_term_licence">Castivio 许可证</string>
     <string name="home_account_active">有效</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">无剧集</string>
     <string name="home_section_no_radio">无电台</string>
     <string name="home_fetched_at">已存于本机 · %1$s</string>
+
+    <string name="home_load_waiting">排队等待中</string>
+    <string name="home_load_loading">正在加载…</string>
+    <string name="home_load_loading_live">正在加载频道…</string>
+    <string name="home_load_refreshing">正在刷新…</string>
+    <string name="home_load_source">来自你的服务商</string>
+    <string name="home_load_done">已加载</string>
+    <string name="home_load_failed">无法加载</string>
+    <string name="home_load_failed_live">无法加载频道</string>
+    <string name="home_load_refresh_failed">无法刷新</string>
+    <string name="home_load_retry">按下即可重试</string>
+    <string name="home_load_retry_short">重试</string>
+    <string name="home_load_opens">加载完成后即可打开</string>
+    <string name="home_load_percent">%1$d%%</string>
+    <string name="home_load_seconds">%1$d 秒</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">全部频道</string>
     <string name="channels_favorites">收藏</string>

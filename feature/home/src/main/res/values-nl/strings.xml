@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">A tot Z</string>
     <string name="browse_sort_name_desc">Z tot A</string>
     <string name="browse_sort_recent">Recent</string>
-    <string name="browse_fetch_title">%1$s laden…</string>
-    <string name="browse_fetch_once">Dit gebeurt één keer. De volgende keer opent de sectie meteen.</string>
     <string name="browse_fetch_failed">%1$s kon niet worden geladen</string>
     <string name="browse_fetch_failed_retryable">Je provider antwoordde niet op tijd. Meestal is hij druk in plaats van uit de lucht.</string>
     <string name="browse_fetch_failed_final">Je provider weigerde het verzoek. Controleer het abonnement, of voeg het opnieuw toe vanaf het startscherm.</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">Er ging iets mis bij het laden. Probeer het opnieuw.</string>
     <string name="browse_fetch_retry">Opnieuw proberen</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">Versie %1$s</string>
-    <string name="gate_tally">%1$s / %2$s categorieën · %3$s</string>
-    <string name="gate_items">%1$s items · %2$s</string>
-    <string name="gate_starting">Contact maken met je provider…</string>
-    <string name="gate_mac">MAC-adres</string>
-    <string name="gate_provider">Provider</string>
     <string name="home_term_provider">Abonnement</string>
     <string name="home_term_licence">Castivio-licentie</string>
     <string name="home_account_active">Actief</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">Geen series</string>
     <string name="home_section_no_radio">Geen stations</string>
     <string name="home_fetched_at">Op dit apparaat · %1$s</string>
+
+    <string name="home_load_waiting">Wacht op zijn beurt</string>
+    <string name="home_load_loading">Laden…</string>
+    <string name="home_load_loading_live">Zenders laden…</string>
+    <string name="home_load_refreshing">Verversen…</string>
+    <string name="home_load_source">Van je provider</string>
+    <string name="home_load_done">Geladen</string>
+    <string name="home_load_failed">Kon niet laden</string>
+    <string name="home_load_failed_live">Kon de zenders niet laden</string>
+    <string name="home_load_refresh_failed">Kon niet verversen</string>
+    <string name="home_load_retry">Druk om het opnieuw te proberen</string>
+    <string name="home_load_retry_short">Opnieuw proberen</string>
+    <string name="home_load_opens">Opent zodra het geladen is</string>
+    <string name="home_load_percent">%1$d%%</string>
+    <string name="home_load_seconds">%1$d s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Alle zenders</string>
     <string name="channels_favorites">Favorieten</string>

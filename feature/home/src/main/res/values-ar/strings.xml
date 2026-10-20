@@ -66,8 +66,6 @@
     <string name="browse_sort_recent">الأحدث</string>
 
 
-    <string name="browse_fetch_title">جارٍ تحميل %1$s…</string>
-    <string name="browse_fetch_once">يحدث هذا مرة واحدة. في المرة القادمة يُفتح القسم فورًا.</string>
     <string name="browse_fetch_failed">تعذّر تحميل %1$s</string>
     <string name="browse_fetch_failed_retryable">لم يردّ مزوّدك في الوقت المتاح. غالبًا يكون مشغولًا لا معطّلًا.</string>
     <string name="browse_fetch_failed_final">رفض مزوّدك الطلب. تحقّق من الاشتراك، أو أضفه من جديد من الصفحة الرئيسية.</string>
@@ -78,12 +76,6 @@
     <string name="browse_fetch_retry">حاول مرة أخرى</string>
 
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">الإصدار %1$s</string>
-    <string name="gate_tally">%1$s / %2$s تصنيفًا · %3$s</string>
-    <string name="gate_items">%1$s عنصرًا · %2$s</string>
-    <string name="gate_starting">جارٍ الاتصال بمزوّدك…</string>
-    <string name="gate_mac">عنوان MAC</string>
-    <string name="gate_provider">المزوّد</string>
 
 
     <string name="home_not_fetched">لم يُحمَّل بعد</string>
@@ -95,6 +87,21 @@
     <string name="home_section_no_series">لا مسلسلات</string>
     <string name="home_section_no_radio">لا محطات</string>
     <string name="home_fetched_at">محفوظ محليًا · %1$s</string>
+
+    <string name="home_load_waiting">في الانتظار</string>
+    <string name="home_load_loading">جارٍ التحميل…</string>
+    <string name="home_load_loading_live">جارٍ تحميل القنوات…</string>
+    <string name="home_load_refreshing">جارٍ التحديث…</string>
+    <string name="home_load_source">من خادم الاشتراك</string>
+    <string name="home_load_done">اكتمل التحميل</string>
+    <string name="home_load_failed">تعذّر التحميل</string>
+    <string name="home_load_failed_live">تعذّر تحميل القنوات</string>
+    <string name="home_load_refresh_failed">تعذّر التحديث</string>
+    <string name="home_load_retry">اضغط لإعادة المحاولة</string>
+    <string name="home_load_retry_short">اضغط للإعادة</string>
+    <string name="home_load_opens">يُفتح عند اكتمال التحميل</string>
+    <string name="home_load_percent">%1$d%%</string>
+    <string name="home_load_seconds">%1$d ث</string>
 
 
     <string name="home_term_provider">الاشتراك</string>

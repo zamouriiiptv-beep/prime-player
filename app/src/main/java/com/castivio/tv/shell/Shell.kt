@@ -74,7 +74,6 @@ import com.castivio.feature.home.CatalogSelection
 import com.castivio.feature.home.ChannelsScreen
 import com.castivio.feature.home.HomeScreen
 import com.castivio.feature.home.R as CatalogStrings
-import com.castivio.feature.home.SectionGate
 import com.castivio.feature.home.ShowScreen
 import com.castivio.feature.licence.R as LicenceStrings
 import com.castivio.feature.player.PlayerMode
@@ -367,14 +366,13 @@ fun ShellScreen(
                     // channel the remote is on, which the other three sections have no
                     // equivalent of. They keep `BrowseScreen` exactly as it was.
                     //
-                    // **The gate is entered before the section, not inside it.**
+                    // **A section is entered once it is on the device, and not before.**
                     //
-                    // `SectionGate` composes the screen only once the loader has answered,
-                    // so the first press of a section shows the loading screen and nothing
-                    // else. It was an `if` at the top of each screen, which meant the screen
-                    // composed first and the gate replaced it a frame later -- pressing
-                    // Channels showed Channels and then took it away.
-                    Dest.Live -> SectionGate(CatalogSection.Live) { ChannelsScreen(
+                    // Home loads it on its own card and opens it when the load has ended --
+                    // or at once, with what it already holds, while a refresh runs behind
+                    // it. So each screen composes over rows that are there, and no screen
+                    // stands between Home and the section to say they are not.
+                    Dest.Live -> ChannelsScreen(
                         onPlay = playInPreview,
                         // Two presses on the name under the picture, reaching the very action
                         // the picture's own press reaches — `Overlay.Play` on the request that
@@ -385,25 +383,25 @@ fun ShellScreen(
                         onExpand = { livePreview?.let { overlay = Overlay.Play(it) } },
                         onSearch = { searchKind = CatalogKind.LIVE; dest = Dest.Search },
                         preview = preview,
-                    ) }
-                    Dest.Movies -> SectionGate(CatalogSection.Movies) { BrowseScreen(
+                    )
+                    Dest.Movies -> BrowseScreen(
                         section = CatalogSection.Movies,
                         onPlay = play,
                         onOpenShow = { overlay = Overlay.Show(it) },
                         onSearch = { searchKind = null; dest = Dest.Search },
-                    ) }
-                    Dest.Series -> SectionGate(CatalogSection.Series) { BrowseScreen(
+                    )
+                    Dest.Series -> BrowseScreen(
                         section = CatalogSection.Series,
                         onPlay = play,
                         onOpenShow = { overlay = Overlay.Show(it) },
                         onSearch = { searchKind = null; dest = Dest.Search },
-                    ) }
-                    Dest.Radio -> SectionGate(CatalogSection.Radio) { BrowseScreen(
+                    )
+                    Dest.Radio -> BrowseScreen(
                         section = CatalogSection.Radio,
                         onPlay = play,
                         onOpenShow = { overlay = Overlay.Show(it) },
                         onSearch = { searchKind = null; dest = Dest.Search },
-                    ) }
+                    )
                     Dest.Favourites -> FavouritesScreen()
                     Dest.Library -> LibraryScreen(onOpenSection = { dest = it })
                     Dest.Search -> CatalogSearchScreen(onPlay = play, restrictTo = searchKind)

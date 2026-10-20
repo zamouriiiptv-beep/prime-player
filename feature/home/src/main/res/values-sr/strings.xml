@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">Од А до Ш</string>
     <string name="browse_sort_name_desc">Од Ш до А</string>
     <string name="browse_sort_recent">Најновије</string>
-    <string name="browse_fetch_title">Учитавање %1$s…</string>
-    <string name="browse_fetch_once">Ово се дешава једном. Следећи пут се овај одељак отвара одмах.</string>
     <string name="browse_fetch_failed">%1$s није могло да се учита</string>
     <string name="browse_fetch_failed_retryable">Ваш добављач није одговорио на време. Обично је заузет, а не угашен.</string>
     <string name="browse_fetch_failed_final">Ваш добављач је одбио захтев. Проверите претплату или је поново додајте са почетне странице.</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">Нешто није у реду приликом учитавања. Покушајте поново.</string>
     <string name="browse_fetch_retry">Покушај поново</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">Верзија %1$s</string>
-    <string name="gate_tally">%1$s / %2$s категорија · %3$s</string>
-    <string name="gate_items">%1$s ставки · %2$s</string>
-    <string name="gate_starting">Повезивање са вашим добављачем…</string>
-    <string name="gate_mac">MAC адреса</string>
-    <string name="gate_provider">Добављач</string>
     <string name="home_term_provider">Претплата</string>
     <string name="home_term_licence">Castivio лиценца</string>
     <string name="home_account_active">Активна</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">Нема серија</string>
     <string name="home_section_no_radio">Нема станица</string>
     <string name="home_fetched_at">На овом уређају · %1$s</string>
+
+    <string name="home_load_waiting">Чека на ред</string>
+    <string name="home_load_loading">Учитавање…</string>
+    <string name="home_load_loading_live">Учитавање канала…</string>
+    <string name="home_load_refreshing">Освежавање…</string>
+    <string name="home_load_source">Од вашег добављача</string>
+    <string name="home_load_done">Учитано</string>
+    <string name="home_load_failed">Учитавање није успело</string>
+    <string name="home_load_failed_live">Канали нису могли да се учитају</string>
+    <string name="home_load_refresh_failed">Освежавање није успело</string>
+    <string name="home_load_retry">Притисните да покушате поново</string>
+    <string name="home_load_retry_short">Покушај поново</string>
+    <string name="home_load_opens">Отвара се када се учита</string>
+    <string name="home_load_percent">%1$d%%</string>
+    <string name="home_load_seconds">%1$d с</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Сви канали</string>
     <string name="channels_favorites">Омиљено</string>

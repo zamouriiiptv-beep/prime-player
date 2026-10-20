@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">가나다순</string>
     <string name="browse_sort_name_desc">역순</string>
     <string name="browse_sort_recent">최신순</string>
-    <string name="browse_fetch_title">%1$s 불러오는 중…</string>
-    <string name="browse_fetch_once">이 과정은 한 번만 실행됩니다. 다음부터는 이 섹션이 바로 열립니다.</string>
     <string name="browse_fetch_failed">%1$s을(를) 불러오지 못했습니다</string>
     <string name="browse_fetch_failed_retryable">공급자가 제시간에 응답하지 않았습니다. 중단된 것이 아니라 대개 혼잡한 상태입니다.</string>
     <string name="browse_fetch_failed_final">공급자가 요청을 거부했습니다. 구독을 확인하거나 홈에서 다시 추가하세요.</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">불러오는 중에 문제가 발생했습니다. 다시 시도하세요.</string>
     <string name="browse_fetch_retry">다시 시도</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">버전 %1$s</string>
-    <string name="gate_tally">%1$s / %2$s 카테고리 · %3$s</string>
-    <string name="gate_items">%1$s개 항목 · %2$s</string>
-    <string name="gate_starting">공급자에 연결하는 중…</string>
-    <string name="gate_mac">MAC 주소</string>
-    <string name="gate_provider">공급자</string>
     <string name="home_term_provider">구독</string>
     <string name="home_term_licence">Castivio 라이선스</string>
     <string name="home_account_active">활성</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">시리즈 없음</string>
     <string name="home_section_no_radio">방송국 없음</string>
     <string name="home_fetched_at">이 기기에 저장됨 · %1$s</string>
+
+    <string name="home_load_waiting">차례를 기다리는 중</string>
+    <string name="home_load_loading">불러오는 중…</string>
+    <string name="home_load_loading_live">채널 불러오는 중…</string>
+    <string name="home_load_refreshing">새로 고치는 중…</string>
+    <string name="home_load_source">공급자에서</string>
+    <string name="home_load_done">불러오기 완료</string>
+    <string name="home_load_failed">불러오지 못했습니다</string>
+    <string name="home_load_failed_live">채널을 불러오지 못했습니다</string>
+    <string name="home_load_refresh_failed">새로 고치지 못했습니다</string>
+    <string name="home_load_retry">눌러서 다시 시도</string>
+    <string name="home_load_retry_short">다시 시도</string>
+    <string name="home_load_opens">불러오기가 끝나면 열립니다</string>
+    <string name="home_load_percent">%1$d%%</string>
+    <string name="home_load_seconds">%1$d초</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">전체 채널</string>
     <string name="channels_favorites">즐겨찾기</string>

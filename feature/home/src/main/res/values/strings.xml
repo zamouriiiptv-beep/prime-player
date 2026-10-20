@@ -75,11 +75,8 @@
     <string name="browse_sort_recent">Recent</string>
 
 
-    <!-- A section being brought onto the device the first time it is opened.
-         %1$s is the section name. Shown on the loading gate, which is the whole
-         screen a section is fetched on; see LoadingGate.kt. -->
-    <string name="browse_fetch_title">Loading %1$s…</string>
-    <string name="browse_fetch_once">This runs once. Next time this section opens straight away.</string>
+    <!-- A section that could not be brought onto the device, said by its own screen
+         when there is nothing in it to show instead. %1$s is the section name. -->
     <string name="browse_fetch_failed">Could not load %1$s</string>
     <string name="browse_fetch_failed_retryable">Your provider did not answer in time. It is usually busy rather than down.</string>
     <string name="browse_fetch_failed_final">Your provider refused the request. Check the subscription, or add it again from Home.</string>
@@ -92,24 +89,9 @@
     <string name="browse_fetch_retry">Try again</string>
 
 
-    <!-- ================================================== the loading gate
-         The screen a section is fetched on, before the section itself. Every
-         figure on it comes from a real counter; see LoadingGate.kt. -->
+    <!-- The wordmark the Channels board draws in its header. It outlived the loading
+         screen it was named for, which is why its key still says "gate". -->
     <string name="gate_wordmark">Castivio</string>
-    <!-- %1$s is the installed APK's own version name, read from the platform. -->
-    <string name="gate_version">Version %1$s</string>
-    <!-- %1$s categories finished of %2$s, and %3$s received so far, already
-         formatted, e.g. “7.2 MB”. Categories rather than channels because the
-         channel total is not known until the last one has arrived. -->
-    <string name="gate_tally">%1$s / %2$s categories · %3$s</string>
-    <!-- The same line for an importer with no addressable categories: an M3U
-         playlist is one file, so what rises honestly is the row count.
-         %1$s rows committed so far, %2$s received. -->
-    <string name="gate_items">%1$s items · %2$s</string>
-    <!-- Before the provider's first reply there is no denominator to print. -->
-    <string name="gate_starting">Contacting your provider…</string>
-    <string name="gate_mac">MAC address</string>
-    <string name="gate_provider">Provider</string>
 
 
     <!-- ============================================ the dashboard's own two terms
@@ -192,6 +174,32 @@
     <string name="home_section_no_radio">No stations</string>
     <!-- %1$s is a date and time. Shown under the count on a downloaded section. -->
     <string name="home_fetched_at">On this device · %1$s</string>
+
+    <!-- ======================================= a section's load, on its own card on Home
+         What a card says under its name while its section waits its turn, arrives, has
+         just arrived or has failed. See SectionCards.kt and design/mockups/home-loading.html.
+         Every one of these is drawn with its state's own colour and, where it has one, a
+         glyph, so no state is colour alone (UI_ARCHITECTURE.md §5.1). -->
+    <string name="home_load_waiting">Waiting its turn</string>
+    <string name="home_load_loading">Loading…</string>
+    <!-- The Live TV panel's own word for its first load. -->
+    <string name="home_load_loading_live">Loading channels…</string>
+    <string name="home_load_refreshing">Refreshing…</string>
+    <!-- Under a first load's bar: where the rows are coming from. -->
+    <string name="home_load_source">From your provider</string>
+    <string name="home_load_done">Loaded</string>
+    <string name="home_load_failed">Could not load</string>
+    <string name="home_load_failed_live">Could not load the channels</string>
+    <string name="home_load_refresh_failed">Could not refresh</string>
+    <string name="home_load_retry">Press to try again</string>
+    <!-- The end of a failed line on a small card: the card itself is what is pressed. -->
+    <string name="home_load_retry_short">Press to retry</string>
+    <!-- A card pressed before its section has loaded for the first time. -->
+    <string name="home_load_opens">Opens when it has loaded</string>
+    <!-- %1$d is the whole percent of the section's categories that have arrived. -->
+    <string name="home_load_percent">%1$d%%</string>
+    <!-- %1$d is how many seconds the load took. Debuggable builds only. -->
+    <string name="home_load_seconds">%1$d s</string>
 
     <!-- ============================================================ Channels
          The Live TV board, drawn from the approved Channels reference. -->

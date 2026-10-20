@@ -1,0 +1,398 @@
+<!doctype html>
+<!--
+  Home, with a section's load drawn inside its own card. Drawn before code.
+
+  The loading gate goes: pressing a section on Home loads that section, and only that
+  section, while the viewer stays on Home and watches its card. One load at a time; a
+  second press waits its turn. A section that has never loaded opens when its load ends;
+  one being refreshed keeps opening with what it already has.
+
+  Geometry is castivioMetrics() (Metrics.kt) evaluated for the frame's size and laid out
+  the way HomeScreen.kt lays it out: stage, header, board (rail 0.166 · stack 0.327 ·
+  hero 0.472, gaps bandTop), footer. Colours are Color.kt tokens; the state marks follow
+  UI_ARCHITECTURE.md §5.1 -- working is amber and says a word, done is the success
+  green with a tick, a failure is the danger red with a sentence. Figures are examples.
+
+    ?frame=<name>               one frame at its device size (833x385 phone, 960x540 TV)
+    ?frame=sheet&set=a|b|c      frames stacked with their captions, for review
+    &lang=en                    left to right, in English
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Home — loading in the cards</title>
+<style>
+:root{
+  --deep:#141031; --violet10:#1B1038; --azure10:#0A1E3D;
+  --azure40:#2E6BFF; --azure50:#4C9BFF; --azure60:#6FB2FF; --violet40:#6E4BD8; --violet50:#9B6BFF;
+  --success:#3DD68C; --amber:#FFB020; --danger:#FF5A5A;
+  --white:#FFFFFF; --silver:#C9C9DA; --muted:#A6A6BF; --faint:#6E6E8A;
+  --glassLow:rgba(255,255,255,.059); --glassMid:rgba(255,255,255,.078);
+  --edgeCard:rgba(126,140,255,.28); --edgeQuiet:rgba(160,163,215,.20);
+  --track:rgba(255,255,255,.10);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#05040E;color:var(--white);font-family:"Noto Sans Arabic","DejaVu Sans",sans-serif}
+body.sheet{padding:20px;width:max-content}
+svg{display:block;flex:none}
+
+/* ---------- the four backdrop layers, as paintBackdrop draws them ---------- */
+.screen{position:relative;overflow:hidden}
+.bd{position:absolute;inset:0;overflow:hidden}
+.bd .ramp{position:absolute;inset:0;background:linear-gradient(to bottom right,var(--deep) 0%,var(--violet10) 50%,var(--azure10) 100%)}
+.bd .warm,.bd .cool{position:absolute;border-radius:50%}
+.bd .warm{background:radial-gradient(circle closest-side,rgba(110,75,216,.30),rgba(110,75,216,0));
+  inset-inline-start:calc(5% - 229px);top:calc(100% - 229px);width:458px;height:458px}
+.bd .cool{background:radial-gradient(circle closest-side,rgba(46,107,255,.26),rgba(46,107,255,0));
+  inset-inline-start:calc(95% - 216px);top:calc(30% - 216px);width:433px;height:433px}
+.bd .mesh{position:absolute;inset:0;opacity:.5;
+  background:repeating-linear-gradient(105deg,rgba(76,155,255,.05) 0 1.2px,transparent 1.2px 34px)}
+
+/* ---------- the stage, header and footer: context, drawn as they ship ---------- */
+.stage{position:absolute;inset:0;padding:var(--stage) var(--edge);display:flex;flex-direction:column;gap:var(--group)}
+.head{height:var(--header);flex:none;display:flex;align-items:center;gap:var(--headGap);direction:ltr}
+.brand{display:flex;align-items:center;gap:8px;flex:none}
+.mark{width:var(--brand);height:var(--brand);border-radius:28%;background:linear-gradient(135deg,var(--azure50),var(--violet40))}
+.word{font-size:calc(var(--fsLabel) * 1.12);letter-spacing:.34em;font-weight:700}
+.terms{flex:1;min-width:0;display:flex;gap:var(--chipPad);direction:inherit}
+.term{flex:1;min-width:0;height:calc(var(--header) - 2px);border-radius:7px;border:1px solid;
+  background:linear-gradient(to bottom,var(--glassMid),var(--glassLow));display:flex;align-items:center;gap:6px;padding:0 var(--chipPad)}
+.term .k{width:calc(var(--fsBody) * 1.5);height:calc(var(--fsBody) * 1.5);border-radius:50%;flex:none}
+.term .lbl{font-size:calc(var(--fsChip) * .95);color:var(--muted);white-space:nowrap;line-height:1.25}
+.term .val{font-size:var(--fsBody);white-space:nowrap;font-variant-numeric:tabular-nums;line-height:1.25}
+.term.p{border-color:rgba(61,214,140,.30)} .term.p .k{background:var(--success)} .term.p .val{color:var(--success)}
+.term.l{border-color:rgba(46,107,255,.30)} .term.l .k{background:var(--azure40)} .term.l .val{color:var(--azure50)}
+.clock{flex:none;text-align:right}
+.clock .t{font-size:calc(var(--fsTitle) * 1.02);font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.clock .d{font-size:var(--fsChip);color:var(--muted);font-variant-numeric:tabular-nums}
+.chipbtn{height:var(--chip);border-radius:calc(var(--chip) / 2);flex:none;border:1px solid var(--edgeQuiet);
+  background:var(--glassLow);display:flex;align-items:center;justify-content:center;gap:6px;color:var(--silver);font-size:var(--fsChip)}
+.chipbtn.round{width:var(--chip)} .chipbtn.pill{padding:0 var(--chipPad)}
+
+.board{flex:1;min-height:0;display:flex;gap:var(--band)}
+.rail{flex:166 166 0;min-width:0;display:flex;flex-direction:column;gap:var(--railgap)}
+.stack{flex:327 327 0;min-width:0;display:flex;flex-direction:column;gap:var(--item)}
+.util{flex:1;min-height:0;border-radius:calc(var(--radius) / 2);border:1px solid var(--edgeQuiet);
+  background:linear-gradient(to bottom,var(--glassMid),var(--glassLow));
+  display:flex;align-items:center;gap:calc(var(--chipPad) * .7);padding:0 var(--chipPad);font-size:var(--fsChip);color:var(--silver);white-space:nowrap}
+.util svg{width:16px;height:16px;fill:var(--violet50)} .util.quit svg{fill:#FF9B9B}
+
+.foot{flex:none;display:flex;flex-direction:column;gap:var(--foot)}
+.facts{display:flex;gap:var(--chipPad)}
+.fact{flex:1;min-width:0;height:var(--chip);border-radius:calc(var(--radius) / 2);border:1px solid var(--edgeQuiet);background:var(--glassLow);
+  display:flex;align-items:center;justify-content:center;gap:6px;padding:0 var(--chipPad);font-size:var(--fsChip);color:var(--muted);white-space:nowrap}
+.fact svg{width:15px;height:15px}
+.fact .v{direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums;color:var(--silver)}
+.disc{display:flex;align-items:center;justify-content:center;gap:calc(var(--chipPad) / 2);font-size:calc(var(--fsChip) * .92);color:var(--faint);white-space:nowrap}
+.disc svg{width:14px;height:14px;fill:var(--violet50)}
+
+/* ---------- the subject: the four section cards ---------- */
+.card{position:relative;border:1px solid var(--edgeCard);background:linear-gradient(to bottom,var(--glassMid),var(--glassLow));overflow:hidden}
+/* Focused: lift, ring, glow -- InteractiveGlassCard's focus, in focusRing and focusGlow. */
+.card.focus{transform:scale(1.03);z-index:5;border-color:var(--azure60);
+  box-shadow:0 0 0 1.5px var(--azure60),0 0 18px rgba(46,107,255,.45)}
+/* Just finished: the success green on the edge and a breath of it on the glass, for a few seconds. */
+.card.ok{border-color:rgba(61,214,140,.55);
+  background:linear-gradient(to bottom,rgba(61,214,140,.13),rgba(61,214,140,.04))}
+
+.hero{flex:472 472 0;min-width:0;border-radius:var(--radius)}
+.hero .wm{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);height:64%;width:auto;opacity:.18}
+.hcol{position:absolute;inset:var(--chipPad);display:flex;flex-direction:column;justify-content:flex-end}
+.hname{font-size:var(--fsLabel);font-weight:700;line-height:1.3}
+.hs{font-size:var(--fsBody);line-height:1.4}
+.hcount{font-size:calc(var(--fsTitle) * 1.26);font-weight:700;line-height:1.25;font-variant-numeric:tabular-nums}
+.hcap{font-size:calc(var(--fsChip) * .95);color:var(--muted);line-height:1.4;margin-top:3px}
+
+.line{flex:1;min-height:0;border-radius:calc(var(--radius) / 2);display:flex;align-items:center;gap:var(--chipPad);padding:0 var(--chipPad)}
+.line .licon{width:20px;height:20px}
+.lcol{flex:1;min-width:0}
+.lname{font-size:var(--fsLabel);font-weight:700;line-height:1.3;white-space:nowrap}
+.ls{font-size:var(--fsBody);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:4px}
+
+.srow{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:var(--fsBody);line-height:1.4}
+.wordmark{display:flex;align-items:center;gap:4px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wordmark svg,.ls svg{width:1.05em;height:1.05em}
+.val{flex:none;white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--silver)}
+.dbg{flex:none;white-space:nowrap;font-size:calc(var(--fsChip) * .95);color:var(--faint);font-variant-numeric:tabular-nums}
+.amber{color:var(--amber)} .amber svg{fill:var(--amber)}
+.good{color:var(--success)} .good svg{fill:var(--success)}
+.bad{color:var(--danger)} .bad svg{fill:var(--danger)}
+.quiet{color:var(--muted)} .quiet svg{fill:var(--muted)}
+.hint{color:var(--azure60)}
+.primary{color:var(--azure50)}
+
+/* the bar: a hairline under the words, never a timer. 4dp on the panel, 3dp on a line. */
+.trk{position:relative;height:3px;border-radius:2px;background:var(--track);overflow:hidden;margin-top:4px}
+.hero .trk{height:4px;margin-top:6px}
+.fill{position:absolute;inset-block:0;inset-inline-start:0;border-radius:inherit}
+.fill.amber{background:var(--amber)} .fill.good{background:var(--success)} .fill.hue{background:var(--hue)}
+/* No denominator: a segment that travels the track. With the motion level at none it stands
+   still, and the count beside the words carries the progress alone. */
+.seg{position:absolute;inset-block:0;inset-inline-start:24%;width:36%;border-radius:inherit;
+  background:linear-gradient(90deg,rgba(255,176,32,0),var(--amber) 30%,var(--amber) 70%,rgba(255,176,32,0))}
+.seg.hue{background:linear-gradient(90deg,rgba(76,155,255,0),var(--azure50) 30%,var(--azure50) 70%,rgba(76,155,255,0))}
+
+/* ---------- the review sheet ---------- */
+.blk{margin-bottom:22px}
+.cap{width:var(--w);font-size:12.5px;line-height:1.75;color:#C9C9DA;margin-bottom:8px}
+.cap b{color:#fff} .cap .n{color:var(--azure60);font-weight:700}
+.cap .a{color:var(--amber)} .cap .g{color:var(--success)} .cap .r{color:var(--danger)}
+.pair{display:flex;gap:16px}
+.pair .lab{font-size:12px;font-weight:700;margin-bottom:6px;color:var(--azure60)}
+.notes{width:833px;font-size:12.5px;line-height:1.9;color:#C9C9DA;margin-top:4px}
+.notes b{color:#fff}
+</style>
+</head>
+<body>
+<script>
+const ICON = {
+  live:'M21 6h-7.59l3.29-3.29L16 2l-4 4-4-4-.71.71L10.59 6H3c-1.1 0-2 .89-2 2v12c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.11-.9-2-2-2zm0 14H3V8h18v12zM9 10v8l7-4z',
+  movie:'M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z',
+  tv:'M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z',
+  radio:'M3.24 6.15C2.51 6.43 2 7.17 2 8v12c0 1.1.89 2 2 2h16c1.11 0 2-.9 2-2V8c0-1.11-.89-2-2-2H8.3l8.26-3.34L15.88 1 3.24 6.15zM7 20c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm13-8h-2v-2h-2v2H4V8h16v4z',
+  check:'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z',
+  clock:'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z',
+  alert:'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z',
+  refresh:'M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z',
+  playlist:'M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z',
+  history:'M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z',
+  settings:'M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z',
+  power:'M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z',
+  lockOpen:'M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h1.9c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm0 12H6V10h12v10z',
+  chip:'M15 9H9v6h6V9zm-2 4h-2v-2h2v2zm8-2V9h-2V7c0-1.1-.9-2-2-2h-2V3h-2v2h-2V3H9v2H7c-1.1 0-2 .9-2 2v2H3v2h2v2H3v2h2v2c0 1.1.9 2 2 2h2v2h2v-2h2v2h2v-2h2c1.1 0 2-.9 2-2v-2h2v-2h-2v-2h2zm-4 6H7V7h10v10z',
+  key:'M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z',
+  info:'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z',
+  globe:'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm6.93 6h-2.95a15.65 15.65 0 0 0-1.38-3.56A8.03 8.03 0 0 1 18.93 8zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14a8.2 8.2 0 0 1 0-4h3.38a16.5 16.5 0 0 0 0 4H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56A7.99 7.99 0 0 1 5.08 16zm2.95-8H5.08a7.99 7.99 0 0 1 4.33-3.56A15.65 15.65 0 0 0 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66a14.7 14.7 0 0 1 0-4h4.68a14.7 14.7 0 0 1 0 4zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95a8.03 8.03 0 0 1-4.33 3.56zM16.36 14a16.5 16.5 0 0 0 0-4h3.38a8.2 8.2 0 0 1 0 4h-3.38z',
+  sun:'M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM11 1h2v3h-2zm0 19h2v3h-2zM1 11h3v2H1zm19 0h3v2h-3z',
+};
+const svg = (name, extra = '') => `<svg viewBox="0 0 24 24" ${extra}><path d="${ICON[name]}"/></svg>`;
+
+const STR = {
+  ar: {
+    live:'البث المباشر', movies:'الأفلام', series:'المسلسلات', radio:'الراديو',
+    unit:{live:'%s قناة', movies:'%s فيلم', series:'%s مسلسل', radio:'%s محطة'},
+    none:{live:'لا قنوات في هذا الاشتراك', movies:'لا أفلام', series:'لا مسلسلات', radio:'لا محطات'},
+    notFetched:'لم يُحمَّل بعد', loadingLive:'جارٍ تحميل القنوات…', loading:'جارٍ التحميل…', refreshing:'جارٍ التحديث…',
+    fromProvider:'من خادم الاشتراك', done:'اكتمل التحميل', queued:'في الانتظار',
+    failed:'تعذّر التحميل', failedLive:'تعذّر تحميل القنوات', retry:'اضغط لإعادة المحاولة', retryShort:'اضغط للإعادة',
+    opensWhenDone:'يُفتح عند اكتمال التحميل', seconds:'%s ث',
+    rail:['تحديث','تبديل القائمة','Time Shift','الإعدادات','خروج'],
+    provider:'الاشتراك', licence:'رخصة Castivio', language:'اللغة',
+    device:'الجهاز: ', activated:'مُفعَّل', mac:'ماك: ', key:'مفتاح الجهاز: ',
+    disclaimer:'Castivio مشغّل وسائط. لا يوفّر قنوات ولا أفلامًا ولا اشتراكات — أنت من يضيفها.',
+  },
+  en: {
+    live:'Live TV', movies:'Movies', series:'Series', radio:'Radio',
+    unit:{live:'%s channels', movies:'%s films', series:'%s series', radio:'%s stations'},
+    none:{live:'No channels in this subscription', movies:'No movies', series:'No series', radio:'No stations'},
+    notFetched:'Not downloaded yet', loadingLive:'Loading channels…', loading:'Loading…', refreshing:'Refreshing…',
+    fromProvider:'From your provider', done:'Loaded', queued:'Waiting its turn',
+    failed:'Couldn’t load', failedLive:'Couldn’t load the channels', retry:'Press to try again', retryShort:'Press to retry',
+    opensWhenDone:'Opens when it has loaded', seconds:'%s s',
+    rail:['Refresh','Change list','Time Shift','Settings','Exit'],
+    provider:'Subscription', licence:'Castivio licence', language:'Language',
+    device:'Device: ', activated:'Activated', mac:'MAC: ', key:'Device key: ',
+    disclaimer:'Castivio is a media player. It does not provide channels, films or subscriptions — you add your own.',
+  },
+};
+const HUE = {live:'#4C9BFF', movies:'#9B6BFF', series:'#3DD68C', radio:'#FFB020'};
+const GLYPH = {live:'live', movies:'movie', series:'tv', radio:'radio'};
+
+/** castivioMetrics(width, height, isTv), as Metrics.kt computes it, plus HomeScreen's Rhythm. */
+function metrics(w, h) {
+  const f = (axis, of, min, max) => Math.min(max, Math.max(min, axis * of));
+  const m = {
+    edge: f(w, 61.3 / 1280, 24, 72), header: f(h, 72 / 720, 40, 88), headGap: f(w, 34.7 / 1280, 12, 40),
+    brand: f(h, 53.3 / 720, 28, 60), chip: f(h, 58.7 / 720, 32, 64), chipPad: f(w, 14.7 / 1280, 8, 18),
+    band: f(h, 29.3 / 720, 8, 32), radius: f(h, 26.7 / 720, 14, 28),
+    fsTitle: f(h, 34.7 / 720, 18, 36), fsLabel: f(h, 21.1 / 720, 13, 22), fsBody: f(h, 18 / 720, 12, 19), fsChip: f(h, 17.3 / 720, 11, 18),
+  };
+  const item = m.band * 0.764;
+  return Object.assign(m, {stage: item, group: m.band * 1.274, item, railgap: item / 2, foot: m.band * 0.509});
+}
+
+const fmt = (n, lang) => n.toLocaleString('en-US');
+const unit = (T, sec, n, lang) => T.unit[sec].replace('%s', fmt(n, lang));
+let gradientId = 0;
+
+function heroCard(sec, s, T, lang, opts = {}) {
+  const id = 'g' + (++gradientId);
+  const hue = HUE[sec];
+  const classes = ['card', 'hero'];
+  if (s.focus) classes.push('focus');
+  if (s.k === 'done') classes.push('ok');
+  let body = '';
+  switch (s.k) {
+    case 'unfetched': body = `<div class="hs primary">${T.notFetched}</div>`; break;
+    case 'counted': body = `<div class="hcount" style="color:${hue}">${unit(T, sec, s.n, lang)}</div>`; break;
+    case 'empty': body = `<div class="hs quiet">${T.none[sec]}</div>`; break;
+    case 'loading': {
+      const word = s.hint ? `<span class="wordmark hint">${T.opensWhenDone}</span>`
+                          : `<span class="wordmark amber">${T.loadingLive}</span>`;
+      const seg = opts.referenceColours ? 'seg hue' : 'seg';
+      body = `<div class="srow">${word}<span class="val">${unit(T, sec, s.n, lang)}</span></div>
+              <div class="trk"><div class="${seg}"></div></div>
+              <div class="hcap">${T.fromProvider}</div>`;
+      break;
+    }
+    case 'done':
+      body = `<div class="srow"><span class="wordmark good">${svg('check')}${T.done}</span>${s.secs ? `<span class="dbg">${T.seconds.replace('%s', s.secs)} · debug</span>` : ''}</div>
+              <div class="hcount" style="color:${hue}">${unit(T, sec, s.n, lang)}</div>
+              <div class="trk"><div class="fill good" style="width:100%"></div></div>`;
+      break;
+    case 'refresh':
+      body = `<div class="hcount" style="color:${hue}">${unit(T, sec, s.n, lang)}</div>
+              <div class="srow"><span class="wordmark amber">${svg('refresh')}${T.refreshing}</span></div>
+              <div class="trk"><div class="seg"></div></div>`;
+      break;
+    case 'failed':
+      body = `<div class="srow"><span class="wordmark bad">${svg('alert')}${T.failedLive}</span></div>
+              <div class="hcap" style="color:var(--silver)">${T.retry}</div>`;
+      break;
+  }
+  return `<div class="${classes.join(' ')}" style="--hue:${hue}">
+    <svg class="wm" viewBox="0 0 24 24"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="${hue}"/><stop offset="1" stop-color="#9B6BFF"/></linearGradient></defs>
+      <path d="${ICON[GLYPH[sec]]}" fill="url(#${id})"/></svg>
+    <div class="hcol"><div class="hname">${T[sec]}</div>${body}</div>
+  </div>`;
+}
+
+function lineCard(sec, s, T, lang) {
+  const hue = HUE[sec];
+  const classes = ['card', 'line'];
+  if (s.focus) classes.push('focus');
+  if (s.k === 'done') classes.push('ok');
+  let body = '';
+  switch (s.k) {
+    case 'unfetched': body = `<div class="ls primary">${T.notFetched}</div>`; break;
+    case 'counted': body = `<div class="ls" style="color:${hue}">${unit(T, sec, s.n, lang)}</div>`; break;
+    case 'empty': body = `<div class="ls quiet">${T.none[sec]}</div>`; break;
+    case 'queued': body = `<div class="ls quiet">${svg('clock')}${T.queued}</div>`; break;
+    case 'loading': {
+      const word = s.hint ? `<span class="wordmark hint">${T.opensWhenDone}</span>`
+                          : `<span class="wordmark amber">${T.loading}</span>`;
+      body = `<div class="srow">${word}<span class="val">${s.pct}%</span></div>
+              <div class="trk"><div class="fill amber" style="width:${s.pct}%"></div></div>`;
+      break;
+    }
+    case 'done':
+      body = `<div class="srow"><span class="wordmark good">${svg('check')}${unit(T, sec, s.n, lang)}</span></div>
+              <div class="trk"><div class="fill good" style="width:100%"></div></div>`;
+      break;
+    // Two halves on the status row, as a load's word and figure are: the full "press to try
+    // again" did not fit beside the icon on a phone's line and lost its last word.
+    case 'failed':
+      body = `<div class="srow"><span class="wordmark bad">${svg('alert')}${T.failed}</span><span class="val">${T.retryShort}</span></div>`;
+      break;
+  }
+  return `<div class="${classes.join(' ')}">
+    ${svg(GLYPH[sec], `class="licon" style="fill:${hue}"`)}
+    <div class="lcol"><div class="lname">${T[sec]}</div>${body}</div>
+  </div>`;
+}
+
+function board(fr) {
+  const lang = fr.lang || LANG;
+  const T = STR[lang];
+  const tv = fr.dev === 'tv';
+  const w = tv ? 960 : 833, h = tv ? 540 : 385;
+  const m = metrics(w, h);
+  const vars = Object.entries(m).map(([k, v]) => `--${k}:${v.toFixed(2)}px`).join(';');
+  const rail = T.rail.map((label, i) => {
+    const icon = ['refresh', 'playlist', 'history', 'settings', 'power'][i];
+    return `<div class="util${i === 4 ? ' quit' : ''}">${svg(icon)}${label}</div>`;
+  }).join('');
+  const st = fr.cards;
+  return `<div class="screen" dir="${lang === 'ar' ? 'rtl' : 'ltr'}" lang="${lang}" style="width:${w}px;height:${h}px;${vars}">
+    <div class="bd"><div class="ramp"></div><div class="warm"></div><div class="cool"></div><div class="mesh"></div></div>
+    <div class="stage">
+      <div class="head">
+        <div class="brand"><div class="mark"></div><div class="word">CASTIVIO</div></div>
+        <div class="terms" dir="${lang === 'ar' ? 'rtl' : 'ltr'}">
+          <div class="term p"><div class="k"></div><div><div class="lbl">${T.provider}</div><div class="val">22/12/2026</div></div></div>
+          <div class="term l"><div class="k"></div><div><div class="lbl">${T.licence}</div><div class="val">07/10/2027</div></div></div>
+        </div>
+        <div class="clock"><div class="t">09:55</div><div class="d">16/10/2026</div></div>
+        <div class="chipbtn round">${svg('sun', 'style="width:16px;height:16px;fill:#C9C9DA"')}</div>
+        <div class="chipbtn pill">${svg('globe', 'style="width:15px;height:15px;fill:#C9C9DA"')}${T.language}</div>
+      </div>
+      <div class="board">
+        <div class="rail">${rail}</div>
+        <div class="stack">${['movies', 'series', 'radio'].map(sec => lineCard(sec, st[sec], T, lang)).join('')}</div>
+        ${heroCard('live', st.live, T, lang)}
+      </div>
+      <div class="foot">
+        <div class="facts">
+          <div class="fact">${svg('lockOpen', 'style="fill:#3DD68C"')}<span>${T.device}</span><span class="v" style="color:#3DD68C">${T.activated}</span></div>
+          <div class="fact">${svg('chip', 'style="fill:#A6A6BF"')}<span>${T.mac}</span><span class="v">00:1A:79:12:34:56</span></div>
+          <div class="fact">${svg('key', 'style="fill:#FFB020"')}<span>${T.key}</span><span class="v" style="color:#FFB020">123456</span></div>
+        </div>
+        <div class="disc">${svg('info')}<span>${T.disclaimer}</span></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ------------------------------------------------------------------ the frames
+const U = {k: 'unfetched'};
+const FRAMES = {
+  'press-live': {cards: {live: {k: 'loading', n: 24310, focus: true}, movies: U, series: U, radio: U},
+    cap: '<span class="n">١ — الضغط على البث المباشر.</span> تُحمَّل القنوات وحدها، والمشاهد باقٍ في Home يرى البطاقة. رد Xtream الواحد لا يذكر عدد القنوات قبل نهايته، فلا نسبة مئوية: <b>العدد يتزايد</b> و<span class="a">الشريط يتحرك</span>.'},
+  'queued': {cards: {live: {k: 'loading', n: 41870}, movies: U, series: U, radio: {k: 'queued', focus: true}},
+    cap: '<span class="n">٢ — الضغط على الراديو أثناء تحميل القنوات.</span> تحميل واحد في كل مرة: الراديو ينتظر دوره، ولا يعيد تحميل القنوات.'},
+  'live-done': {cards: {live: {k: 'done', n: 54130, secs: 34}, movies: U, series: U, radio: {k: 'loading', pct: 60}},
+    cap: '<span class="n">٣ — اكتملت القنوات.</span> <span class="g">✓ «اكتمل التحميل»</span> لثوانٍ، ثم تعود البطاقة إلى شكلها العادي؛ زمن التحميل يظهر في نسخة debug وحدها. الراديو بدأ دوره: فئاته معروفة العدد، فنسبته حقيقية.'},
+  'movies': {cards: {live: {k: 'counted', n: 54130}, movies: {k: 'loading', pct: 48}, series: U, radio: {k: 'counted', n: 1083}},
+    cap: '<span class="n">٤ — بعد ثوانٍ.</span> القنوات والراديو بعدّهما المعتاد. الأفلام تُحمَّل فئةً فئة، فنسبتها حقيقية.'},
+  'pressed': {cards: {live: {k: 'counted', n: 54130}, movies: {k: 'loading', pct: 63, hint: true, focus: true}, series: U, radio: {k: 'counted', n: 1083}},
+    cap: '<span class="n">٥ — الضغط على قسم لم يكتمل تحميله الأول.</span> لا يُفتح نصف مكتمل: يبقى المشاهد في Home، والبطاقة تقول «يُفتح عند اكتمال التحميل» لثانيتين، ثم تعود إلى التقدم.'},
+  'fail-empty': {cards: {live: {k: 'counted', n: 54130}, movies: {k: 'empty'}, series: {k: 'failed', focus: true}, radio: {k: 'counted', n: 1083}},
+    cap: '<span class="n">٦ — فارغ وفاشل.</span> اكتمل بلا شيء: «لا أفلام»، الجملة الحالية. فشل: <span class="r">«تعذّر التحميل»</span> و«اضغط للإعادة» — لا إعادة تلقائية، والضغط هو الإعادة.'},
+  'refresh': {cards: {live: {k: 'refresh', n: 54130, focus: true}, movies: {k: 'counted', n: 12640}, series: {k: 'counted', n: 2318}, radio: {k: 'counted', n: 1083}},
+    cap: '<span class="n">٧ — تحديث قسم له محتوى.</span> العدد يبقى، والكلمة <span class="a">«جارٍ التحديث…»</span> والشريط تحته؛ والقسم يُفتح أثناء التحديث بما لديه.'},
+  'movies-en': {lang: 'en', cards: {live: {k: 'counted', n: 54130}, movies: {k: 'loading', pct: 48}, series: U, radio: {k: 'counted', n: 1083}},
+    cap: '<span class="n">٨ — الإطار ٤ بالإنجليزية، من اليسار إلى اليمين.</span>'},
+  'tv': {dev: 'tv', cards: {live: {k: 'done', n: 54130}, movies: U, series: U, radio: {k: 'loading', pct: 60, focus: true}},
+    cap: '<span class="n">٩ — الإطار ٣ على التلفاز، 960×540.</span> التركيز على الراديو بالريموت.'},
+};
+const SETS = {a: ['press-live', 'queued', 'live-done', 'movies'], b: ['pressed', 'fail-empty', 'refresh'], c: ['movies-en', 'tv', 'compare']};
+
+function compare() {
+  // Two panels at the phone's own panel size: the reference's colours, and the state language's.
+  const m = metrics(833, 385);
+  const vars = Object.entries(m).map(([k, v]) => `--${k}:${v.toFixed(2)}px`).join(';');
+  const width = (833 - 2 * m.edge - 2 * m.band) * 472 / 965;
+  const height = 385 - 2 * m.stage - m.header - 2 * m.group - (m.chip + m.foot + 17.6);
+  const T = STR.ar;
+  const one = (label, opts) => `<div><div class="lab">${label}</div>
+    <div class="screen" dir="rtl" style="width:${width}px;height:${height}px;display:flex;${vars}">
+      <div class="bd"><div class="ramp"></div></div>
+      ${heroCard('live', {k: 'loading', n: 24310}, T, 'ar', opts)}</div></div>`;
+  return `<div class="pair" dir="rtl">${one('أ — بلون القسم، كما في المرجع', {referenceColours: true})}${one('ب — بالكهرماني، لون «جارٍ العمل» في التطبيق', {})}</div>`;
+}
+const COMPARE_CAP = '<span class="n">١٠ — لون الشريط.</span> المرجع لوّن الشريط بلون القسم. قاعدة التطبيق (§5.1) تخصّص لكل لون معنى واحدًا: الكهرماني «جارٍ العمل»، والأخضر النجاح، والأحمر الفشل، والأزرق والبنفسجي للتنقل. رسمتُ «ب»؛ واختيار «أ» يعني تغيير القاعدة نفسها عن قصد.';
+
+const params = new URLSearchParams(location.search);
+const LANG = params.get('lang') || 'ar';
+const frame = params.get('frame') || 'sheet';
+if (frame === 'sheet') {
+  document.body.classList.add('sheet');
+  const set = SETS[params.get('set') || 'a'];
+  document.body.innerHTML = set.map(name => {
+    if (name === 'compare') return `<div class="blk"><div class="cap" dir="rtl" style="--w:833px">${COMPARE_CAP}</div>${compare()}</div>`;
+    const fr = FRAMES[name];
+    const w = fr.dev === 'tv' ? 960 : 833;
+    return `<div class="blk"><div class="cap" dir="rtl" style="--w:${w}px">${fr.cap}</div>${board(fr)}</div>`;
+  }).join('') + (params.get('set') === 'c' ? `<div class="notes" dir="rtl">
+    <b>الحركة.</b> مع مستوى الحركة «بلا»، الشريط الذي لا يعرف مجموعه يقف ثابتًا، والعدد بجانب الكلمة يحمل التقدم وحده.<br>
+    <b>M3U.</b> يُنزَّل الملف مرة واحدة ويُحفظ على الجهاز، فيتقدم الشريط بنسبة حقيقية (المقروء من حجم الملف)، والأقسام التالية تُقرأ منه دون تنزيل جديد.<br>
+    <b>قارئ الشاشة.</b> البطاقة تُقرأ كاملة: «البث المباشر، جارٍ تحميل القنوات، 24,310 قناة».</div>` : '');
+} else if (frame === 'compare') {
+  document.body.innerHTML = compare();
+} else {
+  document.body.innerHTML = board(FRAMES[frame]);
+}
+</script>
+</body>
+</html>

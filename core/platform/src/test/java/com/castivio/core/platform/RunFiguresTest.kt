@@ -20,19 +20,17 @@ class RunFiguresTest {
         val spans = report(
             fullLoadMs = 37_520,
             PerfPhase.IMPORT to 20,
-            PerfPhase.CHECKED_BEFORE to 330,
             PerfPhase.CATEGORIES to 2_310,
             PerfPhase.STREAMS to 32_230,
             PerfPhase.FINISHED to 37_080,
-            PerfPhase.CHECKED_AFTER to 37_430,
             PerfPhase.RECORDED to 37_440,
         ).spans()
 
         assertEquals(
-            listOf("import", "checks before", "categories", "streams", "finished", "checks after", "recorded", RunSpan.DONE),
+            listOf("import", "categories", "streams", "finished", "recorded", RunSpan.DONE),
             spans.map { it.label },
         )
-        assertEquals(listOf(20L, 310L, 1_980L, 29_920L, 4_850L, 350L, 10L, 80L), spans.map { it.ms })
+        assertEquals(listOf(20L, 2_290L, 29_920L, 4_850L, 360L, 80L), spans.map { it.ms })
         assertEquals(37_520L, spans.sumOf { it.ms })
         assertEquals("the last span is closed by the full load, not a moment", null, spans.last().phase)
     }

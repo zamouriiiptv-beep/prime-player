@@ -4,7 +4,6 @@ import android.util.Log
 import com.castivio.core.common.AppError
 import com.castivio.core.common.AppDispatchers
 import com.castivio.core.platform.CallTimes
-import com.castivio.core.platform.IndexCheck
 import com.castivio.core.platform.PassTimes
 import com.castivio.core.platform.PerfPhase
 import com.castivio.core.platform.PerfSection
@@ -82,12 +81,6 @@ class DefaultCatalogImporter(
      * prove that no address or credential is in it.
      */
     private val log: (String) -> Unit = { Log.i(CallMetrics.TAG, it) },
-    /**
-     * Whether a section import counts the catalogue and its search index before and after
-     * it writes. Debuggable builds only -- the readout is theirs -- because the count reads
-     * the whole index and is part of the load's time; see [checkCatalogue].
-     */
-    private val checks: Boolean = false,
     /**
      * Told that a section's import is starting: `PerformanceLog.importStarted`, which opens a
      * run for a load nobody pressed for. A parameter because the stopwatch reads Android's
@@ -545,9 +538,6 @@ class DefaultCatalogImporter(
         // panel cannot claim a concurrency the import is not using.
         PerformanceLog.importConcurrency(XtreamImportEngine.DEFAULT_CONCURRENCY)
         PerformanceLog.phase(PerfPhase.IMPORT)
-        // The catalogue and its search index as they stand before this import writes, in a
-        // span of their own -- see [checks].
-        checkCatalogue(writer, sourceId, before = true)
         val startedAt = clock()
         var saved = 0
         val passes = ArrayList<XtreamImportEngine.PassReport>(2)
@@ -600,9 +590,6 @@ class DefaultCatalogImporter(
             val counts = countsOf(passes.filter { replyUsed || !it.oneReply }, summary)
             PerformanceLog.recordCounts(counts)
             log("import $kind: $counts")
-            // And again once it has written, so the reading can say what the import did to
-            // the index: grown by a copy of every row, or stayed one entry per row.
-            checkCatalogue(writer, sourceId, before = false)
             // No validators for Xtream, and none to preserve: `record` reads the stored
             // row and writes back what this pass learned.
             record(sourceId, summary, etag = null, lastModified = null, contentHash = null)
@@ -637,32 +624,6 @@ class DefaultCatalogImporter(
                 },
             )
         }
-    }
-
-    /**
-     * The catalogue and its search index counted, in debuggable builds, as its own span.
-     *
-     * Its own span, [PerfPhase.CHECKED_BEFORE] or [PerfPhase.CHECKED_AFTER], so the time it
-     * takes is shown beside the import's and never inside one of its stages. Nothing when
-     * [checks] is off -- every release build -- not even the span.
-     */
-    private fun checkCatalogue(writer: CatalogWriter, sourceId: String, before: Boolean) {
-        if (!checks) return
-        writer.check(sourceId)?.let { check ->
-            PerformanceLog.check(
-                before = before,
-                check = IndexCheck(
-                    rows = check.rows.mapKeys { it.key.name },
-                    allRows = check.allRows,
-                    searchRows = check.searchRows,
-                    duplicated = check.duplicatedInSearch,
-                    sampleResults = check.sampleResults,
-                    sampleRows = check.sampleRows,
-                    tookMs = check.tookMs,
-                ),
-            )
-        }
-        PerformanceLog.phase(if (before) PerfPhase.CHECKED_BEFORE else PerfPhase.CHECKED_AFTER)
     }
 
     /**

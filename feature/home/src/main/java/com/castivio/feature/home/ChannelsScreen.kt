@@ -102,6 +102,7 @@ import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.platform.CastivioTrace
+import com.castivio.core.platform.PerfSection
 import com.castivio.core.platform.PerformanceLog
 import com.castivio.domain.Channel
 import com.castivio.domain.MediaItem
@@ -505,9 +506,9 @@ private fun SearchField(m: ChannelsMetrics, onClick: () -> Unit) {
 /**
  * The panel: the four columns.
  *
- * It is never composed against a running import — [LoadingGate] holds the screen until
- * the section has arrived — so the only fetch state it has to answer for is a failed
- * one, and the question it answers is whether the failure is the whole truth or a line
+ * It is never composed before the section has arrived -- Home opens it once its card says
+ * so -- so the fetch states it has to answer for are a refresh running behind the rows and
+ * a failed one, and the question a failure asks is whether it is the whole truth or a line
  * over a catalogue that is already here.
  */
 @Composable
@@ -566,7 +567,7 @@ private fun Board(
                     detail = state.fetchReadout?.takeIf { instrumented }
                         ?: stringResource(fetch.error.fetchFailureDetail()),
                     actionLabel = stringResource(R.string.browse_fetch_retry),
-                    onAction = { model.retryFetch() },
+                    onAction = model::refresh,
                 )
             }
 
@@ -574,7 +575,7 @@ private fun Board(
                 // The failure still gets said, as a line rather than as a wall. A
                 // refresh that did not work is worth knowing about; it is not worth
                 // the catalogue.
-                FetchNotice(fetch = fetch, m = m, onRetry = { model.retryFetch() })
+                FetchNotice(fetch = fetch, m = m, onRetry = model::refresh)
 
                 Columns(
                     state = state,
@@ -594,16 +595,17 @@ private fun Board(
 }
 
 /**
- * One line about a fetch that failed, over a board that has rows.
+ * One line about this section's load, over a board that has rows: a refresh running behind
+ * it, or one that failed.
  *
  * Drawn only when there is something to say and something already on screen to say it
  * over. It is deliberately not a dialog and not a full-screen state: the catalogue
  * behind it is usable, and taking a working screen away to report a failed refresh is
  * how a user learns to dismiss messages without reading them.
  *
- * It carried a second line for a fetch that was *running*, and that line is gone with
- * the state that produced it: a running fetch is drawn by [LoadingGate] now, on its own
- * screen, and this board is never composed while one is in flight.
+ * A refresh still running is said with the state vocabulary's loading mark -- a word, in
+ * the working amber (`UI_ARCHITECTURE.md` §5.1) -- because the rail's refresh is pressed
+ * here and this is where its answer is looked for. Its progress is on Home's card.
  */
 @Composable
 private fun FetchNotice(
@@ -611,8 +613,41 @@ private fun FetchNotice(
     m: ChannelsMetrics,
     onRetry: () -> Unit,
 ) {
-    if (fetch !is SectionLoad.Failed) return
+    when (fetch) {
+        is SectionLoad.Queued, is SectionLoad.Loading -> RefreshingNotice(m)
+        is SectionLoad.Failed -> FailedNotice(fetch, m, onRetry)
+        else -> Unit
+    }
+}
 
+/** The refresh behind the rows: one word in the working amber, and nothing to press. */
+@Composable
+private fun RefreshingNotice(m: ChannelsMetrics) {
+    val colors = CastivioTheme.colors
+    val shape = RoundedCornerShape(m.previewRadius)
+    Text(
+        text = stringResource(R.string.home_load_refreshing),
+        style = castivioBodyStyle(m.frame.fsBody),
+        color = colors.warning,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = m.headerGap)
+            .clip(shape)
+            .background(colors.glassFill)
+            .border(1.dp, colors.glassBorderSoft, shape)
+            .padding(horizontal = m.controlPadH, vertical = m.badgePadV * 2),
+    )
+}
+
+/** A refresh that failed over a board that has rows; pressing it asks again. */
+@Composable
+private fun FailedNotice(
+    fetch: SectionLoad.Failed,
+    m: ChannelsMetrics,
+    onRetry: () -> Unit,
+) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(m.previewRadius)
 
@@ -703,7 +738,7 @@ private fun Columns(
                     m = m,
                     onChoose = model::choose,
                     onFilter = model::filterGroups,
-                    onRefresh = { model.retryFetch(force = true) },
+                    onRefresh = model::refresh,
                     modifier = Modifier.width(m.rail).fillMaxHeight(),
                 )
 
@@ -1037,7 +1072,7 @@ private fun ChannelList(
         if (hasContent && !contentSeen) {
             contentSeen = true
             CastivioTrace.instant(CastivioTrace.FIRST_CONTENT)
-            PerformanceLog.firstContent()
+            PerformanceLog.firstContent(PerfSection.CHANNELS)
         }
     }
 

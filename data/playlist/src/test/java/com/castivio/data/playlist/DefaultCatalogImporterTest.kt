@@ -8,7 +8,6 @@ import com.castivio.data.parsing.SourceIds
 import com.castivio.data.parsing.XtreamImportEngine
 import com.castivio.data.parsing.XtreamUrls
 import com.castivio.core.platform.PerfSection
-import com.castivio.domain.CatalogCheck
 import com.castivio.domain.CatalogItem
 import com.castivio.domain.CatalogWriter
 import com.castivio.domain.FetchDiagnosis
@@ -706,21 +705,6 @@ class DefaultCatalogImporterTest {
         assertEquals(listOf(PerfSection.CHANNELS, PerfSection.RADIO, PerfSection.MOVIES), started)
     }
 
-    /**
-     * The catalogue and its search index are counted before a section import writes and
-     * after it has finished -- in a debuggable build, which asks for it, and in no other.
-     */
-    @Test
-    fun `the catalogue is checked before and after a section import only when asked`() = runBlocking {
-        val panel = PlaylistSource.Xtream("http://panel:8080", "user", "pass")
-
-        importer(xtreamApi = OneReplyXtreamApi()).importKind(panel, MediaKind.LIVE).toList()
-        assertEquals("a release build counted the index", emptyList<String>(), writer.checked)
-
-        importer(xtreamApi = OneReplyXtreamApi(), checks = true).importKind(panel, MediaKind.LIVE).toList()
-        assertEquals(listOf(SourceIds.of(panel), SourceIds.of(panel)), writer.checked)
-    }
-
     /** Each pass over the streams reaches the log with its times, beside the way they came. */
     @Test
     fun `each pass of a section import is logged with its times`() = runBlocking {
@@ -788,7 +772,6 @@ class DefaultCatalogImporterTest {
         localFiles: LocalPlaylistReader = FakeLocalReader(null),
         xtreamApi: XtreamImportEngine.Api = FakeXtreamApi(),
         writer: CatalogWriter = this.writer,
-        checks: Boolean = false,
     ) = DefaultCatalogImporter(
         http = HttpStreamSource(
             OkHttpClient.Builder()
@@ -808,7 +791,6 @@ class DefaultCatalogImporterTest {
         // Captured rather than sent to `android.util.Log`, which this module's unit tests
         // only have as stubs that throw.
         log = { logged += it },
-        checks = checks,
         // Watched rather than handed to the stopwatch, for the same reason: its clock is
         // Android's.
         importStarted = { started += it },
@@ -1002,14 +984,6 @@ class DefaultCatalogImporterTest {
 
         /** Every import begun, with the source id and the mode it was written in. */
         val began = mutableListOf<Pair<String, ImportMode>>()
-
-        /** Every check asked for, by source id, in order. */
-        val checked = mutableListOf<String>()
-
-        override fun check(sourceId: String): CatalogCheck? {
-            checked += sourceId
-            return null
-        }
 
         override fun begin(sourceId: String, mode: ImportMode) {
             began += sourceId to mode

@@ -1,6 +1,12 @@
 package com.castivio.feature.home
 
 import android.view.View
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,15 +29,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Language
@@ -44,6 +53,7 @@ import androidx.compose.material.icons.rounded.PlaylistAdd
 import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material.icons.rounded.Radio
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.Tv
@@ -90,6 +100,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -97,8 +108,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.castivio.core.common.format.CastivioDates
 import com.castivio.core.design.components.CastivioClock
-import com.castivio.core.design.components.CastivioLockup
 import com.castivio.core.design.components.CastivioLanguageChip
+import com.castivio.core.design.components.CastivioLockup
 import com.castivio.core.design.components.CastivioThemeSwitchChip
 import com.castivio.core.design.components.EmptyState
 import com.castivio.core.design.components.GlassCard
@@ -112,9 +123,11 @@ import com.castivio.core.design.components.ltrToken
 import com.castivio.core.design.theme.CASTIVIO_ARTWORK_ASPECT
 import com.castivio.core.design.theme.CastivioMetrics
 import com.castivio.core.design.theme.CastivioTheme
+import com.castivio.core.design.theme.MotionLevel
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.castivioBackdrop
 import com.castivio.core.design.theme.rememberMetrics
+import com.castivio.core.platform.PerformanceLog
 import com.castivio.domain.MediaKind
 import com.castivio.domain.Recorded
 import com.castivio.domain.entitlement.EntitlementState
@@ -339,7 +352,9 @@ fun HomeScreen(
                         frame = frame,
                         rhythm = rhythm,
                         railFocus = boardFocus,
-                        onSeeSection = onSeeSection,
+                        // The holder decides: a section on the device opens, one that is not
+                        // is asked for and loads on its own card while the viewer stays here.
+                        onSeeSection = { section -> if (model.press(section)) onSeeSection(section) },
                         onRefresh = model::refresh,
                         onChoosePlaylist = model::choosePlaylist,
                         onAddPlaylist = onAddPlaylist,
@@ -971,22 +986,26 @@ private fun SectionBoard(
         CatalogSection.Live, Icons.Rounded.LiveTv, colors.hueAzure,
         R.string.browse_live, state.liveCount, R.string.home_count_live,
         R.string.home_section_no_live, state.sections[MediaKind.LIVE],
+        state.loads[MediaKind.LIVE] ?: CardLoad.Idle,
     )
     val rest = listOf(
         Section(
             CatalogSection.Movies, Icons.Rounded.Movie, colors.hueViolet,
             R.string.browse_movies, state.movieCount, R.string.home_count_movies,
             R.string.home_section_no_movies, state.sections[MediaKind.MOVIE],
+            state.loads[MediaKind.MOVIE] ?: CardLoad.Idle,
         ),
         Section(
             CatalogSection.Series, Icons.Rounded.Tv, colors.hueGreen,
             R.string.browse_series, state.seriesCount, R.string.home_count_series,
             R.string.home_section_no_series, state.sections[MediaKind.SERIES],
+            state.loads[MediaKind.SERIES] ?: CardLoad.Idle,
         ),
         Section(
             CatalogSection.Radio, Icons.Rounded.Radio, colors.hueAmber,
             R.string.browse_radio, state.radioCount, R.string.home_count_radio,
             R.string.home_section_no_radio, state.sections[MediaKind.RADIO],
+            state.loads[MediaKind.RADIO] ?: CardLoad.Idle,
         ),
     )
 
@@ -1044,6 +1063,8 @@ private data class Section(
     val empty: Int,
     /** When this section was brought onto the device, or null if it never has been. */
     val fetchedAtMs: Long?,
+    /** What the card says about the section's load, under its headline. */
+    val load: CardLoad,
 )
 
 /**
@@ -1059,9 +1080,12 @@ private enum class Tally { Unfetched, Empty, Counted }
 
 private val Section.tally: Tally
     get() = when {
-        fetchedAtMs == null -> Tally.Unfetched
-        count <= 0 -> Tally.Empty
-        else -> Tally.Counted
+        // Rows on the device are a count, whatever the marks say: a provider refresh
+        // forgets every mark and leaves the rows, and the card must not then say the
+        // section was never downloaded while it opens onto them.
+        count > 0 -> Tally.Counted
+        fetchedAtMs != null -> Tally.Empty
+        else -> Tally.Unfetched
     }
 
 @Composable
@@ -1105,8 +1129,9 @@ private fun Section.ink(): Color {
  * resting on the floor beneath it.
  *
  * It is ornament, and that is the point: it says nothing the panel does not already
- * say. Filling that space with a *fact* would have meant inventing one — an import
- * percentage, a last-watched channel — and neither exists behind this screen.
+ * say. Filling that space with a *fact* would have meant inventing one — a last-watched
+ * channel — and none exists behind this screen. A load's progress, which does, is said
+ * under the name and only while there is a load; see [HeroLoad].
  *
  * The watermark is sized from the panel rather than from a token because it is a
  * proportion of a box whose height is decided by the frame; the card clips it, so an
@@ -1120,10 +1145,15 @@ private fun HeroCard(
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
+    val arrived = section.load is CardLoad.Arrived
     InteractiveGlassCard(
         onClick = onClick,
         modifier = modifier,
         shape = RoundedCornerShape(frame.radius),
+        // Just loaded: a breath of the success green on the glass and its edge, for the
+        // few seconds the card says so. Focus still draws its own ring over it.
+        fill = if (arrived) arrivedFill() else colors.glassFillBrush,
+        restBorder = if (arrived) colors.success.copy(alpha = ARRIVED_EDGE_ALPHA) else null,
     ) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             // **Filled with a gradient, not a tint, and placed dead centre.** It hung
@@ -1170,19 +1200,73 @@ private fun HeroCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text(
-                    text = section.sentence(),
-                    style = when (section.tally) {
-                        Tally.Counted -> castivioTitleStyle(frame.fsTitle * HERO_COUNT_RATIO)
-                        else -> castivioBodyStyle(frame.fsBody)
-                    },
-                    color = section.ink(),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                HeroLoad(section, frame)
             }
         }
     }
+}
+
+/**
+ * Under the panel's name: its count or its sentence, and what its load says.
+ *
+ * The approved drawing's frames 1, 3, 6 and 7 (`design/mockups/home-loading.html`). A first
+ * load has no count to keep, so its words, its bar and where it comes from take the line; a
+ * refresh keeps the count above them, because the section is here and opens.
+ */
+@Composable
+private fun HeroLoad(section: Section, frame: CastivioMetrics) {
+    val colors = CastivioTheme.colors
+    when (val load = section.load) {
+        CardLoad.Idle -> HeroSentence(section, frame)
+
+        is CardLoad.Waiting -> {
+            if (section.tally == Tally.Counted) HeroSentence(section, frame)
+            WaitingLine(load, frame)
+        }
+
+        is CardLoad.Arriving -> {
+            if (load.refresh) HeroSentence(section, frame)
+            ArrivingLine(section, load, R.string.home_load_loading_live, frame)
+            LoadBar(load.percent, colors.warning, HERO_BAR)
+            if (!load.refresh) LoadCaption(stringResource(R.string.home_load_source), frame)
+        }
+
+        is CardLoad.Arrived -> {
+            LoadLine(
+                word = stringResource(R.string.home_load_done),
+                tone = colors.success,
+                frame = frame,
+                icon = Icons.Rounded.CheckCircle,
+                figure = loadSeconds(load),
+                figureTone = colors.onBackgroundMuted,
+            )
+            HeroSentence(section, frame)
+            LoadBar(FULL, colors.success, HERO_BAR)
+        }
+
+        is CardLoad.Failed -> if (load.refresh) {
+            HeroSentence(section, frame)
+            LoadLine(stringResource(R.string.home_load_refresh_failed), colors.danger, frame, Icons.Rounded.ErrorOutline)
+        } else {
+            LoadLine(stringResource(R.string.home_load_failed_live), colors.danger, frame, Icons.Rounded.ErrorOutline)
+            LoadCaption(stringResource(R.string.home_load_retry), frame, colors.onBackgroundVariant)
+        }
+    }
+}
+
+/** The panel's headline: the count in the title step, or a sentence in the body's. */
+@Composable
+private fun HeroSentence(section: Section, frame: CastivioMetrics) {
+    Text(
+        text = section.sentence(),
+        style = when (section.tally) {
+            Tally.Counted -> castivioTitleStyle(frame.fsTitle * HERO_COUNT_RATIO)
+            else -> castivioBodyStyle(frame.fsBody)
+        },
+        color = section.ink(),
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
 }
 
 /**
@@ -1201,10 +1285,14 @@ private fun SectionLine(
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
+    val arrived = section.load is CardLoad.Arrived
     InteractiveGlassCard(
         onClick = onClick,
         modifier = modifier,
         shape = RoundedCornerShape(frame.radius / 2),
+        // The panel's few seconds of success green, on a line as on the panel.
+        fill = if (arrived) arrivedFill() else colors.glassFillBrush,
+        restBorder = if (arrived) colors.success.copy(alpha = ARRIVED_EDGE_ALPHA) else null,
     ) {
         Row(
             Modifier.fillMaxSize().padding(horizontal = frame.chipPad),
@@ -1225,16 +1313,216 @@ private fun SectionLine(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text(
-                    text = section.sentence(),
-                    style = castivioBodyStyle(frame.fsBody),
-                    color = section.ink(),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                LineLoad(section, frame)
             }
         }
     }
+}
+
+/**
+ * Under a line's name: its sentence, or what its load says, in the one line there is room
+ * for -- with the bar under it while the load runs. Frames 2 to 6 of the approved drawing.
+ */
+@Composable
+private fun LineLoad(section: Section, frame: CastivioMetrics) {
+    val colors = CastivioTheme.colors
+    when (val load = section.load) {
+        CardLoad.Idle -> Text(
+            text = section.sentence(),
+            style = castivioBodyStyle(frame.fsBody),
+            color = section.ink(),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+
+        is CardLoad.Waiting -> WaitingLine(load, frame)
+
+        is CardLoad.Arriving -> {
+            ArrivingLine(section, load, R.string.home_load_loading, frame)
+            LoadBar(load.percent, colors.warning, LINE_BAR)
+        }
+
+        is CardLoad.Arrived -> {
+            LoadLine(
+                word = stringResource(section.unit, formatCount(load.items)),
+                tone = colors.success,
+                frame = frame,
+                icon = Icons.Rounded.CheckCircle,
+            )
+            LoadBar(FULL, colors.success, LINE_BAR)
+        }
+
+        is CardLoad.Failed -> if (load.refresh) {
+            LoadLine(stringResource(R.string.home_load_refresh_failed), colors.danger, frame, Icons.Rounded.ErrorOutline)
+        } else {
+            LoadLine(
+                word = stringResource(R.string.home_load_failed),
+                tone = colors.danger,
+                frame = frame,
+                icon = Icons.Rounded.ErrorOutline,
+                figure = stringResource(R.string.home_load_retry_short),
+            )
+        }
+    }
+}
+
+/** Asked for, behind another load -- or, pressed while it waits, when it will open. */
+@Composable
+private fun WaitingLine(load: CardLoad.Waiting, frame: CastivioMetrics) {
+    val colors = CastivioTheme.colors
+    if (load.hinted) {
+        LoadLine(stringResource(R.string.home_load_opens), colors.focusRing, frame)
+    } else {
+        LoadLine(stringResource(R.string.home_load_waiting), colors.onBackgroundMuted, frame, Icons.Rounded.Schedule)
+    }
+}
+
+/**
+ * A load on its way: the working word -- [loadingWord] for a first load, "refreshing" for a
+ * section that is already here -- and at its end how far along it is, as a percent where
+ * the load knows its whole and, for a first load, as the rows so far where it does not.
+ *
+ * A refresh with no whole says no figure: the count above it is the section's, and a
+ * second, smaller count of rows rewritten so far beside it reads as the section shrinking.
+ */
+@Composable
+private fun ArrivingLine(section: Section, load: CardLoad.Arriving, loadingWord: Int, frame: CastivioMetrics) {
+    val colors = CastivioTheme.colors
+    val figure = when {
+        load.percent != null -> stringResource(R.string.home_load_percent, load.percent)
+        load.items > 0 && !load.refresh -> stringResource(section.unit, formatCount(load.items))
+        else -> null
+    }
+    when {
+        load.hinted -> LoadLine(stringResource(R.string.home_load_opens), colors.focusRing, frame, figure = figure)
+        load.refresh -> LoadLine(stringResource(R.string.home_load_refreshing), colors.warning, frame, Icons.Rounded.Refresh, figure)
+        else -> LoadLine(stringResource(loadingWord), colors.warning, frame, figure = figure)
+    }
+}
+
+/**
+ * One line of a card's load: a word in its state's colour (`UI_ARCHITECTURE.md` §5.1 --
+ * working amber, success green, danger red, never colour alone), and a figure at its end.
+ */
+@Composable
+private fun LoadLine(
+    word: String,
+    tone: Color,
+    frame: CastivioMetrics,
+    icon: ImageVector? = null,
+    figure: String? = null,
+    figureTone: Color = CastivioTheme.colors.onBackgroundVariant,
+) {
+    Row(
+        Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2),
+    ) {
+        if (icon != null) {
+            Icon(icon, contentDescription = null, tint = tone, modifier = Modifier.size(Sizing.iconSm))
+        }
+        Text(
+            text = word,
+            style = castivioBodyStyle(frame.fsBody),
+            color = tone,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        if (figure != null) {
+            Text(
+                text = figure,
+                style = castivioBodyStyle(frame.fsBody),
+                color = figureTone,
+                maxLines = 1,
+            )
+        }
+    }
+}
+
+/** Where a first load comes from, or what pressing a failed one does: small, under the bar. */
+@Composable
+private fun LoadCaption(text: String, frame: CastivioMetrics, tone: Color = CastivioTheme.colors.onBackgroundMuted) {
+    Text(
+        text = text,
+        style = castivioBodyStyle(frame.fsChip),
+        color = tone,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.padding(top = HERO_BAR),
+    )
+}
+
+/**
+ * The hairline under a load's words: filled to [percent] where the load knows its whole.
+ *
+ * Where it does not, a short segment travels the track -- not progress, and not pretending
+ * to be: the rows counted beside the words are the progress. With motion off it stands
+ * still and the count carries it alone. Never a bar that fills on a timer.
+ */
+@Composable
+private fun LoadBar(percent: Int?, tone: Color, thickness: Dp) {
+    val colors = CastivioTheme.colors
+    val shape = RoundedCornerShape(thickness / 2)
+    BoxWithConstraints(
+        Modifier
+            .fillMaxWidth()
+            .padding(top = thickness)
+            .height(thickness)
+            .clip(shape)
+            .background(colors.glassBorderSoft),
+    ) {
+        if (percent != null) {
+            Box(
+                Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(percent.coerceIn(0, FULL) / FULL.toFloat())
+                    .background(tone, shape),
+            )
+        } else {
+            val segment = maxWidth * SEGMENT_SHARE
+            val room = maxWidth - segment
+            val travel = travellingSegment()
+            Box(
+                Modifier
+                    .fillMaxHeight()
+                    .width(segment)
+                    // `offset` follows the reading direction, so the segment starts from the
+                    // start edge in Arabic as in English. Read in layout, not composition.
+                    .offset { IntOffset((room * travel()).roundToPx(), 0) }
+                    .background(tone, shape),
+            )
+        }
+    }
+}
+
+/** Where the segment is, from 0 (the start edge) to 1 (the end). Still with motion off. */
+@Composable
+private fun travellingSegment(): () -> Float {
+    if (CastivioTheme.motionLevel == MotionLevel.DISABLED) return { SEGMENT_REST }
+    val travel by rememberInfiniteTransition(label = "loadSegment").animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(SEGMENT_MS, easing = LinearEasing), RepeatMode.Reverse),
+        label = "loadSegmentTravel",
+    )
+    return { travel }
+}
+
+/** How long the load took, in the builds that print measurements; null in the rest. */
+@Composable
+private fun loadSeconds(load: CardLoad.Arrived): String? {
+    val context = LocalContext.current
+    val instrumented = remember(context) { PerformanceLog.isVisibleIn(context) }
+    val seconds = load.seconds ?: return null
+    return if (instrumented) stringResource(R.string.home_load_seconds, seconds.toInt()) else null
+}
+
+/** The success green on the glass, for the moments a card says it has just loaded. */
+@Composable
+private fun arrivedFill(): Brush {
+    val success = CastivioTheme.colors.success
+    return Brush.verticalGradient(listOf(success.copy(alpha = ARRIVED_FILL_TOP), success.copy(alpha = ARRIVED_FILL_BOTTOM)))
 }
 
 // --------------------------------------------------------------- the utilities
@@ -2140,6 +2428,23 @@ private const val HERO_GLYPH_ALPHA = 0.18f
  * device [WORD_RATIO] uses for the wordmark.
  */
 private const val HERO_COUNT_RATIO = 1.26f
+
+/** A load's hairline: a little heavier on the panel than on a line, as in the drawing. */
+private val HERO_BAR = 4.dp
+private val LINE_BAR = 3.dp
+
+/** A bar's whole, in percent. */
+private const val FULL = 100
+
+/** The travelling segment: its share of the track, one crossing's time, and where it rests with motion off. */
+private const val SEGMENT_SHARE = 0.36f
+private const val SEGMENT_MS = 1_400
+private const val SEGMENT_REST = 0.375f
+
+/** The success green a just-loaded card wears: on its edge, and fading down its glass. */
+private const val ARRIVED_EDGE_ALPHA = 0.55f
+private const val ARRIVED_FILL_TOP = 0.13f
+private const val ARRIVED_FILL_BOTTOM = 0.04f
 
 /**
  * How many lines the disclaimer may use.

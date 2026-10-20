@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">Від А до Я</string>
     <string name="browse_sort_name_desc">Від Я до А</string>
     <string name="browse_sort_recent">Нещодавні</string>
-    <string name="browse_fetch_title">Завантаження: %1$s…</string>
-    <string name="browse_fetch_once">Це стається один раз. Наступного разу розділ відкриється одразу.</string>
     <string name="browse_fetch_failed">Не вдалося завантажити: %1$s</string>
     <string name="browse_fetch_failed_retryable">Провайдер не відповів вчасно. Зазвичай він завантажений, а не вимкнений.</string>
     <string name="browse_fetch_failed_final">Провайдер відхилив запит. Перевірте передплату або додайте її знову з головного екрана.</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">Під час завантаження щось пішло не так. Спробуйте ще раз.</string>
     <string name="browse_fetch_retry">Спробувати ще раз</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">Версія %1$s</string>
-    <string name="gate_tally">%1$s / %2$s категорій · %3$s</string>
-    <string name="gate_items">Елементів: %1$s · %2$s</string>
-    <string name="gate_starting">З’єднання з провайдером…</string>
-    <string name="gate_mac">MAC-адреса</string>
-    <string name="gate_provider">Провайдер</string>
     <string name="home_term_provider">Передплата</string>
     <string name="home_term_licence">Ліцензія Castivio</string>
     <string name="home_account_active">Активна</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">Немає серіалів</string>
     <string name="home_section_no_radio">Немає станцій</string>
     <string name="home_fetched_at">На цьому пристрої · %1$s</string>
+
+    <string name="home_load_waiting">Чекає своєї черги</string>
+    <string name="home_load_loading">Завантаження…</string>
+    <string name="home_load_loading_live">Завантаження каналів…</string>
+    <string name="home_load_refreshing">Оновлення…</string>
+    <string name="home_load_source">Від вашого провайдера</string>
+    <string name="home_load_done">Завантажено</string>
+    <string name="home_load_failed">Не вдалося завантажити</string>
+    <string name="home_load_failed_live">Не вдалося завантажити канали</string>
+    <string name="home_load_refresh_failed">Не вдалося оновити</string>
+    <string name="home_load_retry">Натисніть, щоб спробувати ще раз</string>
+    <string name="home_load_retry_short">Спробувати ще раз</string>
+    <string name="home_load_opens">Відкриється після завантаження</string>
+    <string name="home_load_percent">%1$d%%</string>
+    <string name="home_load_seconds">%1$d с</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Усі канали</string>
     <string name="channels_favorites">Обране</string>

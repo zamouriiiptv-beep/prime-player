@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">A 到 Z</string>
     <string name="browse_sort_name_desc">Z 到 A</string>
     <string name="browse_sort_recent">最新</string>
-    <string name="browse_fetch_title">正在載入%1$s…</string>
-    <string name="browse_fetch_once">這一步只執行一次。下次打開這個區塊會立刻顯示。</string>
     <string name="browse_fetch_failed">無法載入%1$s</string>
     <string name="browse_fetch_failed_retryable">你的供應商未在時間內回應。通常是忙碌，而不是故障。</string>
     <string name="browse_fetch_failed_final">你的供應商拒絕了這項要求。請檢查訂閱，或從首頁重新新增。</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">載入時發生問題。請重試。</string>
     <string name="browse_fetch_retry">再試一次</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">版本 %1$s</string>
-    <string name="gate_tally">%1$s / %2$s 個分類 · %3$s</string>
-    <string name="gate_items">%1$s 個項目 · %2$s</string>
-    <string name="gate_starting">正在聯絡你的供應商…</string>
-    <string name="gate_mac">MAC 位址</string>
-    <string name="gate_provider">供應商</string>
     <string name="home_term_provider">訂閱</string>
     <string name="home_term_licence">Castivio 授權</string>
     <string name="home_account_active">有效</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">無影集</string>
     <string name="home_section_no_radio">無電台</string>
     <string name="home_fetched_at">已存於本機 · %1$s</string>
+
+    <string name="home_load_waiting">排隊等待中</string>
+    <string name="home_load_loading">正在載入…</string>
+    <string name="home_load_loading_live">正在載入頻道…</string>
+    <string name="home_load_refreshing">正在重新整理…</string>
+    <string name="home_load_source">來自你的供應商</string>
+    <string name="home_load_done">已載入</string>
+    <string name="home_load_failed">無法載入</string>
+    <string name="home_load_failed_live">無法載入頻道</string>
+    <string name="home_load_refresh_failed">無法重新整理</string>
+    <string name="home_load_retry">按下即可再試一次</string>
+    <string name="home_load_retry_short">再試一次</string>
+    <string name="home_load_opens">載入完成後即可開啟</string>
+    <string name="home_load_percent">%1$d%%</string>
+    <string name="home_load_seconds">%1$d 秒</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">全部頻道</string>
     <string name="channels_favorites">我的最愛</string>

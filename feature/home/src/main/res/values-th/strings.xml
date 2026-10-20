@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">ก ถึง ฮ</string>
     <string name="browse_sort_name_desc">ฮ ถึง ก</string>
     <string name="browse_sort_recent">ล่าสุด</string>
-    <string name="browse_fetch_title">กำลังโหลด %1$s…</string>
-    <string name="browse_fetch_once">ขั้นตอนนี้ทำครั้งเดียว ครั้งต่อไปส่วนนี้จะเปิดได้ทันที</string>
     <string name="browse_fetch_failed">โหลด %1$s ไม่สำเร็จ</string>
     <string name="browse_fetch_failed_retryable">ผู้ให้บริการของคุณไม่ตอบกลับในเวลาที่กำหนด ส่วนใหญ่เกิดจากงานหนาแน่น ไม่ใช่ระบบล่ม</string>
     <string name="browse_fetch_failed_final">ผู้ให้บริการของคุณปฏิเสธคำขอ ตรวจสอบการสมัคร หรือเพิ่มใหม่จากหน้าหลัก</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">เกิดปัญหาระหว่างการโหลด ลองอีกครั้ง</string>
     <string name="browse_fetch_retry">ลองอีกครั้ง</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">เวอร์ชัน %1$s</string>
-    <string name="gate_tally">%1$s / %2$s หมวด · %3$s</string>
-    <string name="gate_items">%1$s รายการ · %2$s</string>
-    <string name="gate_starting">กำลังติดต่อผู้ให้บริการของคุณ…</string>
-    <string name="gate_mac">ที่อยู่ MAC</string>
-    <string name="gate_provider">ผู้ให้บริการ</string>
     <string name="home_term_provider">การสมัครสมาชิก</string>
     <string name="home_term_licence">ใบอนุญาต Castivio</string>
     <string name="home_account_active">ใช้งานอยู่</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">ไม่มีซีรีส์</string>
     <string name="home_section_no_radio">ไม่มีสถานี</string>
     <string name="home_fetched_at">อยู่ในอุปกรณ์นี้ · %1$s</string>
+
+    <string name="home_load_waiting">รอคิว</string>
+    <string name="home_load_loading">กำลังโหลด…</string>
+    <string name="home_load_loading_live">กำลังโหลดช่อง…</string>
+    <string name="home_load_refreshing">กำลังรีเฟรช…</string>
+    <string name="home_load_source">จากผู้ให้บริการของคุณ</string>
+    <string name="home_load_done">โหลดเสร็จแล้ว</string>
+    <string name="home_load_failed">โหลดไม่สำเร็จ</string>
+    <string name="home_load_failed_live">โหลดช่องไม่สำเร็จ</string>
+    <string name="home_load_refresh_failed">รีเฟรชไม่สำเร็จ</string>
+    <string name="home_load_retry">กดเพื่อลองอีกครั้ง</string>
+    <string name="home_load_retry_short">ลองอีกครั้ง</string>
+    <string name="home_load_opens">จะเปิดเมื่อโหลดเสร็จ</string>
+    <string name="home_load_percent">%1$d%%</string>
+    <string name="home_load_seconds">%1$d วินาที</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">ทุกช่อง</string>
     <string name="channels_favorites">รายการโปรด</string>

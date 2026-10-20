@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">De A a Z</string>
     <string name="browse_sort_name_desc">De Z a A</string>
     <string name="browse_sort_recent">Recentes</string>
-    <string name="browse_fetch_title">A carregar %1$s…</string>
-    <string name="browse_fetch_once">Isto acontece uma só vez. Da próxima vez a secção abre de imediato.</string>
     <string name="browse_fetch_failed">Não foi possível carregar %1$s</string>
     <string name="browse_fetch_failed_retryable">O seu fornecedor não respondeu a tempo. Costuma estar ocupado, não em baixo.</string>
     <string name="browse_fetch_failed_final">O seu fornecedor recusou o pedido. Verifique a subscrição, ou adicione-a de novo no ecrã inicial.</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">Ocorreu um problema durante o carregamento. Tente novamente.</string>
     <string name="browse_fetch_retry">Tentar de novo</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">Versão %1$s</string>
-    <string name="gate_tally">%1$s / %2$s categorias · %3$s</string>
-    <string name="gate_items">%1$s itens · %2$s</string>
-    <string name="gate_starting">A contactar o seu fornecedor…</string>
-    <string name="gate_mac">Endereço MAC</string>
-    <string name="gate_provider">Fornecedor</string>
     <string name="home_term_provider">Subscrição</string>
     <string name="home_term_licence">Licença do Castivio</string>
     <string name="home_account_active">Ativa</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">Sem séries</string>
     <string name="home_section_no_radio">Sem estações</string>
     <string name="home_fetched_at">Neste dispositivo · %1$s</string>
+
+    <string name="home_load_waiting">A aguardar a vez</string>
+    <string name="home_load_loading">A carregar…</string>
+    <string name="home_load_loading_live">A carregar canais…</string>
+    <string name="home_load_refreshing">A atualizar…</string>
+    <string name="home_load_source">Do seu fornecedor</string>
+    <string name="home_load_done">Carregado</string>
+    <string name="home_load_failed">Não foi possível carregar</string>
+    <string name="home_load_failed_live">Não foi possível carregar os canais</string>
+    <string name="home_load_refresh_failed">Não foi possível atualizar</string>
+    <string name="home_load_retry">Prima para tentar de novo</string>
+    <string name="home_load_retry_short">Tentar de novo</string>
+    <string name="home_load_opens">Abre quando terminar de carregar</string>
+    <string name="home_load_percent">%1$d%%</string>
+    <string name="home_load_seconds">%1$d s</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Todos os canais</string>
     <string name="channels_favorites">Favoritos</string>

@@ -17,9 +17,9 @@ import java.util.Locale
  *
  * ## Why these words are not translated
  *
- * It is an instrument, like [PerformancePanel], and written the way that panel is: Latin
- * identifiers and figures, the same words the logcat line of the same failure uses, which
- * a photograph carries intact to whoever is helping. Translated, `HTTP` and an exception's
+ * It is an instrument, and written the way an instrument is: Latin identifiers and
+ * figures, the same words the logcat line of the same failure uses, which a photograph
+ * carries intact to whoever is helping. Translated, `HTTP` and an exception's
  * class would still be Latin inside the sentence, and the line would be reordered around
  * them. A release build never draws it — see the error state in [ChannelsScreen].
  *
@@ -66,8 +66,8 @@ private val FetchStage.meaning: String
     }
 
 /**
- * `1,048,576`. [Locale.ROOT] for the reason [PerformancePanel] gives: a figure that changes
- * shape with the user's language is a figure that gets copied down wrongly.
+ * `1,048,576`. [Locale.ROOT], because a figure that changes shape with the user's language
+ * is a figure that gets copied down wrongly.
  */
 private fun count(value: Long): String = String.format(Locale.ROOT, "%,d", value)
 

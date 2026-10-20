@@ -46,8 +46,6 @@
     <string name="browse_sort_name_asc">A ke Z</string>
     <string name="browse_sort_name_desc">Z ke A</string>
     <string name="browse_sort_recent">Terbaharu</string>
-    <string name="browse_fetch_title">Memuatkan %1$s…</string>
-    <string name="browse_fetch_once">Ini berjalan sekali sahaja. Lain kali bahagian ini terbuka serta-merta.</string>
     <string name="browse_fetch_failed">Tidak dapat memuatkan %1$s</string>
     <string name="browse_fetch_failed_retryable">Pembekal anda tidak menjawab dalam masa yang ada. Kebiasaannya ia sibuk, bukan tergendala.</string>
     <string name="browse_fetch_failed_final">Pembekal anda menolak permintaan. Semak langganan, atau tambah semula dari Laman Utama.</string>
@@ -57,12 +55,6 @@
     <string name="browse_fetch_failed_unknown">Berlaku masalah semasa memuatkan. Cuba lagi.</string>
     <string name="browse_fetch_retry">Cuba lagi</string>
     <string name="gate_wordmark">Castivio</string>
-    <string name="gate_version">Versi %1$s</string>
-    <string name="gate_tally">%1$s / %2$s kategori · %3$s</string>
-    <string name="gate_items">%1$s item · %2$s</string>
-    <string name="gate_starting">Menghubungi pembekal anda…</string>
-    <string name="gate_mac">Alamat MAC</string>
-    <string name="gate_provider">Pembekal</string>
     <string name="home_term_provider">Langganan</string>
     <string name="home_term_licence">Lesen Castivio</string>
     <string name="home_account_active">Aktif</string>
@@ -101,6 +93,21 @@
     <string name="home_section_no_series">Tiada siri</string>
     <string name="home_section_no_radio">Tiada stesen</string>
     <string name="home_fetched_at">Pada peranti ini · %1$s</string>
+
+    <string name="home_load_waiting">Menunggu giliran</string>
+    <string name="home_load_loading">Memuatkan…</string>
+    <string name="home_load_loading_live">Memuatkan saluran…</string>
+    <string name="home_load_refreshing">Menyegarkan semula…</string>
+    <string name="home_load_source">Daripada pembekal anda</string>
+    <string name="home_load_done">Selesai dimuatkan</string>
+    <string name="home_load_failed">Tidak dapat memuatkan</string>
+    <string name="home_load_failed_live">Tidak dapat memuatkan saluran</string>
+    <string name="home_load_refresh_failed">Tidak dapat menyegarkan semula</string>
+    <string name="home_load_retry">Tekan untuk cuba lagi</string>
+    <string name="home_load_retry_short">Cuba lagi</string>
+    <string name="home_load_opens">Dibuka selepas selesai dimuatkan</string>
+    <string name="home_load_percent">%1$d%%</string>
+    <string name="home_load_seconds">%1$d saat</string>
     <string name="channels_crumb_separator">/</string>
     <string name="channels_all_rail">Semua Saluran</string>
     <string name="channels_favorites">Kegemaran</string>
