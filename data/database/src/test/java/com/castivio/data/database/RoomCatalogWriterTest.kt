@@ -7,6 +7,7 @@ import com.castivio.core.platform.PerformanceLog
 import com.castivio.domain.CatalogItem
 import com.castivio.domain.ImportMode
 import com.castivio.domain.ImportSummary
+import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaKind
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -263,6 +264,26 @@ class RoomCatalogWriterTest {
         assertEquals(2, entriesOnTheirRow())
     }
 
+    // ------------------------------------------------------------ the counts
+
+    /**
+     * The categories are counted through the index that leads with the subscription and
+     * the kind, so the count of one is its own subscription's rows of its own kind.
+     */
+    @Test
+    fun `a section appended is counted by category, and the other categories keep theirs`() = runBlocking {
+        Fixtures.import(database, Fixtures.mixedPlaylist())
+        val writer = RoomCatalogWriter(database) { 2_000L }
+        writer.begin("src", ImportMode.APPEND)
+        writer.writeGroups(listOf(MediaGroup("extra", "Extra", MediaKind.LIVE)))
+        writer.writeItems((0 until 3).map { liveItem("extra-$it", "Extra $it", groupId = "extra") })
+        writer.finish(summaryOf(3))
+
+        val live = database.groupDao().groupsNow("LIVE").associate { it.name to it.itemCount }
+        assertEquals(mapOf("Sports" to 2, "News" to 1, "Extra" to 3), live)
+        assertEquals(1, database.groupDao().groupsNow("RADIO").single().itemCount)
+    }
+
     // ------------------------------------------------------------ the measurement build
 
     /**
@@ -301,12 +322,13 @@ class RoomCatalogWriterTest {
         writer.finish(summaryOf(count))
     }
 
-    private fun liveItem(id: String, title: String) = CatalogItem(
+    private fun liveItem(id: String, title: String, groupId: String? = null) = CatalogItem(
         id = id,
         sourceId = "src",
         kind = MediaKind.LIVE,
         title = title,
         streamUrl = "http://host/a/$id.ts",
+        groupId = groupId,
     )
 
     private fun summaryOf(count: Int) =

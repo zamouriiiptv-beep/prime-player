@@ -198,16 +198,7 @@ class RoomCatalogWriter(
                     execSQL("DELETE FROM media_group WHERE source_id = ? AND generation != ?", arrayOf(source, generation))
                 }
             }
-            timed(DatabaseStep.COUNTS) {
-                execSQL(
-                    """
-                    UPDATE media_group SET item_count =
-                        (SELECT COUNT(*) FROM media WHERE media.group_id = media_group.id)
-                    WHERE source_id = ?
-                    """,
-                    arrayOf(source),
-                )
-            }
+            timed(DatabaseStep.COUNTS) { execSQL(COUNT_GROUPS, arrayOf(source)) }
             timed(DatabaseStep.SEARCH) { indexWrittenRows() }
         }
 
@@ -387,6 +378,26 @@ class RoomCatalogWriter(
             INSERT OR REPLACE INTO media_group (
                 id, source_id, name, kind, provider_order, item_count, generation
             ) VALUES (?, ?, ?, ?, ?, 0, ?)
+        """
+
+        /**
+         * Every category of the subscription, counted.
+         *
+         * Through the index that leads with the subscription and the kind: a category's
+         * rows carry its subscription and its kind -- its id is made from both -- so the
+         * two conditions change no figure and make each count a range of the index. On
+         * the category id alone, which no index leads with, it was a scan of every row of
+         * every subscription once per category: 4.8 s at the end of a load of the channels
+         * on the subscription it was measured on, and as long after three hundred stations.
+         */
+        const val COUNT_GROUPS = """
+            UPDATE media_group SET item_count = (
+                SELECT COUNT(*) FROM media
+                WHERE media.source_id = media_group.source_id
+                  AND media.kind = media_group.kind
+                  AND media.group_id = media_group.id
+            )
+            WHERE source_id = ?
         """
 
         /** `docid` is FTS4's name for an entry's rowid: here, always its row's. */

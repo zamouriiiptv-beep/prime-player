@@ -184,9 +184,10 @@ write, and the distinction is not cosmetic: a `REPLACE` swaps generations and
 prunes what the provider no longer lists, while an `APPEND` (a lazily loaded
 season) prunes nothing. Treating one as the other would delete the library.
 
-Both end the same way: the search index is given the rows that import wrote, in
-one statement, with the entries it made stale dropped. Never row by row beside
-the rows, and never the whole library again for one section.
+Both end the same way: the categories counted through the index that leads with
+the subscription and the kind, and the search index given the rows that import
+wrote, in one statement, with the entries it made stale dropped. Never row by row
+beside the rows, and never the whole library again for one section.
 
 ### What a refresh costs
 

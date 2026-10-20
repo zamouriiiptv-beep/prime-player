@@ -31,12 +31,19 @@ interface GroupDao {
      *
      * One correlated update over a few hundred groups, instead of a
      * `COUNT(*) GROUP BY` over 400,000 rows every time the category rail is
-     * observed.
+     * observed. Each count names the subscription and the kind as well as the
+     * category, so it is a range of `idx_media_source_kind_group_order` rather
+     * than a scan of every row once per category -- the writer's own count, for
+     * the reason `RoomCatalogWriter.COUNT_GROUPS` gives.
      */
     @Query(
         """
-        UPDATE media_group SET item_count =
-            (SELECT COUNT(*) FROM media WHERE media.group_id = media_group.id)
+        UPDATE media_group SET item_count = (
+            SELECT COUNT(*) FROM media
+            WHERE media.source_id = media_group.source_id
+              AND media.kind = media_group.kind
+              AND media.group_id = media_group.id
+        )
         WHERE source_id = :sourceId
         """,
     )
