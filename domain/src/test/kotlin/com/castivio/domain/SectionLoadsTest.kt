@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -140,6 +141,38 @@ class SectionLoadsTest {
 
         assertEquals(listOf(false, true), loader.forced)
         assertTrue(loads.runs.value.getValue(MediaKind.LIVE).forced)
+    }
+
+    // ------------------------------------------------------------------ a first load
+
+    /**
+     * A section asked for with nothing of it on the device says so on every answer of its
+     * run -- waiting, arriving, done -- and a load over rows that are already here does not.
+     */
+    @Test
+    fun `a first load says so on every answer, and a load over rows does not`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        val loader = Loader { kind, _ ->
+            flow {
+                if (kind == MediaKind.LIVE) gate.await()
+                emit(SectionLoad.Loading(1, 2))
+                emit(SectionLoad.Done(2))
+            }
+        }
+        val loads = loads(loader)
+        val seen = mutableListOf<Pair<MediaKind, Boolean>>()
+        backgroundScope.launch { loads.runs.collect { runs -> runs.forEach { (kind, run) -> seen += kind to run.first } } }
+
+        loads.request(MediaKind.LIVE, first = true)
+        loads.request(MediaKind.MOVIE)
+        runCurrent()
+        gate.complete(Unit)
+        runCurrent()
+
+        assertTrue("every live answer says first", seen.filter { it.first == MediaKind.LIVE }.all { it.second })
+        assertTrue("no film answer says first", seen.filter { it.first == MediaKind.MOVIE }.none { it.second })
+        assertEquals(SectionLoad.Done(2), loads.runs.value.getValue(MediaKind.LIVE).load)
+        assertTrue(loads.runs.value.getValue(MediaKind.LIVE).first)
     }
 
     // ------------------------------------------------------------------ subscriptions

@@ -54,6 +54,17 @@ internal fun surviving(selected: String?, groups: List<MediaGroup>): String? =
     selected?.takeIf { id -> groups.any { it.id == id } }
 
 /**
+ * The categories the rail lists: the ones with something in them, by the count the
+ * catalogue keeps for each.
+ *
+ * A category is counted when it is complete -- `CatalogWriter.countGroups` -- so while a
+ * section arrives this is the categories that have arrived whole, in the provider's order,
+ * and one still being read is not among them yet. A category that turned out empty is never
+ * listed: it is a row that opens onto nothing.
+ */
+internal fun listedOf(groups: List<MediaGroup>): List<MediaGroup> = groups.filter { it.itemCount > 0 }
+
+/**
  * A press on a catalogue row, reduced to what the player is allowed to be given.
  *
  * Returns null for the rows that are not a stream: a [Series] is a show, and pressing

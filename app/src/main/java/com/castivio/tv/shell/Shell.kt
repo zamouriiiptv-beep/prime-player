@@ -375,7 +375,9 @@ fun ShellScreen(
                     // Home loads it on its own card and opens it when the load has ended --
                     // or at once, with what it already holds, while a refresh runs behind
                     // it. So each screen composes over rows that are there, and no screen
-                    // stands between Home and the section to say they are not.
+                    // stands between Home and the section to say they are not. Live TV is
+                    // entered sooner, by Home itself, with its first complete category: the
+                    // board lists the categories that are complete, and the rest join it.
                     Dest.Live -> ChannelsScreen(
                         onPlay = playInPreview,
                         // Two presses on the name under the picture, reaching the very action

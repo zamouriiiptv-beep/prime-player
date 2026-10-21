@@ -396,6 +396,45 @@ class XtreamWholeSectionTest {
         assertEquals("the last report lost rows", 5, seen.last().itemsImported)
     }
 
+    /**
+     * A category in the one reply is complete when the reply moves on to another, and is
+     * counted then -- the first at once -- so a screen open during the load lists it before
+     * the reply ends. This reply scatters its categories (News, Sports, the station, News,
+     * Sports), the case where one is counted again each time the reply leaves it again:
+     * listed sooner, its count growing, and listed once.
+     *
+     * The clock is frozen, so the only commits are the first rows', the first category's,
+     * and the one at the end of the reply.
+     */
+    @Test
+    fun `a category in the reply is counted when the reply leaves it, and again when it comes back`() {
+        val writer = CountingWriter()
+        val seen = mutableListOf<ImportProgress.Importing>()
+
+        XtreamImportEngine(writer, batchSize = 1, clock = { 1L }).importCatalogue(
+            "src",
+            panel(),
+            kinds = LIVE_ENDPOINT,
+            wholeSection = setOf(MediaKind.LIVE),
+            onProgress = { if (it is ImportProgress.Importing) seen += it },
+        )
+
+        val counts = writer.log.filter { it.startsWith("count ") }.map { it.removePrefix("count ").split(",") }
+        assertEquals("the first category left is counted on its own, at once", listOf("News"), counts.first())
+        assertEquals("commit", writer.log[writer.log.indexOf("count News") + 1])
+        assertTrue(
+            "counted before the reply's last rows were written",
+            writer.log.indexOf("count News") < writer.log.lastIndexOf("rows 1"),
+        )
+        assertEquals("left twice, counted twice", 2, counts.flatten().count { it == "News" })
+        assertEquals(setOf("News", "Sports", "Radio FM"), counts.flatten().toSet())
+        assertTrue("all of it before the import ended", writer.log.indexOf("finish") > writer.log.indexOfLast { it.startsWith("count") })
+
+        val listed = seen.map { it.categoriesListed }
+        assertEquals(listed, listed.sorted())
+        assertEquals("each listed once, whole as the reply ends", 3, seen.last().categoriesListed)
+    }
+
     @Test
     fun `the phases are reported once each, in order`() {
         val phases = mutableListOf<Phase>()
@@ -658,6 +697,35 @@ class XtreamWholeSectionTest {
         }
 
         override fun abort(cause: Throwable?) = Unit
+    }
+
+    /** Records rows, counts and commits in order, the categories by name. */
+    private class CountingWriter : RecordingWriter() {
+        val log = mutableListOf<String>()
+        private val names = HashMap<String, String>()
+
+        override fun writeGroups(groups: List<MediaGroup>) {
+            super.writeGroups(groups)
+            for (group in groups) names[group.id] = group.name
+        }
+
+        override fun writeItems(items: List<CatalogItem>) {
+            super.writeItems(items)
+            log += "rows ${items.size}"
+        }
+
+        override fun countGroups(groupIds: Collection<String>) {
+            log += "count " + groupIds.joinToString(",") { names.getValue(it) }
+        }
+
+        override fun commit() {
+            log += "commit"
+        }
+
+        override fun finish(summary: ImportSummary) {
+            super.finish(summary)
+            log += "finish"
+        }
     }
 
     private class TrackedReader(content: String) : Reader() {

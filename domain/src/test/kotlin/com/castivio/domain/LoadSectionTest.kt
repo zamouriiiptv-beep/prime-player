@@ -290,6 +290,30 @@ class LoadSectionTest {
         assertTrue(seen.contains(1_000))
     }
 
+    /**
+     * The categories listed reach the screen as the importer says them, and never fall: a
+     * board that opened with its first category is never told it has none.
+     */
+    @Test
+    fun `the categories listed reach the screen and never go back`() = runTest {
+        val importer = Importer(
+            listOf(
+                ImportProgress.Importing(40, 3, MediaKind.LIVE),
+                ImportProgress.Importing(80, 3, MediaKind.LIVE, categoriesListed = 1),
+                ImportProgress.Importing(90, 3, MediaKind.LIVE, categoriesListed = 0),
+                ImportProgress.Importing(120, 3, MediaKind.LIVE, categoriesListed = 2),
+                ImportProgress.Done(120, 40),
+            ),
+        )
+        val load = LoadSection(Sources(xtream()), importer, Marks())
+
+        val listed = load.load(MediaKind.LIVE, now).toList()
+            .filterIsInstance<SectionLoad.Loading>()
+            .map { it.listed }
+
+        assertEquals(listOf(0, 1, 1, 2), listed)
+    }
+
     // -------------------------------------------------------------------- fixtures
 
     private fun xtream() = ProviderSource(

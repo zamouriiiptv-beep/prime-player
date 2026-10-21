@@ -158,5 +158,104 @@ class SectionCardsTest {
         assertEquals(emptySet<MediaKind>(), arrivedBetween(before, after))
     }
 
+    // ------------------------------------------------- Live TV opens with its first category
+    //
+    // `design/mockups/channels-arriving.html`, and `home-loading.html` set f.
+
+    @Test
+    fun `only Live TV opens with its first category, for now`() {
+        assertEquals(true, opensWithFirstCategory(MediaKind.LIVE))
+        assertEquals(false, opensWithFirstCategory(MediaKind.MOVIE))
+        assertEquals(false, opensWithFirstCategory(MediaKind.SERIES))
+        assertEquals(false, opensWithFirstCategory(MediaKind.RADIO))
+    }
+
+    /**
+     * A press during Live TV's first load waits until a category is listed -- whatever rows
+     * are already in, which may belong to a category still being read -- and opens once one
+     * is. It says nothing new while it waits.
+     */
+    @Test
+    fun `a press during Live TV's first load waits for its first category, then opens`() {
+        assertEquals(Press.Await, pressOf(MediaKind.LIVE, onDevice = false, marked = false, run = first(SectionLoad.Queued)))
+        assertEquals(
+            "rows of a category still being read",
+            Press.Await,
+            pressOf(MediaKind.LIVE, onDevice = true, marked = false, run = first(SectionLoad.Loading(items = 31, groups = 340))),
+        )
+        assertEquals(
+            Press.Open,
+            pressOf(MediaKind.LIVE, onDevice = true, marked = false, run = first(SectionLoad.Loading(items = 48, groups = 340, listed = 1))),
+        )
+    }
+
+    /** The other sections, and Live TV's other loads, keep the presses they had. */
+    @Test
+    fun `every other press is the one it was`() {
+        val arriving = SectionLoad.Loading(items = 48, groups = 340, listed = 1)
+        assertEquals("films still say when they open", Press.Hint, pressOf(MediaKind.MOVIE, onDevice = false, marked = false, run = first(arriving)))
+        assertEquals("a refresh over rows opens", Press.Open, pressOf(MediaKind.LIVE, onDevice = true, marked = true, run = run(arriving)))
+        assertEquals(Press.Fetch, pressOf(MediaKind.LIVE, onDevice = false, marked = false, run = null))
+        assertEquals(Press.Open, pressOf(MediaKind.LIVE, onDevice = true, marked = true, run = first(SectionLoad.Done(48))))
+    }
+
+    /**
+     * Live TV's first load on its card: loading, as every first load says it, until its first
+     * category is listed; then the count alone -- no word, no bar, no "loaded" after it.
+     */
+    @Test
+    fun `Live TV's card loads until its first category, then shows its count alone`() {
+        val before = first(SectionLoad.Loading(items = 31, groups = 340))
+        val after = first(SectionLoad.Loading(items = 12_940, groups = 340, listed = 9))
+
+        assertEquals(
+            "rows on the device are not a refresh",
+            CardLoad.Arriving(items = 31, percent = null, refresh = false),
+            cardLoad(before, onDevice = true, justArrived = false, hinted = false, opensWithFirst = true),
+        )
+        assertEquals(CardLoad.Idle, cardLoad(after, onDevice = true, justArrived = false, hinted = false, opensWithFirst = true))
+        assertEquals(
+            "no loaded beat at the end",
+            CardLoad.Idle,
+            cardLoad(first(SectionLoad.Done(54_130)), onDevice = true, justArrived = true, hinted = false, opensWithFirst = true),
+        )
+    }
+
+    /** It stopped partway: said as the section's load, not as a refresh, rows or not. */
+    @Test
+    fun `Live TV's first load that stopped says the channels could not be loaded`() {
+        val failed = first(SectionLoad.Failed(AppError.NETWORK_UNAVAILABLE, retryable = true))
+
+        assertEquals(CardLoad.Failed(refresh = false), cardLoad(failed, onDevice = true, justArrived = false, hinted = false, opensWithFirst = true))
+    }
+
+    /** The same answers for a section that does not open with its first category. */
+    @Test
+    fun `a first load of the other sections reads as it did`() {
+        val after = first(SectionLoad.Loading(items = 12_940, groups = 340, listed = 9))
+
+        assertEquals(
+            CardLoad.Arriving(items = 12_940, percent = null, refresh = true),
+            cardLoad(after, onDevice = true, justArrived = false, hinted = false, opensWithFirst = false),
+        )
+    }
+
+    @Test
+    fun `Home opens the section it waits on with its first category, or when its load ends`() {
+        assertEquals(Await.Keep, awaitOf(MediaKind.LIVE, mapOf(MediaKind.LIVE to first(SectionLoad.Queued))))
+        assertEquals(Await.Keep, awaitOf(MediaKind.LIVE, mapOf(MediaKind.LIVE to first(SectionLoad.Loading(31, 340)))))
+        assertEquals(Await.Open, awaitOf(MediaKind.LIVE, mapOf(MediaKind.LIVE to first(SectionLoad.Loading(48, 340, listed = 1)))))
+        assertEquals("a section with no categories opens with its rows", Await.Open, awaitOf(MediaKind.LIVE, mapOf(MediaKind.LIVE to first(SectionLoad.Done(48)))))
+    }
+
+    @Test
+    fun `Home stops waiting when there is nothing to open`() {
+        val failed = SectionLoad.Failed(AppError.TIMEOUT, retryable = true)
+        assertEquals(Await.Drop, awaitOf(MediaKind.LIVE, mapOf(MediaKind.LIVE to first(failed))))
+        assertEquals("another subscription forgot the load", Await.Drop, awaitOf(MediaKind.LIVE, emptyMap()))
+    }
+
     private fun run(load: SectionLoad, elapsedMs: Long? = 1_000) = SectionRun(load, forced = false, elapsedMs = elapsedMs)
+
+    private fun first(load: SectionLoad) = SectionRun(load, forced = false, elapsedMs = 1_000, first = true)
 }

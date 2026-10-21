@@ -468,6 +468,103 @@ class XtreamImportEngineTest {
         )
     }
 
+    /**
+     * A category read on its own is complete when its request ends, and is counted then
+     * rather than at the end of the load -- what lets a screen opened during the load list
+     * it. The first one with rows is committed at once: it is what the section opens with.
+     * One that turned out empty is counted, to zero, and never listed.
+     *
+     * The clock is frozen, as above, so no commit comes from the half-second rule: without
+     * the first category's own commit, both categories with rows would be counted together
+     * at the end. Categories finish in any order under the workers, so nothing here depends
+     * on which comes first.
+     */
+    @Test
+    fun `each category is counted when its request ends, and the first one with rows at once`() {
+        val writer = CountingWriter()
+        val api = FakeApi(
+            liveCategories = listOf("1" to "News", "2" to "Empty", "3" to "Sport"),
+            liveStreams = mapOf(
+                "1" to listOf(stream("11", "Nova")),
+                "2" to emptyList(),
+                "3" to listOf(stream("31", "Arena")),
+            ),
+        )
+        val progress = mutableListOf<ImportProgress>()
+
+        XtreamImportEngine(writer, clock = { FROZEN_MS }).importCatalogue(
+            sourceId = "src",
+            api = api,
+            kinds = setOf(MediaKind.LIVE),
+            onProgress = progress::add,
+        )
+
+        val counts = writer.log.take(writer.log.indexOf("finish"))
+            .filter { it.startsWith("count ") }
+            .map { it.removePrefix("count ").split(",") }
+        val firstListed = counts.first { "News" in it || "Sport" in it }
+        assertEquals(
+            "the first category with rows waited for the other: $counts",
+            1,
+            firstListed.count { it == "News" || it == "Sport" },
+        )
+        assertEquals("every category is counted before the load ends", setOf("News", "Empty", "Sport"), counts.flatten().toSet())
+
+        val reports = progress.filterIsInstance<ImportProgress.Importing>()
+        val listed = reports.map { it.categoriesListed }
+        assertEquals("listed never goes back", listed, listed.sorted())
+        assertTrue("a category was listed before the load ended", listed.any { it >= 1 })
+    }
+
+    /** A category with nothing in it is counted -- its count is zero -- and never listed. */
+    @Test
+    fun `an empty category is counted and never listed`() {
+        val writer = CountingWriter()
+        val api = FakeApi(liveCategories = listOf("2" to "Empty"), liveStreams = mapOf("2" to emptyList()))
+        val progress = mutableListOf<ImportProgress>()
+
+        XtreamImportEngine(writer, clock = { FROZEN_MS }).importCatalogue(
+            sourceId = "src",
+            api = api,
+            kinds = setOf(MediaKind.LIVE),
+            onProgress = progress::add,
+        )
+
+        assertTrue("counted, so a count from before is not left behind", "count Empty" in writer.log)
+        val reports = progress.filterIsInstance<ImportProgress.Importing>()
+        assertTrue(reports.isNotEmpty())
+        assertTrue("an empty category was listed", reports.all { it.categoriesListed == 0 })
+    }
+
+    /** Records rows, counts and commits in order, the categories by name. */
+    private class CountingWriter : CatalogWriter {
+        val log = mutableListOf<String>()
+        private val names = HashMap<String, String>()
+
+        override fun begin(sourceId: String, mode: ImportMode, sections: Set<MediaKind>) = Unit
+        override fun writeGroups(groups: List<MediaGroup>) {
+            for (group in groups) names[group.id] = group.name
+        }
+
+        override fun writeItems(items: List<CatalogItem>) {
+            log += "rows ${items.size}"
+        }
+
+        override fun countGroups(groupIds: Collection<String>) {
+            log += "count " + groupIds.joinToString(",") { names.getValue(it) }
+        }
+
+        override fun commit() {
+            log += "commit"
+        }
+
+        override fun finish(summary: ImportSummary) {
+            log += "finish"
+        }
+
+        override fun abort(cause: Throwable?) = Unit
+    }
+
     /** Counts transactions, and remembers how much the first one carried. */
     private class CommitCountingWriter : CatalogWriter {
         var items = 0

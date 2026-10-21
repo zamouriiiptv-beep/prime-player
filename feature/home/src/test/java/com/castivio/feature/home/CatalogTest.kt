@@ -58,6 +58,25 @@ class CatalogTest {
         assertNull(surviving("sports", emptyList()))
     }
 
+    // ------------------------------------------------------------ the listed categories
+
+    /**
+     * The rail lists a category once it has a count: complete, while the section arrives,
+     * in the provider's order -- and a category with nothing in it never, since it is a row
+     * that opens onto nothing.
+     */
+    @Test
+    fun `the rail lists the categories with something in them, in their order`() {
+        val arriving = listOf(
+            MediaGroup(id = "sports", name = "Sports", kind = MediaKind.LIVE, itemCount = 117),
+            MediaGroup(id = "news", name = "News", kind = MediaKind.LIVE, itemCount = 0),
+            MediaGroup(id = "kids", name = "Kids", kind = MediaKind.LIVE, itemCount = 26),
+        )
+
+        assertEquals(listOf("sports", "kids"), listedOf(arriving).map { it.id })
+        assertTrue("nothing complete yet lists nothing", listedOf(groups).isEmpty())
+    }
+
     // ------------------------------------------------------------- episode numbering
 
     @Test

@@ -66,6 +66,18 @@ class CatalogImportEngine(
         val newGroups = ArrayList<MediaGroup>()
         val perKind = IntArray(MediaKind.entries.size)
 
+        // ------------------------------------------------------ the categories listed
+        //
+        // A playlist lists a category's entries one after another, so the category the
+        // parser leaves has sent everything it has: it is complete, and is counted with the
+        // next commit -- see `CatalogWriter.countGroups` -- which lets a screen opened now
+        // list it while the rest arrives. A playlist that scatters a category has it
+        // complete early and counted again each time the parser leaves it again: listed
+        // sooner, its count growing, never taken away. Bounded like [groups].
+        var currentGroup: String? = null
+        val completed = LinkedHashSet<String>()
+        val listed = HashSet<String>()
+
         var imported = 0
         var order = 0
         var sinceCheck = 0
@@ -105,16 +117,24 @@ class CatalogImportEngine(
                     }
                 }
 
+                // Leaving a category completes it -- see "the categories listed". Counted with
+                // the batch's commit, which comes within a batch of entries: a fraction of a
+                // second of a download, so the first category waits for no commit of its own.
+                if (group?.id != currentGroup) {
+                    currentGroup?.let(completed::add)
+                    currentGroup = group?.id
+                }
+
                 batch.add(toItem(sourceId, entry, classification, group?.id, position))
 
                 if (batch.size >= batchSize) {
-                    imported += flush(batch, newGroups)
-                    onProgress(ImportProgress.Importing(imported, groups.size, kind))
+                    imported += flush(batch, newGroups, completed, listed)
+                    onProgress(ImportProgress.Importing(imported, groups.size, kind, categoriesListed = listed.size))
                     if (isCancelled()) cancelled = true
                 }
             }
 
-            imported += flush(batch, newGroups)
+            imported += flush(batch, newGroups, completed, listed)
 
             val summary = ImportSummary(
                 sourceId = sourceId,
@@ -141,9 +161,20 @@ class CatalogImportEngine(
         }
     }
 
-    /** Writes and commits one batch, then clears it for reuse. Returns rows written. */
-    private fun flush(batch: MutableList<CatalogItem>, newGroups: MutableList<MediaGroup>): Int {
-        if (batch.isEmpty() && newGroups.isEmpty()) return 0
+    /**
+     * Writes and commits one batch, then clears it for reuse. Returns rows written.
+     *
+     * The categories [completed] since the last commit are counted just before this one,
+     * so each count includes every row it makes visible, and join [listed]: every one had
+     * rows, because the parser was in it.
+     */
+    private fun flush(
+        batch: MutableList<CatalogItem>,
+        newGroups: MutableList<MediaGroup>,
+        completed: MutableSet<String>,
+        listed: MutableSet<String>,
+    ): Int {
+        if (batch.isEmpty() && newGroups.isEmpty() && completed.isEmpty()) return 0
         if (newGroups.isNotEmpty()) {
             // Groups first: an item must never reference a group that is not
             // there yet, or a join drops the row.
@@ -155,7 +186,10 @@ class CatalogImportEngine(
             writer.writeItems(batch)
             batch.clear()
         }
+        if (completed.isNotEmpty()) writer.countGroups(completed)
         writer.commit()
+        listed += completed
+        completed.clear()
         return written
     }
 

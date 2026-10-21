@@ -506,9 +506,10 @@ private fun SearchField(m: ChannelsMetrics, onClick: () -> Unit) {
 /**
  * The panel: the four columns.
  *
- * It is never composed before the section has arrived -- Home opens it once its card says
- * so -- so the fetch states it has to answer for are a refresh running behind the rows and
- * a failed one, and the question a failure asks is whether it is the whole truth or a line
+ * It is never composed before the section has a category on the device -- Home opens it
+ * with its first one, and the rest join the rail -- so the fetch states it has to answer
+ * for are the first load arriving unannounced, a refresh running behind the rows and a
+ * failed one, and the question a failure asks is whether it is the whole truth or a line
  * over a catalogue that is already here.
  */
 @Composable
@@ -575,7 +576,7 @@ private fun Board(
                 // The failure still gets said, as a line rather than as a wall. A
                 // refresh that did not work is worth knowing about; it is not worth
                 // the catalogue.
-                FetchNotice(fetch = fetch, m = m, onRetry = model::refresh)
+                FetchNotice(fetch = fetch, firstLoad = state.firstLoad, m = m, onRetry = model::refresh)
 
                 Columns(
                     state = state,
@@ -606,15 +607,21 @@ private fun Board(
  * A refresh still running is said with the state vocabulary's loading mark -- a word, in
  * the working amber (`UI_ARCHITECTURE.md` §5.1) -- because the rail's refresh is pressed
  * here and this is where its answer is looked for. Its progress is on Home's card.
+ *
+ * **The section's first load is not said at all.** The board opened with its first
+ * category and the rest join the rail as they complete; the owner's rule is that the viewer
+ * does not feel that, so no word, no bar and no "loaded" after it. Only a failure is said,
+ * or the rail would stay short with nobody knowing why.
  */
 @Composable
 private fun FetchNotice(
     fetch: SectionLoad?,
+    firstLoad: Boolean,
     m: ChannelsMetrics,
     onRetry: () -> Unit,
 ) {
     when (fetch) {
-        is SectionLoad.Queued, is SectionLoad.Loading -> RefreshingNotice(m)
+        is SectionLoad.Queued, is SectionLoad.Loading -> if (!firstLoad) RefreshingNotice(m)
         is SectionLoad.Failed -> FailedNotice(fetch, m, onRetry)
         else -> Unit
     }
@@ -899,12 +906,17 @@ private fun CategoryRail(
         // in either case: a forced re-import. A playlist with no `group-title` comes
         // back the same way and the line stands; a catalogue that lost its groups comes
         // back with them. It is the same call the strip's refresh makes.
-            if (state.groups.isEmpty() && state.fetch !is SectionLoad.Failed) {
+            if (state.noCategories) {
                 item(key = RAIL_EMPTY) { RailEmpty(m = m, onRefresh = onRefresh) }
             }
 
             // The filtered list, so the field actually does something; `groups` stays
             // whole for the rows that look a category's name up by id.
+            //
+            // **The categories that are complete, and only those** -- see `listedOf`. While
+            // the section's first load runs, each one that completes is inserted in its
+            // place, keyed by id, so a row the remote is on keeps its focus and the column
+            // does not move under it.
             items(state.shownGroups, key = { it.id }) { group ->
                 RailEntry(
                     label = group.name,

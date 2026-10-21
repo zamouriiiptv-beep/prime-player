@@ -74,12 +74,17 @@ sealed interface SectionLoad {
      *   — and the screen counts rows instead of drawing a bar that cannot move.
      * @param bytes what the provider has actually sent so far. Zero where nothing
      *   counts them — a local file has no socket to measure.
+     * @param listed how many categories are complete and on the device with their rows:
+     *   what the section's screen lists if it is opened now. Rising, never resetting, and
+     *   zero until the first category is complete -- which is what Live TV opens with. See
+     *   [ImportProgress.Importing.categoriesListed].
      */
     data class Loading(
         val items: Int,
         val groups: Int,
         val groupsDone: Int? = null,
         val bytes: Long = 0,
+        val listed: Int = 0,
     ) : SectionLoad
 
     /** Reached the end and committed. The screen can read its rows. */
@@ -151,6 +156,7 @@ class LoadSection(
         }
 
         var items = 0
+        var listed = 0
         var failed = false
 
         // A refresh asks the provider; a first open may be answered by what the device
@@ -163,13 +169,17 @@ class LoadSection(
                     // Never backwards. A single-file import reports every kind it
                     // passes through, and a counter that drops when the parser moves
                     // from films to series reads as a fault rather than as progress.
+                    // The categories listed likewise: a screen that opened with one
+                    // must never be told it has none.
                     items = maxOf(items, progress.itemsImported)
+                    listed = maxOf(listed, progress.categoriesListed)
                     emit(
                         SectionLoad.Loading(
                             items = items,
                             groups = progress.groupsReady,
                             groupsDone = progress.categoriesDone,
                             bytes = progress.bytes,
+                            listed = listed,
                         ),
                     )
                 }

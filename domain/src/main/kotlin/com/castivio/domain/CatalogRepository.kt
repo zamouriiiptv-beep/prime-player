@@ -203,6 +203,17 @@ sealed interface ImportProgress {
          * `DefaultCatalogImporter`. Zero where nothing counts them.
          */
         val bytes: Long = 0,
+        /**
+         * Categories that are complete, counted and committed with rows in them: the ones a
+         * screen opened now lists. Rising, and zero until the first category is complete.
+         *
+         * Not [categoriesDone], which counts a category that failed or turned out empty as
+         * finished too, and which the importers that read a whole section in one stream
+         * cannot answer at all. Every importer that writes categories answers this one: a
+         * category read on its own is complete when its request ends, and one inside a
+         * stream when the stream moves on to the next -- see [CatalogWriter.countGroups].
+         */
+        val categoriesListed: Int = 0,
     ) : ImportProgress
     data class Done(val totalItems: Int, val durationMs: Long) : ImportProgress
 

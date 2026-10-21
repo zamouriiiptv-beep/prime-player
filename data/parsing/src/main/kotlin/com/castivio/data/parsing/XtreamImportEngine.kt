@@ -317,6 +317,21 @@ class XtreamImportEngine(
         var lastCommitAt = started
         var committedOnce = false
 
+        // ------------------------------------------------------ the categories listed
+        //
+        // A category is listed -- a screen opened now shows it -- once it is complete and
+        // its count is committed. Complete categories wait here for the next commit, which
+        // counts them first, so each count includes every row that commit makes visible:
+        // by id, with whether it brought any rows. [listedIds] are the ones committed with
+        // rows, and its size is what a screen waiting for its first category waits on.
+        val toCount = LinkedHashMap<String, Boolean>()
+        val listedIds = HashSet<String>()
+
+        /** A category is complete: counted at the next commit. */
+        fun complete(groupId: String, rows: Boolean) {
+            toCount[groupId] = toCount[groupId] == true || rows
+        }
+
         /**
          * Ends the batch's transaction, but only when the policy says so.
          *
@@ -324,23 +339,34 @@ class XtreamImportEngine(
          * durable whatever the counters say.
          */
         fun commitIfDue(force: Boolean = false) {
-            if (pending == 0) return
+            if (pending == 0 && toCount.isEmpty()) return
             val now = clock()
             val due = force ||
                 // The first content on the screen, and the reason this is the first
                 // clause rather than one of the others: TTFC is measured from the
                 // moment the count query can see a row, and that moment is this commit.
-                !committedOnce ||
+                (!committedOnce && pending > 0) ||
+                // The first category complete, which is what the section opens with: on
+                // the screen now, as the first rows are, rather than half a second later.
+                (listedIds.isEmpty() && toCount.containsValue(true)) ||
                 pending >= COMMIT_ROWS ||
                 now - lastCommitAt >= COMMIT_INTERVAL_MS
             if (!due) return
+            val rows = pending > 0
             val commitStarted = nanoClock()
+            if (toCount.isNotEmpty()) writer.countGroups(toCount.keys)
             writer.commit()
             commitNanos += nanoClock() - commitStarted
-            if (!committedOnce) onPhase(Phase.FIRST_COMMIT)
-            committedOnce = true
+            // The first commit that carried rows: one that only counted categories made
+            // nothing new visible.
+            if (rows && !committedOnce) {
+                onPhase(Phase.FIRST_COMMIT)
+                committedOnce = true
+            }
             pending = 0
             lastCommitAt = now
+            for ((id, hasRows) in toCount) if (hasRows) listedIds += id
+            toCount.clear()
         }
 
         /**
@@ -373,7 +399,13 @@ class XtreamImportEngine(
             val commitsBefore = commitNanos
 
             fun progress(kind: MediaKind) = onProgress(
-                ImportProgress.Importing(imported, groups, kind, if (countCategories) done else null),
+                ImportProgress.Importing(
+                    imported,
+                    groups,
+                    kind,
+                    if (countCategories) done else null,
+                    categoriesListed = listedIds.size,
+                ),
             )
 
             // `flush`, timed: the writer's share of the pass.
@@ -431,6 +463,9 @@ class XtreamImportEngine(
                             val written = write()
                             imported += written
                             pending += written
+                            // The categories the one reply moved past before this batch:
+                            // every row of theirs is written now, so they are complete.
+                            for (id in event.completed) complete(id, rows = true)
                             commitIfDue()
                             progress(event.kind)
                         }
@@ -457,8 +492,14 @@ class XtreamImportEngine(
                         // sitting at 833 of 834 until the whole import ended -- and
                         // an empty category would never move it at all, because a
                         // category with no rows sends no `Items` to report against.
+                        //
+                        // And it is the moment the category is complete: its rows were
+                        // written as they came, so it is counted at the next commit -- at
+                        // once, when it is the first -- and a screen open now lists it.
                         is CategoryEvent.Finished -> {
                             done++
+                            complete(event.groupId, rows = event.rows > 0)
+                            commitIfDue()
                             progress(event.kind)
                         }
                     }
@@ -480,6 +521,10 @@ class XtreamImportEngine(
                 if (cancelled) producers.cancel()
                 producers.join()
             }
+            // What the pass completed is counted as it ends, not when the import does: the
+            // walk of the categories the one reply left empty can be minutes of requests,
+            // and the categories the reply finished are listed in the meantime.
+            if (toCount.isNotEmpty()) commitIfDue(force = true)
             meter.windowNanos = nanoClock() - passStarted
             meter.commitNanos = commitNanos - commitsBefore
         }
@@ -571,7 +616,7 @@ class XtreamImportEngine(
                             // Said now rather than left to the walk of the gaps: with no
                             // gaps there is no walk, and the bar would sit empty through the
                             // commit and the counts that still follow, reading as stuck.
-                            onProgress(ImportProgress.Importing(imported, groups, requested, done))
+                            onProgress(ImportProgress.Importing(imported, groups, requested, done, categoriesListed = listedIds.size))
                             onStreams(
                                 StreamsReport(
                                     kind = endpointKind,
@@ -872,7 +917,8 @@ class XtreamImportEngine(
             // every import. The position is derived from the category's index instead,
             // which gives the same ordering the sequential loop produced and gives it
             // deterministically.
-            var position = plan.index * CATEGORY_STRIDE
+            val first = plan.index * CATEGORY_STRIDE
+            var position = first
             val batch = ArrayList<CatalogItem>(batchSize)
 
             when (kind) {
@@ -898,7 +944,7 @@ class XtreamImportEngine(
             }
             val lastStarted = nanoClock()
             if (batch.isNotEmpty()) events.send(CategoryEvent.Items(kind, batch))
-            events.send(CategoryEvent.Finished(kind))
+            events.send(CategoryEvent.Finished(kind, groupId, rows = position - first))
             meter.handOverNanos.addAndGet(nanoClock() - lastStarted)
         } catch (t: Throwable) {
             // Rethrown only for cancellation, which is not a failure of the category:
@@ -917,6 +963,15 @@ class XtreamImportEngine(
      * shape [fetchCategory] gives it — and where the panel numbers its channels, the
      * number wins either way, so the order a viewer sees does not depend on which of the
      * two fetched it.
+     *
+     * ## When a category in the reply is complete
+     *
+     * When the reply moves on to another category: panels list a category's streams one
+     * after another, so the category the reply leaves has sent everything it has. It is
+     * handed over as complete with the batch that carries its last rows, and the one the
+     * reply is in when it ends with the last batch. A panel that scatters a category over
+     * the reply has it complete early and counted again each time the reply leaves it
+     * again, so it is listed sooner and its count grows; it is never taken away.
      *
      * Never throws for the panel's sake: what went wrong is the result, so the caller
      * can fall back. Only cancellation is thrown, because that is not a failure of the
@@ -978,6 +1033,10 @@ class XtreamImportEngine(
         return try {
             reader.use {
                 val batch = ArrayList<CatalogItem>(batchSize)
+                // The category the reply is in, and the ones it has left since the last
+                // batch was handed over: see "When a category in the reply is complete".
+                var current: CategoryPlan? = null
+                val completed = LinkedHashSet<String>()
                 XtreamParser.parseStreams(TimedReader(reader, nanoClock, meter.readNanos)) { stream ->
                     meter.parsed++
                     val plan = stream.categoryId?.let(byId::get)
@@ -992,13 +1051,20 @@ class XtreamImportEngine(
                         }
                         return@parseStreams
                     }
+                    if (plan.index != current?.index) {
+                        current?.let { completed += it.groupId }
+                        current = plan
+                    }
                     received[plan.index] = true
                     val position = plan.index * CATEGORY_STRIDE + positions[plan.index]++
                     batch.add(item(sourceId, api, plan.kind, stream, plan.groupId, position))
                     streams++
-                    if (batch.size >= batchSize) handOver(events, plan.kind, batch, isCancelled, meter)
+                    if (batch.size >= batchSize) handOver(events, plan.kind, batch, isCancelled, meter, completed)
                 }
-                if (batch.isNotEmpty()) handOver(events, batch.last().kind, batch, isCancelled, meter)
+                current?.let { completed += it.groupId }
+                if (batch.isNotEmpty() || completed.isNotEmpty()) {
+                    handOver(events, batch.lastOrNull()?.kind ?: kind, batch, isCancelled, meter, completed)
+                }
             }
             // A list naming none of the panel's categories is a refusal in the shape of an
             // answer: an empty list, or one keyed some other way. Either way nothing in it
@@ -1021,6 +1087,10 @@ class XtreamImportEngine(
      * `trySendBlocking` parks this thread while the channel is full, which is the
      * backpressure; a closed channel means the import stopped, and a reply of tens of
      * megabytes must not be read to its end for a consumer that has already gone.
+     *
+     * The categories the reply has left go with the batch, and are emptied with it: every
+     * row of theirs is in this batch or an earlier one, so once the writer has written it
+     * they are complete.
      */
     private fun handOver(
         events: SendChannel<CategoryEvent>,
@@ -1028,14 +1098,16 @@ class XtreamImportEngine(
         batch: MutableList<CatalogItem>,
         isCancelled: () -> Boolean,
         meter: PassMeter,
+        completed: MutableSet<String>,
     ) {
         if (isCancelled()) throw kotlinx.coroutines.CancellationException("the import stopped consuming")
         // The wait for room, timed: the reader held up by the writer.
         val handStarted = nanoClock()
-        val sent = events.trySendBlocking(CategoryEvent.Items(kind, ArrayList(batch)))
+        val sent = events.trySendBlocking(CategoryEvent.Items(kind, ArrayList(batch), completed.toList()))
         meter.handOverNanos.addAndGet(nanoClock() - handStarted)
         if (sent.isClosed) throw kotlinx.coroutines.CancellationException("the import stopped consuming")
         batch.clear()
+        completed.clear()
     }
 
     /**
@@ -1169,7 +1241,16 @@ class XtreamImportEngine(
      * closes, which happens exactly once, after every worker has returned.
      */
     private sealed interface CategoryEvent {
-        data class Items(val kind: MediaKind, val items: List<CatalogItem>) : CategoryEvent
+        /**
+         * @param completed categories that are complete once these rows are written: the
+         *   ones the one reply moved past before this batch. Empty from the category walk,
+         *   which says it with [Finished].
+         */
+        data class Items(
+            val kind: MediaKind,
+            val items: List<CatalogItem>,
+            val completed: List<String> = emptyList(),
+        ) : CategoryEvent
         data class Failed(
             val kind: MediaKind,
             val category: String,
@@ -1186,8 +1267,11 @@ class XtreamImportEngine(
          *
          * It carries the kind for the same reason [Failed] now does: finishing a
          * category is a progress event, and `ImportProgress.Importing` names a kind.
+         *
+         * And the category, with how many rows it sent: it is complete, so it is counted
+         * and listed -- see `CatalogWriter.countGroups` -- unless it turned out empty.
          */
-        data class Finished(val kind: MediaKind) : CategoryEvent
+        data class Finished(val kind: MediaKind, val groupId: String, val rows: Int) : CategoryEvent
     }
 
     /**

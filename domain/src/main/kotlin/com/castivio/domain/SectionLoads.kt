@@ -83,13 +83,16 @@ class SectionLoads(
      *
      * @param force fetch even though the section is marked as loaded: a refresh asked for
      *   deliberately. Without it a marked section answers `Ready` and downloads nothing.
+     * @param first nothing of the section is on the device: this is its first load, and not
+     *   a load over rows that are already here. The asker knows it, from the rows it counts;
+     *   the queue only carries it, on [SectionRun.first].
      */
-    fun request(kind: MediaKind, force: Boolean = false) {
+    fun request(kind: MediaKind, force: Boolean = false, first: Boolean = false) {
         synchronized(lock) {
             val current = _runs.value[kind]?.load
             if (current is SectionLoad.Queued || current is SectionLoad.Loading) return
-            waiting.addLast(Ask(kind, force))
-            _runs.update { it + (kind to SectionRun(SectionLoad.Queued, force, elapsedMs = null)) }
+            waiting.addLast(Ask(kind, force, first))
+            _runs.update { it + (kind to SectionRun(SectionLoad.Queued, force, elapsedMs = null, first = first)) }
             if (running == null) startNext()
         }
     }
@@ -131,7 +134,7 @@ class SectionLoads(
                     if (asked != generation) {
                         false
                     } else {
-                        val run = SectionRun(answer, ask.force, elapsedMs = monotonicMs() - startedAt)
+                        val run = SectionRun(answer, ask.force, elapsedMs = monotonicMs() - startedAt, first = ask.first)
                         _runs.update { it + (ask.kind to run) }
                         true
                     }
@@ -161,7 +164,7 @@ class SectionLoads(
         }
     }
 
-    private data class Ask(val kind: MediaKind, val force: Boolean)
+    private data class Ask(val kind: MediaKind, val force: Boolean, val first: Boolean)
 }
 
 /**
@@ -176,4 +179,10 @@ data class SectionRun(
      * includes its wait behind another -- to its latest answer. Null while it waits.
      */
     val elapsedMs: Long?,
+    /**
+     * Asked for while nothing of the section was on the device: its first load, which the
+     * viewer is waiting on, rather than a load over rows that are already here. Live TV opens
+     * with the first category of its first load, and the rest of it arrives unannounced.
+     */
+    val first: Boolean = false,
 )

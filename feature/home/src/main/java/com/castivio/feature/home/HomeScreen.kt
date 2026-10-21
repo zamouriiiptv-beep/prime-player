@@ -73,6 +73,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -107,6 +108,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.castivio.core.common.format.CastivioDates
 import com.castivio.core.design.components.CastivioClock
@@ -248,6 +250,13 @@ fun HomeScreen(
     // because the effect does not run again on a key it has already seen. Keyed on the
     // state instead, it is asked once the board is really there.
     LaunchedFocus(boardFocus, enabled = !state.loading)
+
+    // **Live TV opens by itself with its first category**, pressed once here: the rest of
+    // it arrives behind the board. Only while Home is what the viewer is looking at --
+    // leaving it, or the app, ends the wait, so nothing opens on the way back.
+    val openSection by rememberUpdatedState(onSeeSection)
+    LaunchedEffect(model) { model.opens.collect { openSection(it) } }
+    LifecycleStartEffect(model) { onStopOrDispose { model.leftHome() } }
 
     // `safeDrawing`, and the metrics are read from what is left after it: turned
     // sideways the system's own navigation sits on one *side*, so a screen that

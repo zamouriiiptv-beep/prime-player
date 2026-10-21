@@ -11,7 +11,6 @@ import com.castivio.domain.Recorded
 import com.castivio.domain.RefreshProvider
 import com.castivio.domain.Refreshed
 import com.castivio.domain.SectionCatalogue
-import com.castivio.domain.SectionLoad
 import com.castivio.domain.SectionLoads
 import com.castivio.domain.SectionRun
 import com.castivio.domain.SourceKind
@@ -27,9 +26,12 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -422,15 +424,19 @@ class HomeViewModel @Inject constructor(
      * asked for, and the viewer stays on Home to watch its card; pressed again while it is
      * on its way, the card says when it will open. A failed one is asked again: one press,
      * one attempt, and nothing retries on its own.
+     *
+     * Live TV does not wait for its load to end: it opens by itself with its first
+     * category -- see [opens] -- and a press before that changes nothing on its card. Any
+     * press ends the wait for a section pressed before it: the newest press is the one the
+     * viewer means.
      */
     fun press(section: CatalogSection): Boolean {
         val kind = section.kind
         val current = state.value
-        val arriving = when (loads.runs.value[kind]?.load) {
-            is SectionLoad.Queued, is SectionLoad.Loading -> true
-            else -> false
-        }
-        return when (pressOf(current.onDevice(kind), marked = current.sections[kind] != null, arriving = arriving)) {
+        val onDevice = current.onDevice(kind)
+        val press = pressOf(kind, onDevice, marked = current.sections[kind] != null, run = loads.runs.value[kind])
+        awaited.value = null
+        return when (press) {
             Press.Open -> true
             Press.OpenAndFetch -> {
                 loads.request(kind)
@@ -440,11 +446,39 @@ class HomeViewModel @Inject constructor(
                 hint(kind)
                 false
             }
+            Press.Await -> {
+                awaited.value = kind
+                false
+            }
             Press.Fetch -> {
-                loads.request(kind)
+                // Asked before it is awaited, so the wait starts on an answer of its own
+                // rather than on no answer at all -- which it would take for a dropped load.
+                loads.request(kind, first = !onDevice)
+                if (opensWithFirstCategory(kind)) awaited.value = kind
                 false
             }
         }
+    }
+
+    /**
+     * The section Home is waiting to open by itself: Live TV, pressed with nothing of it on
+     * the device, until its first category is listed. Ended by any other press, by its load
+     * failing, and by the viewer leaving Home -- see [leftHome].
+     */
+    private val awaited = MutableStateFlow<MediaKind?>(null)
+
+    private val _opens = MutableSharedFlow<CatalogSection>(extraBufferCapacity = 1)
+
+    /**
+     * A section to open now, without a press: Live TV with its first category listed, the
+     * rest of it still arriving. Told only to a Home that is collecting it -- nothing is
+     * kept for later, so a viewer who has left Home is not taken anywhere on the way back.
+     */
+    val opens: SharedFlow<CatalogSection> = _opens.asSharedFlow()
+
+    /** Home is no longer what the viewer is looking at: nothing opens by itself any more. */
+    fun leftHome() {
+        awaited.value = null
     }
 
     /** The card pressed while its section is on its way: [HINT_MS] of "opens when loaded". */
@@ -501,6 +535,22 @@ class HomeViewModel @Inject constructor(
                 before = runs
                 if (previous != null) arrivedBetween(previous, runs).forEach(::arrive)
             }
+        }
+        // The section Home waits on, opened when its first category is listed -- see
+        // [awaitOf] -- or let go when there is nothing to open.
+        viewModelScope.launch {
+            combine(awaited, loads.runs) { kind, runs -> kind?.let { it to awaitOf(it, runs) } }
+                .collect { waiting ->
+                    val (kind, next) = waiting ?: return@collect
+                    when (next) {
+                        Await.Keep -> Unit
+                        Await.Open -> {
+                            awaited.value = null
+                            _opens.tryEmit(CatalogSection.entries.first { it.kind == kind })
+                        }
+                        Await.Drop -> awaited.value = null
+                    }
+                }
         }
     }
 
@@ -605,6 +655,7 @@ class HomeViewModel @Inject constructor(
                     onDevice = base.onDevice(kind),
                     justArrived = kind in cards.arrived,
                     hinted = cards.hinted == kind,
+                    opensWithFirst = opensWithFirstCategory(kind),
                 )
             },
         )

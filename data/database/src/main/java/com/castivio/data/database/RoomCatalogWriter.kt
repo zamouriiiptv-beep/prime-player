@@ -55,6 +55,7 @@ class RoomCatalogWriter(
     private var wroteRows = false
     private var itemStatement: SupportSQLiteStatement? = null
     private var groupStatement: SupportSQLiteStatement? = null
+    private var countStatement: SupportSQLiteStatement? = null
 
     override fun begin(sourceId: String, mode: ImportMode, sections: Set<MediaKind>) {
         require(sections.isNotEmpty()) { "an import of no section" }
@@ -90,6 +91,7 @@ class RoomCatalogWriter(
         PerformanceLog.saveMode(mode.name)
         itemStatement = db.compileStatement(INSERT_ITEM)
         groupStatement = db.compileStatement(INSERT_GROUP)
+        countStatement = db.compileStatement(COUNT_GROUP)
         db.begin()
     }
 
@@ -103,8 +105,30 @@ class RoomCatalogWriter(
             statement.bindString(3, group.name)
             statement.bindString(4, group.kind.name)
             statement.bindLong(5, (groupOrder++).toLong())
-            statement.bindLong(6, generation)
+            // Bound twice: the statement keeps the count a category already has, so a
+            // section loaded again keeps its rail while it arrives -- see `INSERT_GROUP`.
+            statement.bindString(6, group.id)
+            statement.bindLong(7, generation)
             statement.executeInsert()
+        }
+    }
+
+    /**
+     * Each category's count, one indexed range at a time, in the open transaction: the
+     * rail sees them with the next commit. Hundreds of categories at most over a whole
+     * load, each counted as it completes -- the same count `finish` makes of all of them,
+     * spread over the load instead of waiting for its end.
+     */
+    override fun countGroups(groupIds: Collection<String>) {
+        requireStarted()
+        val statement = countStatement ?: error("countGroups before begin")
+        if (groupIds.isEmpty()) return
+        timed(DatabaseStep.COUNTS) {
+            for (id in groupIds) {
+                statement.clearBindings()
+                statement.bindString(1, id)
+                statement.executeUpdateDelete()
+            }
         }
     }
 
@@ -220,11 +244,19 @@ class RoomCatalogWriter(
         if (db != null) {
             // Rolls back the batch in flight; everything already committed stays,
             // because a partial catalogue beats an empty one -- and is found by search
-            // like a whole one. Quietly: an import that failed on the database itself
-            // may fail here again, and that is no reason to lose the rows.
+            // like a whole one, and listed like one: every category is counted, so the
+            // rail lists each one that has rows, the one that was arriving included.
+            // Quietly: an import that failed on the database itself may fail here again,
+            // and that is no reason to lose the rows.
             db.endTransactionQuietly()
-            if (sourceId != null && wroteRows) {
-                runCatching { db.transaction { timed(DatabaseStep.SEARCH) { indexWrittenRows() } } }
+            val source = sourceId
+            if (source != null && wroteRows) {
+                runCatching {
+                    db.transaction {
+                        timed(DatabaseStep.COUNTS) { execSQL(COUNT_GROUPS, arrayOf(source)) }
+                        timed(DatabaseStep.SEARCH) { indexWrittenRows() }
+                    }
+                }
             }
             db.restoreNormalPragmas()
             database.invalidationTracker.refreshVersionsAsync()
@@ -276,8 +308,10 @@ class RoomCatalogWriter(
     private fun release() {
         runCatching { itemStatement?.close() }
         runCatching { groupStatement?.close() }
+        runCatching { countStatement?.close() }
         itemStatement = null
         groupStatement = null
+        countStatement = null
         sourceId = null
     }
 
@@ -378,14 +412,39 @@ class RoomCatalogWriter(
         """
 
         /**
-         * `item_count` is written as 0 and filled in at the end of the import.
-         * It has to be listed: a Kotlin default does not become a SQL default, so
+         * `item_count` is filled in as each category completes -- see `countGroups` --
+         * and for all of them at the end of the import.
+         *
+         * Until then a category keeps the count it already had: zero for a new one, the
+         * last load's for one written again. The rail lists the categories that have a
+         * count, so a section loaded a second time keeps its rail while it arrives rather
+         * than emptying and refilling, and a new one appears when it is complete. It has
+         * to be listed either way: a Kotlin default does not become a SQL default, so
          * omitting the NOT NULL column would fail every insert.
          */
         const val INSERT_GROUP = """
             INSERT OR REPLACE INTO media_group (
                 id, source_id, name, kind, provider_order, item_count, generation
-            ) VALUES (?, ?, ?, ?, ?, 0, ?)
+            ) VALUES (
+                ?, ?, ?, ?, ?,
+                COALESCE((SELECT item_count FROM media_group WHERE id = ?), 0),
+                ?
+            )
+        """
+
+        /**
+         * One category, counted: [COUNT_GROUPS] for a single id, through the same index.
+         * Its subscription and kind come from the category's own row, which is what keeps
+         * the count a range of the index rather than a scan.
+         */
+        const val COUNT_GROUP = """
+            UPDATE media_group SET item_count = (
+                SELECT COUNT(*) FROM media
+                WHERE media.source_id = media_group.source_id
+                  AND media.kind = media_group.kind
+                  AND media.group_id = media_group.id
+            )
+            WHERE id = ?
         """
 
         /**

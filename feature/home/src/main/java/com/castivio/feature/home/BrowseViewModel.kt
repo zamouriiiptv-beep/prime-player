@@ -12,6 +12,7 @@ import com.castivio.domain.MediaItem
 import com.castivio.domain.Season
 import com.castivio.domain.SectionLoad
 import com.castivio.domain.SectionLoads
+import com.castivio.domain.SectionRun
 import com.castivio.domain.SeriesSummary
 import com.castivio.domain.SortOrder
 import com.castivio.domain.SourceRepository
@@ -75,11 +76,27 @@ data class BrowseState(
      * holder or in SQL, and a provider with four hundred categories would otherwise be
      * re-filtered on every frame the rail recomposed.
      *
+     * Only the categories with something in them are shown -- see [listedOf] -- which is
+     * also what lets the rail grow while the section arrives: a category is counted when it
+     * is complete, and appears then, in its place.
+     *
      * [groups] stays whole, because the channel rows look a category's name up by id and
      * a filtered map would leave them blank.
      */
     val groupFilter: String = "",
     val shownGroups: List<MediaGroup> = emptyList(),
+    /**
+     * The rail lists no category and none is on its way: what `RailEmpty` says instead of a
+     * list. Not while the section's first load runs, whose categories are still to come.
+     */
+    val noCategories: Boolean = false,
+    /**
+     * This section's first load is running: the board opened with its first category and
+     * the rest join the rail as they complete. Nothing on the board says so -- the owner's
+     * rule is that the viewer does not feel the load -- so the notice a refresh draws is not
+     * drawn for it. A failure is still said.
+     */
+    val firstLoad: Boolean = false,
     val providerLabel: String? = null,
     /** True only until the first answer arrives; a category change is not a reload. */
     val loading: Boolean = true,
@@ -130,8 +147,8 @@ class BrowseViewModel @Inject constructor(
      * waits for somebody to ask again, a new subscription forgets the old one's answers --
      * and this only reads the entry for the section on screen.
      */
-    private val fetch: Flow<SectionLoad?> =
-        combine(section, loads.runs) { current, runs -> runs[current.kind]?.load }
+    private val fetch: Flow<SectionRun?> =
+        combine(section, loads.runs) { current, runs -> runs[current.kind] }
 
     /**
      * The order, which the provider's own is the default for.
@@ -191,7 +208,10 @@ class BrowseViewModel @Inject constructor(
         ) { provider, state, filter -> Triple(provider, state, filter) },
     ) { current, available, asked, counts, providerAndFetch ->
         val provider = providerAndFetch.first
+        val run = providerAndFetch.second
         val filter = providerAndFetch.third
+        val listed = listedOf(available)
+        val firstLoad = run.isFirstLoad()
         BrowseState(
             section = current,
             groups = available,
@@ -201,15 +221,17 @@ class BrowseViewModel @Inject constructor(
             total = counts.first,
             sectionTotal = counts.second,
             groupFilter = filter,
-            shownGroups = available.filtered(filter),
+            shownGroups = listed.filtered(filter),
+            noCategories = listed.isEmpty() && run?.load !is SectionLoad.Failed && !firstLoad,
+            firstLoad = firstLoad,
             // `takeIf`, because a playlist the user did not name now stores no name
             // rather than the host: absent and empty mean the same thing to every
             // reader of this, and only one of them has a fallback. Without it the
             // empty-section title reads " carries no Films".
             providerLabel = provider?.label?.takeIf(String::isNotBlank),
             loading = false,
-            fetch = providerAndFetch.second,
-            fetchReadout = (providerAndFetch.second as? SectionLoad.Failed)?.diagnosis?.let(::fetchReadout),
+            fetch = run?.load,
+            fetchReadout = (run?.load as? SectionLoad.Failed)?.diagnosis?.let(::fetchReadout),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_GRACE_MS), BrowseState())
 
@@ -226,7 +248,8 @@ class BrowseViewModel @Inject constructor(
      *
      * Idempotent, because composition is: re-declaring the same section must not clear the
      * category the user has open. It asks for nothing -- Home asked before it opened the
-     * section, and the section is on the device by the time this screen draws.
+     * section, and the section is on the device by the time this screen draws: whole, or,
+     * for Live TV, its first category with the rest on their way.
      */
     fun show(current: CatalogSection) {
         if (section.value != current) {
@@ -279,6 +302,10 @@ class BrowseViewModel @Inject constructor(
         const val SUBSCRIPTION_GRACE_MS = 5_000L
     }
 }
+
+/** Whether [this] is a section's first load, still waiting or arriving. */
+private fun SectionRun?.isFirstLoad(): Boolean =
+    this != null && first && (load is SectionLoad.Queued || load is SectionLoad.Loading)
 
 /**
  * The categories whose names contain [filter], or all of them when nothing is typed.

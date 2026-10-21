@@ -109,6 +109,32 @@ class CatalogImportEngineTest {
         assertNull(writer.items.single { it.title == "Nameless" }.groupId)
     }
 
+    /**
+     * A playlist lists a category's entries one after another, so the category the parser
+     * leaves is complete: it is counted with the next commit, not at the end, which lets a
+     * screen opened during the load list it. One the playlist comes back to is counted again
+     * when it is left again -- listed sooner, its count growing. The category the playlist
+     * ends in is counted by the writer's finish, with all the others.
+     */
+    @Test
+    fun `a category is counted when the playlist leaves it, and again when it comes back`() {
+        val writer = RecordingWriter()
+        val lines = listOf("#EXTM3U") + listOf("A", "A", "B", "B", "A", "C").flatMapIndexed { i, group ->
+            listOf("""#EXTINF:-1 group-title="$group",Channel $i""", "http://host/live/u/p/$i.ts")
+        }
+        val progress = mutableListOf<ImportProgress>()
+
+        CatalogImportEngine(writer, batchSize = 2).importM3u("src", lines.asSequence(), onProgress = progress::add)
+
+        val names = writer.groups.associate { it.id to it.name }
+        assertEquals(listOf(listOf("A"), listOf("B", "A")), writer.counted.map { ids -> ids.map(names::getValue) })
+        assertEquals(
+            "listed as each batch is committed",
+            listOf(0, 1, 2),
+            progress.filterIsInstance<ImportProgress.Importing>().map { it.categoriesListed },
+        )
+    }
+
     @Test
     fun `provider order is preserved`() {
         val writer = RecordingWriter()
@@ -388,6 +414,7 @@ class CatalogImportEngineTest {
         val batchIdentities = mutableSetOf<Int>()
         val groups = mutableListOf<MediaGroup>()
         val items = mutableListOf<CatalogItem>()
+        val counted = mutableListOf<List<String>>()
         var lastBatchRef: List<CatalogItem>? = null
         var commits = 0
         var began: String? = null
@@ -413,6 +440,10 @@ class CatalogImportEngineTest {
             batchIdentities += System.identityHashCode(items)
             lastBatchRef = items
             this.items += items
+        }
+
+        override fun countGroups(groupIds: Collection<String>) {
+            counted.add(groupIds.toList())
         }
 
         override fun commit() {

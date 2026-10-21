@@ -310,6 +310,78 @@ class RoomCatalogWriterTest {
         assertEquals(1, database.groupDao().groupsNow("RADIO").single().itemCount)
     }
 
+    /**
+     * A category is counted when the engine says it is complete, in the load, rather than
+     * at its end: what lets the rail list it while the rest arrives. The one still arriving
+     * keeps no count until it is complete too.
+     */
+    @Test
+    fun `a category is counted when it is complete, before the load ends`() = runBlocking {
+        Fixtures.register(database, "src")
+        val writer = RoomCatalogWriter(database) { 2_000L }
+        writer.begin("src", ImportMode.APPEND)
+        writer.writeGroups(listOf(MediaGroup("first", "First", MediaKind.LIVE), MediaGroup("second", "Second", MediaKind.LIVE)))
+        writer.writeItems((0 until 3).map { liveItem("first-$it", "First $it", groupId = "first") })
+        writer.writeItems(listOf(liveItem("second-0", "Second 0", groupId = "second")))
+        writer.commit()
+        assertEquals("not counted before it is complete", 0, countOf(COUNT_OF_FIRST))
+
+        writer.countGroups(listOf("first"))
+        writer.commit()
+
+        assertEquals(3, countOf(COUNT_OF_FIRST))
+        assertEquals("the one still arriving", 0, countOf("SELECT item_count FROM media_group WHERE id = 'second'"))
+        writer.finish(summaryOf(4))
+        assertEquals(mapOf("First" to 3, "Second" to 1), database.groupDao().groupsNow("LIVE").associate { it.name to it.itemCount })
+    }
+
+    /**
+     * A section loaded again writes its categories again before a single row, and they keep
+     * the count they had until each is complete and counted again: a rail that lists the
+     * categories with a count stays whole while the section arrives a second time.
+     */
+    @Test
+    fun `a category written again keeps its count until it is counted again`() = runBlocking {
+        Fixtures.register(database, "src")
+        val first = RoomCatalogWriter(database) { 2_000L }
+        first.begin("src", ImportMode.APPEND)
+        first.writeGroups(listOf(MediaGroup("first", "First", MediaKind.LIVE)))
+        first.writeItems((0 until 2).map { liveItem("first-$it", "First $it", groupId = "first") })
+        first.finish(summaryOf(2))
+
+        val again = RoomCatalogWriter(database) { 3_000L }
+        again.begin("src", ImportMode.APPEND)
+        again.writeGroups(listOf(MediaGroup("first", "First", MediaKind.LIVE)))
+        again.commit()
+        assertEquals("kept while it arrives again", 2, countOf(COUNT_OF_FIRST))
+
+        again.writeItems(listOf(liveItem("first-2", "First 2", groupId = "first")))
+        again.countGroups(listOf("first"))
+        again.commit()
+        assertEquals(3, countOf(COUNT_OF_FIRST))
+        again.finish(summaryOf(1))
+    }
+
+    /**
+     * A load that stopped leaves a partial catalogue, and it is listed like a whole one:
+     * every category with committed rows is counted, the one that was arriving included.
+     * The batch in flight is rolled back and is not in any count.
+     */
+    @Test
+    fun `a load that stopped counts every category it committed rows for`() = runBlocking {
+        Fixtures.register(database, "src")
+        val writer = RoomCatalogWriter(database) { 2_000L }
+        writer.begin("src", ImportMode.APPEND)
+        writer.writeGroups(listOf(MediaGroup("first", "First", MediaKind.LIVE), MediaGroup("second", "Second", MediaKind.LIVE)))
+        writer.writeItems((0 until 2).map { liveItem("first-$it", "First $it", groupId = "first") })
+        writer.writeItems(listOf(liveItem("second-0", "Second 0", groupId = "second")))
+        writer.commit()
+        writer.writeItems(listOf(liveItem("second-1", "Second 1", groupId = "second")))
+        writer.abort(java.io.IOException("connection reset"))
+
+        assertEquals(mapOf("First" to 2, "Second" to 1), database.groupDao().groupsNow("LIVE").associate { it.name to it.itemCount })
+    }
+
     // ------------------------------------------------------------ the measurement build
 
     /**
@@ -375,4 +447,9 @@ class RoomCatalogWriterTest {
         favoriteDao = database.favoriteDao(),
         progressDao = database.progressDao(),
     )
+
+    private companion object {
+        /** Read on the writer's own connection, which is what a load in progress can be asked on. */
+        const val COUNT_OF_FIRST = "SELECT item_count FROM media_group WHERE id = 'first'"
+    }
 }

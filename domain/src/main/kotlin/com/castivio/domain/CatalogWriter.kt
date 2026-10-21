@@ -49,6 +49,23 @@ interface CatalogWriter {
     /** One batch of rows. Must not be retained after the call returns. */
     fun writeItems(items: List<CatalogItem>)
 
+    /**
+     * These categories are complete: every row the provider sent for each of them has
+     * been handed to [writeItems]. Each one's count is filled in now, in the open
+     * transaction, and readers see it with the next [commit].
+     *
+     * It is what lets a section be browsed while it arrives. A category's count was filled
+     * in once, at [finish], so a screen opened during a load had a rail of categories that
+     * all said nothing and could not tell a finished one from one still on its way; the
+     * rail lists a category once it has a count, and a category is counted the moment it
+     * is complete.
+     *
+     * Safe to call again for a category that receives more rows later -- it is counted
+     * again -- and for one that turned out empty, whose count is then zero. Does nothing
+     * by default: a writer that keeps no counts has none to fill.
+     */
+    fun countGroups(groupIds: Collection<String>) {}
+
     /** Makes everything written so far visible to readers. */
     fun commit()
 

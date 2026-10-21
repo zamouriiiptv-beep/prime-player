@@ -62,24 +62,39 @@ sealed interface CardLoad {
  * @param onDevice the section has rows here, or is marked as loaded with none.
  * @param justArrived its load ended moments ago and the card still says so.
  * @param hinted its card was pressed while it was still on its way.
+ * @param opensWithFirst the section opens with the first category of its first load --
+ *   see [opensWithFirstCategory] -- and the rest of that load is not to be felt.
  */
 internal fun cardLoad(
     run: SectionRun?,
     onDevice: Boolean,
     justArrived: Boolean,
     hinted: Boolean,
-): CardLoad = when (val load = run?.load) {
-    is SectionLoad.Queued -> CardLoad.Waiting(hinted = hinted && !onDevice)
-    is SectionLoad.Loading -> CardLoad.Arriving(
-        items = load.items,
-        percent = load.percent(),
-        refresh = onDevice,
-        hinted = hinted && !onDevice,
-    )
-    is SectionLoad.Failed -> CardLoad.Failed(refresh = onDevice)
-    is SectionLoad.Done -> if (justArrived) CardLoad.Arrived(load.items, run.elapsedMs?.let(::wholeSeconds)) else CardLoad.Idle
-    // Ready: marked, nothing fetched. NoSource: Home says that on its own. Null: not asked.
-    is SectionLoad.Ready, is SectionLoad.NoSource, null -> CardLoad.Idle
+    opensWithFirst: Boolean = false,
+): CardLoad {
+    // The first load of a section that opens with its first category: "loading" until that
+    // category is listed, then the count alone, as any section on the device shows it --
+    // the rest arrives without a word, a bar or a "loaded" after it. Its rows are no
+    // refresh's either, so a failure says the section could not be loaded.
+    val quiet = opensWithFirst && run?.first == true
+    return when (val load = run?.load) {
+        is SectionLoad.Queued -> CardLoad.Waiting(hinted = hinted && !onDevice)
+        is SectionLoad.Loading -> when {
+            quiet && load.listed > 0 -> CardLoad.Idle
+            quiet -> CardLoad.Arriving(items = load.items, percent = load.percent(), refresh = false)
+            else -> CardLoad.Arriving(
+                items = load.items,
+                percent = load.percent(),
+                refresh = onDevice,
+                hinted = hinted && !onDevice,
+            )
+        }
+        is SectionLoad.Failed -> CardLoad.Failed(refresh = onDevice && !quiet)
+        is SectionLoad.Done ->
+            if (justArrived && !quiet) CardLoad.Arrived(load.items, run.elapsedMs?.let(::wholeSeconds)) else CardLoad.Idle
+        // Ready: marked, nothing fetched. NoSource: Home says that on its own. Null: not asked.
+        is SectionLoad.Ready, is SectionLoad.NoSource, null -> CardLoad.Idle
+    }
 }
 
 /**
@@ -108,6 +123,39 @@ enum class Press {
 
     /** The section is on its way: stay, and let the card say when it will open. */
     Hint,
+
+    /**
+     * The section opens with its first category and none is complete yet: stay, with
+     * nothing new said -- the card keeps loading -- and open by itself when one is.
+     */
+    Await,
+}
+
+/**
+ * Whether [kind] opens with the first category of its first load, rather than when the load
+ * ends, and lets the rest of it arrive unannounced.
+ *
+ * Live TV only, in the owner's order: the channels first. Films, series and radio keep the
+ * rule they have -- a section that has never loaded opens when its load ends -- until their
+ * own phase, and then this is the one line that changes for them.
+ */
+internal fun opensWithFirstCategory(kind: MediaKind): Boolean = kind == MediaKind.LIVE
+
+/**
+ * The press on [kind]'s card, from what is on the device and what its load is doing.
+ *
+ * While the first load of a section that opens with its first category runs, the press
+ * opens it as soon as a category is listed and waits until then, whatever rows are in.
+ * Every other press is [pressOf] below.
+ */
+internal fun pressOf(kind: MediaKind, onDevice: Boolean, marked: Boolean, run: SectionRun?): Press {
+    val load = run?.load
+    val arriving = load is SectionLoad.Queued || load is SectionLoad.Loading
+    if (arriving && run?.first == true && opensWithFirstCategory(kind)) {
+        val listed = (load as? SectionLoad.Loading)?.listed ?: 0
+        return if (listed > 0) Press.Open else Press.Await
+    }
+    return pressOf(onDevice, marked, arriving)
 }
 
 /**
@@ -121,6 +169,32 @@ internal fun pressOf(onDevice: Boolean, marked: Boolean, arriving: Boolean): Pre
     onDevice -> if (!marked && !arriving) Press.OpenAndFetch else Press.Open
     arriving -> Press.Hint
     else -> Press.Fetch
+}
+
+/** What Home does about the section it is waiting to open, at the queue's latest answer. */
+enum class Await {
+    /** Its first category is not complete yet: keep waiting. */
+    Keep,
+
+    /** A category is listed, or the load ended: open it now. */
+    Open,
+
+    /**
+     * Nothing to open: the load failed -- its card says so, and a press asks again -- or
+     * there is no load at all any more, because another subscription was chosen under it.
+     */
+    Drop,
+}
+
+/**
+ * Whether the section Home waits on opens now: as soon as its first load lists a category,
+ * or when it ends -- a section with no categories at all opens with its rows.
+ */
+internal fun awaitOf(kind: MediaKind, runs: Map<MediaKind, SectionRun>): Await = when (val load = runs[kind]?.load) {
+    is SectionLoad.Queued -> Await.Keep
+    is SectionLoad.Loading -> if (load.listed > 0) Await.Open else Await.Keep
+    is SectionLoad.Done -> Await.Open
+    is SectionLoad.Failed, is SectionLoad.Ready, is SectionLoad.NoSource, null -> Await.Drop
 }
 
 /**
