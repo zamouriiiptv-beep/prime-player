@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.SystemClock
 import android.util.Log
 import android.view.SurfaceView
+import android.view.View
 import com.castivio.playback.api.AspectMode
 import com.castivio.playback.api.EngineId
 import com.castivio.playback.api.MediaKind
@@ -16,6 +17,7 @@ import com.castivio.playback.api.PlaybackError
 import com.castivio.playback.api.PlaybackSample
 import com.castivio.playback.api.PlaybackState
 import com.castivio.playback.api.PlaybackTuning
+import com.castivio.playback.api.SourceRedaction
 import com.castivio.playback.api.Track
 import com.castivio.playback.api.TrackSet
 import com.castivio.playback.api.TrackType
@@ -74,16 +76,8 @@ class VlcPlaybackEngine(
     private var isReleased = false
     private var currentSurfaceView: SurfaceView? = null
 
-    private val libVLC: LibVLC by lazy {
-        val options = ArrayList<String>().apply {
-            add("--no-drop-late-frames")
-            add("--no-skip-frames")
-            add("--audio-time-stretch")
-            add("--http-reconnect")
-            add("-vvv")
-        }
-        LibVLC(appContext, options)
-    }
+    /** The process's one LibVLC -- see [sharedLibVlc]. Never released by an engine. */
+    private val libVLC: LibVLC by lazy { sharedLibVlc(appContext) }
 
     private val mediaPlayer: MediaPlayer by lazy {
         MediaPlayer(libVLC).apply {
@@ -109,16 +103,30 @@ class VlcPlaybackEngine(
             MediaPlayer.Event.Opening -> {
                 _state.value = PlaybackState.Opening
             }
+            // **A buffering report is not always a stall.**
+            //
+            // LibVLC reports how full its input buffer is, 0 to 100, and it reports it again
+            // while a stream plays. Every report after the first frame used to become
+            // `Buffering` -- and nothing turned it back: `Playing` is sent once, when playback
+            // starts, and the clock's ticks refreshed only a state that already said
+            // `Playing`. So one report at 100 % left the spinner over a picture that went on
+            // playing for as long as the channel was on.
+            //
+            // A full buffer is the end of buffering, and a picture that is moving is playing
+            // -- see `TimeChanged` below. What stays is the real thing: a buffer below full
+            // after the picture started.
             MediaPlayer.Event.Buffering -> {
-                if (_firstFrameAtMs.value == null) {
-                    _state.value = PlaybackState.Opening
-                } else {
-                    val percent = event.buffering
-                    val bufferedAheadMs = ((percent / 100f) * tuning.bufferForPlaybackMs).toLong().coerceAtLeast(0L)
-                    _state.value = PlaybackState.Buffering(
-                        bufferedMs = bufferedAheadMs,
-                        bitrateBps = 0,
-                    )
+                val percent = event.buffering
+                when {
+                    _firstFrameAtMs.value == null -> _state.value = PlaybackState.Opening
+                    percent >= FULL_BUFFER -> if (mediaPlayer.isPlaying) pushPlaying()
+                    else -> {
+                        val bufferedAheadMs = ((percent / 100f) * tuning.bufferForPlaybackMs).toLong().coerceAtLeast(0L)
+                        _state.value = PlaybackState.Buffering(
+                            bufferedMs = bufferedAheadMs,
+                            bitrateBps = 0,
+                        )
+                    }
                 }
             }
             MediaPlayer.Event.Playing -> {
@@ -128,8 +136,9 @@ class VlcPlaybackEngine(
                 pushPlaying()
                 updateTracks()
             }
+            // Whatever was announced before it: a pause during a rebuffer is still a pause.
             MediaPlayer.Event.Paused -> {
-                if (_state.value is PlaybackState.Playing) {
+                if (_firstFrameAtMs.value != null) {
                     _state.value = PlaybackState.Paused(positionMs)
                 }
             }
@@ -152,8 +161,11 @@ class VlcPlaybackEngine(
                 updateTracks()
                 updateVideoShape()
             }
+            // The clock moved, so the picture is moving: a stream announced as buffering is
+            // playing again. A real stall does not move the clock and is left as it was.
             MediaPlayer.Event.TimeChanged -> {
-                if (_state.value is PlaybackState.Playing) {
+                val now = _state.value
+                if (now is PlaybackState.Playing || (now is PlaybackState.Buffering && mediaPlayer.isPlaying)) {
                     pushPlaying()
                 }
             }
@@ -185,6 +197,7 @@ class VlcPlaybackEngine(
                 if (vout.areViewsAttached()) {
                     vout.detachViews()
                 }
+                currentSurfaceView?.removeOnLayoutChangeListener(windowSizer)
                 currentSurfaceView = null
             }
             is VideoOutput.Platform -> {
@@ -199,11 +212,31 @@ class VlcPlaybackEngine(
                 if (vout.areViewsAttached()) {
                     vout.detachViews()
                 }
+                currentSurfaceView?.removeOnLayoutChangeListener(windowSizer)
                 currentSurfaceView = view
                 vout.setVideoView(view)
                 vout.attachViews()
+                // **LibVLC scales to the window it is told about, and it was told about none.**
+                //
+                // A `SurfaceView` handed to LibVLC without its size leaves the video output
+                // scaling to whatever it last believed the window was. The surface is resized
+                // as the picture's shape arrives and again when the player is enlarged, so the
+                // picture was drawn to the wrong box -- stretched out of shape, and softer than
+                // the screen it was on. The size is given now and given again on every change,
+                // which is what LibVLC's own player does with its surface.
+                view.addOnLayoutChangeListener(windowSizer)
+                if (view.width > 0 && view.height > 0) vout.setWindowSize(view.width, view.height)
             }
         }
+    }
+
+    /** Tells LibVLC the window's size whenever the surface is laid out at a new one. */
+    private val windowSizer = View.OnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
+        val width = right - left
+        val height = bottom - top
+        if (isReleased || width <= 0 || height <= 0) return@OnLayoutChangeListener
+        if (width == oldRight - oldLeft && height == oldBottom - oldTop) return@OnLayoutChangeListener
+        runCatching { mediaPlayer.vlcVout.setWindowSize(width, height) }
     }
 
     override fun open(media: MediaRequest) {
@@ -478,6 +511,7 @@ class VlcPlaybackEngine(
                 vout.detachViews()
             }
         }
+        currentSurfaceView?.removeOnLayoutChangeListener(windowSizer)
         currentSurfaceView = null
 
         mediaPlayer.setEventListener(null)
@@ -499,10 +533,6 @@ class VlcPlaybackEngine(
             mediaPlayer.release()
         }
 
-        runCatching {
-            libVLC.release()
-        }
-
         _state.value = PlaybackState.Idle
     }
 
@@ -517,12 +547,43 @@ class VlcPlaybackEngine(
         else -> PlaybackError.UNKNOWN
     }
 
-    private fun safeSource(url: String): String {
-        return url.substringBefore('?').substringBefore('#').take(120)
-    }
+    /** An Xtream address carries the account in its path; see [SourceRedaction]. */
+    private fun safeSource(url: String): String = SourceRedaction.safe(url)
 
     internal companion object {
         const val TAG = "VlcPlaybackEngine"
+
+        /** What LibVLC reports for a full input buffer: the end of buffering, not a stall. */
+        const val FULL_BUFFER = 100f
+
+        @Volatile
+        private var shared: LibVLC? = null
+
+        /**
+         * One LibVLC for the whole process, built the first time the backup engine is needed.
+         *
+         * An engine is built fresh for every source, and every one of them used to build a
+         * LibVLC of its own -- loading its modules and initialising the library, on the main
+         * thread, in front of the picture of every channel the backup played -- and released
+         * it again on the way out. LibVLC is made to be shared: what belongs to one source is
+         * the `MediaPlayer` and its `Media`, and those are still per engine.
+         *
+         * No verbose logging, which it had: LibVLC's debug output names every address it
+         * opens -- the account in the path included -- and costs a stick a share of its one
+         * processor for as long as anything plays.
+         */
+        fun sharedLibVlc(context: Context): LibVLC =
+            shared ?: synchronized(this) {
+                shared ?: LibVLC(
+                    context.applicationContext,
+                    arrayListOf(
+                        "--no-drop-late-frames",
+                        "--no-skip-frames",
+                        "--audio-time-stretch",
+                        "--http-reconnect",
+                    ),
+                ).also { shared = it }
+            }
 
         /** Android's own provider scheme, which LibVLC has no access module for. */
         const val SCHEME_CONTENT = "content"
