@@ -87,6 +87,8 @@ jobs:
           fi
 
       - name: Build debug APK
+        # Named so the steps that read what it produced can ask whether it did.
+        id: build
         env:
           OPENSUBTITLES_API_KEY: ${{ secrets.OPENSUBTITLES_API_KEY }}
           OPENSUBTITLES_USERNAME: ${{ secrets.OPENSUBTITLES_USERNAME }}
@@ -145,13 +147,21 @@ jobs:
       # precisely so they never depend on a real account — but because they are a build
       # input. Give this step a different value and `BuildConfig` is regenerated and half
       # the debug variant recompiles between the two steps.
+      #
+      # `--continue`, because one failing module was hiding the modules after it. Gradle
+      # stops scheduling at the first failed task without it, so three failures in
+      # :feature:activation meant :feature:player, both engines and :app never ran -- a
+      # red step that looked like one module's problem and was also four modules nobody
+      # had checked. With it every listed module runs, every failure is printed together
+      # at the end, and Gradle still exits non-zero: the step and the job stay red for any
+      # failing test. Nothing is ignored -- no `continue-on-error`, no `ignoreFailures`.
       - name: Run Android unit tests
         env:
           OPENSUBTITLES_API_KEY: ${{ secrets.OPENSUBTITLES_API_KEY }}
           OPENSUBTITLES_USERNAME: ${{ secrets.OPENSUBTITLES_USERNAME }}
           OPENSUBTITLES_PASSWORD: ${{ secrets.OPENSUBTITLES_PASSWORD }}
         run: |
-          ./gradlew --no-daemon --console=plain \
+          ./gradlew --no-daemon --console=plain --continue \
             :core:design:testDebugUnitTest \
             :core:platform:testDebugUnitTest \
             :data:database:testDebugUnitTest \
@@ -171,7 +181,13 @@ jobs:
 
       # The schema is what any future migration is written against, so its export
       # is verified rather than assumed. See the script for what it catches.
+      #
+      # Whenever the build succeeded, whatever the tests did. It reads what the build
+      # exported and nothing the tests produce, and without a condition it was skipped on
+      # every run with a failing test -- a check that had not run for as long as any test
+      # had been red. It still fails the job by itself when the schema is wrong.
       - name: Verify the exported Room schema
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: ./scripts/verify-room-schema.sh
 
       - name: Upload exported schema
@@ -199,7 +215,11 @@ jobs:
       # be asked to install. Comparing this line between any two runs is the whole test
       # -- identical SHA-256 means the second APK installs over the first without an
       # uninstall, and therefore without losing the catalogue.
+      #
+      # Whenever there is an APK to read, like the schema check: a red test step used to
+      # skip it, and the APK it describes is uploaded either way.
       - name: Print the APK signing certificate
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: |
           APK=$(ls app/build/outputs/apk/debug/*.apk | head -1)
           APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)
