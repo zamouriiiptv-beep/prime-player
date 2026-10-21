@@ -6,8 +6,9 @@
   opens by itself as soon as its first category is complete, and every category that
   completes after that is added to the rail where the provider puts it -- while the viewer
   browses, without leaving and coming back. A category is listed once it is complete, with
-  its final count; the one being read is not listed yet. The rail ends with a line saying
-  the rest is on its way, in the working amber, with the figure the Home card shows.
+  its final count; the one being read is not listed yet. Nothing on the board says the rest
+  is still arriving -- no line, no word, no bar: the owner's rule is that the viewer does not
+  feel the load. The one thing said is a load that stopped, by the notice that already exists.
 
   Geometry is the approved board's (channels-geometry.html): phone 833x385, and the 1280x720
   reference at 3/4 for the television, 960x540. The board is laid out left to right in every
@@ -72,21 +73,6 @@ svg{display:block;flex:none}
 .pkg.focus{border-color:var(--ring);box-shadow:0 0 0 1px var(--ring)}
 .rdiv{flex:none;height:1px;background:rgba(172,180,214,.18)}
 
-/* The subject: the rail's last line while the rest is on its way. Not a control -- nothing to
-   press, and the remote passes it by -- so no surface, no edge and no ring: the working amber's
-   word over the figure, as a category's name sits over its total, and a hairline under them,
-   as a section's card says it on Home. */
-.more{flex:none;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;border:1px solid transparent}
-.more .w{color:var(--amber);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;line-height:1.3;unicode-bidi:plaintext}
-.more .v{color:var(--muted);white-space:nowrap;line-height:1.3;font-variant-numeric:tabular-nums;unicode-bidi:plaintext}
-.trk{position:relative;align-self:stretch;height:2px;border-radius:2px;background:var(--track);overflow:hidden;margin-top:2px}
-.seg{position:absolute;inset-block:0;left:30%;width:36%;border-radius:inherit;
-  background:linear-gradient(90deg,rgba(255,176,32,0),var(--amber) 30%,var(--amber) 70%,rgba(255,176,32,0))}
-.fill{position:absolute;inset-block:0;left:0;border-radius:inherit}
-/* And for a few seconds when everything has come: the success green with its tick, then gone. */
-.more.done .w{color:var(--success);display:flex;align-items:center;gap:4px}
-.more.done svg{fill:var(--success)}
-
 .list{flex:none;border:1px solid var(--edge);display:flex;flex-direction:column;overflow:hidden}
 .ch{flex:none;display:flex;align-items:center;border:1px solid transparent}
 .ch .no{flex:none;background:var(--glass);border:1px solid var(--edge);color:var(--violet);display:flex;align-items:center;
@@ -132,7 +118,6 @@ svg{display:block;flex:none}
 <script>
 const ICON = {
   search:'M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z',
-  check:'M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z',
 };
 const svg = (name, size) => `<svg viewBox="0 0 24 24" style="width:${size}px;height:${size}px"><path d="${ICON[name]}"/></svg>`;
 
@@ -154,12 +139,12 @@ const GEO = {
 
 const STR = {
   ar: {section: 'البث المباشر', all: 'كل القنوات', fav: 'المفضلة', recent: 'شوهدت مؤخرًا', total: 'المجموع: %s',
-    railSearch: 'ابحث في الباقات', search: 'ابحث في القنوات', more: 'جارٍ تحميل باقي الباقات…', loaded: 'اكتمل التحميل',
-    unit: '%s قناة', failed: 'لم يردّ مزوّدك في الوقت المتاح. غالبًا يكون مشغولًا لا معطّلًا.', retry: 'حاول مرة أخرى',
+    railSearch: 'ابحث في الباقات', search: 'ابحث في القنوات',
+    failed: 'لم يردّ مزوّدك في الوقت المتاح. غالبًا يكون مشغولًا لا معطّلًا.', retry: 'حاول مرة أخرى',
     now: 'الآن', live: 'مباشر', buttons: ['الدليل', 'المفضلة', 'قفل', 'إخفاء']},
   en: {section: 'Live TV', all: 'All Channels', fav: 'Favorites', recent: 'Recently Watched', total: 'Total: %s',
-    railSearch: 'Search categories', search: 'Search channels', more: 'Loading categories…', loaded: 'Loaded',
-    unit: '%s channels', failed: 'Your provider did not answer in time. It is usually busy rather than down.', retry: 'Try again',
+    railSearch: 'Search categories', search: 'Search channels',
+    failed: 'Your provider did not answer in time. It is usually busy rather than down.', retry: 'Try again',
     now: 'NOW', live: 'LIVE', buttons: ['Guide', 'Favourite', 'Lock', 'Hide']},
 };
 const fmt = n => n.toLocaleString('en-US');
@@ -178,8 +163,8 @@ function board(fr) {
   const g = GEO[fr.dev || 'phone'];
   const T = STR[fr.lang || 'ar'];
 
-  // The rail: three entries that are not categories, the divider, the categories that are
-  // complete, and -- while the rest is on its way -- the line that says so.
+  // The rail: three entries that are not categories, the divider, and the categories that are
+  // complete. Nothing after them: the next one to complete simply appears in its place.
   const entry = (label, count, opts = {}) => `<div class="pkg${opts.on ? ' on' : ''}${opts.focus ? ' focus' : ''}"
       style="min-height:${g.entry}px;padding:0 ${g.padH}px;border-radius:${g.radius}px">
       <div class="pn" style="font-size:${g.fsLabel}px">${label}</div>
@@ -191,13 +176,6 @@ function board(fr) {
     `<div class="rdiv" style="margin:${g.divider / 2}px ${g.padH}px"></div>`,
     ...fr.groups.map(([name, n]) => entry(name, n, {on: fr.selected === name, focus: fr.focus === name})),
   ];
-  if (fr.more) {
-    const done = fr.more === 'done';
-    parts.push(`<div class="more${done ? ' done' : ''}" style="min-height:${g.entry}px;padding:${g.entryGap}px ${g.padH}px;border-radius:${g.radius}px">
-      ${done ? `<div class="w" style="font-size:${g.fsLabel}px">${svg('check', g.fsLabel + 1)}<span class="say">${T.loaded}</span></div>`
-             : `<div class="w" style="font-size:${g.fsLabel}px">${T.more}</div><div class="v" style="font-size:${g.fsBody}px">${T.unit.replace('%s', fmt(fr.all))}</div>`}
-      <div class="trk">${done ? '<div class="fill" style="width:100%;background:var(--success)"></div>' : '<div class="seg"></div>'}</div></div>`);
-  }
   const rail = `<div class="rail" style="width:${g.rail}px">
       <div class="rsearch" style="height:${g.field}px;padding:0 ${g.padH}px;font-size:${g.fsBody}px;margin-bottom:${g.entryGap * 2}px">${svg('search', g.fsBody + 2)}<span class="say">${T.railSearch}</span></div>
       <div class="rview"><div class="rlist" style="gap:${g.entryGap}px;${fr.scrolled ? 'bottom:0' : 'top:0'}">${parts.join('')}</div></div></div>`;
@@ -251,26 +229,23 @@ function board(fr) {
 const GUIDE_GENERAL = ['Al Akhbar — Le journal', '20:30 – 21:15', '21:15', 'Masalsal: Bab Al Bahr', '22:10', 'Sahrat Al Khamis'];
 const GUIDE_BEIN = ['Botola Pro: Raja – Wydad', '20:00 – 22:00', '22:00', 'Al Majalla Ar-Riyadiya', '23:00', 'LaLiga: Highlights'];
 const FRAMES = {
-  'opened': {all: 112, groups: FIRST, more: 'arriving', focus: null, rows: GENERAL.slice(0, 12), firstNo: 1, rowFocus: 0,
+  'opened': {all: 112, groups: FIRST, focus: null, rows: GENERAL.slice(0, 12), firstNo: 1, rowFocus: 0,
     programme: GUIDE_GENERAL,
-    cap: '<span class="n">١ — تُفتح الشاشة وحدها مع أول باقة.</span> ضغطت «البث المباشر» مرة واحدة. حين تكتمل أول باقة — عادةً بعد ثانية أو ثانيتين — تُفتح الشاشة من تلقاء نفسها، <b>بلا ضغطة ثانية</b>. في العمود الباقات <b>المكتملة فقط</b>، كلٌّ بعدده النهائي؛ الباقة التي تُقرأ الآن لا تظهر قبل اكتمالها. «كل القنوات» يتزايد عدّه. وآخر سطر في عمود الباقات يقول إن الباقي في الطريق <span class="a">«جارٍ تحميل باقي الباقات…»</span>، بالرقم نفسه الذي تقوله بطاقة Home.'},
-  'browsing': {all: 1846, groups: SIX, more: 'arriving', selected: 'AR| BEIN SPORTS ᴴᴰ', focus: 'AR| DOCUMENTARY', scrolled: true,
+    cap: '<span class="n">١ — تُفتح الشاشة وحدها مع أول باقة.</span> ضغطت «البث المباشر» مرة واحدة، وبطاقته في Home حمّلت كما تفعل اليوم. حين تكتمل أول باقة — عادةً بعد ثانية أو ثانيتين — تُفتح الشاشة من تلقاء نفسها، <b>بلا ضغطة ثانية</b>. في العمود الباقات <b>المكتملة فقط</b>، كلٌّ بعدده النهائي؛ الباقة التي تُقرأ الآن لا تظهر قبل اكتمالها. <b>لا شيء على الشاشة يقول إن التحميل مستمر.</b>'},
+  'browsing': {all: 1846, groups: SIX, selected: 'AR| BEIN SPORTS ᴴᴰ', focus: 'AR| DOCUMENTARY', scrolled: true,
     rows: BEIN.slice(0, 12), firstNo: 70, programme: GUIDE_BEIN,
-    cap: '<span class="n">٢ — تتصفّح، والباقات تُضاف.</span> اخترت «AR| BEIN SPORTS ᴴᴰ» وتشاهد قنواتها، ثم نزلت بالريموت إلى آخر باقة وصلت. كل باقة يكتمل تحميلها تظهر <b>في مكانها بترتيب المزوّد</b>، دون أن تخرج وتعود. <b>التركيز لا يقفز والقائمة لا تتحرك تحت يدك</b>: الباقة الجديدة تظهر تحت آخر باقة، والسهم إلى الأسفل يصل إليها. السطر الكهرماني ليس زرًّا، فالريموت يتخطّاه.'},
-  'done': {all: 54130, groups: LAST, more: 'done', selected: 'AR| BEIN SPORTS ᴴᴰ', focus: 'UK| DOCS ᴴᴰ', scrolled: true,
-    rows: BEIN.slice(0, 12), firstNo: 70, programme: GUIDE_BEIN,
-    cap: '<span class="n">٣ — اكتمل التحميل.</span> السطر يصير <span class="g">✓ «اكتمل التحميل»</span> لثلاث ثوانٍ ثم يختفي، كما تقول بطاقة Home. من هذه اللحظة يجد البحث في القنوات كل قناة.'},
+    cap: '<span class="n">٢ — تتصفّح، والباقات تُضاف بصمت.</span> اخترت «AR| BEIN SPORTS ᴴᴰ» وتشاهد قنواتها، ثم نزلت بالريموت إلى آخر باقة. كل باقة يكتمل تحميلها تظهر <b>في مكانها بترتيب المزوّد</b>، دون أن تخرج وتعود — لا سطر ولا كلمة ولا شريط، الباقة تظهر فقط. <b>التركيز لا يقفز والقائمة لا تتحرك تحت يدك</b>: الباقة الجديدة تظهر تحت آخر باقة، والسهم إلى الأسفل يصل إليها. عدد «كل القنوات» يكبر وحده.'},
   'failed': {all: 1846, groups: SIX, failed: true, selected: 'AR| BEIN SPORTS ᴴᴰ', focus: null, scrolled: true,
     rows: BEIN.slice(0, 11), firstNo: 70, rowFocus: 2, wellRow: 2, programme: GUIDE_BEIN,
-    cap: '<span class="n">٤ — انقطع التحميل في منتصفه.</span> الباقات التي اكتملت تبقى وتعمل، والقنوات تُشغَّل. يختفي السطر الكهرماني، ويقول السطر الموجود أصلًا أعلى اللوحة <b>السبب</b> و«حاول مرة أخرى». الضغط عليه يعيد التحميل، والباقات الظاهرة تبقى أثناءه. لا إعادة تلقائية.'},
-  'browsing-en': {lang: 'en', all: 1846, groups: SIX, more: 'arriving', selected: 'AR| BEIN SPORTS ᴴᴰ', focus: 'AR| DOCUMENTARY', scrolled: true,
+    cap: '<span class="n">٣ — انقطع التحميل في منتصفه.</span> الحالة الوحيدة التي تقول فيها الشاشة شيئًا: السطر الموجود اليوم أعلى اللوحة يقول <b>السبب</b> و«حاول مرة أخرى»، حتى لا تبقى القائمة ناقصة دون أن يعرف المستخدم. الباقات التي اكتملت تبقى وتعمل، والقنوات تُشغَّل. الضغط عليه يعيد التحميل. لا إعادة تلقائية.'},
+  'browsing-en': {lang: 'en', all: 1846, groups: SIX, selected: 'AR| BEIN SPORTS ᴴᴰ', focus: 'AR| DOCUMENTARY', scrolled: true,
     rows: BEIN.slice(0, 12), firstNo: 70, programme: GUIDE_BEIN,
-    cap: '<span class="n">٥ — الإطار ٢ بالإنجليزية.</span> اللوحة بالاتجاه نفسه في كل اللغات، كما هي اليوم.'},
-  'browsing-tv': {dev: 'tv', all: 1846, groups: SIX, more: 'arriving', selected: 'AR| BEIN SPORTS ᴴᴰ', focus: 'AR| DOCUMENTARY', scrolled: true,
+    cap: '<span class="n">٤ — الإطار ٢ بالإنجليزية.</span> اللوحة بالاتجاه نفسه في كل اللغات، كما هي اليوم.'},
+  'browsing-tv': {dev: 'tv', all: 1846, groups: SIX, selected: 'AR| BEIN SPORTS ᴴᴰ', focus: 'AR| DOCUMENTARY', scrolled: true,
     rows: BEIN.slice(0, 13), firstNo: 70, programme: GUIDE_BEIN,
-    cap: '<span class="n">٦ — الإطار ٢ على التلفاز، 960×540.</span> بالريموت: السهم إلى الأسفل من آخر باقة لا يذهب إلى السطر الكهرماني، ويبقى حيث هو حتى تصل باقة جديدة.'},
+    cap: '<span class="n">٥ — الإطار ٢ على التلفاز، 960×540.</span> بالريموت: السهم إلى الأسفل من آخر باقة يبقى حيث هو، حتى تصل باقة جديدة فيصل إليها.'},
 };
-const ORDER = ['opened', 'browsing', 'done', 'failed', 'browsing-en', 'browsing-tv'];
+const ORDER = ['opened', 'browsing', 'failed', 'browsing-en', 'browsing-tv'];
 
 const params = new URLSearchParams(location.search);
 const frame = params.get('frame') || 'sheet';
@@ -281,12 +256,9 @@ if (frame === 'sheet') {
     return `<div class="blk"><div class="cap" dir="rtl" style="--w:${GEO[fr.dev || 'phone'].w}px">${fr.cap}</div>${board(fr)}</div>`;
   }).join('') + `<div class="notes" dir="rtl">
     <b>متى تكون الباقة مكتملة.</b> من لوحة Xtream باقةً باقة: حين ينتهي طلبها. من ملف M3U أو من ردّ واحد بالقسم كله: حين ينتقل التحميل إلى الباقة التالية. المزوّدون يكتبون قنوات الباقة متتالية؛ وإن فرّقها أحدهم ظهرت الباقة مبكرًا ثم كبر عددها، ولا تختفي أبدًا.<br>
-    <b>الرقم في السطر.</b> هو رقم بطاقة Home نفسه: نسبة مئوية حين يذكر المزوّد عدد باقاته، وإلا عدد القنوات الذي وصل.<br>
-    <b>البحث.</b> البحث في الباقات يعمل فورًا. البحث في القنوات (حقل البحث أعلى الشاشة) يجد القنوات الجديدة عند اكتمال التحميل، لأن فهرس البحث يُكتب مرة واحدة في النهاية — وهذا ما جعل الحفظ أسرع.<br>
-    <b>Home.</b> ضغطة ثانية قبل أن تكتمل أول باقة تقول «يُفتح مع أول باقة» (home-loading.html، المجموعة f). وإذا انتقلت إلى شاشة أخرى قبل ذلك، لا تُفتح القنوات وحدها. وعند الرجوع إلى Home أثناء التحميل تقول البطاقة «جارٍ تحميل القنوات…» وعددها، لا «جارٍ التحديث…».<br>
-    <b>الباقة الفارغة.</b> باقة بلا أي قناة لا تظهر في العمود، لا أثناء التحميل ولا بعده.<br>
-    <b>قارئ الشاشة.</b> السطر يُقرأ: «جارٍ تحميل باقي الباقات، 1,846 قناة»، وكل باقة جديدة تُقرأ باسمها وعددها حين يصل إليها التركيز.<br>
-    <b>الحركة.</b> مع مستوى الحركة «بلا»، الشريط ثابت والرقم وحده يتقدّم.</div>`;
+    <b>Home.</b> البطاقة تحمّل كما تفعل اليوم حتى أول باقة. وعند الرجوع إليها أثناء بقية التحميل تعرض <b>عدد القنوات فقط</b>، كأي قسم محمَّل — بلا «جارٍ التحميل» ولا شريط ولا «اكتمل التحميل» بعده — والعدد يكبر وحده حتى المجموع، لأن المزوّد لا يذكر المجموع قبل النهاية. ضغطة ثانية قبل أول باقة تقول «يُفتح مع أول باقة». وإذا انتقلت إلى شاشة أخرى قبل أول باقة، لا تُفتح القنوات وحدها (home-loading.html، المجموعة f).<br>
+    <b>البحث.</b> البحث في الباقات يعمل فورًا. البحث في القنوات (حقل البحث أعلى الشاشة) يجد القنوات الجديدة عند اكتمال التحميل، لأن فهرس البحث يُكتب مرة واحدة في النهاية — وهذا ما جعل الحفظ أسرع. جعله يجد قنوات الباقات الظاهرة أثناء التحميل خطوة لاحقة منفصلة.<br>
+    <b>الباقة الفارغة.</b> باقة بلا أي قناة لا تظهر في العمود، لا أثناء التحميل ولا بعده.</div>`;
 } else {
   document.body.innerHTML = board(FRAMES[frame]);
 }

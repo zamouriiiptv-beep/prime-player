@@ -16,7 +16,8 @@
     ?frame=<name>               one frame at its device size (833x385 phone, 960x540 TV)
     ?frame=sheet&set=a|b|c|d|e|f  frames stacked with their captions, for review; d is how
                                 a refresh went, said on its own rail card; e the subscription's
-                                trouble; f Live TV pressed before its first category is complete
+                                trouble; f Live TV pressed before its first category is complete,
+                                and Home again while the rest arrives
     &lang=en                    left to right, in English
 -->
 <html lang="ar" dir="rtl">
@@ -421,14 +422,16 @@ const FRAMES = {
   'tv': {dev: 'tv', cards: {live: {k: 'done', n: 54130}, movies: U, series: U, radio: {k: 'loading', pct: 60, focus: true}},
     cap: '<span class="n">٩ — الإطار ٣ على التلفاز، 960×540.</span> التركيز على الراديو بالريموت.'},
   'live-first': {cards: {live: {k: 'loading', n: 31, hint: 'first', focus: true}, movies: U, series: U, radio: U},
-    cap: '<span class="n">١٩ — ضغطة ثانية على البث المباشر قبل أن تكتمل أول باقة.</span> البطاقة تقول «يُفتح مع أول باقة» لثانيتين، والشاشة تُفتح وحدها حين تكتمل الباقة الأولى (channels-arriving.html) — لا ضغطة ثالثة. هذا يحلّ محلّ قاعدة الإطار ٥، «لا يُفتح نصف مكتمل»، <b>للبث المباشر وحده</b>؛ الأفلام والمسلسلات والراديو على حالها حتى مرحلتها. وعند الرجوع إلى Home أثناء التحميل تبقى البطاقة كما في الإطار ١: «جارٍ تحميل القنوات…» وعددها، لا «جارٍ التحديث…».'},
+    cap: '<span class="n">١٩ — ضغطة ثانية على البث المباشر قبل أن تكتمل أول باقة.</span> الضغطة الأولى بدأت التحميل كما اليوم (الإطار ١). الثانية تجعل البطاقة تقول «يُفتح مع أول باقة» لثانيتين، والشاشة تُفتح وحدها حين تكتمل الباقة الأولى (channels-arriving.html) — لا ضغطة ثالثة. هذا يحلّ محلّ قاعدة الإطار ٥، «لا يُفتح نصف مكتمل»، <b>للبث المباشر وحده</b>؛ الأفلام والمسلسلات والراديو على حالها حتى مرحلتها.'},
+  'live-back': {cards: {live: {k: 'counted', n: 12940, focus: true}, movies: U, series: U, radio: U},
+    cap: '<span class="n">٢٠ — الرجوع إلى Home بينما تكمل الباقات تحميلها.</span> بطاقة البث المباشر تعرض <b>عدد القنوات فقط</b>، كأي قسم محمَّل: لا «جارٍ التحميل»، ولا شريط، ولا «اكتمل التحميل» بعده — المستخدم لا يشعر بالتحميل. العدد هو ما وصل حتى الآن، ويكبر وحده حتى المجموع: المزوّد لا يذكر المجموع قبل النهاية. والضغط على البطاقة يفتح الشاشة فورًا.'},
   'live-first-en': {lang: 'en', cards: {live: {k: 'loading', n: 31, hint: 'first', focus: true}, movies: U, series: U, radio: U},
-    cap: '<span class="n">٢٠ — الإطار ١٩ بالإنجليزية.</span>'},
+    cap: '<span class="n">٢١ — الإطار ١٩ بالإنجليزية.</span>'},
 };
 const SETS = {a: ['press-live', 'queued', 'live-done', 'movies'], b: ['pressed', 'fail-empty', 'refresh'], c: ['movies-en', 'tv', 'compare'],
   d: ['refresh-failed', 'refresh-done', 'refresh-failed-en', 'refresh-failed-tv'],
   e: ['trouble-server', 'trouble-offline', 'trouble-expired', 'trouble-en'],
-  f: ['live-first', 'live-first-en']};
+  f: ['live-first', 'live-back', 'live-first-en']};
 
 function compare() {
   // Two panels at the phone's own panel size: the reference's colours, and the state language's.
