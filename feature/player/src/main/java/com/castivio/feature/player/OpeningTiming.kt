@@ -24,11 +24,13 @@ data class OpeningTiming(
     val engine: EngineId,
     /** Whether this attempt is the backup's, after the primary gave the source up. */
     val fallback: Boolean,
+    /** Whether the engine that played the last channel was kept for this one, rather than one built. */
+    val reused: Boolean,
     /** The press, to the player being asked to open: composition and dispatch. */
     val pressToOpenMs: Long,
-    /** Letting the previous engine go. Zero when there was none. */
+    /** Letting the previous engine go. Zero when there was none, or it was kept. */
     val releaseMs: Long,
-    /** Building this attempt's engine and giving it the surface. */
+    /** Building this attempt's engine and giving it the surface. Zero for a kept one. */
     val setupMs: Long,
     /** The press, to the engine being asked to open the source. */
     val prepareMs: Long,
@@ -51,6 +53,7 @@ data class OpeningTiming(
     fun render(): String = buildString {
         append("engine=").append(engine)
         append(" fallback=").append(if (fallback) "yes" else "no")
+        append(" reused=").append(if (reused) "yes" else "no")
         append(" | press→open ").append(pressToOpenMs).append("ms")
         append(" release ").append(releaseMs).append("ms")
         append(" setup ").append(setupMs).append("ms")

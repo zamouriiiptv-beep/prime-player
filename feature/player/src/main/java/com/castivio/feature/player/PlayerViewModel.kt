@@ -144,6 +144,9 @@ class PlayerViewModel @Inject constructor(
     /** When this attempt's first frame arrived, or null while it has none. */
     private var frameAtNanos: Long? = null
 
+    /** Whether this attempt is on the engine the last channel played on. See [keeps]. */
+    private var reused = false
+
     /** Whether this attempt's failure has been written down, so a card is logged once. */
     private var failureNoted = false
 
@@ -179,19 +182,22 @@ class PlayerViewModel @Inject constructor(
      * Open a source. The whole of the critical path.
      *
      * Called once per media item; a channel change calls [switchTo] instead, which is the
-     * same path with the previous engine released first.
+     * same path on the engine the last channel played on when that one can be kept, and with
+     * it released first when it cannot.
      */
     fun open(request: PlayerRequest) {
         if (_state.value?.request == request && engine != null) return
         val openedAt = System.nanoTime()
-        release()
+        val next = FallbackPolicy.first(FallbackPolicy.sourceKey(request.url), memory)
+        val kept = engine?.takeIf { keeps(it, next, request) }
+        if (kept != null) releaseSource() else release()
         timeFrom(pressOf(request, openedAt), openedAt, releasedAt = System.nanoTime())
 
         backupTried = false
         timedOut = false
         reopenOnReturn = false
-        engineId = FallbackPolicy.first(FallbackPolicy.sourceKey(request.url), memory)
-        Log.i(TAG, "opening on $engineId")
+        engineId = next
+        Log.i(TAG, if (kept != null) "opening on $engineId, the engine kept from the last channel" else "opening on $engineId")
         downloaded = null
         // Worked out once, here, from the request and never from the URL: the title came
         // from the catalogue row the viewer pressed, which is the only thing in the player
@@ -215,25 +221,74 @@ class PlayerViewModel @Inject constructor(
                 dailyLimit = allowance.dailyLimit,
             ),
         )
-        start(request, engineId)
+        if (kept != null) reopen(kept, request) else start(request, engineId)
     }
 
     /**
      * The next channel, as fast as the previous one can be let go.
      *
-     * Stop and release first, and synchronously: two ExoPlayers alive at once on a
-     * low-memory box is how a channel change becomes a stutter, and the old one holding a
-     * decoder the new one wants is how it becomes a failure. Nothing between the release
-     * and the open — no guide, no artwork, no metadata. The next channel's first frame is
-     * the only thing being optimised for.
+     * On the same engine when it can be kept -- see [keeps] -- and otherwise stop and release
+     * first, and synchronously: two ExoPlayers alive at once on a low-memory box is how a
+     * channel change becomes a stutter, and the old one holding a decoder the new one wants
+     * is how it becomes a failure. Either way there is one engine, and nothing between the
+     * last channel and the next — no guide, no artwork, no metadata. The next channel's first
+     * frame is the only thing being optimised for.
      */
     fun switchTo(request: PlayerRequest) = open(request)
+
+    /**
+     * Whether the engine playing now can be handed [request] instead of being released.
+     *
+     * A channel change on the primary released its ExoPlayer -- the main thread waits for the
+     * decoders to be let go -- built another and gave it the surface, and the new one built its
+     * decoders again; the last of those had already been built once for the channel before.
+     * None of it is needed to change channel, so an engine that offers to be kept
+     * ([PlaybackEngine.reusable]) is kept, on three conditions:
+     *
+     * - **the next source would be opened on this engine anyway.** A channel remembered for the
+     *   backup is still opened on the backup.
+     * - **both are channels.** A film carries a position, a speed and a fit of its own, and
+     *   the tuning a channel was built with is not a film's.
+     * - **it has not failed.** An engine that has failed is in a state nobody knows, and keeping
+     *   one is how a channel change inherits the last channel's error.
+     *
+     * The backup never offers, so a channel the fallback moved there is released as before.
+     */
+    private fun keeps(running: PlaybackEngine, next: EngineId, request: PlayerRequest): Boolean {
+        val now = _state.value ?: return false
+        return running.reusable &&
+            next == engineId &&
+            request.isLive && now.request.isLive &&
+            running.state.value !is PlaybackState.Failed &&
+            running.diagnosis.value == null &&
+            now.picture !is Picture.Failed
+    }
+
+    /**
+     * The next channel on the engine that played the last one.
+     *
+     * What [start] does, less what a channel change costs most: nothing is released, nothing is
+     * built and the surface stays where it is. The engine's listeners stay as well -- they
+     * listen to the engine, not to the channel, and the engine resets every flow when it is
+     * opened -- so what is new is what belongs to an attempt: its deadline and its figures.
+     */
+    private fun reopen(kept: PlaybackEngine, request: PlayerRequest) {
+        frameAtNanos = null
+        failureNoted = false
+        reused = true
+        setupNanos = 0
+        preparedAtNanos = System.nanoTime()
+        kept.open(request.media())
+        opening = timing()
+        deadline = deadlineFor(kept, engineId)
+    }
 
     private fun start(request: PlayerRequest, id: EngineId) {
         val kind = request.kind
         val building = System.nanoTime()
         frameAtNanos = null
         failureNoted = false
+        reused = false
         // Building an engine constructs decoders and renderers, and on an unusual device
         // that can fail outright. A player that dies here takes the application with it
         // and tells the user nothing; a player that catches it can at least say which
@@ -287,26 +342,30 @@ class PlayerViewModel @Inject constructor(
         // the device's, which is why this is the line the opening is divided at.
         preparedAtNanos = System.nanoTime()
         setupNanos = preparedAtNanos - building
-        created.open(
-            MediaRequest(
-                url = request.url,
-                kind = request.kind,
-                headers = request.headers,
-                userAgent = request.userAgent,
-            ),
-        )
+        created.open(request.media())
         opening = timing()
 
-        deadline = viewModelScope.launch {
-            delay(FallbackPolicy.OPEN_DEADLINE_MS)
-            // Still no frame. Not an error — the engine has not said anything — but the
-            // budget is spent, and a source that has not opened in three seconds is not
-            // about to.
-            if (created.firstFrameAtMs.value == null) {
-                Log.w(TAG, "$id produced no frame in ${FallbackPolicy.OPEN_DEADLINE_MS}ms")
-                timedOut = true
-                fallOver(PlaybackError.TIMEOUT)
-            }
+        deadline = deadlineFor(created, id)
+    }
+
+    /** What the engine is given: the address and how to ask for it, and nothing about the title. */
+    private fun PlayerRequest.media() = MediaRequest(
+        url = url,
+        kind = kind,
+        headers = headers,
+        userAgent = userAgent,
+    )
+
+    /** This attempt's budget, on [running]. Every open has its own, a kept engine's included. */
+    private fun deadlineFor(running: PlaybackEngine, id: EngineId): Job = viewModelScope.launch {
+        delay(FallbackPolicy.OPEN_DEADLINE_MS)
+        // Still no frame. Not an error — the engine has not said anything — but the
+        // budget is spent, and a source that has not opened in three seconds is not
+        // about to.
+        if (running.firstFrameAtMs.value == null) {
+            Log.w(TAG, "$id produced no frame in ${FallbackPolicy.OPEN_DEADLINE_MS}ms")
+            timedOut = true
+            fallOver(PlaybackError.TIMEOUT)
         }
     }
 
@@ -1165,6 +1224,7 @@ class PlayerViewModel @Inject constructor(
     private fun timing(): OpeningTiming = OpeningTiming(
         engine = engineId,
         fallback = backupTried,
+        reused = reused,
         pressToOpenMs = pressToOpenNanos / NANOS_PER_MS,
         releaseMs = releaseNanos / NANOS_PER_MS,
         setupMs = setupNanos / NANOS_PER_MS,
@@ -1260,16 +1320,23 @@ class PlayerViewModel @Inject constructor(
         engine = null
     }
 
-    private fun release() {
-        stopEngine()
+    /**
+     * Everything that belongs to the source rather than the engine: its budget, its clock, its
+     * guide, its statistics and its subtitle. What a kept engine is cleared of between channels.
+     */
+    private fun releaseSource() {
+        deadline?.cancel(); deadline = null
         clearAim()
         ticker?.cancel(); ticker = null
         sampler?.cancel(); sampler = null
         guideJob?.cancel(); guideJob = null
-        shapeJob?.cancel(); shapeJob = null
-        cueJob?.cancel(); cueJob = null
         huntJob?.cancel(); huntJob = null
         captionJob?.cancel(); captionJob = null
+    }
+
+    private fun release() {
+        stopEngine()
+        releaseSource()
     }
 
     /**

@@ -154,6 +154,28 @@ class EngineProfileTest {
     }
 
     /**
+     * Which engine may be kept from one channel to the next, asserted where they are built.
+     *
+     * The player keeps an engine only when it offers, and offering is a promise that nothing the
+     * last channel left in flight is reported as the next one's. Media3 keeps it with a message
+     * sent through its own playback thread; nothing in LibVLC's events can, so it must not offer.
+     */
+    @Test
+    fun `the primary can be kept between channels and the backup cannot`() {
+        val factory = Media3EngineFactory(
+            context = RuntimeEnvironment.getApplication(),
+            capabilities = ConservativeCapabilities,
+        )
+        val primary = factory.create(EngineId.PRIMARY, MediaKind.LIVE)
+        try {
+            assertTrue("the primary is built to be handed the next channel", primary.reusable)
+        } finally {
+            primary.release()
+        }
+        assertFalse("the backup must be released between channels", factory.create(EngineId.BACKUP, MediaKind.LIVE).reusable)
+    }
+
+    /**
      * The statistics panel reports the picture, not the file's idea of it.
      *
      * A phone records portrait by writing a landscape frame plus a rotation in the

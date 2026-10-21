@@ -135,6 +135,25 @@ class Media3Engine(
     @Volatile
     private var transferMarks: TransferMarks? = null
 
+    /**
+     * Whether what the player reports now is about the source open now.
+     *
+     * An engine kept for the next channel is handed it while the last one is still in flight on
+     * the playback thread, and what the player had already said about it -- a frame rendered,
+     * an error, a caption, its tracks -- is on its way to this thread when the next source is
+     * set. Each of those would be read as the new channel's: a frame lifting the loading overlay
+     * over a picture that is not there yet, an error sending a healthy channel to the backup.
+     *
+     * So an open closes this before it sets the source, and a message sent through the player
+     * behind the new source opens it again. The playback thread handles its messages in order,
+     * so everything it said about the old source arrives before the message and everything about
+     * the new one after it. Every callback below that reports on the source checks it.
+     */
+    private var current = true
+
+    /** Which open closed the gate last, so a message from an earlier open cannot open it. */
+    private var generation = 0
+
     /** The device's half, which the player reports on this thread with its other callbacks. */
     private var tracksKnownAt: Long = 0
     private var decoderReadyAt: Long = 0
@@ -300,6 +319,10 @@ class Media3Engine(
     }
 
     private fun openInternal(media: MediaRequest) {
+        // Closed before anything else, so nothing the player says about the source before
+        // this one is taken as being about this one. See [current].
+        current = false
+        val mine = ++generation
         openedAtMs = SystemClock.elapsedRealtime()
         transferMarks = TransferMarks(media.url)
         tracksKnownAt = 0
@@ -314,6 +337,12 @@ class Media3Engine(
         audioFormat = null
         hasVideoTrack = null
         _videoAspectRatio.value = null
+        // A fresh engine starts with these empty, and a kept one has to: the caption on screen
+        // when the channel changed is the last channel's, and the callback that would have
+        // cleared it is one of the ones the gate turns away.
+        _cues.value = emptyList()
+        displayWidth = null
+        displayHeight = null
         _state.value = PlaybackState.Opening
         liveRequest = media.kind == MediaKind.LIVE
 
@@ -342,9 +371,40 @@ class Media3Engine(
             .build()
 
         player.setMediaItem(item)
+        // A track chosen on the last channel was a choice about that channel. A fresh engine
+        // has none, and this one is handed the next channel as if it were fresh.
+        val choices = player.trackSelectionParameters
+        if (choices.overrides.isNotEmpty()) {
+            player.trackSelectionParameters = choices.buildUpon().clearOverrides().build()
+        }
+        // Behind the new source on the playback thread, so it arrives here after everything
+        // the player said about the old one and before anything it says about this one.
+        player.createMessage { _, payload ->
+            if (payload != mine) return@createMessage
+            current = true
+            // The last source can fail in the moment it is replaced, and an error stops the
+            // player -- after `prepare` below had already been turned away, because the stop had
+            // not reached this thread yet. Everything about the old source has arrived by now,
+            // so a player left idle by it is prepared here, for this one.
+            if (player.playbackState == Player.STATE_IDLE) player.prepare()
+        }
+            .setPayload(mine)
+            .setLooper(player.applicationLooper)
+            .send()
         player.prepare()
         player.playWhenReady = true
     }
+
+    /**
+     * Kept for the next channel, rather than released and built again. See
+     * [PlaybackEngine.reusable] for what that promises, and [current] for how it is kept.
+     *
+     * Setting a new source is what ExoPlayer is built for: the playback thread stops the old
+     * one, disables the renderers and keeps their decoders, and a decoder that can take the
+     * next stream's format is used again rather than built. None of that waits on the main
+     * thread, which is where releasing a player and building one both do their waiting.
+     */
+    override val reusable: Boolean get() = true
 
     override fun play() {
         player.playWhenReady = true
@@ -468,9 +528,12 @@ class Media3Engine(
          * The moment that matters. Everything the loading state is waiting for happens
          * here, and it is the platform telling us rather than us inferring it.
          */
-        override fun onRenderedFirstFrame() = markOpened()
+        override fun onRenderedFirstFrame() {
+            if (current) markOpened()
+        }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
+            if (!current) return
             when (playbackState) {
                 Player.STATE_BUFFERING ->
                     // Opening and rebuffering are the same ExoPlayer state and two
@@ -514,7 +577,7 @@ class Media3Engine(
          * stop with it true is a stall — which the buffering state already covers.
          */
         override fun onIsPlayingChanged(isPlaying: Boolean) {
-            if (_firstFrameAtMs.value == null) return
+            if (!current || _firstFrameAtMs.value == null) return
             when {
                 isPlaying -> pushPlaying()
                 !player.playWhenReady -> _state.value = PlaybackState.Paused(player.currentPosition)
@@ -529,6 +592,7 @@ class Media3Engine(
          * them earlier would either block or return nothing.
          */
         override fun onTracksChanged(tracks: Tracks) {
+            if (!current) return
             val audio = mutableListOf<Track>()
             val subtitle = mutableListOf<Track>()
             val video = mutableListOf<Track>()
@@ -587,12 +651,14 @@ class Media3Engine(
          * lines to clear the screen would otherwise draw an empty backdrop over the film.
          */
         override fun onCues(cueGroup: CueGroup) {
+            if (!current) return
             _cues.value = cueGroup.cues
                 .mapNotNull { it.text?.toString()?.trim() }
                 .filter { it.isNotEmpty() }
         }
 
         override fun onVideoSizeChanged(videoSize: VideoSize) {
+            if (!current) return
             // The shape the surface has to be given. Reported here rather than read off
             // the format, because this is the callback that also carries the pixel aspect
             // ratio — an anamorphic source declares square dimensions and a correction,
@@ -627,6 +693,8 @@ class Media3Engine(
          * and a report gathered afterwards would be a report of nothing.
          */
         override fun onPlayerError(error: PlaybackException) {
+            // The last source's error is not this one's: see [current].
+            if (!current) return
             // **Behind the live window is a position, not a failure.**
             //
             // A live playlist moves on while the player waits -- a rebuffer, a slow segment,
@@ -719,7 +787,7 @@ class Media3Engine(
             initializedTimestampMs: Long,
             initializationDurationMs: Long,
         ) {
-            if (decoderReadyAt != 0L) return
+            if (!current || decoderReadyAt != 0L) return
             decoderReadyAt = initializedTimestampMs
             decoderInitMs = initializationDurationMs
         }
@@ -731,7 +799,7 @@ class Media3Engine(
         ) {
             // Null when there was no decoder to keep: one is being built, and says so above.
             val verdict = decoderReuseEvaluation ?: return
-            if (decoderReadyAt != 0L || verdict.result == DecoderReuseEvaluation.REUSE_RESULT_NO) return
+            if (!current || decoderReadyAt != 0L || verdict.result == DecoderReuseEvaluation.REUSE_RESULT_NO) return
             decoderReadyAt = eventTime.realtimeMs
             decoderKept = true
         }

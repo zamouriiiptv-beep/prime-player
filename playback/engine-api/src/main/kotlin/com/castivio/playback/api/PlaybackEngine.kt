@@ -125,6 +125,20 @@ interface PlaybackEngine {
      */
     val isPlayRequested: Boolean
 
+    /**
+     * Whether this engine can be handed the next source while it holds this one, instead of
+     * being released and another built.
+     *
+     * False unless an engine says otherwise, and saying true is a promise about [open]: that on
+     * an engine already playing something it stops that cleanly and starts the next, that every
+     * flow starts the next source as a fresh engine's would -- no frame, no tracks, no captions,
+     * no shape, no diagnosis -- and that nothing the last source left in flight, a frame or an
+     * error or a caption, is ever reported as the next one's. The player takes up the offer only
+     * between two live channels on the engine the next one would be opened on anyway, and never
+     * for an engine that has failed.
+     */
+    val reusable: Boolean get() = false
+
     fun open(media: MediaRequest)
     fun play()
     fun pause()

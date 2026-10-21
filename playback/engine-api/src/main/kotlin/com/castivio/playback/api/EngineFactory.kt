@@ -18,9 +18,15 @@ interface EngineFactory {
     /**
      * A fresh engine for [id], tuned for [kind].
      *
-     * Fresh rather than pooled, deliberately. An engine that has failed is an engine in an
-     * unknown state, and reusing one to save a few milliseconds of construction is how a
-     * channel change inherits the previous channel's error.
+     * Fresh rather than pooled, deliberately: nothing here hands out an engine twice. An engine
+     * that has failed is an engine in an unknown state, and pooling is how a channel change
+     * inherits the previous channel's error.
+     *
+     * Keeping the engine that is playing for the next channel is a different thing and the
+     * player's decision, made one channel change at a time: only for an engine that offers it
+     * ([PlaybackEngine.reusable]), has not failed, and is tuned for the same kind. What that
+     * saves is not construction alone. Releasing an engine waits on the main thread for its
+     * decoders to be let go, and the one built after it has to build them again.
      */
     fun create(id: EngineId, kind: MediaKind): PlaybackEngine
 }

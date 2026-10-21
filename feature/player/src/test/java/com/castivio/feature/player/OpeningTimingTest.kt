@@ -21,9 +21,11 @@ class OpeningTimingTest {
         marks: OpeningMarks = OpeningMarks(),
         firstFrameMs: Long? = 900,
         fallback: Boolean = false,
+        reused: Boolean = false,
     ) = OpeningTiming(
         engine = EngineId.PRIMARY,
         fallback = fallback,
+        reused = reused,
         pressToOpenMs = 30,
         releaseMs = 180,
         setupMs = 40,
@@ -46,7 +48,7 @@ class OpeningTimingTest {
         ).render()
 
         assertEquals(
-            "engine=PRIMARY fallback=no | press→open 30ms release 180ms setup 40ms press→prepare 260ms" +
+            "engine=PRIMARY fallback=no reused=no | press→open 30ms release 180ms setup 40ms press→prepare 260ms" +
                 " | server 120ms bytes 150ms tracks 400ms decoder 455ms (built in 50ms) frame 630ms" +
                 " | prepare→frame 640ms press→frame 900ms",
             line,
@@ -73,6 +75,11 @@ class OpeningTimingTest {
     fun `the source's half is the total less the application's`() {
         assertEquals(640L, timing().prepareToFrameMs)
         assertNull("no frame, no figure", timing(firstFrameMs = null).prepareToFrameMs)
-        assertTrue(timing(fallback = true).render().startsWith("engine=PRIMARY fallback=yes |"))
+        assertTrue(timing(fallback = true).render().startsWith("engine=PRIMARY fallback=yes reused=no |"))
+    }
+
+    @Test
+    fun `an engine kept from the last channel says so`() {
+        assertTrue(timing(reused = true).render().startsWith("engine=PRIMARY fallback=no reused=yes |"))
     }
 }

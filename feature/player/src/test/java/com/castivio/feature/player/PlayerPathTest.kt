@@ -2529,6 +2529,250 @@ class PlayerPathTest {
         }
     }
 
+    /* ---------------------------------------------------- keeping the engine between channels */
+
+    private fun secondChannel() = liveRequest(url = "http://provider.tv/live/2.ts", title = "Second")
+
+    /**
+     * A channel change keeps an engine that offers to be kept.
+     *
+     * Nothing is released and nothing is built: the engine that played the last channel is
+     * handed the next one, the overlay stays up until that channel's own frame, and the figures
+     * say the engine was kept.
+     */
+    @Test
+    fun `a channel change keeps an engine that offers to be kept`() = playerTest {
+        engines.primaryReusable = true
+        val model = model()
+        model.open(liveRequest())
+        engines.last.renderFirstFrame()
+        runCurrent()
+        val first = engines.last
+
+        val next = secondChannel()
+        model.switchTo(next)
+        runCurrent()
+
+        assertEquals("no second engine was built", listOf(EngineId.PRIMARY), engines.built)
+        assertFalse("and the first was not released", first.released)
+        assertEquals("it was handed the next channel", next.url, first.opened.last().url)
+        assertTrue(
+            "the last channel's frame is not the next one's",
+            model.state.value?.picture is Picture.Opening,
+        )
+        assertEquals("Second", model.state.value?.request?.title)
+        assertTrue("the figures say the engine was kept", model.opening!!.reused)
+        assertEquals("and that nothing was built for it", 0L, model.opening!!.setupMs)
+
+        first.renderFirstFrame()
+        runCurrent()
+
+        assertTrue(model.state.value?.picture is Picture.Playing)
+        assertEquals("the next channel's guide, after its own frame", 2, guide.calls)
+    }
+
+    /** A kept engine keeps its surface: handing it the same one again is a detach and an attach. */
+    @Test
+    fun `a kept engine keeps the surface it has`() = playerTest {
+        engines.primaryReusable = true
+        val model = model()
+        val surface = VideoOutput.Platform("surface")
+        model.setOutput(surface)
+        model.open(liveRequest())
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        model.switchTo(secondChannel())
+        runCurrent()
+
+        assertEquals(
+            "attached once, and never detached or attached again",
+            listOf<VideoOutput?>(surface),
+            engines.last.outputs,
+        )
+    }
+
+    /**
+     * A kept engine gives every channel its own budget.
+     *
+     * The last channel's deadline goes with the last channel. One that survived would hand a
+     * channel the viewer had only just pressed to the backup, on the strength of how long the
+     * channel before it took.
+     */
+    @Test
+    fun `a kept engine gives every channel its own deadline`() = playerTest {
+        engines.primaryReusable = true
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        advanceTimeBy(2_000)
+
+        model.switchTo(secondChannel())
+        runCurrent()
+        advanceTimeBy(1_500)
+        runCurrent()
+        assertEquals("the first channel's deadline did not fire on the second", listOf(EngineId.PRIMARY), engines.built)
+
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS)
+        runCurrent()
+        assertEquals("the second channel's own did", listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
+    }
+
+    /**
+     * Pressing through channels faster than they open leaves only the last one's attempt.
+     *
+     * Every channel passed on the way is handed to the engine and taken back again, and none
+     * of them may come back later as a deadline, a fallback or a guide.
+     */
+    @Test
+    fun `rapid switching on a kept engine leaves only the last channel's attempt`() = playerTest {
+        engines.primaryReusable = true
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        model.switchTo(secondChannel())
+        runCurrent()
+        model.switchTo(liveRequest(url = "http://provider.tv/live/3.ts", title = "Third"))
+        runCurrent()
+
+        val engine = engines.last
+        assertEquals("one engine", 1, engines.built.size)
+        assertEquals("handed each channel in turn", 3, engine.opened.size)
+        assertEquals("Third", model.state.value?.request?.title)
+
+        engine.renderFirstFrame()
+        runCurrent()
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS * 2)
+        runCurrent()
+
+        assertTrue(model.state.value?.picture is Picture.Playing)
+        assertEquals("no channel passed on the way fell anything over", 1, engines.built.size)
+        assertEquals("and only the last one's guide was asked for", 1, guide.calls)
+    }
+
+    /** A film is never opened on the engine a channel was playing on. */
+    @Test
+    fun `an engine is not kept from a channel for a film`() = playerTest {
+        engines.primaryReusable = true
+        val model = model()
+        model.open(liveRequest())
+        engines.last.renderFirstFrame()
+        runCurrent()
+        val first = engines.last
+
+        model.open(vodRequest())
+        runCurrent()
+
+        assertTrue("the channel's engine was released", first.released)
+        assertEquals("and the film's was built", 2, engines.built.size)
+        assertFalse("whose figures claim no kept engine", model.opening!!.reused)
+    }
+
+    /** An engine that has failed is not kept: the next channel would inherit the failure. */
+    @Test
+    fun `an engine that failed is not kept for the next channel`() = playerTest {
+        engines.primaryReusable = true
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        engines.last.fail(PlaybackError.UNKNOWN)
+        runCurrent()
+        val failed = engines.last
+
+        model.switchTo(secondChannel())
+        runCurrent()
+
+        assertTrue("the engine that failed was released", failed.released)
+        assertEquals(2, engines.built.size)
+    }
+
+    /** A channel remembered for the backup is opened on the backup, whatever was playing before. */
+    @Test
+    fun `an engine is not kept for a channel that belongs to the other engine`() = playerTest {
+        engines.primaryReusable = true
+        val next = secondChannel()
+        memory.remember(FallbackPolicy.sourceKey(next.url), EngineId.BACKUP)
+        val model = model()
+        model.open(liveRequest())
+        engines.last.renderFirstFrame()
+        runCurrent()
+        val first = engines.last
+
+        model.switchTo(next)
+        runCurrent()
+
+        assertTrue("the primary was released", first.released)
+        assertEquals(listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
+    }
+
+    /**
+     * The fallback is the same on a kept engine: the next channel's failure hands it to the
+     * backup, which is built only once the kept engine has been let go.
+     */
+    @Test
+    fun `a channel on a kept engine still falls over to the backup`() = playerTest {
+        engines.primaryReusable = true
+        val model = model()
+        model.open(liveRequest())
+        engines.last.renderFirstFrame()
+        runCurrent()
+        val kept = engines.last
+        model.switchTo(secondChannel())
+        runCurrent()
+
+        kept.fail(PlaybackError.DECODER_INIT)
+        runCurrent()
+
+        assertTrue("the kept engine was released", kept.released)
+        assertEquals(listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
+        assertEquals("and before the backup was built", 1, engines.mostAlive)
+
+        engines.last.renderFirstFrame()
+        runCurrent()
+        assertEquals(EngineId.BACKUP, model.state.value?.engine)
+        assertTrue(model.opening!!.fallback)
+        assertFalse(model.opening!!.reused)
+    }
+
+    /**
+     * Whatever is kept and whatever is not, two engines are never alive at once.
+     *
+     * An engine that does not offer to be kept -- LibVLC -- is released before the next is
+     * built, which is the whole defence against two pictures, two soundtracks and two decoders
+     * on a box that has one of each.
+     */
+    @Test
+    fun `two engines are never alive at once`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        engines.last.renderFirstFrame()
+        runCurrent()
+        model.switchTo(secondChannel())
+        runCurrent()
+        engines.last.fail(PlaybackError.DECODER_INIT)
+        runCurrent()
+        model.open(vodRequest())
+        runCurrent()
+
+        assertEquals(4, engines.built.size)
+        assertEquals("the most ever alive together", 1, engines.mostAlive)
+    }
+
+    /** Leaving lets a kept engine go like any other: the sound must not outlive the player. */
+    @Test
+    fun `leaving the player releases a kept engine`() = playerTest {
+        engines.primaryReusable = true
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        model.switchTo(secondChannel())
+        runCurrent()
+
+        model.leave()
+
+        assertTrue(engines.last.released)
+    }
+
     /* ------------------------------------------------------------------------ fakes */
 
     private fun liveRequest(
@@ -2556,10 +2800,25 @@ class PlayerPathTest {
         /** How long building takes, in real time, so the setup figure has something to measure. */
         var buildTakesMs = 0L
 
+        /** Whether the primaries it builds offer to be kept, as Media3 does. A backup never does. */
+        var primaryReusable = false
+
+        /** Every engine built, so "two alive at once" is expressible. */
+        private val all = mutableListOf<FakeEngine>()
+
+        /** The most engines that were ever alive together: built, and not yet released. */
+        var mostAlive = 0
+            private set
+
         override fun create(id: EngineId, kind: MediaKind): PlaybackEngine {
             built += id
             if (buildTakesMs > 0) Thread.sleep(buildTakesMs)
-            return FakeEngine().also { last = it }
+            return FakeEngine().also {
+                it.reusable = primaryReusable && id == EngineId.PRIMARY
+                last = it
+                all += it
+                mostAlive = maxOf(mostAlive, all.count { engine -> !engine.released })
+            }
         }
     }
 
@@ -2617,8 +2876,18 @@ class PlayerPathTest {
         override fun setVideoOutput(output: VideoOutput?) {
             outputs += output
         }
+
+        override var reusable = false
+
         override fun open(media: MediaRequest) {
             opened += media
+            // What an engine that can be kept promises, and what a fresh one is anyway: each
+            // source starts with no frame, no captions, no shape, no tracks and no report.
+            _firstFrame.value = null
+            _cues.value = emptyList()
+            _videoAspectRatio.value = null
+            _tracks.value = TrackSet()
+            _diagnosis.value = null
             _state.value = PlaybackState.Opening
         }
 
