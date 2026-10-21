@@ -448,6 +448,107 @@ class RoomCatalogWriterTest {
         progressDao = database.progressDao(),
     )
 
+    // ------------------------------------------------------------ telling the observers
+
+    /** A writer whose telling is counted and whose clock the test moves; commits are real. */
+    private inner class Told(everyMs: Long = 1_000L) {
+        var told = 0
+        @Volatile var now = 10_000L
+        val writer = RoomCatalogWriter(
+            database,
+            notifyEveryMs = everyMs,
+            monotonicMs = { now },
+            tell = { told++ },
+        ) { 2_000L }
+    }
+
+    /**
+     * The commits are not slowed by the screens: every batch is committed when it is
+     * written, and is on the database whether or not anybody was told.
+     */
+    @Test
+    fun `commits are all made while the telling is paced`() = runBlocking {
+        Fixtures.register(database, "src")
+        val t = Told()
+        t.writer.begin("src", ImportMode.APPEND)
+        repeat(8) { batch ->
+            t.writer.writeItems(listOf(liveItem("b$batch", "Batch $batch")))
+            t.writer.commit()
+            t.now += 143
+            assertEquals("batch $batch is committed", batch + 1, database.mediaDao().countNow("LIVE"))
+        }
+        assertEquals("the first rows at once, the rest waiting for the interval", 1, t.told)
+        t.writer.finish(summaryOf(8))
+        assertEquals("the end is always told", 2, t.told)
+    }
+
+    @Test
+    fun `the first rows and the first counted category are told at once`() = runBlocking {
+        Fixtures.register(database, "src")
+        val t = Told()
+        t.writer.begin("src", ImportMode.APPEND)
+
+        t.writer.writeGroups(listOf(MediaGroup("first", "First", MediaKind.LIVE)))
+        t.writer.writeItems(listOf(liveItem("a", "A", groupId = "first")))
+        t.writer.commit()
+        assertEquals("first rows", 1, t.told)
+
+        t.now += 100
+        t.writer.writeItems(listOf(liveItem("b", "B", groupId = "first")))
+        t.writer.commit()
+        assertEquals("more rows wait", 1, t.told)
+
+        t.now += 100
+        t.writer.countGroups(listOf("first"))
+        t.writer.commit()
+        assertEquals("the first category counted does not wait for the interval", 2, t.told)
+
+        t.now += 100
+        t.writer.writeItems(listOf(liveItem("c", "C", groupId = "first")))
+        t.writer.countGroups(listOf("first"))
+        t.writer.commit()
+        assertEquals("a second count waits", 2, t.told)
+        t.writer.abort(null)
+    }
+
+    @Test
+    fun `a change inside the interval is told when it is up, by the timer`() = runBlocking {
+        Fixtures.register(database, "src")
+        val t = Told(everyMs = 60)
+        t.writer.begin("src", ImportMode.APPEND)
+        t.writer.writeItems(listOf(liveItem("a", "A")))
+        t.writer.commit()
+        t.writer.writeItems(listOf(liveItem("b", "B")))
+        t.writer.commit()
+        assertEquals(1, t.told)
+
+        t.now += 1_000
+        val deadline = System.nanoTime() + 3_000_000_000L
+        while (t.told < 2 && System.nanoTime() < deadline) Thread.sleep(10)
+
+        assertEquals("the last change is never left untold", 2, t.told)
+        t.writer.abort(null)
+    }
+
+    @Test
+    fun `a load that stopped tells the end, and a timer left over tells nothing`() = runBlocking {
+        Fixtures.register(database, "src")
+        val t = Told(everyMs = 100)
+        t.writer.begin("src", ImportMode.APPEND)
+        t.writer.writeItems(listOf(liveItem("a", "A")))
+        t.writer.commit()
+        t.writer.writeItems(listOf(liveItem("b", "B")))
+        t.writer.commit()
+        t.writer.abort(java.io.IOException("connection reset"))
+        val atTheEnd = t.told
+
+        t.now += 1_000
+        Thread.sleep(300)
+
+        assertEquals(2, atTheEnd)
+        assertEquals(atTheEnd, t.told)
+    }
+
     private companion object {
         /** Read on the writer's own connection, which is what a load in progress can be asked on. */
         const val COUNT_OF_FIRST = "SELECT item_count FROM media_group WHERE id = 'first'"

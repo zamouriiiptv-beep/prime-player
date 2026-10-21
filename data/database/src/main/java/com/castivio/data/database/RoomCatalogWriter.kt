@@ -3,6 +3,7 @@ package com.castivio.data.database
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteStatement
 import androidx.tracing.trace
+import com.castivio.core.common.UpdatePacer
 import com.castivio.core.platform.CastivioTrace
 import com.castivio.core.platform.DatabaseStep
 import com.castivio.core.platform.PerformanceLog
@@ -12,6 +13,9 @@ import com.castivio.domain.ImportMode
 import com.castivio.domain.ImportSummary
 import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaKind
+import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
 
 /**
  * Writes the catalogue to SQLite as fast as the storage allows.
@@ -37,10 +41,25 @@ import com.castivio.domain.MediaKind
  *    rebuilt whole either: the rows this import wrote, in two statements, after the
  *    last of them. See `indexWrittenRows`.
  *
+ *  - **Commits are not slowed by the screens.** Every batch is committed as soon as it is
+ *    written; what is paced is only the *telling* -- the observers are notified about once
+ *    a second during a load (see [UpdatePacer]), because the rail, the cards and the list
+ *    re-read on every notification and nobody reads a count rising seven times a second.
+ *    The first rows and the first counted category are told at once, and the end of the
+ *    load always is.
+ *
  * Blocking, like the interface it implements. Call it on an IO dispatcher.
+ *
+ * @param notifyEveryMs the least time between two notifications that are not urgent.
+ * @param monotonicMs a clock that never moves backwards, for the pacing.
+ * @param tell notifies the observers that the tables changed. Raw statements bypass Room's
+ *   write path, so nothing else would.
  */
 class RoomCatalogWriter(
     private val database: CastivioDatabase,
+    private val notifyEveryMs: Long = NOTIFY_INTERVAL_MS,
+    private val monotonicMs: () -> Long = { System.nanoTime() / 1_000_000 },
+    private val tell: () -> Unit = { database.invalidationTracker.refreshVersionsAsync() },
     private val clock: () -> Long = System::currentTimeMillis,
 ) : CatalogWriter {
 
@@ -56,6 +75,14 @@ class RoomCatalogWriter(
     private var itemStatement: SupportSQLiteStatement? = null
     private var groupStatement: SupportSQLiteStatement? = null
     private var countStatement: SupportSQLiteStatement? = null
+
+    // ------------------------------------------------------ telling the observers
+    private val pacer = UpdatePacer(notifyEveryMs)
+    @Volatile private var timer: ScheduledFuture<*>? = null
+    private var rowsSinceCommit = false
+    private var countedSinceCommit = false
+    private var toldRows = false
+    private var toldCounts = false
 
     override fun begin(sourceId: String, mode: ImportMode, sections: Set<MediaKind>) {
         require(sections.isNotEmpty()) { "an import of no section" }
@@ -84,6 +111,11 @@ class RoomCatalogWriter(
         // is how the index knows, at the end, which rows are this import's.
         lastRowIdBefore = db.longOf("SELECT IFNULL(MAX(rowid), 0) FROM media")
         wroteRows = false
+        pacer.reset()
+        rowsSinceCommit = false
+        countedSinceCommit = false
+        toldRows = false
+        toldCounts = false
         db.applyImportPragmas()
         // Which way this import writes decides which steps it pays for -- a replacing write
         // prunes the old generation of what it replaces at the end, an appending one does
@@ -123,6 +155,7 @@ class RoomCatalogWriter(
         requireStarted()
         val statement = countStatement ?: error("countGroups before begin")
         if (groupIds.isEmpty()) return
+        countedSinceCommit = true
         timed(DatabaseStep.COUNTS) {
             for (id in groupIds) {
                 statement.clearBindings()
@@ -141,6 +174,7 @@ class RoomCatalogWriter(
         val statement = itemStatement ?: error("writeItems before begin")
         if (items.isEmpty()) return
         wroteRows = true
+        rowsSinceCommit = true
         timed(DatabaseStep.ROWS) {
             for (item in items) insert(source, statement, item)
         }
@@ -206,8 +240,57 @@ class RoomCatalogWriter(
         // Raw statements bypass Room's write path, so nothing would tell the
         // observers that the tables changed. Without this the first import
         // finishes and the screen stays empty until something else writes.
-        database.invalidationTracker.refreshVersionsAsync()
+        announceCommit()
         db.begin()
+    }
+
+    /**
+     * Tells the observers about this commit -- now if somebody is waiting on it, otherwise
+     * when the interval since the last telling is up. The commit itself is already done and
+     * is never delayed by this.
+     *
+     * Somebody is waiting on the first rows of a load and on its first counted category:
+     * the first is the section's first content, the second is what Live TV opens with.
+     */
+    private fun announceCommit() {
+        val firstRows = rowsSinceCommit && !toldRows
+        val firstCounts = countedSinceCommit && !toldCounts
+        toldRows = toldRows || rowsSinceCommit
+        toldCounts = toldCounts || countedSinceCommit
+        rowsSinceCommit = false
+        countedSinceCommit = false
+
+        val now = monotonicMs()
+        val step = pacer.changed(now)
+        // The timer is scheduled whatever else is told, or the pacer would wait for one that
+        // does not exist.
+        if (step is UpdatePacer.Step.Later) schedule(step.afterMs)
+        val urgent = (firstRows || firstCounts) && pacer.urgent(now) == UpdatePacer.Step.Now
+        if (step == UpdatePacer.Step.Now || urgent) tell()
+    }
+
+    private fun schedule(afterMs: Long) {
+        timer = TIMER.schedule(::timerFired, afterMs.coerceAtLeast(1), TimeUnit.MILLISECONDS)
+    }
+
+    /** The timer thread: the interval is up, and something changed since the last telling. */
+    private fun timerFired() {
+        // A database closed under a late timer is not an error worth a crash.
+        runCatching {
+            when (val step = pacer.due(monotonicMs())) {
+                UpdatePacer.Step.Now -> tell()
+                is UpdatePacer.Step.Later -> schedule(step.afterMs)
+                UpdatePacer.Step.Wait -> Unit
+            }
+        }
+    }
+
+    /** The end of a load: told whatever the interval, and no timer left behind. */
+    private fun announceEnd() {
+        timer?.cancel(false)
+        timer = null
+        pacer.reset()
+        tell()
     }
 
     override fun finish(summary: ImportSummary) {
@@ -235,7 +318,7 @@ class RoomCatalogWriter(
         }
 
         db.restoreNormalPragmas()
-        database.invalidationTracker.refreshVersionsAsync()
+        announceEnd()
         release()
     }
 
@@ -259,7 +342,7 @@ class RoomCatalogWriter(
                 }
             }
             db.restoreNormalPragmas()
-            database.invalidationTracker.refreshVersionsAsync()
+            announceEnd()
         }
         inTransaction = false
         release()
@@ -306,6 +389,8 @@ class RoomCatalogWriter(
     }
 
     private fun release() {
+        timer?.cancel(false)
+        timer = null
         runCatching { itemStatement?.close() }
         runCatching { groupStatement?.close() }
         runCatching { countStatement?.close() }
@@ -392,6 +477,11 @@ class RoomCatalogWriter(
     }
 
     private companion object {
+        /** One thread for every writer's timer: a timer only calls [tell]. */
+        val TIMER = Executors.newSingleThreadScheduledExecutor { task ->
+            Thread(task, "catalog-notify").apply { isDaemon = true }
+        }
+
         /**
          * One statement for the whole import.
          *
@@ -474,3 +564,6 @@ class RoomCatalogWriter(
         """
     }
 }
+
+/** About one notification a second during a load: see [RoomCatalogWriter]. */
+const val NOTIFY_INTERVAL_MS = 1_000L
