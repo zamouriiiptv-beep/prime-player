@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -275,20 +274,21 @@ private fun VideoSurface(
             ),
         contentAlignment = Alignment.Center,
     ) {
+        // Detaching on the way out is not tidiness: a surface that is destroyed while the
+        // engine still holds it is a crash on some devices and a black frame on the rest.
+        //
+        // **This surface's picture, and only this surface's.** The compact player and the
+        // large one swap surfaces in one frame; a release that detached whatever was attached
+        // took the picture from the surface that had just been given it whenever the old one
+        // happened to go second. See `PlayerViewModel.releaseOutput`.
         AndroidView(
             factory = { context -> SurfaceView(context) },
             modifier = Modifier
                 .size(picture)
                 .testTag(PlayerTags.SURFACE),
-            onRelease = { actions.setOutput(null) },
+            onRelease = { view -> actions.releaseOutput(VideoOutput.Platform(view)) },
             update = { view -> actions.setOutput(VideoOutput.Platform(view)) },
         )
-    }
-
-    // Detaching on the way out is not tidiness: a surface that is destroyed while the
-    // engine still holds it is a crash on some devices and a black frame on the rest.
-    DisposableEffect(Unit) {
-        onDispose { actions.setOutput(null) }
     }
 }
 
@@ -430,6 +430,8 @@ data class PlayerActions(
     val onGuide: () -> Unit = {},
     val onChannels: () -> Unit = {},
     val setOutput: (VideoOutput?) -> Unit = {},
+    /** A surface going away: it gives the picture up only if it still holds it. */
+    val releaseOutput: (VideoOutput) -> Unit = {},
 )
 
 /**

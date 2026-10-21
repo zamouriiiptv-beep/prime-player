@@ -2034,6 +2034,223 @@ class PlayerPathTest {
         assertFalse(engines.last.paused)
     }
 
+    /**
+     * A film whose last announcement was buffering is paused all the same.
+     *
+     * The rule paused only a picture announced as playing, and the backup engine announced
+     * buffering for the rest of a film after its first fill report -- so the film went on
+     * playing behind whatever the viewer had gone to do.
+     */
+    @Test
+    fun `going to the background pauses a film that last announced buffering`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        engines.last.stall()
+        runCurrent()
+        assertEquals(Picture.Buffering, model.state.value?.picture)
+
+        model.pauseForBackground()
+
+        assertTrue("a film announced as buffering played on behind another application", engines.last.paused)
+        assertFalse(engines.last.released)
+    }
+
+    /**
+     * A channel is stopped for the background, and opened again on the way back.
+     *
+     * Paused, it was a connection held open behind another application and a picture minutes
+     * behind the broadcast when it resumed; on the backup engine it came back as sound with no
+     * picture. Each half is called twice, as two observers of one lifecycle would call it.
+     */
+    @Test
+    fun `going to the background stops a channel and coming back opens it again`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        val first = engines.last
+
+        model.pauseForBackground()
+        model.pauseForBackground()
+        runCurrent()
+
+        assertTrue("the channel went on streaming behind another application", first.released)
+        assertEquals(Picture.Opening, model.state.value?.picture)
+
+        model.returnFromBackground()
+        model.returnFromBackground()
+        runCurrent()
+
+        assertEquals("the channel was not opened again, once, on its engine", listOf(EngineId.PRIMARY, EngineId.PRIMARY), engines.built)
+        assertEquals(1, engines.last.opened.size)
+        assertEquals(liveRequest().url, engines.last.opened.single().url)
+    }
+
+    /**
+     * A film comes back paused, with its surface handed back to the engine.
+     *
+     * The system destroys the surface while the application is away and makes another, and
+     * the backup engine does not follow that by itself: it came back with sound and no picture.
+     */
+    @Test
+    fun `coming back gives a film its surface again and does not start it`() = playerTest {
+        val model = model()
+        val surface = VideoOutput.Platform("surface")
+        model.setOutput(surface)
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        model.pauseForBackground()
+        engines.last.outputs.clear()
+
+        model.returnFromBackground()
+        runCurrent()
+
+        assertEquals("the surface was not handed back", listOf<VideoOutput?>(null, surface), engines.last.outputs)
+        assertFalse("the film started itself on the way back", engines.last.playing)
+        assertEquals("the film was opened again", 1, engines.built.size)
+    }
+
+    /** A start that no stop came before is the observer being added, not a return. */
+    @Test
+    fun `a start that did not follow a stop changes nothing`() = playerTest {
+        val model = model()
+        model.setOutput(VideoOutput.Platform("surface"))
+        model.open(liveRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        engines.last.outputs.clear()
+
+        model.returnFromBackground()
+        runCurrent()
+
+        assertEquals("a second engine was built for a return that never happened", 1, engines.built.size)
+        assertTrue("the surface was handed over again", engines.last.outputs.isEmpty())
+    }
+
+    /* ------------------------------------------------------------------- the surface */
+
+    /**
+     * The compact surface going away after the large one took the picture leaves it there.
+     *
+     * The two swap in one frame, in an order that is not ours to choose. A release that
+     * detached whatever was attached took the picture from the surface just given it.
+     */
+    @Test
+    fun `a surface released after its successor attached leaves the picture there`() = playerTest {
+        val model = model()
+        val compact = VideoOutput.Platform("compact")
+        val large = VideoOutput.Platform("large")
+        model.setOutput(compact)
+        model.open(liveRequest())
+        runCurrent()
+
+        model.setOutput(large)
+        model.releaseOutput(compact)
+
+        assertEquals("the old surface took the picture with it", large, engines.last.outputs.last())
+    }
+
+    /** And a surface released while it holds the picture gives it up. */
+    @Test
+    fun `a surface released while it holds the picture detaches it`() = playerTest {
+        val model = model()
+        val surface = VideoOutput.Platform("surface")
+        model.setOutput(surface)
+        model.open(liveRequest())
+        runCurrent()
+
+        model.releaseOutput(surface)
+
+        assertNull("the engine kept a surface that is going away", engines.last.outputs.last())
+    }
+
+    /** The surface is handed over once, not on every recomposition of the screen. */
+    @Test
+    fun `the same surface is not handed to the engine twice`() = playerTest {
+        val model = model()
+        val surface = VideoOutput.Platform("surface")
+        model.open(liveRequest())
+        runCurrent()
+
+        model.setOutput(surface)
+        model.setOutput(surface)
+
+        assertEquals(listOf<VideoOutput?>(surface), engines.last.outputs)
+    }
+
+    /* ---------------------------------------------------------------- the spinner */
+
+    /**
+     * A buffering announcement over a clock that is moving is taken down.
+     *
+     * An engine that announced buffering and never took it back left the spinner over a
+     * picture that went on playing. The clock is the evidence: it moves only while frames are
+     * being shown.
+     */
+    @Test
+    fun `a buffering announcement over a moving clock is cleared`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        engines.last.stall()
+        runCurrent()
+        assertEquals(Picture.Buffering, model.state.value?.picture)
+
+        repeat(2) {
+            engines.last.positionMs += PlayerViewModel.TICK_MS
+            advanceTimeBy(PlayerViewModel.TICK_MS)
+            runCurrent()
+        }
+
+        assertEquals("the spinner stayed up over a moving picture", Picture.Playing, model.state.value?.picture)
+    }
+
+    /** A real stall stops the clock, and keeps its spinner. */
+    @Test
+    fun `a stall whose clock has stopped keeps its spinner`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        engines.last.stall()
+        runCurrent()
+
+        repeat(4) {
+            advanceTimeBy(PlayerViewModel.TICK_MS)
+            runCurrent()
+        }
+
+        assertEquals(Picture.Buffering, model.state.value?.picture)
+    }
+
+    /** A jump moves the clock at once and buffers after it, and that buffering is real. */
+    @Test
+    fun `a jump is not taken for a moving picture`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        model.seekBy(10_000)
+        engines.last.stall()
+        engines.last.positionMs = 10_000
+        advanceTimeBy(PlayerViewModel.TICK_MS)
+        runCurrent()
+
+        assertEquals("a jump was read as playback", Picture.Buffering, model.state.value?.picture)
+    }
+
     /* --------------------------------------------------------------- the chrome clock */
 
     /**
@@ -2213,7 +2430,12 @@ class PlayerPathTest {
          */
         override val isPlayRequested: Boolean get() = playing
 
-        override fun setVideoOutput(output: VideoOutput?) = Unit
+        /** Every surface handed over, in order, and every detach as a null. */
+        val outputs = mutableListOf<VideoOutput?>()
+
+        override fun setVideoOutput(output: VideoOutput?) {
+            outputs += output
+        }
         override fun open(media: MediaRequest) {
             opened += media
             _state.value = PlaybackState.Opening
@@ -2274,6 +2496,11 @@ class PlayerPathTest {
         /** The user paused, as the engine would report it. */
         fun pauseFrom() {
             _state.value = PlaybackState.Paused(positionMs = positionMs)
+        }
+
+        /** The buffer ran low and the engine says so; it has not been told to stop. */
+        fun stall() {
+            _state.value = PlaybackState.Buffering(bufferedMs = 0, bitrateBps = 0)
         }
 
         fun fail(reason: PlaybackError) {

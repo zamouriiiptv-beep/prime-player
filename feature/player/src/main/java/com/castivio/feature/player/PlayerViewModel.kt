@@ -121,6 +121,31 @@ class PlayerViewModel @Inject constructor(
     /** Where a jump was aimed, held until the engine's own clock gets there. */
     private var seekTarget: Long? = null
 
+    /**
+     * When the current source was asked for, on a clock that only measures.
+     *
+     * For the log line the first frame writes: how long the viewer waited, fallback
+     * included. The engines measure their own start-up; this is the whole of it, from the
+     * press, and the one number that says whether a slow channel was slow to connect, slow to
+     * decode or slow because the first engine had to give it up.
+     */
+    private var askedAtNanos: Long = 0
+
+    /**
+     * Whether the application is in the background, as this player was told.
+     *
+     * A foreground is only a return when a background came before it: an observer added to a
+     * lifecycle that is already started is told `ON_START` at once, and treating that as a
+     * return would reattach a surface the engine was given a moment ago.
+     */
+    private var inBackground = false
+
+    /** A live stream stopped for the background, to be opened again when the viewer returns. */
+    private var reopenOnReturn = false
+
+    /** Where the engine's clock was at the last tick, to tell a moving picture from a stall. */
+    private var lastTickPosition: Long? = null
+
     /** How many more ticks that aim is believed for. A seek that never lands must expire. */
     private var seekTicks = 0
 
@@ -136,6 +161,8 @@ class PlayerViewModel @Inject constructor(
 
         backupTried = false
         timedOut = false
+        reopenOnReturn = false
+        askedAtNanos = System.nanoTime()
         engineId = FallbackPolicy.first(FallbackPolicy.sourceKey(request.url), memory)
         Log.i(TAG, "opening on $engineId")
         downloaded = null
@@ -319,6 +346,11 @@ class PlayerViewModel @Inject constructor(
     private fun onFirstFrame(current: PlayerState) {
         deadline?.cancel()
         deadline = null
+        Log.i(
+            TAG,
+            "first frame on $engineId ${(System.nanoTime() - askedAtNanos) / NANOS_PER_MS}ms after the press" +
+                if (backupTried) " (after the fallback)" else "",
+        )
         memory.remember(FallbackPolicy.sourceKey(current.request.url), engineId)
         _state.value = current.copy(engine = engineId, switching = false)
         startTicker()
@@ -357,6 +389,7 @@ class PlayerViewModel @Inject constructor(
         // without it the one failure worth explaining switched engines and left nothing
         // behind to explain it.
         val report = engine?.diagnosis?.value ?: current.diagnosis
+        Log.i(TAG, "falling over to the backup after ${(System.nanoTime() - askedAtNanos) / NANOS_PER_MS}ms: $reason")
         stopEngine()
         _state.value = current.copy(
             switching = true,
@@ -410,9 +443,29 @@ class PlayerViewModel @Inject constructor(
 
     /* ------------------------------------------------------------------- controls */
 
+    /**
+     * Where the picture goes. A surface already holding it is not handed it again.
+     *
+     * The surface calls this whenever it recomposes, which is four times a second while
+     * anything plays; passing the same surface back each time was four needless trips into
+     * the engine a second.
+     */
     fun setOutput(target: VideoOutput?) {
+        if (target == output) return
         output = target
         engine?.setVideoOutput(target)
+    }
+
+    /**
+     * A surface is going away. It gives up the picture only if it still has it.
+     *
+     * The compact player and the large one swap surfaces in one frame, and the order in which
+     * the old one is released and the new one attached is not ours to choose. Releasing
+     * unconditionally meant that when the old surface went second it took the picture from
+     * the new one -- sound, and a black frame, until something attached it again.
+     */
+    fun releaseOutput(target: VideoOutput) {
+        if (output == target) setOutput(null)
     }
 
     /**
@@ -468,22 +521,77 @@ class PlayerViewModel @Inject constructor(
     /**
      * The application went to the background, so the sound goes with it.
      *
-     * Leaving the player releases the engine; this does not, because the user has not left
-     * the player — they have taken a call, or looked at a message, and they expect to come
-     * back to the same frame. What they do not expect is a film they cannot see carrying on
-     * playing over whatever they went to do.
+     * Leaving the player releases the engine; this does not release a film, because the
+     * user has not left the player — they have taken a call, or looked at a message, and they
+     * expect to come back to the same frame. What they do not expect is a film they cannot
+     * see carrying on playing over whatever they went to do. A channel is stopped instead,
+     * and opened again on the way back: see the note inside.
      *
      * `ON_STOP` and not `ON_PAUSE` is what calls this, and the distinction is picture in
      * picture: a player in a PiP window is paused by the system and still on screen, and
      * pausing there would stop the very thing PiP exists to keep running.
      *
-     * Nothing resumes automatically on the way back. A film that starts itself the moment a
-     * phone is unlocked is how a player gets muted for good.
+     * Nothing resumes a film automatically on the way back -- see [returnFromBackground]. A
+     * film that starts itself the moment a phone is unlocked is how a player gets muted for
+     * good. A channel has no frame to come back to, so it is the live picture that returns.
      */
     fun pauseForBackground() {
-        if (_state.value?.picture !is Picture.Playing) return
+        val current = _state.value ?: return
+        val running = engine ?: return
+        inBackground = true
+
+        // **Live stops; it is not paused.** A paused channel is a stream left open behind
+        // another application -- holding the provider's connection and, on the backup
+        // engine, losing its picture when the system takes the surface away -- and a channel
+        // resumed from where it was paused is minutes behind the broadcast. It is opened
+        // again, on the same engine, when the viewer comes back.
+        if (current.request.isLive) {
+            Log.i(TAG, "the application went to the background — stopping the channel")
+            reopenOnReturn = true
+            stopEngine()
+            ticker?.cancel(); ticker = null
+            _state.value = current.copy(picture = Picture.Opening, switching = false)
+            return
+        }
+
+        // **Whatever the screen last said.** This paused only a picture announced as
+        // `Playing`, so a film that was announced as buffering -- which is what the backup
+        // engine announced for the rest of a film after its first buffering report -- went
+        // on playing behind whatever the viewer had gone to do. The engine's own answer is
+        // what decides, as it does for the play control.
+        val picture = current.picture
+        if (picture is Picture.Paused || picture is Picture.Ended || picture is Picture.Failed) return
+        if (!running.isPlayRequested) return
         Log.i(TAG, "the application went to the background — pausing")
-        engine?.pause()
+        running.pause()
+        _state.value = current.copy(playRequested = false)
+    }
+
+    /**
+     * The viewer is back.
+     *
+     * A channel stopped for the background is opened again, on the engine it was on. A film
+     * stays paused -- nothing resumes on its own -- and is given its surface again: the
+     * system destroyed it and made another while the application was away, and the backup
+     * engine does not follow that by itself, so it came back with sound and no picture.
+     */
+    fun returnFromBackground() {
+        if (!inBackground) return
+        inBackground = false
+        val current = _state.value ?: return
+        if (reopenOnReturn) {
+            reopenOnReturn = false
+            Log.i(TAG, "back from the background — opening the channel again on $engineId")
+            askedAtNanos = System.nanoTime()
+            _state.value = current.copy(picture = Picture.Opening, switching = false)
+            start(current.request, engineId)
+            return
+        }
+        val target = output ?: return
+        engine?.let { running ->
+            running.setVideoOutput(null)
+            running.setVideoOutput(target)
+        }
     }
 
     /**
@@ -972,14 +1080,29 @@ class PlayerViewModel @Inject constructor(
 
     private fun startTicker() {
         ticker?.cancel()
+        lastTickPosition = null
         ticker = viewModelScope.launch {
             while (true) {
                 val e = engine
                 val current = _state.value
                 if (e != null && current != null) {
                     val duration = e.durationMs
-                    val position = settle(e.positionMs)
+                    val reported = e.positionMs
+                    val position = settle(reported)
+                    // **A picture whose clock moves is not buffering**, whatever was last
+                    // announced. The spinner is for a stall, and a stall stops the clock;
+                    // one that stayed up over moving video -- an engine's report that was
+                    // never taken back -- is cleared here, on the evidence of the clock
+                    // alone. A real stall does not move it and keeps its spinner.
+                    // Not across a jump: a seek moves the clock at once and buffers after it,
+                    // and that buffering is real.
+                    val previous = lastTickPosition
+                    lastTickPosition = reported
+                    val step = if (previous == null) 0L else reported - previous
+                    val moving = seekTarget == null && step in MOVING_MS..MOVING_MAX_MS && e.isPlayRequested
+                    val picture = if (current.picture is Picture.Buffering && moving) Picture.Playing else current.picture
                     _state.value = current.copy(
+                        picture = picture,
                         positionMs = position,
                         bufferedMs = (e.bufferedPositionMs - position).coerceAtLeast(0),
                         durationMs = duration,
@@ -1017,6 +1140,11 @@ class PlayerViewModel @Inject constructor(
     private fun stopEngine() {
         deadline?.cancel(); deadline = null
         collector?.cancel(); collector = null
+        // The shape and the captions listen to this engine too, and a fallback or a reopen
+        // starts new listeners on the next one: these would otherwise go on collecting from
+        // a released engine for the rest of the session.
+        shapeJob?.cancel(); shapeJob = null
+        cueJob?.cancel(); cueJob = null
         engine?.setVideoOutput(null)
         engine?.release()
         engine = null
@@ -1070,6 +1198,19 @@ class PlayerViewModel @Inject constructor(
 
         /** Four times a second: enough for a moving position, cheap enough to ignore. */
         const val TICK_MS = 250L
+
+        /**
+         * How far the clock must move in one tick to count as a picture that is playing.
+         *
+         * Most of a tick: a stream playing at normal speed moves 250ms in one, and a stall
+         * that is draining its last few frames does not.
+         */
+        const val MOVING_MS = 200L
+
+        /** And at most a few ticks' worth: more than that in one tick is a jump, not playback. */
+        const val MOVING_MAX_MS = 1_500L
+
+        const val NANOS_PER_MS = 1_000_000L
         const val STATS_INTERVAL_MS = 1_000L
 
         /** Close enough to call a seek landed: three ticks of ordinary playback. */

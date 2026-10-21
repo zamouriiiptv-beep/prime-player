@@ -116,13 +116,36 @@ fun PlayerRoute(
     // in a PiP window is paused by the system and still on screen, so pausing on ON_PAUSE
     // would stop the one thing PiP exists to keep running. Nothing resumes on the way back
     // — a film that restarts itself when a phone is unlocked is how a player gets muted.
+    //
+    // And it comes back when the application does: a channel is opened again and a film is
+    // given its surface back -- see `PlayerViewModel.returnFromBackground`.
+    //
+    // A stop that is the activity being rebuilt is not the viewer leaving and is not handled
+    // here; the disposal below handles it.
     val owner = LocalLifecycleOwner.current
     DisposableEffect(owner) {
         val watcher = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP) model.pauseForBackground()
+            when (event) {
+                Lifecycle.Event.ON_STOP ->
+                    if (activity?.isChangingConfigurations != true) model.pauseForBackground()
+                Lifecycle.Event.ON_START -> model.returnFromBackground()
+                else -> Unit
+            }
         }
         owner.lifecycle.addObserver(watcher)
         onDispose { owner.lifecycle.removeObserver(watcher) }
+    }
+
+    // **An activity rebuilt is a player nobody can see.**
+    //
+    // The view model belongs to the activity and survives it being rebuilt; the shell's state
+    // does not, so the new activity opens on Home with no player in it. Rotation does not
+    // rebuild the activity -- the manifest takes those changes itself -- so any rebuild that
+    // reaches here is one after which nothing will show this stream again. It went on
+    // playing anyway: sound with no picture, and on the Channels board the channel's tile
+    // where the video had been, until the player was opened again. It is released instead.
+    DisposableEffect(Unit) {
+        onDispose { if (activity?.isChangingConfigurations == true) model.leave() }
     }
 
     // Controls hide themselves, because a player whose chrome stays up is a player you
@@ -229,6 +252,7 @@ fun PlayerRoute(
                 onShare = { context.share(shareOffer(current.request), chooser) },
                 onExpand = { onExpand?.invoke() },
                 setOutput = model::setOutput,
+                releaseOutput = model::releaseOutput,
             ),
         )
     }
