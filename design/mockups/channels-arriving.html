@@ -1,0 +1,295 @@
+<!doctype html>
+<!--
+  Live TV opening with its first category while the rest arrive. Drawn before code.
+
+  The section's first load no longer holds the viewer on Home until its last row: Live TV
+  opens by itself as soon as its first category is complete, and every category that
+  completes after that is added to the rail where the provider puts it -- while the viewer
+  browses, without leaving and coming back. A category is listed once it is complete, with
+  its final count; the one being read is not listed yet. The rail ends with a line saying
+  the rest is on its way, in the working amber, with the figure the Home card shows.
+
+  Geometry is the approved board's (channels-geometry.html): phone 833x385, and the 1280x720
+  reference at 3/4 for the television, 960x540. The board is laid out left to right in every
+  language, as ChannelsScreen.kt lays it out. Colours are Color.kt tokens; the state marks
+  follow UI_ARCHITECTURE.md §5.1. Names and figures are examples.
+
+    ?frame=<name>      one frame at its device size
+    ?frame=sheet       every frame stacked with its caption, for review
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Live TV — categories arriving</title>
+<style>
+:root{
+  --ground:#111327; --panel:#20223A; --edge:rgba(172,180,214,.10); --edgeSoft:rgba(255,255,255,.08);
+  --glass:rgba(255,255,255,.06); --violet:#9B6BFF; --violetEdge:#B694FF; --azure:#4C9BFF; --ring:#6FB2FF;
+  --success:#3DD68C; --amber:#FFB020; --danger:#FF5A5A;
+  --ink:#D6D3E8; --strong:#FFFFFF; --muted:#8C8CA8; --faint:#6B6B85; --track:rgba(255,255,255,.12);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#05040E;color:var(--strong);font-family:"Noto Sans Arabic","DejaVu Sans",sans-serif}
+body.sheet{padding:20px;width:max-content}
+svg{display:block;flex:none}
+
+.screen{position:relative;overflow:hidden;direction:ltr;
+  background:radial-gradient(120% 90% at 85% 0%,#1B1F3F 0%,rgba(27,31,63,0) 60%),linear-gradient(160deg,#13152D,var(--ground))}
+.stage{position:absolute;inset:0;display:flex;flex-direction:column}
+
+/* ---------- the header: context, drawn as it ships ---------- */
+.hdr{flex:none;display:flex;align-items:center}
+.brand{display:flex;align-items:center;justify-content:center;gap:6px;flex:none}
+.mark{border-radius:28%;background:linear-gradient(135deg,var(--azure),#6E4BD8);flex:none}
+.word{font-weight:700;letter-spacing:.06em;white-space:nowrap}
+/* Every line on the board is placed from the left, in every language, and shaped by its own
+   script: a Text as wide as its words at the start of a left-to-right row. */
+.crumb{flex:none;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;line-height:1.25;min-width:0}
+.crumb .s{color:var(--violet);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;unicode-bidi:plaintext}
+.crumb .g{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;unicode-bidi:plaintext}
+.say{unicode-bidi:plaintext}
+.find{flex:1;display:flex;justify-content:center;min-width:0}
+.field{background:var(--glass);border:1px solid var(--edgeSoft);border-radius:999px;display:flex;align-items:center;
+  gap:5px;color:var(--muted);white-space:nowrap;overflow:hidden}
+.field svg{fill:var(--muted)}
+.clock{flex:none;text-align:right;line-height:1.15}
+.clock .t{font-weight:700;font-variant-numeric:tabular-nums}
+.clock .d{color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* ---------- the panel and its three columns ---------- */
+.panel{flex:1;min-height:0;background:var(--panel);border:1px solid var(--edge);display:flex;flex-direction:column}
+.cols{flex:1;min-height:0;display:flex}
+.rail{flex:none;display:flex;flex-direction:column;min-height:0}
+.rsearch{flex:none;background:var(--glass);border:1px solid var(--edge);border-radius:999px;display:flex;align-items:center;
+  gap:5px;color:var(--muted);white-space:nowrap;overflow:hidden}
+.rsearch svg{fill:var(--muted)}
+.rview{flex:1;min-height:0;overflow:hidden;position:relative}
+.rlist{position:absolute;inset-inline:0;display:flex;flex-direction:column}
+.pkg{flex:none;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;border:1px solid transparent;min-width:0}
+.pkg .pn{color:var(--ink);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;unicode-bidi:plaintext;line-height:1.3}
+.pkg .pt{color:var(--muted);white-space:nowrap;line-height:1.3;unicode-bidi:plaintext}
+.pkg.on{background:var(--violet);border-color:var(--violetEdge)} .pkg.on .pn,.pkg.on .pt{color:#fff}
+.pkg.focus{border-color:var(--ring);box-shadow:0 0 0 1px var(--ring)}
+.rdiv{flex:none;height:1px;background:rgba(172,180,214,.18)}
+
+/* The subject: the rail's last line while the rest is on its way. Not a control -- nothing to
+   press, and the remote passes it by -- so no surface, no edge and no ring: the working amber's
+   word over the figure, as a category's name sits over its total, and a hairline under them,
+   as a section's card says it on Home. */
+.more{flex:none;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;border:1px solid transparent}
+.more .w{color:var(--amber);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;line-height:1.3;unicode-bidi:plaintext}
+.more .v{color:var(--muted);white-space:nowrap;line-height:1.3;font-variant-numeric:tabular-nums;unicode-bidi:plaintext}
+.trk{position:relative;align-self:stretch;height:2px;border-radius:2px;background:var(--track);overflow:hidden;margin-top:2px}
+.seg{position:absolute;inset-block:0;left:30%;width:36%;border-radius:inherit;
+  background:linear-gradient(90deg,rgba(255,176,32,0),var(--amber) 30%,var(--amber) 70%,rgba(255,176,32,0))}
+.fill{position:absolute;inset-block:0;left:0;border-radius:inherit}
+/* And for a few seconds when everything has come: the success green with its tick, then gone. */
+.more.done .w{color:var(--success);display:flex;align-items:center;gap:4px}
+.more.done svg{fill:var(--success)}
+
+.list{flex:none;border:1px solid var(--edge);display:flex;flex-direction:column;overflow:hidden}
+.ch{flex:none;display:flex;align-items:center;border:1px solid transparent}
+.ch .no{flex:none;background:var(--glass);border:1px solid var(--edge);color:var(--violet);display:flex;align-items:center;
+  justify-content:center;font-variant-numeric:tabular-nums}
+.ch .lg{flex:none;background:#1B1D38;border:1px solid var(--edge)}
+.ch .cn{flex:1;min-width:0;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:"DejaVu Sans",sans-serif}
+.ch .q{flex:none;color:var(--violet);font-weight:700}
+.ch.focus{border-color:var(--ring);box-shadow:0 0 0 1px var(--ring)}
+
+.well{flex:none;display:flex;flex-direction:column;align-items:center}
+.pic{flex:none;position:relative;background:linear-gradient(150deg,#3E3466,#241F3C);border:1px solid rgba(255,255,255,.20);
+  display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.55);font-weight:700;font-family:"DejaVu Sans",sans-serif}
+.pic .live{position:absolute;bottom:5px;left:5px;background:#2FBF9F;color:#062B23;font-weight:700;border-radius:999px;white-space:nowrap}
+.facts{width:100%;flex:1;min-height:0;border:1px solid var(--edge);display:flex;flex-direction:column;justify-content:space-between;
+  color:var(--ink);overflow:hidden;font-family:"DejaVu Sans",sans-serif}
+.facts .id{display:flex;align-items:center;gap:5px}
+.facts .id .lg{background:rgba(255,255,255,.04);border:1px solid var(--edge);border-radius:3px;flex:none}
+.facts .id .nm{flex:1;min-width:0;color:#fff;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.facts .rule{height:1px;background:rgba(172,180,214,.28);flex:none}
+.facts .ln{display:flex;gap:6px;align-items:baseline;white-space:nowrap;overflow:hidden}
+.facts .ln .tm{color:var(--muted);flex:none;font-variant-numeric:tabular-nums}
+.facts .ln .tt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.facts .now{color:#2FBF9F;font-weight:700;flex:none}
+.facts .bar{height:2px;background:rgba(255,255,255,.13)} .facts .bar>i{display:block;height:100%;width:38%;background:#2FBF9F}
+.strip{width:100%;flex:none;display:flex}
+.btn{flex:1;background:var(--glass);border:1px solid var(--edge);display:flex;align-items:center;justify-content:center;color:var(--ink);white-space:nowrap}
+
+/* The notice a failure already has, over a board with rows: the cause, then the press. */
+.notice{flex:none;display:flex;align-items:center;gap:6px;background:var(--glass);border:1px solid var(--violetEdge);white-space:nowrap}
+.notice .c{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+.notice .a{flex:none;color:var(--azure)}
+
+/* ---------- the review sheet ---------- */
+.blk{margin-bottom:22px}
+.cap{width:var(--w);font-size:12.5px;line-height:1.75;color:#C9C9DA;margin-bottom:8px}
+.cap b{color:#fff} .cap .n{color:var(--ring);font-weight:700}
+.cap .a{color:var(--amber)} .cap .g{color:var(--success)} .cap .r{color:var(--danger)}
+.notes{width:833px;font-size:12.5px;line-height:1.9;color:#C9C9DA;margin-top:4px}
+.notes b{color:#fff}
+</style>
+</head>
+<body>
+<script>
+const ICON = {
+  search:'M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z',
+  check:'M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z',
+};
+const svg = (name, size) => `<svg viewBox="0 0 24 24" style="width:${size}px;height:${size}px"><path d="${ICON[name]}"/></svg>`;
+
+/** The approved board's numbers: the phone as channels-geometry.html draws it, the television at 3/4 of the reference. */
+const GEO = {
+  phone: {w: 833, h: 385, pad: 4, edge: 8, header: 34, headerGap: 4, panelPad: 4, panelRadius: 10,
+    rail: 188.73, railGap: 10.41, player: 266.28, playerGap: 6.41,
+    field: 27.52, entryGap: 3.21, entry: 32, padH: 8, divider: 5, radius: 6,
+    listPad: 2.5, row: 27.54, rowPadH: 10, rowGap: 10, number: 30, logo: [26, 17.07],
+    pic: [260.31, 146.43], wellGap: 4, strip: 48, fsLabel: 13, fsBody: 12, fsQ: 10.08, fsBtn: 8.64,
+    crumb: 112, search: 236, dates: 112, markSize: 22},
+  tv: {w: 960, h: 540, pad: 5, edge: 9.02, header: 38, headerGap: 4, panelPad: 4.1, panelRadius: 10,
+    rail: 217.5, railGap: 12, player: 306.87, playerGap: 7.39,
+    field: 33.54, entryGap: 4.5, entry: 39, padH: 8, divider: 6.5, radius: 6,
+    listPad: 2.06, row: 38.63, rowPadH: 10, rowGap: 8.25, number: 30, logo: [26, 23.95],
+    pic: [300, 168.75], wellGap: 4.1, strip: 53, fsLabel: 15.83, fsBody: 13.5, fsQ: 11.34, fsBtn: 9.72,
+    crumb: 150, search: 300, dates: 140, markSize: 26},
+};
+
+const STR = {
+  ar: {section: 'البث المباشر', all: 'كل القنوات', fav: 'المفضلة', recent: 'شوهدت مؤخرًا', total: 'المجموع: %s',
+    railSearch: 'ابحث في الباقات', search: 'ابحث في القنوات', more: 'جارٍ تحميل باقي الباقات…', loaded: 'اكتمل التحميل',
+    unit: '%s قناة', failed: 'لم يردّ مزوّدك في الوقت المتاح. غالبًا يكون مشغولًا لا معطّلًا.', retry: 'حاول مرة أخرى',
+    now: 'الآن', live: 'مباشر', buttons: ['الدليل', 'المفضلة', 'قفل', 'إخفاء']},
+  en: {section: 'Live TV', all: 'All Channels', fav: 'Favorites', recent: 'Recently Watched', total: 'Total: %s',
+    railSearch: 'Search categories', search: 'Search channels', more: 'Loading categories…', loaded: 'Loaded',
+    unit: '%s channels', failed: 'Your provider did not answer in time. It is usually busy rather than down.', retry: 'Try again',
+    now: 'NOW', live: 'LIVE', buttons: ['Guide', 'Favourite', 'Lock', 'Hide']},
+};
+const fmt = n => n.toLocaleString('en-US');
+
+// ------------------------------------------------------------------ example catalogue
+const FIRST = [['AR| GENERAL ᴴᴰ', 48], ['AR| NEWS', 21]];
+const SIX = [...FIRST, ['AR| BEIN SPORTS ᴴᴰ', 117], ['AR| MBC', 19], ['AR| KIDS', 26], ['AR| DOCUMENTARY', 14]];
+const LAST = [['UK| SPORT ᴴᴰ', 605], ['UK| NEWS ᴴᴰ', 27], ['UK| CINEMA ⁴ᴷ', 42], ['UK| KIDS', 18], ['UK| DOCS ᴴᴰ', 31]];
+const GENERAL = [['AR: AL AOULA', 'HD'], ['AR: 2M MAROC', 'HD'], ['AR: MEDI 1 TV', 'HD'], ['AR: AL MAGHRIBIA', ''],
+  ['AR: ARRYADIA', 'HD'], ['AR: TAMAZIGHT', ''], ['AR: CHADA TV', ''], ['AR: AL ARABIYA', 'HD'], ['AR: SKY NEWS ARABIA', 'HD'],
+  ['AR: FRANCE 24 ARABIC', ''], ['AR: DW ARABIA', ''], ['AR: ROTANA CINEMA', 'HD'], ['AR: ROTANA DRAMA', 'HD']];
+const BEIN = Array.from({length: 13}, (_, i) => [`AR: BEIN SPORTS ${i + 1}`, i < 4 ? 'UHD' : 'HD']);
+
+// ------------------------------------------------------------------ the board
+function board(fr) {
+  const g = GEO[fr.dev || 'phone'];
+  const T = STR[fr.lang || 'ar'];
+
+  // The rail: three entries that are not categories, the divider, the categories that are
+  // complete, and -- while the rest is on its way -- the line that says so.
+  const entry = (label, count, opts = {}) => `<div class="pkg${opts.on ? ' on' : ''}${opts.focus ? ' focus' : ''}"
+      style="min-height:${g.entry}px;padding:0 ${g.padH}px;border-radius:${g.radius}px">
+      <div class="pn" style="font-size:${g.fsLabel}px">${label}</div>
+      ${count == null ? '' : `<div class="pt" style="font-size:${g.fsBody}px">${T.total.replace('%s', fmt(count))}</div>`}</div>`;
+  const parts = [
+    entry(T.all, fr.all, {on: fr.selected == null, focus: fr.focus === 'all'}),
+    entry(T.fav, null),
+    entry(T.recent, null),
+    `<div class="rdiv" style="margin:${g.divider / 2}px ${g.padH}px"></div>`,
+    ...fr.groups.map(([name, n]) => entry(name, n, {on: fr.selected === name, focus: fr.focus === name})),
+  ];
+  if (fr.more) {
+    const done = fr.more === 'done';
+    parts.push(`<div class="more${done ? ' done' : ''}" style="min-height:${g.entry}px;padding:${g.entryGap}px ${g.padH}px;border-radius:${g.radius}px">
+      ${done ? `<div class="w" style="font-size:${g.fsLabel}px">${svg('check', g.fsLabel + 1)}<span class="say">${T.loaded}</span></div>`
+             : `<div class="w" style="font-size:${g.fsLabel}px">${T.more}</div><div class="v" style="font-size:${g.fsBody}px">${T.unit.replace('%s', fmt(fr.all))}</div>`}
+      <div class="trk">${done ? '<div class="fill" style="width:100%;background:var(--success)"></div>' : '<div class="seg"></div>'}</div></div>`);
+  }
+  const rail = `<div class="rail" style="width:${g.rail}px">
+      <div class="rsearch" style="height:${g.field}px;padding:0 ${g.padH}px;font-size:${g.fsBody}px;margin-bottom:${g.entryGap * 2}px">${svg('search', g.fsBody + 2)}<span class="say">${T.railSearch}</span></div>
+      <div class="rview"><div class="rlist" style="gap:${g.entryGap}px;${fr.scrolled ? 'bottom:0' : 'top:0'}">${parts.join('')}</div></div></div>`;
+
+  // The channels of what is open, the first of them focused when the board has just opened.
+  const rows = fr.rows.map(([name, q], i) => `<div class="ch${fr.rowFocus === i ? ' focus' : ''}"
+      style="height:${g.row}px;padding:0 ${g.rowPadH}px;gap:${g.rowGap}px;border-radius:${g.radius}px">
+      <span class="no" style="width:${g.number}px;height:${g.row * .62}px;font-size:${g.fsBody}px;border-radius:3px">${fr.firstNo + i}</span>
+      <span class="lg" style="width:${g.logo[0]}px;height:${g.logo[1]}px;border-radius:3px"></span>
+      <span class="cn" style="font-size:${g.fsLabel}px">${name}</span>
+      ${q ? `<span class="q" style="font-size:${g.fsQ}px">${q}</span>` : ''}</div>`).join('');
+  const list = `<div class="list" style="width:${g.w - 2 * g.edge - 2 * g.panelPad - 2 - g.rail - g.railGap - g.playerGap - g.player}px;padding:${g.listPad}px;border-radius:10px">${rows}</div>`;
+
+  // The well: the channel the remote was last on, and what is on it.
+  const [chan, q] = fr.rows[fr.wellRow || 0];
+  const well = `<div class="well" style="width:${g.player}px;gap:${g.wellGap}px">
+      <div class="pic" style="width:${g.pic[0]}px;height:${g.pic[1]}px;border-radius:10px;font-size:${g.fsLabel * 1.6}px">${chan.replace(/^AR: /, '').split(' ').slice(0, 2).join(' ')}
+        <span class="live" style="font-size:${g.fsBody * .9}px;padding:2px 5px">${T.live}&nbsp;&nbsp;${fr.firstNo + (fr.wellRow || 0)}</span></div>
+      <div class="facts" style="border-radius:10px;padding:2px ${g.padH / 2 + 1}px;font-size:${g.fsBody}px">
+        <div class="id"><span class="lg" style="width:${g.logo[0]}px;height:${g.logo[1] * 1.1}px"></span><span class="nm" style="font-size:${g.fsLabel}px">${chan}</span>${q ? `<span class="q" style="color:#B694FF;font-size:${g.fsQ}px;font-weight:700">${q}</span>` : ''}</div>
+        <div class="rule"></div>
+        <div class="ln"><span class="tt" style="color:#fff;font-weight:600">${fr.programme[0]}</span></div>
+        <div class="ln"><span class="bar" style="flex:1;align-self:center"><i></i></span><span class="tm">${fr.programme[1]}</span><span class="now">${T.now}</span></div>
+        <div class="rule"></div>
+        <div class="ln"><span class="tm">${fr.programme[2]}</span><span class="tt">${fr.programme[3]}</span></div>
+        <div class="ln"><span class="tm">${fr.programme[4]}</span><span class="tt">${fr.programme[5]}</span></div>
+      </div>
+      <div class="strip" style="height:${g.strip}px;gap:${g.wellGap}px">${T.buttons.map(b => `<div class="btn" style="border-radius:${g.radius}px;font-size:${g.fsBtn}px">${b}</div>`).join('')}</div></div>`;
+
+  const notice = fr.failed ? `<div class="notice" style="margin-bottom:${g.headerGap}px;border-radius:${g.radius}px;padding:${g.headerGap}px ${g.padH}px;font-size:${g.fsBody}px">
+      <span class="c say">${T.failed}</span><span class="a say">${T.retry}</span></div>` : '';
+
+  const crumbName = fr.selected || T.all;
+  return `<div class="screen" lang="${fr.lang || 'ar'}" style="width:${g.w}px;height:${g.h}px">
+    <div class="stage" style="padding:${g.pad}px ${g.edge}px">
+      <div class="hdr" style="height:${g.header}px;margin-bottom:${g.headerGap}px">
+        <div class="brand" style="width:${g.rail + g.railGap}px"><div class="mark" style="width:${g.markSize}px;height:${g.markSize}px"></div><div class="word" style="font-size:${g.fsLabel * 1.05}px">Castivio</div></div>
+        <div class="crumb" style="width:${g.crumb}px"><div class="s" style="font-size:${g.fsLabel}px">${T.section}</div><div class="g" style="font-size:${g.fsBody * .92}px">${crumbName}</div></div>
+        <div class="find"><div class="field" style="width:${g.search}px;height:${g.header * .62}px;padding:0 ${g.padH}px;font-size:${g.fsBody}px">${svg('search', g.fsBody + 2)}<span class="say">${T.search}</span></div></div>
+        <div class="clock" style="width:${g.dates}px"><div class="t" style="font-size:${g.fsLabel * 1.15}px">21:04</div><div class="d" style="font-size:${g.fsBody * .92}px">21-10-2026</div></div>
+      </div>
+      <div class="panel" style="padding:${g.panelPad}px;border-radius:${g.panelRadius}px">
+        ${notice}
+        <div class="cols">${rail}<div style="width:${g.railGap}px;flex:none"></div>${list}<div style="width:${g.playerGap}px;flex:none"></div>${well}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ------------------------------------------------------------------ the frames
+const GUIDE_GENERAL = ['Al Akhbar — Le journal', '20:30 – 21:15', '21:15', 'Masalsal: Bab Al Bahr', '22:10', 'Sahrat Al Khamis'];
+const GUIDE_BEIN = ['Botola Pro: Raja – Wydad', '20:00 – 22:00', '22:00', 'Al Majalla Ar-Riyadiya', '23:00', 'LaLiga: Highlights'];
+const FRAMES = {
+  'opened': {all: 112, groups: FIRST, more: 'arriving', focus: null, rows: GENERAL.slice(0, 12), firstNo: 1, rowFocus: 0,
+    programme: GUIDE_GENERAL,
+    cap: '<span class="n">١ — تُفتح الشاشة وحدها مع أول باقة.</span> ضغطت «البث المباشر» مرة واحدة. حين تكتمل أول باقة — عادةً بعد ثانية أو ثانيتين — تُفتح الشاشة من تلقاء نفسها، <b>بلا ضغطة ثانية</b>. في العمود الباقات <b>المكتملة فقط</b>، كلٌّ بعدده النهائي؛ الباقة التي تُقرأ الآن لا تظهر قبل اكتمالها. «كل القنوات» يتزايد عدّه. وآخر سطر في عمود الباقات يقول إن الباقي في الطريق <span class="a">«جارٍ تحميل باقي الباقات…»</span>، بالرقم نفسه الذي تقوله بطاقة Home.'},
+  'browsing': {all: 1846, groups: SIX, more: 'arriving', selected: 'AR| BEIN SPORTS ᴴᴰ', focus: 'AR| DOCUMENTARY', scrolled: true,
+    rows: BEIN.slice(0, 12), firstNo: 70, programme: GUIDE_BEIN,
+    cap: '<span class="n">٢ — تتصفّح، والباقات تُضاف.</span> اخترت «AR| BEIN SPORTS ᴴᴰ» وتشاهد قنواتها، ثم نزلت بالريموت إلى آخر باقة وصلت. كل باقة يكتمل تحميلها تظهر <b>في مكانها بترتيب المزوّد</b>، دون أن تخرج وتعود. <b>التركيز لا يقفز والقائمة لا تتحرك تحت يدك</b>: الباقة الجديدة تظهر تحت آخر باقة، والسهم إلى الأسفل يصل إليها. السطر الكهرماني ليس زرًّا، فالريموت يتخطّاه.'},
+  'done': {all: 54130, groups: LAST, more: 'done', selected: 'AR| BEIN SPORTS ᴴᴰ', focus: 'UK| DOCS ᴴᴰ', scrolled: true,
+    rows: BEIN.slice(0, 12), firstNo: 70, programme: GUIDE_BEIN,
+    cap: '<span class="n">٣ — اكتمل التحميل.</span> السطر يصير <span class="g">✓ «اكتمل التحميل»</span> لثلاث ثوانٍ ثم يختفي، كما تقول بطاقة Home. من هذه اللحظة يجد البحث في القنوات كل قناة.'},
+  'failed': {all: 1846, groups: SIX, failed: true, selected: 'AR| BEIN SPORTS ᴴᴰ', focus: null, scrolled: true,
+    rows: BEIN.slice(0, 11), firstNo: 70, rowFocus: 2, wellRow: 2, programme: GUIDE_BEIN,
+    cap: '<span class="n">٤ — انقطع التحميل في منتصفه.</span> الباقات التي اكتملت تبقى وتعمل، والقنوات تُشغَّل. يختفي السطر الكهرماني، ويقول السطر الموجود أصلًا أعلى اللوحة <b>السبب</b> و«حاول مرة أخرى». الضغط عليه يعيد التحميل، والباقات الظاهرة تبقى أثناءه. لا إعادة تلقائية.'},
+  'browsing-en': {lang: 'en', all: 1846, groups: SIX, more: 'arriving', selected: 'AR| BEIN SPORTS ᴴᴰ', focus: 'AR| DOCUMENTARY', scrolled: true,
+    rows: BEIN.slice(0, 12), firstNo: 70, programme: GUIDE_BEIN,
+    cap: '<span class="n">٥ — الإطار ٢ بالإنجليزية.</span> اللوحة بالاتجاه نفسه في كل اللغات، كما هي اليوم.'},
+  'browsing-tv': {dev: 'tv', all: 1846, groups: SIX, more: 'arriving', selected: 'AR| BEIN SPORTS ᴴᴰ', focus: 'AR| DOCUMENTARY', scrolled: true,
+    rows: BEIN.slice(0, 13), firstNo: 70, programme: GUIDE_BEIN,
+    cap: '<span class="n">٦ — الإطار ٢ على التلفاز، 960×540.</span> بالريموت: السهم إلى الأسفل من آخر باقة لا يذهب إلى السطر الكهرماني، ويبقى حيث هو حتى تصل باقة جديدة.'},
+};
+const ORDER = ['opened', 'browsing', 'done', 'failed', 'browsing-en', 'browsing-tv'];
+
+const params = new URLSearchParams(location.search);
+const frame = params.get('frame') || 'sheet';
+if (frame === 'sheet') {
+  document.body.classList.add('sheet');
+  document.body.innerHTML = ORDER.map(name => {
+    const fr = FRAMES[name];
+    return `<div class="blk"><div class="cap" dir="rtl" style="--w:${GEO[fr.dev || 'phone'].w}px">${fr.cap}</div>${board(fr)}</div>`;
+  }).join('') + `<div class="notes" dir="rtl">
+    <b>متى تكون الباقة مكتملة.</b> من لوحة Xtream باقةً باقة: حين ينتهي طلبها. من ملف M3U أو من ردّ واحد بالقسم كله: حين ينتقل التحميل إلى الباقة التالية. المزوّدون يكتبون قنوات الباقة متتالية؛ وإن فرّقها أحدهم ظهرت الباقة مبكرًا ثم كبر عددها، ولا تختفي أبدًا.<br>
+    <b>الرقم في السطر.</b> هو رقم بطاقة Home نفسه: نسبة مئوية حين يذكر المزوّد عدد باقاته، وإلا عدد القنوات الذي وصل.<br>
+    <b>البحث.</b> البحث في الباقات يعمل فورًا. البحث في القنوات (حقل البحث أعلى الشاشة) يجد القنوات الجديدة عند اكتمال التحميل، لأن فهرس البحث يُكتب مرة واحدة في النهاية — وهذا ما جعل الحفظ أسرع.<br>
+    <b>Home.</b> ضغطة ثانية قبل أن تكتمل أول باقة تقول «يُفتح مع أول باقة» (home-loading.html، المجموعة f). وإذا انتقلت إلى شاشة أخرى قبل ذلك، لا تُفتح القنوات وحدها. وعند الرجوع إلى Home أثناء التحميل تقول البطاقة «جارٍ تحميل القنوات…» وعددها، لا «جارٍ التحديث…».<br>
+    <b>الباقة الفارغة.</b> باقة بلا أي قناة لا تظهر في العمود، لا أثناء التحميل ولا بعده.<br>
+    <b>قارئ الشاشة.</b> السطر يُقرأ: «جارٍ تحميل باقي الباقات، 1,846 قناة»، وكل باقة جديدة تُقرأ باسمها وعددها حين يصل إليها التركيز.<br>
+    <b>الحركة.</b> مع مستوى الحركة «بلا»، الشريط ثابت والرقم وحده يتقدّم.</div>`;
+} else {
+  document.body.innerHTML = board(FRAMES[frame]);
+}
+</script>
+</body>
+</html>
