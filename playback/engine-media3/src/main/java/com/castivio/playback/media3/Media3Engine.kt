@@ -287,8 +287,10 @@ class Media3Engine(
         _state.value = PlaybackState.Opening
         liveRequest = media.kind == MediaKind.LIVE
 
-        // The request's headers, which the backup engine was always given and this one was
-        // not. A source that needs a header played on LibVLC and failed here.
+        // The request's headers and user agent, which the backup engine was always given and
+        // this one was not, so that both honour the same request. Nothing in the catalogue
+        // fills either yet, so today both are empty and the platform's default agent is
+        // sent, as before.
         val agent = media.headers.entries.firstOrNull { it.key.equals(USER_AGENT, ignoreCase = true) }
         http.setUserAgent(media.userAgent ?: agent?.value)
         http.setDefaultRequestProperties(media.headers.filterKeys { !it.equals(USER_AGENT, ignoreCase = true) })

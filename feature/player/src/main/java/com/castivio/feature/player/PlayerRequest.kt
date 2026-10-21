@@ -39,7 +39,19 @@ data class PlayerRequest(
      * being discovered from the stream.
      */
     val catchUpHours: Int? = null,
+    /**
+     * What the stream is asked for with, beyond its address. **Nothing fills it today.**
+     *
+     * A press in the catalogue becomes a request in the shell, and the selection it is built
+     * from carries no headers and no agent: the importers read no per-channel options, and
+     * the subscription's own user agent -- the one providers gate on -- goes with the
+     * catalogue, account and guide requests and not with the stream. Both engines therefore
+     * ask for the stream with their own default agent, which is not the one the catalogue
+     * was fetched with. Carrying it here is a change to the selection and the shell, and it
+     * has not been made.
+     */
     val headers: Map<String, String> = emptyMap(),
+    /** Not filled today either; see [headers]. */
     val userAgent: String? = null,
 ) {
 
