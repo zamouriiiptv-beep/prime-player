@@ -45,12 +45,22 @@
             configuration change carries no information the app does not already
             have. It is delivered to `onConfigurationChanged` instead, and the
             composition re-reads its strings in place.
+
+            `smallestScreenSize|density|uiMode|keyboard|navigation` are changes a
+            television box can make on its own: an HDMI mode negotiated again when
+            the set wakes, a remote reconnecting, the box switching its mode. Each
+            one rebuilt the activity, and a rebuilt activity opens the shell on Home
+            with no player in it while the player's view model, which belongs to
+            the activity and is kept across the rebuild, went on decoding: sound,
+            no picture, and the channel's tile where the video had been. Castivio
+            has one theme and a composition that re-reads its configuration, so
+            all five are taken in place like the rest.
         -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:screenOrientation="sensorLandscape"
-            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|locale|layoutDirection">
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|density|uiMode|keyboard|keyboardHidden|navigation|locale|layoutDirection">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
