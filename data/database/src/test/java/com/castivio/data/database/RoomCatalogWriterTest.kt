@@ -446,6 +446,7 @@ class RoomCatalogWriterTest {
         groupDao = database.groupDao(),
         favoriteDao = database.favoriteDao(),
         progressDao = database.progressDao(),
+        database = database,
     )
 
     // ------------------------------------------------------------ telling the observers

@@ -60,7 +60,8 @@ object DatabaseModule {
         groupDao: GroupDao,
         favoriteDao: FavoriteDao,
         progressDao: ProgressDao,
-    ): RoomCatalogRepository = RoomCatalogRepository(mediaDao, groupDao, favoriteDao, progressDao)
+        database: CastivioDatabase,
+    ): RoomCatalogRepository = RoomCatalogRepository(mediaDao, groupDao, favoriteDao, progressDao, database)
 
     @Provides
     fun catalogRepository(repository: RoomCatalogRepository): CatalogRepository = repository

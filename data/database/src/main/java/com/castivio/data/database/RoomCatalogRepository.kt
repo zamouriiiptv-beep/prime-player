@@ -39,6 +39,8 @@ class RoomCatalogRepository(
     private val groupDao: GroupDao,
     private val favoriteDao: FavoriteDao,
     private val progressDao: ProgressDao,
+    /** For the channel list's own pages -- see [WindowPagingSource]. */
+    private val database: CastivioDatabase,
 ) : CatalogRepository, CatalogPager {
 
     // ------------------------------------------------------------- CatalogRepository
@@ -107,9 +109,12 @@ class RoomCatalogRepository(
         val group = query.groupId
         return pager {
             when (query.sort) {
-                SortOrder.PROVIDER ->
-                    if (group == null) mediaDao.pageByProvider(kind)
-                    else mediaDao.pageByProviderInGroup(kind, group)
+                // Read outside a transaction, so a page lands while a section is being
+                // written -- see [WindowPagingSource]. The same rows, in the same order.
+                SortOrder.PROVIDER -> WindowPagingSource(database.invalidationTracker, database.queryExecutor) { offset, limit ->
+                    if (group == null) mediaDao.window(kind, offset, limit)
+                    else mediaDao.windowInGroup(kind, group, offset, limit)
+                }
 
                 SortOrder.NAME_ASC ->
                     if (group == null) mediaDao.pageByNameAsc(kind)

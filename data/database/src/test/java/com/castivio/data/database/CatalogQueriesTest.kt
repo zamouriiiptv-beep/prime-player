@@ -370,5 +370,6 @@ class CatalogQueriesTest {
         groupDao = database.groupDao(),
         favoriteDao = database.favoriteDao(),
         progressDao = database.progressDao(),
+        database = database,
     )
 }
