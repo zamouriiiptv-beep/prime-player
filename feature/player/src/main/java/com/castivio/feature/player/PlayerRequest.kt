@@ -55,6 +55,21 @@ data class PlayerRequest(
     val userAgent: String? = null,
 ) {
 
+    /**
+     * When the viewer pressed for this, on the clock the player measures with.
+     *
+     * Every request is built in the handler of the press that asked for it -- a catalogue row's
+     * in the shell, a file's in its host -- so the moment it is made is the moment of the press,
+     * and an opening can be timed from where the viewer started waiting rather than from
+     * wherever the player happened to be told.
+     *
+     * In the body and not the constructor, which is the point: it is not part of what makes two
+     * requests the same. Pressing the channel that is already playing builds an equal request,
+     * which the player rightly treats as nothing to do. With the time in the constructor every
+     * press would be a different request, and pressing a playing channel would open it again.
+     */
+    val pressedAtNanos: Long = System.nanoTime()
+
     val isLive: Boolean get() = kind == MediaKind.LIVE
 
     /** Whether the timeshift controls exist on this source at all. */

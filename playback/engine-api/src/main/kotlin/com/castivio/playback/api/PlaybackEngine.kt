@@ -151,6 +151,16 @@ interface PlaybackEngine {
      */
     fun sample(): PlaybackSample?
 
+    /**
+     * Where the open in progress has spent its time so far. See [OpeningMarks].
+     *
+     * A pull, like [sample], and for the same reason: the marks are timestamps the engine
+     * takes as the platform tells it things, and nothing is computed until the player asks --
+     * once, when the first frame arrives or the source is given up. An engine that sees none
+     * of the steps answers with empty marks, which is what the default does.
+     */
+    fun openingMarks(): OpeningMarks = OpeningMarks()
+
     fun release()
 }
 

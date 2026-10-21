@@ -11,6 +11,7 @@ import com.castivio.playback.api.AspectMode
 import com.castivio.playback.api.EngineId
 import com.castivio.playback.api.MediaKind
 import com.castivio.playback.api.MediaRequest
+import com.castivio.playback.api.OpeningMarks
 import com.castivio.playback.api.PlaybackDiagnosis
 import com.castivio.playback.api.PlaybackEngine
 import com.castivio.playback.api.PlaybackError
@@ -73,6 +74,11 @@ class VlcPlaybackEngine(
 
     private var openedSource: String? = null
     private var openedAtMs: Long = 0
+
+    /** The open's own steps, as far as LibVLC reports them. See [openingMarks]. Zero is "not yet". */
+    private var filledAtMs: Long = 0
+    private var tracksAtMs: Long = 0
+
     private var isReleased = false
     private var currentSurfaceView: SurfaceView? = null
 
@@ -117,6 +123,7 @@ class VlcPlaybackEngine(
             // after the picture started.
             MediaPlayer.Event.Buffering -> {
                 val percent = event.buffering
+                if (filledAtMs == 0L && percent > 0f) filledAtMs = SystemClock.elapsedRealtime()
                 when {
                     _firstFrameAtMs.value == null -> _state.value = PlaybackState.Opening
                     percent >= FULL_BUFFER -> if (mediaPlayer.isPlaying) pushPlaying()
@@ -158,6 +165,7 @@ class VlcPlaybackEngine(
             MediaPlayer.Event.ESAdded,
             MediaPlayer.Event.ESDeleted,
             MediaPlayer.Event.ESSelected -> {
+                if (tracksAtMs == 0L && event.type == MediaPlayer.Event.ESAdded) tracksAtMs = SystemClock.elapsedRealtime()
                 updateTracks()
                 updateVideoShape()
             }
@@ -256,6 +264,8 @@ class VlcPlaybackEngine(
 
     private fun openInternal(media: MediaRequest) {
         openedAtMs = SystemClock.elapsedRealtime()
+        filledAtMs = 0
+        tracksAtMs = 0
         openedSource = safeSource(media.url)
         _diagnosis.value = null
         _firstFrameAtMs.value = null
@@ -498,6 +508,23 @@ class VlcPlaybackEngine(
             droppedFrames = 0,
             startupMs = started?.let { it - openedAtMs },
             engine = EngineId.BACKUP,
+        )
+    }
+
+    /**
+     * LibVLC's account of the open, which is coarser than ExoPlayer's.
+     *
+     * It reports no server answer and no decoder of its own. The first report of a buffer with
+     * anything in it is the nearest it comes to the first bytes -- the input is open, reading and
+     * demultiplexing -- and the first elementary stream it announces is the tracks being known.
+     * The first frame is the video output appearing, as it is everywhere else in this engine.
+     */
+    override fun openingMarks(): OpeningMarks {
+        fun since(at: Long): Long? = if (at == 0L) null else at - openedAtMs
+        return OpeningMarks(
+            firstBytesMs = since(filledAtMs),
+            tracksKnownMs = since(tracksAtMs),
+            firstFrameMs = _firstFrameAtMs.value?.let { it - openedAtMs },
         )
     }
 

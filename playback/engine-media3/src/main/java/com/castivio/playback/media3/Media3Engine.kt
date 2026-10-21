@@ -15,12 +15,17 @@ import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.TransferListener
+import androidx.media3.exoplayer.DecoderReuseEvaluation
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlaybackException
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.mediacodec.MediaCodecRenderer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
@@ -32,6 +37,7 @@ import com.castivio.playback.api.FormatReport
 import com.castivio.playback.api.EngineId
 import com.castivio.playback.api.MediaKind
 import com.castivio.playback.api.MediaRequest
+import com.castivio.playback.api.OpeningMarks
 import com.castivio.playback.api.PlaybackDiagnosis
 import com.castivio.playback.api.PlaybackEngine
 import com.castivio.playback.api.PlaybackError
@@ -43,6 +49,7 @@ import com.castivio.playback.api.Track
 import com.castivio.playback.api.TrackSet
 import com.castivio.playback.api.TrackType
 import com.castivio.playback.api.VideoOutput
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -115,6 +122,24 @@ class Media3Engine(
 
     /** When [open] was called, so the start-up figure is a measurement and not a guess. */
     private var openedAtMs: Long = 0
+
+    /**
+     * The server's half of the open in progress: when it answered, and when its first bytes
+     * arrived. See [openingMarks].
+     *
+     * One object per open, written by the loader's thread -- the HTTP source reports from
+     * wherever it is reading -- and replaced, never cleared, by the next open. A report that
+     * is still on its way for the source before lands in that source's object, which nothing
+     * reads any more, rather than in this one.
+     */
+    @Volatile
+    private var transferMarks: TransferMarks? = null
+
+    /** The device's half, which the player reports on this thread with its other callbacks. */
+    private var tracksKnownAt: Long = 0
+    private var decoderReadyAt: Long = 0
+    private var decoderInitMs: Long? = null
+    private var decoderKept = false
 
     /** Whether the source open now is a live one: the live window can be fallen behind. */
     private var liveRequest = false
@@ -276,6 +301,11 @@ class Media3Engine(
 
     private fun openInternal(media: MediaRequest) {
         openedAtMs = SystemClock.elapsedRealtime()
+        transferMarks = TransferMarks(media.url)
+        tracksKnownAt = 0
+        decoderReadyAt = 0
+        decoderInitMs = null
+        decoderKept = false
         openedSource = safeSource(media.url)
         _diagnosis.value = null
         _firstFrameAtMs.value = null
@@ -392,8 +422,30 @@ class Media3Engine(
         )
     }
 
+    /**
+     * The open in progress, step by step, from what the player and its HTTP source reported.
+     *
+     * Read once by the player, when the first frame arrives or the source is given up. Every
+     * step is timed where it happened -- the server's on the loader's thread, the decoder's on
+     * the playback thread -- except the tracks, which are timed as their callback arrives here.
+     */
+    override fun openingMarks(): OpeningMarks {
+        fun since(at: Long): Long? = if (at == 0L) null else at - openedAtMs
+        val transfer = transferMarks
+        return OpeningMarks(
+            serverAnsweredMs = transfer?.let { since(it.answeredAt.get()) },
+            firstBytesMs = transfer?.let { since(it.firstBytesAt.get()) },
+            tracksKnownMs = since(tracksKnownAt),
+            decoderReadyMs = since(decoderReadyAt),
+            decoderInitMs = decoderInitMs,
+            decoderKept = decoderKept,
+            firstFrameMs = _firstFrameAtMs.value?.let { it - openedAtMs },
+        )
+    }
+
     override fun release() {
         player.removeListener(listener)
+        player.removeAnalyticsListener(analytics)
         player.release()
         _state.value = PlaybackState.Idle
     }
@@ -512,6 +564,7 @@ class Media3Engine(
                 }
             }
             _tracks.value = TrackSet(audio = audio, subtitle = subtitle, video = video)
+            if (tracksKnownAt == 0L && tracks.groups.isNotEmpty()) tracksKnownAt = SystemClock.elapsedRealtime()
 
             // Now we know whether there is a picture to wait for. The two callbacks can
             // arrive in either order, so the audio-only case is completed from whichever
@@ -624,12 +677,82 @@ class Media3Engine(
     }
 
     /**
+     * The HTTP source's account of each transfer, for the two marks that are the server's.
+     *
+     * It reports every transfer it makes -- an HLS playlist's segments as well as the address
+     * itself -- and the marks are about the first answer to the address that was opened, so a
+     * transfer for anything else is not one. After the first bytes each report costs one read
+     * of an atomic: this is called for every read the source makes, and it must not be what
+     * makes reading slower.
+     */
+    private val transfers = object : TransferListener {
+        override fun onTransferInitializing(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean) = Unit
+
+        override fun onTransferStart(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean) {
+            val marks = transferMarks ?: return
+            if (marks.answeredAt.get() == 0L && marks.isFor(dataSpec)) {
+                marks.answeredAt.compareAndSet(0, SystemClock.elapsedRealtime())
+            }
+        }
+
+        override fun onBytesTransferred(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean, bytesTransferred: Int) {
+            val marks = transferMarks ?: return
+            if (marks.firstBytesAt.get() == 0L && bytesTransferred > 0 && marks.isFor(dataSpec)) {
+                marks.firstBytesAt.compareAndSet(0, SystemClock.elapsedRealtime())
+            }
+        }
+
+        override fun onTransferEnd(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean) = Unit
+    }
+
+    /**
+     * The player's account of its video decoder, for the marks that are the device's.
+     *
+     * A decoder that has to be built reports when it was ready and how long building it took,
+     * both timed on the playback thread. A decoder that is kept reports nothing of its own: the
+     * new format reaching it, with the verdict that it can be kept, is the moment it is ready.
+     */
+    private val analytics = object : AnalyticsListener {
+        override fun onVideoDecoderInitialized(
+            eventTime: AnalyticsListener.EventTime,
+            decoderName: String,
+            initializedTimestampMs: Long,
+            initializationDurationMs: Long,
+        ) {
+            if (decoderReadyAt != 0L) return
+            decoderReadyAt = initializedTimestampMs
+            decoderInitMs = initializationDurationMs
+        }
+
+        override fun onVideoInputFormatChanged(
+            eventTime: AnalyticsListener.EventTime,
+            format: Format,
+            decoderReuseEvaluation: DecoderReuseEvaluation?,
+        ) {
+            // Null when there was no decoder to keep: one is being built, and says so above.
+            val verdict = decoderReuseEvaluation ?: return
+            if (decoderReadyAt != 0L || verdict.result == DecoderReuseEvaluation.REUSE_RESULT_NO) return
+            decoderReadyAt = eventTime.realtimeMs
+            decoderKept = true
+        }
+    }
+
+    /** One open's server marks. Zero is "not yet", which `elapsedRealtime` never is on a running device. */
+    private class TransferMarks(private val url: String) {
+        val answeredAt = AtomicLong(0)
+        val firstBytesAt = AtomicLong(0)
+
+        fun isFor(dataSpec: DataSpec): Boolean = dataSpec.uri.toString() == url
+    }
+
+    /**
      * The listener is attached here, below its own declaration, and that is not tidiness —
      * it is the fix for a crash that made this engine impossible to construct.
      *
      * Kotlin initialises properties in declaration order. `player` is declared near the
      * top and runs `buildPlayer()` during construction, while `listener` is declared
-     * immediately above this block and is therefore still null at that moment.
+     * above this block -- with `transfers` and `analytics`, which are attached here for the
+     * same reason -- and is therefore still null at that moment.
      * `buildPlayer()` used to end with `addListener(listener)`, which handed ExoPlayer a
      * null and died inside `Assertions.checkNotNull`. **Every** `Media3Engine(...)` threw.
      *
@@ -645,6 +768,11 @@ class Media3Engine(
      */
     init {
         player.addListener(listener)
+        player.addAnalyticsListener(analytics)
+        // `http` is built before `transfers` exists, so handing it over in the builder would
+        // have handed it a null -- which this setter accepts without a word, and the server's
+        // marks would simply never have been taken.
+        http.setTransferListener(transfers)
     }
 
     /**

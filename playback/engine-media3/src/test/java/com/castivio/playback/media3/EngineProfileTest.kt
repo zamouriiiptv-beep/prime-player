@@ -3,6 +3,7 @@ package com.castivio.playback.media3
 import com.castivio.core.platform.ConservativeCapabilities
 import com.castivio.playback.api.EngineId
 import com.castivio.playback.api.MediaKind
+import com.castivio.playback.api.OpeningMarks
 import com.castivio.playback.api.PlaybackTuning
 import com.castivio.playback.vlc.VlcPlaybackEngine
 import org.junit.Assert.assertEquals
@@ -128,6 +129,28 @@ class EngineProfileTest {
             "a backup that is another Media3 offers a button that cannot help",
             backup is Media3Engine,
         )
+    }
+
+    /**
+     * An engine that has been asked to open nothing has no opening to account for.
+     *
+     * The player reads these marks for every channel it opens. An engine reporting steps it
+     * never took -- a server answer timed against an open that never happened -- would put a
+     * figure in the log for something that did not occur, which is worse than no figure.
+     */
+    @Test
+    fun `an engine asked to open nothing reports no opening`() {
+        val factory = Media3EngineFactory(
+            context = RuntimeEnvironment.getApplication(),
+            capabilities = ConservativeCapabilities,
+        )
+        val primary = factory.create(EngineId.PRIMARY, MediaKind.LIVE)
+        try {
+            assertEquals(OpeningMarks(), primary.openingMarks())
+        } finally {
+            primary.release()
+        }
+        assertEquals(OpeningMarks(), factory.create(EngineId.BACKUP, MediaKind.LIVE).openingMarks())
     }
 
     /**

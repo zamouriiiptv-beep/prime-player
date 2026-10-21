@@ -11,6 +11,7 @@ import com.castivio.playback.api.FallbackPolicy
 import com.castivio.playback.api.MediaKind
 import com.castivio.playback.api.MediaRequest
 import com.castivio.playback.api.DecoderReport
+import com.castivio.playback.api.OpeningMarks
 import com.castivio.playback.api.PlaybackDiagnosis
 import com.castivio.playback.api.PlaybackEngine
 import com.castivio.playback.api.PlaybackError
@@ -2352,6 +2353,182 @@ class PlayerPathTest {
         assertEquals("with the new title already on screen", "Second", model.state.value?.request?.title)
     }
 
+    /* ---------------------------------------------------------- the opening, stage by stage */
+
+    /**
+     * A channel change is timed from the press, and every part the application owns is a
+     * figure of its own.
+     *
+     * The fakes spend real time -- a release that takes 40ms, a build that takes 30 -- and the
+     * assertions are lower bounds, because the claim is that each figure measures its own
+     * stage. An upper bound would be a claim about how busy the machine running the test is.
+     */
+    @Test
+    fun `a channel change is timed from the press, stage by stage`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        engines.last.releaseTakesMs = 40
+        engines.buildTakesMs = 30
+        val next = liveRequest(url = "http://provider.tv/live/2.ts", title = "Second")
+        Thread.sleep(20)
+        model.switchTo(next)
+        runCurrent()
+
+        val asked = model.opening!!
+        assertTrue("the press reached the player 20ms after it was made: ${asked.render()}", asked.pressToOpenMs >= 20)
+        assertTrue("letting the previous engine go is its own figure: ${asked.render()}", asked.releaseMs >= 40)
+        assertTrue("and so is building the next one: ${asked.render()}", asked.setupMs >= 30)
+        assertTrue(
+            "the engine is asked to open only after all three: ${asked.render()}",
+            asked.prepareMs >= asked.pressToOpenMs + asked.releaseMs + asked.setupMs,
+        )
+        assertNull("there is no frame yet, and none is claimed", asked.firstFrameMs)
+
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        val shown = model.opening!!
+        assertEquals(EngineId.PRIMARY, shown.engine)
+        assertFalse("nothing fell over", shown.fallback)
+        assertTrue("the frame comes after the prepare: ${shown.render()}", shown.firstFrameMs!! >= shown.prepareMs)
+        assertEquals(shown.firstFrameMs!! - shown.prepareMs, shown.prepareToFrameMs)
+    }
+
+    /** What the engine saw of its own opening reaches the record whole. */
+    @Test
+    fun `the engine's account of the opening is carried whole`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        val marks = OpeningMarks(
+            serverAnsweredMs = 120,
+            firstBytesMs = 160,
+            tracksKnownMs = 420,
+            decoderReadyMs = 470,
+            decoderInitMs = 45,
+            firstFrameMs = 610,
+        )
+        engines.last.marks = marks
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        val opening = model.opening!!
+        assertEquals(marks, opening.marks)
+        val line = opening.render()
+        assertTrue(line, line.contains("server 120ms"))
+        assertTrue(line, line.contains("decoder 470ms (built in 45ms)"))
+        assertTrue(line, line.contains("frame 610ms"))
+    }
+
+    /**
+     * A fallback is one wait, timed from the one press, and it says it was a fallback.
+     *
+     * Timed again from the moment the primary gave up, the backup's figures would describe a
+     * fast open and hide the three seconds the viewer spent in front of the first engine.
+     */
+    @Test
+    fun `a fallback is timed from the press and says it was one`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        Thread.sleep(30)
+        engines.last.fail(PlaybackError.DECODER_INIT)
+        runCurrent()
+        assertEquals("the backup was built", listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
+
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        val opening = model.opening!!
+        assertEquals(EngineId.BACKUP, opening.engine)
+        assertTrue("it says the frame came after a fallback", opening.fallback)
+        assertTrue("and the wait for the primary is inside it: ${opening.render()}", opening.prepareMs >= 30)
+        assertTrue(opening.render(), opening.render().contains("fallback=yes"))
+    }
+
+    /**
+     * An opening that ends on a card is recorded too, with how far it got.
+     *
+     * A channel that never opens is the one the figures matter most for, and the first-frame
+     * line can never describe it: whether the server ever answered is the difference between a
+     * channel the network lost and one the decoder refused.
+     */
+    @Test
+    fun `an opening that ends on a card is recorded with how far it got`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        engines.last.marks = OpeningMarks(serverAnsweredMs = 90)
+        engines.last.fail(PlaybackError.UNKNOWN)
+        runCurrent()
+
+        assertTrue(model.state.value?.picture is Picture.Failed)
+        val opening = model.opening!!
+        assertNull("there was no frame", opening.firstFrameMs)
+        assertEquals("but the server had answered, and the record says so", 90L, opening.marks.serverAnsweredMs)
+    }
+    /**
+     * The time of a press is not part of what a request is.
+     *
+     * Pressing the channel that is already playing builds a second request, a moment later. It
+     * has always been nothing to do, and a press time that took part in equality would turn
+     * it into a full reopen of the channel being watched.
+     */
+    @Test
+    fun `pressing the channel that is already playing is still nothing to do`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        Thread.sleep(2)
+        val again = liveRequest()
+        assertTrue("made by a later press", again.pressedAtNanos > model.state.value!!.request.pressedAtNanos)
+
+        model.open(again)
+        runCurrent()
+
+        assertEquals("one engine, and the channel was not opened again", 1, engines.built.size)
+        assertEquals(1, engines.last.opened.size)
+    }
+
+    /**
+     * A request opened again without a press is timed from the open.
+     *
+     * The compact player comes back with the request it had when the viewer returns to the
+     * board. Timed from the press that made that request, the opening would claim the minutes
+     * the viewer spent elsewhere.
+     */
+    @Test
+    fun `a request opened again without a press is timed from the open`() = playerTest {
+        val model = model()
+        val request = liveRequest()
+        model.open(request)
+        runCurrent()
+        model.leave()
+        Thread.sleep(30)
+
+        model.open(request)
+        runCurrent()
+
+        assertEquals("no press stood in front of this open", 0L, model.opening!!.pressToOpenMs)
+    }
+
+    /** The line written for every opening carries figures, and nothing of the address. */
+    @Test
+    fun `the opening's line carries no address and no account`() = playerTest {
+        val model = model()
+        model.open(liveRequest(url = "http://provider.tv/live/subscriber/secret/1.ts?token=abc"))
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        val line = model.opening!!.render()
+        for (part in listOf("http", "provider.tv", "subscriber", "secret", "token")) {
+            assertFalse("'$part' in: $line", line.contains(part))
+        }
+    }
+
     /* ------------------------------------------------------------------------ fakes */
 
     private fun liveRequest(
@@ -2376,8 +2553,12 @@ class PlayerPathTest {
         val built = mutableListOf<EngineId>()
         lateinit var last: FakeEngine
 
+        /** How long building takes, in real time, so the setup figure has something to measure. */
+        var buildTakesMs = 0L
+
         override fun create(id: EngineId, kind: MediaKind): PlaybackEngine {
             built += id
+            if (buildTakesMs > 0) Thread.sleep(buildTakesMs)
             return FakeEngine().also { last = it }
         }
     }
@@ -2468,7 +2649,16 @@ class PlayerPathTest {
             return PlaybackSample()
         }
 
+        /** What the engine says about its own opening, which a test sets by hand. */
+        var marks = OpeningMarks()
+
+        override fun openingMarks(): OpeningMarks = marks
+
+        /** How long letting go takes, in real time, so the release figure has something to measure. */
+        var releaseTakesMs = 0L
+
         override fun release() {
+            if (releaseTakesMs > 0) Thread.sleep(releaseTakesMs)
             released = true
         }
 

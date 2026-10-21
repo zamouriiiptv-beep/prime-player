@@ -8,6 +8,7 @@ import com.castivio.playback.api.EngineId
 import com.castivio.playback.api.EngineMemory
 import com.castivio.playback.api.FallbackPolicy
 import com.castivio.playback.api.MediaRequest
+import com.castivio.playback.api.OpeningMarks
 import com.castivio.playback.api.PlaybackEngine
 import com.castivio.playback.api.PlaybackDiagnosis
 import com.castivio.playback.api.PlaybackError
@@ -124,12 +125,37 @@ class PlayerViewModel @Inject constructor(
     /**
      * When the current source was asked for, on a clock that only measures.
      *
-     * For the log line the first frame writes: how long the viewer waited, fallback
-     * included. The engines measure their own start-up; this is the whole of it, from the
-     * press, and the one number that says whether a slow channel was slow to connect, slow to
-     * decode or slow because the first engine had to give it up.
+     * The press, for an open the viewer pressed for -- see [PlayerRequest.pressedAtNanos] --
+     * and the moment of asking for one they did not: a return from the background, a retry.
+     * Every figure in [OpeningTiming] that belongs to the application is measured from here,
+     * fallback included, because this is where the viewer started waiting.
      */
     private var askedAtNanos: Long = 0
+
+    /** The press the last open was timed from, so a request opened again is not timed from it twice. */
+    private var lastPress: Long = Long.MIN_VALUE
+
+    /** This attempt's own figures, for [OpeningTiming]. See [timing]. */
+    private var pressToOpenNanos: Long = 0
+    private var releaseNanos: Long = 0
+    private var setupNanos: Long = 0
+    private var preparedAtNanos: Long = 0
+
+    /** When this attempt's first frame arrived, or null while it has none. */
+    private var frameAtNanos: Long? = null
+
+    /** Whether this attempt's failure has been written down, so a card is logged once. */
+    private var failureNoted = false
+
+    /**
+     * The opening in progress, or the last one, stage by stage.
+     *
+     * Not on [PlayerState], which is copied four times a second for a screen that never draws
+     * this. It goes to the log once per attempt, and is kept here so the tests can read what
+     * the log was told.
+     */
+    internal var opening: OpeningTiming? = null
+        private set
 
     /**
      * Whether the application is in the background, as this player was told.
@@ -157,12 +183,13 @@ class PlayerViewModel @Inject constructor(
      */
     fun open(request: PlayerRequest) {
         if (_state.value?.request == request && engine != null) return
+        val openedAt = System.nanoTime()
         release()
+        timeFrom(pressOf(request, openedAt), openedAt, releasedAt = System.nanoTime())
 
         backupTried = false
         timedOut = false
         reopenOnReturn = false
-        askedAtNanos = System.nanoTime()
         engineId = FallbackPolicy.first(FallbackPolicy.sourceKey(request.url), memory)
         Log.i(TAG, "opening on $engineId")
         downloaded = null
@@ -204,6 +231,9 @@ class PlayerViewModel @Inject constructor(
 
     private fun start(request: PlayerRequest, id: EngineId) {
         val kind = request.kind
+        val building = System.nanoTime()
+        frameAtNanos = null
+        failureNoted = false
         // Building an engine constructs decoders and renderers, and on an unusual device
         // that can fail outright. A player that dies here takes the application with it
         // and tells the user nothing; a player that catches it can at least say which
@@ -253,6 +283,10 @@ class PlayerViewModel @Inject constructor(
             }
         }
 
+        // Everything above is the application's: from here on the time is the source's and
+        // the device's, which is why this is the line the opening is divided at.
+        preparedAtNanos = System.nanoTime()
+        setupNanos = preparedAtNanos - building
         created.open(
             MediaRequest(
                 url = request.url,
@@ -261,6 +295,7 @@ class PlayerViewModel @Inject constructor(
                 userAgent = request.userAgent,
             ),
         )
+        opening = timing()
 
         deadline = viewModelScope.launch {
             delay(FallbackPolicy.OPEN_DEADLINE_MS)
@@ -308,6 +343,7 @@ class PlayerViewModel @Inject constructor(
                     fallOver(playback.reason)
                     return
                 }
+                noteFailure(playback.reason)
                 val untried = !backupTried && engineId == EngineId.PRIMARY
                 Picture.Failed(
                     // Reported as it happened. There is no second mapping that turns an
@@ -344,12 +380,14 @@ class PlayerViewModel @Inject constructor(
      * for the user, and the second engine, which is never warmed.
      */
     private fun onFirstFrame(current: PlayerState) {
+        frameAtNanos = System.nanoTime()
         deadline?.cancel()
         deadline = null
+        val timing = timing().also { opening = it }
         Log.i(
             TAG,
-            "first frame on $engineId ${(System.nanoTime() - askedAtNanos) / NANOS_PER_MS}ms after the press" +
-                if (backupTried) " (after the fallback)" else "",
+            "first frame on $engineId ${timing.firstFrameMs}ms after the press" +
+                (if (backupTried) " (after the fallback)" else "") + ": ${timing.render()}",
         )
         memory.remember(FallbackPolicy.sourceKey(current.request.url), engineId)
         _state.value = current.copy(engine = engineId, switching = false)
@@ -366,6 +404,7 @@ class PlayerViewModel @Inject constructor(
     private fun fallOver(reason: PlaybackError) {
         val current = _state.value ?: return
         if (backupTried || engineId == EngineId.BACKUP) {
+            noteFailure(reason)
             val card = Picture.Failed(reason, canTryBackup = false)
             _state.value = current.copy(
                 picture = card,
@@ -389,8 +428,19 @@ class PlayerViewModel @Inject constructor(
         // without it the one failure worth explaining switched engines and left nothing
         // behind to explain it.
         val report = engine?.diagnosis?.value ?: current.diagnosis
-        Log.i(TAG, "falling over to the backup after ${(System.nanoTime() - askedAtNanos) / NANOS_PER_MS}ms: $reason")
+        // How far the primary got, read for the same reason and at the same moment as the
+        // report: the marks belong to the engine about to be released. Whether it ever heard
+        // from the server is the difference between a channel the network failed and one the
+        // decoder did, and only this line can say which.
+        val gaveUp = timing().copy(fallback = false)
+        Log.i(
+            TAG,
+            "falling over to the backup after ${(System.nanoTime() - askedAtNanos) / NANOS_PER_MS}ms: " +
+                "$reason | ${gaveUp.render()}",
+        )
+        val stopping = System.nanoTime()
         stopEngine()
+        releaseNanos = System.nanoTime() - stopping
         _state.value = current.copy(
             switching = true,
             picture = Picture.Opening,
@@ -409,7 +459,9 @@ class PlayerViewModel @Inject constructor(
     fun tryBackup() {
         val current = _state.value ?: return
         backupTried = true
+        val pressed = System.nanoTime()
         stopEngine()
+        timeFrom(pressed, pressed, releasedAt = System.nanoTime())
         _state.value = current.copy(picture = Picture.Opening, switching = true)
         start(current.request, EngineId.BACKUP)
     }
@@ -434,7 +486,9 @@ class PlayerViewModel @Inject constructor(
         val request = current.request
         val on = engineId
         val spent = backupTried
+        val pressed = System.nanoTime()
         stopEngine()
+        timeFrom(pressed, pressed, releasedAt = System.nanoTime())
         backupTried = spent
         Log.i(TAG, "retry on $on (fallback already spent: $spent)")
         _state.value = current.copy(picture = Picture.Opening, engine = on, switching = false)
@@ -582,7 +636,9 @@ class PlayerViewModel @Inject constructor(
         if (reopenOnReturn) {
             reopenOnReturn = false
             Log.i(TAG, "back from the background — opening the channel again on $engineId")
-            askedAtNanos = System.nanoTime()
+            val asked = System.nanoTime()
+            // Nothing to let go: the channel was stopped on the way out.
+            timeFrom(asked, asked, releasedAt = asked)
             _state.value = current.copy(picture = Picture.Opening, switching = false)
             start(current.request, engineId)
             return
@@ -1076,6 +1132,60 @@ class PlayerViewModel @Inject constructor(
             reason = PlaybackError.TIMEOUT,
             timedOutAfterMs = FallbackPolicy.OPEN_DEADLINE_MS,
         )
+    }
+
+    /**
+     * A new attempt, timed from [from]: the press, a retry or a return from the background.
+     *
+     * [openedAt] is when the player was asked, and [releasedAt] when the engine before it had
+     * been let go, so the gap between the two is what the release cost.
+     */
+    private fun timeFrom(from: Long, openedAt: Long, releasedAt: Long) {
+        askedAtNanos = from
+        pressToOpenNanos = openedAt - from
+        releaseNanos = releasedAt - openedAt
+    }
+
+    /**
+     * What an open of [request] is timed from: the press that made it, once.
+     *
+     * The same request can be opened again with no press at all -- the compact player comes
+     * back when the viewer returns to the board -- and timing that from a press minutes old
+     * would report minutes nobody waited. So a press is measured from once, and an open after
+     * that is measured from itself.
+     */
+    private fun pressOf(request: PlayerRequest, openedAt: Long): Long {
+        val pressed = request.pressedAtNanos
+        if (pressed == lastPress || pressed > openedAt) return openedAt
+        lastPress = pressed
+        return pressed
+    }
+
+    /** The attempt in progress, as far as it has got. */
+    private fun timing(): OpeningTiming = OpeningTiming(
+        engine = engineId,
+        fallback = backupTried,
+        pressToOpenMs = pressToOpenNanos / NANOS_PER_MS,
+        releaseMs = releaseNanos / NANOS_PER_MS,
+        setupMs = setupNanos / NANOS_PER_MS,
+        prepareMs = (preparedAtNanos - askedAtNanos) / NANOS_PER_MS,
+        marks = engine?.openingMarks() ?: OpeningMarks(),
+        firstFrameMs = frameAtNanos?.let { (it - askedAtNanos) / NANOS_PER_MS },
+    )
+
+    /**
+     * An attempt that ended on a card before it had a picture, written down once with how far
+     * it got.
+     *
+     * A channel that never opens is the case the figures matter most for, and the one the
+     * first-frame line can never describe. A failure after the picture is not an opening that
+     * failed, and the engine's own report already describes it.
+     */
+    private fun noteFailure(reason: PlaybackError) {
+        if (failureNoted || frameAtNanos != null) return
+        failureNoted = true
+        val timing = timing().also { opening = it }
+        Log.w(TAG, "no picture on $engineId: $reason | ${timing.render()}")
     }
 
     private fun startTicker() {
