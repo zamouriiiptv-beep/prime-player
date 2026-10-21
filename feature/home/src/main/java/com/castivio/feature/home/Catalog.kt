@@ -7,6 +7,8 @@ import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaItem
 import com.castivio.domain.MediaKind
 import com.castivio.domain.Movie
+import com.castivio.domain.SectionLoad
+import com.castivio.domain.SectionRun
 import com.castivio.domain.Series
 
 /**
@@ -63,6 +65,32 @@ internal fun surviving(selected: String?, groups: List<MediaGroup>): String? =
  * listed: it is a row that opens onto nothing.
  */
 internal fun listedOf(groups: List<MediaGroup>): List<MediaGroup> = groups.filter { it.itemCount > 0 }
+
+/**
+ * Whether the rail says the playlist lists no categories: none is listed, and none is on its
+ * way.
+ *
+ * **Not while a load waits or runs, first or not.** A category joins the rail when it is
+ * complete, so a reload that has completed none yet lists none -- and "This playlist lists no
+ * categories" over a refresh that is bringing them is a sentence the next second contradicts.
+ * A refresh says it is running on its own line; the rail says nothing until the load has
+ * ended. **Nor after a failure**, which is said instead: a playlist that could not be read has
+ * not said it carries no categories.
+ *
+ * @param load the section's latest load, null when nothing was asked of it.
+ */
+internal fun saysNoCategories(listed: List<MediaGroup>, load: SectionLoad?): Boolean =
+    listed.isEmpty() &&
+        load !is SectionLoad.Queued &&
+        load !is SectionLoad.Loading &&
+        load !is SectionLoad.Failed
+
+/**
+ * Whether [this] is a section's first load, still waiting or arriving: what the board opened
+ * in front of, and does not announce.
+ */
+internal fun SectionRun?.isFirstLoad(): Boolean =
+    this != null && first && (load is SectionLoad.Queued || load is SectionLoad.Loading)
 
 /**
  * A press on a catalogue row, reduced to what the player is allowed to be given.

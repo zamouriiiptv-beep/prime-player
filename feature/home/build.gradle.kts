@@ -17,6 +17,10 @@ android {
         // call counts, never on a platform return.
         unitTests.isReturnDefaultValues = true
 
+        // The rail's focus test composes the real rail under Robolectric, which needs the
+        // app's resources (its strings) on the unit-test classpath.
+        unitTests.isIncludeAndroidResources = true
+
         // A failure here is a rule about somebody else's catalogue -- a category
         // that vanished, an episode nobody numbered -- and the message is the
         // whole value. Gradle's default hides it in an HTML report no CI runner
@@ -63,4 +67,8 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
+    testImplementation(libs.robolectric)
+    testImplementation(platform(libs.compose.bom))
+    testImplementation(libs.compose.ui.test.junit4)
+    debugImplementation(libs.compose.ui.test.manifest)
 }

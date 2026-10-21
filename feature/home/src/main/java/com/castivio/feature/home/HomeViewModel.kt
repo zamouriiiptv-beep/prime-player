@@ -26,12 +26,10 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -435,7 +433,7 @@ class HomeViewModel @Inject constructor(
         val current = state.value
         val onDevice = current.onDevice(kind)
         val press = pressOf(kind, onDevice, marked = current.sections[kind] != null, run = loads.runs.value[kind])
-        awaited.value = null
+        opener.stop()
         return when (press) {
             Press.Open -> true
             Press.OpenAndFetch -> {
@@ -447,14 +445,14 @@ class HomeViewModel @Inject constructor(
                 false
             }
             Press.Await -> {
-                awaited.value = kind
+                opener.await(kind)
                 false
             }
             Press.Fetch -> {
                 // Asked before it is awaited, so the wait starts on an answer of its own
                 // rather than on no answer at all -- which it would take for a dropped load.
                 loads.request(kind, first = !onDevice)
-                if (opensWithFirstCategory(kind)) awaited.value = kind
+                if (opensWithFirstCategory(kind)) opener.await(kind)
                 false
             }
         }
@@ -463,22 +461,20 @@ class HomeViewModel @Inject constructor(
     /**
      * The section Home is waiting to open by itself: Live TV, pressed with nothing of it on
      * the device, until its first category is listed. Ended by any other press, by its load
-     * failing, and by the viewer leaving Home -- see [leftHome].
+     * failing, and by the viewer leaving Home -- see [leftHome] and [SectionOpener].
      */
-    private val awaited = MutableStateFlow<MediaKind?>(null)
-
-    private val _opens = MutableSharedFlow<CatalogSection>(extraBufferCapacity = 1)
+    private val opener = SectionOpener(viewModelScope, loads.runs)
 
     /**
      * A section to open now, without a press: Live TV with its first category listed, the
-     * rest of it still arriving. Told only to a Home that is collecting it -- nothing is
-     * kept for later, so a viewer who has left Home is not taken anywhere on the way back.
+     * rest of it still arriving. Told only to a Home that is collecting it -- see
+     * [SectionOpener.opens].
      */
-    val opens: SharedFlow<CatalogSection> = _opens.asSharedFlow()
+    val opens: SharedFlow<CatalogSection> = opener.opens
 
     /** Home is no longer what the viewer is looking at: nothing opens by itself any more. */
     fun leftHome() {
-        awaited.value = null
+        opener.stop()
     }
 
     /** The card pressed while its section is on its way: [HINT_MS] of "opens when loaded". */
@@ -535,22 +531,6 @@ class HomeViewModel @Inject constructor(
                 before = runs
                 if (previous != null) arrivedBetween(previous, runs).forEach(::arrive)
             }
-        }
-        // The section Home waits on, opened when its first category is listed -- see
-        // [awaitOf] -- or let go when there is nothing to open.
-        viewModelScope.launch {
-            combine(awaited, loads.runs) { kind, runs -> kind?.let { it to awaitOf(it, runs) } }
-                .collect { waiting ->
-                    val (kind, next) = waiting ?: return@collect
-                    when (next) {
-                        Await.Keep -> Unit
-                        Await.Open -> {
-                            awaited.value = null
-                            _opens.tryEmit(CatalogSection.entries.first { it.kind == kind })
-                        }
-                        Await.Drop -> awaited.value = null
-                    }
-                }
         }
     }
 

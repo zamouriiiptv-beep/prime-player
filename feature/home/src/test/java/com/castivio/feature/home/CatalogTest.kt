@@ -1,13 +1,17 @@
 package com.castivio.feature.home
 
+import com.castivio.core.common.AppError
 import com.castivio.domain.Channel
 import com.castivio.domain.Episode
 import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaKind
 import com.castivio.domain.Movie
+import com.castivio.domain.SectionLoad
+import com.castivio.domain.SectionRun
 import com.castivio.domain.Series
 import com.castivio.domain.SortOrder
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -75,6 +79,59 @@ class CatalogTest {
 
         assertEquals(listOf("sports", "kids"), listedOf(arriving).map { it.id })
         assertTrue("nothing complete yet lists nothing", listedOf(groups).isEmpty())
+    }
+
+    // ------------------------------------------------------ "lists no categories"
+
+    private val listedOne = listOf(
+        MediaGroup(id = "sports", name = "Sports", kind = MediaKind.LIVE, itemCount = 117),
+    )
+    private val loading = SectionLoad.Loading(items = 0, groups = 0)
+    private val failed = SectionLoad.Failed(AppError.NETWORK_UNAVAILABLE, retryable = true)
+
+    @Test
+    fun `the rail says the playlist lists no categories when none is listed and none is coming`() {
+        assertTrue(saysNoCategories(emptyList(), SectionLoad.Done(items = 840)))
+        assertTrue(saysNoCategories(emptyList(), SectionLoad.Ready))
+        assertTrue("nothing asked of the section since the app started", saysNoCategories(emptyList(), null))
+
+        assertFalse(saysNoCategories(listedOne, SectionLoad.Done(items = 840)))
+        assertFalse(saysNoCategories(listedOne, null))
+    }
+
+    /**
+     * The defect this rule exists for.
+     *
+     * A category joins the rail when it is complete, so a reload that has completed none yet
+     * lists none. The sentence used to be held back only for a section's first load, and a
+     * refresh of a section that listed nothing -- or one still waiting behind another
+     * section's load -- said "This playlist lists no categories" over the load that was
+     * bringing them.
+     */
+    @Test
+    fun `a reload that has listed nothing yet does not say the playlist lists none`() {
+        assertFalse("waiting its turn", saysNoCategories(emptyList(), SectionLoad.Queued))
+        assertFalse("arriving, nothing complete", saysNoCategories(emptyList(), loading))
+        assertFalse(
+            "arriving with rows, nothing complete",
+            saysNoCategories(emptyList(), SectionLoad.Loading(items = 3_400, groups = 41, listed = 0)),
+        )
+    }
+
+    @Test
+    fun `a load that failed says its failure rather than that there are no categories`() {
+        assertFalse(saysNoCategories(emptyList(), failed))
+    }
+
+    @Test
+    fun `a first load is one that was asked as first and is still waiting or arriving`() {
+        assertTrue(SectionRun(SectionLoad.Queued, forced = false, elapsedMs = null, first = true).isFirstLoad())
+        assertTrue(SectionRun(loading, forced = false, elapsedMs = 400, first = true).isFirstLoad())
+
+        assertFalse("it ended", SectionRun(SectionLoad.Done(840), forced = false, elapsedMs = 9_000, first = true).isFirstLoad())
+        assertFalse("it failed", SectionRun(failed, forced = false, elapsedMs = 9_000, first = true).isFirstLoad())
+        assertFalse("a reload over rows", SectionRun(loading, forced = true, elapsedMs = 400, first = false).isFirstLoad())
+        assertFalse("nothing asked", (null as SectionRun?).isFirstLoad())
     }
 
     // ------------------------------------------------------------- episode numbering

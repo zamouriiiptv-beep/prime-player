@@ -830,7 +830,7 @@ private fun Columns(
  * a provider ships thirty categories.
  */
 @Composable
-private fun CategoryRail(
+internal fun CategoryRail(
     state: BrowseState,
     m: ChannelsMetrics,
     onChoose: (String?) -> Unit,

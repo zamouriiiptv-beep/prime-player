@@ -87,7 +87,8 @@ data class BrowseState(
     val shownGroups: List<MediaGroup> = emptyList(),
     /**
      * The rail lists no category and none is on its way: what `RailEmpty` says instead of a
-     * list. Not while the section's first load runs, whose categories are still to come.
+     * list. Not while any load of the section waits or runs, nor after one failed -- see
+     * [saysNoCategories].
      */
     val noCategories: Boolean = false,
     /**
@@ -211,7 +212,6 @@ class BrowseViewModel @Inject constructor(
         val run = providerAndFetch.second
         val filter = providerAndFetch.third
         val listed = listedOf(available)
-        val firstLoad = run.isFirstLoad()
         BrowseState(
             section = current,
             groups = available,
@@ -222,8 +222,8 @@ class BrowseViewModel @Inject constructor(
             sectionTotal = counts.second,
             groupFilter = filter,
             shownGroups = listed.filtered(filter),
-            noCategories = listed.isEmpty() && run?.load !is SectionLoad.Failed && !firstLoad,
-            firstLoad = firstLoad,
+            noCategories = saysNoCategories(listed, run?.load),
+            firstLoad = run.isFirstLoad(),
             // `takeIf`, because a playlist the user did not name now stores no name
             // rather than the host: absent and empty mean the same thing to every
             // reader of this, and only one of them has a fallback. Without it the
@@ -302,10 +302,6 @@ class BrowseViewModel @Inject constructor(
         const val SUBSCRIPTION_GRACE_MS = 5_000L
     }
 }
-
-/** Whether [this] is a section's first load, still waiting or arriving. */
-private fun SectionRun?.isFirstLoad(): Boolean =
-    this != null && first && (load is SectionLoad.Queued || load is SectionLoad.Loading)
 
 /**
  * The categories whose names contain [filter], or all of them when nothing is typed.
