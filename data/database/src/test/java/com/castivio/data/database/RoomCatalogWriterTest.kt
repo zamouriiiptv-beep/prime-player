@@ -474,7 +474,8 @@ class RoomCatalogWriterTest {
         repeat(8) { batch ->
             t.writer.writeItems(listOf(liveItem("b$batch", "Batch $batch")))
             t.writer.commit()
-            t.now += 143
+            // Eight commits inside the one interval: 0 to 700 ms after the first.
+            t.now += 100
             assertEquals("batch $batch is committed", batch + 1, rowsOf("src"))
         }
         assertEquals("the first rows at once, the rest waiting for the interval", 1, t.told)
