@@ -45,7 +45,7 @@ import java.util.concurrent.TimeUnit
  *    written; what is paced is only the *telling* -- the observers are notified about once
  *    a second during a load (see [UpdatePacer]), because the rail, the cards and the list
  *    re-read on every notification and nobody reads a count rising seven times a second.
- *    The first rows and the first counted category are told at once, and the end of the
+ *    The first rows and the first counted category with rows are told at once, and the end of the
  *    load always is.
  *
  * Blocking, like the interface it implements. Call it on an IO dispatcher.
@@ -155,7 +155,6 @@ class RoomCatalogWriter(
         requireStarted()
         val statement = countStatement ?: error("countGroups before begin")
         if (groupIds.isEmpty()) return
-        countedSinceCommit = true
         timed(DatabaseStep.COUNTS) {
             for (id in groupIds) {
                 statement.clearBindings()
@@ -163,6 +162,9 @@ class RoomCatalogWriter(
                 statement.executeUpdateDelete()
             }
         }
+        // Until the first category with rows is counted: an empty one lists nothing, so it
+        // must not spend the one notice that is told at once. A few lookups per load at most.
+        if (!toldCounts && !countedSinceCommit) countedSinceCommit = groupIds.any(::hasRows)
     }
 
     /**
@@ -399,6 +401,11 @@ class RoomCatalogWriter(
         countStatement = null
         sourceId = null
     }
+
+    private fun hasRows(groupId: String): Boolean =
+        database.openHelper.writableDatabase
+            .query("SELECT item_count FROM media_group WHERE id = ?", arrayOf<Any>(groupId))
+            .use { it.moveToFirst() && it.getLong(0) > 0 }
 
     private fun requireStarted(): String = sourceId ?: error("write before begin")
 
