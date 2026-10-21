@@ -65,6 +65,15 @@
     <string name="home_source_portal">Portal</string>
 
     <string name="home_disclaimer">Castivio is a media player. It does not provide channels, films or subscriptions — you add your own.</string>
+    <!-- The footer's last line, in the disclaimer's place while the subscription is
+         in trouble: what happened, and whom to turn to. Full width, two lines at most.
+         Unreachable: the provider's server did not answer and this device is online.
+         Offline: this device is on no network. Expired and refused: what the
+         provider answered. -->
+    <string name="home_trouble_unreachable">We could not reach your subscription’s server. Contact your provider to find out why.</string>
+    <string name="home_trouble_offline">This device is not connected to the internet. Check your network.</string>
+    <string name="home_trouble_expired">Your subscription has expired. Renew it with your provider.</string>
+    <string name="home_trouble_refused">Your provider refused this subscription. Contact them to find out why.</string>
 
 
     <!-- The order a section is read in. %1$s is one of the four below. -->

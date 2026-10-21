@@ -39,6 +39,7 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Language
@@ -57,6 +58,7 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.Tv
 import androidx.compose.material.icons.rounded.VpnKey
+import androidx.compose.material.icons.rounded.WifiOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -760,33 +762,13 @@ internal fun providerTerm(status: Recorded?): Term = when {
 }
 
 /**
- * Whether the answer was that the subscription ran out: its date had passed when the
- * provider was asked, or the panel said so in its own word.
- *
- * "Passed" is the validator's own rule, a date strictly before the moment of asking,
- * so a panel that still says "Active" over a date gone by is called what the validator
- * called it: expired, which is why it was refused.
- */
-private val Recorded.ranOut: Boolean
-    get() {
-        // Bound to locals first: these are properties of a class in another module, so
-        // the compiler will not carry a null check across the dot however plainly it reads.
-        val at = expiresAtMs
-        val word = label
-        return (at != null && at < atMs) || word.equals(PANEL_EXPIRED, ignoreCase = true)
-    }
-
-/** The word an Xtream panel's `user_info.status` uses for a subscription that ran out. */
-private const val PANEL_EXPIRED = "Expired"
-
-/**
  * How the provider card is drawn, for the answers [providerTerm] tells apart.
  *
  * "Not checked" is not "active". Drawn in the active green with a tick, it read as a
  * subscription vouched for by a question nobody had asked. In the muted ink, with an
  * empty circle where the tick goes, it reads as what it is: a blank, which the first
  * answer fills -- and Home asks that question by itself, see
- * [com.castivio.domain.RefreshProvider.askIfNeverAsked].
+ * [com.castivio.domain.RefreshProvider.ask].
  *
  * Nor is a refusal a tick in red. Expired or inactive, it carries the mark every
  * failure on Home carries -- the circled exclamation of a section that could not load.
@@ -2315,6 +2297,17 @@ private fun UtilityCard(
  * that stops at "Castivio does not provide chan…" is not a statement. On its own line
  * it has the full width, and two lines to use if a translation needs them.
  *
+ * ## And it gives that line to the subscription's trouble, while there is one
+ *
+ * A server that does not answer, a device with no connection, a subscription run out or
+ * refused: each section's card can say that it could not load, and none of them can say
+ * why. This line can, at the width a full sentence needs, in the failure red, and says
+ * what to do — see [SubscriptionTrouble]. Nothing moves to make room and nothing is
+ * covered: the address and the key a viewer reads out to their provider stay where
+ * they are. The header's card keeps its date meanwhile, because a subscription paid for
+ * until next year and a server that does not answer are both true at once. The
+ * disclaimer is back as soon as the provider answers.
+ *
  * ## The device key, which now exists
  *
  * It shipped once without one, because nothing in the build minted a key and a
@@ -2399,22 +2392,34 @@ private fun FooterLine(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(frame.chipPad / 2, Alignment.CenterHorizontally),
         ) {
+            val trouble = state.trouble
             Icon(
-                Icons.Rounded.Info,
+                if (trouble == null) Icons.Rounded.Info else trouble.icon,
                 contentDescription = null,
-                tint = colors.hueViolet,
+                tint = if (trouble == null) colors.hueViolet else colors.danger,
                 modifier = Modifier.size(Sizing.iconSm),
             )
             Text(
-                stringResource(R.string.home_disclaimer),
+                stringResource(if (trouble == null) R.string.home_disclaimer else troubleSentence(trouble)),
                 style = castivioBodyStyle(frame.fsChip),
-                color = colors.onBackgroundMuted,
+                color = if (trouble == null) colors.onBackgroundMuted else colors.danger,
                 textAlign = TextAlign.Center,
                 maxLines = DISCLAIMER_LINES,
             )
         }
     }
 }
+
+/**
+ * The mark each trouble is said with: the server out of reach, the device off the
+ * network, or the circled exclamation every refusal on Home carries.
+ */
+private val SubscriptionTrouble.icon: ImageVector
+    get() = when (this) {
+        SubscriptionTrouble.Unreachable -> Icons.Rounded.CloudOff
+        SubscriptionTrouble.Offline -> Icons.Rounded.WifiOff
+        SubscriptionTrouble.Expired, SubscriptionTrouble.Refused -> Icons.Rounded.ErrorOutline
+    }
 
 /** One value a user copies: a glyph, a label and the value, inside its own edge. */
 @Composable

@@ -57,6 +57,10 @@
 
 
     <string name="home_disclaimer">Castivio مشغّل وسائط. لا يوفّر قنوات ولا أفلامًا ولا اشتراكات — أنت من يضيفها.</string>
+    <string name="home_trouble_unreachable">تعذّر الاتصال بخادم اشتراكك. تواصل مع مزوّدك لمعرفة السبب.</string>
+    <string name="home_trouble_offline">هذا الجهاز غير متصل بالإنترنت. تحقّق من الشبكة.</string>
+    <string name="home_trouble_expired">انتهى اشتراكك. جدّده لدى مزوّدك.</string>
+    <string name="home_trouble_refused">رفض مزوّدك هذا الاشتراك. تواصل معه لمعرفة السبب.</string>
 
 
     <string name="browse_sort">الترتيب: %1$s</string>

@@ -41,6 +41,10 @@
     <string name="home_source_xtream">Xtream</string>
     <string name="home_source_portal">Portaali</string>
     <string name="home_disclaimer">Castivio on mediasoitin. Se ei tarjoa kanavia, elokuvia eikä tilauksia — ne lisäät itse.</string>
+    <string name="home_trouble_unreachable">Tilauksesi palvelimeen ei saatu yhteyttä. Ota yhteyttä palveluntarjoajaasi saadaksesi tietää syyn.</string>
+    <string name="home_trouble_offline">Tämä laite ei ole yhteydessä internetiin. Tarkista verkkosi.</string>
+    <string name="home_trouble_expired">Tilauksesi on vanhentunut. Uusi se palveluntarjoajasi kautta.</string>
+    <string name="home_trouble_refused">Palveluntarjoajasi hylkäsi tämän tilauksen. Ota yhteyttä palveluntarjoajaasi saadaksesi tietää syyn.</string>
     <string name="browse_sort">Järjestys: %1$s</string>
     <string name="browse_sort_provider">Palveluntarjoajan mukaan</string>
     <string name="browse_sort_name_asc">A–Ö</string>

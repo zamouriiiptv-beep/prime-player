@@ -41,6 +41,10 @@
     <string name="home_source_xtream">Xtream</string>
     <string name="home_source_portal">포털</string>
     <string name="home_disclaimer">Castivio는 미디어 플레이어입니다. 채널, 영화, 구독을 제공하지 않습니다. 직접 추가하셔야 합니다.</string>
+    <string name="home_trouble_unreachable">구독 서버에 연결할 수 없습니다. 이유는 공급자에게 문의하세요.</string>
+    <string name="home_trouble_offline">이 기기는 인터넷에 연결되어 있지 않습니다. 네트워크를 확인하세요.</string>
+    <string name="home_trouble_expired">구독이 만료되었습니다. 공급자에게서 갱신하세요.</string>
+    <string name="home_trouble_refused">공급자가 이 구독을 거부했습니다. 이유는 공급자에게 문의하세요.</string>
     <string name="browse_sort">정렬: %1$s</string>
     <string name="browse_sort_provider">공급자</string>
     <string name="browse_sort_name_asc">가나다순</string>

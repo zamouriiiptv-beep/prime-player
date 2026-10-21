@@ -41,6 +41,10 @@
     <string name="home_source_xtream">Xtream</string>
     <string name="home_source_portal">Portál</string>
     <string name="home_disclaimer">A Castivio médialejátszó. Nem nyújt csatornákat, filmeket vagy előfizetéseket — azokat Ön adja hozzá.</string>
+    <string name="home_trouble_unreachable">Nem sikerült kapcsolódni az előfizetése szerveréhez. Az okért forduljon a szolgáltatójához.</string>
+    <string name="home_trouble_offline">Ez az eszköz nem csatlakozik az internethez. Ellenőrizze a hálózatot.</string>
+    <string name="home_trouble_expired">Az előfizetése lejárt. Hosszabbítsa meg a szolgáltatójánál.</string>
+    <string name="home_trouble_refused">A szolgáltatója elutasította ezt az előfizetést. Az okért forduljon hozzá.</string>
     <string name="browse_sort">Rendezés: %1$s</string>
     <string name="browse_sort_provider">Szolgáltató szerint</string>
     <string name="browse_sort_name_asc">A-tól Z-ig</string>

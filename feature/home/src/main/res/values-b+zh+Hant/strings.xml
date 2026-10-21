@@ -41,6 +41,10 @@
     <string name="home_source_xtream">Xtream</string>
     <string name="home_source_portal">入口</string>
     <string name="home_disclaimer">Castivio 是一款媒體播放器。它不提供頻道、電影或訂閱——內容由你自己新增。</string>
+    <string name="home_trouble_unreachable">無法連線到你的訂閱伺服器。請聯絡你的供應商了解原因。</string>
+    <string name="home_trouble_offline">此裝置未連線到網際網路。請檢查你的網路。</string>
+    <string name="home_trouble_expired">你的訂閱已到期。請向你的供應商續訂。</string>
+    <string name="home_trouble_refused">你的供應商拒絕了此訂閱。請聯絡供應商了解原因。</string>
     <string name="browse_sort">排序：%1$s</string>
     <string name="browse_sort_provider">依供應商</string>
     <string name="browse_sort_name_asc">A 到 Z</string>

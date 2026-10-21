@@ -41,6 +41,10 @@
     <string name="home_source_xtream">Xtream</string>
     <string name="home_source_portal">Portal</string>
     <string name="home_disclaimer">Castivio është një luajtës mediash. Ai nuk ofron kanale, filma apo abonime — ato i shtoni ju vetë.</string>
+    <string name="home_trouble_unreachable">Nuk u arrit lidhja me serverin e abonimit tuaj. Kontaktoni ofruesin tuaj për të mësuar arsyen.</string>
+    <string name="home_trouble_offline">Kjo pajisje nuk është e lidhur me internetin. Kontrolloni rrjetin tuaj.</string>
+    <string name="home_trouble_expired">Abonimi juaj ka skaduar. Rinovojeni te ofruesi juaj.</string>
+    <string name="home_trouble_refused">Ofruesi juaj e refuzoi këtë abonim. Kontaktojeni për të mësuar arsyen.</string>
     <string name="browse_sort">Renditja: %1$s</string>
     <string name="browse_sort_provider">Sipas ofruesit</string>
     <string name="browse_sort_name_asc">A deri Z</string>

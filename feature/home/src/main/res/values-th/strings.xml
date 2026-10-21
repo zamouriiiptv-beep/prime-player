@@ -41,6 +41,10 @@
     <string name="home_source_xtream">Xtream</string>
     <string name="home_source_portal">พอร์ทัล</string>
     <string name="home_disclaimer">Castivio เป็นโปรแกรมเล่นสื่อ ไม่ได้ให้บริการช่อง ภาพยนตร์ หรือการสมัครใช้บริการ — คุณเป็นผู้เพิ่มเอง</string>
+    <string name="home_trouble_unreachable">ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์การสมัครสมาชิกของคุณ โปรดติดต่อผู้ให้บริการของคุณเพื่อทราบสาเหตุ</string>
+    <string name="home_trouble_offline">อุปกรณ์นี้ไม่ได้เชื่อมต่ออินเทอร์เน็ต โปรดตรวจสอบเครือข่ายของคุณ</string>
+    <string name="home_trouble_expired">การสมัครสมาชิกของคุณหมดอายุแล้ว โปรดต่ออายุกับผู้ให้บริการของคุณ</string>
+    <string name="home_trouble_refused">ผู้ให้บริการของคุณปฏิเสธการสมัครสมาชิกนี้ โปรดติดต่อผู้ให้บริการเพื่อทราบสาเหตุ</string>
     <string name="browse_sort">เรียงตาม: %1$s</string>
     <string name="browse_sort_provider">ผู้ให้บริการ</string>
     <string name="browse_sort_name_asc">ก ถึง ฮ</string>

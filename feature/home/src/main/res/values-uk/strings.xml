@@ -41,6 +41,10 @@
     <string name="home_source_xtream">Xtream</string>
     <string name="home_source_portal">Портал</string>
     <string name="home_disclaimer">Castivio — це медіаплеєр. Він не надає каналів, фільмів і передплат: ви додаєте їх самі.</string>
+    <string name="home_trouble_unreachable">Не вдалося підключитися до сервера вашої передплати. Зверніться до постачальника, щоб дізнатися причину.</string>
+    <string name="home_trouble_offline">Цей пристрій не підключено до інтернету. Перевірте мережу.</string>
+    <string name="home_trouble_expired">Термін дії вашої передплати закінчився. Продовжте її в постачальника.</string>
+    <string name="home_trouble_refused">Постачальник відхилив цю передплату. Зверніться до нього, щоб дізнатися причину.</string>
     <string name="browse_sort">Сортування: %1$s</string>
     <string name="browse_sort_provider">Провайдер</string>
     <string name="browse_sort_name_asc">Від А до Я</string>

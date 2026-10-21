@@ -63,6 +63,14 @@ svg{display:block;flex:none}
 .term .val{font-size:var(--fsBody);white-space:nowrap;font-variant-numeric:tabular-nums;line-height:1.25}
 .term.p{border-color:rgba(61,214,140,.30)} .term.p .k{background:var(--success)} .term.p .val{color:var(--success)}
 .term.l{border-color:rgba(46,107,255,.30)} .term.l .k{background:var(--azure40)} .term.l .val{color:var(--azure50)}
+/* The subscription's trouble -- a server that does not answer, a device with no internet, an
+   account that ran out or was refused -- in one sentence that says why and what to do, on the
+   disclaimer's line while it lasts. The header's card keeps its date: a subscription paid for
+   until next year and a server that does not answer are both true at once. Only an answer that
+   the account ran out or was refused changes the card, as it always has. */
+.term.bad{border-color:rgba(255,90,90,.45)} .term.bad .val{color:var(--danger)}
+.term .ki{width:calc(var(--fsBody) * 1.5);height:calc(var(--fsBody) * 1.5);flex:none}
+.term .ki svg{width:100%;height:100%;fill:var(--danger)}
 .clock{flex:none;text-align:right}
 .clock .t{font-size:calc(var(--fsTitle) * 1.02);font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
 .clock .d{font-size:var(--fsChip);color:var(--muted);font-variant-numeric:tabular-nums}
@@ -96,6 +104,7 @@ svg{display:block;flex:none}
 .fact .v{direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums;color:var(--silver)}
 .disc{display:flex;align-items:center;justify-content:center;gap:calc(var(--chipPad) / 2);font-size:calc(var(--fsChip) * .92);color:var(--faint);white-space:nowrap}
 .disc svg{width:14px;height:14px;fill:var(--violet50)}
+.disc.trouble{color:var(--danger);font-size:var(--fsChip)} .disc.trouble svg{fill:var(--danger);width:15px;height:15px}
 
 /* ---------- the subject: the four section cards ---------- */
 .card{position:relative;border:1px solid var(--edgeCard);background:linear-gradient(to bottom,var(--glassMid),var(--glassLow));overflow:hidden}
@@ -175,6 +184,8 @@ const ICON = {
   info:'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z',
   globe:'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm6.93 6h-2.95a15.65 15.65 0 0 0-1.38-3.56A8.03 8.03 0 0 1 18.93 8zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14a8.2 8.2 0 0 1 0-4h3.38a16.5 16.5 0 0 0 0 4H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56A7.99 7.99 0 0 1 5.08 16zm2.95-8H5.08a7.99 7.99 0 0 1 4.33-3.56A15.65 15.65 0 0 0 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66a14.7 14.7 0 0 1 0-4h4.68a14.7 14.7 0 0 1 0 4zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95a8.03 8.03 0 0 1-4.33 3.56zM16.36 14a16.5 16.5 0 0 0 0-4h3.38a8.2 8.2 0 0 1 0 4h-3.38z',
   sun:'M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM11 1h2v3h-2zm0 19h2v3h-2zM1 11h3v2H1zm19 0h3v2h-3z',
+  cloudOff:'M19.35 10.04C18.67 6.59 15.64 4 12 4c-1.48 0-2.85.43-4.01 1.17l1.46 1.46C10.21 6.23 11.08 6 12 6c3.04 0 5.5 2.46 5.5 5.5v.5H19c1.66 0 3 1.34 3 3 0 1.13-.64 2.11-1.56 2.62l1.45 1.45C23.16 18.16 24 16.68 24 15c0-2.64-2.05-4.78-4.65-4.96zM3 5.27l2.75 2.74C2.56 8.15 0 10.77 0 14c0 3.31 2.69 6 6 6h11.73l2 2L21 20.73 4.27 4 3 5.27zM7.73 10l8 8H6c-2.21 0-4-1.79-4-4s1.79-4 4-4h1.73z',
+  wifiOff:'M22.99 9C19.15 5.16 13.8 3.76 8.84 4.78l2.52 2.52c3.47-.17 6.99 1.05 9.63 3.7l2-2zm-4 4c-1.29-1.29-2.84-2.13-4.49-2.56l3.53 3.53.96-.97zM2 3.05L5.07 6.1C3.6 6.82 2.22 7.78 1 9l1.99 2c1.24-1.24 2.67-2.16 4.2-2.77l2.24 2.24C7.81 10.89 6.27 11.73 5 13v.01L6.99 15c1.36-1.36 3.14-2.04 4.92-2.06L18.98 20l1.27-1.26L3.29 1.79 2 3.05zM9 17l3 3 3-3c-1.65-1.66-4.34-1.66-6 0z',
 };
 const svg = (name, extra = '') => `<svg viewBox="0 0 24 24" ${extra}><path d="${ICON[name]}"/></svg>`;
 
@@ -189,6 +200,12 @@ const STR = {
     opensWhenDone:'يُفتح عند اكتمال التحميل', seconds:'%s ث',
     rail:['تحديث','تبديل القائمة','آخر الإضافات','الإعدادات','خروج'],
     refreshFailed:'تعذّر التحديث', retryRail:'اضغط للإعادة', refreshDone:'تم التحديث',
+    trouble:{
+      server:{icon:'cloudOff', card:null, line:'تعذّر الاتصال بخادم اشتراكك. تواصل مع مزوّدك لمعرفة السبب.'},
+      offline:{icon:'wifiOff', card:null, line:'هذا الجهاز غير متصل بالإنترنت. تحقّق من الشبكة.'},
+      expired:{icon:'alert', card:'منتهٍ', line:'انتهى اشتراكك. جدّده لدى مزوّدك.'},
+      refused:{icon:'alert', card:'غير نشط', line:'رفض مزوّدك هذا الاشتراك. تواصل معه لمعرفة السبب.'},
+    },
     provider:'الاشتراك', licence:'رخصة Castivio', language:'اللغة',
     device:'الجهاز: ', activated:'مُفعَّل', mac:'ماك: ', key:'مفتاح الجهاز: ',
     disclaimer:'Castivio مشغّل وسائط. لا يوفّر قنوات ولا أفلامًا ولا اشتراكات — أنت من يضيفها.',
@@ -203,6 +220,12 @@ const STR = {
     opensWhenDone:'Opens when it has loaded', seconds:'%s s',
     rail:['Refresh','Change list','New additions','Settings','Exit'],
     refreshFailed:'Refresh failed', retryRail:'Press to retry', refreshDone:'Refreshed',
+    trouble:{
+      server:{icon:'cloudOff', card:null, line:'We could not reach your subscription\u2019s server. Contact your provider to find out why.'},
+      offline:{icon:'wifiOff', card:null, line:'This device is not connected to the internet. Check your network.'},
+      expired:{icon:'alert', card:'Expired', line:'Your subscription has expired. Renew it with your provider.'},
+      refused:{icon:'alert', card:'Inactive', line:'Your provider refused this subscription. Contact them to find out why.'},
+    },
     provider:'Subscription', licence:'Castivio licence', language:'Language',
     device:'Device: ', activated:'Activated', mac:'MAC: ', key:'Device key: ',
     disclaimer:'Castivio is a media player. It does not provide channels, films or subscriptions — you add your own.',
@@ -323,13 +346,15 @@ function board(fr) {
     return `<div class="util${i === 4 ? ' quit' : ''}">${svg(icon)}${label}</div>`;
   }).join('');
   const st = fr.cards;
+  const tr = fr.trouble ? T.trouble[fr.trouble] : null;
   return `<div class="screen" dir="${lang === 'ar' ? 'rtl' : 'ltr'}" lang="${lang}" style="width:${w}px;height:${h}px;${vars}">
     <div class="bd"><div class="ramp"></div><div class="warm"></div><div class="cool"></div><div class="mesh"></div></div>
     <div class="stage">
       <div class="head">
         <div class="brand"><div class="mark"></div><div class="word">CASTIVIO</div></div>
         <div class="terms" dir="${lang === 'ar' ? 'rtl' : 'ltr'}">
-          <div class="term p"><div class="k"></div><div><div class="lbl">${T.provider}</div><div class="val">22/12/2026</div></div></div>
+          ${tr && tr.card ? `<div class="term bad"><div class="ki">${svg(tr.icon)}</div><div><div class="lbl">${T.provider}</div><div class="val">${tr.card}</div></div></div>`
+               : `<div class="term p"><div class="k"></div><div><div class="lbl">${T.provider}</div><div class="val">22/12/2026</div></div></div>`}
           <div class="term l"><div class="k"></div><div><div class="lbl">${T.licence}</div><div class="val">07/10/2027</div></div></div>
         </div>
         <div class="clock"><div class="t">09:55</div><div class="d">16/10/2026</div></div>
@@ -347,7 +372,8 @@ function board(fr) {
           <div class="fact">${svg('chip', 'style="fill:#A6A6BF"')}<span>${T.mac}</span><span class="v">00:1A:79:12:34:56</span></div>
           <div class="fact">${svg('key', 'style="fill:#FFB020"')}<span>${T.key}</span><span class="v" style="color:#FFB020">123456</span></div>
         </div>
-        <div class="disc">${svg('info')}<span>${T.disclaimer}</span></div>
+        ${tr ? `<div class="disc trouble">${svg(tr.icon)}<span>${tr.line}</span></div>`
+                                    : `<div class="disc">${svg('info')}<span>${T.disclaimer}</span></div>`}
       </div>
     </div>
   </div>`;
@@ -356,6 +382,7 @@ function board(fr) {
 // ------------------------------------------------------------------ the frames
 const U = {k: 'unfetched'};
 const SETTLED = {live: {k: 'counted', n: 54130}, movies: {k: 'counted', n: 12640}, series: {k: 'counted', n: 2318}, radio: {k: 'counted', n: 1083}};
+const FAILED = {live: {k: 'failed'}, movies: {k: 'failed'}, series: {k: 'failed'}, radio: {k: 'failed'}};
 const FRAMES = {
   'press-live': {cards: {live: {k: 'loading', n: 24310, focus: true}, movies: U, series: U, radio: U},
     cap: '<span class="n">١ — الضغط على البث المباشر.</span> تُحمَّل القنوات وحدها، والمشاهد باقٍ في Home يرى البطاقة. رد Xtream الواحد لا يذكر عدد القنوات قبل نهايته، فلا نسبة مئوية: <b>العدد يتزايد</b> و<span class="a">الشريط يتحرك</span>.'},
@@ -381,11 +408,20 @@ const FRAMES = {
     cap: '<span class="n">١٣ — الإطار ١١ بالإنجليزية.</span>'},
   'refresh-failed-tv': {dev: 'tv', railFault: 'release', cards: SETTLED,
     cap: '<span class="n">١٤ — الإطار ١١ على التلفاز، 960×540.</span>'},
+  'trouble-server': {trouble: 'server', cards: FAILED,
+    cap: '<span class="n">١٥ — خادم الاشتراك لا يردّ.</span> السطر الأخير يقول السبب وما يُفعل، مكان سطر التنبيه القانوني ما دامت المشكلة. بطاقة الاشتراك في الترويسة تبقى بتاريخها: الاشتراك مدفوع حتى ذلك اليوم، والعيب في الخادم. لا شيء يتحرّك، ولا يُغطّى الماك ولا المفتاح، ويعود السطر القانوني عند أول جواب.'},
+  'trouble-offline': {trouble: 'offline', cards: FAILED,
+    cap: '<span class="n">١٦ — الجهاز نفسه بلا إنترنت.</span> سبب مختلف وعلاج مختلف: لا فائدة من الاتصال بالمزوّد إذا كانت الشبكة في البيت هي المقطوعة.'},
+  'trouble-expired': {trouble: 'expired', cards: SETTLED,
+    cap: '<span class="n">١٧ — الاشتراك منتهٍ.</span> البطاقة تقول «منتهٍ» كما كانت، والقنوات على الجهاز تبقى بأعدادها، والسطر يقول ما يُفعل: التجديد. وبالطريقة نفسها «رفض مزوّدك هذا الاشتراك» للاشتراك الموقوف.'},
+  'trouble-en': {lang: 'en', trouble: 'server', cards: FAILED,
+    cap: '<span class="n">١٨ — الإطار ١٥ بالإنجليزية.</span>'},
   'tv': {dev: 'tv', cards: {live: {k: 'done', n: 54130}, movies: U, series: U, radio: {k: 'loading', pct: 60, focus: true}},
     cap: '<span class="n">٩ — الإطار ٣ على التلفاز، 960×540.</span> التركيز على الراديو بالريموت.'},
 };
 const SETS = {a: ['press-live', 'queued', 'live-done', 'movies'], b: ['pressed', 'fail-empty', 'refresh'], c: ['movies-en', 'tv', 'compare'],
-  d: ['refresh-failed', 'refresh-done', 'refresh-failed-en', 'refresh-failed-tv']};
+  d: ['refresh-failed', 'refresh-done', 'refresh-failed-en', 'refresh-failed-tv'],
+  e: ['trouble-server', 'trouble-offline', 'trouble-expired', 'trouble-en']};
 
 function compare() {
   // Two panels at the phone's own panel size: the reference's colours, and the state language's.

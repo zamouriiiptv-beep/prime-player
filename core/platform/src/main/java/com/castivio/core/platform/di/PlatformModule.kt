@@ -2,9 +2,11 @@ package com.castivio.core.platform.di
 
 import android.content.Context
 import com.castivio.core.platform.AndroidDeviceCapabilities
+import com.castivio.core.platform.AndroidNetworkState
 import com.castivio.core.platform.AndroidPlatformServices
 import com.castivio.core.platform.AndroidRemoteProfile
 import com.castivio.core.platform.DeviceCapabilities
+import com.castivio.core.platform.NetworkState
 import com.castivio.core.platform.PlatformServices
 import com.castivio.core.platform.RemoteProfile
 import dagger.Module
@@ -38,4 +40,9 @@ object PlatformModule {
     @Singleton
     fun platformServices(@ApplicationContext context: Context): PlatformServices =
         AndroidPlatformServices(context)
+
+    @Provides
+    @Singleton
+    fun networkState(@ApplicationContext context: Context): NetworkState =
+        AndroidNetworkState(context)
 }

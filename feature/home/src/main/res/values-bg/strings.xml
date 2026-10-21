@@ -41,6 +41,10 @@
     <string name="home_source_xtream">Xtream</string>
     <string name="home_source_portal">Портал</string>
     <string name="home_disclaimer">Castivio е медиен плейър. Той не предоставя канали, филми или абонаменти — вие ги добавяте сами.</string>
+    <string name="home_trouble_unreachable">Няма връзка със сървъра на абонамента Ви. Свържете се с доставчика си, за да разберете причината.</string>
+    <string name="home_trouble_offline">Това устройство не е свързано с интернет. Проверете мрежата си.</string>
+    <string name="home_trouble_expired">Абонаментът Ви е изтекъл. Подновете го при доставчика си.</string>
+    <string name="home_trouble_refused">Доставчикът Ви отказа този абонамент. Свържете се с него, за да разберете причината.</string>
     <string name="browse_sort">Подреждане: %1$s</string>
     <string name="browse_sort_provider">По доставчик</string>
     <string name="browse_sort_name_asc">От А до Я</string>

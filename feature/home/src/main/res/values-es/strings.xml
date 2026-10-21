@@ -41,6 +41,10 @@
     <string name="home_source_xtream">Xtream</string>
     <string name="home_source_portal">Portal</string>
     <string name="home_disclaimer">Castivio es un reproductor multimedia. No proporciona canales, películas ni suscripciones: los añades tú.</string>
+    <string name="home_trouble_unreachable">No se pudo conectar con el servidor de tu suscripción. Contacta con tu proveedor para saber por qué.</string>
+    <string name="home_trouble_offline">Este dispositivo no está conectado a Internet. Comprueba tu red.</string>
+    <string name="home_trouble_expired">Tu suscripción ha caducado. Renuévala con tu proveedor.</string>
+    <string name="home_trouble_refused">Tu proveedor ha rechazado esta suscripción. Contacta con él para saber por qué.</string>
     <string name="browse_sort">Orden: %1$s</string>
     <string name="browse_sort_provider">Proveedor</string>
     <string name="browse_sort_name_asc">De la A a la Z</string>

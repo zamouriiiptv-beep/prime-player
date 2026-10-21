@@ -41,6 +41,10 @@
     <string name="home_source_xtream">Xtream</string>
     <string name="home_source_portal">Πύλη</string>
     <string name="home_disclaimer">Το Castivio είναι πρόγραμμα αναπαραγωγής. Δεν παρέχει κανάλια, ταινίες ή συνδρομές — τα προσθέτετε εσείς.</string>
+    <string name="home_trouble_unreachable">Δεν ήταν δυνατή η σύνδεση με τον διακομιστή της συνδρομής σας. Επικοινωνήστε με τον πάροχό σας για να μάθετε τον λόγο.</string>
+    <string name="home_trouble_offline">Αυτή η συσκευή δεν είναι συνδεδεμένη στο διαδίκτυο. Ελέγξτε το δίκτυό σας.</string>
+    <string name="home_trouble_expired">Η συνδρομή σας έληξε. Ανανεώστε τη στον πάροχό σας.</string>
+    <string name="home_trouble_refused">Ο πάροχός σας απέρριψε αυτή τη συνδρομή. Επικοινωνήστε μαζί του για να μάθετε τον λόγο.</string>
     <string name="browse_sort">Ταξινόμηση: %1$s</string>
     <string name="browse_sort_provider">Κατά πάροχο</string>
     <string name="browse_sort_name_asc">Α έως Ω</string>

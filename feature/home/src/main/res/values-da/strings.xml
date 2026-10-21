@@ -41,6 +41,10 @@
     <string name="home_source_xtream">Xtream</string>
     <string name="home_source_portal">Portal</string>
     <string name="home_disclaimer">Castivio er en medieafspiller. Den leverer hverken kanaler, film eller abonnementer — dem tilføjer du selv.</string>
+    <string name="home_trouble_unreachable">Der kunne ikke oprettes forbindelse til serveren for dit abonnement. Kontakt din udbyder for at finde ud af hvorfor.</string>
+    <string name="home_trouble_offline">Denne enhed har ikke forbindelse til internettet. Tjek dit netværk.</string>
+    <string name="home_trouble_expired">Dit abonnement er udløbet. Forny det hos din udbyder.</string>
+    <string name="home_trouble_refused">Din udbyder har afvist dette abonnement. Kontakt dem for at finde ud af hvorfor.</string>
     <string name="browse_sort">Sortering: %1$s</string>
     <string name="browse_sort_provider">Efter udbyder</string>
     <string name="browse_sort_name_asc">A til Å</string>

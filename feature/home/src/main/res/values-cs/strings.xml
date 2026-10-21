@@ -41,6 +41,10 @@
     <string name="home_source_xtream">Xtream</string>
     <string name="home_source_portal">Portál</string>
     <string name="home_disclaimer">Castivio je přehrávač médií. Neposkytuje kanály, filmy ani předplatné — ty si přidáváte sami.</string>
+    <string name="home_trouble_unreachable">Nepodařilo se spojit se serverem vašeho předplatného. Obraťte se na svého poskytovatele a zjistěte proč.</string>
+    <string name="home_trouble_offline">Toto zařízení není připojeno k internetu. Zkontrolujte síť.</string>
+    <string name="home_trouble_expired">Vaše předplatné vypršelo. Obnovte ho u svého poskytovatele.</string>
+    <string name="home_trouble_refused">Váš poskytovatel toto předplatné odmítl. Obraťte se na něj a zjistěte proč.</string>
     <string name="browse_sort">Řazení: %1$s</string>
     <string name="browse_sort_provider">Podle poskytovatele</string>
     <string name="browse_sort_name_asc">A až Z</string>

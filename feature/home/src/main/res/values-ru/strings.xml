@@ -41,6 +41,10 @@
     <string name="home_source_xtream">Xtream</string>
     <string name="home_source_portal">Портал</string>
     <string name="home_disclaimer">Castivio — медиаплеер. Он не предоставляет каналы, фильмы и подписки: вы добавляете их сами.</string>
+    <string name="home_trouble_unreachable">Не удалось подключиться к серверу вашей подписки. Свяжитесь с поставщиком, чтобы узнать причину.</string>
+    <string name="home_trouble_offline">Это устройство не подключено к интернету. Проверьте сеть.</string>
+    <string name="home_trouble_expired">Срок вашей подписки истёк. Продлите её у поставщика.</string>
+    <string name="home_trouble_refused">Поставщик отклонил эту подписку. Свяжитесь с ним, чтобы узнать причину.</string>
     <string name="browse_sort">Сортировка: %1$s</string>
     <string name="browse_sort_provider">Провайдер</string>
     <string name="browse_sort_name_asc">От А до Я</string>

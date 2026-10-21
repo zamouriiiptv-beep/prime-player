@@ -41,6 +41,10 @@
     <string name="home_source_xtream">Xtream</string>
     <string name="home_source_portal">Портал</string>
     <string name="home_disclaimer">Castivio је медија плејер. Не пружа канале, филмове ни претплате — њих додајете сами.</string>
+    <string name="home_trouble_unreachable">Није могуће повезати се са сервером ваше претплате. Обратите се добављачу да сазнате разлог.</string>
+    <string name="home_trouble_offline">Овај уређај није повезан са интернетом. Проверите мрежу.</string>
+    <string name="home_trouble_expired">Ваша претплата је истекла. Обновите је код добављача.</string>
+    <string name="home_trouble_refused">Ваш добављач је одбио ову претплату. Обратите му се да сазнате разлог.</string>
     <string name="browse_sort">Редослед: %1$s</string>
     <string name="browse_sort_provider">По добављачу</string>
     <string name="browse_sort_name_asc">Од А до Ш</string>

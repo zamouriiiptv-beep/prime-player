@@ -41,6 +41,10 @@
     <string name="home_source_xtream">Xtream</string>
     <string name="home_source_portal">Portal</string>
     <string name="home_disclaimer">Media player ang Castivio. Hindi ito nagbibigay ng channel, pelikula, o subscription — ikaw ang nagdaragdag ng sarili mo.</string>
+    <string name="home_trouble_unreachable">Hindi maabot ang server ng subscription mo. Kontakin ang provider mo para malaman kung bakit.</string>
+    <string name="home_trouble_offline">Hindi nakakonekta sa internet ang device na ito. Tingnan ang network mo.</string>
+    <string name="home_trouble_expired">Nag-expire na ang subscription mo. I-renew ito sa provider mo.</string>
+    <string name="home_trouble_refused">Tinanggihan ng provider mo ang subscription na ito. Kontakin sila para malaman kung bakit.</string>
     <string name="browse_sort">Pagkakasunod: %1$s</string>
     <string name="browse_sort_provider">Ayon sa provider</string>
     <string name="browse_sort_name_asc">A hanggang Z</string>

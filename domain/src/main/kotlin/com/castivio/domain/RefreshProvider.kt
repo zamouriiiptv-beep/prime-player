@@ -1,7 +1,6 @@
 package com.castivio.domain
 
 import com.castivio.core.common.Outcome
-import kotlinx.coroutines.flow.first
 
 /**
  * Ask the active provider again what it says about the subscription.
@@ -119,27 +118,28 @@ class RefreshProvider(
     }
 
     /**
-     * Asks the active provider when no answer from it has been recorded yet, and leaves
-     * its sections as they are.
+     * Asks the active provider about the account, records the answer, and leaves the
+     * sections as they are -- the question Home asks by itself each time Castivio is
+     * opened on a subscription, and when another one is chosen.
      *
-     * The expiry date on Home is the provider's answer, recorded when it was asked. Adding
-     * a playlist asks nothing -- Home opens at once -- so a playlist read through its panel
-     * had no date to show until refresh was pressed, and refresh is the press that also
-     * lets every section go stale. This is the same small question, asked by Home itself
-     * the first time it shows a subscription with no answer, and nothing more: no section
-     * is forgotten and no kept playlist discarded.
+     * Each time, and not only the first. The answer is what Home says about the
+     * subscription: its expiry date, and -- when the server does not answer, or answers
+     * that the account has run out or been refused -- that something is wrong with it and
+     * what to do. An answer recorded last week says nothing about whether the server
+     * answers now, and a viewer whose channels will not open needs to know which of the
+     * two is the reason. It is one small request, and nothing more: no section is
+     * forgotten and no kept playlist discarded, which is what [refresh] adds.
      *
      * A playlist whose link names a panel is asked through it even when its rows were read
      * from the file, as [refresh] asks it -- see [asAccountSource].
      *
-     * @return null when there was nothing to ask: no subscription, an answer already
-     *   recorded, or a source with no account behind it -- a playlist with no panel and a
-     *   file state no date. Otherwise what asking produced, recorded as [refresh] records
-     *   it; a failure records nothing, so the next Home asks again.
+     * @return null when there was nothing to ask: no subscription, or a source with no
+     *   account behind it -- a playlist with no panel and a file state no date. Otherwise
+     *   what asking produced, recorded as [refresh] records it; a failure records nothing,
+     *   so the answer from before stands.
      */
-    suspend fun askIfNeverAsked(nowMs: Long): Refreshed? {
+    suspend fun ask(nowMs: Long): Refreshed? {
         val active = sources.activeNow() ?: return null
-        if (statuses.of(active.id).first() != null) return null
         val source = active.asAccountSource() ?: return null
         if (!source.answersWithAnAccount) return null
 

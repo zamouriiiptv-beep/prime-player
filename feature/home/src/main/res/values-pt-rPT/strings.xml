@@ -41,6 +41,10 @@
     <string name="home_source_xtream">Xtream</string>
     <string name="home_source_portal">Portal</string>
     <string name="home_disclaimer">O Castivio é um leitor multimédia. Não fornece canais, filmes nem subscrições — é o utilizador que os adiciona.</string>
+    <string name="home_trouble_unreachable">Não foi possível ligar ao servidor da sua subscrição. Contacte o seu fornecedor para saber o motivo.</string>
+    <string name="home_trouble_offline">Este dispositivo não está ligado à Internet. Verifique a sua rede.</string>
+    <string name="home_trouble_expired">A sua subscrição expirou. Renove-a junto do seu fornecedor.</string>
+    <string name="home_trouble_refused">O seu fornecedor recusou esta subscrição. Contacte-o para saber o motivo.</string>
     <string name="browse_sort">Ordem: %1$s</string>
     <string name="browse_sort_provider">Fornecedor</string>
     <string name="browse_sort_name_asc">De A a Z</string>

@@ -41,6 +41,10 @@
     <string name="home_source_xtream">Xtream</string>
     <string name="home_source_portal">Portal</string>
     <string name="home_disclaimer">Castivio bir medya oynatıcıdır. Kanal, film ya da abonelik sağlamaz — onları siz eklersiniz.</string>
+    <string name="home_trouble_unreachable">Aboneliğinizin sunucusuna ulaşılamadı. Nedenini öğrenmek için sağlayıcınızla iletişime geçin.</string>
+    <string name="home_trouble_offline">Bu cihaz internete bağlı değil. Ağınızı kontrol edin.</string>
+    <string name="home_trouble_expired">Aboneliğinizin süresi doldu. Sağlayıcınızdan yenileyin.</string>
+    <string name="home_trouble_refused">Sağlayıcınız bu aboneliği reddetti. Nedenini öğrenmek için onunla iletişime geçin.</string>
     <string name="browse_sort">Sıralama: %1$s</string>
     <string name="browse_sort_provider">Sağlayıcı</string>
     <string name="browse_sort_name_asc">A\'dan Z\'ye</string>

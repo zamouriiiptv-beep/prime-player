@@ -287,15 +287,15 @@ class RefreshProviderTest {
         assertTrue(copies.discarded.isEmpty())
     }
 
-    // ------------------------------------------------- asked once, by Home itself
+    // ------------------------------- asked by Home itself, each time it shows one
 
     /**
      * Adding a playlist asks nothing, so a playlist read through its panel had no expiry
-     * to show until refresh was pressed. Home asks it once instead -- the same question --
-     * and the sections stay exactly as they were.
+     * to show until refresh was pressed. Home asks instead -- the same question -- and the
+     * sections stay exactly as they were.
      */
     @Test
-    fun `a subscription never asked is asked once, and its sections are left alone`() = runBlocking {
+    fun `Home's question records the answer and leaves the sections alone`() = runBlocking {
         val playlist = panelPlaylist()
         val validator = Validator { Outcome.Success(ProviderStatus(usable = true, expiresAtMs = now + 1, statusLabel = "Active")) }
         val statuses = Statuses()
@@ -303,7 +303,7 @@ class RefreshProviderTest {
         val copies = Copies()
         val refresher = RefreshProvider(Sources(playlist), validator, statuses, marks, copies)
 
-        val outcome = refresher.askIfNeverAsked(now)
+        val outcome = refresher.ask(now)
 
         assertTrue(outcome is Refreshed.Updated)
         assertEquals("asked through the panel its link names", "sam", (validator.asked.single() as PlaylistSource.M3u).xtream?.username)
@@ -336,30 +336,42 @@ class RefreshProviderTest {
         assertEquals(now + 1, statuses.recorded.single().second.expiresAtMs)
     }
 
-    /** And Home's own first question takes the same way, so the date shows without a press. */
+    /** And Home's own question takes the same way, so the date shows without a press. */
     @Test
-    fun `a playlist read from its file is asked once through its panel`() = runBlocking {
+    fun `Home asks a playlist read from its file through its panel`() = runBlocking {
         val playlist = panelPlaylist().copy(sync = SyncState(contentHash = "read-to-its-end", lastImportAtMs = now - 1))
         val validator = Validator { Outcome.Success(ProviderStatus(usable = true, expiresAtMs = now + 1, statusLabel = "Active")) }
         val statuses = Statuses()
 
-        val outcome = RefreshProvider(Sources(playlist), validator, statuses).askIfNeverAsked(now)
+        val outcome = RefreshProvider(Sources(playlist), validator, statuses).ask(now)
 
         assertTrue(outcome is Refreshed.Updated)
         assertEquals("sam", (validator.asked.single() as PlaylistSource.M3u).xtream?.username)
         assertEquals(listOf(playlist.id), statuses.recorded.map { it.first })
     }
 
+    /**
+     * **Changed on purpose.** It was asked once and never again. Home now asks each time it
+     * shows the subscription, because the answer is how it tells a server that stopped
+     * answering from one that is fine -- and a failure records nothing, so the date from
+     * before still stands beside the message.
+     */
     @Test
-    fun `a subscription already answered is not asked again`() = runBlocking {
-        val validator = Validator()
-        val refresher = RefreshProvider(Sources(xtream("first", "http://one.test")), validator, Statuses())
+    fun `an answered subscription is asked again, and a failure keeps the answer from before`() = runBlocking {
+        var answering = true
+        val validator = Validator {
+            if (answering) Outcome.Success(ProviderStatus(usable = true, expiresAtMs = now + 1)) else Outcome.Failure(AppError.TIMEOUT)
+        }
+        val statuses = Statuses()
+        val refresher = RefreshProvider(Sources(xtream("first", "http://one.test")), validator, statuses)
 
-        refresher.askIfNeverAsked(now)
-        val second = refresher.askIfNeverAsked(now)
+        refresher.ask(now)
+        answering = false
+        val second = refresher.ask(now)
 
-        assertNull(second)
-        assertEquals(1, validator.asked.size)
+        assertEquals(Refreshed.Unreachable(AppError.TIMEOUT), second)
+        assertEquals(2, validator.asked.size)
+        assertEquals("the date from before stands", now + 1, statuses.recorded.single().second.expiresAtMs)
     }
 
     /** A playlist with no panel behind it, and a file, state no date: there is nothing to ask. */
@@ -369,8 +381,8 @@ class RefreshProviderTest {
         val plain = ProviderSource(id = "plain", kind = SourceKind.M3U_URL, label = "plain", url = "http://cdn.example.com/lists/family.m3u")
         val file = ProviderSource(id = "file", kind = SourceKind.LOCAL_FILE, label = "file", url = "content://downloads/list.m3u")
 
-        assertNull(RefreshProvider(Sources(plain), validator, Statuses()).askIfNeverAsked(now))
-        assertNull(RefreshProvider(Sources(file), validator, Statuses()).askIfNeverAsked(now))
+        assertNull(RefreshProvider(Sources(plain), validator, Statuses()).ask(now))
+        assertNull(RefreshProvider(Sources(file), validator, Statuses()).ask(now))
         assertTrue(validator.asked.isEmpty())
     }
 
@@ -380,8 +392,8 @@ class RefreshProviderTest {
         val validator = Validator { Outcome.Failure(AppError.TIMEOUT) }
         val refresher = RefreshProvider(Sources(xtream("first", "http://one.test")), validator, statuses)
 
-        val first = refresher.askIfNeverAsked(now)
-        refresher.askIfNeverAsked(now)
+        val first = refresher.ask(now)
+        refresher.ask(now)
 
         assertEquals(Refreshed.Unreachable(AppError.TIMEOUT), first)
         assertTrue(statuses.recorded.isEmpty())
@@ -390,7 +402,7 @@ class RefreshProviderTest {
 
     @Test
     fun `with nothing active there is nobody to ask`() = runBlocking {
-        assertNull(RefreshProvider(Sources(), Validator(), Statuses()).askIfNeverAsked(now))
+        assertNull(RefreshProvider(Sources(), Validator(), Statuses()).ask(now))
     }
 
     /** Nothing active is not a failure, and it must not look like one to the screen. */

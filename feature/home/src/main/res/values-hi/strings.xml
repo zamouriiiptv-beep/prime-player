@@ -41,6 +41,10 @@
     <string name="home_source_xtream">Xtream</string>
     <string name="home_source_portal">पोर्टल</string>
     <string name="home_disclaimer">Castivio एक मीडिया प्लेयर है। यह चैनल, फ़िल्में या सदस्यताएँ नहीं देता — उन्हें आप खुद जोड़ते हैं।</string>
+    <string name="home_trouble_unreachable">आपकी सदस्यता के सर्वर से कनेक्ट नहीं हो सका। कारण जानने के लिए अपने प्रदाता से संपर्क करें।</string>
+    <string name="home_trouble_offline">यह डिवाइस इंटरनेट से कनेक्ट नहीं है। अपना नेटवर्क जांचें।</string>
+    <string name="home_trouble_expired">आपकी सदस्यता समाप्त हो गई है। इसे अपने प्रदाता से नवीनीकृत करें।</string>
+    <string name="home_trouble_refused">आपके प्रदाता ने यह सदस्यता अस्वीकार कर दी। कारण जानने के लिए उनसे संपर्क करें।</string>
     <string name="browse_sort">क्रम: %1$s</string>
     <string name="browse_sort_provider">प्रदाता के अनुसार</string>
     <string name="browse_sort_name_asc">अ से ज्ञ</string>

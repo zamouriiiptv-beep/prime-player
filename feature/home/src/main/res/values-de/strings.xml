@@ -41,6 +41,10 @@
     <string name="home_source_xtream">Xtream</string>
     <string name="home_source_portal">Portal</string>
     <string name="home_disclaimer">Castivio ist ein Medienplayer. Es liefert keine Sender, Filme oder Abonnements – die fügst du selbst hinzu.</string>
+    <string name="home_trouble_unreachable">Der Server Ihres Abonnements ist nicht erreichbar. Wenden Sie sich an Ihren Anbieter, um den Grund zu erfahren.</string>
+    <string name="home_trouble_offline">Dieses Gerät ist nicht mit dem Internet verbunden. Prüfen Sie Ihr Netzwerk.</string>
+    <string name="home_trouble_expired">Ihr Abonnement ist abgelaufen. Verlängern Sie es bei Ihrem Anbieter.</string>
+    <string name="home_trouble_refused">Ihr Anbieter hat dieses Abonnement abgelehnt. Wenden Sie sich an ihn, um den Grund zu erfahren.</string>
     <string name="browse_sort">Sortierung: %1$s</string>
     <string name="browse_sort_provider">Anbieter</string>
     <string name="browse_sort_name_asc">A bis Z</string>

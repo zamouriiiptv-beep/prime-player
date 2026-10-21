@@ -2,6 +2,7 @@ package com.castivio.feature.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.castivio.core.platform.NetworkState
 import com.castivio.domain.CatalogRepository
 import com.castivio.domain.MediaKind
 import com.castivio.domain.ProviderSource
@@ -152,6 +153,14 @@ data class HomeState(
      * the defect [refreshing] was added for, one step later.
      */
     val refreshed: Boolean = false,
+    /**
+     * What is wrong with the subscription, or null when nothing is known to be.
+     *
+     * Said on the last line, in place of the disclaimer, while it lasts -- see
+     * [SubscriptionTrouble]. The header's card keeps its date beside it: a subscription
+     * paid for until next year and a server that does not answer are both true at once.
+     */
+    val trouble: SubscriptionTrouble? = null,
     val loading: Boolean = true,
 ) {
     /** True once a provider has been configured, whatever it did or did not carry. */
@@ -301,6 +310,7 @@ class HomeViewModel @Inject constructor(
     private val refresher: RefreshProvider,
     private val clock: TrustedTime,
     private val loads: SectionLoads,
+    private val network: NetworkState,
 ) : ViewModel() {
 
     private val mac: String = identity.current().macAddress.value
@@ -339,6 +349,7 @@ class HomeViewModel @Inject constructor(
                 },
                 done = outcome is Refreshed.Updated,
             )
+            contactOf(outcome)?.let { contact.value = it }
             // A failure stays until the card is pressed again: one that went on a timer is
             // one a viewer looks up to find already gone. Only an answer goes by itself.
             if (outcome is Refreshed.Updated) {
@@ -362,6 +373,25 @@ class HomeViewModel @Inject constructor(
      * button press that no store knows about.
      */
     private val _refresh = MutableStateFlow(RefreshUi())
+
+    /**
+     * How the last asking of the provider went: at Home's opening, or at a press of refresh.
+     *
+     * Held here for the reason [_refresh] is: no store knows it. The recorded answer is a
+     * store's, and outlives a failure on purpose -- the date from before stays true -- so
+     * the failure itself has to be kept somewhere, or the screen could not say it.
+     */
+    private val contact = MutableStateFlow<Contact?>(null)
+
+    /**
+     * An asking's outcome, as the trouble line reads it. The network is read now, at the
+     * failure, because the question is why this attempt failed. Null for "nobody to ask".
+     */
+    private fun contactOf(outcome: Refreshed?): Contact? = when (outcome) {
+        is Refreshed.Updated -> Contact.Answered
+        is Refreshed.Unreachable -> Contact.Failed(outcome.error, network.isOnline())
+        Refreshed.NoProvider, null -> null
+    }
 
     /**
      * Show a different playlist.
@@ -440,24 +470,27 @@ class HomeViewModel @Inject constructor(
     private val arrived = MutableStateFlow<Set<MediaKind>>(emptySet())
 
     init {
-        // A subscription with no answer from its provider is asked once, quietly, when Home
-        // shows it: the expiry date belongs on the card before any section is loaded, and
-        // adding a playlist asks nothing. The same question as [refresh], without letting
-        // the sections go stale -- see [RefreshProvider.askIfNeverAsked]. Asked again for
-        // the next subscription the menu switches to; a failure leaves the card as it was,
-        // for the next Home or a press of refresh.
+        // The subscription is asked about, quietly, when this holder starts -- each time
+        // Castivio is opened -- and again for every subscription the menu switches to: the
+        // expiry date belongs on the card before any section is loaded, and whether the
+        // server answers *now* is what the last line says when it does not. The same
+        // question as [refresh], without letting the sections go stale -- see
+        // [RefreshProvider.ask]. A switch clears the previous subscription's trouble first:
+        // it was that one's, not this one's.
         viewModelScope.launch {
             // `sources.active()` and not [provider]: this runs before the properties below
             // it are initialised, and [provider] is one of them.
             sources.active().map { it?.id }.distinctUntilChanged().collectLatest { id ->
+                contact.value = null
                 if (id == null) return@collectLatest
                 try {
-                    refresher.askIfNeverAsked(clock.nowMs())
+                    contact.value = contactOf(refresher.ask(clock.nowMs()))
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    // Nobody pressed anything, so there is nobody to tell: the card keeps
-                    // saying the provider was not checked, which is still the truth.
+                    // A question that broke rather than failed says nothing about the
+                    // subscription, so nothing is said about it: the line stays the
+                    // disclaimer, and refresh asks again.
                 }
             }
         }
@@ -537,11 +570,11 @@ class HomeViewModel @Inject constructor(
         // The marks and the cards' inputs together: both say what each section is doing,
         // and `combine` is typed to five.
         sections.combine(cardInputs) { marks, inputs -> marks to inputs },
-        // Paired with the recorded status because both are answers about the same
-        // question — what the provider says — and because `combine` is typed to five.
-        subscription.combine(_refresh) { recorded, refresh -> recorded to refresh },
+        // Together because all three are answers about the same question — what the
+        // provider says — and because `combine` is typed to five.
+        combine(subscription, _refresh, contact) { recorded, refresh, asked -> Answer(recorded, refresh, asked) },
     ) { shelf, tally, licence, fetchedAndCards, answer ->
-        val (status, refresh) = answer
+        val (status, refresh, asked) = answer
         val (fetched, cards) = fetchedAndCards
         val source = shelf.active
         val base = HomeState(
@@ -562,6 +595,7 @@ class HomeViewModel @Inject constructor(
             refreshing = refresh.busy,
             refreshFault = refresh.fault,
             refreshed = refresh.done,
+            trouble = subscriptionTrouble(asked, status),
             loading = false,
         )
         base.copy(
@@ -578,6 +612,9 @@ class HomeViewModel @Inject constructor(
 
     /** See [library]. */
     private data class Library(val active: ProviderSource?, val all: List<Playlist>)
+
+    /** What the provider has said, what the refresh card is doing, and how the last asking went. */
+    private data class Answer(val recorded: Recorded?, val refresh: RefreshUi, val asked: Contact?)
 
     /** See [_refresh]. */
     private data class RefreshUi(val busy: Boolean = false, val fault: RefreshFault? = null, val done: Boolean = false)

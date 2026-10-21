@@ -41,6 +41,10 @@
     <string name="home_source_xtream">Xtream</string>
     <string name="home_source_portal">Portal</string>
     <string name="home_disclaimer">Castivio adalah pemutar media. Aplikasi ini tidak menyediakan saluran, film, atau langganan — Anda yang menambahkannya.</string>
+    <string name="home_trouble_unreachable">Tidak dapat terhubung ke server langganan Anda. Hubungi penyedia Anda untuk mengetahui alasannya.</string>
+    <string name="home_trouble_offline">Perangkat ini tidak terhubung ke internet. Periksa jaringan Anda.</string>
+    <string name="home_trouble_expired">Langganan Anda telah kedaluwarsa. Perpanjang di penyedia Anda.</string>
+    <string name="home_trouble_refused">Penyedia Anda menolak langganan ini. Hubungi mereka untuk mengetahui alasannya.</string>
     <string name="browse_sort">Urutkan: %1$s</string>
     <string name="browse_sort_provider">Penyedia</string>
     <string name="browse_sort_name_asc">A ke Z</string>

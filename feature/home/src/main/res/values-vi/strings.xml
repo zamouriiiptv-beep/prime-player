@@ -41,6 +41,10 @@
     <string name="home_source_xtream">Xtream</string>
     <string name="home_source_portal">Cổng</string>
     <string name="home_disclaimer">Castivio là trình phát media. Ứng dụng không cung cấp kênh, phim hay thuê bao — bạn tự thêm chúng.</string>
+    <string name="home_trouble_unreachable">Không thể kết nối với máy chủ thuê bao của bạn. Hãy liên hệ nhà cung cấp của bạn để biết lý do.</string>
+    <string name="home_trouble_offline">Thiết bị này không kết nối Internet. Hãy kiểm tra mạng của bạn.</string>
+    <string name="home_trouble_expired">Thuê bao của bạn đã hết hạn. Hãy gia hạn với nhà cung cấp của bạn.</string>
+    <string name="home_trouble_refused">Nhà cung cấp của bạn đã từ chối thuê bao này. Hãy liên hệ họ để biết lý do.</string>
     <string name="browse_sort">Sắp xếp: %1$s</string>
     <string name="browse_sort_provider">Nhà cung cấp</string>
     <string name="browse_sort_name_asc">A đến Z</string>

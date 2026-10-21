@@ -41,6 +41,10 @@
     <string name="home_source_xtream">Xtream</string>
     <string name="home_source_portal">পোর্টাল</string>
     <string name="home_disclaimer">Castivio একটি মিডিয়া প্লেয়ার। এটি চ্যানেল, সিনেমা বা সাবস্ক্রিপশন দেয় না — সেগুলো আপনি নিজেই যোগ করেন।</string>
+    <string name="home_trouble_unreachable">আপনার সাবস্ক্রিপশনের সার্ভারে সংযোগ করা যায়নি। কারণ জানতে আপনার সরবরাহকারীর সাথে যোগাযোগ করুন।</string>
+    <string name="home_trouble_offline">এই ডিভাইসটি ইন্টারনেটে সংযুক্ত নয়। আপনার নেটওয়ার্ক পরীক্ষা করুন।</string>
+    <string name="home_trouble_expired">আপনার সাবস্ক্রিপশনের মেয়াদ শেষ হয়ে গেছে। আপনার সরবরাহকারীর কাছে এটি নবায়ন করুন।</string>
+    <string name="home_trouble_refused">আপনার সরবরাহকারী এই সাবস্ক্রিপশনটি প্রত্যাখ্যান করেছে। কারণ জানতে তাদের সাথে যোগাযোগ করুন।</string>
     <string name="browse_sort">সাজান: %1$s</string>
     <string name="browse_sort_provider">সরবরাহকারী অনুসারে</string>
     <string name="browse_sort_name_asc">অ থেকে হ</string>

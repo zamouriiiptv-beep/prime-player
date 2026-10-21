@@ -41,6 +41,10 @@
     <string name="home_source_xtream">Xtream</string>
     <string name="home_source_portal">پورتال</string>
     <string name="home_disclaimer">Castivio یک پخش‌کنندهٔ رسانه است. کانال، فیلم یا اشتراک فراهم نمی‌کند — آن‌ها را خودتان می‌افزایید.</string>
+    <string name="home_trouble_unreachable">اتصال به سرور اشتراک شما ممکن نشد. برای دانستن علت با ارائه‌دهندهٔ خود تماس بگیرید.</string>
+    <string name="home_trouble_offline">این دستگاه به اینترنت متصل نیست. شبکهٔ خود را بررسی کنید.</string>
+    <string name="home_trouble_expired">اشتراک شما منقضی شده است. آن را نزد ارائه‌دهندهٔ خود تمدید کنید.</string>
+    <string name="home_trouble_refused">ارائه‌دهندهٔ شما این اشتراک را رد کرد. برای دانستن علت با او تماس بگیرید.</string>
     <string name="browse_sort">مرتب‌سازی: %1$s</string>
     <string name="browse_sort_provider">بر پایهٔ ارائه‌دهنده</string>
     <string name="browse_sort_name_asc">الف تا ی</string>

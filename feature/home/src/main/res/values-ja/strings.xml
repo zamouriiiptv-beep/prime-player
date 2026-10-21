@@ -41,6 +41,10 @@
     <string name="home_source_xtream">Xtream</string>
     <string name="home_source_portal">ポータル</string>
     <string name="home_disclaimer">Castivio はメディアプレーヤーです。チャンネル・映画・サブスクリプションは提供しません。追加するのはご自身です。</string>
+    <string name="home_trouble_unreachable">サブスクのサーバーに接続できませんでした。理由はプロバイダーにお問い合わせください。</string>
+    <string name="home_trouble_offline">このデバイスはインターネットに接続されていません。ネットワークを確認してください。</string>
+    <string name="home_trouble_expired">サブスクの有効期限が切れました。プロバイダーで更新してください。</string>
+    <string name="home_trouble_refused">プロバイダーがこのサブスクを拒否しました。理由はプロバイダーにお問い合わせください。</string>
     <string name="browse_sort">並べ替え: %1$s</string>
     <string name="browse_sort_provider">プロバイダー</string>
     <string name="browse_sort_name_asc">A から Z</string>

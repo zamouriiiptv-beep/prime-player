@@ -41,6 +41,10 @@
     <string name="home_source_xtream">Xtream</string>
     <string name="home_source_portal">Portal</string>
     <string name="home_disclaimer">Castivio este un player media. Nu furnizează canale, filme sau abonamente — pe acelea le adăugați dvs.</string>
+    <string name="home_trouble_unreachable">Nu s-a putut stabili conexiunea cu serverul abonamentului dvs. Contactați furnizorul pentru a afla motivul.</string>
+    <string name="home_trouble_offline">Acest dispozitiv nu este conectat la internet. Verificați rețeaua.</string>
+    <string name="home_trouble_expired">Abonamentul dvs. a expirat. Reînnoiți-l la furnizorul dvs.</string>
+    <string name="home_trouble_refused">Furnizorul dvs. a refuzat acest abonament. Contactați-l pentru a afla motivul.</string>
     <string name="browse_sort">Sortare: %1$s</string>
     <string name="browse_sort_provider">După furnizor</string>
     <string name="browse_sort_name_asc">De la A la Z</string>
