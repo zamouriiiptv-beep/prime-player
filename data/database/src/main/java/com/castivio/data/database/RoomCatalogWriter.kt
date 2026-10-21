@@ -124,12 +124,13 @@ class RoomCatalogWriter(
         itemStatement = db.compileStatement(INSERT_ITEM)
         groupStatement = db.compileStatement(INSERT_GROUP)
         countStatement = db.compileStatement(COUNT_GROUP)
-        db.begin()
     }
 
     override fun writeGroups(groups: List<MediaGroup>) {
         val source = requireStarted()
         val statement = groupStatement ?: error("writeGroups before begin")
+        if (groups.isEmpty()) return
+        openTransaction()
         for (group in groups) {
             statement.clearBindings()
             statement.bindString(1, group.id)
@@ -155,6 +156,7 @@ class RoomCatalogWriter(
         requireStarted()
         val statement = countStatement ?: error("countGroups before begin")
         if (groupIds.isEmpty()) return
+        openTransaction()
         timed(DatabaseStep.COUNTS) {
             for (id in groupIds) {
                 statement.clearBindings()
@@ -175,6 +177,7 @@ class RoomCatalogWriter(
         val source = requireStarted()
         val statement = itemStatement ?: error("writeItems before begin")
         if (items.isEmpty()) return
+        openTransaction()
         wroteRows = true
         rowsSinceCommit = true
         timed(DatabaseStep.ROWS) {
@@ -210,7 +213,8 @@ class RoomCatalogWriter(
     }
 
     /**
-     * Ends one batch's transaction and opens the next, inside a trace section.
+     * Ends one batch's transaction, inside a trace section. The next is opened by the next
+     * write -- see [openTransaction].
      *
      * The section is where SQLite's share of an import lives. Phase A measured our own
      * parse-and-build half on the JVM and found it to be under a second for 400,000
@@ -243,7 +247,6 @@ class RoomCatalogWriter(
         // observers that the tables changed. Without this the first import
         // finishes and the screen stays empty until something else writes.
         announceCommit()
-        db.begin()
     }
 
     /**
@@ -406,6 +409,18 @@ class RoomCatalogWriter(
         database.openHelper.writableDatabase
             .query("SELECT item_count FROM media_group WHERE id = ?", arrayOf<Any>(groupId))
             .use { it.moveToFirst() && it.getLong(0) > 0 }
+
+    /**
+     * Opens the transaction a write goes into, when none is open.
+     *
+     * Opened by the write rather than at the start and again after every commit: an open
+     * transaction holds SQLite's one write connection, and every reader that needs it --
+     * Room's notices, a list's first page -- waited for the next commit while the writer
+     * sat waiting for the network with an empty transaction open.
+     */
+    private fun openTransaction() {
+        if (!inTransaction) database.openHelper.writableDatabase.begin()
+    }
 
     private fun requireStarted(): String = sourceId ?: error("write before begin")
 

@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -174,6 +175,10 @@ class BrowseViewModel @Inject constructor(
      * Derived rather than stored, and the selection is passed through [surviving] on
      * the way — so a category that vanished in a re-import cannot leave the screen
      * querying a group id that no longer exists.
+     *
+     * Distinct, because [groups] answers again every time a category's count changes --
+     * about once a second while a section arrives -- and every answer here is a new pager
+     * whose first page starts over. The rows are asked for again only when the query is.
      */
     private val query: Flow<CatalogQuery> =
         combine(section, chosen, groups, order) { current, selected, available, sort ->
@@ -182,7 +187,7 @@ class BrowseViewModel @Inject constructor(
                 groupId = surviving(selected, available),
                 sort = sort,
             )
-        }
+        }.distinctUntilChanged()
 
     val state: StateFlow<BrowseState> = combine(
         section,
