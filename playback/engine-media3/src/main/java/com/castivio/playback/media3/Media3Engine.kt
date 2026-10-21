@@ -72,14 +72,16 @@ import kotlinx.coroutines.flow.asStateFlow
  *
  * ## Two profiles, one class
  *
- * [EngineProfile.PRIMARY] and [EngineProfile.BACKUP] differ only in how their decoders are
- * constructed. They are not two classes because they are not two behaviours: the same code
- * plays the stream, and what changes is what it is willing to accept. A second class would
- * be a second place for the state mapping to drift.
+ * [EngineProfile.PRIMARY] and [EngineProfile.BACKUP] differ only in how they are
+ * constructed — decoders, extractors and how forgiving the reader is. They are not two
+ * classes because they are not two behaviours: the same code plays the stream, and what
+ * changes is what it is willing to accept. A second class would be a second place for the
+ * state mapping to drift.
  *
  * The product's backup engine is LibVLC now -- see `Media3EngineFactory` -- so the backup
- * profile here is constructed by tests and nothing else. Both profiles read transport
- * streams the forgiving way; see `buildPlayer`.
+ * profile here, with its forgiving transport-stream reader, is constructed by tests and
+ * nothing else. The primary reads transport streams strictly; see `buildPlayer` for why it
+ * stays that way for now.
  */
 @OptIn(UnstableApi::class)
 class Media3Engine(
@@ -192,23 +194,26 @@ class Media3Engine(
             .build()
 
         val extractors = DefaultExtractorsFactory().apply {
-            // **The forgiving reader, on the engine that opens every channel.**
+            if (profile == EngineProfile.BACKUP) {
+                // An IPTV transport stream frequently declares nothing useful in its PMT.
+                // The strict reader believes the declaration and finds no tracks; this one
+                // looks for the streams that are actually there.
+                setTsExtractorFlags(
+                    DefaultTsPayloadReaderFactory.FLAG_DETECT_ACCESS_UNITS or
+                        DefaultTsPayloadReaderFactory.FLAG_ALLOW_NON_IDR_KEYFRAMES or
+                        DefaultTsPayloadReaderFactory.FLAG_ENABLE_HDMV_DTS_AUDIO_STREAMS,
+                )
+                setConstantBitrateSeekingEnabled(true)
+            }
+            // **Not on the primary until a television has said so.**
             //
-            // An IPTV transport stream often declares nothing useful about its pictures: no
-            // access-unit delimiters between them, and keyframes that are I-frames rather than
-            // IDR frames. The strict reader believes the declaration -- it waits for a
-            // delimiter that never comes and a keyframe it never recognises -- so no frame
-            // reaches the decoder, the opening budget expires and the channel is handed to the
-            // backup. This reader finds the pictures that are actually there.
-            //
-            // It used to be the backup profile's alone. The backup is LibVLC now and that
-            // profile is no longer built, so the primary was left with only the strict reader:
-            // the channels it rescued went to the backup engine, three seconds late, every time.
-            setTsExtractorFlags(
-                DefaultTsPayloadReaderFactory.FLAG_DETECT_ACCESS_UNITS or
-                    DefaultTsPayloadReaderFactory.FLAG_ALLOW_NON_IDR_KEYFRAMES,
-            )
-            setConstantBitrateSeekingEnabled(true)
+            // The primary opens every channel, and it keeps the strict reader the channels
+            // that play today are played with. `FLAG_DETECT_ACCESS_UNITS` is documented as a
+            // flag to leave off for a stream that carries access unit delimiters -- many IPTV
+            // channels do -- and on one it splits every picture into a delimiter-only sample
+            // and the picture. Whether a box's decoder minds is a question for the box. The
+            // channels the strict reader cannot open still go to the backup engine, as they
+            // always have.
         }
 
         val sources = DefaultMediaSourceFactory(
