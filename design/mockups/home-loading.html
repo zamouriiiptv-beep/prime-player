@@ -16,8 +16,7 @@
     ?frame=<name>               one frame at its device size (833x385 phone, 960x540 TV)
     ?frame=sheet&set=a|b|c|d|e|f  frames stacked with their captions, for review; d is how
                                 a refresh went, said on its own rail card; e the subscription's
-                                trouble; f Live TV pressed before its first category is complete,
-                                and Home again while the rest arrives
+                                trouble; f Home again while the rest of Live TV arrives
     &lang=en                    left to right, in English
 -->
 <html lang="ar" dir="rtl">
@@ -199,7 +198,7 @@ const STR = {
     notFetched:'لم يُحمَّل بعد', loadingLive:'جارٍ تحميل القنوات…', loading:'جارٍ التحميل…', refreshing:'جارٍ التحديث…',
     fromProvider:'من خادم الاشتراك', done:'اكتمل التحميل', queued:'في الانتظار',
     failed:'تعذّر التحميل', failedLive:'تعذّر تحميل القنوات', retry:'اضغط لإعادة المحاولة', retryShort:'اضغط للإعادة',
-    opensWhenDone:'يُفتح عند اكتمال التحميل', opensFirst:'يُفتح مع أول باقة', seconds:'%s ث',
+    opensWhenDone:'يُفتح عند اكتمال التحميل', seconds:'%s ث',
     rail:['تحديث','تبديل القائمة','آخر الإضافات','الإعدادات','خروج'],
     refreshFailed:'تعذّر التحديث', retryRail:'اضغط للإعادة', refreshDone:'تم التحديث',
     trouble:{
@@ -219,7 +218,7 @@ const STR = {
     notFetched:'Not downloaded yet', loadingLive:'Loading channels…', loading:'Loading…', refreshing:'Refreshing…',
     fromProvider:'From your provider', done:'Loaded', queued:'Waiting its turn',
     failed:'Couldn’t load', failedLive:'Couldn’t load the channels', retry:'Press to try again', retryShort:'Press to retry',
-    opensWhenDone:'Opens when it has loaded', opensFirst:'Opens with its first category', seconds:'%s s',
+    opensWhenDone:'Opens when it has loaded', seconds:'%s s',
     rail:['Refresh','Change list','New additions','Settings','Exit'],
     refreshFailed:'Refresh failed', retryRail:'Press to retry', refreshDone:'Refreshed',
     trouble:{
@@ -265,8 +264,7 @@ function heroCard(sec, s, T, lang, opts = {}) {
     case 'counted': body = `<div class="hcount" style="color:${hue}">${unit(T, sec, s.n, lang)}</div>`; break;
     case 'empty': body = `<div class="hs quiet">${T.none[sec]}</div>`; break;
     case 'loading': {
-      // Live TV opens with its first category, so its hint says that; see channels-arriving.html.
-      const word = s.hint ? `<span class="wordmark hint">${s.hint === 'first' ? T.opensFirst : T.opensWhenDone}</span>`
+      const word = s.hint ? `<span class="wordmark hint">${T.opensWhenDone}</span>`
                           : `<span class="wordmark amber">${T.loadingLive}</span>`;
       const seg = opts.referenceColours ? 'seg hue' : 'seg';
       body = `<div class="srow">${word}<span class="val">${unit(T, sec, s.n, lang)}</span></div>
@@ -421,17 +419,15 @@ const FRAMES = {
     cap: '<span class="n">١٨ — الإطار ١٥ بالإنجليزية.</span>'},
   'tv': {dev: 'tv', cards: {live: {k: 'done', n: 54130}, movies: U, series: U, radio: {k: 'loading', pct: 60, focus: true}},
     cap: '<span class="n">٩ — الإطار ٣ على التلفاز، 960×540.</span> التركيز على الراديو بالريموت.'},
-  'live-first': {cards: {live: {k: 'loading', n: 31, hint: 'first', focus: true}, movies: U, series: U, radio: U},
-    cap: '<span class="n">١٩ — ضغطة ثانية على البث المباشر قبل أن تكتمل أول باقة.</span> الضغطة الأولى بدأت التحميل كما اليوم (الإطار ١). الثانية تجعل البطاقة تقول «يُفتح مع أول باقة» لثانيتين، والشاشة تُفتح وحدها حين تكتمل الباقة الأولى (channels-arriving.html) — لا ضغطة ثالثة. هذا يحلّ محلّ قاعدة الإطار ٥، «لا يُفتح نصف مكتمل»، <b>للبث المباشر وحده</b>؛ الأفلام والمسلسلات والراديو على حالها حتى مرحلتها.'},
   'live-back': {cards: {live: {k: 'counted', n: 12940, focus: true}, movies: U, series: U, radio: U},
-    cap: '<span class="n">٢٠ — الرجوع إلى Home بينما تكمل الباقات تحميلها.</span> بطاقة البث المباشر تعرض <b>عدد القنوات فقط</b>، كأي قسم محمَّل: لا «جارٍ التحميل»، ولا شريط، ولا «اكتمل التحميل» بعده — المستخدم لا يشعر بالتحميل. العدد هو ما وصل حتى الآن، ويكبر وحده حتى المجموع: المزوّد لا يذكر المجموع قبل النهاية. والضغط على البطاقة يفتح الشاشة فورًا.'},
-  'live-first-en': {lang: 'en', cards: {live: {k: 'loading', n: 31, hint: 'first', focus: true}, movies: U, series: U, radio: U},
-    cap: '<span class="n">٢١ — الإطار ١٩ بالإنجليزية.</span>'},
+    cap: '<span class="n">١٩ — الرجوع إلى Home بينما تكمل الباقات تحميلها.</span> الضغط على البث المباشر بدأ التحميل كما اليوم (الإطار ١)، والشاشة فُتحت وحدها مع أول باقة (channels-arriving.html). ضغطة ثانية قبلها لا تغيّر شيئًا: البطاقة تبقى «جارٍ تحميل القنوات…» حتى تُفتح الشاشة، بلا جملة. وعند الرجوع تعرض البطاقة <b>عدد القنوات فقط</b>، كأي قسم محمَّل: لا «جارٍ التحميل»، ولا شريط، ولا «اكتمل التحميل» بعده — المستخدم لا يشعر بالتحميل. العدد هو ما وصل حتى الآن، ويكبر وحده حتى المجموع، فالمزوّد لا يذكره قبل النهاية؛ والضغط على البطاقة يفتح الشاشة فورًا. هذا يحلّ محلّ قاعدة الإطار ٥، «لا يُفتح نصف مكتمل»، <b>للبث المباشر وحده</b>؛ الأفلام والمسلسلات والراديو على حالها حتى مرحلتها.'},
+  'live-back-en': {lang: 'en', cards: {live: {k: 'counted', n: 12940, focus: true}, movies: U, series: U, radio: U},
+    cap: '<span class="n">٢٠ — الإطار ١٩ بالإنجليزية.</span>'},
 };
 const SETS = {a: ['press-live', 'queued', 'live-done', 'movies'], b: ['pressed', 'fail-empty', 'refresh'], c: ['movies-en', 'tv', 'compare'],
   d: ['refresh-failed', 'refresh-done', 'refresh-failed-en', 'refresh-failed-tv'],
   e: ['trouble-server', 'trouble-offline', 'trouble-expired', 'trouble-en'],
-  f: ['live-first', 'live-back', 'live-first-en']};
+  f: ['live-back', 'live-back-en']};
 
 function compare() {
   // Two panels at the phone's own panel size: the reference's colours, and the state language's.
