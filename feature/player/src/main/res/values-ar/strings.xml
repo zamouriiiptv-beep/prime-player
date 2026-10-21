@@ -18,13 +18,8 @@
     <string name="player_close">إغلاق</string>
     <string name="player_play">تشغيل</string>
     <string name="player_pause">إيقاف مؤقّت</string>
-    <string name="player_previous">السابق</string>
-    <string name="player_next">التالي</string>
     <string name="player_replay_10">عشر ثوانٍ للخلف</string>
     <string name="player_forward_10">عشر ثوانٍ للأمام</string>
-    <string name="player_fullscreen">ملء الشاشة</string>
-    <string name="player_channels">القنوات</string>
-    <string name="player_guide">الدليل</string>
 
     <string name="player_live">مباشر</string>
     <string name="player_live_now">مباشر الآن</string>
@@ -123,7 +118,6 @@
     <string name="player_aspect_4_3">4:3</string>
     <string name="player_aspect_zoom">تكبير</string>
     <string name="player_quality_auto">تلقائي</string>
-    <string name="player_pip">صورة داخل صورة</string>
     <string name="player_statistics">إحصاءات التشغيل</string>
     <string name="player_no_tracks">هذا البثّ يحمل مسارًا واحدًا فقط.</string>
 

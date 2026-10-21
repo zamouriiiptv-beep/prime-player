@@ -24,13 +24,8 @@
     <string name="player_close">Close</string>
     <string name="player_play">Play</string>
     <string name="player_pause">Pause</string>
-    <string name="player_previous">Previous</string>
-    <string name="player_next">Next</string>
     <string name="player_replay_10">Back ten seconds</string>
     <string name="player_forward_10">Forward ten seconds</string>
-    <string name="player_fullscreen">Fill the screen</string>
-    <string name="player_channels">Channels</string>
-    <string name="player_guide">Guide</string>
 
     <!-- Live -->
     <string name="player_live">LIVE</string>
@@ -143,7 +138,6 @@
     <string name="player_aspect_4_3">4:3</string>
     <string name="player_aspect_zoom">Zoom</string>
     <string name="player_quality_auto">Automatic</string>
-    <string name="player_pip">Picture in picture</string>
     <string name="player_statistics">Playback statistics</string>
     <!-- Shown when the container has declared none. Not an error: many streams carry one track. -->
     <string name="player_no_tracks">This stream carries only one.</string>

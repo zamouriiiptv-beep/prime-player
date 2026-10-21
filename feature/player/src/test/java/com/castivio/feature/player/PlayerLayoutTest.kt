@@ -11,10 +11,13 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -38,6 +41,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 /**
@@ -99,8 +103,9 @@ class PlayerLayoutTest {
     /**
      * The case that actually overflowed: Arabic, on a television, behind the live edge.
      *
-     * Timeshift adds "Back to live" to a row that already carries a guide and a channel
-     * list, and Arabic labels are longer than the English ones the row was drawn with. The
+     * Timeshift adds "Back to live" to a row that carried a guide and a channel list when
+     * this test was written, and Arabic labels are longer than the English ones the row was
+     * drawn with. The
      * fix was to let the row shrink its items rather than push them out — the labels
      * ellipsis, the targets do not — and this is the test that says so.
      */
@@ -340,6 +345,9 @@ class PlayerLayoutTest {
      * photograph: the press not arriving, the source refusing to be sought, or the engine
      * accepting a position and staying put. This rules out the first at handset geometry,
      * with the chrome up and the full-screen tap target of the picture underneath it.
+     *
+     * On a channel that keeps a window behind it: a channel that cannot be sought draws no
+     * jumps at all, which the test after this one says.
      */
     @Test
     fun `the jump controls call back with ten seconds in each direction`() {
@@ -347,7 +355,7 @@ class PlayerLayoutTest {
         compose.show(
             HANDSET,
             DeviceClass.Expanded,
-            playingLive(),
+            playingLive().copy(seekable = true),
             LayoutDirection.Rtl,
             PlayerActions(onSeekBy = { jumps += it }),
         )
@@ -360,6 +368,70 @@ class PlayerLayoutTest {
             listOf(-10_000L, 10_000L),
             jumps,
         )
+    }
+
+    /* ------------------------------------------------------- controls that cannot act */
+
+    /**
+     * A channel that cannot be sought has no jumps.
+     *
+     * Most channels are a stream with no window behind it. There a press was counted, logged
+     * as refused, and changed nothing on screen — two stops for the remote on the way along
+     * the bar to nothing.
+     */
+    @Test
+    fun `a channel that cannot be sought draws no jumps`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingLive())
+
+        compose.onAllNodesWithTag(PlayerTags.REPLAY).assertCountEquals(0)
+        compose.onAllNodesWithTag(PlayerTags.FORWARD).assertCountEquals(0)
+    }
+
+    /** A broadcast played faster runs out of what was sent; slower, it leaves the window. */
+    @Test
+    fun `a channel has no speed control`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingLive())
+
+        compose.onAllNodesWithTag(PlayerTags.SPEED).assertCountEquals(0)
+    }
+
+    /** And a film keeps its own. */
+    @Test
+    fun `a film keeps its speed control`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingFilm())
+
+        compose.onNodeWithTag(PlayerTags.SPEED).assertIsDisplayed()
+    }
+
+    /** The same rule in the settings sheet, which listed the speed for everything. */
+    @Test
+    fun `a channel's settings sheet offers no speed`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingLive().copy(sheet = Sheet.Settings))
+
+        compose.onAllNodesWithText(text(R.string.player_speed)).assertCountEquals(0)
+    }
+
+    @Test
+    fun `a film's settings sheet offers its speed`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingFilm().copy(sheet = Sheet.Settings))
+
+        compose.onNodeWithText(text(R.string.player_speed)).assertIsDisplayed()
+    }
+
+    /**
+     * The middle of the picture holds the play control and nothing else.
+     *
+     * Previous and next stood either side of it with nothing behind them — no caller ever gave
+     * the route a channel or an episode to step to. Counted as pressable things inside the
+     * band, so a control added there tomorrow has to be one that acts.
+     */
+    @Test
+    fun `the centre carries the play control alone`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingLive())
+
+        compose.onAllNodes(hasClickAction() and hasAnyAncestor(hasTestTag(PlayerTags.CENTRE)))
+            .assertCountEquals(1)
+        compose.onNodeWithTag(PlayerTags.PLAY).assertIsDisplayed()
     }
 
     /* --------------------------------------------------------------- the top-bar button */
@@ -1202,11 +1274,10 @@ class PlayerLayoutTest {
 
     private val CONTROLS = listOf(
         PlayerTags.BACK, PlayerTags.LOCK, PlayerTags.CAST, PlayerTags.MORE,
-        PlayerTags.PREVIOUS, PlayerTags.REPLAY, PlayerTags.PLAY,
-        PlayerTags.FORWARD, PlayerTags.NEXT,
+        PlayerTags.REPLAY, PlayerTags.PLAY, PlayerTags.FORWARD,
         PlayerTags.TIMELINE, PlayerTags.TOOLS, PlayerTags.TO_LIVE,
         PlayerTags.SPEED, PlayerTags.SUBTITLES, PlayerTags.AUDIO, PlayerTags.ASPECT,
-        PlayerTags.GUIDE, PlayerTags.CHANNELS, PlayerTags.QUALITY, PlayerTags.FULLSCREEN,
+        PlayerTags.QUALITY,
         PlayerTags.EPG,
     )
 
@@ -1235,4 +1306,7 @@ class PlayerLayoutTest {
 
     private fun ComposeContentTestRule.bounds(tag: String): DpRect =
         onNodeWithTag(tag).getUnclippedBoundsInRoot()
+
+    /** A label as the screen resolves it, so a row is found by what it says. */
+    private fun text(id: Int): String = RuntimeEnvironment.getApplication().getString(id)
 }

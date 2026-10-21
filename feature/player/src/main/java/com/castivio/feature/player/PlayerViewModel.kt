@@ -527,9 +527,9 @@ class PlayerViewModel @Inject constructor(
      * see carrying on playing over whatever they went to do. A channel is stopped instead,
      * and opened again on the way back: see the note inside.
      *
-     * `ON_STOP` and not `ON_PAUSE` is what calls this, and the distinction is picture in
-     * picture: a player in a PiP window is paused by the system and still on screen, and
-     * pausing there would stop the very thing PiP exists to keep running.
+     * `ON_STOP` and not `ON_PAUSE` is what calls this, and the distinction is a split
+     * screen: a player beside another application is paused by the system and still on
+     * screen, and pausing there would stop a film somebody is watching.
      *
      * Nothing resumes a film automatically on the way back -- see [returnFromBackground]. A
      * film that starts itself the moment a phone is unlocked is how a player gets muted for

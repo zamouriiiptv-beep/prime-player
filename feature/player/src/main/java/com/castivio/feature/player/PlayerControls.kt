@@ -59,9 +59,9 @@ import kotlinx.coroutines.delay
  *
  * Live and on-demand are one screen, and that is a product decision rather than an
  * economy: a user who watches both should not have to learn the player twice. Live swaps
- * three things and adds one — the timeline becomes a live position, previous/next step
- * channels rather than chapters, the title gains a LIVE pill, and a programme strip appears
- * above the timeline.
+ * two things and adds one — the timeline becomes a live position, the title gains a LIVE
+ * pill, and a programme strip appears above the timeline. It also draws less: no speed,
+ * which a broadcast has no use for, and no jumps on a channel that cannot be sought.
  * ========================================================================= */
 
 /**
@@ -191,7 +191,7 @@ private fun Pill(text: String, fill: Color, ink: Color, tag: String? = null) {
 }
 
 /**
- * The centre: step back, play, step on.
+ * The centre: the play control, and nothing beside it.
  *
  * ## Why the ten-second jumps are no longer here
  *
@@ -200,6 +200,13 @@ private fun Pill(text: String, fill: Color, ink: Color, tag: String? = null) {
  * the screen is the worst place for something pressed repeatedly: the thumb covers the part
  * of the film the viewer is looking at while trying to find the moment they want. The bar
  * and the controls that move along it now sit together, out of the way of the frame.
+ *
+ * ## Why previous and next are not here either
+ *
+ * They took the jumps' place, and nothing was ever behind them: no caller gave the route a
+ * way to step to another channel or episode, so both were targets that did nothing from a
+ * remote, a thumb or a screen reader — two of the three stops a remote made across the
+ * middle of the picture. Castivio does not draw a control it cannot act on.
  *
  * The play control is [Sizing.minTarget] plus a margin rather than the same size as its
  * neighbours: it is the one control a thumb finds without looking, and it is the one thing
@@ -211,24 +218,10 @@ internal fun CentreCluster(state: PlayerState, actions: PlayerActions) {
         Modifier
             .fillMaxWidth()
             .testTag(PlayerTags.CENTRE),
-        horizontalArrangement = Arrangement.spacedBy(barGapLarge(), Alignment.CenterHorizontally),
+        horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        PlayerButton(
-            icon = CastivioIcons.Previous,
-            label = stringResource(R.string.player_previous),
-            tag = PlayerTags.PREVIOUS,
-            onClick = actions.onPrevious,
-            mirror = true,
-        )
         PlayControl(state, actions)
-        PlayerButton(
-            icon = CastivioIcons.Next,
-            label = stringResource(R.string.player_next),
-            tag = PlayerTags.NEXT,
-            onClick = actions.onNext,
-            mirror = true,
-        )
     }
 }
 
@@ -491,13 +484,21 @@ private fun Timeline(state: PlayerState, actions: PlayerActions) {
         // `mirror`, because the bar itself mirrors: in Arabic it fills from the right, so
         // later in the film is to the left and a chevron that pointed left in both
         // directions would be pointing backwards in one of them.
-        PlayerButton(
-            icon = CastivioIcons.Replay10,
-            label = stringResource(R.string.player_replay_10),
-            tag = PlayerTags.REPLAY,
-            onClick = { actions.onSeekBy(-JUMP_MS) },
-            mirror = true,
-        )
+        //
+        // **Not on a channel that cannot be sought.** Most channels are a stream with no
+        // window behind it, and there a press was counted, logged as refused and changed
+        // nothing on screen. A channel that does keep a window says so through the engine,
+        // and gets its jumps when it does.
+        val jumps = !live || state.seekable
+        if (jumps) {
+            PlayerButton(
+                icon = CastivioIcons.Replay10,
+                label = stringResource(R.string.player_replay_10),
+                tag = PlayerTags.REPLAY,
+                onClick = { actions.onSeekBy(-JUMP_MS) },
+                mirror = true,
+            )
+        }
 
         val played = when {
             live -> 1f
@@ -594,13 +595,15 @@ private fun Timeline(state: PlayerState, actions: PlayerActions) {
             }
         }
 
-        PlayerButton(
-            icon = CastivioIcons.Forward10,
-            label = stringResource(R.string.player_forward_10),
-            tag = PlayerTags.FORWARD,
-            onClick = { actions.onSeekBy(JUMP_MS) },
-            mirror = true,
-        )
+        if (jumps) {
+            PlayerButton(
+                icon = CastivioIcons.Forward10,
+                label = stringResource(R.string.player_forward_10),
+                tag = PlayerTags.FORWARD,
+                onClick = { actions.onSeekBy(JUMP_MS) },
+                mirror = true,
+            )
+        }
 
         if (!live) {
             Text(
@@ -631,14 +634,21 @@ private fun fractionAt(x: Float, width: Float, direction: LayoutDirection): Floa
 /**
  * The one row whose contents vary by state.
  *
- * Live adds a guide and a channel list; a stream that has fallen behind adds the way back
- * to the edge. On a television at 956dp with Arabic labels this ran past the safe area, so
- * the row is allowed to **shrink its items rather than push them out**: the labels
- * ellipsis, the targets never do. That is the whole of the fix, and it is why the wide
- * buttons carry `weight` with a floor rather than a fixed width.
+ * A film adds its speed; a stream that has fallen behind the live edge adds the way back to
+ * it. On a television at 956dp with Arabic labels this ran past the safe area, so the row
+ * is allowed to **shrink its items rather than push them out**: the labels ellipsis, the
+ * targets never do. That is the whole of the fix, and it is why the wide buttons carry
+ * `weight` with a floor rather than a fixed width.
  *
  * "Back to live" is in this row and not in the time row above it. It was drawn inline there
  * first, at 32dp, which measured as the only control in the player under the touch floor.
+ *
+ * ## What is no longer in it
+ *
+ * A guide and a channel list on live, and "fill the screen" on everything. The first two
+ * were never connected to anything — no caller gave the route a guide or a list to open —
+ * and the third hid the controls, which a press on the picture, back, and four seconds of
+ * nothing already do. Each was a stop for the remote on the way to a control that works.
  */
 @Composable
 private fun ToolsRow(state: PlayerState, actions: PlayerActions) {
@@ -649,14 +659,18 @@ private fun ToolsRow(state: PlayerState, actions: PlayerActions) {
         horizontalArrangement = Arrangement.spacedBy(barGap()),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        PlayerButton(
-            icon = CastivioIcons.Speed,
-            label = stringResource(R.string.player_speed),
-            tag = PlayerTags.SPEED,
-            onClick = { actions.onSheet(Sheet.Settings) },
-            text = speedLabel(state.speed),
-            shrinkable = true,
-        )
+        // A film's, and not a channel's: a broadcast played faster runs out of what has been
+        // sent, and played slower falls out of the provider's window.
+        if (!state.request.isLive) {
+            PlayerButton(
+                icon = CastivioIcons.Speed,
+                label = stringResource(R.string.player_speed),
+                tag = PlayerTags.SPEED,
+                onClick = { actions.onSheet(Sheet.Settings) },
+                text = speedLabel(state.speed),
+                shrinkable = true,
+            )
+        }
         PlayerButton(
             icon = CastivioIcons.Subtitles,
             label = stringResource(R.string.player_sheet_subtitles),
@@ -682,21 +696,6 @@ private fun ToolsRow(state: PlayerState, actions: PlayerActions) {
             shrinkable = true,
         )
 
-        if (state.request.isLive) {
-            PlayerButton(
-                icon = CastivioIcons.Guide,
-                label = stringResource(R.string.player_guide),
-                tag = PlayerTags.GUIDE,
-                onClick = actions.onGuide,
-            )
-            PlayerButton(
-                icon = CastivioIcons.Channels,
-                label = stringResource(R.string.player_channels),
-                tag = PlayerTags.CHANNELS,
-                onClick = actions.onChannels,
-            )
-        }
-
         // Only when there is something to return *from*. Castivio never draws a disabled
         // control, so a stream at the live edge does not carry this at all.
         if (state.request.isLive && state.isTimeshifted) {
@@ -717,12 +716,6 @@ private fun ToolsRow(state: PlayerState, actions: PlayerActions) {
             label = stringResource(R.string.player_sheet_quality),
             tag = PlayerTags.QUALITY,
             onClick = { actions.onSheet(Sheet.Quality) },
-        )
-        PlayerButton(
-            icon = CastivioIcons.Fullscreen,
-            label = stringResource(R.string.player_fullscreen),
-            tag = PlayerTags.FULLSCREEN,
-            onClick = actions.onFullscreen,
         )
     }
 }

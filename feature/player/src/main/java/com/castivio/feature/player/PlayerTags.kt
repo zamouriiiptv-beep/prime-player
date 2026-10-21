@@ -50,8 +50,6 @@ internal object PlayerTags {
     const val CAST = "player.cast"
 
     const val PLAY = "player.play"
-    const val PREVIOUS = "player.previous"
-    const val NEXT = "player.next"
     const val REPLAY = "player.replay"
     const val FORWARD = "player.forward"
 
@@ -77,11 +75,8 @@ internal object PlayerTags {
     const val AUDIO = "player.audio"
     const val SPEED = "player.speed"
     const val ASPECT = "player.aspect"
-    const val GUIDE = "player.guide"
-    const val CHANNELS = "player.channels"
     const val QUALITY = "player.quality"
     const val MORE = "player.more"
-    const val FULLSCREEN = "player.fullscreen"
 
     /**
      * The programme strip.

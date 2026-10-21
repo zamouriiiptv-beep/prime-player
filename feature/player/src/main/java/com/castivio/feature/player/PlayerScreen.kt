@@ -403,8 +403,6 @@ data class PlayerActions(
     val onPlayPause: () -> Unit = {},
     val onSeekBy: (Long) -> Unit = {},
     val onSeekTo: (Long) -> Unit = {},
-    val onPrevious: () -> Unit = {},
-    val onNext: () -> Unit = {},
     val onToggleControls: () -> Unit = {},
     val onAspect: (AspectMode) -> Unit = {},
     val onSubtitleStyle: (SubtitleStyle) -> Unit = {},
@@ -422,13 +420,9 @@ data class PlayerActions(
     val onReturnToLive: () -> Unit = {},
     val onRetry: () -> Unit = {},
     val onTryBackup: () -> Unit = {},
-    val onFullscreen: () -> Unit = {},
-    val onPictureInPicture: () -> Unit = {},
     val onShare: () -> Unit = {},
     /** Compact only: the press that makes this the large player. See [PlayerMode]. */
     val onExpand: () -> Unit = {},
-    val onGuide: () -> Unit = {},
-    val onChannels: () -> Unit = {},
     val setOutput: (VideoOutput?) -> Unit = {},
     /** A surface going away: it gives the picture up only if it still holds it. */
     val releaseOutput: (VideoOutput) -> Unit = {},

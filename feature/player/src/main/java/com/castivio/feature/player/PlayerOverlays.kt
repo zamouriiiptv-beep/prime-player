@@ -984,55 +984,68 @@ private fun sheetRows(sheet: Sheet, state: PlayerState): List<SheetRow> = when (
         state.videoTracks.forEach { track -> add(trackRow(CastivioIcons.Quality, track)) }
     }
 
-    Sheet.Settings -> listOf(
-        SheetRow(
-            icon = CastivioIcons.Speed,
-            name = stringResource(R.string.player_speed),
-            detail = speedLabel(state.speed),
-            onPick = { it.onSpeed(nextSpeed(state.speed)) },
-        ),
-        SheetRow(
-            icon = CastivioIcons.Subtitles,
-            name = stringResource(R.string.player_sheet_subtitles),
-            onPick = { it.onSheet(Sheet.Subtitles) },
-        ),
-        SheetRow(
-            icon = CastivioIcons.AudioTrack,
-            name = stringResource(R.string.player_sheet_audio),
-            onPick = { it.onSheet(Sheet.Audio) },
-        ),
-        SheetRow(
-            icon = CastivioIcons.Aspect,
-            name = stringResource(R.string.player_aspect),
-            // Reads the mode and sets the next one, exactly as the speed row above does.
-            // It used to print "Fit" whatever the state was and had no `onPick` at all —
-            // an affordance the design had drawn and the code had never connected, which
-            // is why a stretched picture could not be corrected from inside the player.
-            detail = aspectLabel(state.aspect),
-            onPick = { it.onAspect(nextAspect(state.aspect)) },
-        ),
-        SheetRow(
-            icon = CastivioIcons.PictureInPicture,
-            name = stringResource(R.string.player_pip),
-            onPick = { it.onPictureInPicture() },
-        ),
-        SheetRow(
-            icon = CastivioIcons.Quality,
-            name = stringResource(R.string.player_statistics),
-            onPick = {
-                it.onSheet(null)
-                it.onStatistics(true)
-            },
-        ),
-        SheetRow(
-            icon = CastivioIcons.Share,
-            name = stringResource(R.string.player_share),
-            onPick = {
-                it.onSheet(null)
-                it.onShare()
-            },
-        ),
-    )
+    // No picture in picture: the row asked the system for a window the activity never
+    // declared it could have, the system refused, and the refusal was swallowed -- a row
+    // that did nothing on every device. No speed on a channel, for the reason the tools row
+    // gives.
+    Sheet.Settings -> buildList {
+        if (!state.request.isLive) {
+            add(
+                SheetRow(
+                    icon = CastivioIcons.Speed,
+                    name = stringResource(R.string.player_speed),
+                    detail = speedLabel(state.speed),
+                    onPick = { it.onSpeed(nextSpeed(state.speed)) },
+                ),
+            )
+        }
+        add(
+            SheetRow(
+                icon = CastivioIcons.Subtitles,
+                name = stringResource(R.string.player_sheet_subtitles),
+                onPick = { it.onSheet(Sheet.Subtitles) },
+            ),
+        )
+        add(
+            SheetRow(
+                icon = CastivioIcons.AudioTrack,
+                name = stringResource(R.string.player_sheet_audio),
+                onPick = { it.onSheet(Sheet.Audio) },
+            ),
+        )
+        add(
+            SheetRow(
+                icon = CastivioIcons.Aspect,
+                name = stringResource(R.string.player_aspect),
+                // Reads the mode and sets the next one, exactly as the speed row does.
+                // It used to print "Fit" whatever the state was and had no `onPick` at all —
+                // an affordance the design had drawn and the code had never connected, which
+                // is why a stretched picture could not be corrected from inside the player.
+                detail = aspectLabel(state.aspect),
+                onPick = { it.onAspect(nextAspect(state.aspect)) },
+            ),
+        )
+        add(
+            SheetRow(
+                icon = CastivioIcons.Quality,
+                name = stringResource(R.string.player_statistics),
+                onPick = {
+                    it.onSheet(null)
+                    it.onStatistics(true)
+                },
+            ),
+        )
+        add(
+            SheetRow(
+                icon = CastivioIcons.Share,
+                name = stringResource(R.string.player_share),
+                onPick = {
+                    it.onSheet(null)
+                    it.onShare()
+                },
+            ),
+        )
+    }
 }
 
 /**

@@ -1,12 +1,8 @@
 package com.castivio.feature.player
 
 import android.app.Activity
-import android.app.PictureInPictureParams
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
-import android.util.Rational
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,9 +23,10 @@ import kotlinx.coroutines.delay
 /**
  * The player, wired.
  *
- * Thin on purpose: it binds the view model, translates presses into calls, and owns the two
- * things that are the activity's business rather than the screen's — picture-in-picture and
- * keeping the display awake. Everything else is [PlayerScreen], which takes a value and a
+ * Thin on purpose: it binds the view model, translates presses into calls, and owns the
+ * things that are the activity's business rather than the screen's — the application going
+ * to the background and coming back, and keeping the display awake. Everything else is
+ * [PlayerScreen], which takes a value and a
  * bundle of lambdas and can therefore be composed by a test with no Hilt graph, no decoder
  * and no surface.
  *
@@ -44,8 +41,6 @@ fun PlayerRoute(
     request: PlayerRequest,
     onLeave: () -> Unit,
     modifier: Modifier = Modifier,
-    onPrevious: (() -> Unit)? = null,
-    onNext: (() -> Unit)? = null,
     /**
      * Which shape to draw. See [PlayerMode].
      *
@@ -112,9 +107,9 @@ fun PlayerRoute(
 
     // The sound stops when the application does.
     //
-    // `ON_STOP` rather than `ON_PAUSE`, and the difference is picture in picture: a player
-    // in a PiP window is paused by the system and still on screen, so pausing on ON_PAUSE
-    // would stop the one thing PiP exists to keep running. Nothing resumes on the way back
+    // `ON_STOP` rather than `ON_PAUSE`, and the difference is a split screen: a player beside
+    // another application is paused by the system and still on screen, so pausing on
+    // ON_PAUSE would stop a film somebody is watching. Nothing resumes on the way back
     // — a film that restarts itself when a phone is unlocked is how a player gets muted.
     //
     // And it comes back when the application does: a channel is opened again and a film is
@@ -229,8 +224,6 @@ fun PlayerRoute(
                 onPlayPause = model::playPause,
                 onSeekBy = model::seekBy,
                 onSeekTo = model::seekTo,
-                onPrevious = { onPrevious?.invoke() },
-                onNext = { onNext?.invoke() },
                 onToggleControls = { model.showControls(!current.controls) },
                 onAspect = model::setAspect,
                 onSubtitleStyle = model::setSubtitleStyle,
@@ -247,8 +240,6 @@ fun PlayerRoute(
                 onReturnToLive = model::returnToLive,
                 onRetry = model::retry,
                 onTryBackup = model::tryBackup,
-                onFullscreen = { model.showControls(false) },
-                onPictureInPicture = { activity?.enterPip() },
                 onShare = { context.share(shareOffer(current.request), chooser) },
                 onExpand = { onExpand?.invoke() },
                 setOutput = model::setOutput,
@@ -256,26 +247,6 @@ fun PlayerRoute(
             ),
         )
     }
-}
-
-/**
- * Hand the window to the system.
- *
- * The aspect is 16:9 rather than the stream's, because the stream's is not known until
- * there is a frame and a PiP request that has to wait for one is a PiP request that misses
- * the gesture. The system letterboxes inside whatever it gives us.
- *
- * Nothing validates that the video fills the window afterwards, and that is correct: in PiP
- * the window belongs to Android, not to Castivio, so a check that the picture is edge to
- * edge would be checking somebody else's layout.
- */
-private fun Activity.enterPip() {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-    if (!packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) return
-    val params = PictureInPictureParams.Builder()
-        .setAspectRatio(Rational(PIP_WIDTH, PIP_HEIGHT))
-        .build()
-    runCatching { enterPictureInPictureMode(params) }
 }
 
 /**
@@ -325,6 +296,3 @@ private const val KEEP_SCREEN_ON = 128
 
 /** Long enough to find a control, short enough not to sit over the film. */
 private const val CONTROLS_LINGER_MS = 4_000L
-
-private const val PIP_WIDTH = 16
-private const val PIP_HEIGHT = 9
