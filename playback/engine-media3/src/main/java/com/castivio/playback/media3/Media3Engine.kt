@@ -38,6 +38,7 @@ import com.castivio.playback.api.PlaybackError
 import com.castivio.playback.api.PlaybackSample
 import com.castivio.playback.api.PlaybackState
 import com.castivio.playback.api.PlaybackTuning
+import com.castivio.playback.api.SourceRedaction
 import com.castivio.playback.api.Track
 import com.castivio.playback.api.TrackSet
 import com.castivio.playback.api.TrackType
@@ -71,17 +72,14 @@ import kotlinx.coroutines.flow.asStateFlow
  *
  * ## Two profiles, one class
  *
- * [EngineProfile.PRIMARY] and [EngineProfile.BACKUP] differ only in how they are
- * constructed — decoders, extractors and how forgiving the reader is. They are not two
- * classes because they are not two behaviours: the same code plays the stream, and what
- * changes is what it is willing to accept. A second class would be a second place for the
- * state mapping to drift.
+ * [EngineProfile.PRIMARY] and [EngineProfile.BACKUP] differ only in how their decoders are
+ * constructed. They are not two classes because they are not two behaviours: the same code
+ * plays the stream, and what changes is what it is willing to accept. A second class would
+ * be a second place for the state mapping to drift.
  *
- * The backup is genuinely a different engine in the way that matters — it decodes in
- * software when hardware refuses, and reads MPEG-TS that the strict path rejects, which
- * together are the overwhelming majority of "this channel will not play" on IPTV. What it
- * is not is a second decoding library: there is no libVLC here, and adding one is a
- * dependency decision rather than an implementation detail.
+ * The product's backup engine is LibVLC now -- see `Media3EngineFactory` -- so the backup
+ * profile here is constructed by tests and nothing else. Both profiles read transport
+ * streams the forgiving way; see `buildPlayer`.
  */
 @OptIn(UnstableApi::class)
 class Media3Engine(
@@ -116,6 +114,9 @@ class Media3Engine(
     /** When [open] was called, so the start-up figure is a measurement and not a guess. */
     private var openedAtMs: Long = 0
 
+    /** Whether the source open now is a live one: the live window can be fallen behind. */
+    private var liveRequest = false
+
     private var videoFormat: Format? = null
     private var audioFormat: Format? = null
 
@@ -138,6 +139,18 @@ class Media3Engine(
      * one. See [markOpened].
      */
     private var hasVideoTrack: Boolean? = null
+
+    /**
+     * The HTTP source, kept so that an open can give it the request's own headers.
+     *
+     * Providers redirect http to https and back, sometimes twice. Refusing to follow is the
+     * single most common cause of a stream that "does not exist" and plays perfectly in every
+     * other application.
+     */
+    private val http = DefaultHttpDataSource.Factory()
+        .setAllowCrossProtocolRedirects(true)
+        .setConnectTimeoutMs(CONNECT_TIMEOUT_MS)
+        .setReadTimeoutMs(READ_TIMEOUT_MS)
 
     /**
      * Built eagerly with the engine, because the first thing that happens to an engine is
@@ -178,26 +191,24 @@ class Media3Engine(
             .setPrioritizeTimeOverSizeThresholds(tuning.prioritizeTimeOverSizeThresholds)
             .build()
 
-        val http = DefaultHttpDataSource.Factory()
-            // Providers redirect http to https and back, sometimes twice. Refusing to
-            // follow is the single most common cause of a stream that "does not exist"
-            // and plays perfectly in every other application.
-            .setAllowCrossProtocolRedirects(true)
-            .setConnectTimeoutMs(CONNECT_TIMEOUT_MS)
-            .setReadTimeoutMs(READ_TIMEOUT_MS)
-
         val extractors = DefaultExtractorsFactory().apply {
-            if (profile == EngineProfile.BACKUP) {
-                // An IPTV transport stream frequently declares nothing useful in its PMT.
-                // The strict reader believes the declaration and finds no tracks; this one
-                // looks for the streams that are actually there.
-                setTsExtractorFlags(
-                    DefaultTsPayloadReaderFactory.FLAG_DETECT_ACCESS_UNITS or
-                        DefaultTsPayloadReaderFactory.FLAG_ALLOW_NON_IDR_KEYFRAMES or
-                        DefaultTsPayloadReaderFactory.FLAG_ENABLE_HDMV_DTS_AUDIO_STREAMS,
-                )
-                setConstantBitrateSeekingEnabled(true)
-            }
+            // **The forgiving reader, on the engine that opens every channel.**
+            //
+            // An IPTV transport stream often declares nothing useful about its pictures: no
+            // access-unit delimiters between them, and keyframes that are I-frames rather than
+            // IDR frames. The strict reader believes the declaration -- it waits for a
+            // delimiter that never comes and a keyframe it never recognises -- so no frame
+            // reaches the decoder, the opening budget expires and the channel is handed to the
+            // backup. This reader finds the pictures that are actually there.
+            //
+            // It used to be the backup profile's alone. The backup is LibVLC now and that
+            // profile is no longer built, so the primary was left with only the strict reader:
+            // the channels it rescued went to the backup engine, three seconds late, every time.
+            setTsExtractorFlags(
+                DefaultTsPayloadReaderFactory.FLAG_DETECT_ACCESS_UNITS or
+                    DefaultTsPayloadReaderFactory.FLAG_ALLOW_NON_IDR_KEYFRAMES,
+            )
+            setConstantBitrateSeekingEnabled(true)
         }
 
         val sources = DefaultMediaSourceFactory(
@@ -269,6 +280,13 @@ class Media3Engine(
         hasVideoTrack = null
         _videoAspectRatio.value = null
         _state.value = PlaybackState.Opening
+        liveRequest = media.kind == MediaKind.LIVE
+
+        // The request's headers, which the backup engine was always given and this one was
+        // not. A source that needs a header played on LibVLC and failed here.
+        val agent = media.headers.entries.firstOrNull { it.key.equals(USER_AGENT, ignoreCase = true) }
+        http.setUserAgent(media.userAgent ?: agent?.value)
+        http.setDefaultRequestProperties(media.headers.filterKeys { !it.equals(USER_AGENT, ignoreCase = true) })
 
         val item = MediaItem.Builder()
             .setUri(media.url)
@@ -549,6 +567,20 @@ class Media3Engine(
          * and a report gathered afterwards would be a report of nothing.
          */
         override fun onPlayerError(error: PlaybackException) {
+            // **Behind the live window is a position, not a failure.**
+            //
+            // A live playlist moves on while the player waits -- a rebuffer, a slow segment,
+            // a phone put down -- and the position the player holds falls out of it. That is
+            // what this code means, and it arrived here as an unidentified failure: a card
+            // over a channel that was working, offering the backup engine for a problem of
+            // where to stand. The answer is the one the platform documents: go back to the
+            // live edge and prepare again, on the same engine.
+            if (error.errorCode == PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW && liveRequest) {
+                Log.i(TAG, "${profile.id} fell behind the live window -- back to the edge")
+                player.seekToDefaultPosition()
+                player.prepare()
+                return
+            }
             val decoderFailure = error.findCause<MediaCodecRenderer.DecoderInitializationException>()
             val reason = map(error, decoderFailure)
 
@@ -814,11 +846,11 @@ class Media3Engine(
     /**
      * A source, safe to put in a report.
      *
-     * The query is dropped. An Xtream URL carries the subscriber's username, password and
-     * session token in it, and a diagnostic the user is invited to copy and paste to
-     * somebody else must not carry credentials out of the device.
+     * An Xtream URL carries the subscriber's username and password in its path and a session
+     * token in its query, and a diagnostic the user is invited to copy and paste to somebody
+     * else must not carry credentials out of the device -- see [SourceRedaction].
      */
-    private fun safeSource(url: String): String = url.substringBefore('?').take(URL_IN_LOG)
+    private fun safeSource(url: String): String = SourceRedaction.safe(url)
 
     // `internal`, not `private`: `isFfmpegAvailable` below is a claim about the classpath
     // that EngineProfileTest checks, and a member of a private companion cannot be read
@@ -839,8 +871,7 @@ class Media3Engine(
         internal fun shownSize(displayed: Int?, coded: Int?): Int? =
             displayed?.takeIf { it > 0 } ?: coded?.takeIf { it > 0 }
 
-        /** Enough of a URL to identify the stream, not enough to put a token in a log. */
-        const val URL_IN_LOG = 120
+        const val USER_AGENT = "User-Agent"
 
         /**
          * Short on purpose, and shorter than the fallback deadline.
