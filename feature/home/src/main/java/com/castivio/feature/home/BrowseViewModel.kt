@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 /**
  * What the category pane and the header need, which is everything except the rows.
@@ -235,6 +236,23 @@ class BrowseViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_GRACE_MS), BrowseState())
 
+    /**
+     * Whether the viewer chose a category on this screen -- "all" included. Until then, a
+     * board opened over its section's first load opens on the first category listed, not
+     * on "all": the whole section is what is still being written, and its list would wait
+     * behind every commit with a spinner where the channels should be.
+     */
+    private var userChose = false
+
+    init {
+        viewModelScope.launch {
+            combine(fetch, groups) { run, available -> run to available }.collect { (run, available) ->
+                if (userChose || chosen.value != null || !run.isFirstLoad()) return@collect
+                listedOf(available).firstOrNull()?.let { chosen.value = it.id }
+            }
+        }
+    }
+
     /** Channels, films and episodes. Empty for [CatalogSection.Series], which pages shows. */
     val items: Flow<PagingData<MediaItem>> =
         query.flatMapLatest(pager::items).cachedIn(viewModelScope)
@@ -255,6 +273,7 @@ class BrowseViewModel @Inject constructor(
         if (section.value != current) {
             section.value = current
             chosen.value = null
+            userChose = false
         }
     }
 
@@ -274,6 +293,7 @@ class BrowseViewModel @Inject constructor(
 
     /** Null is the "all" pseudo-category, which is a selection like any other. */
     fun choose(groupId: String?) {
+        userChose = true
         chosen.value = groupId
     }
 
