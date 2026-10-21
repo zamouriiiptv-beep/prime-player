@@ -65,6 +65,7 @@ import com.castivio.core.design.theme.castivioStage
 import com.castivio.core.platform.CastivioTrace
 import com.castivio.core.platform.PerformanceLog
 import com.castivio.domain.Channel
+import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaItem
 import com.castivio.domain.SectionLoad
 import com.castivio.domain.SeriesSummary
@@ -226,7 +227,7 @@ private fun CategoryColumn(
                 onClick = { onChoose(null) },
             )
         }
-        items(state.groups, key = { it.id }) { group ->
+        items(railGroups(state), key = { it.id }) { group ->
             CategoryEntry(
                 label = group.name,
                 count = null,
@@ -257,7 +258,7 @@ private fun CategoryChips(state: BrowseState, m: CatalogMetrics, onChoose: (Stri
                 onClick = { onChoose(null) },
             )
         }
-        items(state.groups, key = { it.id }) { group ->
+        items(railGroups(state), key = { it.id }) { group ->
             CategoryEntry(
                 label = group.name,
                 count = null,
@@ -583,6 +584,14 @@ private fun SectionEmpty(section: CatalogSection, state: BrowseState, onRetry: (
         onAction = onRetry,
     )
 }
+
+/**
+ * The categories this screen lists. Films and series list the ones that are complete -- see
+ * `listedOf` -- so a category joins in its place while the section arrives and one still
+ * being read cannot be chosen. Radio lists them all, as it did.
+ */
+private fun railGroups(state: BrowseState): List<MediaGroup> =
+    if (state.section == CatalogSection.Radio) state.groups else state.shownGroups
 
 /** Stable across a re-import, unlike any group id, so the "all" row never re-animates. */
 private const val ALL_CATEGORIES = "castivio.all"

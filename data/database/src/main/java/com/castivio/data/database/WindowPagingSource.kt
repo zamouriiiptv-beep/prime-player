@@ -3,7 +3,6 @@ package com.castivio.data.database
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import androidx.room.InvalidationTracker
-import com.castivio.data.database.entity.MediaEntity
 import java.util.concurrent.Executor
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
@@ -12,7 +11,7 @@ import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.withContext
 
 /**
- * The channel list's pages, read with a plain `LIMIT/OFFSET` query -- outside any transaction.
+ * The channel, film and show lists' pages, read with a plain `LIMIT/OFFSET` query -- outside any transaction.
  *
  * ## Why not the source Room generates
  *
@@ -35,11 +34,11 @@ import kotlinx.coroutines.withContext
  * @param background where the observer is added and removed -- Room's query executor: both
  *   can touch the database.
  */
-internal class WindowPagingSource(
+internal class WindowPagingSource<T : Any>(
     private val tracker: InvalidationTracker,
     private val background: Executor,
-    private val window: suspend (offset: Int, limit: Int) -> List<MediaEntity>,
-) : PagingSource<Int, MediaEntity>() {
+    private val window: suspend (offset: Int, limit: Int) -> List<T>,
+) : PagingSource<Int, T>() {
 
     private val observer = object : InvalidationTracker.Observer(arrayOf("media", "source")) {
         override fun onInvalidated(tables: Set<String>) = invalidate()
@@ -52,7 +51,7 @@ internal class WindowPagingSource(
         }
     }
 
-    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, MediaEntity> {
+    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, T> {
         // Registered on the first load, off the main thread that builds this source and calls
         // `load`: adding an observer can touch the database.
         if (registered.compareAndSet(false, true)) {
@@ -83,6 +82,6 @@ internal class WindowPagingSource(
     }
 
     /** Back near where the viewer was, as Room's source does. */
-    override fun getRefreshKey(state: PagingState<Int, MediaEntity>): Int? =
+    override fun getRefreshKey(state: PagingState<Int, T>): Int? =
         state.anchorPosition?.let { max(0, it - state.config.initialLoadSize / 2) }
 }

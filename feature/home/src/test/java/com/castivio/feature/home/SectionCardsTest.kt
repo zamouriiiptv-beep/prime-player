@@ -163,10 +163,10 @@ class SectionCardsTest {
     // `design/mockups/channels-arriving.html`, and `home-loading.html` set f.
 
     @Test
-    fun `only Live TV opens with its first category, for now`() {
+    fun `live, films and series open with their first category, radio does not yet`() {
         assertEquals(true, opensWithFirstCategory(MediaKind.LIVE))
-        assertEquals(false, opensWithFirstCategory(MediaKind.MOVIE))
-        assertEquals(false, opensWithFirstCategory(MediaKind.SERIES))
+        assertEquals(true, opensWithFirstCategory(MediaKind.MOVIE))
+        assertEquals(true, opensWithFirstCategory(MediaKind.SERIES))
         assertEquals(false, opensWithFirstCategory(MediaKind.RADIO))
     }
 
@@ -193,7 +193,7 @@ class SectionCardsTest {
     @Test
     fun `every other press is the one it was`() {
         val arriving = SectionLoad.Loading(items = 48, groups = 340, listed = 1)
-        assertEquals("films still say when they open", Press.Hint, pressOf(MediaKind.MOVIE, onDevice = false, marked = false, run = first(arriving)))
+        assertEquals("radio still says when it opens", Press.Hint, pressOf(MediaKind.RADIO, onDevice = false, marked = false, run = first(arriving)))
         assertEquals("a refresh over rows opens", Press.Open, pressOf(MediaKind.LIVE, onDevice = true, marked = true, run = run(arriving)))
         assertEquals(Press.Fetch, pressOf(MediaKind.LIVE, onDevice = false, marked = false, run = null))
         assertEquals(Press.Open, pressOf(MediaKind.LIVE, onDevice = true, marked = true, run = first(SectionLoad.Done(48))))

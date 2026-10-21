@@ -134,7 +134,10 @@ class RoomCatalogRepository(
     override fun series(query: CatalogQuery): Flow<PagingData<SeriesSummary>> {
         val group = query.groupId
         return pager {
-            if (group == null) mediaDao.pageSeries() else mediaDao.pageSeriesInGroup(group)
+            WindowPagingSource(database.invalidationTracker, database.queryExecutor) { offset, limit ->
+                if (group == null) mediaDao.windowSeries(offset, limit)
+                else mediaDao.windowSeriesInGroup(group, offset, limit)
+            }
         }.map { data -> data.map { it.toDomain() } }
     }
 

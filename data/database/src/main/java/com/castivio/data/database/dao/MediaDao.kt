@@ -224,6 +224,42 @@ interface MediaDao {
     )
     fun pageSeriesInGroup(groupId: String): PagingSource<Int, SeriesRow>
 
+    /** [pageSeries], read outside a transaction -- see `WindowPagingSource`. */
+    @Query(
+        """
+        SELECT series_id AS seriesId,
+               series_title AS title,
+               artwork_url AS artworkUrl,
+               COUNT(episode_number) AS episodeCount,
+               COUNT(DISTINCT season_number) AS seasonCount,
+               min(provider_order) AS providerOrder
+        FROM media
+        WHERE source_id = $ACTIVE_SOURCE AND kind = 'SERIES' AND series_id IS NOT NULL
+        GROUP BY series_id
+        ORDER BY providerOrder, seriesId
+        LIMIT :limit OFFSET :offset
+        """,
+    )
+    suspend fun windowSeries(offset: Int, limit: Int): List<SeriesRow>
+
+    /** [pageSeriesInGroup], read outside a transaction. */
+    @Query(
+        """
+        SELECT series_id AS seriesId,
+               series_title AS title,
+               artwork_url AS artworkUrl,
+               COUNT(episode_number) AS episodeCount,
+               COUNT(DISTINCT season_number) AS seasonCount,
+               min(provider_order) AS providerOrder
+        FROM media
+        WHERE source_id = $ACTIVE_SOURCE AND kind = 'SERIES' AND series_id IS NOT NULL AND group_id = :groupId
+        GROUP BY series_id
+        ORDER BY providerOrder, seriesId
+        LIMIT :limit OFFSET :offset
+        """,
+    )
+    suspend fun windowSeriesInGroup(groupId: String, offset: Int, limit: Int): List<SeriesRow>
+
     @Query(
         """
         SELECT * FROM media WHERE series_id = :seriesId AND episode_number IS NOT NULL
