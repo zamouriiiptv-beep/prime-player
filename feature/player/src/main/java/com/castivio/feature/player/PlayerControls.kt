@@ -60,8 +60,8 @@ import kotlinx.coroutines.delay
  * Live and on-demand are one screen, and that is a product decision rather than an
  * economy: a user who watches both should not have to learn the player twice. Live swaps
  * three things and adds one — the timeline becomes a live position, previous/next step
- * channels rather than chapters, the title gains a number and a LIVE pill, and a programme
- * strip appears above the timeline.
+ * channels rather than chapters, the title gains a LIVE pill, and a programme strip appears
+ * above the timeline.
  * ========================================================================= */
 
 /**
@@ -132,7 +132,12 @@ internal fun TopBar(state: PlayerState, actions: PlayerActions) {
 }
 
 /**
- * What is under the title: the LIVE pill and a channel number, or the item's own subtitle.
+ * What is under the title: the LIVE pill, or the item's own subtitle.
+ *
+ * **No channel number.** It was a pill beside LIVE, and the owner asked for it to go: a
+ * number is how a channel is found in the list, and once it is playing the name above it says
+ * which channel this is. The number stays on the request -- the board and the guide still use
+ * it -- and is simply not drawn over the picture.
  *
  * The engine badge is here and nowhere else. A switch the user did not ask for and cannot
  * act on is a fact to report, not a decision to present — so the second engine is a small
@@ -151,9 +156,6 @@ private fun SubtitleRow(state: PlayerState) {
                 fill = colors.live,
                 ink = colors.onBackground,
             )
-        }
-        state.request.channelNumber?.let {
-            Pill(text = it, fill = colors.glassFillStrong, ink = colors.onBackground)
         }
         state.request.subtitle?.let {
             Text(

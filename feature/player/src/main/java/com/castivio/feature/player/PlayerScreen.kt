@@ -128,9 +128,9 @@ fun PlayerScreen(
                 //
                 // It drew a band along the foot of the picture: the title, a LIVE pill, the
                 // channel number. That band is only ever seen in one place — the well on the
-                // Channels board — and the well draws every one of those things already: its
-                // own live badge and number over the picture, the name and the quality tag
-                // in the panel underneath. So the picture carried each of them twice, one
+                // Channels board — and the well draws what belongs there already: its own
+                // live badge over the picture, the name and the quality tag in the panel
+                // underneath, and the number in the row of the list. So the picture carried each of them twice, one
                 // set overlapping the other, and the channel's name was printed across
                 // moving video a few millimetres above the same name set properly on a
                 // ground of its own.

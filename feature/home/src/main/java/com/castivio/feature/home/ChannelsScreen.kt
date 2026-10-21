@@ -1486,16 +1486,17 @@ private fun ChannelWell(
 }
 
 /**
- * The picture, with the two marks that belong on a frame of video and no others.
+ * The picture, with the one mark that belongs on a frame of video and no others.
  *
- * The live badge and the number are over it because they are true of the *picture*; the
- * name and the programme are under it because they are true of the channel, and a caption
- * written across moving video is the thing this board was asked to stop doing.
+ * The live badge is over it because it is true of the *picture*; the name and the programme
+ * are under it because they are true of the channel, and a caption written across moving
+ * video is the thing this board was asked to stop doing. The channel number was over it as
+ * well, and the owner asked for it to go: the row in the list already carries it.
  *
- * **These two marks are the only ones.** The compact player used to draw its own band over
+ * **This mark is the only one.** The compact player used to draw its own band over
  * the same corner — the channel's name, a second LIVE pill, a second number — so the
  * picture carried each of them twice, one set over the other. That band is gone; see
- * `PlayerScreen`. The picture is now video and these two marks, and nothing that is also
+ * `PlayerScreen`. The picture is now video and this mark, and nothing that is also
  * printed underneath it.
  *
  * There is no close control. The column is a fixture and the owner wants it to stay one:
@@ -1560,6 +1561,8 @@ private fun WellPicture(
             }
         }
 
+        // The live badge, and no number beside it: the picture is the player's, and the
+        // player draws no channel number -- the row in the list already carries it.
         if (channel != null) {
             Row(
                 Modifier.align(Alignment.BottomStart).padding(m.osdPad),
@@ -1567,16 +1570,6 @@ private fun WellPicture(
                 horizontalArrangement = Arrangement.spacedBy(m.osdGap),
             ) {
                 LiveBadge(m)
-                Text(
-                    text = numberPlate(shown.number),
-                    style = castivioChipStyle(m.frame.fsBody * QUALITY_OF_BODY),
-                    color = colors.onBackgroundStrong,
-                    maxLines = 1,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(Radius.pill))
-                        .background(colors.scrim)
-                        .padding(horizontal = m.badgePadH, vertical = m.badgePadV),
-                )
             }
         }
 
