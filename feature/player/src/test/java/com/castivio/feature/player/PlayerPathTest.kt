@@ -2872,17 +2872,18 @@ class PlayerPathTest {
         val model = model()
         model.open(liveRequest())
         runCurrent()
-        advanceTimeBy(700)
+        advanceTimeBy(second * 7 / 10)
 
         model.switchTo(secondChannel())
         runCurrent()
-        advanceTimeBy(500)
+        // Past the point where the first channel's timer would have fired, short of the second's.
+        advanceTimeBy(second * 5 / 10)
         runCurrent()
-        assertFalse("the first channel's second is not the second channel's", model.now().longWait)
+        assertFalse("the first channel's wait is not the second channel's", model.now().longWait)
 
-        advanceTimeBy(600)
+        advanceTimeBy(second * 6 / 10)
         runCurrent()
-        assertTrue("the second channel's own second", model.now().longWait)
+        assertTrue("the second channel's own wait", model.now().longWait)
     }
 
     /**

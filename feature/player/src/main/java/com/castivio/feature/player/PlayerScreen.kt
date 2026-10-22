@@ -51,7 +51,7 @@ import com.castivio.playback.api.VideoOutput
  * ## What is composed before the first frame
  *
  * The surface, the player's ground over it, the title — and a spinner, once the opening has
- * taken a second (see `OpeningCover` and `OpeningOverlay`). That is the whole of
+ * taken two seconds (see `OpeningCover` and `OpeningOverlay`). That is the whole of
  * [Picture.Opening], and it is
  * the reason the loading state is a separate branch rather than the ordinary chrome with
  * things hidden: chrome that is composed and then hidden is chrome that was measured, laid
@@ -379,10 +379,10 @@ private fun Scrims() {
  *
  * The ground under it is [OpeningCover], drawn for every opening whatever else is over it.
  *
- * ## The spinner waits a second
+ * ## The spinner waits two seconds
  *
- * Only once [PlayerState.longWait] says so, which the state holder sets a second after the
- * press if no frame has come. A channel that opens inside that second is a title and then a
+ * Only once [PlayerState.longWait] says so, which the state holder sets two seconds after the
+ * press if no frame has come. A channel that opens inside that time is a title and then a
  * picture, with nothing turning in between.
  */
 @Composable

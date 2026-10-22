@@ -85,7 +85,7 @@ class PlayerViewModel @Inject constructor(
     /** Cancelled by the first frame. Never allowed to outlive an open. */
     private var deadline: Job? = null
 
-    /** The opening's second of silence, which turns the spinner on when it ends. See [beginWait]. */
+    /** The opening's silence, [SPINNER_DELAY_MS], which turns the spinner on when it ends. See [beginWait]. */
     private var waitJob: Job? = null
 
     /** How many openings this player has begun; the number of the current one is on the state. */
@@ -1289,13 +1289,13 @@ class PlayerViewModel @Inject constructor(
     }
 
     /**
-     * A new opening: its number, and its second of silence.
+     * A new opening: its number, and its silence before the spinner.
      *
      * Nothing on the picture says "opening" for the first [SPINNER_DELAY_MS] after [since]. A
-     * channel whose first frame arrives inside that second -- most of them, now that the
+     * channel whose first frame arrives inside that time -- most of them, now that the
      * engine is kept between channels -- shows its picture with nothing in front of it, and
      * one that does not is told so from then until its frame or its card. Counted from the
-     * press rather than from here, because the second is the viewer's.
+     * press rather than from here, because the wait is the viewer's.
      *
      * The timer is cancelled by whatever ends the wait, and it checks the opening it was
      * started for as well: a timer that outlived its channel must not put a spinner on the
@@ -1489,14 +1489,14 @@ class PlayerViewModel @Inject constructor(
         const val STATS_INTERVAL_MS = 1_000L
 
         /**
-         * How long an opening says nothing before it says "opening": a second, from the press.
+         * How long an opening says nothing before it says "opening": two seconds, from the press.
          *
          * The owner's figure, and inside the rule `UI_ARCHITECTURE.md` §10 sets for every
-         * spinner -- never before 300 ms, so a fast action never flashes one. Most channels
-         * show their picture within it, and a spinner that appears and is gone again a moment
-         * later is worse than none.
+         * spinner -- never before 300 ms, so a fast action never flashes one. It was a second;
+         * two keeps the spinner off the channels that open a little slowly, and a spinner that
+         * appears and is gone again a moment later is worse than none.
          */
-        const val SPINNER_DELAY_MS = 1_000L
+        const val SPINNER_DELAY_MS = 2_000L
 
         /** Close enough to call a seek landed: three ticks of ordinary playback. */
         const val SEEK_TOLERANCE_MS = 750L

@@ -36,8 +36,8 @@ data class PlayerState(
     /**
      * Whether this opening has gone on long enough to say so.
      *
-     * The spinner and its line are drawn only once this is true: a second after the press,
-     * if no frame has arrived by then. A channel whose picture arrives inside that second
+     * The spinner and its line are drawn only once this is true: two seconds after the press,
+     * if no frame has arrived by then. A channel whose picture arrives inside that time
      * never shows one. Only ever true while [picture] is [Picture.Opening].
      */
     val longWait: Boolean = false,
