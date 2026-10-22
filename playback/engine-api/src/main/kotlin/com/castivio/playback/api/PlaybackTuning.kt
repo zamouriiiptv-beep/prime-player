@@ -26,11 +26,22 @@ data class PlaybackTuning(
     val prewarmNeighbours: Boolean,
 ) {
     companion object {
-        /** Live TV on a capable device: fastest start, neighbours pre-warmed. */
+        /**
+         * Live TV on a capable device: fastest start, neighbours pre-warmed.
+         *
+         * The minimum equals the maximum on purpose. A live transport stream is one open
+         * connection the provider writes to as fast as it is read, and with a minimum below the
+         * maximum the player reads up to the maximum and then stops reading until the buffer has
+         * drained to the minimum -- seconds in which nobody is taking the bytes. A provider whose
+         * server drops what a stalled client does not read would leave a hole in the stream, and a
+         * hole in a transport stream is decoded as blocks until the next key frame. With the two
+         * equal the player tops up as it plays and the connection is never left unread. The peak is
+         * the same figure it was.
+         */
         val LIVE_FAST = PlaybackTuning(
             bufferForPlaybackMs = 500,
             bufferForPlaybackAfterRebufferMs = 1_000,
-            minBufferMs = 5_000,
+            minBufferMs = 20_000,
             maxBufferMs = 20_000,
             prioritizeTimeOverSizeThresholds = true,
             prewarmNeighbours = true,
@@ -41,6 +52,7 @@ data class PlaybackTuning(
          * 20-40 MB for a pre-warmed neighbour is not affordable at 128 MB heap.
          */
         val LIVE_LEAN = LIVE_FAST.copy(
+            minBufferMs = 12_000,
             maxBufferMs = 12_000,
             prewarmNeighbours = false,
         )
