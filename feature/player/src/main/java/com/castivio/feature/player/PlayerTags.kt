@@ -89,6 +89,9 @@ internal object PlayerTags {
     const val EPG = "player.epg"
 
     const val OVERLAY = "player.overlay"
+
+    /** The player's ground over the surface while a source opens, so no earlier frame shows through. */
+    const val COVER = "player.cover"
     const val ERROR_CARD = "player.errorCard"
     const val ERROR_RETRY = "player.errorRetry"
 

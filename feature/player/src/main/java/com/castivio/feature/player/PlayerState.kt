@@ -24,6 +24,23 @@ import com.castivio.playback.api.Track
 data class PlayerState(
     val request: PlayerRequest,
     val picture: Picture = Picture.Opening,
+    /**
+     * Which opening this state belongs to.
+     *
+     * Every press is a new one, and so is a retry and a return from the background; the
+     * fallback to the backup engine during an opening is the same one, because the viewer is
+     * still waiting for the channel they pressed. [longWait] is set for an attempt by number,
+     * so a timer left over from the channel before cannot set it for this one.
+     */
+    val attempt: Int = 0,
+    /**
+     * Whether this opening has gone on long enough to say so.
+     *
+     * The spinner and its line are drawn only once this is true: a second after the press,
+     * if no frame has arrived by then. A channel whose picture arrives inside that second
+     * never shows one. Only ever true while [picture] is [Picture.Opening].
+     */
+    val longWait: Boolean = false,
     /** Which engine is actually playing. Shown only as a small badge, and only for the backup. */
     val engine: EngineId = EngineId.PRIMARY,
     /**

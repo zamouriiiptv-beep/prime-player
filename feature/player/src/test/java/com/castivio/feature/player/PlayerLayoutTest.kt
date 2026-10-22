@@ -1082,6 +1082,96 @@ class PlayerLayoutTest {
     }
 
     /**
+     * An opening lays the player's ground over the whole surface.
+     *
+     * The surface goes on showing the last frame it was given -- on a channel change, the
+     * channel just left -- so the opening covers it rather than leaving it under the new name.
+     * Covered and not removed: the surface is what the engine draws into, and it is still
+     * there under the ground.
+     */
+    @Test
+    fun `an opening covers the surface with the player's ground`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingLive().copy(picture = Picture.Opening))
+
+        compose.onAllNodesWithTag(PlayerTags.SURFACE).assertCountEquals(1)
+        compose.assertCovers(PlayerTags.COVER, PlayerTags.SURFACE)
+    }
+
+    /** The board's plate is where channels are changed, and it is covered the same way. */
+    @Test
+    fun `the board's plate is covered the same way`() {
+        compose.setContent {
+            CastivioTheme {
+                CompositionLocalProvider(LocalDeviceClass provides DeviceClass.Expanded) {
+                    Stage(PLATE) {
+                        PlayerScreen(
+                            state = playingLive().copy(picture = Picture.Opening),
+                            actions = PlayerActions(),
+                            mode = PlayerMode.Compact,
+                        )
+                    }
+                }
+            }
+        }
+
+        compose.assertCovers(PlayerTags.COVER, PlayerTags.SURFACE)
+    }
+
+    /**
+     * A locked player that is opening -- the backup taking over a picture that failed -- still
+     * covers the frame it no longer has, under the way out of the lock.
+     */
+    @Test
+    fun `a locked opening is covered too`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingLive().copy(picture = Picture.Opening, locked = true))
+
+        compose.onAllNodesWithTag(PlayerTags.LOCK_PILL).assertCountEquals(1)
+        compose.assertCovers(PlayerTags.COVER, PlayerTags.SURFACE)
+    }
+
+    /** A picture that has arrived has nothing laid over it. */
+    @Test
+    fun `a playing picture has no ground over it`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingLive())
+
+        compose.onAllNodesWithTag(PlayerTags.COVER).assertCountEquals(0)
+    }
+
+    /** The first second of an opening is the title on the player's ground, and nothing turning. */
+    @Test
+    fun `the first second of an opening shows the title and no spinner`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingLive().copy(picture = Picture.Opening, longWait = false))
+
+        compose.onAllNodesWithTag(PlayerTags.TITLE).assertCountEquals(1)
+        compose.onAllNodesWithTag(PlayerTags.TOAST).assertCountEquals(0)
+    }
+
+    /**
+     * An opening that has gone on says so: the spinner and its line, still over the ground.
+     *
+     * The clock is stopped for the same reason as above: an indefinite spinner never settles.
+     */
+    @Test
+    fun `a long opening shows the spinner and its line over the ground`() {
+        compose.mainClock.autoAdvance = false
+        compose.show(HANDSET, DeviceClass.Expanded, playingLive().copy(picture = Picture.Opening, longWait = true))
+        compose.mainClock.advanceTimeByFrame()
+
+        compose.onAllNodesWithTag(PlayerTags.TOAST).assertCountEquals(1)
+        compose.onAllNodesWithTag(PlayerTags.COVER).assertCountEquals(1)
+    }
+
+    private fun ComposeContentTestRule.assertCovers(over: String, under: String) {
+        val cover = bounds(over)
+        val surface = bounds(under)
+        assertTrue(
+            "the ground $cover does not cover the surface $surface",
+            cover.left <= surface.left + TOLERANCE && cover.top <= surface.top + TOLERANCE &&
+                cover.right >= surface.right - TOLERANCE && cover.bottom >= surface.bottom - TOLERANCE,
+        )
+    }
+
+    /**
      * The statistics panel is on the side opposite the title.
      *
      * A correction that came out of the drawing: at the start edge it covered the title in
@@ -1242,6 +1332,9 @@ class PlayerLayoutTest {
     private val HANDSET = Frame(827.dp, 393.dp)
     private val SHORT = Frame(800.dp, 360.dp)
     private val TELEVISION = Frame(960.dp, 540.dp)
+
+    /** The preview plate on the Channels board, where channels are changed. */
+    private val PLATE = Frame(300.dp, 169.dp)
 
     private val PHONE_FLOOR = 48.dp
     private val TV_FLOOR = 56.dp

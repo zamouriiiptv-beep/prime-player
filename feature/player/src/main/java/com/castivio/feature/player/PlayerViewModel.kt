@@ -84,6 +84,12 @@ class PlayerViewModel @Inject constructor(
 
     /** Cancelled by the first frame. Never allowed to outlive an open. */
     private var deadline: Job? = null
+
+    /** The opening's second of silence, which turns the spinner on when it ends. See [beginWait]. */
+    private var waitJob: Job? = null
+
+    /** How many openings this player has begun; the number of the current one is on the state. */
+    private var attempts = 0
     private var collector: Job? = null
     private var ticker: Job? = null
     private var sampler: Job? = null
@@ -206,6 +212,7 @@ class PlayerViewModel @Inject constructor(
         _state.value = PlayerState(
             request = request,
             engine = engineId,
+            attempt = beginWait(since = askedAtNanos),
             subtitleStyle = style,
             subtitleSearch = SubtitleSearch(
                 // Fixed for the life of the build: whether this APK was compiled with
@@ -418,6 +425,9 @@ class PlayerViewModel @Inject constructor(
 
         _state.value = settled.copy(
             picture = picture,
+            // The spinner belongs to the opening and goes with it: to the picture, to a card,
+            // to the end of a source that ended before it began.
+            longWait = settled.longWait && picture is Picture.Opening,
             // Falls back to what is already on the state, because a healthy engine has no
             // diagnosis and must not erase the one belonging to the failure that put us
             // here. After a fallback the backup opens cleanly, and reading its empty
@@ -449,6 +459,8 @@ class PlayerViewModel @Inject constructor(
                 (if (backupTried) " (after the fallback)" else "") + ": ${timing.render()}",
         )
         memory.remember(FallbackPolicy.sourceKey(current.request.url), engineId)
+        // The picture is here, so the wait is over; the spinner goes with the opening below.
+        waitJob?.cancel(); waitJob = null
         _state.value = current.copy(engine = engineId, switching = false)
         startTicker()
         loadProgramme(current.request)
@@ -464,10 +476,12 @@ class PlayerViewModel @Inject constructor(
         val current = _state.value ?: return
         if (backupTried || engineId == EngineId.BACKUP) {
             noteFailure(reason)
+            waitJob?.cancel(); waitJob = null
             val card = Picture.Failed(reason, canTryBackup = false)
             _state.value = current.copy(
                 picture = card,
                 switching = false,
+                longWait = false,
                 // `timeoutDiagnosis` belongs here as much as it does on the engine-state
                 // path, and leaving it out left the one failure with no evidence at all.
                 // A budget that expired has nothing to read out of the engine — that is
@@ -497,6 +511,10 @@ class PlayerViewModel @Inject constructor(
             "falling over to the backup after ${(System.nanoTime() - askedAtNanos) / NANOS_PER_MS}ms: " +
                 "$reason | ${gaveUp.render()}",
         )
+        // During an opening the viewer is still waiting for the channel they pressed, and the
+        // backup carries on that wait, its second included. After a picture, the picture has
+        // just gone and the wait begins again.
+        val hadPicture = frameAtNanos != null
         val stopping = System.nanoTime()
         stopEngine()
         releaseNanos = System.nanoTime() - stopping
@@ -504,6 +522,8 @@ class PlayerViewModel @Inject constructor(
             switching = true,
             picture = Picture.Opening,
             diagnosis = report,
+            attempt = if (hadPicture) beginWait(since = System.nanoTime()) else current.attempt,
+            longWait = current.longWait && !hadPicture,
         )
         start(current.request, EngineId.BACKUP)
     }
@@ -521,7 +541,12 @@ class PlayerViewModel @Inject constructor(
         val pressed = System.nanoTime()
         stopEngine()
         timeFrom(pressed, pressed, releasedAt = System.nanoTime())
-        _state.value = current.copy(picture = Picture.Opening, switching = true)
+        _state.value = current.copy(
+            picture = Picture.Opening,
+            switching = true,
+            attempt = beginWait(since = pressed),
+            longWait = false,
+        )
         start(current.request, EngineId.BACKUP)
     }
 
@@ -550,7 +575,13 @@ class PlayerViewModel @Inject constructor(
         timeFrom(pressed, pressed, releasedAt = System.nanoTime())
         backupTried = spent
         Log.i(TAG, "retry on $on (fallback already spent: $spent)")
-        _state.value = current.copy(picture = Picture.Opening, engine = on, switching = false)
+        _state.value = current.copy(
+            picture = Picture.Opening,
+            engine = on,
+            switching = false,
+            attempt = beginWait(since = pressed),
+            longWait = false,
+        )
         start(request, on)
     }
 
@@ -663,7 +694,9 @@ class PlayerViewModel @Inject constructor(
             reopenOnReturn = true
             stopEngine()
             ticker?.cancel(); ticker = null
-            _state.value = current.copy(picture = Picture.Opening, switching = false)
+            // Nothing is opening while the application is away; the return begins a new wait.
+            waitJob?.cancel(); waitJob = null
+            _state.value = current.copy(picture = Picture.Opening, switching = false, longWait = false)
             return
         }
 
@@ -698,7 +731,12 @@ class PlayerViewModel @Inject constructor(
             val asked = System.nanoTime()
             // Nothing to let go: the channel was stopped on the way out.
             timeFrom(asked, asked, releasedAt = asked)
-            _state.value = current.copy(picture = Picture.Opening, switching = false)
+            _state.value = current.copy(
+                picture = Picture.Opening,
+                switching = false,
+                attempt = beginWait(since = asked),
+                longWait = false,
+            )
             start(current.request, engineId)
             return
         }
@@ -1220,6 +1258,35 @@ class PlayerViewModel @Inject constructor(
         return pressed
     }
 
+    /**
+     * A new opening: its number, and its second of silence.
+     *
+     * Nothing on the picture says "opening" for the first [SPINNER_DELAY_MS] after [since]. A
+     * channel whose first frame arrives inside that second -- most of them, now that the
+     * engine is kept between channels -- shows its picture with nothing in front of it, and
+     * one that does not is told so from then until its frame or its card. Counted from the
+     * press rather than from here, because the second is the viewer's.
+     *
+     * The timer is cancelled by whatever ends the wait, and it checks the opening it was
+     * started for as well: a timer that outlived its channel must not put a spinner on the
+     * next one. Never less than a millisecond, because the state carrying the new number is
+     * set after this returns, and a timer that ran at once would look for it before it was
+     * there.
+     */
+    private fun beginWait(since: Long): Int {
+        waitJob?.cancel()
+        val mine = ++attempts
+        val waited = (System.nanoTime() - since) / NANOS_PER_MS
+        waitJob = viewModelScope.launch {
+            delay((SPINNER_DELAY_MS - waited).coerceIn(1, SPINNER_DELAY_MS))
+            val now = _state.value ?: return@launch
+            if (now.attempt == mine && now.picture is Picture.Opening) {
+                _state.value = now.copy(longWait = true)
+            }
+        }
+        return mine
+    }
+
     /** The attempt in progress, as far as it has got. */
     private fun timing(): OpeningTiming = OpeningTiming(
         engine = engineId,
@@ -1326,6 +1393,7 @@ class PlayerViewModel @Inject constructor(
      */
     private fun releaseSource() {
         deadline?.cancel(); deadline = null
+        waitJob?.cancel(); waitJob = null
         clearAim()
         ticker?.cancel(); ticker = null
         sampler?.cancel(); sampler = null
@@ -1389,6 +1457,16 @@ class PlayerViewModel @Inject constructor(
 
         const val NANOS_PER_MS = 1_000_000L
         const val STATS_INTERVAL_MS = 1_000L
+
+        /**
+         * How long an opening says nothing before it says "opening": a second, from the press.
+         *
+         * The owner's figure, and inside the rule `UI_ARCHITECTURE.md` §10 sets for every
+         * spinner -- never before 300 ms, so a fast action never flashes one. Most channels
+         * show their picture within it, and a spinner that appears and is gone again a moment
+         * later is worse than none.
+         */
+        const val SPINNER_DELAY_MS = 1_000L
 
         /** Close enough to call a seek landed: three ticks of ordinary playback. */
         const val SEEK_TOLERANCE_MS = 750L

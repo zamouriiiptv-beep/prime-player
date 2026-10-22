@@ -50,7 +50,9 @@ import com.castivio.playback.api.VideoOutput
  *
  * ## What is composed before the first frame
  *
- * The surface, the title and a spinner. That is the whole of [Picture.Opening], and it is
+ * The surface, the player's ground over it, the title — and a spinner, once the opening has
+ * taken a second (see `OpeningCover` and `OpeningOverlay`). That is the whole of
+ * [Picture.Opening], and it is
  * the reason the loading state is a separate branch rather than the ordinary chrome with
  * things hidden: chrome that is composed and then hidden is chrome that was measured, laid
  * out and skipped — cheap, but not free, and the point of the rule is that nothing which is
@@ -104,6 +106,10 @@ fun PlayerScreen(
         CompositionLocalProvider(LocalPlayerMetrics provides m) {
 
         VideoSurface(state, actions, picture, mode)
+
+        // Before every branch, the lock's included: whatever else is drawn over an opening, the
+        // frame the surface still holds is not. See `OpeningCover`.
+        if (state.picture is Picture.Opening) OpeningCover()
 
         // Locked hides everything but the way out of it, and it does so before the
         // opening branch: a screen that is locked while a channel opens must not draw a
@@ -370,6 +376,14 @@ private fun Scrims() {
  * A title, a spinner, and nothing else — which is the design constraint made visible. Any
  * element added here has to be defensible as something that needs no work to draw, and
  * almost nothing is: a poster is a fetch, a programme is a query, a track count is a parse.
+ *
+ * The ground under it is [OpeningCover], drawn for every opening whatever else is over it.
+ *
+ * ## The spinner waits a second
+ *
+ * Only once [PlayerState.longWait] says so, which the state holder sets a second after the
+ * press if no frame has come. A channel that opens inside that second is a title and then a
+ * picture, with nothing turning in between.
  */
 @Composable
 private fun OpeningOverlay(state: PlayerState, inset: androidx.compose.ui.unit.Dp) {
@@ -380,8 +394,28 @@ private fun OpeningOverlay(state: PlayerState, inset: androidx.compose.ui.unit.D
             .testTag(PlayerTags.OVERLAY),
     ) {
         OpeningTitle(state, Modifier.align(Alignment.TopStart))
-        OpeningSpinner(state, Modifier.align(Alignment.Center))
+        if (state.longWait) OpeningSpinner(state, Modifier.align(Alignment.Center))
     }
+}
+
+/**
+ * No picture until there is one.
+ *
+ * Opening has no frame behind it, and the surface does not know that: it goes on showing the
+ * last frame it was given, which on a channel change is the channel the viewer just left —
+ * frozen, under the new channel's name. So the player's own ground is laid over it. Over it,
+ * and not instead of it: hiding a `SurfaceView` destroys its surface, which is the one thing
+ * the engine is drawing into and the one thing a kept engine keeps. The ground goes the moment
+ * the first frame of this opening arrives, because that is when the picture stops being one.
+ */
+@Composable
+private fun OpeningCover() {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(CastivioTheme.colors.background)
+            .testTag(PlayerTags.COVER),
+    )
 }
 
 /** The band weights, read off the drawing. 38% and 46%, with the film between them. */

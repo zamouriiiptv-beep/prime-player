@@ -32,6 +32,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
@@ -2771,6 +2772,322 @@ class PlayerPathTest {
         model.leave()
 
         assertTrue(engines.last.released)
+    }
+
+    /* ------------------------------------------------- the opening's second of silence */
+
+    private val second = PlayerViewModel.SPINNER_DELAY_MS
+
+    private fun PlayerViewModel.now(): PlayerState = state.value!!
+
+    /**
+     * A new channel takes the last one's picture away at the press, and says nothing yet.
+     *
+     * Read without letting anything run: the picture is an opening -- which is what lays the
+     * player's ground over the last channel's frozen frame -- in the same call that took the
+     * press, and the opening is a new one, numbered, with no spinner on it.
+     */
+    @Test
+    fun `a new channel hides the last one at once and shows no spinner yet`() = playerTest {
+        engines.primaryReusable = true
+        val model = model()
+        model.open(liveRequest())
+        engines.last.renderFirstFrame()
+        runCurrent()
+        val before = model.now()
+        assertTrue(before.picture is Picture.Playing)
+
+        model.switchTo(secondChannel())
+
+        val after = model.now()
+        assertTrue("the last channel's picture is gone the moment the press arrives", after.picture is Picture.Opening)
+        assertFalse("and nothing says so yet", after.longWait)
+        assertEquals("it is a new opening", before.attempt + 1, after.attempt)
+    }
+
+    @Test
+    fun `there is no spinner in the first second`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+
+        advanceTimeBy(second - 100)
+        runCurrent()
+
+        assertTrue(model.now().picture is Picture.Opening)
+        assertFalse("a second has not passed", model.now().longWait)
+    }
+
+    /** The common case now that the engine is kept: a title, then the picture, nothing turning between. */
+    @Test
+    fun `a picture inside the second never shows a spinner`() = playerTest {
+        val model = model()
+        val seen = mutableListOf<Boolean>()
+        backgroundScope.launch { model.state.collect { it?.let { s -> seen += s.longWait } } }
+        model.open(liveRequest())
+        runCurrent()
+
+        advanceTimeBy(second - 400)
+        engines.last.renderFirstFrame()
+        runCurrent()
+        advanceTimeBy(second * 3)
+        runCurrent()
+
+        assertTrue(model.now().picture is Picture.Playing)
+        assertFalse("a spinner was shown: $seen", seen.any { it })
+    }
+
+    /**
+     * A second without a frame says so, and goes on saying so until the frame.
+     *
+     * Not until the second is over: the spinner's end is the picture, or a card, and never a
+     * timer. Nothing the engine reports before its first frame -- the connection, the
+     * preparation -- is a picture either; the engine stays opening until it has one.
+     */
+    @Test
+    fun `the spinner comes after a second and stays until the first frame`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+
+        advanceTimeBy(second + 1)
+        runCurrent()
+        assertTrue(model.now().picture is Picture.Opening)
+        assertTrue("a second without a frame says so", model.now().longWait)
+
+        advanceTimeBy(second)
+        runCurrent()
+        assertTrue("and goes on saying so: the second is not what ends it", model.now().longWait)
+
+        engines.last.renderFirstFrame()
+        runCurrent()
+        assertTrue(model.now().picture is Picture.Playing)
+        assertFalse("the first frame ends it", model.now().longWait)
+    }
+
+    /** A timer started for the last channel cannot put a spinner on the next one early. */
+    @Test
+    fun `a timer left over from the last channel does nothing to the next`() = playerTest {
+        engines.primaryReusable = true
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        advanceTimeBy(700)
+
+        model.switchTo(secondChannel())
+        runCurrent()
+        advanceTimeBy(500)
+        runCurrent()
+        assertFalse("the first channel's second is not the second channel's", model.now().longWait)
+
+        advanceTimeBy(600)
+        runCurrent()
+        assertTrue("the second channel's own second", model.now().longWait)
+    }
+
+    /**
+     * Pressing through channels leaves one wait: the last channel's, which only its own frame
+     * ends -- on the one engine the whole time.
+     */
+    @Test
+    fun `rapid switching leaves only the last channel's wait`() = playerTest {
+        engines.primaryReusable = true
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        advanceTimeBy(400)
+        model.switchTo(secondChannel())
+        runCurrent()
+        advanceTimeBy(400)
+        model.switchTo(liveRequest(url = "http://provider.tv/live/3.ts", title = "Third"))
+        runCurrent()
+        val third = model.now().attempt
+
+        advanceTimeBy(second - 100)
+        runCurrent()
+        assertFalse(model.now().longWait)
+        advanceTimeBy(200)
+        runCurrent()
+        assertTrue(model.now().longWait)
+        assertEquals("the spinner is the third channel's", third, model.now().attempt)
+
+        engines.last.renderFirstFrame()
+        runCurrent()
+        assertFalse(model.now().longWait)
+        assertEquals("and the engine was kept throughout", listOf(EngineId.PRIMARY), engines.built)
+    }
+
+    /**
+     * The fallback carries the wait on: no picture of either engine's until the backup's own
+     * first frame, and the spinner, already up, stays up until then.
+     */
+    @Test
+    fun `the fallback keeps the wait until the backup's first frame`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        advanceTimeBy(second + 1)
+        runCurrent()
+        val waiting = model.now()
+        assertTrue(waiting.longWait)
+
+        engines.last.fail(PlaybackError.DECODER_INIT)
+        runCurrent()
+
+        val switching = model.now()
+        assertEquals(listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
+        assertTrue("still no picture of any engine's", switching.picture is Picture.Opening)
+        assertTrue("and still saying so", switching.longWait)
+        assertEquals("the same opening", waiting.attempt, switching.attempt)
+
+        engines.last.renderFirstFrame()
+        runCurrent()
+        assertFalse(model.now().longWait)
+        assertEquals(EngineId.BACKUP, model.now().engine)
+    }
+
+    /** A fallback inside the second does not start the second again: it is the press's. */
+    @Test
+    fun `a fallback inside the second keeps the press's second`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        advanceTimeBy(300)
+        engines.last.fail(PlaybackError.DECODER_INIT)
+        runCurrent()
+
+        advanceTimeBy(second - 400)
+        runCurrent()
+        assertFalse(model.now().longWait)
+        advanceTimeBy(200)
+        runCurrent()
+        assertTrue("timed from the press, not from the switch", model.now().longWait)
+
+        engines.last.renderFirstFrame()
+        runCurrent()
+        assertFalse(model.now().longWait)
+    }
+
+    /** A picture that fails after it appeared is a new wait on the backup, with its own second. */
+    @Test
+    fun `a fallback after the picture is a new wait`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        engines.last.renderFirstFrame()
+        runCurrent()
+        val playing = model.now()
+
+        engines.last.fail(PlaybackError.DECODER_INIT)
+        runCurrent()
+
+        assertTrue(model.now().picture is Picture.Opening)
+        assertEquals(playing.attempt + 1, model.now().attempt)
+        advanceTimeBy(second - 100)
+        runCurrent()
+        assertFalse(model.now().longWait)
+        advanceTimeBy(200)
+        runCurrent()
+        assertTrue(model.now().longWait)
+    }
+
+    /** A card ends the wait. The spinner never turns on behind it, and never turns for ever. */
+    @Test
+    fun `a failure ends the wait with the card`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        advanceTimeBy(second + 1)
+        runCurrent()
+
+        engines.last.fail(PlaybackError.UNKNOWN)
+        runCurrent()
+        assertTrue(model.now().picture is Picture.Failed)
+        assertFalse(model.now().longWait)
+
+        advanceTimeBy(second * 5)
+        runCurrent()
+        assertTrue(model.now().picture is Picture.Failed)
+        assertFalse(model.now().longWait)
+    }
+
+    @Test
+    fun `a failure inside the second shows the card and never a spinner`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        advanceTimeBy(300)
+
+        engines.last.fail(PlaybackError.UNKNOWN)
+        runCurrent()
+        advanceTimeBy(second * 2)
+        runCurrent()
+
+        assertTrue(model.now().picture is Picture.Failed)
+        assertFalse(model.now().longWait)
+    }
+
+    /** Both engines silent: the spinner turns through the switch and ends on the timeout card. */
+    @Test
+    fun `both engines timing out ends on the card`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 1)
+        runCurrent()
+        assertEquals(listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
+        assertTrue("through the switch", model.now().longWait)
+
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 1)
+        runCurrent()
+        assertEquals(PlaybackError.TIMEOUT, (model.now().picture as Picture.Failed).reason)
+        assertFalse(model.now().longWait)
+    }
+
+    /** Retry is a press, so it is a new opening with its own second. */
+    @Test
+    fun `a retry is a new opening with its own second`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        engines.last.fail(PlaybackError.UNKNOWN)
+        runCurrent()
+        val failed = model.now().attempt
+
+        model.retry()
+        runCurrent()
+
+        assertTrue(model.now().picture is Picture.Opening)
+        assertEquals(failed + 1, model.now().attempt)
+        assertFalse(model.now().longWait)
+        advanceTimeBy(second + 1)
+        runCurrent()
+        assertTrue(model.now().longWait)
+    }
+
+    /** Coming back from the background opens the channel again, behind a second of its own. */
+    @Test
+    fun `a return from the background is a new opening with its own second`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        engines.last.renderFirstFrame()
+        runCurrent()
+        model.pauseForBackground()
+        runCurrent()
+        assertFalse(model.now().longWait)
+        val away = model.now().attempt
+
+        model.returnFromBackground()
+        runCurrent()
+
+        assertEquals(away + 1, model.now().attempt)
+        assertTrue(model.now().picture is Picture.Opening)
+        advanceTimeBy(second - 100)
+        runCurrent()
+        assertFalse(model.now().longWait)
+        advanceTimeBy(200)
+        runCurrent()
+        assertTrue(model.now().longWait)
     }
 
     /* ------------------------------------------------------------------------ fakes */

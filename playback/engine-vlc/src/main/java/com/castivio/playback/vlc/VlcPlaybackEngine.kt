@@ -79,6 +79,9 @@ class VlcPlaybackEngine(
     private var filledAtMs: Long = 0
     private var tracksAtMs: Long = 0
 
+    /** Whether LibVLC has said `Playing` for this source: the input is running, which is not a picture. */
+    private var inputStarted = false
+
     private var isReleased = false
     private var currentSurfaceView: SurfaceView? = null
 
@@ -136,11 +139,14 @@ class VlcPlaybackEngine(
                     }
                 }
             }
+            // **Playing is the input running, not a picture.** LibVLC says it as soon as the
+            // stream is open, before anything has been buffered or decoded, and taking it as the
+            // first frame lifted the loading screen over a surface with nothing new on it -- the
+            // channel before, frozen, or black. The first frame is the video output appearing
+            // (`Vout`); a sound with no picture is opened by its clock (`TimeChanged`).
             MediaPlayer.Event.Playing -> {
-                if (_firstFrameAtMs.value == null) {
-                    _firstFrameAtMs.value = SystemClock.elapsedRealtime()
-                }
-                pushPlaying()
+                inputStarted = true
+                if (_firstFrameAtMs.value != null) pushPlaying()
                 updateTracks()
             }
             // Whatever was announced before it: a pause during a rebuffer is still a pause.
@@ -157,10 +163,7 @@ class VlcPlaybackEngine(
             }
             MediaPlayer.Event.Vout -> {
                 updateVideoShape()
-                if (event.voutCount > 0 && _firstFrameAtMs.value == null) {
-                    _firstFrameAtMs.value = SystemClock.elapsedRealtime()
-                    pushPlaying()
-                }
+                if (event.voutCount > 0) markOpened()
             }
             MediaPlayer.Event.ESAdded,
             MediaPlayer.Event.ESDeleted,
@@ -172,13 +175,20 @@ class VlcPlaybackEngine(
             // The clock moved, so the picture is moving: a stream announced as buffering is
             // playing again. A real stall does not move the clock and is left as it was.
             MediaPlayer.Event.TimeChanged -> {
+                // A sound has no first frame: its clock moving is the moment it is heard. A
+                // source with a picture announced its video track long before its clock moved,
+                // so it goes on waiting for `Vout`.
+                if (_firstFrameAtMs.value == null && hasNoPicture()) markOpened()
                 val now = _state.value
                 if (now is PlaybackState.Playing || (now is PlaybackState.Buffering && mediaPlayer.isPlaying)) {
                     pushPlaying()
                 }
             }
             MediaPlayer.Event.EncounteredError -> {
-                val errorReason = if (_firstFrameAtMs.value == null) {
+                // Classified by whether the input had started, as it always was: that is what
+                // the first frame used to mean here, and a later first frame must not turn a
+                // decoding failure into a source one.
+                val errorReason = if (!inputStarted) {
                     PlaybackError.SOURCE
                 } else {
                     PlaybackError.DECODING
@@ -266,6 +276,7 @@ class VlcPlaybackEngine(
         openedAtMs = SystemClock.elapsedRealtime()
         filledAtMs = 0
         tracksAtMs = 0
+        inputStarted = false
         openedSource = safeSource(media.url)
         _diagnosis.value = null
         _firstFrameAtMs.value = null
@@ -364,6 +375,7 @@ class VlcPlaybackEngine(
             currentMedia = null
             closeDescriptor()
             _firstFrameAtMs.value = null
+            inputStarted = false
             _videoAspectRatio.value = null
             _state.value = PlaybackState.Idle
         }
@@ -446,6 +458,16 @@ class VlcPlaybackEngine(
             bitrateBps = 0,
         )
     }
+
+    /** The source is on the screen, or in the ear: the moment the opening budget is measured to. */
+    private fun markOpened() {
+        if (_firstFrameAtMs.value != null) return
+        _firstFrameAtMs.value = SystemClock.elapsedRealtime()
+        pushPlaying()
+    }
+
+    /** True when no video track is selected: a radio station, a song. */
+    private fun hasNoPicture(): Boolean = runCatching { mediaPlayer.currentVideoTrack }.getOrNull() == null
 
     /**
      * The shape of the picture, as LibVLC currently understands it.
