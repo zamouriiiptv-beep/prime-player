@@ -293,6 +293,25 @@ class FallbackPolicyTest {
         )
     }
 
+    /**
+     * The bound for a picture is the budget to start plus what a started LibVLC still has to
+     * do: fill a film's cache and reach a keyframe. Shorter, and a backup that is playing is
+     * called a timeout; much longer, and one that never draws keeps a spinner turning.
+     */
+    @Test
+    fun `the picture bound leaves a started backup its cache and a keyframe, and no more`() {
+        val keyframe = 5_000
+        assertTrue(
+            "a started backup is timed out before its cache and a keyframe have had their time",
+            FallbackPolicy.PICTURE_DEADLINE_MS >=
+                FallbackPolicy.OPEN_DEADLINE_MS + PlaybackTuning.VOD.bufferForPlaybackMs + keyframe,
+        )
+        assertTrue(
+            "a bound over fifteen seconds is a spinner nobody is waiting for any more",
+            FallbackPolicy.PICTURE_DEADLINE_MS <= 15_000,
+        )
+    }
+
     @Test
     fun `the empty memory remembers nothing`() {
         EngineMemory.NONE.remember("anything", EngineId.BACKUP)

@@ -105,6 +105,9 @@ class PlayerViewModel @Inject constructor(
     /** Whether the current attempt ended by the budget expiring rather than by an error. */
     private var timedOut = false
 
+    /** Which of the two bounds in [deadlineFor] it was, for the report. */
+    private var timedOutAfterMs = FallbackPolicy.OPEN_DEADLINE_MS
+
     /**
      * The viewer's caption settings, read once.
      *
@@ -363,17 +366,44 @@ class PlayerViewModel @Inject constructor(
         userAgent = userAgent,
     )
 
-    /** This attempt's budget, on [running]. Every open has its own, a kept engine's included. */
+    /**
+     * This attempt's budget, on [running]. Every open has its own, a kept engine's included.
+     *
+     * Two bounds from the open, and either one ending is the same TIMEOUT it always was.
+     * [FallbackPolicy.OPEN_DEADLINE_MS] is for the engine to start, which for Media3 is its
+     * first frame, so for the primary nothing comes after it. LibVLC starts before it draws,
+     * and a backup that has started is given until [FallbackPolicy.PICTURE_DEADLINE_MS] for
+     * its picture rather than a card at three seconds over a source that is about to play.
+     */
     private fun deadlineFor(running: PlaybackEngine, id: EngineId): Job = viewModelScope.launch {
         delay(FallbackPolicy.OPEN_DEADLINE_MS)
-        // Still no frame. Not an error — the engine has not said anything — but the
+        // Still not started. Not an error — the engine has not said anything — but the
         // budget is spent, and a source that has not opened in three seconds is not
         // about to.
-        if (running.firstFrameAtMs.value == null) {
-            Log.w(TAG, "$id produced no frame in ${FallbackPolicy.OPEN_DEADLINE_MS}ms")
-            timedOut = true
-            fallOver(PlaybackError.TIMEOUT)
+        if (running.startedAtMs.value == null) {
+            Log.w(TAG, "$id did not start in ${FallbackPolicy.OPEN_DEADLINE_MS}ms")
+            timeOut(after = FallbackPolicy.OPEN_DEADLINE_MS)
+            return@launch
         }
+        delay(FallbackPolicy.PICTURE_DEADLINE_MS - FallbackPolicy.OPEN_DEADLINE_MS)
+        if (running.firstFrameAtMs.value == null) {
+            Log.w(TAG, "$id started but drew nothing in ${FallbackPolicy.PICTURE_DEADLINE_MS}ms")
+            timeOut(after = FallbackPolicy.PICTURE_DEADLINE_MS)
+        }
+    }
+
+    /**
+     * The budget ran out [after] that long, which is the TIMEOUT path: the backup, or a card.
+     *
+     * Not over a card that is already up. The engine has said what went wrong, and its silence
+     * afterwards is not a second failure: a timeout there replaced the reason with TIMEOUT, and
+     * spent the fallback on its own when the card was offering it to the viewer.
+     */
+    private fun timeOut(after: Long) {
+        if (_state.value?.picture is Picture.Failed) return
+        timedOut = true
+        timedOutAfterMs = after
+        fallOver(PlaybackError.TIMEOUT)
     }
 
     private fun onEngineState(playback: PlaybackState, hasFrame: Boolean) {
@@ -1227,7 +1257,7 @@ class PlayerViewModel @Inject constructor(
         return PlaybackDiagnosis(
             engine = engineId,
             reason = PlaybackError.TIMEOUT,
-            timedOutAfterMs = FallbackPolicy.OPEN_DEADLINE_MS,
+            timedOutAfterMs = timedOutAfterMs,
         )
     }
 

@@ -52,6 +52,10 @@ class VlcPlaybackEngine(
     private val _firstFrameAtMs = MutableStateFlow<Long?>(null)
     override val firstFrameAtMs: StateFlow<Long?> = _firstFrameAtMs.asStateFlow()
 
+    /** LibVLC said `Playing`, or drew before it did: the input is running, which is not a picture. */
+    private val _startedAtMs = MutableStateFlow<Long?>(null)
+    override val startedAtMs: StateFlow<Long?> = _startedAtMs.asStateFlow()
+
     private val _videoAspectRatio = MutableStateFlow<Float?>(null)
     override val videoAspectRatio: StateFlow<Float?> = _videoAspectRatio.asStateFlow()
 
@@ -78,9 +82,6 @@ class VlcPlaybackEngine(
     /** The open's own steps, as far as LibVLC reports them. See [openingMarks]. Zero is "not yet". */
     private var filledAtMs: Long = 0
     private var tracksAtMs: Long = 0
-
-    /** Whether LibVLC has said `Playing` for this source: the input is running, which is not a picture. */
-    private var inputStarted = false
 
     private var isReleased = false
     private var currentSurfaceView: SurfaceView? = null
@@ -143,9 +144,10 @@ class VlcPlaybackEngine(
             // stream is open, before anything has been buffered or decoded, and taking it as the
             // first frame lifted the loading screen over a surface with nothing new on it -- the
             // channel before, frozen, or black. The first frame is the video output appearing
-            // (`Vout`); a sound with no picture is opened by its clock (`TimeChanged`).
+            // (`Vout`); a sound with no picture is opened by its clock (`TimeChanged`). It is still
+            // the start, which is what the fallback deadline waits for: see [startedAtMs].
             MediaPlayer.Event.Playing -> {
-                inputStarted = true
+                markStarted()
                 if (_firstFrameAtMs.value != null) pushPlaying()
                 updateTracks()
             }
@@ -188,7 +190,7 @@ class VlcPlaybackEngine(
                 // Classified by whether the input had started, as it always was: that is what
                 // the first frame used to mean here, and a later first frame must not turn a
                 // decoding failure into a source one.
-                val errorReason = if (!inputStarted) {
+                val errorReason = if (_startedAtMs.value == null) {
                     PlaybackError.SOURCE
                 } else {
                     PlaybackError.DECODING
@@ -276,9 +278,9 @@ class VlcPlaybackEngine(
         openedAtMs = SystemClock.elapsedRealtime()
         filledAtMs = 0
         tracksAtMs = 0
-        inputStarted = false
         openedSource = safeSource(media.url)
         _diagnosis.value = null
+        _startedAtMs.value = null
         _firstFrameAtMs.value = null
         _videoAspectRatio.value = null
         _tracks.value = TrackSet()
@@ -374,8 +376,8 @@ class VlcPlaybackEngine(
             currentMedia?.release()
             currentMedia = null
             closeDescriptor()
+            _startedAtMs.value = null
             _firstFrameAtMs.value = null
-            inputStarted = false
             _videoAspectRatio.value = null
             _state.value = PlaybackState.Idle
         }
@@ -459,9 +461,15 @@ class VlcPlaybackEngine(
         )
     }
 
-    /** The source is on the screen, or in the ear: the moment the opening budget is measured to. */
+    /** The input is running: `Playing`, or the picture when that came first. Once per open. */
+    private fun markStarted() {
+        if (_startedAtMs.value == null) _startedAtMs.value = SystemClock.elapsedRealtime()
+    }
+
+    /** The source is on the screen, or in the ear: what the loading screen waits for. */
     private fun markOpened() {
         if (_firstFrameAtMs.value != null) return
+        markStarted()
         _firstFrameAtMs.value = SystemClock.elapsedRealtime()
         pushPlaying()
     }

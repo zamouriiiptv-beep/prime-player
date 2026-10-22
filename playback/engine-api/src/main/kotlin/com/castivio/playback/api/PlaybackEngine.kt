@@ -24,10 +24,24 @@ interface PlaybackEngine {
      * part of the contract rather than something inferred. `Playing` is not it: a decoder
      * can report ready, and the surface can still be black for another two hundred
      * milliseconds. What the user calls "the channel opened" is this, so this is what the
-     * loading overlay waits for, what the fallback deadline is measured against, and what
-     * the start-up figure in the statistics panel reports.
+     * loading overlay waits for and what the start-up figure in the statistics panel
+     * reports. The fallback deadline is measured to [startedAtMs], which for most engines is
+     * this same moment.
      */
     val firstFrameAtMs: StateFlow<Long?>
+
+    /**
+     * When the engine had the source open and running, on the same clock, or null while it
+     * has not — which is not always when there is a picture.
+     *
+     * LibVLC reports its input running before it has buffered or decoded anything, and the
+     * opening budget has always been measured to that moment for it. The picture is still
+     * [firstFrameAtMs], and that is what the loading screen waits for; this is kept apart so
+     * that a backup which is merely slow to draw is not timed out as if it had never
+     * connected. An engine whose first sign of life is its first frame — Media3's is — has
+     * nothing earlier to report, which is what the default says.
+     */
+    val startedAtMs: StateFlow<Long?> get() = firstFrameAtMs
 
     /**
      * The picture's width divided by its height, or null while there is no picture.

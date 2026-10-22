@@ -109,6 +109,25 @@ object FallbackPolicy {
     const val OPEN_DEADLINE_MS: Long = 3_000
 
     /**
+     * How long an engine that has started gets to show its first picture, counted from the
+     * same open as [OPEN_DEADLINE_MS].
+     *
+     * [OPEN_DEADLINE_MS] is measured to [PlaybackEngine.startedAtMs]. For Media3 that is the
+     * first frame, so this never comes into it. LibVLC starts before it draws: it fills its
+     * network cache — a second for a film, half of one for a channel — and then waits for a
+     * picture it can decode, which on a live stream can be a keyframe several seconds away.
+     * A backup that had started inside three seconds always counted as open; giving its
+     * picture the three seconds meant for silence would put a timeout card in front of
+     * sources that play.
+     *
+     * So this is a bound, not a budget: three seconds to start, a second of cache, a long
+     * keyframe interval of five, and one spare. A source that has started and still shows
+     * nothing by then gets the existing timeout card — the alternative is a spinner that
+     * turns for ever over a sound with no picture.
+     */
+    const val PICTURE_DEADLINE_MS: Long = 10_000
+
+    /**
      * Which engine opens this source right now.
      *
      * Memory first, and nothing else consulted: not the file extension, not the host, not

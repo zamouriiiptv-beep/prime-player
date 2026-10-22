@@ -3008,6 +3008,8 @@ class PlayerPathTest {
         runCurrent()
         assertTrue(model.now().picture is Picture.Failed)
         assertFalse(model.now().longWait)
+        assertEquals("the card the engine gave", PlaybackError.UNKNOWN, (model.now().picture as Picture.Failed).reason)
+        assertEquals("and nothing switched behind it", listOf(EngineId.PRIMARY), engines.built)
     }
 
     @Test
@@ -3090,6 +3092,241 @@ class PlayerPathTest {
         assertTrue(model.now().longWait)
     }
 
+    /* ------------------------------------------------- a backup that starts before it draws */
+
+    /**
+     * A channel the primary could not open, on a backup that is running at once and draws late.
+     *
+     * LibVLC has the input open inside a second, then fills its cache and waits for a keyframe.
+     * Timed to its picture at three seconds, the backup put the timeout card in front of a
+     * channel that was about to play; timed to its start, as it always was, it does not.
+     */
+    @Test
+    fun `a channel on a backup that started is not timed out for a slow picture`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 1)
+        runCurrent()
+        assertEquals("the primary still has its three seconds", listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
+        val backup = engines.last
+
+        advanceTimeBy(600)
+        backup.begin()
+        runCurrent()
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS)
+        runCurrent()
+        assertTrue("no card over a backup that is running: ${model.now().picture}", model.now().picture is Picture.Opening)
+        assertTrue("the spinner says it is still coming", model.now().longWait)
+
+        advanceTimeBy(1_500)
+        backup.renderFirstFrame()
+        runCurrent()
+        assertTrue(model.now().picture is Picture.Playing)
+        assertEquals(EngineId.BACKUP, model.now().engine)
+        assertFalse(model.now().longWait)
+        assertEquals("and nothing else was tried", listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
+    }
+
+    /** The same for a film the primary could not decode: a second of cache is not a timeout. */
+    @Test
+    fun `a film on a backup that started is not timed out for a slow picture`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.fail(PlaybackError.DECODER_INIT)
+        runCurrent()
+        val backup = engines.last
+        assertEquals(listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
+        assertEquals(MediaKind.VOD, backup.opened.single().kind)
+
+        advanceTimeBy(800)
+        backup.begin()
+        runCurrent()
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS)
+        runCurrent()
+        assertTrue("no card over a film that is running: ${model.now().picture}", model.now().picture is Picture.Opening)
+
+        advanceTimeBy(2_500)
+        backup.renderFirstFrame()
+        runCurrent()
+        assertTrue(model.now().picture is Picture.Playing)
+        assertEquals(EngineId.BACKUP, model.now().engine)
+        assertFalse(model.now().longWait)
+    }
+
+    /**
+     * And for an episode the backup is remembered for, which opens on it directly -- the path
+     * where the backup's first timeout was always the card, with nothing after it to try.
+     */
+    @Test
+    fun `an episode opened on the backup is not timed out for a slow picture`() = playerTest {
+        val episode = episodeRequest()
+        memory.remember(FallbackPolicy.sourceKey(episode.url), EngineId.BACKUP)
+        val model = model()
+        model.open(episode)
+        runCurrent()
+        assertEquals(listOf(EngineId.BACKUP), engines.built)
+        val backup = engines.last
+        assertEquals(MediaKind.SERIES_EPISODE, backup.opened.single().kind)
+
+        advanceTimeBy(1_200)
+        backup.begin()
+        runCurrent()
+        advanceTimeBy(6_800)
+        runCurrent()
+        assertTrue("no card at eight seconds over a running episode: ${model.now().picture}", model.now().picture is Picture.Opening)
+        assertTrue(model.now().longWait)
+
+        backup.renderFirstFrame()
+        runCurrent()
+        assertTrue(model.now().picture is Picture.Playing)
+        assertEquals(EngineId.BACKUP, model.now().engine)
+        assertFalse(model.now().longWait)
+        assertEquals(listOf(EngineId.BACKUP), engines.built)
+    }
+
+    /** A backup that never starts is the silence the three seconds are for, as it always was. */
+    @Test
+    fun `a backup that never starts still has its card at three seconds`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.fail(PlaybackError.DECODER_INIT)
+        runCurrent()
+
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS - 1)
+        runCurrent()
+        assertTrue(model.now().picture is Picture.Opening)
+
+        advanceTimeBy(2)
+        runCurrent()
+        val picture = model.now().picture
+        assertTrue("a card: $picture", picture is Picture.Failed)
+        assertEquals(PlaybackError.TIMEOUT, (picture as Picture.Failed).reason)
+        assertEquals(FallbackPolicy.OPEN_DEADLINE_MS, model.now().diagnosis?.timedOutAfterMs)
+        assertFalse(model.now().longWait)
+    }
+
+    /**
+     * A backup that started and never draws still ends, on the timeout card and at the bound
+     * for a picture: never at three seconds, never for ever. A picture after the card is still
+     * this opening's, as it is after any timeout.
+     */
+    @Test
+    fun `a backup that started and never draws ends on the timeout card at the picture bound`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        engines.last.fail(PlaybackError.DECODER_INIT)
+        runCurrent()
+        val backup = engines.last
+        backup.begin()
+        runCurrent()
+
+        advanceTimeBy(FallbackPolicy.PICTURE_DEADLINE_MS - 1)
+        runCurrent()
+        assertTrue("still waiting inside the bound: ${model.now().picture}", model.now().picture is Picture.Opening)
+        assertTrue(model.now().longWait)
+
+        advanceTimeBy(2)
+        runCurrent()
+        val picture = model.now().picture
+        assertTrue("a card: $picture", picture is Picture.Failed)
+        picture as Picture.Failed
+        assertEquals(PlaybackError.TIMEOUT, picture.reason)
+        assertFalse("the fallback is spent", picture.canTryBackup)
+        assertFalse("and the spinner went with the wait", model.now().longWait)
+        assertEquals("the report says how long", FallbackPolicy.PICTURE_DEADLINE_MS, model.now().diagnosis?.timedOutAfterMs)
+        assertEquals(listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
+
+        backup.renderFirstFrame()
+        runCurrent()
+        assertTrue(model.now().picture is Picture.Playing)
+    }
+
+    /**
+     * A card the viewer is being asked about is not answered by the budget.
+     *
+     * An unidentified failure is the one the machine leaves to a person, with the backup on the
+     * card. The deadline went on running behind it, and at three seconds took the card away and
+     * switched engines anyway.
+     */
+    @Test
+    fun `an unidentified failure is left to the viewer when the budget runs out`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        engines.last.fail(PlaybackError.UNKNOWN)
+        runCurrent()
+
+        advanceTimeBy(FallbackPolicy.PICTURE_DEADLINE_MS + 1)
+        runCurrent()
+
+        assertEquals("nothing switched on its own", listOf(EngineId.PRIMARY), engines.built)
+        val picture = model.now().picture
+        assertTrue("the card is still up: $picture", picture is Picture.Failed)
+        picture as Picture.Failed
+        assertEquals(PlaybackError.UNKNOWN, picture.reason)
+        assertTrue("still offering the backup", picture.canTryBackup)
+        assertFalse(model.now().switching)
+    }
+
+    /** A backup that failed says why, and the budget running out behind its card does not rename it. */
+    @Test
+    fun `a backup's own failure keeps its reason when the budget runs out`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+        engines.last.fail(PlaybackError.DECODER_INIT)
+        runCurrent()
+        val backup = engines.last
+        backup.begin()
+        advanceTimeBy(1_000)
+        backup.fail(PlaybackError.DECODING)
+        runCurrent()
+
+        advanceTimeBy(FallbackPolicy.PICTURE_DEADLINE_MS)
+        runCurrent()
+
+        val picture = model.now().picture
+        assertTrue("a card: $picture", picture is Picture.Failed)
+        picture as Picture.Failed
+        assertEquals("the reason the backup gave, not TIMEOUT", PlaybackError.DECODING, picture.reason)
+        assertFalse(picture.canTryBackup)
+        assertNull("and no timeout in the report", model.now().diagnosis?.timedOutAfterMs)
+    }
+
+    /**
+     * The backup's longer wait belongs to its channel. Pressing on while it waits for a picture
+     * lets it go, with nothing left behind to time out the next channel, and one engine alive.
+     */
+    @Test
+    fun `a slow backup's wait goes with its channel`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        engines.last.fail(PlaybackError.DECODER_INIT)
+        runCurrent()
+        val backup = engines.last
+        backup.begin()
+        advanceTimeBy(FallbackPolicy.OPEN_DEADLINE_MS + 1)
+        runCurrent()
+
+        model.switchTo(secondChannel())
+        runCurrent()
+        assertTrue("the backup was let go", backup.released)
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        advanceTimeBy(FallbackPolicy.PICTURE_DEADLINE_MS)
+        runCurrent()
+        assertTrue(model.now().picture is Picture.Playing)
+        assertEquals("Second", model.now().request.title)
+        assertEquals(listOf(EngineId.PRIMARY, EngineId.BACKUP, EngineId.PRIMARY), engines.built)
+        assertEquals("one engine alive at a time", 1, engines.mostAlive)
+    }
+
     /* ------------------------------------------------------------------------ fakes */
 
     private fun liveRequest(
@@ -3107,6 +3344,13 @@ class PlayerPathTest {
         url = "http://provider.tv/movie/9.mkv",
         title = "The Road to Chefchaouen",
         kind = MediaKind.VOD,
+    )
+
+    private fun episodeRequest() = PlayerRequest(
+        url = "http://provider.tv/series/12.mkv",
+        title = "Dar Lkhir",
+        subtitle = "S01 E04",
+        kind = MediaKind.SERIES_EPISODE,
     )
 
     /** Records which engines were built, so "the backup was warmed" is expressible. */
@@ -3132,6 +3376,8 @@ class PlayerPathTest {
             if (buildTakesMs > 0) Thread.sleep(buildTakesMs)
             return FakeEngine().also {
                 it.reusable = primaryReusable && id == EngineId.PRIMARY
+                // The backup is LibVLC, which is running before it draws: see [FakeEngine.begin].
+                it.startsBeforePicture = id == EngineId.BACKUP
                 last = it
                 all += it
                 mostAlive = maxOf(mostAlive, all.count { engine -> !engine.released })
@@ -3148,6 +3394,17 @@ class PlayerPathTest {
 
         private val _firstFrame = MutableStateFlow<Long?>(null)
         override val firstFrameAtMs: StateFlow<Long?> = _firstFrame.asStateFlow()
+
+        /**
+         * Whether the start is its own moment, as LibVLC's `Playing` comes before its picture.
+         * Off, the start is the contract's default -- the first frame -- which is what Media3
+         * inherits.
+         */
+        var startsBeforePicture = false
+
+        private val _started = MutableStateFlow<Long?>(null)
+        override val startedAtMs: StateFlow<Long?>
+            get() = if (startsBeforePicture) _started.asStateFlow() else super.startedAtMs
 
         private val _videoAspectRatio = MutableStateFlow<Float?>(null)
         override val videoAspectRatio: StateFlow<Float?> = _videoAspectRatio.asStateFlow()
@@ -3200,6 +3457,7 @@ class PlayerPathTest {
             opened += media
             // What an engine that can be kept promises, and what a fresh one is anyway: each
             // source starts with no frame, no captions, no shape, no tracks and no report.
+            _started.value = null
             _firstFrame.value = null
             _cues.value = emptyList()
             _videoAspectRatio.value = null
@@ -3248,7 +3506,16 @@ class PlayerPathTest {
             released = true
         }
 
+        /**
+         * The input is running and nothing is drawn yet: LibVLC's `Playing`, ahead of its video
+         * output. Still opening, as LibVLC is -- it announces nothing more until the picture.
+         */
+        fun begin() {
+            _started.value = 1_000
+        }
+
         fun renderFirstFrame() {
+            if (_started.value == null) _started.value = 1_000
             _firstFrame.value = 1_000
             playing = true
             _state.value = PlaybackState.Playing(positionMs = 0, durationMs = null, bitrateBps = 0)
