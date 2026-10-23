@@ -893,11 +893,16 @@ private fun Columns(
                     // player's answer and nothing derived from the preview or the remote: the
                     // row the well is *about* is the last press, and a press is not a picture.
                     playingUrl = pulse?.playingUrl,
+                    // The stream the player was asked for, drawn or not: a press on the channel
+                    // that is already in the picture makes the picture large -- see
+                    // `isExpandingPress`.
+                    askedUrl = pulse?.url,
                     qualities = qualities,
                     // Which row was pressed to start it, so a stream listed twice marks one.
                     pressedId = shown.channel?.id,
                     onSelect = previewModel::select,
                     onPlay = onPlay,
+                    onExpand = onExpand,
                     typing = typing,
                     onClearSearch = { model.search("") },
                     onPress = model::press,
@@ -1242,12 +1247,16 @@ private fun ChannelList(
     listState: LazyListState,
     /** The stream the player has a picture of, or null when it has none. */
     playingUrl: String?,
+    /** The stream the player was asked for -- drawn yet or not -- or null when there is no player. */
+    askedUrl: String?,
     /** What each channel has been measured at; a channel with no entry has no badge. */
     qualities: Map<String, StreamQuality>,
     /** The row pressed last, which is the row that started the stream playing. */
     pressedId: String?,
     onSelect: (Channel, Int) -> Unit,
     onPlay: (CatalogSelection) -> Unit,
+    /** Make the picture that is playing the large one: the second press on its channel. */
+    onExpand: () -> Unit,
     /**
      * The header's field has the remote. Rows come and go under a viewer's keys as the search
      * narrows, and the list's first-focus rule must not answer by taking the remote from the
@@ -1340,6 +1349,7 @@ private fun ChannelList(
                     playing = isPlayingRow(channel.id, channel.streamUrl, pressedId, playingUrl),
                     quality = qualities[channel.id],
                     m = m,
+                    pressed = mode == null && channel.id == pressedId,
                     // **Moving is not choosing, and that distinction is the whole of how
                     // this screen behaves now.**
                     //
@@ -1356,8 +1366,15 @@ private fun ChannelList(
                     // one act.
                     onClick = when {
                         mode == null -> ({
-                            onSelect(channel, index + 1)
-                            channel.asSelection()?.let(onPlay)
+                            // The first press on a channel plays it in the preview; the next on
+                            // the same channel makes that picture large, as a press on the picture
+                            // does. A remote's OK and a thumb are the same press.
+                            if (isExpandingPress(channel.id, channel.streamUrl, pressedId, askedUrl)) {
+                                onExpand()
+                            } else {
+                                onSelect(channel, index + 1)
+                                channel.asSelection()?.let(onPlay)
+                            }
                         })
                         mode.channelsOf != null -> ({ onPress(Held.Channel(channel.id)) })
                         else -> ({ })
@@ -1441,6 +1458,11 @@ internal fun ChannelRow(
      * look -- it is the one the remote is carrying -- and shows the two taps in place of the handle.
      */
     arrange: RowArrange? = null,
+    /**
+     * This is the row that was pressed, outside reorder mode. Its name scrolls to be read whole,
+     * as the remote's row does -- see [nameScrolls].
+     */
+    pressed: Boolean = false,
 ) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(m.previewRadius)
@@ -1560,7 +1582,7 @@ internal fun ChannelRow(
         // whole name and scrolls it. Scrolling all twelve at once would make the
         // column unreadable and would animate twelve texts on a stick that has to
         // hold 60fps while paging a catalogue.
-        if (focused) {
+        if (nameScrolls(focused = focused, pressed = pressed)) {
             Text(
                 text = name,
                 style = nameStyle,

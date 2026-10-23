@@ -75,4 +75,48 @@ class ChannelRowLookTest {
         assertEquals(listOf("b" to url), rows.filter { (id, stream) -> isPlayingRow(id, stream, "b", url) })
         assertTrue("and nothing pressed marks none", rows.none { (id, stream) -> isPlayingRow(id, stream, null, url) })
     }
+
+    // ------------------------------------------------------------------ which names scroll
+
+    @Test
+    fun `the row the remote is on scrolls its name`() {
+        assertTrue(nameScrolls(focused = true, pressed = false))
+    }
+
+    @Test
+    fun `the row that was pressed scrolls its name though a touch never focused it`() {
+        assertTrue(nameScrolls(focused = false, pressed = true))
+    }
+
+    @Test
+    fun `a row neither focused nor pressed stands cut to fit`() {
+        assertFalse(nameScrolls(focused = false, pressed = false))
+    }
+
+    // ---------------------------------------------------------- the second press expands
+
+    @Test
+    fun `the first press on a channel plays it and the second makes the picture large`() {
+        val url = "http://provider.tv/live/7.ts"
+        assertFalse("nothing asked for yet: the press plays", isExpandingPress("a", url, pressedId = null, askedUrl = null))
+        assertTrue("the channel is in the picture: the press expands", isExpandingPress("a", url, pressedId = "a", askedUrl = url))
+    }
+
+    @Test
+    fun `a press on another channel plays it, whatever is in the picture`() {
+        val url = "http://provider.tv/live/7.ts"
+        assertFalse(isExpandingPress("b", "http://provider.tv/live/8.ts", pressedId = "a", askedUrl = url))
+    }
+
+    @Test
+    fun `a stream listed twice expands only from the row that was pressed`() {
+        val url = "http://provider.tv/live/7.ts"
+        assertTrue(isExpandingPress("a", url, pressedId = "a", askedUrl = url))
+        assertFalse(isExpandingPress("b", url, pressedId = "a", askedUrl = url))
+    }
+
+    @Test
+    fun `a channel pressed on an earlier visit has no player to expand and plays again`() {
+        assertFalse(isExpandingPress("a", "http://provider.tv/live/7.ts", pressedId = "a", askedUrl = null))
+    }
 }
