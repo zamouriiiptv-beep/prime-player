@@ -320,10 +320,13 @@ class ReorderModeTest {
     private var saved = 0
     private var cancelled = 0
 
-    private fun showBar(mode: Arranging, direction: LayoutDirection = LayoutDirection.Ltr) {
+    /** The reader's direction around the bar; a state, so one test can turn it without composing twice. */
+    private val direction = mutableStateOf(LayoutDirection.Ltr)
+
+    private fun showBar(mode: Arranging) {
         compose.setContent {
             CastivioTheme {
-                CompositionLocalProvider(LocalLayoutDirection provides direction) {
+                CompositionLocalProvider(LocalLayoutDirection provides direction.value) {
                     val m = channelsMetricsFor(tv = true, width = 960.dp, height = 540.dp)
                     ReorderBar(mode = mode, m = m, onSave = { saved++ }, onCancel = { cancelled++ })
                 }
@@ -348,10 +351,11 @@ class ReorderModeTest {
 
     @Test
     fun `in a right-to-left language the bar does not turn round`() {
-        showBar(mode(), LayoutDirection.Ltr)
+        showBar(mode())
         val ltr = barOrder()
 
-        showBar(mode(), LayoutDirection.Rtl)
+        direction.value = LayoutDirection.Rtl
+        compose.waitForIdle()
         val rtl = barOrder()
 
         // The board does not mirror, and the bar is part of it: the same places in both.
