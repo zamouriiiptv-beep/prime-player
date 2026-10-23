@@ -59,6 +59,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -122,6 +123,7 @@ import com.castivio.domain.StreamQuality
 import com.castivio.domain.SortOrder
 import com.castivio.domain.isProviderHeading
 import java.util.Calendar
+import kotlinx.coroutines.flow.distinctUntilChanged
 import com.castivio.core.design.R as DesignR
 
 /**
@@ -999,8 +1001,16 @@ internal fun CategoryRail(
             Spacer(Modifier.height(m.railEntryGap * 2))
         }
 
+        // The held bouquet is kept on screen by the column, which knows where the move put it --
+        // see `keepInView`. In reorder mode the bouquets are the column's only rows.
+        val railState = rememberLazyListState()
+        val heldBouquet = (mode?.held as? Held.Bouquet)?.id
+        LaunchedEffect(railState, heldBouquet, state.shownGroups) {
+            if (heldBouquet != null) railState.keepInView(state.shownGroups.indexOfFirst { it.id == heldBouquet })
+        }
+
         LazyColumn(
-            state = rememberLazyListState(),
+            state = railState,
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(m.railEntryGap),
         ) {
@@ -1137,7 +1147,6 @@ private fun RailEntry(
                 shape,
             )
             .movedByArrows(arrange)
-            .then(keptInView(held))
             .then(focusModifier)
             .clickable(interaction, indication = null, onClick = onClick)
             .padding(horizontal = m.railPadH),
@@ -1298,6 +1307,16 @@ private fun ChannelList(
         val first = remember { FocusRequester() }
         FirstRowFocus(hasContent = hasContent, fieldHasIt = typing, first = first)
 
+        // The held channel, kept on screen by the list as the rows come back from a move -- read
+        // from the rows the list has, off composition, each time they change.
+        val heldChannel = (mode?.held as? Held.Channel)?.id
+        LaunchedEffect(listState, rows, heldChannel) {
+            if (heldChannel == null) return@LaunchedEffect
+            snapshotFlow { rows.itemSnapshotList.indexOfFirst { it?.id == heldChannel } }
+                .distinctUntilChanged()
+                .collect { index -> listState.keepInView(index) }
+        }
+
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize().padding(m.wellPad / 2),
@@ -1451,7 +1470,6 @@ internal fun ChannelRow(
             .background(if (look.surface) colors.secondary else Color.Transparent)
             .border(1.dp, if (look.ring) colors.focusRing else Color.Transparent, shape)
             .movedByArrows(arrange)
-            .then(keptInView(held))
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
             .clickable(interaction, indication = null, onClick = onClick)
             .padding(horizontal = m.rowPadH),

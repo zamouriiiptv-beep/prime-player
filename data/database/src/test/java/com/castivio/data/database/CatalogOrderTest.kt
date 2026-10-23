@@ -2,8 +2,12 @@ package com.castivio.data.database
 
 import com.castivio.domain.CatalogQuery
 import com.castivio.domain.MediaKind
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -502,6 +506,55 @@ class CatalogOrderTest {
         assertEquals(before, database.groupDao().groupsNow("LIVE").map { it.id to it.providerOrder })
     }
 
+    // ------------------------------------------------------------------ the screens are told
+
+    /**
+     * A rail open while the bouquets are saved shows the new order without being opened again.
+     *
+     * On a device it kept the old one: the order was written, and the rail that read it was not
+     * told. Collected here the way the board collects it, and waited on.
+     */
+    @Test
+    fun `a rail that is open is told the bouquets' saved order`() = runBlocking {
+        val (sports, news, kids) = twoBouquets()
+        val repository = repository()
+        val seen = Channel<List<String>>(Channel.UNLIMITED)
+        val rail = launch(Dispatchers.IO) {
+            repository.groups(MediaKind.LIVE).collect { groups -> seen.send(groups.map { it.name }) }
+        }
+        assertEquals(listOf("Sports", "News", "Kids"), withTimeout(TOLD) { seen.receive() })
+
+        repository.saveBouquets(MediaKind.LIVE, listOf(kids, sports, news))
+
+        withTimeout(TOLD) { while (seen.receive() != listOf("Kids", "Sports", "News")) continue }
+        rail.cancel()
+    }
+
+    /**
+     * A list open on a bouquet being arranged reads it again each time a channel moves.
+     *
+     * On a device the channel held stayed where it was on screen while the draft had it moving
+     * -- the saved list showed every move once Save was pressed. A list is read again as a new
+     * generation of its pages, so one is waited for after the move.
+     */
+    @Test
+    fun `a list of a bouquet being arranged is read again when a channel moves`() = runBlocking {
+        val repository = repository()
+        val group = groupId()
+        repository.begin(group)
+        val generations = Channel<Unit>(Channel.UNLIMITED)
+        val list = launch(Dispatchers.IO) {
+            repository.items(CatalogQuery(MediaKind.LIVE, groupId = group, arranging = true))
+                .collect { generations.send(Unit) }
+        }
+        withTimeout(TOLD) { generations.receive() }
+
+        assertTrue(repository.move(group, idOf("Channel 3"), up = true))
+
+        withTimeout(TOLD) { generations.receive() }
+        list.cancel()
+    }
+
     // ------------------------------------------------------------------------------ the query
 
     @Test
@@ -558,5 +611,10 @@ class CatalogOrderTest {
         RoomSourceRepository(database.sourceDao()) { 1_000L }.delete("src")
 
         assertTrue(database.orderDao().has(OrderScopes.channels(group)))
+    }
+
+    private companion object {
+        /** Long enough for a notice that is coming, short enough to fail on one that is not. */
+        const val TOLD = 5_000L
     }
 }

@@ -1,9 +1,9 @@
 package com.castivio.feature.home
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,8 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,8 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,7 +34,6 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -51,7 +48,6 @@ import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Sizing
-import kotlinx.coroutines.launch
 
 /**
  * What a row is told in reorder mode: whether it is the one picked up, and what to do when it is
@@ -133,24 +129,33 @@ private fun ArrowTap(icon: ImageVector, description: String, ink: Color, size: D
 }
 
 /**
- * A modifier that keeps a held row on screen as it moves.
+ * Keeps the row being carried on screen as it moves -- asked of the list that holds it.
  *
- * The list under it is a lazy one and the row carries focus with it, but nothing scrolls a list to
- * follow a row that moves: past the edge of the window it would be carried out of sight, and a
- * viewer moving a channel twenty places would watch it leave. Asked on every layout of the held
- * row, which is each time it moves, and it does nothing when the row is already in view.
+ * It was a modifier on the row, which asked to be brought into view each time the row was laid
+ * out. A move that takes the row past the edge of a lazy list leaves it not laid out at all, so
+ * nothing asked: the list keeps the row that was first on screen where it was, and a bouquet
+ * moved to the top of the rail went above it -- the owner had to scroll back up to find it.
+ *
+ * So the list is asked, once the move has been laid out: a row off the top becomes the first on
+ * screen, one off the bottom one of the last, and one cut by either edge is scrolled just into
+ * view. A row already in view is left where it is.
+ *
+ * @param index where the held row now is in this list; negative when nothing is held.
  */
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-internal fun keptInView(held: Boolean): Modifier {
-    val requester = remember { BringIntoViewRequester() }
-    val scope = rememberCoroutineScope()
-    return if (!held) {
-        Modifier
-    } else {
-        Modifier
-            .bringIntoViewRequester(requester)
-            .onGloballyPositioned { scope.launch { requester.bringIntoView() } }
+internal suspend fun LazyListState.keepInView(index: Int) {
+    if (index < 0) return
+    // The frame the move is laid out in: until then the list still describes the old places.
+    withFrameNanos { }
+    val info = layoutInfo
+    val shown = info.visibleItemsInfo
+    if (shown.isEmpty()) return
+    val row = shown.firstOrNull { it.index == index }
+    when {
+        row == null && index < shown.first().index -> scrollToItem(index)
+        row == null -> scrollToItem((index - shown.size + 2).coerceAtLeast(0))
+        row.offset < 0 -> scrollBy(row.offset.toFloat())
+        row.offset + row.size > info.viewportEndOffset - info.afterContentPadding ->
+            scrollBy((row.offset + row.size - info.viewportEndOffset + info.afterContentPadding).toFloat())
     }
 }
 

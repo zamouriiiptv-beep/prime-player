@@ -18,6 +18,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -224,6 +225,45 @@ class ReorderModeTest {
         assertEquals(listOf(true, false, false), moves)
         compose.onNodeWithText("News").assertIsFocused()
         assertTrue("the held row took the keys: none reached the rail around it", bubbled.isEmpty())
+    }
+
+    /**
+     * A bouquet moved past the top of the rail stays on screen.
+     *
+     * The rail keeps the row that was first on screen where it was, so a bouquet moved above that
+     * row went out of sight, and the owner had to scroll back up to find it -- the row was no
+     * longer laid out, so nothing on it could ask to be shown.
+     */
+    @Test
+    fun `a bouquet moved to the top of the rail stays on screen`() {
+        val many = (0 until 30).map { group("b$it", "Bouquet $it") }
+        val ids = many.map { it.id }
+        val start = Arranging(bouquets = ids, initial = ids, channelsOf = null, held = Held.Bouquet("b1"))
+        state = BrowseState(groups = many, shownGroups = many, arranging = start, loading = false)
+        compose.setContent {
+            CastivioTheme {
+                val m = channelsMetricsFor(tv = true, width = 960.dp, height = 540.dp)
+                CategoryRail(
+                    state = state,
+                    m = m,
+                    onChoose = {},
+                    onFilter = {},
+                    onRefresh = {},
+                    onMove = { up ->
+                        val moved = state.arranging!!.withHeldBouquetMoved(up)
+                        state = state.copy(arranging = moved, shownGroups = many.arrangedAs(moved.bouquets))
+                    },
+                    modifier = Modifier.width(m.rail).height(300.dp),
+                )
+            }
+        }
+        compose.waitForIdle()
+
+        compose.onNode(hasContentDescription("Move up")).performClick()
+        compose.waitForIdle()
+
+        assertEquals("the held bouquet is first in the order", "b1", state.shownGroups.first().id)
+        compose.onNodeWithText("Bouquet 1").assertIsDisplayed()
     }
 
     @Test

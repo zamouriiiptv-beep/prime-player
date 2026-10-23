@@ -3,6 +3,7 @@ package com.castivio.data.database
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
+import androidx.paging.PagingSource
 import androidx.paging.map
 import com.castivio.core.platform.CastivioTrace
 import com.castivio.data.database.dao.FavoriteDao
@@ -26,11 +27,16 @@ import com.castivio.domain.Season
 import com.castivio.domain.SeriesSummary
 import com.castivio.domain.SortOrder
 import com.castivio.domain.arrangedBy
+import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -65,14 +71,45 @@ class RoomCatalogRepository(
      */
     private val draftsSwept = AtomicBoolean(false)
 
+    /**
+     * **The viewer's orders are told to their readers by the writes that change them.**
+     *
+     * Room was relied on for it, and on a device it did not tell them: a channel moved with
+     * the arrows stayed where it was on screen although the draft had it in its new place --
+     * the saved list showed every move once Save was pressed -- and a saved order of bouquets
+     * left the rail in the old one until the screen was opened again. Every write to
+     * `custom_order` goes through this class, so this class says so: [orderWrites] for the
+     * bouquets' order, and [orderReaders] -- the windows of a bouquet being read -- to read
+     * again. Room's own notice, where it comes, only reads once more what this already read.
+     */
+    private val orderWrites = MutableStateFlow(0L)
+    private val orderReaders = CopyOnWriteArraySet<PagingSource<*, *>>()
+
+    private fun ordersChanged() {
+        orderWrites.update { it + 1 }
+        orderReaders.forEach { it.invalidate() }
+    }
+
+    /** [source] reads a bouquet in an order the viewer may be changing: told of every change. */
+    private fun <S : PagingSource<*, *>> readingOrders(source: S): S {
+        orderReaders += source
+        source.registerInvalidatedCallback { orderReaders -= source }
+        return source
+    }
+
     // ------------------------------------------------------------- CatalogRepository
 
     /**
      * The section's bouquets, in the viewer's order where they have made one and the provider's
      * where they have not -- see [CatalogOrder]. Hundreds of rows, read whole, as before.
      */
+    @OptIn(ExperimentalCoroutinesApi::class)
     override fun groups(kind: MediaKind): Flow<List<MediaGroup>> =
-        combine(groupDao.groupsOf(kind.name), orderDao.positions(OrderScopes.bouquets(kind))) { rows, saved ->
+        combine(
+            groupDao.groupsOf(kind.name),
+            // Read again after every write to an order -- see [orderWrites].
+            orderWrites.flatMapLatest { orderDao.positions(OrderScopes.bouquets(kind)) },
+        ) { rows, saved ->
             rows.map { it.toDomain() }.arrangedBy(saved.associate { it.itemId to it.position })
         }
 
@@ -161,7 +198,7 @@ class RoomCatalogRepository(
                         if (orderDao.has(scope)) mediaDao.windowArranged(kind, group, scope, offset, limit)
                         else mediaDao.windowInGroup(kind, group, offset, limit)
                     }
-                }
+                }.let { source -> if (group == null) source else readingOrders(source) }
 
                 SortOrder.NAME_ASC ->
                     if (group == null) mediaDao.pageByNameAsc(kind)
@@ -185,12 +222,14 @@ class RoomCatalogRepository(
             draftsSwept.set(true)
             orderDao.begin(groupId, OrderScopes.channels(groupId), OrderScopes.draft(groupId))
         }
+        ordersChanged()
     }
 
     override suspend fun sweepDrafts() {
-        drafts.withLock {
-            if (draftsSwept.compareAndSet(false, true)) orderDao.clearDrafts()
+        val swept = drafts.withLock {
+            draftsSwept.compareAndSet(false, true).also { first -> if (first) orderDao.clearDrafts() }
         }
+        if (swept) ordersChanged()
     }
 
     override fun draftAbandoned() {
@@ -198,15 +237,24 @@ class RoomCatalogRepository(
     }
 
     override suspend fun move(groupId: String, channelId: String, up: Boolean): Boolean =
-        orderDao.move(groupId, OrderScopes.draft(groupId), channelId, up)
+        orderDao.move(groupId, OrderScopes.draft(groupId), channelId, up).also { moved ->
+            if (moved) ordersChanged()
+        }
 
-    override suspend fun save(groupId: String) =
+    override suspend fun save(groupId: String) {
         orderDao.save(OrderScopes.channels(groupId), OrderScopes.draft(groupId))
+        ordersChanged()
+    }
 
-    override suspend fun discard(groupId: String) = orderDao.clear(OrderScopes.draft(groupId))
+    override suspend fun discard(groupId: String) {
+        orderDao.clear(OrderScopes.draft(groupId))
+        ordersChanged()
+    }
 
-    override suspend fun saveBouquets(kind: MediaKind, orderedIds: List<String>) =
+    override suspend fun saveBouquets(kind: MediaKind, orderedIds: List<String>) {
         orderDao.saveBouquets(OrderScopes.bouquets(kind), kind.name, orderedIds)
+        ordersChanged()
+    }
 
     // -------------------------------------------------------------------------- the series
 
