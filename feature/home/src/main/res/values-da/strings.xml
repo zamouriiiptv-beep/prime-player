@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">Tryk på OK på en kategori eller en kanal for at samle den op.</string>
     <string name="reorder_hint_move">Flyt den med ↑ og ↓, og tryk derefter på OK for at sætte den ned.</string>
     <string name="reorder_hint_all">Åbn først en kategori for at omarrangere dens kanaler.</string>
+    <string name="reorder_hint_mark">Hold OK nede på rækker for at markere flere og flytte dem sammen.</string>
+    <string name="reorder_hint_marked">Markeret: %1$d. Tryk på OK på en af dem for at løfte dem sammen.</string>
     <string name="reorder_failed">Rækkefølgen kunne ikke gemmes. Prøv igen.</string>
     <string name="reorder_move_up">Flyt op</string>
     <string name="reorder_move_down">Flyt ned</string>
     <string name="channels_empty_title">Ingen kanaler her</string>
     <string name="channels_empty_detail">Der er ikke noget i denne kategori endnu. Prøv en anden, eller hent sektionen igen.</string>
+    <string name="channels_favorites_empty_title">Ingen favoritkanaler endnu</string>
+    <string name="channels_favorites_empty_detail">Tryk på “Favorit”, vælg de kanaler, du kan lide, og tryk på “Favorit” igen for at tilføje dem.</string>
+    <string name="hide_bouquets_title">Skjul pakker</string>
+    <string name="hide_channels_title">Skjul kanaler</string>
+    <string name="hide_hint">Markér, hvad du vil skjule, og tryk på Skjul valgte. Intet slettes; Indstillinger henter det tilbage.</string>
+    <string name="hide_confirm">Skjul valgte</string>
+    <string name="settings_hidden_section">Skjulte elementer</string>
+    <string name="settings_hidden_detail">Skjulte pakker og kanaler bliver i dit abonnement. Tryk for at gendanne alle.</string>
+    <string name="settings_hidden_bouquets">Gendan skjulte pakker</string>
+    <string name="settings_hidden_channels">Gendan skjulte kanaler</string>
     <string name="channels_fetch_failed">Live-tv kunne ikke hentes</string>
     <string name="channels_guide_now">NU</string>
     <string name="channels_guide_next">NÆSTE</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">Er favorit</string>
     <string name="channels_action_lock">Lås</string>
     <string name="channels_action_hide">Skjul</string>
+
+    <string name="pin_title_play">Låst kanal</string>
+    <string name="pin_message_play">Indtast adgangskoden for at afspille denne kanal.</string>
+    <string name="pin_title_lock">Lås kanal</string>
+    <string name="pin_message_lock">Indtast adgangskoden for at låse denne kanal.</string>
+    <string name="pin_title_unlock">Lås kanal op</string>
+    <string name="pin_message_unlock">Indtast adgangskoden for at låse denne kanal op.</string>
+    <string name="pin_title_current">Nuværende adgangskode</string>
+    <string name="pin_message_current">Indtast den nuværende adgangskode.</string>
+    <string name="pin_title_new">Ny adgangskode</string>
+    <string name="pin_message_new">Vælg 4 cifre.</string>
+    <string name="pin_title_repeat">Gentag adgangskoden</string>
+    <string name="pin_message_repeat">Indtast de samme cifre igen.</string>
+    <string name="pin_wrong">Forkert adgangskode.</string>
+    <string name="pin_mismatch">Cifrene stemte ikke overens. Vælg den nye adgangskode igen.</string>
+    <string name="pin_cancel">Annullér</string>
+    <string name="pin_delete">Slet</string>
+    <string name="pin_progress">%1$d af %2$d cifre</string>
+    <string name="pin_changed_title">Adgangskoden er ændret</string>
+    <string name="pin_changed_body">Den nye adgangskode låser og låser nu kanaler op.</string>
+    <string name="pin_done">OK</string>
+    <string name="channels_action_unlock">Lås op</string>
+    <string name="channels_locked">Låst</string>
+    <string name="settings_pin_section">Kanallås</string>
+    <string name="settings_pin_change">Skift adgangskode</string>
+    <string name="settings_pin_detail">Adgangskoden, der låser kanaler og låser dem op. Den er 0000, indtil du ændrer den.</string>
     <string name="channels_live_badge">LIVE</string>
 
 </resources>

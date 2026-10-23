@@ -54,6 +54,10 @@ internal fun isExpandingPress(
  * Independent of the picture: the row pressed scrolls at once, not when the player has a frame,
  * and one whose stream never opens still shows the name it was asked for. It is also not the
  * playing mark -- that follows the player -- so a stream listed twice scrolls the one pressed.
+ *
+ * The category rail asks the same question of its entries, with [pressed] meaning the bouquet that
+ * is open: a press on a bouquet is what opens it, and a thumb reaches no other way to read a name
+ * that is cut.
  */
 internal fun nameScrolls(focused: Boolean, pressed: Boolean): Boolean = focused || pressed
 

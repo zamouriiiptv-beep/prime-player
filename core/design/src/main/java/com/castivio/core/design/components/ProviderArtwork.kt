@@ -14,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import coil.compose.AsyncImage
@@ -65,12 +66,17 @@ import com.castivio.core.design.theme.CastivioTheme
  * @param url the provider's own `tvg-logo` / `stream_icon`, as imported.
  * @param description what the picture is, for a screen reader. Null where the name is
  *   already drawn beside it and reading the logo too would say everything twice.
+ * @param imageScale how much larger than its fitted size the *picture* is drawn, about the slot's
+ *   centre and in both directions alike, so its proportions do not change. It is a draw-time
+ *   scale: the slot, and so everything laid out around it, keeps its size. The "no picture" mark
+ *   is not scaled by it. 1 is the picture as fitted.
  */
 @Composable
 fun ProviderArtwork(
     url: String?,
     description: String?,
     modifier: Modifier = Modifier,
+    imageScale: Float = 1f,
 ) {
     // Keyed to the url, because a row in a `LazyColumn` is recycled: without the key a
     // channel whose logo failed would hand its failure to whichever channel scrolled
@@ -103,7 +109,10 @@ fun ProviderArtwork(
                 contentDescription = description,
                 contentScale = ContentScale.Fit,
                 onError = { failed = true },
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().graphicsLayer {
+                    scaleX = imageScale
+                    scaleY = imageScale
+                },
             )
         }
     }

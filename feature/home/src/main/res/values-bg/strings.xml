@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">Натиснете OK върху категория или канал, за да го вземете.</string>
     <string name="reorder_hint_move">Преместете го с ↑ и ↓, след което натиснете OK, за да го пуснете.</string>
     <string name="reorder_hint_all">Първо отворете категория, за да пренаредите каналите ѝ.</string>
+    <string name="reorder_hint_mark">Задръжте OK върху редове, за да отбележите няколко и да ги преместите заедно.</string>
+    <string name="reorder_hint_marked">Отбелязани: %1$d. Натиснете OK върху един от тях, за да ги вземете заедно.</string>
     <string name="reorder_failed">Редът не можа да се запази. Опитайте отново.</string>
     <string name="reorder_move_up">Преместване нагоре</string>
     <string name="reorder_move_down">Преместване надолу</string>
     <string name="channels_empty_title">Тук няма канали</string>
     <string name="channels_empty_detail">В тази категория още няма нищо. Опитайте друга или изтеглете раздела отново.</string>
+    <string name="channels_favorites_empty_title">Още няма любими канали</string>
+    <string name="channels_favorites_empty_detail">Натиснете „Към любими“, изберете каналите, които харесвате, и натиснете „Към любими“ отново, за да ги добавите.</string>
+    <string name="hide_bouquets_title">Скриване на пакети</string>
+    <string name="hide_channels_title">Скриване на канали</string>
+    <string name="hide_hint">Отбележете какво да скриете и натиснете „Скрий избраните“. Нищо не се изтрива; настройките го връщат.</string>
+    <string name="hide_confirm">Скрий избраните</string>
+    <string name="settings_hidden_section">Скрити елементи</string>
+    <string name="settings_hidden_detail">Скритите пакети и канали остават във вашия абонамент. Натиснете, за да върнете всички.</string>
+    <string name="settings_hidden_bouquets">Връщане на скритите пакети</string>
+    <string name="settings_hidden_channels">Връщане на скритите канали</string>
     <string name="channels_fetch_failed">Телевизията на живо не можа да се изтегли</string>
     <string name="channels_guide_now">СЕГА</string>
     <string name="channels_guide_next">СЛЕДВА</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">В любими</string>
     <string name="channels_action_lock">Заключване</string>
     <string name="channels_action_hide">Скриване</string>
+
+    <string name="pin_title_play">Заключен канал</string>
+    <string name="pin_message_play">Въведете паролата, за да пуснете този канал.</string>
+    <string name="pin_title_lock">Заключване на канал</string>
+    <string name="pin_message_lock">Въведете паролата, за да заключите този канал.</string>
+    <string name="pin_title_unlock">Отключване на канал</string>
+    <string name="pin_message_unlock">Въведете паролата, за да отключите този канал.</string>
+    <string name="pin_title_current">Текуща парола</string>
+    <string name="pin_message_current">Въведете текущата парола.</string>
+    <string name="pin_title_new">Нова парола</string>
+    <string name="pin_message_new">Изберете 4 цифри.</string>
+    <string name="pin_title_repeat">Повторете паролата</string>
+    <string name="pin_message_repeat">Въведете същите цифри отново.</string>
+    <string name="pin_wrong">Грешна парола.</string>
+    <string name="pin_mismatch">Цифрите не съвпадат. Изберете новата парола отново.</string>
+    <string name="pin_cancel">Отказ</string>
+    <string name="pin_delete">Изтриване</string>
+    <string name="pin_progress">%1$d от %2$d цифри</string>
+    <string name="pin_changed_title">Паролата е сменена</string>
+    <string name="pin_changed_body">Новата парола вече заключва и отключва каналите.</string>
+    <string name="pin_done">Добре</string>
+    <string name="channels_action_unlock">Отключване</string>
+    <string name="channels_locked">Заключен</string>
+    <string name="settings_pin_section">Заключване на канали</string>
+    <string name="settings_pin_change">Смяна на паролата</string>
+    <string name="settings_pin_detail">Паролата, която заключва и отключва каналите. Тя е 0000, докато не я смените.</string>
     <string name="channels_live_badge">НА ЖИВО</string>
 
 </resources>

@@ -31,6 +31,13 @@ data class CatalogQuery(
      * [groupId].
      */
     val arranging: Boolean = false,
+    /**
+     * Only the channels the viewer has marked as favourites, in the provider's own order -- the list
+     * the rail's Favourites entry opens. A favourite is user data and not a place in the catalogue,
+     * so this has no [groupId], [search] or [arranging] of its own: a query that asks for it asks for
+     * nothing else, and the order is the one every other list of channels is read in.
+     */
+    val favorites: Boolean = false,
 )
 
 /**

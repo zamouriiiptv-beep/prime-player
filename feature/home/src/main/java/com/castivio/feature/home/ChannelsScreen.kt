@@ -39,10 +39,13 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.EventBusy
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.PlayCircleOutline
+import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarBorder
@@ -54,16 +57,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
@@ -76,12 +80,14 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
@@ -113,7 +119,11 @@ import com.castivio.core.design.theme.Sizing
 import com.castivio.core.platform.CastivioTrace
 import com.castivio.core.platform.PerfSection
 import com.castivio.core.platform.PerformanceLog
+import com.castivio.domain.CatalogQuery
 import com.castivio.domain.Channel
+import com.castivio.domain.HiddenKind
+import com.castivio.domain.PressVerdict
+import com.castivio.domain.pressVerdictFor
 import com.castivio.domain.MediaItem
 import com.castivio.domain.Programme
 import com.castivio.domain.SectionLoad
@@ -124,6 +134,7 @@ import com.castivio.domain.SortOrder
 import com.castivio.domain.isProviderHeading
 import java.util.Calendar
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
 import com.castivio.core.design.R as DesignR
 
 /**
@@ -216,6 +227,12 @@ fun ChannelsScreen(
      */
     model: BrowseViewModel = hiltViewModel(key = CatalogSection.Live.name),
     previewModel: ChannelsViewModel = hiltViewModel(),
+    /** Which channels are locked, and the password that opens them. See [LockUi]. */
+    lockModel: ChannelLockViewModel = hiltViewModel(),
+    /** Which channels are favourites, and the picks of the mode that adds or removes several at once. */
+    favoritesModel: ChannelFavoritesViewModel = hiltViewModel(),
+    /** What the viewer is choosing to hide, and the write that hides it. See [HidingUi]. */
+    hidingModel: ChannelHidingViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(Unit) { model.show(CatalogSection.Live) }
 
@@ -240,6 +257,43 @@ fun ChannelsScreen(
         if (state.arranging?.held != null) model.drop() else model.cancel()
     }
 
+    // **The Favourite button: one press for the channel in the picture, a held press for several.**
+    // Pressed, it marks the channel or takes the mark away at once -- the star it always was. Held, it
+    // starts picking, which is not reorder mode: a press on a row picks or puts back, and the same
+    // button then adds the picks or -- when they all are favourites -- removes them. Nothing here moves
+    // a channel, changes an order, or touches what is playing: the picks are a set of ids, and the one
+    // write is `FavoritesRepository.set`. Back leaves the mode with nothing written.
+    val favoriteIds by favoritesModel.ids.collectAsStateWithLifecycle()
+    val picked by favoritesModel.picked.collectAsStateWithLifecycle()
+    BackHandler(enabled = picked != null) { favoritesModel.cancel() }
+    val favorites = remember(favoriteIds, picked) {
+        FavoritesUi(
+            ids = favoriteIds,
+            picked = picked,
+            toggle = favoritesModel::toggle,
+            press = { if (picked == null) previewModel.toggleFavorite() else favoritesModel.apply() },
+            hold = { if (picked == null) favoritesModel.begin() },
+        )
+    }
+
+    // **Hiding, which is neither reorder mode nor picking favourites.** The Hide button chooses
+    // bouquets, and held it chooses channels; a press on a row of that kind ticks it or puts it back; the
+    // bar's Hide selected hides what is ticked in one write, and Cancel -- and Back -- leave with nothing
+    // hidden. The three modes are three holders and the strip answers one at a time. Hidden is local: the
+    // lists read around it, and Settings brings it back.
+    val hidingNow by hidingModel.hiding.collectAsStateWithLifecycle()
+    BackHandler(enabled = hidingNow != null) { hidingModel.cancel() }
+    val hider = remember(hidingNow) {
+        HidingUi(
+            hiding = hidingNow,
+            toggle = hidingModel::toggle,
+            confirm = hidingModel::confirm,
+            cancel = hidingModel::cancel,
+            press = { hidingModel.begin(HiddenKind.BOUQUET) },
+            hold = { hidingModel.begin(HiddenKind.CHANNEL) },
+        )
+    }
+
     // **A channel with a picture on it tells the board what it measures.** Only a stream that is
     // showing -- the player's word, not the press -- and only for the channel that was pressed to
     // start it, so a channel that is opening or failed is never recorded at the last one's size.
@@ -249,6 +303,60 @@ fun ChannelsScreen(
     val frame = pulse?.frame
     LaunchedEffect(playingChannel?.id, frame) {
         if (playingChannel != null && frame != null) previewModel.measured(playingChannel.id, frame)
+    }
+
+    // **The lock: what a press on a channel does about it, and the one dialog that asks.**
+    //
+    // A locked channel does not start until the password has been typed, so a press on one asks
+    // first and starts only when it is given -- from the list, and from a search that narrowed the
+    // list, which are the same rows. The strip's Lock button asks as well: to lock the channel in the
+    // well, and, when it is already locked, to open it. Nothing is asked of a channel that is not
+    // locked, and nothing is asked of the second press on the one that is already in the picture --
+    // that press makes the picture large and starts nothing.
+    val lockedIds by lockModel.locked.collectAsStateWithLifecycle()
+    var asking by remember { mutableStateOf<PinAsk?>(null) }
+    val scope = rememberCoroutineScope()
+    val latestPlay by rememberUpdatedState(onPlay)
+    val latestState by rememberUpdatedState(state)
+    val lock = remember(lockedIds) {
+        LockUi(
+            locked = lockedIds,
+            start = { channel, number ->
+                val begin = {
+                    // Selecting and playing are one act, and both wait for the password: a board that
+                    // named the locked channel in its well while the picture was another one is the
+                    // contradiction the press was made to avoid.
+                    previewModel.select(channel, number)
+                    // With the list it was pressed in: the bouquet and the search the rows are those
+                    // of. The large player's channel keys step through that list, in its order.
+                    val list = CatalogQuery(
+                        kind = CatalogSection.Live.kind,
+                        groupId = latestState.selectedGroup,
+                        sort = latestState.sort,
+                        search = latestState.search,
+                        favorites = latestState.favorites,
+                    )
+                    channel.asSelection()?.copy(listed = list)?.let(latestPlay)
+                    Unit
+                }
+                when (pressVerdictFor(live = true, channelId = channel.id, known = lockModel.locked.value)) {
+                    PressVerdict.Start -> begin()
+                    PressVerdict.Ask -> { asking = PinAsk(PinPurpose.Play, begin) }
+                    PressVerdict.Wait -> {
+                        scope.launch {
+                            if (lockModel.isLocked(channel.id)) asking = PinAsk(PinPurpose.Play, begin) else begin()
+                        }
+                    }
+                }
+            },
+            toggle = { channel ->
+                asking = if (channel.id in lockModel.locked.value.orEmpty()) {
+                    PinAsk(PinPurpose.Unlock) { lockModel.unlock(channel.id) }
+                } else {
+                    PinAsk(PinPurpose.Lock) { lockModel.lock(channel.id) }
+                }
+            },
+        )
     }
 
     BoxWithConstraints(modifier.fillMaxSize().safeDrawingPadding()) {
@@ -277,17 +385,95 @@ fun ChannelsScreen(
                 m = m,
                 model = model,
                 previewModel = previewModel,
-                onPlay = onPlay,
                 onExpand = onExpand,
                 pulse = pulse,
                 qualities = qualities,
                 preview = preview,
+                lock = lock,
+                favorites = favorites,
+                hider = hider,
                 typing = searchFocused,
                 modifier = Modifier.weight(1f),
             )
         }
+
+        asking?.let { ask ->
+            PinPrompt(
+                purpose = ask.purpose,
+                onGranted = {
+                    asking = null
+                    ask.granted()
+                },
+                onDismiss = { asking = null },
+                model = lockModel,
+            )
+        }
     }
 }
+
+/**
+ * The lock, as the board's columns see it: which channels are locked, and the two things a press can
+ * ask of it.
+ *
+ * Gathered in one value so the three places that draw a lock -- the row, the strip's button, and the
+ * press -- are handed one thing and not a set and two lambdas each.
+ */
+@Immutable
+internal class LockUi(
+    /** The locked channels' ids, or null until they have been read: no lock is drawn before then. */
+    val locked: Set<String>?,
+    /** A press on a channel, outside reorder mode: start it, asking for the password first if it is locked. */
+    val start: (Channel, Int) -> Unit,
+    /** The strip's Lock button, for the channel in the well: lock it, or -- locked already -- open it. */
+    val toggle: (Channel) -> Unit,
+) {
+    fun isLocked(channelId: String): Boolean = locked?.contains(channelId) == true
+}
+
+/** A password asked for, and what is done when it is given. */
+private class PinAsk(val purpose: PinPurpose, val granted: () -> Unit)
+
+/**
+ * The favourites, as the board's columns see them: which channels are favourites, which are picked
+ * while the board is picking, and the two things a press can do.
+ *
+ * Gathered in one value, like [LockUi], so the rows, the strip's button and the list's empty state
+ * are handed one thing. [picked] is null outside the mode, and a board that is not picking draws
+ * exactly what it always drew.
+ */
+@Immutable
+internal class FavoritesUi(
+    /** Every favourite's id. */
+    val ids: Set<String>,
+    /** The channels picked so far, or null when the board is not picking. */
+    val picked: Set<String>?,
+    /** A press on a row while picking: the channel is picked, or put back. */
+    val toggle: (String) -> Unit,
+    /**
+     * The strip's Favourite button pressed: mark the channel in the picture, or take the mark away --
+     * and, while picking, add the picks or remove them and leave the mode.
+     */
+    val press: () -> Unit,
+    /** The same button held: start picking several. Nothing while the board is picking already. */
+    val hold: () -> Unit = {},
+) {
+    val picking: Boolean get() = picked != null
+
+    /** What the button's word and act are while picking: remove, when every pick already is a favourite. */
+    val removes: Boolean get() = picked != null && picksRemove(picked, ids)
+
+    /** What a row is told while picking, or null when it is not. */
+    fun markOf(channelId: String): RowPick? =
+        picked?.let { RowPick(picked = channelId in it, favorite = channelId in ids) }
+
+    companion object {
+        /** A board that is not told about favourites: nothing to draw, nothing picked, nothing to press. */
+        val None = FavoritesUi(ids = emptySet(), picked = null, toggle = {}, press = {})
+    }
+}
+
+/** What a channel row is told while the board is picking favourites: picked or not, and a favourite or not. */
+internal data class RowPick(val picked: Boolean, val favorite: Boolean)
 
 /* ---------------------------------------------------------------- the header */
 
@@ -383,7 +569,7 @@ private fun BoardHeader(
                 )
                 Text(
                     text = state.selectedGroup?.let { state.categoryNames[it] }
-                        ?: stringResource(R.string.channels_all_rail),
+                        ?: stringResource(if (state.favorites) R.string.channels_favorites else R.string.channels_all_rail),
                     style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
                     color = colors.onBackgroundVariant,
                     maxLines = 1,
@@ -537,10 +723,11 @@ private fun RailSearch(text: String, m: ChannelsMetrics, onType: (String) -> Uni
  * ## The remote
  *
  * A field a remote can focus is a trap if it keeps the key it was given, so it keeps none that
- * a list needs: up and down leave it as they leave any row, and the keyboard's search key --
- * the one that says "I'm done" -- moves on to the list below instead of sitting there.
- * [onFocusChange] tells the board whether the field has the remote, so the list does not take
- * it back whenever the results change under a viewer's keys.
+ * a list needs: up and down leave it as they leave any row. The keyboard's search key -- the one
+ * that says "I'm done" -- hides the keyboard and leaves the field focused with its text and its
+ * results, as the rail's field does; the next press of down is what moves on. [onFocusChange]
+ * tells the board whether the field has the remote, so the list does not take it back whenever
+ * the results change under a viewer's keys.
  */
 @Composable
 internal fun HeaderSearchField(
@@ -554,7 +741,6 @@ internal fun HeaderSearchField(
     val colors = CastivioTheme.colors
     val (focused, focusModifier) = rememberFocusFlag()
     val shape = RoundedCornerShape(Radius.pill)
-    val focus = LocalFocusManager.current
 
     Row(
         modifier
@@ -581,8 +767,11 @@ internal fun HeaderSearchField(
             textStyle = castivioBodyStyle(m.frame.fsBody).copy(color = colors.onBackground),
             cursorBrush = SolidColor(colors.secondary),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            // The search key hides the keyboard and leaves the field where it is, text and results
+            // as they are -- what the rail's field does with the keyboard's own default action. The
+            // channels narrow as they are typed, so there is nothing left for the key to start.
             keyboardActions = KeyboardActions(
-                onSearch = { if (!focus.moveFocus(FocusDirection.Down)) focus.clearFocus() },
+                onSearch = { defaultKeyboardAction(ImeAction.Done) },
             ),
             modifier = Modifier
                 .weight(1f)
@@ -623,11 +812,13 @@ private fun Board(
     m: ChannelsMetrics,
     model: BrowseViewModel,
     previewModel: ChannelsViewModel,
-    onPlay: (CatalogSelection) -> Unit,
     onExpand: () -> Unit,
     pulse: PlayerPulse?,
     qualities: Map<String, StreamQuality>,
     preview: (@Composable () -> Unit)?,
+    lock: LockUi,
+    favorites: FavoritesUi,
+    hider: HidingUi,
     /** The header's field has the remote: see [ChannelList]. */
     typing: Boolean,
     modifier: Modifier = Modifier,
@@ -683,6 +874,11 @@ private fun Board(
                 state.arranging?.let { mode ->
                     ReorderBar(mode = mode, m = m, onSave = model::save, onCancel = model::cancel)
                 }
+                // Choosing what to hide has its own band, of the same shape and apart from the reorder
+                // bar: the two modes are never on at once.
+                hider.hiding?.let { choosing ->
+                    HideBar(hiding = choosing, m = m, onConfirm = hider.confirm, onCancel = hider.cancel)
+                }
 
                 // The failure still gets said, as a line rather than as a wall. A
                 // refresh that did not work is worth knowing about; it is not worth
@@ -696,11 +892,13 @@ private fun Board(
                     m = m,
                     model = model,
                     previewModel = previewModel,
-                    onPlay = onPlay,
                     onExpand = onExpand,
                     pulse = pulse,
                     qualities = qualities,
                     preview = preview,
+                    lock = lock,
+                    favorites = favorites,
+                    hider = hider,
                     typing = typing,
                     modifier = Modifier.weight(1f),
                 )
@@ -838,11 +1036,13 @@ private fun Columns(
     m: ChannelsMetrics,
     model: BrowseViewModel,
     previewModel: ChannelsViewModel,
-    onPlay: (CatalogSelection) -> Unit,
     onExpand: () -> Unit,
     pulse: PlayerPulse?,
     qualities: Map<String, StreamQuality>,
     preview: (@Composable () -> Unit)?,
+    lock: LockUi,
+    favorites: FavoritesUi,
+    hider: HidingUi,
     typing: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -860,10 +1060,13 @@ private fun Columns(
     // have stopped answering. Not on the first composition: the list takes the remote itself when
     // it first has rows.
     val arranging = state.arranging != null
-    var wasArranging by remember { mutableStateOf(false) }
-    LaunchedEffect(arranging) {
-        if (arranging != wasArranging) {
-            wasArranging = arranging
+    // Choosing what to hide is a mode with a bar of its own, and the remote is taken the same way: the
+    // Hide button stops answering in it, and the bar's buttons are not on the way to anything.
+    val modal = arranging || hider.active
+    var wasModal by remember { mutableStateOf(false) }
+    LaunchedEffect(modal) {
+        if (modal != wasModal) {
+            wasModal = modal
             runCatching { listFocus.requestFocus() }
         }
     }
@@ -879,6 +1082,9 @@ private fun Columns(
                     onRefresh = model::refresh,
                     onPress = model::press,
                     onMove = model::moveHeld,
+                    onMark = model::mark,
+                    onFavorites = model::openFavorites,
+                    hider = hider,
                     modifier = Modifier.width(m.rail).fillMaxHeight(),
                 )
 
@@ -900,13 +1106,16 @@ private fun Columns(
                     qualities = qualities,
                     // Which row was pressed to start it, so a stream listed twice marks one.
                     pressedId = shown.channel?.id,
-                    onSelect = previewModel::select,
-                    onPlay = onPlay,
+                    lock = lock,
+                    favorites = favorites,
+                    hider = hider,
                     onExpand = onExpand,
                     typing = typing,
                     onClearSearch = { model.search("") },
                     onPress = model::press,
                     onMove = model::moveHeld,
+                    onMark = model::mark,
+                    onShowAll = { model.choose(null) },
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
@@ -936,7 +1145,19 @@ private fun Columns(
                     qualities = qualities,
                     preview = preview,
                     onOpenGuide = { guideOpen = true },
-                    onFavorite = previewModel::toggleFavorite,
+                    // One press marks the channel in the picture or unmarks it; held, the button starts
+                    // the mode that adds or removes several at once, and a press then ends it -- see
+                    // `FavoritesUi`.
+                    onFavorite = favorites.press,
+                    onFavoriteHold = favorites.hold,
+                    favoriting = favorites.picking,
+                    favoriteRemoves = favorites.removes,
+                    // Pressed, the Hide button chooses bouquets to hide; held, channels -- see `HidingUi`.
+                    onHide = hider.press,
+                    onHideHold = hider.hold,
+                    hiding = hider.active,
+                    locked = shown.channel?.let { lock.isLocked(it.id) } == true,
+                    onLock = { shown.channel?.let(lock.toggle) },
                     arranging = arranging,
                     onArrange = model::arrange,
                     onExpand = onExpand,
@@ -990,17 +1211,25 @@ internal fun CategoryRail(
     onPress: (Held) -> Unit = {},
     /** The arrow keys, or the two taps, on the bouquet that is held. */
     onMove: (up: Boolean) -> Unit = {},
+    /** A long press, or OK held, on a bouquet in reorder mode: tick it to be moved with the others that are. */
+    onMark: (Held) -> Unit = {},
+    /** The Favourites entry: list the viewer's favourite channels. */
+    onFavorites: () -> Unit = {},
+    /** Choosing bouquets to hide: each entry is ticked by a press, and opens nothing. */
+    hider: HidingUi = HidingUi.None,
 ) {
-    // **In reorder mode the rail is the bouquets and nothing else.** The three entries above them
-    // open lists and the field filters them; none of that is what is being done, and an "all" that
-    // could be pressed would leave a mode the viewer is half way through.
+    // **In reorder mode the rail is the bouquets and nothing else -- and so it is while bouquets are
+    // being chosen to hide.** The three entries above them open lists and the field filters them; none
+    // of that is what is being done, and an "all" that could be pressed would leave a mode the viewer
+    // is half way through.
     val mode = state.arranging
+    val modal = mode != null || hider.bouquets
     Column(modifier) {
         // **The rail's own field.** It filters the categories in this column and nothing
         // else: a provider with four hundred bouquets is a column nobody scrolls to the
         // end of, and the field is how a viewer reaches "SPORT" without passing 300
         // others. Filtered in the holder, not here -- see `BrowseState.groupFilter`.
-        if (mode == null) {
+        if (!modal) {
             RailSearch(text = state.groupFilter, m = m, onType = onFilter)
 
             Spacer(Modifier.height(m.railEntryGap * 2))
@@ -1019,7 +1248,7 @@ internal fun CategoryRail(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(m.railEntryGap),
         ) {
-            if (mode == null) item(key = RAIL_ALL) {
+            if (!modal) item(key = RAIL_ALL) {
                 RailEntry(
                     label = stringResource(R.string.channels_all_rail),
                     // **No total here.** The line under the name said how many channels the
@@ -1028,24 +1257,26 @@ internal fun CategoryRail(
                     // them". The bouquets below keep their own count, which nothing else on
                     // the board gives.
                     count = null,
-                    selected = state.selectedGroup == null,
+                    // Not while the favourites are open: they also have no category, and two entries
+                    // lit for one list is not an answer to "which list is this".
+                    selected = state.selectedGroup == null && !state.favorites,
                     m = m,
                     onClick = { onChoose(null) },
                 )
             }
-            if (mode == null) item(key = RAIL_FAVORITES) {
+            if (!modal) item(key = RAIL_FAVORITES) {
                 RailEntry(
                     label = stringResource(R.string.channels_favorites),
-                    // Real, from `FavoritesRepository.count()` by way of the shell — see
-                    // the note on `ChannelsScreen`. Null until the first answer arrives,
-                    // which draws no digit rather than a zero that would read as "none".
+                    // No count: "Favourites: 0" before anything has been marked is a true sentence
+                    // nobody needs, and the entry is one line tall like the others that are not
+                    // bouquets.
                     count = null,
-                    selected = false,
+                    selected = state.favorites,
                     m = m,
-                    onClick = { },
+                    onClick = onFavorites,
                 )
             }
-            if (mode == null) item(key = RAIL_RECENT) {
+            if (!modal) item(key = RAIL_RECENT) {
                 RailEntry(
                     label = stringResource(R.string.channels_recent),
                     count = null,
@@ -1055,7 +1286,7 @@ internal fun CategoryRail(
                 )
             }
 
-            if (mode == null) item(key = RAIL_DIVIDER) { RailDivider(m) }
+            if (!modal) item(key = RAIL_DIVIDER) { RailDivider(m) }
 
         // **A provider with no categories says so.**
         //
@@ -1069,7 +1300,7 @@ internal fun CategoryRail(
         // in either case: a forced re-import. A playlist with no `group-title` comes
         // back the same way and the line stands; a catalogue that lost its groups comes
         // back with them. It is the same call the strip's refresh makes.
-            if (mode == null && state.noCategories) {
+            if (!modal && state.noCategories) {
                 item(key = RAIL_EMPTY) { RailEmpty(m = m, onRefresh = onRefresh) }
             }
 
@@ -1092,17 +1323,41 @@ internal fun CategoryRail(
                     count = group.itemCount,
                     // In reorder mode no bouquet is "selected": the fill is for the one held, and the
                     // bouquet whose channels are on the right is outlined -- see `RailEntry`.
-                    selected = mode == null && group.id == state.selectedGroup,
+                    selected = !modal && group.id == state.selectedGroup,
                     m = m,
-                    onClick = if (mode == null) ({ onChoose(group.id) }) else ({ onPress(Held.Bouquet(group.id)) }),
-                    arrange = mode?.let { RowArrange(held = it.held == Held.Bouquet(group.id), onMove = onMove) },
+                    onClick = when {
+                        // Choosing what to hide: a press ticks the bouquet or puts it back, and opens nothing.
+                        hider.bouquets -> ({ hider.toggle(group.id) })
+                        mode == null -> ({ onChoose(group.id) })
+                        else -> ({ onPress(Held.Bouquet(group.id)) })
+                    },
+                    arrange = mode?.let { rowArrangeOf(Held.Bouquet(group.id), it, onMove, onMark) },
                     owner = mode != null && group.id == mode.channelsOf,
+                    pick = hider.bouquetMarkOf(group.id),
                 )
             }
         }
     }
 }
 
+/**
+ * What a row is told in reorder mode: whether it is the one picked up, whether it is carried with that
+ * one or ticked to be, and what a long press does -- tick it.
+ */
+private fun rowArrangeOf(
+    row: Held,
+    mode: Arranging,
+    onMove: (up: Boolean) -> Unit,
+    onMark: (Held) -> Unit,
+) = RowArrange(
+    held = mode.held == row,
+    onMove = onMove,
+    carried = mode.held != row && row in mode.carried,
+    marked = mode.held == null && row in mode.marked,
+    onMark = { onMark(row) },
+)
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun RailEntry(
     label: String,
@@ -1114,12 +1369,19 @@ private fun RailEntry(
     arrange: RowArrange? = null,
     /** In reorder mode, this bouquet's channels are the ones listed on the right. */
     owner: Boolean = false,
+    /**
+     * While bouquets are chosen to hide: whether this one is ticked. Null outside the mode, and an entry
+     * that is not told draws what it always drew. A ticked entry takes the board's *chosen* pair of
+     * colours, as a picked channel row does, and a tick in the shape of the row's own marks.
+     */
+    pick: RowPick? = null,
 ) {
     val colors = CastivioTheme.colors
     val (focused, focusModifier) = rememberFocusFlag()
     val shape = RoundedCornerShape(m.previewRadius)
     val interaction = remember { MutableInteractionSource() }
-    val held = arrange?.held == true
+    val held = arrange?.held == true || arrange?.carried == true
+    val ticked = pick?.picked == true || arrange?.marked == true
 
     // Selection is the surface and focus is the ring around it — the design system's
     // rule, and on this board both are true of a row at once while a viewer arrows past
@@ -1141,30 +1403,45 @@ private fun RailEntry(
             .fillMaxWidth()
             .heightIn(min = if (count != null) m.railMin else m.railMin * SINGLE_OF_RAIL)
             .clip(shape)
-            .background(if (selected || held) colors.secondary else Color.Transparent)
+            .background(
+                when {
+                    selected || held -> colors.secondary
+                    ticked -> colors.secondaryContainer
+                    else -> Color.Transparent
+                },
+            )
             .border(
                 1.dp,
                 when {
                     focused || held -> colors.focusRing
-                    selected || owner -> colors.selectedBorder
+                    selected || owner || ticked -> colors.selectedBorder
                     else -> Color.Transparent
                 },
                 shape,
             )
             .movedByArrows(arrange)
+            .then(if (pick != null) Modifier.semantics { this.selected = ticked } else Modifier)
             .then(focusModifier)
-            .clickable(interaction, indication = null, onClick = onClick)
+            .pressOrHold(interaction, onClick = onClick, onHold = arrange?.onMark)
             .padding(horizontal = m.railPadH),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(m.railPadH),
     ) {
+        // **A name too long for the rail scrolls on the entry the remote is on, and on the one that was
+        // pressed -- the channel list's own rule, asked of the same function.** An entry whose name fits
+        // does not move, because a marquee only runs when its text is wider than the room it has; one
+        // that is cut stands cut, as it always did, until the remote or a press reaches it. Moving on
+        // takes the modifier away, so the name is back at its first letter the next time it is read.
+        // The count under it is a number and stays where it is.
+        val scrolls = nameScrolls(focused = focused, pressed = selected)
         Column(Modifier.weight(1f)) {
             Text(
                 text = label,
                 style = castivioChipStyle(m.frame.fsLabel),
                 color = ink,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                overflow = if (scrolls) TextOverflow.Clip else TextOverflow.Ellipsis,
+                modifier = if (scrolls) Modifier.basicMarquee(iterations = Int.MAX_VALUE) else Modifier,
             )
             // The reference's second line. Absent rather than zero for the entries
             // that are not categories -- "Favourites: 0" before anything has been
@@ -1181,6 +1458,7 @@ private fun RailEntry(
             }
         }
         arrange?.let { ArrangeTail(it, ink, m.railMin * ARROW_OF_ROW) }
+        pick?.let { PickMark(it, size = m.railMin * ARROW_OF_ROW, onFill = selected || held) }
     }
 }
 
@@ -1253,8 +1531,12 @@ private fun ChannelList(
     qualities: Map<String, StreamQuality>,
     /** The row pressed last, which is the row that started the stream playing. */
     pressedId: String?,
-    onSelect: (Channel, Int) -> Unit,
-    onPlay: (CatalogSelection) -> Unit,
+    /** Which channels are locked, and the press that asks for the password before one of them plays. */
+    lock: LockUi,
+    /** Which channels are favourites and which are picked, while the board is picking. */
+    favorites: FavoritesUi,
+    /** Which channels are ticked, while the board is choosing channels to hide. */
+    hider: HidingUi,
     /** Make the picture that is playing the large one: the second press on its channel. */
     onExpand: () -> Unit,
     /**
@@ -1268,6 +1550,10 @@ private fun ChannelList(
     onPress: (Held) -> Unit,
     /** The arrow keys, or the two taps, on the row that is held. */
     onMove: (up: Boolean) -> Unit,
+    /** A long press, or OK held, on a row in reorder mode: tick it to be moved with the others that are. */
+    onMark: (Held) -> Unit,
+    /** The list of favourites has nothing in it: leave it for the whole section. */
+    onShowAll: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
@@ -1305,6 +1591,8 @@ private fun ChannelList(
                     search = state.search,
                     onClearSearch = onClearSearch,
                     onRefresh = rows::refresh,
+                    favorites = state.favorites,
+                    onShowAll = onShowAll,
                 )
             }
             return@Box
@@ -1338,7 +1626,7 @@ private fun ChannelList(
                 // there is a bouquet whose channels can be moved; with "all" open the rows are as
                 // they were, and a press does nothing -- the bar says why.
                 val arrange = mode?.takeIf { it.channelsOf != null }
-                    ?.let { RowArrange(held = it.held == Held.Channel(channel.id), onMove = onMove) }
+                    ?.let { rowArrangeOf(Held.Channel(channel.id), it, onMove, onMark) }
                 ChannelRow(
                     channel = channel,
                     arrange = arrange,
@@ -1348,6 +1636,10 @@ private fun ChannelList(
                     number = index + 1,
                     playing = isPlayingRow(channel.id, channel.streamUrl, pressedId, playingUrl),
                     quality = qualities[channel.id],
+                    locked = lock.isLocked(channel.id),
+                    // While the board is picking favourites each row says whether it is picked and
+                    // whether it already is a favourite; outside the mode, null, and nothing is drawn.
+                    pick = favorites.markOf(channel.id) ?: hider.channelMarkOf(channel.id),
                     m = m,
                     pressed = mode == null && channel.id == pressedId,
                     // **Moving is not choosing, and that distinction is the whole of how
@@ -1365,6 +1657,11 @@ private fun ChannelList(
                     // sets the picture, the name, the number and the guide together, from
                     // one act.
                     onClick = when {
+                        // Picking: a press picks the channel or puts it back. It plays nothing, asks
+                        // for no password and makes nothing large -- what is in the picture stays.
+                        favorites.picking -> ({ favorites.toggle(channel.id) })
+                        // Choosing channels to hide: the same press, ticking, and nothing is played.
+                        hider.channels -> ({ hider.toggle(channel.id) })
                         mode == null -> ({
                             // The first press on a channel plays it in the preview; the next on
                             // the same channel makes that picture large, as a press on the picture
@@ -1372,8 +1669,7 @@ private fun ChannelList(
                             if (isExpandingPress(channel.id, channel.streamUrl, pressedId, askedUrl)) {
                                 onExpand()
                             } else {
-                                onSelect(channel, index + 1)
-                                channel.asSelection()?.let(onPlay)
+                                lock.start(channel, index + 1)
                             }
                         })
                         mode.channelsOf != null -> ({ onPress(Held.Channel(channel.id)) })
@@ -1401,6 +1697,10 @@ internal fun ChannelListEmpty(
     search: String,
     onClearSearch: () -> Unit,
     onRefresh: () -> Unit,
+    /** The list is the viewer's favourites, and none is marked yet. */
+    favorites: Boolean = false,
+    /** What the favourites' empty state offers: the whole section. */
+    onShowAll: () -> Unit = {},
 ) {
     when {
         loading -> DelayedSpinner()
@@ -1409,6 +1709,14 @@ internal fun ChannelListEmpty(
             detail = stringResource(R.string.search_none_detail),
             actionLabel = stringResource(R.string.search_clear),
             onAction = onClearSearch,
+        )
+        // No favourites is not "no channels": nothing is missing from the catalogue, the viewer has
+        // not marked any. Said so, and the one action is to go where they can mark them.
+        favorites -> EmptyState(
+            title = stringResource(R.string.channels_favorites_empty_title),
+            detail = stringResource(R.string.channels_favorites_empty_detail),
+            actionLabel = stringResource(R.string.channels_all_rail),
+            onAction = onShowAll,
         )
         else -> EmptyState(
             title = stringResource(R.string.channels_empty_title),
@@ -1463,12 +1771,28 @@ internal fun ChannelRow(
      * as the remote's row does -- see [nameScrolls].
      */
     pressed: Boolean = false,
+    /**
+     * This channel is locked: a small lock closes the row, and pressing it asks for the password
+     * before anything plays. Drawn on the row and not said in its name -- the name is the provider's.
+     */
+    locked: Boolean = false,
+    /**
+     * While the board is picking favourites: whether this row is picked, and whether it already is a
+     * favourite. Null outside the mode, and a row that is not told draws what it always drew. A picked
+     * row takes the board's *chosen* pair of colours -- the one the strip's lit buttons wear -- and never
+     * the violet, which stays the remote's.
+     */
+    pick: RowPick? = null,
 ) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(m.previewRadius)
     val interaction = remember { MutableInteractionSource() }
     var focused by remember { mutableStateOf(false) }
-    val held = arrange?.held == true
+    // The one picked up, and -- when it was picked up with ticked ones -- the others carried with it: all of
+    // them take the look of a row that is held. A ticked row, before anything is picked up, takes the
+    // *chosen* pair of colours below, as a picked favourite does.
+    val held = arrange?.held == true || arrange?.carried == true
+    val picked = pick?.picked == true || arrange?.marked == true
 
     // **Where the remote is, and what is playing, are two facts and the row draws them apart.**
     //
@@ -1489,11 +1813,26 @@ internal fun ChannelRow(
             .fillMaxWidth()
             .heightIn(min = m.rowMin)
             .clip(shape)
-            .background(if (look.surface) colors.secondary else Color.Transparent)
-            .border(1.dp, if (look.ring) colors.focusRing else Color.Transparent, shape)
+            .background(
+                when {
+                    look.surface -> colors.secondary
+                    picked -> colors.secondaryContainer
+                    else -> Color.Transparent
+                },
+            )
+            .border(
+                1.dp,
+                when {
+                    look.ring -> colors.focusRing
+                    picked -> colors.selectedBorder
+                    else -> Color.Transparent
+                },
+                shape,
+            )
             .movedByArrows(arrange)
+            .then(if (pick != null) Modifier.semantics { selected = picked } else Modifier)
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
-            .clickable(interaction, indication = null, onClick = onClick)
+            .pressOrHold(interaction, onClick = onClick, onHold = arrange?.onMark)
             .padding(horizontal = m.rowPadH),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(m.rowPadH),
@@ -1541,6 +1880,7 @@ internal fun ChannelRow(
                 // announced the logo as well would say the channel twice.
                 description = null,
                 modifier = Modifier.width(m.logoWidth).height(m.rowMin * LOGO_OF_ROW),
+                imageScale = LOGO_SCALE,
             )
         }
 
@@ -1602,6 +1942,11 @@ internal fun ChannelRow(
             )
         }
 
+        // **The lock, first after the name.** It is a fact about the channel and the mark below is a
+        // fact about the player, so it comes before it: a locked row that is also playing shows both,
+        // lock then mark, and neither moves the other.
+        if (locked) LockedMark(size = m.rowMin * MARK_OF_ROW, onFill = look.surface)
+
         // **The mark that this one is playing.** Between the name and the tag, so that the tag
         // keeps the row's end on every row and only the name of the playing one gives it room.
         if (look.mark) PlayingMark(size = m.rowMin * MARK_OF_ROW, onFill = look.surface)
@@ -1624,7 +1969,66 @@ internal fun ChannelRow(
         }
 
         arrange?.let { ArrangeTail(it, ink, m.rowMin * ARROW_OF_ROW) }
+        pick?.let { PickMark(it, size = m.rowMin * MARK_OF_ROW, onFill = look.surface) }
     }
+}
+
+/**
+ * The end of a row while the board is picking favourites: a star when the channel already is one, and
+ * a ring that fills with a tick when it is picked.
+ *
+ * Plain glyphs in the row's own inks, like the lock: a disc is the player's, and a second filled shape
+ * at the end of a row would be two answers to one question. The tick is the *chosen* colour and the
+ * empty ring is the quiet one, so a column of rows reads at a glance and not only by the fill behind
+ * them -- the pick is said by shape as well as by colour. The picked state is also told to a screen
+ * reader by the row itself.
+ */
+@Composable
+private fun PickMark(pick: RowPick, size: Dp, onFill: Boolean) {
+    val colors = CastivioTheme.colors
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(size / 4),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (pick.favorite) {
+            Icon(
+                imageVector = Icons.Rounded.Star,
+                contentDescription = stringResource(R.string.channels_favorites),
+                tint = if (onFill) colors.onSecondary else colors.secondary,
+                modifier = Modifier.size(size),
+            )
+        }
+        Icon(
+            imageVector = if (pick.picked) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked,
+            contentDescription = null,
+            tint = when {
+                onFill -> colors.onSecondary
+                pick.picked -> colors.secondary
+                else -> colors.onBackgroundMuted
+            },
+            modifier = Modifier.size(size),
+        )
+    }
+}
+
+/**
+ * The lock on a channel that is locked: the glyph on its own, in the row's quiet ink, and the row's
+ * own ink on the violet.
+ *
+ * Not a disc and not a colour of its own. The disc is the player's -- it says *this one is on* -- and a
+ * second filled shape at the end of a row would be two answers to one question. A lock is a plain
+ * glyph, and it says what it is in words for a screen reader, because a shape is the only other way
+ * to know.
+ */
+@Composable
+private fun LockedMark(size: Dp, onFill: Boolean) {
+    val colors = CastivioTheme.colors
+    Icon(
+        imageVector = Icons.Rounded.Lock,
+        contentDescription = stringResource(R.string.channels_locked),
+        tint = if (onFill) colors.onSecondary else colors.onBackgroundVariant,
+        modifier = Modifier.size(size),
+    )
 }
 
 /**
@@ -1741,6 +2145,22 @@ internal fun ChannelWell(
     preview: (@Composable () -> Unit)?,
     onOpenGuide: () -> Unit,
     onFavorite: () -> Unit,
+    /** The Favourite button held: start picking several channels at once. */
+    onFavoriteHold: () -> Unit = {},
+    /** The board is picking favourites: the Favourite button is lit, and a press applies the picks. */
+    favoriting: Boolean = false,
+    /** While picking: every pick already is a favourite, so the button removes them. */
+    favoriteRemoves: Boolean = false,
+    /** The Hide button pressed: choose bouquets to hide. */
+    onHide: () -> Unit = {},
+    /** The Hide button held: choose channels to hide. */
+    onHideHold: () -> Unit = {},
+    /** The board is choosing what to hide: the Hide button is lit and the other two modes are dark. */
+    hiding: Boolean = false,
+    /** The channel in the well is locked. */
+    locked: Boolean = false,
+    /** Lock it, or -- locked already -- open it: both ask for the password first. */
+    onLock: () -> Unit = {},
     /** The board is in reorder mode. */
     arranging: Boolean,
     onArrange: () -> Unit,
@@ -1816,6 +2236,14 @@ internal fun ChannelWell(
                 m = fitted,
                 onOpenGuide = onOpenGuide,
                 onFavorite = onFavorite,
+                onFavoriteHold = onFavoriteHold,
+                favoriting = favoriting,
+                favoriteRemoves = favoriteRemoves,
+                onHide = onHide,
+                onHideHold = onHideHold,
+                hiding = hiding,
+                locked = locked,
+                onLock = onLock,
                 arranging = arranging,
                 onArrange = onArrange,
                 modifier = Modifier.fillMaxWidth(),
@@ -1886,7 +2314,6 @@ internal fun WellPicture(
             channel != null && (preview == null || opening) -> PlateGround(
                 channel = channel,
                 waiting = opening && pulse?.waiting == true,
-                m = m,
             )
 
             // Nothing chosen yet.
@@ -1940,11 +2367,11 @@ internal fun WellPicture(
  *
  * It says nothing is playing by showing nothing playing: no badge, no frame, no title in a
  * corner. When opening has been silent long enough for the player to say so, a small spinner
- * says it is still working -- the player's own call, at the player's own delay, because the
- * layer is over the player's spinner and would otherwise hide it.
+ * says it is still working, in the middle of the plate -- the player's own call, at the
+ * player's own delay, because the layer is over the player's spinner and would otherwise hide it.
  */
 @Composable
-private fun PlateGround(channel: Channel, waiting: Boolean, m: ChannelsMetrics) {
+private fun PlateGround(channel: Channel, waiting: Boolean) {
     val colors = CastivioTheme.colors
     Box(
         Modifier
@@ -1969,8 +2396,12 @@ private fun PlateGround(channel: Channel, waiting: Boolean, m: ChannelsMetrics) 
                 modifier = Modifier.fillMaxWidth(PLATE_MARK).fillMaxHeight(PLATE_MARK),
             )
         }
+        // **In the middle of the picture, by alignment and not by an offset.** It sat at the bottom
+        // edge, under the logo, where it read as belonging to the plate's border rather than to the
+        // picture that is being waited for. `Alignment.Center` is the plate's own centre on every
+        // surface, whatever size the well takes, with nothing to keep in step with it.
         if (waiting) {
-            DelayedSpinner(modifier = Modifier.align(Alignment.BottomCenter).padding(m.osdPad), delayMs = 0L)
+            DelayedSpinner(modifier = Modifier.align(Alignment.Center), delayMs = 0L)
         }
     }
 }
@@ -2118,14 +2549,9 @@ private fun ChannelFacts(
         // already showed.
         if (now == null && next == null) {
             if (channel != null) {
-                Text(
-                    text = stringResource(R.string.channels_guide_none),
-                    style = castivioBodyStyle(m.frame.fsBody),
-                    color = colors.onBackgroundMuted,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                // The whole of what is left under the identity, so the sentence is centred in it
+                // on both axes rather than hung from its top edge.
+                NoGuideNotice(m, Modifier.fillMaxWidth().weight(1f))
             }
             return@Column
         }
@@ -2159,6 +2585,66 @@ private fun ChannelFacts(
 }
 
 /**
+ * What the facts block says when the channel has no schedule: a small mark and one sentence,
+ * centred in the room the block has under the channel's name.
+ *
+ * The mark and the words scale with the body step, so a television gets a larger notice that
+ * holds its ground and a handset a small one. Where the room allows, the mark stands over the
+ * sentence; where it does not -- a handset's block is as tall as its content -- the two sit side
+ * by side, and the sentence wraps to two lines at most. The mark is the quality chip's own pair
+ * of colours, so it is the board's ink and not a new one.
+ */
+@Composable
+private fun NoGuideNotice(m: ChannelsMetrics, modifier: Modifier = Modifier) {
+    val colors = CastivioTheme.colors
+    val body = m.frame.fsBody
+    BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
+        val stacked = maxHeight >= body * NO_GUIDE_STACKED_OF_BODY
+        val mark = @Composable {
+            Box(
+                Modifier.size(body * NO_GUIDE_MARK_OF_BODY).clip(CircleShape).background(colors.secondaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Rounded.EventBusy,
+                    contentDescription = null,
+                    tint = colors.secondary,
+                    modifier = Modifier.size(body * NO_GUIDE_ICON_OF_BODY),
+                )
+            }
+        }
+        val words = @Composable { textModifier: Modifier ->
+            Text(
+                text = stringResource(R.string.channels_guide_none),
+                style = castivioBodyStyle(body * NO_GUIDE_OF_BODY),
+                color = colors.onBackgroundMuted,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = textModifier,
+            )
+        }
+        if (stacked) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(m.nameGap),
+            ) {
+                mark()
+                words(Modifier.fillMaxWidth())
+            }
+        } else {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(m.factGap),
+            ) {
+                mark()
+                words(Modifier.weight(1f, fill = false))
+            }
+        }
+    }
+}
+
+/**
  * What is on and what is next: what is on's title, the line that says it is on -- the word, its
  * hours, its bar -- and the line of what is next -- the word, its hours, its title.
  *
@@ -2167,6 +2653,11 @@ private fun ChannelFacts(
  * the reader's language. `MAINTENANT` is three times `NOW`. The word column is as wide as the
  * wider word, the hours column as the wider pair of hours, and the last cell -- the bar, or the
  * title -- takes what is left.
+ *
+ * **The air between the title, the line of what is on and the line of what is next** is the base
+ * gap the block's floor was solved with, plus a share of the body step that is only ever taken
+ * from the room the block really has left -- so it is generous where there is room and never
+ * costs the picture its size or cuts the last line off where there is not.
  *
  * Either programme may be absent -- a guide with a hole over this instant has nothing on, and
  * one ending with this programme has nothing next -- and the other then stands alone. Nothing
@@ -2187,79 +2678,106 @@ internal fun ProgrammeTable(
     val body = castivioBodyStyle(m.frame.fsBody)
     val lines = listOfNotNull(now?.let { it to true }, next?.let { it to false })
 
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(m.badgePadV)) {
-        // The title of what is on, over the word that says it is on: the one thing on the panel
-        // a viewer reads first, in the block's strongest ink and the whole width to itself.
-        if (now != null) {
-            Text(
-                text = now.title,
-                style = body,
-                color = colors.onBackgroundStrong,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-
-        Layout(
-            modifier = Modifier.fillMaxWidth(),
-            content = {
-                for ((programme, isNow) in lines) {
-                    // **The word, in the colour of what it says.** Aqua is live, and only what
-                    // is on is live; what is next is told in the block's own quiet ink.
+    // **One layout for the title and the two lines, so the air between them can be decided
+    // where the room is known.** The title used to be a sibling in a `Column` and the gaps were
+    // `badgePadV` and twice it -- two or four dp on a handset, where the block is exactly as
+    // tall as its content and the title, the word and the next line read as one lump. A fixed
+    // larger figure would have been taken from the picture (the block's floor is solved from
+    // these gaps) or have cut the last line off; so the base gaps stay what the floor was
+    // solved with, and what is added to them is only ever what the block turns out to have
+    // spare -- see the measure block.
+    Layout(
+        modifier = modifier.fillMaxWidth(),
+        content = {
+            // The title of what is on, over the word that says it is on: the one thing on the
+            // panel a viewer reads first, in the block's strongest ink and the whole width to
+            // itself.
+            if (now != null) {
+                Text(
+                    text = now.title,
+                    style = body,
+                    color = colors.onBackgroundStrong,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            for ((programme, isNow) in lines) {
+                // **The word, in the colour of what it says.** Aqua is live, and only what
+                // is on is live; what is next is told in the block's own quiet ink.
+                Text(
+                    text = stringResource(if (isNow) R.string.channels_guide_now else R.string.channels_guide_next),
+                    style = legend,
+                    color = if (isNow) colors.live else colors.onBackgroundVariant,
+                    maxLines = 1,
+                )
+                // Read from the programme's own timestamps -- the same two the bar is drawn
+                // from, so the figures and the fill can never disagree.
+                Text(
+                    text = stringResource(
+                        R.string.channels_time_range,
+                        clockLabel(programme.startMs),
+                        clockLabel(programme.stopMs),
+                    ),
+                    style = legend,
+                    color = colors.onBackgroundVariant,
+                    maxLines = 1,
+                )
+                if (isNow) {
+                    Track(fraction = progress, m = m)
+                } else {
                     Text(
-                        text = stringResource(if (isNow) R.string.channels_guide_now else R.string.channels_guide_next),
-                        style = legend,
-                        color = if (isNow) colors.live else colors.onBackgroundVariant,
-                        maxLines = 1,
-                    )
-                    // Read from the programme's own timestamps -- the same two the bar is drawn
-                    // from, so the figures and the fill can never disagree.
-                    Text(
-                        text = stringResource(
-                            R.string.channels_time_range,
-                            clockLabel(programme.startMs),
-                            clockLabel(programme.stopMs),
-                        ),
-                        style = legend,
+                        text = programme.title,
+                        style = body,
                         color = colors.onBackgroundVariant,
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
-                    if (isNow) {
-                        Track(fraction = progress, m = m)
-                    } else {
-                        Text(
-                            text = programme.title,
-                            style = body,
-                            color = colors.onBackgroundVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
                 }
-            },
-        ) { measurables, constraints ->
-            val gap = m.factGap.roundToPx()
-            val lineGap = (m.badgePadV * 2).roundToPx()
-            val cells = measurables.chunked(PROGRAMME_CELLS)
-            val loose = constraints.copy(minWidth = 0, minHeight = 0)
-            val words = cells.map { it[0].measure(loose) }
-            val hours = cells.map { it[1].measure(loose) }
-            val wordWidth = words.maxOfOrNull { it.width } ?: 0
-            val hourWidth = hours.maxOfOrNull { it.width } ?: 0
-            val lastWidth = (constraints.maxWidth - wordWidth - hourWidth - gap * 2).coerceAtLeast(0)
-            val lasts = cells.map { it[2].measure(Constraints.fixedWidth(lastWidth)) }
-            val heights = cells.indices.map { maxOf(words[it].height, hours[it].height, lasts[it].height) }
-            val total = heights.sum() + lineGap * (heights.size - 1).coerceAtLeast(0)
+            }
+        },
+    ) { measurables, constraints ->
+        val gap = m.factGap.roundToPx()
+        val titleGap = m.badgePadV.roundToPx()
+        val lineGap = (m.badgePadV * 2).roundToPx()
+        val loose = constraints.copy(minWidth = 0, minHeight = 0)
+        val title = if (now != null) measurables.first().measure(loose) else null
+        val cells = measurables.drop(if (now != null) 1 else 0).chunked(PROGRAMME_CELLS)
+        val words = cells.map { it[0].measure(loose) }
+        val hours = cells.map { it[1].measure(loose) }
+        val wordWidth = words.maxOfOrNull { it.width } ?: 0
+        val hourWidth = hours.maxOfOrNull { it.width } ?: 0
+        val lastWidth = (constraints.maxWidth - wordWidth - hourWidth - gap * 2).coerceAtLeast(0)
+        val lasts = cells.map { it[2].measure(Constraints.fixedWidth(lastWidth)) }
+        val heights = cells.indices.map { maxOf(words[it].height, hours[it].height, lasts[it].height) }
+        val content = (title?.let { it.height + titleGap } ?: 0) +
+            heights.sum() + lineGap * (heights.size - 1).coerceAtLeast(0)
 
-            layout(constraints.maxWidth, total) {
-                var y = 0
-                for (line in cells.indices) {
-                    val height = heights[line]
-                    words[line].placeRelative(0, y + (height - words[line].height) / 2)
-                    hours[line].placeRelative(wordWidth + gap, y + (height - hours[line].height) / 2)
-                    lasts[line].placeRelative(wordWidth + gap + hourWidth + gap, y + (height - lasts[line].height) / 2)
-                    y += height + lineGap
-                }
+        // **Air, from the room that is really there.** The room the table was offered, less
+        // what it takes: nothing when the height is open (a harness) or already spent. The
+        // title's gap and the gap between the two lines are each given a share of the body step
+        // and are cut back in proportion to what is spare, so the title never touches the word
+        // and what is next is never pushed past the block. The bar shares the line of the word
+        // and the hours -- centred on it -- so there is no vertical gap between them to widen.
+        val spare = if (constraints.hasBoundedHeight) (constraints.maxHeight - content).coerceAtLeast(0) else 0
+        val wantTitle = if (title != null) (m.frame.fsBody * TITLE_AIR_OF_BODY).roundToPx() else 0
+        val wantLine = if (heights.size > 1) (m.frame.fsBody * LINE_AIR_OF_BODY).roundToPx() else 0
+        val wanted = wantTitle + wantLine
+        val given = minOf(spare, wanted)
+        val airTitle = if (wanted == 0) 0 else given * wantTitle / wanted
+        val airLine = given - airTitle
+
+        layout(constraints.maxWidth, content + given) {
+            var y = 0
+            if (title != null) {
+                title.placeRelative(0, 0)
+                y += title.height + titleGap + airTitle
+            }
+            for (line in cells.indices) {
+                val height = heights[line]
+                words[line].placeRelative(0, y + (height - words[line].height) / 2)
+                hours[line].placeRelative(wordWidth + gap, y + (height - hours[line].height) / 2)
+                lasts[line].placeRelative(wordWidth + gap + hourWidth + gap, y + (height - lasts[line].height) / 2)
+                y += height + lineGap + airLine
             }
         }
     }
@@ -2276,13 +2794,16 @@ internal fun ProgrammeTable(
  * with `right`, a thumb drags it, and the strip is one focus group so neither has to
  * think about which is which.
  *
- * ## Two of these do not work yet, and they are drawn anyway
+ * ## One of these does not work yet, and it is drawn anyway
  *
- * **Lock** and **Hide** have no table behind them: there is no `channel_lock` and no
- * `channel_hidden`, so pressing them changes nothing. They are on screen at the owner's
- * explicit instruction, to see the strip and walk it on a device before the storage is
- * built. This comment is the record of that decision — the buttons are not forgotten
- * work, they are staged work, and the next commit on this file should be the two tables.
+ * **Hide** has no table behind it: there is no `channel_hidden`, so pressing it changes
+ * nothing. It is on screen at the owner's explicit instruction, to see the strip and walk it
+ * on a device before the storage is built. This comment is the record of that decision — the
+ * button is not forgotten work, it is staged work.
+ *
+ * **Lock** works: it asks for the password and then locks the channel in the picture, or, when
+ * the channel is locked already, opens it. Its storage is `ChannelLocks` and not a table — a
+ * handful of ids in a preferences file, which a refresh of the catalogue does not touch.
  */
 @Composable
 internal fun ActionStrip(
@@ -2293,6 +2814,22 @@ internal fun ActionStrip(
     arranging: Boolean,
     onArrange: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The Favourite button held: start picking several. Nothing while the board is picking already. */
+    onFavoriteHold: () -> Unit = {},
+    /** The board is picking favourites: the button is lit, and a press applies the picks. */
+    favoriting: Boolean = false,
+    /** While picking: every pick already is a favourite, so a press removes them and the word says so. */
+    favoriteRemoves: Boolean = false,
+    /** The Hide button pressed: choose bouquets to hide. */
+    onHide: () -> Unit = {},
+    /** The Hide button held: choose channels to hide. */
+    onHideHold: () -> Unit = {},
+    /** The board is choosing what to hide: the button is lit, and the favourite and reorder buttons are dark. */
+    hiding: Boolean = false,
+    /** The channel in the picture is locked: the button is lit and its word is Unlock. */
+    locked: Boolean = false,
+    /** Lock the channel, or open it. Asked for the password by whoever is told. */
+    onLock: () -> Unit = {},
 ) {
     val hasChannel = shown.channel != null
 
@@ -2315,33 +2852,54 @@ internal fun ActionStrip(
             m = m,
             modifier = Modifier.weight(1f),
         )
+        // **One press marks the channel in the picture, or takes the mark away. Held, it is the way into
+        // picking several.** Held, the button lights and the rows can be picked; pressed, it then adds
+        // the picks -- or removes them, when every one already is a favourite, and its word says which.
+        // It needs no channel to be held, because what it then manages is the board's lists. Dark while
+        // the board is in reorder mode, which is a different job with its own bar: the two never share a
+        // state.
         ActionButton(
-            icon = if (shown.favorite) Icons.Rounded.Star else Icons.Rounded.StarBorder,
+            icon = if (favoriting || shown.favorite) Icons.Rounded.Star else Icons.Rounded.StarBorder,
             label = stringResource(
-                if (shown.favorite) R.string.channels_action_unfavorite
+                if (if (favoriting) favoriteRemoves else shown.favorite) R.string.channels_action_unfavorite
                 else R.string.channels_action_favorite,
             ),
-            on = shown.favorite,
-            enabled = hasChannel,
+            on = favoriting || shown.favorite,
+            enabled = !arranging && !hiding,
             onClick = onFavorite,
             m = m,
             modifier = Modifier.weight(1f),
+            onLongClick = onFavoriteHold,
         )
+        // **Lit when the channel is locked, and then it opens it.** The lit state is the one the star
+        // takes for a favourite -- *chosen*, never *focused* -- and its word says what a press does, as
+        // the star's does. Both directions ask for the password: a lock anybody could take off would
+        // be a label.
         ActionButton(
             icon = Icons.Rounded.Lock,
-            label = stringResource(R.string.channels_action_lock),
+            label = stringResource(
+                if (locked) R.string.channels_action_unlock else R.string.channels_action_lock,
+            ),
+            on = locked,
             enabled = hasChannel,
-            onClick = {},
+            onClick = onLock,
             m = m,
             modifier = Modifier.weight(1f),
         )
+        // **The way into hiding several at once.** Pressed, the rail's bouquets can be ticked; held, the
+        // channels in the list can -- a mode of its own either way, with a bar that says which and has
+        // Hide selected and Cancel. It needs no channel: what it hides is the board's lists, not the one in
+        // the picture. Lit while the mode is on, dark while reorder mode or picking favourites is: the three
+        // never share a state. Hiding is local and reversible from Settings.
         ActionButton(
             icon = Icons.Rounded.VisibilityOff,
             label = stringResource(R.string.channels_action_hide),
-            enabled = hasChannel,
-            onClick = {},
+            on = hiding,
+            enabled = !arranging && !favoriting && !hiding,
+            onClick = onHide,
             m = m,
             modifier = Modifier.weight(1f),
+            onLongClick = onHideHold,
         )
         // **The way into reorder mode, at the end of the strip, as the owner's drawing has it.**
         // It needs no channel: what it arranges is the board's lists, not the one in the picture.
@@ -2351,7 +2909,7 @@ internal fun ActionStrip(
             icon = Icons.Rounded.SwapVert,
             label = stringResource(R.string.reorder_entry),
             on = arranging,
-            enabled = !arranging,
+            enabled = !arranging && !favoriting && !hiding,
             onClick = onArrange,
             m = m,
             modifier = Modifier.weight(1f),
@@ -2369,7 +2927,11 @@ internal fun ActionStrip(
  * [on] is the state of a thing that toggles — a favourited channel — and takes the
  * selection colour, which on this board means *chosen* and never *focused*. The two are
  * different colours for that reason and this button is where they meet.
+ *
+ * [onLongClick], when a button has one, is a press held -- see [pressOrHold]. A button without one is a
+ * plain `clickable`, as it always was.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ActionButton(
     icon: ImageVector,
@@ -2379,6 +2941,7 @@ private fun ActionButton(
     on: Boolean = false,
     enabled: Boolean = true,
     modifier: Modifier = Modifier,
+    onLongClick: (() -> Unit)? = null,
 ) {
     val colors = CastivioTheme.colors
     val (focused, focusModifier) = rememberFocusFlag()
@@ -2414,7 +2977,7 @@ private fun ActionButton(
                 shape,
             )
             .then(focusModifier)
-            .clickable(interaction, indication = null, enabled = enabled, onClick = onClick)
+            .pressOrHold(interaction, onClick = onClick, onHold = onLongClick, enabled = enabled)
             .padding(horizontal = m.controlPadH, vertical = m.badgePadV),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -2860,6 +3423,13 @@ private val MARK_RING = 1.5.dp
 private const val LOGO_OF_ROW = 28f / 68f
 
 /**
+ * How much larger than its fitted size a row's logo is drawn: 5 per cent, in both directions alike.
+ * Drawn only -- the slot ([LOGO_OF_ROW], `logoWidth`) is not touched, so the column, the row's height and
+ * the gaps stay where they were.
+ */
+private const val LOGO_SCALE = 1.05f
+
+/**
  * The quality tag, as a share of the body step.
  *
  * Smaller than the name it sits beside, which is what makes it read as a tag rather than
@@ -2902,6 +3472,23 @@ private const val LEGEND_OF_BODY = 0.88f
 /** A line of [ProgrammeTable]: the word, the hours, and the bar or the title. */
 private const val PROGRAMME_CELLS = 3
 
+/**
+ * What [ProgrammeTable] adds to the gap under the title of what is on, and to the gap between
+ * the line of what is on and the line of what is next, as shares of the body step -- the most
+ * it asks for, when the block has the room. What the block does not have it does not take.
+ */
+private const val TITLE_AIR_OF_BODY = 0.35f
+private const val LINE_AIR_OF_BODY = 0.45f
+
+/**
+ * [NoGuideNotice], in body steps: its sentence a little larger than the body; the disc under the
+ * mark and the mark inside it; and the room the notice needs before the mark stands over the
+ * sentence instead of beside it -- the disc, the gap, and two lines of the sentence.
+ */
+private const val NO_GUIDE_OF_BODY = 1.15f
+private const val NO_GUIDE_MARK_OF_BODY = 2.4f
+private const val NO_GUIDE_ICON_OF_BODY = 1.3f
+private const val NO_GUIDE_STACKED_OF_BODY = 7f
 
 /** The hairline between the clock and the dates, as a share of the band. */
 private const val RULE_OF_HEADER = 0.56f

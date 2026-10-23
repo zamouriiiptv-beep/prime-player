@@ -367,6 +367,8 @@ class ChannelsGuideTest {
         override fun isFavorite(mediaId: String): Flow<Boolean> = flowOf(false)
         override suspend fun toggle(mediaId: String): Boolean = false
         override fun count(): Flow<Int> = flowOf(0)
+        override fun ids(): Flow<Set<String>> = flowOf(emptySet())
+        override suspend fun set(mediaIds: Collection<String>, favorite: Boolean) = Unit
     }
 
     private companion object {

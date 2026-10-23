@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">Bir kategoriyi veya kanalı almak için üzerinde OK’a basın.</string>
     <string name="reorder_hint_move">↑ ve ↓ ile taşıyın, bırakmak için OK’a basın.</string>
     <string name="reorder_hint_all">Kanallarını yeniden sıralamak için önce bir kategori açın.</string>
+    <string name="reorder_hint_mark">Birden çok satırı işaretleyip birlikte taşımak için satırlarda OK tuşunu basılı tutun.</string>
+    <string name="reorder_hint_marked">İşaretli: %1$d. Birlikte almak için bunlardan birinde OK tuşuna basın.</string>
     <string name="reorder_failed">Sıralama kaydedilemedi. Tekrar deneyin.</string>
     <string name="reorder_move_up">Yukarı taşı</string>
     <string name="reorder_move_down">Aşağı taşı</string>
     <string name="channels_empty_title">Burada kanal yok</string>
     <string name="channels_empty_detail">Bu kategoride henüz bir şey yok. Başka birini deneyin ya da bölümü yeniden indirin.</string>
+    <string name="channels_favorites_empty_title">Henüz favori kanal yok</string>
+    <string name="channels_favorites_empty_detail">“Favorilere ekle” düğmesine basın, beğendiğiniz kanalları seçin ve eklemek için “Favorilere ekle” düğmesine tekrar basın.</string>
+    <string name="hide_bouquets_title">Paketleri gizle</string>
+    <string name="hide_channels_title">Kanalları gizle</string>
+    <string name="hide_hint">Gizlemek istediklerinizi işaretleyin, ardından Seçilenleri gizle düğmesine basın. Hiçbir şey silinmez; Ayarlar geri getirir.</string>
+    <string name="hide_confirm">Seçilenleri gizle</string>
+    <string name="settings_hidden_section">Gizli öğeler</string>
+    <string name="settings_hidden_detail">Gizlediğiniz paketler ve kanallar aboneliğinizde kalır. Hepsini geri getirmek için basın.</string>
+    <string name="settings_hidden_bouquets">Gizli paketleri geri yükle</string>
+    <string name="settings_hidden_channels">Gizli kanalları geri yükle</string>
     <string name="channels_fetch_failed">Canlı TV indirilemedi</string>
     <string name="channels_guide_now">ŞİMDİ</string>
     <string name="channels_guide_next">SONRA</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">Favorilerde</string>
     <string name="channels_action_lock">Kilitle</string>
     <string name="channels_action_hide">Gizle</string>
+
+    <string name="pin_title_play">Kilitli kanal</string>
+    <string name="pin_message_play">Bu kanalı oynatmak için parolayı girin.</string>
+    <string name="pin_title_lock">Kanalı kilitle</string>
+    <string name="pin_message_lock">Bu kanalı kilitlemek için parolayı girin.</string>
+    <string name="pin_title_unlock">Kanalın kilidini aç</string>
+    <string name="pin_message_unlock">Bu kanalın kilidini açmak için parolayı girin.</string>
+    <string name="pin_title_current">Geçerli parola</string>
+    <string name="pin_message_current">Geçerli parolayı girin.</string>
+    <string name="pin_title_new">Yeni parola</string>
+    <string name="pin_message_new">4 rakam seçin.</string>
+    <string name="pin_title_repeat">Parolayı tekrarlayın</string>
+    <string name="pin_message_repeat">Aynı rakamları tekrar girin.</string>
+    <string name="pin_wrong">Yanlış parola.</string>
+    <string name="pin_mismatch">Rakamlar eşleşmedi. Yeni parolayı yeniden seçin.</string>
+    <string name="pin_cancel">İptal</string>
+    <string name="pin_delete">Sil</string>
+    <string name="pin_progress">%1$d / %2$d rakam</string>
+    <string name="pin_changed_title">Parola değiştirildi</string>
+    <string name="pin_changed_body">Yeni parola artık kanalları kilitler ve kilidini açar.</string>
+    <string name="pin_done">Tamam</string>
+    <string name="channels_action_unlock">Kilidi aç</string>
+    <string name="channels_locked">Kilitli</string>
+    <string name="settings_pin_section">Kanal kilidi</string>
+    <string name="settings_pin_change">Parolayı değiştir</string>
+    <string name="settings_pin_detail">Kanalları kilitleyen ve kilidini açan parola. Değiştirene kadar 0000’dır.</string>
     <string name="channels_live_badge">CANLI</string>
 
 </resources>

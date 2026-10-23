@@ -11,10 +11,17 @@ interface GroupDao {
     /**
      * Hundreds of rows at most, so the whole list is safe to observe.
      *
-     * The active subscription's categories only — see [ACTIVE_SOURCE].
+     * The active subscription's categories only — see [ACTIVE_SOURCE] — and not the ones the viewer
+     * hid: see `hidden_item`. Room observes that table through the subquery, so the rail leaves a
+     * bouquet out, and brings it back, as it is hidden and restored.
      */
     @Query(
-        "SELECT * FROM media_group WHERE source_id = $ACTIVE_SOURCE AND kind = :kind ORDER BY provider_order, id",
+        """
+        SELECT * FROM media_group
+        WHERE source_id = $ACTIVE_SOURCE AND kind = :kind
+          AND NOT EXISTS (SELECT 1 FROM hidden_item WHERE hidden_item.item_id = media_group.id)
+        ORDER BY provider_order, id
+        """,
     )
     fun groupsOf(kind: String): Flow<List<GroupEntity>>
 

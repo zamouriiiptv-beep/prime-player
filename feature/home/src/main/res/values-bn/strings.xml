@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">কোনো বিভাগ বা চ্যানেল তুলে নিতে সেটিতে OK চাপুন।</string>
     <string name="reorder_hint_move">↑ ও ↓ দিয়ে সরান, তারপর নামিয়ে রাখতে OK চাপুন।</string>
     <string name="reorder_hint_all">চ্যানেলের ক্রম বদলাতে আগে একটি বিভাগ খুলুন।</string>
+    <string name="reorder_hint_mark">একাধিক সারি বেছে একসঙ্গে সরাতে সারিতে OK চেপে ধরে রাখুন।</string>
+    <string name="reorder_hint_marked">বাছাই করা: %1$d। একসঙ্গে তুলতে এর একটিতে OK চাপুন।</string>
     <string name="reorder_failed">ক্রম সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।</string>
     <string name="reorder_move_up">উপরে সরান</string>
     <string name="reorder_move_down">নিচে সরান</string>
     <string name="channels_empty_title">এখানে কোনো চ্যানেল নেই</string>
     <string name="channels_empty_detail">এই বিভাগে এখনও কিছু নেই। অন্যটি দেখুন, অথবা বিভাগটি আবার ডাউনলোড করুন।</string>
+    <string name="channels_favorites_empty_title">এখনও কোনো প্রিয় চ্যানেল নেই</string>
+    <string name="channels_favorites_empty_detail">“প্রিয় করুন” চাপুন, পছন্দের চ্যানেলগুলো বেছে নিন, তারপর যোগ করতে আবার “প্রিয় করুন” চাপুন।</string>
+    <string name="hide_bouquets_title">প্যাকেজ লুকান</string>
+    <string name="hide_channels_title">চ্যানেল লুকান</string>
+    <string name="hide_hint">যা লুকাতে চান তাতে টিক দিন, তারপর “নির্বাচিত লুকান” চাপুন। কিছুই মোছা হয় না; সেটিংসে ফিরিয়ে আনা যায়।</string>
+    <string name="hide_confirm">নির্বাচিত লুকান</string>
+    <string name="settings_hidden_section">লুকানো আইটেম</string>
+    <string name="settings_hidden_detail">লুকানো প্যাকেজ ও চ্যানেল আপনার সাবস্ক্রিপশনেই থাকে। সব ফিরিয়ে আনতে চাপুন।</string>
+    <string name="settings_hidden_bouquets">লুকানো প্যাকেজ ফিরিয়ে আনুন</string>
+    <string name="settings_hidden_channels">লুকানো চ্যানেল ফিরিয়ে আনুন</string>
     <string name="channels_fetch_failed">লাইভ টিভি ডাউনলোড করা যায়নি</string>
     <string name="channels_guide_now">এখন</string>
     <string name="channels_guide_next">পরবর্তী</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">প্রিয় তালিকায়</string>
     <string name="channels_action_lock">লক</string>
     <string name="channels_action_hide">লুকান</string>
+
+    <string name="pin_title_play">চ্যানেল লক করা আছে</string>
+    <string name="pin_message_play">এই চ্যানেলটি চালাতে পাসওয়ার্ড দিন।</string>
+    <string name="pin_title_lock">চ্যানেল লক করুন</string>
+    <string name="pin_message_lock">এই চ্যানেলটি লক করতে পাসওয়ার্ড দিন।</string>
+    <string name="pin_title_unlock">চ্যানেল আনলক করুন</string>
+    <string name="pin_message_unlock">এই চ্যানেলটি আনলক করতে পাসওয়ার্ড দিন।</string>
+    <string name="pin_title_current">বর্তমান পাসওয়ার্ড</string>
+    <string name="pin_message_current">বর্তমান পাসওয়ার্ড দিন।</string>
+    <string name="pin_title_new">নতুন পাসওয়ার্ড</string>
+    <string name="pin_message_new">৪টি সংখ্যা বেছে নিন।</string>
+    <string name="pin_title_repeat">পাসওয়ার্ড আবার দিন</string>
+    <string name="pin_message_repeat">একই সংখ্যাগুলো আবার দিন।</string>
+    <string name="pin_wrong">ভুল পাসওয়ার্ড।</string>
+    <string name="pin_mismatch">সংখ্যাগুলো মেলেনি। নতুন পাসওয়ার্ড আবার বেছে নিন।</string>
+    <string name="pin_cancel">বাতিল</string>
+    <string name="pin_delete">মুছুন</string>
+    <string name="pin_progress">%2$dটির মধ্যে %1$dটি সংখ্যা</string>
+    <string name="pin_changed_title">পাসওয়ার্ড বদলানো হয়েছে</string>
+    <string name="pin_changed_body">এখন থেকে নতুন পাসওয়ার্ড দিয়েই চ্যানেল লক ও আনলক হবে।</string>
+    <string name="pin_done">ঠিক আছে</string>
+    <string name="channels_action_unlock">আনলক</string>
+    <string name="channels_locked">লক করা</string>
+    <string name="settings_pin_section">চ্যানেল লক</string>
+    <string name="settings_pin_change">পাসওয়ার্ড বদলান</string>
+    <string name="settings_pin_detail">যে পাসওয়ার্ড চ্যানেল লক ও আনলক করে। আপনি না বদলানো পর্যন্ত এটি 0000।</string>
     <string name="channels_live_badge">লাইভ</string>
 
 </resources>

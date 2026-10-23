@@ -21,6 +21,21 @@ interface FavoriteDao {
     @Query("DELETE FROM favorite WHERE media_id = :mediaId")
     suspend fun remove(mediaId: String)
 
+    /**
+     * Marks several at once. `IGNORE`, not `REPLACE`: a channel that already is a favourite keeps the
+     * time it was marked, so a batch that happens to include one does not reorder the list by it.
+     * A list insert is one transaction, so a batch lands whole.
+     */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun addAll(favorites: List<FavoriteEntity>)
+
+    /** Callers chunk below SQLite's bind-variable limit, like every other `IN` query here. */
+    @Query("DELETE FROM favorite WHERE media_id IN (:mediaIds)")
+    suspend fun removeAll(mediaIds: List<String>)
+
+    @Query("SELECT media_id FROM favorite")
+    fun ids(): Flow<List<String>>
+
     @Query("SELECT EXISTS(SELECT 1 FROM favorite WHERE media_id = :mediaId)")
     fun isFavorite(mediaId: String): Flow<Boolean>
 
@@ -36,13 +51,14 @@ interface FavoriteDao {
      * the provider restores the channel.
      *
      * The active subscription's favourites only — see [ACTIVE_SOURCE]. Another
-     * subscription's are kept, not shown, and come back with it, for the same reason.
+     * subscription's are kept, not shown, and come back with it, for the same reason. And not
+     * the ones the viewer hid -- see [NOT_HIDDEN]: a hidden channel is in no list of channels.
      */
     @Query(
         """
         SELECT m.* FROM favorite f
         INNER JOIN media m ON m.id = f.media_id
-        WHERE m.source_id = $ACTIVE_SOURCE
+        WHERE m.source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN_M
         ORDER BY f.added_at DESC, m.id
         """,
     )

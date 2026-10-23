@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">Stlačením OK na kategórii alebo kanáli ho zdvihnete.</string>
     <string name="reorder_hint_move">Presuňte ho pomocou ↑ a ↓ a stlačením OK ho položíte.</string>
     <string name="reorder_hint_all">Najprv otvorte kategóriu, aby ste mohli zmeniť poradie jej kanálov.</string>
+    <string name="reorder_hint_mark">Podržte OK na riadkoch, aby ste ich označili viac a presunuli spolu.</string>
+    <string name="reorder_hint_marked">Označené: %1$d. Stlačte OK na jednom z nich a zdvihnete ich spolu.</string>
     <string name="reorder_failed">Poradie sa nepodarilo uložiť. Skúste to znova.</string>
     <string name="reorder_move_up">Posunúť nahor</string>
     <string name="reorder_move_down">Posunúť nadol</string>
     <string name="channels_empty_title">Tu nie sú žiadne kanály</string>
     <string name="channels_empty_detail">V tejto kategórii zatiaľ nič nie je. Skúste inú, alebo sekciu stiahnite znova.</string>
+    <string name="channels_favorites_empty_title">Zatiaľ žiadne obľúbené kanály</string>
+    <string name="channels_favorites_empty_detail">Stlačte „Pridať k obľúbeným“, vyberte kanály, ktoré sa vám páčia, a opätovným stlačením „Pridať k obľúbeným“ ich pridajte.</string>
+    <string name="hide_bouquets_title">Skryť balíky</string>
+    <string name="hide_channels_title">Skryť kanály</string>
+    <string name="hide_hint">Označte, čo chcete skryť, a stlačte Skryť vybrané. Nič sa nevymaže; Nastavenia to vrátia.</string>
+    <string name="hide_confirm">Skryť vybrané</string>
+    <string name="settings_hidden_section">Skryté položky</string>
+    <string name="settings_hidden_detail">Skryté balíky a kanály zostávajú vo vašom predplatnom. Stlačením ich všetky obnovíte.</string>
+    <string name="settings_hidden_bouquets">Obnoviť skryté balíky</string>
+    <string name="settings_hidden_channels">Obnoviť skryté kanály</string>
     <string name="channels_fetch_failed">Živé vysielanie sa nepodarilo stiahnuť</string>
     <string name="channels_guide_now">TERAZ</string>
     <string name="channels_guide_next">NASLEDUJE</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">V obľúbených</string>
     <string name="channels_action_lock">Zamknúť</string>
     <string name="channels_action_hide">Skryť</string>
+
+    <string name="pin_title_play">Zamknutý kanál</string>
+    <string name="pin_message_play">Zadajte heslo na prehratie tohto kanála.</string>
+    <string name="pin_title_lock">Zamknúť kanál</string>
+    <string name="pin_message_lock">Zadajte heslo na zamknutie tohto kanála.</string>
+    <string name="pin_title_unlock">Odomknúť kanál</string>
+    <string name="pin_message_unlock">Zadajte heslo na odomknutie tohto kanála.</string>
+    <string name="pin_title_current">Aktuálne heslo</string>
+    <string name="pin_message_current">Zadajte aktuálne heslo.</string>
+    <string name="pin_title_new">Nové heslo</string>
+    <string name="pin_message_new">Zvoľte 4 číslice.</string>
+    <string name="pin_title_repeat">Zopakujte heslo</string>
+    <string name="pin_message_repeat">Zadajte rovnaké číslice znova.</string>
+    <string name="pin_wrong">Nesprávne heslo.</string>
+    <string name="pin_mismatch">Číslice sa nezhodujú. Zvoľte nové heslo znova.</string>
+    <string name="pin_cancel">Zrušiť</string>
+    <string name="pin_delete">Odstrániť</string>
+    <string name="pin_progress">%1$d z %2$d číslic</string>
+    <string name="pin_changed_title">Heslo bolo zmenené</string>
+    <string name="pin_changed_body">Nové heslo teraz kanály zamyká a odomyká.</string>
+    <string name="pin_done">OK</string>
+    <string name="channels_action_unlock">Odomknúť</string>
+    <string name="channels_locked">Zamknuté</string>
+    <string name="settings_pin_section">Zámok kanálov</string>
+    <string name="settings_pin_change">Zmeniť heslo</string>
+    <string name="settings_pin_detail">Heslo, ktoré kanály zamyká a odomyká. Kým ho nezmeníte, je to 0000.</string>
     <string name="channels_live_badge">NAŽIVO</string>
 
 </resources>

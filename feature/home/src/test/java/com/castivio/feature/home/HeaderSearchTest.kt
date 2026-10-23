@@ -150,7 +150,7 @@ class HeaderSearchTest {
     }
 
     @Test
-    fun `the keyboard's search key moves on to what is below instead of staying`() {
+    fun `the keyboard's search key leaves the field focused, with its text, and does not move on`() {
         show()
         field.performTextInput("bein")
         field.requestFocus()
@@ -158,8 +158,9 @@ class HeaderSearchTest {
         field.performImeAction()
         compose.waitForIdle()
 
-        compose.onNodeWithTag(ROW).assertIsFocused()
-        field.assertIsNotFocused()
+        field.assertIsFocused()
+        compose.onNodeWithTag(ROW).assertIsNotFocused()
+        assertEquals("bein", text)
     }
 
     /** The list's first-focus rule, with the field's focus as the one thing that changes. */

@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">Shtyp OK te një kategori ose kanal për ta ngritur.</string>
     <string name="reorder_hint_move">Lëvize me ↑ dhe ↓, pastaj shtyp OK për ta vendosur.</string>
     <string name="reorder_hint_all">Hap fillimisht një kategori për të rirenditur kanalet e saj.</string>
+    <string name="reorder_hint_mark">Mbaj shtypur OK mbi rreshta për të shënuar disa e për t’i lëvizur së bashku.</string>
+    <string name="reorder_hint_marked">Të shënuara: %1$d. Shtyp OK mbi njërin prej tyre për t’i marrë së bashku.</string>
     <string name="reorder_failed">Renditja nuk u ruajt. Provo përsëri.</string>
     <string name="reorder_move_up">Lëviz lart</string>
     <string name="reorder_move_down">Lëviz poshtë</string>
     <string name="channels_empty_title">S\'ka kanale këtu</string>
     <string name="channels_empty_detail">Kjo kategori ende s\'ka asgjë. Provoni një tjetër, ose shkarkojeni sërish seksionin.</string>
+    <string name="channels_favorites_empty_title">Ende pa kanale të preferuara</string>
+    <string name="channels_favorites_empty_detail">Shtypni «Shto te të parapëlqyerat», zgjidhni kanalet që ju pëlqejnë, pastaj shtypni përsëri «Shto te të parapëlqyerat» për t’i shtuar.</string>
+    <string name="hide_bouquets_title">Fshih paketat</string>
+    <string name="hide_channels_title">Fshih kanalet</string>
+    <string name="hide_hint">Shëno çfarë do të fshihet, pastaj shtyp Fshih të zgjedhurat. Asgjë nuk fshihet përgjithmonë; Cilësimet e rikthejnë.</string>
+    <string name="hide_confirm">Fshih të zgjedhurat</string>
+    <string name="settings_hidden_section">Elementet e fshehura</string>
+    <string name="settings_hidden_detail">Paketat dhe kanalet e fshehura mbeten në abonimin tënd. Shtyp për t’i rikthyer të gjitha.</string>
+    <string name="settings_hidden_bouquets">Rikthe paketat e fshehura</string>
+    <string name="settings_hidden_channels">Rikthe kanalet e fshehura</string>
     <string name="channels_fetch_failed">TV drejtpërdrejt nuk u shkarkua dot</string>
     <string name="channels_guide_now">TANI</string>
     <string name="channels_guide_next">NË VIJIM</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">Te të parapëlqyerat</string>
     <string name="channels_action_lock">Kyç</string>
     <string name="channels_action_hide">Fshih</string>
+
+    <string name="pin_title_play">Kanal i kyçur</string>
+    <string name="pin_message_play">Fut fjalëkalimin për të luajtur këtë kanal.</string>
+    <string name="pin_title_lock">Kyç kanalin</string>
+    <string name="pin_message_lock">Fut fjalëkalimin për të kyçur këtë kanal.</string>
+    <string name="pin_title_unlock">Hap kanalin</string>
+    <string name="pin_message_unlock">Fut fjalëkalimin për ta hapur këtë kanal.</string>
+    <string name="pin_title_current">Fjalëkalimi aktual</string>
+    <string name="pin_message_current">Fut fjalëkalimin aktual.</string>
+    <string name="pin_title_new">Fjalëkalim i ri</string>
+    <string name="pin_message_new">Zgjidh 4 shifra.</string>
+    <string name="pin_title_repeat">Përsërit fjalëkalimin</string>
+    <string name="pin_message_repeat">Fut sërish të njëjtat shifra.</string>
+    <string name="pin_wrong">Fjalëkalim i gabuar.</string>
+    <string name="pin_mismatch">Shifrat nuk përputheshin. Zgjidh sërish fjalëkalimin e ri.</string>
+    <string name="pin_cancel">Anulo</string>
+    <string name="pin_delete">Fshi</string>
+    <string name="pin_progress">%1$d nga %2$d shifra</string>
+    <string name="pin_changed_title">Fjalëkalimi u ndryshua</string>
+    <string name="pin_changed_body">Fjalëkalimi i ri tani kyç dhe hap kanalet.</string>
+    <string name="pin_done">Në rregull</string>
+    <string name="channels_action_unlock">Hap</string>
+    <string name="channels_locked">Kyçur</string>
+    <string name="settings_pin_section">Kyçja e kanaleve</string>
+    <string name="settings_pin_change">Ndrysho fjalëkalimin</string>
+    <string name="settings_pin_detail">Fjalëkalimi që kyç dhe hap kanalet. Është 0000 derisa ta ndryshosh.</string>
     <string name="channels_live_badge">DREJTPËRDREJT</string>
 
 </resources>

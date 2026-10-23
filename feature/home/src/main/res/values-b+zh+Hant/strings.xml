@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">在分類或頻道上按「確定」鍵即可拿起。</string>
     <string name="reorder_hint_move">用 ↑ 和 ↓ 移動，再按「確定」放下。</string>
     <string name="reorder_hint_all">請先開啟一個分類，再調整其中頻道的順序。</string>
+    <string name="reorder_hint_mark">在多個項目上長按 OK 可勾選，並一起移動。</string>
+    <string name="reorder_hint_marked">已勾選：%1$d。對其中一項按 OK，即可一起拿起。</string>
     <string name="reorder_failed">無法儲存順序，請再試一次。</string>
     <string name="reorder_move_up">上移</string>
     <string name="reorder_move_down">下移</string>
     <string name="channels_empty_title">這裡沒有頻道</string>
     <string name="channels_empty_detail">這個分類目前還是空的。換一個分類，或重新下載這個區塊。</string>
+    <string name="channels_favorites_empty_title">尚無收藏的頻道</string>
+    <string name="channels_favorites_empty_detail">按「加入最愛」，選擇喜歡的頻道，再按一次「加入最愛」即可加入。</string>
+    <string name="hide_bouquets_title">隱藏頻道包</string>
+    <string name="hide_channels_title">隱藏頻道</string>
+    <string name="hide_hint">勾選要隱藏的項目，然後按「隱藏所選」。不會刪除任何內容，可在設定中還原。</string>
+    <string name="hide_confirm">隱藏所選</string>
+    <string name="settings_hidden_section">已隱藏的項目</string>
+    <string name="settings_hidden_detail">已隱藏的頻道包和頻道仍保留在您的訂閱中。按下即可全部還原。</string>
+    <string name="settings_hidden_bouquets">還原已隱藏的頻道包</string>
+    <string name="settings_hidden_channels">還原已隱藏的頻道</string>
     <string name="channels_fetch_failed">直播電視下載失敗</string>
     <string name="channels_guide_now">現正播出</string>
     <string name="channels_guide_next">接下來</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">已加入最愛</string>
     <string name="channels_action_lock">鎖定</string>
     <string name="channels_action_hide">隱藏</string>
+
+    <string name="pin_title_play">頻道已鎖定</string>
+    <string name="pin_message_play">輸入密碼以播放此頻道。</string>
+    <string name="pin_title_lock">鎖定頻道</string>
+    <string name="pin_message_lock">輸入密碼以鎖定此頻道。</string>
+    <string name="pin_title_unlock">解鎖頻道</string>
+    <string name="pin_message_unlock">輸入密碼以解鎖此頻道。</string>
+    <string name="pin_title_current">目前的密碼</string>
+    <string name="pin_message_current">輸入目前的密碼。</string>
+    <string name="pin_title_new">新密碼</string>
+    <string name="pin_message_new">請選擇 4 位數字。</string>
+    <string name="pin_title_repeat">再次輸入密碼</string>
+    <string name="pin_message_repeat">請再次輸入相同的數字。</string>
+    <string name="pin_wrong">密碼錯誤。</string>
+    <string name="pin_mismatch">兩次數字不一致。請重新設定新密碼。</string>
+    <string name="pin_cancel">取消</string>
+    <string name="pin_delete">刪除</string>
+    <string name="pin_progress">已輸入 %1$d / %2$d 位</string>
+    <string name="pin_changed_title">密碼已變更</string>
+    <string name="pin_changed_body">現在由新密碼來鎖定和解鎖頻道。</string>
+    <string name="pin_done">確定</string>
+    <string name="channels_action_unlock">解鎖</string>
+    <string name="channels_locked">已鎖定</string>
+    <string name="settings_pin_section">頻道鎖</string>
+    <string name="settings_pin_change">變更密碼</string>
+    <string name="settings_pin_detail">用於鎖定和解鎖頻道的密碼。變更之前為 0000。</string>
     <string name="channels_live_badge">直播</string>
 
 </resources>

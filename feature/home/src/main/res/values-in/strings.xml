@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">Tekan OK pada kategori atau saluran untuk mengangkatnya.</string>
     <string name="reorder_hint_move">Pindahkan dengan ↑ dan ↓, lalu tekan OK untuk meletakkannya.</string>
     <string name="reorder_hint_all">Buka kategori terlebih dahulu untuk mengatur ulang urutan salurannya.</string>
+    <string name="reorder_hint_mark">Tahan OK pada beberapa baris untuk menandai beberapa dan memindahkannya bersama.</string>
+    <string name="reorder_hint_marked">Ditandai: %1$d. Tekan OK pada salah satunya untuk mengangkat semuanya bersama.</string>
     <string name="reorder_failed">Urutan tidak dapat disimpan. Coba lagi.</string>
     <string name="reorder_move_up">Pindah ke atas</string>
     <string name="reorder_move_down">Pindah ke bawah</string>
     <string name="channels_empty_title">Tidak ada saluran di sini</string>
     <string name="channels_empty_detail">Kategori ini belum berisi apa pun. Coba yang lain, atau unduh ulang bagian ini.</string>
+    <string name="channels_favorites_empty_title">Belum ada saluran favorit</string>
+    <string name="channels_favorites_empty_detail">Tekan “Favoritkan”, pilih saluran yang Anda suka, lalu tekan “Favoritkan” lagi untuk menambahkannya.</string>
+    <string name="hide_bouquets_title">Sembunyikan paket</string>
+    <string name="hide_channels_title">Sembunyikan saluran</string>
+    <string name="hide_hint">Centang yang ingin disembunyikan, lalu tekan Sembunyikan terpilih. Tidak ada yang dihapus; Pengaturan mengembalikannya.</string>
+    <string name="hide_confirm">Sembunyikan terpilih</string>
+    <string name="settings_hidden_section">Item tersembunyi</string>
+    <string name="settings_hidden_detail">Paket dan saluran yang disembunyikan tetap ada di langganan Anda. Tekan untuk memulihkan semuanya.</string>
+    <string name="settings_hidden_bouquets">Pulihkan paket tersembunyi</string>
+    <string name="settings_hidden_channels">Pulihkan saluran tersembunyi</string>
     <string name="channels_fetch_failed">TV Langsung tidak dapat diunduh</string>
     <string name="channels_guide_now">SEKARANG</string>
     <string name="channels_guide_next">BERIKUTNYA</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">Difavoritkan</string>
     <string name="channels_action_lock">Kunci</string>
     <string name="channels_action_hide">Sembunyikan</string>
+
+    <string name="pin_title_play">Saluran terkunci</string>
+    <string name="pin_message_play">Masukkan kata sandi untuk memutar saluran ini.</string>
+    <string name="pin_title_lock">Kunci saluran</string>
+    <string name="pin_message_lock">Masukkan kata sandi untuk mengunci saluran ini.</string>
+    <string name="pin_title_unlock">Buka kunci saluran</string>
+    <string name="pin_message_unlock">Masukkan kata sandi untuk membuka kunci saluran ini.</string>
+    <string name="pin_title_current">Kata sandi saat ini</string>
+    <string name="pin_message_current">Masukkan kata sandi saat ini.</string>
+    <string name="pin_title_new">Kata sandi baru</string>
+    <string name="pin_message_new">Pilih 4 digit.</string>
+    <string name="pin_title_repeat">Ulangi kata sandi</string>
+    <string name="pin_message_repeat">Masukkan digit yang sama lagi.</string>
+    <string name="pin_wrong">Kata sandi salah.</string>
+    <string name="pin_mismatch">Digit tidak cocok. Pilih kata sandi baru lagi.</string>
+    <string name="pin_cancel">Batal</string>
+    <string name="pin_delete">Hapus</string>
+    <string name="pin_progress">%1$d dari %2$d digit</string>
+    <string name="pin_changed_title">Kata sandi diganti</string>
+    <string name="pin_changed_body">Kata sandi baru kini mengunci dan membuka kunci saluran.</string>
+    <string name="pin_done">OK</string>
+    <string name="channels_action_unlock">Buka kunci</string>
+    <string name="channels_locked">Terkunci</string>
+    <string name="settings_pin_section">Kunci saluran</string>
+    <string name="settings_pin_change">Ganti kata sandi</string>
+    <string name="settings_pin_detail">Kata sandi yang mengunci dan membuka kunci saluran. Nilainya 0000 sampai Anda menggantinya.</string>
     <string name="channels_live_badge">LANGSUNG</string>
 
 </resources>

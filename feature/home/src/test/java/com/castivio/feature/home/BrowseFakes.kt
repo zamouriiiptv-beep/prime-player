@@ -94,6 +94,13 @@ internal class FakeOrder : CatalogOrder {
         return moves
     }
 
+    /** Recorded as one call, ids sorted so a test does not depend on the order a set was walked in. */
+    override suspend fun moveAll(groupId: String, channelIds: Collection<String>, up: Boolean): Boolean {
+        if (failMove) error("disk full")
+        calls += "moveAll $groupId ${channelIds.sorted().joinToString(",")} ${if (up) "up" else "down"}"
+        return moves
+    }
+
     override suspend fun save(groupId: String) {
         if (failSave) error("disk full")
         calls += "save $groupId"

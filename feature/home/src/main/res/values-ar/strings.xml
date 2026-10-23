@@ -179,12 +179,24 @@
     <string name="reorder_hint_pick">اضغط OK على باقة أو قناة لالتقاطها.</string>
     <string name="reorder_hint_move">حرّكها بالسهمين ↑ و↓ ثم اضغط OK لإسقاطها.</string>
     <string name="reorder_hint_all">افتح باقة أولًا لترتيب قنواتها.</string>
+    <string name="reorder_hint_mark">أبقِ OK مضغوطًا على عدة صفوف لتحديدها وتحريكها معًا.</string>
+    <string name="reorder_hint_marked">المحدَّد: %1$d. اضغط OK على أحدها لالتقاطها معًا.</string>
     <string name="reorder_failed">تعذّر حفظ الترتيب. حاول مرة أخرى.</string>
     <string name="reorder_move_up">تحريك للأعلى</string>
     <string name="reorder_move_down">تحريك للأسفل</string>
 
     <string name="channels_empty_title">لا توجد قنوات هنا</string>
     <string name="channels_empty_detail">هذه الباقة فارغة حتى الآن. جرّب باقة أخرى، أو حمّل القسم من جديد.</string>
+    <string name="channels_favorites_empty_title">لا توجد قنوات مفضلة بعد</string>
+    <string name="channels_favorites_empty_detail">اضغط «المفضلة»، ثم اختر القنوات التي تعجبك، واضغط «المفضلة» مرة أخرى لإضافتها.</string>
+    <string name="hide_bouquets_title">إخفاء الباقات</string>
+    <string name="hide_channels_title">إخفاء القنوات</string>
+    <string name="hide_hint">ضع علامة على ما تريد إخفاءه ثم اضغط «إخفاء المحدد». لا يُحذف شيء، وتعيده الإعدادات.</string>
+    <string name="hide_confirm">إخفاء المحدد</string>
+    <string name="settings_hidden_section">العناصر المخفية</string>
+    <string name="settings_hidden_detail">الباقات والقنوات التي أخفيتها تبقى في اشتراكك. اضغط لإعادتها كلها.</string>
+    <string name="settings_hidden_bouquets">استعادة الباقات المخفية</string>
+    <string name="settings_hidden_channels">استعادة القنوات المخفية</string>
     <string name="channels_fetch_failed">تعذّر تحميل البث المباشر</string>
 
     <string name="channels_guide_now">الآن</string>
@@ -201,6 +213,32 @@
     <string name="channels_action_unfavorite">في المفضلة</string>
     <string name="channels_action_lock">قفل</string>
     <string name="channels_action_hide">إخفاء</string>
+
+    <string name="pin_title_play">قناة مقفلة</string>
+    <string name="pin_message_play">أدخل كلمة المرور لتشغيل هذه القناة.</string>
+    <string name="pin_title_lock">قفل القناة</string>
+    <string name="pin_message_lock">أدخل كلمة المرور لقفل هذه القناة.</string>
+    <string name="pin_title_unlock">فتح القناة</string>
+    <string name="pin_message_unlock">أدخل كلمة المرور لفتح هذه القناة.</string>
+    <string name="pin_title_current">كلمة المرور الحالية</string>
+    <string name="pin_message_current">أدخل كلمة المرور الحالية.</string>
+    <string name="pin_title_new">كلمة مرور جديدة</string>
+    <string name="pin_message_new">اختر 4 أرقام.</string>
+    <string name="pin_title_repeat">أعد كتابة كلمة المرور</string>
+    <string name="pin_message_repeat">أدخل الأرقام نفسها مرة أخرى.</string>
+    <string name="pin_wrong">كلمة المرور غير صحيحة.</string>
+    <string name="pin_mismatch">الأرقام غير متطابقة. اختر كلمة المرور الجديدة من جديد.</string>
+    <string name="pin_cancel">إلغاء</string>
+    <string name="pin_delete">حذف</string>
+    <string name="pin_progress">%1$d من %2$d أرقام</string>
+    <string name="pin_changed_title">تم تغيير كلمة المرور</string>
+    <string name="pin_changed_body">كلمة المرور الجديدة هي التي تقفل القنوات وتفتحها الآن.</string>
+    <string name="pin_done">حسنًا</string>
+    <string name="channels_action_unlock">فتح</string>
+    <string name="channels_locked">مقفلة</string>
+    <string name="settings_pin_section">قفل القنوات</string>
+    <string name="settings_pin_change">تغيير كلمة المرور</string>
+    <string name="settings_pin_detail">كلمة المرور التي تقفل القنوات وتفتحها. تكون 0000 إلى أن تغيّرها.</string>
 
 
 </resources>

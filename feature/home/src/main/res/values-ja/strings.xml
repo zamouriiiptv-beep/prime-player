@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">カテゴリーまたはチャンネルで OK を押して持ち上げます。</string>
     <string name="reorder_hint_move">↑ と ↓ で動かし、OK を押して置きます。</string>
     <string name="reorder_hint_all">チャンネルを並べ替えるには、先にカテゴリーを開いてください。</string>
+    <string name="reorder_hint_mark">複数の行で OK を長押しして選択し、まとめて移動します。</string>
+    <string name="reorder_hint_marked">選択中：%1$d。そのうち1つで OK を押すと、まとめて持ち上げます。</string>
     <string name="reorder_failed">順序を保存できませんでした。もう一度お試しください。</string>
     <string name="reorder_move_up">上へ移動</string>
     <string name="reorder_move_down">下へ移動</string>
     <string name="channels_empty_title">ここにチャンネルはありません</string>
     <string name="channels_empty_detail">このカテゴリーにはまだ何もありません。別のカテゴリーを試すか、セクションを再ダウンロードしてください。</string>
+    <string name="channels_favorites_empty_title">お気に入りのチャンネルはまだありません</string>
+    <string name="channels_favorites_empty_detail">「お気に入りに追加」を押し、好きなチャンネルを選んで、もう一度「お気に入りに追加」を押すと追加されます。</string>
+    <string name="hide_bouquets_title">パッケージを非表示</string>
+    <string name="hide_channels_title">チャンネルを非表示</string>
+    <string name="hide_hint">非表示にするものにチェックを付けて、「選択を非表示」を押してください。何も削除されず、設定から元に戻せます。</string>
+    <string name="hide_confirm">選択を非表示</string>
+    <string name="settings_hidden_section">非表示の項目</string>
+    <string name="settings_hidden_detail">非表示にしたパッケージやチャンネルは契約内に残ります。押すとすべて元に戻します。</string>
+    <string name="settings_hidden_bouquets">非表示のパッケージを復元</string>
+    <string name="settings_hidden_channels">非表示のチャンネルを復元</string>
     <string name="channels_fetch_failed">ライブTVをダウンロードできませんでした</string>
     <string name="channels_guide_now">現在</string>
     <string name="channels_guide_next">次</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">お気に入り済み</string>
     <string name="channels_action_lock">ロック</string>
     <string name="channels_action_hide">非表示</string>
+
+    <string name="pin_title_play">ロックされたチャンネル</string>
+    <string name="pin_message_play">このチャンネルを再生するにはパスワードを入力してください。</string>
+    <string name="pin_title_lock">チャンネルをロック</string>
+    <string name="pin_message_lock">このチャンネルをロックするにはパスワードを入力してください。</string>
+    <string name="pin_title_unlock">チャンネルのロックを解除</string>
+    <string name="pin_message_unlock">このチャンネルのロックを解除するにはパスワードを入力してください。</string>
+    <string name="pin_title_current">現在のパスワード</string>
+    <string name="pin_message_current">現在のパスワードを入力してください。</string>
+    <string name="pin_title_new">新しいパスワード</string>
+    <string name="pin_message_new">4桁の数字を選んでください。</string>
+    <string name="pin_title_repeat">パスワードをもう一度入力</string>
+    <string name="pin_message_repeat">同じ数字をもう一度入力してください。</string>
+    <string name="pin_wrong">パスワードが違います。</string>
+    <string name="pin_mismatch">数字が一致しませんでした。新しいパスワードをもう一度選んでください。</string>
+    <string name="pin_cancel">キャンセル</string>
+    <string name="pin_delete">削除</string>
+    <string name="pin_progress">%2$d桁中%1$d桁入力済み</string>
+    <string name="pin_changed_title">パスワードを変更しました</string>
+    <string name="pin_changed_body">今後は新しいパスワードでチャンネルのロックと解除を行います。</string>
+    <string name="pin_done">OK</string>
+    <string name="channels_action_unlock">解除</string>
+    <string name="channels_locked">ロック中</string>
+    <string name="settings_pin_section">チャンネルロック</string>
+    <string name="settings_pin_change">パスワードを変更</string>
+    <string name="settings_pin_detail">チャンネルのロックと解除に使うパスワードです。変更するまでは 0000 です。</string>
     <string name="channels_live_badge">ライブ</string>
 
 </resources>

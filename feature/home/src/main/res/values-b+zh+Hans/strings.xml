@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">在分类或频道上按“确定”键将其拿起。</string>
     <string name="reorder_hint_move">用 ↑ 和 ↓ 移动，再按“确定”放下。</string>
     <string name="reorder_hint_all">请先打开一个分类，再调整其中频道的顺序。</string>
+    <string name="reorder_hint_mark">在多个行上长按 OK 可勾选，并一起移动。</string>
+    <string name="reorder_hint_marked">已勾选：%1$d。对其中一项按 OK，即可一起拿起。</string>
     <string name="reorder_failed">无法保存顺序，请重试。</string>
     <string name="reorder_move_up">上移</string>
     <string name="reorder_move_down">下移</string>
     <string name="channels_empty_title">这里没有频道</string>
     <string name="channels_empty_detail">该分类目前还是空的。换一个分类，或重新下载该板块。</string>
+    <string name="channels_favorites_empty_title">还没有收藏的频道</string>
+    <string name="channels_favorites_empty_detail">按“收藏”，选择喜欢的频道，再按一次“收藏”即可添加。</string>
+    <string name="hide_bouquets_title">隐藏频道包</string>
+    <string name="hide_channels_title">隐藏频道</string>
+    <string name="hide_hint">勾选要隐藏的内容，然后按“隐藏所选”。不会删除任何内容，可在设置中恢复。</string>
+    <string name="hide_confirm">隐藏所选</string>
+    <string name="settings_hidden_section">已隐藏的项目</string>
+    <string name="settings_hidden_detail">已隐藏的频道包和频道仍保留在您的订阅中。按下即可全部恢复。</string>
+    <string name="settings_hidden_bouquets">恢复已隐藏的频道包</string>
+    <string name="settings_hidden_channels">恢复已隐藏的频道</string>
     <string name="channels_fetch_failed">直播电视下载失败</string>
     <string name="channels_guide_now">正在播出</string>
     <string name="channels_guide_next">接下来</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">已收藏</string>
     <string name="channels_action_lock">锁定</string>
     <string name="channels_action_hide">隐藏</string>
+
+    <string name="pin_title_play">频道已锁定</string>
+    <string name="pin_message_play">输入密码以播放此频道。</string>
+    <string name="pin_title_lock">锁定频道</string>
+    <string name="pin_message_lock">输入密码以锁定此频道。</string>
+    <string name="pin_title_unlock">解锁频道</string>
+    <string name="pin_message_unlock">输入密码以解锁此频道。</string>
+    <string name="pin_title_current">当前密码</string>
+    <string name="pin_message_current">输入当前密码。</string>
+    <string name="pin_title_new">新密码</string>
+    <string name="pin_message_new">请选择 4 位数字。</string>
+    <string name="pin_title_repeat">再次输入密码</string>
+    <string name="pin_message_repeat">请再次输入相同的数字。</string>
+    <string name="pin_wrong">密码错误。</string>
+    <string name="pin_mismatch">两次数字不一致。请重新设置新密码。</string>
+    <string name="pin_cancel">取消</string>
+    <string name="pin_delete">删除</string>
+    <string name="pin_progress">已输入 %1$d / %2$d 位</string>
+    <string name="pin_changed_title">密码已更改</string>
+    <string name="pin_changed_body">现在由新密码来锁定和解锁频道。</string>
+    <string name="pin_done">确定</string>
+    <string name="channels_action_unlock">解锁</string>
+    <string name="channels_locked">已锁定</string>
+    <string name="settings_pin_section">频道锁</string>
+    <string name="settings_pin_change">更改密码</string>
+    <string name="settings_pin_detail">用于锁定和解锁频道的密码。更改之前为 0000。</string>
     <string name="channels_live_badge">直播</string>
 
 </resources>

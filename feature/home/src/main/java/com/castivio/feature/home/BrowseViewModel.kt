@@ -108,6 +108,12 @@ data class BrowseState(
      */
     val search: String = "",
     /**
+     * The rows are the viewer's favourite channels -- the rail's Favourites entry is open and
+     * nothing is typed. Then [selectedGroup] is null as it is for "all", and the rail lights this
+     * entry and not that one.
+     */
+    val favorites: Boolean = false,
+    /**
      * The board is in reorder mode, or null. While it is, the rail lists the bouquets in the order
      * being set -- [shownGroups] is that order, whole, and the rail's own filter is set aside --
      * and the channels of the open bouquet are its draft. See [Arranging].
@@ -171,6 +177,13 @@ class BrowseViewModel @Inject constructor(
 
     private val section = MutableStateFlow(CatalogSection.Live)
     private val chosen = MutableStateFlow<String?>(null)
+
+    /**
+     * The rail's Favourites entry is open: the rows are the viewer's favourite channels, whatever
+     * category was chosen before. Kept apart from [chosen], which is only ever a category -- so
+     * leaving the favourites gives the category back, as clearing a search does.
+     */
+    private val favoritesOpen = MutableStateFlow(false)
 
     /**
      * This section's latest load. The queue owns the rules -- one load at a time, a failure
@@ -247,10 +260,16 @@ class BrowseViewModel @Inject constructor(
             chosen,
             groups,
             order,
-            combine(term, arrangement.map { it?.channelsOf }) { search, arranged -> search to arranged },
+            combine(term, arrangement.map { it?.channelsOf }, favoritesOpen) { search, arranged, favorites ->
+                Triple(search, arranged, favorites)
+            },
         ) { current, selected, available, sort, narrowing ->
-            val (search, arrangedGroup) = narrowing
-            val groupId = if (search.isEmpty()) surviving(selected, available) else null
+            val (search, arrangedGroup, favoritesAsked) = narrowing
+            // **The favourites are a list of their own, and a search is of the whole section.** They are
+            // asked for only while nothing is typed and the board is not being arranged, and then no
+            // category is: the rows are the viewer's channels from every bouquet.
+            val favorites = favoritesAsked && search.isEmpty() && arrangedGroup == null
+            val groupId = if (search.isEmpty() && !favorites) surviving(selected, available) else null
             CatalogQuery(
                 kind = current.kind,
                 // **A search is of the whole section.** A viewer who types a name wants the
@@ -263,6 +282,7 @@ class BrowseViewModel @Inject constructor(
                 sort = sort,
                 search = search,
                 arranging = groupId != null && groupId == arrangedGroup,
+                favorites = favorites,
             )
         }.distinctUntilChanged()
 
@@ -310,6 +330,7 @@ class BrowseViewModel @Inject constructor(
             // is set aside, because a list with bouquets filtered out is not one to move in.
             shownGroups = arranged?.let { listed.arrangedAs(it.bouquets) } ?: listed.filtered(filter),
             search = asked.search,
+            favorites = asked.favorites,
             arranging = arranged,
             noCategories = saysNoCategories(listed, run?.load),
             firstLoad = run.isFirstLoad(),
@@ -373,6 +394,7 @@ class BrowseViewModel @Inject constructor(
             cancel()
             section.value = current
             chosen.value = null
+            favoritesOpen.value = false
             userChose = false
             typed.value = ""
         }
@@ -414,6 +436,19 @@ class BrowseViewModel @Inject constructor(
         if (arrangement.value != null) return
         userChose = true
         chosen.value = groupId
+        favoritesOpen.value = false
+        typed.value = ""
+    }
+
+    /**
+     * The rail's Favourites entry: the rows become the viewer's favourite channels, from every
+     * category, in the provider's order. Like [choose] it ends a search that was on, and is not
+     * available in reorder mode, where a press on the rail picks a bouquet up.
+     */
+    fun openFavorites() {
+        if (arrangement.value != null) return
+        userChose = true
+        favoritesOpen.value = true
         typed.value = ""
     }
 
@@ -435,6 +470,9 @@ class BrowseViewModel @Inject constructor(
         val ids = listedOf(now.groups).map { it.id }
         val group = surviving(chosen.value, now.groups)
         typed.value = ""
+        // The favourites are not a list that can be arranged: the mode opens on the category that was
+        // chosen before them, or on "all".
+        favoritesOpen.value = false
         starting = true
         viewModelScope.launch {
             try {
@@ -458,22 +496,41 @@ class BrowseViewModel @Inject constructor(
         arrangement.value = now.pressed(row)
     }
 
-    /** Put down whatever is held. */
+    /**
+     * A long press, or OK held, on a row in reorder mode: tick it for moving together with the others that
+     * are ticked, or take its tick off. Only while nothing is picked up, and -- as for a press -- only on a
+     * channel when there is a bouquet open to hold them. Nothing is moved, and nothing is written.
+     */
+    fun mark(row: Held) {
+        val now = arrangement.value ?: return
+        if (row is Held.Channel && now.channelsOf == null) return
+        arrangement.value = now.markedToggled(row)
+    }
+
+    /** Put down whatever is held -- the whole group, if it carries one. */
     fun drop() {
         arrangement.value = arrangement.value?.dropped()
     }
 
-    /** One place up or down for what is held. The arrow keys, and the two buttons a thumb has. */
+    /** One place up or down for what is held -- with the ticked rows it was picked up with, together. The arrow keys, and the two buttons a thumb has. */
     fun moveHeld(up: Boolean) {
         val now = arrangement.value ?: return
         when (val held = now.held) {
             is Held.Bouquet -> arrangement.value = now.withHeldBouquetMoved(up)
             is Held.Channel -> now.channelsOf?.let { group ->
+                // What the arrows move: the one picked up, or the ticked ones it was picked up with.
+                val carried = now.carried.map { it.id }
                 viewModelScope.launch {
                     try {
                         orderLock.withLock {
-                            // Told inside the lock, so a save pressed after this move finds it said.
-                            if (customOrder.move(group, held.id, up)) {
+                            // Told inside the lock, so a save pressed after this move finds it said. One channel
+                            // is moved as it always was; several are moved together, keeping their order.
+                            val moved = if (carried.size > 1) {
+                                customOrder.moveAll(group, carried, up)
+                            } else {
+                                customOrder.move(group, held.id, up)
+                            }
+                            if (moved) {
                                 arrangement.value = arrangement.value?.copy(channelsMoved = true)
                             }
                         }

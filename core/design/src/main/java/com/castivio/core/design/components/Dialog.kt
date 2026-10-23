@@ -276,16 +276,30 @@ fun CastivioNoticeDialog(
 /**
  * The scrim, the panel and the title — the parts every Castivio modal shares.
  *
- * Private, and the only place any of it is written. A second modal that drew its
- * own scrim would drift from this one the first time either was touched, and the
- * invariant script's "a shared component is declared once" exists because that
- * has already happened here.
+ * Internal to `:core:design`, and the only place any of it is written. A second modal that
+ * drew its own scrim would drift from this one the first time either was touched, and the
+ * invariant script's "a shared component is declared once" exists because that has already
+ * happened here. The password dialog is the third modal and is drawn by this too.
  */
 @Composable
-private fun DialogPanel(
+internal fun DialogPanel(
     title: String,
     onScrim: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * How much of the free height the panel may take. Most of it for every dialog that was here
+     * before this was a parameter, and it is a parameter for the one whose content is a keypad: four
+     * rows of keys at the control floor do not fit a fifth less than a 360dp-tall handset, and a
+     * panel that clips its own bottom row is not a keypad.
+     */
+    maxFraction: Float = PANEL_MAX_FRACTION,
+    /**
+     * A width the panel is not narrower than, when the surface has it. Nothing for every dialog that
+     * was here before this was a parameter: a sentence and two buttons are as wide as the panel's own
+     * share makes them. The password dialog's keypad and the words beside it are not, and on a 640dp
+     * handset the share is 373 -- under the 400 floor and under what they need side by side.
+     */
+    minPanel: Dp = 0.dp,
     /**
      * @param tight whether the surface left over is short enough that the panel has to
      *   drop something to fit on it. It is the measured height, not a question about the
@@ -340,7 +354,7 @@ private fun DialogPanel(
 
             Column(
                 Modifier
-                    .widthIn(max = m.width)
+                    .widthIn(max = maxOf(m.width, minPanel))
                     // Never taller than most of the screen. On the 360dp frame that
                     // is 288dp, which is the number that makes the notice scroll
                     // rather than push its own close button off the bottom.
@@ -357,7 +371,7 @@ private fun DialogPanel(
                     // and a cap of 157. A margin is what is left over after the content
                     // fits, not something taken before it is measured.
                     .heightIn(
-                        max = if (tight) maxHeight else maxHeight * PANEL_MAX_FRACTION,
+                        max = if (tight) maxHeight else maxHeight * maxFraction,
                     )
                     .clip(shape)
                     .background(colors.backgroundElevated)

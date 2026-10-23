@@ -8,14 +8,17 @@ import androidx.paging.map
 import com.castivio.core.platform.CastivioTrace
 import com.castivio.data.database.dao.FavoriteDao
 import com.castivio.data.database.dao.GroupDao
+import com.castivio.data.database.dao.HiddenDao
 import com.castivio.data.database.dao.MediaDao
 import com.castivio.data.database.dao.OrderDao
 import com.castivio.data.database.dao.ProgressDao
+import com.castivio.data.database.entity.MediaEntity
 import com.castivio.domain.CatalogOrder
 import com.castivio.domain.CatalogPager
 import com.castivio.domain.CatalogQuery
 import com.castivio.domain.CatalogRepository
 import com.castivio.domain.ChannelRef
+import com.castivio.domain.ChannelWindows
 import com.castivio.domain.Episode
 import com.castivio.domain.InProgressItem
 import com.castivio.domain.MediaGroup
@@ -54,9 +57,12 @@ class RoomCatalogRepository(
     private val progressDao: ProgressDao,
     /** For the channel list's own pages -- see [WindowPagingSource]. */
     private val database: CastivioDatabase,
-) : CatalogRepository, CatalogPager, CatalogOrder {
+) : CatalogRepository, CatalogPager, CatalogOrder, ChannelWindows {
 
     private val orderDao: OrderDao get() = database.orderDao()
+
+    /** The viewer's hidden channels -- read beside the groups, from the database the repository already holds. */
+    private val hiddenDao: HiddenDao get() = database.hiddenDao()
 
     /**
      * Drafts are swept and begun one at a time, so a sweep can never land after a begin and
@@ -109,8 +115,17 @@ class RoomCatalogRepository(
             groupDao.groupsOf(kind.name),
             // Read again after every write to an order -- see [orderWrites].
             orderWrites.flatMapLatest { orderDao.positions(OrderScopes.bouquets(kind)) },
-        ) { rows, saved ->
-            rows.map { it.toDomain() }.arrangedBy(saved.associate { it.itemId to it.position })
+            // The channels hidden one by one: a bouquet's stored count is what the provider filed under
+            // it, and the rail's is what the viewer can see -- so a bouquet whose channels are all hidden
+            // reads empty, and is left out of the rail as an empty one is.
+            hiddenDao.channelsByGroup(),
+        ) { rows, saved, hidden ->
+            val hiddenIn = hidden.associate { it.groupId to it.hidden }
+            rows.map { row ->
+                val group = row.toDomain()
+                val gone = hiddenIn[group.id] ?: 0
+                if (gone == 0) group else group.copy(itemCount = (group.itemCount - gone).coerceAtLeast(0))
+            }.arrangedBy(saved.associate { it.itemId to it.position })
         }
 
     override suspend fun page(request: PageRequest): Page<MediaItem> {
@@ -172,14 +187,24 @@ class RoomCatalogRepository(
     override fun items(query: CatalogQuery): Flow<PagingData<MediaItem>> {
         val kind = query.kind.name
         val group = query.groupId
+        // The viewer's favourites, in the provider's order: the same windows as every other list of
+        // channels, invalidated as they are and by the favourites too -- which no other list is.
+        if (query.favorites) {
+            return pager {
+                WindowPagingSource(
+                    database.invalidationTracker,
+                    database.queryExecutor,
+                    WindowPagingSource.FAVORITE_TABLES,
+                ) { offset, limit -> rowsOf(query, null, offset, limit) }
+            }.map { data -> data.map { it.toDomain() } }
+        }
         // Nothing searchable is no search, as for [search]: the list, not an empty one.
         val match = FtsQuery.build(query.search)
         if (match != null) {
             // The same windows as the provider's order, read the same way, narrowed by the index.
             return pager {
                 WindowPagingSource(database.invalidationTracker, database.queryExecutor) { offset, limit ->
-                    if (group == null) mediaDao.windowMatching(match, kind, offset, limit)
-                    else mediaDao.windowMatchingInGroup(match, kind, group, offset, limit)
+                    rowsOf(query, match, offset, limit)
                 }
             }.map { data -> data.map { it.toDomain() } }
         }
@@ -188,16 +213,7 @@ class RoomCatalogRepository(
                 // Read outside a transaction, so a page lands while a section is being
                 // written -- see [WindowPagingSource]. The same rows, in the same order.
                 SortOrder.PROVIDER -> WindowPagingSource(database.invalidationTracker, database.queryExecutor) { offset, limit ->
-                    if (group == null) {
-                        mediaDao.window(kind, offset, limit)
-                    } else {
-                        // The viewer's order where this bouquet has one -- or its draft, while
-                        // they are arranging it -- and the indexed provider's order where it has
-                        // not, which is almost every bouquet and costs nothing extra.
-                        val scope = if (query.arranging) OrderScopes.draft(group) else OrderScopes.channels(group)
-                        if (orderDao.has(scope)) mediaDao.windowArranged(kind, group, scope, offset, limit)
-                        else mediaDao.windowInGroup(kind, group, offset, limit)
-                    }
+                    rowsOf(query, null, offset, limit)
                 }.let { source -> if (group == null) source else readingOrders(source) }
 
                 SortOrder.NAME_ASC ->
@@ -213,6 +229,82 @@ class RoomCatalogRepository(
                     else mediaDao.pageByRecentInGroup(kind, group)
             }
         }.map { data -> data.map { it.toDomain() } }
+    }
+
+    /**
+     * The rows of [query] from [offset], at most [limit]: the provider's order, the viewer's own where
+     * this bouquet has one -- or its draft, while they are arranging it -- and a search's, narrowed by
+     * the index.
+     *
+     * The one place those windows are chosen. The list's pages and the neighbours of a channel are
+     * both read through it, so the channel after the one on screen is the channel after it in the
+     * list, in whatever order the list is in. The viewer's order is read only for a bouquet that has
+     * one -- the indexed provider's order is almost every bouquet's and costs nothing extra.
+     */
+    private suspend fun rowsOf(query: CatalogQuery, match: String?, offset: Int, limit: Int): List<MediaEntity> {
+        val kind = query.kind.name
+        val group = query.groupId
+        if (query.favorites) return mediaDao.windowFavorites(kind, offset, limit)
+        if (match != null) {
+            return if (group == null) mediaDao.windowMatching(match, kind, offset, limit)
+            else mediaDao.windowMatchingInGroup(match, kind, group, offset, limit)
+        }
+        if (group == null) return mediaDao.window(kind, offset, limit)
+        val scope = if (query.arranging) OrderScopes.draft(group) else OrderScopes.channels(group)
+        return if (orderDao.has(scope)) mediaDao.windowArranged(kind, group, scope, offset, limit)
+        else mediaDao.windowInGroup(kind, group, offset, limit)
+    }
+
+    // ----------------------------------------------------------------------- ChannelWindows
+
+    override suspend fun window(query: CatalogQuery, offset: Int, limit: Int): Page<MediaItem> {
+        require(offset >= 0 && limit in 1..PageRequest.MAX_PAGE) { "window $offset+$limit outside the bounds" }
+        val match = FtsQuery.build(query.search)
+        // The sorts that are Room's own pages have no windows: nothing to read, and nothing to step to.
+        if (match == null && query.sort != SortOrder.PROVIDER) return Page(emptyList(), offset, 0)
+        val kind = query.kind.name
+        val group = query.groupId
+        val total = when {
+            query.favorites -> mediaDao.countNowFavorites(kind)
+            match != null ->
+                if (group == null) mediaDao.countMatching(match, kind)
+                else mediaDao.countMatchingInGroup(match, kind, group)
+            group == null -> mediaDao.countNow(kind)
+            else -> mediaDao.countNowInGroup(kind, group)
+        }
+        val rows = rowsOf(query, match, offset, limit).map { it.toDomain() }
+        return Page(items = rows, offset = offset, totalCount = total)
+    }
+
+    override suspend fun rank(query: CatalogQuery, channelId: String): Int? {
+        val match = FtsQuery.build(query.search)
+        if (match == null && query.sort != SortOrder.PROVIDER) return null
+        val me = mediaDao.byId(channelId) ?: return null
+        val kind = query.kind.name
+        if (me.kind != kind) return null
+        val group = query.groupId
+        val before = when {
+            query.favorites -> mediaDao.rankBeforeFavorites(kind, me.providerOrder, me.id)
+            match != null ->
+                if (group == null) mediaDao.rankBeforeMatching(match, kind, me.providerOrder, me.id)
+                else mediaDao.rankBeforeMatchingInGroup(match, kind, group, me.providerOrder, me.id)
+            group == null -> mediaDao.rankBefore(kind, me.providerOrder, me.id)
+            else -> {
+                val scope = if (query.arranging) OrderScopes.draft(group) else OrderScopes.channels(group)
+                if (orderDao.has(scope)) {
+                    // The place the viewer's order gives it, or the one every channel it has no place
+                    // for is given -- see `MediaDao.windowArranged`.
+                    val key = orderDao.positionOf(scope, me.id) ?: (UNPLACED + me.providerOrder)
+                    mediaDao.rankBeforeArranged(kind, group, scope, key, me.id)
+                } else {
+                    mediaDao.rankBeforeInGroup(kind, group, me.providerOrder, me.id)
+                }
+            }
+        }
+        // What was counted is where the channel would stand. It stands there only if it is in this
+        // list -- not another bouquet's, and not left out by the search -- which the row at that place
+        // says, and which also holds the count to the window's own order.
+        return before.takeIf { rowsOf(query, match, it, 1).firstOrNull()?.id == me.id }
     }
 
     // --------------------------------------------------------------------------- CatalogOrder
@@ -238,6 +330,11 @@ class RoomCatalogRepository(
 
     override suspend fun move(groupId: String, channelId: String, up: Boolean): Boolean =
         orderDao.move(groupId, OrderScopes.draft(groupId), channelId, up).also { moved ->
+            if (moved) ordersChanged()
+        }
+
+    override suspend fun moveAll(groupId: String, channelIds: Collection<String>, up: Boolean): Boolean =
+        orderDao.moveAll(groupId, OrderScopes.draft(groupId), channelIds.toList(), up).also { moved ->
             if (moved) ordersChanged()
         }
 
@@ -347,5 +444,8 @@ class RoomCatalogRepository(
 
         /** SQLite's bind-variable limit is 999 on older Android; stay clear of it. */
         const val MAX_IDS_PER_QUERY = 400
+
+        /** Where the viewer's order puts a channel it has no place for -- `MediaDao.windowArranged`'s constant. */
+        const val UNPLACED = 1_000_000_000L
     }
 }

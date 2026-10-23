@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
@@ -50,15 +51,25 @@ import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Sizing
 
 /**
- * What a row is told in reorder mode: whether it is the one picked up, and what to do when it is
- * moved.
+ * What a row is told in reorder mode: whether it is the one picked up, whether it is carried with it or
+ * ticked to be, and what to do when it is moved or ticked.
  *
  * Null on a row outside the mode, which is every row on every board that is not being arranged:
  * a row that is not told draws what it always drew.
  */
 internal data class RowArrange(
+    /** This row is the one picked up -- the one under the finger or the remote, which the arrows move. */
     val held: Boolean,
     val onMove: (up: Boolean) -> Unit,
+    /** This row is carried with the one that is held: it moves when the arrows do, and has no taps of its own. */
+    val carried: Boolean = false,
+    /** This row is ticked, to be moved with the others that are, and nothing is picked up yet. */
+    val marked: Boolean = false,
+    /**
+     * The long press, or OK held: tick this row, or take its tick off. Null where the row is not told one, and
+     * the row is then a plain press as it was.
+     */
+    val onMark: (() -> Unit)? = null,
 )
 
 /**
@@ -86,15 +97,25 @@ internal fun Modifier.movedByArrows(arrange: RowArrange?): Modifier =
     }
 
 /**
- * The end of a row in reorder mode: a handle on a row that can be picked up, and on the one that
- * is, the two taps a thumb moves it with.
+ * The end of a row in reorder mode: a handle on a row that can be picked up, a tick on one that is ticked
+ * or carried with the one that is picked up, and on the one that is, the two taps a thumb moves it -- and
+ * its group -- with.
  *
  * The taps are not focus targets. A remote moves a held row with the arrow keys, and a button
  * the focus could land on would be one more place for the arrow to go instead of moving it.
  */
 @Composable
 internal fun ArrangeTail(arrange: RowArrange, ink: Color, size: Dp) {
-    if (arrange.held) {
+    if (arrange.carried || arrange.marked) {
+        // A row of the group: ticked to be moved, or carried along with the one picked up. A mark and not a
+        // handle, and not taps -- the taps are the held row's, and a group is moved from one place.
+        Icon(
+            Icons.Rounded.CheckCircle,
+            contentDescription = null,
+            tint = ink,
+            modifier = Modifier.size(Sizing.iconSm),
+        )
+    } else if (arrange.held) {
         Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
             ArrowTap(Icons.Rounded.KeyboardArrowUp, stringResource(R.string.reorder_move_up), ink, size) {
                 arrange.onMove(true)
@@ -214,6 +235,22 @@ internal fun ReorderBar(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
+                // Moving several at once, said once and where the eye already is: how to tick, and -- with ticks --
+                // what the next press does. Nothing about it while something is picked up: the line above says
+                // what the arrows do, and a group moves by them like one row.
+                if (mode.held == null) {
+                    Text(
+                        text = if (mode.marked.isEmpty()) {
+                            stringResource(R.string.reorder_hint_mark)
+                        } else {
+                            stringResource(R.string.reorder_hint_marked, mode.marked.size)
+                        },
+                        style = castivioBodyStyle(m.frame.fsBody),
+                        color = colors.onBackgroundMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
                 // With "all" open there is no bouquet whose channels could be moved, and the bouquets
                 // are the only thing that can: said once, while nothing is held, so it is read.
                 if (mode.channelsOf == null && mode.held == null) {

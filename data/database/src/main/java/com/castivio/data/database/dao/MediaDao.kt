@@ -32,7 +32,7 @@ interface MediaDao {
 
     @Query(
         """
-        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind
+        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN AND kind = :kind
         ORDER BY provider_order, id
         """,
     )
@@ -40,7 +40,7 @@ interface MediaDao {
 
     @Query(
         """
-        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind AND group_id = :groupId
+        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN AND kind = :kind AND group_id = :groupId
         ORDER BY provider_order, id
         """,
     )
@@ -48,7 +48,7 @@ interface MediaDao {
 
     @Query(
         """
-        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind
+        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN AND kind = :kind
         ORDER BY sort_title, id
         """,
     )
@@ -56,7 +56,7 @@ interface MediaDao {
 
     @Query(
         """
-        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind AND group_id = :groupId
+        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN AND kind = :kind AND group_id = :groupId
         ORDER BY sort_title, id
         """,
     )
@@ -64,7 +64,7 @@ interface MediaDao {
 
     @Query(
         """
-        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind
+        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN AND kind = :kind
         ORDER BY sort_title DESC, id
         """,
     )
@@ -72,7 +72,7 @@ interface MediaDao {
 
     @Query(
         """
-        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind AND group_id = :groupId
+        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN AND kind = :kind AND group_id = :groupId
         ORDER BY sort_title DESC, id
         """,
     )
@@ -80,7 +80,7 @@ interface MediaDao {
 
     @Query(
         """
-        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind
+        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN AND kind = :kind
         ORDER BY added_at DESC, provider_order, id
         """,
     )
@@ -88,7 +88,7 @@ interface MediaDao {
 
     @Query(
         """
-        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind AND group_id = :groupId
+        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN AND kind = :kind AND group_id = :groupId
         ORDER BY added_at DESC, provider_order, id
         """,
     )
@@ -98,7 +98,7 @@ interface MediaDao {
 
     @Query(
         """
-        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind
+        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN AND kind = :kind
         ORDER BY provider_order, id LIMIT :limit OFFSET :offset
         """,
     )
@@ -106,7 +106,7 @@ interface MediaDao {
 
     @Query(
         """
-        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind AND group_id = :groupId
+        SELECT * FROM media WHERE source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN AND kind = :kind AND group_id = :groupId
         ORDER BY provider_order, id LIMIT :limit OFFSET :offset
         """,
     )
@@ -128,7 +128,7 @@ interface MediaDao {
         """
         SELECT m.* FROM media m
         LEFT JOIN custom_order o ON o.scope = :scope AND o.item_id = m.id
-        WHERE m.source_id = $ACTIVE_SOURCE AND m.kind = :kind AND m.group_id = :groupId
+        WHERE m.source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN_M AND m.kind = :kind AND m.group_id = :groupId
         ORDER BY COALESCE(o.position, 1000000000 + m.provider_order), m.id
         LIMIT :limit OFFSET :offset
         """,
@@ -144,7 +144,7 @@ interface MediaDao {
         """
         SELECT m.* FROM media_fts f
         INNER JOIN media m ON m.id = f.media_id
-        WHERE f.search_text MATCH :match AND m.source_id = $ACTIVE_SOURCE AND m.kind = :kind
+        WHERE f.search_text MATCH :match AND m.source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN_M AND m.kind = :kind
         ORDER BY m.provider_order, m.id LIMIT :limit OFFSET :offset
         """,
     )
@@ -154,7 +154,7 @@ interface MediaDao {
         """
         SELECT m.* FROM media_fts f
         INNER JOIN media m ON m.id = f.media_id
-        WHERE f.search_text MATCH :match AND m.source_id = $ACTIVE_SOURCE AND m.kind = :kind
+        WHERE f.search_text MATCH :match AND m.source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN_M AND m.kind = :kind
           AND m.group_id = :groupId
         ORDER BY m.provider_order, m.id LIMIT :limit OFFSET :offset
         """,
@@ -166,6 +166,118 @@ interface MediaDao {
         offset: Int,
         limit: Int,
     ): List<MediaEntity>
+
+    /**
+     * One window of the channels the viewer has marked, in the provider's own order -- the list the
+     * rail's Favourites entry opens. `INNER JOIN`, as `FavoriteDao.page` is: a favourite whose
+     * channel is not in the active subscription's catalogue is kept in its table and not shown, and
+     * is back when the provider restores it. The order is [window]'s, so a favourite carries the
+     * number it has everywhere else and the channel after it is the one after it in the list.
+     */
+    @Query(
+        """
+        SELECT m.* FROM favorite f
+        INNER JOIN media m ON m.id = f.media_id
+        WHERE m.source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN_M AND m.kind = :kind
+        ORDER BY m.provider_order, m.id LIMIT :limit OFFSET :offset
+        """,
+    )
+    suspend fun windowFavorites(kind: String, offset: Int, limit: Int): List<MediaEntity>
+
+    // ------------------------------------------- where a channel stands in a list, and how long it is
+    //
+    // Each counts the rows that come before one in the order its window reads -- `provider_order`,
+    // then `id`, as the windows above -- so a channel's place plus one is the next window to read.
+    // Written beside them and not apart: change an order here and the count must change with it.
+
+    @Query(
+        """
+        SELECT COUNT(*) FROM media WHERE source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN AND kind = :kind
+        AND (provider_order < :providerOrder OR (provider_order = :providerOrder AND id < :id))
+        """,
+    )
+    suspend fun rankBefore(kind: String, providerOrder: Int, id: String): Int
+
+    @Query(
+        """
+        SELECT COUNT(*) FROM media WHERE source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN AND kind = :kind AND group_id = :groupId
+        AND (provider_order < :providerOrder OR (provider_order = :providerOrder AND id < :id))
+        """,
+    )
+    suspend fun rankBeforeInGroup(kind: String, groupId: String, providerOrder: Int, id: String): Int
+
+    /** [windowArranged]'s order: [place] is the place the viewer's order gives the channel, or the one after it. */
+    @Query(
+        """
+        SELECT COUNT(*) FROM media m
+        LEFT JOIN custom_order o ON o.scope = :scope AND o.item_id = m.id
+        WHERE m.source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN_M AND m.kind = :kind AND m.group_id = :groupId
+        AND (COALESCE(o.position, 1000000000 + m.provider_order) < :place
+             OR (COALESCE(o.position, 1000000000 + m.provider_order) = :place AND m.id < :id))
+        """,
+    )
+    suspend fun rankBeforeArranged(kind: String, groupId: String, scope: String, place: Long, id: String): Int
+
+    /** [windowFavorites]'s order. */
+    @Query(
+        """
+        SELECT COUNT(*) FROM favorite f
+        INNER JOIN media m ON m.id = f.media_id
+        WHERE m.source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN_M AND m.kind = :kind
+        AND (m.provider_order < :providerOrder OR (m.provider_order = :providerOrder AND m.id < :id))
+        """,
+    )
+    suspend fun rankBeforeFavorites(kind: String, providerOrder: Int, id: String): Int
+
+    /** How long [windowFavorites]' list is. */
+    @Query(
+        """
+        SELECT COUNT(*) FROM favorite f
+        INNER JOIN media m ON m.id = f.media_id
+        WHERE m.source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN_M AND m.kind = :kind
+        """,
+    )
+    suspend fun countNowFavorites(kind: String): Int
+
+    @Query(
+        """
+        SELECT COUNT(*) FROM media_fts f
+        INNER JOIN media m ON m.id = f.media_id
+        WHERE f.search_text MATCH :match AND m.source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN_M AND m.kind = :kind
+        AND (m.provider_order < :providerOrder OR (m.provider_order = :providerOrder AND m.id < :id))
+        """,
+    )
+    suspend fun rankBeforeMatching(match: String, kind: String, providerOrder: Int, id: String): Int
+
+    @Query(
+        """
+        SELECT COUNT(*) FROM media_fts f
+        INNER JOIN media m ON m.id = f.media_id
+        WHERE f.search_text MATCH :match AND m.source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN_M AND m.kind = :kind
+        AND m.group_id = :groupId
+        AND (m.provider_order < :providerOrder OR (m.provider_order = :providerOrder AND m.id < :id))
+        """,
+    )
+    suspend fun rankBeforeMatchingInGroup(match: String, kind: String, groupId: String, providerOrder: Int, id: String): Int
+
+    @Query(
+        """
+        SELECT COUNT(*) FROM media_fts f
+        INNER JOIN media m ON m.id = f.media_id
+        WHERE f.search_text MATCH :match AND m.source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN_M AND m.kind = :kind
+        """,
+    )
+    suspend fun countMatching(match: String, kind: String): Int
+
+    @Query(
+        """
+        SELECT COUNT(*) FROM media_fts f
+        INNER JOIN media m ON m.id = f.media_id
+        WHERE f.search_text MATCH :match AND m.source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN_M AND m.kind = :kind
+        AND m.group_id = :groupId
+        """,
+    )
+    suspend fun countMatchingInGroup(match: String, kind: String, groupId: String): Int
 
     @Query("SELECT * FROM media WHERE id = :id")
     suspend fun byId(id: String): MediaEntity?
@@ -188,17 +300,37 @@ interface MediaDao {
     suspend fun refsFor(ids: List<String>): List<ChannelRefRow>
 
     // -------------------------------------------------------------------- counts
+    //
+    // **What is left to the viewer, not what the provider filed.** A section's count is the indexed
+    // `COUNT` less what the viewer hid -- see [HIDDEN_IN_KIND] -- so the figures Home and the board draw
+    // are the channels they can open. The subtraction is read from the small table of hidden items, never
+    // by asking each row of the catalogue whether it is hidden: that would turn an index-only count into a
+    // visit to every row, on every commit of an import that is running behind the screen. Room observes
+    // `hidden_item` through the subquery, so a count re-reads itself when something is hidden or restored.
 
-    @Query("SELECT COUNT(*) FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind")
+    @Query("SELECT (SELECT COUNT(*) FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind) - $HIDDEN_IN_KIND")
     fun countOf(kind: String): Flow<Int>
 
-    @Query("SELECT COUNT(*) FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind AND group_id = :groupId")
+    /** A bouquet that is hidden itself has nothing left to count. */
+    @Query(
+        """
+        SELECT CASE WHEN EXISTS (SELECT 1 FROM hidden_item WHERE item_id = :groupId) THEN 0
+        ELSE (SELECT COUNT(*) FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind AND group_id = :groupId)
+             - $HIDDEN_IN_GROUP END
+        """,
+    )
     fun countOfGroup(kind: String, groupId: String): Flow<Int>
 
-    @Query("SELECT COUNT(*) FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind")
+    @Query("SELECT (SELECT COUNT(*) FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind) - $HIDDEN_IN_KIND")
     suspend fun countNow(kind: String): Int
 
-    @Query("SELECT COUNT(*) FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind AND group_id = :groupId")
+    @Query(
+        """
+        SELECT CASE WHEN EXISTS (SELECT 1 FROM hidden_item WHERE item_id = :groupId) THEN 0
+        ELSE (SELECT COUNT(*) FROM media WHERE source_id = $ACTIVE_SOURCE AND kind = :kind AND group_id = :groupId)
+             - $HIDDEN_IN_GROUP END
+        """,
+    )
     suspend fun countNowInGroup(kind: String, groupId: String): Int
 
     // -------------------------------------------------------------------- search
@@ -215,7 +347,7 @@ interface MediaDao {
         """
         SELECT m.* FROM media_fts f
         INNER JOIN media m ON m.id = f.media_id
-        WHERE f.search_text MATCH :match AND m.source_id = $ACTIVE_SOURCE
+        WHERE f.search_text MATCH :match AND m.source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN_M
         ORDER BY m.kind, m.provider_order
         LIMIT :limit
         """,
@@ -226,7 +358,7 @@ interface MediaDao {
         """
         SELECT m.* FROM media_fts f
         INNER JOIN media m ON m.id = f.media_id
-        WHERE f.search_text MATCH :match AND m.source_id = $ACTIVE_SOURCE AND m.kind = :kind
+        WHERE f.search_text MATCH :match AND m.source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN_M AND m.kind = :kind
         ORDER BY m.provider_order
         LIMIT :limit
         """,

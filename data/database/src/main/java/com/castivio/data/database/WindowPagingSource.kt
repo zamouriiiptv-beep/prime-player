@@ -35,14 +35,18 @@ import kotlinx.coroutines.withContext
  * @param window the rows from `offset`, at most `limit` of them.
  * @param background where the observer is added and removed -- Room's query executor: both
  *   can touch the database.
+ * @param tables the tables whose change invalidates the source. The channel lists are not told of a
+ *   favourite being marked -- nothing they show depends on it -- and the list of favourites adds
+ *   `favorite`, which is the whole of what it shows.
  */
 internal class WindowPagingSource<T : Any>(
     private val tracker: InvalidationTracker,
     private val background: Executor,
+    tables: Array<String> = DEFAULT_TABLES,
     private val window: suspend (offset: Int, limit: Int) -> List<T>,
 ) : PagingSource<Int, T>() {
 
-    private val observer = object : InvalidationTracker.Observer(arrayOf("media", "source", "custom_order")) {
+    private val observer = object : InvalidationTracker.Observer(tables) {
         override fun onInvalidated(tables: Set<String>) = invalidate()
     }
     private val registered = AtomicBoolean(false)
@@ -86,4 +90,12 @@ internal class WindowPagingSource<T : Any>(
     /** Back near where the viewer was, as Room's source does. */
     override fun getRefreshKey(state: PagingState<Int, T>): Int? =
         state.anchorPosition?.let { max(0, it - state.config.initialLoadSize / 2) }
+
+    companion object {
+        /** What every list of the catalogue is invalidated by. */
+        val DEFAULT_TABLES = arrayOf("media", "source", "custom_order", "hidden_item")
+
+        /** The list of favourites: the catalogue's tables, and the favourites themselves. */
+        val FAVORITE_TABLES = arrayOf("media", "source", "favorite", "hidden_item")
+    }
 }

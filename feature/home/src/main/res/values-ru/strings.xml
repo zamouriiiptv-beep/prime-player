@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">Нажмите OK на категории или канале, чтобы взять его.</string>
     <string name="reorder_hint_move">Перемещайте клавишами ↑ и ↓, затем нажмите OK, чтобы отпустить.</string>
     <string name="reorder_hint_all">Сначала откройте категорию, чтобы изменить порядок её каналов.</string>
+    <string name="reorder_hint_mark">Удерживайте OK на строках, чтобы отметить несколько и перемещать их вместе.</string>
+    <string name="reorder_hint_marked">Отмечено: %1$d. Нажмите OK на одной из них, чтобы взять все вместе.</string>
     <string name="reorder_failed">Не удалось сохранить порядок. Повторите попытку.</string>
     <string name="reorder_move_up">Переместить вверх</string>
     <string name="reorder_move_down">Переместить вниз</string>
     <string name="channels_empty_title">Здесь нет каналов</string>
     <string name="channels_empty_detail">Эта категория пока пуста. Попробуйте другую или загрузите раздел заново.</string>
+    <string name="channels_favorites_empty_title">Избранных каналов пока нет</string>
+    <string name="channels_favorites_empty_detail">Нажмите «В избранное», выберите нужные каналы и нажмите «В избранное» ещё раз, чтобы добавить их.</string>
+    <string name="hide_bouquets_title">Скрыть пакеты</string>
+    <string name="hide_channels_title">Скрыть каналы</string>
+    <string name="hide_hint">Отметьте, что скрыть, и нажмите «Скрыть выбранное». Ничего не удаляется; вернуть можно в настройках.</string>
+    <string name="hide_confirm">Скрыть выбранное</string>
+    <string name="settings_hidden_section">Скрытые элементы</string>
+    <string name="settings_hidden_detail">Скрытые пакеты и каналы остаются в вашей подписке. Нажмите, чтобы вернуть все.</string>
+    <string name="settings_hidden_bouquets">Вернуть скрытые пакеты</string>
+    <string name="settings_hidden_channels">Вернуть скрытые каналы</string>
     <string name="channels_fetch_failed">Не удалось загрузить прямой эфир</string>
     <string name="channels_guide_now">СЕЙЧАС</string>
     <string name="channels_guide_next">ДАЛЕЕ</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">В избранном</string>
     <string name="channels_action_lock">Заблокировать</string>
     <string name="channels_action_hide">Скрыть</string>
+
+    <string name="pin_title_play">Канал заблокирован</string>
+    <string name="pin_message_play">Введите пароль, чтобы воспроизвести этот канал.</string>
+    <string name="pin_title_lock">Заблокировать канал</string>
+    <string name="pin_message_lock">Введите пароль, чтобы заблокировать этот канал.</string>
+    <string name="pin_title_unlock">Разблокировать канал</string>
+    <string name="pin_message_unlock">Введите пароль, чтобы разблокировать этот канал.</string>
+    <string name="pin_title_current">Текущий пароль</string>
+    <string name="pin_message_current">Введите текущий пароль.</string>
+    <string name="pin_title_new">Новый пароль</string>
+    <string name="pin_message_new">Выберите 4 цифры.</string>
+    <string name="pin_title_repeat">Повторите пароль</string>
+    <string name="pin_message_repeat">Введите те же цифры ещё раз.</string>
+    <string name="pin_wrong">Неверный пароль.</string>
+    <string name="pin_mismatch">Цифры не совпали. Выберите новый пароль ещё раз.</string>
+    <string name="pin_cancel">Отмена</string>
+    <string name="pin_delete">Удалить</string>
+    <string name="pin_progress">%1$d из %2$d цифр</string>
+    <string name="pin_changed_title">Пароль изменён</string>
+    <string name="pin_changed_body">Теперь каналы блокирует и разблокирует новый пароль.</string>
+    <string name="pin_done">ОК</string>
+    <string name="channels_action_unlock">Разблокировать</string>
+    <string name="channels_locked">Заблокирован</string>
+    <string name="settings_pin_section">Блокировка каналов</string>
+    <string name="settings_pin_change">Изменить пароль</string>
+    <string name="settings_pin_detail">Пароль, который блокирует и разблокирует каналы. Пока вы его не измените, это 0000.</string>
     <string name="channels_live_badge">ЭФИР</string>
 
 </resources>

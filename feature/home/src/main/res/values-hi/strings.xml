@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">किसी श्रेणी या चैनल को उठाने के लिए उस पर OK दबाएँ।</string>
     <string name="reorder_hint_move">↑ और ↓ से उसे खिसकाएँ, फिर रखने के लिए OK दबाएँ।</string>
     <string name="reorder_hint_all">चैनलों का क्रम बदलने के लिए पहले कोई श्रेणी खोलें।</string>
+    <string name="reorder_hint_mark">कई पंक्तियों को चुनकर साथ में हिलाने के लिए उन पर OK दबाकर रखें।</string>
+    <string name="reorder_hint_marked">चुने गए: %1$d। इनमें से किसी एक पर OK दबाएँ, सभी साथ उठ जाएँगे।</string>
     <string name="reorder_failed">क्रम सहेजा नहीं जा सका। फिर से कोशिश करें।</string>
     <string name="reorder_move_up">ऊपर ले जाएँ</string>
     <string name="reorder_move_down">नीचे ले जाएँ</string>
     <string name="channels_empty_title">यहाँ कोई चैनल नहीं</string>
     <string name="channels_empty_detail">इस श्रेणी में अभी कुछ नहीं है। कोई दूसरी आज़माएँ, या यह खंड दोबारा डाउनलोड करें।</string>
+    <string name="channels_favorites_empty_title">अभी तक कोई पसंदीदा चैनल नहीं</string>
+    <string name="channels_favorites_empty_detail">“पसंदीदा” दबाएँ, अपने पसंदीदा चैनल चुनें, फिर उन्हें जोड़ने के लिए दोबारा “पसंदीदा” दबाएँ।</string>
+    <string name="hide_bouquets_title">पैकेज छिपाएँ</string>
+    <string name="hide_channels_title">चैनल छिपाएँ</string>
+    <string name="hide_hint">जो छिपाना है उस पर निशान लगाएँ, फिर “चुने हुए छिपाएँ” दबाएँ। कुछ भी हटाया नहीं जाता; सेटिंग्स में वापस लाया जा सकता है।</string>
+    <string name="hide_confirm">चुने हुए छिपाएँ</string>
+    <string name="settings_hidden_section">छिपे हुए आइटम</string>
+    <string name="settings_hidden_detail">छिपाए गए पैकेज और चैनल आपकी सदस्यता में बने रहते हैं। सभी वापस लाने के लिए दबाएँ।</string>
+    <string name="settings_hidden_bouquets">छिपे पैकेज वापस लाएँ</string>
+    <string name="settings_hidden_channels">छिपे चैनल वापस लाएँ</string>
     <string name="channels_fetch_failed">लाइव टीवी डाउनलोड नहीं हो सका</string>
     <string name="channels_guide_now">अभी</string>
     <string name="channels_guide_next">अगला</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">पसंदीदा में</string>
     <string name="channels_action_lock">लॉक</string>
     <string name="channels_action_hide">छिपाएँ</string>
+
+    <string name="pin_title_play">चैनल लॉक है</string>
+    <string name="pin_message_play">इस चैनल को चलाने के लिए पासवर्ड दर्ज करें।</string>
+    <string name="pin_title_lock">चैनल लॉक करें</string>
+    <string name="pin_message_lock">इस चैनल को लॉक करने के लिए पासवर्ड दर्ज करें।</string>
+    <string name="pin_title_unlock">चैनल अनलॉक करें</string>
+    <string name="pin_message_unlock">इस चैनल को अनलॉक करने के लिए पासवर्ड दर्ज करें।</string>
+    <string name="pin_title_current">मौजूदा पासवर्ड</string>
+    <string name="pin_message_current">मौजूदा पासवर्ड दर्ज करें।</string>
+    <string name="pin_title_new">नया पासवर्ड</string>
+    <string name="pin_message_new">4 अंक चुनें।</string>
+    <string name="pin_title_repeat">पासवर्ड दोबारा लिखें</string>
+    <string name="pin_message_repeat">वही अंक फिर से दर्ज करें।</string>
+    <string name="pin_wrong">गलत पासवर्ड।</string>
+    <string name="pin_mismatch">अंक मेल नहीं खाए। नया पासवर्ड फिर से चुनें।</string>
+    <string name="pin_cancel">रद्द करें</string>
+    <string name="pin_delete">मिटाएँ</string>
+    <string name="pin_progress">%2$d में से %1$d अंक</string>
+    <string name="pin_changed_title">पासवर्ड बदल गया</string>
+    <string name="pin_changed_body">अब नया पासवर्ड चैनल लॉक और अनलॉक करता है।</string>
+    <string name="pin_done">ठीक है</string>
+    <string name="channels_action_unlock">अनलॉक</string>
+    <string name="channels_locked">लॉक है</string>
+    <string name="settings_pin_section">चैनल लॉक</string>
+    <string name="settings_pin_change">पासवर्ड बदलें</string>
+    <string name="settings_pin_detail">चैनल लॉक और अनलॉक करने वाला पासवर्ड। बदलने तक यह 0000 रहता है।</string>
     <string name="channels_live_badge">लाइव</string>
 
 </resources>

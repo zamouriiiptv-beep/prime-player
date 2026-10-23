@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">Nhấn OK trên danh mục hoặc kênh để nhấc lên.</string>
     <string name="reorder_hint_move">Di chuyển bằng ↑ và ↓, rồi nhấn OK để đặt xuống.</string>
     <string name="reorder_hint_all">Hãy mở một danh mục trước để sắp xếp lại các kênh của nó.</string>
+    <string name="reorder_hint_mark">Giữ OK trên các dòng để đánh dấu nhiều dòng và di chuyển cùng nhau.</string>
+    <string name="reorder_hint_marked">Đã đánh dấu: %1$d. Nhấn OK trên một dòng để nhấc tất cả cùng nhau.</string>
     <string name="reorder_failed">Không lưu được thứ tự. Hãy thử lại.</string>
     <string name="reorder_move_up">Di chuyển lên</string>
     <string name="reorder_move_down">Di chuyển xuống</string>
     <string name="channels_empty_title">Không có kênh nào ở đây</string>
     <string name="channels_empty_detail">Danh mục này chưa có gì. Hãy thử danh mục khác, hoặc tải lại mục này.</string>
+    <string name="channels_favorites_empty_title">Chưa có kênh yêu thích</string>
+    <string name="channels_favorites_empty_detail">Nhấn “Yêu thích”, chọn các kênh bạn thích, rồi nhấn “Yêu thích” lần nữa để thêm.</string>
+    <string name="hide_bouquets_title">Ẩn gói kênh</string>
+    <string name="hide_channels_title">Ẩn kênh</string>
+    <string name="hide_hint">Đánh dấu mục cần ẩn rồi nhấn “Ẩn mục đã chọn”. Không có gì bị xóa; Cài đặt sẽ khôi phục.</string>
+    <string name="hide_confirm">Ẩn mục đã chọn</string>
+    <string name="settings_hidden_section">Mục đã ẩn</string>
+    <string name="settings_hidden_detail">Gói kênh và kênh đã ẩn vẫn nằm trong gói đăng ký của bạn. Nhấn để khôi phục tất cả.</string>
+    <string name="settings_hidden_bouquets">Khôi phục gói kênh đã ẩn</string>
+    <string name="settings_hidden_channels">Khôi phục kênh đã ẩn</string>
     <string name="channels_fetch_failed">Không tải được TV trực tiếp</string>
     <string name="channels_guide_now">BÂY GIỜ</string>
     <string name="channels_guide_next">TIẾP THEO</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">Đã yêu thích</string>
     <string name="channels_action_lock">Khóa</string>
     <string name="channels_action_hide">Ẩn</string>
+
+    <string name="pin_title_play">Kênh bị khóa</string>
+    <string name="pin_message_play">Nhập mật khẩu để phát kênh này.</string>
+    <string name="pin_title_lock">Khóa kênh</string>
+    <string name="pin_message_lock">Nhập mật khẩu để khóa kênh này.</string>
+    <string name="pin_title_unlock">Mở khóa kênh</string>
+    <string name="pin_message_unlock">Nhập mật khẩu để mở khóa kênh này.</string>
+    <string name="pin_title_current">Mật khẩu hiện tại</string>
+    <string name="pin_message_current">Nhập mật khẩu hiện tại.</string>
+    <string name="pin_title_new">Mật khẩu mới</string>
+    <string name="pin_message_new">Chọn 4 chữ số.</string>
+    <string name="pin_title_repeat">Nhập lại mật khẩu</string>
+    <string name="pin_message_repeat">Nhập lại đúng các chữ số đó.</string>
+    <string name="pin_wrong">Sai mật khẩu.</string>
+    <string name="pin_mismatch">Các chữ số không khớp. Hãy chọn lại mật khẩu mới.</string>
+    <string name="pin_cancel">Hủy</string>
+    <string name="pin_delete">Xóa</string>
+    <string name="pin_progress">%1$d trên %2$d chữ số</string>
+    <string name="pin_changed_title">Đã đổi mật khẩu</string>
+    <string name="pin_changed_body">Giờ đây mật khẩu mới sẽ khóa và mở khóa các kênh.</string>
+    <string name="pin_done">OK</string>
+    <string name="channels_action_unlock">Mở khóa</string>
+    <string name="channels_locked">Đã khóa</string>
+    <string name="settings_pin_section">Khóa kênh</string>
+    <string name="settings_pin_change">Đổi mật khẩu</string>
+    <string name="settings_pin_detail">Mật khẩu dùng để khóa và mở khóa kênh. Mặc định là 0000 cho đến khi bạn đổi.</string>
     <string name="channels_live_badge">TRỰC TIẾP</string>
 
 </resources>

@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">Tryck på OK på en kategori eller kanal för att plocka upp den.</string>
     <string name="reorder_hint_move">Flytta den med ↑ och ↓ och tryck på OK för att lägga ner den.</string>
     <string name="reorder_hint_all">Öppna först en kategori för att ändra ordningen på dess kanaler.</string>
+    <string name="reorder_hint_mark">Håll OK nedtryckt på rader för att markera flera och flytta dem tillsammans.</string>
+    <string name="reorder_hint_marked">Markerade: %1$d. Tryck OK på en av dem för att lyfta dem tillsammans.</string>
     <string name="reorder_failed">Ordningen kunde inte sparas. Försök igen.</string>
     <string name="reorder_move_up">Flytta upp</string>
     <string name="reorder_move_down">Flytta ned</string>
     <string name="channels_empty_title">Inga kanaler här</string>
     <string name="channels_empty_detail">Den här kategorin är tom än så länge. Prova en annan, eller hämta sektionen igen.</string>
+    <string name="channels_favorites_empty_title">Inga favoritkanaler ännu</string>
+    <string name="channels_favorites_empty_detail">Tryck på ”Favorit”, välj de kanaler du gillar och tryck på ”Favorit” igen för att lägga till dem.</string>
+    <string name="hide_bouquets_title">Dölj paket</string>
+    <string name="hide_channels_title">Dölj kanaler</string>
+    <string name="hide_hint">Markera vad du vill dölja och tryck på Dölj valda. Inget raderas; Inställningar återställer det.</string>
+    <string name="hide_confirm">Dölj valda</string>
+    <string name="settings_hidden_section">Dolda objekt</string>
+    <string name="settings_hidden_detail">Dolda paket och kanaler finns kvar i din prenumeration. Tryck för att återställa alla.</string>
+    <string name="settings_hidden_bouquets">Återställ dolda paket</string>
+    <string name="settings_hidden_channels">Återställ dolda kanaler</string>
     <string name="channels_fetch_failed">Live-TV kunde inte hämtas</string>
     <string name="channels_guide_now">NU</string>
     <string name="channels_guide_next">SEDAN</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">Är favorit</string>
     <string name="channels_action_lock">Lås</string>
     <string name="channels_action_hide">Dölj</string>
+
+    <string name="pin_title_play">Låst kanal</string>
+    <string name="pin_message_play">Ange lösenordet för att spela upp den här kanalen.</string>
+    <string name="pin_title_lock">Lås kanal</string>
+    <string name="pin_message_lock">Ange lösenordet för att låsa den här kanalen.</string>
+    <string name="pin_title_unlock">Lås upp kanal</string>
+    <string name="pin_message_unlock">Ange lösenordet för att låsa upp den här kanalen.</string>
+    <string name="pin_title_current">Nuvarande lösenord</string>
+    <string name="pin_message_current">Ange det nuvarande lösenordet.</string>
+    <string name="pin_title_new">Nytt lösenord</string>
+    <string name="pin_message_new">Välj 4 siffror.</string>
+    <string name="pin_title_repeat">Upprepa lösenordet</string>
+    <string name="pin_message_repeat">Ange samma siffror igen.</string>
+    <string name="pin_wrong">Fel lösenord.</string>
+    <string name="pin_mismatch">Siffrorna stämde inte överens. Välj det nya lösenordet igen.</string>
+    <string name="pin_cancel">Avbryt</string>
+    <string name="pin_delete">Ta bort</string>
+    <string name="pin_progress">%1$d av %2$d siffror</string>
+    <string name="pin_changed_title">Lösenordet har ändrats</string>
+    <string name="pin_changed_body">Det nya lösenordet låser och låser nu upp kanaler.</string>
+    <string name="pin_done">OK</string>
+    <string name="channels_action_unlock">Lås upp</string>
+    <string name="channels_locked">Låst</string>
+    <string name="settings_pin_section">Kanallås</string>
+    <string name="settings_pin_change">Ändra lösenord</string>
+    <string name="settings_pin_detail">Lösenordet som låser och låser upp kanaler. Det är 0000 tills du ändrar det.</string>
     <string name="channels_live_badge">LIVE</string>
 
 </resources>

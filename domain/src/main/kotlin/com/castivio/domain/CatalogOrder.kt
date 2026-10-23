@@ -32,6 +32,17 @@ interface CatalogOrder {
      */
     suspend fun move(groupId: String, channelId: String, up: Boolean): Boolean
 
+    /**
+     * Move every one of [channelIds] one place up or down in the draft of [groupId], **together**: each
+     * passes the channel next to it unless that one is of the group, so the group keeps its order among
+     * itself and bunches at an edge. With one id it is [move].
+     *
+     * False when none of them moved. An implementation that has no better way may move them one by one,
+     * which is what this does.
+     */
+    suspend fun moveAll(groupId: String, channelIds: Collection<String>, up: Boolean): Boolean =
+        channelIds.fold(false) { moved, id -> move(groupId, id, up) || moved }
+
     /** The draft becomes [groupId]'s order. */
     suspend fun save(groupId: String)
 

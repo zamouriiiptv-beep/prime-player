@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">Premi OK su una categoria o un canale per prenderlo.</string>
     <string name="reorder_hint_move">Spostalo con ↑ e ↓, poi premi OK per rilasciarlo.</string>
     <string name="reorder_hint_all">Apri prima una categoria per riordinarne i canali.</string>
+    <string name="reorder_hint_mark">Tieni premuto OK sulle righe per selezionarne più di una e spostarle insieme.</string>
+    <string name="reorder_hint_marked">Selezionati: %1$d. Premi OK su uno di essi per prenderli insieme.</string>
     <string name="reorder_failed">Impossibile salvare l’ordine. Riprova.</string>
     <string name="reorder_move_up">Sposta su</string>
     <string name="reorder_move_down">Sposta giù</string>
     <string name="channels_empty_title">Nessun canale qui</string>
     <string name="channels_empty_detail">Questa categoria è ancora vuota. Provane un’altra, oppure scarica di nuovo la sezione.</string>
+    <string name="channels_favorites_empty_title">Ancora nessun canale preferito</string>
+    <string name="channels_favorites_empty_detail">Premi «Preferito», scegli i canali che ti piacciono e premi di nuovo «Preferito» per aggiungerli.</string>
+    <string name="hide_bouquets_title">Nascondi bouquet</string>
+    <string name="hide_channels_title">Nascondi canali</string>
+    <string name="hide_hint">Seleziona ciò che vuoi nascondere, poi premi Nascondi selezione. Non viene eliminato nulla; le Impostazioni lo ripristinano.</string>
+    <string name="hide_confirm">Nascondi selezione</string>
+    <string name="settings_hidden_section">Elementi nascosti</string>
+    <string name="settings_hidden_detail">I bouquet e i canali nascosti restano nel tuo abbonamento. Premi per ripristinarli tutti.</string>
+    <string name="settings_hidden_bouquets">Ripristina i bouquet nascosti</string>
+    <string name="settings_hidden_channels">Ripristina i canali nascosti</string>
     <string name="channels_fetch_failed">Impossibile scaricare la TV in diretta</string>
     <string name="channels_guide_now">ORA</string>
     <string name="channels_guide_next">DOPO</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">Nei preferiti</string>
     <string name="channels_action_lock">Blocca</string>
     <string name="channels_action_hide">Nascondi</string>
+
+    <string name="pin_title_play">Canale bloccato</string>
+    <string name="pin_message_play">Inserisci la password per riprodurre questo canale.</string>
+    <string name="pin_title_lock">Blocca canale</string>
+    <string name="pin_message_lock">Inserisci la password per bloccare questo canale.</string>
+    <string name="pin_title_unlock">Sblocca canale</string>
+    <string name="pin_message_unlock">Inserisci la password per sbloccare questo canale.</string>
+    <string name="pin_title_current">Password attuale</string>
+    <string name="pin_message_current">Inserisci la password attuale.</string>
+    <string name="pin_title_new">Nuova password</string>
+    <string name="pin_message_new">Scegli 4 cifre.</string>
+    <string name="pin_title_repeat">Ripeti la password</string>
+    <string name="pin_message_repeat">Inserisci di nuovo le stesse cifre.</string>
+    <string name="pin_wrong">Password errata.</string>
+    <string name="pin_mismatch">Le cifre non corrispondono. Scegli di nuovo la nuova password.</string>
+    <string name="pin_cancel">Annulla</string>
+    <string name="pin_delete">Elimina</string>
+    <string name="pin_progress">%1$d di %2$d cifre</string>
+    <string name="pin_changed_title">Password cambiata</string>
+    <string name="pin_changed_body">La nuova password ora blocca e sblocca i canali.</string>
+    <string name="pin_done">OK</string>
+    <string name="channels_action_unlock">Sblocca</string>
+    <string name="channels_locked">Bloccato</string>
+    <string name="settings_pin_section">Blocco canali</string>
+    <string name="settings_pin_change">Cambia password</string>
+    <string name="settings_pin_detail">La password che blocca e sblocca i canali. È 0000 finché non la cambi.</string>
     <string name="channels_live_badge">IN DIRETTA</string>
 
 </resources>

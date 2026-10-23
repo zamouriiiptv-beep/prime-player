@@ -7,11 +7,13 @@ import com.castivio.data.database.RoomCatalogWriter
 import com.castivio.data.database.RoomEpgRepository
 import com.castivio.data.database.RoomEpgWriter
 import com.castivio.data.database.RoomFavoritesRepository
+import com.castivio.data.database.RoomHiddenItems
 import com.castivio.data.database.RoomProgressRepository
 import com.castivio.data.database.RoomSourceRepository
 import com.castivio.data.database.dao.EpgDao
 import com.castivio.data.database.dao.FavoriteDao
 import com.castivio.data.database.dao.GroupDao
+import com.castivio.data.database.dao.HiddenDao
 import com.castivio.data.database.dao.MediaDao
 import com.castivio.data.database.dao.ProgressDao
 import com.castivio.data.database.dao.SourceDao
@@ -19,9 +21,11 @@ import com.castivio.domain.CatalogOrder
 import com.castivio.domain.CatalogPager
 import com.castivio.domain.CatalogRepository
 import com.castivio.domain.CatalogWriter
+import com.castivio.domain.ChannelWindows
 import com.castivio.domain.EpgRepository
 import com.castivio.domain.EpgWriter
 import com.castivio.domain.FavoritesRepository
+import com.castivio.domain.HiddenItems
 import com.castivio.domain.ProgressRepository
 import com.castivio.domain.SourceRepository
 import dagger.Module
@@ -53,6 +57,7 @@ object DatabaseModule {
     @Provides fun progressDao(database: CastivioDatabase): ProgressDao = database.progressDao()
     @Provides fun epgDao(database: CastivioDatabase): EpgDao = database.epgDao()
     @Provides fun sourceDao(database: CastivioDatabase): SourceDao = database.sourceDao()
+    @Provides fun hiddenDao(database: CastivioDatabase): HiddenDao = database.hiddenDao()
 
     @Provides
     @Singleton
@@ -73,6 +78,9 @@ object DatabaseModule {
     @Provides
     fun catalogOrder(repository: RoomCatalogRepository): CatalogOrder = repository
 
+    @Provides
+    fun channelWindows(repository: RoomCatalogRepository): ChannelWindows = repository
+
     /**
      * Not a singleton: a writer holds prepared statements and the state of one
      * import. Sharing one between two imports would interleave their
@@ -92,6 +100,10 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun favorites(dao: FavoriteDao): FavoritesRepository = RoomFavoritesRepository(dao)
+
+    @Provides
+    @Singleton
+    fun hiddenItems(dao: HiddenDao): HiddenItems = RoomHiddenItems(dao)
 
     @Provides
     @Singleton

@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">Stisknutím OK na kategorii nebo kanálu jej zvednete.</string>
     <string name="reorder_hint_move">Přesuňte jej pomocí ↑ a ↓ a stisknutím OK jej položíte.</string>
     <string name="reorder_hint_all">Nejprve otevřete kategorii, abyste mohli změnit pořadí jejích kanálů.</string>
+    <string name="reorder_hint_mark">Podržte OK na řádcích, abyste jich označili více a přesunuli je společně.</string>
+    <string name="reorder_hint_marked">Označeno: %1$d. Stiskněte OK na jednom z nich a zvednete je společně.</string>
     <string name="reorder_failed">Pořadí se nepodařilo uložit. Zkuste to znovu.</string>
     <string name="reorder_move_up">Posunout nahoru</string>
     <string name="reorder_move_down">Posunout dolů</string>
     <string name="channels_empty_title">Tady nejsou žádné kanály</string>
     <string name="channels_empty_detail">V této kategorii zatím nic není. Zkuste jinou, nebo sekci stáhněte znovu.</string>
+    <string name="channels_favorites_empty_title">Zatím žádné oblíbené kanály</string>
+    <string name="channels_favorites_empty_detail">Stiskněte „Přidat k oblíbeným“, vyberte kanály, které se vám líbí, a dalším stiskem „Přidat k oblíbeným“ je přidejte.</string>
+    <string name="hide_bouquets_title">Skrýt balíčky</string>
+    <string name="hide_channels_title">Skrýt kanály</string>
+    <string name="hide_hint">Zaškrtněte, co chcete skrýt, a stiskněte Skrýt vybrané. Nic se nemaže; Nastavení to vrátí.</string>
+    <string name="hide_confirm">Skrýt vybrané</string>
+    <string name="settings_hidden_section">Skryté položky</string>
+    <string name="settings_hidden_detail">Skryté balíčky a kanály zůstávají ve vašem předplatném. Stiskem je všechny obnovíte.</string>
+    <string name="settings_hidden_bouquets">Obnovit skryté balíčky</string>
+    <string name="settings_hidden_channels">Obnovit skryté kanály</string>
     <string name="channels_fetch_failed">Živé vysílání se nepodařilo stáhnout</string>
     <string name="channels_guide_now">TEĎ</string>
     <string name="channels_guide_next">NÁSLEDUJE</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">V oblíbených</string>
     <string name="channels_action_lock">Zamknout</string>
     <string name="channels_action_hide">Skrýt</string>
+
+    <string name="pin_title_play">Zamčený kanál</string>
+    <string name="pin_message_play">Zadejte heslo pro přehrání tohoto kanálu.</string>
+    <string name="pin_title_lock">Zamknout kanál</string>
+    <string name="pin_message_lock">Zadejte heslo pro zamknutí tohoto kanálu.</string>
+    <string name="pin_title_unlock">Odemknout kanál</string>
+    <string name="pin_message_unlock">Zadejte heslo pro odemknutí tohoto kanálu.</string>
+    <string name="pin_title_current">Aktuální heslo</string>
+    <string name="pin_message_current">Zadejte aktuální heslo.</string>
+    <string name="pin_title_new">Nové heslo</string>
+    <string name="pin_message_new">Zvolte 4 číslice.</string>
+    <string name="pin_title_repeat">Zopakujte heslo</string>
+    <string name="pin_message_repeat">Zadejte stejné číslice znovu.</string>
+    <string name="pin_wrong">Nesprávné heslo.</string>
+    <string name="pin_mismatch">Číslice se neshodují. Zvolte nové heslo znovu.</string>
+    <string name="pin_cancel">Zrušit</string>
+    <string name="pin_delete">Smazat</string>
+    <string name="pin_progress">%1$d z %2$d číslic</string>
+    <string name="pin_changed_title">Heslo bylo změněno</string>
+    <string name="pin_changed_body">Nové heslo teď kanály zamyká a odemyká.</string>
+    <string name="pin_done">OK</string>
+    <string name="channels_action_unlock">Odemknout</string>
+    <string name="channels_locked">Zamčeno</string>
+    <string name="settings_pin_section">Zámek kanálů</string>
+    <string name="settings_pin_change">Změnit heslo</string>
+    <string name="settings_pin_detail">Heslo, které kanály zamyká a odemyká. Dokud ho nezměníte, je to 0000.</string>
     <string name="channels_live_badge">ŽIVĚ</string>
 
 </resources>

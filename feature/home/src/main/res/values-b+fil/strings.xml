@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">Pindutin ang OK sa kategorya o channel para buhatin ito.</string>
     <string name="reorder_hint_move">Ilipat gamit ang ↑ at ↓, pagkatapos pindutin ang OK para ibaba ito.</string>
     <string name="reorder_hint_all">Magbukas muna ng kategorya para ayusin ang mga channel nito.</string>
+    <string name="reorder_hint_mark">Pindutin nang matagal ang OK sa mga row para pumili ng marami at ilipat sila nang sabay.</string>
+    <string name="reorder_hint_marked">Napili: %1$d. Pindutin ang OK sa isa sa mga ito para kunin silang sabay.</string>
     <string name="reorder_failed">Hindi na-save ang pagkakasunod. Subukan muli.</string>
     <string name="reorder_move_up">Ilipat pataas</string>
     <string name="reorder_move_down">Ilipat pababa</string>
     <string name="channels_empty_title">Walang channel dito</string>
     <string name="channels_empty_detail">Wala pang laman ang kategoryang ito. Sumubok ng iba, o i-download muli ang seksyon.</string>
+    <string name="channels_favorites_empty_title">Wala pang paboritong channel</string>
+    <string name="channels_favorites_empty_detail">Pindutin ang Paboritohin, piliin ang mga channel na gusto mo, saka pindutin muli ang Paboritohin para idagdag.</string>
+    <string name="hide_bouquets_title">Itago ang mga package</string>
+    <string name="hide_channels_title">Itago ang mga channel</string>
+    <string name="hide_hint">Lagyan ng tsek ang itatago, saka pindutin ang Itago ang napili. Walang buburahin; maibabalik ito sa Mga Setting.</string>
+    <string name="hide_confirm">Itago ang napili</string>
+    <string name="settings_hidden_section">Mga nakatagong item</string>
+    <string name="settings_hidden_detail">Mananatili sa subscription mo ang mga nakatagong package at channel. Pindutin para maibalik lahat.</string>
+    <string name="settings_hidden_bouquets">Ibalik ang mga nakatagong package</string>
+    <string name="settings_hidden_channels">Ibalik ang mga nakatagong channel</string>
     <string name="channels_fetch_failed">Hindi na-download ang Live TV</string>
     <string name="channels_guide_now">NGAYON</string>
     <string name="channels_guide_next">SUSUNOD</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">Napaborito na</string>
     <string name="channels_action_lock">I-lock</string>
     <string name="channels_action_hide">Itago</string>
+
+    <string name="pin_title_play">Naka-lock na channel</string>
+    <string name="pin_message_play">Ilagay ang password para i-play ang channel na ito.</string>
+    <string name="pin_title_lock">I-lock ang channel</string>
+    <string name="pin_message_lock">Ilagay ang password para i-lock ang channel na ito.</string>
+    <string name="pin_title_unlock">I-unlock ang channel</string>
+    <string name="pin_message_unlock">Ilagay ang password para i-unlock ang channel na ito.</string>
+    <string name="pin_title_current">Kasalukuyang password</string>
+    <string name="pin_message_current">Ilagay ang kasalukuyang password.</string>
+    <string name="pin_title_new">Bagong password</string>
+    <string name="pin_message_new">Pumili ng 4 na digit.</string>
+    <string name="pin_title_repeat">Ulitin ang password</string>
+    <string name="pin_message_repeat">Ilagay muli ang parehong mga digit.</string>
+    <string name="pin_wrong">Maling password.</string>
+    <string name="pin_mismatch">Hindi nagtugma ang mga digit. Piliin muli ang bagong password.</string>
+    <string name="pin_cancel">Kanselahin</string>
+    <string name="pin_delete">Burahin</string>
+    <string name="pin_progress">%1$d sa %2$d na digit</string>
+    <string name="pin_changed_title">Napalitan ang password</string>
+    <string name="pin_changed_body">Ang bagong password na ang magla-lock at mag-a-unlock ng mga channel.</string>
+    <string name="pin_done">OK</string>
+    <string name="channels_action_unlock">I-unlock</string>
+    <string name="channels_locked">Naka-lock</string>
+    <string name="settings_pin_section">Lock ng channel</string>
+    <string name="settings_pin_change">Palitan ang password</string>
+    <string name="settings_pin_detail">Ang password na nagla-lock at nag-a-unlock ng mga channel. 0000 ito hangga\'t hindi mo binabago.</string>
     <string name="channels_live_badge">LIVE</string>
 
 </resources>

@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">Druk op OK bij een categorie of zender om hem op te pakken.</string>
     <string name="reorder_hint_move">Verplaats hem met ↑ en ↓ en druk op OK om hem neer te zetten.</string>
     <string name="reorder_hint_all">Open eerst een categorie om de zenders ervan opnieuw te ordenen.</string>
+    <string name="reorder_hint_mark">Houd OK ingedrukt op rijen om er meer te markeren en samen te verplaatsen.</string>
+    <string name="reorder_hint_marked">Gemarkeerd: %1$d. Druk op OK op een ervan om ze samen op te pakken.</string>
     <string name="reorder_failed">De volgorde kon niet worden opgeslagen. Probeer het opnieuw.</string>
     <string name="reorder_move_up">Omhoog</string>
     <string name="reorder_move_down">Omlaag</string>
     <string name="channels_empty_title">Hier zijn geen zenders</string>
     <string name="channels_empty_detail">Deze categorie is nog leeg. Probeer een andere, of download de sectie opnieuw.</string>
+    <string name="channels_favorites_empty_title">Nog geen favoriete zenders</string>
+    <string name="channels_favorites_empty_detail">Druk op ‘Favoriet’, kies de zenders die je leuk vindt en druk nogmaals op ‘Favoriet’ om ze toe te voegen.</string>
+    <string name="hide_bouquets_title">Boeketten verbergen</string>
+    <string name="hide_channels_title">Zenders verbergen</string>
+    <string name="hide_hint">Vink aan wat je wilt verbergen en druk op Selectie verbergen. Er wordt niets verwijderd; Instellingen zet het terug.</string>
+    <string name="hide_confirm">Selectie verbergen</string>
+    <string name="settings_hidden_section">Verborgen items</string>
+    <string name="settings_hidden_detail">Verborgen boeketten en zenders blijven in je abonnement. Druk om ze allemaal terug te zetten.</string>
+    <string name="settings_hidden_bouquets">Verborgen boeketten herstellen</string>
+    <string name="settings_hidden_channels">Verborgen zenders herstellen</string>
     <string name="channels_fetch_failed">Live-tv kon niet worden gedownload</string>
     <string name="channels_guide_now">NU</string>
     <string name="channels_guide_next">HIERNA</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">In favorieten</string>
     <string name="channels_action_lock">Vergrendelen</string>
     <string name="channels_action_hide">Verbergen</string>
+
+    <string name="pin_title_play">Vergrendelde zender</string>
+    <string name="pin_message_play">Voer het wachtwoord in om deze zender af te spelen.</string>
+    <string name="pin_title_lock">Zender vergrendelen</string>
+    <string name="pin_message_lock">Voer het wachtwoord in om deze zender te vergrendelen.</string>
+    <string name="pin_title_unlock">Zender ontgrendelen</string>
+    <string name="pin_message_unlock">Voer het wachtwoord in om deze zender te ontgrendelen.</string>
+    <string name="pin_title_current">Huidig wachtwoord</string>
+    <string name="pin_message_current">Voer het huidige wachtwoord in.</string>
+    <string name="pin_title_new">Nieuw wachtwoord</string>
+    <string name="pin_message_new">Kies 4 cijfers.</string>
+    <string name="pin_title_repeat">Herhaal het wachtwoord</string>
+    <string name="pin_message_repeat">Voer dezelfde cijfers opnieuw in.</string>
+    <string name="pin_wrong">Onjuist wachtwoord.</string>
+    <string name="pin_mismatch">De cijfers kwamen niet overeen. Kies het nieuwe wachtwoord opnieuw.</string>
+    <string name="pin_cancel">Annuleren</string>
+    <string name="pin_delete">Wissen</string>
+    <string name="pin_progress">%1$d van %2$d cijfers</string>
+    <string name="pin_changed_title">Wachtwoord gewijzigd</string>
+    <string name="pin_changed_body">Het nieuwe wachtwoord vergrendelt en ontgrendelt nu zenders.</string>
+    <string name="pin_done">OK</string>
+    <string name="channels_action_unlock">Ontgrendelen</string>
+    <string name="channels_locked">Vergrendeld</string>
+    <string name="settings_pin_section">Zendervergrendeling</string>
+    <string name="settings_pin_change">Wachtwoord wijzigen</string>
+    <string name="settings_pin_detail">Het wachtwoord dat zenders vergrendelt en ontgrendelt. Het is 0000 tot je het wijzigt.</string>
     <string name="channels_live_badge">LIVE</string>
 
 </resources>

@@ -1,6 +1,7 @@
 package com.castivio.feature.home
 
 import com.castivio.core.platform.PerfSection
+import com.castivio.domain.CatalogQuery
 import com.castivio.domain.Channel
 import com.castivio.domain.Episode
 import com.castivio.domain.MediaGroup
@@ -111,6 +112,7 @@ fun MediaItem.asSelection(): CatalogSelection? = when (this) {
         channelNumber = number?.toString(),
         epgChannelId = epgChannelId,
         catchUpHours = catchUpHours,
+        mediaId = id,
     )
 
     is Movie -> CatalogSelection(
@@ -147,6 +149,23 @@ data class CatalogSelection(
     val channelNumber: String? = null,
     val epgChannelId: String? = null,
     val catchUpHours: Int? = null,
+    /**
+     * The catalogue's id for a channel, which is what a lock is kept under -- see `ChannelLocks`.
+     *
+     * Null for everything that cannot be locked: a film, an episode. A press is hoisted to the shell
+     * as this and nothing more, so the shell can ask whether a channel is locked without the board
+     * having decided it for every route a channel can be played from.
+     */
+    val mediaId: String? = null,
+    /**
+     * The channel list the press was made in -- the bouquet that was open and the search that
+     * narrowed it -- or null when it was not made in one.
+     *
+     * What the large player's channel keys step through: the channel after this one *in that
+     * list*, in the order the list was in, the viewer's own where they made one. Null for a
+     * channel found some other way -- a search result -- which is stepped through its own bouquet.
+     */
+    val listed: CatalogQuery? = null,
 )
 
 /**

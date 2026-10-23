@@ -28,6 +28,10 @@ interface OrderDao {
     @Query("SELECT EXISTS(SELECT 1 FROM custom_order WHERE scope = :scope)")
     suspend fun has(scope: String): Boolean
 
+    /** The place [scope]'s order gives [itemId], or null when it gave it none. */
+    @Query("SELECT position FROM custom_order WHERE scope = :scope AND item_id = :itemId")
+    suspend fun positionOf(scope: String, itemId: String): Long?
+
     /** A bouquet list's saved order. Hundreds of rows at most: it is read whole, like the list. */
     @Query("SELECT item_id, position FROM custom_order WHERE scope = :scope")
     fun positions(scope: String): Flow<List<PositionRow>>
@@ -92,6 +96,31 @@ interface OrderDao {
         place(draft, channelId, neighbour.position)
         place(draft, neighbour.itemId, here)
         return true
+    }
+
+    /**
+     * Move several channels one place each, in the draft, **together**: the one nearest the edge they are
+     * heading for first, and each exchanges its place with its neighbour's unless that neighbour is one
+     * of the group -- so none of them passes another, the group keeps its order among itself, and it
+     * bunches at an edge. With one channel this is [move].
+     *
+     * Atomic, and decided from the database like [move]: every exchange is of two places that exist, so no
+     * two channels ever share one. False when none moved.
+     */
+    @Transaction
+    suspend fun moveAll(group: String, draft: String, channelIds: List<String>, up: Boolean): Boolean {
+        val members = channelIds.toSet()
+        val placed = channelIds.mapNotNull { id -> positionOf(draft, id)?.let { id to it } }.sortedBy { it.second }
+        var moved = false
+        for ((id, _) in if (up) placed else placed.asReversed()) {
+            val here = positionOf(draft, id) ?: continue
+            val neighbour = (if (up) before(draft, group, here) else behind(draft, group, here)) ?: continue
+            if (neighbour.itemId in members) continue
+            place(draft, id, neighbour.position)
+            place(draft, neighbour.itemId, here)
+            moved = true
+        }
+        return moved
     }
 
     @Query("SELECT position FROM custom_order WHERE scope = :scope AND item_id = :id")

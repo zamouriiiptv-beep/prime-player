@@ -1,0 +1,173 @@
+<!doctype html>
+<!--
+  Channel lock: the password dialog, the lock on a row, and the button that sets it. Drawn before code.
+
+  A channel is locked from the Channels board: pick it, press Lock, type the four digits. A locked
+  channel carries a small lock at the end of its row, and pressing it asks for the same four digits
+  before anything plays. Pressing Lock on a locked channel asks again and opens it. The password is
+  0000 until it is changed, and it is changed from Settings by typing the current one, then the new
+  one twice.
+
+  One dialog for all of it: the app's own modal (scrim, raised panel, hairline) with a keypad in it.
+  Digits are Western and the keypad is 1-2-3 left to right in every language, as a phone's is; the
+  text beside it follows the language. On a surface wider than the keypad plus a readable line the
+  keypad sits beside the words, so the panel stays inside most of a 393dp-tall handset; narrower than
+  that it stacks. A remote types the digits on its number keys or walks the keypad with the arrows;
+  a thumb taps it. The dots never show which digits, only how many.
+
+  Geometry is the dialog's own (Dialog.kt): panel 58% of the width between 400 and 560, padding 3.3%
+  between 20 and 36, corner 5.6% of the height between 20 and 32, title 3.3% of the height between 15
+  and 20. Keys are the control floor: 48dp on a handset, 56 on a television. Colours are Color.kt
+  tokens. Names and figures are examples.
+
+    ?frame=<name>      one frame at its device size
+    ?frame=sheet       every frame stacked with its caption, for review
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Channel lock</title>
+<style>
+:root{
+  --ground:#111327; --panel:#20223A; --edge:rgba(172,180,214,.10); --edgeSoft:rgba(255,255,255,.08);
+  --glass:rgba(255,255,255,.06); --glassBorder:rgba(255,255,255,.14); --violet:#9B6BFF; --violetEdge:#B694FF;
+  --violetFill:rgba(155,107,255,.22); --azure:#4C9BFF; --ring:#6FB2FF; --success:#3DD68C; --danger:#FF5A5A;
+  --ink:#D6D3E8; --strong:#FFFFFF; --muted:#8C8CA8; --scrim:rgba(5,4,14,.72); --elevated:#20223A;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#05040E;color:var(--strong);font-family:"Noto Sans Arabic","DejaVu Sans",sans-serif}
+body.sheet{padding:20px;width:max-content}
+svg{display:block;flex:none}
+.cap{font:13px/1.4 "DejaVu Sans",sans-serif;color:#9a9ab8;margin:18px 0 8px;max-width:860px}
+
+.screen{position:relative;overflow:hidden;direction:ltr;
+  background:radial-gradient(120% 90% at 85% 0%,#1B1F3F 0%,rgba(27,31,63,0) 60%),linear-gradient(160deg,#13152D,var(--ground))}
+
+/* ---------- what is behind the scrim: the board, dimmed ---------- */
+.board{position:absolute;inset:0;display:flex;gap:10px;padding:10px 14px}
+.board .rail{width:24%;border:1px solid var(--edge);border-radius:14px;background:rgba(255,255,255,.02)}
+.board .rows{flex:1;border:1px solid var(--edge);border-radius:14px;padding:8px;display:flex;flex-direction:column;gap:6px;overflow:hidden}
+.board .well{width:34%;border:1px solid var(--edge);border-radius:14px;background:rgba(255,255,255,.02)}
+.row{flex:none;height:34px;border-radius:9px;display:flex;align-items:center;gap:10px;padding:0 10px;border:1px solid transparent}
+.row .no{flex:none;width:30px;height:22px;border-radius:6px;background:var(--glass);border:1px solid var(--edge);
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-variant-numeric:tabular-nums}
+.row .nm{flex:1;font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;unicode-bidi:plaintext;text-align:left}
+.row.on{background:var(--violet);border-color:var(--violetEdge)} .row.on .nm{color:#fff}
+.row .lk{flex:none;width:16px;height:16px;fill:var(--ink)} .row.on .lk{fill:#fff}
+.dim{position:absolute;inset:0;background:var(--scrim)}
+
+/* ---------- the dialog ---------- */
+.stagebox{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.panel{background:var(--elevated);border:1px solid var(--edgeSoft);display:flex;flex-direction:column;overflow:hidden}
+.ttl{font-weight:700;color:var(--strong);line-height:1.44;unicode-bidi:plaintext}
+.inner{display:flex;min-height:0}
+.inner.side{flex-direction:row;align-items:center}
+.inner.stack{flex-direction:column;align-items:stretch}
+.words{flex:1;display:flex;flex-direction:column;min-width:0}
+.msg{color:var(--ink);line-height:1.4}
+.dots{display:flex;direction:ltr;gap:12px;align-items:center}
+.dot{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--glassBorder);background:transparent}
+.dot.f{background:var(--strong);border-color:var(--strong)}
+.err{color:var(--danger);font-weight:700;line-height:1.35;min-height:1.35em}
+.pad{display:grid;direction:ltr;grid-template-columns:repeat(3,auto);justify-content:center}
+.key{display:flex;align-items:center;justify-content:center;background:var(--glass);border:1px solid var(--glassBorder);
+  border-radius:12px;color:var(--strong);font-weight:700;font-variant-numeric:tabular-nums}
+.key svg{fill:var(--ink)}
+.key.ring{border-color:var(--ring);box-shadow:0 0 0 2px rgba(111,178,255,.45);background:var(--violet);color:#fff}
+.key.none{visibility:hidden}
+.cancel{align-self:flex-start;background:var(--glass);border:1px solid var(--glassBorder);border-radius:12px;color:var(--strong);
+  font-weight:600;display:flex;align-items:center;padding:0 22px}
+
+/* ---------- the strip button, and the row's lock ---------- */
+.strip{position:absolute;right:20px;width:282px;bottom:18px;display:flex;gap:5px;direction:ltr}
+.sb{flex:1;height:48px;border-radius:10px;background:var(--glass);border:1px solid var(--edge);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2px;color:var(--ink);font-size:11px}
+.sb svg{width:18px;height:18px;fill:var(--ink)}
+.sb.on{background:var(--violetFill);border-color:rgba(182,148,255,.55);color:var(--violet)} .sb.on svg{fill:var(--violet)}
+.sb.ring{border-color:var(--ring);box-shadow:0 0 0 2px rgba(111,178,255,.45)}
+.shot{position:absolute;inset:0}
+</style>
+</head>
+<body>
+<script>
+const LOCK='<svg viewBox="0 0 24 24"><path d="M18 8h-1V6a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2Zm-6 9a2 2 0 1 1 0-4 2 2 0 0 1 0 4Zm3.1-9H8.9V6a3.1 3.1 0 0 1 6.2 0v2Z"/></svg>';
+const BACK='<svg viewBox="0 0 24 24" width="22" height="22"><path d="M22 3H7a2 2 0 0 0-1.4.6L0 12l5.6 8.4A2 2 0 0 0 7 21h15a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm-3 12.6L17.6 17 14 13.4 10.4 17 9 15.6 12.6 12 9 8.4 10.4 7 14 10.6 17.6 7 19 8.4 15.4 12 19 15.6Z"/></svg>';
+const TEXT={
+  ar:{play:['قناة مقفلة','أدخل كلمة المرور لتشغيل هذه القناة.'],lock:['قفل القناة','أدخل كلمة المرور لقفل هذه القناة.'],
+      unlock:['فتح القناة','أدخل كلمة المرور لفتح هذه القناة.'],cur:['كلمة المرور الحالية','أدخل كلمة المرور الحالية.'],
+      neu:['كلمة مرور جديدة','اختر 4 أرقام.'],again:['أعد كتابة كلمة المرور','أدخل الأرقام نفسها مرة أخرى.'],
+      wrong:'كلمة المرور غير صحيحة.',cancel:'إلغاء',del:'حذف'},
+  en:{play:['Locked channel','Enter the password to play this channel.'],lock:['Lock channel','Enter the password to lock this channel.'],
+      unlock:['Unlock channel','Enter the password to unlock this channel.'],cur:['Current password','Enter the current password.'],
+      neu:['New password','Choose 4 digits.'],again:['Repeat the password','Enter the same digits again.'],
+      wrong:'Wrong password.',cancel:'Cancel',del:'Delete'}
+};
+const NAMES=['FR| LIGUE1+ HD…endredi Match )','FR| LIGUE1+ HD…Samedi Match 1)','FR| LIGUE1+ HD…Samedi Match 2)','FR| LIGUE1+ HD (…lex LIVE ONLY )',
+  'FR| LIGUE1+ HD…nche 1er match)','FR| LIGUE1+ HD…he 2eme Match )','FR| LIGUE1+ HD…he 3ème Match )','FR| LIGUE1+ HD…e 4ème MATCH )'];
+
+// metrics, read off Dialog.kt's shares and bounded the way it bounds them
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function metrics(w,h,tv){
+  const key=tv?56:48, kw=Math.round(key*1.4), gap=tv?8:6;
+  const panel=clamp(w*746.7/1280,400,560), pad=clamp(w*42.7/1280,20,36), rad=clamp(h*40/720,20,32), ttl=clamp(h*24/720,15,20);
+  const padPx=(h<320)?12:pad;
+  return {key,kw,gap,panel:Math.min(panel,w),pad:padPx,rad,ttl,side:(Math.min(panel,w)-2*padPx)>=3*kw+2*gap+16+160};
+}
+function dialog(w,h,tv,lang,kind,filled,err,focus){
+  const t=TEXT[lang][kind], m=metrics(w,h,tv), body=14*(tv?1.15:1);
+  const dots=[0,1,2,3].map(i=>`<span class="dot${i<filled?' f':''}"></span>`).join('');
+  const keys=['1','2','3','4','5','6','7','8','9','','0','⌫'].map(k=>{
+    const cls='key'+(k===''?' none':'')+(k===focus?' ring':'');
+    return `<div class="${cls}" style="width:${m.kw}px;height:${m.key}px;font-size:${tv?22:19}px">${k==='⌫'?BACK:k}</div>`;}).join('');
+  const words=`<div class="words" style="gap:${m.side?14:10}px">
+      <div class="msg" style="font-size:${body}px">${t[1]}</div>
+      <div class="dots" style="margin-block:4px">${dots}</div>
+      <div class="err" style="font-size:${body-1}px">${err?TEXT[lang].wrong:''}</div>
+      <div class="cancel" style="height:${m.key}px;font-size:${body}px">${TEXT[lang].cancel}</div>
+    </div>`;
+  const pad=`<div class="pad" style="gap:${m.gap}px">${keys}</div>`;
+  return `<div class="panel" style="width:${m.panel}px;border-radius:${m.rad}px;padding:${m.pad}px;gap:${m.side?14:12}px" dir="${lang==='ar'?'rtl':'ltr'}">
+    <div class="ttl" style="font-size:${m.ttl*(tv?1:1)}px">${t[0]}</div>
+    <div class="inner ${m.side?'side':'stack'}" style="gap:16px">${words}${pad}</div></div>`;
+}
+function board(w,h,opts){
+  const rows=NAMES.map((n,i)=>`<div class="row${i===opts.on?' on':''}"><div class="no">${i+1}</div><div class="nm">${n}</div>${opts.locked.includes(i)?`<div class="lk">${LOCK}</div>`:''}</div>`).join('');
+  return `<div class="board"><div class="rail"></div><div class="rows">${rows}</div><div class="well"></div></div>`;
+}
+function frame(name){
+  const F={
+    'phone-ask-ar':[851,393,false],'phone-wrong-en':[851,393,false],'tv-ask-ar':[960,540,true],
+    'phone-short-ar':[800,360,false],'portrait-ar':[393,851,false],'board-locked':[851,393,false]};
+  const [w,h,tv]=F[name];
+  let inner='';
+  if(name==='phone-ask-ar') inner=board(w,h,{on:0,locked:[0,3]})+'<div class="dim"></div><div class="stagebox">'+dialog(w,h,tv,'ar','play',2,false,'5')+'</div>';
+  if(name==='phone-wrong-en') inner=board(w,h,{on:3,locked:[3]})+'<div class="dim"></div><div class="stagebox">'+dialog(w,h,tv,'en','lock',0,true,'5')+'</div>';
+  if(name==='tv-ask-ar') inner=board(w,h,{on:0,locked:[0]})+'<div class="dim"></div><div class="stagebox">'+dialog(w,h,tv,'ar','unlock',3,false,'8')+'</div>';
+  if(name==='phone-short-ar') inner=board(w,h,{on:2,locked:[2]})+'<div class="dim"></div><div class="stagebox">'+dialog(w,h,tv,'ar','neu',1,false,'5')+'</div>';
+  if(name==='portrait-ar') inner=board(w,h,{on:0,locked:[0]})+'<div class="dim"></div><div class="stagebox">'+dialog(w,h,tv,'ar','cur',0,false,'5')+'</div>';
+  if(name==='board-locked'){
+    inner=board(w,h,{on:3,locked:[3,6]})+
+      `<div class="strip"><div class="sb"><svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm0 16H5V10h14v10Z"/></svg>الدليل</div>
+        <div class="sb"><svg viewBox="0 0 24 24"><path d="m22 9.2-7.2-.6L12 2 9.2 8.6 2 9.2l5.5 4.7L5.8 21l6.2-3.7 6.2 3.7-1.7-7.1L22 9.2Z"/></svg>المفضلة</div>
+        <div class="sb on ring">${LOCK}فتح</div>
+        <div class="sb"><svg viewBox="0 0 24 24"><path d="M12 7c2.8 0 5 2.2 5 5 0 .6-.1 1.2-.4 1.8l2.9 2.9A11.8 11.8 0 0 0 23 12c-1.7-4.4-6-7.5-11-7.5-1.4 0-2.7.2-4 .7l2.2 2.2c.5-.3 1.2-.4 1.8-.4Z"/></svg>إخفاء</div>
+        <div class="sb"><svg viewBox="0 0 24 24"><path d="M16 17.01V10h-2v7.01h-3L15 21l4-3.99h-3ZM9 3 5 6.99h3V14h2V6.99h3L9 3Z"/></svg>ترتيب</div></div>`;
+  }
+  return `<div class="screen" style="width:${w}px;height:${h}px">${inner}</div>`;
+}
+const CAPS={
+ 'phone-ask-ar':'Phone 851×393, Arabic. A locked channel is pressed: the dialog asks before anything plays. Two digits typed; the dots count them and never show them. The remote is on 5.',
+ 'phone-wrong-en':'Phone 851×393, English. Locking the channel under the remote; the password was refused. The dots clear, the line says so in the danger ink, the keypad stays.',
+ 'tv-ask-ar':'Television 960×540, Arabic. Opening a locked channel. Keys are 56dp, the control floor for a remote.',
+ 'phone-short-ar':'The shortest handset, 800×360. Same dialog, 12dp padding — what Dialog.kt already does below 320dp of free height. It is the frame this layout was sized against.',
+ 'portrait-ar':'Portrait 393×851: too narrow for words and keypad side by side, so they stack.',
+ 'board-locked':'The board with a locked channel: a lock at the end of the row (rows 4 and 7), and Lock in the strip lit for the channel under the remote — its word becomes Unlock.'
+};
+const q=new URLSearchParams(location.search).get('frame')||'sheet';
+if(q==='sheet'){
+  document.body.className='sheet';
+  document.body.innerHTML=Object.keys(CAPS).map(k=>`<div class="cap">${k} — ${CAPS[k]}</div>${frame(k)}`).join('');
+}else document.body.innerHTML=frame(q);
+</script>
+</body>
+</html>

@@ -16,6 +16,22 @@ interface FavoritesRepository {
     suspend fun toggle(mediaId: String): Boolean
 
     fun count(): Flow<Int>
+
+    /**
+     * Every favourite's id, as the list changes -- the viewer's own handful of channels, held whole
+     * so a row asks whether it is one by a set lookup and not by a query. Not the catalogue: this is
+     * only ever as long as what somebody chose to mark.
+     */
+    fun ids(): Flow<Set<String>>
+
+    /**
+     * Marks every one of [mediaIds] as a favourite, or none of them, in one act.
+     *
+     * Idempotent: a channel that already is one stays as it was, with the time it was marked, and
+     * one that is not is not made to be. The ids are the catalogue's own, so the list survives a
+     * refresh of the subscription -- see the note on [FavoritesRepository].
+     */
+    suspend fun set(mediaIds: Collection<String>, favorite: Boolean)
 }
 
 /**

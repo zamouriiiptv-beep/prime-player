@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">Притисните OK на категорији или каналу да бисте га подигли.</string>
     <string name="reorder_hint_move">Померите га стрелицама ↑ и ↓, а затим притисните OK да бисте га спустили.</string>
     <string name="reorder_hint_all">Прво отворите категорију да бисте променили редослед њених канала.</string>
+    <string name="reorder_hint_mark">Држите OK на редовима да означите више њих и преместите их заједно.</string>
+    <string name="reorder_hint_marked">Означено: %1$d. Притисните OK на једном од њих да их подигнете заједно.</string>
     <string name="reorder_failed">Редослед није сачуван. Покушајте поново.</string>
     <string name="reorder_move_up">Помери горе</string>
     <string name="reorder_move_down">Помери доле</string>
     <string name="channels_empty_title">Овде нема канала</string>
     <string name="channels_empty_detail">У овој категорији још нема ничега. Пробајте другу или поново преузмите одељак.</string>
+    <string name="channels_favorites_empty_title">Још нема омиљених канала</string>
+    <string name="channels_favorites_empty_detail">Притисните „Додај у омиљено“, изаберите канале који вам се свиђају, па поново притисните „Додај у омиљено“ да их додате.</string>
+    <string name="hide_bouquets_title">Сакриј пакете</string>
+    <string name="hide_channels_title">Сакриј канале</string>
+    <string name="hide_hint">Означите шта да сакријете и притисните „Сакриј изабрано“. Ништа се не брише; подешавања то враћају.</string>
+    <string name="hide_confirm">Сакриј изабрано</string>
+    <string name="settings_hidden_section">Сакривене ставке</string>
+    <string name="settings_hidden_detail">Сакривени пакети и канали остају у вашој претплати. Притисните да вратите све.</string>
+    <string name="settings_hidden_bouquets">Врати сакривене пакете</string>
+    <string name="settings_hidden_channels">Врати сакривене канале</string>
     <string name="channels_fetch_failed">Телевизија уживо није могла да се преузме</string>
     <string name="channels_guide_now">САДА</string>
     <string name="channels_guide_next">СЛЕДИ</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">У омиљеном</string>
     <string name="channels_action_lock">Закључај</string>
     <string name="channels_action_hide">Сакриј</string>
+
+    <string name="pin_title_play">Закључан канал</string>
+    <string name="pin_message_play">Унесите лозинку да бисте пустили овај канал.</string>
+    <string name="pin_title_lock">Закључај канал</string>
+    <string name="pin_message_lock">Унесите лозинку да бисте закључали овај канал.</string>
+    <string name="pin_title_unlock">Откључај канал</string>
+    <string name="pin_message_unlock">Унесите лозинку да бисте откључали овај канал.</string>
+    <string name="pin_title_current">Тренутна лозинка</string>
+    <string name="pin_message_current">Унесите тренутну лозинку.</string>
+    <string name="pin_title_new">Нова лозинка</string>
+    <string name="pin_message_new">Изаберите 4 цифре.</string>
+    <string name="pin_title_repeat">Поновите лозинку</string>
+    <string name="pin_message_repeat">Поново унесите исте цифре.</string>
+    <string name="pin_wrong">Погрешна лозинка.</string>
+    <string name="pin_mismatch">Цифре се не поклапају. Поново изаберите нову лозинку.</string>
+    <string name="pin_cancel">Откажи</string>
+    <string name="pin_delete">Обриши</string>
+    <string name="pin_progress">%1$d од %2$d цифара</string>
+    <string name="pin_changed_title">Лозинка је промењена</string>
+    <string name="pin_changed_body">Нова лозинка сада закључава и откључава канале.</string>
+    <string name="pin_done">У реду</string>
+    <string name="channels_action_unlock">Откључај</string>
+    <string name="channels_locked">Закључано</string>
+    <string name="settings_pin_section">Закључавање канала</string>
+    <string name="settings_pin_change">Промени лозинку</string>
+    <string name="settings_pin_detail">Лозинка која закључава и откључава канале. Док је не промените, то је 0000.</string>
     <string name="channels_live_badge">УЖИВО</string>
 
 </resources>

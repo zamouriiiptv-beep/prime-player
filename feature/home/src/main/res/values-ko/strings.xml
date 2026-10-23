@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">카테고리나 채널에서 확인을 눌러 집어 올리세요.</string>
     <string name="reorder_hint_move">↑와 ↓로 옮긴 뒤 확인을 눌러 내려놓으세요.</string>
     <string name="reorder_hint_all">채널 순서를 바꾸려면 먼저 카테고리를 여세요.</string>
+    <string name="reorder_hint_mark">여러 항목에서 OK를 길게 눌러 선택하면 함께 이동할 수 있습니다.</string>
+    <string name="reorder_hint_marked">선택됨: %1$d. 그중 하나에서 OK를 누르면 모두 함께 집어 올립니다.</string>
     <string name="reorder_failed">순서를 저장하지 못했습니다. 다시 시도하세요.</string>
     <string name="reorder_move_up">위로 이동</string>
     <string name="reorder_move_down">아래로 이동</string>
     <string name="channels_empty_title">여기에는 채널이 없습니다</string>
     <string name="channels_empty_detail">이 카테고리에는 아직 아무것도 없습니다. 다른 카테고리를 보거나 섹션을 다시 내려받으세요.</string>
+    <string name="channels_favorites_empty_title">아직 즐겨찾는 채널이 없습니다</string>
+    <string name="channels_favorites_empty_detail">‘즐겨찾기 추가’를 누르고 좋아하는 채널을 선택한 다음, 다시 ‘즐겨찾기 추가’를 누르면 추가됩니다.</string>
+    <string name="hide_bouquets_title">패키지 숨기기</string>
+    <string name="hide_channels_title">채널 숨기기</string>
+    <string name="hide_hint">숨길 항목을 체크한 다음 ‘선택 항목 숨기기’를 누르세요. 아무것도 삭제되지 않으며 설정에서 되돌릴 수 있습니다.</string>
+    <string name="hide_confirm">선택 항목 숨기기</string>
+    <string name="settings_hidden_section">숨긴 항목</string>
+    <string name="settings_hidden_detail">숨긴 패키지와 채널은 구독에 그대로 남아 있습니다. 눌러서 모두 복원하세요.</string>
+    <string name="settings_hidden_bouquets">숨긴 패키지 복원</string>
+    <string name="settings_hidden_channels">숨긴 채널 복원</string>
     <string name="channels_fetch_failed">실시간 TV를 내려받지 못했습니다</string>
     <string name="channels_guide_now">현재</string>
     <string name="channels_guide_next">다음</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">즐겨찾기됨</string>
     <string name="channels_action_lock">잠금</string>
     <string name="channels_action_hide">숨기기</string>
+
+    <string name="pin_title_play">잠긴 채널</string>
+    <string name="pin_message_play">이 채널을 재생하려면 비밀번호를 입력하세요.</string>
+    <string name="pin_title_lock">채널 잠금</string>
+    <string name="pin_message_lock">이 채널을 잠그려면 비밀번호를 입력하세요.</string>
+    <string name="pin_title_unlock">채널 잠금 해제</string>
+    <string name="pin_message_unlock">이 채널의 잠금을 해제하려면 비밀번호를 입력하세요.</string>
+    <string name="pin_title_current">현재 비밀번호</string>
+    <string name="pin_message_current">현재 비밀번호를 입력하세요.</string>
+    <string name="pin_title_new">새 비밀번호</string>
+    <string name="pin_message_new">숫자 4자리를 선택하세요.</string>
+    <string name="pin_title_repeat">비밀번호 다시 입력</string>
+    <string name="pin_message_repeat">같은 숫자를 다시 입력하세요.</string>
+    <string name="pin_wrong">비밀번호가 올바르지 않습니다.</string>
+    <string name="pin_mismatch">숫자가 일치하지 않습니다. 새 비밀번호를 다시 선택하세요.</string>
+    <string name="pin_cancel">취소</string>
+    <string name="pin_delete">삭제</string>
+    <string name="pin_progress">%2$d자리 중 %1$d자리</string>
+    <string name="pin_changed_title">비밀번호를 변경했습니다</string>
+    <string name="pin_changed_body">이제 새 비밀번호로 채널을 잠그고 해제합니다.</string>
+    <string name="pin_done">확인</string>
+    <string name="channels_action_unlock">해제</string>
+    <string name="channels_locked">잠김</string>
+    <string name="settings_pin_section">채널 잠금</string>
+    <string name="settings_pin_change">비밀번호 변경</string>
+    <string name="settings_pin_detail">채널을 잠그고 해제하는 비밀번호입니다. 변경하기 전까지는 0000입니다.</string>
     <string name="channels_live_badge">LIVE</string>
 
 </resources>

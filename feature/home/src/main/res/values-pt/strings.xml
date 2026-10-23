@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">Pressione OK em uma categoria ou canal para pegá-lo.</string>
     <string name="reorder_hint_move">Mova-o com ↑ e ↓ e pressione OK para soltá-lo.</string>
     <string name="reorder_hint_all">Abra uma categoria primeiro para reordenar os canais dela.</string>
+    <string name="reorder_hint_mark">Mantenha OK pressionado em linhas para marcar várias e movê-las juntas.</string>
+    <string name="reorder_hint_marked">Marcadas: %1$d. Toque em OK em uma delas para pegá-las juntas.</string>
     <string name="reorder_failed">Não foi possível salvar a ordem. Tente novamente.</string>
     <string name="reorder_move_up">Mover para cima</string>
     <string name="reorder_move_down">Mover para baixo</string>
     <string name="channels_empty_title">Nenhum canal aqui</string>
     <string name="channels_empty_detail">Esta categoria ainda está vazia. Tente outra, ou baixe a seção de novo.</string>
+    <string name="channels_favorites_empty_title">Ainda não há canais favoritos</string>
+    <string name="channels_favorites_empty_detail">Toque em “Favorito”, escolha os canais de que gosta e toque em “Favorito” de novo para adicioná-los.</string>
+    <string name="hide_bouquets_title">Ocultar pacotes</string>
+    <string name="hide_channels_title">Ocultar canais</string>
+    <string name="hide_hint">Marque o que quer ocultar e toque em Ocultar selecionados. Nada é apagado; as Configurações restauram.</string>
+    <string name="hide_confirm">Ocultar selecionados</string>
+    <string name="settings_hidden_section">Itens ocultos</string>
+    <string name="settings_hidden_detail">Os pacotes e canais que você ocultou continuam na sua assinatura. Toque para restaurar todos.</string>
+    <string name="settings_hidden_bouquets">Restaurar pacotes ocultos</string>
+    <string name="settings_hidden_channels">Restaurar canais ocultos</string>
     <string name="channels_fetch_failed">Não foi possível baixar a TV ao vivo</string>
     <string name="channels_guide_now">AGORA</string>
     <string name="channels_guide_next">A SEGUIR</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">Nos favoritos</string>
     <string name="channels_action_lock">Bloquear</string>
     <string name="channels_action_hide">Ocultar</string>
+
+    <string name="pin_title_play">Canal bloqueado</string>
+    <string name="pin_message_play">Digite a senha para reproduzir este canal.</string>
+    <string name="pin_title_lock">Bloquear canal</string>
+    <string name="pin_message_lock">Digite a senha para bloquear este canal.</string>
+    <string name="pin_title_unlock">Desbloquear canal</string>
+    <string name="pin_message_unlock">Digite a senha para desbloquear este canal.</string>
+    <string name="pin_title_current">Senha atual</string>
+    <string name="pin_message_current">Digite a senha atual.</string>
+    <string name="pin_title_new">Nova senha</string>
+    <string name="pin_message_new">Escolha 4 dígitos.</string>
+    <string name="pin_title_repeat">Repita a senha</string>
+    <string name="pin_message_repeat">Digite os mesmos dígitos novamente.</string>
+    <string name="pin_wrong">Senha incorreta.</string>
+    <string name="pin_mismatch">Os dígitos não coincidem. Escolha a nova senha novamente.</string>
+    <string name="pin_cancel">Cancelar</string>
+    <string name="pin_delete">Apagar</string>
+    <string name="pin_progress">%1$d de %2$d dígitos</string>
+    <string name="pin_changed_title">Senha alterada</string>
+    <string name="pin_changed_body">A nova senha agora bloqueia e desbloqueia canais.</string>
+    <string name="pin_done">OK</string>
+    <string name="channels_action_unlock">Desbloquear</string>
+    <string name="channels_locked">Bloqueado</string>
+    <string name="settings_pin_section">Bloqueio de canais</string>
+    <string name="settings_pin_change">Alterar senha</string>
+    <string name="settings_pin_detail">A senha que bloqueia e desbloqueia canais. É 0000 até você alterá-la.</string>
     <string name="channels_live_badge">AO VIVO</string>
 
 </resources>

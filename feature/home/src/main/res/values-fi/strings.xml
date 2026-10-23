@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">Nosta luokka tai kanava painamalla OK.</string>
     <string name="reorder_hint_move">Siirrä sitä painikkeilla ↑ ja ↓ ja laske se painamalla OK.</string>
     <string name="reorder_hint_all">Avaa ensin luokka, jotta voit järjestää sen kanavat.</string>
+    <string name="reorder_hint_mark">Pidä OK painettuna riveillä valitaksesi useita ja siirtääksesi ne yhdessä.</string>
+    <string name="reorder_hint_marked">Valittu: %1$d. Paina OK yhdellä niistä nostaaksesi ne yhdessä.</string>
     <string name="reorder_failed">Järjestystä ei voitu tallentaa. Yritä uudelleen.</string>
     <string name="reorder_move_up">Siirrä ylös</string>
     <string name="reorder_move_down">Siirrä alas</string>
     <string name="channels_empty_title">Täällä ei ole kanavia</string>
     <string name="channels_empty_detail">Tässä luokassa ei ole vielä mitään. Kokeile toista tai lataa osio uudelleen.</string>
+    <string name="channels_favorites_empty_title">Ei vielä suosikkikanavia</string>
+    <string name="channels_favorites_empty_detail">Paina ”Suosikiksi”, valitse haluamasi kanavat ja lisää ne painamalla ”Suosikiksi” uudelleen.</string>
+    <string name="hide_bouquets_title">Piilota paketit</string>
+    <string name="hide_channels_title">Piilota kanavat</string>
+    <string name="hide_hint">Valitse piilotettavat ja paina Piilota valitut. Mitään ei poisteta; Asetukset palauttaa ne.</string>
+    <string name="hide_confirm">Piilota valitut</string>
+    <string name="settings_hidden_section">Piilotetut kohteet</string>
+    <string name="settings_hidden_detail">Piilottamasi paketit ja kanavat säilyvät tilauksessasi. Paina palauttaaksesi kaikki.</string>
+    <string name="settings_hidden_bouquets">Palauta piilotetut paketit</string>
+    <string name="settings_hidden_channels">Palauta piilotetut kanavat</string>
     <string name="channels_fetch_failed">Suoraa TV:tä ei voitu ladata</string>
     <string name="channels_guide_now">NYT</string>
     <string name="channels_guide_next">SEURAAVAKSI</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">Suosikeissa</string>
     <string name="channels_action_lock">Lukitse</string>
     <string name="channels_action_hide">Piilota</string>
+
+    <string name="pin_title_play">Lukittu kanava</string>
+    <string name="pin_message_play">Anna salasana toistaaksesi tämän kanavan.</string>
+    <string name="pin_title_lock">Lukitse kanava</string>
+    <string name="pin_message_lock">Anna salasana lukitaksesi tämän kanavan.</string>
+    <string name="pin_title_unlock">Avaa kanavan lukitus</string>
+    <string name="pin_message_unlock">Anna salasana avataksesi tämän kanavan lukituksen.</string>
+    <string name="pin_title_current">Nykyinen salasana</string>
+    <string name="pin_message_current">Anna nykyinen salasana.</string>
+    <string name="pin_title_new">Uusi salasana</string>
+    <string name="pin_message_new">Valitse 4 numeroa.</string>
+    <string name="pin_title_repeat">Toista salasana</string>
+    <string name="pin_message_repeat">Anna samat numerot uudelleen.</string>
+    <string name="pin_wrong">Väärä salasana.</string>
+    <string name="pin_mismatch">Numerot eivät täsmänneet. Valitse uusi salasana uudelleen.</string>
+    <string name="pin_cancel">Peruuta</string>
+    <string name="pin_delete">Poista</string>
+    <string name="pin_progress">%1$d/%2$d numeroa</string>
+    <string name="pin_changed_title">Salasana vaihdettu</string>
+    <string name="pin_changed_body">Uusi salasana lukitsee ja avaa nyt kanavat.</string>
+    <string name="pin_done">OK</string>
+    <string name="channels_action_unlock">Avaa lukitus</string>
+    <string name="channels_locked">Lukittu</string>
+    <string name="settings_pin_section">Kanavalukko</string>
+    <string name="settings_pin_change">Vaihda salasana</string>
+    <string name="settings_pin_detail">Salasana, joka lukitsee ja avaa kanavat. Se on 0000, kunnes vaihdat sen.</string>
     <string name="channels_live_badge">SUORA</string>
 
 </resources>

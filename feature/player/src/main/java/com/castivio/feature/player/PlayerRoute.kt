@@ -19,6 +19,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.castivio.core.design.input.KeyRelay
+import com.castivio.core.design.input.LocalKeyRelay
 import com.castivio.domain.PlayerPulse
 import kotlinx.coroutines.delay
 
@@ -98,6 +100,16 @@ fun PlayerRoute(
      * shape and the expanded one each report what the other left.
      */
     onPulseChange: (PlayerPulse?) -> Unit = {},
+    /**
+     * Expanded only: change the channel by this many places -- 1 for the next, -1 for the one
+     * before -- when the remote's channel keys ask.
+     *
+     * Null when there is no list to step through, which is every film and every channel that was
+     * not pressed in one: the keys are then the focus's, exactly as they were. Told rather than
+     * done here, because which channel is next is the channel list's to say -- the player holds a
+     * stream, and must not learn about a catalogue.
+     */
+    onChannelStep: ((Int) -> Unit)? = null,
 ) {
     val compact = mode == PlayerMode.Compact
     val model: PlayerViewModel = hiltViewModel()
@@ -120,6 +132,42 @@ fun PlayerRoute(
     val chooser = stringResource(R.string.player_share)
 
     val current = state ?: return
+
+    // **The channel keys, taken from the activity and not from the focus.**
+    //
+    // A full-screen player may have nothing focused -- the controls are hidden, and the picture is
+    // not something a remote walks to -- and a key that goes to the focus then goes nowhere. A
+    // channel key means the same wherever the focus is, so the player claims them from the relay
+    // the activity offers every key to, for as long as it is on screen with a list to step through.
+    // The decision is `channelStepOf`'s: which keys, and the three facts of the screen it reads.
+    // A press steps once; the platform's repeats of it are taken and ignored, so a held key is not
+    // a stream opened ten times a second. The key coming up is taken too, so the focus never sees
+    // the half of a press it did not see the start of.
+    val stepBy by rememberUpdatedState(onChannelStep)
+    val scene by rememberUpdatedState(
+        KeyScene(
+            locked = current.locked,
+            panelOpen = current.sheet != null || current.statistics,
+            controlsShown = current.controls,
+            failureShown = current.picture is Picture.Failed,
+        ),
+    )
+    val relay = LocalKeyRelay.current
+    val stepsChannels = !compact && onChannelStep != null
+    DisposableEffect(relay, stepsChannels) {
+        val release = if (relay != null && stepsChannels) {
+            relay.claim(
+                KeyRelay.KeyTaker { keyCode, down, repeats ->
+                    val step = channelStepOf(keyCode, scene) ?: return@KeyTaker false
+                    if (down && repeats == 0) stepBy?.invoke(step.by)
+                    true
+                },
+            )
+        } else {
+            null
+        }
+        onDispose { release?.invoke() }
+    }
 
     // The sound stops when the application does.
     //

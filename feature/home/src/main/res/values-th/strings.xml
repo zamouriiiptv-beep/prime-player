@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">กด OK ที่หมวดหรือช่องเพื่อหยิบขึ้นมา</string>
     <string name="reorder_hint_move">เลื่อนด้วย ↑ และ ↓ แล้วกด OK เพื่อวางลง</string>
     <string name="reorder_hint_all">เปิดหมวดก่อนเพื่อจัดลำดับช่องในหมวดนั้น</string>
+    <string name="reorder_hint_mark">กด OK ค้างบนแถวเพื่อเลือกหลายรายการและย้ายไปด้วยกัน</string>
+    <string name="reorder_hint_marked">เลือกแล้ว: %1$d กด OK บนรายการใดรายการหนึ่งเพื่อยกขึ้นพร้อมกัน</string>
     <string name="reorder_failed">บันทึกลำดับไม่สำเร็จ ลองอีกครั้ง</string>
     <string name="reorder_move_up">เลื่อนขึ้น</string>
     <string name="reorder_move_down">เลื่อนลง</string>
     <string name="channels_empty_title">ไม่มีช่องที่นี่</string>
     <string name="channels_empty_detail">หมวดนี้ยังไม่มีอะไร ลองหมวดอื่น หรือดาวน์โหลดส่วนนี้ใหม่</string>
+    <string name="channels_favorites_empty_title">ยังไม่มีช่องโปรด</string>
+    <string name="channels_favorites_empty_detail">กด “เพิ่มรายการโปรด” เลือกช่องที่คุณชอบ แล้วกด “เพิ่มรายการโปรด” อีกครั้งเพื่อเพิ่ม</string>
+    <string name="hide_bouquets_title">ซ่อนแพ็กเกจ</string>
+    <string name="hide_channels_title">ซ่อนช่อง</string>
+    <string name="hide_hint">ทำเครื่องหมายสิ่งที่ต้องการซ่อน แล้วกด “ซ่อนที่เลือก” ระบบจะไม่ลบอะไร และคืนค่าได้ในการตั้งค่า</string>
+    <string name="hide_confirm">ซ่อนที่เลือก</string>
+    <string name="settings_hidden_section">รายการที่ซ่อน</string>
+    <string name="settings_hidden_detail">แพ็กเกจและช่องที่ซ่อนจะยังอยู่ในการสมัครของคุณ กดเพื่อกู้คืนทั้งหมด</string>
+    <string name="settings_hidden_bouquets">กู้คืนแพ็กเกจที่ซ่อน</string>
+    <string name="settings_hidden_channels">กู้คืนช่องที่ซ่อน</string>
     <string name="channels_fetch_failed">ดาวน์โหลดทีวีสดไม่สำเร็จ</string>
     <string name="channels_guide_now">ตอนนี้</string>
     <string name="channels_guide_next">ถัดไป</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">อยู่ในรายการโปรด</string>
     <string name="channels_action_lock">ล็อก</string>
     <string name="channels_action_hide">ซ่อน</string>
+
+    <string name="pin_title_play">ช่องที่ถูกล็อก</string>
+    <string name="pin_message_play">ป้อนรหัสผ่านเพื่อเล่นช่องนี้</string>
+    <string name="pin_title_lock">ล็อกช่อง</string>
+    <string name="pin_message_lock">ป้อนรหัสผ่านเพื่อล็อกช่องนี้</string>
+    <string name="pin_title_unlock">ปลดล็อกช่อง</string>
+    <string name="pin_message_unlock">ป้อนรหัสผ่านเพื่อปลดล็อกช่องนี้</string>
+    <string name="pin_title_current">รหัสผ่านปัจจุบัน</string>
+    <string name="pin_message_current">ป้อนรหัสผ่านปัจจุบัน</string>
+    <string name="pin_title_new">รหัสผ่านใหม่</string>
+    <string name="pin_message_new">เลือกตัวเลข 4 หลัก</string>
+    <string name="pin_title_repeat">ป้อนรหัสผ่านอีกครั้ง</string>
+    <string name="pin_message_repeat">ป้อนตัวเลขชุดเดิมอีกครั้ง</string>
+    <string name="pin_wrong">รหัสผ่านไม่ถูกต้อง</string>
+    <string name="pin_mismatch">ตัวเลขไม่ตรงกัน เลือกรหัสผ่านใหม่อีกครั้ง</string>
+    <string name="pin_cancel">ยกเลิก</string>
+    <string name="pin_delete">ลบ</string>
+    <string name="pin_progress">%1$d จาก %2$d หลัก</string>
+    <string name="pin_changed_title">เปลี่ยนรหัสผ่านแล้ว</string>
+    <string name="pin_changed_body">ตอนนี้รหัสผ่านใหม่จะใช้ล็อกและปลดล็อกช่อง</string>
+    <string name="pin_done">ตกลง</string>
+    <string name="channels_action_unlock">ปลดล็อก</string>
+    <string name="channels_locked">ถูกล็อก</string>
+    <string name="settings_pin_section">การล็อกช่อง</string>
+    <string name="settings_pin_change">เปลี่ยนรหัสผ่าน</string>
+    <string name="settings_pin_detail">รหัสผ่านที่ใช้ล็อกและปลดล็อกช่อง คือ 0000 จนกว่าคุณจะเปลี่ยน</string>
     <string name="channels_live_badge">สด</string>
 
 </resources>

@@ -204,6 +204,28 @@ class CatalogTest {
         assertNull(selection.channelNumber)
     }
 
+    /**
+     * The channel lock is kept by the catalogue's id, so a press has to carry it to the shell: a search result
+     * reaches the player through the shell and not through the board, and the shell is where the password is
+     * asked for. Nothing else can be locked, so nothing else carries one.
+     */
+    @Test
+    fun `a press on a channel carries its id and a press on a film or an episode does not`() {
+        val channel = Channel(
+            id = "c9", title = "News 24", artworkUrl = null, number = null, groupId = null,
+            streamUrl = "http://example.invalid/live/u/p/9.ts", epgChannelId = null,
+        )
+        val movie = Movie(id = "m9", title = "Pursuit", artworkUrl = null, streamUrl = "http://example.invalid/movie/u/p/9.mp4")
+        val episode = Episode(
+            id = "e9", title = "Pilot", artworkUrl = null, streamUrl = "http://example.invalid/series/u/p/9.mkv",
+            seasonNumber = 1, episodeNumber = 1,
+        )
+
+        assertEquals("c9", channel.asSelection()?.mediaId)
+        assertNull(movie.asSelection()?.mediaId)
+        assertNull(episode.asSelection()?.mediaId)
+    }
+
     @Test
     fun `a film is not live and carries its year`() {
         val movie = Movie(

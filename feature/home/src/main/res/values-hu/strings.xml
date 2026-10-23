@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">Az OK gombbal vehetsz fel egy kategóriát vagy csatornát.</string>
     <string name="reorder_hint_move">Mozgasd a ↑ és ↓ gombbal, majd az OK gombbal tedd le.</string>
     <string name="reorder_hint_all">Először nyiss meg egy kategóriát, hogy átrendezhesd a csatornáit.</string>
+    <string name="reorder_hint_mark">Tartsd lenyomva az OK-t a sorokon, hogy többet kijelölj, és együtt mozgasd őket.</string>
+    <string name="reorder_hint_marked">Kijelölve: %1$d. Nyomj OK-t az egyiken, és mind együtt felvehető.</string>
     <string name="reorder_failed">A sorrend mentése nem sikerült. Próbáld újra.</string>
     <string name="reorder_move_up">Mozgatás felfelé</string>
     <string name="reorder_move_down">Mozgatás lefelé</string>
     <string name="channels_empty_title">Itt nincsenek csatornák</string>
     <string name="channels_empty_detail">Ebben a kategóriában még nincs semmi. Próbáljon másikat, vagy töltse le újra a szakaszt.</string>
+    <string name="channels_favorites_empty_title">Még nincsenek kedvenc csatornák</string>
+    <string name="channels_favorites_empty_detail">Nyomd meg a(z) „Kedvencekhez” gombot, válaszd ki a kedvelt csatornákat, majd a hozzáadáshoz nyomd meg újra a(z) „Kedvencekhez” gombot.</string>
+    <string name="hide_bouquets_title">Csomagok elrejtése</string>
+    <string name="hide_channels_title">Csatornák elrejtése</string>
+    <string name="hide_hint">Jelöld be, amit el szeretnél rejteni, majd nyomd meg a Kijelöltek elrejtése gombot. Semmi nem törlődik; a Beállítások visszahozza.</string>
+    <string name="hide_confirm">Kijelöltek elrejtése</string>
+    <string name="settings_hidden_section">Elrejtett elemek</string>
+    <string name="settings_hidden_detail">Az elrejtett csomagok és csatornák az előfizetésedben maradnak. Nyomd meg az összes visszaállításához.</string>
+    <string name="settings_hidden_bouquets">Elrejtett csomagok visszaállítása</string>
+    <string name="settings_hidden_channels">Elrejtett csatornák visszaállítása</string>
     <string name="channels_fetch_failed">Az Élő TV nem tölthető le</string>
     <string name="channels_guide_now">MOST</string>
     <string name="channels_guide_next">KÖVETKEZŐ</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">Kedvencek közt</string>
     <string name="channels_action_lock">Zárolás</string>
     <string name="channels_action_hide">Elrejtés</string>
+
+    <string name="pin_title_play">Zárolt csatorna</string>
+    <string name="pin_message_play">Add meg a jelszót a csatorna lejátszásához.</string>
+    <string name="pin_title_lock">Csatorna zárolása</string>
+    <string name="pin_message_lock">Add meg a jelszót a csatorna zárolásához.</string>
+    <string name="pin_title_unlock">Csatorna feloldása</string>
+    <string name="pin_message_unlock">Add meg a jelszót a csatorna feloldásához.</string>
+    <string name="pin_title_current">Jelenlegi jelszó</string>
+    <string name="pin_message_current">Add meg a jelenlegi jelszót.</string>
+    <string name="pin_title_new">Új jelszó</string>
+    <string name="pin_message_new">Válassz 4 számjegyet.</string>
+    <string name="pin_title_repeat">Jelszó megismétlése</string>
+    <string name="pin_message_repeat">Add meg ugyanazokat a számjegyeket újra.</string>
+    <string name="pin_wrong">Hibás jelszó.</string>
+    <string name="pin_mismatch">A számjegyek nem egyeznek. Válaszd ki újra az új jelszót.</string>
+    <string name="pin_cancel">Mégse</string>
+    <string name="pin_delete">Törlés</string>
+    <string name="pin_progress">%1$d/%2$d számjegy</string>
+    <string name="pin_changed_title">A jelszó megváltozott</string>
+    <string name="pin_changed_body">Az új jelszó zárolja és oldja fel mostantól a csatornákat.</string>
+    <string name="pin_done">OK</string>
+    <string name="channels_action_unlock">Feloldás</string>
+    <string name="channels_locked">Zárolva</string>
+    <string name="settings_pin_section">Csatornazár</string>
+    <string name="settings_pin_change">Jelszó módosítása</string>
+    <string name="settings_pin_detail">A jelszó, amely zárolja és feloldja a csatornákat. Amíg nem módosítod, 0000.</string>
     <string name="channels_live_badge">ÉLŐ</string>
 
 </resources>

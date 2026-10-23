@@ -138,7 +138,8 @@ class ReorderModeTest {
 
     @Test
     fun `the way in needs no channel in the picture`() {
-        // `ChannelPreview()` has no channel: the guide, favourite, lock and hide are dark.
+        // `ChannelPreview()` has no channel: the guide, lock and hide are dark. The favourite button is
+        // not -- what it manages is the board's lists -- and is dark only while the board is arranging.
         showStrip(arranging = false)
 
         compose.onNodeWithText("Reorder").assertIsEnabled()

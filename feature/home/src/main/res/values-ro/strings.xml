@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">Apasă OK pe o categorie sau un canal pentru a-l ridica.</string>
     <string name="reorder_hint_move">Mută-l cu ↑ și ↓, apoi apasă OK pentru a-l lăsa jos.</string>
     <string name="reorder_hint_all">Deschide mai întâi o categorie pentru a-i reordona canalele.</string>
+    <string name="reorder_hint_mark">Țineți apăsat OK pe rânduri pentru a bifa mai multe și a le muta împreună.</string>
+    <string name="reorder_hint_marked">Bifate: %1$d. Apăsați OK pe unul dintre ele pentru a le ridica împreună.</string>
     <string name="reorder_failed">Ordinea nu a putut fi salvată. Încearcă din nou.</string>
     <string name="reorder_move_up">Mută în sus</string>
     <string name="reorder_move_down">Mută în jos</string>
     <string name="channels_empty_title">Niciun canal aici</string>
     <string name="channels_empty_detail">Această categorie nu are încă nimic. Încercați alta sau descărcați secțiunea din nou.</string>
+    <string name="channels_favorites_empty_title">Încă nu există canale favorite</string>
+    <string name="channels_favorites_empty_detail">Apăsați „Adaugă la favorite”, alegeți canalele care vă plac, apoi apăsați din nou „Adaugă la favorite” pentru a le adăuga.</string>
+    <string name="hide_bouquets_title">Ascunde pachete</string>
+    <string name="hide_channels_title">Ascunde canale</string>
+    <string name="hide_hint">Bifați ce doriți să ascundeți, apoi apăsați Ascunde selecția. Nu se șterge nimic; Setările le readuc.</string>
+    <string name="hide_confirm">Ascunde selecția</string>
+    <string name="settings_hidden_section">Elemente ascunse</string>
+    <string name="settings_hidden_detail">Pachetele și canalele ascunse rămân în abonamentul dvs. Apăsați pentru a le restabili pe toate.</string>
+    <string name="settings_hidden_bouquets">Restabilește pachetele ascunse</string>
+    <string name="settings_hidden_channels">Restabilește canalele ascunse</string>
     <string name="channels_fetch_failed">TV live nu a putut fi descărcat</string>
     <string name="channels_guide_now">ACUM</string>
     <string name="channels_guide_next">URMEAZĂ</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">În favorite</string>
     <string name="channels_action_lock">Blochează</string>
     <string name="channels_action_hide">Ascunde</string>
+
+    <string name="pin_title_play">Canal blocat</string>
+    <string name="pin_message_play">Introdu parola pentru a reda acest canal.</string>
+    <string name="pin_title_lock">Blochează canalul</string>
+    <string name="pin_message_lock">Introdu parola pentru a bloca acest canal.</string>
+    <string name="pin_title_unlock">Deblochează canalul</string>
+    <string name="pin_message_unlock">Introdu parola pentru a debloca acest canal.</string>
+    <string name="pin_title_current">Parola actuală</string>
+    <string name="pin_message_current">Introdu parola actuală.</string>
+    <string name="pin_title_new">Parolă nouă</string>
+    <string name="pin_message_new">Alege 4 cifre.</string>
+    <string name="pin_title_repeat">Repetă parola</string>
+    <string name="pin_message_repeat">Introdu din nou aceleași cifre.</string>
+    <string name="pin_wrong">Parolă greșită.</string>
+    <string name="pin_mismatch">Cifrele nu se potrivesc. Alege din nou parola nouă.</string>
+    <string name="pin_cancel">Anulare</string>
+    <string name="pin_delete">Șterge</string>
+    <string name="pin_progress">%1$d din %2$d cifre</string>
+    <string name="pin_changed_title">Parola a fost schimbată</string>
+    <string name="pin_changed_body">Parola nouă blochează și deblochează acum canalele.</string>
+    <string name="pin_done">OK</string>
+    <string name="channels_action_unlock">Deblochează</string>
+    <string name="channels_locked">Blocat</string>
+    <string name="settings_pin_section">Blocarea canalelor</string>
+    <string name="settings_pin_change">Schimbă parola</string>
+    <string name="settings_pin_detail">Parola care blochează și deblochează canalele. Este 0000 până o schimbi.</string>
     <string name="channels_live_badge">LIVE</string>
 
 </resources>

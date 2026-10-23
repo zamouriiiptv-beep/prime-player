@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">Pritisnite OK na kategoriji ili kanalu da biste ga podigli.</string>
     <string name="reorder_hint_move">Premjestite ga strelicama ↑ i ↓, a zatim pritisnite OK da biste ga spustili.</string>
     <string name="reorder_hint_all">Prvo otvorite kategoriju da biste promijenili redoslijed njezinih kanala.</string>
+    <string name="reorder_hint_mark">Držite OK na recima da biste označili više njih i premjestili ih zajedno.</string>
+    <string name="reorder_hint_marked">Označeno: %1$d. Pritisnite OK na jednom od njih da ih podignete zajedno.</string>
     <string name="reorder_failed">Redoslijed nije spremljen. Pokušajte ponovno.</string>
     <string name="reorder_move_up">Premjesti gore</string>
     <string name="reorder_move_down">Premjesti dolje</string>
     <string name="channels_empty_title">Ovdje nema kanala</string>
     <string name="channels_empty_detail">U ovoj kategoriji još nema ničega. Pokušajte drugu ili ponovno preuzmite odjeljak.</string>
+    <string name="channels_favorites_empty_title">Još nema omiljenih kanala</string>
+    <string name="channels_favorites_empty_detail">Pritisnite „Dodaj u favorite“, odaberite kanale koji vam se sviđaju, pa ponovno pritisnite „Dodaj u favorite“ da ih dodate.</string>
+    <string name="hide_bouquets_title">Sakrij pakete</string>
+    <string name="hide_channels_title">Sakrij kanale</string>
+    <string name="hide_hint">Označite što želite sakriti, pa pritisnite Sakrij odabrano. Ništa se ne briše; postavke to vraćaju.</string>
+    <string name="hide_confirm">Sakrij odabrano</string>
+    <string name="settings_hidden_section">Skrivene stavke</string>
+    <string name="settings_hidden_detail">Skriveni paketi i kanali ostaju u vašoj pretplati. Pritisnite za vraćanje svih.</string>
+    <string name="settings_hidden_bouquets">Vrati skrivene pakete</string>
+    <string name="settings_hidden_channels">Vrati skrivene kanale</string>
     <string name="channels_fetch_failed">Televizija uživo nije se mogla preuzeti</string>
     <string name="channels_guide_now">SADA</string>
     <string name="channels_guide_next">SLIJEDI</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">U favoritima</string>
     <string name="channels_action_lock">Zaključaj</string>
     <string name="channels_action_hide">Sakrij</string>
+
+    <string name="pin_title_play">Zaključan kanal</string>
+    <string name="pin_message_play">Unesite lozinku za reprodukciju ovog kanala.</string>
+    <string name="pin_title_lock">Zaključaj kanal</string>
+    <string name="pin_message_lock">Unesite lozinku za zaključavanje ovog kanala.</string>
+    <string name="pin_title_unlock">Otključaj kanal</string>
+    <string name="pin_message_unlock">Unesite lozinku za otključavanje ovog kanala.</string>
+    <string name="pin_title_current">Trenutna lozinka</string>
+    <string name="pin_message_current">Unesite trenutnu lozinku.</string>
+    <string name="pin_title_new">Nova lozinka</string>
+    <string name="pin_message_new">Odaberite 4 znamenke.</string>
+    <string name="pin_title_repeat">Ponovite lozinku</string>
+    <string name="pin_message_repeat">Ponovno unesite iste znamenke.</string>
+    <string name="pin_wrong">Pogrešna lozinka.</string>
+    <string name="pin_mismatch">Znamenke se ne podudaraju. Ponovno odaberite novu lozinku.</string>
+    <string name="pin_cancel">Odustani</string>
+    <string name="pin_delete">Izbriši</string>
+    <string name="pin_progress">%1$d od %2$d znamenki</string>
+    <string name="pin_changed_title">Lozinka je promijenjena</string>
+    <string name="pin_changed_body">Nova lozinka sada zaključava i otključava kanale.</string>
+    <string name="pin_done">U redu</string>
+    <string name="channels_action_unlock">Otključaj</string>
+    <string name="channels_locked">Zaključano</string>
+    <string name="settings_pin_section">Zaključavanje kanala</string>
+    <string name="settings_pin_change">Promijeni lozinku</string>
+    <string name="settings_pin_detail">Lozinka koja zaključava i otključava kanale. Dok je ne promijenite, to je 0000.</string>
     <string name="channels_live_badge">UŽIVO</string>
 
 </resources>

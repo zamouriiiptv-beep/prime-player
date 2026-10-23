@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">Naciśnij OK na kategorii lub kanale, aby go podnieść.</string>
     <string name="reorder_hint_move">Przesuń go przyciskami ↑ i ↓, a potem naciśnij OK, aby go odłożyć.</string>
     <string name="reorder_hint_all">Najpierw otwórz kategorię, aby zmienić kolejność jej kanałów.</string>
+    <string name="reorder_hint_mark">Przytrzymaj OK na wierszach, aby zaznaczyć kilka i przenieść je razem.</string>
+    <string name="reorder_hint_marked">Zaznaczono: %1$d. Naciśnij OK na jednym z nich, aby podnieść je razem.</string>
     <string name="reorder_failed">Nie udało się zapisać kolejności. Spróbuj ponownie.</string>
     <string name="reorder_move_up">Przesuń w górę</string>
     <string name="reorder_move_down">Przesuń w dół</string>
     <string name="channels_empty_title">Tu nie ma kanałów</string>
     <string name="channels_empty_detail">Ta kategoria jest jeszcze pusta. Spróbuj innej albo pobierz sekcję ponownie.</string>
+    <string name="channels_favorites_empty_title">Brak ulubionych kanałów</string>
+    <string name="channels_favorites_empty_detail">Naciśnij „Ulubiony”, wybierz kanały, które lubisz, i naciśnij „Ulubiony” ponownie, aby je dodać.</string>
+    <string name="hide_bouquets_title">Ukryj pakiety</string>
+    <string name="hide_channels_title">Ukryj kanały</string>
+    <string name="hide_hint">Zaznacz, co ukryć, i naciśnij Ukryj zaznaczone. Nic nie jest usuwane; Ustawienia to przywracają.</string>
+    <string name="hide_confirm">Ukryj zaznaczone</string>
+    <string name="settings_hidden_section">Ukryte elementy</string>
+    <string name="settings_hidden_detail">Ukryte pakiety i kanały pozostają w Twojej subskrypcji. Naciśnij, aby przywrócić wszystkie.</string>
+    <string name="settings_hidden_bouquets">Przywróć ukryte pakiety</string>
+    <string name="settings_hidden_channels">Przywróć ukryte kanały</string>
     <string name="channels_fetch_failed">Nie udało się pobrać telewizji na żywo</string>
     <string name="channels_guide_now">TERAZ</string>
     <string name="channels_guide_next">NASTĘPNIE</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">W ulubionych</string>
     <string name="channels_action_lock">Zablokuj</string>
     <string name="channels_action_hide">Ukryj</string>
+
+    <string name="pin_title_play">Zablokowany kanał</string>
+    <string name="pin_message_play">Wpisz hasło, aby odtworzyć ten kanał.</string>
+    <string name="pin_title_lock">Zablokuj kanał</string>
+    <string name="pin_message_lock">Wpisz hasło, aby zablokować ten kanał.</string>
+    <string name="pin_title_unlock">Odblokuj kanał</string>
+    <string name="pin_message_unlock">Wpisz hasło, aby odblokować ten kanał.</string>
+    <string name="pin_title_current">Obecne hasło</string>
+    <string name="pin_message_current">Wpisz obecne hasło.</string>
+    <string name="pin_title_new">Nowe hasło</string>
+    <string name="pin_message_new">Wybierz 4 cyfry.</string>
+    <string name="pin_title_repeat">Powtórz hasło</string>
+    <string name="pin_message_repeat">Wpisz te same cyfry jeszcze raz.</string>
+    <string name="pin_wrong">Nieprawidłowe hasło.</string>
+    <string name="pin_mismatch">Cyfry się nie zgadzają. Wybierz nowe hasło jeszcze raz.</string>
+    <string name="pin_cancel">Anuluj</string>
+    <string name="pin_delete">Usuń</string>
+    <string name="pin_progress">%1$d z %2$d cyfr</string>
+    <string name="pin_changed_title">Hasło zostało zmienione</string>
+    <string name="pin_changed_body">Nowe hasło blokuje i odblokowuje teraz kanały.</string>
+    <string name="pin_done">OK</string>
+    <string name="channels_action_unlock">Odblokuj</string>
+    <string name="channels_locked">Zablokowany</string>
+    <string name="settings_pin_section">Blokada kanałów</string>
+    <string name="settings_pin_change">Zmień hasło</string>
+    <string name="settings_pin_detail">Hasło, które blokuje i odblokowuje kanały. Do czasu zmiany to 0000.</string>
     <string name="channels_live_badge">NA ŻYWO</string>
 
 </resources>

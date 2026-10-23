@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">Trykk OK på en kategori eller kanal for å plukke den opp.</string>
     <string name="reorder_hint_move">Flytt den med ↑ og ↓, og trykk OK for å sette den ned.</string>
     <string name="reorder_hint_all">Åpne en kategori først for å endre rekkefølgen på kanalene.</string>
+    <string name="reorder_hint_mark">Hold inne OK på rader for å merke flere og flytte dem sammen.</string>
+    <string name="reorder_hint_marked">Merket: %1$d. Trykk OK på en av dem for å løfte dem sammen.</string>
     <string name="reorder_failed">Kunne ikke lagre rekkefølgen. Prøv igjen.</string>
     <string name="reorder_move_up">Flytt opp</string>
     <string name="reorder_move_down">Flytt ned</string>
     <string name="channels_empty_title">Ingen kanaler her</string>
     <string name="channels_empty_detail">Denne kategorien er tom foreløpig. Prøv en annen, eller last ned seksjonen på nytt.</string>
+    <string name="channels_favorites_empty_title">Ingen favorittkanaler ennå</string>
+    <string name="channels_favorites_empty_detail">Trykk på «Favoritt», velg kanalene du liker, og trykk på «Favoritt» igjen for å legge dem til.</string>
+    <string name="hide_bouquets_title">Skjul pakker</string>
+    <string name="hide_channels_title">Skjul kanaler</string>
+    <string name="hide_hint">Merk det du vil skjule, og trykk på Skjul valgte. Ingenting slettes; Innstillinger henter det tilbake.</string>
+    <string name="hide_confirm">Skjul valgte</string>
+    <string name="settings_hidden_section">Skjulte elementer</string>
+    <string name="settings_hidden_detail">Skjulte pakker og kanaler blir i abonnementet ditt. Trykk for å gjenopprette alle.</string>
+    <string name="settings_hidden_bouquets">Gjenopprett skjulte pakker</string>
+    <string name="settings_hidden_channels">Gjenopprett skjulte kanaler</string>
     <string name="channels_fetch_failed">Direkte-TV kunne ikke lastes ned</string>
     <string name="channels_guide_now">NÅ</string>
     <string name="channels_guide_next">NESTE</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">Er favoritt</string>
     <string name="channels_action_lock">Lås</string>
     <string name="channels_action_hide">Skjul</string>
+
+    <string name="pin_title_play">Låst kanal</string>
+    <string name="pin_message_play">Skriv inn passordet for å spille av denne kanalen.</string>
+    <string name="pin_title_lock">Lås kanal</string>
+    <string name="pin_message_lock">Skriv inn passordet for å låse denne kanalen.</string>
+    <string name="pin_title_unlock">Lås opp kanal</string>
+    <string name="pin_message_unlock">Skriv inn passordet for å låse opp denne kanalen.</string>
+    <string name="pin_title_current">Nåværende passord</string>
+    <string name="pin_message_current">Skriv inn det nåværende passordet.</string>
+    <string name="pin_title_new">Nytt passord</string>
+    <string name="pin_message_new">Velg 4 sifre.</string>
+    <string name="pin_title_repeat">Gjenta passordet</string>
+    <string name="pin_message_repeat">Skriv inn de samme sifrene på nytt.</string>
+    <string name="pin_wrong">Feil passord.</string>
+    <string name="pin_mismatch">Sifrene stemte ikke overens. Velg det nye passordet på nytt.</string>
+    <string name="pin_cancel">Avbryt</string>
+    <string name="pin_delete">Slett</string>
+    <string name="pin_progress">%1$d av %2$d sifre</string>
+    <string name="pin_changed_title">Passordet er endret</string>
+    <string name="pin_changed_body">Det nye passordet låser og låser nå opp kanaler.</string>
+    <string name="pin_done">OK</string>
+    <string name="channels_action_unlock">Lås opp</string>
+    <string name="channels_locked">Låst</string>
+    <string name="settings_pin_section">Kanallås</string>
+    <string name="settings_pin_change">Endre passord</string>
+    <string name="settings_pin_detail">Passordet som låser og låser opp kanaler. Det er 0000 til du endrer det.</string>
     <string name="channels_live_badge">DIREKTE</string>
 
 </resources>

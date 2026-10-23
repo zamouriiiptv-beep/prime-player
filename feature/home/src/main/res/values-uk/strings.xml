@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">Натисніть OK на категорії або каналі, щоб узяти його.</string>
     <string name="reorder_hint_move">Пересувайте клавішами ↑ і ↓, потім натисніть OK, щоб відпустити.</string>
     <string name="reorder_hint_all">Спочатку відкрийте категорію, щоб змінити порядок її каналів.</string>
+    <string name="reorder_hint_mark">Утримуйте OK на рядках, щоб позначити кілька й переміщувати їх разом.</string>
+    <string name="reorder_hint_marked">Позначено: %1$d. Натисніть OK на одному з них, щоб узяти всі разом.</string>
     <string name="reorder_failed">Не вдалося зберегти порядок. Спробуйте ще раз.</string>
     <string name="reorder_move_up">Перемістити вгору</string>
     <string name="reorder_move_down">Перемістити вниз</string>
     <string name="channels_empty_title">Тут немає каналів</string>
     <string name="channels_empty_detail">Ця категорія поки порожня. Спробуйте іншу або завантажте розділ знову.</string>
+    <string name="channels_favorites_empty_title">Обраних каналів поки немає</string>
+    <string name="channels_favorites_empty_detail">Натисніть «В обране», виберіть канали, які вам подобаються, і натисніть «В обране» ще раз, щоб додати їх.</string>
+    <string name="hide_bouquets_title">Приховати пакети</string>
+    <string name="hide_channels_title">Приховати канали</string>
+    <string name="hide_hint">Позначте, що приховати, і натисніть «Приховати вибране». Нічого не видаляється; повернути можна в налаштуваннях.</string>
+    <string name="hide_confirm">Приховати вибране</string>
+    <string name="settings_hidden_section">Приховані елементи</string>
+    <string name="settings_hidden_detail">Приховані пакети й канали залишаються у вашій підписці. Натисніть, щоб повернути всі.</string>
+    <string name="settings_hidden_bouquets">Повернути приховані пакети</string>
+    <string name="settings_hidden_channels">Повернути приховані канали</string>
     <string name="channels_fetch_failed">Не вдалося завантажити прямий ефір</string>
     <string name="channels_guide_now">ЗАРАЗ</string>
     <string name="channels_guide_next">ДАЛІ</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">В обраному</string>
     <string name="channels_action_lock">Заблокувати</string>
     <string name="channels_action_hide">Сховати</string>
+
+    <string name="pin_title_play">Канал заблоковано</string>
+    <string name="pin_message_play">Введіть пароль, щоб відтворити цей канал.</string>
+    <string name="pin_title_lock">Заблокувати канал</string>
+    <string name="pin_message_lock">Введіть пароль, щоб заблокувати цей канал.</string>
+    <string name="pin_title_unlock">Розблокувати канал</string>
+    <string name="pin_message_unlock">Введіть пароль, щоб розблокувати цей канал.</string>
+    <string name="pin_title_current">Поточний пароль</string>
+    <string name="pin_message_current">Введіть поточний пароль.</string>
+    <string name="pin_title_new">Новий пароль</string>
+    <string name="pin_message_new">Виберіть 4 цифри.</string>
+    <string name="pin_title_repeat">Повторіть пароль</string>
+    <string name="pin_message_repeat">Введіть ті самі цифри ще раз.</string>
+    <string name="pin_wrong">Неправильний пароль.</string>
+    <string name="pin_mismatch">Цифри не збіглися. Виберіть новий пароль ще раз.</string>
+    <string name="pin_cancel">Скасувати</string>
+    <string name="pin_delete">Видалити</string>
+    <string name="pin_progress">%1$d із %2$d цифр</string>
+    <string name="pin_changed_title">Пароль змінено</string>
+    <string name="pin_changed_body">Тепер канали блокує й розблоковує новий пароль.</string>
+    <string name="pin_done">OK</string>
+    <string name="channels_action_unlock">Розблокувати</string>
+    <string name="channels_locked">Заблоковано</string>
+    <string name="settings_pin_section">Блокування каналів</string>
+    <string name="settings_pin_change">Змінити пароль</string>
+    <string name="settings_pin_detail">Пароль, який блокує й розблоковує канали. Доки ви його не зміните, це 0000.</string>
     <string name="channels_live_badge">НАЖИВО</string>
 
 </resources>

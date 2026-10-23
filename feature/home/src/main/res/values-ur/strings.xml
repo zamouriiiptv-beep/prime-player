@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">کسی زمرے یا چینل کو اٹھانے کے لیے اس پر OK دبائیں۔</string>
     <string name="reorder_hint_move">↑ اور ↓ سے اسے ہلائیں، پھر رکھنے کے لیے OK دبائیں۔</string>
     <string name="reorder_hint_all">چینلز کی ترتیب بدلنے کے لیے پہلے کوئی زمرہ کھولیں۔</string>
+    <string name="reorder_hint_mark">کئی قطاروں کو چن کر ایک ساتھ ہلانے کے لیے ان پر OK دبائے رکھیں۔</string>
+    <string name="reorder_hint_marked">منتخب: %1$d۔ ان میں سے کسی ایک پر OK دبائیں تاکہ سب ایک ساتھ اٹھ جائیں۔</string>
     <string name="reorder_failed">ترتیب محفوظ نہیں ہو سکی۔ دوبارہ کوشش کریں۔</string>
     <string name="reorder_move_up">اوپر لے جائیں</string>
     <string name="reorder_move_down">نیچے لے جائیں</string>
     <string name="channels_empty_title">یہاں کوئی چینل نہیں</string>
     <string name="channels_empty_detail">اس زمرے میں ابھی کچھ نہیں۔ کوئی اور آزمائیں، یا یہ حصہ دوبارہ ڈاؤن لوڈ کریں۔</string>
+    <string name="channels_favorites_empty_title">ابھی کوئی پسندیدہ چینل نہیں</string>
+    <string name="channels_favorites_empty_detail">“پسندیدہ بنائیں” دبائیں، اپنے پسندیدہ چینل منتخب کریں، پھر انہیں شامل کرنے کے لیے دوبارہ “پسندیدہ بنائیں” دبائیں۔</string>
+    <string name="hide_bouquets_title">پیکیجز چھپائیں</string>
+    <string name="hide_channels_title">چینلز چھپائیں</string>
+    <string name="hide_hint">جو چھپانا ہو اس پر نشان لگائیں، پھر «منتخب چھپائیں» دبائیں۔ کچھ حذف نہیں ہوتا؛ ترتیبات میں واپس لایا جا سکتا ہے۔</string>
+    <string name="hide_confirm">منتخب چھپائیں</string>
+    <string name="settings_hidden_section">چھپے ہوئے آئٹمز</string>
+    <string name="settings_hidden_detail">چھپائے گئے پیکیجز اور چینلز آپ کی رکنیت میں رہتے ہیں۔ سب واپس لانے کے لیے دبائیں۔</string>
+    <string name="settings_hidden_bouquets">چھپے پیکیجز بحال کریں</string>
+    <string name="settings_hidden_channels">چھپے چینلز بحال کریں</string>
     <string name="channels_fetch_failed">لائیو ٹی وی ڈاؤن لوڈ نہ ہو سکا</string>
     <string name="channels_guide_now">ابھی</string>
     <string name="channels_guide_next">اگلا</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">پسندیدہ میں</string>
     <string name="channels_action_lock">مقفل کریں</string>
     <string name="channels_action_hide">چھپائیں</string>
+
+    <string name="pin_title_play">چینل مقفل ہے</string>
+    <string name="pin_message_play">اس چینل کو چلانے کے لیے پاس ورڈ درج کریں۔</string>
+    <string name="pin_title_lock">چینل مقفل کریں</string>
+    <string name="pin_message_lock">اس چینل کو مقفل کرنے کے لیے پاس ورڈ درج کریں۔</string>
+    <string name="pin_title_unlock">چینل کھولیں</string>
+    <string name="pin_message_unlock">اس چینل کا قفل کھولنے کے لیے پاس ورڈ درج کریں۔</string>
+    <string name="pin_title_current">موجودہ پاس ورڈ</string>
+    <string name="pin_message_current">موجودہ پاس ورڈ درج کریں۔</string>
+    <string name="pin_title_new">نیا پاس ورڈ</string>
+    <string name="pin_message_new">4 ہندسے منتخب کریں۔</string>
+    <string name="pin_title_repeat">پاس ورڈ دوبارہ لکھیں</string>
+    <string name="pin_message_repeat">وہی ہندسے دوبارہ درج کریں۔</string>
+    <string name="pin_wrong">غلط پاس ورڈ۔</string>
+    <string name="pin_mismatch">ہندسے مماثل نہیں تھے۔ نیا پاس ورڈ دوبارہ منتخب کریں۔</string>
+    <string name="pin_cancel">منسوخ کریں</string>
+    <string name="pin_delete">حذف کریں</string>
+    <string name="pin_progress">%2$d میں سے %1$d ہندسے</string>
+    <string name="pin_changed_title">پاس ورڈ تبدیل ہو گیا</string>
+    <string name="pin_changed_body">اب نیا پاس ورڈ چینلز کو مقفل اور غیر مقفل کرتا ہے۔</string>
+    <string name="pin_done">ٹھیک ہے</string>
+    <string name="channels_action_unlock">کھولیں</string>
+    <string name="channels_locked">مقفل</string>
+    <string name="settings_pin_section">چینل لاک</string>
+    <string name="settings_pin_change">پاس ورڈ تبدیل کریں</string>
+    <string name="settings_pin_detail">چینلز کو مقفل اور غیر مقفل کرنے والا پاس ورڈ۔ آپ کے بدلنے تک یہ 0000 ہے۔</string>
     <string name="channels_live_badge">لائیو</string>
 
 </resources>

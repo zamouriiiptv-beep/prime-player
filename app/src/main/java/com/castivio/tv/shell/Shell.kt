@@ -20,26 +20,31 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Radio
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tv
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.castivio.core.common.AppError
 import com.castivio.core.common.ScreenState
 import com.castivio.core.design.components.CardShape
@@ -62,9 +67,14 @@ import com.castivio.core.design.theme.castivioBackdrop
 import com.castivio.core.design.theme.rememberMetrics
 import com.castivio.core.navigation.BackPolicy
 import com.castivio.core.navigation.ShellBack
+import com.castivio.domain.CatalogQuery
+import com.castivio.domain.HiddenKind
 import com.castivio.domain.MediaKind as CatalogKind
 import com.castivio.domain.PlayerPulse
+import com.castivio.domain.PressVerdict
+import com.castivio.domain.pressVerdictFor
 import com.castivio.domain.SeriesSummary
+import com.castivio.domain.SteppedChannel
 import com.castivio.feature.activation.ActivationEntry
 import com.castivio.feature.activation.ActivationRoute
 import com.castivio.feature.activation.LanguagePicker
@@ -72,10 +82,17 @@ import com.castivio.feature.home.BrowseScreen
 import com.castivio.feature.home.CatalogSearchScreen
 import com.castivio.feature.home.CatalogSection
 import com.castivio.feature.home.CatalogSelection
+import com.castivio.feature.home.ChannelHidingViewModel
+import com.castivio.feature.home.ChannelLockViewModel
+import com.castivio.feature.home.ChannelZapViewModel
 import com.castivio.feature.home.ChannelsScreen
+import com.castivio.feature.home.ChannelsViewModel
 import com.castivio.feature.home.HomeScreen
+import com.castivio.feature.home.PinPrompt
+import com.castivio.feature.home.PinPurpose
 import com.castivio.feature.home.R as CatalogStrings
 import com.castivio.feature.home.ShowScreen
+import com.castivio.feature.home.asSelection
 import com.castivio.feature.licence.R as LicenceStrings
 import com.castivio.feature.player.PlayerMode
 import com.castivio.feature.player.PlayerRequest
@@ -85,6 +102,9 @@ import com.castivio.tv.R
 import com.castivio.tv.licence.LicenceWithLanguage
 import com.castivio.tv.locale.LocalLocaleController
 import com.castivio.tv.player.PlayerHost
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /** The top-level destinations the shell can be on. */
 private enum class Dest { Home, Live, Movies, Series, Radio, Favourites, Library, Search, Settings }
@@ -296,8 +316,41 @@ fun ShellScreen(
     // what the row already had on screen and becomes a request here -- exactly as a
     // local file does in `PlayerHost`. The player still fetches nothing before its
     // first frame, because there is nothing left for it to fetch.
+    //
+    // **A locked channel asks for its password here too.** The Channels board asks for its own presses,
+    // because it has to hold back what it selects until the password is given. Every other way to a
+    // channel -- a search result, above all -- arrives as this, and the password is asked for before
+    // the player is opened and not after: a locked channel that started and then asked would already
+    // have shown a picture.
+    val lockModel: ChannelLockViewModel = hiltViewModel()
+    // What the viewer has hidden from the channel board, and the way back from Settings.
+    val hidingModel: ChannelHidingViewModel = hiltViewModel()
+    val hiddenBouquets by hidingModel.hiddenBouquets.collectAsState()
+    val hiddenChannels by hidingModel.hiddenChannels.collectAsState()
+    var asking by remember { mutableStateOf<ShellPin?>(null) }
+    val scope = rememberCoroutineScope()
+    val zapModel: ChannelZapViewModel = hiltViewModel()
+    // The board's own holder, which is the activity's: the same one `ChannelsScreen` binds.
+    val board: ChannelsViewModel = hiltViewModel()
+    var zapping by remember { mutableStateOf<Zapping?>(null) }
     val play: (CatalogSelection) -> Unit = { selection ->
-        overlay = Overlay.Play(selection.asPlayerRequest())
+        val start = {
+            val request = selection.asPlayerRequest()
+            // A live channel is one the channel keys step from. Remembered with the request it was
+            // started by, so the keys only ever step from the channel that is actually on screen.
+            zapping = selection.mediaId?.takeIf { selection.live }?.let { Zapping(request, it, selection.listed) }
+            overlay = Overlay.Play(request)
+        }
+        val id = selection.mediaId
+        when (pressVerdictFor(live = selection.live, channelId = id, known = lockModel.locked.value)) {
+            PressVerdict.Start -> start()
+            PressVerdict.Ask -> { asking = ShellPin(PinPurpose.Play) { start() } }
+            PressVerdict.Wait -> {
+                scope.launch {
+                    if (id != null && lockModel.isLocked(id)) asking = ShellPin(PinPurpose.Play) { start() } else start()
+                }
+            }
+        }
     }
 
     // Live is the one section where a press does not open the large player.
@@ -307,7 +360,62 @@ fun ShellScreen(
     // and a full-screen player per press means a press to open and a press to come back
     // for every channel they reject. Expanding is then one further press, on the picture.
     val playInPreview: (CatalogSelection) -> Unit = { selection ->
-        livePreview = selection.asPlayerRequest()
+        val request = selection.asPlayerRequest()
+        livePreview = request
+        zapping = selection.mediaId?.let { Zapping(request, it, selection.listed) }
+    }
+
+    // **The channel keys of the large player: the channel after this one, and the one before.**
+    //
+    // The player says a key was pressed -- see `PlayerRoute.onChannelStep` -- and this is the one
+    // place that knows what a channel is: it reads the neighbour from the channel list, in the order
+    // that list is in, plays it in the large player where the viewer is, and does not go back to a
+    // list. One step at a time, in the order the keys were pressed, so a second press steps from the
+    // channel the first arrived at and not from the one it left.
+    //
+    // A locked neighbour asks for its password like any other press on it, over the player, which goes
+    // on playing the channel it has until the password is given. And while that is asked, the keys are
+    // taken and do nothing: a second step must not open a second question.
+    val stepping = remember { Mutex() }
+    val stepChannel: (Int) -> Unit = { by ->
+        if (asking == null) {
+            scope.launch {
+                stepping.withLock {
+                    val from = zapping ?: return@withLock
+                    val stepped = zapModel.step(from.list, from.channelId, by) ?: return@withLock
+                    val channel = stepped.channel
+                    val selection = channel.asSelection() ?: return@withLock
+                    val begin = {
+                        // Only if the viewer is still where the key was pressed: a question that was
+                        // answered after they had left must not play behind whatever they went to.
+                        if (zapping?.request == from.request) {
+                            val request = selection.asPlayerRequest()
+                            // The plate follows the large player, so that collapsing lands on the channel
+                            // that is playing and not on the one the viewer opened it from.
+                            if (livePreview == from.request) livePreview = request
+                            zapping = Zapping(request, channel.id, from.list, moved = stepped)
+                            overlay = Overlay.Play(request)
+                        }
+                    }
+                    if (lockModel.isLocked(channel.id)) {
+                        asking = ShellPin(PinPurpose.Play, begin)
+                    } else {
+                        begin()
+                    }
+                }
+            }
+        }
+    }
+
+    // Back out of the large player to the board, with the channel still playing.
+    //
+    // If the keys changed the channel, the board's well is told so now and not on every step: it names
+    // the channel that was pressed in its list, and a well that said one channel while the picture was
+    // another is the contradiction it is built to avoid. Told once, here, so a viewer who steps through
+    // forty channels costs the board one guide read and not forty.
+    val collapse: () -> Unit = {
+        overlay = null
+        zapping?.moved?.let { board.select(it.channel, it.position + 1) }
     }
 
     // The compact player, or nothing.
@@ -432,6 +540,11 @@ fun ShellScreen(
                         onDark = onDark,
                         onShowStateBoard = { overlay = Overlay.StateBoard },
                         onShowLicence = { overlay = Overlay.Licence },
+                        onChangePin = { asking = ShellPin(PinPurpose.Change) {} },
+                        hiddenBouquets = hiddenBouquets,
+                        hiddenChannels = hiddenChannels,
+                        onRestoreBouquets = { hidingModel.restore(HiddenKind.BOUQUET) },
+                        onRestoreChannels = { hidingModel.restore(HiddenKind.CHANNEL) },
                     )
                 }
             }
@@ -451,12 +564,11 @@ fun ShellScreen(
             is Overlay.Play -> PlayerRoute(
                 request = o.request,
                 onLeave = { overlay = null },
-                onCollapse = if (o.request == livePreview) {
-                    { overlay = null }
-                } else {
-                    null
-                },
+                onCollapse = if (o.request == livePreview) collapse else null,
                 onPulseChange = { pulse = it },
+                // Only for a live channel that was started from somewhere to step from -- see `Zapping` --
+                // and not while a password is being asked, whose keypad the remote's arrows walk.
+                onChannelStep = if (zapping?.request == o.request && asking == null) stepChannel else null,
             )
             is Overlay.StateBoard -> StateBoardOverlay(onBack = { overlay = null })
             // Reached from a working app, so leaving means returning to
@@ -500,8 +612,41 @@ fun ShellScreen(
             }
             null -> {}
         }
+
+        // Above every overlay, because it is asked for from under one: a locked channel found by search
+        // is pressed on the search screen, and the player has not opened yet.
+        asking?.let { ask ->
+            PinPrompt(
+                purpose = ask.purpose,
+                onGranted = {
+                    asking = null
+                    ask.granted()
+                },
+                onDismiss = { asking = null },
+                model = lockModel,
+            )
+        }
     }
 }
+
+/** A password asked for from the shell, and what is done when it is given. */
+private class ShellPin(val purpose: PinPurpose, val granted: () -> Unit)
+
+/**
+ * The live channel on screen, as far as the large player's channel keys are concerned.
+ *
+ * Held with the request it was started by: the keys step only while the player is showing exactly
+ * that request, so a channel opened some other way -- a film, a file -- is never stepped from a
+ * channel that was there before it.
+ */
+private class Zapping(
+    val request: PlayerRequest,
+    val channelId: String,
+    /** The list it was pressed in, or null, which is its own bouquet. See [ChannelZapViewModel.step]. */
+    val list: CatalogQuery?,
+    /** Where the keys have stepped to, once they have: what the board's well is told when the player collapses. */
+    val moved: SteppedChannel? = null,
+)
 
 /**
  * A catalogue press, as the player's request.
@@ -627,6 +772,12 @@ private fun SettingsScreen(
     onDark: (Boolean) -> Unit,
     onShowStateBoard: () -> Unit,
     onShowLicence: () -> Unit,
+    onChangePin: () -> Unit,
+    /** How many bouquets and channels the viewer has hidden from the channel board, and the way to bring them back. */
+    hiddenBouquets: Int,
+    hiddenChannels: Int,
+    onRestoreBouquets: () -> Unit,
+    onRestoreChannels: () -> Unit,
 ) {
     val colors = CastivioTheme.colors
     PlaceholderStage { frame ->
@@ -683,6 +834,50 @@ private fun SettingsScreen(
                 )
             }
         }
+
+        // The channel lock's password, which is 0000 until it is changed here. Asked for the current
+        // one first, then the new one twice -- see `PinPromptState`.
+        Text(
+            stringResource(CatalogStrings.string.settings_pin_section),
+            style = CastivioType.titleMedium,
+            color = colors.onBackground,
+        )
+        Text(
+            stringResource(CatalogStrings.string.settings_pin_detail),
+            style = CastivioType.bodySmall,
+            color = colors.onBackgroundMuted,
+        )
+        SettingRow(
+            icon = Icons.Filled.Lock,
+            label = stringResource(CatalogStrings.string.settings_pin_change),
+            onClick = onChangePin,
+        )
+
+        // What was hidden from the channel board, and the way back. Hiding is local: nothing was deleted
+        // from the subscription, so restoring only stops leaving the items out. Each row says how many it
+        // would bring back and, with none hidden, is a line of information and nothing to press.
+        Text(
+            stringResource(CatalogStrings.string.settings_hidden_section),
+            style = CastivioType.titleMedium,
+            color = colors.onBackground,
+        )
+        Text(
+            stringResource(CatalogStrings.string.settings_hidden_detail),
+            style = CastivioType.bodySmall,
+            color = colors.onBackgroundMuted,
+        )
+        SettingRow(
+            icon = Icons.Filled.Visibility,
+            label = stringResource(CatalogStrings.string.settings_hidden_bouquets),
+            value = hiddenBouquets.toString(),
+            onClick = if (hiddenBouquets > 0) onRestoreBouquets else null,
+        )
+        SettingRow(
+            icon = Icons.Filled.Visibility,
+            label = stringResource(CatalogStrings.string.settings_hidden_channels),
+            value = hiddenChannels.toString(),
+            onClick = if (hiddenChannels > 0) onRestoreChannels else null,
+        )
 
         Text(
             stringResource(R.string.settings_player),

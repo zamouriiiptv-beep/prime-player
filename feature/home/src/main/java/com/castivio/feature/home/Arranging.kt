@@ -42,6 +42,11 @@ data class Arranging(
     val channelsOf: String?,
     val held: Held? = null,
     /**
+     * The rows ticked to be moved together -- of one list, bouquets or channels -- before any is picked up.
+     * Empty is how reorder mode has always been: one row picked up, one row moved. See [carried].
+     */
+    val marked: Set<Held> = emptySet(),
+    /**
      * A channel was moved. A save writes the bouquet's channels only if one was: an order is the
      * viewer's, and one they did not make is not stored in their name.
      */
@@ -55,18 +60,47 @@ data class Arranging(
     val bouquetsMoved: Boolean get() = bouquets != initial
 
     /**
-     * Pressing a row that is already held puts it down; pressing another picks that one up
-     * instead. One thing is held at a time.
+     * What the arrows move: the ticked rows when the one picked up is one of them -- all together -- and
+     * otherwise only the one picked up. Nothing when nothing is picked up.
      */
-    fun pressed(row: Held): Arranging = copy(held = if (held == row) null else row)
+    val carried: Set<Held> get() {
+        val row = held ?: return emptySet()
+        return if (row in marked) marked.filterTo(HashSet()) { it::class == row::class } else setOf(row)
+    }
 
-    /** Put whatever is held down. */
-    fun dropped(): Arranging = copy(held = null)
+    /**
+     * Pressing a row that is already held puts it down -- the whole group, if it carries one, and the
+     * ticks with it. Pressing a ticked row picks the ticked rows up together, with this one under the
+     * finger; pressing any other picks that one up alone, instead, and the ticks are let go. One thing, or
+     * one group, is held at a time.
+     */
+    fun pressed(row: Held): Arranging = when {
+        held == row -> copy(held = null, marked = emptySet())
+        row in marked -> copy(held = row)
+        else -> copy(held = row, marked = emptySet())
+    }
 
-    /** The held bouquet one place up or down; anything else held, or nothing, is unchanged. */
+    /**
+     * A tick on [row], or -- it had one -- taken off: the long press, and a remote's OK held. Only while
+     * nothing is picked up, and only among rows of one list: a tick on a bouquet after ticks on channels
+     * begins again with the bouquet. Nothing is moved by it.
+     */
+    fun markedToggled(row: Held): Arranging {
+        if (held != null) return this
+        val same = marked.filterTo(HashSet()) { it::class == row::class }
+        return copy(marked = if (row in same) same - row else same + row)
+    }
+
+    /** Put whatever is held down, and let the ticks go. */
+    fun dropped(): Arranging = copy(held = null, marked = emptySet())
+
+    /**
+     * What is carried -- the picked-up bouquet, or the ticked ones with it -- one place up or down;
+     * anything else held, or nothing, is unchanged.
+     */
     fun withHeldBouquetMoved(up: Boolean): Arranging {
-        val bouquet = held as? Held.Bouquet ?: return this
-        return copy(bouquets = bouquets.moved(bouquet.id, up))
+        if (held !is Held.Bouquet) return this
+        return copy(bouquets = bouquets.movedAll(carried.map { it.id }, up))
     }
 }
 
@@ -83,6 +117,28 @@ internal fun List<String>.moved(id: String, up: Boolean): List<String> {
         this[to] = this[from]
         this[from] = neighbour
     }
+}
+
+/**
+ * Every one of [ids] one place up or down in this list, **together**: each moves past the row next to it
+ * unless that row is one of the group, so the group keeps its order among itself, moves as one, and bunches
+ * at an edge -- the first to reach it stays, and the others come up against it.
+ *
+ * With one id this is [moved]. The list is returned as it is when nothing of [ids] can move.
+ */
+internal fun List<String>.movedAll(ids: Collection<String>, up: Boolean): List<String> {
+    val group = ids.toSet()
+    val result = toMutableList()
+    // From the edge the group is heading for, so a row is never moved onto the one it has to wait for.
+    for (from in if (up) result.indices else result.indices.reversed()) {
+        if (result[from] !in group) continue
+        val to = if (up) from - 1 else from + 1
+        if (to !in result.indices || result[to] in group) continue
+        val neighbour = result[to]
+        result[to] = result[from]
+        result[from] = neighbour
+    }
+    return result
 }
 
 /**

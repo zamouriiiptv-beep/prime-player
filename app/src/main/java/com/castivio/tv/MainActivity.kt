@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -25,6 +26,8 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.castivio.core.design.components.CastivioIntro
+import com.castivio.core.design.input.KeyRelay
+import com.castivio.core.design.input.LocalKeyRelay
 import com.castivio.core.design.theme.CastivioThemeSwitch
 import com.castivio.core.design.theme.LocalThemeSwitch
 import com.castivio.data.preferences.ThemeStore
@@ -154,6 +157,26 @@ class MainActivity : ComponentActivity() {
         locale.refreshFromSystem()
     }
 
+    /**
+     * Who has the remote's keys before the focus does -- see [KeyRelay].
+     *
+     * One object for the activity, offered every key below and handed to the screens as a
+     * `CompositionLocal`: the full-screen player claims the channel keys through it while it is
+     * on screen with a list to step through, and nothing else ever does.
+     */
+    private val keyRelay = KeyRelay()
+
+    /**
+     * Every key, offered to the screen that has claimed the keys, and only then to the rest.
+     *
+     * With no claim -- everywhere but the large player -- [KeyRelay.offer] says no and this is
+     * `super`'s answer to the letter. A screen that claims takes the few keys it means and says no
+     * to the others, so selection, back, the arrows and typing reach the focus as they always did.
+     */
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean =
+        keyRelay.offer(event.keyCode, event.action == KeyEvent.ACTION_DOWN, event.repeatCount) ||
+            super.dispatchKeyEvent(event)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -238,6 +261,7 @@ class MainActivity : ComponentActivity() {
                         LayoutDirection.Ltr
                     },
                 LocalThemeSwitch provides switch,
+                LocalKeyRelay provides keyRelay,
             ) {
                 CastivioTheme(
                     performance = performance,

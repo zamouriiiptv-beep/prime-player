@@ -42,7 +42,7 @@ object CastivioMigrations {
     // Declared below rather than here, and read through a getter rather than held in a
     // property: an `object`'s properties initialise top to bottom, so a list that
     // named a migration declared under it would be a list holding null.
-    val ALL: Array<Migration> get() = arrayOf(REKEY_SOURCES, SCOPE_TO_SOURCE, KEY_SEARCH_BY_ROW, ADD_CUSTOM_ORDER)
+    val ALL: Array<Migration> get() = arrayOf(REKEY_SOURCES, SCOPE_TO_SOURCE, KEY_SEARCH_BY_ROW, ADD_CUSTOM_ORDER, ADD_HIDDEN_ITEM)
 
     /**
      * 1 → 2: the stored sources take the ids the current rule gives them.
@@ -252,6 +252,23 @@ object CastivioMigrations {
     }
 
     /**
+     * Adds `hidden_item`: the bouquets and channels a viewer hides from the board.
+     *
+     * A table written as Room writes it for `HiddenEntity` -- Room checks the table it finds against the
+     * entity on open, so the columns, their types and the key are exactly the entity's. Nothing is read
+     * or changed, and it is user data from its first row, so [USER_TABLES] names it and no migration
+     * may drop it: a re-import replaces the catalogue and must leave what was hidden hidden.
+     */
+    private val ADD_HIDDEN_ITEM = object : Migration(5, 6) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `hidden_item` (`item_id` TEXT NOT NULL, `type` TEXT NOT NULL, " +
+                    "`hidden_at` INTEGER NOT NULL, PRIMARY KEY(`item_id`))",
+            )
+        }
+    }
+
+    /**
      * Removes catalogue rows whose subscription no longer exists.
      *
      * `media_fts` first, while `media` can still say which rows were whose: the search
@@ -338,5 +355,5 @@ object CastivioMigrations {
     val CATALOGUE_TABLES = listOf("media_fts", "media", "media_group", "programme")
 
     /** Not rebuildable from anywhere. */
-    val USER_TABLES = listOf("favorite", "playback_progress", "source", "custom_order")
+    val USER_TABLES = listOf("favorite", "playback_progress", "source", "custom_order", "hidden_item")
 }

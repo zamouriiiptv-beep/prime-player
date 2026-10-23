@@ -8,6 +8,7 @@ import com.castivio.domain.FavoritesRepository
 import com.castivio.domain.PlaybackProgress
 import com.castivio.domain.ProgressRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 class RoomFavoritesRepository(
     private val dao: FavoriteDao,
@@ -23,6 +24,22 @@ class RoomFavoritesRepository(
     }
 
     override fun count(): Flow<Int> = dao.count()
+
+    override fun ids(): Flow<Set<String>> = dao.ids().map { it.toSet() }
+
+    override suspend fun set(mediaIds: Collection<String>, favorite: Boolean) {
+        val distinct = mediaIds.distinct()
+        if (distinct.isEmpty()) return
+        val now = clock()
+        distinct.chunked(MAX_IDS_PER_STATEMENT).forEach { chunk ->
+            if (favorite) dao.addAll(chunk.map { FavoriteEntity(it, now) }) else dao.removeAll(chunk)
+        }
+    }
+
+    private companion object {
+        /** SQLite's bind-variable limit is 999 on older Android; stay clear of it. */
+        const val MAX_IDS_PER_STATEMENT = 400
+    }
 }
 
 class RoomProgressRepository(

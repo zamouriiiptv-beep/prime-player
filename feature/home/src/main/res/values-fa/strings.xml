@@ -133,11 +133,23 @@
     <string name="reorder_hint_pick">برای برداشتن یک دسته یا کانال، روی آن OK را فشار دهید.</string>
     <string name="reorder_hint_move">با ↑ و ↓ جابه‌جایش کنید و برای گذاشتن آن OK را فشار دهید.</string>
     <string name="reorder_hint_all">ابتدا یک دسته را باز کنید تا کانال‌هایش را مرتب کنید.</string>
+    <string name="reorder_hint_mark">برای علامت‌زدن چند ردیف و جابه‌جایی همزمان، روی آن‌ها OK را نگه دارید.</string>
+    <string name="reorder_hint_marked">علامت‌خورده: %1$d. روی یکی از آن‌ها OK بزنید تا همه با هم برداشته شوند.</string>
     <string name="reorder_failed">ترتیب ذخیره نشد. دوباره تلاش کنید.</string>
     <string name="reorder_move_up">انتقال به بالا</string>
     <string name="reorder_move_down">انتقال به پایین</string>
     <string name="channels_empty_title">اینجا کانالی نیست</string>
     <string name="channels_empty_detail">این دسته هنوز چیزی ندارد. دستهٔ دیگری را بیازمایید، یا این بخش را دوباره دانلود کنید.</string>
+    <string name="channels_favorites_empty_title">هنوز کانال موردعلاقه‌ای نیست</string>
+    <string name="channels_favorites_empty_detail">«برگزیده» را بزنید، کانال‌های دلخواه را انتخاب کنید و برای افزودن دوباره «برگزیده» را بزنید.</string>
+    <string name="hide_bouquets_title">پنهان‌کردن بسته‌ها</string>
+    <string name="hide_channels_title">پنهان‌کردن کانال‌ها</string>
+    <string name="hide_hint">مواردی را که می‌خواهید پنهان شوند علامت بزنید و «پنهان‌کردن انتخاب‌شده‌ها» را بزنید. چیزی حذف نمی‌شود و از تنظیمات برمی‌گردد.</string>
+    <string name="hide_confirm">پنهان‌کردن انتخاب‌شده‌ها</string>
+    <string name="settings_hidden_section">موارد پنهان</string>
+    <string name="settings_hidden_detail">بسته‌ها و کانال‌های پنهان‌شده در اشتراک شما می‌مانند. برای بازگرداندن همه فشار دهید.</string>
+    <string name="settings_hidden_bouquets">بازگرداندن بسته‌های پنهان</string>
+    <string name="settings_hidden_channels">بازگرداندن کانال‌های پنهان</string>
     <string name="channels_fetch_failed">تلویزیون زنده دانلود نشد</string>
     <string name="channels_guide_now">اکنون</string>
     <string name="channels_guide_next">بعدی</string>
@@ -152,6 +164,32 @@
     <string name="channels_action_unfavorite">در برگزیده‌ها</string>
     <string name="channels_action_lock">قفل</string>
     <string name="channels_action_hide">پنهان</string>
+
+    <string name="pin_title_play">کانال قفل‌شده</string>
+    <string name="pin_message_play">برای پخش این کانال رمز را وارد کنید.</string>
+    <string name="pin_title_lock">قفل کردن کانال</string>
+    <string name="pin_message_lock">برای قفل کردن این کانال رمز را وارد کنید.</string>
+    <string name="pin_title_unlock">باز کردن قفل کانال</string>
+    <string name="pin_message_unlock">برای باز کردن قفل این کانال رمز را وارد کنید.</string>
+    <string name="pin_title_current">رمز فعلی</string>
+    <string name="pin_message_current">رمز فعلی را وارد کنید.</string>
+    <string name="pin_title_new">رمز جدید</string>
+    <string name="pin_message_new">۴ رقم انتخاب کنید.</string>
+    <string name="pin_title_repeat">تکرار رمز</string>
+    <string name="pin_message_repeat">همان ارقام را دوباره وارد کنید.</string>
+    <string name="pin_wrong">رمز نادرست است.</string>
+    <string name="pin_mismatch">ارقام یکسان نبودند. رمز جدید را دوباره انتخاب کنید.</string>
+    <string name="pin_cancel">انصراف</string>
+    <string name="pin_delete">حذف</string>
+    <string name="pin_progress">%1$d از %2$d رقم</string>
+    <string name="pin_changed_title">رمز تغییر کرد</string>
+    <string name="pin_changed_body">از این پس رمز جدید کانال‌ها را قفل و باز می‌کند.</string>
+    <string name="pin_done">باشه</string>
+    <string name="channels_action_unlock">باز کردن قفل</string>
+    <string name="channels_locked">قفل‌شده</string>
+    <string name="settings_pin_section">قفل کانال</string>
+    <string name="settings_pin_change">تغییر رمز</string>
+    <string name="settings_pin_detail">رمزی که کانال‌ها را قفل و باز می‌کند. تا زمانی که آن را تغییر ندهید 0000 است.</string>
     <string name="channels_live_badge">زنده</string>
 
 </resources>
