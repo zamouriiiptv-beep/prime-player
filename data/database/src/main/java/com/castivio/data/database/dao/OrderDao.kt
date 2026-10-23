@@ -123,9 +123,6 @@ interface OrderDao {
         return moved
     }
 
-    @Query("SELECT position FROM custom_order WHERE scope = :scope AND item_id = :id")
-    suspend fun positionOf(scope: String, id: String): Long?
-
     /**
      * The nearest place below [position] in this list. Only rows of channels the bouquet still
      * has: a channel the provider took away is not a place anyone can see.
