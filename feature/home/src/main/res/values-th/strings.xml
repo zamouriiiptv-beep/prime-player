@@ -142,8 +142,7 @@
     <string name="channels_empty_detail">หมวดนี้ยังไม่มีอะไร ลองหมวดอื่น หรือดาวน์โหลดส่วนนี้ใหม่</string>
     <string name="channels_favorites_empty_title">ยังไม่มีช่องโปรด</string>
     <string name="channels_favorites_empty_detail">กด “เพิ่มรายการโปรด” เลือกช่องที่คุณชอบ แล้วกด “เพิ่มรายการโปรด” อีกครั้งเพื่อเพิ่ม</string>
-    <string name="hide_bouquets_title">ซ่อนแพ็กเกจ</string>
-    <string name="hide_channels_title">ซ่อนช่อง</string>
+    <string name="hide_title">ซ่อนแพ็กเกจและช่อง</string>
     <string name="hide_hint">ทำเครื่องหมายสิ่งที่ต้องการซ่อน แล้วกด “ซ่อนที่เลือก” ระบบจะไม่ลบอะไร และคืนค่าได้ในการตั้งค่า</string>
     <string name="hide_confirm">ซ่อนที่เลือก</string>
     <string name="settings_hidden_section">รายการที่ซ่อน</string>

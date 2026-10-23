@@ -142,8 +142,7 @@
     <string name="channels_empty_detail">Ця категорія поки порожня. Спробуйте іншу або завантажте розділ знову.</string>
     <string name="channels_favorites_empty_title">Обраних каналів поки немає</string>
     <string name="channels_favorites_empty_detail">Натисніть «В обране», виберіть канали, які вам подобаються, і натисніть «В обране» ще раз, щоб додати їх.</string>
-    <string name="hide_bouquets_title">Приховати пакети</string>
-    <string name="hide_channels_title">Приховати канали</string>
+    <string name="hide_title">Приховати пакети й канали</string>
     <string name="hide_hint">Позначте, що приховати, і натисніть «Приховати вибране». Нічого не видаляється; повернути можна в налаштуваннях.</string>
     <string name="hide_confirm">Приховати вибране</string>
     <string name="settings_hidden_section">Приховані елементи</string>

@@ -246,4 +246,56 @@ class ChannelRowTest {
         compose.onNode(hasText("Alpha 4K UHD FHD HD")).assertExists()
         for (word in listOf("SD", "HD", "FHD", "4K", "UHD")) compose.onNode(hasText(word)).assertDoesNotExist()
     }
+
+    // ------------------------------------------------------------------------------ the favourite star
+
+    private var star = ""
+
+    /** Alpha a favourite and Beta not; [pick] is what both rows are told, as the picking mode tells them. */
+    private fun showFavorites(pick: (Channel) -> RowPick? = { null }) {
+        compose.setContent {
+            CastivioTheme {
+                star = stringResource(R.string.channels_favorites)
+                val m = channelsMetricsFor(tv = true, width = 960.dp, height = 540.dp)
+                Column {
+                    listOf(alpha, beta).forEachIndexed { index, channel ->
+                        ChannelRow(
+                            channel = channel,
+                            number = index + 1,
+                            playing = false,
+                            m = m,
+                            onClick = {},
+                            favorite = channel == alpha,
+                            pick = pick(channel),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a favourite's row carries the star, and another row does not`() {
+        showFavorites()
+
+        compose.onNode(hasText("Alpha") and hasContentDescription(star)).assertExists()
+        compose.onNode(hasText("Beta") and hasContentDescription(star)).assertDoesNotExist()
+        compose.onAllNodes(hasContentDescription(star)).assertCountEquals(1)
+    }
+
+    @Test
+    fun `while picking favourites a favourite still has one star, not two`() {
+        showFavorites { RowPick(picked = false, favorite = it == alpha) }
+
+        compose.onAllNodes(hasContentDescription(star)).assertCountEquals(1)
+        compose.onNode(hasText("Alpha") and hasContentDescription(star)).assertExists()
+    }
+
+    @Test
+    fun `while choosing what to hide a favourite keeps its star beside the circle`() {
+        showFavorites { RowPick(picked = false, favorite = false) }
+
+        compose.onNode(hasText("Alpha") and hasContentDescription(star)).assertExists()
+        compose.onAllNodes(hasContentDescription(star)).assertCountEquals(1)
+    }
 }

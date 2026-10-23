@@ -142,8 +142,7 @@
     <string name="channels_empty_detail">Tässä luokassa ei ole vielä mitään. Kokeile toista tai lataa osio uudelleen.</string>
     <string name="channels_favorites_empty_title">Ei vielä suosikkikanavia</string>
     <string name="channels_favorites_empty_detail">Paina ”Suosikiksi”, valitse haluamasi kanavat ja lisää ne painamalla ”Suosikiksi” uudelleen.</string>
-    <string name="hide_bouquets_title">Piilota paketit</string>
-    <string name="hide_channels_title">Piilota kanavat</string>
+    <string name="hide_title">Piilota paketit ja kanavat</string>
     <string name="hide_hint">Valitse piilotettavat ja paina Piilota valitut. Mitään ei poisteta; Asetukset palauttaa ne.</string>
     <string name="hide_confirm">Piilota valitut</string>
     <string name="settings_hidden_section">Piilotetut kohteet</string>

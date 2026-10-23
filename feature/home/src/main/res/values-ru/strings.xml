@@ -142,8 +142,7 @@
     <string name="channels_empty_detail">Эта категория пока пуста. Попробуйте другую или загрузите раздел заново.</string>
     <string name="channels_favorites_empty_title">Избранных каналов пока нет</string>
     <string name="channels_favorites_empty_detail">Нажмите «В избранное», выберите нужные каналы и нажмите «В избранное» ещё раз, чтобы добавить их.</string>
-    <string name="hide_bouquets_title">Скрыть пакеты</string>
-    <string name="hide_channels_title">Скрыть каналы</string>
+    <string name="hide_title">Скрыть пакеты и каналы</string>
     <string name="hide_hint">Отметьте, что скрыть, и нажмите «Скрыть выбранное». Ничего не удаляется; вернуть можно в настройках.</string>
     <string name="hide_confirm">Скрыть выбранное</string>
     <string name="settings_hidden_section">Скрытые элементы</string>

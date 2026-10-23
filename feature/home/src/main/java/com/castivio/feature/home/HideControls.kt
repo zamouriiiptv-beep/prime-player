@@ -25,7 +25,6 @@ import com.castivio.core.design.components.CastivioButton
 import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.theme.CastivioTheme
-import com.castivio.domain.HiddenKind
 
 /**
  * Choosing what to hide, as the board's columns see it: what is being chosen and what is ticked, and
@@ -38,40 +37,50 @@ import com.castivio.domain.HiddenKind
 internal class HidingUi(
     /** What is being chosen, or null when the board is not choosing. */
     val hiding: Hiding?,
-    /** A press on a row while choosing: it is ticked, or put back. */
-    val toggle: (String) -> Unit,
+    /** A press on a bouquet while choosing: it is ticked, or put back. */
+    val toggleBouquet: (String) -> Unit,
+    /** A press on a channel while choosing: it is ticked, or put back. */
+    val toggleChannel: (String) -> Unit,
     /** The bar's Hide selected: hide what is ticked and leave the mode. */
     val confirm: () -> Unit,
     /** The bar's Cancel, and Back: leave the mode, hiding nothing. */
     val cancel: () -> Unit,
-    /** The strip's Hide button pressed: choose bouquets. */
+    /** The strip's Hide button pressed: start choosing. */
     val press: () -> Unit,
-    /** The same button held: choose channels. */
+    /** The same button held: the same, so a press held a little long is not lost. */
     val hold: () -> Unit,
 ) {
     val active: Boolean get() = hiding != null
 
-    /** The rail is for ticking bouquets. */
-    val bouquets: Boolean get() = hiding?.kind == HiddenKind.BOUQUET
+    /** The rail is for ticking bouquets -- for as long as the board is choosing. */
+    val bouquets: Boolean get() = active
 
-    /** The list is for ticking channels. */
-    val channels: Boolean get() = hiding?.kind == HiddenKind.CHANNEL
+    /** The list is for ticking channels -- at the same time as the rail is for bouquets. */
+    val channels: Boolean get() = active
 
-    /** What a bouquet's entry is told while bouquets are chosen, or null when they are not. */
-    fun bouquetMarkOf(id: String): RowPick? = hiding?.takeIf { bouquets }?.let { RowPick(picked = id in it.picked, favorite = false) }
+    /** What a bouquet's entry is told while the board is choosing, or null when it is not. */
+    fun bouquetMarkOf(id: String): RowPick? = hiding?.let { RowPick(picked = id in it.bouquets, favorite = false) }
 
-    /** What a channel's row is told while channels are chosen, or null when they are not. */
-    fun channelMarkOf(id: String): RowPick? = hiding?.takeIf { channels }?.let { RowPick(picked = id in it.picked, favorite = false) }
+    /** What a channel's row is told while the board is choosing, or null when it is not. */
+    fun channelMarkOf(id: String): RowPick? = hiding?.let { RowPick(picked = id in it.channels, favorite = false) }
 
     companion object {
         /** A board that is not told about hiding: nothing to draw, nothing ticked, nothing to press. */
-        val None = HidingUi(hiding = null, toggle = {}, confirm = {}, cancel = {}, press = {}, hold = {})
+        val None = HidingUi(
+            hiding = null,
+            toggleBouquet = {},
+            toggleChannel = {},
+            confirm = {},
+            cancel = {},
+            press = {},
+            hold = {},
+        )
     }
 }
 
 /**
- * The band over the board while it is choosing what to hide: which of the two it is, what to press, and
- * the two ways out.
+ * The band over the board while it is choosing what to hide: what the mode is, what to press, and the
+ * two ways out.
  *
  * It is [ReorderBar]'s own shape -- the same band between the header and the columns, the same pair of
  * the system's buttons at its trailing end -- because it does the same job for a different mode: says
@@ -104,9 +113,7 @@ internal fun HideBar(
         ) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = stringResource(
-                        if (hiding.kind == HiddenKind.BOUQUET) R.string.hide_bouquets_title else R.string.hide_channels_title,
-                    ),
+                    text = stringResource(R.string.hide_title),
                     style = castivioChipStyle(m.frame.fsLabel),
                     color = colors.secondary,
                     maxLines = 1,
@@ -128,7 +135,7 @@ internal fun HideBar(
                 text = stringResource(R.string.hide_confirm),
                 onClick = onConfirm,
                 weight = ButtonWeight.Primary,
-                enabled = hiding.picked.isNotEmpty(),
+                enabled = hiding.any,
             )
         }
     }

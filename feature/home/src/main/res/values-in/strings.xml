@@ -142,8 +142,7 @@
     <string name="channels_empty_detail">Kategori ini belum berisi apa pun. Coba yang lain, atau unduh ulang bagian ini.</string>
     <string name="channels_favorites_empty_title">Belum ada saluran favorit</string>
     <string name="channels_favorites_empty_detail">Tekan “Favoritkan”, pilih saluran yang Anda suka, lalu tekan “Favoritkan” lagi untuk menambahkannya.</string>
-    <string name="hide_bouquets_title">Sembunyikan paket</string>
-    <string name="hide_channels_title">Sembunyikan saluran</string>
+    <string name="hide_title">Sembunyikan buket dan saluran</string>
     <string name="hide_hint">Centang yang ingin disembunyikan, lalu tekan Sembunyikan terpilih. Tidak ada yang dihapus; Pengaturan mengembalikannya.</string>
     <string name="hide_confirm">Sembunyikan terpilih</string>
     <string name="settings_hidden_section">Item tersembunyi</string>

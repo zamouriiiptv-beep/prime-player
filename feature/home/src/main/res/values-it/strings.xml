@@ -142,8 +142,7 @@
     <string name="channels_empty_detail">Questa categoria è ancora vuota. Provane un’altra, oppure scarica di nuovo la sezione.</string>
     <string name="channels_favorites_empty_title">Ancora nessun canale preferito</string>
     <string name="channels_favorites_empty_detail">Premi «Preferito», scegli i canali che ti piacciono e premi di nuovo «Preferito» per aggiungerli.</string>
-    <string name="hide_bouquets_title">Nascondi bouquet</string>
-    <string name="hide_channels_title">Nascondi canali</string>
+    <string name="hide_title">Nascondi bouquet e canali</string>
     <string name="hide_hint">Seleziona ciò che vuoi nascondere, poi premi Nascondi selezione. Non viene eliminato nulla; le Impostazioni lo ripristinano.</string>
     <string name="hide_confirm">Nascondi selezione</string>
     <string name="settings_hidden_section">Elementi nascosti</string>

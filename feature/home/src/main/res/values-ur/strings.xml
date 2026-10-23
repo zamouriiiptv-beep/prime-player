@@ -142,8 +142,7 @@
     <string name="channels_empty_detail">اس زمرے میں ابھی کچھ نہیں۔ کوئی اور آزمائیں، یا یہ حصہ دوبارہ ڈاؤن لوڈ کریں۔</string>
     <string name="channels_favorites_empty_title">ابھی کوئی پسندیدہ چینل نہیں</string>
     <string name="channels_favorites_empty_detail">“پسندیدہ بنائیں” دبائیں، اپنے پسندیدہ چینل منتخب کریں، پھر انہیں شامل کرنے کے لیے دوبارہ “پسندیدہ بنائیں” دبائیں۔</string>
-    <string name="hide_bouquets_title">پیکیجز چھپائیں</string>
-    <string name="hide_channels_title">چینلز چھپائیں</string>
+    <string name="hide_title">بوکے اور چینل چھپائیں</string>
     <string name="hide_hint">جو چھپانا ہو اس پر نشان لگائیں، پھر «منتخب چھپائیں» دبائیں۔ کچھ حذف نہیں ہوتا؛ ترتیبات میں واپس لایا جا سکتا ہے۔</string>
     <string name="hide_confirm">منتخب چھپائیں</string>
     <string name="settings_hidden_section">چھپے ہوئے آئٹمز</string>

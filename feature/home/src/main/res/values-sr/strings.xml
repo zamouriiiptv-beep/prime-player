@@ -142,8 +142,7 @@
     <string name="channels_empty_detail">У овој категорији још нема ничега. Пробајте другу или поново преузмите одељак.</string>
     <string name="channels_favorites_empty_title">Још нема омиљених канала</string>
     <string name="channels_favorites_empty_detail">Притисните „Додај у омиљено“, изаберите канале који вам се свиђају, па поново притисните „Додај у омиљено“ да их додате.</string>
-    <string name="hide_bouquets_title">Сакриј пакете</string>
-    <string name="hide_channels_title">Сакриј канале</string>
+    <string name="hide_title">Сакриј пакете и канале</string>
     <string name="hide_hint">Означите шта да сакријете и притисните „Сакриј изабрано“. Ништа се не брише; подешавања то враћају.</string>
     <string name="hide_confirm">Сакриј изабрано</string>
     <string name="settings_hidden_section">Сакривене ставке</string>

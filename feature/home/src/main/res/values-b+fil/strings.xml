@@ -142,8 +142,7 @@
     <string name="channels_empty_detail">Wala pang laman ang kategoryang ito. Sumubok ng iba, o i-download muli ang seksyon.</string>
     <string name="channels_favorites_empty_title">Wala pang paboritong channel</string>
     <string name="channels_favorites_empty_detail">Pindutin ang Paboritohin, piliin ang mga channel na gusto mo, saka pindutin muli ang Paboritohin para idagdag.</string>
-    <string name="hide_bouquets_title">Itago ang mga package</string>
-    <string name="hide_channels_title">Itago ang mga channel</string>
+    <string name="hide_title">Itago ang mga bouquet at channel</string>
     <string name="hide_hint">Lagyan ng tsek ang itatago, saka pindutin ang Itago ang napili. Walang buburahin; maibabalik ito sa Mga Setting.</string>
     <string name="hide_confirm">Itago ang napili</string>
     <string name="settings_hidden_section">Mga nakatagong item</string>

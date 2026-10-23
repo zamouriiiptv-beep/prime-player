@@ -142,8 +142,7 @@
     <string name="channels_empty_detail">В тази категория още няма нищо. Опитайте друга или изтеглете раздела отново.</string>
     <string name="channels_favorites_empty_title">Още няма любими канали</string>
     <string name="channels_favorites_empty_detail">Натиснете „Към любими“, изберете каналите, които харесвате, и натиснете „Към любими“ отново, за да ги добавите.</string>
-    <string name="hide_bouquets_title">Скриване на пакети</string>
-    <string name="hide_channels_title">Скриване на канали</string>
+    <string name="hide_title">Скриване на пакети и канали</string>
     <string name="hide_hint">Отбележете какво да скриете и натиснете „Скрий избраните“. Нищо не се изтрива; настройките го връщат.</string>
     <string name="hide_confirm">Скрий избраните</string>
     <string name="settings_hidden_section">Скрити елементи</string>

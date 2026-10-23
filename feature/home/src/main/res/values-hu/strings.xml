@@ -142,8 +142,7 @@
     <string name="channels_empty_detail">Ebben a kategóriában még nincs semmi. Próbáljon másikat, vagy töltse le újra a szakaszt.</string>
     <string name="channels_favorites_empty_title">Még nincsenek kedvenc csatornák</string>
     <string name="channels_favorites_empty_detail">Nyomd meg a(z) „Kedvencekhez” gombot, válaszd ki a kedvelt csatornákat, majd a hozzáadáshoz nyomd meg újra a(z) „Kedvencekhez” gombot.</string>
-    <string name="hide_bouquets_title">Csomagok elrejtése</string>
-    <string name="hide_channels_title">Csatornák elrejtése</string>
+    <string name="hide_title">Csomagok és csatornák elrejtése</string>
     <string name="hide_hint">Jelöld be, amit el szeretnél rejteni, majd nyomd meg a Kijelöltek elrejtése gombot. Semmi nem törlődik; a Beállítások visszahozza.</string>
     <string name="hide_confirm">Kijelöltek elrejtése</string>
     <string name="settings_hidden_section">Elrejtett elemek</string>

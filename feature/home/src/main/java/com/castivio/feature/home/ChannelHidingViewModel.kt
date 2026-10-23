@@ -15,12 +15,16 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * The board is choosing what to hide: bouquets, or channels, and which are ticked so far.
+ * The board is choosing what to hide, and which bouquets and which channels are ticked so far.
  *
- * One kind at a time. Hiding bouquets and hiding channels are two modes that never share a tick: the
- * set is of the kind it was begun for, and a press on a row that is not of that kind is not a tick.
+ * Both at once: while it lasts the rail's bouquets and the list's channels carry the same circles, and
+ * Hide selected hides every one that is ticked, of either kind. They are kept apart because they are
+ * hidden apart -- a bouquet takes its channels with it, a channel only itself.
  */
-data class Hiding(val kind: HiddenKind, val picked: Set<String> = emptySet())
+data class Hiding(val bouquets: Set<String> = emptySet(), val channels: Set<String> = emptySet()) {
+    /** Something is ticked, so Hide selected has something to do. */
+    val any: Boolean get() = bouquets.isNotEmpty() || channels.isNotEmpty()
+}
 
 /**
  * Hiding bouquets and channels from the channel board in bulk -- the choice, the one write that hides
@@ -57,14 +61,19 @@ class ChannelHidingViewModel @Inject constructor(
     val hiddenChannels: StateFlow<Int> = hidden.count(HiddenKind.CHANNEL)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(GRACE_MS), 0)
 
-    /** Start choosing [kind], with nothing ticked. Nothing happens while the board is choosing already. */
-    fun begin(kind: HiddenKind) {
-        if (_hiding.value == null) _hiding.value = Hiding(kind)
+    /** Start choosing, with nothing ticked. Nothing happens while the board is choosing already. */
+    fun begin() {
+        if (_hiding.value == null) _hiding.value = Hiding()
     }
 
-    /** A press on a row while choosing: it is ticked, or -- it was -- put back. */
-    fun toggle(id: String) {
-        _hiding.update { it?.copy(picked = it.picked.toggled(id)) }
+    /** A press on a bouquet while choosing: it is ticked, or -- it was -- put back. */
+    fun toggleBouquet(id: String) {
+        _hiding.update { it?.copy(bouquets = it.bouquets.toggled(id)) }
+    }
+
+    /** A press on a channel while choosing: it is ticked, or -- it was -- put back. */
+    fun toggleChannel(id: String) {
+        _hiding.update { it?.copy(channels = it.channels.toggled(id)) }
     }
 
     /** Leave without hiding anything. */
@@ -73,20 +82,29 @@ class ChannelHidingViewModel @Inject constructor(
     }
 
     /**
-     * Hide every ticked item, in one write, and leave the mode. Nothing ticked leaves the mode and
-     * writes nothing. If it cannot be written the ticks are kept, so the same press tries again.
+     * Hide every ticked item and leave the mode: the bouquets in one write and the channels in another.
+     * Nothing ticked leaves the mode and writes nothing. What cannot be written stays ticked -- only that,
+     * a kind already hidden is not ticked again -- so the same press tries again.
      */
     fun confirm() {
         val now = _hiding.value ?: return
         _hiding.value = null
-        if (now.picked.isEmpty()) return
+        if (!now.any) return
         viewModelScope.launch {
+            var left = now
             try {
-                hidden.hide(now.kind, now.picked)
+                if (left.bouquets.isNotEmpty()) {
+                    hidden.hide(HiddenKind.BOUQUET, left.bouquets)
+                    left = left.copy(bouquets = emptySet())
+                }
+                if (left.channels.isNotEmpty()) {
+                    hidden.hide(HiddenKind.CHANNEL, left.channels)
+                    left = left.copy(channels = emptySet())
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _hiding.value = _hiding.value ?: now
+                _hiding.value = _hiding.value ?: left
             }
         }
     }

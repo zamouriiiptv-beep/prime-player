@@ -142,8 +142,7 @@
     <string name="channels_empty_detail">Diese Kategorie ist noch leer. Probiere eine andere oder lade den Bereich erneut herunter.</string>
     <string name="channels_favorites_empty_title">Noch keine Lieblingssender</string>
     <string name="channels_favorites_empty_detail">Drücke „Favorit“, wähle die Sender aus, die dir gefallen, und drücke „Favorit“ noch einmal, um sie hinzuzufügen.</string>
-    <string name="hide_bouquets_title">Bouquets ausblenden</string>
-    <string name="hide_channels_title">Sender ausblenden</string>
+    <string name="hide_title">Bouquets und Sender ausblenden</string>
     <string name="hide_hint">Markiere, was du ausblenden möchtest, und drücke dann Auswahl ausblenden. Nichts wird gelöscht; die Einstellungen stellen es wieder her.</string>
     <string name="hide_confirm">Auswahl ausblenden</string>
     <string name="settings_hidden_section">Ausgeblendete Elemente</string>

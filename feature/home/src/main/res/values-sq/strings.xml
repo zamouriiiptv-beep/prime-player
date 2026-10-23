@@ -142,8 +142,7 @@
     <string name="channels_empty_detail">Kjo kategori ende s\'ka asgjë. Provoni një tjetër, ose shkarkojeni sërish seksionin.</string>
     <string name="channels_favorites_empty_title">Ende pa kanale të preferuara</string>
     <string name="channels_favorites_empty_detail">Shtypni «Shto te të parapëlqyerat», zgjidhni kanalet që ju pëlqejnë, pastaj shtypni përsëri «Shto te të parapëlqyerat» për t’i shtuar.</string>
-    <string name="hide_bouquets_title">Fshih paketat</string>
-    <string name="hide_channels_title">Fshih kanalet</string>
+    <string name="hide_title">Fshih paketat dhe kanalet</string>
     <string name="hide_hint">Shëno çfarë do të fshihet, pastaj shtyp Fshih të zgjedhurat. Asgjë nuk fshihet përgjithmonë; Cilësimet e rikthejnë.</string>
     <string name="hide_confirm">Fshih të zgjedhurat</string>
     <string name="settings_hidden_section">Elementet e fshehura</string>

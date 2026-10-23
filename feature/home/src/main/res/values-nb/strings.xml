@@ -142,8 +142,7 @@
     <string name="channels_empty_detail">Denne kategorien er tom foreløpig. Prøv en annen, eller last ned seksjonen på nytt.</string>
     <string name="channels_favorites_empty_title">Ingen favorittkanaler ennå</string>
     <string name="channels_favorites_empty_detail">Trykk på «Favoritt», velg kanalene du liker, og trykk på «Favoritt» igjen for å legge dem til.</string>
-    <string name="hide_bouquets_title">Skjul pakker</string>
-    <string name="hide_channels_title">Skjul kanaler</string>
+    <string name="hide_title">Skjul buketter og kanaler</string>
     <string name="hide_hint">Merk det du vil skjule, og trykk på Skjul valgte. Ingenting slettes; Innstillinger henter det tilbake.</string>
     <string name="hide_confirm">Skjul valgte</string>
     <string name="settings_hidden_section">Skjulte elementer</string>

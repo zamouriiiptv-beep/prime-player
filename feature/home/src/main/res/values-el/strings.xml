@@ -142,8 +142,7 @@
     <string name="channels_empty_detail">Αυτή η κατηγορία δεν έχει τίποτα ακόμη. Δοκιμάστε άλλη ή κατεβάστε ξανά την ενότητα.</string>
     <string name="channels_favorites_empty_title">Δεν υπάρχουν αγαπημένα κανάλια ακόμη</string>
     <string name="channels_favorites_empty_detail">Πατήστε «Αγαπημένο», επιλέξτε τα κανάλια που σας αρέσουν και πατήστε ξανά «Αγαπημένο» για να τα προσθέσετε.</string>
-    <string name="hide_bouquets_title">Απόκρυψη πακέτων</string>
-    <string name="hide_channels_title">Απόκρυψη καναλιών</string>
+    <string name="hide_title">Απόκρυψη πακέτων και καναλιών</string>
     <string name="hide_hint">Επιλέξτε τι θα κρύψετε και πατήστε Απόκρυψη επιλεγμένων. Δεν διαγράφεται τίποτα· οι Ρυθμίσεις τα επαναφέρουν.</string>
     <string name="hide_confirm">Απόκρυψη επιλεγμένων</string>
     <string name="settings_hidden_section">Κρυφά στοιχεία</string>

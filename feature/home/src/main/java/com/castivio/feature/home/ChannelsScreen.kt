@@ -17,17 +17,21 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -121,7 +125,6 @@ import com.castivio.core.platform.PerfSection
 import com.castivio.core.platform.PerformanceLog
 import com.castivio.domain.CatalogQuery
 import com.castivio.domain.Channel
-import com.castivio.domain.HiddenKind
 import com.castivio.domain.PressVerdict
 import com.castivio.domain.pressVerdictFor
 import com.castivio.domain.MediaItem
@@ -276,21 +279,23 @@ fun ChannelsScreen(
         )
     }
 
-    // **Hiding, which is neither reorder mode nor picking favourites.** The Hide button chooses
-    // bouquets, and held it chooses channels; a press on a row of that kind ticks it or puts it back; the
-    // bar's Hide selected hides what is ticked in one write, and Cancel -- and Back -- leave with nothing
-    // hidden. The three modes are three holders and the strip answers one at a time. Hidden is local: the
-    // lists read around it, and Settings brings it back.
+    // **Hiding, which is neither reorder mode nor picking favourites.** The Hide button starts it; the
+    // rail's bouquets and the list's channels then carry the same circles, and a press on either ticks
+    // it or puts it back -- a bouquet, or one channel of the bouquet that is open, or both. The bar's Hide
+    // selected hides what is ticked, and Cancel -- and Back -- leave with nothing hidden. The three modes
+    // are three holders and the strip answers one at a time. Hidden is local: the lists read around it,
+    // and Settings brings it back.
     val hidingNow by hidingModel.hiding.collectAsStateWithLifecycle()
     BackHandler(enabled = hidingNow != null) { hidingModel.cancel() }
     val hider = remember(hidingNow) {
         HidingUi(
             hiding = hidingNow,
-            toggle = hidingModel::toggle,
+            toggleBouquet = hidingModel::toggleBouquet,
+            toggleChannel = hidingModel::toggleChannel,
             confirm = hidingModel::confirm,
             cancel = hidingModel::cancel,
-            press = { hidingModel.begin(HiddenKind.BOUQUET) },
-            hold = { hidingModel.begin(HiddenKind.CHANNEL) },
+            press = hidingModel::begin,
+            hold = hidingModel::begin,
         )
     }
 
@@ -359,7 +364,22 @@ fun ChannelsScreen(
         )
     }
 
-    BoxWithConstraints(modifier.fillMaxSize().safeDrawingPadding()) {
+    // **The board does not move for the keyboard.**
+    //
+    // This was `safeDrawingPadding()`, and `safeDrawing` is the system bars, the cutout *and the IME*:
+    // with a search field typed into, the box shrank to the strip above the keys and every metric below
+    // was measured again from it -- the whole board squeezed and stretched each time the keyboard came
+    // and went. The navigation bar did the same at the side, because Android forces it on for as long as
+    // a keyboard is up (`InsetsPolicy.getNavControlTarget`), whatever the window asked for.
+    //
+    // So the board is padded by what stays put: the cutout, and the status bar should one ever be
+    // showing. The keyboard and the navigation bar it brings are drawn over the board, which keeps its
+    // size; both search fields are in the band at the top, above the keys. With neither on screen this
+    // is the padding it always had -- `MainActivity` keeps the bars hidden, and bars swiped back in for a
+    // moment are drawn over the window without changing its insets.
+    BoxWithConstraints(
+        modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars.union(WindowInsets.displayCutout)),
+    ) {
         val m = channelsMetricsFor(tv = tv, width = maxWidth, height = maxHeight)
 
         Column(
@@ -1152,7 +1172,7 @@ private fun Columns(
                     onFavoriteHold = favorites.hold,
                     favoriting = favorites.picking,
                     favoriteRemoves = favorites.removes,
-                    // Pressed, the Hide button chooses bouquets to hide; held, channels -- see `HidingUi`.
+                    // The Hide button starts choosing bouquets and channels to hide -- see `HidingUi`.
                     onHide = hider.press,
                     onHideHold = hider.hold,
                     hiding = hider.active,
@@ -1327,7 +1347,7 @@ internal fun CategoryRail(
                     m = m,
                     onClick = when {
                         // Choosing what to hide: a press ticks the bouquet or puts it back, and opens nothing.
-                        hider.bouquets -> ({ hider.toggle(group.id) })
+                        hider.bouquets -> ({ hider.toggleBouquet(group.id) })
                         mode == null -> ({ onChoose(group.id) })
                         else -> ({ onPress(Held.Bouquet(group.id)) })
                     },
@@ -1637,6 +1657,7 @@ private fun ChannelList(
                     playing = isPlayingRow(channel.id, channel.streamUrl, pressedId, playingUrl),
                     quality = qualities[channel.id],
                     locked = lock.isLocked(channel.id),
+                    favorite = channel.id in favorites.ids,
                     // While the board is picking favourites each row says whether it is picked and
                     // whether it already is a favourite; outside the mode, null, and nothing is drawn.
                     pick = favorites.markOf(channel.id) ?: hider.channelMarkOf(channel.id),
@@ -1660,8 +1681,8 @@ private fun ChannelList(
                         // Picking: a press picks the channel or puts it back. It plays nothing, asks
                         // for no password and makes nothing large -- what is in the picture stays.
                         favorites.picking -> ({ favorites.toggle(channel.id) })
-                        // Choosing channels to hide: the same press, ticking, and nothing is played.
-                        hider.channels -> ({ hider.toggle(channel.id) })
+                        // Choosing what to hide: the same press, ticking the channel, and nothing is played.
+                        hider.channels -> ({ hider.toggleChannel(channel.id) })
                         mode == null -> ({
                             // The first press on a channel plays it in the preview; the next on
                             // the same channel makes that picture large, as a press on the picture
@@ -1776,6 +1797,11 @@ internal fun ChannelRow(
      * before anything plays. Drawn on the row and not said in its name -- the name is the provider's.
      */
     locked: Boolean = false,
+    /**
+     * This channel is a favourite: a small star follows the name, so the row itself says that the
+     * Favourite button took -- not only the button, lit, while this channel is the one in the picture.
+     */
+    favorite: Boolean = false,
     /**
      * While the board is picking favourites: whether this row is picked, and whether it already is a
      * favourite. Null outside the mode, and a row that is not told draws what it always drew. A picked
@@ -1942,9 +1968,13 @@ internal fun ChannelRow(
             )
         }
 
-        // **The lock, first after the name.** It is a fact about the channel and the mark below is a
-        // fact about the player, so it comes before it: a locked row that is also playing shows both,
-        // lock then mark, and neither moves the other.
+        // **The star, first after the name.** Like the lock, a fact about the channel, so it comes
+        // before the player's mark. Not while the row's picking end already draws it -- one star a row.
+        if (favorite && pick?.favorite != true) FavoriteMark(size = m.rowMin * MARK_OF_ROW, onFill = look.surface)
+
+        // **The lock, after the star.** It is a fact about the channel and the mark below is a fact
+        // about the player, so it comes before it: a locked row that is also playing shows both, lock
+        // then mark, and neither moves the other.
         if (locked) LockedMark(size = m.rowMin * MARK_OF_ROW, onFill = look.surface)
 
         // **The mark that this one is playing.** Between the name and the tag, so that the tag
@@ -1990,14 +2020,7 @@ private fun PickMark(pick: RowPick, size: Dp, onFill: Boolean) {
         horizontalArrangement = Arrangement.spacedBy(size / 4),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (pick.favorite) {
-            Icon(
-                imageVector = Icons.Rounded.Star,
-                contentDescription = stringResource(R.string.channels_favorites),
-                tint = if (onFill) colors.onSecondary else colors.secondary,
-                modifier = Modifier.size(size),
-            )
-        }
+        if (pick.favorite) FavoriteMark(size = size, onFill = onFill)
         Icon(
             imageVector = if (pick.picked) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked,
             contentDescription = null,
@@ -2009,6 +2032,22 @@ private fun PickMark(pick: RowPick, size: Dp, onFill: Boolean) {
             modifier = Modifier.size(size),
         )
     }
+}
+
+/**
+ * The star on a channel that is a favourite: the glyph on its own, in the *chosen* colour the lit
+ * Favourite button wears, and the row's own ink on the violet. A plain glyph like the lock, and said in
+ * words for a screen reader.
+ */
+@Composable
+private fun FavoriteMark(size: Dp, onFill: Boolean) {
+    val colors = CastivioTheme.colors
+    Icon(
+        imageVector = Icons.Rounded.Star,
+        contentDescription = stringResource(R.string.channels_favorites),
+        tint = if (onFill) colors.onSecondary else colors.secondary,
+        modifier = Modifier.size(size),
+    )
 }
 
 /**

@@ -142,8 +142,7 @@
     <string name="channels_empty_detail">V tejto kategórii zatiaľ nič nie je. Skúste inú, alebo sekciu stiahnite znova.</string>
     <string name="channels_favorites_empty_title">Zatiaľ žiadne obľúbené kanály</string>
     <string name="channels_favorites_empty_detail">Stlačte „Pridať k obľúbeným“, vyberte kanály, ktoré sa vám páčia, a opätovným stlačením „Pridať k obľúbeným“ ich pridajte.</string>
-    <string name="hide_bouquets_title">Skryť balíky</string>
-    <string name="hide_channels_title">Skryť kanály</string>
+    <string name="hide_title">Skryť balíčky a kanály</string>
     <string name="hide_hint">Označte, čo chcete skryť, a stlačte Skryť vybrané. Nič sa nevymaže; Nastavenia to vrátia.</string>
     <string name="hide_confirm">Skryť vybrané</string>
     <string name="settings_hidden_section">Skryté položky</string>

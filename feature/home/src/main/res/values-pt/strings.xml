@@ -142,8 +142,7 @@
     <string name="channels_empty_detail">Esta categoria ainda está vazia. Tente outra, ou baixe a seção de novo.</string>
     <string name="channels_favorites_empty_title">Ainda não há canais favoritos</string>
     <string name="channels_favorites_empty_detail">Toque em “Favorito”, escolha os canais de que gosta e toque em “Favorito” de novo para adicioná-los.</string>
-    <string name="hide_bouquets_title">Ocultar pacotes</string>
-    <string name="hide_channels_title">Ocultar canais</string>
+    <string name="hide_title">Ocultar pacotes e canais</string>
     <string name="hide_hint">Marque o que quer ocultar e toque em Ocultar selecionados. Nada é apagado; as Configurações restauram.</string>
     <string name="hide_confirm">Ocultar selecionados</string>
     <string name="settings_hidden_section">Itens ocultos</string>

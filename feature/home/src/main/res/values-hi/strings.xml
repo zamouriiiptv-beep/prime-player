@@ -142,8 +142,7 @@
     <string name="channels_empty_detail">इस श्रेणी में अभी कुछ नहीं है। कोई दूसरी आज़माएँ, या यह खंड दोबारा डाउनलोड करें।</string>
     <string name="channels_favorites_empty_title">अभी तक कोई पसंदीदा चैनल नहीं</string>
     <string name="channels_favorites_empty_detail">“पसंदीदा” दबाएँ, अपने पसंदीदा चैनल चुनें, फिर उन्हें जोड़ने के लिए दोबारा “पसंदीदा” दबाएँ।</string>
-    <string name="hide_bouquets_title">पैकेज छिपाएँ</string>
-    <string name="hide_channels_title">चैनल छिपाएँ</string>
+    <string name="hide_title">बुके और चैनल छिपाएँ</string>
     <string name="hide_hint">जो छिपाना है उस पर निशान लगाएँ, फिर “चुने हुए छिपाएँ” दबाएँ। कुछ भी हटाया नहीं जाता; सेटिंग्स में वापस लाया जा सकता है।</string>
     <string name="hide_confirm">चुने हुए छिपाएँ</string>
     <string name="settings_hidden_section">छिपे हुए आइटम</string>
