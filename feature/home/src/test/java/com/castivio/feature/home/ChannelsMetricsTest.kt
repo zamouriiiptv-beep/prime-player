@@ -508,20 +508,23 @@ class ChannelsMetricsTest {
         // screenshot because they were chosen on a rendered board rather than measured
         // off one -- the same convention `picture` already carries below.
         assertNear("rail", 290f, m.rail)
-        // The reference's own 986: the owner's drawing of 22 October 2026 puts the well back at
-        // two fifths of the board, with the picture as wide as it.
-        assertNear("player", 1280f * 986f / 2340f, m.player)
+        // The reference's own 986 -- the owner's drawing of 22 October 2026 puts the well at two
+        // fifths of the board -- less the 4.5% of the board's width the channel list was then
+        // given, so the names have room: 539.4 less 57.6.
+        val well = 1280f * (986f / 2340f - 0.045f)
+        assertNear("player", well, m.player)
         assertNear("strip", 720f * 106f / 1080f, m.strip)
 
         // **The picture fills the well.** As wide as the column at this geometry -- the cap on
-        // the room under it does not bind on a 16:9 television -- and 16:9 by construction.
+        // the room under it does not bind on a 16:9 television -- and 16:9 by construction. Its own
+        // share is still the reference's 986; the well is what the list's gain narrows.
         assertNear("picture", 1280f * 986f / 2340f, m.picture)
-        assertNear("wellPictureWidth", 1280f * 986f / 2340f, m.wellPictureWidth)
-        assertNear("wellPicture", 1280f * 986f / 2340f * 9f / 16f, m.wellPicture)
+        assertNear("wellPictureWidth", well, m.wellPictureWidth)
+        assertNear("wellPicture", well * 9f / 16f, m.wellPicture)
         assertNear("railGap", 16f, m.railGap)
         // One gap between the block's sections, on every channel: six per cent of the
-        // 255.0 the well has left once the larger picture and the strip are paid.
-        assertNear("guideSection", 255.0f * 0.06f, m.guideSection)
+        // 287.4 the well has left once the picture and the strip are paid.
+        assertNear("guideSection", 287.4f * 0.06f, m.guideSection)
         // And the list is what is left, which is the one column with no share of its own.
         assertNear(
             "list",

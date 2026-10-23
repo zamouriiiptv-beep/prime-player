@@ -329,6 +329,7 @@ internal fun channelsMetricsFor(tv: Boolean, width: Dp, height: Dp): ChannelsMet
     val strip = height.boundedFraction(STRIP, Sizing.minTarget(tv), 110.dp)
     val guideGap = height.boundedFraction(GUIDE_GAP, 4.dp, 11.dp)
     val factGap = width.boundedFraction(FACT_GAP, 4.dp, 12.dp)
+    val guidePad = width.boundedFraction(GUIDE_PAD, 5.dp, 14.dp)
 
     return ChannelsMetrics(
         frame = frame,
@@ -355,7 +356,10 @@ internal fun channelsMetricsFor(tv: Boolean, width: Dp, height: Dp): ChannelsMet
             strip = strip,
             guideGap = guideGap,
             factGap = factGap,
+            guidePad = guidePad,
+            fsBody = frame.fsBody,
             tv = tv,
+            listGain = width * LIST_GAIN,
         ),
         playerGap = width.boundedFraction(PLAYER_GAP, 6.dp, 20.dp),
         picture = width.boundedFraction(PICTURE, 260.dp, 560.dp),
@@ -390,42 +394,67 @@ internal fun channelsMetricsFor(tv: Boolean, width: Dp, height: Dp): ChannelsMet
         osdPad = width.boundedFraction(OSD_PAD, 5.dp, 14.dp),
         osdGap = width.boundedFraction(OSD_GAP, 4.dp, 11.dp),
         guideGap = guideGap,
-        guidePad = width.boundedFraction(GUIDE_PAD, 5.dp, 14.dp),
+        guidePad = guidePad,
 
     )
 }
 
 /**
- * How wide the well is: its share of the board, but never wider than the picture in it.
+ * How wide the well is: its share of the board, or its picture's width when that is narrower,
+ * less what the channel list takes from it -- see [LIST_GAIN].
  *
  * On a handset the picture is bounded by the height under it, not by the well -- the facts
  * block keeps [CHANNELS_FACTS_MIN] and the frame gives way -- so a well at its full share
  * held the picture with a margin either side of it, width the channel list was cut short for.
- * In the owner's screenshot that was about 12dp a side, and `AF| CANAL+ SPORT 1 HD` printed as
- * `AF| CANAL...PORT 1 HD`. The well now ends where its picture does, and the list has the
- * rest; the picture keeps every pixel of its height.
+ * The well ends where its picture does, and the list has the rest.
  *
- * Never narrower than [CHANNELS_WELL_MIN], nor than the strip's five buttons at the control
- * target, so a short surface cannot squeeze the line of what is next or the buttons under the
- * picture; there the picture is narrower than its well, centred in it. A television, where the
- * picture is bounded by the well's width rather than by the room under it, keeps its whole
- * share.
+ * Then [listGain] more is given to the list: the owner asked for the channel names to have more
+ * room, and the picture -- which is the well's width at 16:9 -- is what pays, narrower by the
+ * same amount and shorter by nine sixteenths of it. The facts block under it keeps its height and
+ * gains the picture's.
+ *
+ * **Never narrower than what is under the picture needs**: the strip's five buttons at the
+ * control target, and the line of what is next -- see [nextLineRoom]. That is a floor that
+ * follows the type step, because a larger step makes the word and the hours wider and leaves the
+ * title less, and a fixed number was right for one surface and short on the next. And never wider
+ * than it was before the gain, so a surface that sits on a floor is not widened by it.
  */
-private fun wellWidth(share: Dp, column: Dp, strip: Dp, guideGap: Dp, factGap: Dp, tv: Boolean): Dp {
+private fun wellWidth(
+    share: Dp,
+    column: Dp,
+    strip: Dp,
+    guideGap: Dp,
+    factGap: Dp,
+    guidePad: Dp,
+    fsBody: Dp,
+    tv: Boolean,
+    listGain: Dp,
+): Dp {
     val framed = (column - strip - guideGap * 2 - CHANNELS_FACTS_MIN) * CHANNELS_PREVIEW_ASPECT
     val buttons = Sizing.minTarget(tv) * CHANNELS_STRIP_ACTIONS + factGap * (CHANNELS_STRIP_ACTIONS - 1)
-    return minOf(share, maxOf(framed, buttons, CHANNELS_WELL_MIN))
+    val floor = maxOf(buttons, nextLineRoom(fsBody, factGap, guidePad))
+    val fitted = minOf(share, maxOf(framed, floor))
+    return maxOf(fitted - listGain, floor).coerceAtMost(fitted)
 }
 
 /**
- * The narrowest a well may be made to follow its picture.
+ * What the line of what is next needs of the well, so that its title keeps [NEXT_TITLE_ROOM].
  *
- * What the line of what is next needs at the handset's type step: the widest word for it in
- * any language, its hours, and the 105dp of title `ChannelsMetricsTest` holds every surface to,
- * inside the facts block's padding. A 720×308 handset, the shortest the sweep reaches, would
- * otherwise narrow the well to its five buttons and leave the title 84dp.
+ * A line is three cells -- the word that says which, the hours, the title -- inside the facts
+ * block's padding. The first two are as wide as their widest text, and at the legend step that is
+ * [NEXT_LINE_OF_BODY] of the body step: the longest word any of the thirty-nine languages uses and
+ * the hours with their dash. A dp over, for what a device's glyphs add to a JVM's estimate.
+ * `ChannelsMetricsTest` itemises the same sum from its own constants and holds every surface to
+ * it, so the two cannot drift apart without a test saying so.
  */
-internal val CHANNELS_WELL_MIN = 280.dp
+private fun nextLineRoom(fsBody: Dp, factGap: Dp, guidePad: Dp): Dp =
+    NEXT_TITLE_ROOM + fsBody * NEXT_LINE_OF_BODY + factGap * 2 + guidePad * 2 + 1.dp
+
+/** What a programme's title keeps of its line, whatever else the well gives up: about fourteen characters. */
+private val NEXT_TITLE_ROOM = 105.dp
+
+/** The word and the hours of a line, in body steps -- 0.88 of it for the legend, times 14.6 em of text. */
+private const val NEXT_LINE_OF_BODY = 12.85f
 
 /** The buttons in the strip under the picture: guide, favourite, lock, hide, reorder. */
 internal const val CHANNELS_STRIP_ACTIONS = 5
@@ -613,6 +642,15 @@ private const val RAIL_GAP = 16f / 1280f
  * on a preview instead of on the catalogue.
  */
 private const val PLAYER = 986f / 2340f
+
+/**
+ * What the channel list takes from the well, as a share of the board's width.
+ *
+ * 4.5%: the owner's measure for the list to be wider -- between four and five per cent -- so the
+ * names of channels have room, on a phone where a name cut to fit hid the end of it. It leaves the
+ * rail, the type and the rows alone; the whole of it comes from the well. 38dp of 851.
+ */
+private const val LIST_GAIN = 0.045f
 
 /**
  * The video frame's width: the well's own, so the picture fills the column it is in.
