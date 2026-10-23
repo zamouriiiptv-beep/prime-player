@@ -15,6 +15,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.Reader
 import java.io.StringReader
+import java.util.concurrent.CopyOnWriteArrayList
 
 class XtreamImportEngineTest {
 
@@ -623,9 +624,12 @@ class XtreamImportEngineTest {
         private val failOnStreams: Boolean = false,
     ) : XtreamImportEngine.Api {
 
-        val categoryRequests = mutableListOf<MediaKind>()
-        val streamRequests = mutableListOf<Pair<MediaKind, String>>()
-        val openReaders = mutableListOf<TrackedReader>()
+        // Appended to from the engine's readers, which ask for several categories at once. A plain
+        // list lost an append, or threw inside `streams` -- which the engine rightly took for a
+        // failed category, so a test of 2,400 rows now and then counted 2,360.
+        val categoryRequests = CopyOnWriteArrayList<MediaKind>()
+        val streamRequests = CopyOnWriteArrayList<Pair<MediaKind, String>>()
+        val openReaders = CopyOnWriteArrayList<TrackedReader>()
 
         override fun categories(kind: MediaKind): Reader {
             categoryRequests += kind
