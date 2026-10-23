@@ -125,6 +125,7 @@ internal data class ChannelsMetrics(
     /* the three columns */
     val rail: Dp,
     val railGap: Dp,
+    /** The well's width: its share of the board, or its picture's when that is narrower. See `wellWidth`. */
     val player: Dp,
     val playerGap: Dp,
     /**
@@ -324,6 +325,10 @@ internal fun channelsMetricsFor(tv: Boolean, width: Dp, height: Dp): ChannelsMet
     val header = height.boundedFraction(HEADER, 34.dp, 60.dp)
     val headerGap = height.boundedFraction(HEADER_GAP, 4.dp, 12.dp)
     val panelPad = width.boundedFraction(PANEL_PAD, 4.dp, 12.dp)
+    val column = height - (boardPad * 2 + header + headerGap + panelPad * 2)
+    val strip = height.boundedFraction(STRIP, Sizing.minTarget(tv), 110.dp)
+    val guideGap = height.boundedFraction(GUIDE_GAP, 4.dp, 11.dp)
+    val factGap = width.boundedFraction(FACT_GAP, 4.dp, 12.dp)
 
     return ChannelsMetrics(
         frame = frame,
@@ -340,15 +345,22 @@ internal fun channelsMetricsFor(tv: Boolean, width: Dp, height: Dp): ChannelsMet
 
         panelPad = panelPad,
         panelRadius = height.boundedFraction(PANEL_RADIUS, 10.dp, 22.dp),
-        column = height - (boardPad * 2 + header + headerGap + panelPad * 2),
+        column = column,
 
         rail = width.boundedFraction(RAIL, 170.dp, 330.dp),
         railGap = width.boundedFraction(RAIL_GAP, 6.dp, 18.dp),
-        player = width.boundedFraction(PLAYER, 260.dp, 560.dp),
+        player = wellWidth(
+            share = width.boundedFraction(PLAYER, 260.dp, 560.dp),
+            column = column,
+            strip = strip,
+            guideGap = guideGap,
+            factGap = factGap,
+            tv = tv,
+        ),
         playerGap = width.boundedFraction(PLAYER_GAP, 6.dp, 20.dp),
         picture = width.boundedFraction(PICTURE, 260.dp, 560.dp),
         identity = height.boundedFraction(IDENTITY, 24.dp, 48.dp),
-        strip = height.boundedFraction(STRIP, Sizing.minTarget(tv), 110.dp),
+        strip = strip,
 
         railEntryGap = height.boundedFraction(RAIL_ENTRY_GAP, 2.dp, 7.dp),
         railDivider = height.boundedFraction(RAIL_DIVIDER, 5.dp, 14.dp),
@@ -371,17 +383,52 @@ internal fun channelsMetricsFor(tv: Boolean, width: Dp, height: Dp): ChannelsMet
         trackHeight = height.boundedFraction(TRACK, 2.dp, 5.dp),
         trackDot = height.boundedFraction(TRACK_DOT, 6.dp, 13.dp),
         factChip = height.boundedFraction(FACT_CHIP, 20.dp, 38.dp),
-        factGap = width.boundedFraction(FACT_GAP, 4.dp, 12.dp),
+        factGap = factGap,
         badgePadH = width.boundedFraction(BADGE_PAD_H, 4.dp, 11.dp),
         badgePadV = height.boundedFraction(BADGE_PAD_V, 2.dp, 7.dp),
 
         osdPad = width.boundedFraction(OSD_PAD, 5.dp, 14.dp),
         osdGap = width.boundedFraction(OSD_GAP, 4.dp, 11.dp),
-        guideGap = height.boundedFraction(GUIDE_GAP, 4.dp, 11.dp),
+        guideGap = guideGap,
         guidePad = width.boundedFraction(GUIDE_PAD, 5.dp, 14.dp),
 
     )
 }
+
+/**
+ * How wide the well is: its share of the board, but never wider than the picture in it.
+ *
+ * On a handset the picture is bounded by the height under it, not by the well -- the facts
+ * block keeps [CHANNELS_FACTS_MIN] and the frame gives way -- so a well at its full share
+ * held the picture with a margin either side of it, width the channel list was cut short for.
+ * In the owner's screenshot that was about 12dp a side, and `AF| CANAL+ SPORT 1 HD` printed as
+ * `AF| CANAL...PORT 1 HD`. The well now ends where its picture does, and the list has the
+ * rest; the picture keeps every pixel of its height.
+ *
+ * Never narrower than [CHANNELS_WELL_MIN], nor than the strip's five buttons at the control
+ * target, so a short surface cannot squeeze the line of what is next or the buttons under the
+ * picture; there the picture is narrower than its well, centred in it. A television, where the
+ * picture is bounded by the well's width rather than by the room under it, keeps its whole
+ * share.
+ */
+private fun wellWidth(share: Dp, column: Dp, strip: Dp, guideGap: Dp, factGap: Dp, tv: Boolean): Dp {
+    val framed = (column - strip - guideGap * 2 - CHANNELS_FACTS_MIN) * CHANNELS_PREVIEW_ASPECT
+    val buttons = Sizing.minTarget(tv) * CHANNELS_STRIP_ACTIONS + factGap * (CHANNELS_STRIP_ACTIONS - 1)
+    return minOf(share, maxOf(framed, buttons, CHANNELS_WELL_MIN))
+}
+
+/**
+ * The narrowest a well may be made to follow its picture.
+ *
+ * What the line of what is next needs at the handset's type step: the widest word for it in
+ * any language, its hours, and the 105dp of title `ChannelsMetricsTest` holds every surface to,
+ * inside the facts block's padding. A 720×308 handset, the shortest the sweep reaches, would
+ * otherwise narrow the well to its five buttons and leave the title 84dp.
+ */
+internal val CHANNELS_WELL_MIN = 280.dp
+
+/** The buttons in the strip under the picture: guide, favourite, lock, hide, reorder. */
+internal const val CHANNELS_STRIP_ACTIONS = 5
 
 /**
  * How wide the preview plate is relative to its height.
@@ -577,8 +624,8 @@ private const val PLAYER = 986f / 2340f
  *
  * What it gets is bounded twice more in [ChannelsMetrics.wellPictureWidth]: by the column, and
  * by the room the facts block keeps under it. On a handset the second binds -- the frame gives
- * height back to what is on and what is next rather than have a line cut off -- and the picture is a
- * little narrower than the well, centred in it.
+ * height back to what is on and what is next rather than have a line cut off -- and the well
+ * narrows to the picture, giving the channel list what a margin either side of it would take.
  */
 private const val PICTURE = PLAYER
 

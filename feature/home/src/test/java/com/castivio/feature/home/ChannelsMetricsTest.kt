@@ -268,16 +268,19 @@ class ChannelsMetricsTest {
     }
 
     /**
-     * And the picture is the one that grew: on the owner's handset it fills the well, or near
-     * enough that the facts block under it is the same panel, rather than the third it was.
+     * And on a handset the well is exactly as wide as its picture: the height bounds the frame
+     * there, and a well at its full share held it with a margin either side -- width the channel
+     * list, whose names were being cut, had paid for.
      */
     @Test
-    fun `on a handset the picture takes most of the well`() {
+    fun `on a handset the well ends where its picture does`() {
         for ((width, height) in listOf(891 to 411, 851 to 393, 915 to 412)) {
             val m = channelsMetricsFor(tv = false, width = width.dp, height = height.dp)
-            assertTrue(
-                "the picture is ${m.wellPictureWidth} of a ${m.player} well at ${width}x$height",
-                m.wellPictureWidth.value >= m.player.value * HANDSET_PICTURE_OF_WELL,
+            assertEquals(
+                "the picture is ${m.wellPictureWidth} in a ${m.player} well at ${width}x$height",
+                m.player.value,
+                m.wellPictureWidth.value,
+                DUST,
             )
         }
     }
@@ -785,9 +788,6 @@ class ChannelsMetricsTest {
 
         /** Guide, favourite, lock, hide and reorder. */
         const val STRIP_BUTTONS = 5
-
-        /** How much of the well the picture takes on the owner's handset, at least. */
-        const val HANDSET_PICTURE_OF_WELL = 0.9f
 
         /**
          * The narrowest the search field may be squeezed to.
