@@ -125,10 +125,22 @@
     <string name="channels_rail_total">共计：%1$s</string>
     <string name="channels_rail_empty">该播放列表没有任何分类。</string>
     <string name="channels_preview_none">按下频道即可播放</string>
+    <string name="channels_now_playing">正在播放</string>
+
+    <string name="reorder_entry">排序</string>
+    <string name="reorder_save">保存</string>
+    <string name="reorder_cancel">取消</string>
+    <string name="reorder_hint_pick">在分类或频道上按“确定”键将其拿起。</string>
+    <string name="reorder_hint_move">用 ↑ 和 ↓ 移动，再按“确定”放下。</string>
+    <string name="reorder_hint_all">请先打开一个分类，再调整其中频道的顺序。</string>
+    <string name="reorder_failed">无法保存顺序，请重试。</string>
+    <string name="reorder_move_up">上移</string>
+    <string name="reorder_move_down">下移</string>
     <string name="channels_empty_title">这里没有频道</string>
     <string name="channels_empty_detail">该分类目前还是空的。换一个分类，或重新下载该板块。</string>
     <string name="channels_fetch_failed">直播电视下载失败</string>
     <string name="channels_guide_now">正在播出</string>
+    <string name="channels_guide_next">接下来</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">今天</string>
     <string name="channels_guide_tomorrow">明天</string>

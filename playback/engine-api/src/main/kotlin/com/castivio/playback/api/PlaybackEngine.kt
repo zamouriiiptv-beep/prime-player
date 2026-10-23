@@ -1,5 +1,7 @@
 package com.castivio.playback.api
 
+import com.castivio.core.common.FrameSize
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -59,6 +61,19 @@ interface PlaybackEngine {
      * nobody has opened, and this is needed on the first frame of every source.
      */
     val videoAspectRatio: StateFlow<Float?>
+
+    /**
+     * The decoded picture's size in pixels, or null while there is none.
+     *
+     * What the board's quality badge is measured from, and on the contract for the reason
+     * [videoAspectRatio] is: the decoder reports it once, with the picture, and a screen that
+     * had to ask [sample] for it would be asking a pull meant for a panel. Null for a sound, and
+     * until the decoder has said. Cleared on every open, like every other flow here.
+     *
+     * Defaulted to nothing, so an engine that cannot say reports no quality rather than a
+     * guessed one.
+     */
+    val videoSize: StateFlow<FrameSize?> get() = NO_FRAME_SIZE
 
     /**
      * The caption lines to show right now, and empty when there are none.
@@ -343,3 +358,6 @@ data class Track(
 enum class TrackType { AUDIO, SUBTITLE, VIDEO }
 
 enum class AspectMode { FIT, FILL, RATIO_16_9, RATIO_4_3, ZOOM }
+
+/** The default answer to [PlaybackEngine.videoSize]: no picture measured. */
+private val NO_FRAME_SIZE: StateFlow<FrameSize?> = MutableStateFlow(null)

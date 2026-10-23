@@ -125,10 +125,22 @@
     <string name="channels_rail_total">کل: %1$s</string>
     <string name="channels_rail_empty">یہ پلے لسٹ کوئی زمرہ نہیں دکھاتی۔</string>
     <string name="channels_preview_none">چلانے کے لیے چینل دبائیں</string>
+    <string name="channels_now_playing">ابھی چل رہا ہے</string>
+
+    <string name="reorder_entry">ترتیب</string>
+    <string name="reorder_save">محفوظ کریں</string>
+    <string name="reorder_cancel">منسوخ کریں</string>
+    <string name="reorder_hint_pick">کسی زمرے یا چینل کو اٹھانے کے لیے اس پر OK دبائیں۔</string>
+    <string name="reorder_hint_move">↑ اور ↓ سے اسے ہلائیں، پھر رکھنے کے لیے OK دبائیں۔</string>
+    <string name="reorder_hint_all">چینلز کی ترتیب بدلنے کے لیے پہلے کوئی زمرہ کھولیں۔</string>
+    <string name="reorder_failed">ترتیب محفوظ نہیں ہو سکی۔ دوبارہ کوشش کریں۔</string>
+    <string name="reorder_move_up">اوپر لے جائیں</string>
+    <string name="reorder_move_down">نیچے لے جائیں</string>
     <string name="channels_empty_title">یہاں کوئی چینل نہیں</string>
     <string name="channels_empty_detail">اس زمرے میں ابھی کچھ نہیں۔ کوئی اور آزمائیں، یا یہ حصہ دوبارہ ڈاؤن لوڈ کریں۔</string>
     <string name="channels_fetch_failed">لائیو ٹی وی ڈاؤن لوڈ نہ ہو سکا</string>
     <string name="channels_guide_now">ابھی</string>
+    <string name="channels_guide_next">اگلا</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">آج</string>
     <string name="channels_guide_tomorrow">کل</string>

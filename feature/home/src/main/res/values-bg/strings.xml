@@ -125,10 +125,22 @@
     <string name="channels_rail_total">Общо: %1$s</string>
     <string name="channels_rail_empty">Този плейлист не показва категории.</string>
     <string name="channels_preview_none">Натиснете канал, за да го пуснете</string>
+    <string name="channels_now_playing">Възпроизвежда се</string>
+
+    <string name="reorder_entry">Подреди</string>
+    <string name="reorder_save">Запази</string>
+    <string name="reorder_cancel">Отказ</string>
+    <string name="reorder_hint_pick">Натиснете OK върху категория или канал, за да го вземете.</string>
+    <string name="reorder_hint_move">Преместете го с ↑ и ↓, след което натиснете OK, за да го пуснете.</string>
+    <string name="reorder_hint_all">Първо отворете категория, за да пренаредите каналите ѝ.</string>
+    <string name="reorder_failed">Редът не можа да се запази. Опитайте отново.</string>
+    <string name="reorder_move_up">Преместване нагоре</string>
+    <string name="reorder_move_down">Преместване надолу</string>
     <string name="channels_empty_title">Тук няма канали</string>
     <string name="channels_empty_detail">В тази категория още няма нищо. Опитайте друга или изтеглете раздела отново.</string>
     <string name="channels_fetch_failed">Телевизията на живо не можа да се изтегли</string>
     <string name="channels_guide_now">СЕГА</string>
+    <string name="channels_guide_next">СЛЕДВА</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Днес</string>
     <string name="channels_guide_tomorrow">Утре</string>

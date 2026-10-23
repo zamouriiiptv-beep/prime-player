@@ -125,10 +125,22 @@
     <string name="channels_rail_total">Total: %1$s</string>
     <string name="channels_rail_empty">Daftar putar ini tidak memuat kategori.</string>
     <string name="channels_preview_none">Tekan saluran untuk memutarnya</string>
+    <string name="channels_now_playing">Sedang diputar</string>
+
+    <string name="reorder_entry">Urutkan</string>
+    <string name="reorder_save">Simpan</string>
+    <string name="reorder_cancel">Batal</string>
+    <string name="reorder_hint_pick">Tekan OK pada kategori atau saluran untuk mengangkatnya.</string>
+    <string name="reorder_hint_move">Pindahkan dengan ↑ dan ↓, lalu tekan OK untuk meletakkannya.</string>
+    <string name="reorder_hint_all">Buka kategori terlebih dahulu untuk mengatur ulang urutan salurannya.</string>
+    <string name="reorder_failed">Urutan tidak dapat disimpan. Coba lagi.</string>
+    <string name="reorder_move_up">Pindah ke atas</string>
+    <string name="reorder_move_down">Pindah ke bawah</string>
     <string name="channels_empty_title">Tidak ada saluran di sini</string>
     <string name="channels_empty_detail">Kategori ini belum berisi apa pun. Coba yang lain, atau unduh ulang bagian ini.</string>
     <string name="channels_fetch_failed">TV Langsung tidak dapat diunduh</string>
     <string name="channels_guide_now">SEKARANG</string>
+    <string name="channels_guide_next">BERIKUTNYA</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Hari ini</string>
     <string name="channels_guide_tomorrow">Besok</string>

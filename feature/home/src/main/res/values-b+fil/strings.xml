@@ -125,10 +125,22 @@
     <string name="channels_rail_total">Kabuuan: %1$s</string>
     <string name="channels_rail_empty">Walang nakalistang kategorya ang playlist na ito.</string>
     <string name="channels_preview_none">Pindutin ang channel para patugtugin</string>
+    <string name="channels_now_playing">Kasalukuyang nagpe-play</string>
+
+    <string name="reorder_entry">Ayusin</string>
+    <string name="reorder_save">I-save</string>
+    <string name="reorder_cancel">Kanselahin</string>
+    <string name="reorder_hint_pick">Pindutin ang OK sa kategorya o channel para buhatin ito.</string>
+    <string name="reorder_hint_move">Ilipat gamit ang ↑ at ↓, pagkatapos pindutin ang OK para ibaba ito.</string>
+    <string name="reorder_hint_all">Magbukas muna ng kategorya para ayusin ang mga channel nito.</string>
+    <string name="reorder_failed">Hindi na-save ang pagkakasunod. Subukan muli.</string>
+    <string name="reorder_move_up">Ilipat pataas</string>
+    <string name="reorder_move_down">Ilipat pababa</string>
     <string name="channels_empty_title">Walang channel dito</string>
     <string name="channels_empty_detail">Wala pang laman ang kategoryang ito. Sumubok ng iba, o i-download muli ang seksyon.</string>
     <string name="channels_fetch_failed">Hindi na-download ang Live TV</string>
     <string name="channels_guide_now">NGAYON</string>
+    <string name="channels_guide_next">SUSUNOD</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Ngayon</string>
     <string name="channels_guide_tomorrow">Bukas</string>

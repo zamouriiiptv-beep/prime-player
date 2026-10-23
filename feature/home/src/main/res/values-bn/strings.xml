@@ -125,10 +125,22 @@
     <string name="channels_rail_total">মোট: %1$s</string>
     <string name="channels_rail_empty">এই প্লেলিস্টে কোনো বিভাগ নেই।</string>
     <string name="channels_preview_none">চালাতে চ্যানেলে চাপ দিন</string>
+    <string name="channels_now_playing">এখন চলছে</string>
+
+    <string name="reorder_entry">ক্রম</string>
+    <string name="reorder_save">সংরক্ষণ</string>
+    <string name="reorder_cancel">বাতিল</string>
+    <string name="reorder_hint_pick">কোনো বিভাগ বা চ্যানেল তুলে নিতে সেটিতে OK চাপুন।</string>
+    <string name="reorder_hint_move">↑ ও ↓ দিয়ে সরান, তারপর নামিয়ে রাখতে OK চাপুন।</string>
+    <string name="reorder_hint_all">চ্যানেলের ক্রম বদলাতে আগে একটি বিভাগ খুলুন।</string>
+    <string name="reorder_failed">ক্রম সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।</string>
+    <string name="reorder_move_up">উপরে সরান</string>
+    <string name="reorder_move_down">নিচে সরান</string>
     <string name="channels_empty_title">এখানে কোনো চ্যানেল নেই</string>
     <string name="channels_empty_detail">এই বিভাগে এখনও কিছু নেই। অন্যটি দেখুন, অথবা বিভাগটি আবার ডাউনলোড করুন।</string>
     <string name="channels_fetch_failed">লাইভ টিভি ডাউনলোড করা যায়নি</string>
     <string name="channels_guide_now">এখন</string>
+    <string name="channels_guide_next">পরবর্তী</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">আজ</string>
     <string name="channels_guide_tomorrow">আগামীকাল</string>

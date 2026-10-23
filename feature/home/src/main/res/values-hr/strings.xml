@@ -125,10 +125,22 @@
     <string name="channels_rail_total">Ukupno: %1$s</string>
     <string name="channels_rail_empty">Ovaj popis za reprodukciju ne prikazuje nijednu kategoriju.</string>
     <string name="channels_preview_none">Pritisnite kanal da ga pustite</string>
+    <string name="channels_now_playing">Trenutno se reproducira</string>
+
+    <string name="reorder_entry">Poredak</string>
+    <string name="reorder_save">Spremi</string>
+    <string name="reorder_cancel">Odustani</string>
+    <string name="reorder_hint_pick">Pritisnite OK na kategoriji ili kanalu da biste ga podigli.</string>
+    <string name="reorder_hint_move">Premjestite ga strelicama ↑ i ↓, a zatim pritisnite OK da biste ga spustili.</string>
+    <string name="reorder_hint_all">Prvo otvorite kategoriju da biste promijenili redoslijed njezinih kanala.</string>
+    <string name="reorder_failed">Redoslijed nije spremljen. Pokušajte ponovno.</string>
+    <string name="reorder_move_up">Premjesti gore</string>
+    <string name="reorder_move_down">Premjesti dolje</string>
     <string name="channels_empty_title">Ovdje nema kanala</string>
     <string name="channels_empty_detail">U ovoj kategoriji još nema ničega. Pokušajte drugu ili ponovno preuzmite odjeljak.</string>
     <string name="channels_fetch_failed">Televizija uživo nije se mogla preuzeti</string>
     <string name="channels_guide_now">SADA</string>
+    <string name="channels_guide_next">SLIJEDI</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Danas</string>
     <string name="channels_guide_tomorrow">Sutra</string>

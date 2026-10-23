@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -18,6 +19,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.castivio.domain.PlayerPulse
 import kotlinx.coroutines.delay
 
 /**
@@ -85,6 +87,17 @@ fun PlayerRoute(
      * the expanded shape, and leaving the board altogether — differ only in that state.
      */
     retainOnDispose: () -> Boolean = { false },
+    /**
+     * Told what the player is doing -- see [PlayerState.pulse] -- and told again when that
+     * changes: the stream it was asked for, whether it has a picture, and what the picture
+     * measures. Null when there is no player.
+     *
+     * A callback and not a value because the board that marks the playing channel is in a
+     * module that must not know the player exists -- the shell, which knows both, carries it
+     * across. Called with the current answer as soon as this route is composed, so the compact
+     * shape and the expanded one each report what the other left.
+     */
+    onPulseChange: (PlayerPulse?) -> Unit = {},
 ) {
     val compact = mode == PlayerMode.Compact
     val model: PlayerViewModel = hiltViewModel()
@@ -93,6 +106,9 @@ fun PlayerRoute(
     val activity = context.findActivity()
 
     LaunchedEffect(request) { model.open(request) }
+
+    val report by rememberUpdatedState(onPulseChange)
+    LaunchedEffect(model) { model.pulse.collect { report(it) } }
 
     // The screen must not sleep during a film. Cleared on the way out rather than left
     // set, because a flag that outlives its screen is a battery complaint nobody traces.
@@ -179,6 +195,9 @@ fun PlayerRoute(
     // explicitly, and only on the way out.
     val leave = {
         model.leave()
+        // Nothing is playing once the engine is let go, and the collector above may already
+        // be on its way out -- so it is said here rather than waited for.
+        report(null)
         onLeave()
     }
 
@@ -189,7 +208,12 @@ fun PlayerRoute(
     // by a press that has already decided what happens to the engine.
     if (compact) {
         DisposableEffect(Unit) {
-            onDispose { if (!retainOnDispose()) model.leave() }
+            onDispose {
+                if (!retainOnDispose()) {
+                    model.leave()
+                    report(null)
+                }
+            }
         }
     }
 

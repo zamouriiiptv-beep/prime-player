@@ -125,10 +125,22 @@
     <string name="channels_rail_total">合計：%1$s</string>
     <string name="channels_rail_empty">這份播放清單沒有任何分類。</string>
     <string name="channels_preview_none">按下頻道即可播放</string>
+    <string name="channels_now_playing">正在播放</string>
+
+    <string name="reorder_entry">排序</string>
+    <string name="reorder_save">儲存</string>
+    <string name="reorder_cancel">取消</string>
+    <string name="reorder_hint_pick">在分類或頻道上按「確定」鍵即可拿起。</string>
+    <string name="reorder_hint_move">用 ↑ 和 ↓ 移動，再按「確定」放下。</string>
+    <string name="reorder_hint_all">請先開啟一個分類，再調整其中頻道的順序。</string>
+    <string name="reorder_failed">無法儲存順序，請再試一次。</string>
+    <string name="reorder_move_up">上移</string>
+    <string name="reorder_move_down">下移</string>
     <string name="channels_empty_title">這裡沒有頻道</string>
     <string name="channels_empty_detail">這個分類目前還是空的。換一個分類，或重新下載這個區塊。</string>
     <string name="channels_fetch_failed">直播電視下載失敗</string>
     <string name="channels_guide_now">現正播出</string>
+    <string name="channels_guide_next">接下來</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">今天</string>
     <string name="channels_guide_tomorrow">明天</string>

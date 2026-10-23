@@ -247,6 +247,7 @@ class ChannelsGuideTest {
         guideFetcher = fetcher,
         favorites = NoFavorites(),
         clock = clock,
+        measurements = MemoryQualities(),
     ).also { holder -> backgroundScope.launch { holder.preview.collect { } } }
 
     /**

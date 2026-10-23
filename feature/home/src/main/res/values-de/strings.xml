@@ -125,10 +125,22 @@
     <string name="channels_rail_total">Gesamt: %1$s</string>
     <string name="channels_rail_empty">Diese Liste enthält keine Kategorien.</string>
     <string name="channels_preview_none">Sender antippen, um ihn abzuspielen</string>
+    <string name="channels_now_playing">Läuft gerade</string>
+
+    <string name="reorder_entry">Ordnen</string>
+    <string name="reorder_save">Speichern</string>
+    <string name="reorder_cancel">Abbrechen</string>
+    <string name="reorder_hint_pick">Drücke OK auf einer Kategorie oder einem Sender, um ihn aufzunehmen.</string>
+    <string name="reorder_hint_move">Verschiebe ihn mit ↑ und ↓ und drücke OK, um ihn abzulegen.</string>
+    <string name="reorder_hint_all">Öffne zuerst eine Kategorie, um die Reihenfolge ihrer Sender zu ändern.</string>
+    <string name="reorder_failed">Die Reihenfolge konnte nicht gespeichert werden. Versuche es erneut.</string>
+    <string name="reorder_move_up">Nach oben</string>
+    <string name="reorder_move_down">Nach unten</string>
     <string name="channels_empty_title">Hier gibt es keine Sender</string>
     <string name="channels_empty_detail">Diese Kategorie ist noch leer. Probiere eine andere oder lade den Bereich erneut herunter.</string>
     <string name="channels_fetch_failed">Live-TV konnte nicht heruntergeladen werden</string>
     <string name="channels_guide_now">JETZT</string>
+    <string name="channels_guide_next">DANACH</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Heute</string>
     <string name="channels_guide_tomorrow">Morgen</string>

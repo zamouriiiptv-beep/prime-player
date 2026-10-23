@@ -3,7 +3,6 @@ package com.castivio.feature.home
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.castivio.core.design.components.BODY_LEADING
 import com.castivio.core.design.theme.CastivioMetrics
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.boundedFraction
@@ -115,6 +114,11 @@ internal data class ChannelsMetrics(
      * screen, to lay the columns out, and [wellPicture], to decide how much of the well
      * the picture may take. Two derivations of one number is two chances for the picture
      * to be sized against a column it is not in.
+     *
+     * The bands that come and go -- the reorder bar, a failed refresh's notice -- are not
+     * in it. The well measures the height it is actually given and rederives its figures
+     * from that (see `ChannelWell`), so a band over the columns costs the picture its
+     * height rather than the facts under it.
      */
     val column: Dp,
 
@@ -246,8 +250,8 @@ internal data class ChannelsMetrics(
      *     the board;
      *  3. **the room under it**, because the facts block keeps [CHANNELS_FACTS_MIN]
      *     whatever else happens. **The picture yields, not the text**: on a 21:9 handset
-     *     the column is 255dp and the block holding a name, two programme lines and a bar
-     *     needs 76 of it, so the frame gives height back rather than have a line cut off.
+     *     the column is 255dp and the block holding a name, what is on and what is next
+     *     needs 98 of it, so the frame gives height back rather than have a line cut off.
      */
     val wellPictureWidth: Dp get() = minOf(
         picture,
@@ -305,31 +309,6 @@ internal data class ChannelsMetrics(
      * At 833×385: 128.6 and 7.7.
      */
     val guideSection: Dp get() = (wellRoom * SECTION_OF_ROOM).coerceIn(5.dp, 22.dp)
-
-    /**
-     * Whether the column can afford the current programme's synopsis.
-     *
-     * **A question about this column, not about this device.** The obvious rule is a
-     * device class — `sw >= 600dp` for a television or a tablet — and it is wrong here by
-     * a case that matters: a 1080p television at density 2 reports 960×540, so its
-     * smallest width is 540 and the rule files it as a phone. That surface has 130dp of
-     * headroom and had 124dp of bare ground. It is the commonest television there is.
-     *
-     * So the question is asked of the room instead. [CHANNELS_FACTS_MIN] is what the
-     * block needs without a synopsis; whatever [wellRoom] holds beyond it is what a
-     * synopsis may use, and three lines of body text either fit in that or they do not.
-     * The same arithmetic that sizes the picture decides this, and it is right on every
-     * surface rather than on most of them.
-     *
-     * At 1280×720: 333.4 of room, 213.4 spare, three lines cost 83.7 — shown.
-     * At 960×540: 250.0 of room, 130.0 spare, three lines cost 62.8 — shown.
-     * At 833×385: 128.6 of room, 8.6 spare, three lines cost 56.0 — not shown, and
-     * drawing it anyway would push the action strip 26dp off the bottom of the board.
-     */
-    val wellSynopsis: Boolean get() {
-        val lines = frame.fsBody * BODY_LEADING * CHANNELS_SYNOPSIS_LINES
-        return wellRoom - CHANNELS_FACTS_MIN >= badgePadV + lines
-    }
 }
 
 /**
@@ -365,9 +344,9 @@ internal fun channelsMetricsFor(tv: Boolean, width: Dp, height: Dp): ChannelsMet
 
         rail = width.boundedFraction(RAIL, 170.dp, 330.dp),
         railGap = width.boundedFraction(RAIL_GAP, 6.dp, 18.dp),
-        player = width.boundedFraction(PLAYER, 260.dp, 520.dp),
+        player = width.boundedFraction(PLAYER, 260.dp, 560.dp),
         playerGap = width.boundedFraction(PLAYER_GAP, 6.dp, 20.dp),
-        picture = width.boundedFraction(PICTURE, 260.dp, 520.dp),
+        picture = width.boundedFraction(PICTURE, 260.dp, 560.dp),
         identity = height.boundedFraction(IDENTITY, 24.dp, 48.dp),
         strip = height.boundedFraction(STRIP, Sizing.minTarget(tv), 110.dp),
 
@@ -427,38 +406,35 @@ internal const val CHANNELS_TARGET_ROWS = 12
 /**
  * What the facts block under the picture may never be squeezed below.
  *
- * **Solved from the block's own content, not chosen.** The block draws what is on, what
- * is next and what follows that, under the channel's identity — and on the narrowest
- * surface this ships to they measure:
+ * **Solved from the block's own content, not chosen.** The block is the channel's identity,
+ * what is on -- its title, then the word, its hours and its bar -- and what is next, on one
+ * line; on a handset, each line at the full height its style declares:
  *
- * | region | at 720×309 |
+ * | region | at 891×411 |
  * |---|---|
  * | identity row (logo, name, quality) | 24 |
- * | what is on | 18 |
- * | the bar | 2 |
- * | its start and end | 16 |
- * | what is next, with its hours | 18 |
- * | and what follows that | 18 |
- * | the gaps and the rule between them | 19 |
+ * | the gap under it | 5.8 |
+ * | the rule, and the gap under it | 3 |
+ * | what is on: its title | 18 |
+ * | a gap, and its line: the word, the hours, the bar | 17.8 |
+ * | the gap between what is on and what is next | 4 |
+ * | what is next | 18 |
  * | the block's own vertical padding | 5 |
- * | **total** | **120** |
+ * | **total** | **95.6** |
  *
- * It has been 76, then 92, and each rise is a row the block gained: the logo and the
- * programme's hours, then the second coming programme. Below this the last line is cut
- * off, which is the defect the cap in [ChannelsMetrics.wellPictureWidth] exists to
- * prevent — the picture yields first.
+ * Every style here declares its line height, and a line never takes more than that on a
+ * device whatever its script -- so this is the most the block can need rather than a guess
+ * with room to spare. It grows with the surface, and the surfaces this reserve binds on grow
+ * with the reserve: 98 is the smallest whole figure that covers every surface it binds on
+ * (97.02 at 1132×485, a television). Composed on the desktop, where the leading of a line's
+ * first and last edge is trimmed, the block measures 84 on the handset. `ChannelsMetricsTest`
+ * holds the content under it at every surface the product ships to.
  *
- * **92 was already one dp short** of what two coming rows need on the shortest surface,
- * and the third row put it 22 short; a sweep from 320 to 2160 over seven aspects finds
- * 120 the smallest reserve that clears every one of them.
- *
- * Raising it costs nothing at the reference or on a handset, where the cap is not the
- * binding constraint: the frame stays **400×225 at 1280×720** and 260×146 at 833×385. It
- * is paid only on the shortest surfaces, where the picture goes from 190×107 to 155×87 —
- * and the smallest frame anywhere in the sweep is 160×90, still clear of
- * [CHANNELS_PICTURE_MIN].
+ * It was 90 while what is on was one line with its bar over its title; the title on a line of
+ * its own over the word that says it is on is the owner's layout, and it costs the picture
+ * 8dp of height on a handset -- the frame yields and the text does not, as everywhere here.
  */
-internal val CHANNELS_FACTS_MIN = 120.dp
+internal val CHANNELS_FACTS_MIN = 98.dp
 
 /**
  * And what the picture may never be squeezed below, whatever the column says.
@@ -470,20 +446,6 @@ internal val CHANNELS_FACTS_MIN = 120.dp
 internal val CHANNELS_PICTURE_MIN = 60.dp
 
 /**
- * How many lines of the current programme's synopsis the block draws, where it draws one.
- *
- * Three rather than two, and the third line is bought with a measurement: at the 1280×720
- * reference two lines leave 59.4dp of air between the block's three sections and three
- * leave 45.9dp. It is a *maximum* — a short synopsis takes one line and the distribution
- * absorbs the difference — and it is also the budget [ChannelsMetrics.wellSynopsis] spends,
- * so what is reserved and what is drawn are the same number by construction.
- *
- * It replaces `DESCRIPTION_LINES`, which sat unused in `ChannelsScreen` from the day the
- * synopsis was taken out of this block.
- */
-internal const val CHANNELS_SYNOPSIS_LINES = 3
-
-/**
  * How much of the facts block one gap between its sections takes.
  *
  * Six per cent, so the three gaps take eighteen — under a fifth of the block, which is
@@ -493,9 +455,10 @@ internal const val CHANNELS_SYNOPSIS_LINES = 3
  * gap that pushes the third programme off a handset. The drawing found exactly that at
  * 18.2dp before any of this was written.
  *
- * What is left over after the content and the gaps collects at the bottom of the block.
- * On a surface deep enough that is where the synopsis goes; on a handset it is simply
- * the honest picture of a channel whose provider sent fewer programmes.
+ * What is left over after the content and the gaps collects at the bottom of the block:
+ * on a handset almost nothing, because the picture has taken the room; on a television,
+ * where the frame is bounded by the column's width rather than by the room under it, the
+ * ground under what is next.
  */
 private const val SECTION_OF_ROOM = 0.06f
 
@@ -591,35 +554,33 @@ private const val RAIL_GAP = 16f / 1280f
  * over a list of names avoids covering some of them, and a rule that moves the rectangle
  * only chooses *which* names are covered.
  *
- * So the width comes back — but it is not the 986px preview well of the original
- * reference either. That column was a picture with a whole schedule under it, and the
- * schedule has left for a page of its own. What is left is a picture, the four lines that
- * say what it is, and a strip of things to do to it; and that needs about a third of the
- * board rather than two fifths.
+ * So the width comes back, and it is the 986px of the reference again: two fifths of the
+ * board. It was a third for a while -- the schedule had left the well for a page of its own
+ * and the column was narrowed after it -- and the owner's drawing of 22 October 2026 asks for
+ * the picture back at the size a viewer watches it at: the well at 42%, the channel list
+ * shrunk to pay for it, and under the picture only the channel, what is on, what is next and
+ * the strip. That is the reference's own boundary, so it is written as the measurement it is.
  *
- * The floor is what those three layers need to stay legible; the ceiling stops a
- * television from spending half its width on a preview.
+ * The floor is what those three layers need to stay legible. The ceiling lets a 1280-wide
+ * television have the whole share -- 539dp -- and stops a larger one spending more than that
+ * on a preview instead of on the catalogue.
  */
-private const val PLAYER = 748f / 2340f
+private const val PLAYER = 986f / 2340f
 
 /**
- * The video frame's width, chosen on the product's own 1280×720 reference.
+ * The video frame's width: the well's own, so the picture fills the column it is in.
  *
- * **Stated against 1280 rather than 2340, and deliberately.** Every other width in this
- * file is a pixel boundary measured off the 2340×1080 screenshot, so it carries `/2340`.
- * This one was not measured off anything — it is a size the owner chose and is testing,
- * at the geometry they chose it on. Writing it as `731.25/2340` would be the same number
- * dressed up as a measurement it never was. The two conventions agree: this is 0.3125 of
- * the width either way.
+ * It was 400 at 1280×720 inside a 409dp well, a size the owner chose and tested; the drawing
+ * that widened the well puts the picture edge to edge in it, over the facts block of the same
+ * width, so the two read as one panel. Kept as its own share rather than read off [PLAYER] so
+ * that the picture can still be sized without moving the channel list.
  *
- * So the frame is **400×225** at 1280×720, and 16:9 at every other size.
- *
- * The ceiling is what stops a large television spending its extra width on a preview
- * instead of on the catalogue — the frame grows to 1.4× the reference and no further. The
- * floor is the smallest frame a viewer can still read a channel from; below it the cap in
- * [ChannelsMetrics.wellPictureWidth] is already doing the deciding.
+ * What it gets is bounded twice more in [ChannelsMetrics.wellPictureWidth]: by the column, and
+ * by the room the facts block keeps under it. On a handset the second binds -- the frame gives
+ * height back to what is on and what is next rather than have a line cut off -- and the picture is a
+ * little narrower than the well, centred in it.
  */
-private const val PICTURE = 400f / 1280f
+private const val PICTURE = PLAYER
 
 /**
  * The identity row's height, which is also the channel logo's box.

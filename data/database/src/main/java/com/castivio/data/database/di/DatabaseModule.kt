@@ -15,6 +15,7 @@ import com.castivio.data.database.dao.GroupDao
 import com.castivio.data.database.dao.MediaDao
 import com.castivio.data.database.dao.ProgressDao
 import com.castivio.data.database.dao.SourceDao
+import com.castivio.domain.CatalogOrder
 import com.castivio.domain.CatalogPager
 import com.castivio.domain.CatalogRepository
 import com.castivio.domain.CatalogWriter
@@ -68,6 +69,9 @@ object DatabaseModule {
 
     @Provides
     fun catalogPager(repository: RoomCatalogRepository): CatalogPager = repository
+
+    @Provides
+    fun catalogOrder(repository: RoomCatalogRepository): CatalogOrder = repository
 
     /**
      * Not a singleton: a writer holds prepared statements and the state of one

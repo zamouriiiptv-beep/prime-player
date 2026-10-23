@@ -125,10 +125,22 @@
     <string name="channels_rail_total">Total: %1$s</string>
     <string name="channels_rail_empty">Esta lista não indica quaisquer categorias.</string>
     <string name="channels_preview_none">Prima um canal para o reproduzir</string>
+    <string name="channels_now_playing">A reproduzir</string>
+
+    <string name="reorder_entry">Ordenar</string>
+    <string name="reorder_save">Guardar</string>
+    <string name="reorder_cancel">Cancelar</string>
+    <string name="reorder_hint_pick">Prima OK numa categoria ou canal para o pegar.</string>
+    <string name="reorder_hint_move">Mova-o com ↑ e ↓ e prima OK para o largar.</string>
+    <string name="reorder_hint_all">Abra primeiro uma categoria para reordenar os respetivos canais.</string>
+    <string name="reorder_failed">Não foi possível guardar a ordem. Tente novamente.</string>
+    <string name="reorder_move_up">Mover para cima</string>
+    <string name="reorder_move_down">Mover para baixo</string>
     <string name="channels_empty_title">Sem canais aqui</string>
     <string name="channels_empty_detail">Esta categoria ainda está vazia. Experimente outra, ou transfira a secção de novo.</string>
     <string name="channels_fetch_failed">Não foi possível transferir a TV em direto</string>
     <string name="channels_guide_now">AGORA</string>
+    <string name="channels_guide_next">A SEGUIR</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Hoje</string>
     <string name="channels_guide_tomorrow">Amanhã</string>

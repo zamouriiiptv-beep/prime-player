@@ -1,5 +1,8 @@
 package com.castivio.feature.player
 
+import com.castivio.core.common.FrameSize
+import com.castivio.domain.PlayerPulse
+import com.castivio.domain.PulsePhase
 import com.castivio.playback.api.AspectMode
 import com.castivio.playback.api.EngineId
 import com.castivio.playback.api.PlaybackError
@@ -67,6 +70,11 @@ data class PlayerState(
      * frame has a shape. Null therefore means "do not letterbox yet" rather than "square".
      */
     val videoAspectRatio: Float? = null,
+    /**
+     * The decoded picture's size, or null while there is none -- what the channel board's quality
+     * badge is measured from. See [PlaybackEngine.videoSize].
+     */
+    val videoSize: FrameSize? = null,
     /**
      * The caption lines on screen right now, and empty when there are none.
      *
@@ -197,6 +205,30 @@ data class PlayerState(
     val behindLiveMs: Long = 0,
 ) {
     val isTimeshifted: Boolean get() = behindLiveMs > TIMESHIFT_THRESHOLD_MS
+
+    /**
+     * What this player is doing, in the words the channel board needs -- see [PlayerPulse].
+     *
+     * Derived from the two fields the screen is already drawn from, and held nowhere else: a
+     * second copy would be a second place to be wrong about the same fact. A channel being
+     * opened is not showing -- the press asked for it and nothing has been drawn -- and neither
+     * is one that failed, ended or is being reopened, so a press moves the board's mark when the
+     * first frame arrives and not before, and a channel that never plays never gets it.
+     */
+    val pulse: PlayerPulse
+        get() = PlayerPulse(
+            url = request.url,
+            phase = when (picture) {
+                is Picture.Opening -> PulsePhase.OPENING
+                is Picture.Playing, is Picture.Buffering, is Picture.Paused -> PulsePhase.SHOWING
+                is Picture.Reconnecting, is Picture.Failed, is Picture.Ended -> PulsePhase.STOPPED
+            },
+            frame = videoSize,
+            waiting = longWait && picture is Picture.Opening,
+        )
+
+    /** The address of the stream this player has a picture of right now, or null. */
+    val playingUrl: String? get() = pulse.playingUrl
 
     companion object {
         /**

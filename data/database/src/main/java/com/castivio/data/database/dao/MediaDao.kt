@@ -112,6 +112,61 @@ interface MediaDao {
     )
     suspend fun windowInGroup(kind: String, groupId: String, offset: Int, limit: Int): List<MediaEntity>
 
+    /**
+     * One window of a bouquet's channels in the viewer's own order -- [scope] names whose: see
+     * `CustomOrderEntity` -- and the provider's for any channel that order has no place for.
+     *
+     * Such a channel (one the provider added after the order was made) follows the others,
+     * in the provider's order among themselves, which is what keeps a refresh from putting a
+     * new arrival in the middle of a list the viewer set. The fallback is a constant far above
+     * any place the order gives, so it cannot meet one.
+     *
+     * Read only for a bouquet that has an order -- the repository asks first -- because this
+     * cannot use the index [windowInGroup] does, and sorts the bouquet for every window.
+     */
+    @Query(
+        """
+        SELECT m.* FROM media m
+        LEFT JOIN custom_order o ON o.scope = :scope AND o.item_id = m.id
+        WHERE m.source_id = $ACTIVE_SOURCE AND m.kind = :kind AND m.group_id = :groupId
+        ORDER BY COALESCE(o.position, 1000000000 + m.provider_order), m.id
+        LIMIT :limit OFFSET :offset
+        """,
+    )
+    suspend fun windowArranged(kind: String, groupId: String, scope: String, offset: Int, limit: Int): List<MediaEntity>
+
+    /**
+     * One window of the rows whose name matches, in provider order -- the channel list's own
+     * pages, narrowed by the index rather than by a scan. Joined by `media_id` for the reason
+     * [search] is. The `id` tie-break is [window]'s, so two reads of one window agree.
+     */
+    @Query(
+        """
+        SELECT m.* FROM media_fts f
+        INNER JOIN media m ON m.id = f.media_id
+        WHERE f.search_text MATCH :match AND m.source_id = $ACTIVE_SOURCE AND m.kind = :kind
+        ORDER BY m.provider_order, m.id LIMIT :limit OFFSET :offset
+        """,
+    )
+    suspend fun windowMatching(match: String, kind: String, offset: Int, limit: Int): List<MediaEntity>
+
+    @Query(
+        """
+        SELECT m.* FROM media_fts f
+        INNER JOIN media m ON m.id = f.media_id
+        WHERE f.search_text MATCH :match AND m.source_id = $ACTIVE_SOURCE AND m.kind = :kind
+          AND m.group_id = :groupId
+        ORDER BY m.provider_order, m.id LIMIT :limit OFFSET :offset
+        """,
+    )
+    suspend fun windowMatchingInGroup(
+        match: String,
+        kind: String,
+        groupId: String,
+        offset: Int,
+        limit: Int,
+    ): List<MediaEntity>
+
     @Query("SELECT * FROM media WHERE id = :id")
     suspend fun byId(id: String): MediaEntity?
 

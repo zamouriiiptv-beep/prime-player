@@ -125,10 +125,22 @@
     <string name="channels_rail_total">Totaal: %1$s</string>
     <string name="channels_rail_empty">Deze lijst bevat geen categorieën.</string>
     <string name="channels_preview_none">Druk op een zender om die af te spelen</string>
+    <string name="channels_now_playing">Nu aan het afspelen</string>
+
+    <string name="reorder_entry">Ordenen</string>
+    <string name="reorder_save">Opslaan</string>
+    <string name="reorder_cancel">Annuleren</string>
+    <string name="reorder_hint_pick">Druk op OK bij een categorie of zender om hem op te pakken.</string>
+    <string name="reorder_hint_move">Verplaats hem met ↑ en ↓ en druk op OK om hem neer te zetten.</string>
+    <string name="reorder_hint_all">Open eerst een categorie om de zenders ervan opnieuw te ordenen.</string>
+    <string name="reorder_failed">De volgorde kon niet worden opgeslagen. Probeer het opnieuw.</string>
+    <string name="reorder_move_up">Omhoog</string>
+    <string name="reorder_move_down">Omlaag</string>
     <string name="channels_empty_title">Hier zijn geen zenders</string>
     <string name="channels_empty_detail">Deze categorie is nog leeg. Probeer een andere, of download de sectie opnieuw.</string>
     <string name="channels_fetch_failed">Live-tv kon niet worden gedownload</string>
     <string name="channels_guide_now">NU</string>
+    <string name="channels_guide_next">HIERNA</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Vandaag</string>
     <string name="channels_guide_tomorrow">Morgen</string>

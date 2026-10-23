@@ -125,10 +125,22 @@
     <string name="channels_rail_total">Összesen: %1$s</string>
     <string name="channels_rail_empty">Ez a lejátszási lista nem tartalmaz kategóriákat.</string>
     <string name="channels_preview_none">Nyomjon meg egy csatornát a lejátszáshoz</string>
+    <string name="channels_now_playing">Most játszik</string>
+
+    <string name="reorder_entry">Sorrend</string>
+    <string name="reorder_save">Mentés</string>
+    <string name="reorder_cancel">Mégse</string>
+    <string name="reorder_hint_pick">Az OK gombbal vehetsz fel egy kategóriát vagy csatornát.</string>
+    <string name="reorder_hint_move">Mozgasd a ↑ és ↓ gombbal, majd az OK gombbal tedd le.</string>
+    <string name="reorder_hint_all">Először nyiss meg egy kategóriát, hogy átrendezhesd a csatornáit.</string>
+    <string name="reorder_failed">A sorrend mentése nem sikerült. Próbáld újra.</string>
+    <string name="reorder_move_up">Mozgatás felfelé</string>
+    <string name="reorder_move_down">Mozgatás lefelé</string>
     <string name="channels_empty_title">Itt nincsenek csatornák</string>
     <string name="channels_empty_detail">Ebben a kategóriában még nincs semmi. Próbáljon másikat, vagy töltse le újra a szakaszt.</string>
     <string name="channels_fetch_failed">Az Élő TV nem tölthető le</string>
     <string name="channels_guide_now">MOST</string>
+    <string name="channels_guide_next">KÖVETKEZŐ</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Ma</string>
     <string name="channels_guide_tomorrow">Holnap</string>

@@ -125,10 +125,22 @@
     <string name="channels_rail_total">Totalt: %1$s</string>
     <string name="channels_rail_empty">Denne spillelisten viser ingen kategorier.</string>
     <string name="channels_preview_none">Trykk på en kanal for å spille den av</string>
+    <string name="channels_now_playing">Spilles nå</string>
+
+    <string name="reorder_entry">Ordne</string>
+    <string name="reorder_save">Lagre</string>
+    <string name="reorder_cancel">Avbryt</string>
+    <string name="reorder_hint_pick">Trykk OK på en kategori eller kanal for å plukke den opp.</string>
+    <string name="reorder_hint_move">Flytt den med ↑ og ↓, og trykk OK for å sette den ned.</string>
+    <string name="reorder_hint_all">Åpne en kategori først for å endre rekkefølgen på kanalene.</string>
+    <string name="reorder_failed">Kunne ikke lagre rekkefølgen. Prøv igjen.</string>
+    <string name="reorder_move_up">Flytt opp</string>
+    <string name="reorder_move_down">Flytt ned</string>
     <string name="channels_empty_title">Ingen kanaler her</string>
     <string name="channels_empty_detail">Denne kategorien er tom foreløpig. Prøv en annen, eller last ned seksjonen på nytt.</string>
     <string name="channels_fetch_failed">Direkte-TV kunne ikke lastes ned</string>
     <string name="channels_guide_now">NÅ</string>
+    <string name="channels_guide_next">NESTE</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">I dag</string>
     <string name="channels_guide_tomorrow">I morgen</string>

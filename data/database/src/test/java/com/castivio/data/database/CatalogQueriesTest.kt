@@ -112,6 +112,69 @@ class CatalogQueriesTest {
     }
 
     @Test
+    fun `a search is read in windows, in provider order, without gaps`() = runBlocking {
+        Fixtures.import(database, Fixtures.livePlaylist(30))
+        val dao = database.mediaDao()
+        val match = FtsQuery.build("channel 1")!!
+
+        // Channel 1 and Channel 10 to Channel 19: eleven of thirty.
+        val first = dao.windowMatching(match, "LIVE", offset = 0, limit = 5)
+        val second = dao.windowMatching(match, "LIVE", offset = 5, limit = 5)
+        val last = dao.windowMatching(match, "LIVE", offset = 10, limit = 5)
+
+        assertEquals(listOf(1, 10, 11, 12, 13), first.map { it.providerOrder })
+        assertEquals(listOf(14, 15, 16, 17, 18), second.map { it.providerOrder })
+        assertEquals(listOf(19), last.map { it.providerOrder })
+    }
+
+    @Test
+    fun `a search window is narrowed to one group when asked`() = runBlocking {
+        Fixtures.import(
+            database,
+            Fixtures.livePlaylist(20) { if (it % 2 == 0) "Sports" else "News" },
+        )
+        val dao = database.mediaDao()
+        val sports = database.groupDao().groupsNow("LIVE").first { it.name == "Sports" }
+        val match = FtsQuery.build("channel")!!
+
+        val inGroup = dao.windowMatchingInGroup(match, "LIVE", sports.id, offset = 0, limit = 60)
+
+        assertEquals(10, inGroup.size)
+        assertTrue(inGroup.all { it.groupId == sports.id })
+        assertEquals(20, dao.windowMatching(match, "LIVE", offset = 0, limit = 60).size)
+    }
+
+    @Test
+    fun `a search window finds nothing for a name that is not there`() = runBlocking {
+        Fixtures.import(database, Fixtures.livePlaylist(30))
+
+        val rows = database.mediaDao().windowMatching(FtsQuery.build("zzz")!!, "LIVE", offset = 0, limit = 60)
+
+        assertTrue(rows.isEmpty())
+    }
+
+    @Test
+    fun `a search window finds only the active subscription's channels`() = runBlocking {
+        Fixtures.import(database, Fixtures.livePlaylist(5), sourceId = "xtream")
+        Fixtures.import(database, Fixtures.livePlaylist(2), sourceId = "m3u")
+        Fixtures.activate(database, "m3u")
+
+        val rows = database.mediaDao().windowMatching(FtsQuery.build("channel")!!, "LIVE", offset = 0, limit = 60)
+
+        assertEquals(2, rows.size)
+    }
+
+    @Test
+    fun `a search window is only of the kind asked for`() = runBlocking {
+        Fixtures.import(database, Fixtures.mixedPlaylist())
+        val dao = database.mediaDao()
+        val match = FtsQuery.build("breaking")!!
+
+        assertTrue(dao.windowMatching(match, "LIVE", offset = 0, limit = 60).isEmpty())
+        assertEquals(3, dao.windowMatching(match, "SERIES", offset = 0, limit = 60).size)
+    }
+
+    @Test
     fun `search works in arabic`() = runBlocking {
         Fixtures.import(database, Fixtures.mixedPlaylist())
 

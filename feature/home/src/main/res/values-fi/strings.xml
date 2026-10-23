@@ -125,10 +125,22 @@
     <string name="channels_rail_total">Yhteensä: %1$s</string>
     <string name="channels_rail_empty">Tämä soittolista ei sisällä luokkia.</string>
     <string name="channels_preview_none">Paina kanavaa toistaaksesi sen</string>
+    <string name="channels_now_playing">Toistetaan nyt</string>
+
+    <string name="reorder_entry">Järjestä</string>
+    <string name="reorder_save">Tallenna</string>
+    <string name="reorder_cancel">Peruuta</string>
+    <string name="reorder_hint_pick">Nosta luokka tai kanava painamalla OK.</string>
+    <string name="reorder_hint_move">Siirrä sitä painikkeilla ↑ ja ↓ ja laske se painamalla OK.</string>
+    <string name="reorder_hint_all">Avaa ensin luokka, jotta voit järjestää sen kanavat.</string>
+    <string name="reorder_failed">Järjestystä ei voitu tallentaa. Yritä uudelleen.</string>
+    <string name="reorder_move_up">Siirrä ylös</string>
+    <string name="reorder_move_down">Siirrä alas</string>
     <string name="channels_empty_title">Täällä ei ole kanavia</string>
     <string name="channels_empty_detail">Tässä luokassa ei ole vielä mitään. Kokeile toista tai lataa osio uudelleen.</string>
     <string name="channels_fetch_failed">Suoraa TV:tä ei voitu ladata</string>
     <string name="channels_guide_now">NYT</string>
+    <string name="channels_guide_next">SEURAAVAKSI</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Tänään</string>
     <string name="channels_guide_tomorrow">Huomenna</string>

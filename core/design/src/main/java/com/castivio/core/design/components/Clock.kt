@@ -14,14 +14,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import com.castivio.core.common.format.CastivioDates
 import com.castivio.core.design.theme.CastivioTheme
-import java.text.DateFormat
-import java.util.Date
 
 /**
  * The time, and the day under it.
@@ -52,26 +49,20 @@ fun CastivioClock(
     fsTime: Dp,
     fsDate: Dp,
     modifier: Modifier = Modifier,
-    time: String? = null,
 ) {
     val colors = CastivioTheme.colors
     val now = rememberMinute()
-    val locale = LocalConfiguration.current
 
     // Isolated, both of them. A clock and a date are fixed-shape tokens: drawn
     // unisolated in an Arabic composition, `16/09/2026` is reordered into
     // `162026/09/` by the bidirectional algorithm. See [ltrIsolate].
     //
-    // A caller may hand its own string in instead. The channels board keeps a 24-hour
-    // clock whatever the locale's short form is -- a board of start times reads as a
-    // column of numbers and `9:04 PM` breaks the column -- and that is a decision
-    // about *that screen's content*, not about how a clock looks. So the format is the
-    // caller's and everything else here is the system's.
-    val shown = time ?: remember(now, locale) {
-        ltrToken(DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(now)))
-    }
-    // The date does not ask the locale anything, so it is not keyed on one: Castivio
-    // draws one date shape everywhere. See `CastivioDates`.
+    // Neither asks the locale anything, so neither is keyed on one: Castivio draws one
+    // time shape and one date shape everywhere, twenty-four hours and Western digits.
+    // The channels board used to hand its own 24-hour string in while every other
+    // clock followed the language's short form -- `١٠:٣٠ م` on Home, `10:30` a press
+    // later. See `CastivioDates`.
+    val shown = remember(now) { ltrToken(CastivioDates.time(now)) }
     val day = remember(now) { ltrToken(CastivioDates.date(now)) }
 
     Column(modifier, horizontalAlignment = Alignment.End) {

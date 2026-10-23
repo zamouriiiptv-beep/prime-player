@@ -42,7 +42,7 @@ object CastivioMigrations {
     // Declared below rather than here, and read through a getter rather than held in a
     // property: an `object`'s properties initialise top to bottom, so a list that
     // named a migration declared under it would be a list holding null.
-    val ALL: Array<Migration> get() = arrayOf(REKEY_SOURCES, SCOPE_TO_SOURCE, KEY_SEARCH_BY_ROW)
+    val ALL: Array<Migration> get() = arrayOf(REKEY_SOURCES, SCOPE_TO_SOURCE, KEY_SEARCH_BY_ROW, ADD_CUSTOM_ORDER)
 
     /**
      * 1 → 2: the stored sources take the ids the current rule gives them.
@@ -231,6 +231,27 @@ object CastivioMigrations {
     }
 
     /**
+     * Adds `custom_order`: the order a viewer gives a list of bouquets or channels.
+     *
+     * A table and its index, written as Room writes them for `CustomOrderEntity` -- Room checks
+     * the table it finds against the entity on open, so the columns, their types and the key
+     * are exactly the entity's. Nothing is read or changed: no row of any table exists yet that
+     * this could have an opinion about, and it is user data from its first row, so
+     * [USER_TABLES] names it and no migration may drop it.
+     */
+    private val ADD_CUSTOM_ORDER = object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `custom_order` (`scope` TEXT NOT NULL, " +
+                    "`item_id` TEXT NOT NULL, `position` INTEGER NOT NULL, PRIMARY KEY(`scope`, `item_id`))",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `idx_custom_order_position` ON `custom_order` (`scope`, `position`)",
+            )
+        }
+    }
+
+    /**
      * Removes catalogue rows whose subscription no longer exists.
      *
      * `media_fts` first, while `media` can still say which rows were whose: the search
@@ -317,5 +338,5 @@ object CastivioMigrations {
     val CATALOGUE_TABLES = listOf("media_fts", "media", "media_group", "programme")
 
     /** Not rebuildable from anywhere. */
-    val USER_TABLES = listOf("favorite", "playback_progress", "source")
+    val USER_TABLES = listOf("favorite", "playback_progress", "source", "custom_order")
 }

@@ -3,6 +3,7 @@ package com.castivio.feature.player
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.castivio.domain.PlayerPulse
 import com.castivio.playback.api.AspectMode
 import com.castivio.playback.api.EngineId
 import com.castivio.playback.api.EngineMemory
@@ -26,10 +27,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /**
@@ -78,6 +82,16 @@ class PlayerViewModel @Inject constructor(
     private val _state = MutableStateFlow<PlayerState?>(null)
     val state: StateFlow<PlayerState?> = _state.asStateFlow()
 
+    /**
+     * What the player is doing, as the board beside it needs to say it -- see [PlayerState.pulse].
+     *
+     * Its own flow, and distinct, because the state is copied four times a second by the ticker
+     * and a screen that only wants to know *which* channel is playing, and whether it has a
+     * picture, must not wake for a position. It changes when a channel is asked for, gets its
+     * first frame, learns its size and stops, and at no other time.
+     */
+    val pulse: Flow<PlayerPulse?> = _state.map { it?.pulse }.distinctUntilChanged()
+
     private var engine: PlaybackEngine? = null
     private var engineId: EngineId = EngineId.PRIMARY
     private var output: VideoOutput? = null
@@ -95,6 +109,7 @@ class PlayerViewModel @Inject constructor(
     private var sampler: Job? = null
     private var guideJob: Job? = null
     private var shapeJob: Job? = null
+    private var sizeJob: Job? = null
     private var cueJob: Job? = null
     private var huntJob: Job? = null
     private var captionJob: Job? = null
@@ -331,6 +346,15 @@ class PlayerViewModel @Inject constructor(
         shapeJob = viewModelScope.launch {
             created.videoAspectRatio.collect { ratio ->
                 _state.value = _state.value?.copy(videoAspectRatio = ratio)
+            }
+        }
+
+        // The measured size, beside the shape's and for the same reason: it arrives with the
+        // picture and has nothing to do with opening, so it stays out of the combine that decides
+        // whether to fall over.
+        sizeJob = viewModelScope.launch {
+            created.videoSize.collect { size ->
+                _state.value = _state.value?.copy(videoSize = size)
             }
         }
 
@@ -1411,6 +1435,7 @@ class PlayerViewModel @Inject constructor(
         // starts new listeners on the next one: these would otherwise go on collecting from
         // a released engine for the rest of the session.
         shapeJob?.cancel(); shapeJob = null
+        sizeJob?.cancel(); sizeJob = null
         cueJob?.cancel(); cueJob = null
         engine?.setVideoOutput(null)
         engine?.release()

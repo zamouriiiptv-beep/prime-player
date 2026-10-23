@@ -4,11 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
+import com.castivio.domain.CatalogOrder
 import com.castivio.domain.CatalogPager
 import com.castivio.domain.CatalogQuery
 import com.castivio.domain.CatalogRepository
 import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaItem
+import com.castivio.domain.ProviderSource
 import com.castivio.domain.Season
 import com.castivio.domain.SectionLoad
 import com.castivio.domain.SectionLoads
@@ -16,19 +18,26 @@ import com.castivio.domain.SectionRun
 import com.castivio.domain.SeriesSummary
 import com.castivio.domain.SortOrder
 import com.castivio.domain.SourceRepository
+import com.castivio.domain.searchTermOf
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.Locale
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * What the category pane and the header need, which is everything except the rows.
@@ -57,7 +66,11 @@ data class BrowseState(
      * rows on screen could disagree for a frame after a section change.
      */
     val sort: SortOrder = SortOrder.PROVIDER,
-    /** From an indexed `COUNT`, never from measuring a list. */
+    /**
+     * From an indexed `COUNT`, never from measuring a list. What the scope holds -- the open
+     * category, or the whole section while a search is on -- and not how many rows match: whether
+     * the section has anything is one question, and whether this search found any is the list's.
+     */
     val total: Int = 0,
     /**
      * Everything this section holds, whatever category is open.
@@ -87,6 +100,19 @@ data class BrowseState(
      */
     val groupFilter: String = "",
     val shownGroups: List<MediaGroup> = emptyList(),
+    /**
+     * What the header's field is asking for, as the rows reflect it: the typed words folded by
+     * [searchTermOf], or empty when the list is not narrowed. Not the field's own text -- that
+     * is [BrowseViewModel.searchText], which is what was typed this instant -- but what the
+     * query in force was built from, so "Nothing matched" names the search the rows answer.
+     */
+    val search: String = "",
+    /**
+     * The board is in reorder mode, or null. While it is, the rail lists the bouquets in the order
+     * being set -- [shownGroups] is that order, whole, and the rail's own filter is set aside --
+     * and the channels of the open bouquet are its draft. See [Arranging].
+     */
+    val arranging: Arranging? = null,
     /**
      * The rail lists no category and none is on its way: what `RailEmpty` says instead of a
      * list. Not while any load of the section waits or runs, nor after one failed -- see
@@ -133,13 +159,14 @@ data class BrowseState(
  * rows than a window, and the paging configuration is the pager's, decided once next
  * to the performance budgets rather than restated per screen.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @HiltViewModel
 class BrowseViewModel @Inject constructor(
     private val catalog: CatalogRepository,
     private val pager: CatalogPager,
     private val loads: SectionLoads,
     private val sources: SourceRepository,
+    private val customOrder: CatalogOrder,
 ) : ViewModel() {
 
     private val section = MutableStateFlow(CatalogSection.Live)
@@ -166,6 +193,40 @@ class BrowseViewModel @Inject constructor(
     /** What the rail's search field holds. See [BrowseState.groupFilter]. */
     private val railFilter = MutableStateFlow("")
 
+    /**
+     * What the header's field holds, exactly as typed.
+     *
+     * Kept here and read straight off the flow rather than through [state]: a field whose text
+     * made a round trip through the combine below, and the pager's own work, would lag the
+     * keys under it. It is the holder's, not the composition's, so a trip to the player and back
+     * finds the field and the list agreeing about what was asked.
+     */
+    private val typed = MutableStateFlow("")
+
+    val searchText: StateFlow<String> = typed
+
+    /**
+     * What the rows are narrowed by: [typed], folded, held back until the viewer pauses.
+     *
+     * Folded *before* the pause, so a trailing space or a capital does not restart it, and
+     * distinct, so those typings are not a second query. Cleared at once -- there is nothing to
+     * wait for when the answer is the list that was there before.
+     */
+    private val term: Flow<String> = typed
+        .map(::searchTermOf)
+        .distinctUntilChanged()
+        .debounce { if (it.isEmpty()) 0L else SEARCH_DEBOUNCE_MS }
+        .distinctUntilChanged()
+
+    /**
+     * The board in reorder mode, or null -- see [Arranging]. Not [state]'s: the query below reads
+     * it too, to ask for the draft of the channels being arranged and not their saved order.
+     */
+    private val arrangement = MutableStateFlow<Arranging?>(null)
+
+    /** Moves and saves are written one at a time, in the order they were pressed. */
+    private val orderLock = Mutex()
+
     private val groups: Flow<List<MediaGroup>> =
         section.flatMapLatest { catalog.groups(it.kind) }
 
@@ -181,11 +242,27 @@ class BrowseViewModel @Inject constructor(
      * whose first page starts over. The rows are asked for again only when the query is.
      */
     private val query: Flow<CatalogQuery> =
-        combine(section, chosen, groups, order) { current, selected, available, sort ->
+        combine(
+            section,
+            chosen,
+            groups,
+            order,
+            combine(term, arrangement.map { it?.channelsOf }) { search, arranged -> search to arranged },
+        ) { current, selected, available, sort, narrowing ->
+            val (search, arrangedGroup) = narrowing
+            val groupId = if (search.isEmpty()) surviving(selected, available) else null
             CatalogQuery(
                 kind = current.kind,
-                groupId = surviving(selected, available),
+                // **A search is of the whole section.** A viewer who types a name wants the
+                // channel, not the channel if it happens to be in the bouquet that was open --
+                // and an answer of "nothing" from one bouquet is indistinguishable from the
+                // channel not existing. So while there are words, no category is asked for, the
+                // rail's "all" is the one lit, and the category chosen is only set aside:
+                // clearing the field gives it back, on the list it was.
+                groupId = groupId,
                 sort = sort,
+                search = search,
+                arranging = groupId != null && groupId == arrangedGroup,
             )
         }.distinctUntilChanged()
 
@@ -212,11 +289,13 @@ class BrowseViewModel @Inject constructor(
             sources.active(),
             fetch,
             railFilter,
-        ) { provider, state, filter -> Triple(provider, state, filter) },
-    ) { current, available, asked, counts, providerAndFetch ->
-        val provider = providerAndFetch.first
-        val run = providerAndFetch.second
-        val filter = providerAndFetch.third
+            arrangement,
+        ) { provider, state, filter, arranged -> Surroundings(provider, state, filter, arranged) },
+    ) { current, available, asked, counts, around ->
+        val provider = around.provider
+        val run = around.run
+        val filter = around.filter
+        val arranged = around.arranging
         val listed = listedOf(available)
         BrowseState(
             section = current,
@@ -227,7 +306,11 @@ class BrowseViewModel @Inject constructor(
             total = counts.first,
             sectionTotal = counts.second,
             groupFilter = filter,
-            shownGroups = listed.filtered(filter),
+            // Reorder mode lists every bouquet in the order being set; the rail's own filter
+            // is set aside, because a list with bouquets filtered out is not one to move in.
+            shownGroups = arranged?.let { listed.arrangedAs(it.bouquets) } ?: listed.filtered(filter),
+            search = asked.search,
+            arranging = arranged,
             noCategories = saysNoCategories(listed, run?.load),
             firstLoad = run.isFirstLoad(),
             // `takeIf`, because a playlist the user did not name now stores no name
@@ -250,6 +333,17 @@ class BrowseViewModel @Inject constructor(
     private var userChose = false
 
     init {
+        // A draft an earlier arrangement left behind -- the app closed before Save or Cancel -- is
+        // cleared once a board is open, off the way to its first frame. See `CatalogOrder.sweepDrafts`.
+        viewModelScope.launch {
+            try {
+                customOrder.sweepDrafts()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Left for the next sweep, or the next arrangement, which clears it as it begins.
+            }
+        }
         viewModelScope.launch {
             combine(fetch, groups) { run, available -> run to available }.collect { (run, available) ->
                 if (userChose || chosen.value != null || !run.isFirstLoad()) return@collect
@@ -276,9 +370,11 @@ class BrowseViewModel @Inject constructor(
      */
     fun show(current: CatalogSection) {
         if (section.value != current) {
+            cancel()
             section.value = current
             chosen.value = null
             userChose = false
+            typed.value = ""
         }
     }
 
@@ -291,15 +387,168 @@ class BrowseViewModel @Inject constructor(
         loads.request(section.value.kind, force = true)
     }
 
+    /**
+     * What the header's field was typed into: the channels whose names match, as the viewer
+     * types. Empty -- or nothing but spaces and punctuation -- is the list as it was.
+     */
+    fun search(text: String) {
+        // Reorder mode is of the lists as they are: a search in it would show rows nobody can move.
+        if (arrangement.value != null) return
+        typed.value = text
+    }
+
     /** What the rail's field was typed into. Empty shows every category again. */
     fun filterGroups(text: String) {
+        if (arrangement.value != null) return
         railFilter.value = text
     }
 
-    /** Null is the "all" pseudo-category, which is a selection like any other. */
+    /**
+     * Null is the "all" pseudo-category, which is a selection like any other.
+     *
+     * A choice ends a search that was on: the rail's press would otherwise change nothing the
+     * viewer can see, the rows being those of the search and not of the category they asked for.
+     */
     fun choose(groupId: String?) {
+        // A press on the rail in reorder mode picks a bouquet up; it does not open one.
+        if (arrangement.value != null) return
         userChose = true
         chosen.value = groupId
+        typed.value = ""
+    }
+
+    // ------------------------------------------------------------------------- reorder mode
+
+    private var starting = false
+
+    /**
+     * Enter reorder mode on the bouquets, and on the channels of the bouquet that is open.
+     *
+     * The draft of that bouquet's channels is made first, and the mode is announced after, so the
+     * list is never asked for a draft that is not there yet. A search is cleared: what it shows is
+     * not a list that can be arranged. "All" has no order of its own, so with it open only the
+     * bouquets can be moved.
+     */
+    fun arrange() {
+        if (arrangement.value != null || starting) return
+        val now = state.value
+        val ids = listedOf(now.groups).map { it.id }
+        val group = surviving(chosen.value, now.groups)
+        typed.value = ""
+        starting = true
+        viewModelScope.launch {
+            try {
+                if (group != null) orderLock.withLock { customOrder.begin(group) }
+                arrangement.value = Arranging(bouquets = ids, initial = ids, channelsOf = group)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // The draft could not be made, so there is nothing to arrange: the board stays as it was.
+            } finally {
+                starting = false
+            }
+        }
+    }
+
+    /** OK on a row in reorder mode: pick it up, or -- if it is the one held -- put it down. */
+    fun press(row: Held) {
+        val now = arrangement.value ?: return
+        // A bouquet's channels can be moved only when there is a bouquet open to hold them.
+        if (row is Held.Channel && now.channelsOf == null) return
+        arrangement.value = now.pressed(row)
+    }
+
+    /** Put down whatever is held. */
+    fun drop() {
+        arrangement.value = arrangement.value?.dropped()
+    }
+
+    /** One place up or down for what is held. The arrow keys, and the two buttons a thumb has. */
+    fun moveHeld(up: Boolean) {
+        val now = arrangement.value ?: return
+        when (val held = now.held) {
+            is Held.Bouquet -> arrangement.value = now.withHeldBouquetMoved(up)
+            is Held.Channel -> now.channelsOf?.let { group ->
+                viewModelScope.launch {
+                    try {
+                        orderLock.withLock {
+                            // Told inside the lock, so a save pressed after this move finds it said.
+                            if (customOrder.move(group, held.id, up)) {
+                                arrangement.value = arrangement.value?.copy(channelsMoved = true)
+                            }
+                        }
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        arrangement.value = arrangement.value?.copy(failed = true)
+                    }
+                }
+            }
+            null -> Unit
+        }
+    }
+
+    /**
+     * Keep what was moved, and leave the mode.
+     *
+     * The channels' draft becomes their order -- if a channel was moved; otherwise it is dropped,
+     * and no order is stored that the viewer did not make -- and the bouquets are written as they
+     * stand, if they were moved. Every move already pressed is written first. If something does
+     * not reach the database the mode stays open and says so, with everything moved still where
+     * it was put.
+     */
+    fun save() {
+        val now = arrangement.value ?: return
+        if (now.saving) return
+        arrangement.value = now.copy(saving = true, failed = false)
+        viewModelScope.launch {
+            val written = try {
+                orderLock.withLock {
+                    if (now.bouquetsMoved) customOrder.saveBouquets(section.value.kind, now.bouquets)
+                    now.channelsOf?.let { group ->
+                        // Read here, after every move pressed before this save has been written.
+                        if (arrangement.value?.channelsMoved == true) customOrder.save(group)
+                        else customOrder.discard(group)
+                    }
+                }
+                true
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                false
+            }
+            arrangement.value = if (written) null else arrangement.value?.copy(saving = false, failed = true)
+        }
+    }
+
+    /**
+     * Leave the mode and put everything back as it was.
+     *
+     * The lists are read as they were saved the moment this returns; the draft is thrown away
+     * behind them, after any move still being written.
+     */
+    fun cancel() {
+        val now = arrangement.value ?: return
+        arrangement.value = null
+        now.channelsOf?.let { group ->
+            viewModelScope.launch {
+                try {
+                    orderLock.withLock { customOrder.discard(group) }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // A draft left behind is read by nothing: the next time this bouquet is arranged it starts over.
+                }
+            }
+        }
+    }
+
+    /**
+     * The screen is gone for good. An arrangement still open has a draft nobody will save or
+     * cancel; the next sweep throws it away. Nothing is written here: this scope is ending.
+     */
+    override fun onCleared() {
+        if (arrangement.value != null) customOrder.draftAbandoned()
     }
 
     /**
@@ -325,6 +574,9 @@ class BrowseViewModel @Inject constructor(
          * has left stops holding a database cursor.
          */
         const val SUBSCRIPTION_GRACE_MS = 5_000L
+
+        /** The data rule's number -- see `SearchViewModel`, which states why it is one number. */
+        const val SEARCH_DEBOUNCE_MS = 120L
     }
 }
 
@@ -343,3 +595,11 @@ private fun List<MediaGroup>.filtered(typed: String): List<MediaGroup> {
     val lowered = needle.lowercase(Locale.ROOT)
     return filter { it.name.lowercase(Locale.ROOT).contains(lowered) }
 }
+
+/** What [BrowseViewModel.state] reads beside the section's own flows, in one value. */
+private data class Surroundings(
+    val provider: ProviderSource?,
+    val run: SectionRun?,
+    val filter: String,
+    val arranging: Arranging?,
+)

@@ -125,10 +125,22 @@
     <string name="channels_rail_total">Total: %1$s</string>
     <string name="channels_rail_empty">Această listă nu conține categorii.</string>
     <string name="channels_preview_none">Apăsați un canal pentru a-l reda</string>
+    <string name="channels_now_playing">Se redă acum</string>
+
+    <string name="reorder_entry">Ordine</string>
+    <string name="reorder_save">Salvează</string>
+    <string name="reorder_cancel">Anulare</string>
+    <string name="reorder_hint_pick">Apasă OK pe o categorie sau un canal pentru a-l ridica.</string>
+    <string name="reorder_hint_move">Mută-l cu ↑ și ↓, apoi apasă OK pentru a-l lăsa jos.</string>
+    <string name="reorder_hint_all">Deschide mai întâi o categorie pentru a-i reordona canalele.</string>
+    <string name="reorder_failed">Ordinea nu a putut fi salvată. Încearcă din nou.</string>
+    <string name="reorder_move_up">Mută în sus</string>
+    <string name="reorder_move_down">Mută în jos</string>
     <string name="channels_empty_title">Niciun canal aici</string>
     <string name="channels_empty_detail">Această categorie nu are încă nimic. Încercați alta sau descărcați secțiunea din nou.</string>
     <string name="channels_fetch_failed">TV live nu a putut fi descărcat</string>
     <string name="channels_guide_now">ACUM</string>
+    <string name="channels_guide_next">URMEAZĂ</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Astăzi</string>
     <string name="channels_guide_tomorrow">Mâine</string>

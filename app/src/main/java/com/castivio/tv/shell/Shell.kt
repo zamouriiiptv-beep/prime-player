@@ -63,6 +63,7 @@ import com.castivio.core.design.theme.rememberMetrics
 import com.castivio.core.navigation.BackPolicy
 import com.castivio.core.navigation.ShellBack
 import com.castivio.domain.MediaKind as CatalogKind
+import com.castivio.domain.PlayerPulse
 import com.castivio.domain.SeriesSummary
 import com.castivio.feature.activation.ActivationEntry
 import com.castivio.feature.activation.ActivationRoute
@@ -255,6 +256,16 @@ fun ShellScreen(
     // expanded player is up; two surfaces would both claim the engine's single output.
     var livePreview by remember { mutableStateOf<PlayerRequest?>(null) }
 
+    // **What the player is doing, as the player says it.**
+    //
+    // Reported by whichever shape of the player is composed -- see `PlayerRoute.onPulseChange`
+    // -- and held here only to carry it to the board, which must not know the player exists.
+    // It is not the request: a channel that was pressed and has not drawn, or that failed, is
+    // not "playing" in it, and the channel before it is not in it either once the engine has
+    // moved on. That is the whole of why the board's playing mark, its preview and its quality
+    // badge cannot be fooled by a press.
+    var pulse by remember { mutableStateOf<PlayerPulse?>(null) }
+
     // ## Back, and the one place it asks before it acts
     //
     // Always enabled now, where it used to stand aside at the root and let the
@@ -324,6 +335,7 @@ fun ShellScreen(
                     // exactly that on the way out, and `dest` alone would have said
                     // "retain" and left a channel decoding with nothing drawing it.
                     retainOnDispose = { dest == Dest.Live && livePreview != null },
+                    onPulseChange = { pulse = it },
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -387,7 +399,9 @@ fun ShellScreen(
                         // decoder alone. Guarded here and not in the board: the request is what
                         // decides whether there is anything to expand, and the shell holds it.
                         onExpand = { livePreview?.let { overlay = Overlay.Play(it) } },
-                        onSearch = { searchKind = CatalogKind.LIVE; dest = Dest.Search },
+                        // Read only while a player exists to be playing it: a stream that was
+                        // playing when the plate went away has no one left to say it stopped.
+                        pulse = pulse.takeIf { livePreview != null || overlay is Overlay.Play },
                         preview = preview,
                     )
                     Dest.Movies -> BrowseScreen(
@@ -442,6 +456,7 @@ fun ShellScreen(
                 } else {
                     null
                 },
+                onPulseChange = { pulse = it },
             )
             is Overlay.StateBoard -> StateBoardOverlay(onBack = { overlay = null })
             // Reached from a working app, so leaving means returning to

@@ -31,6 +31,7 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory
+import com.castivio.core.common.FrameSize
 import com.castivio.playback.api.AspectMode
 import com.castivio.playback.api.DecoderReport
 import com.castivio.playback.api.FormatReport
@@ -110,6 +111,9 @@ class Media3Engine(
 
     private val _videoAspectRatio = MutableStateFlow<Float?>(null)
     override val videoAspectRatio: StateFlow<Float?> = _videoAspectRatio.asStateFlow()
+
+    private val _videoSize = MutableStateFlow<FrameSize?>(null)
+    override val videoSize: StateFlow<FrameSize?> = _videoSize.asStateFlow()
 
     private val _cues = MutableStateFlow<List<String>>(emptyList())
     override val cues: StateFlow<List<String>> = _cues.asStateFlow()
@@ -337,6 +341,7 @@ class Media3Engine(
         audioFormat = null
         hasVideoTrack = null
         _videoAspectRatio.value = null
+        _videoSize.value = null
         // A fresh engine starts with these empty, and a kept one has to: the caption on screen
         // when the channel changed is the last channel's, and the callback that would have
         // cleared it is one of the ones the gate turns away.
@@ -421,6 +426,7 @@ class Media3Engine(
         _firstFrameAtMs.value = null
         hasVideoTrack = null
         _videoAspectRatio.value = null
+        _videoSize.value = null
         _cues.value = emptyList()
     }
 
@@ -672,6 +678,10 @@ class Media3Engine(
             if (videoSize.width > 0 && videoSize.height > 0) {
                 displayWidth = videoSize.width
                 displayHeight = videoSize.height
+                // The size as it is drawn -- rotation applied -- which is what a quality is a
+                // class of. Null again on the next open, so a kept engine never reports the
+                // last channel's picture as the next one's.
+                _videoSize.value = FrameSize.of(videoSize.width, videoSize.height)
             }
 
             // Kept so a container that declared no format at all still has one to read a

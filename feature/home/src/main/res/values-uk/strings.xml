@@ -125,10 +125,22 @@
     <string name="channels_rail_total">Разом: %1$s</string>
     <string name="channels_rail_empty">Цей список не містить категорій.</string>
     <string name="channels_preview_none">Натисніть канал, щоб увімкнути його</string>
+    <string name="channels_now_playing">Відтворюється зараз</string>
+
+    <string name="reorder_entry">Порядок</string>
+    <string name="reorder_save">Зберегти</string>
+    <string name="reorder_cancel">Скасувати</string>
+    <string name="reorder_hint_pick">Натисніть OK на категорії або каналі, щоб узяти його.</string>
+    <string name="reorder_hint_move">Пересувайте клавішами ↑ і ↓, потім натисніть OK, щоб відпустити.</string>
+    <string name="reorder_hint_all">Спочатку відкрийте категорію, щоб змінити порядок її каналів.</string>
+    <string name="reorder_failed">Не вдалося зберегти порядок. Спробуйте ще раз.</string>
+    <string name="reorder_move_up">Перемістити вгору</string>
+    <string name="reorder_move_down">Перемістити вниз</string>
     <string name="channels_empty_title">Тут немає каналів</string>
     <string name="channels_empty_detail">Ця категорія поки порожня. Спробуйте іншу або завантажте розділ знову.</string>
     <string name="channels_fetch_failed">Не вдалося завантажити прямий ефір</string>
     <string name="channels_guide_now">ЗАРАЗ</string>
+    <string name="channels_guide_next">ДАЛІ</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Сьогодні</string>
     <string name="channels_guide_tomorrow">Завтра</string>

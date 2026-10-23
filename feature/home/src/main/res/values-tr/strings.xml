@@ -125,10 +125,22 @@
     <string name="channels_rail_total">Toplam: %1$s</string>
     <string name="channels_rail_empty">Bu oynatma listesi hiç kategori içermiyor.</string>
     <string name="channels_preview_none">Oynatmak için bir kanala basın</string>
+    <string name="channels_now_playing">Şu an oynatılıyor</string>
+
+    <string name="reorder_entry">Sırala</string>
+    <string name="reorder_save">Kaydet</string>
+    <string name="reorder_cancel">İptal</string>
+    <string name="reorder_hint_pick">Bir kategoriyi veya kanalı almak için üzerinde OK’a basın.</string>
+    <string name="reorder_hint_move">↑ ve ↓ ile taşıyın, bırakmak için OK’a basın.</string>
+    <string name="reorder_hint_all">Kanallarını yeniden sıralamak için önce bir kategori açın.</string>
+    <string name="reorder_failed">Sıralama kaydedilemedi. Tekrar deneyin.</string>
+    <string name="reorder_move_up">Yukarı taşı</string>
+    <string name="reorder_move_down">Aşağı taşı</string>
     <string name="channels_empty_title">Burada kanal yok</string>
     <string name="channels_empty_detail">Bu kategoride henüz bir şey yok. Başka birini deneyin ya da bölümü yeniden indirin.</string>
     <string name="channels_fetch_failed">Canlı TV indirilemedi</string>
     <string name="channels_guide_now">ŞİMDİ</string>
+    <string name="channels_guide_next">SONRA</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Bugün</string>
     <string name="channels_guide_tomorrow">Yarın</string>

@@ -125,10 +125,22 @@
     <string name="channels_rail_total">I alt: %1$s</string>
     <string name="channels_rail_empty">Denne playliste viser ingen kategorier.</string>
     <string name="channels_preview_none">Tryk på en kanal for at afspille den</string>
+    <string name="channels_now_playing">Afspilles nu</string>
+
+    <string name="reorder_entry">Ordne</string>
+    <string name="reorder_save">Gem</string>
+    <string name="reorder_cancel">Annullér</string>
+    <string name="reorder_hint_pick">Tryk på OK på en kategori eller en kanal for at samle den op.</string>
+    <string name="reorder_hint_move">Flyt den med ↑ og ↓, og tryk derefter på OK for at sætte den ned.</string>
+    <string name="reorder_hint_all">Åbn først en kategori for at omarrangere dens kanaler.</string>
+    <string name="reorder_failed">Rækkefølgen kunne ikke gemmes. Prøv igen.</string>
+    <string name="reorder_move_up">Flyt op</string>
+    <string name="reorder_move_down">Flyt ned</string>
     <string name="channels_empty_title">Ingen kanaler her</string>
     <string name="channels_empty_detail">Der er ikke noget i denne kategori endnu. Prøv en anden, eller hent sektionen igen.</string>
     <string name="channels_fetch_failed">Live-tv kunne ikke hentes</string>
     <string name="channels_guide_now">NU</string>
+    <string name="channels_guide_next">NÆSTE</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">I dag</string>
     <string name="channels_guide_tomorrow">I morgen</string>

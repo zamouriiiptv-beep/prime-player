@@ -125,10 +125,22 @@
     <string name="channels_rail_total">Celkovo: %1$s</string>
     <string name="channels_rail_empty">Tento playlist neobsahuje žiadne kategórie.</string>
     <string name="channels_preview_none">Stlačením kanála ho prehráte</string>
+    <string name="channels_now_playing">Práve sa prehráva</string>
+
+    <string name="reorder_entry">Poradie</string>
+    <string name="reorder_save">Uložiť</string>
+    <string name="reorder_cancel">Zrušiť</string>
+    <string name="reorder_hint_pick">Stlačením OK na kategórii alebo kanáli ho zdvihnete.</string>
+    <string name="reorder_hint_move">Presuňte ho pomocou ↑ a ↓ a stlačením OK ho položíte.</string>
+    <string name="reorder_hint_all">Najprv otvorte kategóriu, aby ste mohli zmeniť poradie jej kanálov.</string>
+    <string name="reorder_failed">Poradie sa nepodarilo uložiť. Skúste to znova.</string>
+    <string name="reorder_move_up">Posunúť nahor</string>
+    <string name="reorder_move_down">Posunúť nadol</string>
     <string name="channels_empty_title">Tu nie sú žiadne kanály</string>
     <string name="channels_empty_detail">V tejto kategórii zatiaľ nič nie je. Skúste inú, alebo sekciu stiahnite znova.</string>
     <string name="channels_fetch_failed">Živé vysielanie sa nepodarilo stiahnuť</string>
     <string name="channels_guide_now">TERAZ</string>
+    <string name="channels_guide_next">NASLEDUJE</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Dnes</string>
     <string name="channels_guide_tomorrow">Zajtra</string>

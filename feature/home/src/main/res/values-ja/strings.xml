@@ -125,10 +125,22 @@
     <string name="channels_rail_total">合計: %1$s</string>
     <string name="channels_rail_empty">このプレイリストにはカテゴリーがありません。</string>
     <string name="channels_preview_none">チャンネルを押すと再生します</string>
+    <string name="channels_now_playing">再生中</string>
+
+    <string name="reorder_entry">並べ替え</string>
+    <string name="reorder_save">保存</string>
+    <string name="reorder_cancel">キャンセル</string>
+    <string name="reorder_hint_pick">カテゴリーまたはチャンネルで OK を押して持ち上げます。</string>
+    <string name="reorder_hint_move">↑ と ↓ で動かし、OK を押して置きます。</string>
+    <string name="reorder_hint_all">チャンネルを並べ替えるには、先にカテゴリーを開いてください。</string>
+    <string name="reorder_failed">順序を保存できませんでした。もう一度お試しください。</string>
+    <string name="reorder_move_up">上へ移動</string>
+    <string name="reorder_move_down">下へ移動</string>
     <string name="channels_empty_title">ここにチャンネルはありません</string>
     <string name="channels_empty_detail">このカテゴリーにはまだ何もありません。別のカテゴリーを試すか、セクションを再ダウンロードしてください。</string>
     <string name="channels_fetch_failed">ライブTVをダウンロードできませんでした</string>
     <string name="channels_guide_now">現在</string>
+    <string name="channels_guide_next">次</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">今日</string>
     <string name="channels_guide_tomorrow">明日</string>

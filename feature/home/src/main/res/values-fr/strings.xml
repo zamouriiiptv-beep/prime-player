@@ -125,10 +125,22 @@
     <string name="channels_rail_total">Total : %1$s</string>
     <string name="channels_rail_empty">Cette liste ne contient aucune catégorie.</string>
     <string name="channels_preview_none">Appuyez sur une chaîne pour la lire</string>
+    <string name="channels_now_playing">En cours de lecture</string>
+
+    <string name="reorder_entry">Ordre</string>
+    <string name="reorder_save">Enregistrer</string>
+    <string name="reorder_cancel">Annuler</string>
+    <string name="reorder_hint_pick">Appuyez sur OK sur une catégorie ou une chaîne pour la saisir.</string>
+    <string name="reorder_hint_move">Déplacez-la avec ↑ et ↓, puis appuyez sur OK pour la poser.</string>
+    <string name="reorder_hint_all">Ouvrez d’abord une catégorie pour réorganiser ses chaînes.</string>
+    <string name="reorder_failed">Impossible d’enregistrer l’ordre. Réessayez.</string>
+    <string name="reorder_move_up">Monter</string>
+    <string name="reorder_move_down">Descendre</string>
     <string name="channels_empty_title">Aucune chaîne ici</string>
     <string name="channels_empty_detail">Cette catégorie est encore vide. Essayez-en une autre, ou téléchargez de nouveau la section.</string>
     <string name="channels_fetch_failed">Impossible de télécharger la TV en direct</string>
     <string name="channels_guide_now">MAINTENANT</string>
+    <string name="channels_guide_next">ENSUITE</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Aujourd’hui</string>
     <string name="channels_guide_tomorrow">Demain</string>

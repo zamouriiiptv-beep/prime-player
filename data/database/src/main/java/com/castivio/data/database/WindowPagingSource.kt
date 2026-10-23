@@ -27,8 +27,10 @@ import kotlinx.coroutines.withContext
  * A read outside a transaction takes a reader connection of its own and waits for nobody,
  * so its page is back in milliseconds, before any check can invalidate it.
  *
- * It is invalidated as Room's is, when `media` or `source` change, and reads the same rows
- * in the same order: [window] is one of the queries the generated source wrapped.
+ * It is invalidated as Room's is, when `media` or `source` change -- and when `custom_order`
+ * does, because a list the viewer is arranging is a list that changes under the screen with
+ * every move -- and reads the same rows in the same order: [window] is one of the queries the
+ * generated source wrapped.
  *
  * @param window the rows from `offset`, at most `limit` of them.
  * @param background where the observer is added and removed -- Room's query executor: both
@@ -40,7 +42,7 @@ internal class WindowPagingSource<T : Any>(
     private val window: suspend (offset: Int, limit: Int) -> List<T>,
 ) : PagingSource<Int, T>() {
 
-    private val observer = object : InvalidationTracker.Observer(arrayOf("media", "source")) {
+    private val observer = object : InvalidationTracker.Observer(arrayOf("media", "source", "custom_order")) {
         override fun onInvalidated(tables: Set<String>) = invalidate()
     }
     private val registered = AtomicBoolean(false)

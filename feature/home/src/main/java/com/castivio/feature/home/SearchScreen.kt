@@ -45,8 +45,8 @@ fun CatalogSearchScreen(
      * The one kind to answer with, or null for the whole catalogue.
      *
      * Null when the screen is opened from Home, which is a search across everything.
-     * `MediaKind.LIVE` when it is opened from the Channels board's own field, whose
-     * label promises channels — see `SearchViewModel.restrictTo`.
+     * The Channels board's own field no longer comes here: it narrows its list in place, so
+     * nothing restricts this screen today -- see `SearchViewModel.restrictTo`.
      */
     restrictTo: MediaKind? = null,
     modifier: Modifier = Modifier,

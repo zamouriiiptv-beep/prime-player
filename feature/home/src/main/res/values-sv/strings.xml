@@ -125,10 +125,22 @@
     <string name="channels_rail_total">Totalt: %1$s</string>
     <string name="channels_rail_empty">Den här spellistan visar inga kategorier.</string>
     <string name="channels_preview_none">Tryck på en kanal för att spela den</string>
+    <string name="channels_now_playing">Spelas nu</string>
+
+    <string name="reorder_entry">Ordna</string>
+    <string name="reorder_save">Spara</string>
+    <string name="reorder_cancel">Avbryt</string>
+    <string name="reorder_hint_pick">Tryck på OK på en kategori eller kanal för att plocka upp den.</string>
+    <string name="reorder_hint_move">Flytta den med ↑ och ↓ och tryck på OK för att lägga ner den.</string>
+    <string name="reorder_hint_all">Öppna först en kategori för att ändra ordningen på dess kanaler.</string>
+    <string name="reorder_failed">Ordningen kunde inte sparas. Försök igen.</string>
+    <string name="reorder_move_up">Flytta upp</string>
+    <string name="reorder_move_down">Flytta ned</string>
     <string name="channels_empty_title">Inga kanaler här</string>
     <string name="channels_empty_detail">Den här kategorin är tom än så länge. Prova en annan, eller hämta sektionen igen.</string>
     <string name="channels_fetch_failed">Live-TV kunde inte hämtas</string>
     <string name="channels_guide_now">NU</string>
+    <string name="channels_guide_next">SEDAN</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">I dag</string>
     <string name="channels_guide_tomorrow">I morgon</string>

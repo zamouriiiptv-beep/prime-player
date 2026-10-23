@@ -125,10 +125,22 @@
     <string name="channels_rail_total">Σύνολο: %1$s</string>
     <string name="channels_rail_empty">Αυτή η λίστα δεν εμφανίζει κατηγορίες.</string>
     <string name="channels_preview_none">Πατήστε ένα κανάλι για αναπαραγωγή</string>
+    <string name="channels_now_playing">Αναπαράγεται τώρα</string>
+
+    <string name="reorder_entry">Σειρά</string>
+    <string name="reorder_save">Αποθήκευση</string>
+    <string name="reorder_cancel">Άκυρο</string>
+    <string name="reorder_hint_pick">Πατήστε OK σε μια κατηγορία ή ένα κανάλι για να το πάρετε.</string>
+    <string name="reorder_hint_move">Μετακινήστε το με ↑ και ↓ και πατήστε OK για να το αφήσετε.</string>
+    <string name="reorder_hint_all">Ανοίξτε πρώτα μια κατηγορία για να αναδιατάξετε τα κανάλια της.</string>
+    <string name="reorder_failed">Η σειρά δεν αποθηκεύτηκε. Δοκιμάστε ξανά.</string>
+    <string name="reorder_move_up">Μετακίνηση πάνω</string>
+    <string name="reorder_move_down">Μετακίνηση κάτω</string>
     <string name="channels_empty_title">Δεν υπάρχουν κανάλια εδώ</string>
     <string name="channels_empty_detail">Αυτή η κατηγορία δεν έχει τίποτα ακόμη. Δοκιμάστε άλλη ή κατεβάστε ξανά την ενότητα.</string>
     <string name="channels_fetch_failed">Η ζωντανή TV δεν μπόρεσε να ληφθεί</string>
     <string name="channels_guide_now">ΤΩΡΑ</string>
+    <string name="channels_guide_next">ΕΠΟΜΕΝΟ</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Σήμερα</string>
     <string name="channels_guide_tomorrow">Αύριο</string>

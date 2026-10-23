@@ -56,4 +56,18 @@ object CastivioDates {
     /** The instant as the date it falls on, in the device's own time zone. */
     fun date(atMs: Long): String =
         SimpleDateFormat(PATTERN, Locale.ROOT).format(Date(atMs))
+
+    /**
+     * Hours and minutes on a twenty-four-hour clock: `21:04`, `07:30`.
+     *
+     * The same decision as the date, for the same reasons. A twelve-hour clock is a language's
+     * convention, and it brought `ص`/`م` and Arabic-Indic digits into an Arabic board whose
+     * channel numbers, counts and dates are all Western -- and a column of start times reads as
+     * a column of numbers only if every one of them has the same shape.
+     */
+    const val TIME_PATTERN: String = "HH:mm"
+
+    /** The instant as the time of day it falls at, in the device's own time zone. */
+    fun time(atMs: Long): String =
+        SimpleDateFormat(TIME_PATTERN, Locale.ROOT).format(Date(atMs))
 }

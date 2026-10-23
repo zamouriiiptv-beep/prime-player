@@ -171,12 +171,24 @@
 
     <string name="channels_live_badge">مباشر</string>
     <string name="channels_preview_none">اضغط قناة لتشغيلها</string>
+    <string name="channels_now_playing">قيد التشغيل</string>
+
+    <string name="reorder_entry">ترتيب</string>
+    <string name="reorder_save">حفظ</string>
+    <string name="reorder_cancel">إلغاء</string>
+    <string name="reorder_hint_pick">اضغط OK على باقة أو قناة لالتقاطها.</string>
+    <string name="reorder_hint_move">حرّكها بالسهمين ↑ و↓ ثم اضغط OK لإسقاطها.</string>
+    <string name="reorder_hint_all">افتح باقة أولًا لترتيب قنواتها.</string>
+    <string name="reorder_failed">تعذّر حفظ الترتيب. حاول مرة أخرى.</string>
+    <string name="reorder_move_up">تحريك للأعلى</string>
+    <string name="reorder_move_down">تحريك للأسفل</string>
 
     <string name="channels_empty_title">لا توجد قنوات هنا</string>
     <string name="channels_empty_detail">هذه الباقة فارغة حتى الآن. جرّب باقة أخرى، أو حمّل القسم من جديد.</string>
     <string name="channels_fetch_failed">تعذّر تحميل البث المباشر</string>
 
     <string name="channels_guide_now">الآن</string>
+    <string name="channels_guide_next">التالي</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">اليوم</string>
     <string name="channels_guide_tomorrow">غدًا</string>

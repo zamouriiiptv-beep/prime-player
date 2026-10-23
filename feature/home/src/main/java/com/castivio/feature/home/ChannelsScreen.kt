@@ -9,7 +9,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,9 +32,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.History
@@ -45,6 +46,7 @@ import androidx.compose.material.icons.rounded.PlayCircleOutline
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarBorder
+import androidx.compose.material.icons.rounded.SwapVert
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -60,20 +62,28 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -89,7 +99,6 @@ import com.castivio.core.design.components.CastivioMiddleEllipsisText
 import com.castivio.core.design.components.DelayedSpinner
 import com.castivio.core.design.components.EmptyState
 import com.castivio.core.design.components.ErrorState
-import com.castivio.core.design.components.LogoTile
 import com.castivio.core.design.components.ProviderArtwork
 import com.castivio.core.design.components.CastivioClock
 import com.castivio.core.design.components.castivioBodyStyle
@@ -97,7 +106,6 @@ import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioTitleStyle
 import com.castivio.core.design.components.formatCount
 import com.castivio.core.design.components.ltrToken
-import com.castivio.core.design.components.rememberMinute
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Sizing
@@ -108,13 +116,12 @@ import com.castivio.domain.Channel
 import com.castivio.domain.MediaItem
 import com.castivio.domain.Programme
 import com.castivio.domain.SectionLoad
+import com.castivio.domain.PlayerPulse
+import com.castivio.domain.PulsePhase
+import com.castivio.domain.StreamQuality
 import com.castivio.domain.SortOrder
 import com.castivio.domain.isProviderHeading
-import java.text.DateFormat
-import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Date
-import java.util.Locale
 import com.castivio.core.design.R as DesignR
 
 /**
@@ -144,18 +151,17 @@ import com.castivio.core.design.R as DesignR
  * | `Total: n Channels` | an indexed `COUNT`, never a list measured |
  * | the guide, and the bar over the picture | `EpgRepository.programmes` for the selection |
  *
- * ## Two things the design shows that this deliberately does not invent
+ * ## Two things the design shows, and what this draws instead of inventing them
  *
  *  1. **The stream's resolution.** The design prints `1920 × 1080` beside the channel
  *     number. That is a property of a *decoded* stream, known to the engine after the
- *     player has opened it and to nothing on a board that has opened nothing, so `Osd`
- *     prints the number alone.
- *  2. **The channel's logo.** `artwork_url` is imported and stored, but Castivio loads
- *     no images anywhere yet. So each row *reserves* the slot and draws nothing in it:
- *     the geometry is already the geometry the pictures will land in, and a generated
- *     coloured square is not the channel's logo — see `ChannelRow`. [LogoTile] still
- *     stands in for the preview's own picture, where the alternative is an empty third
- *     of the screen.
+ *     player has opened it and to nothing on a board that has opened nothing. So a quality
+ *     badge -- SD, HD, FHD or 4K -- is drawn only for a channel that has been measured: its
+ *     picture was drawn and the decoder gave a size, which the board keeps. A channel nobody
+ *     has opened has no badge, and no name is ever read as one.
+ *  2. **The channel's logo.** `artwork_url` is imported, stored and drawn on each row through
+ *     `ProviderArtwork`. Where a channel has none the slot is reserved and empty, so the names
+ *     start in the same place on every row.
  */
 @Composable
 fun ChannelsScreen(
@@ -172,7 +178,18 @@ fun ChannelsScreen(
      * the shell is what holds the request.
      */
     onExpand: () -> Unit,
-    onSearch: () -> Unit,
+    /**
+     * What the player is doing, or null when there is no player: the stream it was asked for,
+     * whether that has a picture yet, and what the picture measures.
+     *
+     * Told to the board rather than found by it, for the reason [preview] is a slot: this
+     * module does not know the player exists. It is the player's own answer -- see
+     * `PlayerState.pulse` -- and not the last press, so a channel that was pressed and has not
+     * drawn yet, or that failed, is not marked, its preview does not claim to be live, and a
+     * mark does not move until the next channel has actually played. It is the only thing that
+     * says a row is playing: where the remote is says nothing about it.
+     */
+    pulse: PlayerPulse? = null,
     /**
      * What goes in the preview plate when something is playing.
      *
@@ -206,7 +223,31 @@ fun ChannelsScreen(
     // overlay being closed and re-opened on the same channel: a second look costs no
     // query at all, which is what makes the store the cache.
     val fullGuide by previewModel.fullGuide.collectAsStateWithLifecycle()
+    val qualities by previewModel.quality.collectAsStateWithLifecycle()
+    val searchText by model.searchText.collectAsStateWithLifecycle()
+    // Whether the header's field has the remote. The list takes the first focus when it first has
+    // rows; it must not take it back from a field somebody is typing into when the results come
+    // and go under their keys.
+    var searchFocused by remember { mutableStateOf(false) }
     val tv = CastivioTheme.device.isTv
+
+    // Back, in reorder mode, puts down what is held, and when nothing is held leaves the mode as
+    // Cancel does -- the viewer who presses it has seen the bar and what it offers. Not a way out
+    // of the screen while the mode is on: a half-made order is not something to walk away from.
+    BackHandler(enabled = state.arranging != null) {
+        if (state.arranging?.held != null) model.drop() else model.cancel()
+    }
+
+    // **A channel with a picture on it tells the board what it measures.** Only a stream that is
+    // showing -- the player's word, not the press -- and only for the channel that was pressed to
+    // start it, so a channel that is opening or failed is never recorded at the last one's size.
+    // The badge on a row and in the well is read back from what is recorded here, and from nowhere
+    // else: not from the channel's name.
+    val playingChannel = shown.channel?.takeIf { pulse?.playingUrl == it.streamUrl }
+    val frame = pulse?.frame
+    LaunchedEffect(playingChannel?.id, frame) {
+        if (playingChannel != null && frame != null) previewModel.measured(playingChannel.id, frame)
+    }
 
     BoxWithConstraints(modifier.fillMaxSize().safeDrawingPadding()) {
         val m = channelsMetricsFor(tv = tv, width = maxWidth, height = maxHeight)
@@ -217,7 +258,13 @@ fun ChannelsScreen(
                 .padding(horizontal = m.edge)
                 .padding(top = m.boardTop, bottom = m.boardBottom),
         ) {
-            BoardHeader(state = state, m = m, onSearch = onSearch)
+            BoardHeader(
+                state = state,
+                m = m,
+                searchText = searchText,
+                onSearch = model::search,
+                onSearchFocus = { searchFocused = it },
+            )
 
             Spacer(Modifier.height(m.headerGap))
 
@@ -230,7 +277,10 @@ fun ChannelsScreen(
                 previewModel = previewModel,
                 onPlay = onPlay,
                 onExpand = onExpand,
+                pulse = pulse,
+                qualities = qualities,
                 preview = preview,
+                typing = searchFocused,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -245,8 +295,8 @@ fun ChannelsScreen(
  *
  * ## What it carries, and what came off it
  *
- * The mark, which section and which category, a way into search, and the two dates that
- * decide whether anything on this screen still works.
+ * The mark, which section and which category, the search, and the two dates that decide
+ * whether anything on this screen still works.
  *
  * Off it went a clock, the provider's hostname, an Active/Inactive chip and the version
  * number. The clock went with the system bars — this is a screen for watching television
@@ -275,7 +325,13 @@ fun ChannelsScreen(
  * moves, and only the glyphs inside them are shaped by their own script.
  */
 @Composable
-private fun BoardHeader(state: BrowseState, m: ChannelsMetrics, onSearch: () -> Unit) {
+private fun BoardHeader(
+    state: BrowseState,
+    m: ChannelsMetrics,
+    searchText: String,
+    onSearch: (String) -> Unit,
+    onSearchFocus: (Boolean) -> Unit,
+) {
     val colors = CastivioTheme.colors
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
@@ -342,14 +398,21 @@ private fun BoardHeader(state: BrowseState, m: ChannelsMetrics, onSearch: () -> 
             // making this the sole weighted child inverts the old order of sacrifice:
             // the mark, the breadcrumb, the clock and the dates all take their declared
             // widths first, and whatever is left is the field's. It shrinks, and it is
-            // the right thing to shrink — a way in to the search screen shows its icon
-            // and less of its hint and still does its whole job, where a narrower date
-            // column simply stops saying the date.
+            // the right thing to shrink — a search field shows its icon and less of its
+            // hint and still does its whole job, where a narrower date column simply
+            // stops saying the date.
             //
             // Centring it in that remainder is also what keeps it in the middle of the
             // band, which two weighted spacers used to do.
             Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                SearchField(m = m, onClick = onSearch)
+                HeaderSearchField(
+                    text = searchText,
+                    m = m,
+                    onType = onSearch,
+                    onFocusChange = onSearchFocus,
+                    // Reorder mode is of the lists as they are: nothing to narrow while it is on.
+                    enabled = state.arranging == null,
+                )
             }
 
             // **The clock, at the band's trailing end, where the two expiry dates were.**
@@ -382,35 +445,26 @@ private fun BoardHeader(state: BrowseState, m: ChannelsMetrics, onSearch: () -> 
  */
 @Composable
 private fun BoardClock(m: ChannelsMetrics) {
-    val now = rememberMinute()
-    // The board's own 24-hour format, which is this screen's content decision: a
-    // column of start times reads as numbers, and `9:04 PM` breaks the column. The
-    // cell, the alignment, the two type steps and the two inks are the system's.
+    // The system's clock, which is twenty-four hours in every language now -- the format
+    // this board used to hand in as its own. It was a second clock written out in full
+    // here before that, which is two tick rates and two answers to what the
+    // bidirectional algorithm does to a date.
     //
-    // It was a second clock written out in full here -- the same Column, the same End
-    // alignment, the same title-over-body pair -- which is two tick rates and two
-    // answers to what the bidirectional algorithm does to a date.
-    val time = remember(now) {
-        ltrToken(SimpleDateFormat(CLOCK_TIME, Locale.ROOT).format(Date(now)))
-    }
     // Its own bounded cell, for the reason the breadcrumb has one: nothing whose width
     // is text may decide where the rest of the band sits.
     CastivioClock(
         fsTime = m.frame.fsLabel * CLOCK_OF_LABEL,
         fsDate = m.frame.fsBody * LEGEND_OF_BODY,
         modifier = Modifier.width(m.dates),
-        time = time,
     )
 }
 
 /**
- * The rail's own field: a real one, because it filters a list already in memory.
+ * The rail's own field: it filters a list already in memory.
  *
- * Unlike the header's — which is a way in to the search screen because a text field a
- * remote can focus is a trap, and because searching 400,000 rows belongs on a screen of
- * its own — this one types into a few hundred names the holder is already holding. There
- * is nothing to navigate to and nothing to debounce against a database, so it is the
- * field itself.
+ * Unlike the header's — which asks the database, paused for 120 ms and answered by the
+ * index — this one types into a few hundred names the holder is already holding, so there
+ * is nothing to debounce and no query to cancel.
  */
 @Composable
 private fun RailSearch(text: String, m: ChannelsMetrics, onType: (String) -> Unit) {
@@ -461,28 +515,52 @@ private fun RailSearch(text: String, m: ChannelsMetrics, onType: (String) -> Uni
 }
 
 /**
- * The way into search, from the middle of the band.
+ * The search, in the middle of the band: a field, and the channels narrow as it is typed in.
  *
- * A way in rather than a field. Pressing it opens the catalogue-wide search screen that
- * already exists; a real input here would be a second query, a second debounce and a
- * second set of empty states beside the one that already spans every section — and on a
- * remote, a text field that takes focus is a trap a viewer has to press back to escape.
+ * ## What it replaced
+ *
+ * A button. Pressing it left the board for the catalogue-wide search screen, and leaving the
+ * board stopped the preview -- a viewer who wanted to find a channel while another was
+ * playing lost the picture to do it, and came back to a list that had not moved. The owner
+ * asked for the field that was already here to work where it stands, not for a second one.
+ *
+ * ## What it is
+ *
+ * The same band, the same pill and the same hint; what changed is that it takes text. The
+ * holder keeps what was typed ([BrowseViewModel.searchText]) and narrows the rows to it after
+ * a 120 ms pause -- by name, whatever the case and however many spaces, from the first
+ * letters of each word -- and emptying the field is the list that was open before. Nothing
+ * here touches what is playing: the player and the preview are not parameters of this.
+ *
+ * ## The remote
+ *
+ * A field a remote can focus is a trap if it keeps the key it was given, so it keeps none that
+ * a list needs: up and down leave it as they leave any row, and the keyboard's search key --
+ * the one that says "I'm done" -- moves on to the list below instead of sitting there.
+ * [onFocusChange] tells the board whether the field has the remote, so the list does not take
+ * it back whenever the results change under a viewer's keys.
  */
 @Composable
-private fun SearchField(m: ChannelsMetrics, onClick: () -> Unit) {
+internal fun HeaderSearchField(
+    text: String,
+    m: ChannelsMetrics,
+    onType: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    onFocusChange: (Boolean) -> Unit = {},
+    enabled: Boolean = true,
+) {
     val colors = CastivioTheme.colors
     val (focused, focusModifier) = rememberFocusFlag()
     val shape = RoundedCornerShape(Radius.pill)
+    val focus = LocalFocusManager.current
 
     Row(
-        Modifier
+        modifier
             .width(m.search)
             .height(m.header * FIELD_OF_HEADER)
             .clip(shape)
             .background(colors.glassFill)
             .border(1.dp, if (focused) colors.focusRing else colors.glassBorderSoft, shape)
-            .then(focusModifier)
-            .clickable(onClick = onClick)
             .padding(horizontal = m.controlPadH),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(m.factGap),
@@ -493,12 +571,35 @@ private fun SearchField(m: ChannelsMetrics, onClick: () -> Unit) {
             tint = colors.onBackgroundMuted,
             modifier = Modifier.size(Sizing.iconSm),
         )
-        Text(
-            text = stringResource(R.string.channels_search_hint),
-            style = castivioBodyStyle(m.frame.fsBody),
-            color = colors.onBackgroundMuted,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+        BasicTextField(
+            value = text,
+            onValueChange = onType,
+            enabled = enabled,
+            singleLine = true,
+            textStyle = castivioBodyStyle(m.frame.fsBody).copy(color = colors.onBackground),
+            cursorBrush = SolidColor(colors.secondary),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(
+                onSearch = { if (!focus.moveFocus(FocusDirection.Down)) focus.clearFocus() },
+            ),
+            modifier = Modifier
+                .weight(1f)
+                .then(focusModifier)
+                .onFocusChanged { onFocusChange(it.isFocused) },
+            decorationBox = { field ->
+                // Under the field rather than inside it, so an empty box says what it is for
+                // without the hint becoming the value.
+                if (text.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.channels_search_hint),
+                        style = castivioBodyStyle(m.frame.fsBody),
+                        color = colors.onBackgroundMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                field()
+            },
         )
     }
 }
@@ -522,7 +623,11 @@ private fun Board(
     previewModel: ChannelsViewModel,
     onPlay: (CatalogSelection) -> Unit,
     onExpand: () -> Unit,
+    pulse: PlayerPulse?,
+    qualities: Map<String, StreamQuality>,
     preview: (@Composable () -> Unit)?,
+    /** The header's field has the remote: see [ChannelList]. */
+    typing: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
@@ -573,6 +678,10 @@ private fun Board(
             }
 
             else -> Column(Modifier.weight(1f)) {
+                state.arranging?.let { mode ->
+                    ReorderBar(mode = mode, m = m, onSave = model::save, onCancel = model::cancel)
+                }
+
                 // The failure still gets said, as a line rather than as a wall. A
                 // refresh that did not work is worth knowing about; it is not worth
                 // the catalogue.
@@ -587,7 +696,10 @@ private fun Board(
                     previewModel = previewModel,
                     onPlay = onPlay,
                     onExpand = onExpand,
+                    pulse = pulse,
+                    qualities = qualities,
                     preview = preview,
+                    typing = typing,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -726,7 +838,10 @@ private fun Columns(
     previewModel: ChannelsViewModel,
     onPlay: (CatalogSelection) -> Unit,
     onExpand: () -> Unit,
+    pulse: PlayerPulse?,
+    qualities: Map<String, StreamQuality>,
     preview: (@Composable () -> Unit)?,
+    typing: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val rows = model.items.collectAsLazyPagingItems()
@@ -737,6 +852,20 @@ private fun Columns(
     val listFocus = remember { FocusRequester() }
     val wellFocus = remember { FocusRequester() }
 
+    // **Into reorder mode, and out of it, the remote goes to the list.** Going in it was on the
+    // strip's Reorder button, which stops answering in the mode; coming out it was on the bar's
+    // Save or Cancel, which is not drawn any more. A remote left on nothing is one that seems to
+    // have stopped answering. Not on the first composition: the list takes the remote itself when
+    // it first has rows.
+    val arranging = state.arranging != null
+    var wasArranging by remember { mutableStateOf(false) }
+    LaunchedEffect(arranging) {
+        if (arranging != wasArranging) {
+            wasArranging = arranging
+            runCatching { listFocus.requestFocus() }
+        }
+    }
+
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Box(modifier.fillMaxWidth()) {
             Row(Modifier.fillMaxSize()) {
@@ -746,6 +875,8 @@ private fun Columns(
                     onChoose = model::choose,
                     onFilter = model::filterGroups,
                     onRefresh = model::refresh,
+                    onPress = model::press,
+                    onMove = model::moveHeld,
                     modifier = Modifier.width(m.rail).fillMaxHeight(),
                 )
 
@@ -756,12 +887,19 @@ private fun Columns(
                     state = state,
                     m = m,
                     listState = listState,
-                    // The row the well is showing, so the list can mark it. Read off the
-                    // preview rather than held again here: one answer to "which channel is
-                    // this board about", and the picture and the row cannot disagree.
-                    selectedId = shown.channel?.id,
+                    // The stream the player has a picture of, so the list can mark it. The
+                    // player's answer and nothing derived from the preview or the remote: the
+                    // row the well is *about* is the last press, and a press is not a picture.
+                    playingUrl = pulse?.playingUrl,
+                    qualities = qualities,
+                    // Which row was pressed to start it, so a stream listed twice marks one.
+                    pressedId = shown.channel?.id,
                     onSelect = previewModel::select,
                     onPlay = onPlay,
+                    typing = typing,
+                    onClearSearch = { model.search("") },
+                    onPress = model::press,
+                    onMove = model::moveHeld,
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
@@ -787,9 +925,13 @@ private fun Columns(
                 ChannelWell(
                     shown = shown,
                     m = m,
+                    pulse = pulse,
+                    qualities = qualities,
                     preview = preview,
                     onOpenGuide = { guideOpen = true },
                     onFavorite = previewModel::toggleFavorite,
+                    arranging = arranging,
+                    onArrange = model::arrange,
                     onExpand = onExpand,
                     modifier = Modifier
                         .width(m.player)
@@ -837,40 +979,46 @@ internal fun CategoryRail(
     onFilter: (String) -> Unit,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
+    /** OK on a bouquet in reorder mode: pick it up, or put it down. */
+    onPress: (Held) -> Unit = {},
+    /** The arrow keys, or the two taps, on the bouquet that is held. */
+    onMove: (up: Boolean) -> Unit = {},
 ) {
+    // **In reorder mode the rail is the bouquets and nothing else.** The three entries above them
+    // open lists and the field filters them; none of that is what is being done, and an "all" that
+    // could be pressed would leave a mode the viewer is half way through.
+    val mode = state.arranging
     Column(modifier) {
         // **The rail's own field.** It filters the categories in this column and nothing
         // else: a provider with four hundred bouquets is a column nobody scrolls to the
         // end of, and the field is how a viewer reaches "SPORT" without passing 300
         // others. Filtered in the holder, not here -- see `BrowseState.groupFilter`.
-        RailSearch(text = state.groupFilter, m = m, onType = onFilter)
+        if (mode == null) {
+            RailSearch(text = state.groupFilter, m = m, onType = onFilter)
 
-        Spacer(Modifier.height(m.railEntryGap * 2))
+            Spacer(Modifier.height(m.railEntryGap * 2))
+        }
 
         LazyColumn(
             state = rememberLazyListState(),
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(m.railEntryGap),
         ) {
-            item(key = RAIL_ALL) {
+            if (mode == null) item(key = RAIL_ALL) {
                 RailEntry(
                     label = stringResource(R.string.channels_all_rail),
-                    // **The section's own count, not the open query's.**
-                    //
-                    // This read the same `total` the list under it reads, which is the
-                    // count of the *selected* category -- so choosing SPORT made the
-                    // All row report SPORT's size, and the one figure on the board that
-                    // is supposed to say how many channels the subscription carries
-                    // agreed with whichever bouquet happened to be open. It reads
-                    // `sectionTotal` now: a second indexed COUNT, over the kind with no
-                    // group filter, so the row means the same thing whatever is chosen.
-                    count = state.sectionTotal,
+                    // **No total here.** The line under the name said how many channels the
+                    // subscription carries, which Home's Live TV card already says -- the
+                    // same figure drawn twice, on the one row whose job is to mean "all of
+                    // them". The bouquets below keep their own count, which nothing else on
+                    // the board gives.
+                    count = null,
                     selected = state.selectedGroup == null,
                     m = m,
                     onClick = { onChoose(null) },
                 )
             }
-            item(key = RAIL_FAVORITES) {
+            if (mode == null) item(key = RAIL_FAVORITES) {
                 RailEntry(
                     label = stringResource(R.string.channels_favorites),
                     // Real, from `FavoritesRepository.count()` by way of the shell — see
@@ -882,7 +1030,7 @@ internal fun CategoryRail(
                     onClick = { },
                 )
             }
-            item(key = RAIL_RECENT) {
+            if (mode == null) item(key = RAIL_RECENT) {
                 RailEntry(
                     label = stringResource(R.string.channels_recent),
                     count = null,
@@ -892,7 +1040,7 @@ internal fun CategoryRail(
                 )
             }
 
-            item(key = RAIL_DIVIDER) { RailDivider(m) }
+            if (mode == null) item(key = RAIL_DIVIDER) { RailDivider(m) }
 
         // **A provider with no categories says so.**
         //
@@ -906,7 +1054,7 @@ internal fun CategoryRail(
         // in either case: a forced re-import. A playlist with no `group-title` comes
         // back the same way and the line stands; a catalogue that lost its groups comes
         // back with them. It is the same call the strip's refresh makes.
-            if (state.noCategories) {
+            if (mode == null && state.noCategories) {
                 item(key = RAIL_EMPTY) { RailEmpty(m = m, onRefresh = onRefresh) }
             }
 
@@ -927,9 +1075,13 @@ internal fun CategoryRail(
                     // for nobody and the reference's "Total: N" could not be drawn. It
                     // is one field on a list of hundreds, not a query per row.
                     count = group.itemCount,
-                    selected = group.id == state.selectedGroup,
+                    // In reorder mode no bouquet is "selected": the fill is for the one held, and the
+                    // bouquet whose channels are on the right is outlined -- see `RailEntry`.
+                    selected = mode == null && group.id == state.selectedGroup,
                     m = m,
-                    onClick = { onChoose(group.id) },
+                    onClick = if (mode == null) ({ onChoose(group.id) }) else ({ onPress(Held.Bouquet(group.id)) }),
+                    arrange = mode?.let { RowArrange(held = it.held == Held.Bouquet(group.id), onMove = onMove) },
+                    owner = mode != null && group.id == mode.channelsOf,
                 )
             }
         }
@@ -943,11 +1095,16 @@ private fun RailEntry(
     selected: Boolean,
     m: ChannelsMetrics,
     onClick: () -> Unit,
+    /** Told in reorder mode, null otherwise: whether this bouquet is the one held, and how to move it. */
+    arrange: RowArrange? = null,
+    /** In reorder mode, this bouquet's channels are the ones listed on the right. */
+    owner: Boolean = false,
 ) {
     val colors = CastivioTheme.colors
     val (focused, focusModifier) = rememberFocusFlag()
     val shape = RoundedCornerShape(m.previewRadius)
     val interaction = remember { MutableInteractionSource() }
+    val held = arrange?.held == true
 
     // Selection is the surface and focus is the ring around it — the design system's
     // rule, and on this board both are true of a row at once while a viewer arrows past
@@ -957,23 +1114,30 @@ private fun RailEntry(
     // The two columns sit side by side and carry the same kind of thing — a name the
     // provider wrote — so a bouquet reading a shade dimmer than a channel made the rail
     // look like furniture around the list rather than half of the same board.
-    val ink = if (selected) colors.onSecondary else colors.onBackground
+    val ink = if (selected || held) colors.onSecondary else colors.onBackground
 
+    // **A one-line entry is one line tall.** Every entry took `railMin`, which is the height of
+    // the two lines a bouquet carries -- its name and its count -- so "Favorites" and
+    // "Recently watched", with one line each, stood in rows twice as tall as their text and
+    // read as two words a long way apart. A bouquet's rhythm is not theirs; theirs is a line
+    // and its breathing room, and it is the same for all of them.
     Row(
         Modifier
             .fillMaxWidth()
-            .heightIn(min = m.railMin)
+            .heightIn(min = if (count != null) m.railMin else m.railMin * SINGLE_OF_RAIL)
             .clip(shape)
-            .background(if (selected) colors.secondary else Color.Transparent)
+            .background(if (selected || held) colors.secondary else Color.Transparent)
             .border(
                 1.dp,
                 when {
-                    focused -> colors.focusRing
-                    selected -> colors.selectedBorder
+                    focused || held -> colors.focusRing
+                    selected || owner -> colors.selectedBorder
                     else -> Color.Transparent
                 },
                 shape,
             )
+            .movedByArrows(arrange)
+            .then(keptInView(held))
             .then(focusModifier)
             .clickable(interaction, indication = null, onClick = onClick)
             .padding(horizontal = m.railPadH),
@@ -996,12 +1160,13 @@ private fun RailEntry(
                 Text(
                     text = stringResource(R.string.channels_rail_total, formatCount(count)),
                     style = castivioBodyStyle(m.frame.fsBody),
-                    color = if (selected) ink else colors.onBackgroundMuted,
+                    color = if (selected || held) ink else colors.onBackgroundMuted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
         }
+        arrange?.let { ArrangeTail(it, ink, m.railMin * ARROW_OF_ROW) }
     }
 }
 
@@ -1066,14 +1231,30 @@ private fun ChannelList(
     m: ChannelsMetrics,
     /** Hoisted so the board can scroll this list to the channel it restores on entry. */
     listState: LazyListState,
-    /** The channel the well is showing, or null before a row has been pressed. */
-    selectedId: String?,
+    /** The stream the player has a picture of, or null when it has none. */
+    playingUrl: String?,
+    /** What each channel has been measured at; a channel with no entry has no badge. */
+    qualities: Map<String, StreamQuality>,
+    /** The row pressed last, which is the row that started the stream playing. */
+    pressedId: String?,
     onSelect: (Channel, Int) -> Unit,
     onPlay: (CatalogSelection) -> Unit,
+    /**
+     * The header's field has the remote. Rows come and go under a viewer's keys as the search
+     * narrows, and the list's first-focus rule must not answer by taking the remote from the
+     * field they are typing in.
+     */
+    typing: Boolean,
+    onClearSearch: () -> Unit,
+    /** OK on a row in reorder mode: pick it up, or put it down. */
+    onPress: (Held) -> Unit,
+    /** The arrow keys, or the two taps, on the row that is held. */
+    onMove: (up: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(m.wellRadius)
+    val mode = state.arranging
 
     // The instant the board first has something a viewer can act on. The same boundary
     // `BrowseScreen` reports, reported from the screen that now draws Live — so the
@@ -1101,19 +1282,12 @@ private fun ChannelList(
     ) {
         if (rows.itemCount == 0) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                // "The query has not answered yet" and "there is nothing to answer
-                // with" look identical on a television and mean opposite things, so
-                // they are drawn differently here rather than both as an empty state.
-                if (rows.loadState.refresh is LoadState.Loading) {
-                    DelayedSpinner()
-                } else {
-                    EmptyState(
-                        title = stringResource(R.string.channels_empty_title),
-                        detail = stringResource(R.string.channels_empty_detail),
-                        actionLabel = stringResource(R.string.browse_empty_action),
-                        onAction = rows::refresh,
-                    )
-                }
+                ChannelListEmpty(
+                    loading = rows.loadState.refresh is LoadState.Loading,
+                    search = state.search,
+                    onClearSearch = onClearSearch,
+                    onRefresh = rows::refresh,
+                )
             }
             return@Box
         }
@@ -1122,7 +1296,7 @@ private fun ChannelList(
         // to be. Without it the first press of any arrow key goes nowhere, which on a
         // television reads as the screen having hung.
         val first = remember { FocusRequester() }
-        LaunchedEffect(hasContent) { if (hasContent) runCatching { first.requestFocus() } }
+        FirstRowFocus(hasContent = hasContent, fieldHasIt = typing, first = first)
 
         LazyColumn(
             state = listState,
@@ -1132,13 +1306,20 @@ private fun ChannelList(
             items(rows.itemCount, key = rows.itemKey { it.id }) { index ->
                 val item = rows[index] ?: return@items
                 val channel = item as? Channel ?: return@items
+                // In reorder mode a press picks the row up instead of playing it, and only where
+                // there is a bouquet whose channels can be moved; with "all" open the rows are as
+                // they were, and a press does nothing -- the bar says why.
+                val arrange = mode?.takeIf { it.channelsOf != null }
+                    ?.let { RowArrange(held = it.held == Held.Channel(channel.id), onMove = onMove) }
                 ChannelRow(
                     channel = channel,
+                    arrange = arrange,
                     // The reference's badge: where this row is in the list as ordered,
                     // one-based. See `ChannelsViewModel.position` for why it is not read
                     // off the channel.
                     number = index + 1,
-                    selected = channel.id == selectedId,
+                    playing = isPlayingRow(channel.id, channel.streamUrl, pressedId, playingUrl),
+                    quality = qualities[channel.id],
                     m = m,
                     // **Moving is not choosing, and that distinction is the whole of how
                     // this screen behaves now.**
@@ -1154,9 +1335,13 @@ private fun ChannelList(
                     // So focus does nothing at all here, and pressing is what selects: it
                     // sets the picture, the name, the number and the guide together, from
                     // one act.
-                    onClick = {
-                        onSelect(channel, index + 1)
-                        channel.asSelection()?.let(onPlay)
+                    onClick = when {
+                        mode == null -> ({
+                            onSelect(channel, index + 1)
+                            channel.asSelection()?.let(onPlay)
+                        })
+                        mode.channelsOf != null -> ({ onPress(Held.Channel(channel.id)) })
+                        else -> ({ })
                     },
                     modifier = if (index == 0) Modifier.focusRequester(first) else Modifier,
                 )
@@ -1165,60 +1350,108 @@ private fun ChannelList(
     }
 }
 
+/**
+ * What the list says when it has no rows: that they are on their way, that a search matched
+ * nothing, or that the category is empty.
+ *
+ * "The query has not answered yet" and "there is nothing to answer with" look identical on a
+ * television and mean opposite things, so they are drawn differently here rather than both as
+ * an empty state -- and a search that matched nothing is a third thing: it names what was
+ * asked, in the catalogue search screen's own words, and its one action leaves the search.
+ */
+@Composable
+internal fun ChannelListEmpty(
+    loading: Boolean,
+    search: String,
+    onClearSearch: () -> Unit,
+    onRefresh: () -> Unit,
+) {
+    when {
+        loading -> DelayedSpinner()
+        search.isNotEmpty() -> EmptyState(
+            title = stringResource(R.string.search_none_title, search),
+            detail = stringResource(R.string.search_none_detail),
+            actionLabel = stringResource(R.string.search_clear),
+            onAction = onClearSearch,
+        )
+        else -> EmptyState(
+            title = stringResource(R.string.channels_empty_title),
+            detail = stringResource(R.string.channels_empty_detail),
+            actionLabel = stringResource(R.string.browse_empty_action),
+            onAction = onRefresh,
+        )
+    }
+}
+
+/**
+ * Focus lands on the first row when the list first has rows, so a remote has somewhere to be.
+ * Without it the first press of any arrow key goes nowhere, which on a television reads as the
+ * screen having hung.
+ *
+ * Not when the header's field has the remote. Rows come and go under a viewer's keys as the
+ * search narrows -- a word with no match and then one with, an emptied field -- and each time
+ * the list has rows again this would take the remote out of the field in the middle of a word.
+ */
+@Composable
+internal fun FirstRowFocus(hasContent: Boolean, fieldHasIt: Boolean, first: FocusRequester) {
+    val held by rememberUpdatedState(fieldHasIt)
+    LaunchedEffect(hasContent) { if (hasContent && !held) runCatching { first.requestFocus() } }
+}
+
 // `basicMarquee` is stable from Compose Foundation 1.7, which is the line this BOM
 // pins. Declared anyway: an opt-in that turns out to be unnecessary costs a warning,
 // and one that turns out to be necessary costs a red CI run.
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ChannelRow(
+internal fun ChannelRow(
     channel: Channel,
     number: Int,
-    /** True of the one row the well is showing. See the surface rule below. */
-    selected: Boolean,
+    /** True of the one row whose stream the player has a picture of. See the rule below. */
+    playing: Boolean,
     m: ChannelsMetrics,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * What this channel was last measured at, or null when it never has been -- which draws no
+     * badge. Never read from the name: a name is a claim, and the badge is a fact.
+     */
+    quality: StreamQuality? = null,
+    /**
+     * In reorder mode: whether this row is the one picked up, and how to move it. Null outside the
+     * mode, and a row that is not told draws what it always drew. A held row takes the focused
+     * look -- it is the one the remote is carrying -- and shows the two taps in place of the handle.
+     */
+    arrange: RowArrange? = null,
 ) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(m.previewRadius)
     val interaction = remember { MutableInteractionSource() }
     var focused by remember { mutableStateOf(false) }
+    val held = arrange?.held == true
 
-    // **Selection is the surface, focus is the ring** — the same sentence `RailEntry`
-    // already lives by, and now the same picture. The row used to paint the violet on
-    // *focus*, so the board said two different things in two columns a few pixels apart:
-    // a bouquet stayed lit while the remote moved on, and the channel actually playing
-    // went dark the moment the remote left it. A viewer scrolling for the next thing to
-    // watch could not see which channel they were watching.
+    // **Where the remote is, and what is playing, are two facts and the row draws them apart.**
     //
-    // Both states are true of one row at once and they no longer compete: the fill says
-    // "this is the one in the picture", the azure ring says "this is where you are".
+    // The violet is the remote: it is on this row, and it moves with every arrow. The mark is
+    // the player: this row's stream has a picture on it, and it stays put while the remote
+    // goes on down the list. Before, the violet was the last channel *pressed*, and it stayed
+    // lit while the remote moved on -- so the one colour answered "where am I" on one row and
+    // "what am I watching" on another, and a viewer could not tell which of the two a violet
+    // row was saying. Neither fact depends on the other: a row can be both, either, or
+    // neither, and `rowLook` is where that is stated.
     //
-    // A focused row that is *not* the selected one still takes a surface — the glass the
-    // number plate and the idle plate already use — because a hairline alone is too thin
-    // a thing to find from three metres with a remote. It is a quieter surface than the
-    // violet, which is what keeps the two states apart at a glance.
+    // The ring stays with the violet. A fill alone is not a focus indicator for a viewer who
+    // cannot tell the two colours apart, and the ring has been what says "focused" on every
+    // surface of this board.
+    val look = rowLook(focused = focused || held, playing = playing)
     Row(
         modifier
             .fillMaxWidth()
             .heightIn(min = m.rowMin)
             .clip(shape)
-            .background(
-                when {
-                    selected -> colors.secondary
-                    focused -> colors.glassFill
-                    else -> Color.Transparent
-                },
-            )
-            .border(
-                1.dp,
-                when {
-                    focused -> colors.focusRing
-                    selected -> colors.selectedBorder
-                    else -> Color.Transparent
-                },
-                shape,
-            )
+            .background(if (look.surface) colors.secondary else Color.Transparent)
+            .border(1.dp, if (look.ring) colors.focusRing else Color.Transparent, shape)
+            .movedByArrows(arrange)
+            .then(keptInView(held))
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
             .clickable(interaction, indication = null, onClick = onClick)
             .padding(horizontal = m.rowPadH),
@@ -1235,10 +1468,10 @@ private fun ChannelRow(
         // exactly like a channel is a channel that does not play.
         val heading = remember(channel.title) { isProviderHeading(channel.title) }
 
-        // Keyed to the *fill*, not to focus: ink has to be legible on whatever is behind
-        // it, and only the selected row is violet.
+        // Keyed to the *fill*: ink has to be legible on whatever is behind it, and only the
+        // row under the remote is violet.
         val ink = when {
-            selected -> colors.onSecondary
+            look.surface -> colors.onSecondary
             heading -> colors.onBackgroundMuted
             else -> colors.onBackground
         }
@@ -1249,7 +1482,7 @@ private fun ChannelRow(
         if (heading) {
             Spacer(Modifier.width(m.numberWidth))
         } else {
-            NumberPlate(label = numberPlate(number), onFill = selected, m = m)
+            NumberPlate(label = numberPlate(number), onFill = look.surface, m = m)
         }
 
         // **The channel's own logo, from the provider.**
@@ -1287,7 +1520,10 @@ private fun ChannelRow(
         //
         // Without the tag, because the tag is drawn beside it. `|FR| TF1 HD` reads as
         // `|FR| TF1  ᴴᴰ` rather than repeating itself.
-        val name = if (heading) channel.title else titleWithoutQuality(channel.title)
+        // The name as the provider wrote it. A tag in it -- `HD`, `UHD`, `4K` -- is the provider's
+        // claim and is left where they put it: the badge beside it is measured, and the two are
+        // allowed to disagree on screen, which is the point of the badge.
+        val name = channel.title
         val nameStyle = castivioChipStyle(m.frame.fsLabel)
             .copy(letterSpacing = if (heading) HEADING_TRACKING else TextUnit.Unspecified)
 
@@ -1326,22 +1562,62 @@ private fun ChannelRow(
             )
         }
 
-        // The reference's quality tag, read out of the name the provider wrote.
-        // Absent when the provider wrote none -- never inferred, and never a
-        // default. See `ChannelTitle.kt`. A heading is decoration rather than a
-        // stream, so nothing is read out of it.
-        qualityOf(channel.title).takeIf { !heading }?.let { quality ->
+        // **The mark that this one is playing.** Between the name and the tag, so that the tag
+        // keeps the row's end on every row and only the name of the playing one gives it room.
+        if (look.mark) PlayingMark(size = m.rowMin * MARK_OF_ROW, onFill = look.surface)
+
+        // **The quality tag: SD, HD, FHD or 4K, and only when the channel has been measured.**
+        // A channel nobody has opened has no entry and draws nothing -- not a default, and not
+        // a reading of its name. The name field takes the row's slack and is start-aligned, so
+        // every name starts in the same place whether or not a tag follows it.
+        quality?.let { measured ->
             Text(
-                text = quality.label,
+                text = measured.label,
                 style = castivioBodyStyle(m.frame.fsBody * QUALITY_OF_BODY),
                 color = when {
-                    selected -> colors.onSecondary
-                    quality == StreamQuality.SD -> colors.onBackgroundMuted
+                    look.surface -> colors.onSecondary
+                    measured == StreamQuality.SD -> colors.onBackgroundMuted
                     else -> colors.secondary
                 },
                 maxLines = 1,
             )
         }
+
+        arrange?.let { ArrangeTail(it, ink, m.rowMin * ARROW_OF_ROW) }
+    }
+}
+
+/**
+ * The mark on the channel the player is showing: a small disc in the "now" colour with a play
+ * triangle in it.
+ *
+ * `live` is the colour the design system keeps for exactly this -- a playing stream -- and it is
+ * the calm green of the board's identity rather than a status colour: it never means
+ * "succeeded". The triangle is the page's own ground so that it reads on the disc in both
+ * themes. On the violet -- the remote is on the playing row, which is the usual case just after a
+ * press -- the aqua alone is a little over 1.5:1 against it, so the disc takes the row's own ink
+ * as a ring there and stays a disc a viewer can find from across the room.
+ *
+ * It says what it is in words, for a screen reader, because a colour and a shape are the only
+ * other way to know.
+ */
+@Composable
+private fun PlayingMark(size: Dp, onFill: Boolean) {
+    val colors = CastivioTheme.colors
+    Box(
+        Modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(colors.live)
+            .then(if (onFill) Modifier.border(MARK_RING, colors.onSecondary, CircleShape) else Modifier),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.PlayArrow,
+            contentDescription = stringResource(R.string.channels_now_playing),
+            tint = colors.background,
+            modifier = Modifier.size(size * MARK_GLYPH),
+        )
     }
 }
 
@@ -1354,7 +1630,7 @@ private fun ChannelRow(
 @Composable
 private fun NumberPlate(
     label: String,
-    /** True when the row behind the plate carries the selection's violet. */
+    /** True when the row behind the plate carries the violet of the remote's focus. */
     onFill: Boolean,
     m: ChannelsMetrics,
 ) {
@@ -1375,7 +1651,9 @@ private fun NumberPlate(
         Text(
             text = label,
             style = castivioBodyStyle(m.frame.fsBody),
-            color = colors.secondary,
+            // White on the glass plate of an ordinary row, and a deeper violet on the white
+            // plate of the row the remote is on -- the row's own violet there is 3.5:1.
+            color = if (onFill) colors.onSelectedPlate else colors.onBackground,
             maxLines = 1,
         )
     }
@@ -1415,73 +1693,94 @@ private fun NumberPlate(
  * because the column is always here and always has to be saying something true.
  */
 @Composable
-private fun ChannelWell(
+internal fun ChannelWell(
     shown: ChannelPreview,
     m: ChannelsMetrics,
+    pulse: PlayerPulse?,
+    qualities: Map<String, StreamQuality>,
     preview: (@Composable () -> Unit)?,
     onOpenGuide: () -> Unit,
     onFavorite: () -> Unit,
+    /** The board is in reorder mode. */
+    arranging: Boolean,
+    onArrange: () -> Unit,
     onExpand: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier,
-        verticalArrangement = Arrangement.spacedBy(m.guideGap),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        // Sized from the metrics rather than from the column, because on a short surface
-        // the picture is *narrower* than the column it sits in -- it gives height back to
-        // the facts under it and keeps its shape. See `ChannelsMetrics.wellPicture`.
-        WellPicture(
-            shown = shown,
-            m = m,
-            preview = preview,
-            modifier = Modifier.width(m.wellPictureWidth).height(m.wellPicture),
-        )
+    BoxWithConstraints(modifier) {
+        // **Measured against the column it is in, not the one the board was promised.**
+        //
+        // `m.column` is the surface less the bands that are always there. A band that comes and
+        // goes -- the reorder bar, a failed refresh's notice -- takes its height from the three
+        // columns, and a picture still sized for the full column kept its height while the facts
+        // under it lost theirs: in reorder mode on a handset the channel's name ran into what was
+        // on and what was next fell off the panel. The well's own height is the column, so the
+        // numbers are rederived from it, and the picture yields as it does on a short surface.
+        val fitted = remember(m, maxHeight) { m.copy(column = minOf(m.column, maxHeight)) }
 
-        // **It takes the room, and the room decides what goes in it.**
-        //
-        // Four shapes were tried here. `weight(1f)` stretched the block to whatever the
-        // column had spare -- 333dp of bordered panel around 138dp of content at the
-        // reference. Hugging moved the same emptiness outside the border, where it became
-        // ground between the last programme and the strip. A bounded floor filled part of
-        // the box and set the two coming programmes a hand's width apart. A third
-        // programme helped without finishing the job: 170dp of ground became 163dp of
-        // content in a 333dp room.
-        //
-        // What finishes it is letting the *column* decide. The block takes the room in
-        // full and distributes what it does not need between its three ruled sections;
-        // and where the column is deep enough to afford it, the current programme's
-        // synopsis fills part of that room with something worth reading. At 1280x720 that
-        // is 83.7dp of synopsis and 45.9dp of air between sections, against 87.7 with the
-        // space merely spread. On a handset the synopsis is absent -- it would not fit --
-        // and the 11.7dp of ground is simply absorbed. No surface keeps dead ground.
-        //
-        // **On every channel, and no longer only on the ones with three sections.** This
-        // took the room when the guide had a NEXT and hugged its content when it did not,
-        // so a channel at the end of its window drew a short panel with 80dp of ground
-        // between it and the strip while its neighbour drew a full one. Two shapes for one
-        // panel, chosen by what a provider's EPG happened to contain.
-        //
-        // The room is the column's to give and the block's to take; what varies is how
-        // much of it the content uses. Since the gaps inside are now one figure
-        // (`ChannelsMetrics.guideSection`) rather than a division of the slack, the
-        // leftover collects at the bottom of the block instead of stretching it, and the
-        // frame ends up in the same place on every channel.
-        ChannelFacts(
-            shown = shown,
-            m = m,
-            onExpand = onExpand,
-            modifier = Modifier.fillMaxWidth().weight(1f),
-        )
+        Column(
+            Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(fitted.guideGap),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            // Sized from the metrics rather than from the column, because on a short surface
+            // the picture is *narrower* than the column it sits in -- it gives height back to
+            // the facts under it and keeps its shape. See `ChannelsMetrics.wellPicture`.
+            WellPicture(
+                shown = shown,
+                m = fitted,
+                pulse = pulse,
+                preview = preview,
+                modifier = Modifier.width(fitted.wellPictureWidth).height(fitted.wellPicture),
+            )
 
-        ActionStrip(
-            shown = shown,
-            m = m,
-            onOpenGuide = onOpenGuide,
-            onFavorite = onFavorite,
-            modifier = Modifier.fillMaxWidth(),
-        )
+            // **It takes the room, and the room decides what goes in it.**
+            //
+            // Four shapes were tried here. `weight(1f)` stretched the block to whatever the
+            // column had spare -- 333dp of bordered panel around 138dp of content at the
+            // reference. Hugging moved the same emptiness outside the border, where it became
+            // ground between the last programme and the strip. A bounded floor filled part of
+            // the box and set the two coming programmes a hand's width apart. A third
+            // programme helped without finishing the job: 170dp of ground became 163dp of
+            // content in a 333dp room.
+            //
+            // What finishes it is letting the *column* decide. The block takes the room in
+            // full and distributes what it does not need between its three ruled sections;
+            // and where the column is deep enough to afford it, the current programme's
+            // synopsis fills part of that room with something worth reading. At 1280x720 that
+            // is 83.7dp of synopsis and 45.9dp of air between sections, against 87.7 with the
+            // space merely spread. On a handset the synopsis is absent -- it would not fit --
+            // and the 11.7dp of ground is simply absorbed. No surface keeps dead ground.
+            //
+            // **On every channel, and no longer only on the ones with three sections.** This
+            // took the room when the guide had a NEXT and hugged its content when it did not,
+            // so a channel at the end of its window drew a short panel with 80dp of ground
+            // between it and the strip while its neighbour drew a full one. Two shapes for one
+            // panel, chosen by what a provider's EPG happened to contain.
+            //
+            // The room is the column's to give and the block's to take; what varies is how
+            // much of it the content uses. Since the gaps inside are now one figure
+            // (`ChannelsMetrics.guideSection`) rather than a division of the slack, the
+            // leftover collects at the bottom of the block instead of stretching it, and the
+            // frame ends up in the same place on every channel.
+            ChannelFacts(
+                shown = shown,
+                m = fitted,
+                quality = shown.channel?.let { qualities[it.id] },
+                onExpand = onExpand,
+                modifier = Modifier.fillMaxWidth().weight(1f),
+            )
+
+            ActionStrip(
+                shown = shown,
+                m = fitted,
+                onOpenGuide = onOpenGuide,
+                onFavorite = onFavorite,
+                arranging = arranging,
+                onArrange = onArrange,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }
 
@@ -1504,15 +1803,23 @@ private fun ChannelWell(
  * only make the screen wrong.
  */
 @Composable
-private fun WellPicture(
+internal fun WellPicture(
     shown: ChannelPreview,
     m: ChannelsMetrics,
+    pulse: PlayerPulse?,
     preview: (@Composable () -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(m.wellRadius)
     val channel = shown.channel
+
+    // **Whether this plate has a picture, as the player says it.** The channel the plate is about
+    // is the last one pressed; the picture is its own only once the player has drawn a frame of
+    // *that* stream. Until then the plate has nothing of the channel to show, and says what it is
+    // instead of looking like a player that has gone black.
+    val showing = channel != null && pulse?.playingUrl == channel.streamUrl
+    val opening = channel != null && pulse?.url == channel.streamUrl && pulse.phase == PulsePhase.OPENING
 
     Box(
         modifier
@@ -1522,48 +1829,60 @@ private fun WellPicture(
     ) {
         // **The plate is the player's when there is a player.**
         //
-        // The mark is what this plate shows while nothing has been pressed — a preview of
-        // the channel that was chosen. Once one is actually playing, the same plate is the
-        // compact player. It keeps its size and its place either way, so pressing a
-        // channel changes what is in the box and never where the box is.
-        if (preview != null) {
-            preview()
-        } else if (channel != null) {
-            LogoTile(
-                initials = initialsOf(channel.title),
-                seed = channel.id.hashCode(),
-                modifier = Modifier.fillMaxSize(),
-            )
-        } else {
-            // **The idle plate, which is why the well can stay.**
+        // Once one is actually playing, the same plate is the compact player. It keeps its size
+        // and its place either way, so pressing a channel changes what is in the box and never
+        // where the box is.
+        if (preview != null) preview()
+
+        when {
+            // **Nothing to show yet: the product's own ground and the channel's own mark.**
             //
-            // The column is a fixture now, so it has to have something honest to draw
-            // before anything has been pressed and after the close button. A mark and one
-            // sentence saying what the board is waiting for: a screen explaining itself,
-            // rather than an empty frame that looks like a player which has failed.
-            Column(
-                Modifier.fillMaxSize().background(colors.glassFill),
-                verticalArrangement = Arrangement.spacedBy(m.nameGap, Alignment.CenterVertically),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Icon(
-                    Icons.Rounded.PlayCircleOutline,
-                    contentDescription = null,
-                    tint = colors.onBackgroundMuted,
-                    modifier = Modifier.size(Sizing.iconXl),
-                )
-                Text(
-                    text = stringResource(R.string.channels_preview_none),
-                    style = castivioBodyStyle(m.frame.fsBody),
-                    color = colors.onBackgroundMuted,
-                    maxLines = 1,
-                )
+            // Over the player's plate while it opens -- its cover is the page's near-black, and a
+            // black box with a name in a corner reads as a player that has failed. The ground
+            // goes the instant the first frame is drawn, because `showing` is the player's word
+            // for it, and nothing waits on this layer: the engine is drawing underneath it.
+            // Not over a card: when the stream has failed the player's own card is the thing to
+            // read, and it is left alone.
+            channel != null && (preview == null || opening) -> PlateGround(
+                channel = channel,
+                waiting = opening && pulse?.waiting == true,
+                m = m,
+            )
+
+            // Nothing chosen yet.
+            channel == null && preview == null -> {
+                // **The idle plate, which is why the well can stay.**
+                //
+                // The column is a fixture now, so it has to have something honest to draw
+                // before anything has been pressed and after the close button. A mark and one
+                // sentence saying what the board is waiting for: a screen explaining itself,
+                // rather than an empty frame that looks like a player which has failed.
+                Column(
+                    Modifier.fillMaxSize().background(colors.glassFill),
+                    verticalArrangement = Arrangement.spacedBy(m.nameGap, Alignment.CenterVertically),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Icon(
+                        Icons.Rounded.PlayCircleOutline,
+                        contentDescription = null,
+                        tint = colors.onBackgroundMuted,
+                        modifier = Modifier.size(Sizing.iconXl),
+                    )
+                    Text(
+                        text = stringResource(R.string.channels_preview_none),
+                        style = castivioBodyStyle(m.frame.fsBody),
+                        color = colors.onBackgroundMuted,
+                        maxLines = 1,
+                    )
+                }
             }
         }
 
-        // The live badge, and no number beside it: the picture is the player's, and the
-        // player draws no channel number -- the row in the list already carries it.
-        if (channel != null) {
+        // **The live badge is a claim, so it is made only when it is true.** It said LIVE over a
+        // black plate while nothing had drawn, which told the viewer the channel was working
+        // before it was. It is over the picture because it is true of the picture, and it is
+        // there when the player has drawn one of *this* channel and not before.
+        if (showing) {
             Row(
                 Modifier.align(Alignment.BottomStart).padding(m.osdPad),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1572,7 +1891,47 @@ private fun WellPicture(
                 LiveBadge(m)
             }
         }
+    }
+}
 
+/**
+ * What the plate shows while the channel has no picture: Castivio's own ground, and the
+ * channel's logo on it -- or Castivio's mark where the provider shipped none.
+ *
+ * It says nothing is playing by showing nothing playing: no badge, no frame, no title in a
+ * corner. When opening has been silent long enough for the player to say so, a small spinner
+ * says it is still working -- the player's own call, at the player's own delay, because the
+ * layer is over the player's spinner and would otherwise hide it.
+ */
+@Composable
+private fun PlateGround(channel: Channel, waiting: Boolean, m: ChannelsMetrics) {
+    val colors = CastivioTheme.colors
+    Box(
+        Modifier
+            .fillMaxSize()
+            .testTag(PLATE_GROUND_TAG)
+            // The page's own two grounds, top to bottom: quiet enough that a logo -- which is
+            // usually drawn for a dark page -- reads on it, and Castivio's rather than black.
+            .background(Brush.verticalGradient(listOf(colors.secondaryContainer, colors.backgroundElevated))),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (channel.artworkUrl.isNullOrBlank()) {
+            Image(
+                painter = painterResource(DesignR.drawable.castivio_mark),
+                contentDescription = null,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxHeight(PLATE_MARK).aspectRatio(1f),
+            )
+        } else {
+            ProviderArtwork(
+                url = channel.artworkUrl,
+                description = null,
+                modifier = Modifier.fillMaxWidth(PLATE_MARK).fillMaxHeight(PLATE_MARK),
+            )
+        }
+        if (waiting) {
+            DelayedSpinner(modifier = Modifier.align(Alignment.BottomCenter).padding(m.osdPad), delayMs = 0L)
+        }
     }
 }
 
@@ -1607,6 +1966,8 @@ private fun WellPicture(
 private fun ChannelFacts(
     shown: ChannelPreview,
     m: ChannelsMetrics,
+    /** What the channel was last measured at, or null: no badge. */
+    quality: StreamQuality?,
     onExpand: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -1616,23 +1977,6 @@ private fun ChannelFacts(
     val guide = shown.guide
     val now = guide?.now
     val next = guide?.next
-
-    // **And the one after that, from the guide's own order rather than from the clock.**
-    //
-    // `shown.schedule` is the window `ChannelsViewModel` already stored -- the same rows
-    // the guide page lists, in `start_ms` order, capped at `SCHEDULE_ROWS` = 3. With a
-    // programme on air those three are exactly `now`, `next` and this one. **Nothing is
-    // requested to draw it**: the third row comes out of the bytes that arrived with the
-    // first, and a channel whose window ends sooner simply has no third row.
-    //
-    // Anchored on `next` and stepped by one, not filtered by "starts after the current
-    // time". The two would usually agree; only this one cannot put the panel at odds with
-    // itself, because it asks the list where `next` is and takes whatever the provider put
-    // after it.
-    val after = next?.let { coming ->
-        val at = shown.schedule.indexOfFirst { it.startMs == coming.startMs }
-        if (at >= 0) shown.schedule.getOrNull(at + 1) else null
-    }
 
     Column(
         modifier
@@ -1688,15 +2032,14 @@ private fun ChannelFacts(
                 modifier = Modifier.height(m.identity).aspectRatio(LOGO_BOX),
             )
             Text(
-                text = channel?.let { titleWithoutQuality(it.title) }
-                    ?: stringResource(R.string.channels_preview_none),
+                text = channel?.title ?: stringResource(R.string.channels_preview_none),
                 style = castivioTitleStyle(m.fsChannelName),
                 color = if (channel != null) colors.onBackgroundStrong else colors.onBackgroundMuted,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            channel?.title?.let(::qualityOf)?.let {
+            quality?.let {
                 Text(
                     text = it.label,
                     style = castivioChipStyle(m.frame.fsBody * QUALITY_OF_BODY),
@@ -1747,236 +2090,138 @@ private fun ChannelFacts(
             return@Column
         }
 
-        // -------------------------------------------------------- what is on now
+        // ------------------------------------------- what is on, and what is next
         //
-        // The title, its bar, its hours and its synopsis are one child of this column,
-        // not four. The column sets `guideSection` between its children, and four loose
-        // children would put that whole gap between a programme's name and the bar
-        // measuring it. Grouped, it falls where it belongs — between the things a reader
-        // treats as separate — and inside the group the far smaller `badgePadV` holds a
-        // programme's own parts together.
+        // **What is on, then what is next, as the owner set them out.** What is on is its
+        // title, and under it the word that says so, its hours and its bar; what is next is
+        // one line, the word, its hours and its title. The words and the hours are cells that
+        // line up from one line to the next, so the hours of one sit over the hours of the
+        // other whatever the two words measure in the reader's language.
         //
-        // **And the whole group is conditional now.** The block above admits a channel
-        // whose guide has a hole over this instant, and such a channel has no title to
-        // print, no bar to fill and no hours to name; the panel opens at what is coming
-        // instead, which is what the guide page already showed for it. `guide` is tested
-        // beside `now` rather than inferred from it: the progress bar below is asked of
-        // the pair, and a condition a reader can see beats one the compiler works out.
-        if (guide != null && now != null) {
-            Column(verticalArrangement = Arrangement.spacedBy(m.badgePadV)) {
-                // **The seam the block was missing.**
-                //
-                // The channel's name and the programme on it were separated by `badgePadV` —
-                // 2dp on a handset, the same gap that holds the NOW line off its own bar. So
-                // nothing said the thing above it was a different kind of thing from the one
-                // below, and the only drawn rule sat before what is coming: the seam the eye
-                // trusted was in the wrong place, and the block read as "channel and now",
-                // then "the rest".
-                //
-                // This is the same rule, drawn twice. Three sections, one mark between each.
-                Box(Modifier.fillMaxWidth().height(1.dp).background(colors.glassBorder))
-
-                // **The programme's name has the line to itself.**
-                //
-                // It used to share it with the word NOW, and the two coming rows shared
-                // theirs with a label *and* a range — so three lines each carried an Arabic
-                // word, a Latin title and a pair of clock figures at once. That mixture is
-                // the one arrangement the bidirectional algorithm cannot lay out
-                // predictably: asked for `00:05 – 03:50` on such a line it draws
-                // `03:50 – 00:05`, reversed. No choice of side fixes it, because the mixture
-                // is the fault and not the order — which is why mirroring this block was
-                // drawn twice and rejected twice before the cause was found.
-                //
-                // Alone, the name takes whatever direction its own first letter asks for and
-                // nothing competes with it, in Arabic or in French. It also gets the width
-                // the labels were spending: about 211dp of the block's 249 where it had 134.
-                Text(
-                    text = now.title,
-                    style = castivioBodyStyle(m.frame.fsBody),
-                    color = colors.onBackgroundStrong,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                // Everything that describes it, on the line below: the bar opens the line and
-                // takes what the other two leave, the hours follow, and NOW closes it at the
-                // end — which is where an Arabic reader's eye starts. The two figures are one
-                // string in one direction, which is what makes them safe to print at all.
-                Row(
-                    Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(m.factGap),
-                ) {
-                    Track(
-                        fraction = guide.progressAt(System.currentTimeMillis()),
-                        m = m,
-                        modifier = Modifier.weight(1f),
-                    )
-                    // Read from the programme's own timestamps -- the same two the bar is
-                    // drawn from, so the figures and the fill can never disagree.
-                    Text(
-                        text = stringResource(
-                            R.string.channels_time_range,
-                            clockLabel(now.startMs),
-                            clockLabel(now.stopMs),
-                        ),
-                        style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
-                        color = colors.onBackgroundVariant,
-                        maxLines = 1,
-                    )
-                    // **Aqua, and no longer violet.**
-                    //
-                    // The palette holds one meaning per colour: violet is *selection*, the
-                    // fill that says "this is the row the picture is showing", and aqua is
-                    // *live*. This word says live. It was drawn in the selection colour,
-                    // which put it at odds with the LIVE badge over the picture and with the
-                    // very bar beside it — one sentence, said in two colours, a few pixels
-                    // apart. Now the badge, the bar and the word agree.
-                    Text(
-                        text = stringResource(R.string.channels_guide_now),
-                        style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
-                        color = colors.live,
-                        maxLines = 1,
-                    )
-                }
-
-                // **What the programme actually is, where the column can afford to say it.**
-                //
-                // It belongs to NOW and sits inside NOW's group, under the bar that measures
-                // it. Already on the device and already drawn by the guide page -- this reads
-                // the same `Programme.description` and issues nothing.
-                //
-                // Two conditions, and both are refusals to invent. `wellSynopsis` is the
-                // column's answer about room, not a device class; see `ChannelsMetrics`. And a
-                // provider that sent no synopsis gets no line at all rather than an empty one,
-                // which is why this is a `takeIf` and not a placeholder.
-                if (m.wellSynopsis) {
-                    now.description?.takeIf { it.isNotBlank() }?.let { detail ->
-                        Text(
-                            text = detail,
-                            style = castivioBodyStyle(m.frame.fsBody),
-                            color = colors.onBackgroundMuted,
-                            maxLines = CHANNELS_SYNOPSIS_LINES,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-            }
-        }
-
-        // ----------------------------------------------- and the two that follow it
+        // **The third programme and the synopsis went with the bigger picture.** They were the
+        // block filling a column that had room to spare; the picture now takes that room, and
+        // what is on and what is next are what the drawing keeps. Both are still on the guide
+        // page, a press away, read from the same rows.
         //
-        // **Two children, not one, and that is the whole of a defect this had on a
-        // device.** They were one group, so `SpaceBetween` gave the column's spare height
-        // to the three gaps *between* groups and none of it to the gap inside this one:
-        // what is on sat a finger's width from what is next, and the two coming
-        // programmes were glued together 2dp apart. Three sections breathing and two rows
-        // suffocating inside the last of them is not a distribution, it is a distribution
-        // with an exception.
-        //
-        // Separated, the column's children are the four things a reader actually scans —
-        // who, what is on, what is next, what follows that — and `guideSection` sets the
-        // same air between each of them. That the air is now a stated figure rather than a
-        // share of the slack is what finished the job: the slack's size depends on how many
-        // of these four exist, so dividing it gave a channel with fewer programmes wider
-        // gaps than one with more. The rule stays with the row it opens, because a
-        // hairline loose in a column reads as floating rather than as a boundary.
-        //
-        // Both rows come out of `shown.schedule` -- the same ordered window the guide page
-        // reads, already on the device. Nothing is fetched to draw the second one.
-        next?.let { programme ->
-            Column(verticalArrangement = Arrangement.spacedBy(m.badgePadV)) {
-                // One rule for the pair, not one each: they are the same category of thing
-                // -- the future -- and ruling between them would say they are not.
-                //
-                // `glassBorder` rather than the `glassBorderSoft` this drew before. Soft is
-                // the pale blue-grey at 10%, which over this ground is about seven steps of
-                // lightness -- enough for a container's edge, where the shape does the work,
-                // and not enough for a 1dp line that has to be *found* on a handset held at
-                // arm's length. At 20% it is about fifteen, and it reads. Both rules take
-                // it, because a seam that is stronger than its twin stops being the same
-                // mark said twice.
-                Box(Modifier.fillMaxWidth().height(1.dp).background(colors.glassBorder))
-                ComingLine(programme = programme, m = m)
-            }
-        }
-
-        // Absent rather than reserved: a channel whose guide window ends after the next
-        // programme draws one coming row and the panel is simply shorter. An empty row
-        // held open for something that does not exist is the defect this block's whole
-        // shape exists to avoid.
-        after?.let {
-            ComingLine(programme = it, m = m)
+        // Each cell is its own text and so its own paragraph: a word in one script, a pair of
+        // clock figures and a title in another never share a line the bidirectional algorithm
+        // has to order -- the mixture that once printed `03:50 – 00:05` for `00:05 – 03:50`.
+        Column(verticalArrangement = Arrangement.spacedBy(m.badgePadV)) {
+            Box(Modifier.fillMaxWidth().height(1.dp).background(colors.glassBorder))
+            ProgrammeTable(
+                now = now,
+                next = next,
+                progress = if (guide != null && now != null) guide.progressAt(System.currentTimeMillis()) else null,
+                m = m,
+            )
         }
     }
 }
 
 /**
- * A programme that has not started: the hour it begins, and what it is.
+ * What is on and what is next: what is on's title, the line that says it is on -- the word, its
+ * hours, its bar -- and the line of what is next -- the word, its hours, its title.
  *
- * One declaration for both of the rows under the rule, because they are the same row. It
- * was written once and the second would have been a copy — and a copy is where the two
- * stop agreeing about type, colour or the shape of a time.
+ * The two lines are laid out here rather than as two rows because their cells have to agree:
+ * the hours of what is next sit under the hours of what is on, whatever the two words measure in
+ * the reader's language. `MAINTENANT` is three times `NOW`. The word column is as wide as the
+ * wider word, the hours column as the wider pair of hours, and the last cell -- the bar, or the
+ * title -- takes what is left.
  *
- * ## The hour is the label
- *
- * This drew a word — NEXT, or THEN — a title, and a range, in that order on one line. Two
- * of those three were paid for and neither earned it.
- *
- * **The word is what the order already says.** These rows are drawn under what is on now,
- * in the order the provider sent them; nothing else can be second. Measured on the
- * owner's handset, where the block is 249dp wide, `التالي` cost 18dp and `ما بعد التالي`
- * 43 — for a fact the position states for free.
- *
- * **And the range is a boundary printed twice.** A programme ends when the next one
- * begins, so the second figure of each row is the first figure of the row beneath it.
- * Dropping it costs 62dp and loses exactly one fact: the hour the last row ends. What it
- * buys is 211dp for the title where there were 134.
- *
- * The earlier note here argued the opposite — that a column of single times "looks like a
- * clock that has failed to move". It was written when the times sat at the end of the
- * line, scattered by whatever the titles left. Given a column of their own they line up,
- * and a column of hours is what a viewer scans an EPG for.
- *
- * ## And it is the reason this block survives two scripts
- *
- * A line carrying an Arabic word, a Latin title and a pair of clock figures is the one
- * arrangement the bidirectional algorithm cannot lay out predictably: asked for
- * `00:05 – 03:50` it draws `03:50 – 00:05`, reversed. With the word gone and the hour
- * alone in its own slot, no line holds two scripts at once and there is nothing left to
- * reorder.
+ * Either programme may be absent -- a guide with a hole over this instant has nothing on, and
+ * one ending with this programme has nothing next -- and the other then stands alone. Nothing
+ * is drawn for a programme the guide does not have, and nothing beyond these two: the synopsis
+ * and the programmes after them are on the guide page, a press away.
  */
 @Composable
-private fun ComingLine(
-    programme: Programme,
+internal fun ProgrammeTable(
+    now: Programme?,
+    next: Programme?,
+    /** How far into what is on we are, from its own hours; null draws the bar empty. */
+    progress: Float?,
     m: ChannelsMetrics,
     modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
-    Row(
-        modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(m.factGap),
-    ) {
-        // A fixed width, so the two rows' hours sit on one axis rather than wherever
-        // their own digits end. Derived from the body step like every other figure on
-        // this board, so it follows the surface instead of being a number written down.
-        Text(
-            text = clockLabel(programme.startMs),
-            style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
-            color = colors.onBackgroundVariant,
-            maxLines = 1,
-            modifier = Modifier.width(m.frame.fsBody * TIME_COLUMN_OF_BODY),
-        )
-        Text(
-            text = programme.title,
-            style = castivioBodyStyle(m.frame.fsBody),
-            color = colors.onBackgroundVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
+    val legend = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY)
+    val body = castivioBodyStyle(m.frame.fsBody)
+    val lines = listOfNotNull(now?.let { it to true }, next?.let { it to false })
+
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(m.badgePadV)) {
+        // The title of what is on, over the word that says it is on: the one thing on the panel
+        // a viewer reads first, in the block's strongest ink and the whole width to itself.
+        if (now != null) {
+            Text(
+                text = now.title,
+                style = body,
+                color = colors.onBackgroundStrong,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+
+        Layout(
+            modifier = Modifier.fillMaxWidth(),
+            content = {
+                for ((programme, isNow) in lines) {
+                    // **The word, in the colour of what it says.** Aqua is live, and only what
+                    // is on is live; what is next is told in the block's own quiet ink.
+                    Text(
+                        text = stringResource(if (isNow) R.string.channels_guide_now else R.string.channels_guide_next),
+                        style = legend,
+                        color = if (isNow) colors.live else colors.onBackgroundVariant,
+                        maxLines = 1,
+                    )
+                    // Read from the programme's own timestamps -- the same two the bar is drawn
+                    // from, so the figures and the fill can never disagree.
+                    Text(
+                        text = stringResource(
+                            R.string.channels_time_range,
+                            clockLabel(programme.startMs),
+                            clockLabel(programme.stopMs),
+                        ),
+                        style = legend,
+                        color = colors.onBackgroundVariant,
+                        maxLines = 1,
+                    )
+                    if (isNow) {
+                        Track(fraction = progress, m = m)
+                    } else {
+                        Text(
+                            text = programme.title,
+                            style = body,
+                            color = colors.onBackgroundVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            },
+        ) { measurables, constraints ->
+            val gap = m.factGap.roundToPx()
+            val lineGap = (m.badgePadV * 2).roundToPx()
+            val cells = measurables.chunked(PROGRAMME_CELLS)
+            val loose = constraints.copy(minWidth = 0, minHeight = 0)
+            val words = cells.map { it[0].measure(loose) }
+            val hours = cells.map { it[1].measure(loose) }
+            val wordWidth = words.maxOfOrNull { it.width } ?: 0
+            val hourWidth = hours.maxOfOrNull { it.width } ?: 0
+            val lastWidth = (constraints.maxWidth - wordWidth - hourWidth - gap * 2).coerceAtLeast(0)
+            val lasts = cells.map { it[2].measure(Constraints.fixedWidth(lastWidth)) }
+            val heights = cells.indices.map { maxOf(words[it].height, hours[it].height, lasts[it].height) }
+            val total = heights.sum() + lineGap * (heights.size - 1).coerceAtLeast(0)
+
+            layout(constraints.maxWidth, total) {
+                var y = 0
+                for (line in cells.indices) {
+                    val height = heights[line]
+                    words[line].placeRelative(0, y + (height - words[line].height) / 2)
+                    hours[line].placeRelative(wordWidth + gap, y + (height - hours[line].height) / 2)
+                    lasts[line].placeRelative(wordWidth + gap + hourWidth + gap, y + (height - lasts[line].height) / 2)
+                    y += height + lineGap
+                }
+            }
+        }
     }
 }
 
@@ -2000,17 +2245,23 @@ private fun ComingLine(
  * work, they are staged work, and the next commit on this file should be the two tables.
  */
 @Composable
-private fun ActionStrip(
+internal fun ActionStrip(
     shown: ChannelPreview,
     m: ChannelsMetrics,
     onOpenGuide: () -> Unit,
     onFavorite: () -> Unit,
+    arranging: Boolean,
+    onArrange: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val hasChannel = shown.channel != null
 
+    // **Five buttons sharing the width, as the drawing sets them.** The strip used to scroll and
+    // each button took its label's width, so four left a gap at the end of the well; five equal
+    // shares end flush with the picture and the facts above them. They always fit: the well is
+    // never narrower than five control targets and their gaps -- see `ChannelsMetricsTest`.
     Row(
-        modifier.horizontalScroll(rememberScrollState()).focusGroup(),
+        modifier.focusGroup(),
         horizontalArrangement = Arrangement.spacedBy(m.factGap),
     ) {
         ActionButton(
@@ -2022,6 +2273,7 @@ private fun ActionStrip(
             enabled = shown.schedule.isNotEmpty(),
             onClick = onOpenGuide,
             m = m,
+            modifier = Modifier.weight(1f),
         )
         ActionButton(
             icon = if (shown.favorite) Icons.Rounded.Star else Icons.Rounded.StarBorder,
@@ -2033,6 +2285,7 @@ private fun ActionStrip(
             enabled = hasChannel,
             onClick = onFavorite,
             m = m,
+            modifier = Modifier.weight(1f),
         )
         ActionButton(
             icon = Icons.Rounded.Lock,
@@ -2040,6 +2293,7 @@ private fun ActionStrip(
             enabled = hasChannel,
             onClick = {},
             m = m,
+            modifier = Modifier.weight(1f),
         )
         ActionButton(
             icon = Icons.Rounded.VisibilityOff,
@@ -2047,6 +2301,20 @@ private fun ActionStrip(
             enabled = hasChannel,
             onClick = {},
             m = m,
+            modifier = Modifier.weight(1f),
+        )
+        // **The way into reorder mode, at the end of the strip, as the owner's drawing has it.**
+        // It needs no channel: what it arranges is the board's lists, not the one in the picture.
+        // Lit while the mode is on and not pressable again -- the bar over the board is where
+        // the mode is left, with Save or Cancel.
+        ActionButton(
+            icon = Icons.Rounded.SwapVert,
+            label = stringResource(R.string.reorder_entry),
+            on = arranging,
+            enabled = !arranging,
+            onClick = onArrange,
+            m = m,
+            modifier = Modifier.weight(1f),
         )
     }
 }
@@ -2070,6 +2338,7 @@ private fun ActionButton(
     m: ChannelsMetrics,
     on: Boolean = false,
     enabled: Boolean = true,
+    modifier: Modifier = Modifier,
 ) {
     val colors = CastivioTheme.colors
     val (focused, focusModifier) = rememberFocusFlag()
@@ -2084,7 +2353,7 @@ private fun ActionButton(
     }
 
     Column(
-        Modifier
+        modifier
             .height(m.strip)
             .widthIn(min = m.strip)
             .clip(shape)
@@ -2206,7 +2475,7 @@ private fun ChannelGuideOverlay(
                 )
                 Spacer(Modifier.width(m.controlPadH))
                 Text(
-                    text = shown.channel?.let { titleWithoutQuality(it.title) }
+                    text = shown.channel?.title
                         ?: stringResource(R.string.channels_preview_none),
                     style = castivioTitleStyle(m.frame.fsLabel),
                     color = colors.onBackgroundStrong,
@@ -2466,24 +2735,8 @@ private fun rememberFocusFlag(): Pair<Boolean, Modifier> {
 private fun numberPlate(number: Int?): String =
     number?.let { ltrToken(it.toString()) } ?: NO_NUMBER
 
-/**
- * Up to two initials for a channel with no artwork.
- *
- * Words rather than characters, so `Sky Sports Football` is `SS` and not `Sk`. A title
- * of one word gives one letter; a title of none gives the placeholder a shape rather
- * than an empty tile.
- */
-internal fun initialsOf(title: String): String =
-    title.split(' ', '-', '_')
-        .filter { it.isNotBlank() }
-        .take(2)
-        .map { it.first().uppercaseChar() }
-        .joinToString("")
-        .ifEmpty { NO_NUMBER.take(1) }
-
-/** `13:30`, in the device's own format. */
-private fun clockLabel(epochMs: Long): String =
-    DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(epochMs))
+/** `13:30`: twenty-four hours and Western digits in every language, as the board's clock. */
+private fun clockLabel(epochMs: Long): String = CastivioDates.time(epochMs)
 
 /**
  * A guide day, named where naming helps and dated where it does not.
@@ -2539,6 +2792,30 @@ private const val RAIL_DIVIDER = "castivio.rail.divider"
 private const val RAIL_EMPTY = "castivio.rail.empty"
 
 
+/** How much of the plate the channel's mark takes, in each direction. */
+private const val PLATE_MARK = 0.46f
+
+/** What the plate's own ground is found by: present while the channel has no picture, gone with it. */
+internal const val PLATE_GROUND_TAG = "castivio.channels.plate.ground"
+
+/**
+ * A rail entry with no second line, as a share of one with two.
+ *
+ * The line and the breathing room a name needs on its own: about 23dp on a phone, where a
+ * bouquet's two lines take 32. The three entries that are not bouquets -- all, favourites and
+ * recent -- are one line each, and all take this.
+ */
+private const val SINGLE_OF_RAIL = 0.72f
+
+/**
+ * The playing mark's side as a share of the row's minimum height, and its triangle's as a share
+ * of the mark. Small beside the name -- it says "this one" and must not compete with the number
+ * plate -- and inside the row's own height, so that it never makes a row taller.
+ */
+private const val MARK_OF_ROW = 0.5f
+private const val MARK_GLYPH = 0.64f
+private val MARK_RING = 1.5.dp
+
 /** The logo slot's height as a share of the row — 28 of 68 in the reference. */
 private const val LOGO_OF_ROW = 28f / 68f
 
@@ -2582,20 +2859,8 @@ private const val LOGO_BOX = 54f / 40f
 
 private const val LEGEND_OF_BODY = 0.88f
 
-/**
- * The width of the hour that opens a coming programme's row, in body steps.
- *
- * `00:05` is five figures at `LEGEND_OF_BODY` of the body step, and a digit is about
- * three fifths of its own size wide — so four and a fifth body steps holds the widest
- * clock this draws with a little air after it, at every surface, because the step itself
- * is derived from the surface. Stated as a ratio and not as a `Dp` for exactly that
- * reason: a written-down width is a width that is right on one screen.
- *
- * It is a *fixed* width rather than a wrap, which is the whole point: the two rows' hours
- * then share one axis, and the titles beside them start at one place instead of wherever
- * the digits above them happened to end.
- */
-private const val TIME_COLUMN_OF_BODY = 4.2f
+/** A line of [ProgrammeTable]: the word, the hours, and the bar or the title. */
+private const val PROGRAMME_CELLS = 3
 
 
 /** The hairline between the clock and the dates, as a share of the band. */
@@ -2630,14 +2895,3 @@ private const val FIELD_OF_HEADER = 0.62f
  * category — the same trick the header's field plays against the band.
  */
 private const val FIELD_OF_ROW = 0.86f
-
-/**
- * The clock: twenty-four hours, in every language.
- *
- * The same argument the date makes in `CastivioDates`. A twelve-hour clock is a
- * locale's convention and carries an `AM`/`PM` whose width is a different number of
- * glyphs in each of the thirty-seven languages, on a band that has no room to change
- * size — and this is a television screen, where the twenty-four-hour clock is what a
- * viewer expects anyway.
- */
-private const val CLOCK_TIME = "HH:mm"

@@ -661,6 +661,16 @@ class CastivioColors(
     val ctaQuietRing: Color get() = Palette.Violet50.copy(alpha = CTA_QUIET_RING)
 
     /**
+     * A channel number's ink on the white plate of the row the remote is on.
+     *
+     * The row is filled with [secondary], and a number in that same violet on a plate that is
+     * white measures about 3.5:1 -- one family of colour and a numeral that does not read. This
+     * is the same hue a step deeper, 5.7:1 on white, and still the calm violet the board's
+     * reference draws there.
+     */
+    val onSelectedPlate: Color get() = Palette.Violet40
+
+    /**
      * A field card: a pane sunk into the surface, not glass laid over it.
      *
      * [surfaceWell]'s rung, drawn as a ramp so the field keeps the lit upper edge

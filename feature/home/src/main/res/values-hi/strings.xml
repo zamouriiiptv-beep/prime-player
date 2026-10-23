@@ -125,10 +125,22 @@
     <string name="channels_rail_total">कुल: %1$s</string>
     <string name="channels_rail_empty">यह प्लेलिस्ट कोई श्रेणी नहीं दिखाती।</string>
     <string name="channels_preview_none">चलाने के लिए चैनल दबाएँ</string>
+    <string name="channels_now_playing">अभी चल रहा है</string>
+
+    <string name="reorder_entry">क्रम</string>
+    <string name="reorder_save">सहेजें</string>
+    <string name="reorder_cancel">रद्द करें</string>
+    <string name="reorder_hint_pick">किसी श्रेणी या चैनल को उठाने के लिए उस पर OK दबाएँ।</string>
+    <string name="reorder_hint_move">↑ और ↓ से उसे खिसकाएँ, फिर रखने के लिए OK दबाएँ।</string>
+    <string name="reorder_hint_all">चैनलों का क्रम बदलने के लिए पहले कोई श्रेणी खोलें।</string>
+    <string name="reorder_failed">क्रम सहेजा नहीं जा सका। फिर से कोशिश करें।</string>
+    <string name="reorder_move_up">ऊपर ले जाएँ</string>
+    <string name="reorder_move_down">नीचे ले जाएँ</string>
     <string name="channels_empty_title">यहाँ कोई चैनल नहीं</string>
     <string name="channels_empty_detail">इस श्रेणी में अभी कुछ नहीं है। कोई दूसरी आज़माएँ, या यह खंड दोबारा डाउनलोड करें।</string>
     <string name="channels_fetch_failed">लाइव टीवी डाउनलोड नहीं हो सका</string>
     <string name="channels_guide_now">अभी</string>
+    <string name="channels_guide_next">अगला</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">आज</string>
     <string name="channels_guide_tomorrow">कल</string>

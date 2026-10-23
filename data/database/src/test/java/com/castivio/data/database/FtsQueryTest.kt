@@ -1,5 +1,6 @@
 package com.castivio.data.database
 
+import com.castivio.domain.searchTermOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -55,5 +56,18 @@ class FtsQueryTest {
     @Test
     fun `whitespace around and between terms is ignored`() {
         assertEquals("nova* sports*", FtsQuery.build("  nova   sports  "))
+    }
+    @Test
+    fun `the domain's search term means what the query builder means`() {
+        // The board folds a typed search with `searchTermOf` so that two typings of one
+        // search are one query; the index folds it again here. They are two copies of one
+        // rule -- a word is a run of letters and digits, lower-cased -- and this is what
+        // stops them drifting: whatever is typed, folding first changes nothing.
+        for (typed in listOf(
+            "  BeIN   Sports ", "bein, sports!", "FR| SECRET STORY HD", "Mission: Impossible",
+            "\"nova\"", "news**", "a OR b", "Новости", "قناة  الجزيرة", "İstanbul TV", "---", "", "   ", "4K 24",
+        )) {
+            assertEquals(typed, FtsQuery.build(typed), FtsQuery.build(searchTermOf(typed)))
+        }
     }
 }

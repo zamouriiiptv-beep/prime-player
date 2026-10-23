@@ -125,10 +125,22 @@
     <string name="channels_rail_total">합계: %1$s</string>
     <string name="channels_rail_empty">이 재생목록에는 카테고리가 없습니다.</string>
     <string name="channels_preview_none">채널을 누르면 재생됩니다</string>
+    <string name="channels_now_playing">재생 중</string>
+
+    <string name="reorder_entry">순서</string>
+    <string name="reorder_save">저장</string>
+    <string name="reorder_cancel">취소</string>
+    <string name="reorder_hint_pick">카테고리나 채널에서 확인을 눌러 집어 올리세요.</string>
+    <string name="reorder_hint_move">↑와 ↓로 옮긴 뒤 확인을 눌러 내려놓으세요.</string>
+    <string name="reorder_hint_all">채널 순서를 바꾸려면 먼저 카테고리를 여세요.</string>
+    <string name="reorder_failed">순서를 저장하지 못했습니다. 다시 시도하세요.</string>
+    <string name="reorder_move_up">위로 이동</string>
+    <string name="reorder_move_down">아래로 이동</string>
     <string name="channels_empty_title">여기에는 채널이 없습니다</string>
     <string name="channels_empty_detail">이 카테고리에는 아직 아무것도 없습니다. 다른 카테고리를 보거나 섹션을 다시 내려받으세요.</string>
     <string name="channels_fetch_failed">실시간 TV를 내려받지 못했습니다</string>
     <string name="channels_guide_now">현재</string>
+    <string name="channels_guide_next">다음</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">오늘</string>
     <string name="channels_guide_tomorrow">내일</string>

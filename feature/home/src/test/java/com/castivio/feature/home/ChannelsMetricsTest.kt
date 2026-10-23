@@ -118,28 +118,26 @@ class ChannelsMetricsTest {
     }
 
     /**
-     * **A coming programme's name keeps most of its row.**
+     * **A programme's title keeps most of its line.**
      *
-     * The row under the rule used to be a word, a title and a range: `ما بعد التالي` cost
-     * 43dp of the block's width on the owner's handset and the range 62, leaving the
-     * programme's name about 143 of 256. The word went — the order already says what it
-     * said — and the range became the hour the programme starts, in a column of its own,
-     * so the name is left about 202dp instead. Forty per cent more, for a fact nobody read.
-     *
-     * What is asserted is the floor rather than the gain, because the gain is a number in
-     * a commit message and the floor is what a future change can quietly take back. The
-     * worst surface in the sweep leaves 182dp; below [COMING_TITLE_MIN] the row stops
-     * being a programme's name beside an hour and becomes an hour beside an ellipsis.
+     * A line of the facts block is three cells: the word that says which (`NOW`, `NEXT`), the
+     * hours, and the title. The first two are as wide as their widest text, and the title takes
+     * what is left -- so what is asserted is that what is left stays a title, on the narrowest
+     * surface the product ships to and in the widest language. The two cells are estimated
+     * generously from the type step, as a JVM has to: the longest word the thirty-nine languages use (`MAINTENANT`, ten
+     * capitals) and the hours with their dash (`00:00 – 00:00`, thirteen), at the legend size.
      */
     @Test
-    fun `the hour that opens a coming row leaves the title its width`() {
-        sweep { tv, width, height ->
+    fun `a programme's title keeps most of its line`() {
+        sweep(from = SHIPPING_WIDTH) { tv, width, height ->
             val m = channelsMetricsFor(tv, width, height)
-            val title = factsWidth(m) - m.frame.fsBody * TIME_COLUMN_OF_BODY - m.factGap
+            val legend = m.frame.fsBody * LEGEND_OF_BODY
+            val word = legend * (WIDEST_WORD_CHARS * CAPITAL_EM)
+            val hours = legend * (HOURS_CHARS * DIGIT_EM)
+            val title = factsWidth(m) - word - hours - m.factGap * 2
             assertTrue(
-                "a coming programme's title has $title at ${width}x$height, under " +
-                    "$COMING_TITLE_MIN",
-                title >= COMING_TITLE_MIN,
+                "a programme's title has $title at ${width}x$height, under $PROGRAMME_TITLE_MIN",
+                title >= PROGRAMME_TITLE_MIN,
             )
         }
     }
@@ -221,63 +219,67 @@ class ChannelsMetricsTest {
     }
 
     /**
-     * **The synopsis is offered only where the column can pay for it.**
+     * **The strip's five buttons share the well, and none of them goes under a control target.**
      *
-     * This is the assertion the rule exists for, and it is worth stating why it is not a
-     * device class. `sw >= 600dp` — the obvious rule — files a 1080p television at density
-     * 2 as a phone, because that surface reports 960×540. It has 130dp of headroom and 124
-     * of bare ground, and the obvious rule would leave it bare. So the question is asked of
-     * the room, and this sweep is what says the answer is affordable at every surface:
-     * wherever [ChannelsMetrics.wellSynopsis] is true, the lines it promises fit in what is
-     * left after [CHANNELS_FACTS_MIN].
+     * Guide, favourite, lock, hide and reorder take equal shares of the well's width, so the
+     * strip ends flush with the picture above it. A share narrower than the device's target --
+     * 48 for a thumb, 56 for a remote -- would be a button a remote cannot land on.
      */
     @Test
-    fun `the synopsis is drawn only where there is room to pay for it`() {
-        var shown = 0
-        var withheld = 0
+    fun `five strip buttons fit the well at the control target`() {
         sweep(from = SHIPPING_WIDTH) { tv, width, height ->
             val m = channelsMetricsFor(tv, width, height)
-            val lines =
-                m.badgePadV + m.frame.fsBody * BODY_LEADING * CHANNELS_SYNOPSIS_LINES
-            val spare = m.wellRoom - CHANNELS_FACTS_MIN
-            if (m.wellSynopsis) {
-                shown++
-                assertTrue(
-                    "the synopsis is offered $lines of $spare spare at ${width}x$height",
-                    spare.value >= lines.value - DUST,
-                )
-            } else {
-                withheld++
-                assertTrue(
-                    "the synopsis is withheld although $spare would hold $lines" +
-                        " at ${width}x$height",
-                    spare.value < lines.value,
-                )
-            }
+            val share = (m.player - m.factGap * (STRIP_BUTTONS - 1)) / STRIP_BUTTONS
+            assertTrue(
+                "a strip button gets $share of a ${m.player} well at ${width}x$height",
+                share >= Sizing.minTarget(tv),
+            )
         }
-        // Both branches are reached by the surfaces this ships to: a rule that were always
-        // true, or always false, would pass every assertion above and mean nothing.
-        assertTrue("no surface draws the synopsis", shown > 0)
-        assertTrue("every surface draws the synopsis", withheld > 0)
     }
 
     /**
-     * And the two surfaces the decision was argued over, stated as the figures they are.
+     * **What is on and what is next fit under the picture, everywhere.**
      *
-     * 960×540 is the one that separates the room rule from a device class, so it is named
-     * here rather than left to the sweep: if a future change to a share quietly puts that
-     * television back on the phone's side of the line, this fails and says so.
+     * The block is the channel's identity row, a rule, what is on -- its title, then the word, its
+     * hours and its bar -- and what is next on one line, inside the block's own padding. Robolectric does not lay
+     * text out, so the fit is asserted here, on the JVM, from the type step and the leading the
+     * design system declares, as the other budget tests in this product are.
+     *
+     * Asserted twice: against the room each surface actually leaves, and against the reserve the
+     * picture yields to, [CHANNELS_FACTS_MIN] -- the second is the one that binds on a handset,
+     * and a reserve smaller than its own content would cut what is next off there.
      */
     @Test
-    fun `the television affords a synopsis and the handset does not`() {
-        val tv = channelsMetricsFor(tv = true, width = 960.dp, height = 540.dp)
-        assertTrue("960x540 has ${tv.wellRoom} and draws no synopsis", tv.wellSynopsis)
+    fun `what is on and what is next fit under the picture`() {
+        sweep(from = SHIPPING_WIDTH) { tv, width, height ->
+            val m = channelsMetricsFor(tv, width, height)
+            val need = factsNeed(m)
+            assertTrue(
+                "what is on and what is next need $need, the well leaves ${m.wellRoom} at ${width}x$height",
+                need.value <= m.wellRoom.value + DUST,
+            )
+            if (m.wellRoom.value <= CHANNELS_FACTS_MIN.value + DUST) {
+                assertTrue(
+                    "the reserve is $CHANNELS_FACTS_MIN and its content $need at ${width}x$height",
+                    need <= CHANNELS_FACTS_MIN,
+                )
+            }
+        }
+    }
 
-        val phone = channelsMetricsFor(tv = false, width = 833.dp, height = 385.dp)
-        assertTrue(
-            "833x385 has only ${phone.wellRoom} and draws one anyway",
-            !phone.wellSynopsis,
-        )
+    /**
+     * And the picture is the one that grew: on the owner's handset it fills the well, or near
+     * enough that the facts block under it is the same panel, rather than the third it was.
+     */
+    @Test
+    fun `on a handset the picture takes most of the well`() {
+        for ((width, height) in listOf(891 to 411, 851 to 393, 915 to 412)) {
+            val m = channelsMetricsFor(tv = false, width = width.dp, height = height.dp)
+            assertTrue(
+                "the picture is ${m.wellPictureWidth} of a ${m.player} well at ${width}x$height",
+                m.wellPictureWidth.value >= m.player.value * HANDSET_PICTURE_OF_WELL,
+            )
+        }
     }
 
     /**
@@ -503,24 +505,20 @@ class ChannelsMetricsTest {
         // screenshot because they were chosen on a rendered board rather than measured
         // off one -- the same convention `picture` already carries below.
         assertNear("rail", 290f, m.rail)
-        // 748 rather than the reference's 986, and the difference is not a rounding: the
-        // reference's well held a picture with a whole schedule under it, and the schedule
-        // has left for a page of its own. What is left needs about a third of the board.
-        assertNear("player", 1280f * 748f / 2340f, m.player)
+        // The reference's own 986: the owner's drawing of 22 October 2026 puts the well back at
+        // two fifths of the board, with the picture as wide as it.
+        assertNear("player", 1280f * 986f / 2340f, m.player)
         assertNear("strip", 720f * 106f / 1080f, m.strip)
 
-        // **The size the owner is testing, at the geometry they chose it on.**
-        //
-        // The one number on this board stated against 1280x720 rather than the 2340x1080
-        // screenshot -- because it was chosen rather than measured. Asserted as the plain
-        // figure it is: 400 wide, and 225 tall because the frame is 16:9.
-        assertNear("picture", 400f, m.picture)
-        assertNear("wellPictureWidth", 400f, m.wellPictureWidth)
-        assertNear("wellPicture", 225f, m.wellPicture)
+        // **The picture fills the well.** As wide as the column at this geometry -- the cap on
+        // the room under it does not bind on a 16:9 television -- and 16:9 by construction.
+        assertNear("picture", 1280f * 986f / 2340f, m.picture)
+        assertNear("wellPictureWidth", 1280f * 986f / 2340f, m.wellPictureWidth)
+        assertNear("wellPicture", 1280f * 986f / 2340f * 9f / 16f, m.wellPicture)
         assertNear("railGap", 16f, m.railGap)
         // One gap between the block's sections, on every channel: six per cent of the
-        // 333.4 the well has left once the picture and the strip are paid.
-        assertNear("guideSection", 20f, m.guideSection)
+        // 255.0 the well has left once the larger picture and the strip are paid.
+        assertNear("guideSection", 255.0f * 0.06f, m.guideSection)
         // And the list is what is left, which is the one column with no share of its own.
         assertNear(
             "list",
@@ -638,6 +636,22 @@ class ChannelsMetricsTest {
     private fun factsWidth(m: ChannelsMetrics): Dp = m.player - m.guidePad * 2
 
     /**
+     * What the facts block's content takes, top to bottom: the identity row, the one gap, the
+     * rule, what is on -- its title, the small gap, the line of its word, hours and bar -- the gap
+     * between the lines, the line of what is next, and the block's own padding above and below.
+     * Each line at the full height its step and the design system's leading declare, which is
+     * the most it can take on a device; `ChannelFacts` and `ProgrammeTable` are where each of
+     * these is spent.
+     */
+    private fun factsNeed(m: ChannelsMetrics): Dp {
+        val body = m.frame.fsBody * BODY_LEADING
+        val legend = m.frame.fsBody * LEGEND_OF_BODY * BODY_LEADING
+        val now = body + m.badgePadV + maxOf(legend, m.trackHeight)
+        val next = maxOf(legend, body)
+        return m.identity + m.guideSection + 1.dp + m.badgePadV + now + m.badgePadV * 2 + next + m.guidePad
+    }
+
+    /**
      * What the rail spends above its list: the field, and the gap under it.
      *
      * The two shares here are `ChannelsScreen`'s own — `FIELD_OF_ROW` and the doubled
@@ -732,14 +746,24 @@ class ChannelsMetricsTest {
         /** `ChannelsScreen.FIELD_OF_ROW`, which is private to that file. */
         const val RAIL_FIELD_OF_ROW = 0.86f
 
-        /** `ChannelsScreen.TIME_COLUMN_OF_BODY`, which is private to that file. */
-        const val TIME_COLUMN_OF_BODY = 4.2f
+        /** `ChannelsScreen.LEGEND_OF_BODY`, which is private to that file. */
+        const val LEGEND_OF_BODY = 0.88f
+
+        /** The longest word a line opens with, in any of the languages: `MAINTENANT`. */
+        const val WIDEST_WORD_CHARS = 10
+
+        /** The hours with their dash: `00:00 – 00:00`. */
+        const val HOURS_CHARS = 13
+
+        /** A capital's width in ems, generously; and a digit's. */
+        const val CAPITAL_EM = 0.68f
+        const val DIGIT_EM = 0.6f
 
         /**
-         * Gaps in a full facts block: between the channel, what is on, what is next and
-         * what follows it. Four sections, so three gaps.
+         * Gaps in the facts block set by `guideSection`: between the channel and its programme
+         * lines. The lines themselves are held apart by the block's own small fixed gap.
          */
-        const val GUIDE_GAPS = 3
+        const val GUIDE_GAPS = 1
 
         /**
          * The most of the block its gaps may take.
@@ -752,13 +776,18 @@ class ChannelsMetricsTest {
         const val GAP_BUDGET = 0.20f
 
         /**
-         * The narrowest a coming programme's name may be squeezed to.
-         *
-         * The worst surface in the sweep leaves it 182dp, so this is the floor that keeps
-         * it there — near enough to catch a regression, far enough that float dust in a
-         * share cannot fail the build.
+         * The narrowest a programme's title may be squeezed to. The worst surface in the sweep
+         * -- 4:3 at 720, where the type step is large for the width -- leaves it 112dp with the
+         * widest word and hours of any language beside it, about fourteen characters of title;
+         * in English the same line leaves it some 60dp more.
          */
-        val COMING_TITLE_MIN = 175.dp
+        val PROGRAMME_TITLE_MIN = 105.dp
+
+        /** Guide, favourite, lock, hide and reorder. */
+        const val STRIP_BUTTONS = 5
+
+        /** How much of the well the picture takes on the owner's handset, at least. */
+        const val HANDSET_PICTURE_OF_WELL = 0.9f
 
         /**
          * The narrowest the search field may be squeezed to.

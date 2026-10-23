@@ -1,6 +1,7 @@
 package com.castivio.core.design.theme
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -234,6 +235,31 @@ class ThemeColorsTest {
      * picked to glow on near-black is a pastel on near-white. This one does not, and
      * that is the dividend of the second ground being dark.
      */
+    /**
+     * The number on the focused row's plate: a violet, and one that can be read.
+     *
+     * The plate is white on both grounds. The row's own violet on it is 3.5:1, which is a hue
+     * and not a numeral; the token is held to AA, and to being a violet and not a grey.
+     */
+    @Test
+    fun `a focused row's number reads on its white plate on both grounds`() {
+        for (colors in listOf(dark, slate)) {
+            val ratio = contrast(colors.onSecondary, colors.onSelectedPlate)
+            assertTrue("the number on the white plate is $ratio:1", ratio >= 4.5f)
+            assertTrue("and it is still a violet, not a grey", colors.onSelectedPlate.blue > colors.onSelectedPlate.green)
+        }
+    }
+
+    /** And the ordinary numbers are the ground's own white on a dark plate, with room to spare. */
+    @Test
+    fun `an ordinary row's number reads on its glass plate`() {
+        for (colors in listOf(dark, slate)) {
+            val plate = colors.glassFill.compositeOver(colors.background)
+            val ratio = contrast(colors.onBackground, plate)
+            assertTrue("the number on the glass plate is $ratio:1", ratio >= 7f)
+        }
+    }
+
     @Test
     fun `the accents are the same on both`() {
         assertEquals(dark.accent, slate.accent)

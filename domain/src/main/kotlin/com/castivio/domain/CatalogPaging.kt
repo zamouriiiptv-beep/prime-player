@@ -14,6 +14,23 @@ data class CatalogQuery(
     val kind: MediaKind,
     val groupId: String? = null,
     val sort: SortOrder = SortOrder.PROVIDER,
+    /**
+     * Only the items whose name matches, or empty for all of them. Always a [searchTermOf]
+     * result: the words as the index reads them, so two typings that mean the same search
+     * are the same query and do not start a second stream.
+     *
+     * Answered by the full-text index, one window at a time, like every other read here.
+     * Matches come back in the provider's order whatever [sort] says -- a search is read
+     * against the list it narrows, and that list's own order is the provider's.
+     */
+    val search: String = "",
+    /**
+     * Read the channels of [groupId] as they are being arranged -- see [CatalogOrder] -- and not
+     * as they were saved. A list on screen while the viewer moves channels asks for this, so what
+     * it shows is the draft; every other list asks for the saved order. Meaningful only with a
+     * [groupId].
+     */
+    val arranging: Boolean = false,
 )
 
 /**

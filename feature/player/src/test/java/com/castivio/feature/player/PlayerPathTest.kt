@@ -3,6 +3,9 @@ package com.castivio.feature.player
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
+import com.castivio.core.common.FrameSize
+import com.castivio.domain.PlayerPulse
+import com.castivio.domain.PulsePhase
 import com.castivio.playback.api.AspectMode
 import com.castivio.playback.api.EngineFactory
 import com.castivio.playback.api.EngineId
@@ -2534,6 +2537,296 @@ class PlayerPathTest {
 
     private fun secondChannel() = liveRequest(url = "http://provider.tv/live/2.ts", title = "Second")
 
+    /* ------------------------------------------------- which stream has a picture on it */
+
+    /**
+     * A channel that was pressed is not a channel that is playing.
+     *
+     * The board marks the playing row from this and nothing else, so it is the answer that has
+     * to be right: absent through the whole opening, and present from the first frame.
+     */
+    @Test
+    fun `a channel is not playing until its first frame is drawn`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        assertNull("pressed and opening", model.now().playingUrl)
+
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        assertEquals("the frame is what makes it so", liveRequest().url, model.now().playingUrl)
+    }
+
+    /**
+     * The mark moves when the next channel plays, and not when it is pressed.
+     *
+     * Until then nothing is playing: the engine moved on from the last channel the moment the
+     * next was handed to it, so the last channel is not playing either.
+     */
+    @Test
+    fun `pressing another channel moves nothing until it draws`() = playerTest {
+        engines.primaryReusable = true
+        val model = model()
+        model.open(liveRequest())
+        engines.last.renderFirstFrame()
+        runCurrent()
+        assertEquals(liveRequest().url, model.now().playingUrl)
+
+        model.switchTo(secondChannel())
+        runCurrent()
+        assertNull("the press is not a picture, and the last channel has stopped", model.now().playingUrl)
+
+        engines.last.renderFirstFrame()
+        runCurrent()
+        assertEquals("now it is", secondChannel().url, model.now().playingUrl)
+    }
+
+    /** A channel that never plays is never shown as the one playing. */
+    @Test
+    fun `a channel that fails is not the playing one`() = playerTest {
+        engines.primaryReusable = true
+        val model = model()
+        model.open(liveRequest())
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        model.switchTo(secondChannel())
+        runCurrent()
+        engines.last.fail(PlaybackError.NETWORK)
+        runCurrent()
+
+        assertTrue("it failed", model.now().picture is Picture.Failed)
+        assertNull("so it is not playing", model.now().playingUrl)
+        assertEquals("and it is the channel the card is about", secondChannel().url, model.now().request.url)
+    }
+
+    /** Late frames and a pause leave the channel where it is; its end takes the mark off. */
+    @Test
+    fun `a stall and a pause keep the mark and the end takes it`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        engines.last.stall()
+        runCurrent()
+        assertTrue(model.now().picture is Picture.Buffering)
+        assertEquals("between two late frames it is still the one", liveRequest().url, model.now().playingUrl)
+
+        engines.last.pauseFrom()
+        runCurrent()
+        assertTrue(model.now().picture is Picture.Paused)
+        assertEquals("paused is still the channel in the player", liveRequest().url, model.now().playingUrl)
+
+        engines.last.finish()
+        runCurrent()
+        assertNull("an ended source is not playing", model.now().playingUrl)
+    }
+
+    /** Pressing the playing channel again, which is how the plate expands, changes nothing. */
+    @Test
+    fun `the same request again keeps the mark where it was`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        model.open(liveRequest())
+        runCurrent()
+
+        assertEquals(liveRequest().url, model.now().playingUrl)
+        assertEquals("and nothing was built for it", listOf(EngineId.PRIMARY), engines.built)
+    }
+
+    /** A channel stopped for the background is not playing, and plays again on the way back. */
+    @Test
+    fun `a channel stopped for the background is not playing`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        engines.last.renderFirstFrame()
+        runCurrent()
+
+        model.pauseForBackground()
+        runCurrent()
+        assertNull("it was stopped, not paused", model.now().playingUrl)
+
+        model.returnFromBackground()
+        runCurrent()
+        assertNull("opened again is opening again", model.now().playingUrl)
+        engines.last.renderFirstFrame()
+        runCurrent()
+        assertEquals(liveRequest().url, model.now().playingUrl)
+    }
+
+    /**
+     * A channel that played and then failed is not playing while the backup takes it over, and
+     * is again only when the backup draws. Nothing from the first engine lingers as an address.
+     */
+    @Test
+    fun `a channel handed to the backup is not playing until the backup draws`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        engines.last.renderFirstFrame()
+        runCurrent()
+        assertEquals(liveRequest().url, model.now().playingUrl)
+
+        engines.last.fail(PlaybackError.DECODING)
+        runCurrent()
+        assertEquals("the backup was built", listOf(EngineId.PRIMARY, EngineId.BACKUP), engines.built)
+        assertNull("the switch is not playing", model.now().playingUrl)
+
+        engines.last.renderFirstFrame()
+        runCurrent()
+        assertEquals(liveRequest().url, model.now().playingUrl)
+    }
+
+    /** Retry stops what was there and asks again: the card's channel is not playing in between. */
+    @Test
+    fun `a retry is not playing until its frame`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        engines.last.fail(PlaybackError.NETWORK)
+        runCurrent()
+        assertNull("a card is not a picture", model.now().playingUrl)
+
+        model.retry()
+        runCurrent()
+        assertNull("asking again is not a picture either", model.now().playingUrl)
+
+        engines.last.renderFirstFrame()
+        runCurrent()
+        assertEquals(liveRequest().url, model.now().playingUrl)
+    }
+
+    /**
+     * Only one address is ever the playing one, however the channels follow each other.
+     *
+     * The state holds one request and one picture, so one answer: across a run of channels,
+     * each pressed, drawn, and replaced, the playing address is always null or the current
+     * request's -- never a request that was replaced.
+     */
+    @Test
+    fun `the playing address is only ever the current request's`() = playerTest {
+        engines.primaryReusable = true
+        val model = model()
+        val requests = listOf(liveRequest(), secondChannel(), liveRequest(url = "http://provider.tv/live/3.ts", title = "Third"))
+        val seen = mutableListOf<Pair<String, String?>>()
+        backgroundScope.launch { model.state.collect { s -> s?.let { seen += s.request.url to s.playingUrl } } }
+
+        for (request in requests) {
+            if (request === requests.first()) model.open(request) else model.switchTo(request)
+            runCurrent()
+            engines.last.renderFirstFrame()
+            runCurrent()
+            engines.last.stall()
+            runCurrent()
+        }
+
+        assertTrue("the state was seen changing", seen.size >= requests.size)
+        for ((current, playing) in seen) {
+            assertTrue("playing '$playing' under the request '$current'", playing == null || playing == current)
+        }
+        assertEquals("and the last one is playing", requests.last().url, model.now().playingUrl)
+    }
+
+    /**
+     * What the shell is told, and when.
+     *
+     * The state is copied four times a second by the ticker, and a screen that only wants to
+     * know what the player is doing must not be woken by a position: it hears when a channel is
+     * asked for, gets its frame, learns its size and stops, and nothing in between. Leaving says
+     * there is no player.
+     */
+    @Test
+    fun `the board hears the pulse change and nothing else`() = playerTest {
+        val model = model()
+        val heard = mutableListOf<PlayerPulse?>()
+        backgroundScope.launch { model.pulse.collect { heard += it } }
+        runCurrent()
+
+        val url = liveRequest().url
+        model.open(liveRequest())
+        runCurrent()
+        engines.last.renderFirstFrame()
+        runCurrent()
+        advanceTimeBy(3_000)
+        runCurrent()
+        assertEquals(
+            "none, asked for, showing -- the ticks in between said nothing",
+            listOf(null, PlayerPulse(url, PulsePhase.OPENING), PlayerPulse(url, PulsePhase.SHOWING)),
+            heard,
+        )
+
+        model.leave()
+        runCurrent()
+        assertNull("leaving says there is no player", heard.last())
+        assertEquals(4, heard.size)
+    }
+
+    /** The preview is opening while the channel is asked for, and stopped when it fails. */
+    @Test
+    fun `the phase says opening, showing and stopped`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        assertEquals(PulsePhase.OPENING, model.now().pulse.phase)
+
+        engines.last.renderFirstFrame()
+        runCurrent()
+        assertEquals(PulsePhase.SHOWING, model.now().pulse.phase)
+
+        engines.last.fail(PlaybackError.NETWORK)
+        runCurrent()
+        assertEquals("a failure is a card, not a picture", PulsePhase.STOPPED, model.now().pulse.phase)
+        assertNull(model.now().playingUrl)
+    }
+
+    /** The player says when opening has been silent long enough to show it is still working. */
+    @Test
+    fun `the pulse says waiting only after the spinner's delay`() = playerTest {
+        val model = model()
+        model.open(liveRequest())
+        runCurrent()
+        assertFalse("not yet", model.now().pulse.waiting)
+
+        advanceTimeBy(PlayerViewModel.SPINNER_DELAY_MS + 100)
+        runCurrent()
+        assertTrue("the spinner's moment", model.now().pulse.waiting)
+        assertEquals(PulsePhase.OPENING, model.now().pulse.phase)
+
+        engines.last.renderFirstFrame()
+        runCurrent()
+        assertFalse("a picture is not waiting", model.now().pulse.waiting)
+    }
+
+    /**
+     * The picture's measured size reaches the pulse, and only this channel's.
+     *
+     * What the board's quality badge is read from: the decoder's own report, never the name.
+     * A kept engine starts the next channel with none, so the last channel's size is never
+     * the next one's.
+     */
+    @Test
+    fun `the measured size is the channel's own`() = playerTest {
+        engines.primaryReusable = true
+        val model = model()
+        model.open(liveRequest())
+        engines.last.declareSize(1920, 1080)
+        engines.last.renderFirstFrame()
+        runCurrent()
+        assertEquals(FrameSize(1920, 1080), model.now().pulse.frame)
+
+        model.switchTo(secondChannel())
+        runCurrent()
+        assertNull("the last channel's size is not the next one's", model.now().pulse.frame)
+
+        engines.last.declareSize(1280, 720)
+        engines.last.renderFirstFrame()
+        runCurrent()
+        assertEquals(FrameSize(1280, 720), model.now().pulse.frame)
+    }
+
     /**
      * A channel change keeps an engine that offers to be kept.
      *
@@ -3396,6 +3689,9 @@ class PlayerPathTest {
         private val _firstFrame = MutableStateFlow<Long?>(null)
         override val firstFrameAtMs: StateFlow<Long?> = _firstFrame.asStateFlow()
 
+        private val _videoSize = MutableStateFlow<FrameSize?>(null)
+        override val videoSize: StateFlow<FrameSize?> = _videoSize.asStateFlow()
+
         /**
          * Whether the start is its own moment, as LibVLC's `Playing` comes before its picture.
          * Off, the start is the contract's default -- the first frame -- which is what Media3
@@ -3462,6 +3758,7 @@ class PlayerPathTest {
             _firstFrame.value = null
             _cues.value = emptyList()
             _videoAspectRatio.value = null
+            _videoSize.value = null
             _tracks.value = TrackSet()
             _diagnosis.value = null
             _state.value = PlaybackState.Opening
@@ -3525,6 +3822,11 @@ class PlayerPathTest {
         /** What the decoder hands over when a text track has words for this moment. */
         fun say(vararg lines: String) {
             _cues.value = lines.toList()
+        }
+
+        /** What a real engine reports once the decoder knows the size of the picture. */
+        fun declareSize(width: Int, height: Int) {
+            _videoSize.value = FrameSize.of(width, height)
         }
 
         /** What a real engine reports once the decoder knows the shape of the picture. */

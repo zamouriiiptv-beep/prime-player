@@ -3,7 +3,9 @@ package com.castivio.feature.home
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.castivio.core.common.FrameSize
 import com.castivio.domain.CatalogRepository
+import com.castivio.domain.ChannelQualities
 import com.castivio.domain.ChannelGuideFetcher
 import com.castivio.domain.Channel
 import com.castivio.domain.EpgRepository
@@ -11,6 +13,7 @@ import com.castivio.domain.FavoritesRepository
 import com.castivio.domain.NowNext
 import com.castivio.domain.NowNextRefresher
 import com.castivio.domain.Programme
+import com.castivio.domain.StreamQuality
 import com.castivio.domain.time.TrustedTime
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.Calendar
@@ -77,7 +80,31 @@ class ChannelsViewModel @Inject constructor(
     private val guideFetcher: ChannelGuideFetcher,
     private val favorites: FavoritesRepository,
     private val clock: TrustedTime,
+    /**
+     * What each channel has been measured at, kept between launches -- the only place the
+     * board's quality badge comes from. See [ChannelQualities].
+     */
+    private val measurements: ChannelQualities,
 ) : ViewModel() {
+
+    /**
+     * What each channel measured at the last time a picture of it was drawn, by id.
+     *
+     * A row with no entry draws no badge: a channel nobody has opened has no measurement, and
+     * nothing here is a default or a reading of its name. A flow, because the row of the channel
+     * being watched is on screen when its measurement is first made.
+     */
+    val quality: StateFlow<Map<String, StreamQuality>> = measurements.known
+
+    /**
+     * A channel with a picture on it, and the size the decoder gave it.
+     *
+     * Only ever called for a stream that is showing -- see `PlayerPulse` -- so a channel that was
+     * pressed and has not drawn, or that failed, is never measured at whatever the last one was.
+     */
+    fun measured(channelId: String, frame: FrameSize) {
+        measurements.record(channelId, StreamQuality.of(frame))
+    }
 
     /**
      * When this channel was last asked of the network, by media id.

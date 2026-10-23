@@ -138,5 +138,8 @@ fun CardCaption(text: String, modifier: Modifier = Modifier) {
  * Groups a large integer for display: 12480 → "12,480".
  *
  * The one place counts are formatted, so every header groups the same way.
+ *
+ * [Locale.ROOT], so the digits are Western in every language: an Arabic board printed its
+ * totals as `١٢٠` beside channel numbers, a clock and dates that are all `120`-shaped.
  */
-fun formatCount(value: Int): String = String.format(Locale.getDefault(), "%,d", value)
+fun formatCount(value: Int): String = String.format(Locale.ROOT, "%,d", value)

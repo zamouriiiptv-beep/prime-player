@@ -7,6 +7,7 @@ import android.os.SystemClock
 import android.util.Log
 import android.view.SurfaceView
 import android.view.View
+import com.castivio.core.common.FrameSize
 import com.castivio.playback.api.AspectMode
 import com.castivio.playback.api.EngineId
 import com.castivio.playback.api.MediaKind
@@ -58,6 +59,9 @@ class VlcPlaybackEngine(
 
     private val _videoAspectRatio = MutableStateFlow<Float?>(null)
     override val videoAspectRatio: StateFlow<Float?> = _videoAspectRatio.asStateFlow()
+
+    private val _videoSize = MutableStateFlow<FrameSize?>(null)
+    override val videoSize: StateFlow<FrameSize?> = _videoSize.asStateFlow()
 
     /**
      * Always empty, and that is the implementation rather than a gap in it.
@@ -283,6 +287,7 @@ class VlcPlaybackEngine(
         _startedAtMs.value = null
         _firstFrameAtMs.value = null
         _videoAspectRatio.value = null
+        _videoSize.value = null
         _tracks.value = TrackSet()
         _state.value = PlaybackState.Opening
 
@@ -379,6 +384,7 @@ class VlcPlaybackEngine(
             _startedAtMs.value = null
             _firstFrameAtMs.value = null
             _videoAspectRatio.value = null
+            _videoSize.value = null
             _state.value = PlaybackState.Idle
         }
     }
@@ -493,8 +499,10 @@ class VlcPlaybackEngine(
         val track = runCatching { mediaPlayer.currentVideoTrack }.getOrNull()
         if (track == null || track.width <= 0 || track.height <= 0) {
             _videoAspectRatio.value = null
+            _videoSize.value = null
             return
         }
+        _videoSize.value = FrameSize.of(track.width, track.height)
         val sarNum = track.sarNum.takeIf { it > 0 } ?: 1
         val sarDen = track.sarDen.takeIf { it > 0 } ?: 1
         _videoAspectRatio.value =

@@ -125,10 +125,22 @@
     <string name="channels_rail_total">مجموع: %1$s</string>
     <string name="channels_rail_empty">این سیاههٔ پخش هیچ دسته‌ای ندارد.</string>
     <string name="channels_preview_none">برای پخش، کانالی را فشار دهید</string>
+    <string name="channels_now_playing">در حال پخش</string>
+
+    <string name="reorder_entry">ترتیب</string>
+    <string name="reorder_save">ذخیره</string>
+    <string name="reorder_cancel">انصراف</string>
+    <string name="reorder_hint_pick">برای برداشتن یک دسته یا کانال، روی آن OK را فشار دهید.</string>
+    <string name="reorder_hint_move">با ↑ و ↓ جابه‌جایش کنید و برای گذاشتن آن OK را فشار دهید.</string>
+    <string name="reorder_hint_all">ابتدا یک دسته را باز کنید تا کانال‌هایش را مرتب کنید.</string>
+    <string name="reorder_failed">ترتیب ذخیره نشد. دوباره تلاش کنید.</string>
+    <string name="reorder_move_up">انتقال به بالا</string>
+    <string name="reorder_move_down">انتقال به پایین</string>
     <string name="channels_empty_title">اینجا کانالی نیست</string>
     <string name="channels_empty_detail">این دسته هنوز چیزی ندارد. دستهٔ دیگری را بیازمایید، یا این بخش را دوباره دانلود کنید.</string>
     <string name="channels_fetch_failed">تلویزیون زنده دانلود نشد</string>
     <string name="channels_guide_now">اکنون</string>
+    <string name="channels_guide_next">بعدی</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">امروز</string>
     <string name="channels_guide_tomorrow">فردا</string>

@@ -125,10 +125,22 @@
     <string name="channels_rail_total">Celkem: %1$s</string>
     <string name="channels_rail_empty">Tento playlist neobsahuje žádné kategorie.</string>
     <string name="channels_preview_none">Stisknutím kanálu jej přehrajete</string>
+    <string name="channels_now_playing">Právě hraje</string>
+
+    <string name="reorder_entry">Pořadí</string>
+    <string name="reorder_save">Uložit</string>
+    <string name="reorder_cancel">Zrušit</string>
+    <string name="reorder_hint_pick">Stisknutím OK na kategorii nebo kanálu jej zvednete.</string>
+    <string name="reorder_hint_move">Přesuňte jej pomocí ↑ a ↓ a stisknutím OK jej položíte.</string>
+    <string name="reorder_hint_all">Nejprve otevřete kategorii, abyste mohli změnit pořadí jejích kanálů.</string>
+    <string name="reorder_failed">Pořadí se nepodařilo uložit. Zkuste to znovu.</string>
+    <string name="reorder_move_up">Posunout nahoru</string>
+    <string name="reorder_move_down">Posunout dolů</string>
     <string name="channels_empty_title">Tady nejsou žádné kanály</string>
     <string name="channels_empty_detail">V této kategorii zatím nic není. Zkuste jinou, nebo sekci stáhněte znovu.</string>
     <string name="channels_fetch_failed">Živé vysílání se nepodařilo stáhnout</string>
     <string name="channels_guide_now">TEĎ</string>
+    <string name="channels_guide_next">NÁSLEDUJE</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Dnes</string>
     <string name="channels_guide_tomorrow">Zítra</string>

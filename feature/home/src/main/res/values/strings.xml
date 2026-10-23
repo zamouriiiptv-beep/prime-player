@@ -262,6 +262,19 @@
          absence: the column is always there now, so this is the sentence a viewer meets
          first. -->
     <string name="channels_preview_none">Press a channel to play it</string>
+    <!-- Said by a screen reader for the mark on the channel the player is showing. -->
+    <string name="channels_now_playing">Now playing</string>
+
+    <!-- Reorder mode: the board's own state, in which the arrow keys move what is picked up. -->
+    <string name="reorder_entry">Reorder</string>
+    <string name="reorder_save">Save</string>
+    <string name="reorder_cancel">Cancel</string>
+    <string name="reorder_hint_pick">Press OK on a category or a channel to pick it up.</string>
+    <string name="reorder_hint_move">Move it with ↑ and ↓, then press OK to put it down.</string>
+    <string name="reorder_hint_all">Open a category first to reorder its channels.</string>
+    <string name="reorder_failed">Couldn\'t save the order. Try again.</string>
+    <string name="reorder_move_up">Move up</string>
+    <string name="reorder_move_down">Move down</string>
 
     <string name="channels_empty_title">No channels here</string>
     <string name="channels_empty_detail">This category has nothing in it yet. Try another, or download the section again.</string>
@@ -276,6 +289,7 @@
          with it - those rows are drawn in order under this one, so their order already says
          what the words said, and the hour each begins at says more. -->
     <string name="channels_guide_now">NOW</string>
+    <string name="channels_guide_next">NEXT</string>
     <!-- When a programme runs, as two clock times: "23:25 – 00:20". A formatted string and
          not two texts with a dash between them, because the dash is punctuation between two
          numbers and a language that writes a range differently has to be able to say so. -->

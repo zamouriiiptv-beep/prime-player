@@ -8,8 +8,10 @@ import com.castivio.data.database.dao.EpgDao
 import com.castivio.data.database.dao.FavoriteDao
 import com.castivio.data.database.dao.GroupDao
 import com.castivio.data.database.dao.MediaDao
+import com.castivio.data.database.dao.OrderDao
 import com.castivio.data.database.dao.ProgressDao
 import com.castivio.data.database.dao.SourceDao
+import com.castivio.data.database.entity.CustomOrderEntity
 import com.castivio.data.database.entity.FavoriteEntity
 import com.castivio.data.database.entity.GroupEntity
 import com.castivio.data.database.entity.MediaEntity
@@ -27,6 +29,7 @@ import com.castivio.data.database.entity.SourceEntity
         ProgressEntity::class,
         ProgrammeEntity::class,
         SourceEntity::class,
+        CustomOrderEntity::class,
     ],
     // 2: no table changed. The *derivation* of a source id did, so the stored rows
     //    have to be re-keyed onto it — see `CastivioMigrations.REKEY_SOURCES`, which
@@ -37,7 +40,9 @@ import com.castivio.data.database.entity.SourceEntity
     // 4: no table changed. Every search entry is keyed by its row's rowid, which an
     //    import relies on to find the entries it made stale — see
     //    `CastivioMigrations.KEY_SEARCH_BY_ROW`.
-    version = 4,
+    // 5: one table added, `custom_order`, for the order a viewer gives their own lists -- see
+    //    `CastivioMigrations.ADD_CUSTOM_ORDER`. Nothing that was stored changed.
+    version = 5,
     exportSchema = true,
 )
 abstract class CastivioDatabase : RoomDatabase() {
@@ -47,6 +52,7 @@ abstract class CastivioDatabase : RoomDatabase() {
     abstract fun progressDao(): ProgressDao
     abstract fun epgDao(): EpgDao
     abstract fun sourceDao(): SourceDao
+    abstract fun orderDao(): OrderDao
 
     companion object {
         const val NAME = "castivio.db"

@@ -125,10 +125,22 @@
     <string name="channels_rail_total">รวม: %1$s</string>
     <string name="channels_rail_empty">เพลย์ลิสต์นี้ไม่มีหมวดใดเลย</string>
     <string name="channels_preview_none">กดที่ช่องเพื่อเล่น</string>
+    <string name="channels_now_playing">กำลังเล่น</string>
+
+    <string name="reorder_entry">เรียงลำดับ</string>
+    <string name="reorder_save">บันทึก</string>
+    <string name="reorder_cancel">ยกเลิก</string>
+    <string name="reorder_hint_pick">กด OK ที่หมวดหรือช่องเพื่อหยิบขึ้นมา</string>
+    <string name="reorder_hint_move">เลื่อนด้วย ↑ และ ↓ แล้วกด OK เพื่อวางลง</string>
+    <string name="reorder_hint_all">เปิดหมวดก่อนเพื่อจัดลำดับช่องในหมวดนั้น</string>
+    <string name="reorder_failed">บันทึกลำดับไม่สำเร็จ ลองอีกครั้ง</string>
+    <string name="reorder_move_up">เลื่อนขึ้น</string>
+    <string name="reorder_move_down">เลื่อนลง</string>
     <string name="channels_empty_title">ไม่มีช่องที่นี่</string>
     <string name="channels_empty_detail">หมวดนี้ยังไม่มีอะไร ลองหมวดอื่น หรือดาวน์โหลดส่วนนี้ใหม่</string>
     <string name="channels_fetch_failed">ดาวน์โหลดทีวีสดไม่สำเร็จ</string>
     <string name="channels_guide_now">ตอนนี้</string>
+    <string name="channels_guide_next">ถัดไป</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">วันนี้</string>
     <string name="channels_guide_tomorrow">พรุ่งนี้</string>

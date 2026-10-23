@@ -125,10 +125,22 @@
     <string name="channels_rail_total">Gjithsej: %1$s</string>
     <string name="channels_rail_empty">Kjo listë luajtjeje nuk rendit asnjë kategori.</string>
     <string name="channels_preview_none">Shtypni një kanal për ta luajtur</string>
+    <string name="channels_now_playing">Po luhet tani</string>
+
+    <string name="reorder_entry">Rendit</string>
+    <string name="reorder_save">Ruaj</string>
+    <string name="reorder_cancel">Anulo</string>
+    <string name="reorder_hint_pick">Shtyp OK te një kategori ose kanal për ta ngritur.</string>
+    <string name="reorder_hint_move">Lëvize me ↑ dhe ↓, pastaj shtyp OK për ta vendosur.</string>
+    <string name="reorder_hint_all">Hap fillimisht një kategori për të rirenditur kanalet e saj.</string>
+    <string name="reorder_failed">Renditja nuk u ruajt. Provo përsëri.</string>
+    <string name="reorder_move_up">Lëviz lart</string>
+    <string name="reorder_move_down">Lëviz poshtë</string>
     <string name="channels_empty_title">S\'ka kanale këtu</string>
     <string name="channels_empty_detail">Kjo kategori ende s\'ka asgjë. Provoni një tjetër, ose shkarkojeni sërish seksionin.</string>
     <string name="channels_fetch_failed">TV drejtpërdrejt nuk u shkarkua dot</string>
     <string name="channels_guide_now">TANI</string>
+    <string name="channels_guide_next">NË VIJIM</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Sot</string>
     <string name="channels_guide_tomorrow">Nesër</string>

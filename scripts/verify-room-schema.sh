@@ -31,7 +31,7 @@ if [ -z "${SCHEMA_FILE:-}" ]; then
 fi
 echo "Exported schema: $SCHEMA_FILE"
 
-required_tables=(media media_fts media_group programme favorite playback_progress source)
+required_tables=(media media_fts media_group programme favorite playback_progress source custom_order)
 for table in "${required_tables[@]}"; do
   if ! grep -q "\"tableName\": \"$table\"" "$SCHEMA_FILE"; then
     echo "::error::Table '$table' is missing from the exported schema."
@@ -49,6 +49,7 @@ required_columns=(
   "last_import_at"  # source — sync state
   "provider_ref"    # media — needed for short EPG and catch-up
   "search_text"     # media + media_fts — the search index
+  "position"        # custom_order — the order a viewer gave their own lists
 )
 for column in "${required_columns[@]}"; do
   if ! grep -q "\"columnName\": \"$column\"" "$SCHEMA_FILE"; then

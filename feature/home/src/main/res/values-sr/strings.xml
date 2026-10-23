@@ -125,10 +125,22 @@
     <string name="channels_rail_total">Укупно: %1$s</string>
     <string name="channels_rail_empty">Овај плејлист не приказује ниједну категорију.</string>
     <string name="channels_preview_none">Притисните канал да га пустите</string>
+    <string name="channels_now_playing">Trenutno se reprodukuje</string>
+
+    <string name="reorder_entry">Редослед</string>
+    <string name="reorder_save">Сачувај</string>
+    <string name="reorder_cancel">Откажи</string>
+    <string name="reorder_hint_pick">Притисните OK на категорији или каналу да бисте га подигли.</string>
+    <string name="reorder_hint_move">Померите га стрелицама ↑ и ↓, а затим притисните OK да бисте га спустили.</string>
+    <string name="reorder_hint_all">Прво отворите категорију да бисте променили редослед њених канала.</string>
+    <string name="reorder_failed">Редослед није сачуван. Покушајте поново.</string>
+    <string name="reorder_move_up">Помери горе</string>
+    <string name="reorder_move_down">Помери доле</string>
     <string name="channels_empty_title">Овде нема канала</string>
     <string name="channels_empty_detail">У овој категорији још нема ничега. Пробајте другу или поново преузмите одељак.</string>
     <string name="channels_fetch_failed">Телевизија уживо није могла да се преузме</string>
     <string name="channels_guide_now">САДА</string>
+    <string name="channels_guide_next">СЛЕДИ</string>
     <string name="channels_time_range">%1$s – %2$s</string>
     <string name="channels_guide_today">Данас</string>
     <string name="channels_guide_tomorrow">Сутра</string>

@@ -8,7 +8,9 @@ import com.castivio.core.platform.CastivioTrace
 import com.castivio.data.database.dao.FavoriteDao
 import com.castivio.data.database.dao.GroupDao
 import com.castivio.data.database.dao.MediaDao
+import com.castivio.data.database.dao.OrderDao
 import com.castivio.data.database.dao.ProgressDao
+import com.castivio.domain.CatalogOrder
 import com.castivio.domain.CatalogPager
 import com.castivio.domain.CatalogQuery
 import com.castivio.domain.CatalogRepository
@@ -23,9 +25,14 @@ import com.castivio.domain.PageRequest
 import com.castivio.domain.Season
 import com.castivio.domain.SeriesSummary
 import com.castivio.domain.SortOrder
+import com.castivio.domain.arrangedBy
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * The catalogue, read from SQLite.
@@ -41,12 +48,33 @@ class RoomCatalogRepository(
     private val progressDao: ProgressDao,
     /** For the channel list's own pages -- see [WindowPagingSource]. */
     private val database: CastivioDatabase,
-) : CatalogRepository, CatalogPager {
+) : CatalogRepository, CatalogPager, CatalogOrder {
+
+    private val orderDao: OrderDao get() = database.orderDao()
+
+    /**
+     * Drafts are swept and begun one at a time, so a sweep can never land after a begin and
+     * take the draft it just made.
+     */
+    private val drafts = Mutex()
+
+    /**
+     * Whether this process has already cleared what an earlier one left -- or begun an
+     * arrangement, which clears it too. Set back by [draftAbandoned], so a session whose screen
+     * went away is cleared by the next sweep.
+     */
+    private val draftsSwept = AtomicBoolean(false)
 
     // ------------------------------------------------------------- CatalogRepository
 
+    /**
+     * The section's bouquets, in the viewer's order where they have made one and the provider's
+     * where they have not -- see [CatalogOrder]. Hundreds of rows, read whole, as before.
+     */
     override fun groups(kind: MediaKind): Flow<List<MediaGroup>> =
-        groupDao.groupsOf(kind.name).map { rows -> rows.map { it.toDomain() } }
+        combine(groupDao.groupsOf(kind.name), orderDao.positions(OrderScopes.bouquets(kind))) { rows, saved ->
+            rows.map { it.toDomain() }.arrangedBy(saved.associate { it.itemId to it.position })
+        }
 
     override suspend fun page(request: PageRequest): Page<MediaItem> {
         val kind = request.kind.name
@@ -107,13 +135,32 @@ class RoomCatalogRepository(
     override fun items(query: CatalogQuery): Flow<PagingData<MediaItem>> {
         val kind = query.kind.name
         val group = query.groupId
+        // Nothing searchable is no search, as for [search]: the list, not an empty one.
+        val match = FtsQuery.build(query.search)
+        if (match != null) {
+            // The same windows as the provider's order, read the same way, narrowed by the index.
+            return pager {
+                WindowPagingSource(database.invalidationTracker, database.queryExecutor) { offset, limit ->
+                    if (group == null) mediaDao.windowMatching(match, kind, offset, limit)
+                    else mediaDao.windowMatchingInGroup(match, kind, group, offset, limit)
+                }
+            }.map { data -> data.map { it.toDomain() } }
+        }
         return pager {
             when (query.sort) {
                 // Read outside a transaction, so a page lands while a section is being
                 // written -- see [WindowPagingSource]. The same rows, in the same order.
                 SortOrder.PROVIDER -> WindowPagingSource(database.invalidationTracker, database.queryExecutor) { offset, limit ->
-                    if (group == null) mediaDao.window(kind, offset, limit)
-                    else mediaDao.windowInGroup(kind, group, offset, limit)
+                    if (group == null) {
+                        mediaDao.window(kind, offset, limit)
+                    } else {
+                        // The viewer's order where this bouquet has one -- or its draft, while
+                        // they are arranging it -- and the indexed provider's order where it has
+                        // not, which is almost every bouquet and costs nothing extra.
+                        val scope = if (query.arranging) OrderScopes.draft(group) else OrderScopes.channels(group)
+                        if (orderDao.has(scope)) mediaDao.windowArranged(kind, group, scope, offset, limit)
+                        else mediaDao.windowInGroup(kind, group, offset, limit)
+                    }
                 }
 
                 SortOrder.NAME_ASC ->
@@ -130,6 +177,38 @@ class RoomCatalogRepository(
             }
         }.map { data -> data.map { it.toDomain() } }
     }
+
+    // --------------------------------------------------------------------------- CatalogOrder
+
+    override suspend fun begin(groupId: String) {
+        drafts.withLock {
+            draftsSwept.set(true)
+            orderDao.begin(groupId, OrderScopes.channels(groupId), OrderScopes.draft(groupId))
+        }
+    }
+
+    override suspend fun sweepDrafts() {
+        drafts.withLock {
+            if (draftsSwept.compareAndSet(false, true)) orderDao.clearDrafts()
+        }
+    }
+
+    override fun draftAbandoned() {
+        draftsSwept.set(false)
+    }
+
+    override suspend fun move(groupId: String, channelId: String, up: Boolean): Boolean =
+        orderDao.move(groupId, OrderScopes.draft(groupId), channelId, up)
+
+    override suspend fun save(groupId: String) =
+        orderDao.save(OrderScopes.channels(groupId), OrderScopes.draft(groupId))
+
+    override suspend fun discard(groupId: String) = orderDao.clear(OrderScopes.draft(groupId))
+
+    override suspend fun saveBouquets(kind: MediaKind, orderedIds: List<String>) =
+        orderDao.saveBouquets(OrderScopes.bouquets(kind), kind.name, orderedIds)
+
+    // -------------------------------------------------------------------------- the series
 
     override fun series(query: CatalogQuery): Flow<PagingData<SeriesSummary>> {
         val group = query.groupId

@@ -54,9 +54,10 @@ class SearchViewModel @Inject constructor(
      *
      * Set by the screen rather than injected, because it is a property of the way in
      * rather than of the search: the same screen answers the whole catalogue when it is
-     * opened from Home, and channels only when it is opened from the Channels board's
-     * own field. A field labelled **Search channels** that returns films is answering a
-     * question nobody asked.
+     * opened from Home. It answered channels only when it was opened from the Channels
+     * board's own field, which now narrows its list in place (`BrowseViewModel.search`) and
+     * no longer opens this screen; the restriction is kept, with its tests, for a way in
+     * that needs one -- a field labelled **Search channels** must not return films.
      */
     private val restriction = MutableStateFlow<MediaKind?>(null)
 
