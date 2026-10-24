@@ -110,6 +110,61 @@ object XtreamParser {
         return count
     }
 
+    /**
+     * `get_vod_info` — one film's details, which its list row does not carry.
+     *
+     * The reply is an object with an `info` object and a `movie_data` object. Every field is optional: a
+     * provider that sends none of them still gets its film. A reply of another shape is no details at all,
+     * and the film plays without them.
+     */
+    fun parseVodInfo(reader: Reader): XtreamVodInfo? = try {
+        var rating: Double? = null
+        var plot: String? = null
+        var director: String? = null
+        var cast: List<String> = emptyList()
+        var genres: List<String> = emptyList()
+        var releaseDate: String? = null
+        var durationSeconds: Int? = null
+        var added: Long? = null
+
+        val scanner = JsonScanner(reader)
+        scanner.readObject { section ->
+            when (section) {
+                "info" -> scanner.readObject { field ->
+                    when (field) {
+                        "rating" -> rating = scanner.string()?.toDoubleOrNull()?.takeIf { it > 0 }
+                        "plot", "description" -> plot = scanner.string()?.takeIf { it.isNotBlank() }
+                        "director" -> director = scanner.string()?.takeIf { it.isNotBlank() }
+                        "cast", "actors" -> cast = listOfNames(scanner.string())
+                        "genre" -> genres = listOfNames(scanner.string())
+                        "releasedate", "release_date" -> releaseDate = scanner.string()
+                        "duration_secs" -> durationSeconds = scanner.string()?.toIntOrNull()?.takeIf { it > 0 }
+                    }
+                }
+                "movie_data" -> scanner.readObject { field ->
+                    if (field == "added") added = scanner.string()?.toLongOrNull()?.takeIf { it > 0 }
+                }
+            }
+        }
+
+        XtreamVodInfo(
+            rating = rating,
+            plot = plot,
+            director = director,
+            cast = cast,
+            genres = genres,
+            releaseYear = releaseDate?.take(YEAR_DIGITS)?.toIntOrNull()?.takeIf { it > 0 },
+            durationSeconds = durationSeconds,
+            addedEpochSeconds = added,
+        )
+    } catch (e: JsonFormatException) {
+        null
+    }
+
+    /** A provider's list of names, which it sends as one comma-separated string. */
+    private fun listOfNames(raw: String?): List<String> =
+        raw.orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() }
+
     /** `get_series` — the show list, without episodes. */
     fun parseSeries(reader: Reader, onSeries: (XtreamSeries) -> Unit): Int {
         var count = 0
@@ -374,6 +429,20 @@ data class XtreamStream(
     val number: Int?,
     val addedEpochSeconds: Long?,
 )
+
+/** A film's details from `get_vod_info`. Each field is null or empty when the provider did not send it. */
+data class XtreamVodInfo(
+    val rating: Double?,
+    val plot: String?,
+    val director: String?,
+    val cast: List<String>,
+    val genres: List<String>,
+    val releaseYear: Int?,
+    val durationSeconds: Int?,
+    val addedEpochSeconds: Long?,
+)
+
+private const val YEAR_DIGITS = 4
 
 data class XtreamSeries(
     val seriesId: String,

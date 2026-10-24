@@ -37,6 +37,9 @@ data class Movie(
     val genres: List<String> = emptyList(),
     /** The category the provider filed it under: what a film's page names it by. Null for a film in none. */
     val groupId: String? = null,
+    /** The source it came from and the provider's own id for it: what its details are asked for by. Null for an M3U row. */
+    val sourceId: String? = null,
+    val providerRef: String? = null,
 ) : MediaItem
 
 data class Series(

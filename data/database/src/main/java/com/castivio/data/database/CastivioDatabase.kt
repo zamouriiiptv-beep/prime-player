@@ -12,6 +12,7 @@ import com.castivio.data.database.dao.MediaDao
 import com.castivio.data.database.dao.OrderDao
 import com.castivio.data.database.dao.ProgressDao
 import com.castivio.data.database.dao.SourceDao
+import com.castivio.data.database.dao.VodDetailDao
 import com.castivio.data.database.entity.CustomOrderEntity
 import com.castivio.data.database.entity.FavoriteEntity
 import com.castivio.data.database.entity.GroupEntity
@@ -21,6 +22,7 @@ import com.castivio.data.database.entity.MediaFtsEntity
 import com.castivio.data.database.entity.ProgrammeEntity
 import com.castivio.data.database.entity.ProgressEntity
 import com.castivio.data.database.entity.SourceEntity
+import com.castivio.data.database.entity.VodDetailEntity
 
 @Database(
     entities = [
@@ -33,6 +35,7 @@ import com.castivio.data.database.entity.SourceEntity
         SourceEntity::class,
         CustomOrderEntity::class,
         HiddenEntity::class,
+        VodDetailEntity::class,
     ],
     // 2: no table changed. The *derivation* of a source id did, so the stored rows
     //    have to be re-keyed onto it — see `CastivioMigrations.REKEY_SOURCES`, which
@@ -47,7 +50,9 @@ import com.castivio.data.database.entity.SourceEntity
     //    `CastivioMigrations.ADD_CUSTOM_ORDER`. Nothing that was stored changed.
     // 6: one table added, `hidden_item`, for the bouquets and channels a viewer hides -- see
     //    `CastivioMigrations.ADD_HIDDEN_ITEM`. Nothing that was stored changed.
-    version = 6,
+    // 7: one table added, `vod_detail`, the film details a provider gives on request -- see
+    //    `CastivioMigrations.ADD_VOD_DETAIL`. Nothing that was stored changed.
+    version = 7,
     exportSchema = true,
 )
 abstract class CastivioDatabase : RoomDatabase() {
@@ -59,6 +64,7 @@ abstract class CastivioDatabase : RoomDatabase() {
     abstract fun sourceDao(): SourceDao
     abstract fun orderDao(): OrderDao
     abstract fun hiddenDao(): HiddenDao
+    abstract fun vodDetailDao(): VodDetailDao
 
     companion object {
         const val NAME = "castivio.db"

@@ -36,6 +36,8 @@ import com.castivio.domain.ProviderStatusCatalogue
 import com.castivio.domain.RefreshProvider
 import com.castivio.domain.RemoveSource
 import com.castivio.domain.ProviderValidator
+import com.castivio.domain.MovieDetailsCache
+import com.castivio.domain.MovieDetailsRepository
 import com.castivio.domain.SourceRepository
 import com.castivio.domain.activation.ActivateProvider
 import dagger.Module
@@ -43,6 +45,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.Dispatchers
 import okhttp3.OkHttpClient
 import java.io.File
 import javax.inject.Provider
@@ -73,6 +76,24 @@ object PlaylistModule {
 
     @Provides
     fun playlistCopies(store: PlaylistCopyStore): PlaylistCopies = store
+
+    /**
+     * A film's details: asked of its provider when its page opens, and kept in the cache after that. The
+     * cache is the database's; the provider is the same one the film came from.
+     */
+    @Provides
+    @Singleton
+    fun movieDetails(
+        cache: MovieDetailsCache,
+        sources: SourceRepository,
+        client: OkHttpClient,
+    ): MovieDetailsRepository = DefaultMovieDetails(
+        cache = cache,
+        sources = sources,
+        client = client,
+        dispatcher = Dispatchers.IO,
+        clock = System::currentTimeMillis,
+    )
 
     @Provides
     @Singleton

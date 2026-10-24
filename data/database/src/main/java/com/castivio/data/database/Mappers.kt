@@ -32,6 +32,8 @@ internal fun MediaEntity.toDomain(): MediaItem = when (kindOrLive()) {
         streamUrl = streamUrl,
         durationMinutes = durationSeconds?.let { it / 60 },
         groupId = groupId,
+        sourceId = sourceId,
+        providerRef = providerRef,
     )
 
     MediaKind.SERIES -> Episode(

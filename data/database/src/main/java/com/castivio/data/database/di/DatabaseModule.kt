@@ -17,6 +17,8 @@ import com.castivio.data.database.dao.HiddenDao
 import com.castivio.data.database.dao.MediaDao
 import com.castivio.data.database.dao.ProgressDao
 import com.castivio.data.database.dao.SourceDao
+import com.castivio.data.database.dao.VodDetailDao
+import com.castivio.data.database.RoomMovieDetailsCache
 import com.castivio.domain.CatalogOrder
 import com.castivio.domain.CatalogPager
 import com.castivio.domain.CatalogRepository
@@ -26,6 +28,7 @@ import com.castivio.domain.EpgRepository
 import com.castivio.domain.EpgWriter
 import com.castivio.domain.FavoritesRepository
 import com.castivio.domain.HiddenItems
+import com.castivio.domain.MovieDetailsCache
 import com.castivio.domain.ProgressRepository
 import com.castivio.domain.SourceRepository
 import dagger.Module
@@ -58,6 +61,10 @@ object DatabaseModule {
     @Provides fun epgDao(database: CastivioDatabase): EpgDao = database.epgDao()
     @Provides fun sourceDao(database: CastivioDatabase): SourceDao = database.sourceDao()
     @Provides fun hiddenDao(database: CastivioDatabase): HiddenDao = database.hiddenDao()
+
+    @Provides fun vodDetailDao(database: CastivioDatabase): VodDetailDao = database.vodDetailDao()
+
+    @Provides fun movieDetailsCache(dao: VodDetailDao): MovieDetailsCache = RoomMovieDetailsCache(dao)
 
     @Provides
     @Singleton

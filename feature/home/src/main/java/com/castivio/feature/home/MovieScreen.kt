@@ -89,15 +89,19 @@ fun MovieScreen(
     model: BrowseViewModel = hiltViewModel(key = CatalogSection.Movies.name),
     /** Every favourite, of whatever kind -- the same set the channels' star is drawn from. */
     favorites: ChannelFavoritesViewModel = hiltViewModel(),
+    /** What the provider says about this film beyond its list row. Asked for once, when the page opens. */
+    detailsModel: MovieDetailsViewModel = hiltViewModel(),
 ) {
     BackHandler(onBack = onBack)
     val colors = CastivioTheme.colors
-    val state by model.state.collectAsStateWithLifecycle()
     val ids by favorites.ids.collectAsStateWithLifecycle()
+    val known by detailsModel.details.collectAsStateWithLifecycle()
     val favorite = movie.id in ids
+    val state by model.state.collectAsStateWithLifecycle()
     val selection = remember(movie) { movie.asSelection() }
     val playFocus = remember { FocusRequester() }
     LaunchedEffect(movie.id) { runCatching { playFocus.requestFocus() } }
+    LaunchedEffect(movie.id) { detailsModel.load(movie) }
 
     BoxWithConstraints(
         modifier
@@ -110,16 +114,12 @@ fun MovieScreen(
         val side = maxWidth >= SIDE_BY_SIDE
 
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-            val facts = movieFacts(movie)
+            val shown = movie.withDetails(known)
+            val facts = movieFacts(shown)
             val category = movie.groupId?.let { state.categoryNames[it] }
 
             val info: @Composable (Modifier) -> Unit = { infoModifier ->
                 Column(infoModifier, verticalArrangement = Arrangement.spacedBy(m.bandGap)) {
-                    CastivioIconButton(
-                        icon = Icons.AutoMirrored.Rounded.ArrowBack,
-                        contentDescription = stringResource(R.string.show_back),
-                        onClick = onBack,
-                    )
                     Text(
                         text = movie.title,
                         style = castivioTitleStyle(m.frame.fsTitle),
@@ -127,14 +127,18 @@ fun MovieScreen(
                         maxLines = TITLE_LINES,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    // One row of what is known, and no row at all where nothing is.
-                    if (facts.isNotEmpty() || category != null) {
+                    // The category the provider filed the film under, as the reference's pill beneath the name.
+                    category?.let { Fact(it, m) }
+                    // One row of what is known, and no row at all where nothing is: the year, the running
+                    // time, and the genres the provider gave.
+                    val genres = shown.genres.filter { it.isNotBlank() }.joinToString(" | ")
+                    if (facts.isNotEmpty() || genres.isNotEmpty()) {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(m.rowGap),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             facts.forEach { Fact(ltrToken(it), m) }
-                            category?.let { Fact(it, m) }
+                            if (genres.isNotEmpty()) Fact(genres, m)
                         }
                     }
                     Row(
@@ -158,12 +162,55 @@ fun MovieScreen(
                             icon = if (favorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                         )
                     }
+                    // What the provider said beyond the list row. Each line is drawn only when the provider
+                    // sent it: a fact it did not send is no line at all, never a stand-in.
+                    known?.let { d ->
+                        d.rating?.let { Fact(stringResource(R.string.movie_rating, ratingText(it)), m) }
+                        d.addedEpochSeconds?.let { Fact(stringResource(R.string.movie_added, addedDateText(it)), m) }
+                        d.plot?.let {
+                            Text(
+                                text = stringResource(R.string.movie_plot_title),
+                                style = castivioChipStyle(m.frame.fsChip),
+                                color = colors.onBackground,
+                            )
+                            Text(
+                                text = it,
+                                style = castivioBodyStyle(m.frame.fsBody),
+                                color = colors.onBackgroundVariant,
+                            )
+                        }
+                        d.director?.let {
+                            Text(
+                                text = stringResource(R.string.movie_director, it),
+                                style = castivioBodyStyle(m.frame.fsBody),
+                                color = colors.onBackgroundVariant,
+                            )
+                        }
+                        if (d.cast.isNotEmpty()) {
+                            Text(
+                                text = stringResource(R.string.movie_cast, d.cast.joinToString(", ")),
+                                style = castivioBodyStyle(m.frame.fsBody),
+                                color = colors.onBackgroundVariant,
+                            )
+                        }
+                    }
                 }
             }
 
+            // The way back sits in the top corner opposite the poster, as the reference has it.
+            val back: @Composable () -> Unit = {
+                CastivioIconButton(
+                    icon = Icons.AutoMirrored.Rounded.ArrowBack,
+                    contentDescription = stringResource(R.string.show_back),
+                    onClick = onBack,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(m.paneGap),
+                )
+            }
+
             if (side) {
+                Box(Modifier.fillMaxSize().castivioStage(m.frame)) {
                 Row(
-                    Modifier.fillMaxSize().castivioStage(m.frame),
+                    Modifier.fillMaxSize(),
                     horizontalArrangement = Arrangement.spacedBy(m.paneGap),
                 ) {
                     PosterFrame(
@@ -174,11 +221,14 @@ fun MovieScreen(
                     )
                     info(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()))
                 }
+                back()
+                }
             } else {
                 // A narrow surface stacks them, the poster first and at a width that leaves the buttons
                 // on the screen with it; the page scrolls where the name is long.
+                Box(Modifier.fillMaxSize().castivioStage(m.frame)) {
                 Column(
-                    Modifier.fillMaxSize().castivioStage(m.frame).verticalScroll(rememberScrollState()),
+                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(m.bandGap),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
@@ -188,6 +238,8 @@ fun MovieScreen(
                         modifier = Modifier.fillMaxWidth(STACKED_POSTER).aspectRatio(CATALOG_POSTER_ASPECT),
                     )
                     info(Modifier.fillMaxWidth())
+                }
+                back()
                 }
             }
         }

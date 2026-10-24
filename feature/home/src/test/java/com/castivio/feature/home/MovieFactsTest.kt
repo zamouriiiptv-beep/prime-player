@@ -2,6 +2,7 @@ package com.castivio.feature.home
 
 import androidx.compose.ui.unit.dp
 import com.castivio.domain.Movie
+import com.castivio.domain.MovieDetails
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -120,6 +121,32 @@ class MovieFactsTest {
     @Test
     fun `a surface too short for the rule still draws a poster at the floor`() {
         assertEquals(80.dp, posterHeightFor(available = 60.dp, rowExtra = 20.dp, rowGap = 10.dp, peek = 0.075f, floor = 80.dp))
+    }
+
+    // ------------------------------------------------------------------------ what the details add
+
+    @Test
+    fun `details fill only what the list row lacks, and never replace it`() {
+        val row = film(year = 2024)
+        val details = MovieDetails(releaseYear = 1999, durationSeconds = 5_400, genres = listOf("Drama"))
+
+        val shown = row.withDetails(details)
+
+        assertEquals(2024, shown.year)
+        assertEquals(90, shown.durationMinutes)
+        assertEquals(listOf("Drama"), shown.genres)
+    }
+
+    @Test
+    fun `no details leaves the film as the row gave it`() {
+        val row = film(year = 2024, minutes = 100)
+        assertEquals(row, row.withDetails(null))
+    }
+
+    @Test
+    fun `a rating reads as one decimal, as the provider's figure is shown`() {
+        assertEquals("8.1", ratingText(8.1))
+        assertEquals("7.0", ratingText(7.0))
     }
 
     // ------------------------------------------------------------------------------- the wall's columns

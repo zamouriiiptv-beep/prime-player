@@ -2,6 +2,10 @@ package com.castivio.feature.home
 
 import androidx.compose.ui.unit.Dp
 import com.castivio.domain.Movie
+import com.castivio.domain.MovieDetails
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * What the films screen says about a film, from what the provider actually sent and nothing else.
@@ -33,6 +37,26 @@ internal fun movieDuration(minutes: Int?): String? {
 /** The facts a film's page lists beside its name, in the order they are read: the year, then the running time. */
 internal fun movieFacts(movie: Movie): List<String> =
     listOfNotNull(movie.year?.takeIf { it > 0 }?.toString(), movieDuration(movie.durationMinutes))
+
+/**
+ * [movie] with what the provider's details add to it: a year, a running time and genres the list row did not
+ * carry. What the row does carry is kept as it is, so a list and its page never disagree about a film.
+ */
+internal fun Movie.withDetails(details: MovieDetails?): Movie {
+    if (details == null) return this
+    return copy(
+        year = year ?: details.releaseYear,
+        durationMinutes = durationMinutes ?: details.durationSeconds?.let { it / SECONDS_PER_MINUTE },
+        genres = genres.ifEmpty { details.genres },
+    )
+}
+
+/** A provider's rating as one decimal, `8.1`: the figure IMDb itself shows. */
+internal fun ratingText(rating: Double): String = String.format(Locale.ROOT, "%.1f", rating)
+
+/** A day a film was added on, `24/10/2026`, from the provider's time in seconds. */
+internal fun addedDateText(epochSeconds: Long): String =
+    SimpleDateFormat("dd/MM/yyyy", Locale.ROOT).format(Date(epochSeconds * MILLIS_PER_SECOND))
 
 /**
  * Which list the films screen is showing: everything, the viewer's favourites, the films they played last,
@@ -88,5 +112,7 @@ internal fun posterHeightFor(available: Dp, rowExtra: Dp, rowGap: Dp, peek: Floa
     ((available - (rowExtra + rowGap) * 2) / (2f + peek)).coerceAtLeast(floor)
 
 private const val MINUTES_PER_HOUR = 60
+private const val SECONDS_PER_MINUTE = 60
+private const val MILLIS_PER_SECOND = 1_000L
 
 private const val MIN_POSTER_COLUMNS = 2

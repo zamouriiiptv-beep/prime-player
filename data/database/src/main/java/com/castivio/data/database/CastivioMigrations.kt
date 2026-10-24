@@ -42,7 +42,7 @@ object CastivioMigrations {
     // Declared below rather than here, and read through a getter rather than held in a
     // property: an `object`'s properties initialise top to bottom, so a list that
     // named a migration declared under it would be a list holding null.
-    val ALL: Array<Migration> get() = arrayOf(REKEY_SOURCES, SCOPE_TO_SOURCE, KEY_SEARCH_BY_ROW, ADD_CUSTOM_ORDER, ADD_HIDDEN_ITEM)
+    val ALL: Array<Migration> get() = arrayOf(REKEY_SOURCES, SCOPE_TO_SOURCE, KEY_SEARCH_BY_ROW, ADD_CUSTOM_ORDER, ADD_HIDDEN_ITEM, ADD_VOD_DETAIL)
 
     /**
      * 1 → 2: the stored sources take the ids the current rule gives them.
@@ -259,6 +259,21 @@ object CastivioMigrations {
      * or changed, and it is user data from its first row, so [USER_TABLES] names it and no migration
      * may drop it: a re-import replaces the catalogue and must leave what was hidden hidden.
      */
+    /**
+     * 6 → 7: one table added, `vod_detail`, the film details a provider gives on request. A cache like the
+     * catalogue: it is fetched again when a film's page is opened, so no viewer's own data is involved.
+     */
+    private val ADD_VOD_DETAIL = object : Migration(6, 7) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `vod_detail` (`source_id` TEXT NOT NULL, `provider_ref` TEXT NOT NULL, " +
+                    "`rating` REAL, `plot` TEXT, `director` TEXT, `cast_names` TEXT, `genres` TEXT, " +
+                    "`release_year` INTEGER, `duration_seconds` INTEGER, `added_epoch` INTEGER, " +
+                    "`fetched_at` INTEGER NOT NULL, PRIMARY KEY(`source_id`, `provider_ref`))",
+            )
+        }
+    }
+
     private val ADD_HIDDEN_ITEM = object : Migration(5, 6) {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL(

@@ -85,6 +85,12 @@ class XtreamImportEngine(
         fun series(categoryId: String): Reader
         fun seriesInfo(seriesId: String): Reader
 
+        /**
+         * `get_vod_info` for one film: the details its list row does not carry. Null for a source that
+         * offers none, which is every source but Xtream.
+         */
+        fun vodInfo(vodId: String): Reader? = null
+
         /** The playable URL for a stream, built by the networking layer. */
         fun streamUrl(kind: MediaKind, streamId: String, extension: String?): String
 

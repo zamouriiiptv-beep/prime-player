@@ -70,6 +70,14 @@ class XtreamHttpApi(
         ),
     )
 
+    override fun vodInfo(vodId: String): Reader? = open(
+        XtreamUrls.api(
+            base, username, password,
+            action = "get_vod_info",
+            parameters = mapOf("vod_id" to vodId),
+        ),
+    )
+
     override fun streamUrl(kind: MediaKind, streamId: String, extension: String?): String =
         XtreamUrls.stream(base, username, password, kind, streamId, extension)
 
