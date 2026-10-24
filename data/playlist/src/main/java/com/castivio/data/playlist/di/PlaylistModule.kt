@@ -12,6 +12,7 @@ import com.castivio.core.platform.PerformanceLog
 import com.castivio.data.networking.HttpStreamSource
 import com.castivio.data.networking.StalkerHttpApi
 import com.castivio.data.networking.StalkerSession
+import com.castivio.data.playlist.DefaultMovieDetails
 import com.castivio.data.parsing.StalkerChannel
 import com.castivio.data.parsing.StalkerItem
 import com.castivio.data.parsing.StalkerImportEngine
