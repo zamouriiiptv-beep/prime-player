@@ -11,6 +11,8 @@ import com.castivio.domain.FavoritesRepository
 import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaKind
 import com.castivio.domain.Movie
+import com.castivio.domain.MovieDetails
+import com.castivio.domain.MovieDetailsRepository
 import com.castivio.domain.SectionLoads
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -86,6 +88,7 @@ class MovieScreenTest {
                     onBack = { backs++ },
                     model = holder,
                     favorites = ChannelFavoritesViewModel(store),
+                    detailsModel = MovieDetailsViewModel(NoDetails),
                 )
             }
         }
@@ -157,5 +160,10 @@ class MovieScreenTest {
         compose.waitForIdle()
 
         assertEquals(1, backs)
+    }
+
+    /** A provider that gives no details: the page then draws only what the list row carried. */
+    private object NoDetails : MovieDetailsRepository {
+        override suspend fun details(movie: Movie): MovieDetails? = null
     }
 }
