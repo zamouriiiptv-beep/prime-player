@@ -35,6 +35,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
@@ -179,6 +180,7 @@ private fun MovieCount(state: BrowseState, m: ChannelsMetrics) {
         style = castivioBodyStyle(m.frame.fsBody),
         color = CastivioTheme.colors.onBackgroundMuted,
         maxLines = 1,
+        softWrap = false,
     )
 }
 
@@ -272,7 +274,7 @@ private fun MoviesPane(
             val columns = posterColumns(maxWidth, m.railGap, MIN_POSTER_WIDTH).coerceAtMost(POSTER_COLUMNS)
             val poster = posterHeightFor(
                 available = maxHeight,
-                rowExtra = m.frame.fsLabel * LABEL_LINE + m.nameGap,
+                rowExtra = m.frame.fsLabel * LABEL_LINE * TITLE_LINES + m.frame.fsBody * LABEL_LINE + m.nameGap * 2,
                 rowGap = m.nameGap,
                 peek = PEEK_OF_POSTER,
                 floor = MIN_POSTER_HEIGHT,
@@ -327,6 +329,10 @@ private fun MovieWall(
                 artworkUrl = movie.artworkUrl,
                 tag = movieDuration(movie.durationMinutes)?.let(::ltrToken),
                 posterHeight = poster,
+                titleLines = TITLE_LINES,
+                titleHeight = m.frame.fsLabel * LABEL_LINE * TITLE_LINES,
+                focusBrush = focusBrush(),
+                focusScale = 1f,
             )
         }
     }
@@ -346,3 +352,13 @@ private const val PEEK_OF_POSTER = 0.075f
 
 /** The title's line, as a share of its type: what the card's name takes beneath the artwork. */
 private const val LABEL_LINE = 1.4f
+
+/** A film's name may take two lines; a third is cut with an ellipsis, so every card's name area is the same. */
+private const val TITLE_LINES = 2
+
+/** The focus ring: the azure of the focus colour going into the violet of the selection, Castivio's own pair. */
+@Composable
+private fun focusBrush(): Brush {
+    val colors = CastivioTheme.colors
+    return Brush.linearGradient(listOf(colors.focusRing, colors.selectedBorder))
+}

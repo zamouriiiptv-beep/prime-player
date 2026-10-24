@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -94,6 +95,14 @@ fun MediaCard(
      * the ratio follows from it. Null keeps the card's own ratio, as every other caller has it.
      */
     posterHeight: Dp? = null,
+    /** How many lines the name may take before it is cut: one by default, as every other card has it. */
+    titleLines: Int = 1,
+    /** The height the name's area takes, so a grid's names line up whatever their length. Null lets the text size it. */
+    titleHeight: Dp? = null,
+    /** The focus ring as a brush -- a gradient on TV -- in place of the flat colour. Null keeps the flat colour. */
+    focusBrush: Brush? = null,
+    /** How far a focused card grows. 1 keeps it in its cell, where a grow would overlap the neighbours. */
+    focusScale: Float = Motion.focusScaleCard,
 ) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
@@ -103,6 +112,11 @@ fun MediaCard(
         if (focused) colors.focusRing else colors.glassBorderSoft,
         Motion.focusSpec(), label = "cardBorder",
     )
+    val ring: Modifier = if (focused && focusBrush != null) {
+        Modifier.border(FOCUS_RING_WIDTH, focusBrush, cardShape)
+    } else {
+        Modifier.border(1.dp, border, cardShape)
+    }
 
     // The accessible name says in words what the marks say in colour.
     val spoken = buildString {
@@ -124,7 +138,7 @@ fun MediaCard(
         modifier = Modifier
             .width(width)
             .then(modifier)
-            .castivioFocusScale(Motion.focusScaleCard, interaction)
+            .castivioFocusScale(focusScale, interaction)
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
             .clickable(interaction, indication = null, onClick = onClick)
             .semantics(mergeDescendants = true) {
@@ -137,7 +151,7 @@ fun MediaCard(
                 .then(if (posterHeight != null) Modifier.height(posterHeight) else Modifier.aspectRatio(shape.ratio))
                 .clip(cardShape)
                 .background(posterPlaceholderBrush(artworkSeed))
-                .border(1.dp, border, cardShape),
+                .then(ring),
         ) {
             if (!artworkUrl.isNullOrBlank()) PosterArtwork(artworkUrl, Modifier.fillMaxSize())
             WatchMarks(watchState)
@@ -154,10 +168,11 @@ fun MediaCard(
             title,
             style = titleStyle,
             color = colors.onBackgroundVariant,
-            maxLines = 1,
+            maxLines = titleLines,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier
                 .padding(top = gap)
+                .then(if (titleHeight != null) Modifier.height(titleHeight) else Modifier)
                 .clearAndSetSemantics {},
         )
         val under = caption ?: subtitle
@@ -292,3 +307,6 @@ fun ChannelCard(
         }
     }
 }
+
+/** The focus ring of a card that takes a brush: a line the eye finds from across a room. */
+private val FOCUS_RING_WIDTH = 3.dp
