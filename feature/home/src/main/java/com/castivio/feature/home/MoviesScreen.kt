@@ -272,13 +272,17 @@ private fun MoviesPane(
     Box(modifier.clip(shape).border(1.dp, CastivioTheme.colors.glassBorderSoft, shape)) {
         BoxWithConstraints(Modifier.fillMaxSize().padding(m.wellPad / 2)) {
             val columns = posterColumns(maxWidth, m.railGap, MIN_POSTER_WIDTH).coerceAtMost(POSTER_COLUMNS)
-            val poster = posterHeightFor(
+            val fitted = posterHeightFor(
                 available = maxHeight,
                 rowExtra = m.frame.fsLabel * LABEL_LINE * TITLE_LINES + m.nameGap * 2,
                 rowGap = m.nameGap,
                 peek = PEEK_OF_POSTER,
                 floor = MIN_POSTER_HEIGHT,
             )
+            // The card is as wide as a 2:3 poster of that height, or narrower where the column is: the
+            // frame is then the poster's shape, and nothing shows beside a poster fitted into it.
+            val cardWidth = posterCardWidth(maxWidth, m.railGap, columns, fitted)
+            val poster = cardWidth / POSTER_RATIO
             Paged(
                 paged = rows,
                 section = CatalogSection.Movies,
@@ -287,7 +291,7 @@ private fun MoviesPane(
                 onShowAll = { model.choose(null) },
                 onClearSearch = { model.search("") },
             ) {
-                MovieWall(rows, m, columns, poster, gridState, onOpenMovie)
+                MovieWall(rows, m, columns, cardWidth, poster, gridState, onOpenMovie)
             }
         }
     }
@@ -302,6 +306,7 @@ private fun MovieWall(
     rows: LazyPagingItems<MediaItem>,
     m: ChannelsMetrics,
     columns: Int,
+    cardWidth: Dp,
     poster: Dp,
     gridState: LazyGridState,
     onOpenMovie: (Movie) -> Unit,
@@ -316,25 +321,29 @@ private fun MovieWall(
     ) {
         items(rows.itemCount, key = rows.itemKey { it.id }) { index ->
             val movie = rows[index] as? Movie ?: return@items
-            MediaCard(
-                title = movie.title,
-                shape = CardShape.Poster,
-                artworkSeed = index,
-                onClick = { onOpenMovie(movie) },
-                modifier = Modifier.fillMaxWidth(),
-                gap = m.nameGap,
-                titleStyle = castivioChipStyle(m.frame.fsLabel),
-                captionStyle = castivioBodyStyle(m.frame.fsBody),
-                artworkUrl = movie.artworkUrl,
-                tag = movieDuration(movie.durationMinutes)?.let(::ltrToken),
-                posterHeight = poster,
-                titleLines = TITLE_LINES,
-                titleHeight = m.frame.fsLabel * LABEL_LINE * TITLE_LINES,
-                focusBrush = focusBrush(),
-                focusScale = 1f,
-                artworkScale = ContentScale.Fit,
-                cardFill = CastivioTheme.colors.glassFill,
-            )
+            // Centred in its column, so what a card narrower than its column leaves is shared out evenly
+            // between the cards rather than left beside a poster inside one.
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                MediaCard(
+                    title = movie.title,
+                    shape = CardShape.Poster,
+                    artworkSeed = index,
+                    onClick = { onOpenMovie(movie) },
+                    width = cardWidth,
+                    gap = m.nameGap,
+                    titleStyle = castivioChipStyle(m.frame.fsLabel),
+                    captionStyle = castivioBodyStyle(m.frame.fsBody),
+                    artworkUrl = movie.artworkUrl,
+                    tag = movieDuration(movie.durationMinutes)?.let(::ltrToken),
+                    posterHeight = poster,
+                    titleLines = TITLE_LINES,
+                    titleHeight = m.frame.fsLabel * LABEL_LINE * TITLE_LINES,
+                    focusBrush = focusBrush(),
+                    focusScale = 1f,
+                    artworkScale = ContentScale.Fit,
+                    cardFill = CastivioTheme.colors.glassFill,
+                )
+            }
         }
     }
 }
@@ -342,8 +351,11 @@ private fun MovieWall(
 /** Six posters to a row, the most the wall draws, however wide the surface is. */
 private const val POSTER_COLUMNS = 6
 
-/** The narrowest a poster may be drawn before a row of them stops reading as posters. */
-private val MIN_POSTER_WIDTH = 100.dp
+/**
+ * The narrowest column a poster may be given before a row of them stops reading as posters. Low enough that
+ * six 2:3 posters fit across a phone held sideways, where 100dp allowed five.
+ */
+private val MIN_POSTER_WIDTH = 72.dp
 
 /** The shortest a poster may be drawn, so a very short surface still shows posters. */
 private val MIN_POSTER_HEIGHT = 80.dp

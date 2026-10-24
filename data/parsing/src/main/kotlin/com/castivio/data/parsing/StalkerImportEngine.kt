@@ -191,6 +191,7 @@ class StalkerImportEngine(
         providerOrder = order,
         durationSeconds = durationSeconds,
         epgChannelId = null,
+        details = details,
     )
 
     private fun StalkerChannel.asItem(sourceId: String, url: String, order: Int) = CatalogItem(

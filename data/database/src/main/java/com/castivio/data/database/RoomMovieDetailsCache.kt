@@ -19,8 +19,8 @@ class RoomMovieDetailsCache(private val dao: VodDetailDao) : MovieDetailsCache {
                 rating = details.rating,
                 plot = details.plot,
                 director = details.director,
-                castNames = details.cast.joinToString(LIST_SEPARATOR).ifEmpty { null },
-                genres = details.genres.joinToString(LIST_SEPARATOR).ifEmpty { null },
+                castNames = details.cast.joinToString(DETAIL_LIST_SEPARATOR).ifEmpty { null },
+                genres = details.genres.joinToString(DETAIL_LIST_SEPARATOR).ifEmpty { null },
                 releaseYear = details.releaseYear,
                 durationSeconds = details.durationSeconds,
                 addedEpochSeconds = details.addedEpochSeconds,
@@ -33,15 +33,16 @@ class RoomMovieDetailsCache(private val dao: VodDetailDao) : MovieDetailsCache {
         rating = rating,
         plot = plot,
         director = director,
-        cast = castNames?.split(LIST_SEPARATOR).orEmpty(),
-        genres = genres?.split(LIST_SEPARATOR).orEmpty(),
+        cast = castNames?.split(DETAIL_LIST_SEPARATOR).orEmpty(),
+        genres = genres?.split(DETAIL_LIST_SEPARATOR).orEmpty(),
         releaseYear = releaseYear,
         durationSeconds = durationSeconds,
         addedEpochSeconds = addedEpochSeconds,
     )
-
-    private companion object {
-        /** A name cannot hold a newline, so one separates a list that is stored as a single column. */
-        const val LIST_SEPARATOR = "\n"
-    }
 }
+
+/**
+ * A name cannot hold a newline, so one separates a list stored as a single column of `vod_detail` -- by
+ * this cache and by the catalogue writer, which fills the table from a portal's list as it imports.
+ */
+internal const val DETAIL_LIST_SEPARATOR = "\n"

@@ -252,4 +252,41 @@ class StalkerParserTest {
         assertNull(StalkerParser.parseLink(StringReader("""{"js":{"cmd":""}}""")))
         assertNull(StalkerParser.parseLink(StringReader("""{"js":{"cmd":"/media/file_55.mpg"}}""")))
     }
+
+    // ------------------------------------------------------------------- a film's details, from its row
+
+    @Test
+    fun `a portal film carries the details its row sends, read with the rest of it`() {
+        val json = """
+            {"js":{"data":[{"id":"55","name":"Before Sunrise","cmd":"http://h/55","year":"1995","time":"101",
+              "description":"Two strangers meet on a train.","director":"Richard Linklater",
+              "actors":"Ethan Hawke, Julie Delpy","rating_imdb":"8.1","genres_str":"Romance, Drama",
+              "added":"2023-01-15 10:20:30"}]}}
+        """.trimIndent()
+        val found = mutableListOf<StalkerItem>()
+        StalkerParser.items(StringReader(json), MediaKind.MOVIE) { found += it }
+
+        val details = found.single().details!!
+        assertEquals(8.1, details.rating!!, 0.001)
+        assertEquals("Two strangers meet on a train.", details.plot)
+        assertEquals("Richard Linklater", details.director)
+        assertEquals(listOf("Ethan Hawke", "Julie Delpy"), details.cast)
+        assertEquals(listOf("Romance", "Drama"), details.genres)
+        assertEquals(1995, details.releaseYear)
+        assertEquals(101 * 60, details.durationSeconds)
+        assertEquals(1673778030L, details.addedEpochSeconds)
+    }
+
+    @Test
+    fun `a portal's zero rating and blank fields are absent, and a series carries no film details`() {
+        val json = """{"js":{"data":[{"id":"1","name":"Film","cmd":"http://h/1","rating_imdb":"0","description":" "}]}}"""
+        val films = mutableListOf<StalkerItem>()
+        StalkerParser.items(StringReader(json), MediaKind.MOVIE) { films += it }
+        assertNull(films.single().details)
+
+        val show = """{"js":{"data":[{"id":"9","name":"Show","series":[1],"description":"A show."}]}}"""
+        val shows = mutableListOf<StalkerItem>()
+        StalkerParser.items(StringReader(show), MediaKind.SERIES) { shows += it }
+        assertNull(shows.single().details)
+    }
 }

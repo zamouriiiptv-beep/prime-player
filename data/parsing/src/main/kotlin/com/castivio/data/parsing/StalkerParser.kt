@@ -1,7 +1,11 @@
 package com.castivio.data.parsing
 
 import com.castivio.domain.MediaKind
+import com.castivio.domain.MovieDetails
 import java.io.Reader
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeParseException
 
 /**
  * Reads what a Stalker or Ministra portal answers.
@@ -202,6 +206,44 @@ object StalkerParser {
         return trimmed.substring(start).substringBefore(' ').takeIf { it.length > "http://".length }
     }
 
+    /**
+     * A film's details from its portal row, or null when the row says nothing beyond its name. Blank
+     * fields and the portals' zero rating are absent, never shown.
+     */
+    private fun portalDetails(
+        description: String?,
+        director: String?,
+        actors: String?,
+        rating: String?,
+        genres: String?,
+        year: String?,
+        durationSeconds: Int?,
+        added: String?,
+    ): MovieDetails? {
+        val details = MovieDetails(
+            rating = rating?.trim()?.toDoubleOrNull()?.takeIf { it > 0 },
+            plot = description?.trim()?.takeIf { it.isNotEmpty() },
+            director = director?.trim()?.takeIf { it.isNotEmpty() },
+            cast = namesIn(actors),
+            genres = namesIn(genres),
+            releaseYear = year?.trim()?.take(YEAR_DIGITS)?.toIntOrNull()?.takeIf { it > 0 },
+            durationSeconds = durationSeconds?.takeIf { it > 0 },
+            addedEpochSeconds = added?.let(::epochSecondsOf),
+        )
+        return details.takeIf { it != MovieDetails() }
+    }
+
+    /** A portal's list of names, sent as one comma-separated string. */
+    private fun namesIn(raw: String?): List<String> =
+        raw.orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() }
+
+    /** `2023-01-15 10:20:30`, as a portal writes the day a film was added, in seconds since 1970 (UTC). */
+    private fun epochSecondsOf(raw: String): Long? = try {
+        LocalDateTime.parse(raw.trim().replace(' ', 'T')).toEpochSecond(ZoneOffset.UTC).takeIf { it > 0 }
+    } catch (e: DateTimeParseException) {
+        null
+    }
+
     private fun readItem(scanner: JsonScanner, kind: MediaKind): StalkerItem? {
         var id: String? = null
         var name: String? = null
@@ -210,6 +252,12 @@ object StalkerParser {
         var year: String? = null
         var duration: Int? = null
         var episodes = 0
+        var description: String? = null
+        var director: String? = null
+        var actors: String? = null
+        var rating: String? = null
+        var genres: String? = null
+        var added: String? = null
 
         scanner.readObject { field ->
             when (field) {
@@ -226,6 +274,14 @@ object StalkerParser {
                 // stored as minutes, because the catalogue counts seconds.
                 "time" -> duration = scanner.string()?.trim()?.toIntOrNull()?.times(60)
                 "series" -> scanner.readArray { episodes++; scanner.skip() }
+                // What a portal tells about a film in its list row. There is no per-film call to
+                // ask for it later, so it is read here, as the rest of the row is.
+                "description" -> description = scanner.string()
+                "director" -> director = scanner.string()
+                "actors" -> actors = scanner.string()
+                "rating_imdb" -> rating = scanner.string()
+                "genres_str" -> genres = scanner.string()
+                "added" -> added = scanner.string()
                 else -> scanner.skip()
             }
         }
@@ -247,6 +303,11 @@ object StalkerParser {
             year = year?.takeIf { it.isNotBlank() },
             durationSeconds = duration?.takeIf { it > 0 },
             episodeCount = episodes,
+            details = if (kind == MediaKind.MOVIE) {
+                portalDetails(description, director, actors, rating, genres, year, duration, added)
+            } else {
+                null
+            },
         )
     }
 
@@ -353,7 +414,11 @@ data class StalkerItem(
     val year: String?,
     val durationSeconds: Int?,
     val episodeCount: Int,
+    /** What the portal said about a film beyond its name. Null for a series, and for a film it said nothing about. */
+    val details: MovieDetails? = null,
 ) {
     /** The address inside [command], when there is one to take. See [StalkerChannel.directUrl]. */
     val directUrl: String? get() = command?.let(StalkerParser::addressIn)
 }
+
+private const val YEAR_DIGITS = 4

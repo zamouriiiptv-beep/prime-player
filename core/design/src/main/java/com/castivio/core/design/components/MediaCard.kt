@@ -114,6 +114,9 @@ fun MediaCard(
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
     var focused by remember { mutableStateOf(false) }
+    // The placeholder stands in for the picture until it arrives and no longer: a poster fitted whole
+    // into its frame would otherwise sit on the placeholder's colours wherever it does not reach.
+    var artworkShown by remember(artworkUrl) { mutableStateOf(false) }
     val cardShape = RoundedCornerShape(Radius.sm)
     val border by animateColorAsState(
         if (focused) colors.focusRing else colors.glassBorderSoft,
@@ -158,10 +161,12 @@ fun MediaCard(
                 .fillMaxWidth()
                 .then(if (posterHeight != null) Modifier.height(posterHeight) else Modifier.aspectRatio(shape.ratio))
                 .clip(cardShape)
-                .background(posterPlaceholderBrush(artworkSeed))
+                .then(if (artworkShown) Modifier else Modifier.background(posterPlaceholderBrush(artworkSeed)))
                 .then(ring),
         ) {
-            if (!artworkUrl.isNullOrBlank()) PosterArtwork(artworkUrl, Modifier.fillMaxSize(), artworkScale)
+            if (!artworkUrl.isNullOrBlank()) {
+                PosterArtwork(artworkUrl, Modifier.fillMaxSize(), artworkScale, onLoaded = { artworkShown = true })
+            }
             WatchMarks(watchState)
             if (badge != null) {
                 Box(Modifier.align(Alignment.TopStart).padding(Spacing.sm)) {

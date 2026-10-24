@@ -149,6 +149,20 @@ class MovieFactsTest {
         assertEquals("7.0", ratingText(7.0))
     }
 
+    // --------------------------------------------------------------------------- the card's width
+
+    @Test
+    fun `a card is as wide as a 2-3 poster of the fitted height, when the column has room for it`() {
+        // A poster of 180 is 120 wide at 2:3; the share is (1000 - 4 * 10) / 5 = 192.
+        assertEquals(120f, posterCardWidth(available = 1000.dp, gutter = 10.dp, columns = 5, fittedHeight = 180.dp).value, 0.01f)
+    }
+
+    @Test
+    fun `a card is its column's share when a fitted poster would be wider than that`() {
+        // A poster of 400 would be 267 wide; the share is 192.
+        assertEquals(192f, posterCardWidth(available = 1000.dp, gutter = 10.dp, columns = 5, fittedHeight = 400.dp).value, 0.01f)
+    }
+
     // ------------------------------------------------------------------------------- the wall's columns
 
     @Test

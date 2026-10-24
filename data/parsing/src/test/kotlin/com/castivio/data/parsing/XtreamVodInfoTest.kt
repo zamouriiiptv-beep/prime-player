@@ -42,6 +42,20 @@ class XtreamVodInfoTest {
     }
 
     @Test
+    fun `the running time as a clock wins over a duration_secs that holds minutes`() {
+        val reply = """{"info":{"duration":"01:58:00","duration_secs":"118"}}"""
+
+        assertEquals(7080, XtreamParser.parseVodInfo(StringReader(reply))!!.durationSeconds)
+    }
+
+    @Test
+    fun `duration_secs is read when there is no clock`() {
+        val reply = """{"info":{"duration_secs":"6060"}}"""
+
+        assertEquals(6060, XtreamParser.parseVodInfo(StringReader(reply))!!.durationSeconds)
+    }
+
+    @Test
     fun `a reply of another shape is no details at all`() {
         assertNull(XtreamParser.parseVodInfo(StringReader("""{"info":[]}""")))
     }

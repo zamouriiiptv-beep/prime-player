@@ -141,6 +141,11 @@ data class CatalogItem(
     val seriesTitle: String? = null,
     val seasonNumber: Int? = null,
     val episodeNumber: Int? = null,
+    /**
+     * A film's details, when its provider sends them in the list itself -- a Stalker portal does, and
+     * Xtream and M3U do not. Written beside the row, so the film's page reads them without a request.
+     */
+    val details: MovieDetails? = null,
 )
 
 /** What an import actually did. Reported to the writer and to diagnostics. */

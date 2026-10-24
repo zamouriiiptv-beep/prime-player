@@ -125,6 +125,7 @@ object XtreamParser {
         var genres: List<String> = emptyList()
         var releaseDate: String? = null
         var durationSeconds: Int? = null
+        var durationClock: Int? = null
         var added: Long? = null
 
         val scanner = JsonScanner(reader)
@@ -139,6 +140,7 @@ object XtreamParser {
                         "genre" -> genres = listOfNames(scanner.string())
                         "releasedate", "release_date" -> releaseDate = scanner.string()
                         "duration_secs" -> durationSeconds = scanner.string()?.toIntOrNull()?.takeIf { it > 0 }
+                        "duration" -> durationClock = scanner.string()?.let(::secondsOfClock)
                     }
                 }
                 "movie_data" -> scanner.readObject { field ->
@@ -154,11 +156,20 @@ object XtreamParser {
             cast = cast,
             genres = genres,
             releaseYear = releaseDate?.take(YEAR_DIGITS)?.toIntOrNull()?.takeIf { it > 0 },
-            durationSeconds = durationSeconds,
+            // `duration` as a clock wins: it is what the panel shows, and some panels send minutes in
+            // `duration_secs` -- a two-hour film read as one minute and fifty-eight seconds.
+            durationSeconds = durationClock ?: durationSeconds,
             addedEpochSeconds = added,
-        )
+        ).takeIf { it.saysAnything }
     } catch (e: JsonFormatException) {
         null
+    }
+
+    /** `01:58:12` or `58:12`, in seconds; null for anything else and for nought. */
+    private fun secondsOfClock(raw: String): Int? {
+        val parts = raw.trim().split(':').map { it.toIntOrNull() ?: return null }
+        if (parts.size !in 2..3) return null
+        return parts.fold(0) { total, part -> total * 60 + part }.takeIf { it > 0 }
     }
 
     /** A provider's list of names, which it sends as one comma-separated string. */
@@ -440,7 +451,15 @@ data class XtreamVodInfo(
     val releaseYear: Int?,
     val durationSeconds: Int?,
     val addedEpochSeconds: Long?,
-)
+) {
+    /**
+     * Whether the reply held a single fact. One that held none -- `"info":[]`, which panels send for a film
+     * they know nothing about -- is no details rather than details that are all empty.
+     */
+    val saysAnything: Boolean
+        get() = rating != null || plot != null || director != null || cast.isNotEmpty() || genres.isNotEmpty() ||
+            releaseYear != null || durationSeconds != null || addedEpochSeconds != null
+}
 
 private const val YEAR_DIGITS = 4
 

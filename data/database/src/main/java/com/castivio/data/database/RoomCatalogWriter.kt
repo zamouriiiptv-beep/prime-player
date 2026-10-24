@@ -13,6 +13,7 @@ import com.castivio.domain.ImportMode
 import com.castivio.domain.ImportSummary
 import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaKind
+import com.castivio.domain.MovieDetails
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
@@ -75,6 +76,7 @@ class RoomCatalogWriter(
     private var itemStatement: SupportSQLiteStatement? = null
     private var groupStatement: SupportSQLiteStatement? = null
     private var countStatement: SupportSQLiteStatement? = null
+    private var detailStatement: SupportSQLiteStatement? = null
 
     // ------------------------------------------------------ telling the observers
     private val pacer = UpdatePacer(notifyEveryMs)
@@ -124,6 +126,7 @@ class RoomCatalogWriter(
         itemStatement = db.compileStatement(INSERT_ITEM)
         groupStatement = db.compileStatement(INSERT_GROUP)
         countStatement = db.compileStatement(COUNT_GROUP)
+        detailStatement = db.compileStatement(INSERT_DETAIL)
     }
 
     override fun writeGroups(groups: List<MediaGroup>) {
@@ -209,6 +212,30 @@ class RoomCatalogWriter(
         // nightly refresh does not make the whole library "recently added".
         statement.bindString(19, item.id)
         statement.bindLong(20, now)
+        statement.executeInsert()
+        val details = item.details
+        val providerRef = item.providerRef
+        if (details != null && providerRef != null) insertDetails(source, providerRef, details)
+    }
+
+    /**
+     * A film's details, written beside its row in the same transaction: what a portal sends in its list,
+     * so the film's page reads it from here and asks nothing of the network.
+     */
+    private fun insertDetails(source: String, providerRef: String, details: MovieDetails) {
+        val statement = detailStatement ?: return
+        statement.clearBindings()
+        statement.bindString(1, source)
+        statement.bindString(2, providerRef)
+        details.rating?.let { statement.bindDouble(3, it) } ?: statement.bindNull(3)
+        statement.bindNullable(4, details.plot)
+        statement.bindNullable(5, details.director)
+        statement.bindNullable(6, details.cast.joinToString(DETAIL_LIST_SEPARATOR).ifEmpty { null })
+        statement.bindNullable(7, details.genres.joinToString(DETAIL_LIST_SEPARATOR).ifEmpty { null })
+        statement.bindNullable(8, details.releaseYear)
+        statement.bindNullable(9, details.durationSeconds)
+        details.addedEpochSeconds?.let { statement.bindLong(10, it) } ?: statement.bindNull(10)
+        statement.bindLong(11, now)
         statement.executeInsert()
     }
 
@@ -399,9 +426,11 @@ class RoomCatalogWriter(
         runCatching { itemStatement?.close() }
         runCatching { groupStatement?.close() }
         runCatching { countStatement?.close() }
+        runCatching { detailStatement?.close() }
         itemStatement = null
         groupStatement = null
         countStatement = null
+        detailStatement = null
         sourceId = null
     }
 
@@ -521,6 +550,14 @@ class RoomCatalogWriter(
                 ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                 COALESCE((SELECT added_at FROM media WHERE id = ?), ?)
             )
+        """
+
+        /** A film's details from its provider's list. `REPLACE`: a refresh writes the portal's latest. */
+        const val INSERT_DETAIL = """
+            INSERT OR REPLACE INTO vod_detail (
+                source_id, provider_ref, rating, plot, director, cast_names, genres,
+                release_year, duration_seconds, added_epoch, fetched_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
 
         /**
