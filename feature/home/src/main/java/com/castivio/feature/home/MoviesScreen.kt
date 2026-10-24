@@ -36,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
@@ -333,6 +334,7 @@ private fun MovieWall(
                 titleHeight = m.frame.fsLabel * LABEL_LINE * TITLE_LINES,
                 focusBrush = focusBrush(),
                 focusScale = 1f,
+                artworkScale = ContentScale.Fit,
             )
         }
     }
@@ -348,7 +350,7 @@ private val MIN_POSTER_WIDTH = 100.dp
 private val MIN_POSTER_HEIGHT = 80.dp
 
 /** How much of the third row shows: the top of a poster, about one part in thirteen. */
-private const val PEEK_OF_POSTER = 0.075f
+private const val PEEK_OF_POSTER = 0.05f
 
 /** The title's line, as a share of its type: what the card's name takes beneath the artwork. */
 private const val LABEL_LINE = 1.4f

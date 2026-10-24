@@ -38,7 +38,7 @@ import com.castivio.core.design.theme.posterPlaceholderBrush
  * leaves a card, not a hole -- and no stand-in claims to be the film's artwork.
  */
 @Composable
-internal fun PosterArtwork(url: String, modifier: Modifier = Modifier) {
+internal fun PosterArtwork(url: String, modifier: Modifier = Modifier, contentScale: ContentScale = ContentScale.Crop) {
     // Keyed to the url, because a cell of a lazy grid is recycled: a poster that failed must not hand
     // its failure to whichever title scrolls into its place next.
     var failed by remember(url) { mutableStateOf(false) }
@@ -49,7 +49,7 @@ internal fun PosterArtwork(url: String, modifier: Modifier = Modifier) {
             .crossfade(false)
             .build(),
         contentDescription = null,
-        contentScale = ContentScale.Crop,
+        contentScale = contentScale,
         onError = { failed = true },
         modifier = modifier,
     )

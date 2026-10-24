@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -103,6 +104,8 @@ fun MediaCard(
     focusBrush: Brush? = null,
     /** How far a focused card grows. 1 keeps it in its cell, where a grow would overlap the neighbours. */
     focusScale: Float = Motion.focusScaleCard,
+    /** How the poster fills its frame: cropped to it by default, or whole, letterboxed, where a film must not be cut. */
+    artworkScale: ContentScale = ContentScale.Crop,
 ) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
@@ -153,7 +156,7 @@ fun MediaCard(
                 .background(posterPlaceholderBrush(artworkSeed))
                 .then(ring),
         ) {
-            if (!artworkUrl.isNullOrBlank()) PosterArtwork(artworkUrl, Modifier.fillMaxSize())
+            if (!artworkUrl.isNullOrBlank()) PosterArtwork(artworkUrl, Modifier.fillMaxSize(), artworkScale)
             WatchMarks(watchState)
             if (badge != null) {
                 Box(Modifier.align(Alignment.TopStart).padding(Spacing.sm)) {
