@@ -46,9 +46,10 @@ interface ProgressRepository {
     suspend fun progress(mediaId: String): PlaybackProgress?
 
     /**
-     * A live channel was watched: its picture showed, now. It goes to the top of the channels the rail's
-     * Recently watched entry lists, and a channel watched before only moves there. Not a position -- a
-     * live channel has none to resume -- so it is never in Continue Watching.
+     * A channel was watched -- its picture showed, now -- or a film was started. It goes to the top of the list
+     * the rail's Recently watched entry opens, and one watched before only moves there. Not a position -- a live
+     * channel has none to resume, and a film started has not got far enough to -- so it is never in Continue
+     * Watching on this account; a position a row already had is kept as it was.
      */
     suspend fun watched(mediaId: String)
 

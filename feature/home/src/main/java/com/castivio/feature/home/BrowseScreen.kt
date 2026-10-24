@@ -402,7 +402,7 @@ internal fun <T : Any> Paged(
     section: CatalogSection,
     state: BrowseState,
     m: CatalogMetrics,
-    /** What the empty state offers a viewer who is in the favourites: the whole section. */
+    /** What the empty state offers a viewer who is in the favourites or the films played last: the whole section. */
     onShowAll: () -> Unit = {},
     /** What it offers one whose search found nothing: the section as it was. */
     onClearSearch: () -> Unit = {},
@@ -581,8 +581,8 @@ private fun SectionEmpty(
     onShowAll: () -> Unit,
     onClearSearch: () -> Unit,
 ) {
-    // A search that matched nothing, and a favourites list with nothing in it, are neither of them an empty
-    // provider: each says what it is, and offers the one way back to the list it narrowed.
+    // A search that matched nothing, and a favourites or recently-played list with nothing in it, are none of
+    // them an empty provider: each says what it is, and offers the one way back to the list it narrowed.
     if (state.search.isNotEmpty()) {
         EmptyState(
             title = stringResource(R.string.search_none_title, state.search),
@@ -596,6 +596,15 @@ private fun SectionEmpty(
         EmptyState(
             title = stringResource(R.string.movies_favorites_empty_title),
             detail = stringResource(R.string.movies_favorites_empty_detail),
+            actionLabel = stringResource(R.string.movies_all),
+            onAction = onShowAll,
+        )
+        return
+    }
+    if (state.recent) {
+        EmptyState(
+            title = stringResource(R.string.movies_recent_empty_title),
+            detail = stringResource(R.string.movies_recent_empty_detail),
             actionLabel = stringResource(R.string.movies_all),
             onAction = onShowAll,
         )

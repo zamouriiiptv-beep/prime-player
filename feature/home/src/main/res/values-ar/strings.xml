@@ -192,10 +192,11 @@
     <string name="channels_recent_empty_title">لم تشاهد أي قناة بعد</string>
     <string name="channels_recent_empty_detail">تظهر هنا القنوات التي تشاهدها، الأحدث أولًا.</string>
     <string name="movies_search_hint">البحث عن الأفلام في اشتراكك</string>
-    <string name="movies_filter">التصفية</string>
     <string name="movies_all">جميع الأفلام</string>
     <string name="movies_favorites_empty_title">لا توجد أفلام مفضلة بعد</string>
     <string name="movies_favorites_empty_detail">افتح فيلمًا واضغط «إضافة إلى المفضلة» ليظهر هنا.</string>
+    <string name="movies_recent_empty_title">لم تشاهد أي فيلم بعد</string>
+    <string name="movies_recent_empty_detail">تظهر هنا الأفلام التي تشغّلها، الأحدث أولًا.</string>
     <string name="movie_play">تشغيل الفيلم</string>
     <string name="movie_favorite_add">إضافة إلى المفضلة</string>
     <string name="movie_favorite_remove">إزالة من المفضلة</string>

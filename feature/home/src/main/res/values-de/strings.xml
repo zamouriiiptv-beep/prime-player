@@ -145,10 +145,11 @@
     <string name="channels_recent_empty_title">Noch keine Sender gesehen</string>
     <string name="channels_recent_empty_detail">Hier erscheinen die Sender, die du ansiehst – die zuletzt gesehenen zuerst.</string>
     <string name="movies_search_hint">Filme in deinem Abo suchen</string>
-    <string name="movies_filter">Filtern</string>
     <string name="movies_all">Alle Filme</string>
     <string name="movies_favorites_empty_title">Noch keine Lieblingsfilme</string>
     <string name="movies_favorites_empty_detail">Öffne einen Film und drücke „Zu Favoriten“, damit er hier erscheint.</string>
+    <string name="movies_recent_empty_title">Noch keine Filme gesehen</string>
+    <string name="movies_recent_empty_detail">Hier erscheinen die Filme, die du abspielst – die zuletzt gesehenen zuerst.</string>
     <string name="movie_play">Film abspielen</string>
     <string name="movie_favorite_add">Zu Favoriten hinzufügen</string>
     <string name="movie_favorite_remove">Aus Favoriten entfernen</string>

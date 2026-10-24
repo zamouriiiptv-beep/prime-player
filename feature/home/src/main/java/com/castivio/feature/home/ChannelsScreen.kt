@@ -557,6 +557,46 @@ private fun BoardHeader(
     onSearch: (String) -> Unit,
     onSearchFocus: (Boolean) -> Unit,
 ) {
+    BoardBand(
+        section = stringResource(R.string.browse_live),
+        list = state.selectedGroup?.let { state.categoryNames[it] }
+            ?: stringResource(
+                when {
+                    state.favorites -> R.string.channels_favorites
+                    state.recent -> R.string.channels_recent
+                    else -> R.string.channels_all_rail
+                },
+            ),
+        m = m,
+        searchText = searchText,
+        onSearch = onSearch,
+        onSearchFocus = onSearchFocus,
+        // Reorder mode is of the lists as they are: nothing to narrow while it is on.
+        searchEnabled = state.arranging == null,
+    )
+}
+
+/**
+ * The band over a board, whichever section's it is: the mark, the section and the list that is open, the
+ * search field and the clock -- the channels' header exactly, which the films' screen draws too.
+ *
+ * What differs between the two screens is words: which section this is ([section]), which list of it is
+ * open ([list]) and what the field says it searches ([hint]). Everything else -- the cells, their widths,
+ * the order they sit in -- is one band, so the two boards read as one product.
+ */
+@Composable
+internal fun BoardBand(
+    section: String,
+    list: String,
+    m: ChannelsMetrics,
+    searchText: String,
+    onSearch: (String) -> Unit,
+    onSearchFocus: (Boolean) -> Unit,
+    searchEnabled: Boolean = true,
+    hint: String = stringResource(R.string.channels_search_hint),
+    /** What a section adds to the band beside its field, before the clock: the films' count and sort. Nothing for channels. */
+    trailing: (@Composable () -> Unit)? = null,
+) {
     val colors = CastivioTheme.colors
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
@@ -598,21 +638,14 @@ private fun BoardHeader(
             // decide where everything after it on the band sat.
             Column(Modifier.width(m.crumb)) {
                 Text(
-                    text = stringResource(R.string.browse_live),
+                    text = section,
                     style = castivioChipStyle(m.frame.fsLabel),
                     color = colors.secondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = state.selectedGroup?.let { state.categoryNames[it] }
-                        ?: stringResource(
-                            when {
-                                state.favorites -> R.string.channels_favorites
-                                state.recent -> R.string.channels_recent
-                                else -> R.string.channels_all_rail
-                            },
-                        ),
+                    text = list,
                     style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
                     color = colors.onBackgroundVariant,
                     maxLines = 1,
@@ -641,8 +674,8 @@ private fun BoardHeader(
                     m = m,
                     onType = onSearch,
                     onFocusChange = onSearchFocus,
-                    // Reorder mode is of the lists as they are: nothing to narrow while it is on.
-                    enabled = state.arranging == null,
+                    enabled = searchEnabled,
+                    hint = hint,
                 )
             }
 
@@ -657,6 +690,7 @@ private fun BoardHeader(
             // Where the two dates ran out is still a fact worth knowing, and it is not
             // lost: Home draws both, captioned and side by side, on a screen with room
             // to say which is which.
+            if (trailing != null) trailing()
             BoardClock(m)
         }
     }
@@ -780,6 +814,8 @@ internal fun HeaderSearchField(
     modifier: Modifier = Modifier,
     onFocusChange: (Boolean) -> Unit = {},
     enabled: Boolean = true,
+    /** What the field says it searches. The channels' by default; the films' screen passes its own. */
+    hint: String = stringResource(R.string.channels_search_hint),
 ) {
     val colors = CastivioTheme.colors
     val (focused, focusModifier) = rememberFocusFlag()
@@ -825,7 +861,7 @@ internal fun HeaderSearchField(
                 // without the hint becoming the value.
                 if (text.isEmpty()) {
                     Text(
-                        text = stringResource(R.string.channels_search_hint),
+                        text = hint,
                         style = castivioBodyStyle(m.frame.fsBody),
                         color = colors.onBackgroundMuted,
                         maxLines = 1,
@@ -969,7 +1005,7 @@ private fun Board(
  * or the rail would stay short with nobody knowing why.
  */
 @Composable
-private fun FetchNotice(
+internal fun FetchNotice(
     fetch: SectionLoad?,
     firstLoad: Boolean,
     m: ChannelsMetrics,
@@ -1264,6 +1300,8 @@ internal fun CategoryRail(
     onRecent: () -> Unit = {},
     /** Choosing bouquets to hide: each entry is ticked by a press, and opens nothing. */
     hider: HidingUi = HidingUi.None,
+    /** What the first entry calls the whole section: "All channels" here, "All movies" on the films' screen. */
+    allLabel: String = stringResource(R.string.channels_all_rail),
 ) {
     // **In reorder mode the rail is the bouquets and nothing else -- and so it is while bouquets are
     // being chosen to hide.** The three entries above them open lists and the field filters them; none
@@ -1297,7 +1335,7 @@ internal fun CategoryRail(
         ) {
             if (!modal) item(key = RAIL_ALL) {
                 RailEntry(
-                    label = stringResource(R.string.channels_all_rail),
+                    label = allLabel,
                     // **No total here.** The line under the name said how many channels the
                     // subscription carries, which Home's Live TV card already says -- the
                     // same figure drawn twice, on the one row whose job is to mean "all of

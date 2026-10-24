@@ -145,10 +145,11 @@
     <string name="channels_recent_empty_title">Още няма гледани канали</string>
     <string name="channels_recent_empty_detail">Тук ще се показват каналите, които гледате, като последно гледаните са първи.</string>
     <string name="movies_search_hint">Търсене на филми във вашия абонамент</string>
-    <string name="movies_filter">Филтър</string>
     <string name="movies_all">Всички филми</string>
     <string name="movies_favorites_empty_title">Още няма любими филми</string>
     <string name="movies_favorites_empty_detail">Отворете филм и натиснете „Към любими“, за да се покаже тук.</string>
+    <string name="movies_recent_empty_title">Още няма гледани филми</string>
+    <string name="movies_recent_empty_detail">Тук ще се показват филмите, които пускате, като последно пуснатите са първи.</string>
     <string name="movie_play">Пускане на филма</string>
     <string name="movie_favorite_add">Към любими</string>
     <string name="movie_favorite_remove">Премахване от любими</string>

@@ -145,10 +145,11 @@
     <string name="channels_recent_empty_title">Вы ещё не смотрели каналы</string>
     <string name="channels_recent_empty_detail">Здесь появятся каналы, которые вы смотрите, — сначала последние.</string>
     <string name="movies_search_hint">Поиск фильмов в вашей подписке</string>
-    <string name="movies_filter">Фильтр</string>
     <string name="movies_all">Все фильмы</string>
     <string name="movies_favorites_empty_title">Избранных фильмов пока нет</string>
     <string name="movies_favorites_empty_detail">Откройте фильм и нажмите «В избранное», чтобы он появился здесь.</string>
+    <string name="movies_recent_empty_title">Вы ещё не смотрели фильмы</string>
+    <string name="movies_recent_empty_detail">Здесь появятся фильмы, которые вы запускаете, — сначала последние.</string>
     <string name="movie_play">Смотреть фильм</string>
     <string name="movie_favorite_add">В избранное</string>
     <string name="movie_favorite_remove">Убрать из избранного</string>

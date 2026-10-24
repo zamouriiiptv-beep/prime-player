@@ -145,10 +145,11 @@
     <string name="channels_recent_empty_title">Zatím jste nesledovali žádný kanál</string>
     <string name="channels_recent_empty_detail">Zde se zobrazí kanály, které sledujete, naposledy sledované jako první.</string>
     <string name="movies_search_hint">Hledat filmy ve vašem předplatném</string>
-    <string name="movies_filter">Filtr</string>
     <string name="movies_all">Všechny filmy</string>
     <string name="movies_favorites_empty_title">Zatím žádné oblíbené filmy</string>
     <string name="movies_favorites_empty_detail">Otevřete film a stiskněte „Přidat k oblíbeným“, aby se zobrazil zde.</string>
+    <string name="movies_recent_empty_title">Zatím jste nesledovali žádný film</string>
+    <string name="movies_recent_empty_detail">Zde se zobrazí filmy, které přehrajete, naposledy přehrané jako první.</string>
     <string name="movie_play">Přehrát film</string>
     <string name="movie_favorite_add">Přidat k oblíbeným</string>
     <string name="movie_favorite_remove">Odebrat z oblíbených</string>

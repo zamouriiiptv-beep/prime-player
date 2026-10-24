@@ -145,10 +145,11 @@
     <string name="channels_recent_empty_title">Još niste gledali nijedan kanal</string>
     <string name="channels_recent_empty_detail">Ovdje se prikazuju kanali koje gledate, najnoviji prvi.</string>
     <string name="movies_search_hint">Pretraži filmove u svojoj pretplati</string>
-    <string name="movies_filter">Filtar</string>
     <string name="movies_all">Svi filmovi</string>
     <string name="movies_favorites_empty_title">Još nema omiljenih filmova</string>
     <string name="movies_favorites_empty_detail">Otvorite film i pritisnite „Dodaj u favorite“ da se prikaže ovdje.</string>
+    <string name="movies_recent_empty_title">Još niste gledali nijedan film</string>
+    <string name="movies_recent_empty_detail">Ovdje se prikazuju filmovi koje pokrenete, najnoviji prvi.</string>
     <string name="movie_play">Pokreni film</string>
     <string name="movie_favorite_add">Dodaj u favorite</string>
     <string name="movie_favorite_remove">Ukloni iz favorita</string>

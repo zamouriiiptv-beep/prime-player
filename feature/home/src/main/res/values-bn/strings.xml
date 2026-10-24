@@ -145,10 +145,11 @@
     <string name="channels_recent_empty_title">এখনও কোনো চ্যানেল দেখা হয়নি</string>
     <string name="channels_recent_empty_detail">আপনি যে চ্যানেলগুলো দেখেন সেগুলো এখানে দেখাবে, সবচেয়ে সাম্প্রতিকটি প্রথমে।</string>
     <string name="movies_search_hint">আপনার সাবস্ক্রিপশনে সিনেমা খুঁজুন</string>
-    <string name="movies_filter">ফিল্টার</string>
     <string name="movies_all">সব সিনেমা</string>
     <string name="movies_favorites_empty_title">এখনও কোনো প্রিয় সিনেমা নেই</string>
     <string name="movies_favorites_empty_detail">একটি সিনেমা খুলে “প্রিয় করুন” চাপুন, তাহলে এটি এখানে দেখা যাবে।</string>
+    <string name="movies_recent_empty_title">এখনও কোনো সিনেমা দেখা হয়নি</string>
+    <string name="movies_recent_empty_detail">আপনি যে সিনেমাগুলো চালান সেগুলো এখানে দেখাবে, সবচেয়ে সাম্প্রতিকটি প্রথমে।</string>
     <string name="movie_play">সিনেমা চালান</string>
     <string name="movie_favorite_add">প্রিয় করুন</string>
     <string name="movie_favorite_remove">প্রিয় থেকে সরান</string>

@@ -145,10 +145,11 @@
     <string name="channels_recent_empty_title">아직 시청한 채널이 없습니다</string>
     <string name="channels_recent_empty_detail">시청한 채널이 최근 순으로 여기에 표시됩니다.</string>
     <string name="movies_search_hint">구독 중인 영화 검색</string>
-    <string name="movies_filter">필터</string>
     <string name="movies_all">모든 영화</string>
     <string name="movies_favorites_empty_title">아직 즐겨찾는 영화가 없습니다</string>
     <string name="movies_favorites_empty_detail">영화를 열고 ‘즐겨찾기 추가’를 누르면 여기에 표시됩니다.</string>
+    <string name="movies_recent_empty_title">아직 시청한 영화가 없습니다</string>
+    <string name="movies_recent_empty_detail">재생한 영화가 최근 순으로 여기에 표시됩니다.</string>
     <string name="movie_play">영화 재생</string>
     <string name="movie_favorite_add">즐겨찾기 추가</string>
     <string name="movie_favorite_remove">즐겨찾기 삭제</string>

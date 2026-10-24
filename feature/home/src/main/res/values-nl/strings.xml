@@ -145,10 +145,11 @@
     <string name="channels_recent_empty_title">Nog geen zenders bekeken</string>
     <string name="channels_recent_empty_detail">Hier verschijnen de zenders die je bekijkt, de laatst bekeken eerst.</string>
     <string name="movies_search_hint">Zoek films in je abonnement</string>
-    <string name="movies_filter">Filteren</string>
     <string name="movies_all">Alle films</string>
     <string name="movies_favorites_empty_title">Nog geen favoriete films</string>
     <string name="movies_favorites_empty_detail">Open een film en druk op ‘Favoriet’ om hem hier te tonen.</string>
+    <string name="movies_recent_empty_title">Nog geen films bekeken</string>
+    <string name="movies_recent_empty_detail">Hier verschijnen de films die je afspeelt, de laatst bekeken eerst.</string>
     <string name="movie_play">Film afspelen</string>
     <string name="movie_favorite_add">Toevoegen aan favorieten</string>
     <string name="movie_favorite_remove">Verwijderen uit favorieten</string>

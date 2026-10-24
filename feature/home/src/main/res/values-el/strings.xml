@@ -145,10 +145,11 @@
     <string name="channels_recent_empty_title">Δεν έχετε δει κανάλια ακόμη</string>
     <string name="channels_recent_empty_detail">Εδώ εμφανίζονται τα κανάλια που παρακολουθείτε, με τα πιο πρόσφατα πρώτα.</string>
     <string name="movies_search_hint">Αναζήτηση ταινιών στη συνδρομή σας</string>
-    <string name="movies_filter">Φίλτρο</string>
     <string name="movies_all">Όλες οι ταινίες</string>
     <string name="movies_favorites_empty_title">Δεν υπάρχουν αγαπημένες ταινίες ακόμη</string>
     <string name="movies_favorites_empty_detail">Ανοίξτε μια ταινία και πατήστε «Προσθήκη στα αγαπημένα» για να εμφανιστεί εδώ.</string>
+    <string name="movies_recent_empty_title">Δεν έχετε δει ταινίες ακόμη</string>
+    <string name="movies_recent_empty_detail">Εδώ εμφανίζονται οι ταινίες που αναπαράγετε, με τις πιο πρόσφατες πρώτες.</string>
     <string name="movie_play">Αναπαραγωγή ταινίας</string>
     <string name="movie_favorite_add">Προσθήκη στα αγαπημένα</string>
     <string name="movie_favorite_remove">Αφαίρεση από τα αγαπημένα</string>

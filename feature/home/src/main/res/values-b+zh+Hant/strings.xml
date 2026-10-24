@@ -145,10 +145,11 @@
     <string name="channels_recent_empty_title">尚未觀看任何頻道</string>
     <string name="channels_recent_empty_detail">你觀看過的頻道會顯示在這裡，最近觀看的排在最前。</string>
     <string name="movies_search_hint">在你的訂閱中搜尋電影</string>
-    <string name="movies_filter">篩選</string>
     <string name="movies_all">全部電影</string>
     <string name="movies_favorites_empty_title">尚無收藏的電影</string>
     <string name="movies_favorites_empty_detail">開啟一部電影並按「加入最愛」，它就會顯示在這裡。</string>
+    <string name="movies_recent_empty_title">尚未觀看任何電影</string>
+    <string name="movies_recent_empty_detail">你播放過的電影會顯示在這裡，最近播放的排在最前。</string>
     <string name="movie_play">播放電影</string>
     <string name="movie_favorite_add">加入最愛</string>
     <string name="movie_favorite_remove">移除最愛</string>

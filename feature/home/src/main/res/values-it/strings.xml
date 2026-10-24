@@ -145,10 +145,11 @@
     <string name="channels_recent_empty_title">Nessun canale guardato finora</string>
     <string name="channels_recent_empty_detail">Qui compaiono i canali che guardi, dal più recente.</string>
     <string name="movies_search_hint">Cerca film nel tuo abbonamento</string>
-    <string name="movies_filter">Filtra</string>
     <string name="movies_all">Tutti i film</string>
     <string name="movies_favorites_empty_title">Ancora nessun film preferito</string>
     <string name="movies_favorites_empty_detail">Apri un film e premi «Aggiungi ai preferiti» per farlo comparire qui.</string>
+    <string name="movies_recent_empty_title">Nessun film guardato finora</string>
+    <string name="movies_recent_empty_detail">Qui compaiono i film che avvii, dal più recente.</string>
     <string name="movie_play">Riproduci film</string>
     <string name="movie_favorite_add">Aggiungi ai preferiti</string>
     <string name="movie_favorite_remove">Rimuovi dai preferiti</string>

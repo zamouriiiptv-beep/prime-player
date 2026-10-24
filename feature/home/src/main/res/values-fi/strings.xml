@@ -145,10 +145,11 @@
     <string name="channels_recent_empty_title">Et ole vielä katsonut kanavia</string>
     <string name="channels_recent_empty_detail">Katsomasi kanavat näkyvät tässä, viimeksi katsotut ensin.</string>
     <string name="movies_search_hint">Hae elokuvia tilauksestasi</string>
-    <string name="movies_filter">Suodata</string>
     <string name="movies_all">Kaikki elokuvat</string>
     <string name="movies_favorites_empty_title">Ei vielä suosikkielokuvia</string>
     <string name="movies_favorites_empty_detail">Avaa elokuva ja paina ”Lisää suosikkeihin”, niin se näkyy täällä.</string>
+    <string name="movies_recent_empty_title">Et ole vielä katsonut elokuvia</string>
+    <string name="movies_recent_empty_detail">Toistamasi elokuvat näkyvät tässä, viimeksi katsotut ensin.</string>
     <string name="movie_play">Toista elokuva</string>
     <string name="movie_favorite_add">Lisää suosikkeihin</string>
     <string name="movie_favorite_remove">Poista suosikeista</string>

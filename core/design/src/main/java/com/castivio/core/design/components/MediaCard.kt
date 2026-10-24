@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -88,6 +89,11 @@ fun MediaCard(
     artworkUrl: String? = null,
     /** One short fact on the artwork's lower edge -- a running time, a rating -- or null for none. */
     tag: String? = null,
+    /**
+     * The poster's height, when a grid has fitted the height to the surface: the width is the cell's and
+     * the ratio follows from it. Null keeps the card's own ratio, as every other caller has it.
+     */
+    posterHeight: Dp? = null,
 ) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
@@ -128,7 +134,7 @@ fun MediaCard(
         Box(
             Modifier
                 .fillMaxWidth()
-                .aspectRatio(shape.ratio)
+                .then(if (posterHeight != null) Modifier.height(posterHeight) else Modifier.aspectRatio(shape.ratio))
                 .clip(cardShape)
                 .background(posterPlaceholderBrush(artworkSeed))
                 .border(1.dp, border, cardShape),

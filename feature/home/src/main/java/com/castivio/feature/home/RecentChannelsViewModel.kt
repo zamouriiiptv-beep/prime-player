@@ -10,7 +10,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 /**
- * **What was watched, as it is watched** -- the record the rail's Recently watched entry lists.
+ * **What was watched, as it is watched** -- the record the rail's Recently watched entry lists, on the
+ * channels' board and on the films'.
  *
  * The list was there and nothing ever wrote to it: `playback_progress` had no writer on any device, so
  * the entry had nothing to show and was left without an action. The shell, which is the one place that
@@ -22,8 +23,9 @@ class RecentChannelsViewModel @Inject constructor(
 ) : ViewModel() {
 
     /**
-     * [channelId]'s picture showed: it is the channel watched last. Written off the main thread; a write
-     * that fails costs that one place in the list, and never the picture.
+     * [channelId]'s picture showed -- or the film of that id was started: it is what was watched last.
+     * Written off the main thread; a write that fails costs that one place in the list, and never the
+     * picture.
      */
     fun watched(channelId: String) {
         viewModelScope.launch {

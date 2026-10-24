@@ -145,10 +145,11 @@
     <string name="channels_recent_empty_title">Wala pang napanood na channel</string>
     <string name="channels_recent_empty_detail">Lalabas dito ang mga channel na pinapanood mo, ang pinakahuli muna.</string>
     <string name="movies_search_hint">Maghanap ng pelikula sa subscription mo</string>
-    <string name="movies_filter">I-filter</string>
     <string name="movies_all">Lahat ng pelikula</string>
     <string name="movies_favorites_empty_title">Wala pang paboritong pelikula</string>
     <string name="movies_favorites_empty_detail">Magbukas ng pelikula at pindutin ang Idagdag sa mga paborito para lumabas ito rito.</string>
+    <string name="movies_recent_empty_title">Wala pang napanood na pelikula</string>
+    <string name="movies_recent_empty_detail">Lalabas dito ang mga pelikulang pinapanood mo, ang pinakahuli muna.</string>
     <string name="movie_play">I-play ang pelikula</string>
     <string name="movie_favorite_add">Idagdag sa mga paborito</string>
     <string name="movie_favorite_remove">Alisin sa mga paborito</string>

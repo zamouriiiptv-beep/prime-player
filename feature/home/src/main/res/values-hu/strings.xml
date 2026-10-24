@@ -145,10 +145,11 @@
     <string name="channels_recent_empty_title">Még nem néztél csatornát</string>
     <string name="channels_recent_empty_detail">Itt jelennek meg a nézett csatornák, a legutóbbi elöl.</string>
     <string name="movies_search_hint">Filmek keresése az előfizetésedben</string>
-    <string name="movies_filter">Szűrő</string>
     <string name="movies_all">Összes film</string>
     <string name="movies_favorites_empty_title">Még nincsenek kedvenc filmek</string>
     <string name="movies_favorites_empty_detail">Nyiss meg egy filmet, és nyomd meg a „Kedvencekhez” gombot, hogy itt megjelenjen.</string>
+    <string name="movies_recent_empty_title">Még nem néztél filmet</string>
+    <string name="movies_recent_empty_detail">Itt jelennek meg a lejátszott filmek, a legutóbbi elöl.</string>
     <string name="movie_play">Film lejátszása</string>
     <string name="movie_favorite_add">Hozzáadás a kedvencekhez</string>
     <string name="movie_favorite_remove">Eltávolítás a kedvencek közül</string>

@@ -145,10 +145,11 @@
     <string name="channels_recent_empty_title">Ende nuk keni parë asnjë kanal</string>
     <string name="channels_recent_empty_detail">Këtu shfaqen kanalet që shikoni, më të fundit të parët.</string>
     <string name="movies_search_hint">Kërko filma në abonimin tuaj</string>
-    <string name="movies_filter">Filtro</string>
     <string name="movies_all">Të gjithë filmat</string>
     <string name="movies_favorites_empty_title">Ende pa filma të preferuar</string>
     <string name="movies_favorites_empty_detail">Hapni një film dhe shtypni «Shto te të parapëlqyerat» që të shfaqet këtu.</string>
+    <string name="movies_recent_empty_title">Ende nuk keni parë asnjë film</string>
+    <string name="movies_recent_empty_detail">Këtu shfaqen filmat që luani, më të fundit të parët.</string>
     <string name="movie_play">Luaj filmin</string>
     <string name="movie_favorite_add">Shto te të parapëlqyerat</string>
     <string name="movie_favorite_remove">Hiq nga të parapëlqyerat</string>

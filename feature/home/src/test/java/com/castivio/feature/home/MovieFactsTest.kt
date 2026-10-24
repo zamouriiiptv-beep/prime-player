@@ -1,13 +1,15 @@
 package com.castivio.feature.home
 
+import androidx.compose.ui.unit.dp
 import com.castivio.domain.Movie
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
  * What the films screen says about a film, and what it leaves unsaid: a running time in the reference's
- * form, the facts of a film in reading order, and which list the sidebar, heading and filter agree they
+ * form, the facts of a film in reading order, and which list the rail, the band and the wall agree they
  * are in.
  */
 class MovieFactsTest {
@@ -78,6 +80,12 @@ class MovieFactsTest {
         assertEquals(MovieList.Favorites, BrowseState(favorites = true, selectedGroup = "action").movieList())
     }
 
+    @Test
+    fun `the films played last are their own list, over any category`() {
+        assertEquals(MovieList.Recent, BrowseState(recent = true).movieList())
+        assertEquals(MovieList.Recent, BrowseState(recent = true, selectedGroup = "action").movieList())
+    }
+
     // ----------------------------------------------------------------------- the figure by the heading
 
     @Test
@@ -87,8 +95,46 @@ class MovieFactsTest {
     }
 
     @Test
-    fun `a search or the favourites has no count that is true, so the heading carries none`() {
+    fun `a search, the favourites or the films played last have no count that is true, so none is drawn`() {
         assertNull(BrowseState(total = 16_432, search = "dune").headingCount())
         assertNull(BrowseState(total = 16_432, favorites = true).headingCount())
+        assertNull(BrowseState(total = 16_432, recent = true).headingCount())
+    }
+
+    // ------------------------------------------------------------------------- the poster's height
+
+    @Test
+    fun `two whole rows and the top of the third show, the sliver being a small share of a poster`() {
+        val available = 500.dp
+        val rowExtra = 20.dp
+        val rowGap = 10.dp
+
+        val poster = posterHeightFor(available, rowExtra, rowGap, peek = 0.075f, floor = 80.dp)
+
+        // The third row starts after two rows of poster, extra and gap; what is left of the wall is the sliver.
+        val pitch = poster + rowExtra + rowGap
+        val sliver = available - pitch * 2
+        assertTrue(sliver.value >= poster.value * 0.07f && sliver.value <= poster.value * 0.08f)
+    }
+
+    @Test
+    fun `a surface too short for the rule still draws a poster at the floor`() {
+        assertEquals(80.dp, posterHeightFor(available = 60.dp, rowExtra = 20.dp, rowGap = 10.dp, peek = 0.075f, floor = 80.dp))
+    }
+
+    // ------------------------------------------------------------------------------- the wall's columns
+
+    @Test
+    fun `as many posters fit across as the width has room for, with a gutter between each pair`() {
+        // (800 + 10) / (100 + 10) = 7.36 -> 7
+        assertEquals(7, posterColumns(available = 800.dp, gutter = 10.dp, minimum = 100.dp))
+        // Exactly three of 100 and two gutters of 10: (320 + 10) / 110 = 3
+        assertEquals(3, posterColumns(available = 320.dp, gutter = 10.dp, minimum = 100.dp))
+    }
+
+    @Test
+    fun `a pane too narrow for two posters still draws two, which is where a wall stops reading as a list`() {
+        assertEquals(2, posterColumns(available = 90.dp, gutter = 10.dp, minimum = 100.dp))
+        assertEquals(2, posterColumns(available = 0.dp, gutter = 10.dp, minimum = 100.dp))
     }
 }

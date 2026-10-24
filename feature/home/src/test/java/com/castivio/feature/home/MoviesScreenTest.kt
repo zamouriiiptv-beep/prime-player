@@ -3,6 +3,7 @@ package com.castivio.feature.home
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -33,9 +34,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The films screen, composed with the real sidebar, controls and wall over the holder's own state: the
- * categories and their counts are listed, a press chooses one, the field searches, the Filter button opens
- * the same list as a page and a choice made there closes it, and the posters carry what the provider sent.
+ * The films screen, composed with the channels board's own band and rail over the holder's state: the band
+ * names the section and its search field narrows the films, the rail lists the categories with their totals
+ * beside the viewer's own lists, a press chooses one, and the wall carries what the provider sent.
  *
  * What the lists hold, and in what order, is `BrowseSearchTest`'s and the data layer's.
  */
@@ -91,23 +92,32 @@ class MoviesScreenTest {
         durationMinutes = minutes,
     )
 
-    // --------------------------------------------------------------------------------- the sidebar
+    // ----------------------------------------------------------------------------- the band and the rail
 
     @Test
-    fun `the sidebar lists all the films, the favourites and every category with its count`() {
+    fun `the band names the section, and its field says what it searches`() {
         show(holder())
 
-        // "All movies" is the first entry and also the heading of the list it opens on.
-        assertTrue(compose.onAllNodesWithText("All movies").fetchSemanticsNodes().size >= 1)
-        compose.onNodeWithText("Favorites").assertIsDisplayed()
-        compose.onNodeWithText("Action").assertIsDisplayed()
-        compose.onNodeWithText("2,510").assertIsDisplayed()
-        compose.onNodeWithText("Comedy").assertIsDisplayed()
-        compose.onNodeWithText("1,920").assertIsDisplayed()
+        compose.onNodeWithText("Movies").assertIsDisplayed()
+        compose.onNodeWithText("Search movies in your subscription").assertIsDisplayed()
     }
 
     @Test
-    fun `a press on a category chooses it`() {
+    fun `the rail lists the films, the viewer's own lists, and every category with its total`() {
+        show(holder())
+
+        // "All movies" is the rail's first entry and also what the band calls the list it opens on.
+        assertTrue(compose.onAllNodesWithText("All movies").fetchSemanticsNodes().size >= 1)
+        compose.onNodeWithText("Favorites").assertIsDisplayed()
+        compose.onNodeWithText("Recently Watched").assertIsDisplayed()
+        compose.onNodeWithText("Action").assertIsDisplayed()
+        compose.onNodeWithText("Total: 2,510", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Comedy").assertIsDisplayed()
+        compose.onNodeWithText("Total: 1,920", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `a press on a category chooses it, and the band names it`() {
         val model = holder()
         show(model)
 
@@ -115,6 +125,8 @@ class MoviesScreenTest {
         compose.waitForIdle()
 
         assertEquals("comedy", model.state.value.selectedGroup)
+        // The band's second line, and the rail's own entry.
+        assertTrue(compose.onAllNodesWithText("Comedy").fetchSemanticsNodes().size >= 2)
     }
 
     @Test
@@ -126,41 +138,44 @@ class MoviesScreenTest {
         compose.waitForIdle()
         assertTrue(model.state.value.favorites)
 
-        compose.onNodeWithText("All movies").performClick()
+        compose.onAllNodesWithText("All movies").onFirst().performClick()
         compose.waitForIdle()
         assertTrue(!model.state.value.favorites)
         assertEquals(null, model.state.value.selectedGroup)
     }
 
-    // ----------------------------------------------------------------------------------- the field
-
     @Test
-    fun `the field searches the films as it is typed`() {
+    fun `a press on recently watched opens the films played last`() {
         val model = holder()
         show(model)
 
-        compose.onNode(hasSetTextAction()).performTextInput("dune")
+        compose.onNodeWithText("Recently Watched").performClick()
+        compose.waitForIdle()
+
+        assertTrue(model.state.value.recent)
+        assertTrue(!model.state.value.favorites)
+    }
+
+    // ----------------------------------------------------------------------------------- the field
+
+    @Test
+    fun `the band's field searches the films as it is typed`() {
+        val model = holder()
+        show(model)
+
+        // The band's field is the first in the tree; the rail's own, which filters categories, is the second.
+        compose.onAllNodes(hasSetTextAction()).onFirst().performTextInput("dune")
         compose.waitForIdle()
 
         assertEquals("dune", model.searchText.value)
     }
 
-    // ---------------------------------------------------------------------------- the Filter page
-
     @Test
-    fun `Filter opens the categories as a page, and a choice there closes it`() {
-        val model = holder()
-        show(model)
+    fun `the wall says how many films the list holds, and the order it is in`() {
+        show(holder())
 
-        compose.onNodeWithText("Filter").performClick()
-        compose.waitForIdle()
-        // The page is the list and nothing else: the field and the wall are not on the screen.
-        assertTrue(compose.onAllNodesWithText("Sort: Provider").fetchSemanticsNodes().isEmpty())
-
-        compose.onNodeWithText("Action").performClick()
-        compose.waitForIdle()
-
-        assertEquals("action", model.state.value.selectedGroup)
+        // The count sits in the band, in brackets, beside the order: the same place as the channels' clock.
+        compose.onNodeWithText("(5)").assertIsDisplayed()
         compose.onNodeWithText("Sort: Provider").assertIsDisplayed()
     }
 

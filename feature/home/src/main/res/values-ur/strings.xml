@@ -145,10 +145,11 @@
     <string name="channels_recent_empty_title">ابھی تک کوئی چینل نہیں دیکھا گیا</string>
     <string name="channels_recent_empty_detail">آپ جو چینل دیکھتے ہیں وہ یہاں دکھائی دیں گے، تازہ ترین پہلے۔</string>
     <string name="movies_search_hint">اپنی سبسکرپشن میں فلمیں تلاش کریں</string>
-    <string name="movies_filter">فلٹر</string>
     <string name="movies_all">تمام فلمیں</string>
     <string name="movies_favorites_empty_title">ابھی کوئی پسندیدہ فلم نہیں</string>
     <string name="movies_favorites_empty_detail">کوئی فلم کھولیں اور “پسندیدہ بنائیں” دبائیں، وہ یہاں نظر آئے گی۔</string>
+    <string name="movies_recent_empty_title">ابھی تک کوئی فلم نہیں دیکھی گئی</string>
+    <string name="movies_recent_empty_detail">آپ جو فلمیں چلاتے ہیں وہ یہاں دکھائی دیں گی، تازہ ترین پہلے۔</string>
     <string name="movie_play">فلم چلائیں</string>
     <string name="movie_favorite_add">پسندیدہ بنائیں</string>
     <string name="movie_favorite_remove">پسندیدہ سے ہٹائیں</string>

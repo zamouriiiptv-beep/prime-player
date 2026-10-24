@@ -145,10 +145,11 @@
     <string name="channels_recent_empty_title">Bạn chưa xem kênh nào</string>
     <string name="channels_recent_empty_detail">Các kênh bạn xem sẽ hiện ở đây, kênh xem gần nhất ở trên cùng.</string>
     <string name="movies_search_hint">Tìm phim trong gói đăng ký của bạn</string>
-    <string name="movies_filter">Bộ lọc</string>
     <string name="movies_all">Tất cả phim</string>
     <string name="movies_favorites_empty_title">Chưa có phim yêu thích</string>
     <string name="movies_favorites_empty_detail">Mở một phim và nhấn “Yêu thích” để phim hiện ở đây.</string>
+    <string name="movies_recent_empty_title">Bạn chưa xem phim nào</string>
+    <string name="movies_recent_empty_detail">Các phim bạn phát sẽ hiện ở đây, phim xem gần nhất ở trên cùng.</string>
     <string name="movie_play">Phát phim</string>
     <string name="movie_favorite_add">Thêm vào yêu thích</string>
     <string name="movie_favorite_remove">Xóa khỏi yêu thích</string>

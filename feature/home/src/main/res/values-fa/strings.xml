@@ -145,10 +145,11 @@
     <string name="channels_recent_empty_title">هنوز کانالی تماشا نکرده‌اید</string>
     <string name="channels_recent_empty_detail">کانال‌هایی که تماشا می‌کنید اینجا نمایش داده می‌شوند، جدیدترین در ابتدا.</string>
     <string name="movies_search_hint">جستجوی فیلم در اشتراک شما</string>
-    <string name="movies_filter">فیلتر</string>
     <string name="movies_all">همه فیلم‌ها</string>
     <string name="movies_favorites_empty_title">هنوز فیلم برگزیده‌ای نیست</string>
     <string name="movies_favorites_empty_detail">یک فیلم را باز کنید و «افزودن به برگزیده‌ها» را بزنید تا اینجا نمایش داده شود.</string>
+    <string name="movies_recent_empty_title">هنوز فیلمی تماشا نکرده‌اید</string>
+    <string name="movies_recent_empty_detail">فیلم‌هایی که پخش می‌کنید اینجا نمایش داده می‌شوند، جدیدترین در ابتدا.</string>
     <string name="movie_play">پخش فیلم</string>
     <string name="movie_favorite_add">افزودن به برگزیده‌ها</string>
     <string name="movie_favorite_remove">حذف از برگزیده‌ها</string>

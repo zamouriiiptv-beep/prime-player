@@ -145,10 +145,11 @@
     <string name="channels_recent_empty_title">ยังไม่มีช่องที่ดู</string>
     <string name="channels_recent_empty_detail">ช่องที่คุณดูจะแสดงที่นี่ โดยช่องล่าสุดจะอยู่ก่อน</string>
     <string name="movies_search_hint">ค้นหาภาพยนตร์ในการสมัครของคุณ</string>
-    <string name="movies_filter">ตัวกรอง</string>
     <string name="movies_all">ภาพยนตร์ทั้งหมด</string>
     <string name="movies_favorites_empty_title">ยังไม่มีภาพยนตร์โปรด</string>
     <string name="movies_favorites_empty_detail">เปิดภาพยนตร์แล้วกด “เพิ่มรายการโปรด” ภาพยนตร์จะแสดงที่นี่</string>
+    <string name="movies_recent_empty_title">ยังไม่มีภาพยนตร์ที่ดู</string>
+    <string name="movies_recent_empty_detail">ภาพยนตร์ที่คุณเล่นจะแสดงที่นี่ โดยเรื่องล่าสุดจะอยู่ก่อน</string>
     <string name="movie_play">เล่นภาพยนตร์</string>
     <string name="movie_favorite_add">เพิ่มรายการโปรด</string>
     <string name="movie_favorite_remove">ลบออกจากรายการโปรด</string>

@@ -604,6 +604,8 @@ fun ShellScreen(
             is Overlay.Movie -> MovieScreen(
                 movie = o.movie,
                 onPlay = { selection ->
+                    // The film starts from its page, so the films' Recently watched list has it from here.
+                    recentModel.watched(o.movie.id)
                     zapping = null
                     overlay = Overlay.Play(selection.asPlayerRequest(), back = o)
                 },
