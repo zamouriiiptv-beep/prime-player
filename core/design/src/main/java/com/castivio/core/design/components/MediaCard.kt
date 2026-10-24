@@ -29,12 +29,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -106,8 +108,8 @@ fun MediaCard(
     focusScale: Float = Motion.focusScaleCard,
     /** How the poster fills its frame: cropped to it by default, or whole, letterboxed, where a film must not be cut. */
     artworkScale: ContentScale = ContentScale.Crop,
-    /** The poster's width when it is narrower than the card: centred over the title, so a 2:3 poster is drawn whole. Null fills the card. */
-    posterWidth: Dp? = null,
+    /** A fill behind the whole card, name included, with the name centred inside it. Null leaves the card bare, as every other caller has it. */
+    cardFill: Color? = null,
 ) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
@@ -144,6 +146,7 @@ fun MediaCard(
             .width(width)
             .then(modifier)
             .castivioFocusScale(focusScale, interaction)
+            .then(if (cardFill != null) Modifier.clip(cardShape).background(cardFill) else Modifier)
             .onFocusChanged { focused = it.isFocused || it.hasFocus }
             .clickable(interaction, indication = null, onClick = onClick)
             .semantics(mergeDescendants = true) {
@@ -152,7 +155,7 @@ fun MediaCard(
     ) {
         Box(
             Modifier
-                .then(if (posterWidth != null) Modifier.width(posterWidth).align(Alignment.CenterHorizontally) else Modifier.fillMaxWidth())
+                .fillMaxWidth()
                 .then(if (posterHeight != null) Modifier.height(posterHeight) else Modifier.aspectRatio(shape.ratio))
                 .clip(cardShape)
                 .background(posterPlaceholderBrush(artworkSeed))
@@ -171,12 +174,13 @@ fun MediaCard(
         }
         Text(
             title,
-            style = titleStyle,
+            style = if (cardFill != null) titleStyle.copy(textAlign = TextAlign.Center) else titleStyle,
             color = colors.onBackgroundVariant,
             maxLines = titleLines,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier
                 .padding(top = gap)
+                .then(if (cardFill != null) Modifier.fillMaxWidth().padding(start = Spacing.sm, end = Spacing.sm, bottom = gap) else Modifier)
                 .then(if (titleHeight != null) Modifier.height(titleHeight) else Modifier)
                 .clearAndSetSemantics {},
         )

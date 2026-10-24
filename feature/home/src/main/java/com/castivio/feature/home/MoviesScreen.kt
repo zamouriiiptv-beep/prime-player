@@ -274,7 +274,7 @@ private fun MoviesPane(
             val columns = posterColumns(maxWidth, m.railGap, MIN_POSTER_WIDTH).coerceAtMost(POSTER_COLUMNS)
             val poster = posterHeightFor(
                 available = maxHeight,
-                rowExtra = m.frame.fsLabel * LABEL_LINE * TITLE_LINES + m.frame.fsBody * LABEL_LINE + m.nameGap * 2,
+                rowExtra = m.frame.fsLabel * LABEL_LINE * TITLE_LINES + m.nameGap * 2,
                 rowGap = m.nameGap,
                 peek = PEEK_OF_POSTER,
                 floor = MIN_POSTER_HEIGHT,
@@ -318,7 +318,6 @@ private fun MovieWall(
             val movie = rows[index] as? Movie ?: return@items
             MediaCard(
                 title = movie.title,
-                subtitle = movie.year?.takeIf { it > 0 }?.toString(),
                 shape = CardShape.Poster,
                 artworkSeed = index,
                 onClick = { onOpenMovie(movie) },
@@ -334,14 +333,14 @@ private fun MovieWall(
                 focusBrush = focusBrush(),
                 focusScale = 1f,
                 artworkScale = ContentScale.Fit,
-                posterWidth = poster * POSTER_RATIO,
+                cardFill = CastivioTheme.colors.glassFill,
             )
         }
     }
 }
 
-/** Five posters to a row, the most the wall draws, however wide the surface is. */
-private const val POSTER_COLUMNS = 5
+/** Six posters to a row, the most the wall draws, however wide the surface is. */
+private const val POSTER_COLUMNS = 6
 
 /** The narrowest a poster may be drawn before a row of them stops reading as posters. */
 private val MIN_POSTER_WIDTH = 100.dp
@@ -354,9 +353,6 @@ private const val PEEK_OF_POSTER = 0.05f
 
 /** The title's line, as a share of its type: what the card's name takes beneath the artwork. */
 private const val LABEL_LINE = 1.4f
-
-/** A poster's width over its height: the 2:3 of a film's artwork, drawn whole. */
-private const val POSTER_RATIO = 2f / 3f
 
 /** A film's name may take two lines; a third is cut with an ellipsis, so every card's name area is the same. */
 private const val TITLE_LINES = 2
