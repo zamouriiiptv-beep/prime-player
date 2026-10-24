@@ -142,6 +142,8 @@
     <string name="channels_empty_detail">這個分類目前還是空的。換一個分類，或重新下載這個區塊。</string>
     <string name="channels_favorites_empty_title">尚無收藏的頻道</string>
     <string name="channels_favorites_empty_detail">按「加入最愛」，選擇喜歡的頻道，再按一次「加入最愛」即可加入。</string>
+    <string name="channels_recent_empty_title">尚未觀看任何頻道</string>
+    <string name="channels_recent_empty_detail">你觀看過的頻道會顯示在這裡，最近觀看的排在最前。</string>
     <string name="hide_title">隱藏分組和頻道</string>
     <string name="hide_hint">勾選要隱藏的項目，然後按「隱藏所選」。不會刪除任何內容，可在設定中還原。</string>
     <string name="hide_confirm">隱藏所選</string>

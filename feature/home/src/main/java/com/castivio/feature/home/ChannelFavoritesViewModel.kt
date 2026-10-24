@@ -9,7 +9,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -26,6 +27,21 @@ internal fun picksRemove(picked: Set<String>, favorites: Set<String>): Boolean =
 
 /** [id] picked, or -- it already was -- put back. */
 internal fun Set<String>.toggled(id: String): Set<String> = if (id in this) this - id else this + id
+
+/**
+ * These stored favourites as the board has just made them: each of [changes] -- a channel to whether it
+ * now is a favourite -- applied on top.
+ */
+internal fun Set<String>.withChanges(changes: Map<String, Boolean>): Set<String> {
+    if (changes.isEmpty()) return this
+    val added = changes.filterValues { it }.keys
+    val removed = changes.filterValues { !it }.keys
+    return this - removed + added
+}
+
+/** The [changes] the stored favourites do not show yet: one they now agree with is settled, and goes. */
+internal fun Map<String, Boolean>.unsettledBy(stored: Set<String>): Map<String, Boolean> =
+    filterNot { (id, favorite) -> (id in stored) == favorite }
 
 /**
  * Managing the favourites of the channel board in bulk: which channels are picked, which are
@@ -51,11 +67,49 @@ class ChannelFavoritesViewModel @Inject constructor(
 ) : ViewModel() {
 
     /**
+     * What this board has just marked or unmarked and the stored favourites do not show yet: a channel
+     * to whether it now is a favourite. Each entry goes when the store agrees with it, or when the write
+     * that made it fails.
+     */
+    private val ahead = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+
+    /**
      * Every favourite's id, as it changes -- the viewer's own handful, held whole so a row asks whether
      * it is one by a set lookup.
+     *
+     * **At once, not when the store gets round to saying so.** The rows' stars and the button were two
+     * reads of the same table, and on a device the stars came in up to two minutes after the button had
+     * lit. So a mark made here is shown from the press, over the stored set, and the store's own answer
+     * takes over as soon as it has one -- the button and the stars are both drawn from this.
      */
-    val ids: StateFlow<Set<String>> = favorites.ids()
+    val ids: StateFlow<Set<String>> = combine(
+        favorites.ids().onEach { stored -> ahead.update { it.unsettledBy(stored) } },
+        ahead,
+    ) { stored, changes -> stored.withChanges(changes) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(GRACE_MS), emptySet())
+
+    /**
+     * The Favourite button pressed for the channel in the picture: it is marked, or -- it was one --
+     * the mark is taken away. Shown at once; written behind it, and taken back if it cannot be.
+     */
+    fun flip(channelId: String) {
+        mark(setOf(channelId), favorite = channelId !in ids.value)
+    }
+
+    /** [channelIds] made favourites, or not: shown at once, written once, and undone on screen if it fails. */
+    private fun mark(channelIds: Set<String>, favorite: Boolean, onFailure: () -> Unit = {}) {
+        ahead.update { it + channelIds.associateWith { favorite } }
+        viewModelScope.launch {
+            try {
+                favorites.set(channelIds, favorite)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                ahead.update { it - channelIds }
+                onFailure()
+            }
+        }
+    }
 
     private val _picked = MutableStateFlow<Set<String>?>(null)
 
@@ -89,16 +143,9 @@ class ChannelFavoritesViewModel @Inject constructor(
         val picked = _picked.value ?: return
         _picked.value = null
         if (picked.isEmpty()) return
-        viewModelScope.launch {
-            try {
-                val remove = picksRemove(picked, favorites.ids().first())
-                favorites.set(picked, favorite = !remove)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _picked.value = _picked.value ?: picked
-            }
-        }
+        // Against what the board shows, which is what the button's word said it would do.
+        val remove = picksRemove(picked, ids.value)
+        mark(picked, favorite = !remove, onFailure = { _picked.value = _picked.value ?: picked })
     }
 
     private companion object {

@@ -142,6 +142,8 @@
     <string name="channels_empty_detail">Den här kategorin är tom än så länge. Prova en annan, eller hämta sektionen igen.</string>
     <string name="channels_favorites_empty_title">Inga favoritkanaler ännu</string>
     <string name="channels_favorites_empty_detail">Tryck på ”Favorit”, välj de kanaler du gillar och tryck på ”Favorit” igen för att lägga till dem.</string>
+    <string name="channels_recent_empty_title">Du har inte sett några kanaler än</string>
+    <string name="channels_recent_empty_detail">Kanalerna du tittar på visas här, de senast sedda först.</string>
     <string name="hide_title">Dölj buketter och kanaler</string>
     <string name="hide_hint">Markera vad du vill dölja och tryck på Dölj valda. Inget raderas; Inställningar återställer det.</string>
     <string name="hide_confirm">Dölj valda</string>

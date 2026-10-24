@@ -184,6 +184,22 @@ interface MediaDao {
     )
     suspend fun windowFavorites(kind: String, offset: Int, limit: Int): List<MediaEntity>
 
+    /**
+     * One window of the channels the viewer has watched, the one watched last first -- the list the rail's
+     * Recently watched entry opens. A channel's row in `playback_progress` is written each time its picture
+     * shows (see `ProgressDao.watched`), so its `updated_at` is when it was last watched. `INNER JOIN` and the
+     * active subscription's, as [windowFavorites] is; a channel the viewer hid is in no list of channels.
+     */
+    @Query(
+        """
+        SELECT m.* FROM playback_progress p
+        INNER JOIN media m ON m.id = p.media_id
+        WHERE m.source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN_M AND m.kind = :kind
+        ORDER BY p.updated_at DESC, m.id LIMIT :limit OFFSET :offset
+        """,
+    )
+    suspend fun windowRecent(kind: String, offset: Int, limit: Int): List<MediaEntity>
+
     // ------------------------------------------- where a channel stands in a list, and how long it is
     //
     // Each counts the rows that come before one in the order its window reads -- `provider_order`,
@@ -238,6 +254,16 @@ interface MediaDao {
         """,
     )
     suspend fun countNowFavorites(kind: String): Int
+
+    /** How long [windowRecent]'s list is. */
+    @Query(
+        """
+        SELECT COUNT(*) FROM playback_progress p
+        INNER JOIN media m ON m.id = p.media_id
+        WHERE m.source_id = $ACTIVE_SOURCE AND $NOT_HIDDEN_M AND m.kind = :kind
+        """,
+    )
+    suspend fun countNowRecent(kind: String): Int
 
     @Query(
         """

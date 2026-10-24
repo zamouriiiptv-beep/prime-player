@@ -142,6 +142,8 @@
     <string name="channels_empty_detail">V této kategorii zatím nic není. Zkuste jinou, nebo sekci stáhněte znovu.</string>
     <string name="channels_favorites_empty_title">Zatím žádné oblíbené kanály</string>
     <string name="channels_favorites_empty_detail">Stiskněte „Přidat k oblíbeným“, vyberte kanály, které se vám líbí, a dalším stiskem „Přidat k oblíbeným“ je přidejte.</string>
+    <string name="channels_recent_empty_title">Zatím jste nesledovali žádný kanál</string>
+    <string name="channels_recent_empty_detail">Zde se zobrazí kanály, které sledujete, naposledy sledované jako první.</string>
     <string name="hide_title">Skrýt balíčky a kanály</string>
     <string name="hide_hint">Zaškrtněte, co chcete skrýt, a stiskněte Skrýt vybrané. Nic se nemaže; Nastavení to vrátí.</string>
     <string name="hide_confirm">Skrýt vybrané</string>

@@ -142,6 +142,8 @@
     <string name="channels_empty_detail">このカテゴリーにはまだ何もありません。別のカテゴリーを試すか、セクションを再ダウンロードしてください。</string>
     <string name="channels_favorites_empty_title">お気に入りのチャンネルはまだありません</string>
     <string name="channels_favorites_empty_detail">「お気に入りに追加」を押し、好きなチャンネルを選んで、もう一度「お気に入りに追加」を押すと追加されます。</string>
+    <string name="channels_recent_empty_title">まだ視聴したチャンネルはありません</string>
+    <string name="channels_recent_empty_detail">視聴したチャンネルが新しい順にここに表示されます。</string>
     <string name="hide_title">ブーケとチャンネルを非表示</string>
     <string name="hide_hint">非表示にするものにチェックを付けて、「選択を非表示」を押してください。何も削除されず、設定から元に戻せます。</string>
     <string name="hide_confirm">選択を非表示</string>

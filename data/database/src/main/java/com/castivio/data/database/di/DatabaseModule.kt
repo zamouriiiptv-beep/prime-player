@@ -103,11 +103,17 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun hiddenItems(dao: HiddenDao): HiddenItems = RoomHiddenItems(dao)
+    fun hiddenItems(dao: HiddenDao, catalog: RoomCatalogRepository): HiddenItems =
+        // The catalogue's lists, rail and counts are told of every hide and restore -- see
+        // `RoomCatalogRepository.hiddenChanged`.
+        RoomHiddenItems(dao, onChanged = catalog::hiddenChanged)
 
     @Provides
     @Singleton
-    fun progress(dao: ProgressDao): ProgressRepository = RoomProgressRepository(dao)
+    fun progress(dao: ProgressDao, catalog: RoomCatalogRepository): ProgressRepository =
+        // The list of recent channels is told of every channel watched -- see
+        // `RoomCatalogRepository.watchedChanged`.
+        RoomProgressRepository(dao, onWatched = catalog::watchedChanged)
 
     @Provides
     @Singleton

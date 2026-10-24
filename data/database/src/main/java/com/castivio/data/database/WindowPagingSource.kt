@@ -97,5 +97,8 @@ internal class WindowPagingSource<T : Any>(
 
         /** The list of favourites: the catalogue's tables, and the favourites themselves. */
         val FAVORITE_TABLES = arrayOf("media", "source", "favorite", "hidden_item")
+
+        /** The channels watched last: the catalogue's tables, and the record of what was watched. */
+        val RECENT_TABLES = arrayOf("media", "source", "playback_progress", "hidden_item")
     }
 }

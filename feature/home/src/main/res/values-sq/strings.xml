@@ -142,6 +142,8 @@
     <string name="channels_empty_detail">Kjo kategori ende s\'ka asgjë. Provoni një tjetër, ose shkarkojeni sërish seksionin.</string>
     <string name="channels_favorites_empty_title">Ende pa kanale të preferuara</string>
     <string name="channels_favorites_empty_detail">Shtypni «Shto te të parapëlqyerat», zgjidhni kanalet që ju pëlqejnë, pastaj shtypni përsëri «Shto te të parapëlqyerat» për t’i shtuar.</string>
+    <string name="channels_recent_empty_title">Ende nuk keni parë asnjë kanal</string>
+    <string name="channels_recent_empty_detail">Këtu shfaqen kanalet që shikoni, më të fundit të parët.</string>
     <string name="hide_title">Fshih paketat dhe kanalet</string>
     <string name="hide_hint">Shëno çfarë do të fshihet, pastaj shtyp Fshih të zgjedhurat. Asgjë nuk fshihet përgjithmonë; Cilësimet e rikthejnë.</string>
     <string name="hide_confirm">Fshih të zgjedhurat</string>

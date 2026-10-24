@@ -7,6 +7,7 @@ import androidx.room.Embedded
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import com.castivio.data.database.entity.FavoriteEntity
 import com.castivio.data.database.entity.MediaEntity
 import com.castivio.data.database.entity.ProgressEntity
@@ -73,6 +74,23 @@ interface ProgressDao {
 
     @Query("SELECT * FROM playback_progress WHERE media_id = :mediaId")
     suspend fun byId(mediaId: String): ProgressEntity?
+
+    /**
+     * A live channel's picture showed at [at]: it is the one watched last. Its row says so -- made, at
+     * position 0, if it has none, which keeps it out of Continue Watching -- and a row it already has
+     * keeps its position and only takes the time. One transaction, so two pictures at once leave one row.
+     */
+    @Transaction
+    suspend fun watched(mediaId: String, at: Long) {
+        if (touch(mediaId, at) == 0) addIfAbsent(ProgressEntity(mediaId, positionMs = 0, durationMs = null, updatedAt = at))
+    }
+
+    /** How many rows took the time: 0 when [mediaId] has none yet. */
+    @Query("UPDATE playback_progress SET updated_at = :at WHERE media_id = :mediaId")
+    suspend fun touch(mediaId: String, at: Long): Int
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun addIfAbsent(progress: ProgressEntity)
 
     @Query("DELETE FROM playback_progress WHERE media_id = :mediaId")
     suspend fun clear(mediaId: String)

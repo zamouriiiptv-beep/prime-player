@@ -9,6 +9,7 @@ import com.castivio.domain.CatalogPager
 import com.castivio.domain.CatalogQuery
 import com.castivio.domain.CatalogRepository
 import com.castivio.domain.ChannelRef
+import com.castivio.domain.HiddenItems
 import com.castivio.domain.InProgressItem
 import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaItem
@@ -101,6 +102,13 @@ internal class FakeOrder : CatalogOrder {
         return moves
     }
 
+    /** Recorded as one call: the carried ids sorted, and where they were put. */
+    override suspend fun moveAllBefore(groupId: String, channelIds: Collection<String>, beforeId: String?): Boolean {
+        if (failMove) error("disk full")
+        calls += "place $groupId ${channelIds.sorted().joinToString(",")} before ${beforeId ?: "end"}"
+        return moves
+    }
+
     override suspend fun save(groupId: String) {
         if (failSave) error("disk full")
         calls += "save $groupId"
@@ -146,11 +154,13 @@ internal fun TestScope.browseBoard(
     order: FakeOrder = FakeOrder(),
     /** Held in this store when given, so a test can end the holder as the app does. */
     store: ViewModelStore? = null,
+    /** What was hidden while the board is open. */
+    hidden: HiddenItems = HiddenItems.None,
 ): Board {
     val pager = FakePager()
     val catalogue = FakeCatalogue(groups)
     val loads = SectionLoads(backgroundScope, flowOf(null), { _, _ -> emptyFlow() }, monotonicMs = { 0L })
-    val build = { BrowseViewModel(catalogue, pager, loads, FakeSources(), order) }
+    val build = { BrowseViewModel(catalogue, pager, loads, FakeSources(), order, hidden) }
     val model = if (store == null) {
         build()
     } else {

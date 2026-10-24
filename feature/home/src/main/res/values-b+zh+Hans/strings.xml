@@ -142,6 +142,8 @@
     <string name="channels_empty_detail">该分类目前还是空的。换一个分类，或重新下载该板块。</string>
     <string name="channels_favorites_empty_title">还没有收藏的频道</string>
     <string name="channels_favorites_empty_detail">按“收藏”，选择喜欢的频道，再按一次“收藏”即可添加。</string>
+    <string name="channels_recent_empty_title">还没有观看过的频道</string>
+    <string name="channels_recent_empty_detail">你观看过的频道会显示在这里，最近观看的排在最前。</string>
     <string name="hide_title">隐藏分组和频道</string>
     <string name="hide_hint">勾选要隐藏的内容，然后按“隐藏所选”。不会删除任何内容，可在设置中恢复。</string>
     <string name="hide_confirm">隐藏所选</string>

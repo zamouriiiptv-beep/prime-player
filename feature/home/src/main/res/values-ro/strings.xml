@@ -142,6 +142,8 @@
     <string name="channels_empty_detail">Această categorie nu are încă nimic. Încercați alta sau descărcați secțiunea din nou.</string>
     <string name="channels_favorites_empty_title">Încă nu există canale favorite</string>
     <string name="channels_favorites_empty_detail">Apăsați „Adaugă la favorite”, alegeți canalele care vă plac, apoi apăsați din nou „Adaugă la favorite” pentru a le adăuga.</string>
+    <string name="channels_recent_empty_title">Încă nu ați vizionat niciun canal</string>
+    <string name="channels_recent_empty_detail">Aici apar canalele pe care le vizionați, cele mai recente primele.</string>
     <string name="hide_title">Ascunde pachete și canale</string>
     <string name="hide_hint">Bifați ce doriți să ascundeți, apoi apăsați Ascunde selecția. Nu se șterge nimic; Setările le readuc.</string>
     <string name="hide_confirm">Ascunde selecția</string>

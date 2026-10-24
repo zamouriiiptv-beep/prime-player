@@ -189,6 +189,8 @@
     <string name="channels_empty_detail">هذه الباقة فارغة حتى الآن. جرّب باقة أخرى، أو حمّل القسم من جديد.</string>
     <string name="channels_favorites_empty_title">لا توجد قنوات مفضلة بعد</string>
     <string name="channels_favorites_empty_detail">اضغط «المفضلة»، ثم اختر القنوات التي تعجبك، واضغط «المفضلة» مرة أخرى لإضافتها.</string>
+    <string name="channels_recent_empty_title">لم تشاهد أي قناة بعد</string>
+    <string name="channels_recent_empty_detail">تظهر هنا القنوات التي تشاهدها، الأحدث أولًا.</string>
     <string name="hide_title">إخفاء الباقات والقنوات</string>
     <string name="hide_hint">ضع علامة على ما تريد إخفاءه ثم اضغط «إخفاء المحدد». لا يُحذف شيء، وتعيده الإعدادات.</string>
     <string name="hide_confirm">إخفاء المحدد</string>

@@ -4,10 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
+import androidx.paging.filter
 import com.castivio.domain.CatalogOrder
 import com.castivio.domain.CatalogPager
 import com.castivio.domain.CatalogQuery
 import com.castivio.domain.CatalogRepository
+import com.castivio.domain.Channel
+import com.castivio.domain.HiddenItems
+import com.castivio.domain.HiddenNow
 import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaItem
 import com.castivio.domain.ProviderSource
@@ -114,6 +118,12 @@ data class BrowseState(
      */
     val favorites: Boolean = false,
     /**
+     * The rows are the channels the viewer watched, the one watched last first -- the rail's Recently
+     * watched entry is open and nothing is typed. As for [favorites], [selectedGroup] is null and the
+     * rail lights this entry alone.
+     */
+    val recent: Boolean = false,
+    /**
      * The board is in reorder mode, or null. While it is, the rail lists the bouquets in the order
      * being set -- [shownGroups] is that order, whole, and the rail's own filter is set aside --
      * and the channels of the open bouquet are its draft. See [Arranging].
@@ -173,6 +183,8 @@ class BrowseViewModel @Inject constructor(
     private val loads: SectionLoads,
     private val sources: SourceRepository,
     private val customOrder: CatalogOrder,
+    /** What was hidden while the board is open, left out at once -- see [HiddenItems.recent]. */
+    private val hidden: HiddenItems = HiddenItems.None,
 ) : ViewModel() {
 
     private val section = MutableStateFlow(CatalogSection.Live)
@@ -184,6 +196,12 @@ class BrowseViewModel @Inject constructor(
      * leaving the favourites gives the category back, as clearing a search does.
      */
     private val favoritesOpen = MutableStateFlow(false)
+
+    /**
+     * The rail's Recently watched entry is open: the rows are the channels the viewer watched, the last
+     * first. Kept apart from [chosen] as [favoritesOpen] is, and never open with it.
+     */
+    private val recentOpen = MutableStateFlow(false)
 
     /**
      * This section's latest load. The queue owns the rules -- one load at a time, a failure
@@ -240,8 +258,12 @@ class BrowseViewModel @Inject constructor(
     /** Moves and saves are written one at a time, in the order they were pressed. */
     private val orderLock = Mutex()
 
+    // A bouquet hidden from this board leaves the rail on the press, not when the store has been written
+    // and read again -- see [HiddenItems.recent].
     private val groups: Flow<List<MediaGroup>> =
-        section.flatMapLatest { catalog.groups(it.kind) }
+        combine(section.flatMapLatest { catalog.groups(it.kind) }, hidden.recent) { stored, gone ->
+            if (gone.bouquets.isEmpty()) stored else stored.filterNot { it.id in gone.bouquets }
+        }
 
     /**
      * The query the rows are read with.
@@ -260,16 +282,18 @@ class BrowseViewModel @Inject constructor(
             chosen,
             groups,
             order,
-            combine(term, arrangement.map { it?.channelsOf }, favoritesOpen) { search, arranged, favorites ->
-                Triple(search, arranged, favorites)
+            combine(term, arrangement.map { it?.channelsOf }, favoritesOpen, recentOpen) { search, arranged, favorites, recent ->
+                Narrowing(search, arranged, favorites, recent)
             },
         ) { current, selected, available, sort, narrowing ->
-            val (search, arrangedGroup, favoritesAsked) = narrowing
+            val (search, arrangedGroup, favoritesAsked, recentAsked) = narrowing
             // **The favourites are a list of their own, and a search is of the whole section.** They are
             // asked for only while nothing is typed and the board is not being arranged, and then no
-            // category is: the rows are the viewer's channels from every bouquet.
+            // category is: the rows are the viewer's channels from every bouquet. The channels watched
+            // last are the same kind of list, asked for the same way.
             val favorites = favoritesAsked && search.isEmpty() && arrangedGroup == null
-            val groupId = if (search.isEmpty() && !favorites) surviving(selected, available) else null
+            val recent = recentAsked && !favorites && search.isEmpty() && arrangedGroup == null
+            val groupId = if (search.isEmpty() && !favorites && !recent) surviving(selected, available) else null
             CatalogQuery(
                 kind = current.kind,
                 // **A search is of the whole section.** A viewer who types a name wants the
@@ -283,6 +307,7 @@ class BrowseViewModel @Inject constructor(
                 search = search,
                 arranging = groupId != null && groupId == arrangedGroup,
                 favorites = favorites,
+                recent = recent,
             )
         }.distinctUntilChanged()
 
@@ -331,6 +356,7 @@ class BrowseViewModel @Inject constructor(
             shownGroups = arranged?.let { listed.arrangedAs(it.bouquets) } ?: listed.filtered(filter),
             search = asked.search,
             favorites = asked.favorites,
+            recent = asked.recent,
             arranging = arranged,
             noCategories = saysNoCategories(listed, run?.load),
             firstLoad = run.isFirstLoad(),
@@ -373,9 +399,17 @@ class BrowseViewModel @Inject constructor(
         }
     }
 
-    /** Channels, films and episodes. Empty for [CatalogSection.Series], which pages shows. */
+    /**
+     * Channels, films and episodes. Empty for [CatalogSection.Series], which pages shows.
+     *
+     * A channel hidden from this board -- by itself, or with its bouquet -- leaves the rows on the press:
+     * filtered from the cached pages here, while the store is written and its lists read again behind it.
+     * Filtered after [cachedIn], which is what lets the same pages be filtered again as more is hidden.
+     */
     val items: Flow<PagingData<MediaItem>> =
-        query.flatMapLatest(pager::items).cachedIn(viewModelScope)
+        combine(query.flatMapLatest(pager::items).cachedIn(viewModelScope), hidden.recent) { rows, gone ->
+            rows.filter { item -> !gone.hides(item) }
+        }
 
     /** Shows, aggregated by SQL from their episodes — never by grouping rows here. */
     val shows: Flow<PagingData<SeriesSummary>> =
@@ -395,6 +429,7 @@ class BrowseViewModel @Inject constructor(
             section.value = current
             chosen.value = null
             favoritesOpen.value = false
+            recentOpen.value = false
             userChose = false
             typed.value = ""
         }
@@ -437,6 +472,7 @@ class BrowseViewModel @Inject constructor(
         userChose = true
         chosen.value = groupId
         favoritesOpen.value = false
+        recentOpen.value = false
         typed.value = ""
     }
 
@@ -449,6 +485,20 @@ class BrowseViewModel @Inject constructor(
         if (arrangement.value != null) return
         userChose = true
         favoritesOpen.value = true
+        recentOpen.value = false
+        typed.value = ""
+    }
+
+    /**
+     * The rail's Recently watched entry: the rows become the channels the viewer watched, from every
+     * category, the one watched last first -- and a channel watched while it is open goes to its top. As
+     * [openFavorites], it ends a search that was on and is not available in reorder mode.
+     */
+    fun openRecent() {
+        if (arrangement.value != null) return
+        userChose = true
+        recentOpen.value = true
+        favoritesOpen.value = false
         typed.value = ""
     }
 
@@ -471,8 +521,9 @@ class BrowseViewModel @Inject constructor(
         val group = surviving(chosen.value, now.groups)
         typed.value = ""
         // The favourites are not a list that can be arranged: the mode opens on the category that was
-        // chosen before them, or on "all".
+        // chosen before them, or on "all". Nor are the channels watched last.
         favoritesOpen.value = false
+        recentOpen.value = false
         starting = true
         viewModelScope.launch {
             try {
@@ -505,6 +556,34 @@ class BrowseViewModel @Inject constructor(
         val now = arrangement.value ?: return
         if (row is Held.Channel && now.channelsOf == null) return
         arrangement.value = now.markedToggled(row)
+    }
+
+    /**
+     * The channels carried -- the one picked up, or the ticked ones with it -- put together before
+     * [beforeId], or at the end of the bouquet when it is null, in the order they stood among themselves.
+     * What a thumb does by dragging them and letting go: any place in one act, the first included. They
+     * stay picked up, so the arrows -- or another drag -- can go on from there; a press puts them down.
+     * Let go on one of themselves, nothing moves.
+     */
+    fun placeHeld(beforeId: String?) {
+        val now = arrangement.value ?: return
+        if (now.held !is Held.Channel) return
+        val group = now.channelsOf ?: return
+        val carried = now.carried.map { it.id }
+        if (beforeId != null && beforeId in carried) return
+        viewModelScope.launch {
+            try {
+                orderLock.withLock {
+                    if (customOrder.moveAllBefore(group, carried, beforeId)) {
+                        arrangement.value = arrangement.value?.copy(channelsMoved = true)
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                arrangement.value = arrangement.value?.copy(failed = true)
+            }
+        }
     }
 
     /** Put down whatever is held -- the whole group, if it carries one. */
@@ -653,7 +732,19 @@ private fun List<MediaGroup>.filtered(typed: String): List<MediaGroup> {
     return filter { it.name.lowercase(Locale.ROOT).contains(lowered) }
 }
 
+/** A row this leaves out: a channel hidden by itself or with its bouquet. Films and episodes are never hidden here. */
+internal fun HiddenNow.hides(item: MediaItem): Boolean =
+    item is Channel && hidesChannel(item.id, item.groupId)
+
 /** What [BrowseViewModel.state] reads beside the section's own flows, in one value. */
+/** What narrows the rows besides the category: the search, the bouquet being arranged, and the two lists of the viewer's own. */
+private data class Narrowing(
+    val search: String,
+    val arranged: String?,
+    val favorites: Boolean,
+    val recent: Boolean,
+)
+
 private data class Surroundings(
     val provider: ProviderSource?,
     val run: SectionRun?,

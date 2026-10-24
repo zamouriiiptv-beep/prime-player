@@ -295,4 +295,113 @@ class HiddenItemsTest {
 
         assertEquals(5, sectionCount())
     }
+
+    // ------------------------------------------------------------ the lists are told, not left to Room
+
+    @Test
+    fun `every hide and every restore tells the catalogue, so its lists read again`() = runBlocking {
+        var told = 0
+        val hidden = RoomHiddenItems(database.hiddenDao(), clock = { 1_000L }, onChanged = { told++ })
+
+        hidden.hide(HiddenKind.CHANNEL, listOf(idOf("Sport Gamma")))
+        hidden.hide(HiddenKind.BOUQUET, listOf(groupId("News")))
+        hidden.restoreAll(HiddenKind.CHANNEL)
+
+        assertEquals(3, told)
+    }
+
+    @Test
+    fun `nothing to hide is no write, and tells nobody`() = runBlocking {
+        var told = 0
+        val hidden = RoomHiddenItems(database.hiddenDao(), clock = { 1_000L }, onChanged = { told++ })
+
+        hidden.hide(HiddenKind.CHANNEL, emptyList())
+
+        assertEquals(0, told)
+    }
+
+    @Test
+    fun `a channel hidden through the module's wiring is gone from its bouquet's list, and only it`() = runBlocking {
+        val catalogue = repository()
+        val hidden = RoomHiddenItems(database.hiddenDao(), clock = { 1_000L }, onChanged = catalogue::hiddenChanged)
+
+        hidden.hide(HiddenKind.CHANNEL, listOf(idOf("Sport Gamma")))
+
+        assertEquals(
+            listOf("Sport Alpha", "Sport Delta"),
+            catalogue.window(sports(), offset = 0, limit = 100).items.map { it.title },
+        )
+        assertEquals(listOf("Sports", "News"), catalogue.groups(MediaKind.LIVE).first().map { it.name })
+    }
+
+    @Test
+    fun `a bouquet hidden through the module's wiring takes every one of its channels with it`() = runBlocking {
+        val catalogue = repository()
+        val hidden = RoomHiddenItems(database.hiddenDao(), clock = { 1_000L }, onChanged = catalogue::hiddenChanged)
+
+        hidden.hide(HiddenKind.BOUQUET, listOf(groupId("Sports")))
+
+        assertEquals(
+            listOf("News Beta", "News Epsilon"),
+            catalogue.window(whole, offset = 0, limit = 100).items.map { it.title },
+        )
+        assertEquals(listOf("News"), catalogue.groups(MediaKind.LIVE).first().map { it.name })
+    }
+
+    @Test
+    fun `the count of what is hidden is read again after each write`() = runBlocking {
+        val hidden = hidden()
+
+        hidden.hide(HiddenKind.CHANNEL, listOf(idOf("Sport Gamma"), idOf("News Beta")))
+
+        assertEquals(2, hidden.count(HiddenKind.CHANNEL).first())
+        hidden.restoreAll(HiddenKind.CHANNEL)
+        assertEquals(0, hidden.count(HiddenKind.CHANNEL).first())
+    }
+
+    // ------------------------------------------------------------- shown gone at once, written behind
+
+    @Test
+    fun `what is hidden is in the recent set from the press, and stays when it is written`() = runBlocking {
+        val hidden = hidden()
+
+        hidden.hide(HiddenKind.CHANNEL, listOf(idOf("Sport Gamma")))
+        hidden.hide(HiddenKind.BOUQUET, listOf(groupId("News")))
+
+        assertEquals(setOf(idOf("Sport Gamma")), hidden.recent.value.channels)
+        assertEquals(setOf(groupId("News")), hidden.recent.value.bouquets)
+    }
+
+    @Test
+    fun `a restore takes its kind out of the recent set, and leaves the other`() = runBlocking {
+        val hidden = hidden()
+        hidden.hide(HiddenKind.CHANNEL, listOf(idOf("Sport Gamma")))
+        hidden.hide(HiddenKind.BOUQUET, listOf(groupId("News")))
+
+        hidden.restoreAll(HiddenKind.CHANNEL)
+
+        assertEquals(emptySet<String>(), hidden.recent.value.channels)
+        assertEquals(setOf(groupId("News")), hidden.recent.value.bouquets)
+    }
+
+    @Test
+    fun `a write that fails gives back what it was to hide`() = runBlocking {
+        val broken = object : com.castivio.data.database.dao.HiddenDao {
+            override suspend fun addAll(items: List<com.castivio.data.database.entity.HiddenEntity>) {
+                error("disk full")
+            }
+            override suspend fun clear(type: String) = Unit
+            override fun count(type: String) = kotlinx.coroutines.flow.flowOf(0)
+            override fun channelsByGroup() =
+                kotlinx.coroutines.flow.flowOf(emptyList<com.castivio.data.database.dao.HiddenInGroup>())
+        }
+        var told = 0
+        val hidden = RoomHiddenItems(broken, clock = { 1_000L }, onChanged = { told++ })
+
+        val failed = runCatching { hidden.hide(HiddenKind.CHANNEL, listOf("c1")) }
+
+        assertEquals(true, failed.isFailure)
+        assertEquals(emptySet<String>(), hidden.recent.value.channels)
+        assertEquals("nothing was written, so no list is told", 0, told)
+    }
 }

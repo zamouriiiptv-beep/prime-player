@@ -430,12 +430,6 @@ class ChannelsViewModel @Inject constructor(
     }
 
 
-    /** The blue key, and the star in the row. Returns nothing: the flow reports the result. */
-    fun toggleFavorite() {
-        val channel = _selected.value ?: return
-        viewModelScope.launch { favorites.toggle(channel.id) }
-    }
-
     // `internal` rather than private: `ChannelsGuideTest` asserts the throttle against this
     // constant rather than against a copy of the number, so the two cannot drift apart.
     internal companion object {

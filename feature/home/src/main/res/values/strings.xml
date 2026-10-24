@@ -282,6 +282,8 @@
     <string name="channels_empty_detail">This category has nothing in it yet. Try another, or download the section again.</string>
     <string name="channels_favorites_empty_title">No favourite channels yet</string>
     <string name="channels_favorites_empty_detail">Press Favourite, pick the channels you like, then press Favourite again to add them.</string>
+    <string name="channels_recent_empty_title">No channels watched yet</string>
+    <string name="channels_recent_empty_detail">The channels you watch appear here, the most recent first.</string>
     <string name="hide_title">Hide bouquets and channels</string>
     <string name="hide_hint">Tick what to hide, then press Hide selected. Nothing is deleted; Settings brings it back.</string>
     <string name="hide_confirm">Hide selected</string>

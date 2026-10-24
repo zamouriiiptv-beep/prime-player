@@ -220,6 +220,166 @@ class GroupOrderTest {
         assertEquals(provider, titles(arranging = true))
     }
 
+    // ------------------------------------------------------------------ a dragged group, let go
+
+    @Test
+    fun `a dragged group goes to the very top, in the order it stood`() = runBlocking {
+        val repository = repository()
+        repository.begin(groupId())
+
+        assertTrue(repository.moveAllBefore(groupId(), ids(2, 4), beforeId = idOf("Channel 0")))
+
+        assertEquals(channels(2, 4, 0, 1, 3, 5), titles(arranging = true))
+    }
+
+    @Test
+    fun `a dragged group goes to the end when it is let go after every channel`() = runBlocking {
+        val repository = repository()
+        repository.begin(groupId())
+
+        assertTrue(repository.moveAllBefore(groupId(), ids(0, 3), beforeId = null))
+
+        assertEquals(channels(1, 2, 4, 5, 0, 3), titles(arranging = true))
+    }
+
+    @Test
+    fun `a dragged group goes between two channels`() = runBlocking {
+        val repository = repository()
+        repository.begin(groupId())
+
+        assertTrue(repository.moveAllBefore(groupId(), ids(0, 5), beforeId = idOf("Channel 3")))
+
+        assertEquals(channels(1, 2, 0, 5, 3, 4), titles(arranging = true))
+    }
+
+    @Test
+    fun `a dragged group keeps the order it stood in, whatever order the ids come in`() = runBlocking {
+        val repository = repository()
+        repository.begin(groupId())
+
+        assertTrue(repository.moveAllBefore(groupId(), ids(4, 1), beforeId = idOf("Channel 0")))
+
+        assertEquals(channels(1, 4, 0, 2, 3, 5), titles(arranging = true))
+    }
+
+    @Test
+    fun `a single channel dragged goes exactly where it is let go`() = runBlocking {
+        val repository = repository()
+        repository.begin(groupId())
+
+        assertTrue(repository.moveAllBefore(groupId(), ids(5), beforeId = idOf("Channel 1")))
+
+        assertEquals(channels(0, 5, 1, 2, 3, 4), titles(arranging = true))
+    }
+
+    @Test
+    fun `the channels a drag does not carry keep their order among themselves`() = runBlocking {
+        val repository = repository()
+        repository.begin(groupId())
+
+        repository.moveAllBefore(groupId(), ids(1, 4), beforeId = idOf("Channel 0"))
+        repository.moveAllBefore(groupId(), ids(1, 4), beforeId = null)
+        repository.moveAllBefore(groupId(), ids(1, 4), beforeId = idOf("Channel 3"))
+
+        assertEquals(channels(0, 2, 3, 5), titles(arranging = true).filterNot { it in channels(1, 4) })
+        assertEquals(channels(0, 2, 1, 4, 3, 5), titles(arranging = true))
+    }
+
+    @Test
+    fun `let go on one of its own channels, the group does not move`() = runBlocking {
+        val repository = repository()
+        repository.begin(groupId())
+
+        assertFalse(repository.moveAllBefore(groupId(), ids(2, 4), beforeId = idOf("Channel 4")))
+
+        assertEquals(provider, titles(arranging = true))
+    }
+
+    @Test
+    fun `a place outside the bouquet, or a group with nothing in it, moves nothing`() = runBlocking {
+        val repository = repository()
+        repository.begin(groupId())
+
+        // Channel 6 is News's: not a place in Sports.
+        assertFalse(repository.moveAllBefore(groupId(), ids(1), beforeId = idOf("Channel 6")))
+        assertFalse(repository.moveAllBefore(groupId(), ids(1), beforeId = "no-such-channel"))
+        assertFalse(repository.moveAllBefore(groupId(), listOf("no-such-channel"), beforeId = null))
+        assertFalse(repository.moveAllBefore(groupId(), emptyList(), beforeId = idOf("Channel 0")))
+
+        assertEquals(provider, titles(arranging = true))
+    }
+
+    @Test
+    fun `no two channels share a place after a drag`() = runBlocking {
+        val repository = repository()
+        repository.begin(groupId())
+
+        repository.moveAllBefore(groupId(), ids(3, 5), beforeId = idOf("Channel 0"))
+        repository.moveAllBefore(groupId(), ids(0), beforeId = null)
+        repository.moveAllBefore(groupId(), ids(2, 3, 4), beforeId = idOf("Channel 5"))
+
+        val places = runBlocking {
+            ids(0, 1, 2, 3, 4, 5).map { database.orderDao().positionOf(OrderScopes.draft(groupId()), it) }
+        }
+        assertTrue(places.all { it != null })
+        assertEquals(provider.size, places.toSet().size)
+        assertEquals(provider.toSet(), titles(arranging = true).toSet())
+    }
+
+    @Test
+    fun `the arrows go on from where a drag left the group`() = runBlocking {
+        val repository = repository()
+        repository.begin(groupId())
+        repository.moveAllBefore(groupId(), ids(4, 5), beforeId = idOf("Channel 0"))
+
+        assertTrue(repository.moveAll(groupId(), ids(4, 5), up = false))
+        assertEquals(channels(0, 4, 5, 1, 2, 3), titles(arranging = true))
+
+        assertTrue(repository.move(groupId(), idOf("Channel 1"), up = true))
+        assertEquals(channels(0, 4, 1, 5, 2, 3), titles(arranging = true))
+    }
+
+    @Test
+    fun `a drag is a draft until it is saved, and saving keeps it`() = runBlocking {
+        val repository = repository()
+        repository.begin(groupId())
+
+        repository.moveAllBefore(groupId(), ids(3, 5), beforeId = idOf("Channel 0"))
+        assertEquals(provider, titles())
+
+        repository.save(groupId())
+        assertEquals(channels(3, 5, 0, 1, 2, 4), titles())
+        assertFalse(database.orderDao().has(OrderScopes.draft(groupId())))
+    }
+
+    @Test
+    fun `cancelling a drag puts back the order there was`() = runBlocking {
+        val repository = repository()
+        repository.begin(groupId())
+        repository.moveAllBefore(groupId(), ids(5), beforeId = idOf("Channel 2"))
+        repository.save(groupId())
+        val before = titles()
+
+        repository.begin(groupId())
+        repository.moveAllBefore(groupId(), ids(0, 1), beforeId = null)
+        repository.discard(groupId())
+
+        assertEquals(before, titles())
+        assertEquals(channels(0, 1, 5, 2, 3, 4), before)
+    }
+
+    @Test
+    fun `a drag in one bouquet leaves another bouquet alone`() = runBlocking {
+        val repository = repository()
+        repository.begin(groupId())
+
+        repository.moveAllBefore(groupId(), ids(4, 5), beforeId = idOf("Channel 0"))
+        repository.save(groupId())
+
+        assertEquals(channels(6, 7), titles(name = "News"))
+        assertFalse(database.orderDao().has(OrderScopes.channels(groupId("News"))))
+    }
+
     // ---------------------------------------------------------------- drafts, saving, cancelling
 
     @Test

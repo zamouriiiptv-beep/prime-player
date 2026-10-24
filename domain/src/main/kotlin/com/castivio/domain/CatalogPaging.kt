@@ -38,6 +38,12 @@ data class CatalogQuery(
      * nothing else, and the order is the one every other list of channels is read in.
      */
     val favorites: Boolean = false,
+    /**
+     * Only the channels the viewer has watched, the one watched last first -- the list the rail's
+     * Recently watched entry opens; see [ProgressRepository.watched]. Like [favorites], a list of its own:
+     * no [groupId], [search] or [arranging], and never asked for with [favorites].
+     */
+    val recent: Boolean = false,
 )
 
 /**

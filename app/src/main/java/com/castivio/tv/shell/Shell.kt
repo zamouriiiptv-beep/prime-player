@@ -91,8 +91,10 @@ import com.castivio.feature.home.HomeScreen
 import com.castivio.feature.home.PinPrompt
 import com.castivio.feature.home.PinPurpose
 import com.castivio.feature.home.R as CatalogStrings
+import com.castivio.feature.home.RecentChannelsViewModel
 import com.castivio.feature.home.ShowScreen
 import com.castivio.feature.home.asSelection
+import com.castivio.feature.home.watchedChannel
 import com.castivio.feature.licence.R as LicenceStrings
 import com.castivio.feature.player.PlayerMode
 import com.castivio.feature.player.PlayerRequest
@@ -365,6 +367,27 @@ fun ShellScreen(
         zapping = selection.mediaId?.let { Zapping(request, it, selection.listed) }
     }
 
+    // **Making the small picture large is opening its channel, and a locked one asks first.**
+    //
+    // Both ways there come through here -- a press on the picture, and a second press on its row in
+    // the list -- and both made it large with nothing asked, so a channel locked while it was in the
+    // picture opened full size at the next press. Now the password is asked as for any press on a
+    // locked channel, and the picture grows only once it is given. Asked here and not in the board as
+    // well, so one press is never two questions.
+    val expandPreview: (PlayerRequest) -> Unit = { request ->
+        val id = zapping?.takeIf { it.request == request }?.channelId
+        val open = { overlay = Overlay.Play(request) }
+        when (pressVerdictFor(live = true, channelId = id, known = lockModel.locked.value)) {
+            PressVerdict.Start -> open()
+            PressVerdict.Ask -> { asking = ShellPin(PinPurpose.Play) { open() } }
+            PressVerdict.Wait -> {
+                scope.launch {
+                    if (id != null && lockModel.isLocked(id)) asking = ShellPin(PinPurpose.Play) { open() } else open()
+                }
+            }
+        }
+    }
+
     // **The channel keys of the large player: the channel after this one, and the one before.**
     //
     // The player says a key was pressed -- see `PlayerRoute.onChannelStep` -- and this is the one
@@ -418,6 +441,15 @@ fun ShellScreen(
         zapping?.moved?.let { board.select(it.channel, it.position + 1) }
     }
 
+    // **A live channel is watched once its picture shows, and recorded then** -- for the rail's Recently
+    // watched entry. In the plate, in the large player, by the channel keys and from a search alike: each is
+    // `zapping` here, and the player says when its picture is drawn. Not on the press: a channel that never
+    // drew was not watched. Keyed by the channel, so one picture is one record, and a channel watched again
+    // after another is recorded again and goes back to the top.
+    val recentModel: RecentChannelsViewModel = hiltViewModel()
+    val watchedId = watchedChannel(zapping?.channelId, zapping?.request?.url, pulse)
+    LaunchedEffect(watchedId) { watchedId?.let(recentModel::watched) }
+
     // The compact player, or nothing.
     //
     // Withheld while the expanded shape is up -- see `livePreview`. Also withheld off the
@@ -431,7 +463,8 @@ fun ShellScreen(
                     mode = PlayerMode.Compact,
                     // The press that makes it the large player, carrying the same request
                     // -- which is what the view model recognises and declines to reopen.
-                    onExpand = { overlay = Overlay.Play(playing) },
+                    // A locked channel's password first -- see `expandPreview`.
+                    onExpand = { expandPreview(playing) },
                     onLeave = { livePreview = null },
                     // Asked as the plate goes away, and it has two questions to separate,
                     // not one. Leaving the board removes this composition in the same pass
@@ -506,7 +539,7 @@ fun ShellScreen(
                         // declines to reopen, so expanding moves the surface and leaves the
                         // decoder alone. Guarded here and not in the board: the request is what
                         // decides whether there is anything to expand, and the shell holds it.
-                        onExpand = { livePreview?.let { overlay = Overlay.Play(it) } },
+                        onExpand = { livePreview?.let(expandPreview) },
                         // Read only while a player exists to be playing it: a stream that was
                         // playing when the plate went away has no one left to say it stopped.
                         pulse = pulse.takeIf { livePreview != null || overlay is Overlay.Play },

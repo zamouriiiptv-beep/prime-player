@@ -45,6 +45,13 @@ interface ProgressRepository {
 
     suspend fun progress(mediaId: String): PlaybackProgress?
 
+    /**
+     * A live channel was watched: its picture showed, now. It goes to the top of the channels the rail's
+     * Recently watched entry lists, and a channel watched before only moves there. Not a position -- a
+     * live channel has none to resume -- so it is never in Continue Watching.
+     */
+    suspend fun watched(mediaId: String)
+
     /** Removing an item from Continue Watching is a user action, not a side effect. */
     suspend fun clear(mediaId: String)
 

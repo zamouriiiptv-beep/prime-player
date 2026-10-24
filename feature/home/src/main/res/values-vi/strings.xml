@@ -142,6 +142,8 @@
     <string name="channels_empty_detail">Danh mục này chưa có gì. Hãy thử danh mục khác, hoặc tải lại mục này.</string>
     <string name="channels_favorites_empty_title">Chưa có kênh yêu thích</string>
     <string name="channels_favorites_empty_detail">Nhấn “Yêu thích”, chọn các kênh bạn thích, rồi nhấn “Yêu thích” lần nữa để thêm.</string>
+    <string name="channels_recent_empty_title">Bạn chưa xem kênh nào</string>
+    <string name="channels_recent_empty_detail">Các kênh bạn xem sẽ hiện ở đây, kênh xem gần nhất ở trên cùng.</string>
     <string name="hide_title">Ẩn gói và kênh</string>
     <string name="hide_hint">Đánh dấu mục cần ẩn rồi nhấn “Ẩn mục đã chọn”. Không có gì bị xóa; Cài đặt sẽ khôi phục.</string>
     <string name="hide_confirm">Ẩn mục đã chọn</string>

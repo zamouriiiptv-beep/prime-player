@@ -142,6 +142,8 @@
     <string name="channels_empty_detail">Cette catégorie est encore vide. Essayez-en une autre, ou téléchargez de nouveau la section.</string>
     <string name="channels_favorites_empty_title">Aucune chaîne favorite pour l’instant</string>
     <string name="channels_favorites_empty_detail">Appuyez sur « Favori », choisissez les chaînes qui vous plaisent, puis appuyez de nouveau sur « Favori » pour les ajouter.</string>
+    <string name="channels_recent_empty_title">Aucune chaîne regardée pour l’instant</string>
+    <string name="channels_recent_empty_detail">Les chaînes que vous regardez s’affichent ici, les plus récentes en premier.</string>
     <string name="hide_title">Masquer des bouquets et des chaînes</string>
     <string name="hide_hint">Cochez ce que vous voulez masquer, puis appuyez sur Masquer la sélection. Rien n’est supprimé ; les Réglages le rétablissent.</string>
     <string name="hide_confirm">Masquer la sélection</string>

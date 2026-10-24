@@ -43,6 +43,15 @@ interface CatalogOrder {
     suspend fun moveAll(groupId: String, channelIds: Collection<String>, up: Boolean): Boolean =
         channelIds.fold(false) { moved, id -> move(groupId, id, up) || moved }
 
+    /**
+     * Every one of [channelIds] put together before [beforeId] in the draft of [groupId] -- after every
+     * other channel when [beforeId] is null -- in the order they stood among themselves. Any place in the
+     * bouquet in one act, the first included: what a thumb dragging the channels carried does on letting
+     * go. No other channel changes order. False when nothing was placed -- [beforeId] is one of them, or
+     * not in the bouquet.
+     */
+    suspend fun moveAllBefore(groupId: String, channelIds: Collection<String>, beforeId: String?): Boolean
+
     /** The draft becomes [groupId]'s order. */
     suspend fun save(groupId: String)
 

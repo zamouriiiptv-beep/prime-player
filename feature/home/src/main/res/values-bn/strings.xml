@@ -142,6 +142,8 @@
     <string name="channels_empty_detail">এই বিভাগে এখনও কিছু নেই। অন্যটি দেখুন, অথবা বিভাগটি আবার ডাউনলোড করুন।</string>
     <string name="channels_favorites_empty_title">এখনও কোনো প্রিয় চ্যানেল নেই</string>
     <string name="channels_favorites_empty_detail">“প্রিয় করুন” চাপুন, পছন্দের চ্যানেলগুলো বেছে নিন, তারপর যোগ করতে আবার “প্রিয় করুন” চাপুন।</string>
+    <string name="channels_recent_empty_title">এখনও কোনো চ্যানেল দেখা হয়নি</string>
+    <string name="channels_recent_empty_detail">আপনি যে চ্যানেলগুলো দেখেন সেগুলো এখানে দেখাবে, সবচেয়ে সাম্প্রতিকটি প্রথমে।</string>
     <string name="hide_title">বুকেট ও চ্যানেল লুকান</string>
     <string name="hide_hint">যা লুকাতে চান তাতে টিক দিন, তারপর “নির্বাচিত লুকান” চাপুন। কিছুই মোছা হয় না; সেটিংসে ফিরিয়ে আনা যায়।</string>
     <string name="hide_confirm">নির্বাচিত লুকান</string>

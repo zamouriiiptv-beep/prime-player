@@ -142,6 +142,8 @@
     <string name="channels_empty_detail">این دسته هنوز چیزی ندارد. دستهٔ دیگری را بیازمایید، یا این بخش را دوباره دانلود کنید.</string>
     <string name="channels_favorites_empty_title">هنوز کانال موردعلاقه‌ای نیست</string>
     <string name="channels_favorites_empty_detail">«برگزیده» را بزنید، کانال‌های دلخواه را انتخاب کنید و برای افزودن دوباره «برگزیده» را بزنید.</string>
+    <string name="channels_recent_empty_title">هنوز کانالی تماشا نکرده‌اید</string>
+    <string name="channels_recent_empty_detail">کانال‌هایی که تماشا می‌کنید اینجا نمایش داده می‌شوند، جدیدترین در ابتدا.</string>
     <string name="hide_title">پنهان کردن بسته‌ها و کانال‌ها</string>
     <string name="hide_hint">مواردی را که می‌خواهید پنهان شوند علامت بزنید و «پنهان‌کردن انتخاب‌شده‌ها» را بزنید. چیزی حذف نمی‌شود و از تنظیمات برمی‌گردد.</string>
     <string name="hide_confirm">پنهان‌کردن انتخاب‌شده‌ها</string>

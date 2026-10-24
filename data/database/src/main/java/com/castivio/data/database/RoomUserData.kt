@@ -44,6 +44,12 @@ class RoomFavoritesRepository(
 
 class RoomProgressRepository(
     private val dao: ProgressDao,
+    /**
+     * Told after a channel was recorded as watched, so the list of recent channels is read again by the
+     * write itself -- Room's notice did not reach the lists on a device; see `RoomCatalogRepository`.
+     * Before [clock], so a test's trailing lambda is still the clock.
+     */
+    private val onWatched: () -> Unit = {},
     private val clock: () -> Long = System::currentTimeMillis,
 ) : ProgressRepository {
 
@@ -67,6 +73,11 @@ class RoomProgressRepository(
     }
 
     override suspend fun progress(mediaId: String): PlaybackProgress? = dao.byId(mediaId)?.toDomain()
+
+    override suspend fun watched(mediaId: String) {
+        dao.watched(mediaId, clock())
+        onWatched()
+    }
 
     override suspend fun clear(mediaId: String) = dao.clear(mediaId)
 

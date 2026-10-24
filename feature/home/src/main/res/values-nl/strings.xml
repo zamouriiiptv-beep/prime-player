@@ -142,6 +142,8 @@
     <string name="channels_empty_detail">Deze categorie is nog leeg. Probeer een andere, of download de sectie opnieuw.</string>
     <string name="channels_favorites_empty_title">Nog geen favoriete zenders</string>
     <string name="channels_favorites_empty_detail">Druk op ‘Favoriet’, kies de zenders die je leuk vindt en druk nogmaals op ‘Favoriet’ om ze toe te voegen.</string>
+    <string name="channels_recent_empty_title">Nog geen zenders bekeken</string>
+    <string name="channels_recent_empty_detail">Hier verschijnen de zenders die je bekijkt, de laatst bekeken eerst.</string>
     <string name="hide_title">Boeketten en zenders verbergen</string>
     <string name="hide_hint">Vink aan wat je wilt verbergen en druk op Selectie verbergen. Er wordt niets verwijderd; Instellingen zet het terug.</string>
     <string name="hide_confirm">Selectie verbergen</string>

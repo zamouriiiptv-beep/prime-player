@@ -103,6 +103,48 @@ class RoomCatalogRepository(
         return source
     }
 
+    /**
+     * **What the viewer hides is told to its readers by the write that hides it**, for the reason the
+     * orders are -- see [orderWrites]. `hidden_item` was left to Room's notice, and on a device a channel
+     * ticked and hidden from the board stayed in its list: hidden in the database, and never read again.
+     * Every list this class pages is in [listReaders]; [hiddenChanged] reads them, the rail and the counts
+     * again. Room's own notice, where it comes, only reads once more what this already read.
+     */
+    private val hiddenWrites = MutableStateFlow(0L)
+    private val listReaders = CopyOnWriteArraySet<PagingSource<*, *>>()
+
+    /** Something was hidden, or brought back: every list, the rail and the counts are read again. */
+    internal fun hiddenChanged() {
+        hiddenWrites.update { it + 1 }
+        listReaders.forEach { it.invalidate() }
+    }
+
+    /** [source] is a list of the catalogue: told when something in it is hidden or brought back. */
+    private fun <S : PagingSource<*, *>> readingLists(source: S): S {
+        listReaders += source
+        source.registerInvalidatedCallback { listReaders -= source }
+        return source
+    }
+
+    /**
+     * **What was watched is told to the list of recent channels by the write that records it**, for the
+     * reason the orders and the hidden are -- see [orderWrites]. Only that list: a channel watched changes
+     * no other, and every list read again on every press would be work for nothing.
+     */
+    private val recentReaders = CopyOnWriteArraySet<PagingSource<*, *>>()
+
+    /** A channel was recorded as watched: the list of recent channels is read again. */
+    internal fun watchedChanged() {
+        recentReaders.forEach { it.invalidate() }
+    }
+
+    /** [source] reads the channels watched last: told when another is watched. */
+    private fun <S : PagingSource<*, *>> readingRecent(source: S): S {
+        recentReaders += source
+        source.registerInvalidatedCallback { recentReaders -= source }
+        return source
+    }
+
     // ------------------------------------------------------------- CatalogRepository
 
     /**
@@ -112,13 +154,14 @@ class RoomCatalogRepository(
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun groups(kind: MediaKind): Flow<List<MediaGroup>> =
         combine(
-            groupDao.groupsOf(kind.name),
+            // Read again after every hide and every restore -- see [hiddenWrites].
+            hiddenWrites.flatMapLatest { groupDao.groupsOf(kind.name) },
             // Read again after every write to an order -- see [orderWrites].
             orderWrites.flatMapLatest { orderDao.positions(OrderScopes.bouquets(kind)) },
             // The channels hidden one by one: a bouquet's stored count is what the provider filed under
             // it, and the rail's is what the viewer can see -- so a bouquet whose channels are all hidden
             // reads empty, and is left out of the rail as an empty one is.
-            hiddenDao.channelsByGroup(),
+            hiddenWrites.flatMapLatest { hiddenDao.channelsByGroup() },
         ) { rows, saved, hidden ->
             val hiddenIn = hidden.associate { it.groupId to it.hidden }
             rows.map { row ->
@@ -179,8 +222,12 @@ class RoomCatalogRepository(
         }
     }
 
+    /** Read again after every hide and every restore -- see [hiddenWrites]. */
+    @OptIn(ExperimentalCoroutinesApi::class)
     override fun count(kind: MediaKind, groupId: String?): Flow<Int> =
-        if (groupId == null) mediaDao.countOf(kind.name) else mediaDao.countOfGroup(kind.name, groupId)
+        hiddenWrites.flatMapLatest {
+            if (groupId == null) mediaDao.countOf(kind.name) else mediaDao.countOfGroup(kind.name, groupId)
+        }
 
     // -------------------------------------------------------------------- CatalogPager
 
@@ -196,6 +243,18 @@ class RoomCatalogRepository(
                     database.queryExecutor,
                     WindowPagingSource.FAVORITE_TABLES,
                 ) { offset, limit -> rowsOf(query, null, offset, limit) }
+            }.map { data -> data.map { it.toDomain() } }
+        }
+        // The channels watched, the last first: read again when another is watched -- see [watchedChanged].
+        if (query.recent) {
+            return pager {
+                readingRecent(
+                    WindowPagingSource(
+                        database.invalidationTracker,
+                        database.queryExecutor,
+                        WindowPagingSource.RECENT_TABLES,
+                    ) { offset, limit -> rowsOf(query, null, offset, limit) },
+                )
             }.map { data -> data.map { it.toDomain() } }
         }
         // Nothing searchable is no search, as for [search]: the list, not an empty one.
@@ -245,6 +304,7 @@ class RoomCatalogRepository(
         val kind = query.kind.name
         val group = query.groupId
         if (query.favorites) return mediaDao.windowFavorites(kind, offset, limit)
+        if (query.recent) return mediaDao.windowRecent(kind, offset, limit)
         if (match != null) {
             return if (group == null) mediaDao.windowMatching(match, kind, offset, limit)
             else mediaDao.windowMatchingInGroup(match, kind, group, offset, limit)
@@ -266,6 +326,7 @@ class RoomCatalogRepository(
         val group = query.groupId
         val total = when {
             query.favorites -> mediaDao.countNowFavorites(kind)
+            query.recent -> mediaDao.countNowRecent(kind)
             match != null ->
                 if (group == null) mediaDao.countMatching(match, kind)
                 else mediaDao.countMatchingInGroup(match, kind, group)
@@ -277,6 +338,10 @@ class RoomCatalogRepository(
     }
 
     override suspend fun rank(query: CatalogQuery, channelId: String): Int? {
+        // The channels watched last have no place to step from: each one stepped to is watched, and goes
+        // first, so the next step would come back. The keys step through the channel's own bouquet instead
+        // -- see `ChannelZapViewModel.step`, which reads a null here as "not in this list".
+        if (query.recent) return null
         val match = FtsQuery.build(query.search)
         if (match == null && query.sort != SortOrder.PROVIDER) return null
         val me = mediaDao.byId(channelId) ?: return null
@@ -335,6 +400,11 @@ class RoomCatalogRepository(
 
     override suspend fun moveAll(groupId: String, channelIds: Collection<String>, up: Boolean): Boolean =
         orderDao.moveAll(groupId, OrderScopes.draft(groupId), channelIds.toList(), up).also { moved ->
+            if (moved) ordersChanged()
+        }
+
+    override suspend fun moveAllBefore(groupId: String, channelIds: Collection<String>, beforeId: String?): Boolean =
+        orderDao.placeBefore(OrderScopes.draft(groupId), channelIds.toList(), beforeId).also { moved ->
             if (moved) ordersChanged()
         }
 
@@ -403,8 +473,9 @@ class RoomCatalogRepository(
      * The `onEach` observes; it changes no page, no size and no ordering. `PagingConfig`
      * below is untouched.
      */
+    // Every list it pages is told of what is hidden -- see [hiddenWrites].
     private fun <T : Any> pager(source: () -> androidx.paging.PagingSource<Int, T>) =
-        rawPager(source).onEach {
+        rawPager { readingLists(source()) }.onEach {
             if (firstPageSeen.compareAndSet(false, true)) {
                 CastivioTrace.instant(CastivioTrace.FIRST_PAGE)
             }

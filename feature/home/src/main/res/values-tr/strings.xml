@@ -142,6 +142,8 @@
     <string name="channels_empty_detail">Bu kategoride henüz bir şey yok. Başka birini deneyin ya da bölümü yeniden indirin.</string>
     <string name="channels_favorites_empty_title">Henüz favori kanal yok</string>
     <string name="channels_favorites_empty_detail">“Favorilere ekle” düğmesine basın, beğendiğiniz kanalları seçin ve eklemek için “Favorilere ekle” düğmesine tekrar basın.</string>
+    <string name="channels_recent_empty_title">Henüz izlenen kanal yok</string>
+    <string name="channels_recent_empty_detail">İzlediğiniz kanallar burada görünür; en son izlenen en üstte.</string>
     <string name="hide_title">Paketleri ve kanalları gizle</string>
     <string name="hide_hint">Gizlemek istediklerinizi işaretleyin, ardından Seçilenleri gizle düğmesine basın. Hiçbir şey silinmez; Ayarlar geri getirir.</string>
     <string name="hide_confirm">Seçilenleri gizle</string>

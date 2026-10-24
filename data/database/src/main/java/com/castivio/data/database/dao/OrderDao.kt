@@ -124,6 +124,34 @@ interface OrderDao {
     }
 
     /**
+     * Every one of [channelIds] put together before [beforeId] in the draft -- or after every other, when
+     * it is null -- in the order they stood among themselves: the group a thumb dragged and let go.
+     *
+     * The channels from [beforeId] on that are not of the group move down to make room, and the group
+     * takes the places that opens, so no two share a place and no other channel changes order. Atomic,
+     * and read from the database like [move]. False when nothing was placed: no channel of the group is in
+     * the draft, or [beforeId] is not, or is one of the group itself.
+     */
+    @Transaction
+    suspend fun placeBefore(draft: String, channelIds: List<String>, beforeId: String?): Boolean {
+        if (beforeId != null && beforeId in channelIds) return false
+        val placed = channelIds.mapNotNull { id -> positionOf(draft, id)?.let { id to it } }
+            .sortedBy { it.second }
+            .map { it.first }
+        if (placed.isEmpty()) return false
+        val at = if (beforeId == null) after(draft) else positionOf(draft, beforeId) ?: return false
+        // The group's own channels move down with the rest, and are then given their places: no list of
+        // them goes into the query, so a group of any size is one statement.
+        makeRoom(draft, from = at, by = placed.size.toLong())
+        placed.forEachIndexed { index, id -> place(draft, id, at + index) }
+        return true
+    }
+
+    /** Every place of [scope] from [from] on, [by] further down. */
+    @Query("UPDATE custom_order SET position = position + :by WHERE scope = :scope AND position >= :from")
+    suspend fun makeRoom(scope: String, from: Long, by: Long)
+
+    /**
      * The nearest place below [position] in this list. Only rows of channels the bouquet still
      * has: a channel the provider took away is not a place anyone can see.
      */

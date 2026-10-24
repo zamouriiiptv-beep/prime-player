@@ -142,6 +142,8 @@
     <string name="channels_empty_detail">Ta kategoria jest jeszcze pusta. Spróbuj innej albo pobierz sekcję ponownie.</string>
     <string name="channels_favorites_empty_title">Brak ulubionych kanałów</string>
     <string name="channels_favorites_empty_detail">Naciśnij „Ulubiony”, wybierz kanały, które lubisz, i naciśnij „Ulubiony” ponownie, aby je dodać.</string>
+    <string name="channels_recent_empty_title">Nie oglądano jeszcze żadnego kanału</string>
+    <string name="channels_recent_empty_detail">Tutaj pojawią się oglądane kanały, od najnowszych.</string>
     <string name="hide_title">Ukryj pakiety i kanały</string>
     <string name="hide_hint">Zaznacz, co ukryć, i naciśnij Ukryj zaznaczone. Nic nie jest usuwane; Ustawienia to przywracają.</string>
     <string name="hide_confirm">Ukryj zaznaczone</string>

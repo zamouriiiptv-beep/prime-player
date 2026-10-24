@@ -8,6 +8,7 @@ import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -62,6 +63,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -69,13 +71,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -84,6 +89,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -240,7 +246,7 @@ fun ChannelsScreen(
     LaunchedEffect(Unit) { model.show(CatalogSection.Live) }
 
     val state by model.state.collectAsStateWithLifecycle()
-    val shown by previewModel.preview.collectAsStateWithLifecycle()
+    val previewed by previewModel.preview.collectAsStateWithLifecycle()
     // Collected here and not inside the overlay, so the page's state survives the
     // overlay being closed and re-opened on the same channel: a second look costs no
     // query at all, which is what makes the store the cache.
@@ -269,12 +275,20 @@ fun ChannelsScreen(
     val favoriteIds by favoritesModel.ids.collectAsStateWithLifecycle()
     val picked by favoritesModel.picked.collectAsStateWithLifecycle()
     BackHandler(enabled = picked != null) { favoritesModel.cancel() }
-    val favorites = remember(favoriteIds, picked) {
+
+    // **The button and the stars say the same thing at the same moment.** The well's own flag was a
+    // second read of the favourites, which lit the button long before the row's star came in; both are
+    // drawn from [ChannelFavoritesViewModel.ids] now, which shows a press at once.
+    val shown = remember(previewed, favoriteIds) {
+        previewed.copy(favorite = previewed.channel?.id?.let { it in favoriteIds } == true)
+    }
+    val shownId = shown.channel?.id
+    val favorites = remember(favoriteIds, picked, shownId) {
         FavoritesUi(
             ids = favoriteIds,
             picked = picked,
             toggle = favoritesModel::toggle,
-            press = { if (picked == null) previewModel.toggleFavorite() else favoritesModel.apply() },
+            press = { if (picked == null) shownId?.let(favoritesModel::flip) else favoritesModel.apply() },
             hold = { if (picked == null) favoritesModel.begin() },
         )
     }
@@ -316,8 +330,9 @@ fun ChannelsScreen(
     // first and starts only when it is given -- from the list, and from a search that narrowed the
     // list, which are the same rows. The strip's Lock button asks as well: to lock the channel in the
     // well, and, when it is already locked, to open it. Nothing is asked of a channel that is not
-    // locked, and nothing is asked of the second press on the one that is already in the picture --
-    // that press makes the picture large and starts nothing.
+    // locked. The second press on the one that is already in the picture makes the picture large and
+    // starts nothing, and the shell asks for the password before it does when that channel is locked --
+    // see `expandPreview` there.
     val lockedIds by lockModel.locked.collectAsStateWithLifecycle()
     var asking by remember { mutableStateOf<PinAsk?>(null) }
     val scope = rememberCoroutineScope()
@@ -340,6 +355,8 @@ fun ChannelsScreen(
                         sort = latestState.sort,
                         search = latestState.search,
                         favorites = latestState.favorites,
+                        // The keys step through the channel's own bouquet from here -- see `rank` for why.
+                        recent = latestState.recent,
                     )
                     channel.asSelection()?.copy(listed = list)?.let(latestPlay)
                     Unit
@@ -589,7 +606,13 @@ private fun BoardHeader(
                 )
                 Text(
                     text = state.selectedGroup?.let { state.categoryNames[it] }
-                        ?: stringResource(if (state.favorites) R.string.channels_favorites else R.string.channels_all_rail),
+                        ?: stringResource(
+                            when {
+                                state.favorites -> R.string.channels_favorites
+                                state.recent -> R.string.channels_recent
+                                else -> R.string.channels_all_rail
+                            },
+                        ),
                     style = castivioBodyStyle(m.frame.fsBody * LEGEND_OF_BODY),
                     color = colors.onBackgroundVariant,
                     maxLines = 1,
@@ -1104,6 +1127,7 @@ private fun Columns(
                     onMove = model::moveHeld,
                     onMark = model::mark,
                     onFavorites = model::openFavorites,
+                    onRecent = model::openRecent,
                     hider = hider,
                     modifier = Modifier.width(m.rail).fillMaxHeight(),
                 )
@@ -1135,6 +1159,7 @@ private fun Columns(
                     onPress = model::press,
                     onMove = model::moveHeld,
                     onMark = model::mark,
+                    onPlace = model::placeHeld,
                     onShowAll = { model.choose(null) },
                     modifier = Modifier
                         .weight(1f)
@@ -1235,6 +1260,8 @@ internal fun CategoryRail(
     onMark: (Held) -> Unit = {},
     /** The Favourites entry: list the viewer's favourite channels. */
     onFavorites: () -> Unit = {},
+    /** The Recently watched entry: list the channels the viewer watched, the last first. */
+    onRecent: () -> Unit = {},
     /** Choosing bouquets to hide: each entry is ticked by a press, and opens nothing. */
     hider: HidingUi = HidingUi.None,
 ) {
@@ -1279,7 +1306,7 @@ internal fun CategoryRail(
                     count = null,
                     // Not while the favourites are open: they also have no category, and two entries
                     // lit for one list is not an answer to "which list is this".
-                    selected = state.selectedGroup == null && !state.favorites,
+                    selected = state.selectedGroup == null && !state.favorites && !state.recent,
                     m = m,
                     onClick = { onChoose(null) },
                 )
@@ -1299,10 +1326,14 @@ internal fun CategoryRail(
             if (!modal) item(key = RAIL_RECENT) {
                 RailEntry(
                     label = stringResource(R.string.channels_recent),
+                    // No count, as for the favourites: the entry is one line tall like the others that are
+                    // not bouquets.
                     count = null,
-                    selected = false,
+                    // It opened nothing: its press was empty, and nothing recorded what was watched. The rows
+                    // are now the channels whose picture showed, the last first -- see `RecentChannelsViewModel`.
+                    selected = state.recent,
                     m = m,
-                    onClick = { },
+                    onClick = onRecent,
                 )
             }
 
@@ -1572,6 +1603,8 @@ private fun ChannelList(
     onMove: (up: Boolean) -> Unit,
     /** A long press, or OK held, on a row in reorder mode: tick it to be moved with the others that are. */
     onMark: (Held) -> Unit,
+    /** The channels carried let go by a thumb: put before this channel, or -- null -- at the end. */
+    onPlace: (beforeId: String?) -> Unit,
     /** The list of favourites has nothing in it: leave it for the whole section. */
     onShowAll: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1612,6 +1645,7 @@ private fun ChannelList(
                     onClearSearch = onClearSearch,
                     onRefresh = rows::refresh,
                     favorites = state.favorites,
+                    recent = state.recent,
                     onShowAll = onShowAll,
                 )
             }
@@ -1634,9 +1668,69 @@ private fun ChannelList(
                 .collect { index -> listState.keepInView(index) }
         }
 
+        // A thumb drags the channels carried -- the one picked up, or the ticked ones with it -- and lets
+        // them go anywhere in the bouquet; the arrows still move them a place at a time, and a remote has
+        // only those. Where the finger is while it drags, and null when it is not dragging.
+        var dragY by remember { mutableStateOf<Float?>(null) }
+        val canDrag = mode?.channelsOf != null && mode.held is Held.Channel
+        val carriedIds: Set<String> = remember(mode) { mode?.carried.orEmpty().mapTo(HashSet()) { it.id } }
+        val density = LocalDensity.current
+        val lineColor = colors.focusRing
+        // Held near the top or the bottom, the list scrolls under the finger, so a place off screen --
+        // the first of the bouquet included -- can be reached in one drag. Only the start and the end of a
+        // drag are read here: the finger's every move would otherwise recompose the list.
+        val dragAt by remember { derivedStateOf { dragY != null } }
+        LaunchedEffect(listState, dragAt) {
+            if (!dragAt) return@LaunchedEffect
+            val edge = with(density) { DragEdge.toPx() }
+            val fastest = with(density) { DragScrollFastest.toPx() }
+            while (true) {
+                withFrameNanos { }
+                val y = dragY ?: break
+                val step = edgeScrollStep(y, listState.layoutInfo.viewportSize.height.toFloat(), edge, fastest)
+                if (step != 0f) listState.scrollBy(step)
+            }
+        }
+
         LazyColumn(
             state = listState,
-            modifier = Modifier.fillMaxSize().padding(m.wellPad / 2),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(m.wellPad / 2)
+                .dragToPlace(
+                    listState = listState,
+                    enabled = canDrag,
+                    carried = { index -> rows.peek(index)?.id?.let { it in carriedIds } == true },
+                    onMove = { dragY = it },
+                    onDrop = { index ->
+                        val target = dropTarget(
+                            index = index,
+                            count = rows.itemCount,
+                            idAt = { rows.peek(it)?.id },
+                            carried = carriedIds,
+                            complete = rows.loadState.append.endOfPaginationReached,
+                        )
+                        when (target) {
+                            is DropTarget.Before -> onPlace(target.id)
+                            DropTarget.End -> onPlace(null)
+                            null -> Unit
+                        }
+                    },
+                )
+                // The line that says where they will go, drawn while the finger drags. Read at draw, so a
+                // move of the finger redraws the line and recomposes nothing.
+                .drawWithContent {
+                    drawContent()
+                    val y = dragY ?: return@drawWithContent
+                    val shown = listState.shownRows()
+                    val at = dropIndexAt(shown, y)?.let { dropLineAt(shown, it) } ?: return@drawWithContent
+                    drawLine(
+                        color = lineColor,
+                        start = Offset(0f, at.toFloat()),
+                        end = Offset(size.width, at.toFloat()),
+                        strokeWidth = DropLine.toPx(),
+                    )
+                },
             contentPadding = PaddingValues(bottom = m.wellPad),
         ) {
             items(rows.itemCount, key = rows.itemKey { it.id }) { index ->
@@ -1720,7 +1814,9 @@ internal fun ChannelListEmpty(
     onRefresh: () -> Unit,
     /** The list is the viewer's favourites, and none is marked yet. */
     favorites: Boolean = false,
-    /** What the favourites' empty state offers: the whole section. */
+    /** The list is the channels watched last, and none has been watched yet. */
+    recent: Boolean = false,
+    /** What the favourites' -- and the recent channels' -- empty state offers: the whole section. */
     onShowAll: () -> Unit = {},
 ) {
     when {
@@ -1736,6 +1832,13 @@ internal fun ChannelListEmpty(
         favorites -> EmptyState(
             title = stringResource(R.string.channels_favorites_empty_title),
             detail = stringResource(R.string.channels_favorites_empty_detail),
+            actionLabel = stringResource(R.string.channels_all_rail),
+            onAction = onShowAll,
+        )
+        // Nothing watched yet is not "no channels" either: said so, and the one action is the whole section.
+        recent -> EmptyState(
+            title = stringResource(R.string.channels_recent_empty_title),
+            detail = stringResource(R.string.channels_recent_empty_detail),
             actionLabel = stringResource(R.string.channels_all_rail),
             onAction = onShowAll,
         )
