@@ -144,6 +144,14 @@
     <string name="channels_favorites_empty_detail">Prima «Favorito», escolha os canais de que gosta e prima «Favorito» novamente para os adicionar.</string>
     <string name="channels_recent_empty_title">Ainda não viu nenhum canal</string>
     <string name="channels_recent_empty_detail">Os canais que vê aparecem aqui, os mais recentes primeiro.</string>
+    <string name="movies_search_hint">Pesquisar filmes na sua subscrição</string>
+    <string name="movies_filter">Filtrar</string>
+    <string name="movies_all">Todos os filmes</string>
+    <string name="movies_favorites_empty_title">Ainda não há filmes favoritos</string>
+    <string name="movies_favorites_empty_detail">Abra um filme e prima «Adicionar aos favoritos» para o ver aqui.</string>
+    <string name="movie_play">Reproduzir filme</string>
+    <string name="movie_favorite_add">Adicionar aos favoritos</string>
+    <string name="movie_favorite_remove">Remover dos favoritos</string>
     <string name="hide_title">Ocultar pacotes e canais</string>
     <string name="hide_hint">Assinale o que quer ocultar e prima Ocultar selecionados. Nada é apagado; as Definições restauram.</string>
     <string name="hide_confirm">Ocultar selecionados</string>

@@ -144,6 +144,14 @@
     <string name="channels_favorites_empty_detail">Toque em “Favorito”, escolha os canais de que gosta e toque em “Favorito” de novo para adicioná-los.</string>
     <string name="channels_recent_empty_title">Nenhum canal assistido ainda</string>
     <string name="channels_recent_empty_detail">Os canais assistidos aparecem aqui, os mais recentes primeiro.</string>
+    <string name="movies_search_hint">Buscar filmes na sua assinatura</string>
+    <string name="movies_filter">Filtrar</string>
+    <string name="movies_all">Todos os filmes</string>
+    <string name="movies_favorites_empty_title">Ainda não há filmes favoritos</string>
+    <string name="movies_favorites_empty_detail">Abra um filme e toque em “Adicionar aos favoritos” para ele aparecer aqui.</string>
+    <string name="movie_play">Reproduzir filme</string>
+    <string name="movie_favorite_add">Adicionar aos favoritos</string>
+    <string name="movie_favorite_remove">Remover dos favoritos</string>
     <string name="hide_title">Ocultar pacotes e canais</string>
     <string name="hide_hint">Marque o que quer ocultar e toque em Ocultar selecionados. Nada é apagado; as Configurações restauram.</string>
     <string name="hide_confirm">Ocultar selecionados</string>

@@ -35,6 +35,8 @@ data class Movie(
     val year: Int? = null,
     val durationMinutes: Int? = null,
     val genres: List<String> = emptyList(),
+    /** The category the provider filed it under: what a film's page names it by. Null for a film in none. */
+    val groupId: String? = null,
 ) : MediaItem
 
 data class Series(

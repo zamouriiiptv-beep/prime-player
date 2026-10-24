@@ -349,7 +349,7 @@ private fun Pane(
 
 /** A section that did not arrive, and whether asking again is worth anything. */
 @Composable
-private fun FetchFailed(section: CatalogSection, fetch: SectionLoad.Failed, onRetry: () -> Unit) {
+internal fun FetchFailed(section: CatalogSection, fetch: SectionLoad.Failed, onRetry: () -> Unit) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         ErrorState(
             title = stringResource(R.string.browse_fetch_failed, stringResource(section.label)),
@@ -397,11 +397,15 @@ private fun Content(
 
 /** Skeletons, an explained emptiness, or the caller's rows — in that order. */
 @Composable
-private fun <T : Any> Paged(
+internal fun <T : Any> Paged(
     paged: LazyPagingItems<T>,
     section: CatalogSection,
     state: BrowseState,
     m: CatalogMetrics,
+    /** What the empty state offers a viewer who is in the favourites: the whole section. */
+    onShowAll: () -> Unit = {},
+    /** What it offers one whose search found nothing: the section as it was. */
+    onClearSearch: () -> Unit = {},
     rows: @Composable () -> Unit,
 ) {
     // The instant this screen first has something a viewer can act on -- the metric
@@ -430,7 +434,13 @@ private fun <T : Any> Paged(
         paged.loadState.refresh is LoadState.Loading -> LoadingRows(m)
 
         else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            SectionEmpty(section = section, state = state, onRetry = paged::refresh)
+            SectionEmpty(
+                section = section,
+                state = state,
+                onRetry = paged::refresh,
+                onShowAll = onShowAll,
+                onClearSearch = onClearSearch,
+            )
         }
     }
 }
@@ -564,7 +574,33 @@ private fun ShowGrid(
  * a user who is told the second one stops looking for the first.
  */
 @Composable
-private fun SectionEmpty(section: CatalogSection, state: BrowseState, onRetry: () -> Unit) {
+private fun SectionEmpty(
+    section: CatalogSection,
+    state: BrowseState,
+    onRetry: () -> Unit,
+    onShowAll: () -> Unit,
+    onClearSearch: () -> Unit,
+) {
+    // A search that matched nothing, and a favourites list with nothing in it, are neither of them an empty
+    // provider: each says what it is, and offers the one way back to the list it narrowed.
+    if (state.search.isNotEmpty()) {
+        EmptyState(
+            title = stringResource(R.string.search_none_title, state.search),
+            detail = stringResource(R.string.search_none_detail),
+            actionLabel = stringResource(R.string.search_clear),
+            onAction = onClearSearch,
+        )
+        return
+    }
+    if (state.favorites) {
+        EmptyState(
+            title = stringResource(R.string.movies_favorites_empty_title),
+            detail = stringResource(R.string.movies_favorites_empty_detail),
+            actionLabel = stringResource(R.string.movies_all),
+            onAction = onShowAll,
+        )
+        return
+    }
     val reason = if (state.selectedGroup != null) {
         EmptyReason.CATEGORY_EMPTY
     } else {
@@ -615,7 +651,7 @@ internal fun SortOrder.next(): SortOrder = when (this) {
 }
 
 /** How an order reads on the chip. */
-private val SortOrder.label: Int
+internal val SortOrder.label: Int
     get() = when (this) {
         SortOrder.PROVIDER -> R.string.browse_sort_provider
         SortOrder.NAME_ASC -> R.string.browse_sort_name_asc

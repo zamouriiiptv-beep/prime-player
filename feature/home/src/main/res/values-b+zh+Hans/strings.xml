@@ -144,6 +144,14 @@
     <string name="channels_favorites_empty_detail">按“收藏”，选择喜欢的频道，再按一次“收藏”即可添加。</string>
     <string name="channels_recent_empty_title">还没有观看过的频道</string>
     <string name="channels_recent_empty_detail">你观看过的频道会显示在这里，最近观看的排在最前。</string>
+    <string name="movies_search_hint">在你的订阅中搜索电影</string>
+    <string name="movies_filter">筛选</string>
+    <string name="movies_all">全部电影</string>
+    <string name="movies_favorites_empty_title">还没有收藏的电影</string>
+    <string name="movies_favorites_empty_detail">打开一部电影并点击“加入收藏”，它就会出现在这里。</string>
+    <string name="movie_play">播放电影</string>
+    <string name="movie_favorite_add">加入收藏</string>
+    <string name="movie_favorite_remove">取消收藏</string>
     <string name="hide_title">隐藏分组和频道</string>
     <string name="hide_hint">勾选要隐藏的内容，然后按“隐藏所选”。不会删除任何内容，可在设置中恢复。</string>
     <string name="hide_confirm">隐藏所选</string>

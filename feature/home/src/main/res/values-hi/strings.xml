@@ -144,6 +144,14 @@
     <string name="channels_favorites_empty_detail">“पसंदीदा” दबाएँ, अपने पसंदीदा चैनल चुनें, फिर उन्हें जोड़ने के लिए दोबारा “पसंदीदा” दबाएँ।</string>
     <string name="channels_recent_empty_title">अभी तक कोई चैनल नहीं देखा गया</string>
     <string name="channels_recent_empty_detail">आप जो चैनल देखते हैं वे यहाँ दिखेंगे, सबसे हाल का सबसे पहले।</string>
+    <string name="movies_search_hint">अपने सब्सक्रिप्शन में फ़िल्में खोजें</string>
+    <string name="movies_filter">फ़िल्टर</string>
+    <string name="movies_all">सभी फ़िल्में</string>
+    <string name="movies_favorites_empty_title">अभी तक कोई पसंदीदा फ़िल्म नहीं</string>
+    <string name="movies_favorites_empty_detail">कोई फ़िल्म खोलें और “पसंदीदा में जोड़ें” दबाएँ, वह यहाँ दिखेगी।</string>
+    <string name="movie_play">फ़िल्म चलाएँ</string>
+    <string name="movie_favorite_add">पसंदीदा में जोड़ें</string>
+    <string name="movie_favorite_remove">पसंदीदा से हटाएँ</string>
     <string name="hide_title">बुके और चैनल छिपाएँ</string>
     <string name="hide_hint">जो छिपाना है उस पर निशान लगाएँ, फिर “चुने हुए छिपाएँ” दबाएँ। कुछ भी हटाया नहीं जाता; सेटिंग्स में वापस लाया जा सकता है।</string>
     <string name="hide_confirm">चुने हुए छिपाएँ</string>

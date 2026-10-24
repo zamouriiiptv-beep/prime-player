@@ -144,6 +144,14 @@
     <string name="channels_favorites_empty_detail">Drücke „Favorit“, wähle die Sender aus, die dir gefallen, und drücke „Favorit“ noch einmal, um sie hinzuzufügen.</string>
     <string name="channels_recent_empty_title">Noch keine Sender gesehen</string>
     <string name="channels_recent_empty_detail">Hier erscheinen die Sender, die du ansiehst – die zuletzt gesehenen zuerst.</string>
+    <string name="movies_search_hint">Filme in deinem Abo suchen</string>
+    <string name="movies_filter">Filtern</string>
+    <string name="movies_all">Alle Filme</string>
+    <string name="movies_favorites_empty_title">Noch keine Lieblingsfilme</string>
+    <string name="movies_favorites_empty_detail">Öffne einen Film und drücke „Zu Favoriten“, damit er hier erscheint.</string>
+    <string name="movie_play">Film abspielen</string>
+    <string name="movie_favorite_add">Zu Favoriten hinzufügen</string>
+    <string name="movie_favorite_remove">Aus Favoriten entfernen</string>
     <string name="hide_title">Bouquets und Sender ausblenden</string>
     <string name="hide_hint">Markiere, was du ausblenden möchtest, und drücke dann Auswahl ausblenden. Nichts wird gelöscht; die Einstellungen stellen es wieder her.</string>
     <string name="hide_confirm">Auswahl ausblenden</string>

@@ -144,6 +144,14 @@
     <string name="channels_favorites_empty_detail">“Favorilere ekle” düğmesine basın, beğendiğiniz kanalları seçin ve eklemek için “Favorilere ekle” düğmesine tekrar basın.</string>
     <string name="channels_recent_empty_title">Henüz izlenen kanal yok</string>
     <string name="channels_recent_empty_detail">İzlediğiniz kanallar burada görünür; en son izlenen en üstte.</string>
+    <string name="movies_search_hint">Aboneliğinizde film arayın</string>
+    <string name="movies_filter">Filtre</string>
+    <string name="movies_all">Tüm filmler</string>
+    <string name="movies_favorites_empty_title">Henüz favori film yok</string>
+    <string name="movies_favorites_empty_detail">Bir filmi açın ve burada görünmesi için “Favorilere ekle” düğmesine basın.</string>
+    <string name="movie_play">Filmi oynat</string>
+    <string name="movie_favorite_add">Favorilere ekle</string>
+    <string name="movie_favorite_remove">Favorilerden kaldır</string>
     <string name="hide_title">Paketleri ve kanalları gizle</string>
     <string name="hide_hint">Gizlemek istediklerinizi işaretleyin, ardından Seçilenleri gizle düğmesine basın. Hiçbir şey silinmez; Ayarlar geri getirir.</string>
     <string name="hide_confirm">Seçilenleri gizle</string>

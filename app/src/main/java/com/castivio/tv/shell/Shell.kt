@@ -88,6 +88,8 @@ import com.castivio.feature.home.ChannelZapViewModel
 import com.castivio.feature.home.ChannelsScreen
 import com.castivio.feature.home.ChannelsViewModel
 import com.castivio.feature.home.HomeScreen
+import com.castivio.feature.home.MovieScreen
+import com.castivio.feature.home.MoviesScreen
 import com.castivio.feature.home.PinPrompt
 import com.castivio.feature.home.PinPurpose
 import com.castivio.feature.home.R as CatalogStrings
@@ -139,8 +141,17 @@ private sealed interface Overlay {
     /** One show's seasons. Series rows are not streams, so a press has to land here. */
     data class Show(val show: SeriesSummary) : Overlay
 
-    /** A real stream, with everything the engine is allowed to be given. */
-    data class Play(val request: PlayerRequest) : Overlay
+    /** One film's page: what a press on a poster opens, and where Back out of its player returns to. */
+    data class Movie(val movie: com.castivio.domain.Movie) : Overlay
+
+    /**
+     * A real stream, with everything the engine is allowed to be given.
+     *
+     * [back] is where leaving the player returns to when it was not opened from the board it covers: a
+     * film is started from its page, and Back out of the picture lands on that page and not on the wall
+     * under it. Null for every other way in, which leave to what is underneath, as they always did.
+     */
+    data class Play(val request: PlayerRequest, val back: Overlay? = null) : Overlay
 
     data object StateBoard : Overlay
 
@@ -545,11 +556,10 @@ fun ShellScreen(
                         pulse = pulse.takeIf { livePreview != null || overlay is Overlay.Play },
                         preview = preview,
                     )
-                    Dest.Movies -> BrowseScreen(
-                        section = CatalogSection.Movies,
-                        onPlay = play,
-                        onOpenShow = { overlay = Overlay.Show(it) },
-                        onSearch = { searchKind = null; dest = Dest.Search },
+                    // The films have a screen of their own: a sidebar of categories, a wall of posters and a
+                    // page per film -- see `MoviesScreen`. Series and radio keep the generic section screen.
+                    Dest.Movies -> MoviesScreen(
+                        onOpenMovie = { overlay = Overlay.Movie(it) },
                     )
                     Dest.Series -> BrowseScreen(
                         section = CatalogSection.Series,
@@ -589,6 +599,16 @@ fun ShellScreen(
                 onPlay = play,
                 onBack = { overlay = null },
             )
+            // A film is played from its page, and the player's Back returns to that page -- the wall
+            // underneath is still composed, so the viewer lands where they chose from.
+            is Overlay.Movie -> MovieScreen(
+                movie = o.movie,
+                onPlay = { selection ->
+                    zapping = null
+                    overlay = Overlay.Play(selection.asPlayerRequest(), back = o)
+                },
+                onBack = { overlay = null },
+            )
             // The same route, the same view model, the same engine -- drawn large. Back
             // out of it collapses to the plate on the board it was expanded from, with the
             // channel still playing, and only releases when there is no plate to go back
@@ -596,7 +616,7 @@ fun ShellScreen(
             // always did.
             is Overlay.Play -> PlayerRoute(
                 request = o.request,
-                onLeave = { overlay = null },
+                onLeave = { overlay = o.back },
                 onCollapse = if (o.request == livePreview) collapse else null,
                 onPulseChange = { pulse = it },
                 // Only for a live channel that was started from somewhere to step from -- see `Zapping` --

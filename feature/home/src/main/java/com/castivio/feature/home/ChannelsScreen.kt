@@ -3462,7 +3462,7 @@ private fun Badge(
  * pair is unwrapped once here rather than at seven call sites.
  */
 @Composable
-private fun rememberFocusFlag(): Pair<Boolean, Modifier> {
+internal fun rememberFocusFlag(): Pair<Boolean, Modifier> {
     var focused by remember { mutableStateOf(false) }
     return focused to Modifier.onFocusChanged { focused = it.isFocused || it.hasFocus }
 }

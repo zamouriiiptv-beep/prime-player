@@ -144,6 +144,14 @@
     <string name="channels_favorites_empty_detail">Tekan “Kegemaran”, pilih saluran yang anda suka, kemudian tekan “Kegemaran” sekali lagi untuk menambahnya.</string>
     <string name="channels_recent_empty_title">Belum ada saluran yang ditonton</string>
     <string name="channels_recent_empty_detail">Saluran yang anda tonton akan dipaparkan di sini, yang terkini dahulu.</string>
+    <string name="movies_search_hint">Cari filem dalam langganan anda</string>
+    <string name="movies_filter">Tapis</string>
+    <string name="movies_all">Semua filem</string>
+    <string name="movies_favorites_empty_title">Belum ada filem kegemaran</string>
+    <string name="movies_favorites_empty_detail">Buka filem dan tekan “Kegemaran” supaya ia dipaparkan di sini.</string>
+    <string name="movie_play">Main filem</string>
+    <string name="movie_favorite_add">Tambah ke kegemaran</string>
+    <string name="movie_favorite_remove">Alih keluar daripada kegemaran</string>
     <string name="hide_title">Sembunyikan buket dan saluran</string>
     <string name="hide_hint">Tandakan yang ingin disembunyikan, kemudian tekan Sembunyikan yang dipilih. Tiada apa dipadam; Tetapan memulihkannya.</string>
     <string name="hide_confirm">Sembunyikan yang dipilih</string>

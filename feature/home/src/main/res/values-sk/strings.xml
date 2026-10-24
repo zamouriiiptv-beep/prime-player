@@ -144,6 +144,14 @@
     <string name="channels_favorites_empty_detail">Stlačte „Pridať k obľúbeným“, vyberte kanály, ktoré sa vám páčia, a opätovným stlačením „Pridať k obľúbeným“ ich pridajte.</string>
     <string name="channels_recent_empty_title">Zatiaľ ste nesledovali žiadny kanál</string>
     <string name="channels_recent_empty_detail">Tu sa zobrazia kanály, ktoré sledujete, naposledy sledované ako prvé.</string>
+    <string name="movies_search_hint">Hľadať filmy vo vašom predplatnom</string>
+    <string name="movies_filter">Filter</string>
+    <string name="movies_all">Všetky filmy</string>
+    <string name="movies_favorites_empty_title">Zatiaľ žiadne obľúbené filmy</string>
+    <string name="movies_favorites_empty_detail">Otvorte film a stlačte „Pridať k obľúbeným“, aby sa zobrazil tu.</string>
+    <string name="movie_play">Prehrať film</string>
+    <string name="movie_favorite_add">Pridať k obľúbeným</string>
+    <string name="movie_favorite_remove">Odstrániť z obľúbených</string>
     <string name="hide_title">Skryť balíčky a kanály</string>
     <string name="hide_hint">Označte, čo chcete skryť, a stlačte Skryť vybrané. Nič sa nevymaže; Nastavenia to vrátia.</string>
     <string name="hide_confirm">Skryť vybrané</string>

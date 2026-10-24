@@ -144,6 +144,14 @@
     <string name="channels_favorites_empty_detail">Tekan “Favoritkan”, pilih saluran yang Anda suka, lalu tekan “Favoritkan” lagi untuk menambahkannya.</string>
     <string name="channels_recent_empty_title">Belum ada saluran yang ditonton</string>
     <string name="channels_recent_empty_detail">Saluran yang Anda tonton akan muncul di sini, yang terbaru lebih dulu.</string>
+    <string name="movies_search_hint">Cari film di langganan Anda</string>
+    <string name="movies_filter">Filter</string>
+    <string name="movies_all">Semua film</string>
+    <string name="movies_favorites_empty_title">Belum ada film favorit</string>
+    <string name="movies_favorites_empty_detail">Buka film lalu tekan “Tambahkan ke favorit” agar muncul di sini.</string>
+    <string name="movie_play">Putar film</string>
+    <string name="movie_favorite_add">Tambahkan ke favorit</string>
+    <string name="movie_favorite_remove">Hapus dari favorit</string>
     <string name="hide_title">Sembunyikan buket dan saluran</string>
     <string name="hide_hint">Centang yang ingin disembunyikan, lalu tekan Sembunyikan terpilih. Tidak ada yang dihapus; Pengaturan mengembalikannya.</string>
     <string name="hide_confirm">Sembunyikan terpilih</string>

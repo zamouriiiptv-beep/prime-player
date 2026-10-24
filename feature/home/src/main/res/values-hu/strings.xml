@@ -144,6 +144,14 @@
     <string name="channels_favorites_empty_detail">Nyomd meg a(z) „Kedvencekhez” gombot, válaszd ki a kedvelt csatornákat, majd a hozzáadáshoz nyomd meg újra a(z) „Kedvencekhez” gombot.</string>
     <string name="channels_recent_empty_title">Még nem néztél csatornát</string>
     <string name="channels_recent_empty_detail">Itt jelennek meg a nézett csatornák, a legutóbbi elöl.</string>
+    <string name="movies_search_hint">Filmek keresése az előfizetésedben</string>
+    <string name="movies_filter">Szűrő</string>
+    <string name="movies_all">Összes film</string>
+    <string name="movies_favorites_empty_title">Még nincsenek kedvenc filmek</string>
+    <string name="movies_favorites_empty_detail">Nyiss meg egy filmet, és nyomd meg a „Kedvencekhez” gombot, hogy itt megjelenjen.</string>
+    <string name="movie_play">Film lejátszása</string>
+    <string name="movie_favorite_add">Hozzáadás a kedvencekhez</string>
+    <string name="movie_favorite_remove">Eltávolítás a kedvencek közül</string>
     <string name="hide_title">Csomagok és csatornák elrejtése</string>
     <string name="hide_hint">Jelöld be, amit el szeretnél rejteni, majd nyomd meg a Kijelöltek elrejtése gombot. Semmi nem törlődik; a Beállítások visszahozza.</string>
     <string name="hide_confirm">Kijelöltek elrejtése</string>

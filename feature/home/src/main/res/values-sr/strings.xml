@@ -144,6 +144,14 @@
     <string name="channels_favorites_empty_detail">Притисните „Додај у омиљено“, изаберите канале који вам се свиђају, па поново притисните „Додај у омиљено“ да их додате.</string>
     <string name="channels_recent_empty_title">Још нисте гледали ниједан канал</string>
     <string name="channels_recent_empty_detail">Овде се приказују канали које гледате, најновији први.</string>
+    <string name="movies_search_hint">Претражи филмове у својој претплати</string>
+    <string name="movies_filter">Филтер</string>
+    <string name="movies_all">Сви филмови</string>
+    <string name="movies_favorites_empty_title">Још нема омиљених филмова</string>
+    <string name="movies_favorites_empty_detail">Отворите филм и притисните „Додај у омиљено“ да се прикаже овде.</string>
+    <string name="movie_play">Покрени филм</string>
+    <string name="movie_favorite_add">Додај у омиљено</string>
+    <string name="movie_favorite_remove">Уклони из омиљених</string>
     <string name="hide_title">Сакриј пакете и канале</string>
     <string name="hide_hint">Означите шта да сакријете и притисните „Сакриј изабрано“. Ништа се не брише; подешавања то враћају.</string>
     <string name="hide_confirm">Сакриј изабрано</string>

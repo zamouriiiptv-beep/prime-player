@@ -144,6 +144,14 @@
     <string name="channels_favorites_empty_detail">Tryk på “Favorit”, vælg de kanaler, du kan lide, og tryk på “Favorit” igen for at tilføje dem.</string>
     <string name="channels_recent_empty_title">Du har ikke set nogen kanaler endnu</string>
     <string name="channels_recent_empty_detail">De kanaler, du ser, vises her med de senest sete først.</string>
+    <string name="movies_search_hint">Søg efter film i dit abonnement</string>
+    <string name="movies_filter">Filtrer</string>
+    <string name="movies_all">Alle film</string>
+    <string name="movies_favorites_empty_title">Ingen favoritfilm endnu</string>
+    <string name="movies_favorites_empty_detail">Åbn en film, og tryk på “Favorit”, så vises den her.</string>
+    <string name="movie_play">Afspil film</string>
+    <string name="movie_favorite_add">Føj til favoritter</string>
+    <string name="movie_favorite_remove">Fjern fra favoritter</string>
     <string name="hide_title">Skjul buketter og kanaler</string>
     <string name="hide_hint">Markér, hvad du vil skjule, og tryk på Skjul valgte. Intet slettes; Indstillinger henter det tilbage.</string>
     <string name="hide_confirm">Skjul valgte</string>

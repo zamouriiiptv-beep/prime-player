@@ -144,6 +144,14 @@
     <string name="channels_favorites_empty_detail">「お気に入りに追加」を押し、好きなチャンネルを選んで、もう一度「お気に入りに追加」を押すと追加されます。</string>
     <string name="channels_recent_empty_title">まだ視聴したチャンネルはありません</string>
     <string name="channels_recent_empty_detail">視聴したチャンネルが新しい順にここに表示されます。</string>
+    <string name="movies_search_hint">購読内の映画を検索</string>
+    <string name="movies_filter">絞り込み</string>
+    <string name="movies_all">すべての映画</string>
+    <string name="movies_favorites_empty_title">お気に入りの映画はまだありません</string>
+    <string name="movies_favorites_empty_detail">映画を開いて「お気に入りに追加」を押すと、ここに表示されます。</string>
+    <string name="movie_play">映画を再生</string>
+    <string name="movie_favorite_add">お気に入りに追加</string>
+    <string name="movie_favorite_remove">お気に入りから削除</string>
     <string name="hide_title">ブーケとチャンネルを非表示</string>
     <string name="hide_hint">非表示にするものにチェックを付けて、「選択を非表示」を押してください。何も削除されず、設定から元に戻せます。</string>
     <string name="hide_confirm">選択を非表示</string>

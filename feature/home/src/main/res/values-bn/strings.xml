@@ -144,6 +144,14 @@
     <string name="channels_favorites_empty_detail">“প্রিয় করুন” চাপুন, পছন্দের চ্যানেলগুলো বেছে নিন, তারপর যোগ করতে আবার “প্রিয় করুন” চাপুন।</string>
     <string name="channels_recent_empty_title">এখনও কোনো চ্যানেল দেখা হয়নি</string>
     <string name="channels_recent_empty_detail">আপনি যে চ্যানেলগুলো দেখেন সেগুলো এখানে দেখাবে, সবচেয়ে সাম্প্রতিকটি প্রথমে।</string>
+    <string name="movies_search_hint">আপনার সাবস্ক্রিপশনে সিনেমা খুঁজুন</string>
+    <string name="movies_filter">ফিল্টার</string>
+    <string name="movies_all">সব সিনেমা</string>
+    <string name="movies_favorites_empty_title">এখনও কোনো প্রিয় সিনেমা নেই</string>
+    <string name="movies_favorites_empty_detail">একটি সিনেমা খুলে “প্রিয় করুন” চাপুন, তাহলে এটি এখানে দেখা যাবে।</string>
+    <string name="movie_play">সিনেমা চালান</string>
+    <string name="movie_favorite_add">প্রিয় করুন</string>
+    <string name="movie_favorite_remove">প্রিয় থেকে সরান</string>
     <string name="hide_title">বুকেট ও চ্যানেল লুকান</string>
     <string name="hide_hint">যা লুকাতে চান তাতে টিক দিন, তারপর “নির্বাচিত লুকান” চাপুন। কিছুই মোছা হয় না; সেটিংসে ফিরিয়ে আনা যায়।</string>
     <string name="hide_confirm">নির্বাচিত লুকান</string>

@@ -144,6 +144,14 @@
     <string name="channels_favorites_empty_detail">Apăsați „Adaugă la favorite”, alegeți canalele care vă plac, apoi apăsați din nou „Adaugă la favorite” pentru a le adăuga.</string>
     <string name="channels_recent_empty_title">Încă nu ați vizionat niciun canal</string>
     <string name="channels_recent_empty_detail">Aici apar canalele pe care le vizionați, cele mai recente primele.</string>
+    <string name="movies_search_hint">Căutați filme în abonamentul dvs.</string>
+    <string name="movies_filter">Filtru</string>
+    <string name="movies_all">Toate filmele</string>
+    <string name="movies_favorites_empty_title">Încă nu există filme favorite</string>
+    <string name="movies_favorites_empty_detail">Deschideți un film și apăsați „Adaugă la favorite” pentru a-l vedea aici.</string>
+    <string name="movie_play">Redă filmul</string>
+    <string name="movie_favorite_add">Adaugă la favorite</string>
+    <string name="movie_favorite_remove">Elimină din favorite</string>
     <string name="hide_title">Ascunde pachete și canale</string>
     <string name="hide_hint">Bifați ce doriți să ascundeți, apoi apăsați Ascunde selecția. Nu se șterge nimic; Setările le readuc.</string>
     <string name="hide_confirm">Ascunde selecția</string>

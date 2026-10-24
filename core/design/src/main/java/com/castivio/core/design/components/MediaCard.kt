@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -80,6 +81,13 @@ fun MediaCard(
     gap: Dp = Spacing.sm,
     titleStyle: TextStyle = CastivioType.bodyMedium,
     captionStyle: TextStyle = CastivioType.bodySmall,
+    /**
+     * The provider's own poster, drawn over the placeholder, or null where it shipped none.
+     * Cropped to the card's ratio; when it is on its way or fails, the placeholder is what shows.
+     */
+    artworkUrl: String? = null,
+    /** One short fact on the artwork's lower edge -- a running time, a rating -- or null for none. */
+    tag: String? = null,
 ) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
@@ -101,6 +109,7 @@ fun MediaCard(
             is WatchState.None -> {}
         }
         if (caption != null) append(", $caption")
+        if (tag != null) append(", $tag")
     }
 
     Column(
@@ -124,11 +133,15 @@ fun MediaCard(
                 .background(posterPlaceholderBrush(artworkSeed))
                 .border(1.dp, border, cardShape),
         ) {
+            if (!artworkUrl.isNullOrBlank()) PosterArtwork(artworkUrl, Modifier.fillMaxSize())
             WatchMarks(watchState)
             if (badge != null) {
                 Box(Modifier.align(Alignment.TopStart).padding(Spacing.sm)) {
                     Box { badge() }
                 }
+            }
+            if (tag != null) {
+                PosterTag(tag, Modifier.align(Alignment.BottomStart).padding(Spacing.sm))
             }
         }
         Text(

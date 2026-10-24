@@ -144,6 +144,14 @@
     <string name="channels_favorites_empty_detail">Naciśnij „Ulubiony”, wybierz kanały, które lubisz, i naciśnij „Ulubiony” ponownie, aby je dodać.</string>
     <string name="channels_recent_empty_title">Nie oglądano jeszcze żadnego kanału</string>
     <string name="channels_recent_empty_detail">Tutaj pojawią się oglądane kanały, od najnowszych.</string>
+    <string name="movies_search_hint">Szukaj filmów w swojej subskrypcji</string>
+    <string name="movies_filter">Filtruj</string>
+    <string name="movies_all">Wszystkie filmy</string>
+    <string name="movies_favorites_empty_title">Brak ulubionych filmów</string>
+    <string name="movies_favorites_empty_detail">Otwórz film i naciśnij „Dodaj do ulubionych”, aby pojawił się tutaj.</string>
+    <string name="movie_play">Odtwórz film</string>
+    <string name="movie_favorite_add">Dodaj do ulubionych</string>
+    <string name="movie_favorite_remove">Usuń z ulubionych</string>
     <string name="hide_title">Ukryj pakiety i kanały</string>
     <string name="hide_hint">Zaznacz, co ukryć, i naciśnij Ukryj zaznaczone. Nic nie jest usuwane; Ustawienia to przywracają.</string>
     <string name="hide_confirm">Ukryj zaznaczone</string>
