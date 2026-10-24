@@ -30,10 +30,11 @@ class XtreamVodInfoTest {
 
     @Test
     fun `a field the provider left out or blank is absent, and the rest still reads`() {
-        val reply = """{"info":{"rating":"","plot":"  ","cast":""},"movie_data":{"added":"0"}}"""
+        val reply = """{"info":{"rating":"","plot":"  ","cast":"","director":"Richard Linklater"},"movie_data":{"added":"0"}}"""
 
         val info = XtreamParser.parseVodInfo(StringReader(reply))!!
 
+        assertEquals("Richard Linklater", info.director)
         assertNull(info.rating)
         assertNull(info.plot)
         assertEquals(emptyList<String>(), info.cast)
@@ -58,5 +59,11 @@ class XtreamVodInfoTest {
     @Test
     fun `a reply of another shape is no details at all`() {
         assertNull(XtreamParser.parseVodInfo(StringReader("""{"info":[]}""")))
+    }
+
+    @Test
+    fun `a reply whose every field is blank is no details at all`() {
+        val reply = """{"info":{"rating":"","plot":"  ","cast":""},"movie_data":{"added":"0"}}"""
+        assertNull(XtreamParser.parseVodInfo(StringReader(reply)))
     }
 }
