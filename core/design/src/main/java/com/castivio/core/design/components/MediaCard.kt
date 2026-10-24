@@ -106,6 +106,8 @@ fun MediaCard(
     focusScale: Float = Motion.focusScaleCard,
     /** How the poster fills its frame: cropped to it by default, or whole, letterboxed, where a film must not be cut. */
     artworkScale: ContentScale = ContentScale.Crop,
+    /** The poster's width when it is narrower than the card: centred over the title, so a 2:3 poster is drawn whole. Null fills the card. */
+    posterWidth: Dp? = null,
 ) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
@@ -150,7 +152,7 @@ fun MediaCard(
     ) {
         Box(
             Modifier
-                .fillMaxWidth()
+                .then(if (posterWidth != null) Modifier.width(posterWidth).align(Alignment.CenterHorizontally) else Modifier.fillMaxWidth())
                 .then(if (posterHeight != null) Modifier.height(posterHeight) else Modifier.aspectRatio(shape.ratio))
                 .clip(cardShape)
                 .background(posterPlaceholderBrush(artworkSeed))

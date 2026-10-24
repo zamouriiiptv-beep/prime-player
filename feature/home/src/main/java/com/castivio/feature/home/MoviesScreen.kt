@@ -181,7 +181,6 @@ private fun MovieCount(state: BrowseState, m: ChannelsMetrics) {
         style = castivioBodyStyle(m.frame.fsBody),
         color = CastivioTheme.colors.onBackgroundMuted,
         maxLines = 1,
-        softWrap = false,
     )
 }
 
@@ -335,6 +334,7 @@ private fun MovieWall(
                 focusBrush = focusBrush(),
                 focusScale = 1f,
                 artworkScale = ContentScale.Fit,
+                posterWidth = poster * POSTER_RATIO,
             )
         }
     }
@@ -354,6 +354,9 @@ private const val PEEK_OF_POSTER = 0.05f
 
 /** The title's line, as a share of its type: what the card's name takes beneath the artwork. */
 private const val LABEL_LINE = 1.4f
+
+/** A poster's width over its height: the 2:3 of a film's artwork, drawn whole. */
+private const val POSTER_RATIO = 2f / 3f
 
 /** A film's name may take two lines; a third is cut with an ellipsis, so every card's name area is the same. */
 private const val TITLE_LINES = 2
