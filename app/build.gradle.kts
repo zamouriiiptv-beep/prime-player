@@ -99,6 +99,20 @@ android {
         }
     }
 
+    // **One APK per processor, when the CI asks for it.** The universal debug APK carries LibVLC for four processors
+    // and is 118 MB, which is a download of twenty minutes on a phone's connection. A device runs one of them, so the
+    // CI builds one APK for 64-bit (phones, Shield, current boxes) and one for 32-bit (Fire TV sticks, older boxes),
+    // and the viewer takes the one that is theirs. Off by default, and off for every local and benchmark build: a
+    // property rather than a setting, so a build that was not asked for it is exactly what it always was.
+    splits {
+        abi {
+            isEnable = providers.gradleProperty("castivio.abiSplit").isPresent
+            reset()
+            include("arm64-v8a", "armeabi-v7a")
+            isUniversalApk = false
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false

@@ -95,7 +95,7 @@ jobs:
           OPENSUBTITLES_PASSWORD: ${{ secrets.OPENSUBTITLES_PASSWORD }}
         run: |
           attempt=0
-          until ./gradlew assembleDebug --no-daemon --console=plain; do
+          until ./gradlew assembleDebug -Pcastivio.abiSplit=true --no-daemon --console=plain; do
             attempt=$((attempt + 1))
             if [ "$attempt" -ge 3 ]; then
               echo "Build failed after $attempt attempts."
@@ -234,10 +234,22 @@ jobs:
       # before the tests run and does not depend on them, so a red test step was
       # discarding a file that had already been produced -- and the APK is exactly what
       # somebody needs when a gate fails for a reason only a device can settle.
-      - name: Upload APK
+      #
+      # **Two files, because one was 118 MB.** The universal APK carried LibVLC for four processors; a device runs one
+      # of them. `-arm64` is for phones, the Shield and current boxes; `-armv7` is for 32-bit devices -- Fire TV sticks
+      # and older boxes. Each is a third of the size.
+      - name: Upload APK (64-bit)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: castivio-tv-debug
-          path: app/build/outputs/apk/debug/*.apk
+          name: castivio-tv-debug-arm64
+          path: app/build/outputs/apk/debug/*arm64-v8a*.apk
+          if-no-files-found: error
+
+      - name: Upload APK (32-bit)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: castivio-tv-debug-armv7
+          path: app/build/outputs/apk/debug/*armeabi-v7a*.apk
           if-no-files-found: error
