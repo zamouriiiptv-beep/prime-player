@@ -157,22 +157,26 @@ fun MovieScreen(
                 val top: @Composable () -> Unit = {
                     Column(verticalArrangement = Arrangement.spacedBy(m.bandGap)) {
                         // The name, and at the end of the same row the way back when the poster stands beside the
-                        // page: in the corner it is the top of the page, and under no other row.
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(m.rowGap),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                text = movie.title,
-                                style = castivioTitleStyle(m.frame.fsTitle),
-                                color = colors.onBackground,
-                                maxLines = TITLE_LINES,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f),
-                            )
-                            titleEnd?.invoke()
+                        // page: in the corner it is the top of the page, and under no other row. The row is as tall
+                        // as the way back, which leaves the name air above and below it already, so the facts bar
+                        // follows it with no gap of its own -- that gap was the height the plot was cut for.
+                        Column(verticalArrangement = Arrangement.spacedBy(if (titleEnd != null) 0.dp else m.bandGap)) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(m.rowGap),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = movie.title,
+                                    style = castivioTitleStyle(m.frame.fsTitle),
+                                    color = colors.onBackground,
+                                    maxLines = TITLE_LINES,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                titleEnd?.invoke()
+                            }
+                            FactsBar(category, year?.let(::ltrToken), duration?.let(::ltrToken), genres, iconSize, m)
                         }
-                        FactsBar(category, year?.let(::ltrToken), duration?.let(::ltrToken), genres, iconSize, m)
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(m.rowGap),
                             verticalAlignment = Alignment.CenterVertically,
@@ -491,8 +495,11 @@ private const val STACKED_POSTER = 0.5f
 
 private const val TITLE_LINES = 1
 
-/** The cast may take two lines; a longer list is cut with an ellipsis. */
-private const val CAST_LINES = 2
+/**
+ * The cast takes one line, and a longer list is cut with an ellipsis: the plot has first call on the height, and a
+ * second line of names was the line it was cut for.
+ */
+private const val CAST_LINES = 1
 
 /** A mark's size as a share of the body type, so the marks scale with the page's own type. */
 private const val ICON_OF_BODY = 1.4f
