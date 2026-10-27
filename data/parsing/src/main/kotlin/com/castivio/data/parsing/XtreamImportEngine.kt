@@ -14,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Semaphore
@@ -66,6 +67,11 @@ class XtreamImportEngine(
      * test can step it; nothing the import does depends on what it says.
      */
     private val nanoClock: () -> Long = System::nanoTime,
+    /**
+     * How long the categories that would not load are left alone before they are asked for
+     * again. A parameter so a test does not wait it out; nothing else reads it.
+     */
+    private val retryDelayMs: Long = RETRY_DELAY_MS,
 ) {
     init {
         require(batchSize in 1..CatalogImportEngine.MAX_BATCH) { "batchSize $batchSize out of range" }
@@ -131,8 +137,7 @@ class XtreamImportEngine(
 
         /**
          * The panel refused the one-reply question — an error status, a reply that is not
-         * a list, or a list naming none of its own categories — so every category was
-         * asked for on its own.
+         * a list, or an empty list — so every category was asked for on its own.
          */
         REFUSED,
 
@@ -155,9 +160,12 @@ class XtreamImportEngine(
         /** Rows the one reply delivered. Zero when it was not used. */
         val streams: Int = 0,
         /**
-         * Streams in that reply naming a category the panel did not list. Not written: the
-         * category-by-category walk never asks for them either, so writing them would make
-         * the two ways of fetching disagree about what the panel serves.
+         * Streams in that reply naming a category the panel did not list, or none. Written
+         * all the same, under no group: they are in the section's "all" and in its search,
+         * which is what the subscription holds. The category-by-category walk cannot reach
+         * them -- it asks only for the categories the panel listed -- so the one reply is
+         * the only way they arrive, and dropping them is how a section came up short of
+         * what the panel carries.
          */
         val orphans: Int = 0,
         /**
@@ -172,7 +180,7 @@ class XtreamImportEngine(
     ) {
         override fun toString(): String = when (strategy) {
             StreamStrategy.WHOLE_SECTION ->
-                "$kind: one reply, $streams rows, $orphans orphaned" +
+                "$kind: one reply, $streams rows, $orphans under no category" +
                     (if (elsewhere > 0) ", $elsewhere left to another section" else "") +
                     ", $gapFilled categories asked again"
             StreamStrategy.REFUSED -> "$kind: one reply refused (${cause ?: "empty"}), asked per category"
@@ -225,9 +233,9 @@ class XtreamImportEngine(
         val idleNanos: Long,
         /** Streams the readers parsed. */
         val parsed: Int,
-        /** Rows filed under a category and handed to the writer. */
+        /** Rows handed to the writer: filed under a category, or under none ([orphans]). */
         val filed: Int,
-        /** Streams naming a category the panel did not list: parsed, never written. */
+        /** Streams naming a category the panel did not list: written under no group. */
         val orphans: Int,
         /**
          * Those streams by the category id they named, and how many named each; "none"
@@ -285,12 +293,14 @@ class XtreamImportEngine(
          *
          * ## Why only a first attempt
          *
-         * Nothing guarantees a panel serves it. A refusal, a reply that is not a list, a
-         * list naming none of the panel's categories, or a failure partway, and every
-         * category is asked for on its own exactly as before — the rows the reply wrote are
-         * rewritten, since ids are stable and the writer replaces. A category the reply
-         * left empty is asked for on its own too, so a panel that leaves some out of the
-         * big reply loses nothing. See [StreamsReport] for what is reported.
+         * Nothing guarantees a panel serves it. A refusal, a reply that is not a list, an
+         * empty list, or a failure partway, and every category is asked for on its own
+         * exactly as before — the rows the reply wrote are rewritten, since ids are stable
+         * and the writer replaces. A category the reply left empty is asked for on its own
+         * too, so a panel that leaves some out of the big reply loses nothing. A stream
+         * whose category the panel does not list is written under no group: the walk cannot
+         * reach it, so the reply is the only way it arrives. See [StreamsReport] for what is
+         * reported.
          *
          * Empty by default: a caller that does not opt in is asked per category.
          */
@@ -310,6 +320,14 @@ class XtreamImportEngine(
         var cancelled = false
         var done = 0
         val failures = ArrayList<Pair<String, Throwable>>()
+        // The categories that would not load, kept to be asked for once more, and how many
+        // are still missing when that is done: the figure the summary tells.
+        val failedPlans = ArrayList<CategoryPlan>()
+        var lostCategories = 0
+        // Whether a category ending counts on the bar. The second asking does not: those
+        // categories were counted when they failed, and counting them again would run the
+        // bar past its total.
+        var countsOnBar = true
         // Time spent committing, for [PassReport]: a pass reads it before and after.
         var commitNanos = 0L
 
@@ -488,8 +506,9 @@ class XtreamImportEngine(
                             // so the bar counts it. One that stalled at 833 of 834
                             // because a single request was refused would be a bar
                             // that lies about being stuck.
-                            done++
+                            if (countsOnBar) done++
                             failures.add(event.category to event.cause)
+                            failedPlans.add(event.plan)
                             progress(event.kind)
                         }
 
@@ -503,7 +522,7 @@ class XtreamImportEngine(
                         // written as they came, so it is counted at the next commit -- at
                         // once, when it is the first -- and a screen open now lists it.
                         is CategoryEvent.Finished -> {
-                            done++
+                            if (countsOnBar) done++
                             complete(event.groupId, rows = event.rows > 0)
                             commitIfDue()
                             progress(event.kind)
@@ -696,6 +715,44 @@ class XtreamImportEngine(
                     )
                 }
 
+                // ----------------------------------------- the categories that failed
+                //
+                // Asked for once more, two at a time and after a rest, because a category that
+                // failed under four requests at once is usually one a quieter panel answers:
+                // the failure is a body that stalled past the read timeout, which no retry at
+                // the connection catches, and a film category is tens of thousands of rows. Left
+                // alone, every row of it was missing from the library and nothing said so.
+                //
+                // Not when nothing arrived at all, or when too many failed to be a few unlucky
+                // requests: that is a panel that is down or refusing, and asking hundreds of
+                // categories again would only spend minutes confirming it. Those failures stand
+                // and are counted below, where the import's end can say how many.
+                if (failedPlans.isNotEmpty() && imported > 0 && failedPlans.size <= MAX_RETRIED_CATEGORIES &&
+                    !cancelled && !isCancelled()
+                ) {
+                    val again = failedPlans.toList()
+                    failedPlans.clear()
+                    countsOnBar = false
+                    val meter = PassMeter(nanoClock)
+                    pass(countCategories = true, meter = meter) { events ->
+                        delay(retryDelayMs)
+                        val gate = Semaphore(RETRY_CONCURRENCY)
+                        coroutineScope {
+                            for (plan in again) {
+                                launch(Dispatchers.IO) {
+                                    gate.withPermit {
+                                        if (!isCancelled()) fetchCategory(sourceId, api, plan, events, meter)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    countsOnBar = true
+                }
+                // Whatever is still missing is the import's loss, said by the summary.
+                lostCategories += failedPlans.size
+                failedPlans.clear()
+
                 // Asked again outside the consumer loop, because a run cancelled before
                 // any event arrived would otherwise finish and report itself successful:
                 // the only place `cancelled` was set is inside a loop that never ran.
@@ -728,6 +785,7 @@ class XtreamImportEngine(
                 byKind = perKind.toKindMap(),
                 durationMs = clock() - started,
                 cancelled = cancelled,
+                failedCategories = lostCategories,
             )
             if (cancelled) {
                 writer.abort(null)
@@ -817,7 +875,7 @@ class XtreamImportEngine(
         api: Api,
         kind: MediaKind,
         stream: XtreamStream,
-        groupId: String,
+        groupId: String?,
         order: Int,
     ) = CatalogItem(
         // Keyed on the provider's stream id, not the URL: Xtream URLs embed
@@ -956,7 +1014,7 @@ class XtreamImportEngine(
             // Rethrown only for cancellation, which is not a failure of the category:
             // swallowing it would leave a worker running after the import was stopped.
             if (t is kotlinx.coroutines.CancellationException) throw t
-            events.send(CategoryEvent.Failed(kind, category.name, t))
+            events.send(CategoryEvent.Failed(kind, category.name, t, plan))
         }
     }
 
@@ -1021,6 +1079,9 @@ class XtreamImportEngine(
         var streams = 0
         var orphans = 0
         var passedOver = 0
+        // Where the streams of no listed category sort: after every category's, in the order
+        // the reply gave them. A panel that numbers its streams overrides it either way.
+        val orphanFirst = slots * CATEGORY_STRIDE
 
         val reader = try {
             // Null is an API that cannot ask, which made no request: not counted as one.
@@ -1052,8 +1113,15 @@ class XtreamImportEngine(
                             passedOver++
                             meter.elsewhere++
                         } else {
-                            orphans++
+                            // Written under no group rather than dropped. The category walk
+                            // never asks for such a stream, so the one reply is the only way
+                            // it arrives; leaving it out is how a library came up short of
+                            // the count the panel carries. It is in the section's "all" and
+                            // in search, and in no category's count.
                             meter.orphan(stream.categoryId)
+                            batch.add(item(sourceId, api, kind, stream, null, orphanFirst + orphans))
+                            orphans++
+                            if (batch.size >= batchSize) handOver(events, kind, batch, isCancelled, meter, completed)
                         }
                         return@parseStreams
                     }
@@ -1072,16 +1140,18 @@ class XtreamImportEngine(
                     handOver(events, batch.lastOrNull()?.kind ?: kind, batch, isCancelled, meter, completed)
                 }
             }
-            // A list naming none of the panel's categories is a refusal in the shape of an
-            // answer: an empty list, or one keyed some other way. Either way nothing in it
-            // can be filed, and every category has to be asked for on its own.
-            if (streams == 0) WholeSectionRead.Refused(null) else WholeSectionRead.Read(streams, orphans, passedOver, received)
+            // An empty list is a refusal in the shape of an answer, and every category has to be
+            // asked for on its own. A list naming none of the panel's categories is not one any
+            // more: its streams were written under no group, so it was read, and the walk of the
+            // categories it filled nothing in puts each stream under its own -- the ids are the
+            // same, and the writer replaces.
+            if (streams == 0 && orphans == 0) WholeSectionRead.Refused(null) else WholeSectionRead.Read(streams, orphans, passedOver, received)
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: JsonFormatException) {
             // Not a list at all — an object, a page of HTML — before a single row is a
             // refusal; partway through a list it is a broken reply.
-            if (streams == 0) WholeSectionRead.Refused(e) else WholeSectionRead.Failed(e)
+            if (streams == 0 && orphans == 0) WholeSectionRead.Refused(e) else WholeSectionRead.Failed(e)
         } catch (e: Exception) {
             WholeSectionRead.Failed(e)
         }
@@ -1257,10 +1327,12 @@ class XtreamImportEngine(
             val items: List<CatalogItem>,
             val completed: List<String> = emptyList(),
         ) : CategoryEvent
+        /** [plan] is carried so the category can be asked for again once the rest has loaded. */
         data class Failed(
             val kind: MediaKind,
             val category: String,
             val cause: Throwable,
+            val plan: CategoryPlan,
         ) : CategoryEvent
 
         /**
@@ -1378,6 +1450,25 @@ class XtreamImportEngine(
          * The first commit is exempt. See `commitIfDue`.
          */
         const val COMMIT_INTERVAL_MS = 500L
+
+        /**
+         * The rest before the categories that failed are asked for again, so a panel that
+         * was overloaded by the first pass has a moment to recover.
+         */
+        const val RETRY_DELAY_MS = 2_000L
+
+        /**
+         * Requests in flight at once when asking again: half the first pass, for the same
+         * reason the first pass is four -- the thing that failed was the load.
+         */
+        const val RETRY_CONCURRENCY = 2
+
+        /**
+         * The most categories asked for again. More failures than this are not a few
+         * unlucky requests but a panel that is down or refusing, and asking them all again
+         * would only spend minutes confirming it.
+         */
+        const val MAX_RETRIED_CATEGORIES = 50
     }
 }
 

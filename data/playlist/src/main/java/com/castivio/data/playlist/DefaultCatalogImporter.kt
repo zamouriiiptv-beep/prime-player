@@ -16,6 +16,7 @@ import com.castivio.data.networking.Received
 import com.castivio.data.networking.RemoteRequest
 import com.castivio.data.networking.RemoteResult
 import com.castivio.data.parsing.CatalogImportEngine
+import com.castivio.data.parsing.PortalReport
 import com.castivio.data.parsing.SourceIds
 import com.castivio.data.parsing.StalkerImportEngine
 import com.castivio.data.parsing.XtreamImportEngine
@@ -593,6 +594,7 @@ class DefaultCatalogImporter(
         PerformanceLog.phase(PerfPhase.IMPORT)
         val startedAt = clock()
         try {
+            var report: PortalReport? = null
             val written = StalkerImportEngine().importKind(
                 sourceId = sourceId,
                 kind = kind,
@@ -601,17 +603,21 @@ class DefaultCatalogImporter(
                 mode = mode,
                 onProgress = onProgress,
                 isCancelled = cancelled,
+                onReport = { report = it },
             )
             if (cancelled()) {
                 writer.abort(null)
                 return
             }
+            // Counts only, so a library short of what the portal states shows in the log: the
+            // figures the import had no way to give before.
+            report?.let { log("import portal $kind: $it") }
             writer.finish(
                 ImportSummary(
                     sourceId = sourceId,
                     items = written,
                     groups = 0,
-                    skipped = 0,
+                    skipped = report?.unplayable ?: 0,
                     byKind = mapOf(kind to written),
                     durationMs = clock() - startedAt,
                 ),
@@ -714,12 +720,14 @@ class DefaultCatalogImporter(
                 sourceId = sourceId,
                 api = xtreamApiFactory(account),
                 kinds = setOf(kind),
-                // The channels in one reply where the panel serves that -- and a playlist read
-                // through its panel comes through here too, so it gets the same. The radio is
-                // its own few categories, asked for one by one rather than inside the whole
-                // live list; films and series are still asked for category by category.
-                // The engine falls back to the walk by itself; see `wholeSection`.
-                wholeSection = if (kind == MediaKind.LIVE) setOf(MediaKind.LIVE) else emptySet(),
+                // The channels and the films in one reply where the panel serves that -- and a
+                // playlist read through its panel comes through here too, so it gets the same.
+                // Films above all: asked category by category, a film whose category the panel
+                // does not list is never asked for, and the library came up short of what the
+                // subscription holds. The radio is its own few categories, asked for one by one
+                // rather than inside the whole live list; series are still asked for category
+                // by category. The engine falls back to the walk by itself; see `wholeSection`.
+                wholeSection = if (kind == MediaKind.LIVE || kind == MediaKind.MOVIE) setOf(kind) else emptySet(),
                 onStreams = { report ->
                     replyUsed = report.strategy == XtreamImportEngine.StreamStrategy.WHOLE_SECTION
                     PerformanceLog.note(NOTE_STREAMS, report.toString())
@@ -755,6 +763,11 @@ class DefaultCatalogImporter(
             val counts = countsOf(passes.filter { replyUsed || !it.oneReply }, summary)
             PerformanceLog.recordCounts(counts)
             log("import $kind: $counts")
+            // A library short of what the panel carries is said, with how much of it is missing
+            // that the second asking could not recover: the figure that was nowhere before.
+            if (summary.failedCategories > 0) {
+                log("import $kind: ${summary.failedCategories} categories could not be loaded, their rows are missing")
+            }
             // No validators for Xtream, and none to preserve: `record` reads the stored
             // row and writes back what this pass learned.
             record(sourceId, summary, etag = null, lastModified = null, contentHash = null)

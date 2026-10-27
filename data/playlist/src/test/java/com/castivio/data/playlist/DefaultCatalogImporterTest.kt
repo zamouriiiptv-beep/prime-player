@@ -439,11 +439,12 @@ class DefaultCatalogImporterTest {
 
     /**
      * The channels in one reply, for an Xtream account and — through the very same path —
-     * for a playlist read through its panel, the conversion the user never sees. Films are
-     * still asked for category by category: they are a later step.
+     * for a playlist read through its panel, the conversion the user never sees. The films
+     * are asked for the same way: category by category, a film whose category the panel does
+     * not list is never asked for, and the library came up short of the subscription.
      */
     @Test
-    fun `channels are asked for in one reply, whichever way the subscription was added`() = runBlocking {
+    fun `channels and films are asked for in one reply, whichever way the subscription was added`() = runBlocking {
         val panel = OneReplyXtreamApi()
         val account = PlaylistSource.Xtream("http://panel:8080", "user", "pass")
         val link = server.url(PANEL_LINK).toString()
@@ -452,11 +453,12 @@ class DefaultCatalogImporterTest {
         importer(xtreamApi = panel).importKind(routed(link), MediaKind.LIVE).toList()
         importer(xtreamApi = panel).importKind(account, MediaKind.MOVIE).toList()
 
-        assertEquals(listOf(MediaKind.LIVE, MediaKind.LIVE), panel.wholeSectionAsks)
+        assertEquals(listOf(MediaKind.LIVE, MediaKind.LIVE, MediaKind.MOVIE), panel.wholeSectionAsks)
         assertTrue("a live category was asked for on its own", panel.categoryAsks.none { it.first == MediaKind.LIVE })
-        assertEquals("two subscriptions, a channel each", 2, writer.items.size)
+        assertTrue("a film category was asked for on its own", panel.categoryAsks.none { it.first == MediaKind.MOVIE })
+        assertEquals("two subscriptions, a channel each", 2, writer.items.count { it.kind == MediaKind.LIVE })
         assertEquals("the stations are the radio's own load", 0, writer.items.count { it.kind == MediaKind.RADIO })
-        assertTrue(logged.any { it.contains("LIVE: one reply, 1 rows, 0 orphaned, 1 left to another section") })
+        assertTrue(logged.any { it.contains("LIVE: one reply, 1 rows, 0 under no category, 1 left to another section") })
         assertNothingFrom(link)
     }
 
@@ -757,8 +759,8 @@ class DefaultCatalogImporterTest {
     }
 
     /**
-     * A reply that arrived whole is the catalogue, and its orphans are counted with it --
-     * apart from the station in it, which is the radio's and is counted as such.
+     * A reply that arrived whole is the catalogue, and its orphans are counted with it, and
+     * written with it -- apart from the station in it, which is the radio's and is counted as such.
      */
     @Test
     fun `a reply that arrived whole is counted, orphans and all`() = runBlocking {
@@ -767,7 +769,7 @@ class DefaultCatalogImporterTest {
         importer(xtreamApi = OneReplyXtreamApi(orphans = 3)).importKind(panel, MediaKind.LIVE).toList()
 
         val records = logged.single { it.startsWith("import LIVE: RecordCounts(") }
-        assertTrue(records, records.contains("parsed=5, filed=1, orphans=3, elsewhere=1"))
+        assertTrue(records, records.contains("parsed=5, filed=4, orphans=3, elsewhere=1"))
         assertTrue(records, records.contains("orphanCategories=[(9, 3)]"))
     }
 

@@ -49,6 +49,7 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.Dispatchers
 import okhttp3.OkHttpClient
 import java.io.File
+import java.io.IOException
 import javax.inject.Provider
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
@@ -255,19 +256,24 @@ object PlaylistModule {
             }
         }
 
+        // A page that could not be read is thrown, never returned as zero: zero is the end of
+        // the list, and a failed page read as the end is how an import stopped at the page
+        // that timed out and finished as a success. The engine tries the page again and
+        // decides what a page that stays unreadable means. Only the error's name goes in the
+        // message -- the address the call went to carries the device identity.
         override fun channels(page: Int, onChannel: (StalkerChannel) -> Unit): Int {
-            val open = session() ?: return 0
+            val open = session() ?: throw IOException("the portal's session could not be opened")
             return when (val answer = api.channels(open, page, onChannel)) {
                 is Outcome.Success -> answer.value
-                is Outcome.Failure -> 0
+                is Outcome.Failure -> throw IOException("portal page $page failed: ${answer.error}")
             }
         }
 
         override fun items(kind: MediaKind, page: Int, onItem: (StalkerItem) -> Unit): Int {
-            val open = session() ?: return 0
+            val open = session() ?: throw IOException("the portal's session could not be opened")
             return when (val answer = api.items(open, kind, page, onItem)) {
                 is Outcome.Success -> answer.value
-                is Outcome.Failure -> 0
+                is Outcome.Failure -> throw IOException("portal page $page failed: ${answer.error}")
             }
         }
 

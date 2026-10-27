@@ -158,6 +158,12 @@ data class ImportSummary(
     val byKind: Map<MediaKind, Int>,
     val durationMs: Long,
     val cancelled: Boolean = false,
+    /**
+     * Categories (or pages) the provider would not give even when asked again, whose rows are
+     * therefore missing from the library. Zero is the only value under which [items] is the
+     * provider's whole list; anything else is a partial catalogue that says so.
+     */
+    val failedCategories: Int = 0,
 ) {
     fun count(kind: MediaKind): Int = byKind[kind] ?: 0
 }

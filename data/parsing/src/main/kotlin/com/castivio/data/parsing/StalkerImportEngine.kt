@@ -41,12 +41,19 @@ import com.castivio.domain.MediaKind
  */
 class StalkerImportEngine(
     private val batchSize: Int = DEFAULT_BATCH,
+    /** Waits between two tries of a page; a parameter so a test does not sleep. */
+    private val pause: (Long) -> Unit = { Thread.sleep(it) },
 ) {
 
     /** What the engine needs from the network, and nothing more. */
     interface Api {
         /**
          * One page of channels, handed over a channel at a time.
+         *
+         * **Throws when the page could not be read** -- a timeout, a dropped connection, an
+         * answer that is not a portal's. It must not return zero for that: zero means the
+         * portal has nothing more, and a page that failed read as the end of the list is how
+         * an import stopped at page 37 of 300 and called itself done.
          *
          * @return the total the portal states, or zero when it states none — then an
          *   empty page is the only end-of-list signal there is.
@@ -109,6 +116,8 @@ class StalkerImportEngine(
         mode: ImportMode = ImportMode.REPLACE,
         onProgress: (ImportProgress) -> Unit = {},
         isCancelled: () -> Boolean = { false },
+        /** Told what the pages came to, once, when the reading ends. */
+        onReport: (PortalReport) -> Unit = {},
     ): Int {
         writer.begin(sourceId, mode)
 
@@ -117,6 +126,10 @@ class StalkerImportEngine(
         var order = 0
         var page = 1
         var total = 0
+        var pages = 0
+        var received = 0
+        var unplayable = 0
+        var firstOfPrevious: String? = null
 
         val flush = {
             writer.writeItems(batch)
@@ -126,36 +139,53 @@ class StalkerImportEngine(
         }
 
         while (!isCancelled()) {
-            var onThisPage = 0
-            val stated = if (kind == MediaKind.LIVE) {
-                api.channels(page) { channel ->
-                    onThisPage++
-                    // A row the portal will not give an address for is not a row. A
-                    // catalogue that listed it would be a list of names that do nothing
-                    // when pressed, which is worse than a shorter list.
-                    playable(api, MediaKind.LIVE, channel.command)?.let { url ->
-                        batch += channel.asItem(sourceId, url, order++)
-                        if (batch.size >= batchSize) flush()
+            // The page is read whole before any of it is used, so a try that fails halfway
+            // through leaves nothing behind to be counted twice by the next.
+            val fetched = readPage(page, isCancelled) { rows ->
+                if (kind == MediaKind.LIVE) {
+                    api.channels(page) { channel ->
+                        rows += Row(channel.id, channel.command) { url, at -> channel.asItem(sourceId, url, at) }
+                    }
+                } else {
+                    api.items(kind, page) { item ->
+                        rows += Row(item.id, item.command) { url, at -> item.asItem(sourceId, url, at) }
                     }
                 }
-            } else {
-                api.items(kind, page) { item ->
-                    onThisPage++
-                    val url = item.command?.let { playable(api, kind, it) }
-                    if (url != null) {
-                        batch += item.asItem(sourceId, url, order++)
-                        if (batch.size >= batchSize) flush()
-                    }
-                }
-            }
-            if (stated > 0) total = stated
+            } ?: break
+            if (fetched.stated > 0) total = fetched.stated
+            val rows = fetched.rows
 
             // Two ways to know there is no more, and both are needed. A portal that
             // states a total stops when the pages have delivered it; one that states
             // none stops on the first page that brought nothing. Relying on the total
             // alone loops forever against the portals that send zero.
-            if (onThisPage == 0) break
-            if (total > 0 && order >= total) break
+            if (rows.isEmpty()) break
+
+            // A third, for the portal that ignores the page number and answers every
+            // request with the first page. Without it the only thing standing between that
+            // portal and an import that never ends was a fixed count of pages -- which
+            // stopped every honest library longer than the count, at the same row.
+            val first = rows.first().id
+            if (first == firstOfPrevious) break
+            firstOfPrevious = first
+
+            pages++
+            received += rows.size
+            for (row in rows) {
+                // A row the portal will not give an address for is not a row. A
+                // catalogue that listed it would be a list of names that do nothing
+                // when pressed, which is worse than a shorter list.
+                val url = row.command?.let { playable(api, kind, it) }
+                if (url == null) {
+                    unplayable++
+                    continue
+                }
+                batch += row.asItem(url, order++)
+                if (batch.size >= batchSize) flush()
+            }
+            // Counted by what the portal delivered, not by what could be played: a portal
+            // that states its total counts the rows it listed, playable or not.
+            if (total > 0 && received >= total) break
             if (page >= MAX_PAGES) break
             page++
         }
@@ -167,7 +197,48 @@ class StalkerImportEngine(
         if (!isCancelled()) {
             writer.commit()
         }
+        onReport(PortalReport(pages = pages, received = received, written = written, unplayable = unplayable, stated = total))
         return written
+    }
+
+    /** One row of a page, whichever list it came from, before its address is known. */
+    private class Row(val id: String, val command: String?, val asItem: (url: String, order: Int) -> CatalogItem)
+
+    private class Page(val rows: List<Row>, val stated: Int)
+
+    /**
+     * One page, tried again when it fails, and never mistaken for the end of the list.
+     *
+     * A page that cannot be read is retried [PAGE_RETRIES] times. If it still cannot, the
+     * failure is thrown -- except for the first page, which is read as an empty section:
+     * a portal that does not serve a kind may answer the call with something this reader
+     * cannot use, and that has always meant "nothing here". After the first page the portal
+     * has proved it serves the kind, so a failure is a loss and is reported as one: the
+     * import ends in failure, keeps what it committed, and is retried by the user, instead
+     * of ending as a short library that says it is whole.
+     *
+     * @return null when the first page could not be read at all.
+     */
+    private fun readPage(page: Int, isCancelled: () -> Boolean, read: (MutableList<Row>) -> Int): Page? {
+        var attempt = 0
+        while (true) {
+            val rows = ArrayList<Row>()
+            try {
+                val stated = read(rows)
+                return Page(rows, stated)
+            } catch (e: InterruptedException) {
+                Thread.currentThread().interrupt()
+                throw e
+            } catch (e: Exception) {
+                if (isCancelled()) throw e
+                if (attempt >= PAGE_RETRIES) {
+                    if (page == 1) return null
+                    throw e
+                }
+                attempt++
+                pause(PAGE_BACKOFF_MS * attempt)
+            }
+        }
     }
 
     /**
@@ -212,17 +283,46 @@ class StalkerImportEngine(
         epgChannelId = null,
     )
 
-    private companion object {
+    companion object {
         const val DEFAULT_BATCH = 500
 
         /**
          * A ceiling, so a portal that pages forever cannot hold an import open.
          *
-         * Fourteen pages of the size portals serve is well past the largest real
-         * subscription seen; what it protects against is an installation that answers
-         * every page with the same content, which is a real failure mode and one that
-         * otherwise ends as a device filling its storage.
+         * It used to be 400, on the belief that it was far past any real library. A portal
+         * serves fourteen rows a page as often as a hundred, and 400 pages of fourteen is
+         * 5,600 rows: a film library of two hundred thousand stopped there, silently, and
+         * finished as a success. The portal that answers every page with the same content,
+         * which this once guarded against, is caught by comparing a page with the one before
+         * it; what is left here is only the bound on a portal that never ends and never
+         * repeats, which is far beyond any library a device can hold.
          */
-        const val MAX_PAGES = 400
+        const val MAX_PAGES = 100_000
+
+        /** How many more times a page is asked for after it fails. */
+        const val PAGE_RETRIES = 2
+
+        /** The wait before the first retry; the second waits twice as long. */
+        const val PAGE_BACKOFF_MS = 500L
     }
 }
+
+/**
+ * What a portal's pages came to, told once when the reading ends.
+ *
+ * Figures only. [received] against [stated] is the check that a library is whole: a portal
+ * that states a total and delivers fewer rows lost some, and [unplayable] says how many it
+ * listed but would not give an address for.
+ */
+data class PortalReport(
+    /** Pages that delivered rows. */
+    val pages: Int,
+    /** Rows the portal listed. */
+    val received: Int,
+    /** Rows written: the listed ones that had an address. */
+    val written: Int,
+    /** Listed rows the portal would not give an address for, and so were not written. */
+    val unplayable: Int,
+    /** The total the portal said it holds; zero when it said nothing. */
+    val stated: Int,
+)

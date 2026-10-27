@@ -399,4 +399,152 @@ class StalkerImportEngineTest {
 
         assertNotEquals(channels.items.single().id, films.items.single().id)
     }
+
+    /* ---------------------------------------------------- a library that is all there */
+
+    /**
+     * A portal paged by a function, so a library of any length can be served without being written
+     * out: [pageOf] gives the rows of a page, [stated] the total it claims, and [failures] says how
+     * many times a page throws before it answers. A page that throws does so after delivering its
+     * first row, as a reply that breaks halfway does.
+     */
+    private class PagedPortal(
+        private val pageOf: (Int) -> List<StalkerChannel>,
+        private val stated: Int = 0,
+        private val failures: Map<Int, Int> = emptyMap(),
+    ) : StalkerImportEngine.Api {
+        val asked = mutableMapOf<Int, Int>()
+
+        override fun channels(page: Int, onChannel: (StalkerChannel) -> Unit): Int {
+            val times = (asked[page] ?: 0) + 1
+            asked[page] = times
+            val rows = pageOf(page)
+            if (times <= (failures[page] ?: 0)) {
+                rows.firstOrNull()?.let(onChannel)
+                throw java.io.IOException("page $page did not finish")
+            }
+            rows.forEach(onChannel)
+            return stated
+        }
+
+        override fun items(kind: MediaKind, page: Int, onItem: (StalkerItem) -> Unit): Int = 0
+        override fun resolve(kind: MediaKind, command: String): String? = null
+    }
+
+    private fun engine(batchSize: Int = 500) = StalkerImportEngine(batchSize = batchSize, pause = {})
+
+    /**
+     * **The ceiling that cut a library at 5,600 rows.**
+     *
+     * The engine stopped after 400 pages whatever the portal still held, and a portal serving
+     * fourteen rows a page holds a film library in tens of thousands of them. The import ended
+     * normally, so the section was marked loaded and nothing said it was a fortieth of the library.
+     */
+    @Test
+    fun `a library longer than the old page ceiling is read to its end`() {
+        val portal = PagedPortal(pageOf = { page -> if (page <= 450) listOf(channel("$page")) else emptyList() })
+        val writer = Recorder()
+
+        val written = engine().importChannels("src", portal, writer)
+
+        assertEquals(450, written)
+        assertEquals(450, writer.items.size)
+    }
+
+    @Test
+    fun `a library longer than the old ceiling that states its total stops exactly at it`() {
+        val portal = PagedPortal(pageOf = { page -> if (page <= 450) listOf(channel("$page")) else emptyList() }, stated = 450)
+        val writer = Recorder()
+
+        val written = engine().importChannels("src", portal, writer)
+
+        assertEquals(450, written)
+        assertEquals("it asked for a page past the total", 450, portal.asked.keys.max())
+    }
+
+    /** The portal that ignores the page number, which the fixed ceiling used to be for. */
+    @Test
+    fun `a portal that answers every page with the first page ends the import`() {
+        val portal = PagedPortal(pageOf = { listOf(channel("1"), channel("2")) })
+        val writer = Recorder()
+
+        val written = engine().importChannels("src", portal, writer)
+
+        assertEquals("the page that repeats is not written twice", 2, written)
+        assertEquals("it asked twice, to find out", 2, portal.asked.size)
+    }
+
+    /** A page that fails is asked for again, and its rows are counted once. */
+    @Test
+    fun `a page that fails once is asked again and its rows arrive once`() {
+        val portal = PagedPortal(
+            pageOf = { page -> if (page <= 3) listOf(channel("${page}a"), channel("${page}b")) else emptyList() },
+            stated = 6,
+            failures = mapOf(2 to 1),
+        )
+        val writer = Recorder()
+
+        val written = engine().importChannels("src", portal, writer)
+
+        assertEquals(6, written)
+        assertEquals(listOf("1a", "1b", "2a", "2b", "3a", "3b"), writer.items.map { it.providerRef })
+        assertEquals(listOf(0, 1, 2, 3, 4, 5), writer.items.map { it.providerOrder })
+        assertEquals(2, portal.asked.getValue(2))
+    }
+
+    /**
+     * **A page that stays unreadable is not the end of the list.**
+     *
+     * It used to read as one -- the adapter answered zero -- so an import that timed out on page 37
+     * finished at page 36 and called itself complete. Now it is a failure the caller sees, with the
+     * pages already written still in the store.
+     */
+    @Test
+    fun `a page that stays unreadable after the first is a failure, not the end`() {
+        val portal = PagedPortal(
+            pageOf = { page -> if (page <= 3) listOf(channel("$page")) else emptyList() },
+            failures = mapOf(3 to 99),
+        )
+        val writer = Recorder()
+
+        val failure = runCatching { engine(batchSize = 1).importChannels("src", portal, writer) }.exceptionOrNull()
+
+        assertTrue("the import ended as if it were whole", failure is java.io.IOException)
+        assertEquals("it did not try the page again and again", 1 + StalkerImportEngine.PAGE_RETRIES, portal.asked.getValue(3))
+        assertEquals("the pages before it are kept", listOf("1", "2"), writer.items.map { it.providerRef })
+    }
+
+    /** The first page that cannot be read is an empty section, as it has always been. */
+    @Test
+    fun `a first page that cannot be read is an empty section`() {
+        val portal = PagedPortal(pageOf = { listOf(channel("1")) }, failures = mapOf(1 to 99))
+        val writer = Recorder()
+
+        val written = engine().importChannels("src", portal, writer)
+
+        assertEquals(0, written)
+        assertTrue(writer.committed)
+    }
+
+    /** What the pages came to, so a library short of its stated total shows. */
+    @Test
+    fun `the report counts pages, rows listed, rows written and rows without an address`() {
+        val portal = object : StalkerImportEngine.Api {
+            override fun channels(page: Int, onChannel: (StalkerChannel) -> Unit): Int {
+                when (page) {
+                    1 -> { onChannel(channel("1")); onChannel(channel("2", cmd = "/media/2.mpg")) }
+                    2 -> { onChannel(channel("3")); onChannel(channel("4", cmd = "/media/4.mpg")) }
+                }
+                return 4
+            }
+            override fun items(kind: MediaKind, page: Int, onItem: (StalkerItem) -> Unit): Int = 0
+            override fun resolve(kind: MediaKind, command: String): String? = null
+        }
+        var report: PortalReport? = null
+
+        val written = engine().importKind("src", MediaKind.LIVE, portal, Recorder(), onReport = { report = it })
+
+        assertEquals(2, written)
+        assertEquals(PortalReport(pages = 2, received = 4, written = 2, unplayable = 2, stated = 4), report)
+    }
 }

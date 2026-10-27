@@ -144,7 +144,7 @@ class XtreamWholeSectionTest {
         assertEquals(0, reports.single().orphans)
         assertEquals(1, reports.single().elsewhere)
         val pass = passes.single()
-        assertEquals("the reply is what was filed, orphaned and left to another section", pass.parsed, pass.filed + pass.orphans + pass.elsewhere)
+        assertEquals("the reply is what was filed and what was left to another section", pass.parsed, pass.filed + pass.elsewhere)
         assertEquals(1, pass.elsewhere)
     }
 
@@ -294,9 +294,12 @@ class XtreamWholeSectionTest {
         assertEquals(1, reports.single().gapFilled)
     }
 
-    /** The walk never asks for them, so writing them would make the two disagree. */
+    /**
+     * The walk never asks for them, so the one reply is the only way they arrive: written under no
+     * group, they are in the section and in search, which is what the panel carries.
+     */
     @Test
-    fun `streams naming a category the panel did not list are not written`() {
+    fun `streams naming a category the panel did not list are written under no group`() {
         val reports = mutableListOf<StreamsReport>()
         val withOrphan = WHOLE_ROWS + row("99", "Hidden Channel", "77", number = 9)
         val writer = RecordingWriter()
@@ -309,9 +312,11 @@ class XtreamWholeSectionTest {
             onStreams = { reports += it },
         )
 
-        assertEquals(walkedRows(), writer.rows())
+        val hidden = writer.items.single { it.title == "Hidden Channel" }
+        assertNull("it was filed under a category the panel never listed", hidden.groupId)
+        assertEquals(MediaKind.LIVE, hidden.kind)
+        assertEquals("every other row is exactly the walk's", walkedRows(), writer.rows().filterNot { it.title == "Hidden Channel" })
         assertEquals(1, reports.single().orphans)
-        assertTrue(writer.items.none { it.title == "Hidden Channel" })
     }
 
     // ------------------------------------------------------------- what is asked
@@ -484,9 +489,9 @@ class XtreamWholeSectionTest {
     /**
      * **The records at each stage of the one reply, and the ids its orphans named.**
      *
-     * What the reply held is what was filed plus what was left: a stream naming a category
-     * the panel did not list, or naming none, is parsed and never written, and the reading
-     * says which ids they named so the provider's list can be checked against them.
+     * What the reply held is what was written, orphans included: a stream naming a category
+     * the panel did not list, or naming none, is written under no group, and the reading says
+     * which ids they named so the provider's list can be checked against them.
      */
     @Test
     fun `one reply reports what it parsed, filed and orphaned, and the ids the orphans named`() {
@@ -509,9 +514,9 @@ class XtreamWholeSectionTest {
         assertEquals(1, pass.requests)
         assertEquals(1, pass.parallelReaders)
         assertEquals(8, pass.parsed)
-        assertEquals(5, pass.filed)
+        assertEquals("the five under a category and the three under none", 8, pass.filed)
         assertEquals(3, pass.orphans)
-        assertEquals("the reply is what was filed and what was left", pass.parsed, pass.filed + pass.orphans)
+        assertEquals("every stream of the reply was written", pass.parsed, pass.filed)
         assertEquals(mapOf("77" to 2, XtreamImportEngine.NO_CATEGORY to 1), pass.orphanCategories)
         assertEquals(mapOf(MediaKind.LIVE to 2, MediaKind.RADIO to 1), pass.categories)
     }
