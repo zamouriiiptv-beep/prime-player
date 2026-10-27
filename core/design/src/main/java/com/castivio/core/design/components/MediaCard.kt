@@ -202,7 +202,7 @@ fun MediaCard(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier
                 .padding(top = gap)
-                .then(if (cardFill != null) Modifier.fillMaxWidth().padding(start = Spacing.sm, end = Spacing.sm, bottom = gap) else Modifier)
+                .then(if (cardFill != null) Modifier.fillMaxWidth().padding(start = gap, end = gap, bottom = gap) else Modifier)
                 .then(if (titleHeight != null) Modifier.height(titleHeight) else Modifier)
                 .clearAndSetSemantics {},
         )

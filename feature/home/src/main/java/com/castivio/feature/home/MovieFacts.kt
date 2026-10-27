@@ -112,16 +112,11 @@ internal fun posterHeightFor(available: Dp, rowExtra: Dp, rowGap: Dp, peek: Floa
     ((available - (rowExtra + rowGap) * 2) / (2f + peek)).coerceAtLeast(floor)
 
 /**
- * The width a poster card is drawn at: an equal share of [available] across [columns] with [gutter] between
- * each pair -- or, when the rows would then be too tall for the surface, the width a poster of [fittedHeight]
- * has at [POSTER_RATIO]. The frame is then the poster's own shape, so a poster fitted into it fills it with
- * nothing beside it; what a narrower card leaves of its column is the space between the cards.
+ * The width a card is drawn at: an equal share of [available] across [columns], with [gutter] between each
+ * pair. The card takes its whole column so the name under the poster has the most room the row can give it.
  */
-internal fun posterCardWidth(available: Dp, gutter: Dp, columns: Int, fittedHeight: Dp): Dp =
-    minOf((available - gutter * (columns - 1)) / columns, fittedHeight * POSTER_RATIO)
-
-/** A film poster's width over its height: the 2:3 the providers ship. */
-internal const val POSTER_RATIO = 2f / 3f
+internal fun posterCardWidth(available: Dp, gutter: Dp, columns: Int): Dp =
+    (available - gutter * (columns - 1)) / columns
 
 private const val MINUTES_PER_HOUR = 60
 private const val SECONDS_PER_MINUTE = 60

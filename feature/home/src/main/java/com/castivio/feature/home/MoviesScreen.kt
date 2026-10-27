@@ -261,18 +261,20 @@ private fun MoviesPane(
 
     Box(modifier.clip(shape).border(1.dp, CastivioTheme.colors.glassBorderSoft, shape)) {
         BoxWithConstraints(Modifier.fillMaxSize().padding(m.wellPad / 2)) {
-            val columns = posterColumns(maxWidth, m.railGap, MIN_POSTER_WIDTH).coerceAtMost(POSTER_COLUMNS)
-            val fitted = posterHeightFor(
+            // The space between cards is the one the rows have between them, so the wall reads as an even grid
+            // and gives its width to the cards rather than to the gutters.
+            val gutter = m.nameGap
+            val columns = posterColumns(maxWidth, gutter, MIN_POSTER_WIDTH).coerceAtMost(POSTER_COLUMNS)
+            val poster = posterHeightFor(
                 available = maxHeight,
                 rowExtra = m.frame.fsLabel * LABEL_LINE * TITLE_LINES + m.nameGap * 2,
                 rowGap = m.nameGap,
                 peek = PEEK_OF_POSTER,
                 floor = MIN_POSTER_HEIGHT,
             )
-            // The card is as wide as a 2:3 poster of that height, or narrower where the column is: the
-            // frame is then the poster's shape, and nothing shows beside a poster fitted into it.
-            val cardWidth = posterCardWidth(maxWidth, m.railGap, columns, fitted)
-            val poster = cardWidth / POSTER_RATIO
+            // The card takes its whole column, so the name under the poster has all the width there is. The
+            // poster keeps its own 2:3 inside the frame, and the backdrop shows beside it where it falls short.
+            val cardWidth = posterCardWidth(maxWidth, gutter, columns)
             Paged(
                 paged = rows,
                 section = CatalogSection.Movies,
@@ -305,7 +307,7 @@ private fun MovieWall(
         state = gridState,
         columns = GridCells.Fixed(columns),
         modifier = Modifier.fillMaxSize(),
-        horizontalArrangement = Arrangement.spacedBy(m.railGap),
+        horizontalArrangement = Arrangement.spacedBy(m.nameGap),
         verticalArrangement = Arrangement.spacedBy(m.nameGap),
         contentPadding = PaddingValues(bottom = m.wellPad),
     ) {
@@ -342,14 +344,21 @@ private fun MovieWall(
 /** How much wider than the channels' the films' breadcrumb is, so a category's name reads whole. */
 private const val CRUMB_OF_FILMS = 1.4f
 
-/** Six posters to a row, the most the wall draws, however wide the surface is. */
-private const val POSTER_COLUMNS = 6
+/**
+ * Five posters to a row, the most the wall draws, however wide the surface is.
+ *
+ * Six was tried and is not enough room for a name: at a handset's width a card of six is about 93dp, which
+ * leaves 85dp for a title in 13sp type, and measured with the app's own font three of the five medium-length
+ * names of a provider's list need a third line there and are cut. At five the card is 113dp and all of them
+ * fit in two; only the long ones are shortened.
+ */
+private const val POSTER_COLUMNS = 5
 
 /**
- * The narrowest column a poster may be given before a row of them stops reading as posters. Low enough that
- * six 2:3 posters fit across a phone held sideways, where 100dp allowed five.
+ * The narrowest column a card may be given before its name stops being readable in two lines: a narrower
+ * surface gets fewer columns, not narrower cards.
  */
-private val MIN_POSTER_WIDTH = 72.dp
+private val MIN_POSTER_WIDTH = 100.dp
 
 /** The shortest a poster may be drawn, so a very short surface still shows posters. */
 private val MIN_POSTER_HEIGHT = 80.dp
@@ -358,7 +367,7 @@ private val MIN_POSTER_HEIGHT = 80.dp
 private const val PEEK_OF_POSTER = 0.05f
 
 /** The title's line, as a share of its type: what the card's name takes beneath the artwork. */
-private const val LABEL_LINE = 1.4f
+private const val LABEL_LINE = 1.45f
 
 /** A film's name may take two lines; a third is cut with an ellipsis, so every card's name area is the same. */
 private const val TITLE_LINES = 2
