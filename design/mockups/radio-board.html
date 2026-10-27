@@ -1,0 +1,280 @@
+<!doctype html>
+<!--
+  The radio: the channels' board with a different wall and an audio plate. Drawn before code.
+
+  A station is a live channel with no picture: a logo, a name, a number, and a stream that plays sound. So the
+  radio is not a new product on the board, it is the board with three things changed.
+
+    1. THE WALL IS A GRID OF SQUARE-ISH CARDS, not rows. A station's logo is the whole of what it has to show
+       -- no programme guide, no preview -- and logos are square, so a card gives the logo room and the name
+       two lines. A station with no logo keeps the card's own backdrop and a radio mark, as a film with no poster
+       keeps the film strip; nothing is drawn to stand in for the station's artwork. Behind the logo, the blurred
+       colours of the logo itself, as behind a poster, so a card never has bare ground beside a mark that is not
+       the card's shape.
+    2. THE SOUND KEEPS GOING. A station pressed starts at once, in place -- there is no page per station -- and
+       what is playing stands in a plate: on a handset a bar under the wall, on a television the panel at the
+       end of the board. It is the same plate on both, with the same controls: the station before, play or pause,
+       the station after (in the list that is open), the favourite, and a sleep timer. The plate is how the radio
+       is heard while the viewer browses; the bar opens into the full "now playing" view.
+    3. WHAT THE PROVIDER DOES NOT SEND IS NOT DRAWN. There is no country, genre, bitrate, codec or waveform
+       here, because a panel sends a radio station as a name, a logo, a number and a category. The second line
+       of a card is the category the station is filed under, and only on the lists that mix categories -- All,
+       Favourites, Recently played -- where it says something; inside a category it is that category, said
+       already. The marks on the playing card and in the plate are the application's equaliser mark, which says
+       "playing", not a measurement of the sound.
+
+  Everything else is the board's own: the band (mark, section, field, order, clock), the rail with its field,
+  All, Favourites and Recently played, then the provider's categories with their counts, drawn left to right
+  whatever the language. The playing station is the one the remote's arrows leave when they move on: the focus
+  ring is the highlighted card, the violet edge and the marks are the one that sounds.
+
+  Geometry is the channels' band and the films' wall: five cards a row on a handset, the plate 52dp tall, the
+  television's panel 250dp. Names and figures are examples; the stations and their marks are made up.
+
+    ?frame=<name>      one frame at its device size
+    ?frame=sheet       every frame stacked with its caption, for review
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Radio board</title>
+<style>
+:root{
+  --ground:#111327; --panel:#20223A; --edge:rgba(172,180,214,.10); --edgeSoft:rgba(255,255,255,.08);
+  --glass:rgba(255,255,255,.06); --glassBorder:rgba(255,255,255,.14); --violet:#9B6BFF; --violetEdge:#B694FF;
+  --violetFill:rgba(155,107,255,.24); --azure:#4C9BFF; --ring:#6FB2FF; --ink:#D6D3E8; --strong:#FFFFFF;
+  --muted:#8C8CA8; --ok:#3DD68C; --scrim:rgba(5,4,14,.72); --skel:rgba(255,255,255,.08);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#05040E;color:var(--strong);font-family:"Noto Sans Arabic","DejaVu Sans",sans-serif}
+body.review{padding:20px;width:max-content}
+svg{display:block;flex:none}
+.cap{direction:ltr;text-align:left;font:13px/1.45 "DejaVu Sans",sans-serif;color:#9a9ab8;margin:18px 0 8px;max-width:900px}
+.screen{position:relative;overflow:hidden;direction:ltr;font-family:"DejaVu Sans","Noto Sans Arabic",sans-serif;
+  background:radial-gradient(120% 90% at 85% 0%,#1B1F3F 0%,rgba(27,31,63,0) 60%),linear-gradient(160deg,#13152D,var(--ground))}
+
+/* ---------- the band ---------- */
+.band{position:absolute;left:0;right:0;display:flex;align-items:center}
+.mark{display:flex;align-items:center;justify-content:space-between}
+.mark b{font-size:15px;font-weight:700;letter-spacing:.2px}
+.sec{display:flex;flex-direction:column;line-height:1.15}
+.sec i{font-style:normal;color:#B694FF;font-weight:700;font-family:"Noto Sans Arabic"}
+.sec span{color:var(--ink);font-size:11px;white-space:nowrap}
+.field{display:flex;align-items:center;gap:7px;border-radius:99px;background:var(--glass);border:1px solid var(--edgeSoft);padding:0 10px;color:var(--muted)}
+.field svg{width:14px;height:14px;fill:var(--muted)}
+.chip{display:flex;align-items:center;gap:6px;border-radius:99px;background:var(--glass);border:1px solid var(--glassBorder);color:var(--ink);padding:0 12px;white-space:nowrap}
+.chip svg{fill:var(--ink)}
+.clock{margin-left:auto;text-align:right;line-height:1.1}
+.clock b{display:block;font-size:19px;font-weight:700}
+.clock span{font-size:10px;color:var(--muted)}
+
+/* ---------- the panel: rail, wall, plate ---------- */
+.panel{position:absolute;border:1px solid var(--edgeSoft);border-radius:18px;background:rgba(255,255,255,.04);display:flex;overflow:hidden}
+.rail{display:flex;flex-direction:column;gap:3px;flex:none}
+.rs{display:flex;align-items:center;gap:7px;border-radius:99px;background:var(--glass);border:1px solid var(--edgeSoft);padding:0 10px;color:var(--muted);flex:none}
+.rs svg{width:13px;height:13px;fill:var(--muted)}
+.re{flex:none;border-radius:10px;padding:0 10px;display:flex;flex-direction:column;justify-content:center;font-family:"Noto Sans Arabic","DejaVu Sans"}
+.re b{font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.re small{color:var(--muted);white-space:nowrap}
+.re.on{background:var(--violet)} .re.on small{color:#EDE4FF}
+.re.sep{height:1px;background:var(--edgeSoft);margin:3px 10px;padding:0;border-radius:0}
+.wall{flex:1;min-width:0;position:relative;border:1px solid var(--edgeSoft);border-radius:14px;overflow:hidden}
+.grid{position:absolute;inset:0;padding:6px;display:grid;gap:6px;align-content:start}
+
+/* ---------- a station card ---------- */
+.card{position:relative;border-radius:12px;background:rgba(255,255,255,.055);border:1px solid var(--edgeSoft);overflow:hidden;display:flex;flex-direction:column}
+.card.on{border-color:var(--violetEdge);box-shadow:inset 0 0 0 1px rgba(182,148,255,.55)}
+.card.ring{outline:2px solid var(--ring);outline-offset:1px;background:rgba(155,107,255,.14)}
+.art{position:relative;overflow:hidden;flex:none}
+.bd{position:absolute;inset:-30%;filter:blur(13px);opacity:.9}
+.scr{position:absolute;inset:0;background:rgba(0,0,0,.40)}
+.lg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.logo{border-radius:20%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,.35);letter-spacing:-.5px}
+.nobg{background:linear-gradient(160deg,#10224f,#0b1535)}
+.nobg svg{opacity:.4;fill:none;stroke:#8FA7E0;stroke-width:1.6}
+.no{position:absolute;left:6px;top:5px;font-size:9px;font-weight:700;color:#fff;background:rgba(0,0,0,.45);border-radius:6px;padding:1px 5px;font-variant-numeric:tabular-nums}
+.hrt{position:absolute;right:5px;top:4px;width:16px;height:16px}
+.hrt svg{width:16px;height:16px;fill:#fff}
+.eq{position:absolute;right:6px;bottom:5px;display:flex;align-items:flex-end;gap:2px;height:13px}
+.eq i{width:3px;background:var(--violetEdge);border-radius:1px}
+.nm{padding:5px 7px 0;font-weight:700;line-height:1.2;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;unicode-bidi:plaintext}
+.card.on .nm{color:#D9C8FF}
+.ct{padding:0 7px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:"Noto Sans Arabic","DejaVu Sans"}
+
+/* ---------- the plate ---------- */
+.bar{position:absolute;left:6px;right:6px;bottom:6px;height:52px;border-radius:14px;background:rgba(32,34,58,.96);border:1px solid var(--violetEdge);
+  display:flex;align-items:center;gap:10px;padding:6px 10px}
+.bar .logo{width:38px;height:38px;font-size:11px;flex:none}
+.bar .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.bar .tx b{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;unicode-bidi:plaintext}
+.bar .tx span{font-size:10px;color:var(--muted);font-family:"Noto Sans Arabic","DejaVu Sans"}
+.ib{width:34px;height:34px;border-radius:10px;background:var(--glass);border:1px solid var(--glassBorder);display:flex;align-items:center;justify-content:center;flex:none}
+.ib svg{width:17px;height:17px;fill:var(--ink)}
+.ib.big{width:42px;height:42px;border-radius:99px;background:linear-gradient(180deg,#4C9BFF,#2F6FE0);border:none}
+.ib.big svg{fill:#fff;width:21px;height:21px}
+.ib.fav svg{fill:#FF6B8A}
+.ib.ring{outline:2px solid var(--ring);outline-offset:1px}
+.eqs{display:flex;align-items:flex-end;gap:2px;height:16px;flex:none}
+.eqs i{width:3px;background:var(--violetEdge);border-radius:1px}
+.live{font-size:9px;font-weight:800;letter-spacing:.6px;color:#0B0B14;background:var(--ok);border-radius:5px;padding:1px 6px;display:inline-block}
+
+/* the television's panel and the expanded view */
+.np{position:relative;flex:none;border-left:1px solid var(--edgeSoft);overflow:hidden;display:flex;flex-direction:column;align-items:center;padding:14px 14px}
+.np .art{width:100%;border-radius:14px}
+.np .name{margin-top:10px;font-weight:800;text-align:center;unicode-bidi:plaintext;line-height:1.2}
+.np .sub{margin-top:3px;color:var(--ink);font-family:"Noto Sans Arabic","DejaVu Sans"}
+.np .ctl{display:flex;align-items:center;gap:14px;margin-top:12px}
+.np .acts{display:flex;gap:8px;margin-top:12px}
+.act{display:flex;align-items:center;gap:6px;border-radius:11px;background:var(--glass);border:1px solid var(--glassBorder);color:var(--ink);padding:0 11px;white-space:nowrap;font-family:"Noto Sans Arabic","DejaVu Sans"}
+.act svg{fill:var(--ink);width:16px;height:16px}
+.act.ring{outline:2px solid var(--ring);outline-offset:1px}
+.sheet{position:absolute;border-radius:18px;background:rgba(24,26,48,.97);border:1px solid var(--edgeSoft);overflow:hidden;display:flex}
+.dim{position:absolute;inset:0;background:var(--scrim)}
+.sk{border-radius:8px;background:var(--skel)}
+.dlg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--panel);border:1px solid var(--edgeSoft);border-radius:22px;padding:22px 26px;width:360px}
+.dlg h4{font-size:15px;font-weight:700;margin-bottom:12px;font-family:"Noto Sans Arabic"}
+.opt{display:flex;align-items:center;justify-content:space-between;height:40px;border-radius:11px;padding:0 14px;color:var(--ink);font-family:"Noto Sans Arabic","DejaVu Sans";font-size:13px}
+.opt.on{background:var(--violetFill);border:1px solid var(--violetEdge);color:#fff}
+.opt.ring{outline:2px solid var(--ring);outline-offset:1px}
+</style>
+</head>
+<body>
+<script>
+const I={
+  search:'<svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>',
+  tune:'<svg viewBox="0 0 24 24"><path d="M3 17v2h6v-2zM3 5v2h10V5zm10 16v-2h8v-2h-8v-2h-2v6zM7 9v2H3v2h4v2h2V9zm14 4v-2H11v2zm-6-4h2V7h4V5h-4V3h-2z"/></svg>',
+  chev:'<svg viewBox="0 0 24 24" width="14" height="14"><path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>',
+  heart:'<svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54z"/></svg>',
+  heartO:'<svg viewBox="0 0 24 24"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3zm-4.4 15.55-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05z"/></svg>',
+  play:'<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',
+  pause:'<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6zm8-14v14h4V5z"/></svg>',
+  prev:'<svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>',
+  next:'<svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6zM16 6v12h2V6z"/></svg>',
+  timer:'<svg viewBox="0 0 24 24"><path d="M15 1H9v2h6zm-4 13h2V8h-2zm8.03-6.61 1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42A8.96 8.96 0 0 0 12 4a9 9 0 1 0 9 9c0-2.12-.74-4.07-1.97-5.61zM12 20a7 7 0 1 1 0-14 7 7 0 0 1 0 14z"/></svg>',
+  up:'<svg viewBox="0 0 24 24"><path d="M7.41 15.41 12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>',
+  back:'<svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"/></svg>',
+  radio:'<svg viewBox="0 0 24 24" width="100%" height="100%"><path d="M3.24 6.15C2.51 6.43 2 7.17 2 8v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8c0-1.11-.89-2-2-2H8.3l8.26-3.34L15.88 1 3.24 6.15zM7 20c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm13-8h-2v-2h-2v2H4V8h16z" style="fill:#8FA7E0;stroke:none"/></svg>',
+  logoTv:'<svg viewBox="0 0 24 24" width="22" height="22"><path d="M8 5v14l11-7z" fill="#B694FF"/></svg>'
+};
+const EQ=(h=[9,13,6,11])=>`<div class="eq">${h.map(x=>`<i style="height:${x}px"></i>`).join('')}</div>`;
+const EQS=()=>`<div class="eqs">${[8,15,6,12].map(x=>`<i style="height:${x}px"></i>`).join('')}</div>`;
+const HUES=[['#c0392b','#f39c12'],['#1f6e8c','#3ec1d3'],['#6c3483','#e84393'],['#1e8449','#82e0aa'],['#b9770e','#f7dc6f'],['#2c3e8f','#6c8cff'],['#922b21','#ff7675'],['#117864','#55efc4']];
+const ST=[
+ {n:'Radio Atlas',g:'ATLAS',c:'المغرب'},{n:'Nova FM',g:'nova',c:'المغرب'},{n:'الصحراء FM',g:'S',c:'المغرب'},{n:'Café Jazz',g:'Jazz',c:'موسيقى'},
+ {n:'Beat 98.4',g:'98',c:'المغرب'},{n:'إذاعة النور',g:'ن',c:'دينية'},{n:'Coast Talk',g:'CT',c:'حوارية'},{n:'Retro 80s',g:'80s',c:'موسيقى'},
+ {n:'Marrakech Live',g:'ML',c:'المغرب'},{n:'Sahara Waves',g:'SW',c:'المغرب'},{n:'Studio Quran',g:'Q',c:'دينية'},{n:'Medina Radio',g:'M',c:'المغرب'},
+ {n:'Dune FM',g:'DUNE',c:'موسيقى'},{n:'Atlas Sport',g:'AS',c:'رياضة'},{n:'Soft Morning',g:'SM',c:'موسيقى'}
+];
+const hue=i=>HUES[i%HUES.length];
+function art(i,w,h,opts={}){
+  const [a,b]=hue(i);
+  if(opts.nologo) return `<div class="art nobg" style="width:${w}px;height:${h}px"><div class="lg"><div style="width:${Math.round(h*.44)}px;height:${Math.round(h*.44)}px">${I.radio}</div></div></div>`;
+  return `<div class="art" style="width:${w}px;height:${h}px"><div class="bd" style="background:linear-gradient(135deg,${a},${b})"></div><div class="scr"></div>
+    <div class="lg"><div class="logo" style="width:${Math.round(h*.62)}px;height:${Math.round(h*.62)}px;font-size:${Math.round(h*.2)}px;background:linear-gradient(150deg,${a},${b})">${ST[i%ST.length].g}</div></div></div>`;
+}
+function card(i,w,h,o={}){
+  const s=ST[i%ST.length];
+  return `<div class="card${o.on?' on':''}${o.ring?' ring':''}" style="width:${w}px">
+    <div style="position:relative">${art(i,w-2,h,{nologo:o.nologo})}<div class="no">${o.no??(i+1)}</div><div class="hrt">${o.fav?I.heart:''}</div>${o.on?EQ():''}</div>
+    <div class="nm" style="font-size:${o.fs||11}px;min-height:${(o.fs||11)*2.4}px" dir="auto">${s.n}</div>
+    ${o.cat===false?'':`<div class="ct" style="font-size:${(o.fs||11)-1.5}px;padding-bottom:6px">${s.c}</div>`}</div>`;
+}
+function railList(w,rowH,fs,sel,items){
+  return `<div class="rail" style="width:${w}px;padding:6px">
+    <div class="rs" style="height:${rowH*.9}px;font-size:${fs}px">${I.search}ابحث في الباقات</div>
+    <div style="height:3px"></div>
+    ${items.map(x=>x==='-'?'<div class="re sep"></div>':`<div class="re${x[0]===sel?' on':''}" style="height:${rowH}px;font-size:${fs}px"><b>${x[0]}</b>${x[1]?`<small style="font-size:${fs-2}px">المجموع: ${x[1]}</small>`:''}</div>`).join('')}</div>`;
+}
+const RAIL=[['جميع المحطات'],['المفضلة'],['استُمع مؤخرًا'],'-',['MAROC RADIO',86],['MAROC TALK',23],['ARAB MUSIC',212],['WORLD JAZZ',41],['QURAN & ISLAM',57],['SPORT AUDIO',18],['KIDS RADIO',12]];
+function band(w,tv,list){
+  const s=tv?1.15:1, h=Math.round(44*s), pad=tv?18:8, railW=Math.round((tv?236:196)*1), inset=13;
+  return `<div class="band" style="top:${tv?8:2}px;height:${h}px;padding:0 ${pad}px">
+    <div class="mark" style="width:${railW+6}px;padding:0 ${inset}px 0 ${inset}px">${I.logoTv}<b style="font-size:${15*s}px">Castivio</b></div>
+    <div class="sec" style="width:${Math.round(90*s)}px;margin-left:2px"><i style="font-size:${12.5*s}px">الراديو</i><span style="font-size:${10.5*s}px">${list}</span></div>
+    <div style="flex:1;display:flex;justify-content:center;align-items:center;gap:10px;padding:0 6px">
+      <div class="field" style="height:${28*s}px;width:${tv?210:170}px;font-size:${11*s}px;font-family:'Noto Sans Arabic'">${I.search}البحث في المحطات</div>
+      <div class="chip" style="height:${28*s}px;font-size:${11*s}px;font-family:'Noto Sans Arabic'">${I.tune.replace('<svg','<svg width="14" height="14"')}الترتيب: حسب المزوّد${I.chev}</div></div>
+    <div class="clock" style="padding-right:${inset}px;width:${Math.round(100*s)}px"><b style="font-size:${19*s}px">18:35</b><span>27-10-2026</span></div></div>`;
+}
+function phone(opts={}){
+  const w=833,h=385, top=50, ph=h-top-6;
+  const railW=196+12, cols=5, gap=6, wallW=w-16-railW-6-2, cw=Math.floor((wallW-12-gap*(cols-1))/cols), ah=Math.round(cw*0.74);
+  const list=opts.list||'جميع المحطات';
+  const cards=[0,1,2,3,4,5,6,7,8,9].map(i=>card(i,cw,ah,{on:i===1&&opts.playing!==false,ring:i===opts.ring,fav:i===3||i===5,nologo:opts.nologo&&i===4,cat:opts.cat})).join('');
+  const bar=opts.playing===false?'':`<div class="bar"><div class="logo" style="background:linear-gradient(150deg,${hue(1)[0]},${hue(1)[1]})">nova</div>
+      <div class="tx"><b dir="auto">Nova FM</b><span>المغرب · <span class="live">مباشر</span></span></div>${EQS()}
+      <div class="ib${opts.focusBar==='prev'?' ring':''}">${I.prev}</div><div class="ib big${opts.focusBar==='play'?' ring':''}">${I.pause}</div><div class="ib">${I.next}</div>
+      <div class="ib fav">${I.heart}</div><div class="ib">${I.timer}</div><div class="ib${opts.focusBar==='up'?' ring':''}">${I.up}</div></div>`;
+  return band(w,false,list)+`<div class="panel" style="left:8px;right:8px;top:${top}px;height:${ph}px">
+    ${railList(railW,34,12,opts.sel||'جميع المحطات',RAIL)}
+    <div class="wall" style="margin:6px 6px 6px 0"><div class="grid" style="grid-template-columns:repeat(${cols},${cw}px);${opts.playing===false?'':'bottom:64px'}">${opts.body||cards}</div>${bar}</div></div>`;
+}
+function nowPlaying(){
+  const w=833,h=385,top=50;
+  const [a,b]=hue(1);
+  return phone({ring:-1})+`<div class="dim"></div>
+  <div class="sheet" style="left:70px;right:70px;top:34px;bottom:22px">
+    <div style="position:relative;width:300px;flex:none;overflow:hidden">
+      <div style="position:absolute;inset:-30%;filter:blur(18px);background:linear-gradient(135deg,${a},${b})"></div><div style="position:absolute;inset:0;background:rgba(0,0,0,.42)"></div>
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center"><div class="logo" style="width:170px;height:170px;font-size:42px;background:linear-gradient(150deg,${a},${b})">nova</div></div></div>
+    <div style="flex:1;padding:20px 24px;display:flex;flex-direction:column;gap:6px;min-width:0">
+      <div style="display:flex;align-items:center;justify-content:space-between"><span class="live">مباشر</span><div class="ib">${I.back}</div></div>
+      <div style="font-size:26px;font-weight:800;margin-top:4px" dir="auto">Nova FM</div>
+      <div style="font-size:13px;color:var(--ink);font-family:'Noto Sans Arabic'">المغرب · الرقم 2 · استمعت 00:12:34</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:8px">${EQS().replace('height:16px','')}<span style="font-size:11px;color:var(--muted);font-family:'Noto Sans Arabic'">يُشغَّل الآن</span></div>
+      <div class="ctl" style="display:flex;align-items:center;gap:16px;margin-top:14px"><div class="ib" style="width:44px;height:44px">${I.prev}</div><div class="ib big ring" style="width:58px;height:58px">${I.pause}</div><div class="ib" style="width:44px;height:44px">${I.next}</div></div>
+      <div style="display:flex;gap:8px;margin-top:16px"><div class="act" style="height:38px">${I.heartO}أضف إلى المفضلة</div><div class="act" style="height:38px">${I.timer}مؤقّت النوم</div></div></div></div>`;
+}
+function tv(){
+  const w=960,h=540,top=62, npW=262, railW=236+12, wallW=w-36-railW-6-npW-10, cols=4, gap=8, cw=Math.floor((wallW-12-gap*(cols-1))/cols), ah=Math.round(cw*0.7);
+  const cards=[0,1,2,3,4,5,6,7,8,9,10,11].map(i=>card(i,cw,ah,{on:i===1,ring:i===2,fav:i===3||i===9,fs:12.5})).join('');
+  const [a,b]=hue(1);
+  return band(w,true,'جميع المحطات')+`<div class="panel" style="left:18px;right:18px;top:${top}px;bottom:14px">
+    ${railList(railW,40,13.5,'جميع المحطات',RAIL)}
+    <div class="wall" style="margin:6px 4px 6px 0"><div class="grid" style="grid-template-columns:repeat(${cols},${cw}px);gap:${gap}px;padding:8px">${cards}</div></div>
+    <div class="np" style="width:${npW}px">
+      <div class="art" style="height:150px"><div class="bd" style="background:linear-gradient(135deg,${a},${b})"></div><div class="scr"></div><div class="lg"><div class="logo" style="width:104px;height:104px;font-size:26px;background:linear-gradient(150deg,${a},${b})">nova</div></div></div>
+      <div class="name" style="font-size:19px" dir="auto">Nova FM</div><div class="sub" style="font-size:12.5px">المغرب · <span class="live">مباشر</span></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:10px">${EQS()}<span style="font-size:11px;color:var(--muted);font-family:'Noto Sans Arabic'">00:12:34</span></div>
+      <div class="ctl"><div class="ib" style="width:42px;height:42px">${I.prev}</div><div class="ib big" style="width:56px;height:56px">${I.pause}</div><div class="ib" style="width:42px;height:42px">${I.next}</div></div>
+      <div class="acts"><div class="act" style="height:42px;font-size:12px">${I.heartO}المفضلة</div><div class="act" style="height:42px;font-size:12px">${I.timer}مؤقّت النوم</div></div></div></div>`;
+}
+function states(){
+  const sk=[0,1,2].map(()=>`<div class="card" style="width:104px"><div class="sk" style="height:77px;border-radius:0"></div><div class="sk" style="height:9px;margin:8px 7px 0"></div><div class="sk" style="height:9px;margin:5px 7px 8px;width:60%"></div></div>`).join('');
+  return `<div style="padding:16px 20px;display:grid;grid-template-columns:1fr 1fr;gap:18px 26px;align-items:start;font-family:'DejaVu Sans'">
+    <div><div style="font-size:11px;color:#9a9ab8;margin-bottom:7px">Loading: the cards are there, quiet, until the stations arrive</div><div style="display:flex;gap:6px">${sk}</div></div>
+    <div><div style="font-size:11px;color:#9a9ab8;margin-bottom:7px">No logo: the card's backdrop and a radio mark, never a made-up picture. A long name takes two lines</div>
+      <div style="display:flex;gap:6px">${card(4,104,77,{nologo:true,cat:false})}${card(11,104,77,{cat:false})}${card(6,104,77,{cat:false,fav:true})}</div></div>
+    <div><div style="font-size:11px;color:#9a9ab8;margin-bottom:7px">Inside a category: no second line; on All, Favourites and Recently played: the category</div>
+      <div style="display:flex;gap:6px">${card(0,104,77,{cat:false})}${card(1,104,77,{})}</div></div>
+    <div><div style="font-size:11px;color:#9a9ab8;margin-bottom:7px">A category with no station: the board's empty state</div>
+      <div class="panel" style="position:relative;height:150px;align-items:center;justify-content:center;text-align:center;padding:0 18px"><div><div style="font-size:15px;font-weight:700;font-family:'Noto Sans Arabic'">لا محطات في هذه الباقة</div><div style="font-size:11px;color:var(--ink);margin-top:5px;font-family:'Noto Sans Arabic'">اختر باقة أخرى أو امسح البحث.</div><div class="act" style="height:34px;margin:12px auto 0;width:110px;justify-content:center">عرض الكل</div></div></div></div></div>`;
+}
+function sleep(){
+  return phone({ring:-1})+`<div class="dim"></div><div class="dlg" dir="rtl">
+    <h4>مؤقّت النوم</h4>
+    <div class="opt">إيقاف <span>—</span></div><div class="opt">بعد 15 دقيقة</div><div class="opt on ring">بعد 30 دقيقة <span style="color:#D9C8FF">متبقٍ 29:41</span></div><div class="opt">بعد 45 دقيقة</div><div class="opt">بعد ساعة</div><div class="opt">بعد ساعة ونصف</div></div>`;
+}
+const FR={
+ 'phone-browse':[833,385,()=>phone({ring:2,focusBar:'play',list:'MAROC RADIO',sel:'MAROC RADIO',cat:false})],
+ 'phone-all':[833,385,()=>phone({ring:5})],
+ 'phone-now':[833,385,()=>nowPlaying()],
+ 'tv':[960,540,()=>tv()],
+ 'states':[833,330,()=>states()],
+ 'sleep':[833,385,()=>sleep()]
+};
+const CAP={
+ 'phone-browse':'1. A handset, MAROC RADIO open: the band is the channels\' and the films\'; the rail lists All, Favourites, Recently played, then the provider\'s categories with their counts; the wall is five station cards a row, each logo over its own blurred colours. Nova FM sounds (violet edge, the equaliser mark) while the remote\'s focus ring is on another card; the plate under the wall holds what plays, with the station before and after, pause, the favourite, a sleep timer and the way to open it. Inside a category a card has no second line.',
+ 'phone-all':'2. The same board on All: the cards have a second line, the category the station is filed under, which is the one thing that tells two stations of one name apart. Favourites are hearted on the card.',
+ 'phone-now':'3. The plate opened: the station large over its own colours, "live", the number and how long the viewer has listened, the controls, the favourite and the sleep timer. Back closes it and the sound goes on.',
+ 'tv':'4. Television 960x540: the same board with the plate as the panel at its end -- same controls, larger -- four cards a row. Nothing is drawn that the provider did not send: no country, genre, bitrate or waveform.',
+ 'states':'5. The states: loading, a station with no logo, the second line by list, and an empty category.',
+ 'sleep':'6. The sleep timer: a short list of times, the running one marked with what is left; it stops the sound when it ends and is off by default.'
+};
+const q=new URLSearchParams(location.search), f=q.get('frame')||'sheet';
+function draw(n){const [w,h,fn]=FR[n];return `<div class="screen" style="width:${w}px;height:${h}px">${fn()}</div>`;}
+if(f==='sheet'){document.body.className='review';document.body.innerHTML=Object.keys(FR).map(n=>`<div class="cap">${CAP[n]}</div>${draw(n)}`).join('');}
+else document.body.innerHTML=draw(f);
+</script>
+</body>
+</html>
