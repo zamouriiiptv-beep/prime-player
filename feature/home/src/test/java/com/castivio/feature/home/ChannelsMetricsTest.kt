@@ -680,6 +680,25 @@ class ChannelsMetricsTest {
      * suite. The aspects are the ones real hardware reports — a television, a tablet, a
      * handset in landscape, and the two extremes of a folding device.
      */
+    /**
+     * **The band's two ends stand in from the frame, on every surface.**
+     *
+     * The mark stood in the middle of its cell and the clock at the frame's edge, which on a handset is the phone's.
+     * The inset is the distance from the frame to the bouquets' search mark, so the mark over it and the clock at the
+     * other end stand in as far as that mark does -- never less than the two paddings it is made of -- and the cell
+     * between them keeps room for the mark and the name after it is taken.
+     */
+    @Test
+    fun `the band's ends stand in from the frame`() {
+        sweep { tv, width, height ->
+            val m = channelsMetricsFor(tv, width, height)
+            assertEquals(m.wellPad + m.railPadH, bandInset(m))
+            assertTrue("the inset is ${bandInset(m)} at ${width}x$height", bandInset(m) >= 13.dp)
+            val room = m.rail - m.wellPad * 2f - m.railPadH
+            assertTrue("the mark and the name have $room at ${width}x$height", room > 0.dp)
+        }
+    }
+
     private fun sweep(
         from: Int = MIN_WIDTH,
         aspects: List<Float> = ASPECTS,

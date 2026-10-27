@@ -618,12 +618,14 @@ internal fun BoardBand(
             // logo. It was sitting against the wordmark, and `Live TV` read as part of
             // the product's name rather than as which section is open.
             Row(
-                Modifier.width(m.rail + m.railGap),
+                // The cell keeps its width; what the padding takes is the room the two are spread over.
+                Modifier.width(m.rail + m.railGap).padding(start = bandInset(m), end = m.railGap + m.wellPad),
                 verticalAlignment = Alignment.CenterVertically,
-                // Centred in the cell rather than pushed against its leading edge. The
-                // cell is exactly the rail's width, so the mark now sits over the middle
-                // of the bouquet column instead of over its corner.
-                horizontalArrangement = Arrangement.spacedBy(m.osdGap, Alignment.CenterHorizontally),
+                // **Spread over the column, not gathered in the middle of it.** The mark stands over the
+                // bouquets' search mark -- its edge in line with that mark's -- and the name ends where the
+                // bouquet column does, a step before the section's name, so the pair fills the space above the
+                // frame with a gap between them instead of huddling in the middle of it.
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Image(
                     painter = painterResource(DesignR.drawable.castivio_logo),
@@ -700,7 +702,7 @@ internal fun BoardBand(
             // to say which is which.
             if (trailing == null) {
                 Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { field() }
-                BoardClock(m, Modifier.width(m.dates))
+                BoardClock(m, Modifier.width(m.dates).padding(end = bandInset(m)))
             } else {
                 BandTail(
                     modifier = Modifier.weight(1f),
@@ -708,7 +710,7 @@ internal fun BoardBand(
                     fieldWidth = m.search,
                     field = field,
                     between = trailing,
-                    clock = { BoardClock(m, Modifier) },
+                    clock = { BoardClock(m, Modifier.padding(end = bandInset(m))) },
                 )
             }
         }
@@ -770,6 +772,16 @@ private fun BandTail(
         }
     }
 }
+
+/**
+ * How far the band's two ends stand in from the frame's edges: the mark at the start, the clock at the end.
+ *
+ * The frame is drawn close to the edge of a handset, and the clock was at the frame's very edge, against the
+ * phone's. This is the distance from the frame to the bouquets' search mark -- the well's padding and the field's own --
+ * so the clock stands in from its edge as far as that mark stands in from the other, and the mark over it is
+ * in line with that one.
+ */
+internal fun bandInset(m: ChannelsMetrics): Dp = m.wellPad + m.railPadH
 
 /**
  * The time, and today's date under it.
