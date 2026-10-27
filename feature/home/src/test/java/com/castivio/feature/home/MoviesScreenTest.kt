@@ -99,7 +99,7 @@ class MoviesScreenTest {
         show(holder())
 
         compose.onNodeWithText("Movies").assertIsDisplayed()
-        compose.onNodeWithText("Search movies in your subscription").assertIsDisplayed()
+        compose.onNodeWithText("Search movies").assertIsDisplayed()
     }
 
     @Test

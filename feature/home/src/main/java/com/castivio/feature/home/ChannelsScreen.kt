@@ -1,5 +1,6 @@
 package com.castivio.feature.home
 
+import android.view.View
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -88,6 +89,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -98,6 +100,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
@@ -893,6 +896,10 @@ internal fun HeaderSearchField(
     val colors = CastivioTheme.colors
     val (focused, focusModifier) = rememberFocusFlag()
     val shape = RoundedCornerShape(Radius.pill)
+    // The board is drawn left to right in every language, so the field's direction is the language's, read from
+    // the configuration and not from the layout: the mark stays at the left, and the words start at the end of
+    // the box a reader of that language starts from.
+    val direction = searchTextDirection(LocalConfiguration.current.layoutDirection == View.LAYOUT_DIRECTION_RTL)
 
     Row(
         modifier
@@ -916,7 +923,11 @@ internal fun HeaderSearchField(
             onValueChange = onType,
             enabled = enabled,
             singleLine = true,
-            textStyle = castivioBodyStyle(m.frame.fsBody).copy(color = colors.onBackground),
+            textStyle = castivioBodyStyle(m.frame.fsBody).copy(
+                color = colors.onBackground,
+                textAlign = TextAlign.Start,
+                textDirection = direction,
+            ),
             cursorBrush = SolidColor(colors.secondary),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             // The search key hides the keyboard and leaves the field where it is, text and results
@@ -935,10 +946,11 @@ internal fun HeaderSearchField(
                 if (text.isEmpty()) {
                     Text(
                         text = hint,
-                        style = castivioBodyStyle(m.frame.fsBody),
+                        style = castivioBodyStyle(m.frame.fsBody).copy(textAlign = TextAlign.Start, textDirection = direction),
                         color = colors.onBackgroundMuted,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
                 field()
@@ -946,6 +958,16 @@ internal fun HeaderSearchField(
         )
     }
 }
+
+/**
+ * Which way the header search field's words run when it holds nothing, or only what has no direction of its own.
+ *
+ * In a right-to-left language the caret waits at the right end of the box and the first word is written from
+ * there; anything typed in letters of the other direction runs the way those letters do. In any other language it
+ * is the other way about. The mark stays at the left in both, which is where the board draws it.
+ */
+internal fun searchTextDirection(rtlLanguage: Boolean): TextDirection =
+    if (rtlLanguage) TextDirection.ContentOrRtl else TextDirection.ContentOrLtr
 
 /**
  * The panel: the four columns.

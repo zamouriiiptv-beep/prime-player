@@ -284,7 +284,7 @@
     <string name="channels_favorites_empty_detail">Press Favourite, pick the channels you like, then press Favourite again to add them.</string>
     <string name="channels_recent_empty_title">No channels watched yet</string>
     <string name="channels_recent_empty_detail">The channels you watch appear here, the most recent first.</string>
-    <string name="movies_search_hint">Search movies in your subscription</string>
+    <string name="movies_search_hint">Search movies</string>
     <string name="movies_all">All movies</string>
     <string name="movies_favorites_empty_title">No favourite movies yet</string>
     <string name="movies_favorites_empty_detail">Open a movie and press Add to favourites to keep it here.</string>
