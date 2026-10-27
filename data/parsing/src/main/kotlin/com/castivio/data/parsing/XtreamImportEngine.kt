@@ -814,22 +814,29 @@ class XtreamImportEngine(
         providerSeriesId: String,
         seriesTitle: String,
         groupId: String?,
+        onDetails: (XtreamSeriesInfo?, Map<String, String>) -> Unit = { _, _ -> },
     ): Int {
         val started = clock()
         val seriesId = StableIds.seriesByProviderId(sourceId, providerSeriesId)
         val batch = ArrayList<CatalogItem>(64)
         var order = 0
         var written = 0
+        // What the provider says of the show, and the plot of each episode by the row it was written as.
+        // A show has hundreds of episodes at most, so these are small beside a catalogue's batch.
+        var info: XtreamSeriesInfo? = null
+        val plots = HashMap<String, String>()
 
         // APPEND, emphatically: a REPLACE write here would prune every row that
         // is not one of this show's episodes — the entire library.
         writer.begin(sourceId, ImportMode.APPEND)
         try {
             api.seriesInfo(providerSeriesId).use { reader ->
-                XtreamParser.parseSeriesInfo(reader) { episode ->
+                XtreamParser.parseSeriesInfo(reader, onInfo = { info = it }) { episode ->
+                    val rowId = StableIds.item(sourceId, "episode:${episode.episodeId}")
+                    episode.plot?.let { plots[rowId] = it }
                     batch.add(
                         CatalogItem(
-                            id = StableIds.item(sourceId, "episode:${episode.episodeId}"),
+                            id = rowId,
                             sourceId = sourceId,
                             kind = MediaKind.SERIES,
                             title = episode.title,
@@ -863,6 +870,7 @@ class XtreamImportEngine(
                     durationMs = clock() - started,
                 ),
             )
+            onDetails(info, plots)
             return written
         } catch (t: Throwable) {
             writer.abort(t)

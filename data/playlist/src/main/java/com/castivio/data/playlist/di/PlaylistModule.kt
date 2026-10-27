@@ -34,6 +34,7 @@ import com.castivio.domain.SectionLoad
 import com.castivio.domain.SectionLoads
 import com.castivio.domain.time.TrustedTime
 import com.castivio.domain.SectionCatalogue
+import com.castivio.domain.SeriesDetailsStore
 import com.castivio.domain.SeriesEpisodes
 import com.castivio.domain.PlaylistSource
 import com.castivio.domain.ProviderStatusCatalogue
@@ -111,11 +112,13 @@ object PlaylistModule {
         sources: SourceRepository,
         client: OkHttpClient,
         writers: Provider<CatalogWriter>,
+        details: SeriesDetailsStore,
     ): SeriesEpisodes = DefaultSeriesEpisodes(
         pager = pager,
         sources = sources,
         client = client,
         writers = { writers.get() },
+        details = details,
         dispatcher = Dispatchers.IO,
     )
 

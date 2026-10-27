@@ -12,6 +12,7 @@ import com.castivio.data.database.dao.MediaDao
 import com.castivio.data.database.dao.OrderDao
 import com.castivio.data.database.dao.ProgressDao
 import com.castivio.data.database.dao.SourceDao
+import com.castivio.data.database.dao.SeriesDetailDao
 import com.castivio.data.database.dao.VodDetailDao
 import com.castivio.data.database.entity.CustomOrderEntity
 import com.castivio.data.database.entity.FavoriteEntity
@@ -22,6 +23,8 @@ import com.castivio.data.database.entity.MediaFtsEntity
 import com.castivio.data.database.entity.ProgrammeEntity
 import com.castivio.data.database.entity.ProgressEntity
 import com.castivio.data.database.entity.SourceEntity
+import com.castivio.data.database.entity.EpisodePlotEntity
+import com.castivio.data.database.entity.SeriesDetailEntity
 import com.castivio.data.database.entity.VodDetailEntity
 
 @Database(
@@ -36,6 +39,8 @@ import com.castivio.data.database.entity.VodDetailEntity
         CustomOrderEntity::class,
         HiddenEntity::class,
         VodDetailEntity::class,
+        SeriesDetailEntity::class,
+        EpisodePlotEntity::class,
     ],
     // 2: no table changed. The *derivation* of a source id did, so the stored rows
     //    have to be re-keyed onto it — see `CastivioMigrations.REKEY_SOURCES`, which
@@ -52,7 +57,9 @@ import com.castivio.data.database.entity.VodDetailEntity
     //    `CastivioMigrations.ADD_HIDDEN_ITEM`. Nothing that was stored changed.
     // 7: one table added, `vod_detail`, the film details a provider gives on request -- see
     //    `CastivioMigrations.ADD_VOD_DETAIL`. Nothing that was stored changed.
-    version = 7,
+    // 8: two tables added, `series_detail` and `episode_plot`, what a provider says of a show and of its
+    //    episodes with the episodes -- see `CastivioMigrations.ADD_SERIES_DETAIL`. Nothing that was stored changed.
+    version = 8,
     exportSchema = true,
 )
 abstract class CastivioDatabase : RoomDatabase() {
@@ -65,6 +72,7 @@ abstract class CastivioDatabase : RoomDatabase() {
     abstract fun orderDao(): OrderDao
     abstract fun hiddenDao(): HiddenDao
     abstract fun vodDetailDao(): VodDetailDao
+    abstract fun seriesDetailDao(): SeriesDetailDao
 
     companion object {
         const val NAME = "castivio.db"

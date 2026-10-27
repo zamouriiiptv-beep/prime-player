@@ -210,15 +210,27 @@ object XtreamParser {
     }
 
     /**
-     * `get_series_info` — one show's episodes.
+     * `get_series_info` — one show's episodes, and what the provider says of the show itself.
      *
      * The response keys episodes by season number in an *object*, not an array,
      * so the season comes from the key when the episode itself does not carry it.
+     *
+     * The `info` block is read in the same pass, whichever side of the episodes it stands on, and handed to
+     * [onInfo] only when it says something: a provider that knows nothing of a show sends `"info":[]`, and that
+     * is no details rather than details that are all empty.
      */
-    fun parseSeriesInfo(reader: Reader, onEpisode: (XtreamEpisode) -> Unit): Int {
+    fun parseSeriesInfo(
+        reader: Reader,
+        onInfo: (XtreamSeriesInfo) -> Unit = {},
+        onEpisode: (XtreamEpisode) -> Unit,
+    ): Int {
         var count = 0
         val scanner = JsonScanner(reader)
         scanner.readObject { field ->
+            if (field == "info") {
+                readSeriesInfo(scanner)?.let(onInfo)
+                return@readObject
+            }
             if (field != "episodes") return@readObject
             scanner.readObject { seasonKey ->
                 val seasonFromKey = seasonKey.toIntOrNull()
@@ -230,6 +242,7 @@ object XtreamParser {
                     var extension: String? = null
                     var cover: String? = null
                     var durationSeconds: Int? = null
+                    var plot: String? = null
 
                     scanner.readObject { episodeField ->
                         when (episodeField) {
@@ -242,6 +255,7 @@ object XtreamParser {
                                 when (infoField) {
                                     "movie_image", "cover_big" -> cover = scanner.string()
                                     "duration_secs" -> durationSeconds = scanner.int()
+                                    "plot" -> plot = scanner.string()?.takeIf { it.isNotBlank() }
                                 }
                             }
                         }
@@ -258,6 +272,7 @@ object XtreamParser {
                                 containerExtension = extension,
                                 coverUrl = cover,
                                 durationSeconds = durationSeconds?.takeIf { it > 0 },
+                                plot = plot,
                             ),
                         )
                         count++
@@ -266,6 +281,39 @@ object XtreamParser {
             }
         }
         return count
+    }
+
+    /** The `info` object of `get_series_info`, or null when it holds not a single fact. */
+    private fun readSeriesInfo(scanner: JsonScanner): XtreamSeriesInfo? {
+        var rating: Double? = null
+        var plot: String? = null
+        var cast: List<String> = emptyList()
+        var genres: List<String> = emptyList()
+        var releaseDate: String? = null
+        var backdrop: String? = null
+        scanner.readObject { field ->
+            when (field) {
+                "rating" -> rating = scanner.string()?.toDoubleOrNull()?.takeIf { it > 0 }
+                "plot", "description" -> plot = scanner.string()?.takeIf { it.isNotBlank() }
+                "cast", "actors" -> cast = listOfNames(scanner.string())
+                "genre" -> genres = listOfNames(scanner.string())
+                "releaseDate", "releasedate", "release_date" -> releaseDate = scanner.string()
+                // An array of addresses; the first is the show's wide picture. A provider that sends a
+                // bare string, or nothing, has none that is read here.
+                "backdrop_path" -> scanner.readArray {
+                    val url = scanner.string()
+                    if (backdrop == null) backdrop = url
+                }
+            }
+        }
+        return XtreamSeriesInfo(
+            rating = rating,
+            plot = plot,
+            cast = cast,
+            genres = genres,
+            releaseYear = releaseDate?.take(YEAR_DIGITS)?.toIntOrNull()?.takeIf { it > 0 },
+            backdropUrl = backdrop,
+        ).takeIf { it.saysAnything }
     }
 
     /**
@@ -480,7 +528,23 @@ data class XtreamEpisode(
     val containerExtension: String?,
     val coverUrl: String?,
     val durationSeconds: Int?,
+    val plot: String? = null,
 )
+
+/** A show's details from the `info` block of `get_series_info`. Each field is null or empty when not sent. */
+data class XtreamSeriesInfo(
+    val rating: Double?,
+    val plot: String?,
+    val cast: List<String>,
+    val genres: List<String>,
+    val releaseYear: Int?,
+    val backdropUrl: String?,
+) {
+    /** Whether the block held a single fact; `"info":[]` held none. */
+    val saysAnything: Boolean
+        get() = rating != null || plot != null || cast.isNotEmpty() || genres.isNotEmpty() ||
+            releaseYear != null || backdropUrl != null
+}
 
 /** The account behind the credentials, including why it might not work. */
 data class XtreamAccount(

@@ -42,7 +42,7 @@ object CastivioMigrations {
     // Declared below rather than here, and read through a getter rather than held in a
     // property: an `object`'s properties initialise top to bottom, so a list that
     // named a migration declared under it would be a list holding null.
-    val ALL: Array<Migration> get() = arrayOf(REKEY_SOURCES, SCOPE_TO_SOURCE, KEY_SEARCH_BY_ROW, ADD_CUSTOM_ORDER, ADD_HIDDEN_ITEM, ADD_VOD_DETAIL)
+    val ALL: Array<Migration> get() = arrayOf(REKEY_SOURCES, SCOPE_TO_SOURCE, KEY_SEARCH_BY_ROW, ADD_CUSTOM_ORDER, ADD_HIDDEN_ITEM, ADD_VOD_DETAIL, ADD_SERIES_DETAIL)
 
     /**
      * 1 → 2: the stored sources take the ids the current rule gives them.
@@ -263,6 +263,26 @@ object CastivioMigrations {
      * 6 → 7: one table added, `vod_detail`, the film details a provider gives on request. A cache like the
      * catalogue: it is fetched again when a film's page is opened, so no viewer's own data is involved.
      */
+    /**
+     * 7 → 8: what a provider says of a show and of each of its episodes, kept when the show's page is opened.
+     *
+     * Two tables added and nothing stored changed. Like `vod_detail` they are a cache of what a provider can
+     * say again, so no viewer's data is in them.
+     */
+    private val ADD_SERIES_DETAIL = object : Migration(7, 8) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `series_detail` (`series_id` TEXT NOT NULL, `rating` REAL, `plot` TEXT, " +
+                    "`cast_names` TEXT, `genres` TEXT, `release_year` INTEGER, `backdrop_url` TEXT, " +
+                    "`fetched_at` INTEGER NOT NULL, PRIMARY KEY(`series_id`))",
+            )
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `episode_plot` (`media_id` TEXT NOT NULL, `plot` TEXT NOT NULL, " +
+                    "PRIMARY KEY(`media_id`))",
+            )
+        }
+    }
+
     private val ADD_VOD_DETAIL = object : Migration(6, 7) {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL(

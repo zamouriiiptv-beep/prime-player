@@ -124,6 +124,69 @@ class XtreamParserTest {
     }
 
     @Test
+    fun `series info yields the show's details and each episode's plot`() {
+        val json = """
+            {"seasons":[],
+             "info":{"name":"Chicago Med","plot":"An emotional thrill ride.","cast":"Nick Gehlfuss, Yaya DaCosta,  ",
+                     "genre":"Drama","releaseDate":"2015-11-17","rating":"8.0",
+                     "backdrop_path":["http://cdn/back1.jpg","http://cdn/back2.jpg"]},
+             "episodes":{"1":[{"id":"9001","episode_num":1,"title":"Derailed",
+                               "info":{"plot":"A train crash.","duration_secs":2520}},
+                              {"id":"9002","episode_num":2,"title":"Parents","info":{"plot":""}}]}}
+        """.trimIndent()
+        val infos = mutableListOf<XtreamSeriesInfo>()
+        val episodes = mutableListOf<XtreamEpisode>()
+
+        XtreamParser.parseSeriesInfo(StringReader(json), onInfo = { infos.add(it) }) { episodes.add(it) }
+
+        assertEquals(
+            listOf(
+                XtreamSeriesInfo(
+                    rating = 8.0,
+                    plot = "An emotional thrill ride.",
+                    cast = listOf("Nick Gehlfuss", "Yaya DaCosta"),
+                    genres = listOf("Drama"),
+                    releaseYear = 2015,
+                    backdropUrl = "http://cdn/back1.jpg",
+                ),
+            ),
+            infos,
+        )
+        assertEquals("A train crash.", episodes[0].plot)
+        assertNull("an empty plot is no plot", episodes[1].plot)
+    }
+
+    @Test
+    fun `series info that says nothing is no details`() {
+        val json = """{"info":[],"episodes":{"1":[{"id":"9001","episode_num":1,"title":"A","info":{}}]}}"""
+        val infos = mutableListOf<XtreamSeriesInfo>()
+
+        val count = XtreamParser.parseSeriesInfo(StringReader(json), onInfo = { infos.add(it) }) { }
+
+        assertEquals(1, count)
+        assertTrue(infos.isEmpty())
+    }
+
+    @Test
+    fun `the show's details are read whichever side of the episodes they stand on`() {
+        val json = """
+            {"episodes":{"1":[{"id":"9001","episode_num":1,"title":"A"}]},
+             "info":{"plot":"After the episodes.","rating":"0","backdrop_path":"http://cdn/not-an-array.jpg"}}
+        """.trimIndent()
+        val infos = mutableListOf<XtreamSeriesInfo>()
+        val episodes = mutableListOf<XtreamEpisode>()
+
+        XtreamParser.parseSeriesInfo(StringReader(json), onInfo = { infos.add(it) }) { episodes.add(it) }
+
+        assertEquals(1, episodes.size)
+        val info = infos.single()
+        assertEquals("After the episodes.", info.plot)
+        // A rating of nought is a provider that has none; a bare string is not a list of pictures.
+        assertNull(info.rating)
+        assertNull(info.backdropUrl)
+    }
+
+    @Test
     fun `the account response says whether the credentials will work`() {
         val json = """
             {"user_info":{"username":"u","password":"p","message":"","auth":1,"status":"Active",

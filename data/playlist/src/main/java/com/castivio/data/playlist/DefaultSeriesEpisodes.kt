@@ -2,10 +2,13 @@ package com.castivio.data.playlist
 
 import com.castivio.data.networking.XtreamHttpApi
 import com.castivio.data.parsing.XtreamImportEngine
+import com.castivio.data.parsing.XtreamSeriesInfo
 import com.castivio.domain.CatalogPager
 import com.castivio.domain.CatalogWriter
 import com.castivio.domain.EpisodesLoad
 import com.castivio.domain.PlaylistSource
+import com.castivio.domain.SeriesDetails
+import com.castivio.domain.SeriesDetailsStore
 import com.castivio.domain.SeriesEpisodes
 import com.castivio.domain.SourceRepository
 import com.castivio.domain.asAccountSource
@@ -23,6 +26,10 @@ import java.io.IOException
  * append, which prunes nothing -- a replacement here would delete the rest of the library -- and a show already
  * holding episodes is written over with what the provider says now.
  *
+ * The same reply carries what the provider says of the show itself, and of each episode: it is kept in [details]
+ * once the episodes are written, so the page that asked for the episodes has the rating, the plot and the cast as
+ * well without a second request.
+ *
  * A provider that cannot be reached, or answers with something that is not a list of episodes, ends as
  * [EpisodesLoad.Failed], never as a throw: the page then says it could not be read, and the episodes it already
  * had stay as they were.
@@ -32,6 +39,7 @@ class DefaultSeriesEpisodes(
     private val sources: SourceRepository,
     private val client: OkHttpClient,
     private val writers: () -> CatalogWriter,
+    private val details: SeriesDetailsStore,
     private val dispatcher: CoroutineDispatcher,
     private val clock: () -> Long = System::currentTimeMillis,
 ) : SeriesEpisodes {
@@ -46,13 +54,23 @@ class DefaultSeriesEpisodes(
 
         return withContext(dispatcher) {
             try {
+                var said: XtreamSeriesInfo? = null
+                var plots: Map<String, String> = emptyMap()
                 val written = XtreamImportEngine(writers(), clock = clock).importEpisodes(
                     sourceId = shell.sourceId,
                     api = XtreamHttpApi(client, account.host, account.username, account.password),
                     providerSeriesId = shell.providerRef,
                     seriesTitle = shell.title,
                     groupId = shell.groupId,
+                    onDetails = { info, episodePlots ->
+                        said = info
+                        plots = episodePlots
+                    },
                 )
+                // The episodes are in; what the provider said of them is a courtesy, and failing to keep it
+                // must not turn a page that has its episodes into one that says it could not be read.
+                runCatching { details.put(seriesId, said?.toDomain(), plots, clock()) }
+                    .onFailure { if (it is CancellationException) throw it }
                 EpisodesLoad.Loaded(written)
             } catch (e: CancellationException) {
                 throw e
@@ -65,3 +83,12 @@ class DefaultSeriesEpisodes(
         }
     }
 }
+
+private fun XtreamSeriesInfo.toDomain() = SeriesDetails(
+    rating = rating,
+    plot = plot,
+    cast = cast,
+    genres = genres,
+    releaseYear = releaseYear,
+    backdropUrl = backdropUrl,
+)

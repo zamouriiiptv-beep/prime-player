@@ -15,6 +15,8 @@ import com.castivio.domain.MediaKind
 import com.castivio.domain.PlaylistSource
 import com.castivio.domain.ProviderSource
 import com.castivio.domain.Season
+import com.castivio.domain.SeriesDetails
+import com.castivio.domain.SeriesDetailsStore
 import com.castivio.domain.SeriesShell
 import com.castivio.domain.SeriesSummary
 import com.castivio.domain.SourceKind
@@ -29,6 +31,7 @@ import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -44,6 +47,7 @@ class DefaultSeriesEpisodesTest {
 
     private lateinit var server: MockWebServer
     private val writer = RecordingWriter()
+    private val details = RecordingDetails()
 
     @Before
     fun setUp() {
@@ -60,6 +64,7 @@ class DefaultSeriesEpisodesTest {
         sources = OneSource(source),
         client = OkHttpClient(),
         writers = { writer },
+        details = details,
         dispatcher = Dispatchers.Unconfined,
     )
 
@@ -114,6 +119,63 @@ class DefaultSeriesEpisodesTest {
         assertTrue(writer.items.isEmpty())
     }
 
+
+    @Test
+    fun `what the provider says of the show and of its episodes is kept with the episodes`() = runBlocking {
+        server.enqueue(MockResponse().setBody(SERIES_WITH_DETAILS))
+
+        assertEquals(EpisodesLoad.Loaded(2), loader().load("show-1"))
+
+        val put = details.puts.single()
+        assertEquals("show-1", put.seriesId)
+        assertEquals(
+            SeriesDetails(
+                rating = 8.0,
+                plot = "An emotional thrill ride.",
+                cast = listOf("Noor Halabi", "Tomas Reyes"),
+                genres = listOf("Drama", "Mystery"),
+                releaseYear = 2015,
+                backdropUrl = "http://img/back1.jpg",
+            ),
+            put.details,
+        )
+        // By the id of the row each episode was written as, which is what the page finds them by.
+        assertEquals(setOf(writer.items[0].id), put.plots.keys)
+        assertEquals("A storm closes the harbour.", put.plots[writer.items[0].id])
+    }
+
+    @Test
+    fun `a show the provider says nothing of keeps no details, and takes back what was kept`() = runBlocking {
+        server.enqueue(MockResponse().setBody("""{"info": [], "episodes": {"1": [{"id": "9001", "title": "A", "episode_num": 1}]}}"""))
+
+        assertEquals(EpisodesLoad.Loaded(1), loader().load("show-1"))
+
+        assertNull(details.puts.single().details)
+        assertTrue(details.puts.single().plots.isEmpty())
+    }
+
+    @Test
+    fun `failing to keep the details does not fail the episodes`() = runBlocking {
+        server.enqueue(MockResponse().setBody(SERIES_WITH_DETAILS))
+        details.fail = true
+
+        assertEquals(EpisodesLoad.Loaded(2), loader().load("show-1"))
+    }
+
+    private class RecordingDetails : SeriesDetailsStore {
+        class Put(val seriesId: String, val details: SeriesDetails?, val plots: Map<String, String>)
+
+        val puts = mutableListOf<Put>()
+        var fail = false
+
+        override fun details(seriesId: String): Flow<SeriesDetails?> = emptyFlow()
+        override fun episodePlots(seriesId: String): Flow<Map<String, String>> = emptyFlow()
+        override suspend fun put(seriesId: String, details: SeriesDetails?, plots: Map<String, String>, now: Long) {
+            if (fail) error("disk full")
+            puts += Put(seriesId, details, plots)
+        }
+    }
+
     private class ShellPager(private val shell: SeriesShell?) : CatalogPager {
         override fun items(query: CatalogQuery): Flow<PagingData<MediaItem>> = emptyFlow()
         override fun series(query: CatalogQuery): Flow<PagingData<SeriesSummary>> = emptyFlow()
@@ -154,6 +216,20 @@ class DefaultSeriesEpisodesTest {
 
     private companion object {
         val SHELL = SeriesShell(sourceId = "src", providerRef = "551", title = "Dark Harbor", groupId = "g1")
+
+        const val SERIES_WITH_DETAILS = """{
+          "seasons": [],
+          "info": {"name": "Dark Harbor", "plot": "An emotional thrill ride.", "cast": "Noor Halabi, Tomas Reyes",
+                   "genre": "Drama, Mystery", "releaseDate": "2015-09-24", "rating": "8",
+                   "backdrop_path": ["http://img/back1.jpg", "http://img/back2.jpg"]},
+          "episodes": {
+            "1": [
+              {"id": "9001", "title": "The Tide Table", "episode_num": 1, "container_extension": "mkv",
+               "info": {"plot": "A storm closes the harbour.", "duration_secs": 2780}},
+              {"id": "9002", "title": "Low Water", "episode_num": 2, "container_extension": "mkv", "info": {}}
+            ]
+          }
+        }"""
 
         const val SERIES_INFO = """{
           "info": {"name": "Dark Harbor"},
