@@ -1,0 +1,98 @@
+<!doctype html>
+<!--
+  The band's mark and name, over the bouquets' column -- the channels' board and the films'.
+
+  What the owner asked for, from a photograph of the films' screen on a handset: the mark and the name side by side, as
+  they stand in that photograph -- the mark over the bouquets' search mark, the name against it -- and the mark a little
+  larger, because on a handset it reads small. The earlier change spread the two to the ends of the column; that is
+  undone here.
+
+  WHY IT READS SMALL, which the photograph does not say: the mark is drawn from a portrait picture, 401x600, with the
+  television in the middle third of it and empty ground above and below. The picture is already as tall as the band (the
+  band is 34dp on a handset, the picture 33dp), so the television itself is 12.6dp tall -- about a third of the band.
+  Making the picture larger is not possible, a child cannot be taller than the row it stands in; what can be done is to
+  trim the empty ground from the picture, so the same band holds a larger television. The band, and everything under it,
+  stays exactly where it is.
+
+  Four sizes are drawn, the television's own height against the band's 34dp:
+
+    A  the photograph as it is       television 12.6dp      (the picture, untrimmed)
+    B  a little larger               television 18dp
+    C  larger                        television 24dp
+    D  the band's height, nearly     television 30dp
+
+  Names and figures are examples. Phone 833x385 in Arabic, drawn left to right as the board is.
+
+    ?frame=<a|b|c|d>   one frame, its top 150dp     ?frame=sheet   the four stacked, for review
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Band mark</title>
+<style>
+:root{--ground:#111327;--ink:#D6D3E8;--strong:#FFF;--muted:#8C8CA8;--violet:#9B6BFF;--glass:rgba(255,255,255,.06);--edge:rgba(255,255,255,.10)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#05040E;color:#fff;font-family:"Noto Sans Arabic","DejaVu Sans",sans-serif}
+body.review{padding:18px;width:max-content}
+.cap{font:13px/1.45 "DejaVu Sans",sans-serif;color:#9a9ab8;margin:18px 0 8px;max-width:833px;direction:ltr;text-align:left}
+.screen{position:relative;overflow:hidden;direction:ltr;width:833px;height:150px;
+  background:radial-gradient(120% 90% at 85% 0%,#1B1F3F 0%,rgba(27,31,63,0) 60%),linear-gradient(160deg,#13152D,var(--ground))}
+.band{position:absolute;left:12px;right:12px;top:6px;display:flex;align-items:center}
+.pair{width:186px;display:flex;align-items:center;padding-left:24px;gap:6px;flex:none}
+.pair img{object-fit:contain}
+.pair img{display:block}
+.pair b{font:700 16px "DejaVu Sans";letter-spacing:.2px}
+.crumb{width:90px;margin-left:0;line-height:1.15;flex:none;font-family:"Noto Sans Arabic"}
+.crumb i{display:block;font-style:normal;color:#B694FF;font-weight:700;font-size:13px}
+.crumb span{display:block;color:var(--ink);font:11px "DejaVu Sans";white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mid{flex:1;display:flex;justify-content:center;align-items:center;gap:14px}
+.field{display:flex;align-items:center;gap:8px;height:30px;width:190px;border-radius:99px;background:var(--glass);border:1px solid var(--edge);padding:0 12px;color:var(--muted);font-size:12px}
+.chip{display:flex;align-items:center;gap:8px;height:30px;border-radius:99px;background:var(--glass);border:1px solid rgba(255,255,255,.14);padding:0 14px;font-size:12px;color:var(--ink);white-space:nowrap}
+.clock{width:100px;text-align:right;padding-right:24px;line-height:1.1}
+.clock b{display:block;font:700 19px "DejaVu Sans"}
+.clock span{font:10px "DejaVu Sans";color:var(--muted)}
+.panel{position:absolute;left:12px;right:12px;bottom:-30px;border:1px solid var(--edge);border-radius:18px;background:rgba(255,255,255,.04)}
+.rail{position:absolute;left:0;top:0;width:177px;padding:6px 10px}
+.rs{display:flex;align-items:center;gap:7px;height:26px;border-radius:99px;background:var(--glass);border:1px solid var(--edge);padding:0 10px;color:var(--muted);font-size:11px}
+.re{font-weight:600;font-size:12px;padding:7px 10px 0;color:#fff}
+.mark{position:absolute;left:0;top:0;width:10px;height:10px}
+svg{width:14px;height:14px;fill:var(--muted)}
+.guide{position:absolute;left:36px;top:0;bottom:0;width:0;border-left:1px dashed rgba(182,148,255,.55)}
+</style>
+</head>
+<body>
+<script>
+const SEARCH='<svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>';
+const V={a:{mark:12.6,trim:false},b:{mark:18},c:{mark:24},d:{mark:30}};
+const CAP={
+ a:'A. Your photograph as it is. The picture is 33dp tall in a band of 34dp, but the television in it is 12.6dp: the rest of the picture is empty ground.',
+ b:'B. A little larger: the empty ground trimmed from the picture, the television 18dp (+43%). The band and everything under it are where they were.',
+ c:'C. Larger: the television 24dp (+90%). The band and everything under it are where they were.',
+ d:'D. The band\'s height, nearly: the television 30dp (+140%). The band and everything under it are where they were.'
+};
+function frame(k){
+  const v=V[k], band=34;
+  const img = k==='a'
+    ? `<img src="../../core/design/src/main/res/drawable-nodpi/castivio_logo.png" style="height:33px;width:22px">`
+    : `<img src="band-mark-trimmed.png" style="height:${v.mark}px;width:${(v.mark*267/237).toFixed(1)}px">`;
+  return `<div class="screen">
+   <div class="band" style="height:${band}px">
+     <div class="pair">${img}<b>Castivio</b></div>
+     <div class="crumb"><i>الأفلام</i><span>TOP IMDB/OS...</span></div>
+     <div class="mid"><div class="field">${SEARCH}<span style="font-family:'Noto Sans Arabic'">البحث في الأفلام</span></div>
+       <div class="chip" style="font-family:'Noto Sans Arabic'">الترتيب: حسب المزوّد ⌄</div></div>
+     <div class="clock"><b>19:24</b><span>27-10-2026</span></div>
+   </div>
+   <div class="panel" style="top:${6+band+3}px">
+     <div class="rail"><div class="rs">${SEARCH}<span style="font-family:'Noto Sans Arabic'">ابحث في الباقات</span></div>
+       <div class="re" style="font-family:'Noto Sans Arabic'">جميع الأفلام</div><div class="re" style="font-family:'Noto Sans Arabic'">المفضلة</div></div>
+     <div class="guide"></div>
+   </div>
+  </div>`;
+}
+const q=new URLSearchParams(location.search), f=q.get('frame')||'sheet';
+if(f==='sheet'){document.body.className='review';document.body.innerHTML=['a','b','c','d'].map(k=>`<div class="cap">${CAP[k]}</div>${frame(k)}`).join('');}
+else document.body.innerHTML=frame(f);
+</script>
+</body>
+</html>
