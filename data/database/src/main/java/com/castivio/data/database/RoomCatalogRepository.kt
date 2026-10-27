@@ -480,6 +480,15 @@ class RoomCatalogRepository(
             )
         }
 
+    override suspend fun similarTo(seriesId: String, limit: Int): List<SeriesSummary> {
+        val group = mediaDao.seriesShell(seriesId)?.groupId ?: return emptyList()
+        // One more than asked for, because the show itself is in its own category and is taken out.
+        return mediaDao.windowSeriesInGroup(group, null, SortOrder.PROVIDER.name, 0, limit + 1)
+            .filter { it.seriesId != seriesId }
+            .take(limit)
+            .map { it.toDomain() }
+    }
+
     override fun favorites(): Flow<PagingData<MediaItem>> =
         pager { favoriteDao.page() }.map { data -> data.map { it.toDomain() } }
 

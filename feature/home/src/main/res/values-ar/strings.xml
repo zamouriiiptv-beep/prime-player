@@ -23,6 +23,13 @@
     <string name="show_no_episodes_title">لا توجد حلقات بعد</string>
     <string name="show_no_episodes_detail">مزوّدك يعرض هذا العمل لكنه لم يرسل أي حلقة له.</string>
     <string name="show_back">رجوع</string>
+    <string name="show_nav_overview">نظرة عامة</string>
+    <string name="show_nav_seasons">المواسم</string>
+    <string name="show_nav_cast">الممثلون</string>
+    <string name="show_nav_similar">مشابهة</string>
+    <string name="show_favorite_add">إضافة للمفضلة</string>
+    <string name="show_favorite_remove">إزالة من المفضلة</string>
+    <string name="show_similar_title">مسلسلات مشابهة</string>
 
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">لم يُستورد أي محتوى بعد</string>
@@ -303,6 +310,8 @@
     <string name="radio_close">إغلاق</string>
 
     <!-- لوحة المسلسلات: لوحة الأفلام بكلماتها. -->
+    <string name="series_favorites_empty_title">لا توجد مسلسلات مفضلة بعد</string>
+    <string name="series_favorites_empty_detail">اضغط «إضافة للمفضلة» في صفحة مسلسل وسيظهر هنا.</string>
     <string name="series_all">جميع المسلسلات</string>
     <string name="series_search_hint">البحث في المسلسلات</string>
 </resources>

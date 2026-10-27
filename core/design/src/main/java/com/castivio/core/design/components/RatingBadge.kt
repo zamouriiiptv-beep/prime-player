@@ -70,6 +70,30 @@ fun RatingBadge(
     }
 }
 
+/**
+ * A rating as a fact in a row of facts: the gold star and the figure, with no badge round them.
+ *
+ * The badge is for a page that has the room to give the rating a place of its own; a row that carries a year, a genre
+ * and a season count carries the rating the same way -- a mark and a word -- so it reads as one of them. [iconSize] is
+ * the star's, so it scales with the row's own type.
+ */
+@Composable
+fun RatingStar(
+    rating: String,
+    labelStyle: TextStyle,
+    iconSize: Dp,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
+        Icon(Icons.Rounded.Star, contentDescription = null, tint = RatingGold, modifier = Modifier.size(iconSize))
+        Text(text = rating, style = labelStyle, color = CastivioTheme.colors.onBackgroundVariant, maxLines = 1)
+    }
+}
+
 /** IMDb's gold. */
 private val RatingGold = Color(0xFFF5C518)
 

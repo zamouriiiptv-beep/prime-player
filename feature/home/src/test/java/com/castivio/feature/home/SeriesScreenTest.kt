@@ -86,16 +86,28 @@ class SeriesScreenTest {
     }
 
     @Test
-    fun `the rail lists all the shows and every category with its total, and none of the viewer's own lists`() {
+    fun `the rail lists all the shows, the favourites and every category with its total, and no list of the ones watched`() {
         show(holder())
 
         assertTrue(compose.onAllNodesWithText("All series").fetchSemanticsNodes().isNotEmpty())
         compose.onNodeWithText("DRAMA").assertIsDisplayed()
         compose.onNodeWithText("Total: 310", substring = true).assertIsDisplayed()
         compose.onNodeWithText("COMEDY").assertIsDisplayed()
-        // A favourite and a watch are of a film or a channel; an entry that opened nothing is not drawn.
-        assertTrue(compose.onAllNodesWithText("Favorites").fetchSemanticsNodes().isEmpty())
+        compose.onNodeWithText("Favorites").assertIsDisplayed()
+        // No one records which show was watched when, as a film's or a channel's is: an entry that opened nothing is
+        // not drawn.
         assertTrue(compose.onAllNodesWithText("Recently Watched").fetchSemanticsNodes().isEmpty())
+    }
+
+    @Test
+    fun `a press on the favourites opens the shows the viewer marked`() {
+        val model = holder()
+        show(model)
+
+        compose.onNodeWithText("Favorites").performClick()
+        compose.waitForIdle()
+
+        assertTrue(model.state.value.favorites)
     }
 
     @Test

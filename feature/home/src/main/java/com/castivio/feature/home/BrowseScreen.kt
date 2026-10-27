@@ -592,13 +592,33 @@ private fun SectionEmpty(
         )
         return
     }
-    // The words are the section's own: a viewer in the radio's favourites is told about stations, not films.
+    // The words are the section's own: a viewer in the radio's favourites is told about stations, not films, and in
+    // the shows' about shows.
     val radio = section == CatalogSection.Radio
+    val shows = section == CatalogSection.Series
     if (state.favorites) {
         EmptyState(
-            title = stringResource(if (radio) R.string.radio_favorites_empty_title else R.string.movies_favorites_empty_title),
-            detail = stringResource(if (radio) R.string.radio_favorites_empty_detail else R.string.movies_favorites_empty_detail),
-            actionLabel = stringResource(if (radio) R.string.radio_all else R.string.movies_all),
+            title = stringResource(
+                when {
+                    radio -> R.string.radio_favorites_empty_title
+                    shows -> R.string.series_favorites_empty_title
+                    else -> R.string.movies_favorites_empty_title
+                },
+            ),
+            detail = stringResource(
+                when {
+                    radio -> R.string.radio_favorites_empty_detail
+                    shows -> R.string.series_favorites_empty_detail
+                    else -> R.string.movies_favorites_empty_detail
+                },
+            ),
+            actionLabel = stringResource(
+                when {
+                    radio -> R.string.radio_all
+                    shows -> R.string.series_all
+                    else -> R.string.movies_all
+                },
+            ),
             onAction = onShowAll,
         )
         return

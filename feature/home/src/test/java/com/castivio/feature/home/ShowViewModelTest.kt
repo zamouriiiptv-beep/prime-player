@@ -72,6 +72,8 @@ class ShowViewModelTest {
         override fun history(): Flow<PagingData<InProgressItem>> = emptyFlow()
         override suspend fun seriesShell(seriesId: String): SeriesShell? =
             SeriesShell(sourceId = "src", providerRef = "551", title = "Dark Harbor", groupId = null, mediaId = "shell-1")
+        var others: List<SeriesSummary> = emptyList()
+        override suspend fun similarTo(seriesId: String, limit: Int): List<SeriesSummary> = others.take(limit)
     }
 
     /** What the provider said, as the store holds it: the test sets it and the page reads it as it is set. */
@@ -288,5 +290,37 @@ class ShowViewModelTest {
         advanceUntilIdle()
 
         assertEquals(emptyList<String>(), favorites.toggled)
+    }
+
+    @Test
+    fun `other shows of the category are offered, and are not the show itself`() = runTest(dispatcher) {
+        val pager = FakePager(held).apply {
+            others = listOf(
+                SeriesSummary("show-2", "Chernobyl", null, 5, 1),
+                SeriesSummary("show-3", "Dark", null, 26, 3),
+            )
+        }
+        val model = model(pager, FakeEpisodes())
+
+        model.open("show-1")
+        advanceUntilIdle()
+
+        assertEquals(listOf("show-2", "show-3"), model.state.value.similar.map { it.seriesId })
+    }
+
+    @Test
+    fun `the page is asking while the provider is, and not after it answers`() = runTest(dispatcher) {
+        val episodes = FakeEpisodes()
+        val model = model(FakePager(held), episodes)
+
+        model.open("show-1")
+        advanceUntilIdle()
+        // The episodes are held, and the provider is still being asked behind them: what it says may yet come.
+        assertEquals(ShowLoad.Ready, model.state.value.load)
+        assertEquals(true, model.state.value.asking)
+
+        episodes.answer.complete(EpisodesLoad.Loaded(3))
+        advanceUntilIdle()
+        assertEquals(false, model.state.value.asking)
     }
 }

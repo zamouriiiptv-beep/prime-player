@@ -132,4 +132,32 @@ class SeriesShellTest {
 
         assertEquals(emptyList<Any>(), database.mediaDao().windowFavoriteSeries(0, 60))
     }
+
+    @Test
+    fun `other shows of the same category are the ones a show's page offers as similar`() = runBlocking {
+        val writer = RoomCatalogWriter(database) { 4_000L }
+        writer.begin("src", ImportMode.APPEND)
+        writer.writeItems(
+            listOf(
+                CatalogItem(
+                    id = "shell-2", sourceId = "src", kind = MediaKind.SERIES, title = "Chernobyl",
+                    streamUrl = "", artworkUrl = null, groupId = "g1", providerRef = "552",
+                    providerOrder = 5, seriesId = "show-2", seriesTitle = "Chernobyl",
+                ),
+                CatalogItem(
+                    id = "shell-3", sourceId = "src", kind = MediaKind.SERIES, title = "Elsewhere",
+                    streamUrl = "", artworkUrl = null, groupId = "g2", providerRef = "553",
+                    providerOrder = 6, seriesId = "show-3", seriesTitle = "Elsewhere",
+                ),
+            ),
+        )
+        writer.finish(ImportSummary(sourceId = "src", items = 2, groups = 0, skipped = 0, byKind = mapOf(MediaKind.SERIES to 2), durationMs = 1))
+
+        val similar = repository().similarTo("show-1", limit = 5)
+
+        // The show itself is in its own category and is not offered; another category's show is not either.
+        assertEquals(listOf("show-2"), similar.map { it.seriesId })
+        assertEquals(emptyList<Any>(), repository().similarTo("show-none", limit = 5))
+        assertEquals(emptyList<Any>(), repository().similarTo("show-1", limit = 0))
+    }
 }

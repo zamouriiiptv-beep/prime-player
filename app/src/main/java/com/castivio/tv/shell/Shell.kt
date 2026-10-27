@@ -614,6 +614,8 @@ fun ShellScreen(
                 show = o.show,
                 onPlay = play,
                 onBack = { overlay = null },
+                // A similar show's page replaces this one: Back from it returns to the wall, not to this page.
+                onOpenShow = { overlay = Overlay.Show(it) },
             )
             // A film is played from its page, and the player's Back returns to that page -- the wall
             // underneath is still composed, so the viewer lands where they chose from.

@@ -100,6 +100,13 @@ interface CatalogPager {
      */
     suspend fun seriesShell(seriesId: String): SeriesShell? = null
 
+    /**
+     * Up to [limit] other shows filed under the same category as [seriesId], in the provider's order: what a show's
+     * page offers as similar. Empty for a show with no category, or whose row is not there. Defaulted so a fake that
+     * does not ask for them need not answer.
+     */
+    suspend fun similarTo(seriesId: String, limit: Int): List<SeriesSummary> = emptyList()
+
     fun favorites(): Flow<PagingData<MediaItem>>
 
     /** Started but unfinished, most recent first. */

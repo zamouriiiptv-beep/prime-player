@@ -405,7 +405,7 @@ fun MovieScreen(
  * take half a line from the plot -- which a remote reaches with Down from the buttons and shows with the focus ring.
  */
 @Composable
-private fun PlotMore(m: CatalogMetrics, onClick: () -> Unit, modifier: Modifier = Modifier) {
+internal fun PlotMore(m: CatalogMetrics, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(Radius.xs)
     var focused by remember { mutableStateOf(false) }
@@ -655,7 +655,7 @@ private fun FitInfo(
 }
 
 /** From here the poster stands beside the page; narrower, the page is a column under it. */
-internal val SIDE_BY_SIDE = 600.dp
+private val SIDE_BY_SIDE = 600.dp
 
 /** How much of a narrow page's width the poster takes. */
 private const val STACKED_POSTER = 0.5f
@@ -669,7 +669,7 @@ private const val PAGE_TITLE_LINES = 1
 private const val CAST_LINES = 1
 
 /** How much of the height the plot's dialog may take: a note a user reads and closes, not a page. */
-private const val PLOT_DIALOG_FRACTION = 0.7f
+internal const val PLOT_DIALOG_FRACTION = 0.7f
 
 /** The arrow after "Show all", as a share of the heading's step. */
 private const val PLOT_MORE_ARROW = 1.2f

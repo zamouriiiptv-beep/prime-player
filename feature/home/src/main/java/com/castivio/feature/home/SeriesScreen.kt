@@ -200,7 +200,8 @@ private fun SeriesBoard(
                     onFilter = model::filterGroups,
                     onRefresh = model::refresh,
                     allLabel = stringResource(R.string.series_all),
-                    ownLists = false,
+                    showRecent = false,
+                    onFavorites = model::openFavorites,
                     modifier = Modifier.width(m.rail).fillMaxHeight(),
                 )
 

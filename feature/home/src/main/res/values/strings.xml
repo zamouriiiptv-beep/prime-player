@@ -42,6 +42,14 @@
         <item quantity="other">%d episodes</item>
     </plurals>
     <string name="show_back">Back</string>
+    <string name="show_brand" translatable="false">Castivio</string>
+    <string name="show_nav_overview">Overview</string>
+    <string name="show_nav_seasons">Seasons</string>
+    <string name="show_nav_cast">Cast</string>
+    <string name="show_nav_similar">Similar</string>
+    <string name="show_favorite_add">Add to Favorites</string>
+    <string name="show_favorite_remove">Remove from Favorites</string>
+    <string name="show_similar_title">Similar shows</string>
 
     <string name="home_brand">CASTIVIO</string>
     <string name="home_empty_title">Nothing imported yet</string>
@@ -420,6 +428,8 @@
     <string name="radio_close">Close</string>
 
     <!-- The shows' board: the films' board with the shows' own words. -->
+    <string name="series_favorites_empty_title">No favourite shows yet</string>
+    <string name="series_favorites_empty_detail">Press Add to Favorites on a show\'s page and it will be listed here.</string>
     <string name="series_all">All series</string>
     <string name="series_search_hint">Search series</string>
 </resources>

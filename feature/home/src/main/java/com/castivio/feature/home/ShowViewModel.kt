@@ -12,6 +12,7 @@ import com.castivio.domain.Season
 import com.castivio.domain.SeriesDetails
 import com.castivio.domain.SeriesDetailsStore
 import com.castivio.domain.SeriesEpisodes
+import com.castivio.domain.SeriesSummary
 import com.castivio.domain.continueTarget
 import com.castivio.domain.episodeMark
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -58,6 +59,13 @@ data class ShowState(
     val plots: Map<String, String> = emptyMap(),
     /** Whether the viewer has marked the show as a favourite. */
     val favorite: Boolean = false,
+    /** Other shows of the same category, for the page to offer; empty where there are none. */
+    val similar: List<SeriesSummary> = emptyList(),
+    /**
+     * The provider is being asked for the show's episodes and what it says of them, so whatever is not here yet may
+     * still come: the page keeps quiet placeholders for it until this is false, and then draws only what there is.
+     */
+    val asking: Boolean = false,
 )
 
 /**
@@ -107,10 +115,15 @@ class ShowViewModel @Inject constructor(
                 target = continueTarget(held, positions),
                 details = info,
                 plots = plots,
+                asking = loadState == ShowLoad.Loading,
             )
         }
 
-    val state: StateFlow<ShowState> = combine(content, favorite) { shownState, marked -> shownState.copy(favorite = marked) }
+    private val similar = MutableStateFlow<List<SeriesSummary>>(emptyList())
+
+    val state: StateFlow<ShowState> = combine(content, favorite, similar) { shownState, marked, others ->
+        shownState.copy(favorite = marked, similar = others)
+    }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_GRACE_MS), ShowState())
 
     private data class Held(
@@ -126,6 +139,7 @@ class ShowViewModel @Inject constructor(
         shown.value = seriesId
         load.value = ShowLoad.Loading
         rowId.value = null
+        similar.value = emptyList()
         viewModelScope.launch {
             val row = try {
                 pager.seriesShell(seriesId)?.mediaId
@@ -135,6 +149,14 @@ class ShowViewModel @Inject constructor(
                 null
             }
             if (shown.value == seriesId) rowId.value = row
+            val others = try {
+                pager.similarTo(seriesId, SIMILAR_LIMIT)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                emptyList()
+            }
+            if (shown.value == seriesId) similar.value = others
         }
         fetch(seriesId)
     }
@@ -195,5 +217,8 @@ class ShowViewModel @Inject constructor(
     private companion object {
         /** Long enough that turning the screen does not ask again. */
         const val SUBSCRIPTION_GRACE_MS = 5_000L
+
+        /** How many other shows of the category the page offers: a row, not a wall. */
+        const val SIMILAR_LIMIT = 12
     }
 }
