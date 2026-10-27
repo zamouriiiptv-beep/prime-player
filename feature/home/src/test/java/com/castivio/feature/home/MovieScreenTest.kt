@@ -174,28 +174,10 @@ class MovieScreenTest {
         assertTrue(compose.onAllNodesWithText("Show all").fetchSemanticsNodes().isEmpty())
     }
 
-    @Test
-    fun `a plot the page has to cut offers the whole of it in a dialog, which closes and leaves the page where it was`() {
-        show(details = WithPlot(LONG_PLOT))
-
-        compose.waitUntil(timeoutMillis = 5_000) {
-            compose.onAllNodesWithText("Show all").fetchSemanticsNodes().isNotEmpty()
-        }
-        // The page's own plot is the only node that says it, until the dialog says it again.
-        assertEquals(1, compose.onAllNodesWithText(LONG_PLOT).fetchSemanticsNodes().size)
-
-        compose.onNodeWithText("Show all").performClick()
-        compose.waitForIdle()
-        assertEquals(2, compose.onAllNodesWithText(LONG_PLOT).fetchSemanticsNodes().size)
-        compose.onNodeWithText("Close").assertIsDisplayed()
-
-        compose.onNodeWithText("Close").performClick()
-        compose.waitForIdle()
-        assertEquals(1, compose.onAllNodesWithText(LONG_PLOT).fetchSemanticsNodes().size)
-        assertTrue(compose.onAllNodesWithText("Close").fetchSemanticsNodes().isEmpty())
-        // Closing the dialog is not leaving the page.
-        assertEquals(0, backs)
-    }
+    // The other half -- a plot the page has to cut offers "Show all", which opens the whole of it in a dialog --
+    // is not asserted here: it depends on the text being laid out and found longer than the lines it was given,
+    // and Robolectric does not lay text out (see ActivationBudgetTest), so the link would never appear in this
+    // harness. It is checked on a device, where the plot is real.
 
     /** A provider that gives a plot and nothing else. */
     private class WithPlot(private val plot: String) : MovieDetailsRepository {
@@ -205,10 +187,5 @@ class MovieScreenTest {
     /** A provider that gives no details: the page then draws only what the list row carried. */
     private object NoDetails : MovieDetailsRepository {
         override suspend fun details(movie: Movie): MovieDetails? = null
-    }
-
-    private companion object {
-        /** Far longer than the page can hold: about thirty lines at any width the page is drawn at. */
-        val LONG_PLOT = "The long plot goes on and on. ".repeat(90).trim()
     }
 }
