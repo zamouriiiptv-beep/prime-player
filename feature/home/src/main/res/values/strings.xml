@@ -291,11 +291,10 @@
     <string name="movies_recent_empty_title">No movies watched yet</string>
     <string name="movies_recent_empty_detail">The movies you play appear here, the most recent first.</string>
     <string name="movie_play">Play movie</string>
-    <string name="movie_rating">IMDb %1$s</string>
     <string name="movie_added">Added %1$s</string>
     <string name="movie_plot_title">Plot</string>
-    <string name="movie_director">Director: %1$s</string>
-    <string name="movie_cast">Cast: %1$s</string>
+    <string name="movie_director">Director:</string>
+    <string name="movie_cast">Cast:</string>
     <string name="movie_favorite_add">Add to favourites</string>
     <string name="movie_favorite_remove">Remove from favourites</string>
     <string name="hide_title">Hide bouquets and channels</string>

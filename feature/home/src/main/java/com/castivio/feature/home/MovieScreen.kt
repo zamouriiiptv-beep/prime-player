@@ -12,16 +12,26 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.Category
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.Groups
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.TheaterComedy
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -33,9 +43,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -44,6 +63,7 @@ import com.castivio.core.design.components.ButtonWeight
 import com.castivio.core.design.components.CastivioButton
 import com.castivio.core.design.components.CastivioIconButton
 import com.castivio.core.design.components.PosterFrame
+import com.castivio.core.design.components.RatingBadge
 import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.castivioTitleStyle
@@ -64,9 +84,16 @@ import com.castivio.domain.Movie
  *
  * ## Only what the provider sent
  *
- * The name, the poster, the running time, the year where it gave one, and the category it filed the film
- * under. There is no rating, synopsis, cast or "similar films" -- none is stored, so none is drawn, and
- * nothing here is a placeholder for a fact that is not there.
+ * The name, the poster, the category, the year, the running time and the genres in one bar; the IMDb rating
+ * and the day the film was added; the plot, the director and the cast. Each is drawn where the provider sent
+ * it -- from its list, or from the details asked for when the page opens -- and a fact it did not send is
+ * no part of the page: nothing here is a placeholder.
+ *
+ * ## One screen, no scrolling
+ *
+ * Beside the poster the text column fits the height it is given: the plot takes the lines left between the
+ * buttons and the credits and is cut with an ellipsis where it runs on. Only a surface too narrow to put the
+ * poster beside the text stacks them, and scrolls.
  *
  * ## The favourite
  *
@@ -115,84 +142,127 @@ fun MovieScreen(
 
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
             val shown = movie.withDetails(known)
-            val facts = movieFacts(shown)
             val category = movie.groupId?.let { state.categoryNames[it] }
 
-            val info: @Composable (Modifier) -> Unit = { infoModifier ->
-                Column(infoModifier, verticalArrangement = Arrangement.spacedBy(m.bandGap)) {
-                    Text(
-                        text = movie.title,
-                        style = castivioTitleStyle(m.frame.fsTitle),
-                        color = colors.onBackground,
-                        maxLines = TITLE_LINES,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    // The category the provider filed the film under, as the reference's pill beneath the name.
-                    category?.let { Fact(it, m) }
-                    // One row of what is known, and no row at all where nothing is: the year, the running
-                    // time, and the genres the provider gave.
-                    val genres = shown.genres.filter { it.isNotBlank() }.joinToString(" | ")
-                    if (facts.isNotEmpty() || genres.isNotEmpty()) {
+            val info: @Composable (Modifier, Boolean) -> Unit = { infoModifier, fit ->
+                val iconSize = m.frame.fsBody * ICON_OF_BODY
+                val bodyStyle = castivioBodyStyle(m.frame.fsBody)
+                val genres = shown.genres.filter { it.isNotBlank() }.joinToString(" | ")
+                val year = shown.year?.takeIf { it > 0 }?.toString()
+                val duration = movieDuration(shown.durationMinutes)
+
+                // Everything above the plot: the name, the facts in one bar, the two buttons, the rating and
+                // the day the film was added, and the plot's heading. A row is drawn only where there is
+                // something to put in it, and a fact the provider did not send is no part of it.
+                val top: @Composable () -> Unit = {
+                    Column(verticalArrangement = Arrangement.spacedBy(m.bandGap)) {
+                        Text(
+                            text = movie.title,
+                            style = castivioTitleStyle(m.frame.fsTitle),
+                            color = colors.onBackground,
+                            maxLines = TITLE_LINES,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        FactsBar(category, year?.let(::ltrToken), duration?.let(::ltrToken), genres, iconSize, m)
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(m.rowGap),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            facts.forEach { Fact(ltrToken(it), m) }
-                            if (genres.isNotEmpty()) Fact(genres, m)
+                            CastivioButton(
+                                text = stringResource(R.string.movie_play),
+                                onClick = { selection?.let(onPlay) },
+                                weight = ButtonWeight.Primary,
+                                icon = Icons.Rounded.PlayArrow,
+                                enabled = selection != null,
+                                modifier = Modifier.focusRequester(playFocus),
+                            )
+                            CastivioButton(
+                                text = stringResource(
+                                    if (favorite) R.string.movie_favorite_remove else R.string.movie_favorite_add,
+                                ),
+                                onClick = { favorites.flip(movie.id) },
+                                weight = ButtonWeight.Secondary,
+                                icon = if (favorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                            )
                         }
-                    }
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(m.rowGap),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        CastivioButton(
-                            text = stringResource(R.string.movie_play),
-                            onClick = { selection?.let(onPlay) },
-                            weight = ButtonWeight.Primary,
-                            icon = Icons.Rounded.PlayArrow,
-                            enabled = selection != null,
-                            modifier = Modifier.focusRequester(playFocus),
-                        )
-                        CastivioButton(
-                            text = stringResource(
-                                if (favorite) R.string.movie_favorite_remove else R.string.movie_favorite_add,
-                            ),
-                            onClick = { favorites.flip(movie.id) },
-                            weight = ButtonWeight.Secondary,
-                            icon = if (favorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                        )
-                    }
-                    // What the provider said beyond the list row. Each line is drawn only when the provider
-                    // sent it: a fact it did not send is no line at all, never a stand-in.
-                    known?.let { d ->
-                        d.rating?.let { Fact(stringResource(R.string.movie_rating, ratingText(it)), m) }
-                        d.addedEpochSeconds?.let { Fact(stringResource(R.string.movie_added, addedDateText(it)), m) }
-                        d.plot?.let {
+                        val rating = known?.rating
+                        val added = known?.addedEpochSeconds
+                        if (rating != null || added != null) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(m.rowGap),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                rating?.let {
+                                    RatingBadge(
+                                        rating = ratingText(it),
+                                        labelStyle = castivioChipStyle(m.frame.fsChip),
+                                        iconSize = iconSize,
+                                        padH = m.entryPadH,
+                                        padV = m.entryPadV,
+                                    )
+                                }
+                                added?.let {
+                                    Fact(
+                                        text = stringResource(R.string.movie_added, addedDateText(it)),
+                                        m = m,
+                                        icon = Icons.Rounded.CalendarMonth,
+                                        iconSize = iconSize,
+                                    )
+                                }
+                            }
+                        }
+                        if (known?.plot != null) {
                             Text(
                                 text = stringResource(R.string.movie_plot_title),
-                                style = castivioChipStyle(m.frame.fsChip),
+                                style = castivioChipStyle(m.frame.fsLabel).copy(fontWeight = FontWeight.Bold),
                                 color = colors.onBackground,
                             )
-                            Text(
-                                text = it,
-                                style = castivioBodyStyle(m.frame.fsBody),
-                                color = colors.onBackgroundVariant,
-                            )
                         }
-                        d.director?.let {
-                            Text(
-                                text = stringResource(R.string.movie_director, it),
-                                style = castivioBodyStyle(m.frame.fsBody),
-                                color = colors.onBackgroundVariant,
-                            )
+                    }
+                }
+
+                // The plot takes the lines the height has left, and is cut with an ellipsis where it runs on:
+                // the page does not scroll. On a surface too narrow to sit beside the poster it is whole.
+                val plot: (@Composable (Int) -> Unit)? = known?.plot?.let { text ->
+                    { lines ->
+                        Text(
+                            text = text,
+                            style = bodyStyle,
+                            color = colors.onBackgroundVariant,
+                            maxLines = lines,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+
+                val director = known?.director
+                val cast = known?.cast.orEmpty()
+                val bottom: (@Composable () -> Unit)? = if (director != null || cast.isNotEmpty()) {
+                    {
+                        Column(verticalArrangement = Arrangement.spacedBy(m.rowGap)) {
+                            director?.let {
+                                Credit(Icons.Rounded.Person, stringResource(R.string.movie_director), it, 1, iconSize, bodyStyle, m)
+                            }
+                            if (cast.isNotEmpty()) {
+                                Credit(
+                                    Icons.Rounded.Groups, stringResource(R.string.movie_cast), cast.joinToString(", "),
+                                    CAST_LINES, iconSize, bodyStyle, m,
+                                )
+                            }
                         }
-                        if (d.cast.isNotEmpty()) {
-                            Text(
-                                text = stringResource(R.string.movie_cast, d.cast.joinToString(", ")),
-                                style = castivioBodyStyle(m.frame.fsBody),
-                                color = colors.onBackgroundVariant,
-                            )
-                        }
+                    }
+                } else {
+                    null
+                }
+
+                if (fit) {
+                    val lineHeight = with(LocalDensity.current) { bodyStyle.lineHeight.toPx() }
+                    FitInfo(infoModifier, m.bandGap, lineHeight, top, plot, bottom)
+                } else {
+                    Column(infoModifier, verticalArrangement = Arrangement.spacedBy(m.bandGap)) {
+                        top()
+                        plot?.invoke(Int.MAX_VALUE)
+                        bottom?.invoke()
                     }
                 }
             }
@@ -219,7 +289,7 @@ fun MovieScreen(
                         modifier = Modifier.fillMaxHeight()
                             .aspectRatio(CATALOG_POSTER_ASPECT, matchHeightConstraintsFirst = true),
                     )
-                    info(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()))
+                    info(Modifier.weight(1f).fillMaxHeight(), true)
                 }
                 back()
                 }
@@ -237,7 +307,7 @@ fun MovieScreen(
                         seed = 0,
                         modifier = Modifier.fillMaxWidth(STACKED_POSTER).aspectRatio(CATALOG_POSTER_ASPECT),
                     )
-                    info(Modifier.fillMaxWidth())
+                    info(Modifier.fillMaxWidth(), false)
                 }
                 back()
                 }
@@ -246,18 +316,21 @@ fun MovieScreen(
     }
 }
 
-/** One fact about the film, as a pill: a year, a running time, a category. */
+/** One fact about the film, as a pill: a year, a running time, a category -- with its mark when it has one. */
 @Composable
-private fun Fact(text: String, m: CatalogMetrics) {
+private fun Fact(text: String, m: CatalogMetrics, icon: ImageVector? = null, iconSize: Dp = Dp.Unspecified) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(Radius.pill)
-    Box(
+    Row(
         Modifier
             .clip(shape)
             .background(colors.glassFill)
             .border(1.dp, colors.glassBorderSoft, shape)
             .padding(horizontal = m.entryPadH, vertical = m.entryPadV),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(m.rowGap / 2),
     ) {
+        if (icon != null) Icon(icon, null, tint = colors.onBackgroundVariant, modifier = Modifier.size(iconSize))
         Text(
             text = text,
             style = castivioChipStyle(m.frame.fsChip),
@@ -268,10 +341,149 @@ private fun Fact(text: String, m: CatalogMetrics) {
     }
 }
 
+/**
+ * The facts of a film in one bar, divided by rules: its category, its year, its running time, its genres.
+ * A fact that is not there is not drawn, nor its rule. The year and the time are short and keep their
+ * width; the category and the genres are the words a provider chose, and share what is left, so a long
+ * list of genres is cut where it meets the bar's edge and moves nothing else.
+ */
+@Composable
+private fun FactsBar(
+    category: String?,
+    year: String?,
+    duration: String?,
+    genres: String,
+    iconSize: Dp,
+    m: CatalogMetrics,
+) {
+    val facts = listOfNotNull(
+        category?.let { Triple(it, Icons.Rounded.Category, true) },
+        year?.let { Triple(it, Icons.Rounded.CalendarMonth, false) },
+        duration?.let { Triple(it, Icons.Rounded.Schedule, false) },
+        genres.takeIf { it.isNotEmpty() }?.let { Triple(it, Icons.Rounded.TheaterComedy, true) },
+    )
+    if (facts.isEmpty()) return
+    val colors = CastivioTheme.colors
+    val shape = RoundedCornerShape(Radius.pill)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(colors.glassFill)
+            .border(1.dp, colors.glassBorderSoft, shape)
+            .padding(horizontal = m.entryPadH, vertical = m.entryPadV),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        facts.forEachIndexed { index, (text, icon, shrinks) ->
+            if (index > 0) {
+                Box(
+                    Modifier
+                        .padding(horizontal = m.rowGap)
+                        .width(1.dp)
+                        .height(iconSize)
+                        .background(colors.glassBorderSoft),
+                )
+            }
+            Row(
+                if (shrinks) Modifier.weight(1f, fill = false) else Modifier,
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(m.rowGap / 2),
+            ) {
+                Icon(icon, null, tint = colors.onBackgroundVariant, modifier = Modifier.size(iconSize))
+                Text(
+                    text = text,
+                    style = castivioChipStyle(m.frame.fsChip),
+                    color = colors.onBackground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
+/** A credit line -- the director, the cast: a mark, its label in bold, and the names after it. */
+@Composable
+private fun Credit(
+    icon: ImageVector,
+    label: String,
+    names: String,
+    lines: Int,
+    iconSize: Dp,
+    style: TextStyle,
+    m: CatalogMetrics,
+) {
+    val colors = CastivioTheme.colors
+    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(m.rowGap)) {
+        Icon(icon, null, tint = colors.onBackground, modifier = Modifier.size(iconSize))
+        Text(
+            text = buildAnnotatedString {
+                withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = colors.onBackground)) { append(label) }
+                append(" ")
+                append(names)
+            },
+            style = style,
+            color = colors.onBackgroundVariant,
+            maxLines = lines,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/**
+ * The film's text column, laid out to the height it is given and never taller: what stands above the plot
+ * and what stands below it are measured first, and the plot is given the whole lines that are left between
+ * them. A page that scrolled to reach its cast has become a page that shows the cast and cuts the plot.
+ */
+@Composable
+private fun FitInfo(
+    modifier: Modifier,
+    gap: Dp,
+    lineHeight: Float,
+    top: @Composable () -> Unit,
+    plot: (@Composable (Int) -> Unit)?,
+    bottom: (@Composable () -> Unit)?,
+) {
+    SubcomposeLayout(modifier) { constraints ->
+        val loose = constraints.copy(minWidth = 0, minHeight = 0)
+        val gapPx = gap.roundToPx()
+        val topPlaced = subcompose("top", top).map { it.measure(loose) }
+        val bottomPlaced = bottom?.let { content -> subcompose("bottom", content).map { it.measure(loose) } }.orEmpty()
+        val topHeight = topPlaced.sumOf { it.height }
+        val bottomHeight = bottomPlaced.sumOf { it.height }
+        val gaps = (if (plot != null) 1 else 0) + (if (bottom != null) 1 else 0)
+        val room = constraints.maxHeight - topHeight - bottomHeight - gaps * gapPx
+        val lines = (room / lineHeight).toInt().coerceAtLeast(1)
+        val plotPlaced = plot?.let { content -> subcompose("plot") { content(lines) }.map { it.measure(loose) } }.orEmpty()
+        val plotHeight = plotPlaced.sumOf { it.height }
+
+        layout(constraints.maxWidth, constraints.maxHeight) {
+            var y = 0
+            topPlaced.forEach { it.placeRelative(0, y) }
+            y += topHeight
+            if (plot != null) {
+                y += gapPx
+                plotPlaced.forEach { it.placeRelative(0, y) }
+                y += plotHeight
+            }
+            if (bottom != null) {
+                y += gapPx
+                bottomPlaced.forEach { it.placeRelative(0, y) }
+            }
+        }
+    }
+}
+
 /** From here the poster stands beside the page; narrower, the page is a column under it. */
 private val SIDE_BY_SIDE = 600.dp
 
 /** How much of a narrow page's width the poster takes. */
 private const val STACKED_POSTER = 0.5f
 
-private const val TITLE_LINES = 3
+private const val TITLE_LINES = 1
+
+/** The cast may take two lines; a longer list is cut with an ellipsis. */
+private const val CAST_LINES = 2
+
+/** A mark's size as a share of the body type, so the marks scale with the page's own type. */
+private const val ICON_OF_BODY = 1.4f
