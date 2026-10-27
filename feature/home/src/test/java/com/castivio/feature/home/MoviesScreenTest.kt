@@ -171,11 +171,10 @@ class MoviesScreenTest {
     }
 
     @Test
-    fun `the wall says how many films the list holds, and the order it is in`() {
+    fun `the band says the order the films are in`() {
         show(holder())
 
-        // The count sits in the band, in brackets, beside the order: the same place as the channels' clock.
-        compose.onNodeWithText("(5)").assertIsDisplayed()
+        // The order sits in the band beside the clock, where the channels' have theirs.
         compose.onNodeWithText("Sort: Provider").assertIsDisplayed()
     }
 

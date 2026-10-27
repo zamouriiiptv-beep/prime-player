@@ -292,6 +292,8 @@ fun CastivioChip(
     labelStyle: TextStyle = CastivioType.labelLarge,
     padH: Dp = Spacing.lg,
     padV: Dp = Spacing.sm,
+    /** A mark after the label, such as a chevron on a chip that opens a choice. Nothing by default. */
+    trailingIcon: ImageVector? = null,
 ) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
@@ -321,6 +323,9 @@ fun CastivioChip(
             Icon(icon, null, tint = colors.onBackground, modifier = Modifier.size(Sizing.iconSm))
         }
         Text(text, color = colors.onBackground, style = labelStyle)
+        if (trailingIcon != null) {
+            Icon(trailingIcon, null, tint = colors.onBackgroundMuted, modifier = Modifier.size(Sizing.iconSm))
+        }
     }
 }
 

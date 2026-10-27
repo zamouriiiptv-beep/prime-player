@@ -1,6 +1,7 @@
 package com.castivio.core.design.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -31,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -40,6 +42,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.castivio.core.design.R
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Motion
@@ -110,6 +113,12 @@ fun MediaCard(
     artworkScale: ContentScale = ContentScale.Crop,
     /** A fill behind the whole card, name included, with the name centred inside it. Null leaves the card bare, as every other caller has it. */
     cardFill: Color? = null,
+    /**
+     * The cinematic backdrop -- deep navy with a faint film strip across it -- behind the poster, in place of
+     * the coloured placeholder. It is drawn whether or not there is a poster, so a poster that does not fill its
+     * frame, or never arrives, sits on the same ground as every other. False keeps the placeholder.
+     */
+    cinematicBackdrop: Boolean = false,
 ) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
@@ -161,9 +170,17 @@ fun MediaCard(
                 .fillMaxWidth()
                 .then(if (posterHeight != null) Modifier.height(posterHeight) else Modifier.aspectRatio(shape.ratio))
                 .clip(cardShape)
-                .then(if (artworkShown) Modifier else Modifier.background(posterPlaceholderBrush(artworkSeed)))
+                .then(if (cinematicBackdrop || artworkShown) Modifier else Modifier.background(posterPlaceholderBrush(artworkSeed)))
                 .then(ring),
         ) {
+            if (cinematicBackdrop) {
+                Image(
+                    painter = painterResource(R.drawable.poster_backdrop),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
             if (!artworkUrl.isNullOrBlank()) {
                 PosterArtwork(artworkUrl, Modifier.fillMaxSize(), artworkScale, onLoaded = { artworkShown = true })
             }

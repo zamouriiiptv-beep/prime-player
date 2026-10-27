@@ -26,8 +26,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Sort
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -52,7 +52,6 @@ import com.castivio.core.design.components.CastivioChip
 import com.castivio.core.design.components.MediaCard
 import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioChipStyle
-import com.castivio.core.design.components.formatCount
 import com.castivio.core.design.components.ltrToken
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.domain.MediaItem
@@ -128,6 +127,9 @@ fun MoviesScreen(
                 onSearch = model::search,
                 onSearchFocus = {},
                 hint = stringResource(R.string.movies_search_hint),
+                divided = true,
+                // Wide enough for a category's name to read whole, as the reference has it.
+                crumb = m.crumb * CRUMB_OF_FILMS,
                 // The count and the order sit in the band, where the channels' clock and field are, so the
                 // panel under it starts at the same height as the channel list does.
                 trailing = {
@@ -135,7 +137,6 @@ fun MoviesScreen(
                         horizontalArrangement = Arrangement.spacedBy(m.factGap),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        MovieCount(state, m)
                         CastivioChip(
                             text = stringResource(R.string.browse_sort, stringResource(state.sort.label)),
                             onClick = { model.sortBy(state.sort.next()) },
@@ -143,6 +144,7 @@ fun MoviesScreen(
                             labelStyle = castivioChipStyle(m.frame.fsChip),
                             padH = m.controlPadH,
                             padV = m.badgePadV,
+                            trailingIcon = Icons.Rounded.KeyboardArrowDown,
                         )
                     }
                 },
@@ -170,18 +172,6 @@ private fun movieListName(state: BrowseState): String = when (val list = state.m
     MovieList.Favorites -> stringResource(R.string.channels_favorites)
     MovieList.Recent -> stringResource(R.string.channels_recent)
     is MovieList.Category -> state.categoryNames[list.id] ?: stringResource(R.string.movies_all)
-}
-
-/** How many films the list holds, in brackets, where the figure is true. Nothing otherwise. */
-@Composable
-private fun MovieCount(state: BrowseState, m: ChannelsMetrics) {
-    val count = state.headingCount() ?: return
-    Text(
-        text = ltrToken("(${formatCount(count)})"),
-        style = castivioBodyStyle(m.frame.fsBody),
-        color = CastivioTheme.colors.onBackgroundMuted,
-        maxLines = 1,
-    )
 }
 
 /**
@@ -342,11 +332,15 @@ private fun MovieWall(
                     focusScale = 1f,
                     artworkScale = ContentScale.Fit,
                     cardFill = CastivioTheme.colors.glassFill,
+                    cinematicBackdrop = true,
                 )
             }
         }
     }
 }
+
+/** How much wider than the channels' the films' breadcrumb is, so a category's name reads whole. */
+private const val CRUMB_OF_FILMS = 1.4f
 
 /** Six posters to a row, the most the wall draws, however wide the surface is. */
 private const val POSTER_COLUMNS = 6

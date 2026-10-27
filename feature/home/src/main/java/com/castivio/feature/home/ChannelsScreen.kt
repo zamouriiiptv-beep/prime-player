@@ -596,6 +596,10 @@ internal fun BoardBand(
     hint: String = stringResource(R.string.channels_search_hint),
     /** What a section adds to the band beside its field, before the clock: the films' count and sort. Nothing for channels. */
     trailing: (@Composable () -> Unit)? = null,
+    /** A vertical rule between the mark and the breadcrumb, as the films' band draws it. The channels' has none. */
+    divided: Boolean = false,
+    /** The breadcrumb's width: bounded, as [ChannelsMetrics.crumb] is, and the films' band gives it more. */
+    crumb: Dp = m.crumb,
 ) {
     val colors = CastivioTheme.colors
 
@@ -611,7 +615,9 @@ internal fun BoardBand(
             // logo. It was sitting against the wordmark, and `Live TV` read as part of
             // the product's name rather than as which section is open.
             Row(
-                Modifier.width(m.rail + m.railGap),
+                // With the rule, the rail's width is shared: the mark takes the rail's and the rule the gap
+                // beside it, so the breadcrumb still starts where the channel list's leading edge is.
+                Modifier.width(if (divided) m.rail else m.rail + m.railGap),
                 verticalAlignment = Alignment.CenterVertically,
                 // Centred in the cell rather than pushed against its leading edge. The
                 // cell is exactly the rail's width, so the mark now sits over the middle
@@ -633,10 +639,21 @@ internal fun BoardBand(
                 )
             }
 
+            if (divided) {
+                Box(Modifier.width(m.railGap), contentAlignment = Alignment.Center) {
+                    Box(
+                        Modifier
+                            .width(1.dp)
+                            .height(m.header * DIVIDER_OF_HEADER)
+                            .background(colors.glassBorderSoft),
+                    )
+                }
+            }
+
             // Bounded, because the second line is a *provider's* words — see
             // `ChannelsMetrics.crumb`. An unbounded cell let one long category name
             // decide where everything after it on the band sat.
-            Column(Modifier.width(m.crumb)) {
+            Column(Modifier.width(crumb)) {
                 Text(
                     text = section,
                     style = castivioChipStyle(m.frame.fsLabel),
@@ -3648,6 +3665,9 @@ private const val CLOCK_OF_LABEL = 1.32f
 private const val LOGO_BOX = 54f / 40f
 
 private const val LEGEND_OF_BODY = 0.88f
+
+/** How much of the band's height the rule beside the mark takes. */
+private const val DIVIDER_OF_HEADER = 0.55f
 
 /** A line of [ProgrammeTable]: the word, the hours, and the bar or the title. */
 private const val PROGRAMME_CELLS = 3
