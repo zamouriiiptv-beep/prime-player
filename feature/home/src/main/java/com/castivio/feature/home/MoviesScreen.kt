@@ -258,9 +258,10 @@ private fun MoviesPane(
             // and gives its width to the cards rather than to the gutters.
             val gutter = m.nameGap
             val columns = posterColumns(maxWidth, gutter, MIN_POSTER_WIDTH).coerceAtMost(POSTER_COLUMNS)
+            val titleStep = m.frame.fsLabel * TITLE_OF_LABEL
             val poster = posterHeightFor(
                 available = maxHeight,
-                rowExtra = m.frame.fsLabel * LABEL_LINE * TITLE_LINES + m.nameGap * 2,
+                rowExtra = titleStep * LABEL_LINE * TITLE_LINES + m.nameGap * 2,
                 rowGap = m.nameGap,
                 peek = PEEK_OF_POSTER,
                 floor = MIN_POSTER_HEIGHT,
@@ -316,13 +317,13 @@ private fun MovieWall(
                     onClick = { onOpenMovie(movie) },
                     width = cardWidth,
                     gap = m.nameGap,
-                    titleStyle = castivioChipStyle(m.frame.fsLabel),
+                    titleStyle = castivioChipStyle(titleStep),
                     captionStyle = castivioBodyStyle(m.frame.fsBody),
                     artworkUrl = movie.artworkUrl,
                     tag = movieDuration(movie.durationMinutes)?.let(::ltrToken),
                     posterHeight = poster,
                     titleLines = TITLE_LINES,
-                    titleHeight = m.frame.fsLabel * LABEL_LINE * TITLE_LINES,
+                    titleHeight = titleStep * LABEL_LINE * TITLE_LINES,
                     focusBrush = focusBrush(),
                     focusScale = 1f,
                     artworkScale = ContentScale.Fit,
@@ -358,6 +359,17 @@ private const val PEEK_OF_POSTER = 0.05f
 
 /** The title's line, as a share of its type: what the card's name takes beneath the artwork. */
 private const val LABEL_LINE = 1.45f
+
+/**
+ * A film's name is set a little under the label step, so the year reaches the second line.
+ *
+ * Providers end a name with its year and often a tag -- `A+ - Matchbox The Movie (2026) (MULTI SUB)` -- and at the
+ * label step the second line was cut inside the year: `(202…`. Measured with the app's own font in the width a
+ * card gives its name, four percent less is enough for the year to read whole in that name and in the others of
+ * its length, and seven percent brings no more names to show theirs; this takes six, which leaves room for the
+ * measuring to be a little off without making the names small.
+ */
+private const val TITLE_OF_LABEL = 0.94f
 
 /** A film's name may take two lines; a third is cut with an ellipsis, so every card's name area is the same. */
 private const val TITLE_LINES = 2
