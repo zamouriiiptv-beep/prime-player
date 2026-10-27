@@ -50,6 +50,7 @@ import androidx.paging.compose.itemKey
 import com.castivio.core.design.components.CardShape
 import com.castivio.core.design.components.CastivioChip
 import com.castivio.core.design.components.MediaCard
+import com.castivio.core.design.components.PosterPrefetch
 import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.ltrToken
@@ -298,6 +299,13 @@ private fun MovieWall(
     onOpenMovie: (Movie) -> Unit,
 ) {
     val titleStep = filmTitleStep(m)
+    // The posters of the next rows are asked for while the wall is still, so they are on the device when it scrolls.
+    PosterPrefetch(
+        state = gridState,
+        ahead = columns * PREFETCH_ROWS,
+        itemCount = { rows.itemCount },
+        urlAt = { index -> (rows.peek(index) as? Movie)?.artworkUrl },
+    )
     LazyVerticalGrid(
         state = gridState,
         columns = GridCells.Fixed(columns),
@@ -345,6 +353,9 @@ private fun MovieWall(
  * fit in two; only the long ones are shortened.
  */
 private const val POSTER_COLUMNS = 5
+
+/** How many rows below the last one drawn have their posters asked for while the wall is still. */
+private const val PREFETCH_ROWS = 2
 
 /**
  * The narrowest column a card may be given before its name stops being readable in two lines: a narrower

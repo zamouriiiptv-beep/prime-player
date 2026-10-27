@@ -1,16 +1,21 @@
 package com.castivio.core.design.components
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -19,6 +24,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.imageLoader
+import coil.request.Disposable
 import coil.request.ImageRequest
 import coil.size.Precision
 import coil.size.Scale
@@ -26,6 +33,9 @@ import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.posterPlaceholderBrush
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 /**
  * A poster a provider shipped, drawn to fill the card it is in.
@@ -88,13 +98,7 @@ internal fun PosterBackdrop(
     var failed by remember(url) { mutableStateOf(false) }
     if (failed) return
     AsyncImage(
-        model = ImageRequest.Builder(LocalContext.current)
-            .data(url)
-            .size(BACKDROP_WIDTH, BACKDROP_HEIGHT)
-            .precision(Precision.EXACT)
-            .scale(Scale.FILL)
-            .crossfade(false)
-            .build(),
+        model = backdropRequest(LocalContext.current, url),
         contentDescription = null,
         contentScale = ContentScale.Crop,
         onSuccess = { onLoaded() },
@@ -102,6 +106,76 @@ internal fun PosterBackdrop(
         modifier = modifier,
     )
 }
+
+/** The one request for a backdrop, so the card and [PosterPrefetch] ask for it in the same words and share an answer. */
+private fun backdropRequest(context: Context, url: String): ImageRequest =
+    ImageRequest.Builder(context)
+        .data(url)
+        .size(BACKDROP_WIDTH, BACKDROP_HEIGHT)
+        .precision(Precision.EXACT)
+        .scale(Scale.FILL)
+        .crossfade(false)
+        .build()
+
+/**
+ * Asks for the posters just below a wall before it scrolls to them, so they are on the device when the cards arrive.
+ *
+ * Only while the wall is still: a scroll is the moment the cards on screen need the connection, and a request made
+ * for a row the thumb is about to pass would stand in front of theirs. When a scroll starts, what is still on its way
+ * is cancelled; when the wall settles for [PREFETCH_SETTLE_MS], the [ahead] posters after the last one drawn are asked
+ * for again, and any that already arrived are answered from the cache. The request is the backdrop's, which is the
+ * small one, but it brings the whole picture into the disk cache on the way, and the poster is then read from there.
+ *
+ * The feature hands over its list as two lookups and does not see the loader. [itemCount] bounds the lookup, which is
+ * how many items the list holds now; [urlAt] answers the poster's address without loading anything.
+ */
+@Composable
+fun PosterPrefetch(
+    state: LazyGridState,
+    ahead: Int,
+    itemCount: () -> Int,
+    urlAt: (Int) -> String?,
+) {
+    val context = LocalContext.current
+    val count by rememberUpdatedState(itemCount)
+    val lookup by rememberUpdatedState(urlAt)
+    LaunchedEffect(state, ahead) {
+        val loader = context.imageLoader
+        val pending = ArrayList<Disposable>()
+        fun cancel() {
+            pending.forEach { it.dispose() }
+            pending.clear()
+        }
+        try {
+            snapshotFlow { state.isScrollInProgress to (state.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1) }
+                .distinctUntilChanged()
+                .collectLatest { (scrolling, last) ->
+                    cancel()
+                    if (scrolling) return@collectLatest
+                    delay(PREFETCH_SETTLE_MS)
+                    for (index in postersAhead(last, ahead, count())) {
+                        val url = lookup(index) ?: continue
+                        pending += loader.enqueue(backdropRequest(context, url))
+                    }
+                }
+        } finally {
+            cancel()
+        }
+    }
+}
+
+/**
+ * The positions of the posters to ask for: the [ahead] after [lastShown], and none past the end of a list of [count].
+ *
+ * Empty when nothing is shown yet -- [lastShown] is -1 -- because there is no "after" to measure from, and the cards
+ * on screen ask for themselves.
+ */
+internal fun postersAhead(lastShown: Int, ahead: Int, count: Int): IntRange =
+    if (lastShown < 0 || ahead <= 0 || count <= 0) IntRange.EMPTY
+    else (lastShown + 1)..minOf(lastShown + ahead, count - 1)
+
+/** How long a wall must be still before the posters below it are asked for, in milliseconds. */
+private const val PREFETCH_SETTLE_MS = 250L
 
 /**
  * The size the backdrop is asked for, in pixels, at the poster's own 2:3. Small enough that enlarging it to a
