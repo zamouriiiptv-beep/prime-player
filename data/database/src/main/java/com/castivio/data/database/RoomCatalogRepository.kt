@@ -27,6 +27,7 @@ import com.castivio.domain.MediaKind
 import com.castivio.domain.Page
 import com.castivio.domain.PageRequest
 import com.castivio.domain.Season
+import com.castivio.domain.SeriesShell
 import com.castivio.domain.SeriesSummary
 import com.castivio.domain.SortOrder
 import com.castivio.domain.arrangedBy
@@ -451,6 +452,17 @@ class RoomCatalogRepository(
                 .map { (number, episodes) ->
                     Season(number = number, episodes = episodes.sortedBy { it.episodeNumber })
                 }
+        }
+
+    override suspend fun seriesShell(seriesId: String): SeriesShell? =
+        mediaDao.seriesShell(seriesId)?.let { row ->
+            val providerRef = row.providerRef ?: return null
+            SeriesShell(
+                sourceId = row.sourceId,
+                providerRef = providerRef,
+                title = row.seriesTitle ?: row.title,
+                groupId = row.groupId,
+            )
         }
 
     override fun favorites(): Flow<PagingData<MediaItem>> =

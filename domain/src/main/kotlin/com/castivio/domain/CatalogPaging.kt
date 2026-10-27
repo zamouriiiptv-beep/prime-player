@@ -61,6 +61,15 @@ data class SeriesSummary(
     val seasonCount: Int,
 )
 
+/** A show's own row: where it came from and how its provider names it. */
+data class SeriesShell(
+    val sourceId: String,
+    /** The provider's id for the show: what its episodes are asked for by. */
+    val providerRef: String,
+    val title: String,
+    val groupId: String?,
+)
+
 /** A row for Continue Watching and History: what was watched, and how far. */
 data class InProgressItem(val item: MediaItem, val progress: PlaybackProgress)
 
@@ -81,6 +90,13 @@ interface CatalogPager {
 
     /** Seasons of one show, small enough to read whole. */
     fun seasons(seriesId: String): Flow<List<Season>>
+
+    /**
+     * What a show's own row says about it -- the provider it came from, its id there, its category -- which is
+     * what its episodes are asked for by. Null for a show with no such row. Defaulted so a fake that does not
+     * ask for episodes need not answer.
+     */
+    suspend fun seriesShell(seriesId: String): SeriesShell? = null
 
     fun favorites(): Flow<PagingData<MediaItem>>
 

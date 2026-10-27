@@ -1,0 +1,236 @@
+<!doctype html>
+<!--
+  A series' page: the seasons and the episodes. Drawn before code.
+
+  The page today is a plain list: the show's name, then every episode of every season in one column, each
+  drawn as a channel row. It has no poster, no plot, no sense of where the viewer was, and a show of six
+  seasons is a long scroll to the episode they want. This is the film page's sibling.
+
+  Two panes, left to right whatever the language (as the film page is, and for the same reason: the provider's
+  words are mixed). The start pane is the show -- poster, name, facts, rating, Play, favourite, plot -- and the
+  end pane is its episodes: a row of season chips and, under it, the chosen season's episodes in a list that
+  scrolls inside its own pane. The way back is at the page's top corner, at the end of the chips' row, where
+  it is on the film page.
+
+    - Play continues: "Continue S2 E5" for a show begun, "Play S1 E1" for one not, and the page opens with the
+      list scrolled so that episode is first. A season chip is a season; the chosen one is violet, as the
+      chosen bouquet is. Many seasons scroll sideways with a fade at the end, the chosen one kept in view.
+    - An episode row is its picture (16:9, the provider's still, or the film strip when it has none), its
+      number and name, two lines of its plot, and its running time at the end. Watched has a check on the
+      picture; part-watched has a thin bar along the foot of it. A press plays it.
+    - The remote starts on Play. Down from the chips (or from Play) goes to the list, Up comes back, Left goes
+      from the list to the buttons and the chips. The plot's "Show all" is the film page's, with the same
+      dialog.
+    - What the provider has not sent is not drawn, and nothing is made up: no plot, no rating, no plots under
+      the episodes, no running times. The episodes themselves are what the catalogue holds already, so the list
+      is there the moment the page is; the details arrive after it, as a film's do, and the page says so with
+      quiet skeletons where they will be.
+
+  Geometry follows the film page's: the stage's padding, the 40dp way back, the 48dp (56 on a television)
+  control floor for the buttons, the rating badge's gold. The start pane is about 320dp on a handset; the
+  rows are 62dp with 6dp between, so four and a half show. Names and figures are examples.
+
+    ?frame=<name>      one frame at its device size
+    ?frame=sheet       every frame stacked with its caption, for review
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Series page</title>
+<style>
+:root{
+  --ground:#111327; --panel:#20223A; --edge:rgba(172,180,214,.10); --edgeSoft:rgba(255,255,255,.08);
+  --glass:rgba(255,255,255,.06); --glassBorder:rgba(255,255,255,.14); --violet:#9B6BFF; --violetEdge:#B694FF;
+  --azure:#4C9BFF; --ring:#6FB2FF; --gold:#F5C518; --ink:#D6D3E8; --strong:#FFFFFF; --muted:#8C8CA8;
+  --ok:#3DD68C; --skel:rgba(255,255,255,.08);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#05040E;color:var(--strong);font-family:"Noto Sans Arabic","DejaVu Sans",sans-serif}
+body.sheet{padding:20px;width:max-content}
+svg{display:block;flex:none}
+.cap{font:13px/1.45 "DejaVu Sans",sans-serif;color:#9a9ab8;margin:18px 0 8px;max-width:900px}
+.screen{position:relative;overflow:hidden;direction:ltr;font-family:"DejaVu Sans",Roboto,"Noto Sans Arabic",sans-serif;
+  background:radial-gradient(120% 90% at 85% 0%,#1B1F3F 0%,rgba(27,31,63,0) 60%),linear-gradient(160deg,#13152D,var(--ground))}
+.pg{position:absolute;display:flex}
+.col{display:flex;flex-direction:column}
+.poster{flex:none;border-radius:10px;border:1px solid var(--edgeSoft);overflow:hidden;position:relative;
+  background:linear-gradient(170deg,#1b3a52 0%,#2c6e7e 38%,#1c2c58 70%,#0e1024 100%)}
+.poster b{position:absolute;left:6%;right:6%;bottom:8%;text-align:center;font:900 italic 1em/1.05 "DejaVu Sans";letter-spacing:-.5px;
+  color:#e9f6ff;text-shadow:0 2px 0 rgba(0,0,0,.35)}
+.ttl{font-weight:700;line-height:1.22;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;unicode-bidi:plaintext}
+.sub{color:var(--ink)}
+.imdb{display:inline-flex;align-items:center;gap:5px;padding:0 9px;border-radius:99px;border:1.5px solid var(--gold);
+  background:rgba(245,197,24,.12);font-weight:700}
+.imdb u{text-decoration:none;background:var(--gold);color:#0B0B14;border-radius:3px;padding:0 4px;font-weight:900}
+.imdb svg{fill:var(--gold)}
+.btn{display:flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;font-weight:600;white-space:nowrap}
+.btn svg{width:1.3em;height:1.3em}
+.btn.p{background:linear-gradient(180deg,#4C9BFF,#2F6FE0);color:#fff} .btn.p svg{fill:#fff}
+.btn.s{background:var(--glass);border:1px solid var(--glassBorder);color:var(--ink)} .btn.s svg{fill:var(--ink)}
+.ring{outline:2px solid var(--ring);outline-offset:2px}
+.hrow{display:flex;align-items:center;justify-content:space-between}
+.hrow h3{font-weight:700}
+.more{display:flex;align-items:center;color:var(--azure);font-weight:700;font-family:"Noto Sans Arabic","DejaVu Sans"}
+.more svg{fill:var(--azure)}
+.plot{color:var(--ink);overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;unicode-bidi:plaintext}
+.cred{color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cred b{color:#fff}
+.chips{display:flex;gap:8px;align-items:center;overflow:hidden;position:relative}
+.chip{flex:none;display:flex;align-items:center;padding:0 12px;border-radius:99px;background:var(--glass);border:1px solid var(--glassBorder);
+  color:var(--ink);font-weight:600;white-space:nowrap}
+.chip.on{background:var(--violet);border-color:var(--violetEdge);color:#fff}
+.fadeEnd{position:absolute;right:0;top:0;bottom:0;width:46px;background:linear-gradient(90deg,transparent,#14172e)}
+.back{flex:none;border-radius:10px;background:var(--glass);border:1px solid var(--glassBorder);display:flex;align-items:center;justify-content:center}
+.back svg{fill:var(--azure)}
+.list{display:flex;flex-direction:column;overflow:hidden}
+.ep{flex:none;display:flex;align-items:center;border-radius:12px;border:1px solid transparent;position:relative}
+.ep.on{background:rgba(155,107,255,.18);border-color:var(--violetEdge);box-shadow:0 0 0 2px rgba(111,178,255,.45)}
+.th{flex:none;border-radius:8px;position:relative;overflow:hidden;border:1px solid var(--edgeSoft)}
+.th i{position:absolute;left:0;bottom:0;height:3px;background:var(--azure)}
+.th .ck{position:absolute;right:4px;top:4px;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center}
+.th .ck svg{width:12px;height:12px;fill:var(--ok)}
+.th .pl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.th .pl svg{width:46%;height:46%;fill:rgba(255,255,255,.0)}
+.strip{background:linear-gradient(160deg,#10224f,#0b1535);}
+.strip svg{position:absolute;inset:18%;width:64%;height:64%;opacity:.35;fill:none;stroke:#8FA7E0;stroke-width:1.5}
+.etx{flex:1;min-width:0;display:flex;flex-direction:column}
+.en{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;unicode-bidi:plaintext}
+.en em{font-style:normal;color:var(--muted);margin-right:6px;font-weight:700}
+.ep .pt{color:var(--muted);overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;unicode-bidi:plaintext}
+.dur{flex:none;color:var(--muted);font-variant-numeric:tabular-nums}
+.sk{border-radius:6px;background:var(--skel)}
+.panel{background:var(--panel);border:1px solid var(--edgeSoft);border-radius:20px;padding:22px 26px;text-align:center}
+.card{display:inline-block;margin-right:18px;vertical-align:top}
+.cardp{width:118px;height:150px;border-radius:10px;border:1px solid var(--edgeSoft);position:relative;overflow:hidden;
+  background:linear-gradient(170deg,#1b3a52,#2c6e7e 38%,#1c2c58 70%,#0e1024)}
+.tag{position:absolute;left:6px;bottom:6px;padding:2px 8px;border-radius:6px;background:rgba(0,0,0,.55);font-size:11px;font-weight:700;color:#fff}
+.clab{width:118px;margin-top:6px;font-size:12px;color:var(--ink);text-align:center}
+</style>
+</head>
+<body>
+<script>
+const I={
+  back:'<svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"/></svg>',
+  play:'<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',
+  heart:'<svg viewBox="0 0 24 24"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3zm-4.4 15.55-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05z"/></svg>',
+  star:'<svg viewBox="0 0 24 24"><path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>',
+  chev:'<svg viewBox="0 0 24 24"><path d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>',
+  check:'<svg viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>',
+  film:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 9h4M3 15h4M17 9h4M17 15h4"/></svg>'
+};
+const HUES=[['#5a2f6e','#c0634a'],['#1f4f6e','#4aa3b0'],['#6e5a1f','#c0a24a'],['#2f6e4a','#4ab07a'],['#6e2f3f','#c04a6a'],['#2f3f6e','#4a63c0']];
+const EP=[
+ {n:4,t:'The Tide Table',p:'A storm closes the harbour and the town counts what it owes the sea. Mara finds a ledger that was not meant to be found.',d:'46m',st:'w',h:0},
+ {n:5,t:'Low Water',p:'Rumours of a wreck draw divers from the coast. Ilan is asked a question he has avoided for ten years.',d:'52m',st:'p',pct:42,h:1},
+ {n:6,t:'Salt and Iron',p:'The cannery reopens with a new owner and an old grievance, and the night shift sees something on the pier.',d:'49m',st:'n',h:2},
+ {n:7,t:'What the Lamp Kept',p:'A lighthouse keeper\'s logbook turns up in a stranger\'s luggage; Mara and Ilan read it twice.',d:'47m',st:'n',h:3},
+ {n:8,t:'The Long Slack',p:'Between tides, with nowhere to run, the town votes on what to do about the harbour.',d:'55m',st:'n',h:4}];
+
+const T={
+ ar:{play:'متابعة S2 E5',playNew:'تشغيل S1 E1',season:n=>'الموسم '+n,plot:'Plot',more:'عرض الكل',facts:'2019  ·  4 مواسم',empty:['لا حلقات لهذا المسلسل','لم يرسل المزوّد حلقات لهذا المسلسل بعد.'],back:'رجوع'}
+};
+function th(e,w,h,opts){
+  const [a,b]=HUES[e.h%HUES.length];
+  const inner=opts.strip?`<div class="strip" style="position:absolute;inset:0">${I.film}</div>`:`<div style="position:absolute;inset:0;background:linear-gradient(150deg,${a},${b})"></div>`;
+  const ck=(e.st==='w'&&!opts.nodetails)?`<div class="ck">${I.check}</div>`:'';
+  const bar=(e.st==='p')?`<i style="width:${e.pct}%"></i>`:'';
+  return `<div class="th" style="width:${w}px;height:${h}px">${inner}${ck}${bar}</div>`;
+}
+function ep(e,s,o){
+  const w=Math.round(96*s),h=Math.round(54*s),rowH=Math.round(62*s);
+  const strip=o.loading||o.nodetails||o.noimg;
+  const txt=o.nodetails?'':(o.loading?`<div class="sk" style="height:${9*s}px;width:92%;margin-top:${4*s}px"></div><div class="sk" style="height:${9*s}px;width:64%;margin-top:${4*s}px"></div>`
+        :`<div class="pt" style="font-size:${10.5*s}px;line-height:${13*s}px;margin-top:${2*s}px" dir="auto">${e.p}</div>`);
+  const dur=(o.nodetails||o.loading)?'':`<div class="dur" style="font-size:${11*s}px;margin-left:${10*s}px">${e.d}</div>`;
+  return `<div class="ep${o.focus===e.n?' on':''}" style="height:${rowH}px;padding:${4*s}px ${6*s}px;gap:${10*s}px;margin-bottom:${6*s}px">
+    ${th(e,w,h,{strip,nodetails:o.nodetails})}
+    <div class="etx"><div class="en" style="font-size:${12.5*s}px" dir="auto"><em>E${e.n}</em>${e.t}</div>${txt}</div>${dur}</div>`;
+}
+function page(w,h,tv,o){
+  const s=tv?1.18:1, padX=tv?48:40, padY=tv?30:17;
+  const cw=w-2*padX, ch=h-2*padY, lw=Math.round(320*s), gap=Math.round(24*s), rw=cw-lw-gap;
+  const ph=Math.round(158*s), pw=Math.round(ph*2/3);
+  const fs=n=>`font-size:${n*s}px`;
+  const btnH=Math.round(44*s);
+  // start pane
+  const rating=o.loading?`<div class="sk" style="width:${78*s}px;height:${24*s}px;border-radius:99px;margin-top:${10*s}px"></div>`
+      :(o.nodetails?'':`<div class="imdb" style="height:${24*s}px;margin-top:${10*s}px;${fs(12)}"><u>IMDb</u>8.1${I.star.replace('<svg','<svg width="'+13*s+'" height="'+13*s+'"')}</div>`);
+  const plotBlock=o.nodetails?'':(o.loading
+      ?`<div class="hrow" style="margin-top:${10*s}px;height:${18*s}px"><h3 style="${fs(12.5)}">Plot</h3></div>
+        <div class="sk" style="height:${10*s}px;margin-top:${8*s}px"></div><div class="sk" style="height:${10*s}px;margin-top:${6*s}px;width:94%"></div><div class="sk" style="height:${10*s}px;margin-top:${6*s}px;width:70%"></div>`
+      :`<div class="hrow" style="margin-top:${10*s}px;height:${18*s}px"><h3 style="${fs(12.5)}">Plot</h3><div class="more" style="${fs(12)}">${T.ar.more}<span style="width:${15*s}px;height:${15*s}px">${I.chev}</span></div></div>
+        <div class="plot" style="${fs(12)};line-height:${16.5*s}px;margin-top:${6*s}px;-webkit-line-clamp:${tv?5:4}">A harbour town keeps its secrets in the tide tables. When a storm closes the port and a ledger surfaces that was never meant to, a ferrywoman and a retired diver are pulled into a reckoning about who the town has always owed. Across four seasons the sea gives back what it was given.</div>`);
+  const credit=(o.nodetails||o.loading)?'':`<div class="cred" style="${fs(12)};margin-top:${8*s}px"><b>Cast:</b> Noor Halabi, Tomás Reyes, Ingrid Voss, Daniel Okafor…</div>`;
+  const facts=(o.nodetails||o.loading)?`2019 · 4 seasons`:`2019 · 4 seasons · Drama | Mystery`;
+  const left=`<div class="col" style="width:${lw}px">
+     <div style="display:flex;gap:${12*s}px">
+       <div class="poster" style="width:${pw}px;height:${ph}px;${fs(15)}"><b>DARK<br>HARBOR</b></div>
+       <div class="col" style="min-width:0;flex:1">
+         <div class="ttl" style="${fs(19)}" dir="auto">EN - Dark Harbor (2019)</div>
+         <div class="sub" style="${fs(11.5)};margin-top:${6*s}px">${facts}</div>
+         <div class="sub" style="${fs(11.5)};margin-top:${2*s}px;color:var(--muted)">TOP SERIES</div>
+         ${rating}
+       </div></div>
+     <div style="display:flex;gap:${8*s}px;margin-top:${10*s}px">
+       <div class="btn p${o.focus==='play'?' ring':''}" style="height:${btnH}px;flex:1;${fs(14)}">${I.play}<span dir="auto">${o.playNew?T.ar.playNew:T.ar.play}</span></div>
+       <div class="btn s" style="height:${btnH}px;width:${btnH}px">${I.heart}</div></div>
+     ${plotBlock}${credit}</div>`;
+  // end pane
+  const seasons=o.seasons||[1,2,3,4], sel=o.season||2, chH=Math.round(34*s), bk=Math.round(40*s);
+  const chips=seasons.map(n=>`<div class="chip${n===sel?' on':''}" style="height:${chH}px;${fs(12.5)}">${T.ar.season(n)}</div>`).join('');
+  const chipsRow=`<div style="display:flex;align-items:center;gap:${10*s}px;height:${bk}px">
+      <div class="chips" style="flex:1;height:${chH}px">${chips}${o.many?'<div class="fadeEnd"></div>':''}</div>
+      <div class="back" style="width:${bk}px;height:${bk}px"><div style="width:${20*s}px;height:${20*s}px">${I.back}</div></div></div>`;
+  const listH=ch-bk-Math.round(10*s);
+  const rows=(o.eps||EP).map(e=>ep(e,s,o)).join('');
+  const right=`<div class="col" style="width:${rw}px;height:${ch}px">${chipsRow}<div class="list" style="height:${listH}px;margin-top:${10*s}px">${rows}</div></div>`;
+  return `<div class="pg" style="left:${padX}px;top:${padY}px;gap:${gap}px">${left}${right}</div>`;
+}
+function emptyFrame(w,h){
+  const [t,d]=T.ar.empty;
+  return `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center"><div class="panel" style="width:420px">
+    <div style="font-size:18px;font-weight:700;margin-bottom:8px;font-family:'Noto Sans Arabic'">${t}</div>
+    <div style="font-size:13px;color:var(--ink);margin-bottom:18px;font-family:'Noto Sans Arabic'">${d}</div>
+    <div class="btn s ring" style="height:48px;width:150px;margin:0 auto;font-family:'Noto Sans Arabic'">${T.ar.back}</div></div></div>`;
+}
+function tagFrame(){
+  return `<div style="padding:22px 26px;display:flex;align-items:flex-start;font-family:'DejaVu Sans'">
+    <div class="card"><div class="cardp"><div class="tag">1h 34m</div></div><div class="clab">Movies: the running time</div></div>
+    <div class="card"><div class="cardp"><div class="tag" style="font-family:'Noto Sans Arabic'">4 مواسم</div></div><div class="clab">Series: the seasons</div></div>
+    <div class="card"><div class="cardp"><div class="tag" style="font-family:'Noto Sans Arabic'">موسم واحد</div></div><div class="clab">One season</div></div>
+    <div class="card"><div class="cardp"><div class="tag" style="font-family:'Noto Sans Arabic'">12 حلقة</div></div><div class="clab">A season, no more known</div></div></div>`;
+}
+function chipsFrame(){
+  const few=[1,2,3,4].map(n=>`<div class="chip${n===2?' on':''}" style="height:34px;font-size:12.5px">${T.ar.season(n)}</div>`).join('');
+  const many=[6,7,8,9,10,11,12,13].map(n=>`<div class="chip${n===9?' on':''}" style="height:34px;font-size:12.5px">${T.ar.season(n)}</div>`).join('');
+  return `<div style="padding:18px 40px;display:flex;flex-direction:column;gap:18px;font-family:'Noto Sans Arabic'">
+    <div style="display:flex;align-items:center;gap:14px"><div style="width:230px;font:12px 'DejaVu Sans';color:#9a9ab8">Four seasons: all show</div><div class="chips" style="width:409px">${few}</div></div>
+    <div style="display:flex;align-items:center;gap:14px"><div style="width:230px;font:12px 'DejaVu Sans';color:#9a9ab8">Thirteen: scrolls, the chosen one kept in view, a fade at the end</div><div class="chips" style="width:409px">${many}<div class="fadeEnd"></div></div></div></div>`;
+}
+const FR={
+ 'page-phone':[833,385,()=>page(833,385,false,{focus:'play'})],
+ 'episode-focus':[833,385,()=>page(833,385,false,{focus:6})],
+ 'page-tv':[960,540,()=>page(960,540,true,{focus:'play'})],
+ 'loading':[833,385,()=>page(833,385,false,{focus:'play',loading:true})],
+ 'no-details':[833,385,()=>page(833,385,false,{focus:'play',nodetails:true,playNew:true,eps:EP.map((e,i)=>({...e,n:i+1,st:'n'}))})],
+ 'empty':[833,385,()=>emptyFrame(833,385)],
+ 'chips':[833,140,()=>chipsFrame()],
+ 'tag':[833,230,()=>tagFrame()]
+};
+const CAP={
+ 'page-phone':'1. A series\' page, 833x385. The start pane is the show: poster, name, facts, rating, Play ("Continue S2 E5", focused) and the favourite, then the plot with the film page\'s "Show all". The end pane is the episodes: the season chips with the way back at the end of their row, and the chosen season\'s list, opened at the episode to continue (4 watched above it, 5 part-watched).',
+ 'episode-focus':'2. The remote on an episode (Down from Play or the chips): the row takes the violet fill and the focus ring; a press plays it. Left goes back to the buttons and the chips.',
+ 'page-tv':'3. Television 960x540: the same page at the television\'s step: larger type and rows, more of the list, the plot in five lines.',
+ 'loading':'4. The details have not arrived: the poster, name, season chips and the episode names and numbers are there (the catalogue holds them), and quiet skeletons stand where the rating, the plot and the episodes\' plots will be. Pictures are the film strip until they come.',
+ 'no-details':'5. The provider sent no details (an M3U show): no rating, no plot, no cast, no plots or running times -- only what the catalogue holds. Play begins at S1 E1. Nothing is made up and no skeleton is left waiting.',
+ 'empty':'6. A show with no episodes: the application\'s own empty state, with a way back.',
+ 'chips':'7. The season chips: a few show whole; many scroll sideways and keep the chosen one in view, with a fade at the end.',
+ 'tag':'8. The seasons are the series poster\'s tag where a film\'s is its running time (the wall is the films\', card for card).'
+};
+const q=new URLSearchParams(location.search), f=q.get('frame')||'sheet';
+function draw(n){const [w,h,fn]=FR[n];return `<div class="screen" style="width:${w}px;height:${h}px">${fn()}</div>`;}
+if(f==='sheet'){document.body.className='sheet';document.body.innerHTML=Object.keys(FR).map(n=>`<div class="cap">${CAP[n]}</div>${draw(n)}`).join('');}
+else document.body.innerHTML=draw(f);
+</script>
+</body>
+</html>

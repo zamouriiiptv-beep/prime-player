@@ -13,6 +13,7 @@ import com.castivio.data.networking.HttpStreamSource
 import com.castivio.data.networking.StalkerHttpApi
 import com.castivio.data.networking.StalkerSession
 import com.castivio.data.playlist.DefaultMovieDetails
+import com.castivio.data.playlist.DefaultSeriesEpisodes
 import com.castivio.data.parsing.StalkerChannel
 import com.castivio.data.parsing.StalkerItem
 import com.castivio.data.parsing.StalkerImportEngine
@@ -25,6 +26,7 @@ import com.castivio.data.playlist.DefaultCatalogImporter
 import com.castivio.data.playlist.LocalPlaylistReader
 import com.castivio.data.playlist.PlaylistCopyStore
 import com.castivio.domain.CatalogImporter
+import com.castivio.domain.CatalogPager
 import com.castivio.domain.CatalogWriter
 import com.castivio.domain.LoadSection
 import com.castivio.domain.PlaylistCopies
@@ -32,6 +34,7 @@ import com.castivio.domain.SectionLoad
 import com.castivio.domain.SectionLoads
 import com.castivio.domain.time.TrustedTime
 import com.castivio.domain.SectionCatalogue
+import com.castivio.domain.SeriesEpisodes
 import com.castivio.domain.PlaylistSource
 import com.castivio.domain.ProviderStatusCatalogue
 import com.castivio.domain.RefreshProvider
@@ -95,6 +98,25 @@ object PlaylistModule {
         client = client,
         dispatcher = Dispatchers.IO,
         clock = System::currentTimeMillis,
+    )
+
+    /**
+     * A show's episodes: asked of its provider when the show is opened, and written to the catalogue. A writer
+     * for each load, for the reason the importer's is one.
+     */
+    @Provides
+    @Singleton
+    fun seriesEpisodes(
+        pager: CatalogPager,
+        sources: SourceRepository,
+        client: OkHttpClient,
+        writers: Provider<CatalogWriter>,
+    ): SeriesEpisodes = DefaultSeriesEpisodes(
+        pager = pager,
+        sources = sources,
+        client = client,
+        writers = { writers.get() },
+        dispatcher = Dispatchers.IO,
     )
 
     @Provides

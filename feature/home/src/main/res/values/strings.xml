@@ -25,7 +25,22 @@
 
     <string name="show_season">Season %1$d</string>
     <string name="show_no_episodes_title">No episodes yet</string>
-    <string name="show_no_episodes_detail">Your provider lists this show but has not sent its episodes. It usually appears after the next refresh.</string>
+    <string name="show_no_episodes_detail">Your provider lists this show but has not sent any episodes for it.</string>
+    <string name="show_play">Play</string>
+    <string name="show_play_episode">Play %1$s</string>
+    <string name="show_continue">Continue %1$s</string>
+    <string name="show_failed_title">The episodes could not be loaded</string>
+    <string name="show_failed_detail">Check this device\'s connection and try again.</string>
+    <string name="show_retry">Try again</string>
+    <string name="show_facts" translatable="false">%1$s · %2$s</string>
+    <plurals name="show_seasons">
+        <item quantity="one">%d season</item>
+        <item quantity="other">%d seasons</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="one">%d episode</item>
+        <item quantity="other">%d episodes</item>
+    </plurals>
     <string name="show_back">Back</string>
 
     <string name="home_brand">CASTIVIO</string>

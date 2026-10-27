@@ -21,7 +21,7 @@
 
     <string name="show_season">الموسم %1$d</string>
     <string name="show_no_episodes_title">لا توجد حلقات بعد</string>
-    <string name="show_no_episodes_detail">مزوّدك يعرض هذا العمل لكنه لم يرسل حلقاته. تظهر عادةً بعد التحديث التالي.</string>
+    <string name="show_no_episodes_detail">مزوّدك يعرض هذا العمل لكنه لم يرسل أي حلقة له.</string>
     <string name="show_back">رجوع</string>
 
     <string name="home_brand">CASTIVIO</string>
@@ -201,6 +201,28 @@
     <string name="movie_favorite_add">إضافة إلى المفضلة</string>
     <string name="movie_favorite_remove">إزالة من المفضلة</string>
     <string name="movie_plot_more">عرض الكل</string>
+    <string name="show_play">تشغيل</string>
+    <string name="show_play_episode">تشغيل %1$s</string>
+    <string name="show_continue">متابعة %1$s</string>
+    <string name="show_failed_title">تعذّر تحميل الحلقات</string>
+    <string name="show_failed_detail">تحقق من اتصال هذا الجهاز ثم أعد المحاولة.</string>
+    <string name="show_retry">حاول مرة أخرى</string>
+    <plurals name="show_seasons">
+        <item quantity="zero">لا مواسم</item>
+        <item quantity="one">موسم واحد</item>
+        <item quantity="two">موسمان</item>
+        <item quantity="few">%d مواسم</item>
+        <item quantity="many">%d موسمًا</item>
+        <item quantity="other">%d موسم</item>
+    </plurals>
+    <plurals name="show_episodes">
+        <item quantity="zero">لا حلقات</item>
+        <item quantity="one">حلقة واحدة</item>
+        <item quantity="two">حلقتان</item>
+        <item quantity="few">%d حلقات</item>
+        <item quantity="many">%d حلقة</item>
+        <item quantity="other">%d حلقة</item>
+    </plurals>
     <string name="movie_plot_close">إغلاق</string>
     <string name="hide_title">إخفاء الباقات والقنوات</string>
     <string name="hide_hint">ضع علامة على ما تريد إخفاءه ثم اضغط «إخفاء المحدد». لا يُحذف شيء، وتعيده الإعدادات.</string>

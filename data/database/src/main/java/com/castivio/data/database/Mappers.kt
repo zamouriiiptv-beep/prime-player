@@ -45,6 +45,7 @@ internal fun MediaEntity.toDomain(): MediaItem = when (kindOrLive()) {
         // 0 sorts it first rather than dropping it.
         seasonNumber = seasonNumber ?: 0,
         episodeNumber = episodeNumber ?: 0,
+        durationMinutes = durationSeconds?.let { it / 60 },
     )
 
     // Radio is a Channel too: an audio-only live stream is still a channel with a

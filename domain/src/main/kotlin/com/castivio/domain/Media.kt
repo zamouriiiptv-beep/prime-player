@@ -58,6 +58,8 @@ data class Episode(
     val streamUrl: String,
     val seasonNumber: Int,
     val episodeNumber: Int,
+    /** The running time the provider gave, in whole minutes; null when it gave none. */
+    val durationMinutes: Int? = null,
 ) : MediaItem
 
 /** A group as the provider defined it (a "category" in Xtream, a group-title in M3U). */

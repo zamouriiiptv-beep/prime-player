@@ -46,6 +46,13 @@ interface ProgressRepository {
     suspend fun progress(mediaId: String): PlaybackProgress?
 
     /**
+     * The positions kept for several items at once, by id; an item with none is absent. Defaulted to one read each,
+     * which is right for the tens of episodes of a show and is what a fake need not override.
+     */
+    suspend fun progressOf(mediaIds: Collection<String>): Map<String, PlaybackProgress> =
+        mediaIds.mapNotNull { id -> progress(id)?.let { id to it } }.toMap()
+
+    /**
      * A channel was watched -- its picture showed, now -- or a film was started. It goes to the top of the list
      * the rail's Recently watched entry opens, and one watched before only moves there. Not a position -- a live
      * channel has none to resume, and a film started has not got far enough to -- so it is never in Continue

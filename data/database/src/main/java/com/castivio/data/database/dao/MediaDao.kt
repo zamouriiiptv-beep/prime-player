@@ -481,6 +481,19 @@ interface MediaDao {
     )
     fun episodesOf(seriesId: String): Flow<List<MediaEntity>>
 
+    /**
+     * A show's own row -- the one the catalogue import wrote with no episode number -- which says which provider it
+     * is from and by what id that provider knows it: what its episodes are asked for by.
+     */
+    @Query(
+        """
+        SELECT * FROM media
+        WHERE series_id = :seriesId AND kind = 'SERIES' AND episode_number IS NULL
+        LIMIT 1
+        """,
+    )
+    suspend fun seriesShell(seriesId: String): MediaEntity?
+
     // --------------------------------------------------------------- maintenance
 
     /**
