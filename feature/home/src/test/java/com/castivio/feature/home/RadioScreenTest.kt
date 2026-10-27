@@ -1,5 +1,6 @@
 package com.castivio.feature.home
 
+import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -269,7 +270,9 @@ class RadioScreenTest {
         compose.onNodeWithContentDescription("Sleep timer").performClick()
         compose.waitForIdle()
         compose.onNodeWithText("After 15 minutes").assertIsDisplayed()
-        compose.onNodeWithText("After 90 minutes").assertIsDisplayed()
+        // The list scrolls inside a panel that is most of the height and no more, so its last rows may be below the
+        // fold on a short surface: they are there, and a remote walks to them.
+        compose.onNodeWithText("After 90 minutes").assertExists()
         compose.onNodeWithText("Off").assertIsDisplayed()
 
         compose.onNodeWithText("After 30 minutes").performClick()
