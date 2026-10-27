@@ -47,7 +47,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
@@ -583,21 +582,11 @@ private fun SleepDialog(session: RadioSession, onClose: () -> Unit) {
     )
 }
 
-/** The focus ring: the azure of the focus colour going into the violet of the selection, Castivio's own pair. */
-@Composable
-private fun focusBrush(): Brush {
-    val colors = CastivioTheme.colors
-    return Brush.linearGradient(listOf(colors.focusRing, colors.selectedBorder))
-}
-
 /** Five cards to a row on a handset or a tablet, the most the wall draws, as the films' wall has it. */
 private const val HANDSET_COLUMNS = 5
 
 /** Four beside the panel: the wall is narrower by what the panel takes. */
 private const val TV_COLUMNS = 4
-
-/** How many rows below the last one drawn have their logos asked for while the wall is still. */
-private const val PREFETCH_ROWS = 2
 
 /**
  * The narrowest column a card may be given before its name stops being readable in two lines: a narrower surface
@@ -607,12 +596,6 @@ private val MIN_STATION_WIDTH = 96.dp
 
 /** A station's name is set a little under the label step, as a film's is, so a long one reaches its second line whole. */
 private const val TITLE_OF_LABEL = 0.94f
-
-/** The title's line, as a share of its type: what the card's name takes beneath the artwork. */
-private const val LABEL_LINE = 1.45f
-
-/** A station's name may take two lines; a third is cut with an ellipsis, so every card's name area is the same. */
-private const val TITLE_LINES = 2
 
 /**
  * The second line of a card whose station is filed under no category: a no-break space, which keeps the line's

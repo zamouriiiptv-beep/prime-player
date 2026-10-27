@@ -418,4 +418,8 @@
     <string name="radio_sleep_left">%1$s left</string>
     <string name="radio_open_player">Open the player</string>
     <string name="radio_close">Close</string>
+
+    <!-- The shows' board: the films' board with the shows' own words. -->
+    <string name="series_all">All series</string>
+    <string name="series_search_hint">Search series</string>
 </resources>

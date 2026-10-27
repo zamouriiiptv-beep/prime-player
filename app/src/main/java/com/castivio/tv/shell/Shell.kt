@@ -78,7 +78,6 @@ import com.castivio.domain.SteppedChannel
 import com.castivio.feature.activation.ActivationEntry
 import com.castivio.feature.activation.ActivationRoute
 import com.castivio.feature.activation.LanguagePicker
-import com.castivio.feature.home.BrowseScreen
 import com.castivio.feature.home.CatalogSearchScreen
 import com.castivio.feature.home.CatalogSection
 import com.castivio.feature.home.CatalogSelection
@@ -96,6 +95,7 @@ import com.castivio.feature.home.RadioScreen
 import com.castivio.feature.home.RadioSession
 import com.castivio.feature.home.R as CatalogStrings
 import com.castivio.feature.home.RecentChannelsViewModel
+import com.castivio.feature.home.SeriesScreen
 import com.castivio.feature.home.ShowScreen
 import com.castivio.feature.home.asSelection
 import com.castivio.feature.home.watchedChannel
@@ -564,11 +564,9 @@ fun ShellScreen(
                     Dest.Movies -> MoviesScreen(
                         onOpenMovie = { overlay = Overlay.Movie(it) },
                     )
-                    Dest.Series -> BrowseScreen(
-                        section = CatalogSection.Series,
-                        onPlay = play,
+                    // The shows have the films' board -- see `SeriesScreen` -- and a page per show.
+                    Dest.Series -> SeriesScreen(
                         onOpenShow = { overlay = Overlay.Show(it) },
-                        onSearch = { searchKind = null; dest = Dest.Search },
                     )
                     // The radio has its own board too -- see `RadioScreen`: a wall of station cards and a plate
                     // that keeps the sound in view. What is listened to lives in the session and the sound in the

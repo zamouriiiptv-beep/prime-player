@@ -352,25 +352,25 @@ private fun MovieWall(
  * names of a provider's list need a third line there and are cut. At five the card is 113dp and all of them
  * fit in two; only the long ones are shortened.
  */
-private const val POSTER_COLUMNS = 5
+internal const val POSTER_COLUMNS = 5
 
 /** How many rows below the last one drawn have their posters asked for while the wall is still. */
-private const val PREFETCH_ROWS = 2
+internal const val PREFETCH_ROWS = 2
 
 /**
  * The narrowest column a card may be given before its name stops being readable in two lines: a narrower
  * surface gets fewer columns, not narrower cards.
  */
-private val MIN_POSTER_WIDTH = 100.dp
+internal val MIN_POSTER_WIDTH = 100.dp
 
 /** The shortest a poster may be drawn, so a very short surface still shows posters. */
-private val MIN_POSTER_HEIGHT = 80.dp
+internal val MIN_POSTER_HEIGHT = 80.dp
 
 /** How much of the third row shows: the top of a poster, about one part in thirteen. */
-private const val PEEK_OF_POSTER = 0.05f
+internal const val PEEK_OF_POSTER = 0.05f
 
 /** The title's line, as a share of its type: what the card's name takes beneath the artwork. */
-private const val LABEL_LINE = 1.45f
+internal const val LABEL_LINE = 1.45f
 
 /**
  * A film's name is set a little under the label step, so the year reaches the second line.
@@ -384,14 +384,14 @@ private const val LABEL_LINE = 1.45f
 private const val TITLE_OF_LABEL = 0.94f
 
 /** The type step a film's name is set in: the one source of it, for the card's type and for the row's height. */
-private fun filmTitleStep(m: ChannelsMetrics): Dp = m.frame.fsLabel * TITLE_OF_LABEL
+internal fun filmTitleStep(m: ChannelsMetrics): Dp = m.frame.fsLabel * TITLE_OF_LABEL
 
 /** A film's name may take two lines; a third is cut with an ellipsis, so every card's name area is the same. */
-private const val TITLE_LINES = 2
+internal const val TITLE_LINES = 2
 
 /** The focus ring: the azure of the focus colour going into the violet of the selection, Castivio's own pair. */
 @Composable
-private fun focusBrush(): Brush {
+internal fun focusBrush(): Brush {
     val colors = CastivioTheme.colors
     return Brush.linearGradient(listOf(colors.focusRing, colors.selectedBorder))
 }

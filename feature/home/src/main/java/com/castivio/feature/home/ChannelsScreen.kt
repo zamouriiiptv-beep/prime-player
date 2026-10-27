@@ -1411,6 +1411,12 @@ internal fun CategoryRail(
     allLabel: String = stringResource(R.string.channels_all_rail),
     /** What the entry for the ones played last calls itself: "Recently watched" here, "Recently played" on the radio's. */
     recentLabel: String = stringResource(R.string.channels_recent),
+    /**
+     * Whether the viewer's own lists -- the favourites and the ones played last -- are entries of this rail. They are on
+     * every board that has them; the shows' has neither yet (a favourite and a watch are of a film or a channel, and a
+     * show is neither), and an entry that opened nothing would be a control that does nothing.
+     */
+    ownLists: Boolean = true,
 ) {
     // **In reorder mode the rail is the bouquets and nothing else -- and so it is while bouquets are
     // being chosen to hide.** The three entries above them open lists and the field filters them; none
@@ -1458,7 +1464,7 @@ internal fun CategoryRail(
                     onClick = { onChoose(null) },
                 )
             }
-            if (!modal) item(key = RAIL_FAVORITES) {
+            if (!modal && ownLists) item(key = RAIL_FAVORITES) {
                 RailEntry(
                     label = stringResource(R.string.channels_favorites),
                     // No count: "Favourites: 0" before anything has been marked is a true sentence
@@ -1470,7 +1476,7 @@ internal fun CategoryRail(
                     onClick = onFavorites,
                 )
             }
-            if (!modal) item(key = RAIL_RECENT) {
+            if (!modal && ownLists) item(key = RAIL_RECENT) {
                 RailEntry(
                     label = recentLabel,
                     // No count, as for the favourites: the entry is one line tall like the others that are

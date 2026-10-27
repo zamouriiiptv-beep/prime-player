@@ -428,10 +428,13 @@ class RoomCatalogRepository(
 
     override fun series(query: CatalogQuery): Flow<PagingData<SeriesSummary>> {
         val group = query.groupId
+        // Nothing searchable is no search, as for the channels: the list, not an empty one.
+        val match = FtsQuery.build(query.search)
+        val sort = query.sort.name
         return pager {
             WindowPagingSource(database.invalidationTracker, database.queryExecutor) { offset, limit ->
-                if (group == null) mediaDao.windowSeries(offset, limit)
-                else mediaDao.windowSeriesInGroup(group, offset, limit)
+                if (group == null) mediaDao.windowSeries(match, sort, offset, limit)
+                else mediaDao.windowSeriesInGroup(group, match, sort, offset, limit)
             }
         }.map { data -> data.map { it.toDomain() } }
     }

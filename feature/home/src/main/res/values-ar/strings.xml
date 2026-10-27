@@ -301,4 +301,8 @@
     <string name="radio_sleep_left">متبقٍ %1$s</string>
     <string name="radio_open_player">فتح المشغّل</string>
     <string name="radio_close">إغلاق</string>
+
+    <!-- لوحة المسلسلات: لوحة الأفلام بكلماتها. -->
+    <string name="series_all">جميع المسلسلات</string>
+    <string name="series_search_hint">البحث في المسلسلات</string>
 </resources>

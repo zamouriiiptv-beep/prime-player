@@ -437,7 +437,22 @@ interface MediaDao {
     )
     fun pageSeriesInGroup(groupId: String): PagingSource<Int, SeriesRow>
 
-    /** [pageSeries], read outside a transaction -- see `WindowPagingSource`. */
+    /**
+     * One window of the shows, narrowed by a search and in the order asked for -- read outside a transaction,
+     * see `WindowPagingSource`.
+     *
+     * **A search is of the shows, found through their episodes.** The index carries an episode under its show's
+     * name as well as its own, so a match on "breaking" is three episodes of one show; the show is what the list
+     * draws, and its figures are the show's -- every episode it has, not the ones that matched -- which is why
+     * the search is a `series_id IN (...)` over the whole show and not a filter of the rows being counted. With
+     * no search, [match] is null and the subquery is never run: SQLite stops at the first true side of an `OR`.
+     *
+     * **The order is a parameter**, and a series list is the one place that is right: it is grouped, so there is
+     * no index for an order by to use whichever way it is written, and the rows are shows -- hundreds, a few
+     * thousand at the most -- and not the library. A name is the show's own row's sort title where the provider
+     * wrote one (a shell) and its name where it did not -- see [SHOW_SORT_TITLE]; recently added is the newest of its
+     * rows; and every order ends where the provider's does, so two reads of one window agree.
+     */
     @Query(
         """
         SELECT series_id AS seriesId,
@@ -448,14 +463,22 @@ interface MediaDao {
                min(provider_order) AS providerOrder
         FROM media
         WHERE source_id = $ACTIVE_SOURCE AND kind = 'SERIES' AND series_id IS NOT NULL
+          AND (:match IS NULL OR series_id IN (
+              SELECT m.series_id FROM media_fts f
+              INNER JOIN media m ON m.id = f.media_id
+              WHERE f.search_text MATCH :match AND m.source_id = $ACTIVE_SOURCE AND m.kind = 'SERIES'
+                AND m.series_id IS NOT NULL))
         GROUP BY series_id
-        ORDER BY providerOrder, seriesId
+        ORDER BY CASE :sort WHEN 'NAME_ASC' THEN $SHOW_SORT_TITLE END,
+                 CASE :sort WHEN 'NAME_DESC' THEN $SHOW_SORT_TITLE END DESC,
+                 CASE :sort WHEN 'RECENTLY_ADDED' THEN max(added_at) END DESC,
+                 providerOrder, seriesId
         LIMIT :limit OFFSET :offset
         """,
     )
-    suspend fun windowSeries(offset: Int, limit: Int): List<SeriesRow>
+    suspend fun windowSeries(match: String?, sort: String, offset: Int, limit: Int): List<SeriesRow>
 
-    /** [pageSeriesInGroup], read outside a transaction. */
+    /** [windowSeries] in one category. Written twice, as every browse query is -- see the note on this interface. */
     @Query(
         """
         SELECT series_id AS seriesId,
@@ -466,12 +489,20 @@ interface MediaDao {
                min(provider_order) AS providerOrder
         FROM media
         WHERE source_id = $ACTIVE_SOURCE AND kind = 'SERIES' AND series_id IS NOT NULL AND group_id = :groupId
+          AND (:match IS NULL OR series_id IN (
+              SELECT m.series_id FROM media_fts f
+              INNER JOIN media m ON m.id = f.media_id
+              WHERE f.search_text MATCH :match AND m.source_id = $ACTIVE_SOURCE AND m.kind = 'SERIES'
+                AND m.series_id IS NOT NULL))
         GROUP BY series_id
-        ORDER BY providerOrder, seriesId
+        ORDER BY CASE :sort WHEN 'NAME_ASC' THEN $SHOW_SORT_TITLE END,
+                 CASE :sort WHEN 'NAME_DESC' THEN $SHOW_SORT_TITLE END DESC,
+                 CASE :sort WHEN 'RECENTLY_ADDED' THEN max(added_at) END DESC,
+                 providerOrder, seriesId
         LIMIT :limit OFFSET :offset
         """,
     )
-    suspend fun windowSeriesInGroup(groupId: String, offset: Int, limit: Int): List<SeriesRow>
+    suspend fun windowSeriesInGroup(groupId: String, match: String?, sort: String, offset: Int, limit: Int): List<SeriesRow>
 
     @Query(
         """

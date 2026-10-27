@@ -65,3 +65,12 @@ internal const val HIDDEN_IN_KIND =
 internal const val HIDDEN_IN_GROUP =
     "(SELECT COUNT(*) FROM hidden_item h INNER JOIN media m ON m.id = h.item_id " +
         "WHERE h.type = 'CHANNEL' AND m.source_id = $ACTIVE_SOURCE AND m.kind = :kind AND m.group_id = :groupId)"
+
+/**
+ * What a show is sorted by, in a query that groups `media` by `series_id`: the sort title of the show's own row --
+ * the shell an Xtream import writes with no episode number, with the provider's decoration taken off -- and, for a
+ * show that has none (a playlist's, made of episodes alone), its name in lower case. Never an episode's own sort title:
+ * a bare `min(sort_title)` ordered a show by whichever of its episodes came first in the alphabet.
+ */
+internal const val SHOW_SORT_TITLE =
+    "COALESCE(min(CASE WHEN episode_number IS NULL THEN sort_title END), lower(series_title))"
