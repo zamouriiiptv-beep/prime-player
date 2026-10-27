@@ -655,7 +655,7 @@ private fun FitInfo(
 }
 
 /** From here the poster stands beside the page; narrower, the page is a column under it. */
-private val SIDE_BY_SIDE = 600.dp
+internal val SIDE_BY_SIDE = 600.dp
 
 /** How much of a narrow page's width the poster takes. */
 private const val STACKED_POSTER = 0.5f

@@ -131,6 +131,8 @@ fun ShowScreen(
         val m = catalogMetricsFor(tv = CastivioTheme.device.isTv, width = maxWidth, height = maxHeight)
         // Read here: the constraints' own scope is a layout scope, and the row and the lazy list below are others.
         val surfaceHeight = maxHeight
+        val sideBySide = showSideBySide(maxWidth)
+        val pane = showPaneWidth(maxWidth)
         val tv = CastivioTheme.device.isTv
         val back: @Composable (Modifier) -> Unit = { backModifier ->
             CastivioIconButton(
@@ -142,7 +144,7 @@ fun ShowScreen(
         }
 
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-            if (m.twoPane) {
+            if (sideBySide) {
                 Row(
                     Modifier.fillMaxSize().castivioStage(m.frame),
                     horizontalArrangement = Arrangement.spacedBy(m.paneGap),
@@ -154,7 +156,7 @@ fun ShowScreen(
                         posterHeight = (surfaceHeight * POSTER_OF_HEIGHT).coerceIn(MIN_POSTER, MAX_POSTER),
                         playFocus = playFocus,
                         onPlay = { target?.let { start(it.episode) } },
-                        modifier = Modifier.width(m.pane).fillMaxHeight(),
+                        modifier = Modifier.width(pane).fillMaxHeight(),
                     )
                     EpisodesPane(
                         state = state,
@@ -195,6 +197,18 @@ fun ShowScreen(
         }
     }
 }
+
+/**
+ * Whether the show stands beside its episodes: from the film page's own width, not the board's.
+ *
+ * The board's two panes begin at 840dp because a category pane costs a quarter of a narrower screen; this page has
+ * no such pane, and 840 left the handset the page was drawn for -- 833dp across, held on its side -- in the stack that
+ * no frame of the design shows.
+ */
+internal fun showSideBySide(width: Dp): Boolean = width >= SIDE_BY_SIDE
+
+/** The start pane's width: about 320dp on that handset and 378 on a 960dp television, as the design draws it. */
+internal fun showPaneWidth(width: Dp): Dp = (width * SHOW_PANE_OF_WIDTH).coerceIn(MIN_SHOW_PANE, MAX_SHOW_PANE)
 
 /** The show: its poster, its name and what it holds, and Play. */
 @Composable
@@ -497,6 +511,10 @@ private const val THUMB_ASPECT = 16f / 9f
 private const val TITLE_OF_PANE = 0.82f
 
 private const val SHOW_TITLE_LINES = 3
+
+private const val SHOW_PANE_OF_WIDTH = 0.39f
+private val MIN_SHOW_PANE = 260.dp
+private val MAX_SHOW_PANE = 400.dp
 
 /** How tall the show's poster is, as a share of the screen: beside the page's other things, not all of it. */
 private const val POSTER_OF_HEIGHT = 0.42f
