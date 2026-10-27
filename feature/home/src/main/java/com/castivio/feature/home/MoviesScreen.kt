@@ -27,7 +27,7 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
-import androidx.compose.material.icons.rounded.Sort
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -140,7 +140,7 @@ fun MoviesScreen(
                         CastivioChip(
                             text = stringResource(R.string.browse_sort, stringResource(state.sort.label)),
                             onClick = { model.sortBy(state.sort.next()) },
-                            icon = Icons.Rounded.Sort,
+                            icon = Icons.Rounded.Tune,
                             labelStyle = castivioChipStyle(m.frame.fsChip),
                             padH = m.controlPadH,
                             padV = m.badgePadV,

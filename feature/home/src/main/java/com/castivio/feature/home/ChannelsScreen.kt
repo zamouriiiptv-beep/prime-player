@@ -615,9 +615,10 @@ internal fun BoardBand(
             // logo. It was sitting against the wordmark, and `Live TV` read as part of
             // the product's name rather than as which section is open.
             Row(
-                // With the rule, the rail's width is shared: the mark takes the rail's and the rule the gap
-                // beside it, so the breadcrumb still starts where the channel list's leading edge is.
-                Modifier.width(if (divided) m.rail else m.rail + m.railGap),
+                // With the rule, the cell is the mark's own and no wider: the films' band is read as the
+                // reference draws it -- the mark, the rule close beside it, the section after -- and the
+                // width a rail-wide cell kept was what the field and the order were squeezed out of.
+                if (divided) Modifier.padding(start = m.panelPad) else Modifier.width(m.rail + m.railGap),
                 verticalAlignment = Alignment.CenterVertically,
                 // Centred in the cell rather than pushed against its leading edge. The
                 // cell is exactly the rail's width, so the mark now sits over the middle
@@ -640,7 +641,7 @@ internal fun BoardBand(
             }
 
             if (divided) {
-                Box(Modifier.width(m.railGap), contentAlignment = Alignment.Center) {
+                Box(Modifier.padding(horizontal = m.railGap * RULE_GAP), contentAlignment = Alignment.Center) {
                     Box(
                         Modifier
                             .width(1.dp)
@@ -685,7 +686,14 @@ internal fun BoardBand(
             //
             // Centring it in that remainder is also what keeps it in the middle of the
             // band, which two weighted spacers used to do.
-            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            //
+            // The films' band gives it the whole of what is left, up to a bound: the reference draws a long
+            // field, and the field was left at the width of what remained after a clock cell kept two hundred
+            // dp for a time that needs sixty -- a hint cut to its first words beside a name that touched it.
+            Box(
+                if (divided) Modifier.weight(1f).padding(horizontal = m.railGap) else Modifier.weight(1f),
+                contentAlignment = Alignment.Center,
+            ) {
                 HeaderSearchField(
                     text = searchText,
                     m = m,
@@ -693,6 +701,7 @@ internal fun BoardBand(
                     onFocusChange = onSearchFocus,
                     enabled = searchEnabled,
                     hint = hint,
+                    modifier = if (divided) Modifier.fillMaxWidth().widthIn(max = m.search * SEARCH_MAX_OF_FILMS) else Modifier,
                 )
             }
 
@@ -708,7 +717,7 @@ internal fun BoardBand(
             // lost: Home draws both, captioned and side by side, on a screen with room
             // to say which is which.
             if (trailing != null) trailing()
-            BoardClock(m)
+            BoardClock(m, compact = divided)
         }
     }
 }
@@ -726,7 +735,7 @@ internal fun BoardBand(
  * this is the clock a viewer reads instead of the phone's, which the app hides.
  */
 @Composable
-private fun BoardClock(m: ChannelsMetrics) {
+private fun BoardClock(m: ChannelsMetrics, compact: Boolean = false) {
     // The system's clock, which is twenty-four hours in every language now -- the format
     // this board used to hand in as its own. It was a second clock written out in full
     // here before that, which is two tick rates and two answers to what the
@@ -737,7 +746,10 @@ private fun BoardClock(m: ChannelsMetrics) {
     CastivioClock(
         fsTime = m.frame.fsLabel * CLOCK_OF_LABEL,
         fsDate = m.frame.fsBody * LEGEND_OF_BODY,
-        modifier = Modifier.width(m.dates),
+        // The films' band keeps a floor rather than a cell: a time and a date need a fraction of what the
+        // channels' band reserves for its dates, and the rest is the field's. A floor and not a width, so a
+        // larger type step grows the clock instead of cutting it.
+        modifier = if (compact) Modifier.widthIn(min = m.dates * CLOCK_FLOOR_OF_FILMS) else Modifier.width(m.dates),
     )
 }
 
@@ -3668,6 +3680,15 @@ private const val LEGEND_OF_BODY = 0.88f
 
 /** How much of the band's height the rule beside the mark takes. */
 private const val DIVIDER_OF_HEADER = 0.55f
+
+/** The space each side of the films' rule, in rail gaps: the reference leaves air either side of it. */
+private const val RULE_GAP = 2f
+
+/** The widest the films' field grows, as a multiple of the channels' field: long, as the reference draws it, and no longer. */
+private const val SEARCH_MAX_OF_FILMS = 1.6f
+
+/** The films' clock's floor as a share of the channels' dates cell: a time and a date, and nothing reserved beyond them. */
+private const val CLOCK_FLOOR_OF_FILMS = 0.4f
 
 /** A line of [ProgrammeTable]: the word, the hours, and the bar or the title. */
 private const val PROGRAMME_CELLS = 3

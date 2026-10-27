@@ -144,7 +144,7 @@ fun MovieScreen(
             val shown = movie.withDetails(known)
             val category = movie.groupId?.let { state.categoryNames[it] }
 
-            val info: @Composable (Modifier, Boolean) -> Unit = { infoModifier, fit ->
+            val info: @Composable (Modifier, Boolean, (@Composable () -> Unit)?) -> Unit = { infoModifier, fit, titleEnd ->
                 val iconSize = m.frame.fsBody * ICON_OF_BODY
                 val bodyStyle = castivioBodyStyle(m.frame.fsBody)
                 val genres = shown.genres.filter { it.isNotBlank() }.joinToString(" | ")
@@ -156,13 +156,22 @@ fun MovieScreen(
                 // something to put in it, and a fact the provider did not send is no part of it.
                 val top: @Composable () -> Unit = {
                     Column(verticalArrangement = Arrangement.spacedBy(m.bandGap)) {
-                        Text(
-                            text = movie.title,
-                            style = castivioTitleStyle(m.frame.fsTitle),
-                            color = colors.onBackground,
-                            maxLines = TITLE_LINES,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                        // The name, and at the end of the same row the way back when the poster stands beside the
+                        // page: in the corner it is the top of the page, and under no other row.
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(m.rowGap),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = movie.title,
+                                style = castivioTitleStyle(m.frame.fsTitle),
+                                color = colors.onBackground,
+                                maxLines = TITLE_LINES,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f),
+                            )
+                            titleEnd?.invoke()
+                        }
                         FactsBar(category, year?.let(::ltrToken), duration?.let(::ltrToken), genres, iconSize, m)
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(m.rowGap),
@@ -267,13 +276,14 @@ fun MovieScreen(
                 }
             }
 
-            // The way back sits in the top corner opposite the poster, as the reference has it.
-            val back: @Composable () -> Unit = {
+            // The way back sits in the top corner opposite the poster, as the reference has it: at the end of
+            // the name's row beside the poster, and in the page's corner when the page is a column.
+            val back: @Composable (Modifier) -> Unit = { backModifier ->
                 CastivioIconButton(
                     icon = Icons.AutoMirrored.Rounded.ArrowBack,
                     contentDescription = stringResource(R.string.show_back),
                     onClick = onBack,
-                    modifier = Modifier.align(Alignment.TopEnd).padding(m.paneGap),
+                    modifier = backModifier,
                 )
             }
 
@@ -289,9 +299,8 @@ fun MovieScreen(
                         modifier = Modifier.fillMaxHeight()
                             .aspectRatio(CATALOG_POSTER_ASPECT, matchHeightConstraintsFirst = true),
                     )
-                    info(Modifier.weight(1f).fillMaxHeight(), true)
+                    info(Modifier.weight(1f).fillMaxHeight(), true, { back(Modifier) })
                 }
-                back()
                 }
             } else {
                 // A narrow surface stacks them, the poster first and at a width that leaves the buttons
@@ -307,9 +316,9 @@ fun MovieScreen(
                         seed = 0,
                         modifier = Modifier.fillMaxWidth(STACKED_POSTER).aspectRatio(CATALOG_POSTER_ASPECT),
                     )
-                    info(Modifier.fillMaxWidth(), false)
+                    info(Modifier.fillMaxWidth(), false, null)
                 }
-                back()
+                back(Modifier.align(Alignment.TopEnd).padding(m.paneGap))
                 }
             }
         }
