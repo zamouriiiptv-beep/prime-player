@@ -583,6 +583,10 @@ private fun BoardHeader(
  * What differs between the two screens is words: which section this is ([section]), which list of it is
  * open ([list]) and what the field says it searches ([hint]). Everything else -- the cells, their widths,
  * the order they sit in -- is one band, so the two boards read as one product.
+ *
+ * A section may add one control to the band ([trailing]): the films' order. It stands in the space between
+ * the field and the clock, in the middle of it, and moves nothing -- the mark, the section, the field and the
+ * clock are where the channels' band has them. See [BandTail].
  */
 @Composable
 internal fun BoardBand(
@@ -594,12 +598,8 @@ internal fun BoardBand(
     onSearchFocus: (Boolean) -> Unit,
     searchEnabled: Boolean = true,
     hint: String = stringResource(R.string.channels_search_hint),
-    /** What a section adds to the band beside its field, before the clock: the films' count and sort. Nothing for channels. */
+    /** What a section adds to the band between its field and the clock: the films' order. Nothing for channels. */
     trailing: (@Composable () -> Unit)? = null,
-    /** A vertical rule between the mark and the breadcrumb, as the films' band draws it. The channels' has none. */
-    divided: Boolean = false,
-    /** The breadcrumb's width: bounded, as [ChannelsMetrics.crumb] is, and the films' band gives it more. */
-    crumb: Dp = m.crumb,
 ) {
     val colors = CastivioTheme.colors
 
@@ -615,10 +615,7 @@ internal fun BoardBand(
             // logo. It was sitting against the wordmark, and `Live TV` read as part of
             // the product's name rather than as which section is open.
             Row(
-                // With the rule, the cell is the mark's own and no wider: the films' band is read as the
-                // reference draws it -- the mark, the rule close beside it, the section after -- and the
-                // width a rail-wide cell kept was what the field and the order were squeezed out of.
-                if (divided) Modifier.padding(start = m.panelPad) else Modifier.width(m.rail + m.railGap),
+                Modifier.width(m.rail + m.railGap),
                 verticalAlignment = Alignment.CenterVertically,
                 // Centred in the cell rather than pushed against its leading edge. The
                 // cell is exactly the rail's width, so the mark now sits over the middle
@@ -640,21 +637,10 @@ internal fun BoardBand(
                 )
             }
 
-            if (divided) {
-                Box(Modifier.padding(horizontal = m.railGap * RULE_GAP), contentAlignment = Alignment.Center) {
-                    Box(
-                        Modifier
-                            .width(1.dp)
-                            .height(m.header * DIVIDER_OF_HEADER)
-                            .background(colors.glassBorderSoft),
-                    )
-                }
-            }
-
             // Bounded, because the second line is a *provider's* words — see
             // `ChannelsMetrics.crumb`. An unbounded cell let one long category name
             // decide where everything after it on the band sat.
-            Column(Modifier.width(crumb)) {
+            Column(Modifier.width(m.crumb)) {
                 Text(
                     text = section,
                     style = castivioChipStyle(m.frame.fsLabel),
@@ -668,6 +654,17 @@ internal fun BoardBand(
                     color = colors.onBackgroundVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                )
+            }
+
+            val field: @Composable () -> Unit = {
+                HeaderSearchField(
+                    text = searchText,
+                    m = m,
+                    onType = onSearch,
+                    onFocusChange = onSearchFocus,
+                    enabled = searchEnabled,
+                    hint = hint,
                 )
             }
 
@@ -687,24 +684,6 @@ internal fun BoardBand(
             // Centring it in that remainder is also what keeps it in the middle of the
             // band, which two weighted spacers used to do.
             //
-            // The films' band gives it the whole of what is left, up to a bound: the reference draws a long
-            // field, and the field was left at the width of what remained after a clock cell kept two hundred
-            // dp for a time that needs sixty -- a hint cut to its first words beside a name that touched it.
-            Box(
-                if (divided) Modifier.weight(1f).padding(horizontal = m.railGap) else Modifier.weight(1f),
-                contentAlignment = Alignment.Center,
-            ) {
-                HeaderSearchField(
-                    text = searchText,
-                    m = m,
-                    onType = onSearch,
-                    onFocusChange = onSearchFocus,
-                    enabled = searchEnabled,
-                    hint = hint,
-                    modifier = if (divided) Modifier.fillMaxWidth().widthIn(max = m.search * SEARCH_MAX_OF_FILMS) else Modifier,
-                )
-            }
-
             // **The clock, at the band's trailing end, where the two expiry dates were.**
             //
             // The dates are gone at the owner's instruction. They answered a question a
@@ -716,8 +695,75 @@ internal fun BoardBand(
             // Where the two dates ran out is still a fact worth knowing, and it is not
             // lost: Home draws both, captioned and side by side, on a screen with room
             // to say which is which.
-            if (trailing != null) trailing()
-            BoardClock(m, compact = divided)
+            if (trailing == null) {
+                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { field() }
+                BoardClock(m, Modifier.width(m.dates))
+            } else {
+                BandTail(
+                    modifier = Modifier.weight(1f),
+                    clockCell = m.dates,
+                    fieldWidth = m.search,
+                    field = field,
+                    between = trailing,
+                    clock = { BoardClock(m, Modifier) },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The band's tail -- the field, one control, and the clock -- with the field and the clock exactly where the
+ * channels' band has them and the control in the middle of the space between them.
+ *
+ * It takes what the channels' band gives the field's cell and the clock's together, and lays them out from the
+ * same two numbers: the clock's cell ([clockCell]) is reserved at the end, and the field, at its own width
+ * ([fieldWidth]) or less where the cell is narrower, is centred in what remains -- which is where the channels'
+ * band puts it. The control then goes in the middle of the space from the field's trailing edge to the clock's
+ * leading one, the time and the date being as wide as they are drawn and not as wide as their cell, so it has the
+ * room the empty part of that cell leaves rather than none.
+ *
+ * Laid out here and not with weights, because "in the middle of the space between two things" is a figure
+ * that depends on both of their widths, which a weight does not know.
+ */
+@Composable
+private fun BandTail(
+    modifier: Modifier,
+    clockCell: Dp,
+    fieldWidth: Dp,
+    field: @Composable () -> Unit,
+    between: @Composable () -> Unit,
+    clock: @Composable () -> Unit,
+) {
+    Layout(
+        content = {
+            Box { field() }
+            Box { between() }
+            Box { clock() }
+        },
+        modifier = modifier,
+    ) { measurables, constraints ->
+        val total = constraints.maxWidth
+        val height = constraints.maxHeight
+        val room = (total - clockCell.roundToPx()).coerceAtLeast(0)
+
+        val fieldPlaced = measurables[0].measure(Constraints(maxWidth = minOf(fieldWidth.roundToPx(), room), maxHeight = height))
+        val betweenPlaced = measurables[1].measure(Constraints(maxWidth = total, maxHeight = height))
+        val clockPlaced = measurables[2].measure(Constraints(maxWidth = total, maxHeight = height))
+
+        val fieldX = (room - fieldPlaced.width) / 2
+        val clockX = total - clockPlaced.width
+        // From the field's trailing edge to the clock's leading one. Where the control is wider than that,
+        // it starts at the field's edge and runs into the clock's cell rather than into the field.
+        val from = fieldX + fieldPlaced.width
+        val betweenX = (from + (clockX - from - betweenPlaced.width) / 2)
+            .coerceAtMost(clockX - betweenPlaced.width)
+            .coerceAtLeast(from)
+
+        layout(total, height) {
+            fieldPlaced.placeRelative(fieldX, (height - fieldPlaced.height) / 2)
+            betweenPlaced.placeRelative(betweenX, (height - betweenPlaced.height) / 2)
+            clockPlaced.placeRelative(clockX, (height - clockPlaced.height) / 2)
         }
     }
 }
@@ -735,21 +781,19 @@ internal fun BoardBand(
  * this is the clock a viewer reads instead of the phone's, which the app hides.
  */
 @Composable
-private fun BoardClock(m: ChannelsMetrics, compact: Boolean = false) {
+private fun BoardClock(m: ChannelsMetrics, modifier: Modifier) {
     // The system's clock, which is twenty-four hours in every language now -- the format
     // this board used to hand in as its own. It was a second clock written out in full
     // here before that, which is two tick rates and two answers to what the
     // bidirectional algorithm does to a date.
     //
     // Its own bounded cell, for the reason the breadcrumb has one: nothing whose width
-    // is text may decide where the rest of the band sits.
+    // is text may decide where the rest of the band sits. [BandTail] reserves the same
+    // cell and draws the text at its end, so the clock is where it is on the channels' band.
     CastivioClock(
         fsTime = m.frame.fsLabel * CLOCK_OF_LABEL,
         fsDate = m.frame.fsBody * LEGEND_OF_BODY,
-        // The films' band keeps a floor rather than a cell: a time and a date need a fraction of what the
-        // channels' band reserves for its dates, and the rest is the field's. A floor and not a width, so a
-        // larger type step grows the clock instead of cutting it.
-        modifier = if (compact) Modifier.widthIn(min = m.dates * CLOCK_FLOOR_OF_FILMS) else Modifier.width(m.dates),
+        modifier = modifier,
     )
 }
 
@@ -3677,18 +3721,6 @@ private const val CLOCK_OF_LABEL = 1.32f
 private const val LOGO_BOX = 54f / 40f
 
 private const val LEGEND_OF_BODY = 0.88f
-
-/** How much of the band's height the rule beside the mark takes. */
-private const val DIVIDER_OF_HEADER = 0.55f
-
-/** The space each side of the films' rule, in rail gaps: the reference leaves air either side of it. */
-private const val RULE_GAP = 2f
-
-/** The widest the films' field grows, as a multiple of the channels' field: long, as the reference draws it, and no longer. */
-private const val SEARCH_MAX_OF_FILMS = 1.6f
-
-/** The films' clock's floor as a share of the channels' dates cell: a time and a date, and nothing reserved beyond them. */
-private const val CLOCK_FLOOR_OF_FILMS = 0.4f
 
 /** A line of [ProgrammeTable]: the word, the hours, and the bar or the title. */
 private const val PROGRAMME_CELLS = 3

@@ -127,26 +127,19 @@ fun MoviesScreen(
                 onSearch = model::search,
                 onSearchFocus = {},
                 hint = stringResource(R.string.movies_search_hint),
-                divided = true,
-                // Wide enough for a category's name to read whole, as the reference has it.
-                crumb = m.crumb * CRUMB_OF_FILMS,
-                // The count and the order sit in the band, where the channels' clock and field are, so the
-                // panel under it starts at the same height as the channel list does.
+                // The band is the channels' band, and the order is the one thing the films add to it: in the
+                // middle of the space between the field and the clock, with no count beside it. The panel under
+                // it starts at the same height as the channel list does.
                 trailing = {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(m.factGap),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        CastivioChip(
-                            text = stringResource(R.string.browse_sort, stringResource(state.sort.label)),
-                            onClick = { model.sortBy(state.sort.next()) },
-                            icon = Icons.Rounded.Tune,
-                            labelStyle = castivioChipStyle(m.frame.fsChip),
-                            padH = m.controlPadH,
-                            padV = m.badgePadV,
-                            trailingIcon = Icons.Rounded.KeyboardArrowDown,
-                        )
-                    }
+                    CastivioChip(
+                        text = stringResource(R.string.browse_sort, stringResource(state.sort.label)),
+                        onClick = { model.sortBy(state.sort.next()) },
+                        icon = Icons.Rounded.Tune,
+                        labelStyle = castivioChipStyle(m.frame.fsChip),
+                        padH = m.controlPadH,
+                        padV = m.badgePadV,
+                        trailingIcon = Icons.Rounded.KeyboardArrowDown,
+                    )
                 },
             )
 
@@ -340,9 +333,6 @@ private fun MovieWall(
         }
     }
 }
-
-/** How much wider than the channels' the films' breadcrumb is, so a category's name reads whole. */
-private const val CRUMB_OF_FILMS = 1.4f
 
 /**
  * Five posters to a row, the most the wall draws, however wide the surface is.
