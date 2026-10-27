@@ -44,6 +44,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -54,6 +55,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -157,10 +159,11 @@ fun MovieScreen(
                 val top: @Composable () -> Unit = {
                     Column(verticalArrangement = Arrangement.spacedBy(m.bandGap)) {
                         // The name, and at the end of the same row the way back when the poster stands beside the
-                        // page: in the corner it is the top of the page, and under no other row. The row is as tall
-                        // as the way back, which leaves the name air above and below it already, so the facts bar
-                        // follows it with no gap of its own -- that gap was the height the plot was cut for.
-                        Column(verticalArrangement = Arrangement.spacedBy(if (titleEnd != null) 0.dp else m.bandGap)) {
+                        // page: in the corner it is the top of the page, and under no other row. The way back is
+                        // smaller than a touch target on a handset (see `back`) so that the row is little taller
+                        // than the name, and a gap of one row's width keeps it off the facts bar below -- the bar
+                        // had touched it, and the gap is paid for by the height the smaller button gives back.
+                        Column(verticalArrangement = Arrangement.spacedBy(if (titleEnd != null) m.rowGap else m.bandGap)) {
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(m.rowGap),
                                 verticalAlignment = Alignment.CenterVertically,
@@ -282,12 +285,16 @@ fun MovieScreen(
 
             // The way back sits in the top corner opposite the poster, as the reference has it: at the end of
             // the name's row beside the poster, and in the page's corner when the page is a column.
+            val tv = CastivioTheme.device.isTv
             val back: @Composable (Modifier) -> Unit = { backModifier ->
                 CastivioIconButton(
                     icon = Icons.AutoMirrored.Rounded.ArrowBack,
                     contentDescription = stringResource(R.string.show_back),
                     onClick = onBack,
-                    modifier = backModifier,
+                    // A handset's button is smaller than its 48dp floor, by the owner's leave: the way back is also
+                    // the hardware Back, and the page is not a place a thumb has to find it. A television keeps
+                    // the remote's floor.
+                    modifier = if (tv) backModifier else backModifier.size(BACK_SIZE),
                 )
             }
 
@@ -378,41 +385,100 @@ private fun FactsBar(
     if (facts.isEmpty()) return
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(Radius.pill)
-    Row(
+    // One flag per child below, the rules between facts included, so the layout knows which may be cut.
+    val shrinks = buildList {
+        facts.forEachIndexed { index, fact ->
+            if (index > 0) add(false)
+            add(fact.third)
+        }
+    }
+    Box(
         Modifier
             .fillMaxWidth()
             .clip(shape)
             .background(colors.glassFill)
             .border(1.dp, colors.glassBorderSoft, shape)
             .padding(horizontal = m.entryPadH, vertical = m.entryPadV),
-        verticalAlignment = Alignment.CenterVertically,
     ) {
-        facts.forEachIndexed { index, (text, icon, shrinks) ->
-            if (index > 0) {
-                Box(
-                    Modifier
-                        .padding(horizontal = m.rowGap)
-                        .width(1.dp)
-                        .height(iconSize)
-                        .background(colors.glassBorderSoft),
-                )
-            }
-            Row(
-                if (shrinks) Modifier.weight(1f, fill = false) else Modifier,
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(m.rowGap / 2),
-            ) {
-                Icon(icon, null, tint = colors.onBackgroundVariant, modifier = Modifier.size(iconSize))
-                Text(
-                    text = text,
-                    style = castivioChipStyle(m.frame.fsChip),
-                    color = colors.onBackground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+        FactsRow(shrinks, Modifier.fillMaxWidth()) {
+            facts.forEachIndexed { index, (text, icon, _) ->
+                if (index > 0) {
+                    Box(
+                        Modifier
+                            .padding(horizontal = m.rowGap)
+                            .width(1.dp)
+                            .height(iconSize)
+                            .background(colors.glassBorderSoft),
+                    )
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(m.rowGap / 2),
+                ) {
+                    Icon(icon, null, tint = colors.onBackgroundVariant, modifier = Modifier.size(iconSize))
+                    Text(
+                        text = text,
+                        style = castivioChipStyle(m.frame.fsChip),
+                        color = colors.onBackground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
     }
+}
+
+/**
+ * The facts in a line, each at the width it needs, and where they do not all fit the words a provider chose are cut
+ * and the rest keep theirs. A `Row` with weights could not do it: it gives each weighted child an equal share of what
+ * is left whether the child needs it or not, so a short category kept room it did not use and the genres were cut with
+ * empty bar beside them.
+ *
+ * [shrinks] has one flag for each child, in order. The widths are worked out by [shareWidths].
+ */
+@Composable
+private fun FactsRow(shrinks: List<Boolean>, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Layout(content = content, modifier = modifier) { measurables, constraints ->
+        val natural = measurables.map { it.maxIntrinsicWidth(0) }
+        val widths = shareWidths(natural, shrinks, constraints.maxWidth)
+        val placeables = measurables.mapIndexed { index, measurable ->
+            measurable.measure(Constraints(maxWidth = widths[index], maxHeight = constraints.maxHeight))
+        }
+        val height = placeables.maxOfOrNull { it.height } ?: 0
+        layout(constraints.maxWidth, constraints.constrainHeight(height)) {
+            var x = 0
+            placeables.forEach { placeable ->
+                placeable.placeRelative(x, (height - placeable.height) / 2)
+                x += placeable.width
+            }
+        }
+    }
+}
+
+/**
+ * The width each fact is given: the ones that may not be cut keep their own, and what is left is shared among the
+ * ones that may -- equally, except that one that needs less than its share keeps only what it needs and the rest is
+ * shared again among the others. So the longest is cut first and no bar is left with room in it that a cut word wanted.
+ *
+ * [natural] is each child's width uncut and [shrinks] says which may be cut. A bar too narrow for even the fixed
+ * ones gives the cuttable ones none.
+ */
+internal fun shareWidths(natural: List<Int>, shrinks: List<Boolean>, available: Int): List<Int> {
+    val widths = natural.toMutableList()
+    var room = available - natural.indices.filter { !shrinks[it] }.sumOf { natural[it] }
+    val open = natural.indices.filter { shrinks[it] }.toMutableList()
+    while (open.isNotEmpty()) {
+        val share = room.coerceAtLeast(0) / open.size
+        val fits = open.filter { natural[it] <= share }
+        if (fits.isEmpty()) {
+            open.forEach { widths[it] = share }
+            break
+        }
+        fits.forEach { room -= natural[it] }
+        open.removeAll(fits.toSet())
+    }
+    return widths
 }
 
 /** A credit line -- the director, the cast: a mark, its label in bold, and the names after it. */
@@ -500,6 +566,9 @@ private const val TITLE_LINES = 1
  * second line of names was the line it was cut for.
  */
 private const val CAST_LINES = 1
+
+/** The way back's side on a handset: under the 48dp floor, which a television keeps. */
+private val BACK_SIZE = 40.dp
 
 /** A mark's size as a share of the body type, so the marks scale with the page's own type. */
 private const val ICON_OF_BODY = 1.4f
