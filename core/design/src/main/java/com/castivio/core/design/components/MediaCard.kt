@@ -115,8 +115,9 @@ fun MediaCard(
     cardFill: Color? = null,
     /**
      * The cinematic backdrop -- deep navy with a faint film strip across it -- behind the poster, in place of
-     * the coloured placeholder. It is drawn whether or not there is a poster, so a poster that does not fill its
-     * frame, or never arrives, sits on the same ground as every other. False keeps the placeholder.
+     * the coloured placeholder. It is drawn whether or not there is a poster, so a poster that never arrives
+     * sits on the same ground as every other; and where a poster that has arrived is fitted whole into a frame
+     * wider than itself, its own colours, blurred and dimmed, fill what it does not reach. False keeps the placeholder.
      */
     cinematicBackdrop: Boolean = false,
 ) {
@@ -180,6 +181,13 @@ fun MediaCard(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
+                // Once the poster is on screen and does not fill its frame, the film's own colours beside it,
+                // dimmed so the poster stays the brightest thing on the card. The film strip stays beneath
+                // them for the card whose poster has not arrived, or never will.
+                if (artworkShown && !artworkUrl.isNullOrBlank() && artworkScale != ContentScale.Crop) {
+                    PosterBackdrop(artworkUrl, Modifier.fillMaxSize())
+                    Box(Modifier.fillMaxSize().background(colors.scrim))
+                }
             }
             if (!artworkUrl.isNullOrBlank()) {
                 PosterArtwork(artworkUrl, Modifier.fillMaxSize(), artworkScale, onLoaded = { artworkShown = true })

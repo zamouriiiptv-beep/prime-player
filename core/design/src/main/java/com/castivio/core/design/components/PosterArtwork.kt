@@ -20,6 +20,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import coil.size.Precision
+import coil.size.Scale
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Radius
@@ -61,6 +63,47 @@ internal fun PosterArtwork(
         modifier = modifier,
     )
 }
+
+/**
+ * A poster's own colours, as the ground it stands on: the same picture asked for at a few dozen pixels and
+ * drawn to fill the frame, so the loader hands back a small bitmap and the enlargement is what blurs it.
+ *
+ * Where a poster is fitted whole into a frame wider than itself, the bare ground beside it is a hole in the
+ * card. This fills it with the film's own colours, the way a cinema's lobby card would, and the poster
+ * stands on it uncropped. It is asked for **after** the poster itself is on screen -- the caller draws it
+ * then -- so the original is already in the disk cache and this is a decode of a file, not a second
+ * download of the same picture.
+ *
+ * Not the platform's blur: `Modifier.blur` does nothing under Android 12, which is most television boxes,
+ * and costs a render pass per card where this costs a bitmap the size of a thumbnail. Nothing is drawn when
+ * the picture fails; the card's own backdrop is under it.
+ */
+@Composable
+internal fun PosterBackdrop(url: String, modifier: Modifier = Modifier) {
+    var failed by remember(url) { mutableStateOf(false) }
+    if (failed) return
+    AsyncImage(
+        model = ImageRequest.Builder(LocalContext.current)
+            .data(url)
+            .size(BACKDROP_WIDTH, BACKDROP_HEIGHT)
+            .precision(Precision.EXACT)
+            .scale(Scale.FILL)
+            .crossfade(false)
+            .build(),
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        onError = { failed = true },
+        modifier = modifier,
+    )
+}
+
+/**
+ * The size the backdrop is asked for, in pixels, at the poster's own 2:3. Small enough that enlarging it to a
+ * card reads as a blur and not as a picture: at 16 the shapes of a poster's lettering were still legible
+ * in the preview, at 24 they are soft colour, and 32 is the most that still reads as one.
+ */
+private const val BACKDROP_WIDTH = 24
+private const val BACKDROP_HEIGHT = 36
 
 /**
  * A poster at any size, framed: the placeholder, the provider's picture over it, and the card's own edge.
