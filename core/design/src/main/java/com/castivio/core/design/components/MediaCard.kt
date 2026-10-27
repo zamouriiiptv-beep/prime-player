@@ -1,6 +1,10 @@
 package com.castivio.core.design.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -31,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.focus.onFocusChanged
@@ -46,6 +51,7 @@ import com.castivio.core.design.R
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Motion
+import com.castivio.core.design.theme.MotionLevel
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Spacing
 import com.castivio.core.design.theme.posterPlaceholderBrush
@@ -127,6 +133,7 @@ fun MediaCard(
     // The placeholder stands in for the picture until it arrives and no longer: a poster fitted whole
     // into its frame would otherwise sit on the placeholder's colours wherever it does not reach.
     var artworkShown by remember(artworkUrl) { mutableStateOf(false) }
+    var backdropShown by remember(artworkUrl) { mutableStateOf(false) }
     val cardShape = RoundedCornerShape(Radius.sm)
     val border by animateColorAsState(
         if (focused) colors.focusRing else colors.glassBorderSoft,
@@ -184,9 +191,19 @@ fun MediaCard(
                 // Once the poster is on screen and does not fill its frame, the film's own colours beside it,
                 // dimmed so the poster stays the brightest thing on the card. The film strip stays beneath
                 // them for the card whose poster has not arrived, or never will.
+                // The colours and the dimming come in together, and only once the small picture has arrived:
+                // the dimming alone, drawn first, darkened the film strip for a moment before the colours
+                // replaced it, and the card flashed.
                 if (artworkShown && !artworkUrl.isNullOrBlank() && artworkScale != ContentScale.Crop) {
-                    PosterBackdrop(artworkUrl, Modifier.fillMaxSize())
-                    Box(Modifier.fillMaxSize().background(colors.scrim))
+                    val fade by animateFloatAsState(
+                        if (backdropShown) 1f else 0f,
+                        backdropFadeSpec(CastivioTheme.motionLevel),
+                        label = "posterBackdrop",
+                    )
+                    Box(Modifier.fillMaxSize().graphicsLayer { alpha = fade }) {
+                        PosterBackdrop(artworkUrl, Modifier.fillMaxSize(), onLoaded = { backdropShown = true })
+                        Box(Modifier.fillMaxSize().background(colors.scrim))
+                    }
                 }
             }
             if (!artworkUrl.isNullOrBlank()) {
@@ -349,3 +366,17 @@ fun ChannelCard(
 
 /** The focus ring of a card that takes a brush: a line the eye finds from across a room. */
 private val FOCUS_RING_WIDTH = 3.dp
+
+/**
+ * How long a poster's own colours take to come in beside it, in milliseconds.
+ *
+ * Split out of the card so it can be asserted without a device: motion off is a snap -- the colours simply
+ * arrive -- and any other level is a short fade, so a card that fills in while a grid scrolls does not flash.
+ *
+ * @return 0 when the change must be instant.
+ */
+internal fun backdropFadeMillis(level: MotionLevel): Int =
+    if (level == MotionLevel.DISABLED) 0 else Motion.fast
+
+private fun backdropFadeSpec(level: MotionLevel): FiniteAnimationSpec<Float> =
+    backdropFadeMillis(level).let { if (it == 0) snap() else tween(it, easing = Motion.standard) }

@@ -79,7 +79,12 @@ internal fun PosterArtwork(
  * the picture fails; the card's own backdrop is under it.
  */
 @Composable
-internal fun PosterBackdrop(url: String, modifier: Modifier = Modifier) {
+internal fun PosterBackdrop(
+    url: String,
+    modifier: Modifier = Modifier,
+    /** Called once the small picture is on screen, so the card can bring the backdrop in. */
+    onLoaded: () -> Unit = {},
+) {
     var failed by remember(url) { mutableStateOf(false) }
     if (failed) return
     AsyncImage(
@@ -92,6 +97,7 @@ internal fun PosterBackdrop(url: String, modifier: Modifier = Modifier) {
             .build(),
         contentDescription = null,
         contentScale = ContentScale.Crop,
+        onSuccess = { onLoaded() },
         onError = { failed = true },
         modifier = modifier,
     )
