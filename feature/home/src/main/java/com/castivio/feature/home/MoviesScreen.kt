@@ -258,7 +258,7 @@ private fun MoviesPane(
             // and gives its width to the cards rather than to the gutters.
             val gutter = m.nameGap
             val columns = posterColumns(maxWidth, gutter, MIN_POSTER_WIDTH).coerceAtMost(POSTER_COLUMNS)
-            val titleStep = m.frame.fsLabel * TITLE_OF_LABEL
+            val titleStep = filmTitleStep(m)
             val poster = posterHeightFor(
                 available = maxHeight,
                 rowExtra = titleStep * LABEL_LINE * TITLE_LINES + m.nameGap * 2,
@@ -297,6 +297,7 @@ private fun MovieWall(
     gridState: LazyGridState,
     onOpenMovie: (Movie) -> Unit,
 ) {
+    val titleStep = filmTitleStep(m)
     LazyVerticalGrid(
         state = gridState,
         columns = GridCells.Fixed(columns),
@@ -370,6 +371,9 @@ private const val LABEL_LINE = 1.45f
  * measuring to be a little off without making the names small.
  */
 private const val TITLE_OF_LABEL = 0.94f
+
+/** The type step a film's name is set in: the one source of it, for the card's type and for the row's height. */
+private fun filmTitleStep(m: ChannelsMetrics): Dp = m.frame.fsLabel * TITLE_OF_LABEL
 
 /** A film's name may take two lines; a third is cut with an ellipsis, so every card's name area is the same. */
 private const val TITLE_LINES = 2
