@@ -1,0 +1,258 @@
+<!doctype html>
+<!--
+  A series' page, second design: the owner's reference picture (Chicago Med) drawn at the application's own frames.
+  It replaces series-show.html, which is kept for what it still says about the states it drew.
+
+  What the reference has, and what this page does with it:
+
+    - A rail down the start edge: the way back with the application's name, and the page's sections -- Overview,
+      Seasons, Cast, Similar. A television writes the names; a handset keeps the icons only (56dp), as the
+      television's names do not fit beside a hero in 385dp. Overview is the top of the page, and a press on a
+      section scrolls the page to it. A section the provider has told nothing about is not in the rail.
+    - The hero: the poster, the name, one row of facts (year, genre, rating, seasons), the plot in three lines
+      (two on a handset) with the film page's "Show all" at the end of it when it is cut, and the buttons: Play
+      -- "Continue S2 E5" for a show begun, "Play S1 E1" for one not -- and the favourite. Behind it, to the end
+      side, the provider's wide picture of the show when it sent one, fading into the ground; none is made up.
+    - The season chips, two lines each: the season, and how many episodes it holds (the catalogue knows).
+      A television ends the row with an arrow that scrolls it; a handset scrolls by touch and shows the fade.
+    - The episodes: number, the provider's still (16:9), "S01E01 - Name" and one line of its plot, and the running
+      time in an outline at the end. The remote's row is violet with a lavender edge. Watched has a check on the
+      still, part-watched a thin bar along its foot.
+
+  What the reference has that this page does not, and why (asked of the owner, not decided here):
+
+    - "Ongoing" in the facts: the providers do not send a status.
+    - "Related" in the rail: nothing in the catalogue says what it would hold.
+    - The "..." button: nothing is known that it would do.
+    - Cast as photographs: the providers send names only, so the cast is a row of names.
+    - Play is the application's blue, as on the film page; the reference's violet is the chosen state here (the
+      season, the rail's section, the remote's row). One word from the owner turns it.
+
+  One page, one column that scrolls under the rail. Left to right whatever the language, as the film's page is, for
+  the same reason: the provider's words are mixed. The television is drawn in English, as the reference is; the
+  handset in Arabic. Names and figures are examples.
+
+    ?frame=<name>      one frame at its device size
+    ?frame=sheet       every frame stacked with its caption, for review
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Series page</title>
+<style>
+:root{
+  --ground:#111327; --panel:#20223A; --edgeSoft:rgba(255,255,255,.08);
+  --glass:rgba(255,255,255,.06); --glassBorder:rgba(255,255,255,.14); --violet:#9B6BFF; --violetEdge:#B694FF;
+  --azure:#4C9BFF; --ring:#6FB2FF; --ink:#D6D3E8; --strong:#FFFFFF; --muted:#8C8CA8; --ok:#3DD68C; --skel:rgba(255,255,255,.08);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#05040E;color:var(--strong);font-family:"Noto Sans Arabic","DejaVu Sans",sans-serif}
+body.sheet{padding:20px;width:max-content}
+svg{display:block;flex:none;fill:currentColor}
+.cap{font:13px/1.45 "DejaVu Sans",sans-serif;color:#9a9ab8;margin:18px 0 8px;max-width:960px}
+.screen{position:relative;overflow:hidden;direction:ltr;font-family:"DejaVu Sans",Roboto,"Noto Sans Arabic",sans-serif;
+  background:radial-gradient(120% 90% at 85% 0%,#1B1F3F 0%,rgba(27,31,63,0) 60%),linear-gradient(160deg,#13152D,var(--ground))}
+.ar{font-family:"Noto Sans Arabic","DejaVu Sans",sans-serif}
+.rail{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.015));border-right:1px solid var(--edgeSoft)}
+.brand{display:flex;align-items:center;font-weight:700}
+.nav{display:flex;align-items:center;border-radius:10px;color:var(--ink);white-space:nowrap}
+.nav.on{background:var(--violet);color:#fff}
+.nav.ring{outline:2px solid var(--ring);outline-offset:1px}
+.scroll{position:absolute;top:0;bottom:0;right:0;overflow:hidden}
+.art{position:absolute}
+.poster{flex:none;border-radius:10px;border:1px solid var(--edgeSoft);overflow:hidden;position:relative;
+  background:linear-gradient(170deg,#1b3a52 0%,#2c6e7e 38%,#1c2c58 70%,#0e1024 100%)}
+.poster b{position:absolute;left:6%;right:6%;bottom:8%;text-align:center;font:900 italic 1em/1.05 "DejaVu Sans";letter-spacing:-.5px;color:#e9f6ff;text-shadow:0 2px 0 rgba(0,0,0,.35)}
+.ttl{font-weight:700;line-height:1.15;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;unicode-bidi:plaintext}
+.facts{display:flex;align-items:center;color:var(--ink);white-space:nowrap}
+.facts span{display:flex;align-items:center}
+.facts svg{color:var(--muted)}
+.plot{color:var(--ink);overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;unicode-bidi:plaintext}
+.more{color:var(--azure);font-weight:700}
+.btn{display:flex;align-items:center;justify-content:center;border-radius:12px;font-weight:600;white-space:nowrap}
+.btn.p{background:linear-gradient(180deg,#4C9BFF,#2F6FE0);color:#fff}
+.btn.s{background:var(--glass);border:1px solid var(--glassBorder);color:var(--ink)}
+.ring{outline:2px solid var(--ring);outline-offset:2px}
+.chips{display:flex;position:relative;overflow:hidden}
+.chip{flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:10px;background:var(--glass);border:1px solid var(--glassBorder);color:var(--ink);white-space:nowrap}
+.chip b{font-weight:700;color:#fff}
+.chip small{color:var(--muted)}
+.chip.on{background:var(--violet);border-color:var(--violetEdge)}
+.chip.on small{color:#EDE3FF}
+.fadeEnd{position:absolute;right:0;top:0;bottom:0;background:linear-gradient(90deg,transparent,#14172e)}
+.arrow{flex:none;display:flex;align-items:center;justify-content:center;border-radius:10px;background:var(--glass);border:1px solid var(--glassBorder);color:var(--ink)}
+.list{display:flex;flex-direction:column}
+.ep{flex:none;display:flex;align-items:center;border-radius:12px;border:1px solid var(--edgeSoft);background:rgba(255,255,255,.035)}
+.ep.on{background:rgba(111,76,255,.42);border:2px solid #B8A4FF}
+.num{flex:none;text-align:center;font-weight:600;color:var(--ink)}
+.th{flex:none;border-radius:8px;position:relative;overflow:hidden}
+.th i{position:absolute;left:0;bottom:0;height:3px;background:var(--azure)}
+.th .ck{position:absolute;right:4px;top:4px;width:17px;height:17px;border-radius:50%;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;color:var(--ok)}
+.th .ck svg{width:11px;height:11px}
+.strip{background:linear-gradient(160deg,#10224f,#0b1535)}
+.strip svg{position:absolute;inset:20%;width:60%;height:60%;opacity:.35;fill:none;stroke:#8FA7E0;stroke-width:1.5}
+.etx{flex:1;min-width:0;display:flex;flex-direction:column}
+.en{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;unicode-bidi:plaintext}
+.pt{color:var(--ink);opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;unicode-bidi:plaintext}
+.dur{flex:none;border:1px solid rgba(255,255,255,.5);border-radius:6px;color:#fff;font-variant-numeric:tabular-nums}
+.sk{border-radius:6px;background:var(--skel)}
+.hd{font-weight:700;color:#fff}
+.pill{display:inline-flex;align-items:center;border-radius:99px;background:var(--glass);border:1px solid var(--glassBorder);color:var(--ink);white-space:nowrap}
+.card .cardp{border-radius:10px;border:1px solid var(--edgeSoft);position:relative;overflow:hidden}
+.card .clab{color:var(--ink);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.panel{background:var(--panel);border:1px solid var(--edgeSoft);border-radius:20px;padding:22px 26px;text-align:center}
+</style>
+</head>
+<body>
+<script>
+const I={
+  back:'<path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"/>',
+  play:'<path d="M8 5v14l11-7z"/>',
+  heart:'<path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3zm-4.4 15.55-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05z"/>',
+  star:'<path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>',
+  chev:'<path d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>',
+  check:'<path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/>',
+  film:'<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 9h4M3 15h4M17 9h4M17 15h4"/></svg>',
+  info:'<path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>',
+  seasons:'<path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12zM12 5.5v9l6-4.5z"/>',
+  cast:'<path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>',
+  similar:'<path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/>',
+  cal:'<path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/>',
+  genre:'<path d="M12 2 6.5 11h11zM17.5 13a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9zM3 13.5h8v8H3z"/>',
+  layers:'<path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z"/>'
+};
+const ic=(n,s,extra='')=>`<svg viewBox="0 0 24 24" width="${s}" height="${s}" style="${extra}">${I[n]}</svg>`;
+const HUES=[['#2a4a66','#7aa0b8'],['#5a3a2e','#c98f6a'],['#2e4a5a','#8fb6c4'],['#4a2e3a','#c98fa0'],['#3a4a2e','#a6c48f'],['#2e2e5a','#8f8fc4']];
+const EP=[
+ {n:1,t:'S01E01 - Derailed',p:'The grand opening of the emergency department is interrupted by victims of an elevated train crash.',d:'42m',st:'w',h:0},
+ {n:2,t:'S01E02 - Parents and Children',p:'A doctor treats a teen mother who abandoned her newborn baby in an alley.',d:'42m',st:'p',pct:40,h:1},
+ {n:3,t:'S01E03 - Ride a Snake',p:'A surgeon must confront his past when he treats a close family friend.',d:'42m',st:'n',h:2},
+ {n:4,t:'S01E04 - Mistaken Identity',p:'A mix-up leads to unexpected consequences for a patient and the medical team.',d:'42m',st:'n',h:3},
+ {n:5,t:'S01E05 - Malpractice',p:'The team races to save a patient while a legal investigation looms.',d:'42m',st:'n',h:4},
+ {n:6,t:'S01E06 - Pilot Light',p:'A fire at a restaurant sends a dozen patients to the department in one night.',d:'42m',st:'n',h:5}];
+const EPAR=[
+ {n:1,t:'S01E01 - الخروج عن المسار',p:'يقطع حادث قطار افتتاح قسم الطوارئ، ويصل الضحايا دفعةً واحدة.',d:'42m',st:'w',h:0},
+ {n:2,t:'S01E02 - الآباء والأبناء',p:'تعالج طبيبة أمًّا مراهقة تركت رضيعها في زقاق.',d:'42m',st:'p',pct:40,h:1},
+ {n:3,t:'S01E03 - ركوب الأفعى',p:'يواجه جرّاح ماضيه حين يعالج صديقًا مقرّبًا للعائلة.',d:'42m',st:'n',h:2},
+ {n:4,t:'S01E04 - هوية خاطئة',p:'يقود خلطٌ بسيط إلى عواقب غير متوقعة للمريض والفريق.',d:'42m',st:'n',h:3},
+ {n:5,t:'S01E05 - سوء الممارسة',p:'يسابق الفريق الزمن لإنقاذ مريض بينما يلوح تحقيق قانوني.',d:'42m',st:'n',h:4},
+ {n:6,t:'S01E06 - شعلة تجريبية',p:'حريق في مطعم يرسل اثني عشر مريضًا إلى القسم في ليلة واحدة.',d:'42m',st:'n',h:5}];
+const SEASONS=[[1,18],[2,22],[3,20],[4,22],[5,23],[6,22],[7,20],[8,22],[9,22],[10,21]];
+const PLOT_EN='An emotional thrill ride through the day-to-day chaos of the city\'s most explosive hospital and the courageous team of doctors who hold it together.';
+const PLOT_AR='رحلة مشوّقة ومؤثّرة في فوضى الأيام داخل أكثر مستشفيات المدينة اشتعالًا، ومع الفريق الشجاع من الأطباء الذين يُبقونه قائمًا.';
+
+const MET={
+ tv:{rail:150,pad:14,padR:18,padT:14,pw:132,ph:186,title:26,fact:13,plotF:13.5,plotL:19,plotN:3,btnH:44,btnF:14.5,heroGap:16,chipH:52,chipF:14,chipS:11.5,chipW:104,rowH:64,thF:100,thH:56,numW:34,numF:17,enF:14.5,ptF:11.5,durF:11.5,navH:36,navF:13.5,navI:18,railPad:14,gap:8},
+ phone:{rail:56,pad:12,padR:14,padT:10,pw:88,ph:132,title:18,fact:11.5,plotF:11.5,plotL:15.5,plotN:2,btnH:40,btnF:13,heroGap:12,chipH:40,chipF:12.5,chipS:10,chipW:84,rowH:56,thF:80,thH:45,numW:26,numF:15,enF:12.5,ptF:10.5,durF:10.5,navH:38,navF:0,navI:20,railPad:8,gap:8}
+};
+function thumb(e,w,h,o){
+  const [a,b]=HUES[e.h%HUES.length];
+  const inner=o.strip?`<div class="strip" style="position:absolute;inset:0">${I.film}</div>`
+   :`<div style="position:absolute;inset:0;background:linear-gradient(150deg,${a},${b})"></div><div style="position:absolute;left:30%;top:18%;width:22%;height:30%;border-radius:50%;background:rgba(255,255,255,.28)"></div><div style="position:absolute;left:18%;top:52%;width:46%;height:60%;border-radius:40% 40% 0 0;background:rgba(255,255,255,.22)"></div><div style="position:absolute;left:58%;top:24%;width:20%;height:26%;border-radius:50%;background:rgba(0,0,0,.25)"></div>`;
+  const ck=(e.st==='w'&&!o.nodetails)?`<div class="ck">${ic('check',11)}</div>`:'';
+  const bar=(e.st==='p'&&!o.nodetails)?`<i style="width:${e.pct}%"></i>`:'';
+  return `<div class="th" style="width:${w}px;height:${h}px">${inner}${ck}${bar}</div>`;
+}
+function row(e,M,o){
+  const strip=o.loading||o.nodetails||o.noimg;
+  const txt=o.nodetails?'':(o.loading?`<div class="sk" style="height:${8}px;width:80%;margin-top:6px"></div>`:`<div class="pt" style="font-size:${M.ptF}px;margin-top:3px" dir="ltr">${e.p}</div>`);
+  const dur=(o.nodetails||o.loading)?'':`<div class="dur" style="font-size:${M.durF}px;padding:3px 9px;margin-left:10px">${e.d}</div>`;
+  return `<div class="ep${o.focus===e.n?' on':''}" style="height:${M.rowH}px;padding:5px 12px 5px 4px;gap:${M.gap+2}px;margin-bottom:${M.gap-2}px">
+    <div class="num" style="width:${M.numW}px;font-size:${M.numF}px">${e.n}</div>${thumb(e,M.thF,M.thH,{strip,nodetails:o.nodetails})}
+    <div class="etx"><div class="en" style="font-size:${M.enF}px" dir="ltr">${e.t}</div>${txt}</div>${dur}</div>`;
+}
+function rail(M,tv,o){
+  const labels=tv?(o.nav||{}):{};
+  const items=(o.items||['info','seasons','cast','similar']);
+  const names={info:'Overview',seasons:'Seasons',cast:'Cast',similar:'Similar'};
+  const namesAr={info:'نظرة عامة',seasons:'المواسم',cast:'الممثلون',similar:'مشابهة'};
+  const nav=items.map(k=>`<div class="nav${o.at===k?' on':''}${o.navFocus===k?' ring':''}" style="height:${M.navH}px;${tv?`padding:0 10px;gap:10px;font-size:${M.navF}px`:`width:${M.navH}px;justify-content:center;margin:0 auto`}">${ic(k,M.navI)}${tv?`<span>${names[k]}</span>`:''}</div>`).join('');
+  return `<div class="rail" style="width:${M.rail}px;padding:${M.railPad}px ${tv?M.railPad:6}px">
+    <div class="brand" style="height:${M.navH}px;gap:12px;margin-bottom:${tv?16:8}px;${tv?'padding:0 6px':'justify-content:center'}">${ic('back',tv?22:22,'color:#fff')}${tv?'<span style="font-size:19px">Castivio</span>':''}</div>
+    <div style="display:flex;flex-direction:column;gap:${tv?8:6}px">${nav}</div></div>`;
+}
+function art(M,tv,w,h,o){
+  if(o.noart) return '';
+  const aw=Math.round((w-M.rail)*0.62), ah=M.ph+M.padT+Math.round(M.heroGap*1.5);
+  const at=`right:${-M.padR}px;top:${-M.padT}px;`;
+  return `<div class="art" style="${at}width:${aw}px;height:${ah}px;
+    background:radial-gradient(60% 80% at 62% 30%,rgba(120,160,230,.55),transparent 70%),radial-gradient(40% 60% at 86% 40%,rgba(90,70,150,.55),transparent 70%),linear-gradient(120deg,#16213f,#27406e 45%,#1a1f4a);opacity:.9"></div>
+    <div class="art" style="${at}width:${aw}px;height:${ah}px;background:linear-gradient(90deg,var(--ground) 0%,rgba(17,19,39,.82) 28%,rgba(17,19,39,0) 78%),linear-gradient(0deg,var(--ground) 0%,rgba(17,19,39,0) 40%)"></div>`;
+}
+function hero(M,tv,o){
+  const ar=!tv, f=n=>`font-size:${n}px`;
+  const loading=o.loading, nod=o.nodetails;
+  const title='Chicago Med';
+  const fact=(i,t)=>`<span style="gap:6px">${ic(i,M.fact+3)}${t}</span>`;
+  const facts=(loading||nod)
+    ?(loading?`<div class="facts" style="gap:${tv?20:14}px;${f(M.fact)}">${fact('layers',ar?'10 مواسم':'10 Seasons')}<div class="sk" style="width:${tv?150:110}px;height:${M.fact}px"></div></div>`
+             :`<div class="facts" style="gap:${tv?20:14}px;${f(M.fact)}">${fact('layers',ar?'4 مواسم':'4 Seasons')}</div>`)
+    :`<div class="facts" style="gap:${tv?20:14}px;${f(M.fact)}">${fact('cal','2015')}${fact('genre',ar?'دراما':'Drama')}<span style="gap:5px">${ic('star',M.fact+3,'color:#F5C518')}8.0</span>${fact('layers',ar?'10 مواسم':'10 Seasons')}</div>`;
+  const plot=nod?'':(loading
+    ?`<div style="margin-top:${tv?12:8}px;width:${tv?520:420}px"><div class="sk" style="height:9px"></div><div class="sk" style="height:9px;margin-top:7px;width:92%"></div>${tv?'<div class="sk" style="height:9px;margin-top:7px;width:60%"></div>':''}</div>`
+    :`<div class="plot" dir="ltr" style="${f(M.plotF)};line-height:${M.plotL}px;margin-top:${tv?12:8}px;width:${tv?560:440}px;-webkit-line-clamp:${M.plotN}">${PLOT_EN}</div>`);
+  const playT=o.playNew?(ar?'تشغيل S1 E1':'Play S01E01'):(ar?'متابعة S1 E2':'Continue S01E02');
+  const favT=ar?'إضافة للمفضلة':'Add to Favorites';
+  const btns=`<div style="display:flex;gap:10px;margin-top:${tv?14:10}px">
+    <div class="btn p ar${o.focus==='play'?' ring':''}" style="height:${M.btnH}px;padding:0 ${tv?22:18}px;gap:8px;${f(M.btnF)}">${ic('play',M.btnF+6)}<span dir="ltr">${playT}</span></div>
+    <div class="btn s ar" style="height:${M.btnH}px;padding:0 ${tv?20:14}px;gap:8px;${f(M.btnF)}">${ic('heart',M.btnF+5)}<span>${favT}</span></div></div>`;
+  return `<div style="position:relative;display:flex;gap:${M.heroGap+6}px;align-items:flex-start">
+    <div class="poster" style="width:${M.pw}px;height:${M.ph}px;${f(tv?16:12)}"><b>CHICAGO<br>MED</b></div>
+    <div style="min-width:0;padding-top:${tv?6:0}px"><div class="ttl" style="${f(M.title)};max-width:${tv?560:520}px" dir="ltr">${title}</div>
+      <div style="margin-top:${tv?10:6}px">${facts}</div>${plot}${btns}</div></div>`;
+}
+function chips(M,tv,o){
+  const list=o.seasons||SEASONS, ar=!tv;
+  const cs=list.map(([n,c])=>`<div class="chip ar${n===(o.season||1)?' on':''}" style="height:${M.chipH}px;min-width:${M.chipW}px;padding:0 ${tv?14:12}px;gap:1px"><b style="font-size:${M.chipF}px">${ar?'الموسم '+n:'Season '+n}</b>${o.nocount?'':`<small style="font-size:${M.chipS}px">${ar?c+' حلقة':c+' Episodes'}</small>`}</div>`).join('');
+  const more=list.length>(tv?7:7);
+  return `<div style="display:flex;gap:10px;align-items:center;margin-top:${tv?16:12}px"><div class="chips" style="gap:${M.gap}px;flex:1;height:${M.chipH}px">${cs}${(more&&!tv)?`<div class="fadeEnd" style="width:46px"></div>`:''}</div>${(more&&tv)?`<div class="arrow" style="width:40px;height:${M.chipH}px">${ic('chev',22)}</div>`:''}</div>`;
+}
+function page(w,h,tv,o){
+  const M=tv?MET.tv:MET.phone, ar=!tv;
+  const eps=EP.map((e,i)=>o.plain?{...e,st:'n'}:e);
+  const rows=eps.map(e=>row(e,M,o)).join('');
+  const body=`${hero(M,tv,o)}${o.nochips?'':chips(M,tv,o)}<div class="list" style="margin-top:${tv?14:10}px">${rows}</div>`;
+  return `${rail(M,tv,o)}<div class="scroll" style="left:${M.rail}px"><div style="position:relative;padding:${M.padT}px ${M.padR}px 0 ${M.pad}px;transform:translateY(-${o.scroll||0}px)">${art(M,tv,w,h,o)}<div style="position:relative;z-index:1">${body}</div></div></div>`;
+}
+function castFrame(w,h){
+  const M=MET.phone;
+  const names=['Noor Halabi','Tomás Reyes','Ingrid Voss','Daniel Okafor','Maria Salazar','Leo Park','Hanna Berg'];
+  const pills=names.map(n=>`<span class="pill" style="height:32px;padding:0 14px;font-size:12.5px;margin:0 8px 8px 0">${n}</span>`).join('');
+  const cards=['Dark Harbor','County General','Pulse','Ward 9','Corridors','North Wing'].map((t,i)=>{
+    const [a,b]=HUES[i%HUES.length];
+    return `<div class="card" style="flex:none;width:84px"><div class="cardp" style="width:84px;height:120px;background:linear-gradient(160deg,${a},${b})"></div><div class="clab" style="font-size:11px;margin-top:6px">${t}</div></div>`;}).join('');
+  return `${rail(M,false,{at:'cast'})}<div class="scroll" style="left:${M.rail}px"><div style="padding:${M.padT+6}px ${M.padR}px 0 ${M.pad}px">
+    <div class="hd ar" style="font-size:15px;margin-bottom:10px">الممثلون</div><div style="display:flex;flex-wrap:wrap;width:690px">${pills}</div>
+    <div class="hd ar" style="font-size:15px;margin:10px 0 10px">مسلسلات مشابهة</div><div style="display:flex;gap:14px">${cards}</div></div></div>`;
+}
+function emptyFrame(){
+  return `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center"><div class="panel" style="width:420px">
+    <div class="ar" style="font-size:18px;font-weight:700;margin-bottom:8px">لا حلقات لهذا المسلسل</div>
+    <div class="ar" style="font-size:13px;color:var(--ink);margin-bottom:18px">لم يرسل المزوّد حلقات لهذا المسلسل بعد.</div>
+    <div class="btn s ring ar" style="height:48px;width:150px;margin:0 auto">رجوع</div></div></div>`;
+}
+const FR={
+ 'tv':[960,540,()=>page(960,540,true,{at:'info',focus:1})],
+ 'phone':[833,385,()=>page(833,385,false,{at:'info',focus:'play'})],
+ 'phone-seasons':[833,385,()=>page(833,385,false,{at:'seasons',focus:2,scroll:142})],
+ 'loading':[833,385,()=>page(833,385,false,{at:'info',focus:'play',loading:true,items:['info','seasons']})],
+ 'no-details':[833,385,()=>page(833,385,false,{at:'info',focus:'play',nodetails:true,playNew:true,noart:true,items:['info','seasons'],seasons:[[1,12],[2,12]].map(([n,c])=>[n,c]),nocount:false,plain:true})],
+ 'cast':[833,385,()=>castFrame(833,385)],
+ 'empty':[833,385,()=>emptyFrame()]
+};
+const CAP={
+ 'tv':'1. Television 960x540, drawn in English as the reference is. The rail names the sections; the hero is the poster, the name, the facts, the plot in three lines and the two buttons, over the provider\'s wide picture; ten seasons scroll under an arrow; the remote\'s row is violet with its lavender edge. A press on Play starts the episode to continue; the remote starts on Play (focus drawn on the first row here, as in the reference).',
+ 'phone':'2. Handset 833x385 in Arabic: the rail keeps its icons (56dp), the hero is compact (poster 88x132, the plot in two lines), the chips and the first rows of the list follow under it. Play is focused, as the remote or a switch starts there.',
+ 'phone-seasons':'3. The same page scrolled to Seasons (the rail\'s second icon, or a swipe): the hero has gone off the top and the episodes take the screen, five and a half of them. The rail\'s lit section follows the page.',
+ 'loading':'4. The details have not arrived: the poster, name, season chips with their counts, and the episode names are there (the catalogue holds them); quiet skeletons stand where the year, genre, rating, plot and episodes\' plots will be. Cast and Similar are not in the rail until they have something.',
+ 'no-details':'5. The provider sent no details (an M3U show): no wide picture, no year, genre, rating, plot, cast, plots or running times -- only what the catalogue holds. Play begins at S1 E1. Nothing is made up and no skeleton is left waiting.',
+ 'cast':'6. Cast and Similar (the rail\'s third and fourth icons): the cast is a row of names, as the providers send names only; Similar is the shows filed under the same category in the viewer\'s own catalogue.',
+ 'empty':'7. A show with no episodes: the application\'s own empty state, with a way back.'
+};
+const q=new URLSearchParams(location.search), f=q.get('frame')||'sheet';
+function draw(n){const [w,h,fn]=FR[n];return `<div class="screen" style="width:${w}px;height:${h}px">${fn()}</div>`;}
+if(f==='sheet'){document.body.className='sheet';document.body.innerHTML=Object.keys(FR).map(n=>`<div class="cap">${CAP[n]}</div>${draw(n)}`).join('');}
+else document.body.innerHTML=draw(f);
+</script>
+</body>
+</html>
