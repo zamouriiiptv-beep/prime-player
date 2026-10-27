@@ -618,14 +618,14 @@ internal fun BoardBand(
             // logo. It was sitting against the wordmark, and `Live TV` read as part of
             // the product's name rather than as which section is open.
             Row(
-                // The cell keeps its width; what the padding takes is the room the two are spread over.
+                // The cell keeps its width; what the padding takes is the room the pair stands in.
                 Modifier.width(m.rail + m.railGap).padding(start = bandInset(m), end = m.railGap + m.wellPad),
                 verticalAlignment = Alignment.CenterVertically,
-                // **Spread over the column, not gathered in the middle of it.** The mark stands over the
-                // bouquets' search mark -- its edge in line with that mark's -- and the name ends where the
-                // bouquet column does, a step before the section's name, so the pair fills the space above the
-                // frame with a gap between them instead of huddling in the middle of it.
-                horizontalArrangement = Arrangement.SpaceBetween,
+                // **Side by side, at the column's start.** The mark stands over the bouquets' search mark -- its edge
+                // in line with that mark's -- and the name against it. They were spread to the two ends of the column
+                // for a while and that was not what was wanted: the pair is one thing, and what fills the space is the
+                // mark being large enough, not the two being far apart.
+                horizontalArrangement = Arrangement.spacedBy(m.osdGap),
             ) {
                 Image(
                     painter = painterResource(DesignR.drawable.castivio_logo),
@@ -3729,12 +3729,15 @@ private const val LOGO_SCALE = 1.05f
 private const val QUALITY_OF_BODY = 0.84f
 
 /**
- * The mark's height inside the band. Nearly the whole of it: it is the mark.
+ * The mark's height inside the band, as a share of it: the television, which is the whole of the picture.
  *
- * Raised with the wordmark beside it — see [WORDMARK_OF_LABEL]. The pair has the rail's
- * full width to itself and was the smallest confident thing on the screen.
+ * The picture is trimmed to the television. It used to be a portrait canvas with the television in its middle third
+ * and empty ground above and below, drawn as tall as the band -- so the television was 38% of the picture, about 13dp
+ * on a handset, and read small however the share was set. A child cannot be taller than the band it stands in, so
+ * the way to a larger mark was a picture with nothing in it but the mark; 0.7 of a 34dp band is 24dp, the size
+ * drawn in `design/mockups/band-mark.html` and chosen from it.
  */
-private const val MARK_OF_HEADER = 0.98f
+private const val MARK_OF_HEADER = 0.7f
 
 /** The header's and the rail's second line, against the frame's body step. */
 /**
