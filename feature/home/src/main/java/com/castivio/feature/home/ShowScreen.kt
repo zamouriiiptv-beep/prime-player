@@ -222,7 +222,7 @@ private fun ShowPane(
                     text = show.title,
                     style = castivioTitleStyle(m.frame.fsTitle * TITLE_OF_PANE),
                     color = colors.onBackground,
-                    maxLines = TITLE_LINES,
+                    maxLines = SHOW_TITLE_LINES,
                     overflow = TextOverflow.Ellipsis,
                 )
                 if (state.seasons.isNotEmpty()) {
@@ -496,7 +496,7 @@ private const val THUMB_ASPECT = 16f / 9f
 /** The show's name, as a share of the screen's own title step: it stands beside a poster, not over a page. */
 private const val TITLE_OF_PANE = 0.82f
 
-private const val TITLE_LINES = 3
+private const val SHOW_TITLE_LINES = 3
 
 /** How tall the show's poster is, as a share of the screen: beside the page's other things, not all of it. */
 private const val POSTER_OF_HEIGHT = 0.42f

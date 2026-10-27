@@ -198,7 +198,7 @@ fun MovieScreen(
                                     text = movie.title,
                                     style = castivioTitleStyle(m.frame.fsTitle),
                                     color = colors.onBackground,
-                                    maxLines = TITLE_LINES,
+                                    maxLines = PAGE_TITLE_LINES,
                                     overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.weight(1f),
                                 )
@@ -660,7 +660,7 @@ private val SIDE_BY_SIDE = 600.dp
 /** How much of a narrow page's width the poster takes. */
 private const val STACKED_POSTER = 0.5f
 
-private const val TITLE_LINES = 1
+private const val PAGE_TITLE_LINES = 1
 
 /**
  * The cast takes one line, and a longer list is cut with an ellipsis: the plot has first call on the height, and a
