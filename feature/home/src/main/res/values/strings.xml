@@ -293,6 +293,8 @@
     <string name="movie_play">Play movie</string>
     <string name="movie_added">Added %1$s</string>
     <string name="movie_plot_title">Plot</string>
+    <string name="movie_plot_more">Show all</string>
+    <string name="movie_plot_close">Close</string>
     <string name="movie_director">Director:</string>
     <string name="movie_cast">Cast:</string>
     <string name="movie_favorite_add">Add to favourites</string>

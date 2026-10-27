@@ -239,6 +239,12 @@ fun CastivioNoticeDialog(
     closeLabel: String,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * How much of the free height the panel may take: most of it, as for every notice that was here before
+     * this was a parameter. A short statement a user reads and closes -- a film's plot -- asks for less, so
+     * it reads as a note and not as a page.
+     */
+    maxFraction: Float = PANEL_MAX_FRACTION,
 ) {
     val colors = CastivioTheme.colors
     val close = remember { FocusRequester() }
@@ -248,7 +254,7 @@ fun CastivioNoticeDialog(
     // The body is the whole dialog, so it never gives way — the parameter is read and
     // deliberately ignored. A notice has no field and therefore no keyboard in front of
     // it; the only surface short enough to make it tight is one it already scrolls on.
-    DialogPanel(title = title, onScrim = onClose, modifier = modifier) { _ ->
+    DialogPanel(title = title, onScrim = onClose, modifier = modifier, maxFraction = maxFraction) { _ ->
         Text(
             text = body,
             style = CastivioType.bodySmall,

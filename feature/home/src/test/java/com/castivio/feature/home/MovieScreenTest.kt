@@ -72,7 +72,7 @@ class MovieScreenTest {
     private val played = mutableListOf<CatalogSelection>()
     private var backs = 0
 
-    private fun show(movie: Movie = dune, store: Store = Store()) {
+    private fun show(movie: Movie = dune, store: Store = Store(), details: MovieDetailsRepository = NoDetails) {
         val loads = SectionLoads(
             CoroutineScope(SupervisorJob() + Dispatchers.Unconfined),
             flowOf(null),
@@ -88,7 +88,7 @@ class MovieScreenTest {
                     onBack = { backs++ },
                     model = holder,
                     favorites = ChannelFavoritesViewModel(store),
-                    detailsModel = MovieDetailsViewModel(NoDetails),
+                    detailsModel = MovieDetailsViewModel(details),
                 )
             }
         }
@@ -162,8 +162,53 @@ class MovieScreenTest {
         assertEquals(1, backs)
     }
 
+    @Test
+    fun `a plot that fits is shown whole, with no link to more`() {
+        show(details = WithPlot("A short plot."))
+
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithText("A short plot.").fetchSemanticsNodes().isNotEmpty()
+        }
+
+        compose.onNodeWithText("A short plot.").assertIsDisplayed()
+        assertTrue(compose.onAllNodesWithText("Show all").fetchSemanticsNodes().isEmpty())
+    }
+
+    @Test
+    fun `a plot the page has to cut offers the whole of it in a dialog, which closes and leaves the page where it was`() {
+        show(details = WithPlot(LONG_PLOT))
+
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithText("Show all").fetchSemanticsNodes().isNotEmpty()
+        }
+        // The page's own plot is the only node that says it, until the dialog says it again.
+        assertEquals(1, compose.onAllNodesWithText(LONG_PLOT).fetchSemanticsNodes().size)
+
+        compose.onNodeWithText("Show all").performClick()
+        compose.waitForIdle()
+        assertEquals(2, compose.onAllNodesWithText(LONG_PLOT).fetchSemanticsNodes().size)
+        compose.onNodeWithText("Close").assertIsDisplayed()
+
+        compose.onNodeWithText("Close").performClick()
+        compose.waitForIdle()
+        assertEquals(1, compose.onAllNodesWithText(LONG_PLOT).fetchSemanticsNodes().size)
+        assertTrue(compose.onAllNodesWithText("Close").fetchSemanticsNodes().isEmpty())
+        // Closing the dialog is not leaving the page.
+        assertEquals(0, backs)
+    }
+
+    /** A provider that gives a plot and nothing else. */
+    private class WithPlot(private val plot: String) : MovieDetailsRepository {
+        override suspend fun details(movie: Movie): MovieDetails? = MovieDetails(plot = plot)
+    }
+
     /** A provider that gives no details: the page then draws only what the list row carried. */
     private object NoDetails : MovieDetailsRepository {
         override suspend fun details(movie: Movie): MovieDetails? = null
+    }
+
+    private companion object {
+        /** Far longer than the page can hold: about thirty lines at any width the page is drawn at. */
+        val LONG_PLOT = "The long plot goes on and on. ".repeat(90).trim()
     }
 }

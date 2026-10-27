@@ -200,6 +200,8 @@
     <string name="movie_play">تشغيل الفيلم</string>
     <string name="movie_favorite_add">إضافة إلى المفضلة</string>
     <string name="movie_favorite_remove">إزالة من المفضلة</string>
+    <string name="movie_plot_more">عرض الكل</string>
+    <string name="movie_plot_close">إغلاق</string>
     <string name="hide_title">إخفاء الباقات والقنوات</string>
     <string name="hide_hint">ضع علامة على ما تريد إخفاءه ثم اضغط «إخفاء المحدد». لا يُحذف شيء، وتعيده الإعدادات.</string>
     <string name="hide_confirm">إخفاء المحدد</string>

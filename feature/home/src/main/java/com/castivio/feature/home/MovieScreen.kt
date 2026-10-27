@@ -3,6 +3,8 @@ package com.castivio.feature.home
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -22,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Category
 import androidx.compose.material.icons.rounded.Favorite
@@ -37,12 +40,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.SubcomposeLayout
@@ -64,6 +71,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.castivio.core.design.components.ButtonWeight
 import com.castivio.core.design.components.CastivioButton
 import com.castivio.core.design.components.CastivioIconButton
+import com.castivio.core.design.components.CastivioNoticeDialog
 import com.castivio.core.design.components.PosterFrame
 import com.castivio.core.design.components.RatingBadge
 import com.castivio.core.design.components.castivioBodyStyle
@@ -130,6 +138,23 @@ fun MovieScreen(
     val selection = remember(movie) { movie.asSelection() }
     val playFocus = remember { FocusRequester() }
     LaunchedEffect(movie.id) { runCatching { playFocus.requestFocus() } }
+    // The plot, whole: a link at the end of its heading and a small dialog, offered only where the page had to cut it.
+    var plotCut by remember(known?.plot) { mutableStateOf(false) }
+    var plotOpen by remember { mutableStateOf(false) }
+    var plotClosed by remember { mutableStateOf(false) }
+    val moreFocus = remember { FocusRequester() }
+    // Back closes the dialog before it leaves the page: registered after the page's own, so it is asked first.
+    BackHandler(enabled = plotOpen) {
+        plotOpen = false
+        plotClosed = true
+    }
+    // The remote's place is the link again once the dialog is gone, and not nowhere.
+    LaunchedEffect(plotClosed) {
+        if (plotClosed) {
+            runCatching { moreFocus.requestFocus() }
+            plotClosed = false
+        }
+    }
     LaunchedEffect(movie.id) { detailsModel.load(movie) }
 
     BoxWithConstraints(
@@ -228,25 +253,47 @@ fun MovieScreen(
                             }
                         }
                         if (known?.plot != null) {
-                            Text(
-                                text = stringResource(R.string.movie_plot_title),
-                                style = castivioChipStyle(m.frame.fsLabel).copy(fontWeight = FontWeight.Bold),
-                                color = colors.onBackground,
-                            )
+                            // The end of this row is empty, so the link to the whole plot costs the page no height.
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.movie_plot_title),
+                                    style = castivioChipStyle(m.frame.fsLabel).copy(fontWeight = FontWeight.Bold),
+                                    color = colors.onBackground,
+                                )
+                                if (plotCut) PlotMore(m, onClick = { plotOpen = true }, modifier = Modifier.focusRequester(moreFocus))
+                            }
                         }
                     }
                 }
 
                 // The plot takes the lines the height has left, and is cut with an ellipsis where it runs on:
                 // the page does not scroll. On a surface too narrow to sit beside the poster it is whole.
+                // Where it was cut, a press on it opens the whole plot, as the link in the heading does; the
+                // press is for a thumb, and the remote reaches the link, so the plot itself takes no focus.
                 val plot: (@Composable (Int) -> Unit)? = known?.plot?.let { text ->
                     { lines ->
+                        val more = stringResource(R.string.movie_plot_more)
                         Text(
                             text = text,
                             style = bodyStyle,
                             color = colors.onBackgroundVariant,
                             maxLines = lines,
                             overflow = TextOverflow.Ellipsis,
+                            onTextLayout = { plotCut = it.hasVisualOverflow },
+                            modifier = if (plotCut) {
+                                Modifier.focusProperties { canFocus = false }.clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClickLabel = more,
+                                    onClick = { plotOpen = true },
+                                )
+                            } else {
+                                Modifier
+                            },
                         )
                     }
                 }
@@ -333,6 +380,59 @@ fun MovieScreen(
                 }
             }
         }
+
+        // Outside the block above, which draws the page left to right: the dialog is the application's own, and
+        // follows its language -- the plot inside it takes the direction of its words.
+        if (plotOpen) {
+            CastivioNoticeDialog(
+                title = movie.title,
+                body = known?.plot.orEmpty(),
+                closeLabel = stringResource(R.string.movie_plot_close),
+                onClose = {
+                    plotOpen = false
+                    plotClosed = true
+                },
+                maxFraction = PLOT_DIALOG_FRACTION,
+            )
+        }
+    }
+}
+
+/**
+ * The link to the whole plot, at the end of its heading: the words and an arrow, in the heading's own step so the
+ * row is no taller than it was. A text link and not a pill -- a pill would make the row taller than its heading and
+ * take half a line from the plot -- which a remote reaches with Down from the buttons and shows with the focus ring.
+ */
+@Composable
+private fun PlotMore(m: CatalogMetrics, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = CastivioTheme.colors
+    val shape = RoundedCornerShape(Radius.xs)
+    var focused by remember { mutableStateOf(false) }
+    Row(
+        modifier
+            .clip(shape)
+            .then(if (focused) Modifier.border(2.dp, colors.focusRing, shape) else Modifier)
+            .onFocusChanged { focused = it.isFocused || it.hasFocus }
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick,
+            )
+            .padding(start = m.rowGap / 2),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(R.string.movie_plot_more),
+            style = castivioChipStyle(m.frame.fsLabel).copy(fontWeight = FontWeight.Bold),
+            color = colors.primary,
+            maxLines = 1,
+        )
+        Icon(
+            Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+            contentDescription = null,
+            tint = colors.primary,
+            modifier = Modifier.size(m.frame.fsLabel * PLOT_MORE_ARROW),
+        )
     }
 }
 
@@ -566,6 +666,12 @@ private const val TITLE_LINES = 1
  * second line of names was the line it was cut for.
  */
 private const val CAST_LINES = 1
+
+/** How much of the height the plot's dialog may take: a note a user reads and closes, not a page. */
+private const val PLOT_DIALOG_FRACTION = 0.7f
+
+/** The arrow after "Show all", as a share of the heading's step. */
+private const val PLOT_MORE_ARROW = 1.2f
 
 /** The way back's side on a handset: under the 48dp floor, which a television keeps. */
 private val BACK_SIZE = 40.dp
