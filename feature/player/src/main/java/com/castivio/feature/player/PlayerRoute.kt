@@ -357,7 +357,7 @@ private fun offerTitle(offer: ShareOffer): String = when (offer) {
     is ShareOffer.Words -> offer.title
 }
 
-private tailrec fun android.content.Context.findActivity(): Activity? = when (this) {
+internal tailrec fun android.content.Context.findActivity(): Activity? = when (this) {
     is Activity -> this
     is android.content.ContextWrapper -> baseContext.findActivity()
     else -> null

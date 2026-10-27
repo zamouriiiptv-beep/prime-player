@@ -274,5 +274,31 @@
     <string name="settings_pin_change">تغيير كلمة المرور</string>
     <string name="settings_pin_detail">كلمة المرور التي تقفل القنوات وتفتحها. تكون 0000 إلى أن تغيّرها.</string>
 
-
+    <!-- الراديو: لوحة القنوات بجدار من بطاقات المحطات، ولوحة تُبقي الصوت في المتناول. -->
+    <string name="radio_all">جميع المحطات</string>
+    <string name="radio_recent">استُمع مؤخرًا</string>
+    <string name="radio_search_hint">البحث في المحطات</string>
+    <string name="radio_favorites_empty_title">لا توجد محطات مفضلة بعد</string>
+    <string name="radio_favorites_empty_detail">افتح محطة واضغط على القلب لتظهر هنا.</string>
+    <string name="radio_recent_empty_title">لم تستمع إلى أي محطة بعد</string>
+    <string name="radio_recent_empty_detail">تظهر هنا المحطات التي تستمع إليها، الأحدث أولًا.</string>
+    <string name="radio_idle_title">اختر محطة</string>
+    <string name="radio_idle_detail">اضغط على محطة لتستمع إليها. يتوقف الصوت حين تغادر الراديو.</string>
+    <string name="radio_live">مباشر</string>
+    <string name="radio_connecting">جارٍ الاتصال…</string>
+    <string name="radio_paused">متوقفة مؤقتًا</string>
+    <string name="radio_failed">تعذّر تشغيل هذه المحطة</string>
+    <string name="radio_play">تشغيل</string>
+    <string name="radio_pause">إيقاف مؤقت</string>
+    <string name="radio_retry">حاول مرة أخرى</string>
+    <string name="radio_previous">المحطة السابقة</string>
+    <string name="radio_next">المحطة التالية</string>
+    <string name="radio_favorite_add">أضف إلى المفضلة</string>
+    <string name="radio_favorite_remove">أزل من المفضلة</string>
+    <string name="radio_sleep">مؤقّت النوم</string>
+    <string name="radio_sleep_off">إيقاف</string>
+    <string name="radio_sleep_after">بعد %1$d دقيقة</string>
+    <string name="radio_sleep_left">متبقٍ %1$s</string>
+    <string name="radio_open_player">فتح المشغّل</string>
+    <string name="radio_close">إغلاق</string>
 </resources>

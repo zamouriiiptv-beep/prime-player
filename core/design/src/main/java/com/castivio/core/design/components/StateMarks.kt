@@ -177,9 +177,14 @@ fun LiveDot(modifier: Modifier = Modifier) {
     )
 }
 
-/** Three bars that bounce at FULL and stand still otherwise. */
+/**
+ * Three bars that bounce at FULL and stand still otherwise: the mark of what is sounding.
+ *
+ * Public for the radio's cards, which carry it on the station that is playing; the pill above is the
+ * same mark with its word.
+ */
 @Composable
-private fun Equaliser() {
+fun Equaliser(modifier: Modifier = Modifier) {
     val colors = CastivioTheme.colors
     val animate = CastivioTheme.motionLevel.meterAnimates
     val transition = rememberInfiniteTransition(label = "eq")
@@ -212,7 +217,7 @@ private fun Equaliser() {
     Row(
         verticalAlignment = Alignment.Bottom,
         horizontalArrangement = Arrangement.spacedBy(1.5.dp),
-        modifier = Modifier.height(10.dp),
+        modifier = modifier.height(10.dp),
     ) {
         bar(5, 0)
         bar(10, 140)

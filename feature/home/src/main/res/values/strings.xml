@@ -391,5 +391,31 @@
          draws it so; a language without case renders its own word. -->
     <string name="channels_live_badge">LIVE</string>
 
-
+    <!-- The radio: the channels' board with a wall of station cards, and the plate that keeps the sound in view. -->
+    <string name="radio_all">All stations</string>
+    <string name="radio_recent">Recently played</string>
+    <string name="radio_search_hint">Search stations</string>
+    <string name="radio_favorites_empty_title">No favourite stations yet</string>
+    <string name="radio_favorites_empty_detail">Open a station and press the heart to keep it here.</string>
+    <string name="radio_recent_empty_title">No stations played yet</string>
+    <string name="radio_recent_empty_detail">The stations you listen to appear here, the most recent first.</string>
+    <string name="radio_idle_title">Choose a station</string>
+    <string name="radio_idle_detail">Press a station to listen. The sound stops when you leave the radio.</string>
+    <string name="radio_live">Live</string>
+    <string name="radio_connecting">Connecting…</string>
+    <string name="radio_paused">Paused</string>
+    <string name="radio_failed">This station can\'t be played</string>
+    <string name="radio_play">Play</string>
+    <string name="radio_pause">Pause</string>
+    <string name="radio_retry">Try again</string>
+    <string name="radio_previous">Previous station</string>
+    <string name="radio_next">Next station</string>
+    <string name="radio_favorite_add">Add to favourites</string>
+    <string name="radio_favorite_remove">Remove from favourites</string>
+    <string name="radio_sleep">Sleep timer</string>
+    <string name="radio_sleep_off">Off</string>
+    <string name="radio_sleep_after">After %1$d minutes</string>
+    <string name="radio_sleep_left">%1$s left</string>
+    <string name="radio_open_player">Open the player</string>
+    <string name="radio_close">Close</string>
 </resources>

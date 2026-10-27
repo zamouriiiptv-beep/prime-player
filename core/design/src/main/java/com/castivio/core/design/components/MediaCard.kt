@@ -67,6 +67,9 @@ import com.castivio.core.design.theme.posterPlaceholderBrush
 enum class CardShape(val ratio: Float) {
     Poster(2f / 3f),
     Landscape(16f / 9f),
+
+    /** A station's logo, which is square: the radio's wall draws one card of it, as the films' wall draws the poster. */
+    Square(1f),
 }
 
 @Composable
@@ -126,6 +129,19 @@ fun MediaCard(
      * wider than itself, its own colours, blurred and dimmed, fill what it does not reach. False keeps the placeholder.
      */
     cinematicBackdrop: Boolean = false,
+    /**
+     * What the cinematic backdrop is, where the film strip is not the card's: a station's card stands on a
+     * plain ground with a radio mark, and a film strip across a radio logo says the wrong thing. Drawn in the
+     * film strip's place, so everything that follows it -- the picture's own colours, blurred, then the picture --
+     * is unchanged. Only read with [cinematicBackdrop].
+     */
+    ground: (@Composable BoxScope.() -> Unit)? = null,
+    /**
+     * Whatever else the artwork carries, placed by the caller over the whole frame: a favourite's heart in its
+     * top corner, the mark of what is playing in its bottom one. Drawn last, above every other mark, and
+     * hidden from the accessibility tree -- the card's own label already says it in words.
+     */
+    overlay: (@Composable BoxScope.() -> Unit)? = null,
 ) {
     val colors = CastivioTheme.colors
     val interaction = remember { MutableInteractionSource() }
@@ -155,7 +171,8 @@ fun MediaCard(
             is WatchState.Playing -> append(", playing now")
             is WatchState.None -> {}
         }
-        if (caption != null) append(", $caption")
+        // A blank line is kept for the card's height and says nothing: no trailing comma for a reader to pause on.
+        if (!caption.isNullOrBlank()) append(", $caption")
         if (tag != null) append(", $tag")
     }
 
@@ -182,12 +199,16 @@ fun MediaCard(
                 .then(ring),
         ) {
             if (cinematicBackdrop) {
-                Image(
-                    painter = painterResource(R.drawable.poster_backdrop),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
+                if (ground != null) {
+                    ground()
+                } else {
+                    Image(
+                        painter = painterResource(R.drawable.poster_backdrop),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
                 // Once the poster is on screen and does not fill its frame, the film's own colours beside it,
                 // dimmed so the poster stays the brightest thing on the card. The film strip stays beneath
                 // them for the card whose poster has not arrived, or never will.
@@ -218,7 +239,11 @@ fun MediaCard(
             if (tag != null) {
                 PosterTag(tag, Modifier.align(Alignment.BottomStart).padding(Spacing.sm))
             }
+            if (overlay != null) {
+                Box(Modifier.matchParentSize().clearAndSetSemantics {}) { overlay() }
+            }
         }
+        val under = caption ?: subtitle
         Text(
             title,
             style = if (cardFill != null) titleStyle.copy(textAlign = TextAlign.Center) else titleStyle,
@@ -227,19 +252,28 @@ fun MediaCard(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier
                 .padding(top = gap)
-                .then(if (cardFill != null) Modifier.fillMaxWidth().padding(start = gap, end = gap, bottom = gap) else Modifier)
+                // On a filled card the name has the card's own breathing room beneath it -- unless a line follows,
+                // which carries it instead, so the two read as one block and not as two with a gap between.
+                .then(
+                    if (cardFill != null) {
+                        Modifier.fillMaxWidth().padding(start = gap, end = gap, bottom = if (under == null) gap else 0.dp)
+                    } else {
+                        Modifier
+                    },
+                )
                 .then(if (titleHeight != null) Modifier.height(titleHeight) else Modifier)
                 .clearAndSetSemantics {},
         )
-        val under = caption ?: subtitle
         if (under != null) {
             Text(
                 under,
-                style = captionStyle,
+                style = if (cardFill != null) captionStyle.copy(textAlign = TextAlign.Center) else captionStyle,
                 color = colors.onBackgroundMuted,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.clearAndSetSemantics {},
+                modifier = Modifier
+                    .then(if (cardFill != null) Modifier.fillMaxWidth().padding(start = gap, end = gap, bottom = gap) else Modifier)
+                    .clearAndSetSemantics {},
             )
         }
     }

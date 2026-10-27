@@ -92,6 +92,8 @@ import com.castivio.feature.home.MovieScreen
 import com.castivio.feature.home.MoviesScreen
 import com.castivio.feature.home.PinPrompt
 import com.castivio.feature.home.PinPurpose
+import com.castivio.feature.home.RadioScreen
+import com.castivio.feature.home.RadioSession
 import com.castivio.feature.home.R as CatalogStrings
 import com.castivio.feature.home.RecentChannelsViewModel
 import com.castivio.feature.home.ShowScreen
@@ -101,6 +103,7 @@ import com.castivio.feature.licence.R as LicenceStrings
 import com.castivio.feature.player.PlayerMode
 import com.castivio.feature.player.PlayerRequest
 import com.castivio.feature.player.PlayerRoute
+import com.castivio.feature.player.RadioAudioRoute
 import com.castivio.playback.api.MediaKind
 import com.castivio.tv.R
 import com.castivio.tv.licence.LicenceWithLanguage
@@ -567,12 +570,27 @@ fun ShellScreen(
                         onOpenShow = { overlay = Overlay.Show(it) },
                         onSearch = { searchKind = null; dest = Dest.Search },
                     )
-                    Dest.Radio -> BrowseScreen(
-                        section = CatalogSection.Radio,
-                        onPlay = play,
-                        onOpenShow = { overlay = Overlay.Show(it) },
-                        onSearch = { searchKind = null; dest = Dest.Search },
-                    )
+                    // The radio has its own board too -- see `RadioScreen`: a wall of station cards and a plate
+                    // that keeps the sound in view. What is listened to lives in the session and the sound in the
+                    // route beside it, both inside this destination and so exactly as long as it: leaving the radio
+                    // removes them and lets the sound go, and the application going to the background does too.
+                    Dest.Radio -> {
+                        val radio = remember { RadioSession() }
+                        RadioScreen(session = radio)
+                        RadioAudioRoute(
+                            request = radio.station?.asSelection()?.asPlayerRequest(),
+                            paused = radio.paused,
+                            retries = radio.retries,
+                            onStatus = radio::heard,
+                            onReleased = radio::release,
+                        )
+                        // A station is listened to once its sound has begun, and recorded then -- for the rail's
+                        // Recently played entry -- as a channel is once its picture shows. Not on the press.
+                        val sounding = radio.status.soundingUrl
+                        LaunchedEffect(sounding) {
+                            radio.station?.takeIf { it.streamUrl == sounding }?.let { recentModel.watched(it.id) }
+                        }
+                    }
                     Dest.Favourites -> FavouritesScreen()
                     Dest.Library -> LibraryScreen(onOpenSection = { dest = it })
                     Dest.Search -> CatalogSearchScreen(onPlay = play, restrictTo = searchKind)

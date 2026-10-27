@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
@@ -26,21 +28,29 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.dialog
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
+import com.castivio.core.design.theme.Radius
+import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.Spacing
 import com.castivio.core.design.theme.boundedFraction
 
@@ -275,6 +285,104 @@ fun CastivioNoticeDialog(
                 onClick = onClose,
                 modifier = Modifier.focusRequester(close).focusable(),
             )
+        }
+    }
+}
+
+/**
+ * One answer in a [CastivioChoiceDialog]: what it says, and what it adds at the end of its row.
+ *
+ * [detail] is for a fact about the answer that is in force -- the time a sleep timer has left -- and is
+ * null for every other row. [selected] marks the answer in force, which is where focus opens.
+ */
+@Immutable
+class ChoiceOption(
+    val label: String,
+    val detail: String? = null,
+    val selected: Boolean = false,
+)
+
+/**
+ * A short list to choose one answer from -- the sleep timer's times -- and a way out.
+ *
+ * Its own shape because it is neither of the two modals that were here: a question with a yes and a no, nor a
+ * statement to read. The scrim, the panel, the title and the focus rule are theirs, through [DialogPanel]; the
+ * rows are one press each, so a choice is made and the dialog is over -- there is no second button to confirm it.
+ * The answer in force is filled with the chosen colour, as the rail's open category is, and focus opens on it,
+ * so the remote's centre key is on the answer that is already true and a stray press changes nothing.
+ *
+ * The rows scroll inside the panel rather than shrinking it: a list that is longer than the surface is short
+ * of room, not of rows.
+ *
+ * @param onChoose told which row was pressed, by its position in [options]. The caller closes the dialog.
+ */
+@Composable
+fun CastivioChoiceDialog(
+    title: String,
+    options: List<ChoiceOption>,
+    onChoose: (Int) -> Unit,
+    closeLabel: String,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val first = remember { FocusRequester() }
+    // Where focus opens: the answer in force, or the first row where none is.
+    val opensOn = options.indexOfFirst { it.selected }.coerceAtLeast(0)
+
+    LaunchedEffect(Unit) { runCatching { first.requestFocus() } }
+
+    DialogPanel(title = title, onScrim = onClose, modifier = modifier) { _ ->
+        Column(
+            Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            options.forEachIndexed { index, option ->
+                ChoiceRow(
+                    option = option,
+                    onClick = { onChoose(index) },
+                    modifier = if (index == opensOn) Modifier.focusRequester(first) else Modifier,
+                )
+            }
+        }
+        Row(Modifier.padding(top = Spacing.sm)) {
+            CastivioButton(text = closeLabel, weight = ButtonWeight.Secondary, onClick = onClose)
+        }
+    }
+}
+
+@Composable
+private fun ChoiceRow(option: ChoiceOption, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = CastivioTheme.colors
+    val interaction = remember { MutableInteractionSource() }
+    var focused by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(Radius.sm)
+    val ink = if (option.selected) colors.onSecondary else colors.onBackground
+
+    Row(
+        modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = Sizing.minTarget(CastivioTheme.device.isTv))
+            .clip(shape)
+            .background(if (option.selected) colors.secondary else Color.Transparent)
+            .border(
+                1.dp,
+                when {
+                    focused -> colors.focusRing
+                    option.selected -> colors.selectedBorder
+                    else -> Color.Transparent
+                },
+                shape,
+            )
+            .onFocusChanged { focused = it.isFocused || it.hasFocus }
+            .clickable(interaction, indication = null, onClick = onClick)
+            .semantics(mergeDescendants = true) { selected = option.selected }
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(option.label, style = CastivioType.bodyMedium, color = ink)
+        if (option.detail != null) {
+            Text(option.detail, style = CastivioType.bodyMedium, color = ink)
         }
     }
 }

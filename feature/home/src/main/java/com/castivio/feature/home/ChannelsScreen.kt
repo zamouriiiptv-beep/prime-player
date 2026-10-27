@@ -1409,6 +1409,8 @@ internal fun CategoryRail(
     hider: HidingUi = HidingUi.None,
     /** What the first entry calls the whole section: "All channels" here, "All movies" on the films' screen. */
     allLabel: String = stringResource(R.string.channels_all_rail),
+    /** What the entry for the ones played last calls itself: "Recently watched" here, "Recently played" on the radio's. */
+    recentLabel: String = stringResource(R.string.channels_recent),
 ) {
     // **In reorder mode the rail is the bouquets and nothing else -- and so it is while bouquets are
     // being chosen to hide.** The three entries above them open lists and the field filters them; none
@@ -1470,7 +1472,7 @@ internal fun CategoryRail(
             }
             if (!modal) item(key = RAIL_RECENT) {
                 RailEntry(
-                    label = stringResource(R.string.channels_recent),
+                    label = recentLabel,
                     // No count, as for the favourites: the entry is one line tall like the others that are
                     // not bouquets.
                     count = null,
