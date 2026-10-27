@@ -129,6 +129,8 @@ fun ShowScreen(
             .statusBarsPadding(),
     ) {
         val m = catalogMetricsFor(tv = CastivioTheme.device.isTv, width = maxWidth, height = maxHeight)
+        // Read here: the constraints' own scope is a layout scope, and the row and the lazy list below are others.
+        val surfaceHeight = maxHeight
         val tv = CastivioTheme.device.isTv
         val back: @Composable (Modifier) -> Unit = { backModifier ->
             CastivioIconButton(
@@ -149,7 +151,7 @@ fun ShowScreen(
                         show = show,
                         state = state,
                         m = m,
-                        posterHeight = (maxHeight * POSTER_OF_HEIGHT).coerceIn(MIN_POSTER, MAX_POSTER),
+                        posterHeight = (surfaceHeight * POSTER_OF_HEIGHT).coerceIn(MIN_POSTER, MAX_POSTER),
                         playFocus = playFocus,
                         onPlay = { target?.let { start(it.episode) } },
                         modifier = Modifier.width(m.pane).fillMaxHeight(),
@@ -179,7 +181,7 @@ fun ShowScreen(
                                 show = show,
                                 state = state,
                                 m = m,
-                                posterHeight = (maxHeight * STACKED_POSTER_OF_HEIGHT).coerceIn(MIN_POSTER, MAX_POSTER),
+                                posterHeight = (surfaceHeight * STACKED_POSTER_OF_HEIGHT).coerceIn(MIN_POSTER, MAX_POSTER),
                                 playFocus = playFocus,
                                 onPlay = { target?.let { start(it.episode) } },
                                 modifier = Modifier.fillMaxWidth().padding(end = BACK_SIZE + m.paneGap),
