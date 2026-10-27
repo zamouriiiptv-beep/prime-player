@@ -504,6 +504,30 @@ interface MediaDao {
     )
     suspend fun windowSeriesInGroup(groupId: String, match: String?, sort: String, offset: Int, limit: Int): List<SeriesRow>
 
+    /**
+     * One window of the shows the viewer has marked, in the provider's order -- the list the series rail's
+     * Favourites entry opens. A show is marked by its own row, the one with no episode number, so it is that row
+     * that joins `favorite`; the counts are the show's whole, as [windowSeries] gives, whatever the join matched.
+     * `INNER JOIN`, as [windowFavorites] is: a favourite whose show is not in the active subscription's catalogue
+     * is kept in its table and not shown, and is back when the provider restores it.
+     */
+    @Query(
+        """
+        SELECT m.series_id AS seriesId,
+               COALESCE(m.series_title, m.title) AS title,
+               m.artwork_url AS artworkUrl,
+               (SELECT COUNT(e.episode_number) FROM media e WHERE e.series_id = m.series_id AND e.source_id = m.source_id) AS episodeCount,
+               (SELECT COUNT(DISTINCT e.season_number) FROM media e WHERE e.series_id = m.series_id AND e.source_id = m.source_id) AS seasonCount,
+               m.provider_order AS providerOrder
+        FROM favorite f
+        INNER JOIN media m ON m.id = f.media_id
+        WHERE m.source_id = $ACTIVE_SOURCE AND m.kind = 'SERIES' AND m.series_id IS NOT NULL AND m.episode_number IS NULL
+        ORDER BY m.provider_order, m.id
+        LIMIT :limit OFFSET :offset
+        """,
+    )
+    suspend fun windowFavoriteSeries(offset: Int, limit: Int): List<SeriesRow>
+
     @Query(
         """
         SELECT * FROM media WHERE series_id = :seriesId AND episode_number IS NOT NULL

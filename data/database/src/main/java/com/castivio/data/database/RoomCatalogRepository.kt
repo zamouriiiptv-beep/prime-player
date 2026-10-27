@@ -427,6 +427,17 @@ class RoomCatalogRepository(
     // -------------------------------------------------------------------------- the series
 
     override fun series(query: CatalogQuery): Flow<PagingData<SeriesSummary>> {
+        // The viewer's own list of shows: no category and no search of its own, as the channels' favourites are,
+        // and told of a favourite being marked, which no other list of shows depends on.
+        if (query.favorites) {
+            return pager {
+                WindowPagingSource(
+                    database.invalidationTracker,
+                    database.queryExecutor,
+                    WindowPagingSource.FAVORITE_TABLES,
+                ) { offset, limit -> mediaDao.windowFavoriteSeries(offset, limit) }
+            }.map { data -> data.map { it.toDomain() } }
+        }
         val group = query.groupId
         // Nothing searchable is no search, as for the channels: the list, not an empty one.
         val match = FtsQuery.build(query.search)
@@ -465,6 +476,7 @@ class RoomCatalogRepository(
                 providerRef = providerRef,
                 title = row.seriesTitle ?: row.title,
                 groupId = row.groupId,
+                mediaId = row.id,
             )
         }
 

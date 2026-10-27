@@ -68,6 +68,8 @@ data class SeriesShell(
     val providerRef: String,
     val title: String,
     val groupId: String?,
+    /** The show's own row id: what a favourite of the show is kept under. Null where a fake does not say. */
+    val mediaId: String? = null,
 )
 
 /** A row for Continue Watching and History: what was watched, and how far. */

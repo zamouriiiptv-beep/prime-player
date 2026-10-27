@@ -5,12 +5,16 @@ import com.castivio.domain.CatalogPager
 import com.castivio.domain.CatalogQuery
 import com.castivio.domain.Episode
 import com.castivio.domain.EpisodesLoad
+import com.castivio.domain.FavoritesRepository
 import com.castivio.domain.InProgressItem
 import com.castivio.domain.MediaItem
 import com.castivio.domain.PlaybackProgress
 import com.castivio.domain.ProgressRepository
 import com.castivio.domain.Season
+import com.castivio.domain.SeriesDetails
+import com.castivio.domain.SeriesDetailsStore
 import com.castivio.domain.SeriesEpisodes
+import com.castivio.domain.SeriesShell
 import com.castivio.domain.SeriesSummary
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +22,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -65,6 +70,32 @@ class ShowViewModelTest {
         override fun favorites(): Flow<PagingData<MediaItem>> = emptyFlow()
         override fun continueWatching(): Flow<PagingData<InProgressItem>> = emptyFlow()
         override fun history(): Flow<PagingData<InProgressItem>> = emptyFlow()
+        override suspend fun seriesShell(seriesId: String): SeriesShell? =
+            SeriesShell(sourceId = "src", providerRef = "551", title = "Dark Harbor", groupId = null, mediaId = "shell-1")
+    }
+
+    /** What the provider said, as the store holds it: the test sets it and the page reads it as it is set. */
+    private class FakeDetails : SeriesDetailsStore {
+        val details = MutableStateFlow<SeriesDetails?>(null)
+        val plots = MutableStateFlow<Map<String, String>>(emptyMap())
+        override fun details(seriesId: String): Flow<SeriesDetails?> = details
+        override fun episodePlots(seriesId: String): Flow<Map<String, String>> = plots
+        override suspend fun put(seriesId: String, details: SeriesDetails?, plots: Map<String, String>, now: Long) = Unit
+    }
+
+    /** The marks, written at once and read as written. */
+    private class FakeFavorites : FavoritesRepository {
+        val marked = MutableStateFlow<Set<String>>(emptySet())
+        val toggled = mutableListOf<String>()
+        override fun isFavorite(mediaId: String): Flow<Boolean> = marked.map { mediaId in it }
+        override suspend fun toggle(mediaId: String): Boolean {
+            toggled += mediaId
+            marked.value = if (mediaId in marked.value) marked.value - mediaId else marked.value + mediaId
+            return mediaId in marked.value
+        }
+        override fun count(): Flow<Int> = marked.map { it.size }
+        override fun ids(): Flow<Set<String>> = marked
+        override suspend fun set(mediaIds: Collection<String>, favorite: Boolean) = Unit
     }
 
     /** Answers what the test says, when the test lets it: a show is asked for by its id, and every ask is kept. */
@@ -92,8 +123,10 @@ class ShowViewModelTest {
         pager: FakePager,
         episodes: FakeEpisodes,
         progress: FakeProgress = FakeProgress(),
+        details: FakeDetails = FakeDetails(),
+        favorites: FakeFavorites = FakeFavorites(),
     ): ShowViewModel {
-        val model = ShowViewModel(pager, episodes, progress)
+        val model = ShowViewModel(pager, episodes, progress, details, favorites)
         // The page is what collects the state, and the state is only live while someone does.
         backgroundScope.launch { model.state.collect { } }
         return model
@@ -197,5 +230,63 @@ class ShowViewModelTest {
 
         assertEquals(emptyList<String>(), episodes.asked)
         assertNull(model.state.value.target)
+    }
+
+    @Test
+    fun `what the provider said of the show and of its episodes reaches the page as it is written`() = runTest(dispatcher) {
+        val details = FakeDetails()
+        val model = model(FakePager(held), FakeEpisodes(), details = details)
+        model.open("show-1")
+        advanceUntilIdle()
+        assertNull(model.state.value.details)
+        assertEquals(emptyMap<String, String>(), model.state.value.plots)
+
+        details.details.value = SeriesDetails(plot = "A harbour town.", releaseYear = 2019)
+        details.plots.value = mapOf("s1e1" to "A storm closes the port.")
+        advanceUntilIdle()
+
+        assertEquals("A harbour town.", model.state.value.details?.plot)
+        assertEquals(2019, model.state.value.details?.releaseYear)
+        assertEquals("A storm closes the port.", model.state.value.plots["s1e1"])
+    }
+
+    @Test
+    fun `the heart follows the mark on the show's own row, and a press flips it`() = runTest(dispatcher) {
+        val favorites = FakeFavorites()
+        val model = model(FakePager(held), FakeEpisodes(), favorites = favorites)
+        model.open("show-1")
+        advanceUntilIdle()
+        assertEquals(false, model.state.value.favorite)
+
+        model.toggleFavorite()
+        advanceUntilIdle()
+        assertEquals(listOf("shell-1"), favorites.toggled)
+        assertEquals(true, model.state.value.favorite)
+
+        model.toggleFavorite()
+        advanceUntilIdle()
+        assertEquals(false, model.state.value.favorite)
+    }
+
+    @Test
+    fun `a show already marked opens with its heart lit`() = runTest(dispatcher) {
+        val favorites = FakeFavorites().apply { marked.value = setOf("shell-1") }
+        val model = model(FakePager(held), FakeEpisodes(), favorites = favorites)
+
+        model.open("show-1")
+        advanceUntilIdle()
+
+        assertEquals(true, model.state.value.favorite)
+    }
+
+    @Test
+    fun `nothing is marked before a show is opened`() = runTest(dispatcher) {
+        val favorites = FakeFavorites()
+        val model = model(FakePager(held), FakeEpisodes(), favorites = favorites)
+
+        model.toggleFavorite()
+        advanceUntilIdle()
+
+        assertEquals(emptyList<String>(), favorites.toggled)
     }
 }

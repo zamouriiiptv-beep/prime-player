@@ -80,6 +80,8 @@ class SeriesShellTest {
         assertEquals("551", shell.providerRef)
         assertEquals("Dark Harbor", shell.title)
         assertEquals("g1", shell.groupId)
+        // The row a favourite of the show is kept under.
+        assertEquals("shell-1", shell.mediaId)
     }
 
     @Test
@@ -99,5 +101,35 @@ class SeriesShellTest {
 
         assertEquals(46, episodes[0].durationMinutes)
         assertNull(episodes[1].durationMinutes)
+    }
+
+    private fun favorites() = RoomFavoritesRepository(database.favoriteDao(), clock = { 3_000L })
+
+    @Test
+    fun `a show marked as a favourite is listed with its whole counts, and one not marked is not`() = runBlocking {
+        assertEquals(emptyList<Any>(), database.mediaDao().windowFavoriteSeries(0, 60))
+
+        favorites().toggle("shell-1")
+
+        val listed = database.mediaDao().windowFavoriteSeries(0, 60).single().toDomain()
+        assertEquals("show-1", listed.seriesId)
+        assertEquals("Dark Harbor", listed.title)
+        assertEquals(2, listed.episodeCount)
+        assertEquals(1, listed.seasonCount)
+    }
+
+    @Test
+    fun `an episode marked as a favourite does not make its show one`() = runBlocking {
+        favorites().toggle("ep-1")
+
+        assertEquals(emptyList<Any>(), database.mediaDao().windowFavoriteSeries(0, 60))
+    }
+
+    @Test
+    fun `taking the mark away takes the show out of the list`() = runBlocking {
+        favorites().toggle("shell-1")
+        favorites().toggle("shell-1")
+
+        assertEquals(emptyList<Any>(), database.mediaDao().windowFavoriteSeries(0, 60))
     }
 }
