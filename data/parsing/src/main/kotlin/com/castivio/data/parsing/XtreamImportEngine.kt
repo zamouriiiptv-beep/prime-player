@@ -912,7 +912,7 @@ class XtreamImportEngine(
     private fun seriesShell(
         sourceId: String,
         series: XtreamSeries,
-        groupId: String,
+        groupId: String?,
         order: Int,
     ) = CatalogItem(
         id = StableIds.item(sourceId, "series:${series.seriesId}"),
@@ -1112,26 +1112,34 @@ class XtreamImportEngine(
                 // batch was handed over: see "When a category in the reply is complete".
                 var current: CategoryPlan? = null
                 val completed = LinkedHashSet<String>()
-                XtreamParser.parseStreams(TimedReader(reader, nanoClock, meter.readNanos)) { stream ->
+
+                /**
+                 * One entry of the reply, filed: under the category it names, in the place that
+                 * category gives it, or -- when no listed category is its own -- under no group.
+                 * [build] makes the row from the three things only the filing knows: its kind, its
+                 * group and its place. A channel, a film and a show differ in how they are read and
+                 * built, and in nothing else about where they go.
+                 */
+                fun file(categoryId: String?, build: (MediaKind, String?, Int) -> CatalogItem) {
                     meter.parsed++
-                    val plan = stream.categoryId?.let(byId::get)
+                    val plan = categoryId?.let(byId::get)
                     if (plan == null) {
-                        if (stream.categoryId?.let(elsewhere::contains) == true) {
+                        if (categoryId?.let(elsewhere::contains) == true) {
                             // Another section's, and that section's own load fetches it.
                             passedOver++
                             meter.elsewhere++
                         } else {
                             // Written under no group rather than dropped. The category walk
-                            // never asks for such a stream, so the one reply is the only way
+                            // never asks for such an entry, so the one reply is the only way
                             // it arrives; leaving it out is how a library came up short of
                             // the count the panel carries. It is in the section's "all" and
                             // in search, and in no category's count.
-                            meter.orphan(stream.categoryId)
-                            batch.add(item(sourceId, api, kind, stream, null, orphanFirst + orphans))
+                            meter.orphan(categoryId)
+                            batch.add(build(kind, null, orphanFirst + orphans))
                             orphans++
                             if (batch.size >= batchSize) handOver(events, kind, batch, isCancelled, meter, completed)
                         }
-                        return@parseStreams
+                        return
                     }
                     if (plan.index != current?.index) {
                         current?.let { completed += it.groupId }
@@ -1139,9 +1147,20 @@ class XtreamImportEngine(
                     }
                     received[plan.index] = true
                     val position = plan.index * CATEGORY_STRIDE + positions[plan.index]++
-                    batch.add(item(sourceId, api, plan.kind, stream, plan.groupId, position))
+                    batch.add(build(plan.kind, plan.groupId, position))
                     streams++
                     if (batch.size >= batchSize) handOver(events, plan.kind, batch, isCancelled, meter, completed)
+                }
+
+                val timed = TimedReader(reader, nanoClock, meter.readNanos)
+                if (kind == MediaKind.SERIES) {
+                    XtreamParser.parseSeries(timed) { show ->
+                        file(show.categoryId) { _, groupId, order -> seriesShell(sourceId, show, groupId, order) }
+                    }
+                } else {
+                    XtreamParser.parseStreams(timed) { stream ->
+                        file(stream.categoryId) { rowKind, groupId, order -> item(sourceId, api, rowKind, stream, groupId, order) }
+                    }
                 }
                 current?.let { completed += it.groupId }
                 if (batch.isNotEmpty() || completed.isNotEmpty()) {

@@ -9,7 +9,6 @@ import okhttp3.mockwebserver.SocketPolicy
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
@@ -122,10 +121,31 @@ class XtreamWholeSectionHttpTest {
         assertEquals(1, server.requestCount)
     }
 
-    /** A series list is another action with another shape, and nothing asks it whole. */
+    /** The shows' list is `get_series` with no category: the same question, the same single attempt. */
     @Test
-    fun `series are not offered whole`() {
-        assertNull(api().allStreams(MediaKind.SERIES))
-        assertEquals(0, server.requestCount)
+    fun `series ask for the whole list of shows with no category`() {
+        server.enqueue(MockResponse().setBody("""[{"series_id":"7","name":"Dark Harbor","category_id":"3"}]"""))
+
+        val body = api().allStreams(MediaKind.SERIES)!!.use { it.readText() }
+
+        val path = server.takeRequest().path.orEmpty()
+        assertTrue(path, path.contains("action=get_series"))
+        assertFalse("get_series_categories is not the list: $path", path.contains("get_series_categories"))
+        assertFalse("a category was asked for: $path", path.contains("category_id"))
+        assertTrue(body.contains("Dark Harbor"))
+    }
+
+    @Test
+    fun `a refused list of shows is one request, then the walk`() {
+        server.enqueue(MockResponse().setResponseCode(404))
+        server.enqueue(MockResponse().setBody("[]"))
+
+        try {
+            api().allStreams(MediaKind.SERIES)
+            fail("a 404 was read as an answer")
+        } catch (e: WholeSectionUnsupported) {
+            assertEquals("HTTP 404", e.message)
+        }
+        assertEquals(1, server.requestCount)
     }
 }

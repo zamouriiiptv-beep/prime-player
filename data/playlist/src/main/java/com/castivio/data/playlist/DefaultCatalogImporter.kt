@@ -720,14 +720,15 @@ class DefaultCatalogImporter(
                 sourceId = sourceId,
                 api = xtreamApiFactory(account),
                 kinds = setOf(kind),
-                // The channels and the films in one reply where the panel serves that -- and a
-                // playlist read through its panel comes through here too, so it gets the same.
-                // Films above all: asked category by category, a film whose category the panel
-                // does not list is never asked for, and the library came up short of what the
-                // subscription holds. The radio is its own few categories, asked for one by one
-                // rather than inside the whole live list; series are still asked for category
-                // by category. The engine falls back to the walk by itself; see `wholeSection`.
-                wholeSection = if (kind == MediaKind.LIVE || kind == MediaKind.MOVIE) setOf(kind) else emptySet(),
+                // The channels, the films and the shows in one reply where the panel serves that --
+                // and a playlist read through its panel comes through here too, so it gets the
+                // same. Films above all: asked category by category, a film whose category the
+                // panel does not list is never asked for, and the library came up short of what
+                // the subscription holds. The shows are the longest walk of the three, a request
+                // per category. The radio is its own few categories, asked for one by one rather
+                // than inside the whole live list. The engine falls back to the walk by itself;
+                // see `wholeSection`.
+                wholeSection = if (kind == MediaKind.RADIO) emptySet() else setOf(kind),
                 onStreams = { report ->
                     replyUsed = report.strategy == XtreamImportEngine.StreamStrategy.WHOLE_SECTION
                     PerformanceLog.note(NOTE_STREAMS, report.toString())

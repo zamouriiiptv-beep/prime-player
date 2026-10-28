@@ -274,11 +274,10 @@ class XtreamHttpApi(
      * "failed"; a timeout or a dropped connection is thrown as it is. Both end in the
      * walk. A reply that arrives but is not a list is the parser's to notice.
      *
-     * Series are not offered: their list is a different action with a different shape,
-     * and nothing asks for them in one reply.
+     * The shows are offered too: `get_series` without a category is their whole list, one
+     * row per show and no episodes, which is the shape the engine reads them in either way.
      */
     override fun allStreams(kind: MediaKind): Reader? {
-        if (kind == MediaKind.SERIES) return null
         val url = XtreamUrls.api(base, username, password, action = kind.streamsAction())
         val action = actionOf(url)
         return trace(traceName(url)) {

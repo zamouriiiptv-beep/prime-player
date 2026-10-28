@@ -478,6 +478,39 @@ class DefaultCatalogImporterTest {
         assertEquals(listOf(MediaKind.RADIO), writer.items.map { it.kind })
     }
 
+    /**
+     * The shows are the longest walk of the three -- a request per category -- so a section opened for
+     * the first time asks for the list of them whole, for an account and for a playlist read through its
+     * panel alike, and writes shells.
+     */
+    @Test
+    fun `shows are asked for in one reply, whichever way the subscription was added`() = runBlocking {
+        val panel = OneReplyShowsApi()
+        val account = PlaylistSource.Xtream("http://panel:8080", "user", "pass")
+        val link = server.url(PANEL_LINK).toString()
+
+        importer(xtreamApi = panel).importKind(account, MediaKind.SERIES).toList()
+        importer(xtreamApi = panel).importKind(routed(link), MediaKind.SERIES).toList()
+
+        assertEquals(listOf(MediaKind.SERIES, MediaKind.SERIES), panel.wholeSectionAsks)
+        assertEquals("a show category was asked for on its own", emptyList<String>(), panel.categoryAsks)
+        assertEquals(listOf("Dark Harbor", "Dark Harbor"), writer.items.filter { it.kind == MediaKind.SERIES }.map { it.title })
+        assertTrue(logged.toString(), logged.any { it.contains("SERIES: one reply, 1 rows, 0 under no category, 0 categories asked again") })
+        assertNothingFrom(link)
+    }
+
+    @Test
+    fun `a panel that refuses the list of shows is walked by category`() = runBlocking {
+        val panel = OneReplyShowsApi(refuse = true)
+        val account = PlaylistSource.Xtream("http://panel:8080", "user", "pass")
+
+        importer(xtreamApi = panel).importKind(account, MediaKind.SERIES).toList()
+
+        assertEquals(listOf(MediaKind.SERIES), panel.wholeSectionAsks)
+        assertEquals(listOf("1"), panel.categoryAsks)
+        assertEquals(listOf("Dark Harbor"), writer.items.filter { it.kind == MediaKind.SERIES }.map { it.title })
+    }
+
     @Test
     fun `a panel that refuses its api is followed by the playlist, once`() = runBlocking {
         val link = server.url(PANEL_LINK).toString()
@@ -1128,6 +1161,33 @@ class DefaultCatalogImporterTest {
         override fun seriesInfo(seriesId: String): Reader = panel.seriesInfo(seriesId)
         override fun streamUrl(kind: MediaKind, streamId: String, extension: String?): String =
             panel.streamUrl(kind, streamId, extension)
+    }
+
+    /** One show category holding one show, asked for whole or -- when [refuse] -- only by category. */
+    private class OneReplyShowsApi(private val refuse: Boolean = false) : XtreamImportEngine.Api {
+        val wholeSectionAsks: MutableList<MediaKind> = java.util.Collections.synchronizedList(mutableListOf())
+        val categoryAsks: MutableList<String> = java.util.Collections.synchronizedList(mutableListOf())
+        private val show = """{"series_id":"7","name":"Dark Harbor","category_id":"1"}"""
+
+        override fun categories(kind: MediaKind): Reader =
+            StringReader(if (kind == MediaKind.SERIES) """[{"category_id":"1","category_name":"Drama"}]""" else "[]")
+
+        override fun streams(kind: MediaKind, categoryId: String): Reader = StringReader("[]")
+
+        override fun allStreams(kind: MediaKind): Reader {
+            wholeSectionAsks += kind
+            if (refuse) throw com.castivio.data.parsing.WholeSectionUnsupported("HTTP 404")
+            return StringReader("[$show]")
+        }
+
+        override fun series(categoryId: String): Reader {
+            categoryAsks += categoryId
+            return StringReader("[$show]")
+        }
+
+        override fun seriesInfo(seriesId: String): Reader = StringReader("{}")
+        override fun streamUrl(kind: MediaKind, streamId: String, extension: String?): String =
+            XtreamUrls.stream("http://panel:8080", "user", "pass", kind, streamId, extension)
     }
 
     /**
