@@ -7,6 +7,7 @@ import com.castivio.domain.ImportProgress
 import com.castivio.domain.ImportSummary
 import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaKind
+import com.castivio.domain.RequestTimes
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -200,6 +201,28 @@ class XtreamImportEngineTest {
         assertEquals("http://host/series/u/p/9001.mkv", writer.items.first().streamUrl)
         assertTrue(writer.items.all { it.seriesTitle == "Chernobyl" })
         assertTrue(writer.items.all { it.groupId == "group-9" })
+    }
+
+    /**
+     * Where the wait for a show's page went is told once the episodes are kept: the catalogue made ready, the provider
+     * answering, its answer read, and the reply kept. A clock that is stepped says which is which.
+     */
+    @Test
+    fun `the cost of a show's request is told in the order it was paid`() {
+        val api = FakeApi(seriesInfo = mapOf("551" to listOf(Episode("9001", "Pilot", 1, 1))))
+        var now = 0L
+        // Every reading of the clock is a millisecond later than the one before it.
+        val engine = XtreamImportEngine(RecordingWriter(), nanoClock = { now += 1_000_000L; now })
+        val told = mutableListOf<RequestTimes>()
+
+        engine.importEpisodes("src", api, "551", "Chernobyl", null, onTimes = { told += it })
+
+        val cost = told.single()
+        assertTrue("open ${cost.openMs}", cost.openMs >= 1)
+        assertTrue("ask ${cost.askMs}", cost.askMs >= 1)
+        assertTrue("read ${cost.readMs}", cost.readMs >= 1)
+        assertTrue("save ${cost.saveMs}", cost.saveMs >= 1)
+        assertEquals(1, cost.tries)
     }
 
     @Test

@@ -400,19 +400,18 @@ interface MediaDao {
      * shell row per show before any episode is fetched, and that shell must read
      * as "no episodes loaded yet" rather than as a one-episode series.
      *
-     * `artwork_url` and `series_title` are bare columns beside `min(...)`, which
-     * in SQLite means "the value from the row that produced the minimum" — so the
-     * poster is the first episode's, not an arbitrary one. Documented SQLite
-     * behaviour for min/max aggregates, and the reason this needs no subquery.
+     * `series_title` is the same on every row of a show, so it is a bare column. The poster is not: it is the show's
+     * own row's -- see [SHOW_POSTER] -- because a bare column beside the aggregates left it to whichever row the
+     * grouping kept, and a show that had been opened showed one of its episodes' stills in its place.
      */
     @Query(
         """
         SELECT series_id AS seriesId,
                series_title AS title,
-               artwork_url AS artworkUrl,
+               $SHOW_POSTER AS artworkUrl,
                COUNT(episode_number) AS episodeCount,
                COUNT(DISTINCT season_number) AS seasonCount,
-               min(provider_order) AS providerOrder
+               $SHOW_ORDER AS providerOrder
         FROM media
         WHERE source_id = $ACTIVE_SOURCE AND kind = 'SERIES' AND series_id IS NOT NULL
         GROUP BY series_id
@@ -425,10 +424,10 @@ interface MediaDao {
         """
         SELECT series_id AS seriesId,
                series_title AS title,
-               artwork_url AS artworkUrl,
+               $SHOW_POSTER AS artworkUrl,
                COUNT(episode_number) AS episodeCount,
                COUNT(DISTINCT season_number) AS seasonCount,
-               min(provider_order) AS providerOrder
+               $SHOW_ORDER AS providerOrder
         FROM media
         WHERE source_id = $ACTIVE_SOURCE AND kind = 'SERIES' AND series_id IS NOT NULL AND group_id = :groupId
         GROUP BY series_id
@@ -450,17 +449,19 @@ interface MediaDao {
      * **The order is a parameter**, and a series list is the one place that is right: it is grouped, so there is
      * no index for an order by to use whichever way it is written, and the rows are shows -- hundreds, a few
      * thousand at the most -- and not the library. A name is the show's own row's sort title where the provider
-     * wrote one (a shell) and its name where it did not -- see [SHOW_SORT_TITLE]; recently added is the newest of its
-     * rows; and every order ends where the provider's does, so two reads of one window agree.
+     * wrote one (a shell) and its name where it did not -- see [SHOW_SORT_TITLE]; the provider's order is where the
+     * show's own row stands, and recently added is when it was added -- see [SHOW_ORDER] and [SHOW_ADDED], which keep a show
+     * opened today from moving to the head of either; and every order ends where the provider's does, so two reads of one
+     * window agree.
      */
     @Query(
         """
         SELECT series_id AS seriesId,
                series_title AS title,
-               artwork_url AS artworkUrl,
+               $SHOW_POSTER AS artworkUrl,
                COUNT(episode_number) AS episodeCount,
                COUNT(DISTINCT season_number) AS seasonCount,
-               min(provider_order) AS providerOrder
+               $SHOW_ORDER AS providerOrder
         FROM media
         WHERE source_id = $ACTIVE_SOURCE AND kind = 'SERIES' AND series_id IS NOT NULL
           AND (:match IS NULL OR series_id IN (
@@ -471,7 +472,7 @@ interface MediaDao {
         GROUP BY series_id
         ORDER BY CASE :sort WHEN 'NAME_ASC' THEN $SHOW_SORT_TITLE END,
                  CASE :sort WHEN 'NAME_DESC' THEN $SHOW_SORT_TITLE END DESC,
-                 CASE :sort WHEN 'RECENTLY_ADDED' THEN max(added_at) END DESC,
+                 CASE :sort WHEN 'RECENTLY_ADDED' THEN $SHOW_ADDED END DESC,
                  providerOrder, seriesId
         LIMIT :limit OFFSET :offset
         """,
@@ -483,10 +484,10 @@ interface MediaDao {
         """
         SELECT series_id AS seriesId,
                series_title AS title,
-               artwork_url AS artworkUrl,
+               $SHOW_POSTER AS artworkUrl,
                COUNT(episode_number) AS episodeCount,
                COUNT(DISTINCT season_number) AS seasonCount,
-               min(provider_order) AS providerOrder
+               $SHOW_ORDER AS providerOrder
         FROM media
         WHERE source_id = $ACTIVE_SOURCE AND kind = 'SERIES' AND series_id IS NOT NULL AND group_id = :groupId
           AND (:match IS NULL OR series_id IN (
@@ -497,7 +498,7 @@ interface MediaDao {
         GROUP BY series_id
         ORDER BY CASE :sort WHEN 'NAME_ASC' THEN $SHOW_SORT_TITLE END,
                  CASE :sort WHEN 'NAME_DESC' THEN $SHOW_SORT_TITLE END DESC,
-                 CASE :sort WHEN 'RECENTLY_ADDED' THEN max(added_at) END DESC,
+                 CASE :sort WHEN 'RECENTLY_ADDED' THEN $SHOW_ADDED END DESC,
                  providerOrder, seriesId
         LIMIT :limit OFFSET :offset
         """,

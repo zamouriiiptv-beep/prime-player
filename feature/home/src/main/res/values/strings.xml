@@ -24,6 +24,7 @@
     <string name="browse_empty_action">Refresh</string>
 
     <string name="show_season">Season %1$d</string>
+    <string name="show_preparing">Your provider is preparing the episodes…</string>
     <string name="show_no_episodes_title">No episodes yet</string>
     <string name="show_no_episodes_detail">Your provider lists this show but has not sent any episodes for it.</string>
     <string name="show_play">Play</string>

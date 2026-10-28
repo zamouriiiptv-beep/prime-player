@@ -73,6 +73,7 @@ class RoomCatalogWriter(
     private var inTransaction = false
     private var lastRowIdBefore = 0L
     private var wroteRows = false
+    private var wroteGroups = false
     private var itemStatement: SupportSQLiteStatement? = null
     private var groupStatement: SupportSQLiteStatement? = null
     private var countStatement: SupportSQLiteStatement? = null
@@ -113,6 +114,7 @@ class RoomCatalogWriter(
         // is how the index knows, at the end, which rows are this import's.
         lastRowIdBefore = db.longOf("SELECT IFNULL(MAX(rowid), 0) FROM media")
         wroteRows = false
+        wroteGroups = false
         pacer.reset()
         rowsSinceCommit = false
         countedSinceCommit = false
@@ -133,6 +135,7 @@ class RoomCatalogWriter(
         val source = requireStarted()
         val statement = groupStatement ?: error("writeGroups before begin")
         if (groups.isEmpty()) return
+        wroteGroups = true
         openTransaction()
         for (group in groups) {
             statement.clearBindings()
@@ -345,7 +348,10 @@ class RoomCatalogWriter(
                     execSQL("DELETE FROM media_group WHERE source_id = ? AND generation != ? AND kind IN ($kinds)", args)
                 }
             }
-            timed(DatabaseStep.COUNTS) { execSQL(COUNT_GROUPS, arrayOf(source)) }
+            // Only an import that wrote categories has counts to settle: a show's episodes, written into the category
+            // its row is in, change no count -- a category counts shows -- and recounting every category of the
+            // subscription for them was a cost of every show opened.
+            if (wroteGroups) timed(DatabaseStep.COUNTS) { execSQL(COUNT_GROUPS, arrayOf(source)) }
             timed(DatabaseStep.SEARCH) { indexWrittenRows() }
         }
 
@@ -368,7 +374,7 @@ class RoomCatalogWriter(
             if (source != null && wroteRows) {
                 runCatching {
                     db.transaction {
-                        timed(DatabaseStep.COUNTS) { execSQL(COUNT_GROUPS, arrayOf(source)) }
+                        if (wroteGroups) timed(DatabaseStep.COUNTS) { execSQL(COUNT_GROUPS, arrayOf(source)) }
                         timed(DatabaseStep.SEARCH) { indexWrittenRows() }
                     }
                 }
@@ -582,17 +588,38 @@ class RoomCatalogWriter(
         """
 
         /**
+         * What a category holds, counted: its rows, and for a category of shows the shows -- one for each series id,
+         * whatever its episodes number. A show's episodes are written into its category when it is opened, and a count
+         * of rows had a category read 394 shows before the first was opened and 564 after: the show's 170 episodes.
+         *
+         * A row with no series id is a show of its own, so it is counted as one. A category's rows are a range of the
+         * index that leads with the subscription and the kind, so each branch is a range and not a scan; the shows are
+         * counted by a distinct over that range, which is the dearer and is paid for only by a category of shows.
+         */
+        const val COUNT_OF_GROUP = """(
+                CASE media_group.kind
+                    WHEN 'SERIES' THEN (
+                        SELECT COUNT(DISTINCT media.series_id) + COUNT(CASE WHEN media.series_id IS NULL THEN 1 END) FROM media
+                        WHERE media.source_id = media_group.source_id
+                          AND media.kind = media_group.kind
+                          AND media.group_id = media_group.id
+                    )
+                    ELSE (
+                        SELECT COUNT(*) FROM media
+                        WHERE media.source_id = media_group.source_id
+                          AND media.kind = media_group.kind
+                          AND media.group_id = media_group.id
+                    )
+                END
+            )"""
+
+        /**
          * One category, counted: [COUNT_GROUPS] for a single id, through the same index.
          * Its subscription and kind come from the category's own row, which is what keeps
          * the count a range of the index rather than a scan.
          */
         const val COUNT_GROUP = """
-            UPDATE media_group SET item_count = (
-                SELECT COUNT(*) FROM media
-                WHERE media.source_id = media_group.source_id
-                  AND media.kind = media_group.kind
-                  AND media.group_id = media_group.id
-            )
+            UPDATE media_group SET item_count = $COUNT_OF_GROUP
             WHERE id = ?
         """
 
@@ -607,12 +634,7 @@ class RoomCatalogWriter(
          * on the subscription it was measured on, and as long after three hundred stations.
          */
         const val COUNT_GROUPS = """
-            UPDATE media_group SET item_count = (
-                SELECT COUNT(*) FROM media
-                WHERE media.source_id = media_group.source_id
-                  AND media.kind = media_group.kind
-                  AND media.group_id = media_group.id
-            )
+            UPDATE media_group SET item_count = $COUNT_OF_GROUP
             WHERE source_id = ?
         """
 

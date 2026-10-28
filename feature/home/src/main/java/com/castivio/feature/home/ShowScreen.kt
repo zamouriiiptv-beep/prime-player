@@ -93,6 +93,7 @@ import com.castivio.core.design.theme.castivioStage
 import com.castivio.core.platform.PerformanceLog
 import com.castivio.domain.Episode
 import com.castivio.domain.EpisodeMark
+import com.castivio.domain.RequestTimes
 import com.castivio.domain.Season
 import com.castivio.domain.SeriesSummary
 import kotlinx.coroutines.launch
@@ -130,8 +131,14 @@ fun ShowScreen(
     // The player has been on top of this page, or has not: either way, what was watched is read again.
     LaunchedEffect(Unit) { model.reread() }
 
-    val state by model.state.collectAsStateWithLifecycle()
+    val held by model.state.collectAsStateWithLifecycle()
+    // The model keeps the state of the show it held last, and a page opened after another is first handed that one:
+    // it draws the show it was given and nothing of the other, from the first frame, until its own state arrives.
+    val state = if (held.seriesId == show.seriesId) held else ShowState(asking = true)
     val target = state.target
+    // Whether this APK may print what the request cost: debuggable, as for the failure reason -- a property of the package.
+    val context = LocalContext.current
+    val instrumented = remember(context) { PerformanceLog.isVisibleIn(context) }
 
     // The season the viewer picked, else the one the next episode is in, else the first.
     var picked by remember(show.seriesId) { mutableStateOf<Int?>(null) }
@@ -214,9 +221,20 @@ fun ShowScreen(
                             onMorePlot = { plotOpen = true },
                         )
                     }
+                    state.times?.takeIf { instrumented }?.let { cost ->
+                        item(key = "times") { RequestTimesLine(cost, m) }
+                    }
                     if (state.seasons.isEmpty()) {
                         item(key = "placeholder") {
-                            EpisodesPlaceholder(state.load, state.failure, m, model::retry, onBack, Modifier.fillMaxWidth())
+                            EpisodesPlaceholder(
+                                load = state.load,
+                                preparing = state.preparing,
+                                failure = state.failure,
+                                m = m,
+                                onRetry = model::retry,
+                                onBack = onBack,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
                         }
                     } else {
                         item(key = "seasons") { SeasonChips(state.seasons, season, m, tv) { picked = it } }
@@ -582,6 +600,7 @@ private fun SeasonChip(season: Season, selected: Boolean, m: CatalogMetrics, tv:
 @Composable
 private fun EpisodesPlaceholder(
     load: ShowLoad,
+    preparing: Boolean,
     failure: String?,
     m: CatalogMetrics,
     onRetry: () -> Unit,
@@ -593,6 +612,14 @@ private fun EpisodesPlaceholder(
     val instrumented = remember(context) { PerformanceLog.isVisibleIn(context) }
     when (load) {
         ShowLoad.Loading -> Column(modifier, verticalArrangement = Arrangement.spacedBy(m.rowGap)) {
+            // The provider answered with no episode, and is asked again: it is likely still building the show.
+            if (preparing) {
+                Text(
+                    text = stringResource(R.string.show_preparing),
+                    style = castivioBodyStyle(m.frame.fsBody),
+                    color = CastivioTheme.colors.onBackgroundVariant,
+                )
+            }
             repeat(PLACEHOLDER_ROWS) {
                 Box(
                     Modifier
@@ -619,11 +646,28 @@ private fun EpisodesPlaceholder(
             EmptyState(
                 title = stringResource(R.string.show_no_episodes_title),
                 detail = stringResource(R.string.show_no_episodes_detail),
-                actionLabel = stringResource(R.string.show_back),
-                onAction = onBack,
+                // Asking again is here, so a viewer does not have to leave the page and come back to do it.
+                actionLabel = stringResource(R.string.show_retry),
+                onAction = onRetry,
+                secondaryActionLabel = stringResource(R.string.show_back),
+                onSecondaryAction = onBack,
             )
         }
     }
+}
+
+/**
+ * What the request for this page cost, in one muted line: a debuggable build says where a wait went -- the provider
+ * answering, its answer arriving, the catalogue keeping it -- and how many times it was asked.
+ */
+@Composable
+private fun RequestTimesLine(times: RequestTimes, m: CatalogMetrics) {
+    Text(
+        text = times.line(),
+        style = castivioBodyStyle(m.frame.fsLabel),
+        color = CastivioTheme.colors.onBackgroundMuted,
+        maxLines = 1,
+    )
 }
 
 /**

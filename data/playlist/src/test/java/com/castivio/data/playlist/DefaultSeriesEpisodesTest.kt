@@ -31,6 +31,7 @@ import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -83,7 +84,7 @@ class DefaultSeriesEpisodesTest {
 
         val load = loader().load("show-1")
 
-        assertEquals(EpisodesLoad.Loaded(2), load)
+        assertEquals(2, (load as EpisodesLoad.Loaded).episodes)
         assertEquals(listOf("src" to ImportMode.APPEND), writer.began)
         assertEquals(listOf("The Tide Table", "Low Water"), writer.items.map { it.title })
         assertEquals(setOf(1), writer.items.map { it.seasonNumber }.toSet())
@@ -93,6 +94,18 @@ class DefaultSeriesEpisodesTest {
         val request = server.takeRequest()
         assertTrue(request.path!!.contains("action=get_series_info"))
         assertTrue(request.path!!.contains("series_id=551"))
+    }
+
+    /** What the asking cost is handed on with the answer, for a debuggable build to say where a wait went. */
+    @Test
+    fun `an answer carries what the request cost`() = runBlocking {
+        server.enqueue(MockResponse().setBody(SERIES_INFO))
+
+        val times = (loader().load("show-1") as EpisodesLoad.Loaded).times
+
+        assertNotNull(times)
+        assertEquals(1, times!!.tries)
+        assertTrue(times.askMs >= 0 && times.readMs >= 0 && times.saveMs >= 0)
     }
 
     @Test
@@ -124,7 +137,7 @@ class DefaultSeriesEpisodesTest {
     fun `what the provider says of the show and of its episodes is kept with the episodes`() = runBlocking {
         server.enqueue(MockResponse().setBody(SERIES_WITH_DETAILS))
 
-        assertEquals(EpisodesLoad.Loaded(2), loader().load("show-1"))
+        assertEquals(2, (loader().load("show-1") as EpisodesLoad.Loaded).episodes)
 
         val put = details.puts.single()
         assertEquals("show-1", put.seriesId)
@@ -148,7 +161,7 @@ class DefaultSeriesEpisodesTest {
     fun `a show the provider says nothing of keeps no details, and takes back what was kept`() = runBlocking {
         server.enqueue(MockResponse().setBody("""{"info": [], "episodes": {"1": [{"id": "9001", "title": "A", "episode_num": 1}]}}"""))
 
-        assertEquals(EpisodesLoad.Loaded(1), loader().load("show-1"))
+        assertEquals(1, (loader().load("show-1") as EpisodesLoad.Loaded).episodes)
 
         assertNull(details.puts.single().details)
         assertTrue(details.puts.single().plots.isEmpty())
@@ -159,7 +172,7 @@ class DefaultSeriesEpisodesTest {
         server.enqueue(MockResponse().setBody(SERIES_WITH_DETAILS))
         details.fail = true
 
-        assertEquals(EpisodesLoad.Loaded(2), loader().load("show-1"))
+        assertEquals(2, (loader().load("show-1") as EpisodesLoad.Loaded).episodes)
     }
 
     private class RecordingDetails : SeriesDetailsStore {

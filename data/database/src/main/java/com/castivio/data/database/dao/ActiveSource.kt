@@ -74,3 +74,27 @@ internal const val HIDDEN_IN_GROUP =
  */
 internal const val SHOW_SORT_TITLE =
     "COALESCE(min(CASE WHEN episode_number IS NULL THEN sort_title END), lower(series_title))"
+
+/**
+ * Where a show stands in the provider's order, in a query that groups `media` by `series_id`: where its own row stands --
+ * the shell an Xtream import writes with no episode number -- and, for a show that has none (a playlist's, made of
+ * episodes alone), where its first episode does. Never a bare `min(provider_order)` over every row: the episodes written
+ * when a show is opened are numbered from nought, and a show that had been opened stood at the head of the list.
+ */
+internal const val SHOW_ORDER =
+    "COALESCE(min(CASE WHEN episode_number IS NULL THEN provider_order END), min(provider_order))"
+
+/**
+ * When a show was added, in the same kind of query: when its own row was, and for a show with none, its newest episode's.
+ * Not the newest of every row, which a show opened today would be: its episodes are written then, and the show would
+ * stand first among those added recently.
+ */
+internal const val SHOW_ADDED =
+    "COALESCE(max(CASE WHEN episode_number IS NULL THEN added_at END), max(added_at))"
+
+/**
+ * A show's poster, in the same kind of query: its own row's, and for a show with none, an episode's. Not whichever row
+ * the grouping happened to leave the bare column from: once a show was opened its poster was an episode's still.
+ */
+internal const val SHOW_POSTER =
+    "COALESCE(max(CASE WHEN episode_number IS NULL THEN artwork_url END), artwork_url)"

@@ -1,5 +1,6 @@
 package com.castivio.data.playlist
 
+import com.castivio.data.networking.HttpStatusException
 import com.castivio.data.networking.XtreamHttpApi
 import com.castivio.data.parsing.XtreamParser
 import com.castivio.data.parsing.XtreamVodInfo
@@ -8,21 +9,29 @@ import com.castivio.domain.MovieDetails
 import com.castivio.domain.MovieDetailsCache
 import com.castivio.domain.MovieDetailsRepository
 import com.castivio.domain.PlaylistSource
+import com.castivio.domain.RequestTimes
 import com.castivio.domain.SourceRepository
 import com.castivio.domain.asAccountSource
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * A film's details from its provider, asked for once and kept.
+ * A film's details from its provider, asked for until it answers, and kept.
  *
  * The cache is read first, so a film whose page was opened before costs no request. A provider that cannot
  * be reached, or gives a reply the parser does not accept, yields no details rather than an error: the page
  * then has less to show and the film still plays. Nothing is asked of a film with no provider id.
+ *
+ * **An empty answer is not believed at once.** A provider that has not yet built a film's details answers with
+ * nothing the first time and with all of them a moment later, so the asking is repeated after two, four and
+ * seven seconds before it gives up. Only a provider that *answered* nothing every time is remembered as having
+ * nothing, and only for a while: a film whose asking failed on the way -- a weak connection, a timeout -- is
+ * remembered as nothing at all, because the next page may well reach the provider.
  */
 class DefaultMovieDetails(
     private val cache: MovieDetailsCache,
@@ -32,10 +41,10 @@ class DefaultMovieDetails(
     private val clock: () -> Long,
 ) : MovieDetailsRepository {
 
-    /** Films asked for whose provider gave nothing, and when: not asked again for [MISS_MEMORY_MS]. */
+    /** Films whose provider answered nothing every time it was asked, and when: left alone for [MISS_MEMORY_MS]. */
     private val misses = ConcurrentHashMap<String, Long>()
 
-    override suspend fun details(movie: Movie): MovieDetails? {
+    override suspend fun details(movie: Movie, onTimes: (RequestTimes) -> Unit): MovieDetails? {
         val sourceId = movie.sourceId ?: return null
         // The provider's own id: kept on the row by the API imports, and inside the stream's address for a
         // film read from a panel's playlist file, which keeps no id of its own.
@@ -53,24 +62,57 @@ class DefaultMovieDetails(
             is PlaylistSource.M3u -> source.xtream
             else -> null
         } ?: return null
-        val info = withContext(dispatcher) {
-            try {
-                XtreamHttpApi(client, xtream.host, xtream.username, xtream.password)
-                    .vodInfo(providerRef)
-                    ?.use { XtreamParser.parseVodInfo(it) }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: IOException) {
-                null
-            }
-        }?.toDomain()?.takeIf { it != MovieDetails() }
 
-        if (info == null) {
-            misses[key] = clock()
-            return null
+        var tries = 0
+        var answeredNothing = 0
+        while (true) {
+            tries++
+            val reply = ask(xtream, providerRef)
+            onTimes(reply.times.copy(tries = tries))
+            if (reply.details != null) {
+                cache.put(sourceId, providerRef, reply.details, clock())
+                return reply.details
+            }
+            if (reply.answered) answeredNothing++
+            // A provider that said no in so many words is not asked again, and nor is one that is out of tries.
+            if (reply.definitive || tries > RETRY_DELAYS_MS.size) break
+            delay(RETRY_DELAYS_MS[tries - 1])
         }
-        cache.put(sourceId, providerRef, info, clock())
-        return info
+        if (answeredNothing == tries) misses[key] = clock()
+        return null
+    }
+
+    /** One asking: what came, whether the provider answered at all, and what it cost. */
+    private class Reply(
+        val details: MovieDetails?,
+        val answered: Boolean,
+        val times: RequestTimes,
+        /** The provider refused in so many words, and asking again would only hear it again. */
+        val definitive: Boolean = false,
+    )
+
+    private suspend fun ask(xtream: PlaylistSource.Xtream, providerRef: String): Reply = withContext(dispatcher) {
+        val askStarted = clock()
+        try {
+            val reader = XtreamHttpApi(client, xtream.host, xtream.username, xtream.password).vodInfo(providerRef)
+                ?: return@withContext Reply(null, answered = false, times = RequestTimes(clock() - askStarted, 0), definitive = true)
+            val askMs = clock() - askStarted
+            val readStarted = clock()
+            val info = reader.use { XtreamParser.parseVodInfo(it) }
+            Reply(
+                details = info?.toDomain()?.takeIf { it != MovieDetails() },
+                answered = true,
+                times = RequestTimes(askMs, clock() - readStarted),
+            )
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: HttpStatusException) {
+            // The provider answered, with a refusal. Only a busy or timed-out one is worth asking again.
+            val busy = e.statusCode == 408 || e.statusCode == 429 || e.statusCode in 500..599
+            Reply(null, answered = !busy, times = RequestTimes(clock() - askStarted, 0), definitive = !busy)
+        } catch (e: IOException) {
+            Reply(null, answered = false, times = RequestTimes(clock() - askStarted, 0))
+        }
     }
 
     private fun XtreamVodInfo.toDomain(): MovieDetails = MovieDetails(
@@ -94,5 +136,8 @@ internal fun xtreamVodId(streamUrl: String): String? =
 
 private val VOD_ADDRESS = Regex("""/movie/[^/]+/[^/]+/(\d+)(?:\.[A-Za-z0-9]+)?$""")
 
-/** How long a film whose provider gave no details is left alone: a reopened page asks nothing until then. */
+/** How long a film whose provider answered nothing every time is left alone: a reopened page asks nothing until then. */
 private const val MISS_MEMORY_MS = 10 * 60 * 1000L
+
+/** The waits before each asking after the first: two, four and seven seconds, and the fourth answer is believed. */
+private val RETRY_DELAYS_MS = longArrayOf(2_000, 4_000, 7_000)

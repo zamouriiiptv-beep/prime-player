@@ -10,6 +10,7 @@ import com.castivio.domain.InProgressItem
 import com.castivio.domain.MediaItem
 import com.castivio.domain.PlaybackProgress
 import com.castivio.domain.ProgressRepository
+import com.castivio.domain.RequestTimes
 import com.castivio.domain.Season
 import com.castivio.domain.SeriesDetails
 import com.castivio.domain.SeriesDetailsStore
@@ -26,8 +27,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -64,9 +67,12 @@ class ShowViewModelTest {
 
     private class FakePager(initial: List<Season>) : CatalogPager {
         val seasons = MutableStateFlow(initial)
+
+        /** The seasons of a show that has a flow of its own: another show's page is not handed the same ones. */
+        val byShow = mutableMapOf<String, Flow<List<Season>>>()
         override fun items(query: CatalogQuery): Flow<PagingData<MediaItem>> = emptyFlow()
         override fun series(query: CatalogQuery): Flow<PagingData<SeriesSummary>> = emptyFlow()
-        override fun seasons(seriesId: String): Flow<List<Season>> = seasons
+        override fun seasons(seriesId: String): Flow<List<Season>> = byShow[seriesId] ?: seasons
         override fun favorites(): Flow<PagingData<MediaItem>> = emptyFlow()
         override fun continueWatching(): Flow<PagingData<InProgressItem>> = emptyFlow()
         override fun history(): Flow<PagingData<InProgressItem>> = emptyFlow()
@@ -110,6 +116,15 @@ class ShowViewModelTest {
         }
     }
 
+    /** Answers one after another as it is asked, and the last one again after that. */
+    private class SequencedEpisodes(private vararg val answers: EpisodesLoad) : SeriesEpisodes {
+        val asked = mutableListOf<String>()
+        override suspend fun load(seriesId: String): EpisodesLoad {
+            asked += seriesId
+            return answers[minOf(asked.size, answers.size) - 1]
+        }
+    }
+
     private class FakeProgress(val positions: Map<String, PlaybackProgress> = emptyMap()) : ProgressRepository {
         val watched = mutableListOf<String>()
         override suspend fun save(mediaId: String, positionMs: Long, durationMs: Long?) = Unit
@@ -123,7 +138,7 @@ class ShowViewModelTest {
 
     private fun TestScope.model(
         pager: FakePager,
-        episodes: FakeEpisodes,
+        episodes: SeriesEpisodes,
         progress: FakeProgress = FakeProgress(),
         details: FakeDetails = FakeDetails(),
         favorites: FakeFavorites = FakeFavorites(),
@@ -351,5 +366,160 @@ class ShowViewModelTest {
         advanceUntilIdle()
 
         assertNull(model.state.value.failure)
+    }
+
+    // ---------------------------------------------------------- an empty answer is not believed at once
+
+    @Test
+    fun `an empty answer is asked for again after two, four and seven seconds, and believed the fourth time`() = runTest(dispatcher) {
+        val episodes = SequencedEpisodes(EpisodesLoad.Loaded(0))
+        val model = model(FakePager(emptyList()), episodes)
+
+        model.open("show-1")
+        runCurrent()
+        assertEquals(1, episodes.asked.size)
+        // Not "no episodes": the provider may not have built the show yet, and the page says it is being prepared.
+        assertEquals(ShowLoad.Loading, model.state.value.load)
+        assertEquals(true, model.state.value.preparing)
+
+        advanceTimeBy(1_900)
+        runCurrent()
+        assertEquals(1, episodes.asked.size)
+        advanceTimeBy(200)
+        runCurrent()
+        assertEquals(2, episodes.asked.size)
+        advanceTimeBy(4_100)
+        runCurrent()
+        assertEquals(3, episodes.asked.size)
+        advanceTimeBy(7_100)
+        runCurrent()
+
+        assertEquals(4, episodes.asked.size)
+        assertEquals(ShowLoad.Ready, model.state.value.load)
+        assertEquals(false, model.state.value.preparing)
+        assertEquals(emptyList<Season>(), model.state.value.seasons)
+    }
+
+    @Test
+    fun `an empty answer followed by the episodes ends with the episodes, and nothing is asked again`() = runTest(dispatcher) {
+        val pager = FakePager(emptyList())
+        val episodes = SequencedEpisodes(EpisodesLoad.Loaded(0), EpisodesLoad.Loaded(3, RequestTimes(askMs = 900, readMs = 100)))
+        val model = model(pager, episodes)
+
+        model.open("show-1")
+        runCurrent()
+        assertEquals(true, model.state.value.preparing)
+
+        // What the provider built is written by the second asking, and the page reads it as it is written.
+        pager.seasons.value = held
+        advanceTimeBy(2_100)
+        runCurrent()
+
+        assertEquals(2, episodes.asked.size)
+        assertEquals(ShowLoad.Ready, model.state.value.load)
+        assertEquals(false, model.state.value.preparing)
+        assertEquals(2, model.state.value.seasons.size)
+        advanceUntilIdle()
+        assertEquals(2, episodes.asked.size)
+        // The figures say which asking they are of: the second.
+        assertEquals(2, model.state.value.times?.tries)
+    }
+
+    @Test
+    fun `an empty answer behind episodes already held is not asked for again`() = runTest(dispatcher) {
+        val episodes = SequencedEpisodes(EpisodesLoad.Loaded(0))
+        val model = model(FakePager(held), episodes)
+
+        model.open("show-1")
+        advanceUntilIdle()
+
+        assertEquals(1, episodes.asked.size)
+        assertEquals(ShowLoad.Ready, model.state.value.load)
+        assertEquals(false, model.state.value.preparing)
+    }
+
+    @Test
+    fun `opening another show ends the waiting for the first`() = runTest(dispatcher) {
+        val episodes = SequencedEpisodes(EpisodesLoad.Loaded(0))
+        val model = model(FakePager(emptyList()), episodes)
+
+        model.open("show-1")
+        runCurrent()
+        model.open("show-2")
+        advanceUntilIdle()
+
+        // Once for the first show, which the page left; the second is asked for to the end.
+        assertEquals(1, episodes.asked.count { it == "show-1" })
+        assertEquals(4, episodes.asked.count { it == "show-2" })
+    }
+
+    @Test
+    fun `a show that ended empty is asked for again by a press, and by opening it again`() = runTest(dispatcher) {
+        val episodes = SequencedEpisodes(EpisodesLoad.Loaded(0))
+        val model = model(FakePager(emptyList()), episodes)
+        model.open("show-1")
+        advanceUntilIdle()
+        assertEquals(4, episodes.asked.size)
+
+        model.retry()
+        runCurrent()
+        assertEquals(5, episodes.asked.size)
+        assertEquals(ShowLoad.Loading, model.state.value.load)
+        advanceUntilIdle()
+        assertEquals(8, episodes.asked.size)
+
+        // Coming back to the same show is the same wish: it does not stay as it was left.
+        model.open("show-1")
+        runCurrent()
+        assertEquals(9, episodes.asked.size)
+    }
+
+    @Test
+    fun `a show that was asked for and found is not asked for again by being opened again`() = runTest(dispatcher) {
+        val episodes = SequencedEpisodes(EpisodesLoad.Loaded(3))
+        val model = model(FakePager(held), episodes)
+        model.open("show-1")
+        advanceUntilIdle()
+
+        model.open("show-1")
+        advanceUntilIdle()
+
+        assertEquals(1, episodes.asked.size)
+    }
+
+    @Test
+    fun `what the request cost reaches the page, with how many times the provider was asked`() = runTest(dispatcher) {
+        val cost = RequestTimes(askMs = 6_100, readMs = 400, saveMs = 200)
+        val model = model(FakePager(held), SequencedEpisodes(EpisodesLoad.Loaded(3, cost)))
+
+        model.open("show-1")
+        advanceUntilIdle()
+
+        assertEquals(cost.copy(tries = 1), model.state.value.times)
+        assertEquals("ask 6.1 s · read 0.4 s · save 0.2 s · try 1", model.state.value.times?.line())
+    }
+
+    // ---------------------------------------------------------- the state is of one show
+
+    @Test
+    fun `the state says which show it is of, and the show opened next is not given the one before`() = runTest(dispatcher) {
+        val pager = FakePager(held)
+        val model = model(pager, SequencedEpisodes(EpisodesLoad.Loaded(3)))
+        model.open("show-1")
+        advanceUntilIdle()
+        assertEquals("show-1", model.state.value.seriesId)
+        assertEquals(2, model.state.value.seasons.size)
+
+        // The next show's seasons have not been read yet: what the model holds is still the first show's, and says so.
+        val next = kotlinx.coroutines.flow.MutableSharedFlow<List<Season>>()
+        pager.byShow["show-2"] = next
+        model.open("show-2")
+        advanceUntilIdle()
+        assertEquals("show-1", model.state.value.seriesId)
+
+        next.emit(emptyList())
+        advanceUntilIdle()
+        assertEquals("show-2", model.state.value.seriesId)
+        assertEquals(emptyList<Season>(), model.state.value.seasons)
     }
 }

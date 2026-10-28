@@ -53,6 +53,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
@@ -83,6 +84,7 @@ import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.castivioBackdrop
 import com.castivio.core.design.theme.castivioStage
+import com.castivio.core.platform.PerformanceLog
 import com.castivio.domain.Movie
 
 /**
@@ -134,6 +136,11 @@ fun MovieScreen(
     val colors = CastivioTheme.colors
     val ids by favorites.ids.collectAsStateWithLifecycle()
     val known by detailsModel.details.collectAsStateWithLifecycle()
+    // What asking the provider for the details cost, printed in a debuggable APK only -- a property of the package --
+    // so a wait for the plot can be told apart: the provider answering, the answer arriving, how many times it was asked.
+    val cost by detailsModel.times.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val instrumented = remember(context) { PerformanceLog.isVisibleIn(context) }
     val favorite = movie.id in ids
     val state by model.state.collectAsStateWithLifecycle()
     val selection = remember(movie) { movie.asSelection() }
@@ -380,6 +387,16 @@ fun MovieScreen(
                 back(Modifier.align(Alignment.TopEnd).padding(m.paneGap))
                 }
             }
+        }
+
+        cost?.takeIf { instrumented }?.let { spent ->
+            Text(
+                text = spent.line(),
+                style = castivioChipStyle(m.frame.fsLabel),
+                color = colors.onBackgroundMuted,
+                maxLines = 1,
+                modifier = Modifier.align(Alignment.BottomStart).padding(m.paneGap),
+            )
         }
 
         // Outside the block above, which draws the page left to right: the dialog is the application's own, and

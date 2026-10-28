@@ -13,6 +13,7 @@ import com.castivio.domain.MediaKind
 import com.castivio.domain.Movie
 import com.castivio.domain.MovieDetails
 import com.castivio.domain.MovieDetailsRepository
+import com.castivio.domain.RequestTimes
 import com.castivio.domain.SectionLoads
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -181,11 +182,11 @@ class MovieScreenTest {
 
     /** A provider that gives a plot and nothing else. */
     private class WithPlot(private val plot: String) : MovieDetailsRepository {
-        override suspend fun details(movie: Movie): MovieDetails? = MovieDetails(plot = plot)
+        override suspend fun details(movie: Movie, onTimes: (RequestTimes) -> Unit): MovieDetails? = MovieDetails(plot = plot)
     }
 
     /** A provider that gives no details: the page then draws only what the list row carried. */
     private object NoDetails : MovieDetailsRepository {
-        override suspend fun details(movie: Movie): MovieDetails? = null
+        override suspend fun details(movie: Movie, onTimes: (RequestTimes) -> Unit): MovieDetails? = null
     }
 }

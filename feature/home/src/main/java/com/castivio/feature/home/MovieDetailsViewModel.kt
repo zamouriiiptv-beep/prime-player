@@ -5,9 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.castivio.domain.Movie
 import com.castivio.domain.MovieDetails
 import com.castivio.domain.MovieDetailsRepository
+import com.castivio.domain.RequestTimes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,21 +31,33 @@ class MovieDetailsViewModel @Inject constructor(
     /** The film's details; null while they are on their way, and for good where the provider has none. */
     val details: StateFlow<MovieDetails?> = _details.asStateFlow()
 
-    private var shown: String? = null
+    private val _times = MutableStateFlow<RequestTimes?>(null)
 
-    /** Asks for [movie]'s details, once for each film: a film already asked for keeps its answer. */
+    /** What the last asking of the provider cost, for a debuggable build to print; null before it has been. */
+    val times: StateFlow<RequestTimes?> = _times.asStateFlow()
+
+    private var shown: String? = null
+    private var asking: Job? = null
+
+    /**
+     * Asks for [movie]'s details, once for each film: a film already asked for keeps its answer. The asking of the film
+     * shown before it is ended, so a late answer for that one is never taken for this one's.
+     */
     fun load(movie: Movie) {
         if (shown == movie.id) return
         shown = movie.id
         _details.value = null
-        viewModelScope.launch {
-            _details.value = try {
-                repository.details(movie)
+        _times.value = null
+        asking?.cancel()
+        asking = viewModelScope.launch {
+            val answer = try {
+                repository.details(movie) { cost -> if (shown == movie.id) _times.value = cost }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 null
             }
+            if (shown == movie.id) _details.value = answer
         }
     }
 }

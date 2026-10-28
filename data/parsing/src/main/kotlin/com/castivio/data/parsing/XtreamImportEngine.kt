@@ -7,6 +7,7 @@ import com.castivio.domain.ImportProgress
 import com.castivio.domain.ImportSummary
 import com.castivio.domain.MediaGroup
 import com.castivio.domain.MediaKind
+import com.castivio.domain.RequestTimes
 import java.io.Reader
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
@@ -815,6 +816,8 @@ class XtreamImportEngine(
         seriesTitle: String,
         groupId: String?,
         onDetails: (XtreamSeriesInfo?, Map<String, String>) -> Unit = { _, _ -> },
+        /** Told what the request cost, once it is kept: where the wait for a show's page went. */
+        onTimes: (RequestTimes) -> Unit = {},
     ): Int {
         val started = clock()
         val seriesId = StableIds.seriesByProviderId(sourceId, providerSeriesId)
@@ -828,9 +831,15 @@ class XtreamImportEngine(
 
         // APPEND, emphatically: a REPLACE write here would prune every row that
         // is not one of this show's episodes — the entire library.
+        val openStarted = nanoClock()
         writer.begin(sourceId, ImportMode.APPEND)
+        val openNanos = nanoClock() - openStarted
         try {
-            api.seriesInfo(providerSeriesId).use { reader ->
+            val askStarted = nanoClock()
+            val reply = api.seriesInfo(providerSeriesId)
+            val askNanos = nanoClock() - askStarted
+            val readStarted = nanoClock()
+            reply.use { reader ->
                 XtreamParser.parseSeriesInfo(reader, onInfo = { info = it }) { episode ->
                     val rowId = StableIds.item(sourceId, "episode:${episode.episodeId}")
                     episode.plot?.let { plots[rowId] = it }
@@ -859,6 +868,8 @@ class XtreamImportEngine(
                     if (batch.size >= batchSize) written += flush(batch)
                 }
             }
+            val readNanos = nanoClock() - readStarted
+            val saveStarted = nanoClock()
             written += flush(batch)
             writer.finish(
                 ImportSummary(
@@ -870,7 +881,9 @@ class XtreamImportEngine(
                     durationMs = clock() - started,
                 ),
             )
+            val saveNanos = nanoClock() - saveStarted
             onDetails(info, plots)
+            onTimes(RequestTimes(askNanos.ms(), readNanos.ms(), saveNanos.ms(), openNanos.ms()))
             return written
         } catch (t: Throwable) {
             writer.abort(t)
@@ -1512,3 +1525,6 @@ class XtreamImportEngine(
  * what the panel answered — `HTTP 404` — and never where the question was sent.
  */
 class WholeSectionUnsupported(message: String, cause: Throwable? = null) : Exception(message, cause)
+
+/** Nanoseconds as the milliseconds a [RequestTimes] is told in. */
+private fun Long.ms(): Long = this / 1_000_000

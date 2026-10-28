@@ -7,6 +7,7 @@ import com.castivio.domain.CatalogPager
 import com.castivio.domain.CatalogWriter
 import com.castivio.domain.EpisodesLoad
 import com.castivio.domain.PlaylistSource
+import com.castivio.domain.RequestTimes
 import com.castivio.domain.SeriesDetails
 import com.castivio.domain.SeriesDetailsStore
 import com.castivio.domain.SeriesEpisodes
@@ -56,6 +57,7 @@ class DefaultSeriesEpisodes(
             try {
                 var said: XtreamSeriesInfo? = null
                 var plots: Map<String, String> = emptyMap()
+                var times: RequestTimes? = null
                 val written = XtreamImportEngine(writers(), clock = clock).importEpisodes(
                     sourceId = shell.sourceId,
                     api = XtreamHttpApi(client, account.host, account.username, account.password),
@@ -66,12 +68,13 @@ class DefaultSeriesEpisodes(
                         said = info
                         plots = episodePlots
                     },
+                    onTimes = { times = it },
                 )
                 // The episodes are in; what the provider said of them is a courtesy, and failing to keep it
                 // must not turn a page that has its episodes into one that says it could not be read.
                 runCatching { details.put(seriesId, said?.toDomain(), plots, clock()) }
                     .onFailure { if (it is CancellationException) throw it }
-                EpisodesLoad.Loaded(written)
+                EpisodesLoad.Loaded(written, times)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: IOException) {

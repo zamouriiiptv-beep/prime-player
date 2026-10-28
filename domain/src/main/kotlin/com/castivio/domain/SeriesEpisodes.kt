@@ -17,8 +17,11 @@ interface SeriesEpisodes {
 /** How asking a provider for a show's episodes ended. */
 sealed interface EpisodesLoad {
 
-    /** The provider answered, with [episodes] of them. Zero is an answer: the provider lists the show and has none. */
-    data class Loaded(val episodes: Int) : EpisodesLoad
+    /**
+     * The provider answered, with [episodes] of them. Zero is an answer, and not always the last one: a provider that
+     * has not yet built the show answers empty the first time -- see [times] for what the asking cost.
+     */
+    data class Loaded(val episodes: Int, val times: RequestTimes? = null) : EpisodesLoad
 
     /** There is nobody to ask: the show has no row of its own, or its source cannot be asked for episodes. */
     data object NoProvider : EpisodesLoad

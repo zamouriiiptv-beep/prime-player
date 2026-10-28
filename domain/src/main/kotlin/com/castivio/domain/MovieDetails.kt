@@ -29,7 +29,10 @@ interface MovieDetailsCache {
  *
  * Null when the provider gives none, cannot be reached, or the film has no provider id to ask by (an M3U
  * row). A null is never an error the page must show: the film plays and the page draws what it has.
+ *
+ * A provider that has not yet built a film's details answers empty the first time and fully a moment later,
+ * so an empty answer is asked for again before it is believed, and [onTimes] is told what each asking cost.
  */
 interface MovieDetailsRepository {
-    suspend fun details(movie: Movie): MovieDetails?
+    suspend fun details(movie: Movie, onTimes: (RequestTimes) -> Unit = {}): MovieDetails?
 }
