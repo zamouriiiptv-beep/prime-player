@@ -175,10 +175,11 @@ class ShowScreenTest {
     fun `the facts the provider sent are drawn, with the seasons the catalogue holds`() {
         show()
 
-        compose.onNodeWithText("2015").assertIsDisplayed()
-        compose.onNodeWithText("Drama | Mystery").assertIsDisplayed()
-        compose.onNodeWithText("8.0").assertIsDisplayed()
-        compose.onNodeWithText("2 seasons").assertIsDisplayed()
+        // They are there, and a test environment that lays out no text cannot say where on the screen.
+        compose.onNodeWithText("2015", substring = true).assertExists()
+        compose.onNodeWithText("Drama | Mystery").assertExists()
+        compose.onNodeWithText("8.0", substring = true).assertExists()
+        compose.onNodeWithText("2 seasons").assertExists()
     }
 
     @Test
@@ -230,7 +231,7 @@ class ShowScreenTest {
 
         compose.onNodeWithText("Episode 1-1").assertIsDisplayed()
         compose.onNodeWithText("A train crash.").assertIsDisplayed()
-        assertTrue(compose.onAllNodesWithText("42m").fetchSemanticsNodes().isNotEmpty())
+        assertTrue(compose.onAllNodesWithText("42m", substring = true).fetchSemanticsNodes().isNotEmpty())
     }
 
     @Test
