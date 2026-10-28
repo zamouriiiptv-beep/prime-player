@@ -25,4 +25,21 @@ data class OpeningMarks(
     val decoderKept: Boolean = false,
     /** The first frame was on the screen. */
     val firstFrameMs: Long? = null,
+    /**
+     * The engine said it was ready: Media3's `STATE_READY`, LibVLC's `Playing`. **The input is running, which is not
+     * a picture** -- a decoder can be ready while the surface is still black -- and it is kept apart from
+     * [firstFrameMs] so the time between the two can be read. Null where the engine has not said it yet.
+     */
+    val readyMs: Long? = null,
+    /**
+     * For an engine that cannot see the frame itself: the playback clock moved after [firstFrameMs]. LibVLC's only
+     * evidence, after the video output appearing, that pictures are being shown. Null for an engine that sees frames.
+     */
+    val clockMovingMs: Long? = null,
+    /**
+     * Whether [firstFrameMs] is the engine's own word that a frame was drawn (Media3's `onRenderedFirstFrame`), or
+     * the nearest thing it says (LibVLC's video output appearing, which can come before the first picture is on the
+     * glass). A figure that is not exact is printed as an approximation and is never presented as a measurement.
+     */
+    val firstFrameExact: Boolean = true,
 )

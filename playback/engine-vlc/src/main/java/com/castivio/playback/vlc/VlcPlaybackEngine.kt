@@ -87,6 +87,9 @@ class VlcPlaybackEngine(
     private var filledAtMs: Long = 0
     private var tracksAtMs: Long = 0
 
+    /** The playback clock first moved after the video output appeared: the nearest this engine sees to a picture shown. */
+    private var clockAtMs: Long = 0
+
     private var isReleased = false
     private var currentSurfaceView: SurfaceView? = null
 
@@ -185,6 +188,7 @@ class VlcPlaybackEngine(
                 // source with a picture announced its video track long before its clock moved,
                 // so it goes on waiting for `Vout`.
                 if (_firstFrameAtMs.value == null && hasNoPicture()) markOpened()
+                if (clockAtMs == 0L && _firstFrameAtMs.value != null) clockAtMs = SystemClock.elapsedRealtime()
                 val now = _state.value
                 if (now is PlaybackState.Playing || (now is PlaybackState.Buffering && mediaPlayer.isPlaying)) {
                     pushPlaying()
@@ -282,6 +286,7 @@ class VlcPlaybackEngine(
         openedAtMs = SystemClock.elapsedRealtime()
         filledAtMs = 0
         tracksAtMs = 0
+        clockAtMs = 0
         openedSource = safeSource(media.url)
         _diagnosis.value = null
         _startedAtMs.value = null
@@ -563,6 +568,10 @@ class VlcPlaybackEngine(
             firstBytesMs = since(filledAtMs),
             tracksKnownMs = since(tracksAtMs),
             firstFrameMs = _firstFrameAtMs.value?.let { it - openedAtMs },
+            readyMs = _startedAtMs.value?.let { it - openedAtMs },
+            clockMovingMs = since(clockAtMs),
+            // The video output appearing, which LibVLC says before it says anything of a picture: see above.
+            firstFrameExact = false,
         )
     }
 

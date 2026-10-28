@@ -171,6 +171,16 @@ class PlayerViewModel @Inject constructor(
     /** Whether this attempt is on the engine the last channel played on. See [keeps]. */
     private var reused = false
 
+    /*
+     * The opening panel's own state -- temporary, for development: see [OpeningDiagnostics]. Untouched, and never
+     * allocated, while the panel is off.
+     */
+    private var diagnosticJob: Job? = null
+    private val mainThread by lazy { MainThreadWatch() }
+    private var openingId = 0
+    private var openingCase = OpeningCase.FIRST
+    private var failedAtNanos: Long? = null
+
     /** Whether this attempt's failure has been written down, so a card is logged once. */
     private var failureNoted = false
 
@@ -214,6 +224,8 @@ class PlayerViewModel @Inject constructor(
         val openedAt = System.nanoTime()
         val next = FallbackPolicy.first(FallbackPolicy.sourceKey(request.url), memory)
         val kept = engine?.takeIf { keeps(it, next, request) }
+        // For the opening panel: what this opening is, read before the engine and the state are replaced.
+        val case = openingCaseOf(hadEngine = engine != null, kept = kept != null)
         if (kept != null) releaseSource() else release()
         timeFrom(pressOf(request, openedAt), openedAt, releasedAt = System.nanoTime())
 
@@ -247,6 +259,7 @@ class PlayerViewModel @Inject constructor(
             ),
         )
         if (kept != null) reopen(kept, request) else start(request, engineId)
+        diagnose(case)
     }
 
     /**
@@ -580,6 +593,8 @@ class PlayerViewModel @Inject constructor(
             longWait = current.longWait && !hadPicture,
         )
         start(current.request, EngineId.BACKUP)
+        // After a picture the viewer waits again, and that wait is an opening of its own; during one it is the same.
+        if (hadPicture) diagnose(OpeningCase.FALLBACK)
     }
 
     /**
@@ -602,6 +617,7 @@ class PlayerViewModel @Inject constructor(
             longWait = false,
         )
         start(current.request, EngineId.BACKUP)
+        diagnose(OpeningCase.FALLBACK)
     }
 
     /**
@@ -637,6 +653,7 @@ class PlayerViewModel @Inject constructor(
             longWait = false,
         )
         start(request, on)
+        diagnose(OpeningCase.AFTER_FAILURE)
     }
 
     /* ------------------------------------------------------------------- controls */
@@ -746,6 +763,7 @@ class PlayerViewModel @Inject constructor(
         if (current.request.isLive) {
             Log.i(TAG, "the application went to the background — stopping the channel")
             reopenOnReturn = true
+            endDiagnostic()
             stopEngine()
             ticker?.cancel(); ticker = null
             // Nothing is opening while the application is away; the return begins a new wait.
@@ -792,6 +810,7 @@ class PlayerViewModel @Inject constructor(
                 longWait = false,
             )
             start(current.request, engineId)
+            diagnose(OpeningCase.FIRST)
             return
         }
         val target = output ?: return
@@ -1354,6 +1373,101 @@ class PlayerViewModel @Inject constructor(
         firstFrameMs = frameAtNanos?.let { (it - askedAtNanos) / NANOS_PER_MS },
     )
 
+    /* ------------------------------------------------- the opening panel (temporary, for development) */
+
+    /**
+     * What an opening is, for the panel's comparison: a first play, an engine kept, one built again, or one after a
+     * failure. Read at the start of [open], before the engine and the state it looks at are replaced.
+     */
+    private fun openingCaseOf(hadEngine: Boolean, kept: Boolean): OpeningCase = when {
+        _state.value?.picture is Picture.Failed -> OpeningCase.AFTER_FAILURE
+        kept -> OpeningCase.REUSED
+        hadEngine -> OpeningCase.REBUILT
+        else -> OpeningCase.FIRST
+    }
+
+    /**
+     * Begins the panel's reading of the attempt that has just begun, and keeps reading it every
+     * [DIAGNOSTIC_TICK_MS] until it ends: a picture, a failure, or another opening.
+     *
+     * Everything it reads is already kept -- [timing], the engine's marks, the state -- so it adds nothing to the
+     * opening itself. The reading belongs to this attempt by number: one that finds the state on another is
+     * recorded as replaced, and what a late event says about the attempt before is never written to this one. Does
+     * nothing while the panel is off.
+     */
+    private fun diagnose(case: OpeningCase) {
+        if (!OpeningDiagnostics.enabled) return
+        val state = _state.value ?: return
+        val attempt = state.attempt
+        val channel = state.request.title
+        endDiagnostic()
+        failedAtNanos = null
+        openingCase = case
+        val id = OpeningDiagnostics.nextId()
+        openingId = id
+        mainThread.start()
+        diagnosticJob = viewModelScope.launch {
+            while (true) {
+                val reading = readOpening(id, attempt, channel)
+                if (reading.status == OpeningStatus.REPLACED) {
+                    OpeningDiagnostics.replaced(reading)
+                    mainThread.stop()
+                    return@launch
+                }
+                OpeningDiagnostics.publish(reading)
+                if (!reading.running) {
+                    mainThread.stop()
+                    Log.i(TAG, "opening #$id ${reading.row()}")
+                    return@launch
+                }
+                delay(DIAGNOSTIC_TICK_MS)
+            }
+        }
+    }
+
+    /** The opening as it stands: figures already kept, and a status from the state and the first frame. */
+    private fun readOpening(id: Int, attempt: Int, channel: String): OpeningReading {
+        val state = _state.value
+        val failed = state?.picture as? Picture.Failed
+        val now = System.nanoTime()
+        val status = when {
+            frameAtNanos != null -> OpeningStatus.SHOWN
+            failed != null -> OpeningStatus.FAILED
+            state == null || state.attempt != attempt -> OpeningStatus.REPLACED
+            else -> OpeningStatus.WAITING
+        }
+        val endedAt = when (status) {
+            OpeningStatus.SHOWN -> frameAtNanos ?: now
+            // Where the failure was noticed, when it was written down; otherwise when it was first read.
+            OpeningStatus.FAILED -> failedAtNanos ?: now.also { failedAtNanos = it }
+            else -> now
+        }
+        return OpeningReading(
+            id = id,
+            attempt = attempt,
+            channel = channel,
+            case = if (backupTried) OpeningCase.FALLBACK else openingCase,
+            status = status,
+            totalMs = (endedAt - askedAtNanos) / NANOS_PER_MS,
+            timing = timing(),
+            stalls = mainThread.reading(),
+            failure = failed?.reason?.name,
+        )
+    }
+
+    /** Ends the reading in progress: an opening still running is recorded as replaced, never as a success. */
+    private fun endDiagnostic() {
+        if (!OpeningDiagnostics.enabled) return
+        diagnosticJob?.cancel(); diagnosticJob = null
+        if (openingId != 0) {
+            OpeningDiagnostics.current.value
+                ?.takeIf { it.id == openingId && it.running }
+                ?.let(OpeningDiagnostics::replaced)
+            openingId = 0
+        }
+        mainThread.stop()
+    }
+
     /**
      * An attempt that ended on a card before it had a picture, written down once with how far
      * it got.
@@ -1365,6 +1479,7 @@ class PlayerViewModel @Inject constructor(
     private fun noteFailure(reason: PlaybackError) {
         if (failureNoted || frameAtNanos != null) return
         failureNoted = true
+        if (OpeningDiagnostics.enabled && failedAtNanos == null) failedAtNanos = System.nanoTime()
         val timing = timing().also { opening = it }
         Log.w(TAG, "no picture on $engineId: $reason | ${timing.render()}")
     }
@@ -1447,6 +1562,7 @@ class PlayerViewModel @Inject constructor(
      * guide, its statistics and its subtitle. What a kept engine is cleared of between channels.
      */
     private fun releaseSource() {
+        endDiagnostic()
         deadline?.cancel(); deadline = null
         waitJob?.cancel(); waitJob = null
         clearAim()
@@ -1495,6 +1611,9 @@ class PlayerViewModel @Inject constructor(
      */
     internal companion object {
         const val TAG = "CastivioPlayer"
+
+        /** How often the opening panel's reading is taken while a channel opens: ten times a second. */
+        const val DIAGNOSTIC_TICK_MS = 100L
 
         /** Four times a second: enough for a moving position, cheap enough to ignore. */
         const val TICK_MS = 250L

@@ -160,6 +160,7 @@ class Media3Engine(
 
     /** The device's half, which the player reports on this thread with its other callbacks. */
     private var tracksKnownAt: Long = 0
+    private var readyAt: Long = 0
     private var decoderReadyAt: Long = 0
     private var decoderInitMs: Long? = null
     private var decoderKept = false
@@ -330,6 +331,7 @@ class Media3Engine(
         openedAtMs = SystemClock.elapsedRealtime()
         transferMarks = TransferMarks(media.url)
         tracksKnownAt = 0
+        readyAt = 0
         decoderReadyAt = 0
         decoderInitMs = null
         decoderKept = false
@@ -506,6 +508,7 @@ class Media3Engine(
             decoderInitMs = decoderInitMs,
             decoderKept = decoderKept,
             firstFrameMs = _firstFrameAtMs.value?.let { it - openedAtMs },
+            readyMs = since(readyAt),
         )
     }
 
@@ -558,9 +561,14 @@ class Media3Engine(
                 // Audio-only has no first frame to wait for, so ready *is* opened. For
                 // video this stays exactly as it was: ready without a frame is still a
                 // black screen, and the overlay stays up until the picture arrives.
-                Player.STATE_READY -> when {
-                    _firstFrameAtMs.value != null -> pushPlaying()
-                    isAudioOnly() -> markOpened()
+                Player.STATE_READY -> {
+                    // Noted for the opening panel, and for that alone: ready is the engine's word that its input is
+                    // running -- see [OpeningMarks.readyMs] -- and is never taken for the picture.
+                    if (readyAt == 0L) readyAt = SystemClock.elapsedRealtime()
+                    when {
+                        _firstFrameAtMs.value != null -> pushPlaying()
+                        isAudioOnly() -> markOpened()
+                    }
                 }
 
                 Player.STATE_ENDED -> _state.value = PlaybackState.Ended
