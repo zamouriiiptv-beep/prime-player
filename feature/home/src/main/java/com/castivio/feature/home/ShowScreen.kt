@@ -90,6 +90,7 @@ import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.castivioBackdrop
 import com.castivio.core.design.theme.castivioStage
+import com.castivio.core.platform.PerformanceLog
 import com.castivio.domain.Episode
 import com.castivio.domain.EpisodeMark
 import com.castivio.domain.Season
@@ -215,7 +216,7 @@ fun ShowScreen(
                     }
                     if (state.seasons.isEmpty()) {
                         item(key = "placeholder") {
-                            EpisodesPlaceholder(state.load, m, model::retry, onBack, Modifier.fillMaxWidth())
+                            EpisodesPlaceholder(state.load, state.failure, m, model::retry, onBack, Modifier.fillMaxWidth())
                         }
                     } else {
                         item(key = "seasons") { SeasonChips(state.seasons, season, m, tv) { picked = it } }
@@ -579,7 +580,17 @@ private fun SeasonChip(season: Season, selected: Boolean, m: CatalogMetrics, tv:
 
 /** What stands in the list's place while no episode is held: placeholders, a way to ask again, or the plain fact. */
 @Composable
-private fun EpisodesPlaceholder(load: ShowLoad, m: CatalogMetrics, onRetry: () -> Unit, onBack: () -> Unit, modifier: Modifier) {
+private fun EpisodesPlaceholder(
+    load: ShowLoad,
+    failure: String?,
+    m: CatalogMetrics,
+    onRetry: () -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier,
+) {
+    // Whether this APK may print why: debuggable, as for the board's failure figures -- a property of the package.
+    val context = LocalContext.current
+    val instrumented = remember(context) { PerformanceLog.isVisibleIn(context) }
     when (load) {
         ShowLoad.Loading -> Column(modifier, verticalArrangement = Arrangement.spacedBy(m.rowGap)) {
             repeat(PLACEHOLDER_ROWS) {
@@ -595,7 +606,9 @@ private fun EpisodesPlaceholder(load: ShowLoad, m: CatalogMetrics, onRetry: () -
         ShowLoad.Failed -> Box(modifier.heightIn(min = m.rowMin * PLACEHOLDER_ROWS), contentAlignment = Alignment.Center) {
             EmptyState(
                 title = stringResource(R.string.show_failed_title),
-                detail = stringResource(R.string.show_failed_detail),
+                // In a debuggable build, the reason in place of the sentence: a provider that refused is told
+                // apart from a page that broke, which the sentence cannot do from a television.
+                detail = failure?.takeIf { instrumented } ?: stringResource(R.string.show_failed_detail),
                 actionLabel = stringResource(R.string.show_retry),
                 onAction = onRetry,
                 secondaryActionLabel = stringResource(R.string.show_back),

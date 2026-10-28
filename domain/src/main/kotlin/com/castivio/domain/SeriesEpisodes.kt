@@ -24,5 +24,35 @@ sealed interface EpisodesLoad {
     data object NoProvider : EpisodesLoad
 
     /** The provider could not be reached, or answered with something that is not a list of episodes. */
-    data class Failed(val cause: Throwable) : EpisodesLoad
+    data class Failed(val cause: Throwable) : EpisodesLoad {
+
+        /** What went wrong in one short line, for a debuggable build's error screen. See [failureReason]. */
+        val reason: String get() = failureReason(cause)
+    }
 }
+
+/**
+ * A failure as one line a person can read off a television: the kind of failure and what it said, and what lay under
+ * it. An address's credentials are taken out first -- a request's address carries the account's user and password, and
+ * some failures quote it -- and the line is cut short, so it is safe to print and never a page of trace.
+ */
+fun failureReason(cause: Throwable): String {
+    fun one(t: Throwable): String {
+        val name = t.javaClass.simpleName.ifEmpty { "Error" }
+        val message = t.message?.let(::withoutCredentials)?.trim().orEmpty()
+        return if (message.isEmpty()) name else "$name: $message"
+    }
+    val root = generateSequence(cause) { it.cause }.take(REASON_DEPTH).last()
+    val line = if (root === cause) one(cause) else "${one(cause)} \u2190 ${one(root)}"
+    return if (line.length <= REASON_LENGTH) line else line.take(REASON_LENGTH - 1) + "\u2026"
+}
+
+private val CREDENTIAL_PARAMETER = Regex("""(?i)\b(username|password|user|pass)=[^&\s"']*""")
+private val ADDRESS_USERINFO = Regex("""(?<=//)[^/@\s]+@""")
+
+/** Credentials in a query string or in an address's user part, replaced by an ellipsis. */
+private fun withoutCredentials(text: String): String =
+    text.replace(CREDENTIAL_PARAMETER) { "${it.groupValues[1]}=\u2026" }.replace(ADDRESS_USERINFO, "\u2026@")
+
+private const val REASON_DEPTH = 6
+private const val REASON_LENGTH = 160

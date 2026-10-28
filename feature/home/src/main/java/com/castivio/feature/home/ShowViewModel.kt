@@ -66,6 +66,11 @@ data class ShowState(
      * still come: the page keeps quiet placeholders for it until this is false, and then draws only what there is.
      */
     val asking: Boolean = false,
+    /**
+     * Why the provider could not be asked, as one line safe to print -- see `failureReason`. The page prints it in a
+     * debuggable build only: a viewer is told the episodes could not be loaded, and a tester is told why.
+     */
+    val failure: String? = null,
 )
 
 /**
@@ -121,8 +126,11 @@ class ShowViewModel @Inject constructor(
 
     private val similar = MutableStateFlow<List<SeriesSummary>>(emptyList())
 
-    val state: StateFlow<ShowState> = combine(content, favorite, similar) { shownState, marked, others ->
-        shownState.copy(favorite = marked, similar = others)
+    /** Why the last asking failed; null while it has not, and again once another asking is begun. */
+    private val failure = MutableStateFlow<String?>(null)
+
+    val state: StateFlow<ShowState> = combine(content, favorite, similar, failure) { shownState, marked, others, why ->
+        shownState.copy(favorite = marked, similar = others, failure = why)
     }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_GRACE_MS), ShowState())
 
@@ -140,6 +148,7 @@ class ShowViewModel @Inject constructor(
         load.value = ShowLoad.Loading
         rowId.value = null
         similar.value = emptyList()
+        failure.value = null
         viewModelScope.launch {
             val row = try {
                 pager.seriesShell(seriesId)?.mediaId
@@ -178,6 +187,7 @@ class ShowViewModel @Inject constructor(
     /** Asks the provider again, after a failure the viewer chose to retry. */
     fun retry() {
         val id = shown.value ?: return
+        failure.value = null
         load.value = ShowLoad.Loading
         fetch(id)
     }
@@ -210,6 +220,7 @@ class ShowViewModel @Inject constructor(
                 EpisodesLoad.Failed(e)
             }
             if (shown.value != seriesId) return@launch
+            failure.value = (answer as? EpisodesLoad.Failed)?.reason
             load.value = if (answer is EpisodesLoad.Failed) ShowLoad.Failed else ShowLoad.Ready
         }
     }

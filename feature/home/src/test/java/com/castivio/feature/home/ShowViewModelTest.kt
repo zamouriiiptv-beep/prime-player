@@ -323,4 +323,33 @@ class ShowViewModelTest {
         advanceUntilIdle()
         assertEquals(false, model.state.value.asking)
     }
+
+    @Test
+    fun `a failure says why, and asking again clears it`() = runTest(dispatcher) {
+        val episodes = FakeEpisodes()
+        val model = model(FakePager(emptyList()), episodes)
+
+        model.open("show-1")
+        episodes.answer.complete(EpisodesLoad.Failed(java.io.IOException("HTTP 404")))
+        advanceUntilIdle()
+        assertEquals(ShowLoad.Failed, model.state.value.load)
+        assertEquals("IOException: HTTP 404", model.state.value.failure)
+
+        episodes.answer = CompletableDeferred()
+        model.retry()
+        advanceUntilIdle()
+        assertNull(model.state.value.failure)
+    }
+
+    @Test
+    fun `a show whose episodes loaded has no failure`() = runTest(dispatcher) {
+        val episodes = FakeEpisodes()
+        val model = model(FakePager(held), episodes)
+
+        model.open("show-1")
+        episodes.answer.complete(EpisodesLoad.Loaded(3))
+        advanceUntilIdle()
+
+        assertNull(model.state.value.failure)
+    }
 }

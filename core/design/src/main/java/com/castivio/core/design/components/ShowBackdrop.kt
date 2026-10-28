@@ -44,6 +44,8 @@ fun ShowBackdrop(url: String, modifier: Modifier = Modifier) {
             onError = { failed = true },
             modifier = Modifier.fillMaxSize(),
         )
+        // The whole picture is dimmed: the plot runs across it, and a still is bright where the words are.
+        Box(Modifier.fillMaxSize().background(ground.copy(alpha = DIM)))
         Box(
             Modifier
                 .fillMaxSize()
@@ -64,9 +66,12 @@ fun ShowBackdrop(url: String, modifier: Modifier = Modifier) {
 }
 
 /** Where along the width the ground stops being solid, and how much of it is left there. */
-private const val START_SOLID = 0.28f
-private const val START_ALPHA = 0.82f
+private const val START_SOLID = 0.4f
+private const val START_ALPHA = 0.86f
+
+/** How much of the ground lies over the whole picture, so that words across it read. */
+private const val DIM = 0.42f
 
 /** Where the picture is clear again, and where the foot's fade begins. */
-private const val END_CLEAR = 0.78f
+private const val END_CLEAR = 0.95f
 private const val FOOT_BEGINS = 0.6f
