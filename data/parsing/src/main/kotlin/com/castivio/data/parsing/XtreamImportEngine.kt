@@ -832,16 +832,14 @@ class XtreamImportEngine(
         val parsed = ArrayList<CatalogItem>(64)
         var order = 0
         var written = 0
+        var began = false
         // What the provider says of the show, and the plot of each episode by the row it was written as.
         // A show has hundreds of episodes at most, so these are small beside a catalogue's batch.
         var info: XtreamSeriesInfo? = null
         val plots = HashMap<String, String>()
 
-        // APPEND, emphatically: a REPLACE write here would prune every row that
-        // is not one of this show's episodes — the entire library.
-        val openStarted = nanoClock()
-        writer.begin(sourceId, ImportMode.APPEND)
-        val openNanos = nanoClock() - openStarted
+        // The provider is asked first and the catalogue is opened after it has answered: opening it waits for whatever
+        // else is writing to it, and a page that waited for that waited for nothing it needed -- the reply is what it draws.
         try {
             val askStarted = nanoClock()
             val reply = api.seriesInfo(providerSeriesId)
@@ -851,34 +849,44 @@ class XtreamImportEngine(
                 XtreamParser.parseSeriesInfo(reader, onInfo = { info = it }) { episode ->
                     val rowId = StableIds.item(sourceId, "episode:${episode.episodeId}")
                     episode.plot?.let { plots[rowId] = it }
-                    val row = CatalogItem(
-                        id = rowId,
-                        sourceId = sourceId,
-                        kind = MediaKind.SERIES,
-                        title = episode.title,
-                        streamUrl = api.streamUrl(
-                            MediaKind.SERIES,
-                            episode.episodeId,
-                            episode.containerExtension,
+                    parsed.add(
+                        CatalogItem(
+                            id = rowId,
+                            sourceId = sourceId,
+                            kind = MediaKind.SERIES,
+                            title = episode.title,
+                            streamUrl = api.streamUrl(
+                                MediaKind.SERIES,
+                                episode.episodeId,
+                                episode.containerExtension,
+                            ),
+                            artworkUrl = episode.coverUrl,
+                            groupId = groupId,
+                            providerRef = episode.episodeId,
+                            providerOrder = order++,
+                            durationSeconds = episode.durationSeconds,
+                            seriesId = seriesId,
+                            seriesTitle = seriesTitle,
+                            seasonNumber = episode.seasonNumber,
+                            episodeNumber = episode.episodeNumber,
                         ),
-                        artworkUrl = episode.coverUrl,
-                        groupId = groupId,
-                        providerRef = episode.episodeId,
-                        providerOrder = order++,
-                        durationSeconds = episode.durationSeconds,
-                        seriesId = seriesId,
-                        seriesTitle = seriesTitle,
-                        seasonNumber = episode.seasonNumber,
-                        episodeNumber = episode.episodeNumber,
                     )
-                    parsed.add(row)
-                    batch.add(row)
-                    if (batch.size >= batchSize) written += flush(batch)
                 }
             }
             val readNanos = nanoClock() - readStarted
             if (parsed.isNotEmpty()) onParsed(parsed, info, plots)
+
+            // Now the catalogue keeps it. APPEND, emphatically: a REPLACE write here would prune every row that
+            // is not one of this show's episodes — the entire library.
+            val openStarted = nanoClock()
+            writer.begin(sourceId, ImportMode.APPEND)
+            began = true
+            val openNanos = nanoClock() - openStarted
             val saveStarted = nanoClock()
+            for (row in parsed) {
+                batch.add(row)
+                if (batch.size >= batchSize) written += flush(batch)
+            }
             written += flush(batch)
             writer.finish(
                 ImportSummary(
@@ -895,7 +903,8 @@ class XtreamImportEngine(
             onTimes(RequestTimes(askNanos.ms(), readNanos.ms(), saveNanos.ms(), openNanos.ms()))
             return written
         } catch (t: Throwable) {
-            writer.abort(t)
+            // A catalogue that was never opened has nothing to abandon.
+            if (began) writer.abort(t)
             throw t
         }
     }

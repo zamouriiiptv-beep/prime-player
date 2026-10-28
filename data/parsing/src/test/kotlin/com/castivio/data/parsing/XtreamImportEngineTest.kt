@@ -204,8 +204,8 @@ class XtreamImportEngineTest {
     }
 
     /**
-     * Where the wait for a show's page went is told once the episodes are kept: the catalogue made ready, the provider
-     * answering, its answer read, and the reply kept. A clock that is stepped says which is which.
+     * Where the wait for a show's page went is told once the episodes are kept: the provider answering, its answer read,
+     * the catalogue made ready, and the reply kept. A clock that is stepped says which is which.
      */
     @Test
     fun `the cost of a show's request is told in the order it was paid`() {
@@ -246,6 +246,39 @@ class XtreamImportEngineTest {
         assertEquals(0, writtenWhenTold)
         assertEquals(listOf("Pilot", "Next"), told.map { it.title })
         assertEquals(writer.items.map { it.id }, told.map { it.id })
+    }
+
+    /**
+     * Opening the catalogue waits for whatever else is writing to it, and the page does not need it to draw: the
+     * provider is asked and its answer read and told before the catalogue is so much as opened.
+     */
+    @Test
+    fun `the catalogue is not opened until the reply has been read and told`() {
+        val writer = RecordingWriter()
+        val api = FakeApi(seriesInfo = mapOf("551" to listOf(Episode("9001", "Pilot", 1, 1))))
+        var openedWhenTold: ImportMode? = ImportMode.REPLACE
+
+        XtreamImportEngine(writer).importEpisodes(
+            "src", api, "551", "Chernobyl", null,
+            onParsed = { _, _, _ -> openedWhenTold = writer.mode },
+        )
+
+        assertEquals(null, openedWhenTold)
+        assertEquals(ImportMode.APPEND, writer.mode)
+        assertEquals(1, writer.items.size)
+    }
+
+    /** A provider that cannot answer leaves a catalogue that was never opened alone: there is nothing to abandon. */
+    @Test
+    fun `a failed request does not abort a catalogue it never opened`() {
+        val writer = RecordingWriter()
+        val api = FakeApi(seriesInfo = emptyMap(), failOnSeriesInfo = true)
+
+        val failure = runCatching { XtreamImportEngine(writer).importEpisodes("src", api, "551", "Chernobyl", null) }
+
+        assertTrue(failure.isFailure)
+        assertEquals(null, writer.mode)
+        assertEquals(false, writer.aborted)
     }
 
     @Test
@@ -680,6 +713,7 @@ class XtreamImportEngineTest {
         private val seriesInfo: Map<String, List<Episode>> = emptyMap(),
         private val password: String = "p",
         private val failOnStreams: Boolean = false,
+        private val failOnSeriesInfo: Boolean = false,
     ) : XtreamImportEngine.Api {
 
         // Appended to from the engine's readers, which ask for several categories at once. A plain
@@ -724,6 +758,7 @@ class XtreamImportEngineTest {
         }
 
         override fun seriesInfo(seriesId: String): Reader {
+            if (failOnSeriesInfo) throw java.io.IOException("provider unreachable")
             val episodes = seriesInfo[seriesId].orEmpty()
             val bySeason = episodes.groupBy { it.season }
             val body = bySeason.entries.joinToString(",") { (season, list) ->
