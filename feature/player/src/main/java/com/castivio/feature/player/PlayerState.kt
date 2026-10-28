@@ -191,18 +191,16 @@ data class PlayerState(
      * buttons where two do nothing is worse than offering the one that is true.
      */
     val videoTracks: List<Track> = emptyList(),
-    /**
-     * The programme strip's contents, or null while the guide has not answered.
-     *
-     * Null is *not* "no strip". The strip is drawn at its full height either way — that
-     * is the whole point of `live-cold` in the drawing — and null selects the skeleton
-     * rather than removing the band. A screen that let this field decide whether to
-     * compose the strip would reflow the moment the guide arrived, which is the failure
-     * the reserved height exists to prevent.
-     */
-    val programme: Programme? = null,
     /** How far behind the live edge, in milliseconds. Zero means at the edge. */
     val behindLiveMs: Long = 0,
+    /**
+     * Whether what is playing is one of the viewer's favourites, or null when it cannot be one.
+     *
+     * Null is "no heart": the host gave the player nothing to mark, as it does for a file from the
+     * device, and a control that cannot act is not drawn. Set by the route from what the host says,
+     * never by the engine, and never in the view model: the favourites are not the player's.
+     */
+    val favorite: Boolean? = null,
 ) {
     val isTimeshifted: Boolean get() = behindLiveMs > TIMESHIFT_THRESHOLD_MS
 
@@ -279,19 +277,10 @@ sealed interface Picture {
     data object Ended : Picture
 }
 
-/** The panels that slide in from the end edge. The statistics panel is not one of them. */
-enum class Sheet { Subtitles, Audio, Settings, Quality, SubtitleLook, SubtitleSearch }
-
 /**
- * What is on now, and what is next.
+ * The panels that slide in from the end edge, and the one popover. The statistics panel is not one of them.
  *
- * Arrives after the first frame or not at all. [progress] is a fraction rather than two
- * timestamps because that is what the strip draws, and computing it in the state holder
- * keeps arithmetic out of composition.
+ * [Settings] is the popover that hangs from the gear -- see `SettingsPopover` -- and every other value is
+ * a sheet at the end edge. [More] is what the three dots hold: the statistics and the share.
  */
-data class Programme(
-    val now: String,
-    val window: String,
-    val next: String?,
-    val progress: Float,
-)
+enum class Sheet { Subtitles, Audio, Settings, Quality, SubtitleLook, SubtitleSearch, More, Playlist }

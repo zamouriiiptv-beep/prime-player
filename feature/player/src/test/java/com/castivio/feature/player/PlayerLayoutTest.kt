@@ -1,24 +1,31 @@
 package com.castivio.feature.player
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.clickable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
-import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -29,12 +36,15 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
+import com.castivio.core.common.FrameSize
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.DeviceClass
 import com.castivio.core.design.theme.LocalDeviceClass
 import com.castivio.playback.api.AspectMode
 import com.castivio.playback.api.MediaKind
 import com.castivio.playback.api.PlaybackError
+import com.castivio.playback.api.Track
+import com.castivio.playback.api.TrackType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -76,13 +86,13 @@ class PlayerLayoutTest {
 
     @Test
     fun `the handset keeps every control inside the safe area`() {
-        compose.show(HANDSET, DeviceClass.Expanded, playingLive())
+        compose.showCrowded(HANDSET, DeviceClass.Expanded)
         compose.assertSafe(HANDSET, tv = false)
     }
 
     @Test
     fun `the shortest frame keeps every control inside the safe area`() {
-        compose.show(SHORT, DeviceClass.Compact, playingLive())
+        compose.showCrowded(SHORT, DeviceClass.Compact)
         compose.assertSafe(SHORT, tv = false)
     }
 
@@ -96,22 +106,21 @@ class PlayerLayoutTest {
      */
     @Test
     fun `the television keeps every control inside the overscan inset`() {
-        compose.show(TELEVISION, DeviceClass.Television, playingLive())
+        compose.showCrowded(TELEVISION, DeviceClass.Television)
         compose.assertSafe(TELEVISION, tv = true)
     }
 
     /**
      * The case that actually overflowed: Arabic, on a television, behind the live edge.
      *
-     * Timeshift adds "Back to live" to a row that carried a guide and a channel list when
-     * this test was written, and Arabic labels are longer than the English ones the row was
-     * drawn with. The
-     * fix was to let the row shrink its items rather than push them out — the labels
-     * ellipsis, the targets do not — and this is the test that says so.
+     * Timeshift adds "Back to live" to a row that already carries the playlist, the screen's two controls
+     * and, in Arabic, labels longer than the English ones the row was drawn with. The fix was to let the
+     * pills give up their words rather than push the targets out -- the labels go, the targets do not --
+     * and this is the test that says so.
      */
     @Test
-    fun `an Arabic television in timeshift keeps its tools row inside the safe area`() {
-        compose.show(
+    fun `an Arabic television in timeshift keeps its transport inside the safe area`() {
+        compose.showCrowded(
             TELEVISION,
             DeviceClass.Television,
             playingLive().copy(behindLiveMs = FOUR_MINUTES),
@@ -119,12 +128,12 @@ class PlayerLayoutTest {
         )
         compose.assertSafe(TELEVISION, tv = true)
 
-        val tools = compose.bounds(PlayerTags.TOOLS)
+        val transport = compose.bounds(PlayerTags.TRANSPORT)
         val toLive = compose.bounds(PlayerTags.TO_LIVE)
         assertTrue(
-            "back-to-live ${toLive.left}..${toLive.right} is outside the tools row " +
-                "${tools.left}..${tools.right}",
-            toLive.left >= tools.left - TOLERANCE && toLive.right <= tools.right + TOLERANCE,
+            "back-to-live ${toLive.left}..${toLive.right} is outside the transport " +
+                "${transport.left}..${transport.right}",
+            toLive.left >= transport.left - TOLERANCE && toLive.right <= transport.right + TOLERANCE,
         )
     }
 
@@ -141,50 +150,49 @@ class PlayerLayoutTest {
      */
     @Test
     fun `every control on a handset is at least the touch floor`() {
-        compose.show(HANDSET, DeviceClass.Expanded, playingLive())
+        compose.showCrowded(HANDSET, DeviceClass.Expanded)
         compose.assertTargets(PHONE_FLOOR)
     }
 
     @Test
     fun `every control on a television is at least the remote floor`() {
-        compose.show(TELEVISION, DeviceClass.Television, playingLive())
+        compose.showCrowded(TELEVISION, DeviceClass.Television)
         compose.assertTargets(TV_FLOOR)
     }
 
     @Test
     fun `every control in timeshift is still at least the floor`() {
-        compose.show(HANDSET, DeviceClass.Expanded, playingLive().copy(behindLiveMs = FOUR_MINUTES))
+        compose.showCrowded(HANDSET, DeviceClass.Expanded, playingLive().copy(behindLiveMs = FOUR_MINUTES))
         compose.assertTargets(PHONE_FLOOR)
     }
 
     /* ------------------------------------------------------------------ the bands */
 
     /**
-     * Three bands, in order, none of them touching.
+     * Two bands, in order, none of them touching -- and inside the lower one, the bar above the transport.
      *
-     * The claim `SpaceBetween` is supposed to give and the one a fixed offset would break:
-     * on the 360dp frame there is little enough room that a centre cluster which grew by a
-     * row would run into the timeline, and nothing about that looks wrong in a screenshot
-     * taken on a 540dp television.
+     * The claim `SpaceBetween` is supposed to give and the one a fixed offset would break: on the 360dp
+     * frame there is little enough room that a transport which grew by a row would run into the top bar,
+     * and nothing about that looks wrong in a screenshot taken on a 540dp television.
      *
-     * One test per frame rather than a loop, because `setContent` may be called once per
-     * rule -- a loop would throw on its second turn instead of asserting anything.
+     * One test per frame rather than a loop, because `setContent` may be called once per rule -- a loop
+     * would throw on its second turn instead of asserting anything.
      */
     @Test
     fun `the bands do not overlap on a handset`() {
-        compose.show(HANDSET, DeviceClass.Expanded, playingLive())
+        compose.showCrowded(HANDSET, DeviceClass.Expanded)
         compose.assertBands(HANDSET)
     }
 
     @Test
     fun `the bands do not overlap on the shortest frame`() {
-        compose.show(SHORT, DeviceClass.Compact, playingLive())
+        compose.showCrowded(SHORT, DeviceClass.Compact)
         compose.assertBands(SHORT)
     }
 
     @Test
     fun `the bands do not overlap on a television`() {
-        compose.show(TELEVISION, DeviceClass.Television, playingLive())
+        compose.showCrowded(TELEVISION, DeviceClass.Television)
         compose.assertBands(TELEVISION)
     }
 
@@ -387,22 +395,6 @@ class PlayerLayoutTest {
         compose.onAllNodesWithTag(PlayerTags.FORWARD).assertCountEquals(0)
     }
 
-    /** A broadcast played faster runs out of what was sent; slower, it leaves the window. */
-    @Test
-    fun `a channel has no speed control`() {
-        compose.show(HANDSET, DeviceClass.Expanded, playingLive())
-
-        compose.onAllNodesWithTag(PlayerTags.SPEED).assertCountEquals(0)
-    }
-
-    /** And a film keeps its own. */
-    @Test
-    fun `a film keeps its speed control`() {
-        compose.show(HANDSET, DeviceClass.Expanded, playingFilm())
-
-        compose.onNodeWithTag(PlayerTags.SPEED).assertIsDisplayed()
-    }
-
     /** A channel plays with its subtitles switched off in both engines, so no button offers a list of them. */
     @Test
     fun `a channel has no subtitles button`() {
@@ -419,60 +411,576 @@ class PlayerLayoutTest {
         compose.onNodeWithTag(PlayerTags.SUBTITLES).assertIsDisplayed()
     }
 
-    /** The same rule in the settings sheet, which listed the speed for everything. */
+    /* ------------------------------------------------------------------- the settings */
+
+    /** A broadcast played faster runs out of what was sent; slower, it leaves the window. */
     @Test
-    fun `a channel's settings sheet offers no speed`() {
+    fun `a channel's settings offer no speed`() {
         compose.show(HANDSET, DeviceClass.Expanded, playingLive().copy(sheet = Sheet.Settings))
 
-        compose.onAllNodesWithText(text(R.string.player_speed)).assertCountEquals(0)
+        compose.onAllNodesWithTag(PlayerTags.popoverRow("speed")).assertCountEquals(0)
     }
 
+    /** And a film keeps its own. */
     @Test
-    fun `a film's settings sheet offers its speed`() {
+    fun `a film's settings offer its speed`() {
         compose.show(HANDSET, DeviceClass.Expanded, playingFilm().copy(sheet = Sheet.Settings))
 
-        compose.onNodeWithText(text(R.string.player_speed)).assertIsDisplayed()
+        compose.onNodeWithTag(PlayerTags.popoverRow("speed")).assertIsDisplayed()
+    }
+
+    /** The same rule for the subtitles, which a channel never plays with. */
+    @Test
+    fun `a channel's settings offer no subtitles and a film's do`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingLive().copy(sheet = Sheet.Settings))
+        compose.onAllNodesWithTag(PlayerTags.popoverRow("subtitles")).assertCountEquals(0)
+        compose.onNodeWithTag(PlayerTags.popoverRow("quality")).assertIsDisplayed()
+        compose.onNodeWithTag(PlayerTags.popoverRow("audio")).assertIsDisplayed()
+        compose.onNodeWithTag(PlayerTags.popoverRow("aspect")).assertIsDisplayed()
+    }
+
+    @Test
+    fun `a film's settings are the five rows of the reference, in its order`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingFilm().copy(sheet = Sheet.Settings))
+
+        val tops = listOf("quality", "audio", "subtitles", "aspect", "speed")
+            .map { compose.bounds(PlayerTags.popoverRow(it)).top }
+
+        assertEquals("the rows are not in the reference's order: $tops", tops.sorted(), tops)
+        assertEquals("a row repeats a place", 5, tops.distinct().size)
     }
 
     /**
-     * The middle of the picture holds the play control and nothing else.
+     * The settings hang from the gear: under the top bar, at the end edge, inside the safe area.
      *
-     * Previous and next stood either side of it with nothing behind them — no caller ever gave
-     * the route a channel or an episode to step to. Counted as pressable things inside the
-     * band, so a control added there tomorrow has to be one that acts.
+     * Asserted against the top bar's own box rather than a constant, because what is claimed is the
+     * relation -- the gear stays visible above the panel it opened -- and not the number of dp between.
      */
     @Test
-    fun `the centre carries the play control alone`() {
+    fun `the settings hang under the top bar at the end edge`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingFilm().copy(sheet = Sheet.Settings))
+
+        val top = compose.bounds(PlayerTags.TOP)
+        val popover = compose.bounds(PlayerTags.POPOVER)
+        val safe = compose.bounds(PlayerTags.SAFE)
+        val gear = compose.bounds(PlayerTags.SETTINGS)
+
+        assertTrue("the panel at ${popover.top} covers the top bar to ${top.bottom}", popover.top >= top.bottom - TOLERANCE)
+        assertTrue("the panel ends at ${popover.right}, past the safe area ${safe.right}", popover.right <= safe.right + TOLERANCE)
+        assertTrue(
+            "the panel ${popover.left}..${popover.right} is not under the gear ${gear.left}..${gear.right}",
+            gear.right <= popover.right + TOLERANCE && gear.right >= popover.left,
+        )
+    }
+
+    @Test
+    fun `the aspect row steps to the next shape`() {
+        var asked: AspectMode? = null
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingFilm().copy(sheet = Sheet.Settings, aspect = AspectMode.FIT),
+            LayoutDirection.Ltr,
+            PlayerActions(onAspect = { asked = it }),
+        )
+
+        compose.onNodeWithTag(PlayerTags.popoverRow("aspect")).performClick()
+
+        assertEquals(nextAspect(AspectMode.FIT), asked)
+    }
+
+    @Test
+    fun `the speed row steps to the next speed`() {
+        var asked: Float? = null
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingFilm().copy(sheet = Sheet.Settings, speed = 1f),
+            LayoutDirection.Ltr,
+            PlayerActions(onSpeed = { asked = it }),
+        )
+
+        compose.onNodeWithTag(PlayerTags.popoverRow("speed")).performClick()
+
+        assertEquals(1.25f, asked)
+    }
+
+    @Test
+    fun `the quality, sound and subtitle rows open their sheets`() {
+        val opened = mutableListOf<Sheet?>()
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingFilm().copy(sheet = Sheet.Settings),
+            LayoutDirection.Ltr,
+            PlayerActions(onSheet = { opened += it }),
+        )
+
+        compose.onNodeWithTag(PlayerTags.popoverRow("quality")).performClick()
+        compose.onNodeWithTag(PlayerTags.popoverRow("audio")).performClick()
+        compose.onNodeWithTag(PlayerTags.popoverRow("subtitles")).performClick()
+
+        assertEquals(listOf<Sheet?>(Sheet.Quality, Sheet.Audio, Sheet.Subtitles), opened)
+    }
+
+    /** The rows say what each setting is now, in the words the reference uses. */
+    @Test
+    fun `the rows say what each setting is now`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingFilm().copy(sheet = Sheet.Settings))
+
+        compose.onNodeWithText(text(R.string.player_quality_auto)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.player_setting_off)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.player_aspect_fit)).assertIsDisplayed()
+        compose.onNodeWithText(speedLabel(1f)).assertIsDisplayed()
+    }
+
+    /** The gear that opened the panel closes it, so the viewer is never looking for a way out. */
+    @Test
+    fun `the gear closes the settings it opened`() {
+        val seen = mutableListOf<Sheet?>()
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingFilm().copy(sheet = Sheet.Settings),
+            LayoutDirection.Ltr,
+            PlayerActions(onSheet = { seen += it }),
+        )
+
+        compose.onNodeWithTag(PlayerTags.SETTINGS).performClick()
+
+        assertEquals(listOf<Sheet?>(null), seen)
+    }
+
+    /* --------------------------------------------------------------------- the transport */
+
+    /**
+     * The play control is on the centre line of the bar, whatever the two ends hold.
+     *
+     * Previous and next, and the jumps, are either side of it and the playlist is at one end with the
+     * screen's two controls at the other. The three groups share the row by weight, so the middle one is
+     * the middle -- and this is the claim a row of `SpaceBetween` would have broken the first time the ends
+     * held different numbers of things.
+     */
+    @Test
+    fun `the play control is on the centre line of the transport`() {
+        compose.showCrowded(HANDSET, DeviceClass.Expanded, playingFilm())
+
+        val transport = compose.bounds(PlayerTags.TRANSPORT)
+        val play = compose.bounds(PlayerTags.PLAY)
+
+        assertEquals(
+            "the play control is not in the middle of the transport",
+            (transport.left + transport.right).value / 2f,
+            (play.left + play.right).value / 2f,
+            1f,
+        )
+    }
+
+    @Test
+    fun `the jumps sit either side of the play control in English`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingFilm(), LayoutDirection.Ltr)
+        compose.assertJumpsFlankPlay()
+    }
+
+    /** And the same in Arabic: the player is laid out left to right in every language, so nothing mirrors. */
+    @Test
+    fun `the jumps sit either side of the play control in Arabic`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingFilm(), LayoutDirection.Rtl)
+        compose.assertJumpsFlankPlay()
+    }
+
+    private fun ComposeContentTestRule.assertJumpsFlankPlay() {
+        val back = bounds(PlayerTags.REPLAY)
+        val play = bounds(PlayerTags.PLAY)
+        val on = bounds(PlayerTags.FORWARD)
+
+        assertTrue("back is not before the play control: ${back.right} against ${play.left}", back.right <= play.left + TOLERANCE)
+        assertTrue("forward is not after the play control: ${on.left} against ${play.right}", on.left >= play.right - TOLERANCE)
+    }
+
+    /**
+     * The steps are drawn where there is a list to step through, and only there.
+     *
+     * Previous and next once stood either side of the play control with nothing behind them -- no caller
+     * ever gave the route a channel to step to. They are the channel keys' own, on the screen.
+     */
+    @Test
+    fun `previous and next are drawn only with a list to step through`() {
         compose.show(HANDSET, DeviceClass.Expanded, playingLive())
 
-        compose.onAllNodes(hasClickAction() and hasAnyAncestor(hasTestTag(PlayerTags.CENTRE)))
-            .assertCountEquals(1)
-        compose.onNodeWithTag(PlayerTags.PLAY).assertIsDisplayed()
+        compose.onAllNodesWithTag(PlayerTags.PREVIOUS).assertCountEquals(0)
+        compose.onAllNodesWithTag(PlayerTags.NEXT).assertCountEquals(0)
     }
 
-    /* --------------------------------------------------------------- the top-bar button */
+    @Test
+    fun `previous and next step one place each way`() {
+        val steps = mutableListOf<Int>()
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingLive(),
+            LayoutDirection.Rtl,
+            PlayerActions(onStep = { steps += it }),
+        )
+
+        compose.onNodeWithTag(PlayerTags.PREVIOUS).performClick()
+        compose.onNodeWithTag(PlayerTags.NEXT).performClick()
+
+        assertEquals("the presses did not carry one place each way", listOf(-1, 1), steps)
+    }
 
     /**
-     * The button at the end of the top bar does something.
+     * The playlist pill is drawn where there is a list of channels to open, and only there.
      *
-     * It did not. It carried the cast mark and cast is not built, and `PlayerRoute` never
-     * bound `onCast` at all — so the one control in the top bar beside back and lock was a
-     * picture. It shares what is playing now, which is something this product can do today.
+     * A film has none. And the top bar has no list icon at all now: it did what Back does, and the owner
+     * asked for the one way into the list to be this pill.
      */
     @Test
-    fun `the top-bar button shares what is playing`() {
+    fun `the playlist pill is drawn only with a list to open`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingFilm())
+
+        compose.onAllNodesWithTag(PlayerTags.PLAYLIST).assertCountEquals(0)
+    }
+
+    @Test
+    fun `the playlist pill opens the list`() {
+        var opened = 0
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingLive(),
+            LayoutDirection.Ltr,
+            PlayerActions(onPlaylist = { opened++ }),
+        )
+
+        compose.onNodeWithTag(PlayerTags.PLAYLIST).performClick()
+
+        assertEquals(1, opened)
+    }
+
+    /* ------------------------------------------------------------- the list of channels */
+
+    /** A stand-in for the shell's rows: it says how long the list is and draws two rows that choose. */
+    private val rows: ChannelListContent = { rowHeight, onTotal, onClose ->
+        LaunchedEffect(Unit) { onTotal(82) }
+        Column {
+            for (name in listOf("a", "b")) {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(rowHeight)
+                        .clickable { onClose() }
+                        .testTag("row.$name"),
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `the list opens as a panel with its title, its count and its rows`() {
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingLive().copy(sheet = Sheet.Playlist),
+            LayoutDirection.Ltr,
+            channelList = rows,
+        )
+
+        compose.onNodeWithTag(PlayerTags.PLAYLIST_PANEL).assertIsDisplayed()
+        compose.onNodeWithTag(PlayerTags.PLAYLIST_COUNT).assertTextEquals(text(R.string.player_playlist_count).format("82"))
+        compose.onNodeWithTag("row.a").assertIsDisplayed()
+    }
+
+    /** No rows given, no panel: a list nobody filled is not left standing open and empty. */
+    @Test
+    fun `without rows the list draws nothing`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingLive().copy(sheet = Sheet.Playlist), LayoutDirection.Ltr)
+
+        compose.onAllNodesWithTag(PlayerTags.PLAYLIST_PANEL).assertCountEquals(0)
+    }
+
+    /**
+     * The panel is at the end edge, inside the safe area, as wide as the design says, and leaves the pill
+     * that opened it -- and the way back -- clear.
+     */
+    @Test
+    fun `the list is at the end edge and leaves the pill and the way back clear`() {
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingLive().copy(sheet = Sheet.Playlist),
+            LayoutDirection.Ltr,
+            PlayerActions(onPlaylist = {}),
+            channelList = rows,
+        )
+
+        val root = compose.bounds(PlayerTags.ROOT)
+        val panel = compose.bounds(PlayerTags.PLAYLIST_PANEL)
+        val pill = compose.bounds(PlayerTags.PLAYLIST)
+        val back = compose.bounds(PlayerTags.BACK)
+        val expected = playerMetricsFor(false, HANDSET.width, HANDSET.height).playlist
+
+        assertEquals("the panel is not at the end edge", root.right.value, panel.right.value, 0.5f)
+        assertEquals("the panel is not the width the design gives it", expected.value, panel.width.value, 0.5f)
+        assertTrue("the pill ${pill.left}..${pill.right} is under the panel from ${panel.left}", pill.right <= panel.left + TOLERANCE)
+        assertTrue("the way back is under the panel", back.right <= panel.left + TOLERANCE)
+    }
+
+    @Test
+    fun `the mark in the panel closes it`() {
+        val seen = mutableListOf<Sheet?>()
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingLive().copy(sheet = Sheet.Playlist),
+            LayoutDirection.Ltr,
+            PlayerActions(onSheet = { seen += it }),
+            channelList = rows,
+        )
+
+        compose.onNodeWithTag(PlayerTags.PLAYLIST_CLOSE).performClick()
+
+        assertEquals(listOf<Sheet?>(null), seen)
+    }
+
+    /** A row that chooses closes the list by the callback it was handed: the channel is what is left on screen. */
+    @Test
+    fun `a chosen row asks for the panel to close`() {
+        val seen = mutableListOf<Sheet?>()
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingLive().copy(sheet = Sheet.Playlist),
+            LayoutDirection.Ltr,
+            PlayerActions(onSheet = { seen += it }),
+            channelList = rows,
+        )
+
+        compose.onNodeWithTag("row.b").performClick()
+
+        assertEquals(listOf<Sheet?>(null), seen)
+    }
+
+    /** A list of one says so in a line instead of showing its single row. */
+    @Test
+    fun `a list of one says there is nowhere else to go`() {
+        val one: ChannelListContent = { _, onTotal, _ ->
+            LaunchedEffect(Unit) { onTotal(1) }
+        }
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingLive().copy(sheet = Sheet.Playlist),
+            LayoutDirection.Ltr,
+            channelList = one,
+        )
+
+        compose.onNodeWithTag(PlayerTags.PLAYLIST_ALONE).assertIsDisplayed()
+    }
+
+    /** The panel sits on the television's inset-free end edge too, and keeps its floor for the remote. */
+    @Test
+    fun `the list's mark is at least the floor on a television`() {
+        compose.show(
+            TELEVISION,
+            DeviceClass.Television,
+            playingLive().copy(sheet = Sheet.Playlist),
+            LayoutDirection.Ltr,
+            channelList = rows,
+        )
+
+        val mark = compose.bounds(PlayerTags.PLAYLIST_CLOSE)
+        assertTrue("the mark is ${mark.width}", mark.width >= TV_FLOOR - TOLERANCE && mark.height >= TV_FLOOR - TOLERANCE)
+    }
+
+    /** One press fills the screen with the picture and the next fits it back. */
+    @Test
+    fun `fill takes the whole screen and the next press fits it back`() {
+        val asked = mutableListOf<AspectMode>()
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingFilm().copy(aspect = AspectMode.FIT),
+            LayoutDirection.Ltr,
+            PlayerActions(onAspect = { asked += it }),
+        )
+
+        compose.onNodeWithTag(PlayerTags.FILL).performClick()
+
+        assertEquals(listOf(AspectMode.FILL), asked)
+    }
+
+    @Test
+    fun `fill on a filled screen fits it back`() {
+        val asked = mutableListOf<AspectMode>()
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingFilm().copy(aspect = AspectMode.FILL),
+            LayoutDirection.Ltr,
+            PlayerActions(onAspect = { asked += it }),
+        )
+
+        compose.onNodeWithTag(PlayerTags.FILL).performClick()
+
+        assertEquals(listOf(AspectMode.FIT), asked)
+    }
+
+    /* ----------------------------------------------------------------- the top bar */
+
+    /**
+     * The heart is drawn where there is an item to mark, and says which way it will turn.
+     *
+     * Not on a file from the device, which is nobody's favourite; the shell gives the route a value only
+     * for a channel and for a film started from its page.
+     */
+    @Test
+    fun `the heart is drawn only where there is something to mark`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingFilm())
+
+        compose.onAllNodesWithTag(PlayerTags.FAVORITE).assertCountEquals(0)
+    }
+
+    @Test
+    fun `the heart marks and says it will unmark`() {
+        var pressed = 0
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingLive().copy(favorite = true),
+            LayoutDirection.Ltr,
+            PlayerActions(onFavorite = { pressed++ }),
+        )
+
+        compose.onNodeWithContentDescription(text(R.string.player_favorite_remove)).performClick()
+
+        assertEquals(1, pressed)
+        compose.onAllNodesWithContentDescription(text(R.string.player_favorite_add)).assertCountEquals(0)
+    }
+
+    @Test
+    fun `an unmarked heart offers to mark`() {
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingLive().copy(favorite = false),
+            LayoutDirection.Ltr,
+            PlayerActions(onFavorite = {}),
+        )
+
+        compose.onNodeWithContentDescription(text(R.string.player_favorite_add)).assertIsDisplayed()
+    }
+
+    /** The reference is drawn left to right and so is the player, in Arabic too: the way back at the left, the gear at the right. */
+    @Test
+    fun `the top bar reads left to right in Arabic`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingFilm(), LayoutDirection.Rtl)
+
+        val back = compose.bounds(PlayerTags.BACK)
+        val title = compose.bounds(PlayerTags.TITLE)
+        val more = compose.bounds(PlayerTags.MORE)
+
+        assertTrue("the way back is not at the left: ${back.left} against ${title.left}", back.right <= title.left + TOLERANCE)
+        assertTrue("the rest is not at the right: ${more.left} against ${title.right}", more.left >= title.right - TOLERANCE)
+    }
+
+    /**
+     * What is under the title is what the engine has said, and the live pill when it is a channel.
+     *
+     * A stream that has shown nothing has no words about itself: a `FHD` that was the last channel's would
+     * be worse than none.
+     */
+    @Test
+    fun `the words under the title are only what is known`() {
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingLive().copy(videoSize = FrameSize(1920, 1080), videoAspectRatio = 16f / 9f),
+            LayoutDirection.Ltr,
+        )
+
+        compose.onNodeWithText("FHD").assertIsDisplayed()
+        compose.onNodeWithText("16:9").assertIsDisplayed()
+        compose.onAllNodesWithText("H.264").assertCountEquals(0)
+        compose.onAllNodesWithText("5.1").assertCountEquals(0)
+    }
+
+    @Test
+    fun `a stream that has shown nothing has no words about itself`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingFilm(), LayoutDirection.Ltr)
+
+        compose.onAllNodesWithText("FHD").assertCountEquals(0)
+        compose.onAllNodesWithText("HD").assertCountEquals(0)
+    }
+
+    /**
+     * A row that has run out of width drops whole chips and never shows a piece of one.
+     *
+     * It showed `2.0` as a `2` in a box with its edge sliced off, which reads as a fault. Measured as a
+     * containment claim on every chip that is on the screen: each one lies inside the row.
+     */
+    @Test
+    fun `a narrow top bar drops whole chips and never cuts one`() {
+        compose.show(
+            NARROW,
+            DeviceClass.Compact,
+            playingFilm().copy(
+                videoSize = FrameSize(1920, 1080),
+                videoAspectRatio = 16f / 9f,
+                videoTracks = listOf(Track("v", TrackType.VIDEO, "AVC", selected = true)),
+                audioTracks = listOf(Track("a", TrackType.AUDIO, "English", language = "en", channels = 2, selected = true)),
+            ),
+            LayoutDirection.Ltr,
+        )
+
+        val row = compose.bounds(PlayerTags.CHIPS)
+        compose.onNodeWithText("FHD").assertIsDisplayed()
+        val cut = mutableListOf<String>()
+        for (word in listOf("FHD", "H.264", "16:9", "2.0", "ENG")) {
+            val nodes = compose.onAllNodesWithText(word)
+            // A chip the row left out is measured and never placed: it is not on the screen.
+            if (nodes.fetchSemanticsNodes().firstOrNull()?.layoutInfo?.isPlaced != true) continue
+            val box = nodes[0].getUnclippedBoundsInRoot()
+            if (box.right > row.right + TOLERANCE) cut += "$word ${box.left}..${box.right} of ${row.right}"
+        }
+        assertTrue("a chip runs out of the row: $cut", cut.isEmpty())
+    }
+
+    /**
+     * Share is the rest's, behind the three dots, now that the top bar holds the controls the reference
+     * draws. Pressed there it still shares what is playing -- something this product can do today.
+     */
+    @Test
+    fun `the three dots hold the share and it shares what is playing`() {
         var shared = 0
         compose.show(
             HANDSET,
             DeviceClass.Expanded,
-            playingFilm(),
+            playingFilm().copy(sheet = Sheet.More),
             LayoutDirection.Rtl,
             PlayerActions(onShare = { shared++ }),
         )
 
-        compose.onNodeWithTag(PlayerTags.CAST).performClick()
+        compose.onNodeWithText(text(R.string.player_share)).performClick()
 
-        assertEquals("the top-bar button is still a picture", 1, shared)
+        assertEquals("the share row is still a picture", 1, shared)
+    }
+
+    /** And the statistics are there too, so nothing the old settings offered was lost on the way. */
+    @Test
+    fun `the three dots hold the statistics`() {
+        var asked = false
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingFilm().copy(sheet = Sheet.More),
+            LayoutDirection.Ltr,
+            PlayerActions(onStatistics = { asked = it }),
+        )
+
+        compose.onNodeWithText(text(R.string.player_statistics)).performClick()
+
+        assertTrue(asked)
     }
 
     /* ---------------------------------------------------------------- the jump mark */
@@ -571,40 +1079,6 @@ class PlayerLayoutTest {
         compose.assertSafe(HANDSET, tv = false)
     }
 
-    /**
-     * The jumps sit on the bar they move, one at each end of it.
-     *
-     * They were in the tools row among the aspect, the speed and the subtitles — the
-     * controls you touch while setting something up rather than while watching. Asserted as
-     * a relation between three boxes rather than as a list of row members, because what is
-     * being claimed is that they read as part of the bar: back before it, forward after it,
-     * in whichever direction the language runs.
-     */
-    @Test
-    fun `the jumps flank the bar in English`() {
-        compose.show(HANDSET, DeviceClass.Expanded, playingFilm(), LayoutDirection.Ltr)
-
-        val back = compose.bounds(PlayerTags.REPLAY)
-        val bar = compose.bounds(PlayerTags.TIMELINE)
-        val on = compose.bounds(PlayerTags.FORWARD)
-
-        assertTrue("back is not before the bar: ${back.right} against ${bar.left}", back.right <= bar.left + TOLERANCE)
-        assertTrue("forward is not after the bar: ${on.left} against ${bar.right}", on.left >= bar.right - TOLERANCE)
-    }
-
-    /** And mirrored in Arabic, where the bar fills from the right and so does time. */
-    @Test
-    fun `the jumps flank the bar in Arabic`() {
-        compose.show(HANDSET, DeviceClass.Expanded, playingFilm(), LayoutDirection.Rtl)
-
-        val back = compose.bounds(PlayerTags.REPLAY)
-        val bar = compose.bounds(PlayerTags.TIMELINE)
-        val on = compose.bounds(PlayerTags.FORWARD)
-
-        assertTrue("back must be on the right of the bar in Arabic", back.left >= bar.right - TOLERANCE)
-        assertTrue("forward must be on its left", on.right <= bar.left + TOLERANCE)
-    }
-
     /* ------------------------------------------------------------------ the scrubber */
 
     /**
@@ -642,15 +1116,14 @@ class PlayerLayoutTest {
     }
 
     /**
-     * And in Arabic the bar fills from the right, so the same touch means the opposite time.
+     * And in Arabic the bar still fills from the left: the player is drawn one way in every language.
      *
-     * The half of a mirrored slider that is silently wrong far more often than it is right:
-     * a drag toward the right-hand edge in Arabic is a drag toward the *beginning* of the
-     * film. Read left-to-right it would seek to the far end, which reads as a broken control
-     * rather than a mirrored one.
+     * It was mirrored, and a drag toward the right-hand edge in Arabic was a drag toward the *beginning* of
+     * the film. The reference is drawn left to right and so is every video player a viewer has used, so the
+     * same touch means the same time whatever language the words are in.
      */
     @Test
-    fun `dragging the bar in Arabic seeks from the right-hand edge`() {
+    fun `dragging the bar in Arabic seeks from the left-hand edge`() {
         var sought: Long? = null
         compose.show(
             HANDSET,
@@ -666,11 +1139,44 @@ class PlayerLayoutTest {
         }
 
         assertEquals(
-            "a quarter in from the right-hand edge is a quarter into the film, not three",
-            FILM_LENGTH * 0.25f,
+            "three quarters in from the left-hand edge is three quarters into the film",
+            FILM_LENGTH * 0.75f,
             sought?.toFloat() ?: -1f,
             FILM_LENGTH * 0.03f,
         )
+    }
+
+    /**
+     * A channel at its live edge draws no figure at the start of the bar -- nothing in the middle of the
+     * screen says "live now" -- and one that is behind it says how far.
+     */
+    @Test
+    fun `a channel at its live edge draws no figure and one behind it says how far`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingLive())
+        compose.onAllNodesWithTag(PlayerTags.POSITION).assertCountEquals(0)
+    }
+
+    @Test
+    fun `a channel behind its live edge says how far`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingLive().copy(behindLiveMs = FOUR_MINUTES))
+        compose.onNodeWithTag(PlayerTags.POSITION).assertIsDisplayed()
+    }
+
+    /**
+     * The figure at the end of the bar is what is left, as the reference draws it: `2:17:27` and `43:05`
+     * on a film three hours long. A length says how big the film is; a remainder says how much of it there is
+     * still to watch, which is what a viewer looks at the end of a bar to know.
+     */
+    @Test
+    fun `the figure at the end of the bar is the time left`() {
+        compose.show(
+            HANDSET,
+            DeviceClass.Expanded,
+            playingFilm().copy(positionMs = (FILM_LENGTH / 2).toLong()),
+        )
+
+        compose.onNodeWithTag(PlayerTags.DURATION).assertTextEquals("45:00")
+        compose.onNodeWithTag(PlayerTags.POSITION).assertTextEquals("45:00")
     }
 
     /** A press without a drag is a seek too: a tap on the bar puts the head where you tapped. */
@@ -932,80 +1438,6 @@ class PlayerLayoutTest {
         assertEquals("the caption ate the tap", 1, toggled)
     }
 
-    /* -------------------------------------------------------- the reserved strip */
-
-    /**
-     * The strip is the same height before the guide answers and after.
-     *
-     * The single most important assertion in this file, and the one that makes "EPG is off
-     * the critical path" a fact rather than an intention. If these two differ, then the
-     * moment the guide lands the timeline and the tools row move — with the user's thumb
-     * already travelling toward a control that is no longer where they saw it.
-     *
-     * Measured on two compositions of the same screen rather than by reading a constant,
-     * because a constant proves the constant and this proves the layout.
-     */
-    @Test
-    fun `the programme strip reserves its height before the guide arrives`() {
-        // One composition, and the guide arrives into it -- which is the event being
-        // tested. Two separate compositions would compare two screens; this compares the
-        // same screen before and after the thing that could move it.
-        val programme = mutableStateOf<Programme?>(null)
-        compose.setContent {
-            CastivioTheme {
-                CompositionLocalProvider(
-                    LocalDeviceClass provides DeviceClass.Expanded,
-                    LocalLayoutDirection provides LayoutDirection.Rtl,
-                ) {
-                    Stage(HANDSET) {
-                        PlayerScreen(
-                            state = playingLive().copy(programme = programme.value),
-                            actions = PlayerActions(),
-                        )
-                    }
-                }
-            }
-        }
-
-        val coldStrip = compose.bounds(PlayerTags.EPG)
-        val coldTools = compose.bounds(PlayerTags.TOOLS)
-        val coldTimeline = compose.bounds(PlayerTags.TIMELINE)
-
-        programme.value = Programme(
-            now = "الأخبار المسائية",
-            window = "20:00 – 20:45",
-            next = "التالي: وثائقي أعماق البحار",
-            progress = 0.64f,
-        )
-        compose.waitForIdle()
-
-        val warmStrip = compose.bounds(PlayerTags.EPG)
-        val warmTools = compose.bounds(PlayerTags.TOOLS)
-        val warmTimeline = compose.bounds(PlayerTags.TIMELINE)
-
-        assertEquals(
-            "the strip is $coldStrip cold and $warmStrip warm — the guide reflowed the screen",
-            coldStrip.height.value,
-            warmStrip.height.value,
-            0.5f,
-        )
-        // And the consequence that actually matters: nothing below it moved. A strip that
-        // kept its height while the row under it shifted would pass the first assertion
-        // and still take the control out from under the user's thumb.
-        assertEquals(
-            "the timeline moved when the guide arrived",
-            coldTimeline.top.value,
-            warmTimeline.top.value,
-            0.5f,
-        )
-        assertEquals(
-            "the tools row moved when the guide arrived",
-            coldTools.top.value,
-            warmTools.top.value,
-            0.5f,
-        )
-    }
-
     /* ------------------------------------------------------------- the three cards */
 
     /**
@@ -1091,9 +1523,8 @@ class PlayerLayoutTest {
 
         compose.onAllNodesWithTag(PlayerTags.TITLE).assertCountEquals(1)
         compose.onAllNodesWithTag(PlayerTags.TOP).assertCountEquals(0)
-        compose.onAllNodesWithTag(PlayerTags.CENTRE).assertCountEquals(0)
+        compose.onAllNodesWithTag(PlayerTags.TRANSPORT).assertCountEquals(0)
         compose.onAllNodesWithTag(PlayerTags.BOTTOM).assertCountEquals(0)
-        compose.onAllNodesWithTag(PlayerTags.EPG).assertCountEquals(0)
         compose.onAllNodesWithTag(PlayerTags.STATISTICS).assertCountEquals(0)
     }
 
@@ -1190,10 +1621,10 @@ class PlayerLayoutTest {
     /**
      * The statistics panel is on the side opposite the title.
      *
-     * A correction that came out of the drawing: at the start edge it covered the title in
-     * Arabic. Asserted in both directions, because "the end edge" is two different physical
-     * sides and a panel pinned to one of them passes in whichever language it was checked
-     * in.
+     * A correction that came out of the drawing: at the start edge it covered the title. The player is laid
+     * out left to right in every language now, so the title is at the left and the panel at the right in
+     * Arabic as in English -- asserted in both, because a panel pinned to one physical side passes in
+     * whichever language it was checked in.
      */
     @Test
     fun `the statistics panel sits opposite the title in Arabic`() {
@@ -1206,8 +1637,8 @@ class PlayerLayoutTest {
         val title = compose.bounds(PlayerTags.TITLE)
         val panel = compose.bounds(PlayerTags.STATISTICS)
         assertTrue(
-            "RTL: the panel at ${panel.left} is not left of the title at ${title.left}",
-            panel.left < title.left,
+            "Arabic: the panel at ${panel.left} is not right of the title at ${title.left}",
+            panel.left > title.left,
         )
     }
 
@@ -1238,23 +1669,22 @@ class PlayerLayoutTest {
      */
     private fun ComposeContentTestRule.assertBands(frame: Frame) {
         val top = bounds(PlayerTags.TOP)
-        val centre = bounds(PlayerTags.CENTRE)
         val bottom = bounds(PlayerTags.BOTTOM)
+        val timeline = bounds(PlayerTags.TIMELINE)
+        val transport = bounds(PlayerTags.TRANSPORT)
 
         println(
-            "player ${frame.width}x${frame.height} — top ${top.height} " +
-                "centre ${centre.height} bottom ${bottom.height} " +
-                "| free ${centre.top - top.bottom}/${bottom.top - centre.bottom}",
+            "player ${frame.width}x${frame.height} — top ${top.height} bottom ${bottom.height} " +
+                "(bar ${timeline.height}, transport ${transport.height}) | free ${bottom.top - top.bottom}",
         )
 
         assertTrue(
-            "${frame.width}: the centre runs into the top bar — ${top.bottom} against ${centre.top}",
-            centre.top >= top.bottom - TOLERANCE,
+            "${frame.width}: the bottom band runs into the top bar — ${top.bottom} against ${bottom.top}",
+            bottom.top >= top.bottom - TOLERANCE,
         )
         assertTrue(
-            "${frame.width}: the bottom bar runs into the centre — " +
-                "${centre.bottom} against ${bottom.top}",
-            bottom.top >= centre.bottom - TOLERANCE,
+            "${frame.width}: the transport runs into the bar — ${timeline.bottom} against ${transport.top}",
+            transport.top >= timeline.bottom - TOLERANCE,
         )
     }
 
@@ -1336,7 +1766,6 @@ class PlayerLayoutTest {
             kind = MediaKind.LIVE,
             subtitle = "باقة المغرب",
             channelNumber = "104",
-            epgChannelId = "aloula.ma",
             catchUpHours = 48,
         ),
         picture = Picture.Playing,
@@ -1348,6 +1777,9 @@ class PlayerLayoutTest {
     private val HANDSET = Frame(827.dp, 393.dp)
     private val SHORT = Frame(800.dp, 360.dp)
     private val TELEVISION = Frame(960.dp, 540.dp)
+
+    /** Narrower than any handset in landscape, so the top bar has to choose what to leave out. */
+    private val NARROW = Frame(640.dp, 360.dp)
 
     /** The preview plate on the Channels board, where channels are changed. */
     private val PLATE = Frame(300.dp, 169.dp)
@@ -1382,12 +1814,28 @@ class PlayerLayoutTest {
     private val TOLERANCE = 0.5.dp
 
     private val CONTROLS = listOf(
-        PlayerTags.BACK, PlayerTags.LOCK, PlayerTags.CAST, PlayerTags.MORE,
-        PlayerTags.REPLAY, PlayerTags.PLAY, PlayerTags.FORWARD,
-        PlayerTags.TIMELINE, PlayerTags.TOOLS, PlayerTags.TO_LIVE,
-        PlayerTags.SPEED, PlayerTags.SUBTITLES, PlayerTags.AUDIO, PlayerTags.ASPECT,
-        PlayerTags.QUALITY,
-        PlayerTags.EPG,
+        PlayerTags.BACK, PlayerTags.FAVORITE, PlayerTags.AUDIO, PlayerTags.SUBTITLES,
+        PlayerTags.SETTINGS, PlayerTags.MORE,
+        PlayerTags.PLAYLIST, PlayerTags.PREVIOUS, PlayerTags.REPLAY, PlayerTags.PLAY, PlayerTags.FORWARD,
+        PlayerTags.NEXT, PlayerTags.TO_LIVE, PlayerTags.FILL, PlayerTags.LOCK,
+        PlayerTags.TIMELINE, PlayerTags.CHIPS,
+    )
+
+    /**
+     * Every control the screen can draw at once: a channel that was pressed in a list, with somewhere to go
+     * back to, and a heart to turn. What the safe area, the floors and the bands have to hold for.
+     */
+    private fun ComposeContentTestRule.showCrowded(
+        frame: Frame,
+        device: DeviceClass,
+        state: PlayerState = playingLive(),
+        direction: LayoutDirection = LayoutDirection.Rtl,
+    ) = show(
+        frame,
+        device,
+        state.copy(favorite = false),
+        direction,
+        PlayerActions(onStep = {}, onPlaylist = {}, onFavorite = {}),
     )
 
     private fun ComposeContentTestRule.show(
@@ -1396,13 +1844,14 @@ class PlayerLayoutTest {
         state: PlayerState,
         direction: LayoutDirection = LayoutDirection.Rtl,
         actions: PlayerActions = PlayerActions(),
+        channelList: ChannelListContent? = null,
     ) = setContent {
         CastivioTheme {
             CompositionLocalProvider(
                 LocalDeviceClass provides device,
                 LocalLayoutDirection provides direction,
             ) {
-                Stage(frame) { PlayerScreen(state = state, actions = actions) }
+                Stage(frame) { PlayerScreen(state = state, actions = actions, channelList = channelList) }
             }
         }
     }

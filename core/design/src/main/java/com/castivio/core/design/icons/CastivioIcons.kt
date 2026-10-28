@@ -137,6 +137,22 @@ object CastivioIcons {
     val Play: ImageVector = strokeIcon("Play", "M8 5.5v13l11-6.5z", size = Sizing.iconMd)
     val Pause: ImageVector = strokeIcon("Pause", "M9 5.5v13M15 5.5v13", size = Sizing.iconMd)
 
+    /*
+     * The transport's own, drawn solid as the player's reference draws them: the one place in the
+     * product where the glyph is the control's whole face and a hairline outline is too quiet to be
+     * found from across a room. Everywhere else the outlined four above stay.
+     */
+    val PlaySolid: ImageVector = strokeIcon("PlaySolid", "M8 5.5v13l11-6.5z", size = Sizing.iconMd, filled = true)
+    val PauseSolid: ImageVector = strokeIcon(
+        "PauseSolid", "M8.2 5.7h1.8v12.6H8.2z", "M14 5.7h1.8v12.6H14z", size = Sizing.iconMd, filled = true,
+    )
+    val PreviousSolid: ImageVector = strokeIcon(
+        "PreviousSolid", "M18 5.5v13L8 12z", "M6 5.5v13", size = Sizing.iconMd, filled = true,
+    )
+    val NextSolid: ImageVector = strokeIcon(
+        "NextSolid", "M6 5.5v13L16 12z", "M18 5.5v13", size = Sizing.iconMd, filled = true,
+    )
+
     val Previous: ImageVector = strokeIcon(
         "Previous", "M18 5.5v13L8 12z", "M6 5.5v13", size = Sizing.iconMd,
     )
@@ -300,6 +316,77 @@ object CastivioIcons {
     val Tick: ImageVector = strokeIcon(
         "Tick", "M5 12.5l4.5 4.5L19 7.5", size = Sizing.iconSm,
     )
+
+    /* ------------------------------------------------------- the player's second row
+     *
+     * Drawn for the player as the owner's reference picture draws it (`design/mockups/player-reference.png`):
+     * a heart, a list, a speaker, a gear, a playlist, a chevron, and the two arrows that carry
+     * a "10" inside them -- the numeral is set over the arrow by the control, not drawn here,
+     * for the reason [Replay10] gives.
+     */
+
+    /** The favourite's mark, outlined. */
+    val Favorite: ImageVector = strokeIcon(
+        "Favorite",
+        "M12 20.2C7.2 16.9 3.6 13.6 3.6 9.7A4.3 4.3 0 0 1 12 8.2a4.3 4.3 0 0 1 8.4 1.5c0 3.9-3.6 7.2-8.4 10.5z",
+        size = Sizing.iconMd,
+    )
+
+    /** The same heart, filled: a favourite that is one. */
+    val FavoriteFilled: ImageVector = strokeIcon(
+        "FavoriteFilled",
+        "M12 20.2C7.2 16.9 3.6 13.6 3.6 9.7A4.3 4.3 0 0 1 12 8.2a4.3 4.3 0 0 1 8.4 1.5c0 3.9-3.6 7.2-8.4 10.5z",
+        size = Sizing.iconMd,
+        filled = true,
+    )
+
+    /** Three lines, each with its bullet: what is queued. */
+    val List: ImageVector = strokeIcon(
+        "List",
+        "M9 6.5h11M9 12h11M9 17.5h11",
+        "M4.5 6.5h.01M4.5 12h.01M4.5 17.5h.01",
+        size = Sizing.iconMd,
+    )
+
+    /** A box with its lines, which is what a playlist is drawn as. */
+    val Playlist: ImageVector = strokeIcon(
+        "Playlist",
+        "M5.5 5h13A2.5 2.5 0 0 1 21 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5v-9A2.5 2.5 0 0 1 5.5 5z",
+        "M7 9.5h.01M10 9.5h7M7 14.5h.01M10 14.5h7",
+        size = Sizing.iconMd,
+    )
+
+    /** A speaker and its waves. */
+    val Volume: ImageVector = strokeIcon(
+        "Volume",
+        "M4 9.5h3.5L12 5.5v13l-4.5-4H4z",
+        "M16 9a4.5 4.5 0 0 1 0 6",
+        "M18.6 6.4a8 8 0 0 1 0 11.2",
+        size = Sizing.iconMd,
+    )
+
+    /** A gear: the settings. */
+    val Settings: ImageVector = strokeIcon(
+        "Settings",
+        "M12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6",
+        "M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z",
+        size = Sizing.iconMd,
+    )
+
+    /** Towards the end of a line: drawn pointing at the trailing edge, and mirrored by a caller whose layout runs the other way. */
+    val Chevron: ImageVector = strokeIcon(
+        "Chevron", "M9.5 6l6 6-6 6", size = Sizing.iconMd,
+    )
+
+    /** The arrow that goes back, open at the top: ten seconds are set inside it by the control. */
+    val ReplayArc: ImageVector = strokeIcon(
+        "ReplayArc", "M11 5.5a7 7 0 1 0 7 7", "M11 2.5L8 5.5l3 3", size = Sizing.iconMd,
+    )
+
+    /** The arrow that goes forward, the other way round. */
+    val ForwardArc: ImageVector = strokeIcon(
+        "ForwardArc", "M13 5.5a7 7 0 1 1-7 7", "M13 2.5l3 3-3 3", size = Sizing.iconMd,
+    )
 }
 
 /** Material's grid, so these sit beside `Icons.Rounded` without being rescaled. */
@@ -327,6 +414,7 @@ private fun strokeIcon(
     name: String,
     vararg pathData: String,
     size: Dp = Sizing.iconXl,
+    filled: Boolean = false,
 ): ImageVector = ImageVector.Builder(
     name = name,
     defaultWidth = size,
@@ -341,7 +429,7 @@ private fun strokeIcon(
             // No fill, and the stroke's own colour is a placeholder: `Icon` tints the
             // whole vector with the content colour, which is how every icon in the
             // product takes its colour from where it is used rather than carrying one.
-            fill = null,
+            fill = if (filled) SolidColor(Color.Black) else null,
             stroke = SolidColor(Color.Black),
             strokeLineWidth = width,
             strokeLineCap = StrokeCap.Round,

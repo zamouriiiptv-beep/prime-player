@@ -23,8 +23,7 @@ import javax.inject.Singleton
  *
  * ## Why the player does not simply take an `OpenSubtitlesApi`
  *
- * The same reason it takes a [ProgrammeSource] rather than an `EpgRepository`: a narrower
- * type makes a class of mistake impossible. The API can be asked to log in at any moment,
+ * A narrower type makes a class of mistake impossible. The API can be asked to log in at any moment,
  * and having it in the player's constructor is an invitation to warm a session at startup —
  * which would send the viewer's password to a server because they opened a film, for a
  * feature they may never touch.

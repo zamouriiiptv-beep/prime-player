@@ -112,6 +112,21 @@ fun PlayerRoute(
      * stream, and must not learn about a catalogue.
      */
     onChannelStep: ((Int) -> Unit)? = null,
+    /**
+     * Whether the thing playing is one of the viewer's favourites, or null when there is nothing to mark.
+     *
+     * A value and not a question the player asks: the favourites are the catalogue's, in a module the
+     * player must not know, so the shell reads them and hands over the one fact the heart draws. Null
+     * leaves the heart undrawn -- Castivio does not draw a control that cannot act.
+     */
+    favorite: Boolean? = null,
+    /** What the heart does. Given together with [favorite], and never one without the other. */
+    onFavorite: (() -> Unit)? = null,
+    /**
+     * The rows of the list of channels, or null where there is no list -- every film, and a channel that was
+     * not pressed in one. Given by the shell, which knows what a channel is; see [ChannelListContent].
+     */
+    channelList: ChannelListContent? = null,
 ) {
     val compact = mode == PlayerMode.Compact
     val model: PlayerViewModel = hiltViewModel()
@@ -138,6 +153,11 @@ fun PlayerRoute(
     val chooser = stringResource(R.string.player_share)
 
     val current = state ?: return
+
+    // The shell took the rows away -- the channel changed to one with no list, or a password is being
+    // asked -- while the list was open: a panel with nothing in it is not left standing.
+    val listGone = channelList == null && current.sheet == Sheet.Playlist
+    LaunchedEffect(listGone) { if (listGone) model.openSheet(null) }
 
     // **The channel keys, taken from the activity and not from the focus.**
     //
@@ -293,7 +313,7 @@ fun PlayerRoute(
     // column rather than the plate inside it.
     Box(if (compact) modifier else modifier.fillMaxSize()) {
         PlayerScreen(
-            state = current,
+            state = if (current.favorite == favorite) current else current.copy(favorite = favorite),
             mode = mode,
             actions = PlayerActions(
                 // Collapse rather than release, for the same reason back does — the title
@@ -320,9 +340,19 @@ fun PlayerRoute(
                 onTryBackup = model::tryBackup,
                 onShare = { context.share(shareOffer(current.request), chooser) },
                 onExpand = { onExpand?.invoke() },
+                // The steps are the channel keys' own, on the screen: the same list, the same order, the same
+                // locks, asked of the shell by the same callback.
+                onStep = onChannelStep,
+                // The playlist opens the list of channels and, where it is open, closes it. It exists exactly when the
+                // shell has rows to give; going back to the board is Back's, and nothing else's.
+                onPlaylist = channelList?.let {
+                    { model.openSheet(if (current.sheet == Sheet.Playlist) null else Sheet.Playlist) }
+                },
+                onFavorite = onFavorite.takeIf { favorite != null },
                 setOutput = model::setOutput,
                 releaseOutput = model::releaseOutput,
             ),
+            channelList = channelList,
         )
         // The big player only: the compact one is a plate in somebody else's screen, with no room for lines.
         if (!compact) OpeningPanel(Modifier.align(Alignment.CenterStart))

@@ -39,10 +39,15 @@ internal object PlayerTags {
      */
     const val SAFE = "player.safe"
 
-    /** The three bands. Tagged so "they do not overlap" is expressible. */
+    /** The two bands. Tagged so "they do not overlap" is expressible. */
     const val TOP = "player.top"
-    const val CENTRE = "player.centre"
     const val BOTTOM = "player.bottom"
+
+    /** The transport row inside the bottom band: the steps and the jumps round the play control, and the pills at either end. */
+    const val TRANSPORT = "player.transport"
+
+    /** The words under the title: the class of the picture, its codec, its shape, the sound's layout and language. */
+    const val CHIPS = "player.chips"
 
     const val TITLE = "player.title"
     const val BACK = "player.back"
@@ -52,6 +57,31 @@ internal object PlayerTags {
     const val PLAY = "player.play"
     const val REPLAY = "player.replay"
     const val FORWARD = "player.forward"
+    const val PREVIOUS = "player.previous"
+    const val NEXT = "player.next"
+
+    /** The top bar's favourite. */
+    const val FAVORITE = "player.favorite"
+
+    /**
+     * The pills of the bottom row: the playlist at the start edge, the fill at the other.
+     *
+     * The playlist is the one way into the list of channels, and the panel it opens has its own four.
+     */
+    const val PLAYLIST = "player.playlist"
+    const val PLAYLIST_PANEL = "player.playlist.panel"
+    const val PLAYLIST_COUNT = "player.playlist.count"
+    const val PLAYLIST_CLOSE = "player.playlist.close"
+    const val PLAYLIST_ALONE = "player.playlist.alone"
+    const val FILL = "player.fill"
+
+    /** The gear, and the popover that hangs from it. */
+    const val SETTINGS = "player.settings"
+    const val POPOVER = "player.popover"
+    const val POPOVER_ROW = "player.popoverRow"
+
+    /** One row of the popover: `quality`, `audio`, `subtitles`, `aspect` or `speed`. */
+    fun popoverRow(key: String): String = "$POPOVER_ROW.$key"
 
     const val TIMELINE = "player.timeline"
     const val THUMB = "player.timeline.thumb"
@@ -69,7 +99,6 @@ internal object PlayerTags {
      * only control in the player below the touch floor. It belongs in this row, at this
      * row's size, and a test says so.
      */
-    const val TOOLS = "player.tools"
     const val TO_LIVE = "player.toLive"
     const val SUBTITLES = "player.subtitles"
     const val AUDIO = "player.audio"
@@ -77,16 +106,6 @@ internal object PlayerTags {
     const val ASPECT = "player.aspect"
     const val QUALITY = "player.quality"
     const val MORE = "player.more"
-
-    /**
-     * The programme strip.
-     *
-     * The most important tag in the file. The claim it exists for is that the strip is the
-     * *same height* before the guide answers and after — which is two measurements of one
-     * element across two states, and the reason EPG can be off the critical path without
-     * the screen jumping when it lands.
-     */
-    const val EPG = "player.epg"
 
     const val OVERLAY = "player.overlay"
 

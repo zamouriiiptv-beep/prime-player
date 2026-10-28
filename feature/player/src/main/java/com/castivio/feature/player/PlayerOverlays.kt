@@ -771,6 +771,8 @@ private fun sheetTitle(sheet: Sheet): Int = when (sheet) {
     Sheet.Subtitles -> R.string.player_sheet_subtitles
     Sheet.Audio -> R.string.player_sheet_audio
     Sheet.Settings -> R.string.player_sheet_settings
+    Sheet.More -> R.string.player_more
+    Sheet.Playlist -> R.string.player_playlist
     Sheet.Quality -> R.string.player_sheet_quality
     Sheet.SubtitleLook -> R.string.player_subtitle_look
     Sheet.SubtitleSearch -> R.string.player_find_subtitles
@@ -984,50 +986,18 @@ private fun sheetRows(sheet: Sheet, state: PlayerState): List<SheetRow> = when (
         state.videoTracks.forEach { track -> add(trackRow(CastivioIcons.Quality, track)) }
     }
 
-    // No picture in picture: the row asked the system for a window the activity never
-    // declared it could have, the system refused, and the refusal was swallowed -- a row
-    // that did nothing on every device. No speed on a channel, for the reason the tools row
-    // gives.
-    Sheet.Settings -> buildList {
-        if (!state.request.isLive) {
-            add(
-                SheetRow(
-                    icon = CastivioIcons.Speed,
-                    name = stringResource(R.string.player_speed),
-                    detail = speedLabel(state.speed),
-                    onPick = { it.onSpeed(nextSpeed(state.speed)) },
-                ),
-            )
-        }
-        // No subtitles on a channel, for the reason the tools row gives.
-        if (!state.request.isLive) {
-            add(
-                SheetRow(
-                    icon = CastivioIcons.Subtitles,
-                    name = stringResource(R.string.player_sheet_subtitles),
-                    onPick = { it.onSheet(Sheet.Subtitles) },
-                ),
-            )
-        }
-        add(
-            SheetRow(
-                icon = CastivioIcons.AudioTrack,
-                name = stringResource(R.string.player_sheet_audio),
-                onPick = { it.onSheet(Sheet.Audio) },
-            ),
-        )
-        add(
-            SheetRow(
-                icon = CastivioIcons.Aspect,
-                name = stringResource(R.string.player_aspect),
-                // Reads the mode and sets the next one, exactly as the speed row does.
-                // It used to print "Fit" whatever the state was and had no `onPick` at all —
-                // an affordance the design had drawn and the code had never connected, which
-                // is why a stretched picture could not be corrected from inside the player.
-                detail = aspectLabel(state.aspect),
-                onPick = { it.onAspect(nextAspect(state.aspect)) },
-            ),
-        )
+    // The settings are the popover that hangs from the gear -- see `SettingsPopover` -- and are never
+    // listed as a sheet. The value is here because `Sheet` is one enum and a `when` over it is exhaustive.
+    Sheet.Settings -> emptyList()
+
+    // The list of channels is the shell's to fill -- see `ChannelListContent` -- and is a panel of its own.
+    Sheet.Playlist -> emptyList()
+
+    // What the three dots hold, and what the settings used to end with: the two things that are about the
+    // player rather than about the film. No picture in picture: the row asked the system for a window the
+    // activity never declared it could have, the system refused, and the refusal was swallowed -- a row that
+    // did nothing on every device.
+    Sheet.More -> buildList {
         add(
             SheetRow(
                 icon = CastivioIcons.Quality,
@@ -1181,7 +1151,7 @@ private fun trackRow(icon: ImageVector, track: Track): SheetRow = SheetRow(
  * is six. On a remote the cycle is the faster of the two by a wide margin, and the label
  * says where you are.
  */
-private fun nextSpeed(current: Float): Float {
+internal fun nextSpeed(current: Float): Float {
     val ladder = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f)
     val index = ladder.indexOfFirst { it > current - SPEED_EPSILON && it < current + SPEED_EPSILON }
     return ladder[(index + 1).mod(ladder.size)]

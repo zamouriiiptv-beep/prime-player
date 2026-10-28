@@ -66,7 +66,6 @@ import kotlinx.coroutines.launch
 class PlayerViewModel @Inject constructor(
     private val engines: EngineFactory,
     private val memory: EngineMemory,
-    private val guide: ProgrammeSource,
     private val subtitles: SubtitleStyleStore,
     private val hunt: SubtitleSource,
     /**
@@ -107,7 +106,6 @@ class PlayerViewModel @Inject constructor(
     private var collector: Job? = null
     private var ticker: Job? = null
     private var sampler: Job? = null
-    private var guideJob: Job? = null
     private var shapeJob: Job? = null
     private var sizeJob: Job? = null
     private var cueJob: Job? = null
@@ -539,7 +537,6 @@ class PlayerViewModel @Inject constructor(
         waitJob?.cancel(); waitJob = null
         _state.value = current.copy(engine = engineId, switching = false)
         startTicker()
-        loadProgramme(current.request)
     }
 
     /**
@@ -1535,23 +1532,6 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    /**
-     * The guide, after the picture.
-     *
-     * Deliberately fire-and-forget into a slot that is already the right height. If it
-     * never answers, the strip stays a skeleton and the player is unaffected — which is
-     * the property the whole arrangement exists to guarantee, and the reason live playback
-     * has no dependency on EPG at all.
-     */
-    private fun loadProgramme(request: PlayerRequest) {
-        guideJob?.cancel()
-        val channelId = request.epgChannelId ?: return
-        guideJob = viewModelScope.launch {
-            val programme = guide.now(channelId) ?: return@launch
-            _state.value = _state.value?.copy(programme = programme)
-        }
-    }
-
     private fun stopEngine() {
         deadline?.cancel(); deadline = null
         collector?.cancel(); collector = null
@@ -1577,7 +1557,6 @@ class PlayerViewModel @Inject constructor(
         clearAim()
         ticker?.cancel(); ticker = null
         sampler?.cancel(); sampler = null
-        guideJob?.cancel(); guideJob = null
         huntJob?.cancel(); huntJob = null
         captionJob?.cancel(); captionJob = null
     }

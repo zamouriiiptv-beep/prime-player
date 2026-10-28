@@ -19,14 +19,42 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.viewinterop.AndroidView
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.playback.api.AspectMode
 import com.castivio.playback.api.VideoOutput
+
+/**
+ * The player, laid out left to right in every language.
+ *
+ * **Set above the root box, and that is the whole reason this is a wrapper.** The reference is drawn that
+ * way and a video player is read that way: the bar fills from the left, the back arrow points left, the
+ * title is at the left and the settings hang from the right. The direction an `align(TopEnd)` resolves
+ * against is the one its *parent box* was composed in, so a direction set inside the box left the sheets
+ * and the statistics at the Arabic side of a screen whose controls were laid out the other way round. Set
+ * here, once, for the chrome and the sheets and the statistics together, so no control below has to ask
+ * which way round it is; the words inside the controls keep their own direction -- see `ltr` in
+ * `PlayerControls`.
+ */
+@Composable
+fun PlayerScreen(
+    state: PlayerState,
+    actions: PlayerActions,
+    mode: PlayerMode = PlayerMode.Expanded,
+    modifier: Modifier = Modifier,
+    /** The rows of the list of channels, when the shell has a list to give. See [ChannelListContent]. */
+    channelList: ChannelListContent? = null,
+) {
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+        PlayerStage(state, actions, mode, modifier, channelList)
+    }
+}
 
 /**
  * The player.
@@ -41,12 +69,13 @@ import com.castivio.playback.api.VideoOutput
  * over a bright frame and a grey smear over a dark one, so the bars take a scrim from
  * `:core:design` instead and only the controls keep the glass.
  *
- * ## Three bands, and nothing between them
+ * ## Two bands, and the picture between them
  *
- * Top, centre, bottom, inside one safe-area box. `SpaceBetween` rather than absolute
+ * Top and bottom, inside one safe-area box. `SpaceBetween` rather than absolute
  * positions, so the bands find their own places on a 360dp handset and a 540dp television
  * from the same composition — and so the gate can assert they do not overlap rather than
- * assert three magic numbers.
+ * assert two magic numbers. Nothing is drawn in the middle: the reference leaves the picture
+ * its whole centre, and the play control sits with the rest of the transport at the foot.
  *
  * ## What is composed before the first frame
  *
@@ -59,7 +88,7 @@ import com.castivio.playback.api.VideoOutput
  * not needed happens at all.
  */
 @Composable
-fun PlayerScreen(
+private fun PlayerStage(
     state: PlayerState,
     actions: PlayerActions,
     /**
@@ -70,6 +99,7 @@ fun PlayerScreen(
      */
     mode: PlayerMode = PlayerMode.Expanded,
     modifier: Modifier = Modifier,
+    channelList: ChannelListContent? = null,
 ) {
     val colors = CastivioTheme.colors
     val tv = CastivioTheme.device.isTv
@@ -171,7 +201,6 @@ fun PlayerScreen(
                             verticalArrangement = Arrangement.SpaceBetween,
                         ) {
                             TopBar(state, actions)
-                            CentreCluster(state, actions)
                             BottomBar(state, actions)
                         }
                     }
@@ -191,7 +220,17 @@ fun PlayerScreen(
         // sheet opened in the large player and left open would otherwise be composed over
         // a 300dp well the moment it collapsed.
         if (expanded) {
-            state.sheet?.let { PlayerSheet(it, state, actions) }
+            state.sheet?.let { sheet ->
+                // The settings hang from their gear, so they are laid out in the picture's own box -- the one
+                // the top bar is in -- rather than the window's; everything else is a panel at the end edge.
+                when (sheet) {
+                    Sheet.Settings -> Box(Modifier.size(picture)) { SettingsPopover(state, actions) }
+                    // The shell's rows in the player's panel. Nothing without them: a list nobody gave rows to
+                    // is not a sheet to draw empty.
+                    Sheet.Playlist -> channelList?.let { PlaylistPanel(it, actions) }
+                    else -> PlayerSheet(sheet, state, actions)
+                }
+            }
 
             if (state.statistics) StatisticsPanel(state, actions, inset)
         }
@@ -348,7 +387,7 @@ private const val ACADEMY = 4f / 3f
  *
  * A full-screen veil would dim the whole film for the sake of two rows of type, which is
  * the mistake most players make. The bottom is deeper than the top because it carries the
- * timeline, the tools row and, on live, the programme strip.
+ * bar and the transport.
  */
 @Composable
 private fun Scrims() {
@@ -455,6 +494,23 @@ data class PlayerActions(
     val onRetry: () -> Unit = {},
     val onTryBackup: () -> Unit = {},
     val onShare: () -> Unit = {},
+    /**
+     * One channel after this one or before it, and null where there is no list to step through.
+     *
+     * Null is "no previous and no next": the two controls are drawn only for a channel that was pressed in a
+     * list -- see `Zapping` in the shell -- because Castivio does not draw a control it cannot act on.
+     */
+    val onStep: ((Int) -> Unit)? = null,
+    /**
+     * Open the list of channels, or close it where it is open, or null where there is none to open.
+     *
+     * The playlist pill is this press and is drawn only where it can act: a film has no list, and a channel
+     * with none to read has no pill. Back does what it always did and is the one way back to the board.
+     * See [ChannelListContent].
+     */
+    val onPlaylist: (() -> Unit)? = null,
+    /** The favourite pressed, or null where there is nothing to mark. See [PlayerState.favorite]. */
+    val onFavorite: (() -> Unit)? = null,
     /** Compact only: the press that makes this the large player. See [PlayerMode]. */
     val onExpand: () -> Unit = {},
     val setOutput: (VideoOutput?) -> Unit = {},

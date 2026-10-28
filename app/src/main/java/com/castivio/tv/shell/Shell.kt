@@ -44,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.castivio.core.common.AppError
@@ -70,6 +71,7 @@ import com.castivio.core.navigation.BackPolicy
 import com.castivio.core.navigation.ShellBack
 import com.castivio.core.platform.DevDiagnostics
 import com.castivio.domain.CatalogQuery
+import com.castivio.domain.Channel
 import com.castivio.domain.HiddenKind
 import com.castivio.domain.MediaKind as CatalogKind
 import com.castivio.domain.PlayerPulse
@@ -77,12 +79,14 @@ import com.castivio.domain.PressVerdict
 import com.castivio.domain.pressVerdictFor
 import com.castivio.domain.SeriesSummary
 import com.castivio.domain.SteppedChannel
+import com.castivio.domain.StreamQuality
 import com.castivio.feature.activation.ActivationEntry
 import com.castivio.feature.activation.ActivationRoute
 import com.castivio.feature.activation.LanguagePicker
 import com.castivio.feature.home.CatalogSearchScreen
 import com.castivio.feature.home.CatalogSection
 import com.castivio.feature.home.CatalogSelection
+import com.castivio.feature.home.ChannelFavoritesViewModel
 import com.castivio.feature.home.ChannelHidingViewModel
 import com.castivio.feature.home.ChannelLockViewModel
 import com.castivio.feature.home.ChannelZapViewModel
@@ -92,6 +96,7 @@ import com.castivio.feature.home.HomeScreen
 import com.castivio.feature.home.MovieScreen
 import com.castivio.feature.home.MoviesScreen
 import com.castivio.feature.home.PinPrompt
+import com.castivio.feature.home.PlayerChannelList
 import com.castivio.feature.home.PinPurpose
 import com.castivio.feature.home.RadioScreen
 import com.castivio.feature.home.RadioSession
@@ -102,6 +107,7 @@ import com.castivio.feature.home.ShowScreen
 import com.castivio.feature.home.asSelection
 import com.castivio.feature.home.watchedChannel
 import com.castivio.feature.licence.R as LicenceStrings
+import com.castivio.feature.player.ChannelListContent
 import com.castivio.feature.player.PlayerMode
 import com.castivio.feature.player.PlayerRequest
 import com.castivio.feature.player.PlayerRoute
@@ -356,6 +362,13 @@ fun ShellScreen(
     // The board's own holder, which is the activity's: the same one `ChannelsScreen` binds.
     val board: ChannelsViewModel = hiltViewModel()
     var zapping by remember { mutableStateOf<Zapping?>(null) }
+    // The viewer's favourites, for the large player's heart: the same holder and the same set the board's star is
+    // drawn from, so a channel marked in the player is marked on the board when it collapses.
+    val favoritesModel: ChannelFavoritesViewModel = hiltViewModel()
+    val favoriteIds by favoritesModel.ids.collectAsState()
+    // What the list of channels says on a row besides the name: which are locked and what each was measured at.
+    val lockedIds = lockModel.locked.collectAsState().value.orEmpty()
+    val qualities by board.quality.collectAsState()
     val play: (CatalogSelection) -> Unit = { selection ->
         val start = {
             val request = selection.asPlayerRequest()
@@ -421,31 +434,56 @@ fun ShellScreen(
     // on playing the channel it has until the password is given. And while that is asked, the keys are
     // taken and do nothing: a second step must not open a second question.
     val stepping = remember { Mutex() }
+
+    // Play [stepped] where the viewer is -- the one act the channel keys and the list of channels share, so
+    // a channel chosen from the list is changed to exactly as one stepped to: the same lock, the same plate,
+    // the same place for Back to land.
+    val changeChannel: suspend (Zapping, SteppedChannel) -> Unit = change@{ from, stepped ->
+        val channel = stepped.channel
+        val selection = channel.asSelection() ?: return@change
+        val begin = {
+            // Only if the viewer is still where the key was pressed: a question that was
+            // answered after they had left must not play behind whatever they went to.
+            if (zapping?.request == from.request) {
+                val request = selection.asPlayerRequest()
+                // The plate follows the large player, so that collapsing lands on the channel
+                // that is playing and not on the one the viewer opened it from.
+                if (livePreview == from.request) livePreview = request
+                zapping = Zapping(request, channel.id, from.list, moved = stepped)
+                overlay = Overlay.Play(request)
+            }
+        }
+        if (lockModel.isLocked(channel.id)) {
+            asking = ShellPin(PinPurpose.Play, begin)
+        } else {
+            begin()
+        }
+    }
+
     val stepChannel: (Int) -> Unit = { by ->
         if (asking == null) {
             scope.launch {
                 stepping.withLock {
                     val from = zapping ?: return@withLock
                     val stepped = zapModel.step(from.list, from.channelId, by) ?: return@withLock
-                    val channel = stepped.channel
-                    val selection = channel.asSelection() ?: return@withLock
-                    val begin = {
-                        // Only if the viewer is still where the key was pressed: a question that was
-                        // answered after they had left must not play behind whatever they went to.
-                        if (zapping?.request == from.request) {
-                            val request = selection.asPlayerRequest()
-                            // The plate follows the large player, so that collapsing lands on the channel
-                            // that is playing and not on the one the viewer opened it from.
-                            if (livePreview == from.request) livePreview = request
-                            zapping = Zapping(request, channel.id, from.list, moved = stepped)
-                            overlay = Overlay.Play(request)
-                        }
-                    }
-                    if (lockModel.isLocked(channel.id)) {
-                        asking = ShellPin(PinPurpose.Play, begin)
-                    } else {
-                        begin()
-                    }
+                    changeChannel(from, stepped)
+                }
+            }
+        }
+    }
+
+    // **A channel chosen from the list of channels in the large player.**
+    //
+    // The list is read from the same windows the keys step through -- see `ChannelListViewModel` -- so the
+    // row pressed is a place in the list the keys know: the neighbour of the next press is the neighbour of
+    // this channel. The channel already on screen is not changed to itself.
+    val pickChannel: (Channel, Int, Int) -> Unit = { channel, position, total ->
+        if (asking == null) {
+            scope.launch {
+                stepping.withLock {
+                    val from = zapping ?: return@withLock
+                    if (channel.id == from.channelId) return@withLock
+                    changeChannel(from, SteppedChannel(channel, position, total))
                 }
             }
         }
@@ -641,15 +679,41 @@ fun ShellScreen(
             // channel still playing, and only releases when there is no plate to go back
             // to: a film opened from Movies has nowhere to collapse to and leaves as it
             // always did.
-            is Overlay.Play -> PlayerRoute(
-                request = o.request,
-                onLeave = { overlay = o.back },
-                onCollapse = if (o.request == livePreview) collapse else null,
-                onPulseChange = { pulse = it },
-                // Only for a live channel that was started from somewhere to step from -- see `Zapping` --
-                // and not while a password is being asked, whose keypad the remote's arrows walk.
-                onChannelStep = if (zapping?.request == o.request && asking == null) stepChannel else null,
-            )
+            is Overlay.Play -> {
+                val zapped = zapping?.takeIf { it.request == o.request }
+                // What the heart marks: the channel on screen, or the film whose page this was started from.
+                // An episode is neither -- the favourite is the series', on its own page -- so it has none.
+                val markable = zapped?.channelId ?: (o.back as? Overlay.Movie)?.movie?.id
+                // The list of channels is drawn into the player's own box, so its rows are sized from it.
+                BoxWithConstraints(Modifier.fillMaxSize()) {
+                    PlayerRoute(
+                        request = o.request,
+                        onLeave = { overlay = o.back },
+                        onCollapse = if (o.request == livePreview) collapse else null,
+                        onPulseChange = { pulse = it },
+                        // Only for a live channel that was started from somewhere to step from -- see `Zapping` --
+                        // and not while a password is being asked, whose keypad the remote's arrows walk.
+                        onChannelStep = if (zapped != null && asking == null) stepChannel else null,
+                        favorite = markable?.let { it in favoriteIds },
+                        onFavorite = markable?.let { id -> { favoritesModel.flip(id) } },
+                        // The list of channels exists under the same condition the keys do: a channel on screen
+                        // that has a list to read, and nothing being asked. A film has none.
+                        channelList = if (zapped != null && asking == null) {
+                            channelListSlot(
+                                list = zapped.list,
+                                channelId = zapped.channelId,
+                                surface = DpSize(maxWidth, maxHeight),
+                                favorites = favoriteIds,
+                                locked = lockedIds,
+                                qualities = qualities,
+                                onPick = pickChannel,
+                            )
+                        } else {
+                            null
+                        },
+                    )
+                }
+            }
             is Overlay.StateBoard -> StateBoardOverlay(onBack = { overlay = null })
             // Reached from a working app, so leaving means returning to
             // Settings. Reached from the gate it means leaving Castivio, and
@@ -709,6 +773,35 @@ fun ShellScreen(
     }
 }
 
+/**
+ * The rows of the list of channels, for the player to draw in its panel.
+ *
+ * A function that returns the composable rather than a lambda written inline, so the player's slot type
+ * gives it its composability and the shell keeps one place that says what the list is made of.
+ */
+private fun channelListSlot(
+    list: CatalogQuery?,
+    channelId: String,
+    surface: DpSize,
+    favorites: Set<String>,
+    locked: Set<String>,
+    qualities: Map<String, StreamQuality>,
+    onPick: (Channel, Int, Int) -> Unit,
+): ChannelListContent = { rowHeight, onTotal, onClose ->
+    PlayerChannelList(
+        list = list,
+        channelId = channelId,
+        surface = surface,
+        rowHeight = rowHeight,
+        favorites = favorites,
+        locked = locked,
+        qualities = qualities,
+        onTotal = onTotal,
+        onPick = onPick,
+        onClose = onClose,
+    )
+}
+
 /** A password asked for from the shell, and what is done when it is given. */
 private class ShellPin(val purpose: PinPurpose, val granted: () -> Unit)
 
@@ -745,7 +838,6 @@ private fun CatalogSelection.asPlayerRequest() = PlayerRequest(
     },
     subtitle = subtitle,
     channelNumber = channelNumber,
-    epgChannelId = epgChannelId,
     catchUpHours = catchUpHours,
 )
 

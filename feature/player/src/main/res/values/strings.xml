@@ -26,10 +26,18 @@
     <string name="player_pause">Pause</string>
     <string name="player_replay_10">Back ten seconds</string>
     <string name="player_forward_10">Forward ten seconds</string>
+    <string name="player_favorite_add">Add to favourites</string>
+    <string name="player_favorite_remove">Remove from favourites</string>
+    <string name="player_playlist">Playlist</string>
+    <string name="player_playlist_count">%1$s channels</string>
+    <string name="player_playlist_alone">There are no other channels in this list.</string>
+    <string name="player_previous">Previous channel</string>
+    <string name="player_next">Next channel</string>
+    <string name="player_fill">Fill the screen</string>
+    <string name="player_setting_off">Off</string>
 
     <!-- Live -->
     <string name="player_live">LIVE</string>
-    <string name="player_live_now">Live now</string>
     <string name="player_to_live">Back to live</string>
     <!-- %1$s is a duration, already formatted: "4:12". -->
     <string name="player_behind_live">%1$s behind live</string>
@@ -132,7 +140,7 @@
          can do, so the label states it rather than describing the picture. -->
     <string name="player_expand">Open the full player</string>
     <string name="player_aspect">Aspect ratio</string>
-    <string name="player_aspect_fit">Fit</string>
+    <string name="player_aspect_fit">Auto</string>
     <string name="player_aspect_fill">Fill</string>
     <string name="player_aspect_16_9">16:9</string>
     <string name="player_aspect_4_3">4:3</string>

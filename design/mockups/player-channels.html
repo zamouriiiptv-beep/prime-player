@@ -1,0 +1,168 @@
+<!doctype html>
+<!--
+  The channel list inside the full-screen player. Drawn before code.
+
+  What it is: the list the channel was pressed in -- the same bouquet, the same order, the same hidden
+  and locked channels as the board -- opened over the picture, so a viewer can change channel without
+  leaving the player. It replaces the two "list" controls the player had, which both did what Back does
+  (collapse to the board). Back stays the one way out; this is a way across.
+
+  Where it comes from: the top bar's list icon is gone. The "Playlist" pill at the foot is the only
+  way in, and it is drawn only where there is a list to read -- a channel pressed on the board. A film
+  has none, and a channel opened from search is stepped through its own bouquet by the same rule the
+  channel keys use.
+
+  How it behaves:
+    * A panel at the end edge, as wide as the other panels need and no more (40% of the width, 340 to
+      400dp), over a darker veil on its own side only; the picture goes on playing and the bars stay.
+    * It opens scrolled so the playing channel is the first row, and the remote is on that row.
+    * Rows are the board's own rows -- number plate, name that scrolls under the remote, quality badge,
+      the star of a favourite, the lock of a locked channel -- and the green disc on the one playing.
+      Violet is the remote and the disc is the player, as on the board; the two never swap.
+    * OK on a row plays that channel and closes the panel, so the next thing on screen is the channel.
+      A locked channel asks for its password first, over the player, which goes on playing the one it
+      has until the password is given.
+    * Back or the close mark closes it. The channel keys still step; the list is where the viewer is
+      going somewhere further than one place.
+    * Read a window at a time (60 rows, the next window as the remote nears the end): a bouquet can hold
+      thousands. The count in the header is the list's own cached count.
+    * No search field: a keyboard over a film is not worth a remote's trouble, and the board has one.
+
+  States drawn: the list; the list on a handset; the first window still arriving (skeleton rows at the
+  rows' own height, so nothing moves when they land); a list with only this channel in it (said in a
+  line, and the pill is still drawn -- the viewer asked a question and gets an answer).
+
+  Geometry: rows are the control floor -- 56dp under a remote, 48 under a thumb. Header 56/48. Panel
+  corner 20dp on the player's own ground. Direction is left to right whatever the language, as the whole
+  player is; the words inside keep theirs. Colours are Color.kt tokens. Names and figures are examples.
+
+    ?frame=<name>      one frame at its device size
+    ?frame=sheet       every frame stacked with its caption, for review
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Player channel list</title>
+<style>
+:root{
+  --ground:#05040E; --panel:#13152D; --edge:rgba(172,180,214,.10); --edgeSoft:rgba(255,255,255,.08);
+  --glass:rgba(255,255,255,.06); --glassStrong:rgba(255,255,255,.12); --glassBorder:rgba(255,255,255,.14);
+  --violet:#9B6BFF; --violetEdge:#B694FF; --azure:#4C9BFF; --ring:#6FB2FF; --success:#3DD68C; --amber:#FFB84D;
+  --ink:#D6D3E8; --strong:#FFFFFF; --muted:#8C8CA8; --overVideo:rgba(5,4,14,.86); --live:#2FBF9B;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;color:var(--strong);font-family:"Noto Sans Arabic","DejaVu Sans",sans-serif}
+body.sheet{padding:20px;width:max-content}
+svg{display:block;flex:none}
+.cap{font:13px/1.4 "DejaVu Sans",sans-serif;color:#9a9ab8;margin:18px 0 8px;max-width:860px}
+
+/* the player behind: a dark frame, the top bar and the foot, as the player draws them */
+.screen{position:relative;overflow:hidden;direction:ltr;
+  background:radial-gradient(90% 80% at 30% 40%,#3a3320 0%,#171410 55%,#07060a 100%)}
+.bar{position:absolute;left:0;right:0;display:flex;align-items:center;gap:12px}
+.bar.top{top:0}
+.bar.foot{bottom:0;justify-content:center}
+.round{border-radius:50%;background:var(--glassStrong);border:1px solid var(--glassBorder);display:flex;align-items:center;justify-content:center}
+.sq{border-radius:14px;background:var(--glassStrong);border:1px solid var(--glassBorder);display:flex;align-items:center;justify-content:center}
+.pill{border-radius:999px;background:var(--glassStrong);border:1px solid var(--glassBorder);display:flex;align-items:center;gap:6px;padding:0 14px;color:var(--strong);font-size:13px}
+.pill.lit{border-color:var(--ring);box-shadow:0 0 0 2px rgba(111,178,255,.45)}
+.ttl{font-weight:700;unicode-bidi:plaintext}
+.track{position:absolute;height:6px;border-radius:3px;background:rgba(255,255,255,.16)}
+.track i{display:block;height:100%;width:62%;border-radius:3px;background:linear-gradient(90deg,var(--azure),var(--violet))}
+
+/* the panel */
+.panel{position:absolute;top:0;bottom:0;right:0;background:var(--overVideo);border-left:1px solid var(--edgeSoft);display:flex;flex-direction:column}
+.head{display:flex;align-items:center;gap:10px;flex:none}
+.head .t{flex:1;min-width:0;display:flex;flex-direction:column}
+.head .t b{font-size:17px;line-height:1.3;direction:ltr;unicode-bidi:isolate;text-align:left}
+.head .t span{font-size:12px;color:var(--muted);line-height:1.3;direction:ltr;unicode-bidi:isolate;text-align:left}
+.x{border-radius:50%;background:var(--glass);border:1px solid var(--glassBorder);display:flex;align-items:center;justify-content:center;flex:none}
+.x svg{fill:none;stroke:var(--strong);stroke-width:2;stroke-linecap:round}
+.list{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:6px}
+.r{flex:none;border-radius:14px;display:flex;align-items:center;gap:12px;padding:0 12px;border:1px solid transparent;background:transparent}
+.r .no{flex:none;border-radius:8px;background:var(--glass);border:1px solid var(--edge);display:flex;align-items:center;justify-content:center;
+  font-variant-numeric:tabular-nums;color:var(--strong);font-size:13px;font-weight:600}
+.r .nm{flex:1;min-width:0;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;unicode-bidi:plaintext;text-align:left;font-size:14px}
+.r .bd{flex:none;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;border:1px solid var(--glassBorder);color:var(--ink)}
+.r .mk{flex:none;width:16px;height:16px}
+.r .disc{flex:none;width:10px;height:10px;border-radius:50%;background:var(--success)}
+.r.focus{background:var(--violet);border-color:var(--violetEdge);box-shadow:0 0 0 2px rgba(111,178,255,.45)}
+.r.focus .nm{color:#fff}.r.focus .no{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.3)}
+.r.focus .bd{border-color:rgba(255,255,255,.5);color:#fff}
+.r.sk .no,.r.sk .nm,.r.sk .bd{background:var(--glassStrong);border-color:transparent;color:transparent}
+.r.sk .nm{border-radius:6px;height:14px;max-width:62%}
+.said{margin:auto;text-align:center;color:var(--ink);line-height:1.5;padding:0 20px;font-size:14px;direction:ltr;unicode-bidi:isolate}
+</style>
+</head>
+<body>
+<script>
+const STAR='<svg class="mk" viewBox="0 0 24 24"><path fill="#FFB84D" d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z"/></svg>';
+const LOCK='<svg class="mk" viewBox="0 0 24 24"><path fill="#D6D3E8" d="M18 8h-1V6a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2Zm-6 9a2 2 0 1 1 0-4 2 2 0 0 1 0 4Zm3.1-9H8.9V6a3.1 3.1 0 0 1 6.2 0v2Z"/></svg>';
+const BACK='<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>';
+const DOTS='<svg width="22" height="22" viewBox="0 0 24 24" fill="#fff"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>';
+const PLAYLIST='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h10M7 17h6"/></svg>';
+const CLOSE='<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+const T={
+  ar:{title:'قائمة التشغيل',count:n=>`${n} قناة`,alone:'لا قنوات أخرى في هذه القائمة.',close:'إغلاق',playlist:'قائمة التشغيل'},
+  en:{title:'Playlist',count:n=>`${n} channels`,alone:'There are no other channels in this list.',close:'Close',playlist:'Playlist'}
+};
+const CH=[
+  [104,'FR| TF1 HD','FHD',{play:1}],
+  [105,'FR| FRANCE 2 HD','HD',{}],
+  [106,'FR| FRANCE 3 HD','HD',{focus:1,star:1}],
+  [107,'FR| CANAL+ HD','FHD',{lock:1}],
+  [108,'FR| M6 HD','HD',{}],
+  [109,'FR| ARTE HD','FHD',{star:1}],
+  [110,'FR| C8 HD','',{}],
+  [111,'FR| W9 HD','SD',{}],
+  [112,'FR| TMC HD','HD',{}],
+];
+function row(c,m,sk){
+  const [n,name,q,f]=c;
+  if(sk)return `<div class="r sk" style="height:${m.row}px"><span class="no" style="width:${m.plate}px;height:${m.plateH}px"></span><span class="nm"></span><span class="bd">HD</span></div>`;
+  return `<div class="r${f.focus?' focus':''}" style="height:${m.row}px">
+    <span class="no" style="width:${m.plate}px;height:${m.plateH}px">${n}</span>
+    <span class="nm">${name}</span>${q?`<span class="bd">${q}</span>`:''}${f.star?STAR:''}${f.lock?LOCK:''}${f.play?'<span class="disc"></span>':''}</div>`;
+}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function metrics(w,h,tv){
+  const t=tv?56:48, inset=tv?Math.round(w*0.048):24;
+  return {t,row:t,plate:tv?46:40,plateH:tv?28:24,head:t+8,pad:tv?16:12,panel:clamp(w*0.40,340,400),inset};
+}
+function frame(w,h,tv,lang,kind){
+  const m=metrics(w,h,tv),L=T[lang];
+  const rows=kind==='loading'?CH.slice(0,Math.floor((h-m.head-2*m.pad)/(m.row+6))).map(c=>row(c,m,true)).join('')
+    :kind==='alone'?`<div class="said">${L.alone}</div>`
+    :CH.map(c=>row(c,m,false)).join('');
+  const count=kind==='alone'?L.count(1):L.count(82);
+  return `<div class="screen" style="width:${w}px;height:${h}px">
+    <div class="bar top" style="padding:${m.inset}px ${m.inset}px 0">
+      <span class="round" style="width:${m.t}px;height:${m.t}px">${BACK}</span>
+      <span class="ttl" style="flex:1;font-size:${tv?22:17}px">FR| FRANCE 3 HD</span>
+    </div>
+    <div class="track" style="left:${m.inset+60}px;right:${m.panel+m.inset}px;bottom:${m.inset+m.t+30}px"><i></i></div>
+    <div class="bar foot" style="padding:0 ${m.inset}px ${m.inset}px;justify-content:flex-start">
+      <span class="pill lit" style="height:${m.t}px">${PLAYLIST}<span>${L.playlist}</span></span>
+    </div>
+    <div class="panel" style="width:${m.panel}px">
+      <div class="head" style="height:${m.head}px;padding:${m.pad}px ${m.pad}px 0 ${m.pad+4}px;margin-bottom:${m.pad/2}px">
+        <div class="t"><b>${L.title}</b><span>${count}</span></div>
+        <span class="x" style="width:${m.t}px;height:${m.t}px" aria-label="${L.close}"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg></span>
+      </div>
+      <div class="list" style="padding:0 ${m.pad}px ${m.pad}px">${rows}</div>
+    </div>
+  </div>`;
+}
+const FR={
+  'tv-ar':[960,540,true,'ar','list','Television 960x540, Arabic: the playing channel is the first row (green disc), the remote is on the third (violet), a favourite and a locked channel in the list; the Playlist pill that opened it is lit'],
+  'phone-ar':[851,393,false,'ar','list','Handset 851x393, Arabic: rows are 48dp, the panel 340dp, the bars stay'],
+  'tv-en':[960,540,true,'en','list','Television 960x540, English: the same panel; the player is left to right in both languages'],
+  'tv-loading':[960,540,true,'ar','loading','The first window still arriving: skeleton rows at the rows own height, so nothing moves when the channels land'],
+  'tv-alone':[960,540,true,'ar','alone','A list with only this channel in it: said in a line, the pill is still drawn']
+};
+const p=new URLSearchParams(location.search),f=p.get('frame')||'sheet';
+if(f==='sheet'){document.body.className='sheet';document.body.innerHTML=Object.entries(FR).map(([k,v])=>`<div class="cap">${k} — ${v[5]}</div>${frame(...v.slice(0,5))}`).join('');}
+else{const v=FR[f];document.body.innerHTML=frame(...v.slice(0,5));}
+</script>
+</body>
+</html>

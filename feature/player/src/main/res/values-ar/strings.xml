@@ -20,9 +20,17 @@
     <string name="player_pause">إيقاف مؤقّت</string>
     <string name="player_replay_10">عشر ثوانٍ للخلف</string>
     <string name="player_forward_10">عشر ثوانٍ للأمام</string>
+    <string name="player_favorite_add">إضافة إلى المفضلة</string>
+    <string name="player_favorite_remove">إزالة من المفضلة</string>
+    <string name="player_playlist">قائمة التشغيل</string>
+    <string name="player_playlist_count">%1$s قناة</string>
+    <string name="player_playlist_alone">لا قنوات أخرى في هذه القائمة.</string>
+    <string name="player_previous">القناة السابقة</string>
+    <string name="player_next">القناة التالية</string>
+    <string name="player_fill">ملء الشاشة</string>
+    <string name="player_setting_off">مغلقة</string>
 
     <string name="player_live">مباشر</string>
-    <string name="player_live_now">مباشر الآن</string>
     <string name="player_to_live">العودة إلى المباشر</string>
     <string name="player_behind_live">متأخّر %1$s عن المباشر</string>
     <string name="player_catchup">إعادة</string>
@@ -112,7 +120,7 @@
     <string name="player_reveal_controls">إظهار أدوات التحكم أو إخفاؤها</string>
     <string name="player_expand">فتح المشغّل الكامل</string>
     <string name="player_aspect">نسبة العرض</string>
-    <string name="player_aspect_fit">احتواء</string>
+    <string name="player_aspect_fit">تلقائي</string>
     <string name="player_aspect_fill">ملء</string>
     <string name="player_aspect_16_9">16:9</string>
     <string name="player_aspect_4_3">4:3</string>

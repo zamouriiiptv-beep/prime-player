@@ -51,15 +51,11 @@ internal data class PlayerMetrics(
     val barGap: Dp,
     val barGapLarge: Dp,
     val play: Dp,
-    val strip: Dp,
+    /** The circles round the play control -- the steps and the jumps -- which the reference draws two thirds its size. */
+    val step: Dp,
     /* the scrubber */
     val track: Dp,
     val thumb: Dp,
-    val progressWidth: Dp,
-    val progressHeight: Dp,
-    /* what a skeleton stands in for */
-    val skeletonTitle: Dp,
-    val skeletonWindow: Dp,
     /* the transients */
     val spinner: Dp,
     val reportHeight: Dp,
@@ -77,6 +73,19 @@ internal data class PlayerMetrics(
      * the sheet stops growing at [SHEET_MAX] and the fraction falls away underneath it.
      */
     val sheetFraction: Float,
+    /**
+     * How wide the settings popover is.
+     *
+     * A width and not a share of the picture, because the picture is the letterboxed box and a share of
+     * a narrow one would make the popover narrower than its own longest label. Bounded for the reason
+     * [sheetFraction] is.
+     */
+    val popover: Dp,
+    /**
+     * How wide the list of channels is. A width for the reason [popover] is, bounded for the reason
+     * [sheetFraction] is: wide enough for a number, a logo and a name, and no wider than the film can spare.
+     */
+    val playlist: Dp,
 ) {
     /**
      * The inset every control keeps from the edge of the picture.
@@ -101,31 +110,32 @@ internal fun playerMetricsFor(tv: Boolean, width: Dp, height: Dp): PlayerMetrics
     val target = Sizing.minTarget(tv)
     val inset = castivioMetrics(width, height, tv).edge
     val barGap = width.boundedFraction(BAR_GAP, 8.dp, 22.dp)
-    val strip = maxOf(height.boundedFraction(STRIP, 44.dp, 64.dp), target)
+    val play = maxOf(height.boundedFraction(PLAY, 64.dp, 112.dp), target)
+    val step = maxOf(height.boundedFraction(STEP, 48.dp, 80.dp), target)
     return PlayerMetrics(
         frame = castivioMetrics(width, height, tv),
         barGap = barGap,
         barGapLarge = width.boundedFraction(BAR_GAP_LARGE, 14.dp, 32.dp),
         // The one control a thumb finds without looking and a remote lands on first, so
         // its floor is well above the device's own target rather than equal to it.
-        play = maxOf(height.boundedFraction(PLAY, 64.dp, 88.dp), target),
-        strip = strip,
+        play = play,
+        step = step,
         track = height.boundedFraction(TRACK, 3.dp, 8.dp),
         thumb = height.boundedFraction(THUMB, 12.dp, 22.dp),
-        progressWidth = width.boundedFraction(PROGRESS_WIDTH, 80.dp, 160.dp),
-        progressHeight = height.boundedFraction(PROGRESS_HEIGHT, 2.dp, 6.dp),
-        skeletonTitle = width.boundedFraction(SKELETON_TITLE, 120.dp, 240.dp),
-        skeletonWindow = width.boundedFraction(SKELETON_WINDOW, 76.dp, 150.dp),
         spinner = height.boundedFraction(SPINNER, 44.dp, 84.dp),
         reportHeight = height.boundedFraction(REPORT_HEIGHT, 140.dp, 280.dp),
         captionSide = width.boundedFraction(CAPTION_SIDE, 24.dp, 52.dp),
         captionEdge = height.boundedFraction(CAPTION_EDGE, 22.dp, 44.dp),
         // Derived from the chrome it has to clear rather than declared beside it —
-        // see [CAPTION_AIR] for why that stopped being a detail.
-        captionClearance = inset + strip + barGap + target +
+        // see [CAPTION_AIR] for why that stopped being a detail. The chrome is the inset, the bar
+        // -- a touch target tall -- and the transport under it, whose tallest control is the
+        // play control, each with its gap.
+        captionClearance = inset + target + barGap + play +
             height.boundedFraction(CAPTION_AIR, 12.dp, 30.dp),
         captionRaise = height.boundedFraction(CAPTION_RAISE, 56.dp, 110.dp),
         sheetFraction = (sheet / width).coerceIn(0f, 1f),
+        popover = width.boundedFraction(POPOVER, POPOVER_MIN, POPOVER_MAX),
+        playlist = width.boundedFraction(PLAYLIST, PLAYLIST_MIN, PLAYLIST_MAX),
     )
 }
 
@@ -151,7 +161,7 @@ internal val LocalPlayerMetrics: ProvidableCompositionLocal<PlayerMetrics> =
 private const val BAR_GAP = 21.3f / 1280f
 private const val BAR_GAP_LARGE = 32f / 1280f
 private const val PLAY = 106.7f / 720f
-private const val STRIP = 74.7f / 720f
+private const val STEP = 77.8f / 720f
 /*
  * ## The eleven below are read off the *handset*, and that distinction is the fix
  *
@@ -170,10 +180,6 @@ private const val STRIP = 74.7f / 720f
 
 private const val TRACK = 7.3f / 720f
 private const val THUMB = 25.6f / 720f
-private const val PROGRESS_WIDTH = 140.8f / 1280f
-private const val PROGRESS_HEIGHT = 5.5f / 720f
-private const val SKELETON_TITLE = 217f / 1280f
-private const val SKELETON_WINDOW = 134.9f / 1280f
 private const val SPINNER = 95.3f / 720f
 private const val REPORT_HEIGHT = 329.8f / 720f
 private const val CAPTION_SIDE = 46.9f / 1280f
@@ -216,3 +222,21 @@ private const val CAPTION_RAISE = 124.6f / 720f
 private const val SHEET = 0.52f
 private val SHEET_MIN = 340.dp
 private val SHEET_MAX = 440.dp
+
+/**
+ * The settings popover: the reference draws it a little over a quarter of the width, hanging from the gear.
+ * The floor is what its longest row -- `Aspect ratio` with its value and the arrow -- asks for at the
+ * handset's type size; the ceiling is the sheet's reason again.
+ */
+private const val POPOVER = 0.23f
+private val POPOVER_MIN = 272.dp
+private val POPOVER_MAX = 320.dp
+
+/**
+ * The list of channels over the picture: 40% of the width between 340 and 400dp, as the design draws it
+ * (`design/mockups/player-channels.html`) -- the same floor as a side sheet and a lower ceiling, because the
+ * film goes on playing behind it and what it covers is what a viewer came to see.
+ */
+private const val PLAYLIST = 0.40f
+private val PLAYLIST_MIN = 340.dp
+private val PLAYLIST_MAX = 400.dp

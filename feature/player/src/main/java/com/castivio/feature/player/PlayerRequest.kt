@@ -17,9 +17,6 @@ import com.castivio.playback.api.MediaKind
  * URL: a poster on the loading screen is a network request in front of the picture. No
  * programme, no synopsis, no episode list. Those arrive afterwards, into slots that are
  * already laid out, and the player asks for them only once there is a frame.
- *
- * [epgChannelId] is the one identifier that survives, and it is not used before the first
- * frame either — it is what the guide is fetched *with*, later.
  */
 data class PlayerRequest(
     val url: String,
@@ -29,7 +26,6 @@ data class PlayerRequest(
     /** A channel number, an episode number, a year — whatever the opener already knew. */
     val subtitle: String? = null,
     val channelNumber: String? = null,
-    val epgChannelId: String? = null,
     /**
      * Hours of archive the provider claims, or null.
      *

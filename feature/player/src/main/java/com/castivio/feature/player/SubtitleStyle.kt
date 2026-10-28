@@ -74,7 +74,7 @@ enum class SubtitlePlace { Bottom, Raised, Top }
  * Where the choice lives between films.
  *
  * An interface in the feature rather than a type from `:data:preferences`, for the reason
- * [ProgrammeSource] gives: a narrow seam the player can be tested against, and no route
+ * [SubtitleSource] gives: a narrow seam the player can be tested against, and no route
  * from this screen to a store that can be asked for anything else.
  *
  * Synchronous, and `SharedPreferences` behind it rather than DataStore. The style is read

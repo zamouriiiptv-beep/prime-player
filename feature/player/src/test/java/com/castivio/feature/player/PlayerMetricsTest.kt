@@ -57,8 +57,9 @@ class PlayerMetricsTest {
         assertEquals("barGap", 16f, m.barGap.value, 0.5f)
         assertEquals("barGapLarge", 24f, m.barGapLarge.value, 0.5f)
         assertEquals("play", 80f, m.play.value, 0.5f)
-        assertEquals("strip", 56f, m.strip.value, 0.5f)
-        assertEquals("caption clearance", 196f, m.captionClearance.value, 0.5f)
+        assertEquals("step", 58f, m.step.value, 0.5f)
+        // 46 of inset, 56 of bar, 16 of gap, 80 of play control and 22 of air.
+        assertEquals("caption clearance", 220f, m.captionClearance.value, 0.5f)
     }
 
     /**
@@ -73,18 +74,12 @@ class PlayerMetricsTest {
     fun `the handset stays within a dp or two of what it drew`() {
         val m = playerMetricsFor(tv = false, width = 873.dp, height = 393.dp)
         assertEquals("play", 64f, m.play.value, 2f)
-        // The strip is the one figure that moved on a handset, and it moved *up*: it
-        // was 44dp, which is 4dp under the 48dp a thumb needs, and its floor is the
-        // device's target now. The buttons inside it already carried that floor, so
-        // this is the row admitting the height its contents were already forcing.
-        assertEquals("strip", 48f, m.strip.value, 0.5f)
         assertEquals("caption side margin", 32f, m.captionSide.value, 3f)
         assertEquals("caption edge margin", 28f, m.captionEdge.value, 3f)
         // The clearance is the one figure that moved on a handset, and upward: it is
         // the sum of the chrome now, and the chrome's inset grew with the shared stage.
         assertTrue("caption clearance ${m.captionClearance}", m.captionClearance >= 148.dp)
         assertEquals("caption raise", 68f, m.captionRaise.value, 5f)
-        assertEquals("progress width", 96f, m.progressWidth.value, 5f)
     }
 
     /** The metrics come from the system every other screen reads. */
@@ -113,16 +108,13 @@ class PlayerMetricsTest {
             height = CastivioReference.Height,
         )
         assertEquals("barGapLarge", 32f, m.barGapLarge.value, 0.2f)
-        // 140.8, because the progress readout is one of the eleven read off the
-        // handset rather than the television — see `PlayerMetrics` for the split.
-        assertEquals("progress width", 140.8f, m.progressWidth.value, 0.2f)
     }
 
     /**
      * **Every control a viewer aims at clears the floor for its device.**
      *
-     * The play control and the strip are the two the transport bar is built on, and both
-     * used to be constants picked per device. A share can put either under the floor on
+     * The play control and the steps round it are what the transport bar is built on, and
+     * they used to be constants picked per device. A share can put any under the floor on
      * a surface nobody drew, which is precisely what a floor is for.
      */
     @Test
@@ -131,7 +123,8 @@ class PlayerMetricsTest {
             val m = surface.metrics
             val floor = Sizing.minTarget(surface.tv)
             assertTrue("$surface: the play control is ${m.play}", m.play >= floor)
-            assertTrue("$surface: the strip is ${m.strip}", m.strip >= floor)
+            assertTrue("$surface: the step is ${m.step}", m.step >= floor)
+            assertTrue("$surface: the step ${m.step} outgrew the play control ${m.play}", m.step <= m.play)
             // A scrubber thumb is dragged rather than tapped, so its floor is legibility
             // rather than a target: below this it stops reading as a handle.
             assertTrue("$surface: the thumb is ${m.thumb}", m.thumb >= 12.dp)
@@ -143,7 +136,7 @@ class PlayerMetricsTest {
      * **A caption always clears the chrome it is sitting above.**
      *
      * This is the one relationship on the screen where two independent shares have to
-     * agree: the clearance is a share of the height and the chrome it clears is a strip
+     * agree: the clearance is a share of the height and the chrome it clears is a bar
      * plus a play control plus the gaps and the inset. If the clearance ever came out
      * smaller than the thing it clears, captions would sit on the timeline — and it is
      * the kind of failure that only shows on the surfaces nobody screenshots.
@@ -163,14 +156,15 @@ class PlayerMetricsTest {
     /**
      * What the bottom of the chrome actually occupies, from the parts that build it.
      *
-     * The inset the safe-area column keeps, the tools row, the gap above it, and the
-     * timeline row — which is a touch target tall. Written from the layout rather than
+     * The inset the safe-area column keeps, the gap, the bar -- which is a touch
+     * target tall -- the gap under it, and the transport, whose tallest control is the play
+     * control. Written from the layout rather than
      * from a remembered number, because this is the model that caught the defect: a
      * clearance declared as its own share came out 10dp *under* this on the reference
      * handset, and a caption would have sat on the timeline.
      */
     private fun bottomChrome(surface: Surface, m: PlayerMetrics): Dp =
-        m.inset + m.strip + m.barGap + Sizing.minTarget(surface.tv)
+        m.inset + m.barGap + Sizing.minTarget(surface.tv) + m.play
 
     /**
      * The sheet never swallows the film, and never becomes a strip.
@@ -193,6 +187,16 @@ class PlayerMetricsTest {
         }
     }
 
+    /** The list of channels is as wide as the design says between its bounds, and never swallows the film. */
+    @Test
+    fun `the list of channels is bounded at both ends`() {
+        for (surface in surfaces) {
+            val list = surface.metrics.playlist
+            assertTrue("$surface: the list is $list", list >= 340.dp && list <= 400.dp)
+            assertTrue("$surface: the list takes ${list / surface.width} of the width", list <= surface.width * 0.5f)
+        }
+    }
+
     /** Sizes only ever move in one direction as the surface grows, and then they stop. */
     @Test
     fun `sizes only grow with the surface, and stop`() {
@@ -208,21 +212,22 @@ class PlayerMetricsTest {
         for ((smaller, larger) in ladder.zipWithNext()) {
             assertTrue("barGap shrank", larger.barGap >= smaller.barGap)
             assertTrue("play shrank", larger.play >= smaller.play)
-            assertTrue("strip shrank", larger.strip >= smaller.strip)
+            assertTrue("step shrank", larger.step >= smaller.step)
             assertTrue("thumb shrank", larger.thumb >= smaller.thumb)
             assertTrue("clearance shrank", larger.captionClearance >= smaller.captionClearance)
         }
 
         val huge = ladder.last()
-        assertTrue("the 4K play control ${huge.play} is unbounded", huge.play <= 88.dp)
-        assertTrue("the 4K strip ${huge.strip} is unbounded", huge.strip <= 64.dp)
+        assertTrue("the 4K play control ${huge.play} is unbounded", huge.play <= 112.dp)
+        assertTrue("the 4K step ${huge.step} is unbounded", huge.step <= 80.dp)
         assertTrue("the 4K thumb ${huge.thumb} is unbounded", huge.thumb <= 22.dp)
         // The clearance is a sum of bounded parts rather than a bounded share, so its
-        // ceiling is theirs: 72 of inset, 64 of strip, 22 of gap, 56 of target and 30
-        // of air. Asserted against that sum rather than a number typed beside it.
+        // ceiling is theirs: 72 of inset, 22 of gap, 56 of target, 112 of play control and
+        // 30 of air. Asserted against that sum rather than a number
+        // typed beside it.
         assertTrue(
             "the 4K clearance ${huge.captionClearance} is unbounded",
-            huge.captionClearance <= 72.dp + 64.dp + 22.dp + 56.dp + 30.dp,
+            huge.captionClearance <= 72.dp + 22.dp + 56.dp + 112.dp + 30.dp,
         )
     }
 
@@ -251,13 +256,13 @@ class PlayerMetricsTest {
                     val where = "${width.value.toInt()}x${height.value.toInt()} tv=$tv"
                     val floor = Sizing.minTarget(tv)
 
-                    val chrome = m.inset + m.strip + m.barGap + floor
+                    val chrome = m.inset + m.barGap + floor + m.play
                     val clearance = m.captionClearance - chrome
                     if (clearance < worstClearance) {
                         worstClearance = clearance
                         worstClearanceAt = where
                     }
-                    val control = minOf(m.play, m.strip) - floor
+                    val control = minOf(m.play, m.step) - floor
                     if (control < worstControl) {
                         worstControl = control
                         worstControlAt = where

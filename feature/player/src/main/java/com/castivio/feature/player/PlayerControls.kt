@@ -33,46 +33,75 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import com.castivio.core.design.components.rememberIsFocused
 import com.castivio.core.design.icons.CastivioIcons
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.CastivioType
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.design.theme.Spacing
+import com.castivio.playback.api.AspectMode
+import com.castivio.playback.api.EngineId
+import com.castivio.playback.api.MediaKind
+import java.util.Locale
 import kotlinx.coroutines.delay
 
 /* ============================================================================
- * The three bands.
+ * The chrome, as the owner's reference picture draws it.
  *
- * Live and on-demand are one screen, and that is a product decision rather than an
- * economy: a user who watches both should not have to learn the player twice. Live swaps
- * two things and adds one — the timeline becomes a live position, the title gains a LIVE
- * pill, and a programme strip appears above the timeline. It also draws less: no speed,
- * which a broadcast has no use for, and no jumps on a channel that cannot be sought.
+ * `design/mockups/player-reference.png` is the drawing, and this file is it, in this order:
+ *
+ *     top     the way back, the title with what is playing written under it, and at the end
+ *             the favourite, the list, the sound, the subtitles, the settings and the rest
+ *     bottom  the time gone, the bar, the time left -- and under them the transport in the
+ *             middle with the playlist at one end and the screen's two controls at the other
+ *
+ * Live and on-demand are still one screen. Live drops the bar's figures and draws
+ * no speed and no subtitles. A control that has
+ * nothing behind it for the thing playing is not drawn -- the favourite where there is no
+ * item to mark, the playlist and the steps where there is no list to go back to or step
+ * through -- because Castivio does not draw what it cannot act on.
+ *
+ * ## Left to right in every language
+ *
+ * The reference is drawn that way and a video player is read that way: the bar fills from the
+ * left, the earlier arrow points left, the title is at the left. [PlayerScreen] sets the layout
+ * direction once for the whole player, and the words inside the controls keep their own
+ * direction. Nothing below mirrors anything.
  * ========================================================================= */
 
 /**
- * Title, and the three controls that are not about playback.
+ * The way back, the title with what is playing under it, and the controls that are about the
+ * film rather than about the playback.
  *
- * The title is the item's own, passed in when the player opened. There is no lookup behind
- * it and no way to perform one — see [PlayerRequest].
+ * The title is the item's own, passed in when the player opened. There is no lookup behind it
+ * and no way to perform one -- see [PlayerRequest]. What is under it is [techChips]: the words
+ * the engine has reported about the picture and the sound, each only once it is known.
  */
 @Composable
 internal fun TopBar(state: PlayerState, actions: PlayerActions) {
     val colors = CastivioTheme.colors
+    val tv = CastivioTheme.device.isTv
     Row(
         Modifier
             .fillMaxWidth()
@@ -85,7 +114,7 @@ internal fun TopBar(state: PlayerState, actions: PlayerActions) {
             label = stringResource(R.string.player_back),
             tag = PlayerTags.BACK,
             onClick = actions.onBack,
-            mirror = true,
+            shape = ControlShape.Round,
         )
 
         Column(
@@ -93,137 +122,362 @@ internal fun TopBar(state: PlayerState, actions: PlayerActions) {
                 .weight(1f)
                 .padding(horizontal = Spacing.xs)
                 .testTag(PlayerTags.TITLE),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
         ) {
             Text(
                 text = state.request.title,
-                style = CastivioType.titleMedium,
+                style = (if (tv) CastivioType.headlineMedium else CastivioType.titleLarge).ltr(),
                 color = colors.onBackground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            SubtitleRow(state)
+            ChipRow(state)
         }
 
-        PlayerButton(
-            icon = if (state.locked) CastivioIcons.Unlock else CastivioIcons.Lock,
-            label = stringResource(
-                if (state.locked) R.string.player_unlock else R.string.player_lock,
-            ),
-            tag = PlayerTags.LOCK,
-            onClick = { actions.onLock(!state.locked) },
-        )
-        // Was a cast control, and cast is not built: the button carried the mark for
-        // sending a picture to a television and did nothing at all, because nothing on the
-        // route ever bound `onCast`. It shares what is playing, which is a thing this
-        // product can actually do today, and it says so with its own icon.
-        PlayerButton(
-            icon = CastivioIcons.Share,
-            label = stringResource(R.string.player_share),
-            tag = PlayerTags.CAST,
-            onClick = actions.onShare,
-        )
-        PlayerButton(
-            icon = CastivioIcons.More,
-            label = stringResource(R.string.player_more),
-            tag = PlayerTags.MORE,
-            onClick = { actions.onSheet(Sheet.Settings) },
-        )
+        ActionCluster(state, actions)
     }
 }
 
 /**
- * What is under the title: the LIVE pill, or the item's own subtitle.
+ * What is under the title: the LIVE pill, an episode's number, and the words about the stream.
  *
- * **No channel number.** It was a pill beside LIVE, and the owner asked for it to go: a
- * number is how a channel is found in the list, and once it is playing the name above it says
- * which channel this is. The number stays on the request -- the board and the guide still use
- * it -- and is simply not drawn over the picture.
+ * The engine badge is here and nowhere else. A switch the user did not ask for and cannot act
+ * on is a fact to report, not a decision to present -- so the second engine is a small word a
+ * curious user can find, and nobody else will notice.
  *
- * The engine badge is here and nowhere else. A switch the user did not ask for and cannot
- * act on is a fact to report, not a decision to present — so the second engine is a small
- * word a curious user can find, and nobody else will notice.
+ * **No channel number, and no bouquet.** The number was a pill beside LIVE and the owner asked
+ * for it to go; the bouquet's name is how a channel was found, and the name above says which
+ * channel this is.
  */
 @Composable
-private fun SubtitleRow(state: PlayerState) {
+private fun ChipRow(state: PlayerState) {
     val colors = CastivioTheme.colors
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+    val chips = techChips(state)
+    ChipLine(Modifier.testTag(PlayerTags.CHIPS), gap = Spacing.sm) {
         if (state.request.isLive) {
-            Pill(
+            Chip(
                 text = stringResource(R.string.player_live),
                 fill = colors.live,
                 ink = colors.onBackground,
+                ringed = false,
             )
         }
-        state.request.subtitle?.let {
-            Text(
-                text = it,
-                style = CastivioType.bodySmall,
-                color = colors.onBackgroundVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+        if (state.request.kind == MediaKind.SERIES_EPISODE) {
+            state.request.subtitle?.let { Chip(text = it, fill = null, ink = colors.onBackgroundVariant, ringed = false) }
+        }
+        chips.forEach { chip ->
+            Chip(
+                text = chip.text,
+                fill = null,
+                ink = if (chip.highlighted) colors.onBackground else colors.onBackgroundVariant,
+                ringed = chip.highlighted,
             )
         }
-        if (state.engine == com.castivio.playback.api.EngineId.BACKUP) {
-            Pill(
+        if (state.engine == EngineId.BACKUP) {
+            Chip(
                 text = stringResource(R.string.player_engine_backup),
                 fill = colors.glassFill,
                 ink = colors.onBackgroundVariant,
+                ringed = false,
                 tag = PlayerTags.ENGINE_BADGE,
             )
         }
     }
 }
 
+/**
+ * The chips in a line, whole ones only.
+ *
+ * Laid out in the order they are given and **cut between two chips, never through one**: a row that
+ * ran out of width showed `2.0` as a `2` in a box with its edge sliced off, which reads as a fault. The
+ * first of them -- the live pill and the class of the picture -- are the ones a narrow screen keeps.
+ */
 @Composable
-private fun Pill(text: String, fill: Color, ink: Color, tag: String? = null) {
+private fun ChipLine(modifier: Modifier, gap: Dp, content: @Composable () -> Unit) {
+    Layout(content = content, modifier = modifier) { measurables, constraints ->
+        val gapPx = gap.roundToPx()
+        val loose = Constraints(maxWidth = Constraints.Infinity, maxHeight = constraints.maxHeight)
+        val shown = mutableListOf<Placeable>()
+        var used = 0
+        for (measurable in measurables) {
+            val placeable = measurable.measure(loose)
+            val next = if (shown.isEmpty()) placeable.width else used + gapPx + placeable.width
+            if (next > constraints.maxWidth) break
+            used = next
+            shown += placeable
+        }
+        val height = shown.maxOfOrNull { it.height } ?: 0
+        layout(used, height) {
+            var x = 0
+            for (placeable in shown) {
+                placeable.placeRelative(x, (height - placeable.height) / 2)
+                x += placeable.width + gapPx
+            }
+        }
+    }
+}
+
+/** One word in a small rounded box. [ringed] is the first of them, which the reference draws in the focus colour. */
+@Composable
+private fun Chip(text: String, fill: Color?, ink: Color, ringed: Boolean, tag: String? = null) {
+    val colors = CastivioTheme.colors
+    val shape = RoundedCornerShape(Radius.sm)
     Box(
         Modifier
-            .clip(RoundedCornerShape(Radius.pill))
-            .background(fill)
-            .padding(horizontal = Spacing.sm, vertical = Spacing.xxs)
+            .clip(shape)
+            .then(if (fill != null) Modifier.background(fill) else Modifier.background(colors.glassFill))
+            .border(HAIRLINE, if (ringed) colors.focusRing else colors.glassBorder, shape)
+            .padding(horizontal = Spacing.md, vertical = Spacing.xs)
             .then(if (tag != null) Modifier.testTag(tag) else Modifier),
     ) {
-        Text(text = text, style = CastivioType.labelSmall, color = ink, maxLines = 1)
+        Text(text = text, style = CastivioType.labelMedium.ltr(), color = ink, maxLines = 1)
     }
 }
 
 /**
- * The centre: the play control, and nothing beside it.
+ * The controls at the end of the top bar, in the reference's order: the favourite, the sound, the
+ * subtitles, the settings, and the rest. The list is not here: it did what Back does, and the owner asked
+ * for the one way into the list of channels to be the playlist pill at the foot.
  *
- * ## Why the ten-second jumps are no longer here
- *
- * They were, either side of the play control, and they were asked to move to the bottom row
- * — where the timeline and every other control already live. Over the picture the middle of
- * the screen is the worst place for something pressed repeatedly: the thumb covers the part
- * of the film the viewer is looking at while trying to find the moment they want. The bar
- * and the controls that move along it now sit together, out of the way of the frame.
- *
- * ## Why previous and next are not here either
- *
- * They took the jumps' place, and nothing was ever behind them: no caller gave the route a
- * way to step to another channel or episode, so both were targets that did nothing from a
- * remote, a thumb or a screen reader — two of the three stops a remote made across the
- * middle of the picture. Castivio does not draw a control it cannot act on.
- *
- * The play control is [Sizing.minTarget] plus a margin rather than the same size as its
- * neighbours: it is the one control a thumb finds without looking, and it is the one thing
- * that has earned the middle of the picture.
+ * Each only where it can act. The favourite needs an item to mark; subtitles are a film's and not a channel's -- a channel plays with its subtitles
+ * switched off in both engines, so a button that opened a list of them would offer what is not there.
  */
 @Composable
-internal fun CentreCluster(state: PlayerState, actions: PlayerActions) {
+private fun ActionCluster(state: PlayerState, actions: PlayerActions) {
+    val live = state.request.isLive
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(barGap()),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        val favorite = state.favorite
+        val onFavorite = actions.onFavorite
+        if (favorite != null && onFavorite != null) {
+            PlayerButton(
+                icon = if (favorite) CastivioIcons.FavoriteFilled else CastivioIcons.Favorite,
+                label = stringResource(if (favorite) R.string.player_favorite_remove else R.string.player_favorite_add),
+                tag = PlayerTags.FAVORITE,
+                onClick = onFavorite,
+                tint = if (favorite) CastivioTheme.colors.secondary else null,
+            )
+        }
+        PlayerButton(
+            icon = CastivioIcons.Volume,
+            label = stringResource(R.string.player_sheet_audio),
+            tag = PlayerTags.AUDIO,
+            onClick = { actions.onSheet(Sheet.Audio) },
+        )
+        if (!live) {
+            PlayerButton(
+                icon = CastivioIcons.Subtitles,
+                label = stringResource(R.string.player_sheet_subtitles),
+                tag = PlayerTags.SUBTITLES,
+                onClick = { actions.onSheet(Sheet.Subtitles) },
+            )
+        }
+        PlayerButton(
+            icon = CastivioIcons.Settings,
+            label = stringResource(R.string.player_sheet_settings),
+            tag = PlayerTags.SETTINGS,
+            // The same press closes it: the popover hangs from this button, and a button that
+            // opened something and could not close it would send the viewer looking for a way out.
+            onClick = { actions.onSheet(if (state.sheet == Sheet.Settings) null else Sheet.Settings) },
+            active = state.sheet == Sheet.Settings,
+        )
+        PlayerButton(
+            icon = CastivioIcons.More,
+            label = stringResource(R.string.player_more),
+            tag = PlayerTags.MORE,
+            onClick = { actions.onSheet(Sheet.More) },
+        )
+    }
+}
+
+/**
+ * The bottom: the bar, then the transport. Nothing above the bar -- the reference leaves the picture
+ * its whole middle, and a channel's programme strip, which sat there, was removed at the owner's request.
+ */
+@Composable
+internal fun BottomBar(state: PlayerState, actions: PlayerActions) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .testTag(PlayerTags.BOTTOM),
+        verticalArrangement = Arrangement.spacedBy(barGap()),
+    ) {
+        Timeline(state, actions)
+        Transport(state, actions)
+    }
+}
+
+/**
+ * The transport: the steps and the jumps round the play control, the playlist at the start edge, the
+ * screen's two controls at the other.
+ *
+ * ## The middle is the middle
+ *
+ * The three groups share the row by weight, the two outer ones equal, so the play control is on the
+ * centre line whatever the ends hold. When an end is too narrow for its labels they are dropped and
+ * the icons stay -- the targets never shrink, which is the floor the gate measures.
+ *
+ * ## What is not drawn
+ *
+ * **The steps** only where there is a list to step through -- a channel that was pressed in one -- and
+ * **the jumps** only where the source can be sought: a channel with no window behind it takes no jump,
+ * and a press there was once counted, logged as refused and changed nothing on screen.
+ */
+@Composable
+private fun Transport(state: PlayerState, actions: PlayerActions) {
+    val live = state.request.isLive
+    val jumps = !live || state.seekable
+    val step = actions.onStep
+    val tv = CastivioTheme.device.isTv
+    val target = Sizing.minTarget(tv)
+    val circle = LocalPlayerMetrics.current.step
+    // The glyph grows with the circle it is in: the arrows are what the viewer reads, and a 20dp one in
+    // an 80dp circle is a speck.
+    val glyph = if (circle >= BIG_CIRCLE) Sizing.iconLg else Sizing.iconMd
+    val arc = if (circle >= BIG_CIRCLE) BIG_ARC else Sizing.iconXl
     Row(
         Modifier
             .fillMaxWidth()
-            .testTag(PlayerTags.CENTRE),
-        horizontalArrangement = Arrangement.Center,
+            .testTag(PlayerTags.TRANSPORT),
+        horizontalArrangement = Arrangement.spacedBy(barGapLarge()),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        PlayControl(state, actions)
+        BoxWithConstraints(Modifier.weight(1f)) {
+            val labelled = maxWidth >= pillGroupWidth(pills = 1, target = target)
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(barGap(), Alignment.Start),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                actions.onPlaylist?.let { onPlaylist ->
+                    PlayerButton(
+                        icon = CastivioIcons.Playlist,
+                        label = stringResource(R.string.player_playlist),
+                        tag = PlayerTags.PLAYLIST,
+                        onClick = onPlaylist,
+                        text = if (labelled) stringResource(R.string.player_playlist) else null,
+                        shape = ControlShape.Pill,
+                        shrinkable = true,
+                        // Lit while its panel is open, as the gear is: the press that opened it closes it.
+                        active = state.sheet == Sheet.Playlist,
+                    )
+                }
+            }
+        }
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(barGapLarge()),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (step != null) {
+                PlayerButton(
+                    icon = CastivioIcons.PreviousSolid,
+                    label = stringResource(R.string.player_previous),
+                    tag = PlayerTags.PREVIOUS,
+                    onClick = { step(-1) },
+                    shape = ControlShape.Round,
+                    size = circle,
+                    iconSize = glyph,
+                )
+            }
+            if (jumps) {
+                PlayerButton(
+                    icon = CastivioIcons.ReplayArc,
+                    label = stringResource(R.string.player_replay_10),
+                    tag = PlayerTags.REPLAY,
+                    onClick = { actions.onSeekBy(-JUMP_MS) },
+                    shape = ControlShape.Round,
+                    size = circle,
+                    iconSize = arc,
+                    inside = JUMP_WORD,
+                )
+            }
+            PlayControl(state, actions)
+            if (jumps) {
+                PlayerButton(
+                    icon = CastivioIcons.ForwardArc,
+                    label = stringResource(R.string.player_forward_10),
+                    tag = PlayerTags.FORWARD,
+                    onClick = { actions.onSeekBy(JUMP_MS) },
+                    shape = ControlShape.Round,
+                    size = circle,
+                    iconSize = arc,
+                    inside = JUMP_WORD,
+                )
+            }
+            if (step != null) {
+                PlayerButton(
+                    icon = CastivioIcons.NextSolid,
+                    label = stringResource(R.string.player_next),
+                    tag = PlayerTags.NEXT,
+                    onClick = { step(1) },
+                    shape = ControlShape.Round,
+                    size = circle,
+                    iconSize = glyph,
+                )
+            }
+        }
+
+        BoxWithConstraints(Modifier.weight(1f)) {
+            val pills = 2 + if (state.request.isLive && state.isTimeshifted) 1 else 0
+            val labelled = maxWidth >= pillGroupWidth(pills = pills, target = target)
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(barGap(), Alignment.End),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Only when there is something to return *from*. Castivio never draws a disabled
+                // control, so a stream at the live edge does not carry this at all.
+                if (state.request.isLive && state.isTimeshifted) {
+                    PlayerButton(
+                        icon = CastivioIcons.Live,
+                        label = stringResource(R.string.player_to_live),
+                        tag = PlayerTags.TO_LIVE,
+                        onClick = actions.onReturnToLive,
+                        text = if (labelled) stringResource(R.string.player_to_live) else null,
+                        shape = ControlShape.Pill,
+                        shrinkable = true,
+                    )
+                }
+                // One press, one change, and the pill says which it is: on the fill the picture takes
+                // the whole screen, and pressed again it is fitted to it. The other shapes are in the
+                // settings, where the aspect row cycles them.
+                PlayerButton(
+                    icon = CastivioIcons.Fullscreen,
+                    label = stringResource(R.string.player_fill),
+                    tag = PlayerTags.FILL,
+                    onClick = {
+                        actions.onAspect(if (state.aspect == AspectMode.FILL) AspectMode.FIT else AspectMode.FILL)
+                    },
+                    text = if (labelled) stringResource(R.string.player_fill) else null,
+                    shape = ControlShape.Pill,
+                    shrinkable = true,
+                    active = state.aspect == AspectMode.FILL,
+                )
+                PlayerButton(
+                    icon = if (state.locked) CastivioIcons.Unlock else CastivioIcons.Lock,
+                    label = stringResource(if (state.locked) R.string.player_unlock else R.string.player_lock),
+                    tag = PlayerTags.LOCK,
+                    onClick = { actions.onLock(!state.locked) },
+                    text = if (labelled) stringResource(if (state.locked) R.string.player_unlock else R.string.player_lock) else null,
+                    shape = ControlShape.Pill,
+                    shrinkable = true,
+                )
+            }
+        }
     }
 }
+
+/**
+ * What [pills] labelled pills ask of the row they share: each its icon, its label's room and its
+ * padding, and the gap between them. Below that the labels go and the icons stay.
+ */
+@Composable
+@ReadOnlyComposable
+private fun pillGroupWidth(pills: Int, target: Dp): Dp =
+    (target + PILL_LABEL_ROOM) * pills + barGap() * (pills - 1)
 
 @Composable
 private fun PlayControl(state: PlayerState, actions: PlayerActions) {
@@ -234,190 +488,62 @@ private fun PlayControl(state: PlayerState, actions: PlayerActions) {
     // — the one thing a play control must never do. `picture` remains the fallback for a
     // screen composed from a fixture, which has no engine to ask.
     val playing = state.playRequested ?: (state.picture is Picture.Playing)
+    val (focused, focusModifier) = rememberIsFocused()
+    // The ring is the brand's ramp, azure into violet, and it is what makes this the one control
+    // the eye lands on: the reference draws it round the play control alone.
+    val ring = Brush.horizontalGradient(listOf(colors.hueAzure, colors.hueViolet))
     Box(
         Modifier
             .size(playSize())
             .clip(CircleShape)
             .background(colors.glassFillStrong)
-            .border(HAIRLINE, colors.glassBorder, CircleShape)
+            .border(if (focused.value) FOCUS_RING else PLAY_RING, ring, CircleShape)
+            .then(focusModifier)
             .clickable(role = Role.Button, onClick = actions.onPlayPause)
             .testTag(PlayerTags.PLAY),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            imageVector = if (playing) CastivioIcons.Pause else CastivioIcons.Play,
+            imageVector = if (playing) CastivioIcons.PauseSolid else CastivioIcons.PlaySolid,
             contentDescription = stringResource(
                 if (playing) R.string.player_pause else R.string.player_play,
             ),
             tint = colors.onBackground,
-            modifier = Modifier.size(Sizing.iconXl),
+            modifier = Modifier.size(maxOf(Sizing.iconXl, playSize() * PLAY_GLYPH)),
         )
     }
 }
 
 /**
- * The bottom: programme strip, timeline, tools.
+ * Time gone, bar, time left — and the bar is a control, not a picture.
  *
- * The strip is first because it belongs to the channel rather than to the playback, and
- * because putting it above the timeline is what lets it change height without moving the
- * controls — which it never does, but the arrangement is what makes that true rather than
- * lucky.
- */
-@Composable
-internal fun BottomBar(state: PlayerState, actions: PlayerActions) {
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .testTag(PlayerTags.BOTTOM),
-        verticalArrangement = Arrangement.spacedBy(barGap()),
-    ) {
-        if (state.request.isLive) ProgrammeStrip(state)
-        Timeline(state, actions)
-        ToolsRow(state, actions)
-    }
-}
-
-/**
- * What is on now — and the height it takes whether or not anybody knows yet.
+ * ## The figure at the end is what is left
  *
- * ## The single most important thing in this file
+ * As the reference draws it: `2:17:27` at the start and `43:05` at the end of a film that is three
+ * hours long. A length says how big the film is and a remainder says how much of it there is still to
+ * watch, which is what a viewer looks at the end of a bar to know.
  *
- * The strip is composed at a **fixed height**, and the guide fills words into it later. It
- * is not composed when the guide arrives; it is there from the first frame, as a skeleton.
+ * ## Why there is a head on it
  *
- * That is what makes the EPG genuinely off the critical path rather than nominally off it.
- * A strip that appeared when the data did would push the timeline and the tools row down
- * by 44dp a second after the channel opened — the user's thumb already moving toward a
- * control that is no longer where they saw it. Reserving the height costs 44dp of picture
- * and buys the guarantee that nothing moves.
+ * A head that can be dragged is the way every player on the device does this: the only other way to
+ * reach a different part of a film was the jump controls, so a viewer who wanted the last ten minutes
+ * of an hour pressed a button sixty times.
  *
- * `PlayerEpgTest` measures this element in both states and fails if the two differ.
- */
-@Composable
-private fun ProgrammeStrip(state: PlayerState) {
-    val colors = CastivioTheme.colors
-    val programme = state.programme
-
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .height(stripHeight())
-            .clip(RoundedCornerShape(Radius.md))
-            .background(colors.glassFill)
-            .border(HAIRLINE, colors.glassBorder, RoundedCornerShape(Radius.md))
-            .padding(horizontal = Spacing.md)
-            .testTag(PlayerTags.EPG),
-        horizontalArrangement = Arrangement.spacedBy(barGapLarge()),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            SkeletonText(
-                text = programme?.now,
-                style = CastivioType.bodyLarge,
-                colour = colors.onBackground,
-                width = LocalPlayerMetrics.current.skeletonTitle,
-            )
-            SkeletonText(
-                text = programme?.window,
-                style = CastivioType.bodySmall,
-                colour = colors.onBackgroundVariant,
-                width = LocalPlayerMetrics.current.skeletonWindow,
-            )
-        }
-
-        // The progress bar is drawn either way and is simply empty when unknown. A bar
-        // that appears with the words would be a second thing moving.
-        Box(
-            Modifier
-                .width(LocalPlayerMetrics.current.progressWidth)
-                .height(LocalPlayerMetrics.current.progressHeight)
-                .clip(RoundedCornerShape(Radius.pill))
-                .background(colors.glassFillStrong),
-        ) {
-            Box(
-                Modifier
-                    .fillMaxWidth(programme?.progress ?: 0f)
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(Radius.pill))
-                    .background(colors.focusRing),
-            )
-        }
-
-        programme?.next?.let {
-            Text(
-                text = it,
-                style = CastivioType.bodySmall,
-                color = colors.onBackgroundVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(NEXT_WEIGHT),
-            )
-        }
-    }
-}
-
-/**
- * A line of type, or the space it will take.
- *
- * The skeleton is the same height as the text because it is the same text node with a
- * transparent ink and a filled background — not a `Box` sized by hand to something that
- * looks about right. Two ways of computing one height is how the reserved height stops
- * being reserved.
- */
-@Composable
-private fun SkeletonText(
-    text: String?,
-    style: androidx.compose.ui.text.TextStyle,
-    colour: Color,
-    width: Dp,
-) {
-    val colors = CastivioTheme.colors
-    Text(
-        text = text ?: " ",
-        style = style,
-        color = if (text != null) colour else Color.Transparent,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        modifier = if (text != null) {
-            Modifier
-        } else {
-            Modifier
-                .width(width)
-                .clip(RoundedCornerShape(Radius.xs))
-                .background(colors.glassFillStrong)
-        },
-    )
-}
-
-/**
- * Position, bar, duration — and the bar is a control, not a picture.
- *
- * ## Why there is a head on it now
- *
- * The bar was a 4dp read-out: it showed where the film was and there was no way to move it.
- * The only way to reach a different part of a film was the two jump controls, so a viewer
- * who wanted the last ten minutes of an hour pressed a button sixty times — or, when those
- * controls did not answer, had no way at all. A head that can be dragged is the way every
- * player on the device does this, and it is what was asked for.
- *
- * The touch area is [Sizing.minTarget] tall while the bar stays 4dp. A 4dp target is a
- * quarter of the floor and would be missed more often than hit; the bar people see and the
- * region they touch are deliberately different sizes, which is the ordinary way to build a
- * slider and the reason the floor gate keeps passing.
+ * The touch area is [Sizing.minTarget] tall while the bar stays a few dp. A 4dp target is a quarter
+ * of the floor and would be missed more often than hit; the bar people see and the region they touch
+ * are deliberately different sizes, which is the ordinary way to build a slider.
  *
  * ## Seeking happens when the finger lifts
  *
- * Not continuously while dragging. The head follows the finger — [dragged] is what the row
- * displays while a drag is in flight, so it never lags — but the engine is asked once. A
- * seek per frame is a decode from a new position per frame, which on a stream over a
- * mobile connection is a request per frame; the picture would never settle long enough to
- * show you where you are, which is the whole purpose of dragging it.
+ * Not only then: the picture follows the finger, throttled -- see below -- and the last position is
+ * sought once more on release. A seek per pointer event is a decode per pointer event, and the picture
+ * would never settle long enough to show you where you are.
  *
  * ## Live has no future to scrub into
  *
- * So the bar is full, the head is absent and the figure says "live now" or how far behind
- * the edge you are, rather than a timestamp — a timestamp on a live stream is a number
- * about the provider's window and not about the viewer.
+ * So the bar is full, the head is absent and the figure at its start is how far behind the edge you
+ * are -- and no figure at all at the edge -- rather than a timestamp: a timestamp on a live stream is
+ * a number about the provider's window and not about the viewer. And there is no figure at the end.
  */
 @Composable
 private fun Timeline(state: PlayerState, actions: PlayerActions) {
@@ -460,43 +586,20 @@ private fun Timeline(state: PlayerState, actions: PlayerActions) {
         horizontalArrangement = Arrangement.spacedBy(barGapLarge()),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = when {
-                live && state.isTimeshifted ->
+        // A channel at its live edge says nothing here: the bar is full and the pill under the title says
+        // LIVE, so a third word beside them was only something else on the screen. It speaks when there is
+        // something to tell -- how far behind the edge the viewer is.
+        if (!live || state.isTimeshifted) {
+            Text(
+                text = if (live) {
                     stringResource(R.string.player_behind_live, clock(state.behindLiveMs))
-                live -> stringResource(R.string.player_live_now)
-                else -> clock(position)
-            },
-            style = CastivioType.labelMedium,
-            color = colors.onBackground,
-            maxLines = 1,
-            modifier = Modifier.testTag(PlayerTags.POSITION),
-        )
-
-        // The jumps live on the bar, one at each end of it.
-        //
-        // They were in the tools row, among the aspect, the speed and the subtitles — the
-        // controls you touch while setting something up rather than while watching. A jump
-        // is not one of those: it is the bar, in ten-second steps, for the times when
-        // dragging is too coarse. Put either side of the thing they move, what they do is
-        // legible from where they are, which is most of what "understood at a glance" means.
-        //
-        // `mirror`, because the bar itself mirrors: in Arabic it fills from the right, so
-        // later in the film is to the left and a chevron that pointed left in both
-        // directions would be pointing backwards in one of them.
-        //
-        // **Not on a channel that cannot be sought.** Most channels are a stream with no
-        // window behind it, and there a press was counted, logged as refused and changed
-        // nothing on screen. A channel that does keep a window says so through the engine,
-        // and gets its jumps when it does.
-        val jumps = !live || state.seekable
-        if (jumps) {
-            PlayerButton(
-                icon = CastivioIcons.Replay10,
-                label = stringResource(R.string.player_replay_10),
-                tag = PlayerTags.REPLAY,
-                onClick = { actions.onSeekBy(-JUMP_MS) },
-                mirror = true,
+                } else {
+                    clock(position)
+                },
+                style = clockStyle(),
+                color = colors.onBackground,
+                maxLines = 1,
+                modifier = Modifier.testTag(PlayerTags.POSITION),
             )
         }
 
@@ -515,6 +618,9 @@ private fun Timeline(state: PlayerState, actions: PlayerActions) {
         // Read outside the measure scope: `BoxWithConstraints`'s content lambda is not a
         // `@ReadOnlyComposable` context for an ambient read placed inside a modifier chain.
         val thumb = thumbSize()
+        // From the first hue of the ramp into the second, and over the length of what is filled -- so
+        // the head always sits in the violet and the start of the bar is always the azure.
+        val fill = Brush.horizontalGradient(listOf(colors.hueAzure, colors.hueViolet))
 
         BoxWithConstraints(
             Modifier
@@ -576,39 +682,30 @@ private fun Timeline(state: PlayerState, actions: PlayerActions) {
                         .fillMaxWidth(played)
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(Radius.pill))
-                        .background(colors.primaryBrush),
+                        .background(fill),
                 )
             }
 
             if (scrubbable) {
-                // `offset` and not `absoluteOffset`: the head travels from the start edge,
-                // which is the right-hand side in Arabic. The invariant script rejects the
+                // `offset` and not `absoluteOffset`: the head travels from the start edge, which is
+                // the left in the player's one direction. The invariant script rejects the
                 // direction-absolute one, and this is exactly the reason it does.
                 Box(
                     Modifier
                         .offset(x = (maxWidth - thumb) * played)
                         .size(thumb)
                         .clip(CircleShape)
-                        .background(colors.primaryBrush)
+                        .background(colors.onBackground)
+                        .border(THUMB_RING, colors.hueViolet, CircleShape)
                         .testTag(PlayerTags.THUMB),
                 )
             }
         }
 
-        if (jumps) {
-            PlayerButton(
-                icon = CastivioIcons.Forward10,
-                label = stringResource(R.string.player_forward_10),
-                tag = PlayerTags.FORWARD,
-                onClick = { actions.onSeekBy(JUMP_MS) },
-                mirror = true,
-            )
-        }
-
         if (!live) {
             Text(
-                text = duration?.let(::clock) ?: stringResource(R.string.stat_unknown),
-                style = CastivioType.labelMedium,
+                text = duration?.let { clock((it - position).coerceAtLeast(0)) } ?: stringResource(R.string.stat_unknown),
+                style = clockStyle(),
                 color = colors.onBackground,
                 maxLines = 1,
                 modifier = Modifier.testTag(PlayerTags.DURATION),
@@ -620,10 +717,9 @@ private fun Timeline(state: PlayerState, actions: PlayerActions) {
 /**
  * Where along the bar a touch landed, as a fraction of the film.
  *
- * Mirrored in Arabic, and that is not a detail: the bar fills from the right, so a touch
- * near the right-hand edge is the *beginning* of the film. Reading it left-to-right would
- * make every drag seek to the opposite end, which looks like a broken control rather than
- * a mirrored one.
+ * Kept direction-aware although the player is drawn in one direction: it costs one comparison, and a
+ * bar placed in a right-to-left layout by some other caller would otherwise seek to the opposite end,
+ * which looks like a broken control rather than a mirrored one.
  */
 private fun fractionAt(x: Float, width: Float, direction: LayoutDirection): Float {
     if (width <= 0f) return 0f
@@ -631,113 +727,27 @@ private fun fractionAt(x: Float, width: Float, direction: LayoutDirection): Floa
     return if (direction == LayoutDirection.Rtl) 1f - fromStart else fromStart
 }
 
-/**
- * The one row whose contents vary by state.
- *
- * A film adds its speed; a stream that has fallen behind the live edge adds the way back to
- * it. On a television at 956dp with Arabic labels this ran past the safe area, so the row
- * is allowed to **shrink its items rather than push them out**: the labels ellipsis, the
- * targets never do. That is the whole of the fix, and it is why the wide buttons carry
- * `weight` with a floor rather than a fixed width.
- *
- * "Back to live" is in this row and not in the time row above it. It was drawn inline there
- * first, at 32dp, which measured as the only control in the player under the touch floor.
- *
- * ## What is no longer in it
- *
- * A guide and a channel list on live, and "fill the screen" on everything. The first two
- * were never connected to anything — no caller gave the route a guide or a list to open —
- * and the third hid the controls, which a press on the picture, back, and four seconds of
- * nothing already do. Each was a stop for the remote on the way to a control that works.
- */
-@Composable
-private fun ToolsRow(state: PlayerState, actions: PlayerActions) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .testTag(PlayerTags.TOOLS),
-        horizontalArrangement = Arrangement.spacedBy(barGap()),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        // A film's, and not a channel's: a broadcast played faster runs out of what has been
-        // sent, and played slower falls out of the provider's window.
-        if (!state.request.isLive) {
-            PlayerButton(
-                icon = CastivioIcons.Speed,
-                label = stringResource(R.string.player_speed),
-                tag = PlayerTags.SPEED,
-                onClick = { actions.onSheet(Sheet.Settings) },
-                text = speedLabel(state.speed),
-                shrinkable = true,
-            )
-        }
-        // A film's, and not a channel's: a channel plays with its subtitles switched off in both engines, so a button
-        // that opens a list of them would offer what is not there.
-        if (!state.request.isLive) {
-            PlayerButton(
-                icon = CastivioIcons.Subtitles,
-                label = stringResource(R.string.player_sheet_subtitles),
-                tag = PlayerTags.SUBTITLES,
-                onClick = { actions.onSheet(Sheet.Subtitles) },
-            )
-        }
-        PlayerButton(
-            icon = CastivioIcons.AudioTrack,
-            label = stringResource(R.string.player_sheet_audio),
-            tag = PlayerTags.AUDIO,
-            onClick = { actions.onSheet(Sheet.Audio) },
-        )
-        // One press, one change, and the button says which fit is on — the same shape as
-        // the speed control beside it. It used to open the settings sheet onto a row that
-        // printed "Fit" and did nothing, so the picture could not be corrected from
-        // anywhere in the player.
-        PlayerButton(
-            icon = CastivioIcons.Aspect,
-            label = stringResource(R.string.player_aspect),
-            tag = PlayerTags.ASPECT,
-            onClick = { actions.onAspect(nextAspect(state.aspect)) },
-            text = aspectLabel(state.aspect),
-            shrinkable = true,
-        )
-
-        // Only when there is something to return *from*. Castivio never draws a disabled
-        // control, so a stream at the live edge does not carry this at all.
-        if (state.request.isLive && state.isTimeshifted) {
-            PlayerButton(
-                icon = CastivioIcons.Live,
-                label = stringResource(R.string.player_to_live),
-                tag = PlayerTags.TO_LIVE,
-                onClick = actions.onReturnToLive,
-                text = stringResource(R.string.player_to_live),
-                shrinkable = true,
-            )
-        }
-
-        Box(Modifier.weight(1f))
-
-        PlayerButton(
-            icon = CastivioIcons.Quality,
-            label = stringResource(R.string.player_sheet_quality),
-            tag = PlayerTags.QUALITY,
-            onClick = { actions.onSheet(Sheet.Quality) },
-        )
-    }
-}
-
 /* ------------------------------------------------------------------- the control */
+
+/** The three shapes the reference draws a control in: the way back and the transport, the top bar's squares, the pills. */
+internal enum class ControlShape { Round, Square, Pill }
 
 /**
  * One control, and the floor that makes it one.
  *
- * Every interactive thing on this screen is this composable, so "every target is at least
- * the frame's floor" is a property of one function rather than of thirty call sites. The
+ * Every interactive thing on this screen but the play control is this composable, so "every target
+ * is at least the frame's floor" is a property of one function rather than of thirty call sites. The
  * floor is [Sizing.minTarget], which is 48dp under a thumb and 56dp under a remote — the
- * distinction that was missed twice elsewhere in this product and found both times by eye
- * on a photograph.
+ * distinction that was missed twice elsewhere in this product and found both times by eye on a
+ * photograph.
  *
- * [shrinkable] is the tools-row concession: the *label* may be squeezed and ellipsised, the
- * target may not. `widthIn(min = …)` rather than `width(…)`, so the minimum survives the
- * squeeze.
+ * **Where the remote is.** A control that has focus, or is the one whose panel is open ([active]), is
+ * drawn with the focus colour round it and a thicker line, as the reference draws the gear -- the
+ * product's one answer to "where am I", and the player had none.
+ *
+ * [shrinkable] is the pill concession: the *label* may be squeezed and ellipsised, the target may
+ * not. `defaultMinSize` rather than `width`, so the minimum survives the squeeze. [inside] is the
+ * short figure set over the icon, for the two arrows that carry "10".
  */
 @Composable
 internal fun RowScope.PlayerButton(
@@ -746,39 +756,70 @@ internal fun RowScope.PlayerButton(
     tag: String,
     onClick: () -> Unit,
     text: String? = null,
-    mirror: Boolean = false,
+    shape: ControlShape = ControlShape.Square,
     shrinkable: Boolean = false,
+    active: Boolean = false,
+    tint: Color? = null,
+    inside: String? = null,
+    size: Dp? = null,
+    iconSize: Dp? = null,
 ) {
     val colors = CastivioTheme.colors
-    val target = Sizing.minTarget(CastivioTheme.device.isTv)
-    val mirrored = mirror && LocalLayoutDirection.current == LayoutDirection.Rtl
+    val tv = CastivioTheme.device.isTv
+    val target = Sizing.minTarget(tv)
+    val outline: Shape = when (shape) {
+        ControlShape.Round -> CircleShape
+        ControlShape.Square -> RoundedCornerShape(Radius.md)
+        ControlShape.Pill -> RoundedCornerShape(Radius.pill)
+    }
+    val (focused, focusModifier) = rememberIsFocused()
+    val lit = focused.value || active
+    val ink = tint ?: colors.onBackground
 
     Row(
         modifier = Modifier
             .then(if (shrinkable) Modifier.weight(1f, fill = false) else Modifier)
             .defaultMinSize(minWidth = target, minHeight = target)
-            .height(target)
-            .clip(RoundedCornerShape(Radius.pill))
+            .then(if (size != null) Modifier.size(maxOf(size, target)) else Modifier.height(target))
+            .clip(outline)
             .background(colors.glassFillStrong)
+            .border(if (lit) FOCUS_RING else HAIRLINE, if (lit) colors.focusRing else colors.glassBorder, outline)
+            .then(focusModifier)
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = if (text == null) Spacing.xs else Spacing.md)
+            .padding(horizontal = if (text == null) Spacing.xs else Spacing.sm)
             .testTag(tag),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = colors.onBackground,
-            modifier = Modifier
-                .size(Sizing.iconMd)
-                .scale(scaleX = if (mirrored) -1f else 1f, scaleY = 1f),
-        )
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = ink,
+                modifier = Modifier.size(
+                    iconSize ?: when {
+                        inside != null -> Sizing.iconXl
+                        // A remote is read from across a room: the glyph of an icon-only control grows with it.
+                        tv && text == null -> Sizing.iconLg
+                        else -> Sizing.iconMd
+                    },
+                ),
+            )
+            if (inside != null) {
+                Text(
+                    text = inside,
+                    style = (if (tv) CastivioType.labelMedium else CastivioType.labelSmall).ltr()
+                        .copy(fontWeight = FontWeight.Bold),
+                    color = ink,
+                    maxLines = 1,
+                )
+            }
+        }
         if (text != null) {
             Text(
                 text = text,
-                style = CastivioType.labelMedium,
-                color = colors.onBackground,
+                style = (if (tv) CastivioType.bodyMedium else CastivioType.labelMedium).ltr(),
+                color = ink,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -786,15 +827,52 @@ internal fun RowScope.PlayerButton(
     }
 }
 
+/**
+ * The words in a control keep their own direction, but start where the control does.
+ *
+ * The player is laid out left to right in every language and its labels are written in whichever one
+ * the viewer chose. A paragraph whose direction is the content's would start at the other edge for
+ * an Arabic word and sit away from the icon it belongs to; fixing the paragraph's direction puts it
+ * beside the icon and leaves the word itself reading the way it reads.
+ */
+internal fun TextStyle.ltr(): TextStyle = copy(textDirection = TextDirection.Ltr)
+
 /* ---------------------------------------------------------------------- measures */
 
 /** A hairline is one device-independent pixel, everywhere in the product. */
 internal val HAIRLINE = 1.dp
 
+/** The line round a control that has the remote, or whose panel is open. */
+private val FOCUS_RING = 2.dp
+
+/** The ring round the play control: heavier than any other edge on the screen, because it is the one that is looked for. */
+private val PLAY_RING = 4.dp
+
+/** The ring round the head of the bar. */
+private val THUMB_RING = 3.dp
+
 /** Ten seconds, in both directions. */
 private const val JUMP_MS = 10_000L
 
+/** The figure inside the two jump arrows. A figure, so it is not translated. */
+private const val JUMP_WORD = "10"
 
+/**
+ * What a pill's label asks for beyond its target: the longest of the words, at the size they are set.
+ *
+ * The labels are `Lock the screen`, `Fill the screen` and `Playlist` and their Arabic; when the row
+ * they share has less than this per pill the words go, and the icons do not.
+ */
+private val PILL_LABEL_ROOM = 64.dp
+
+/** The play glyph's share of the control it is in: the reference's solid bars fill a little over a third of the ring. */
+private const val PLAY_GLYPH = 0.38f
+
+/** The transport's circles are drawn with the larger glyph from this size up. */
+private val BIG_CIRCLE = 64.dp
+
+/** The jump arrows in those circles: the reference draws them about half the circle across, with the figure inside. */
+private val BIG_ARC = 40.dp
 
 @Composable
 @ReadOnlyComposable
@@ -815,10 +893,8 @@ private fun thumbSize(): Dp = LocalPlayerMetrics.current.thumb
  */
 private const val SCRUB_PREVIEW_MS = 250L
 
-private const val NEXT_WEIGHT = 0.9f
-
 /*
- * The four sizes the transport bar is built on.
+ * The four sizes the transport is built on.
  *
  * They were `if (CastivioTheme.device.isTv)` — 16 against 8, 24 against 16, 80 against
  * 64, 56 against 44 — which is a two-row device table asked of an ambient. They are
@@ -847,10 +923,11 @@ internal fun barGapLarge(): Dp = LocalPlayerMetrics.current.barGapLarge
 @ReadOnlyComposable
 private fun playSize(): Dp = LocalPlayerMetrics.current.play
 
-/** The strip's reserved height, and never below what this device can land on. */
+/** The figures at the two ends of the bar: larger under a remote, which is read from across a room. */
 @Composable
 @ReadOnlyComposable
-private fun stripHeight(): Dp = LocalPlayerMetrics.current.strip
+private fun clockStyle(): TextStyle =
+    (if (CastivioTheme.device.isTv) CastivioType.bodyLarge else CastivioType.labelMedium).ltr()
 
 /**
  * A duration as digits.
@@ -863,8 +940,9 @@ internal fun clock(ms: Long): String {
     val h = total / 3600
     val m = (total % 3600) / 60
     val s = total % 60
-    return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
+    // Western digits in every language, as the reference draws them: `2:17:27`, never `٢:١٧:٢٧`.
+    return if (h > 0) String.format(Locale.ROOT, "%d:%02d:%02d", h, m, s) else String.format(Locale.ROOT, "%d:%02d", m, s)
 }
 
-/** "1.0×" — a figure, so it is built rather than translated. */
-internal fun speedLabel(speed: Float): String = "%.1f×".format(speed)
+/** "1.0x" — a figure, so it is built rather than translated, and in Western digits like the clock. */
+internal fun speedLabel(speed: Float): String = String.format(Locale.ROOT, "%.1fx", speed)

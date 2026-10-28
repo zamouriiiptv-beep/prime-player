@@ -81,11 +81,19 @@ internal fun BoxScope.SubtitleLayer(state: PlayerState) {
     val outlined = style.backdrop == SubtitleBackdrop.None ||
         style.backdrop == SubtitleBackdrop.Shadow
 
+    // The distance from the edge the caption is anchored to, and **from that edge only**. It was the same
+    // figure above and below, which a clearance of a few dozen dp could afford; with the transport under the
+    // bar the clearance is over half of a handset's height, and a caption padded by it on both sides had no
+    // room left to be laid out in.
+    val edge = inset(state)
+    val top = style.place == SubtitlePlace.Top
+
     Column(
         Modifier
             .align(style.place.alignment())
             .fillMaxWidth()
-            .padding(horizontal = LocalPlayerMetrics.current.captionSide, vertical = inset(state))
+            .padding(horizontal = LocalPlayerMetrics.current.captionSide)
+            .padding(top = if (top) edge else 0.dp, bottom = if (top) 0.dp else edge)
             .testTag(PlayerTags.CAPTIONS),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.xxs),

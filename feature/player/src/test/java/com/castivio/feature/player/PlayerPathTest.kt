@@ -94,8 +94,8 @@ import org.junit.Test
  *
  * ## Why it runs on the JVM
  *
- * Because the view model was written so it could. It depends on `EngineFactory` and
- * `ProgrammeSource`, both of which are interfaces in modules with no Android in them, so
+ * Because the view model was written so it could. It depends on `EngineFactory` and the
+ * stores it takes, all of them interfaces in modules with no Android in them, so
  * the entire fallback sequence — open, deadline, switch, remember — is testable in
  * milliseconds with no decoder, no surface and no emulator.
  */
@@ -106,7 +106,6 @@ class PlayerPathTest {
     private val store = ViewModelStore()
     private var created = 0
     private lateinit var engines: FakeFactory
-    private lateinit var guide: RecordingGuide
     private lateinit var memory: RecordingMemory
     private lateinit var subtitles: RememberedStyle
     private lateinit var hunt: FakeSubtitles
@@ -116,7 +115,6 @@ class PlayerPathTest {
     fun setUp() {
         Dispatchers.setMain(dispatcher)
         engines = FakeFactory()
-        guide = RecordingGuide()
         memory = RecordingMemory()
         subtitles = RememberedStyle()
         hunt = FakeSubtitles()
@@ -139,7 +137,7 @@ class PlayerPathTest {
         val factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                PlayerViewModel(engines, memory, guide, subtitles, hunt, allowance) as T
+                PlayerViewModel(engines, memory, subtitles, hunt, allowance) as T
         }
         return ViewModelProvider(store, factory)["player-${created++}", PlayerViewModel::class.java]
     }
@@ -173,7 +171,7 @@ class PlayerPathTest {
      * Opening a source touches the engine and nothing else.
      *
      * The strongest claim in the file, and deliberately phrased as a list of things that
-     * did *not* happen. The guide was not asked, statistics were not sampled, and the
+     * did *not* happen. Statistics were not sampled, and the
      * second engine was not built — that last one matters because warming it would be the
      * most tempting optimisation on this screen and would double the memory and the CPU of
      * every channel change to save a case that almost never happens.
@@ -188,11 +186,6 @@ class PlayerPathTest {
         assertEquals(EngineId.PRIMARY, engines.built.single())
         assertEquals("the URL was opened", 1, engines.last.opened.size)
 
-        assertEquals(
-            "the guide was consulted before there was a picture — it belongs after the frame",
-            0,
-            guide.calls,
-        )
         assertEquals(
             "statistics were sampled before the user asked for them",
             0,
@@ -249,48 +242,6 @@ class PlayerPathTest {
         val state = model.state.value!!
         assertTrue("the picture has not arrived", state.picture is Picture.Opening)
         assertEquals("and the title is already there", request.title, state.request.title)
-        assertEquals("with no lookup behind it", 0, guide.calls)
-    }
-
-    /**
-     * The guide arrives after the frame, and only then.
-     *
-     * Two assertions in sequence, because the interesting claim is the *order*: zero before,
-     * one after. Asserting only the second would pass on a player that fetched the guide
-     * first and rendered it late.
-     */
-    @Test
-    fun `the guide is fetched after the first frame and never before it`() = playerTest {
-        val model = model()
-        model.open(liveRequest())
-        runCurrent()
-        assertEquals("before the frame", 0, guide.calls)
-
-        engines.last.renderFirstFrame()
-        runCurrent()
-
-        assertEquals("after the frame", 1, guide.calls)
-        assertEquals("and it filled the strip", "Evening news", model.state.value?.programme?.now)
-    }
-
-    /**
-     * A channel with no guide plays exactly the same.
-     *
-     * The property that makes EPG genuinely optional rather than merely late. A provider
-     * with no XMLTV, a channel the guide does not carry, an import that has not run — all
-     * of them land here, and none of them may affect the picture.
-     */
-    @Test
-    fun `a channel whose guide never answers still plays`() = playerTest {
-        guide.answer = null
-        val model = model()
-        model.open(liveRequest())
-        engines.last.renderFirstFrame()
-        runCurrent()
-
-        assertTrue("the picture is up", model.state.value?.picture is Picture.Playing)
-        assertNull("and the strip has no words, which is a state and not a failure",
-            model.state.value?.programme)
     }
 
     /**
@@ -2889,7 +2840,6 @@ class PlayerPathTest {
         runCurrent()
 
         assertTrue(model.state.value?.picture is Picture.Playing)
-        assertEquals("the next channel's guide, after its own frame", 2, guide.calls)
     }
 
     /** A kept engine keeps its surface: handing it the same one again is a detach and an attach. */
@@ -2968,7 +2918,6 @@ class PlayerPathTest {
 
         assertTrue(model.state.value?.picture is Picture.Playing)
         assertEquals("no channel passed on the way fell anything over", 1, engines.built.size)
-        assertEquals("and only the last one's guide was asked for", 1, guide.calls)
     }
 
     /** A film is never opened on the engine a channel was playing on. */
@@ -3658,7 +3607,6 @@ class PlayerPathTest {
         title = title,
         kind = MediaKind.LIVE,
         channelNumber = "104",
-        epgChannelId = "aloula.ma",
     )
 
     private fun vodRequest() = PlayerRequest(
@@ -4001,22 +3949,6 @@ class PlayerPathTest {
         /** Put the day's count where a test needs it, as yesterday's downloads would. */
         fun startAt(spent: Int) {
             count = spent
-        }
-    }
-
-    /** Counts, because the claim is about *when* it was called and not about what it said. */
-    private class RecordingGuide : ProgrammeSource {
-        var calls = 0
-        var answer: Programme? = Programme(
-            now = "Evening news",
-            window = "20:00 – 20:45",
-            next = "Deep sea",
-            progress = 0.4f,
-        )
-
-        override suspend fun now(channelId: String): Programme? {
-            calls++
-            return answer
         }
     }
 
