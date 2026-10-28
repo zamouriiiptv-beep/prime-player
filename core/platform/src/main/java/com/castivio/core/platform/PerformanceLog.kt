@@ -764,6 +764,8 @@ data class CallTimes(
     /** The part of [totalMs] before each answer began. */
     val waitMs: Long,
     val bytes: Long,
+    /** How the answers travelled; null when the instruments that read it were off. */
+    val wire: WireFigures? = null,
 )
 
 /** One moment a run passed through, and when, in milliseconds from its start. */

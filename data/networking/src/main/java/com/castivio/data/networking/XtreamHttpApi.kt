@@ -15,13 +15,16 @@ import com.castivio.core.platform.CastivioTrace
 import com.castivio.domain.MediaKind
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import com.castivio.core.platform.DevDiagnostics
 import com.castivio.core.platform.PerformanceLog
 import java.io.IOException
 import java.io.InterruptedIOException
+import java.io.InputStream
 import java.io.InputStreamReader
 import java.io.Reader
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import java.util.zip.GZIPInputStream
 
 /**
  * The HTTP half of the Xtream integration.
@@ -40,6 +43,12 @@ class XtreamHttpApi(
     private val username: String,
     private val password: String,
     private val userAgent: String? = null,
+    /**
+     * Whether a reply's body is metered as it is read -- see [MeteredInputStream]. Asked per reply, so the
+     * development switch is read when the reply opens and not once for the life of the object. A test turns it on
+     * without a debuggable build.
+     */
+    private val metered: () -> Boolean = { DevDiagnostics.enabled },
 ) : XtreamImportEngine.Api {
 
     override fun categories(kind: MediaKind): Reader = open(
@@ -323,7 +332,8 @@ class XtreamHttpApi(
         // revalidation rather than forbidding storage, so a provider that does send
         // validators still gets a cheap 304 instead of a full re-download.
         if (noCache) builder.header("Cache-Control", "no-cache")
-        val response = client.newCall(builder.build()).execute()
+        val call = client.newCall(builder.build())
+        val response = call.execute()
         if (!response.isSuccessful) {
             response.close()
             throw HttpStatusException(response.code)
@@ -334,8 +344,34 @@ class XtreamHttpApi(
         }
         // Reading the body as a stream, never as a string: a category response can
         // be tens of megabytes and `string()` would hold all of it.
-        return InputStreamReader(decompressIfNeeded(body.byteStream()), Charsets.UTF_8)
-            .buffered(READ_BUFFER)
+        val stream = body.byteStream()
+        if (!metered()) {
+            return InputStreamReader(decompressIfNeeded(stream), Charsets.UTF_8).buffered(READ_BUFFER)
+        }
+        return meteredReader(CallMetrics.label(call.request().url), stream)
+    }
+
+    /**
+     * The same reader [openNow] returns, with two meters on the way to it.
+     *
+     * One directly on the connection's stream, which times the reads: the time the reader sat inside them is time
+     * spent waiting for the connection, and the rest of the call is the reader's own. One after every decoding,
+     * which counts what the parser is handed, to set beside what crossed the wire -- the gap is the compression.
+     * Whether the second decoding happened is read from the stream [decompressIfNeeded] returns: it unpacks gzip
+     * by its first two bytes, which is the case of a provider that compresses and does not say so.
+     *
+     * Nothing is added to, or taken from, the bytes the parser reads.
+     */
+    private fun meteredReader(action: String, stream: InputStream): Reader {
+        val onTheWire = MeteredInputStream(stream, timed = true) { _, nanos ->
+            CallMetrics.recordBlocked(action, nanos)
+        }
+        val unpacked = decompressIfNeeded(onTheWire)
+        val sniffedGzip = unpacked is GZIPInputStream
+        val handedOn = MeteredInputStream(unpacked, timed = false) { bytes, _ ->
+            CallMetrics.recordDecoded(action, bytes, sniffedGzip)
+        }
+        return InputStreamReader(handedOn, Charsets.UTF_8).buffered(READ_BUFFER)
     }
 
     private fun MediaKind.categoriesAction(): String = when (this) {

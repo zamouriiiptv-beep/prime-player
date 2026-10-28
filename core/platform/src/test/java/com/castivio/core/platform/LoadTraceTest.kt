@@ -296,6 +296,33 @@ class LoadTraceTest {
         assertTrue("the moments are from the press and in order: $text", "at: screen 0.60 · rows 0.65 · load done 1.00" in text)
     }
 
+    @Test
+    fun `the wire lines appear when a call was answered by the network, and only then`() {
+        fun wire(encoding: List<String>, encoded: Int) = WireFigures(
+            protocols = listOf("h2"), asked = listOf("gzip"), encodings = encoding, encodedCalls = encoded,
+            declaredCalls = 1, declaredBytes = 6_291_456, metered = 1, decodedBytes = 18_874_368,
+            sniffedGzipCalls = 0, setupMs = 40, firstByteMs = 900, transferMs = 20_000, blockedMs = 18_000,
+        )
+        fun report(calls: List<CallTimes>) = SectionReport(
+            section = PerfSection.CHANNELS, run = 1, startedAtNanos = 0, mode = PerfMode.COLD, fullLoadMs = 1_000,
+            calls = calls,
+        )
+        val session = LoadSession(
+            id = 1, section = PerfSection.CHANNELS, origin = LoadOrigin.COLD, pressedAtNanos = 0,
+            expectsLoad = true, expectsScreen = true, run = 1, state = LoadState.DONE, endedMs = 1_100,
+        )
+        val with = report(listOf(CallTimes("get_live_streams", 1, 0, 28_100, 920, 6_291_456, wire(listOf("gzip"), 1))))
+        val without = report(listOf(CallTimes("get_live_streams", 1, 0, 28_100, 920, 6_291_456)))
+
+        val shown = LoadTrace.render(session, 0L, with, pulse = null).map { it.text }
+        val absent = LoadTrace.render(session, 0L, without, pulse = null).map { it.text }
+
+        assertTrue(shown.toString(), shown.any { it.startsWith("wire: h2 · asked gzip · answered gzip (1/1)") })
+        assertTrue(shown.toString(), shown.any { "6.0 MB on the wire → 18.0 MB decoded ×3.0" in it })
+        assertTrue(shown.toString(), shown.any { it.startsWith("wire time (s): ") && "(reads blocked 90%)" in it })
+        assertTrue(absent.toString(), absent.none { it.startsWith("wire") })
+    }
+
     private companion object {
         const val FIVE_MS = 5_000_000L
     }

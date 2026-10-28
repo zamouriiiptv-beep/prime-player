@@ -3,14 +3,17 @@ package com.castivio.data.networking
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okio.Buffer
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.io.ByteArrayOutputStream
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.zip.GZIPOutputStream
 
 /**
  * The instrument, checked before anything is measured with it.
@@ -184,5 +187,109 @@ class CallMetricsTest {
         val sum = CallMetrics.snapshot().sumOf { it.totalMs }
         val span = CallMetrics.spanMs()
         return if (span <= 0) 0.0 else sum / span
+    }
+
+    private fun gzip(text: String): ByteArray {
+        val out = ByteArrayOutputStream()
+        GZIPOutputStream(out).use { it.write(text.toByteArray()) }
+        return out.toByteArray()
+    }
+
+    private val json = "[" + "{\"stream_id\":\"1\",\"name\":\"Channel\"},".repeat(2_000) + "{}]"
+
+    /**
+     * **Is the provider compressing?** The listener sees the headers before the bridge unpacks the body and drops
+     * them, so the encoding, the declared length and the bytes that crossed the wire are the compressed ones --
+     * and the client is shown to have asked.
+     */
+    @Test
+    fun `a gzip answer is seen as one, with the size that crossed the wire`() {
+        val packed = gzip(json)
+        server.enqueue(MockResponse().setHeader("Content-Encoding", "gzip").setBody(Buffer().write(packed)))
+
+        get("/player_api.php?username=u&password=p&action=get_live_streams")
+
+        val tally = CallMetrics.snapshot().single()
+        val wire = tally.wireFigures()!!
+        assertEquals(listOf("gzip"), wire.encodings)
+        assertEquals(1, wire.encodedCalls)
+        assertEquals(listOf("gzip"), wire.asked)
+        assertEquals(listOf("http/1.1"), wire.protocols)
+        assertEquals(1, wire.declaredCalls)
+        assertEquals(packed.size.toLong(), wire.declaredBytes)
+        assertEquals("the byte count is the wire's, not the unpacked", packed.size.toLong(), tally.byteCount)
+        assertTrue("it is smaller than what it unpacks to", packed.size < json.length)
+    }
+
+    @Test
+    fun `an answer with no encoding is seen as plain`() {
+        server.enqueue(MockResponse().setBody(json))
+
+        get("/player_api.php?username=u&password=p&action=get_live_streams")
+
+        val wire = CallMetrics.snapshot().single().wireFigures()!!
+        assertTrue(wire.encodings.isEmpty())
+        assertEquals(0, wire.encodedCalls)
+        assertEquals(listOf("gzip"), wire.asked)
+        assertEquals(json.length.toLong(), wire.declaredBytes)
+    }
+
+    @Test
+    fun `a chunked answer declares no length`() {
+        server.enqueue(MockResponse().setChunkedBody(json, 4_096))
+
+        get("/player_api.php?username=u&password=p&action=get_live_streams")
+
+        val wire = CallMetrics.snapshot().single().wireFigures()!!
+        assertEquals(0, wire.declaredCalls)
+        assertEquals(0L, wire.declaredBytes)
+    }
+
+    /** Where the time goes: the provider thinking is the gap before the first byte, apart from the body. */
+    @Test
+    fun `the provider's thinking time is the first byte, apart from the transfer`() {
+        server.enqueue(
+            MockResponse()
+                .setHeadersDelay(200, TimeUnit.MILLISECONDS)
+                .setBody("[" + "0,".repeat(20_000) + "0]")
+                .throttleBody(8_192, 30, TimeUnit.MILLISECONDS),
+        )
+
+        get("/player_api.php?username=u&password=p&action=get_live_streams")
+
+        val wire = CallMetrics.snapshot().single().wireFigures()!!
+        assertTrue("first byte ${wire.firstByteMs} ms", wire.firstByteMs >= 190)
+        assertTrue("body ${wire.transferMs} ms", wire.transferMs >= 100)
+        assertTrue("the whole call is not less than its parts", CallMetrics.callTimeMs() >= wire.firstByteMs)
+    }
+
+    /** Only the answers are transport; a call that failed before any header has none to report. */
+    @Test
+    fun `a call that never got an answer has no wire figures`() {
+        // A port nothing listens on: refused at once, before there is a header to read.
+        runCatching {
+            client().newCall(
+                okhttp3.Request.Builder()
+                    .url("http://127.0.0.1:1/player_api.php?username=u&password=p&action=get_live_streams")
+                    .build(),
+            ).execute().close()
+        }
+
+        assertEquals(null, CallMetrics.snapshot().single().wireFigures())
+    }
+
+    /** The report is printed, so it holds what the wire lines hold and none of what they must not. */
+    @Test
+    fun `the printed report carries the wire lines and still no credential`() {
+        server.enqueue(MockResponse().setBody(json))
+        get("/player_api.php?username=hunter2&password=s3cret&action=get_live_streams")
+
+        val text = CallMetrics.report("audit").joinToString("\n")
+
+        assertTrue(text, "wire: http/1.1 · asked gzip" in text)
+        assertTrue(text, "wire time (s): " in text)
+        for (secret in listOf("hunter2", "s3cret", server.hostName, "player_api.php")) {
+            assertFalse("`$secret` reached the report:\n$text", text.contains(secret))
+        }
     }
 }

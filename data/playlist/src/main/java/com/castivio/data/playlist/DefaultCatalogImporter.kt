@@ -809,6 +809,7 @@ class DefaultCatalogImporter(
                         totalMs = tally.totalMs.toLong(),
                         waitMs = tally.waitMs.toLong(),
                         bytes = tally.byteCount,
+                        wire = tally.wireFigures(),
                     )
                 },
             )
