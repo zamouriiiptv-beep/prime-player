@@ -11,10 +11,14 @@ import com.castivio.domain.MovieDetailsRepository
 import com.castivio.domain.PlaylistSource
 import com.castivio.domain.RequestTimes
 import com.castivio.domain.SourceRepository
-import com.castivio.domain.asAccountSource
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import java.io.IOException
@@ -44,34 +48,43 @@ class DefaultMovieDetails(
     /** Films whose provider answered nothing every time it was asked, and when: left alone for [MISS_MEMORY_MS]. */
     private val misses = ConcurrentHashMap<String, Long>()
 
+    private val accounts = AccountLookup(sources, clock)
+
+    /** Where what a provider said is kept: behind the page that asked for it, never in front of it. */
+    private val keeping = CoroutineScope(SupervisorJob() + dispatcher)
+
     override suspend fun details(movie: Movie, onTimes: (RequestTimes) -> Unit): MovieDetails? {
         val sourceId = movie.sourceId ?: return null
         // The provider's own id: kept on the row by the API imports, and inside the stream's address for a
         // film read from a panel's playlist file, which keeps no id of its own.
         val providerRef = movie.providerRef ?: xtreamVodId(movie.streamUrl) ?: return null
-        // A portal's details are written with its list, so the cache is the whole answer for one.
-        cache.get(sourceId, providerRef)?.let { return it }
-
         val key = "$sourceId/$providerRef"
+        val lookupStarted = clock()
+        // The cache and the account are two reads of the catalogue, and the page waits on whichever is slower: made
+        // together. A portal's details are written with its list, so the cache is the whole answer for one.
+        val (kept, xtream) = coroutineScope {
+            val kept = async { cache.get(sourceId, providerRef) }
+            val account = async { accounts.of(sourceId) }
+            kept.await() to account.await()
+        }
+        kept?.let { return it }
         misses[key]?.let { if (clock() - it < MISS_MEMORY_MS) return null }
-
-        // The panel account the film is read through: the source itself for Xtream, and the account a
-        // playlist's link names for M3U -- whether its films were read through the panel or from the file.
-        val xtream = when (val source = sources.get(sourceId)?.asAccountSource()) {
-            is PlaylistSource.Xtream -> source
-            is PlaylistSource.M3u -> source.xtream
-            else -> null
-        } ?: return null
+        // The panel account the film is read through -- see [AccountLookup].
+        xtream ?: return null
+        val lookupMs = clock() - lookupStarted
 
         var tries = 0
         var answeredNothing = 0
         while (true) {
             tries++
             val reply = ask(xtream, providerRef)
-            onTimes(reply.times.copy(tries = tries))
+            onTimes(reply.times.copy(tries = tries, lookupMs = lookupMs))
+            if (reply.definitive && reply.refusedAccount) accounts.forget(sourceId)
             if (reply.details != null) {
-                cache.put(sourceId, providerRef, reply.details, clock())
-                return reply.details
+                // The page has its details now; the cache keeps them behind it.
+                val details = reply.details
+                keeping.launch { runCatching { cache.put(sourceId, providerRef, details, clock()) } }
+                return details
             }
             if (reply.answered) answeredNothing++
             // A provider that said no in so many words is not asked again, and nor is one that is out of tries.
@@ -89,6 +102,8 @@ class DefaultMovieDetails(
         val times: RequestTimes,
         /** The provider refused in so many words, and asking again would only hear it again. */
         val definitive: Boolean = false,
+        /** What it refused was the account itself, so the account is read again before it is used again. */
+        val refusedAccount: Boolean = false,
     )
 
     private suspend fun ask(xtream: PlaylistSource.Xtream, providerRef: String): Reply = withContext(dispatcher) {
@@ -109,7 +124,13 @@ class DefaultMovieDetails(
         } catch (e: HttpStatusException) {
             // The provider answered, with a refusal. Only a busy or timed-out one is worth asking again.
             val busy = e.statusCode == 408 || e.statusCode == 429 || e.statusCode in 500..599
-            Reply(null, answered = !busy, times = RequestTimes(clock() - askStarted, 0), definitive = !busy)
+            Reply(
+                null,
+                answered = !busy,
+                times = RequestTimes(clock() - askStarted, 0),
+                definitive = !busy,
+                refusedAccount = e.statusCode == 401 || e.statusCode == 403,
+            )
         } catch (e: IOException) {
             Reply(null, answered = false, times = RequestTimes(clock() - askStarted, 0))
         }

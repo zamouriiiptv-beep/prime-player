@@ -1119,7 +1119,7 @@ internal fun FetchNotice(
     onRetry: () -> Unit,
 ) {
     when (fetch) {
-        is SectionLoad.Queued, is SectionLoad.Loading -> if (!firstLoad) RefreshingNotice(m)
+        is SectionLoad.Queued, is SectionLoad.Loading -> if (!firstLoad) RefreshingNotice(m, fetch as? SectionLoad.Loading)
         is SectionLoad.Failed -> FailedNotice(fetch, m, onRetry)
         else -> Unit
     }
@@ -1127,11 +1127,15 @@ internal fun FetchNotice(
 
 /** The refresh behind the rows: one word in the working amber, and nothing to press. */
 @Composable
-private fun RefreshingNotice(m: ChannelsMetrics) {
+private fun RefreshingNotice(m: ChannelsMetrics, loading: SectionLoad.Loading?) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(m.previewRadius)
+    // A debuggable APK says what has arrived beside the word -- see `refreshFigures`.
+    val context = LocalContext.current
+    val instrumented = remember(context) { PerformanceLog.isVisibleIn(context) }
+    val word = stringResource(R.string.home_load_refreshing)
     Text(
-        text = stringResource(R.string.home_load_refreshing),
+        text = loading?.takeIf { instrumented }?.let { "$word  ${refreshFigures(it)}" } ?: word,
         style = castivioBodyStyle(m.frame.fsBody),
         color = colors.warning,
         maxLines = 1,
@@ -1155,6 +1159,10 @@ private fun FailedNotice(
 ) {
     val colors = CastivioTheme.colors
     val shape = RoundedCornerShape(m.previewRadius)
+    // A debuggable APK prints the failure's figures in place of the sentence -- see `fetchSummary`.
+    val context = LocalContext.current
+    val instrumented = remember(context) { PerformanceLog.isVisibleIn(context) }
+    val figures = fetch.diagnosis?.takeIf { instrumented }?.let(::fetchSummary)
 
     Row(
         Modifier
@@ -1171,10 +1179,10 @@ private fun FailedNotice(
         // The cause, not a blanket "did not answer": a refused playlist and an
         // unreachable one are different things to do next. See `fetchFailureDetail`.
         Text(
-            text = stringResource(fetch.error.fetchFailureDetail()),
+            text = figures ?: stringResource(fetch.error.fetchFailureDetail()),
             style = castivioBodyStyle(m.frame.fsBody),
             color = colors.onBackground,
-            maxLines = 1,
+            maxLines = if (figures != null) 3 else 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )

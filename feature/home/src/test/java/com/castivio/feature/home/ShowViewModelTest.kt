@@ -5,6 +5,7 @@ import com.castivio.domain.CatalogPager
 import com.castivio.domain.CatalogQuery
 import com.castivio.domain.Episode
 import com.castivio.domain.EpisodesLoad
+import com.castivio.domain.EpisodesReady
 import com.castivio.domain.FavoritesRepository
 import com.castivio.domain.InProgressItem
 import com.castivio.domain.MediaItem
@@ -110,7 +111,7 @@ class ShowViewModelTest {
     private class FakeEpisodes : SeriesEpisodes {
         val asked = mutableListOf<String>()
         var answer = CompletableDeferred<EpisodesLoad>()
-        override suspend fun load(seriesId: String): EpisodesLoad {
+        override suspend fun load(seriesId: String, onReady: (EpisodesReady) -> Unit): EpisodesLoad {
             asked += seriesId
             return answer.await()
         }
@@ -119,7 +120,7 @@ class ShowViewModelTest {
     /** Answers one after another as it is asked, and the last one again after that. */
     private class SequencedEpisodes(private vararg val answers: EpisodesLoad) : SeriesEpisodes {
         val asked = mutableListOf<String>()
-        override suspend fun load(seriesId: String): EpisodesLoad {
+        override suspend fun load(seriesId: String, onReady: (EpisodesReady) -> Unit): EpisodesLoad {
             asked += seriesId
             return answers[minOf(asked.size, answers.size) - 1]
         }
@@ -510,16 +511,89 @@ class ShowViewModelTest {
         assertEquals("show-1", model.state.value.seriesId)
         assertEquals(2, model.state.value.seasons.size)
 
-        // The next show's seasons have not been read yet: what the model holds is still the first show's, and says so.
+        // The next show's seasons have not been read from the catalogue yet: the state is already of that show, and has
+        // nothing of the first show's in it.
         val next = kotlinx.coroutines.flow.MutableSharedFlow<List<Season>>()
         pager.byShow["show-2"] = next
         model.open("show-2")
         advanceUntilIdle()
-        assertEquals("show-1", model.state.value.seriesId)
+        assertEquals("show-2", model.state.value.seriesId)
+        assertEquals(emptyList<Season>(), model.state.value.seasons)
 
         next.emit(emptyList())
         advanceUntilIdle()
         assertEquals("show-2", model.state.value.seriesId)
         assertEquals(emptyList<Season>(), model.state.value.seasons)
+    }
+
+    // ----------------------------------------------- what the provider sent is drawn when it is read
+
+    /** Tells what it read at once, and then takes as long as the test lets it -- as a catalogue that is slow to keep it. */
+    private class ReadThenWait(private val sent: EpisodesReady) : SeriesEpisodes {
+        val finish = CompletableDeferred<EpisodesLoad>()
+        override suspend fun load(seriesId: String, onReady: (EpisodesReady) -> Unit): EpisodesLoad {
+            onReady(sent)
+            return finish.await()
+        }
+    }
+
+    @Test
+    fun `the episodes the provider sent are drawn as soon as they are read, before the catalogue has kept them`() = runTest(dispatcher) {
+        val sent = EpisodesReady(
+            seasons = held,
+            details = SeriesDetails(plot = "A harbour town.", releaseYear = 2019),
+            plots = mapOf("s1e1" to "A storm closes the port."),
+        )
+        val loader = ReadThenWait(sent)
+        // The catalogue holds nothing of the show, and says so the whole time.
+        val model = model(FakePager(emptyList()), loader)
+
+        model.open("show-1")
+        advanceUntilIdle()
+
+        // The load has not returned, and the page has the show.
+        assertEquals(ShowLoad.Ready, model.state.value.load)
+        assertEquals(2, model.state.value.seasons.size)
+        assertEquals("A harbour town.", model.state.value.details?.plot)
+        assertEquals("A storm closes the port.", model.state.value.plots["s1e1"])
+        assertEquals("s1e1", model.state.value.target?.episode?.id)
+    }
+
+    @Test
+    fun `what the catalogue holds takes the place of what was just sent`() = runTest(dispatcher) {
+        val pager = FakePager(emptyList())
+        val loader = ReadThenWait(EpisodesReady(held, null, emptyMap()))
+        val model = model(pager, loader)
+        model.open("show-1")
+        advanceUntilIdle()
+
+        val newer = listOf(Season(1, listOf(episode(1, 1), episode(1, 2), episode(1, 3))))
+        pager.seasons.value = newer
+        loader.finish.complete(EpisodesLoad.Loaded(3))
+        advanceUntilIdle()
+
+        assertEquals(3, model.state.value.seasons.single().episodes.size)
+    }
+
+    @Test
+    fun `what was sent for one show is not drawn on the next`() = runTest(dispatcher) {
+        // The provider sends for the first show only, and says nothing for the second.
+        val loader = object : SeriesEpisodes {
+            override suspend fun load(seriesId: String, onReady: (EpisodesReady) -> Unit): EpisodesLoad {
+                if (seriesId == "show-1") onReady(EpisodesReady(held, null, emptyMap()))
+                return CompletableDeferred<EpisodesLoad>().await()
+            }
+        }
+        val model = model(FakePager(emptyList()), loader)
+        model.open("show-1")
+        advanceUntilIdle()
+        assertEquals(2, model.state.value.seasons.size)
+
+        model.open("show-2")
+        advanceUntilIdle()
+
+        assertEquals("show-2", model.state.value.seriesId)
+        assertEquals(emptyList<Season>(), model.state.value.seasons)
+        assertNull(model.state.value.details)
     }
 }

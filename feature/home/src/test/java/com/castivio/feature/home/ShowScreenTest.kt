@@ -13,6 +13,7 @@ import com.castivio.domain.CatalogPager
 import com.castivio.domain.CatalogQuery
 import com.castivio.domain.Episode
 import com.castivio.domain.EpisodesLoad
+import com.castivio.domain.EpisodesReady
 import com.castivio.domain.FavoritesRepository
 import com.castivio.domain.InProgressItem
 import com.castivio.domain.MediaItem
@@ -91,7 +92,7 @@ class ShowScreenTest {
 
     /** Answers at once and has nothing to add: the page has its episodes, as it would after the provider answered. */
     private object Answered : SeriesEpisodes {
-        override suspend fun load(seriesId: String): EpisodesLoad = EpisodesLoad.Loaded(3)
+        override suspend fun load(seriesId: String, onReady: (EpisodesReady) -> Unit): EpisodesLoad = EpisodesLoad.Loaded(3)
     }
 
     private object NoProgress : ProgressRepository {

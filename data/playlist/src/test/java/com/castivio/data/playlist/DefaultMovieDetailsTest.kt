@@ -140,21 +140,62 @@ class DefaultMovieDetailsTest {
      */
     @Test
     fun `a failed asking is not remembered as having nothing`() = runTest {
+        val account = account()
+        val port = server.port
         server.shutdown()
-        val sources = OneSource(account())
-        val repository = DefaultMovieDetails(cache, sources, OkHttpClient(), Dispatchers.Unconfined) { now }
+        val repository = DefaultMovieDetails(cache, OneSource(account), OkHttpClient(), Dispatchers.Unconfined) { now }
         assertNull(repository.details(dune))
 
-        // The same repository, and a provider that can now be reached: it is asked, not excused by the failure.
-        val back = MockWebServer().also { it.start() }
+        // The same repository, and the same provider, back up: it is asked, not excused by the failure.
+        val back = MockWebServer().also { it.start(port) }
         try {
             back.enqueue(full())
-            sources.source = account().copy(url = back.url("/").toString().trimEnd('/'))
             assertEquals("A storm closes the port.", repository.details(dune)?.plot)
             assertEquals(1, back.requestCount)
         } finally {
             back.shutdown()
         }
+    }
+
+    /** The page has the details when the provider has answered; the cache keeps them behind it. */
+    @Test
+    fun `the details are handed back without waiting for the cache to keep them`() = runTest {
+        server.enqueue(full())
+        val slow = object : MovieDetailsCache {
+            override suspend fun get(sourceId: String, providerRef: String): MovieDetails? = null
+            override suspend fun put(sourceId: String, providerRef: String, details: MovieDetails, now: Long) {
+                kotlinx.coroutines.awaitCancellation()
+            }
+        }
+        val repository = DefaultMovieDetails(slow, OneSource(account()), OkHttpClient(), Dispatchers.Unconfined) { now }
+
+        val details = repository.details(dune)
+
+        assertEquals("A storm closes the port.", details?.plot)
+    }
+
+    @Test
+    fun `the account is read once for the subscription, with the cache, and not again for the next film`() = runTest {
+        server.enqueue(full())
+        server.enqueue(full())
+        val source = OneSource(account())
+        val repository = DefaultMovieDetails(cache, source, OkHttpClient(), Dispatchers.Unconfined) { now }
+
+        repository.details(dune)
+        repository.details(dune.copy(id = "m2", providerRef = "78", streamUrl = "http://panel/movie/u/p/78.mkv"))
+
+        assertEquals(1, source.gets)
+        assertEquals(2, server.requestCount)
+    }
+
+    @Test
+    fun `what the lookups cost is told with the asking`() = runTest {
+        server.enqueue(full())
+        val told = mutableListOf<RequestTimes>()
+
+        repository().details(dune) { told += it }
+
+        assertTrue(told.single().lookupMs >= 0)
     }
 
     @Test
@@ -176,11 +217,15 @@ class DefaultMovieDetailsTest {
     }
 
     private class OneSource(var source: ProviderSource?) : SourceRepository {
+        var gets = 0
         override suspend fun register(source: PlaylistSource, label: String?): ProviderSource = error("not asked")
         override fun sources(): Flow<List<ProviderSource>> = emptyFlow()
         override fun active(): Flow<ProviderSource?> = emptyFlow()
         override suspend fun activeNow(): ProviderSource? = source
-        override suspend fun get(id: String): ProviderSource? = source
+        override suspend fun get(id: String): ProviderSource? {
+            gets++
+            return source
+        }
         override suspend fun save(source: ProviderSource) = Unit
         override suspend fun setActive(id: String) = Unit
         override suspend fun recordCatalogueImport(id: String, sync: SyncState) = Unit

@@ -225,6 +225,41 @@ class XtreamImportEngineTest {
         assertEquals(1, cost.tries)
     }
 
+    /** What was read is told before it is written, and is the rows that are written. */
+    @Test
+    fun `the episodes are told when they have been read, before the first is written`() {
+        val writer = RecordingWriter()
+        val api = FakeApi(
+            seriesInfo = mapOf("551" to listOf(Episode("9001", "Pilot", 1, 1), Episode("9002", "Next", 1, 2))),
+        )
+        var writtenWhenTold = -1
+        var told = emptyList<CatalogItem>()
+
+        XtreamImportEngine(writer).importEpisodes(
+            "src", api, "551", "Chernobyl", null,
+            onParsed = { rows, _, _ ->
+                told = rows
+                writtenWhenTold = writer.items.size
+            },
+        )
+
+        assertEquals(0, writtenWhenTold)
+        assertEquals(listOf("Pilot", "Next"), told.map { it.title })
+        assertEquals(writer.items.map { it.id }, told.map { it.id })
+    }
+
+    @Test
+    fun `a reply with no episode tells nothing`() {
+        var told = false
+
+        XtreamImportEngine(RecordingWriter()).importEpisodes(
+            "src", FakeApi(seriesInfo = mapOf("551" to emptyList())), "551", "Chernobyl", null,
+            onParsed = { _, _, _ -> told = true },
+        )
+
+        assertEquals(false, told)
+    }
+
     @Test
     fun `an episode carries the same series id as its shell`() {
         val shellWriter = RecordingWriter()

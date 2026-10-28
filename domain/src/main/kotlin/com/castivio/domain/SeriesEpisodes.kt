@@ -10,9 +10,22 @@ package com.castivio.domain
  */
 interface SeriesEpisodes {
 
-    /** Asks the show's provider for its episodes and stores them. Never throws for a provider that cannot answer. */
-    suspend fun load(seriesId: String): EpisodesLoad
+    /**
+     * Asks the show's provider for its episodes and stores them. Never throws for a provider that cannot answer.
+     *
+     * [onReady] is told what the provider sent **as soon as it has been read** -- before any of it is written -- so the
+     * page can draw it without waiting for the catalogue to keep it and to be read again. Not called for an empty answer.
+     */
+    suspend fun load(seriesId: String, onReady: (EpisodesReady) -> Unit = {}): EpisodesLoad
 }
+
+/** What a provider sent of a show, read and not yet kept: its episodes by season, what it says of the show and of each. */
+data class EpisodesReady(
+    val seasons: List<Season>,
+    val details: SeriesDetails?,
+    /** The plot of each episode that has one, by the episode's id. */
+    val plots: Map<String, String>,
+)
 
 /** How asking a provider for a show's episodes ended. */
 sealed interface EpisodesLoad {

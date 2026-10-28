@@ -6,6 +6,7 @@ import com.castivio.domain.CatalogPager
 import com.castivio.domain.CatalogQuery
 import com.castivio.domain.CatalogWriter
 import com.castivio.domain.EpisodesLoad
+import com.castivio.domain.EpisodesReady
 import com.castivio.domain.ImportMode
 import com.castivio.domain.ImportSummary
 import com.castivio.domain.InProgressItem
@@ -108,6 +109,64 @@ class DefaultSeriesEpisodesTest {
         assertTrue(times.askMs >= 0 && times.readMs >= 0 && times.saveMs >= 0)
     }
 
+    /**
+     * The page draws what was read, and the catalogue keeps it behind the page: nothing is written when it is told, and what
+     * it is told is what is written.
+     */
+    @Test
+    fun `what the provider sent is handed over as soon as it is read, before anything is written`() = runBlocking {
+        server.enqueue(MockResponse().setBody(SERIES_WITH_DETAILS))
+        var writtenWhenTold = -1
+        var ready: EpisodesReady? = null
+
+        loader().load("show-1") {
+            ready = it
+            writtenWhenTold = writer.items.size
+        }
+
+        assertEquals("nothing was written yet", 0, writtenWhenTold)
+        val sent = ready!!
+        assertEquals(listOf(1), sent.seasons.map { it.number })
+        assertEquals(listOf("The Tide Table", "Low Water"), sent.seasons.single().episodes.map { it.title })
+        assertEquals(listOf(1, 2), sent.seasons.single().episodes.map { it.episodeNumber })
+        assertEquals(46, sent.seasons.single().episodes.first().durationMinutes)
+        assertEquals("An emotional thrill ride.", sent.details?.plot)
+        assertEquals(listOf("A storm closes the harbour."), sent.plots.values.toList())
+        // The ids are the rows' own: what the catalogue gives back is the same episodes.
+        assertEquals(writer.items.map { it.id }, sent.seasons.single().episodes.map { it.id })
+    }
+
+    @Test
+    fun `an empty reply hands nothing over`() = runBlocking {
+        server.enqueue(MockResponse().setBody("""{"info":[],"episodes":[]}"""))
+        var told = false
+
+        loader().load("show-1") { told = true }
+
+        assertEquals(false, told)
+    }
+
+    /** The account is read once for the subscription, and not again for each show opened. */
+    @Test
+    fun `the account of a subscription is not read again for the next show`() = runBlocking {
+        repeat(2) { server.enqueue(MockResponse().setBody(SERIES_INFO)) }
+        val source = OneSource(account())
+        val loader = DefaultSeriesEpisodes(
+            pager = ShellPager(SHELL),
+            sources = source,
+            client = OkHttpClient(),
+            writers = { writer },
+            details = details,
+            dispatcher = Dispatchers.Unconfined,
+        )
+
+        loader.load("show-1")
+        loader.load("show-2")
+
+        assertEquals(1, source.gets)
+        assertEquals(2, server.requestCount)
+    }
+
     @Test
     fun `a show with no row of its own has nobody to ask`() = runBlocking {
         assertEquals(EpisodesLoad.NoProvider, loader(shell = null).load("show-1"))
@@ -200,11 +259,15 @@ class DefaultSeriesEpisodesTest {
     }
 
     private class OneSource(private val source: ProviderSource?) : SourceRepository {
+        var gets = 0
         override suspend fun register(source: PlaylistSource, label: String?): ProviderSource = error("not asked")
         override fun sources(): Flow<List<ProviderSource>> = emptyFlow()
         override fun active(): Flow<ProviderSource?> = emptyFlow()
         override suspend fun activeNow(): ProviderSource? = source
-        override suspend fun get(id: String): ProviderSource? = source
+        override suspend fun get(id: String): ProviderSource? {
+            gets++
+            return source
+        }
         override suspend fun save(source: ProviderSource) = Unit
         override suspend fun setActive(id: String) = Unit
         override suspend fun recordCatalogueImport(id: String, sync: SyncState) = Unit

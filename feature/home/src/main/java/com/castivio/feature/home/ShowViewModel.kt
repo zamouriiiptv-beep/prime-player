@@ -6,6 +6,7 @@ import com.castivio.domain.CatalogPager
 import com.castivio.domain.ContinueTarget
 import com.castivio.domain.EpisodeMark
 import com.castivio.domain.EpisodesLoad
+import com.castivio.domain.EpisodesReady
 import com.castivio.domain.FavoritesRepository
 import com.castivio.domain.ProgressRepository
 import com.castivio.domain.RequestTimes
@@ -32,6 +33,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -126,11 +128,30 @@ class ShowViewModel @Inject constructor(
     /** A value read for one show, so that what was read for the show before it is never taken for this one's. */
     private data class Of<T>(val seriesId: String, val value: T)
 
-    private val seasons = shown.filterNotNull().flatMapLatest { id -> pager.seasons(id).map { Of(id, it) } }
+    /**
+     * What the provider sent of the show the moment it was read -- before the catalogue had kept it -- and for which show.
+     * The page draws it until the catalogue has the episodes to give back, so it does not wait for them to be written
+     * and read again.
+     */
+    private val fresh = MutableStateFlow<Of<EpisodesReady>?>(null)
+
+    /** When the page was opened, and when it first had something to draw, in nanoseconds on the monotonic clock. */
+    @Volatile private var openedAt = 0L
+    @Volatile private var shownAfterMs = 0L
+
+    // Each read starts with nothing for the show, so the page's state is of the show from the moment it is opened and not
+    // from the moment the catalogue first answers -- which is what a page waiting on what the provider sent needs.
+    private val seasons = shown.filterNotNull().flatMapLatest { id ->
+        pager.seasons(id).map { Of(id, it) }.onStart { emit(Of(id, emptyList())) }
+    }
 
     /** What the provider said of the show, and of its episodes: read as it is written, after the page is up. */
-    private val said = shown.filterNotNull().flatMapLatest { id -> details.details(id).map { Of(id, it) } }
-    private val episodePlots = shown.filterNotNull().flatMapLatest { id -> details.episodePlots(id).map { Of(id, it) } }
+    private val said = shown.filterNotNull().flatMapLatest { id ->
+        details.details(id).map { Of(id, it) }.onStart { emit(Of(id, null)) }
+    }
+    private val episodePlots = shown.filterNotNull().flatMapLatest { id ->
+        details.episodePlots(id).map { Of(id, it) }.onStart { emit(Of(id, emptyMap())) }
+    }
 
     /** The show's own row, which a favourite of the show is kept under; null until it has been looked up. */
     private val rowId = MutableStateFlow<String?>(null)
@@ -141,15 +162,19 @@ class ShowViewModel @Inject constructor(
     /** Why the last asking failed; null while it has not, and again once another asking is begun. */
     private val failure = MutableStateFlow<String?>(null)
 
-    private val content = combine(seasons, load, rereads, said, episodePlots) { held, loadState, _, info, plots ->
+    private val read = combine(seasons, said, episodePlots, fresh) { held, info, plots, early ->
+        val sent = early?.takeIf { it.seriesId == held.seriesId }?.value
         Held(
             seriesId = held.seriesId,
-            seasons = held.value,
-            load = loadState,
-            details = info.takeIf { it.seriesId == held.seriesId }?.value,
-            plots = plots.takeIf { it.seriesId == held.seriesId }?.value.orEmpty(),
+            // What the catalogue holds is the page's; until it holds the episodes, what the provider just sent is.
+            seasons = held.value.ifEmpty { sent?.seasons.orEmpty() },
+            load = ShowLoad.Loading,
+            details = info.takeIf { it.seriesId == held.seriesId }?.value ?: sent?.details,
+            plots = plots.takeIf { it.seriesId == held.seriesId }?.value.orEmpty().ifEmpty { sent?.plots.orEmpty() },
         )
     }
+
+    private val content = combine(read, load, rereads) { held, loadState, _ -> held.copy(load = loadState) }
         .mapLatest { held ->
             val positions = progress.progressOf(held.seasons.flatMap { it.episodes }.map { it.id })
             ShowState(
@@ -200,6 +225,9 @@ class ShowViewModel @Inject constructor(
     fun open(seriesId: String) {
         if (shown.value == seriesId && !needsAsking) return
         fetching?.cancel()
+        openedAt = System.nanoTime()
+        shownAfterMs = 0L
+        fresh.value = null
         shown.value = seriesId
         load.value = ShowLoad.Loading
         preparing.value = false
@@ -283,7 +311,16 @@ class ShowViewModel @Inject constructor(
             while (true) {
                 tries++
                 val answer = try {
-                    loader.load(seriesId)
+                    loader.load(seriesId) { sent ->
+                        // Read, and not yet kept: the page draws it now, and the figures say when that was.
+                        if (shown.value == seriesId) {
+                            if (shownAfterMs == 0L) {
+                                shownAfterMs = elapsedMs()
+                                times.value = (times.value ?: RequestTimes(0, 0)).copy(shownMs = shownAfterMs)
+                            }
+                            fresh.value = Of(seriesId, sent)
+                        }
+                    }
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
@@ -291,7 +328,7 @@ class ShowViewModel @Inject constructor(
                 }
                 if (shown.value != seriesId) return@launch
                 val loaded = answer as? EpisodesLoad.Loaded
-                loaded?.times?.let { times.value = it.copy(tries = tries) }
+                loaded?.times?.let { times.value = it.copy(tries = tries, shownMs = shownAfterMs, totalMs = elapsedMs()) }
                 failure.value = (answer as? EpisodesLoad.Failed)?.reason
                 val empty = loaded != null && loaded.episodes == 0 && !holdsEpisodes(seriesId)
                 if (empty && tries <= EMPTY_RETRY_DELAYS_MS.size) {
@@ -308,6 +345,9 @@ class ShowViewModel @Inject constructor(
         }
     }
 
+    /** Milliseconds since the page was opened. */
+    private fun elapsedMs(): Long = (System.nanoTime() - openedAt) / NANOS_PER_MS
+
     /** Whether the catalogue already holds episodes of the show: an empty answer behind them costs the page nothing. */
     private suspend fun holdsEpisodes(seriesId: String): Boolean = try {
         pager.seasons(seriesId).first().isNotEmpty()
@@ -318,6 +358,8 @@ class ShowViewModel @Inject constructor(
     }
 
     private companion object {
+        const val NANOS_PER_MS = 1_000_000L
+
         /** Long enough that turning the screen does not ask again. */
         const val SUBSCRIPTION_GRACE_MS = 5_000L
 

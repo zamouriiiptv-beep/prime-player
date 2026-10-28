@@ -3,6 +3,7 @@ package com.castivio.feature.home
 import com.castivio.domain.FetchDiagnosis
 import com.castivio.domain.FetchRoute
 import com.castivio.domain.FetchStage
+import com.castivio.domain.SectionLoad
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -144,5 +145,43 @@ class FetchReadoutTest {
                 readout.lines().map { it.substringBefore(':') },
             )
         }
+    }
+
+    /** The notice over a board that kept its rows has one line to say it in: every figure, in the same order. */
+    @Test
+    fun `the summary is the same figures on one line`() {
+        val summary = fetchSummary(
+            FetchDiagnosis(
+                stage = FetchStage.READ,
+                exception = "EOFException",
+                bytesReceived = 48_201_334,
+                itemsRead = 90_000,
+                itemsSaved = 0,
+                route = FetchRoute.XTREAM,
+            ),
+        )
+
+        assertEquals("READ · HTTP - · EOFException · 48,201,334 bytes · 90,000 read / 0 saved · XTREAM", summary)
+    }
+
+    @Test
+    fun `a summary has no figure that does not exist, only a dash`() {
+        val summary = fetchSummary(FetchDiagnosis(FetchStage.CONNECT))
+
+        assertEquals("CONNECT · HTTP - · - · - · 0 read / 0 saved · -", summary)
+    }
+
+    @Test
+    fun `a refresh that is running says what has arrived`() {
+        val figures = refreshFigures(SectionLoad.Loading(items = 41_203, groups = 57, groupsDone = 12, bytes = 34_707_456))
+
+        assertEquals("41,203 rows · 12/57 categories · 33.1 MB", figures)
+    }
+
+    @Test
+    fun `a refresh in one reply has no categories to count yet, and nothing arrived is a dash`() {
+        val figures = refreshFigures(SectionLoad.Loading(items = 0, groups = 57, groupsDone = null, bytes = 0))
+
+        assertEquals("0 rows · ?/57 categories · -", figures)
     }
 }

@@ -818,10 +818,18 @@ class XtreamImportEngine(
         onDetails: (XtreamSeriesInfo?, Map<String, String>) -> Unit = { _, _ -> },
         /** Told what the request cost, once it is kept: where the wait for a show's page went. */
         onTimes: (RequestTimes) -> Unit = {},
+        /**
+         * Told the episodes, and what the provider said of the show and of each, **as soon as the reply has been read and
+         * before any of it is written**: a page can draw them from here without waiting for the catalogue to keep them and
+         * to be read again. Not called for a reply with no episode. The rows are the ones that will be written.
+         */
+        onParsed: (List<CatalogItem>, XtreamSeriesInfo?, Map<String, String>) -> Unit = { _, _, _ -> },
     ): Int {
         val started = clock()
         val seriesId = StableIds.seriesByProviderId(sourceId, providerSeriesId)
         val batch = ArrayList<CatalogItem>(64)
+        // Every episode of the reply, for [onParsed]: a show has hundreds at most, so this is small beside a catalogue.
+        val parsed = ArrayList<CatalogItem>(64)
         var order = 0
         var written = 0
         // What the provider says of the show, and the plot of each episode by the row it was written as.
@@ -843,32 +851,33 @@ class XtreamImportEngine(
                 XtreamParser.parseSeriesInfo(reader, onInfo = { info = it }) { episode ->
                     val rowId = StableIds.item(sourceId, "episode:${episode.episodeId}")
                     episode.plot?.let { plots[rowId] = it }
-                    batch.add(
-                        CatalogItem(
-                            id = rowId,
-                            sourceId = sourceId,
-                            kind = MediaKind.SERIES,
-                            title = episode.title,
-                            streamUrl = api.streamUrl(
-                                MediaKind.SERIES,
-                                episode.episodeId,
-                                episode.containerExtension,
-                            ),
-                            artworkUrl = episode.coverUrl,
-                            groupId = groupId,
-                            providerRef = episode.episodeId,
-                            providerOrder = order++,
-                            durationSeconds = episode.durationSeconds,
-                            seriesId = seriesId,
-                            seriesTitle = seriesTitle,
-                            seasonNumber = episode.seasonNumber,
-                            episodeNumber = episode.episodeNumber,
+                    val row = CatalogItem(
+                        id = rowId,
+                        sourceId = sourceId,
+                        kind = MediaKind.SERIES,
+                        title = episode.title,
+                        streamUrl = api.streamUrl(
+                            MediaKind.SERIES,
+                            episode.episodeId,
+                            episode.containerExtension,
                         ),
+                        artworkUrl = episode.coverUrl,
+                        groupId = groupId,
+                        providerRef = episode.episodeId,
+                        providerOrder = order++,
+                        durationSeconds = episode.durationSeconds,
+                        seriesId = seriesId,
+                        seriesTitle = seriesTitle,
+                        seasonNumber = episode.seasonNumber,
+                        episodeNumber = episode.episodeNumber,
                     )
+                    parsed.add(row)
+                    batch.add(row)
                     if (batch.size >= batchSize) written += flush(batch)
                 }
             }
             val readNanos = nanoClock() - readStarted
+            if (parsed.isNotEmpty()) onParsed(parsed, info, plots)
             val saveStarted = nanoClock()
             written += flush(batch)
             writer.finish(

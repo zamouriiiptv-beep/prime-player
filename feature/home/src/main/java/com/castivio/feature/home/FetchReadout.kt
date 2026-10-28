@@ -2,6 +2,7 @@ package com.castivio.feature.home
 
 import com.castivio.domain.FetchDiagnosis
 import com.castivio.domain.FetchStage
+import com.castivio.domain.SectionLoad
 import java.util.Locale
 
 /**
@@ -46,6 +47,35 @@ internal fun fetchReadout(diagnosis: FetchDiagnosis): String = listOf(
     "Route: ${route(diagnosis)}",
 ).joinToString(separator = "\n")
 
+/**
+ * The same figures on one line, for the notice over a board that still has its rows: `READ · HTTP - · EOFException · 48,201,334 bytes · XTREAM`.
+ *
+ * A debuggable build prints it in place of the sentence, for the reason [fetchReadout] exists: a refresh that failed over
+ * rows a viewer can see says "could not reach your provider" and cannot say which request, how far it got, or with what.
+ */
+internal fun fetchSummary(diagnosis: FetchDiagnosis): String = listOf(
+    diagnosis.stage.name,
+    "HTTP ${diagnosis.httpStatus ?: NONE}",
+    diagnosis.exception ?: NONE,
+    diagnosis.bytesReceived?.let { "${count(it)} bytes" } ?: NONE,
+    "${count(diagnosis.itemsRead.toLong())} read / ${count(diagnosis.itemsSaved.toLong())} saved",
+    route(diagnosis),
+).joinToString(separator = " · ")
+
+/**
+ * A refresh that is still running, as one line: `41,203 rows · 12/57 categories · 33.1 MB`.
+ *
+ * A debuggable build prints it beside the word the notice says, because "refreshing" does not say whether anything is
+ * arriving: a refresh that is moving and a refresh that is stuck read the same until the figures are on the screen. A
+ * category count of `?` is a provider asked for the whole section in one reply, which has no categories to count until it
+ * has ended.
+ */
+internal fun refreshFigures(loading: SectionLoad.Loading): String = listOf(
+    "${count(loading.items.toLong())} rows",
+    "${loading.groupsDone ?: "?"}/${loading.groups} categories",
+    if (loading.bytes > 0) String.format(Locale.ROOT, "%.1f MB", loading.bytes / BYTES_PER_MB) else NONE,
+).joinToString(separator = " · ")
+
 /** `XTREAM`, `M3U`, or `M3U after XTREAM ANSWER · HTTP 403 · HttpStatusException`. */
 private fun route(diagnosis: FetchDiagnosis): String {
     val taken = diagnosis.route?.name ?: return NONE
@@ -72,3 +102,5 @@ private val FetchStage.meaning: String
 private fun count(value: Long): String = String.format(Locale.ROOT, "%,d", value)
 
 private const val NONE = "-"
+
+private const val BYTES_PER_MB = 1_048_576.0
