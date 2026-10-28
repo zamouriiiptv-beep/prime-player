@@ -1,5 +1,6 @@
 package com.castivio.feature.home
 
+import com.castivio.core.platform.LoadPress
 import com.castivio.domain.MediaKind
 import com.castivio.domain.SectionLoad
 import com.castivio.domain.SectionRun
@@ -169,6 +170,23 @@ internal fun pressOf(onDevice: Boolean, marked: Boolean, arriving: Boolean): Pre
     onDevice -> if (!marked && !arriving) Press.OpenAndFetch else Press.Open
     arriving -> Press.Hint
     else -> Press.Fetch
+}
+
+/**
+ * What a press means to the development measurement -- see `LoadTrace` -- or null when it starts nothing to time.
+ *
+ * A press on a section whose first load is already arriving, or one that only says "on its way", is the same wait
+ * as the press before it, and its clock is that press's. Pure, so it is read without a device.
+ */
+internal fun loadPressOf(kind: MediaKind, press: Press, run: SectionRun?): LoadPress? {
+    val load = run?.load
+    val arriving = load is SectionLoad.Queued || load is SectionLoad.Loading
+    return when (press) {
+        Press.Fetch -> if (opensWithFirstCategory(kind)) LoadPress.FIRST_OPENS else LoadPress.FIRST_STAYS
+        Press.OpenAndFetch -> LoadPress.OPEN_AND_REFRESH
+        Press.Open -> if (arriving) null else LoadPress.OPEN
+        Press.Hint, Press.Await -> null
+    }
 }
 
 /** What Home does about the section it is waiting to open, at the queue's latest answer. */

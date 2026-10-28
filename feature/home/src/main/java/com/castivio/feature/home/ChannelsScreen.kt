@@ -130,6 +130,7 @@ import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.Radius
 import com.castivio.core.design.theme.Sizing
 import com.castivio.core.platform.CastivioTrace
+import com.castivio.core.platform.LoadTrace
 import com.castivio.core.platform.PerfSection
 import com.castivio.core.platform.PerformanceLog
 import com.castivio.domain.CatalogQuery
@@ -247,6 +248,8 @@ fun ChannelsScreen(
     hidingModel: ChannelHidingViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(Unit) { model.show(CatalogSection.Live) }
+    // Temporary, for development: the screen is on, counted from the press on Home -- see `LoadTrace`.
+    LaunchedEffect(Unit) { LoadTrace.screenShown(PerfSection.CHANNELS) }
 
     val state by model.state.collectAsStateWithLifecycle()
     val previewed by previewModel.preview.collectAsStateWithLifecycle()
@@ -1066,6 +1069,7 @@ private fun Board(
                     HideBar(hiding = choosing, m = m, onConfirm = hider.confirm, onCancel = hider.cancel)
                 }
 
+                LoadStrip(section = PerfSection.CHANNELS, runningOnly = true, fontSize = m.frame.fsLabel)
                 // The failure still gets said, as a line rather than as a wall. A
                 // refresh that did not work is worth knowing about; it is not worth
                 // the catalogue.
@@ -1788,6 +1792,8 @@ private fun ChannelList(
             contentSeen = true
             CastivioTrace.instant(CastivioTrace.FIRST_CONTENT)
             PerformanceLog.firstContent(PerfSection.CHANNELS)
+            // The same instant to the press's session, which counts from Home -- see `LoadTrace`.
+            LoadTrace.contentShown(PerfSection.CHANNELS)
         }
     }
 

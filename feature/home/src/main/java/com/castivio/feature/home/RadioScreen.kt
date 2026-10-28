@@ -72,6 +72,8 @@ import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.ltrToken
 import com.castivio.core.design.theme.CastivioTheme
 import com.castivio.core.design.theme.boundedFraction
+import com.castivio.core.platform.LoadTrace
+import com.castivio.core.platform.PerfSection
 import com.castivio.domain.Channel
 import com.castivio.domain.MediaItem
 import com.castivio.domain.SectionLoad
@@ -120,11 +122,16 @@ fun RadioScreen(
 ) {
     // Told once, and idempotently: composition runs again for reasons that are not a change of section.
     LaunchedEffect(Unit) { model.show(CatalogSection.Radio) }
+    // Temporary, for development: the screen is on, counted from the press on Home -- see `LoadTrace`.
+    LaunchedEffect(Unit) { LoadTrace.screenShown(PerfSection.RADIO) }
 
     val state by model.state.collectAsStateWithLifecycle()
     val typed by model.searchText.collectAsStateWithLifecycle()
     val favoriteIds by favorites.ids.collectAsStateWithLifecycle()
     val rows = model.items.collectAsLazyPagingItems()
+    // The first station, from the device or from the load: told once, to the session of the press that opened this.
+    val hasRows = rows.itemCount > 0
+    LaunchedEffect(hasRows) { if (hasRows) LoadTrace.contentShown(PerfSection.RADIO) }
     val gridState = rememberLazyGridState()
     // A new list starts at its first card; the same list keeps its place.
     LaunchedEffect(state.selectedGroup, state.favorites, state.recent, state.search, state.sort) {
@@ -291,6 +298,7 @@ private fun RadioBoard(
             .border(1.dp, colors.glassBorderSoft, shape)
             .padding(m.panelPad),
     ) {
+        LoadStrip(section = PerfSection.RADIO, runningOnly = true, fontSize = m.frame.fsLabel)
         FetchNotice(fetch = state.fetch, firstLoad = state.firstLoad, m = m, onRetry = model::refresh)
 
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {

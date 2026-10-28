@@ -379,6 +379,9 @@ fun HomeScreen(
                         onExit = onExit,
                         modifier = Modifier.fillMaxWidth().weight(1f),
                     )
+                    // Temporary, for development: where the press on a section has got to. Nothing in a build that
+                    // is not debuggable -- see `LoadStrip`.
+                    LoadStrip(section = null, runningOnly = false, fontSize = frame.fsLabel)
                     FooterLine(state, frame, rhythm)
                 }
             }

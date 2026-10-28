@@ -42,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -67,6 +68,7 @@ import com.castivio.core.design.theme.castivioBackdrop
 import com.castivio.core.design.theme.rememberMetrics
 import com.castivio.core.navigation.BackPolicy
 import com.castivio.core.navigation.ShellBack
+import com.castivio.core.platform.DevDiagnostics
 import com.castivio.domain.CatalogQuery
 import com.castivio.domain.HiddenKind
 import com.castivio.domain.MediaKind as CatalogKind
@@ -261,6 +263,11 @@ fun ShellScreen(
      */
     onExit: () -> Unit,
 ) {
+    // Temporary, for development: the instruments that time a section from its press and a channel to its first
+    // frame are on in a debuggable build and nowhere else -- see `DevDiagnostics`. Read once, before the first press.
+    val applicationContext = LocalContext.current.applicationContext
+    remember(applicationContext) { DevDiagnostics.enableIn(applicationContext) }
+
     var dest by remember { mutableStateOf(Dest.Home) }
     var overlay by remember { mutableStateOf<Overlay?>(null) }
 

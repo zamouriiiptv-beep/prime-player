@@ -55,6 +55,8 @@ import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.components.ltrToken
 import com.castivio.core.design.theme.CastivioTheme
+import com.castivio.core.platform.LoadTrace
+import com.castivio.core.platform.PerfSection
 import com.castivio.domain.MediaItem
 import com.castivio.domain.Movie
 import com.castivio.domain.SectionLoad
@@ -96,6 +98,8 @@ fun MoviesScreen(
 ) {
     // Told once, and idempotently: composition runs again for reasons that are not a change of section.
     LaunchedEffect(Unit) { model.show(CatalogSection.Movies) }
+    // Temporary, for development: the screen is on, counted from the press on Home -- see `LoadTrace`.
+    LaunchedEffect(Unit) { LoadTrace.screenShown(PerfSection.MOVIES) }
 
     val state by model.state.collectAsStateWithLifecycle()
     val typed by model.searchText.collectAsStateWithLifecycle()
@@ -196,6 +200,7 @@ private fun MoviesBoard(
             .border(1.dp, colors.glassBorderSoft, shape)
             .padding(m.panelPad),
     ) {
+        LoadStrip(section = PerfSection.MOVIES, runningOnly = true, fontSize = m.frame.fsLabel)
         FetchNotice(fetch = state.fetch, firstLoad = state.firstLoad, m = m, onRetry = model::refresh)
 
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
@@ -251,6 +256,9 @@ private fun MoviesPane(
         return
     }
     val rows = model.items.collectAsLazyPagingItems()
+    // The first row, from the device or from the load: told once, to the session of the press that opened this.
+    val hasRows = rows.itemCount > 0
+    LaunchedEffect(hasRows) { if (hasRows) LoadTrace.contentShown(PerfSection.MOVIES) }
     val shape = RoundedCornerShape(m.wellRadius)
 
     Box(modifier.clip(shape).border(1.dp, CastivioTheme.colors.glassBorderSoft, shape)) {

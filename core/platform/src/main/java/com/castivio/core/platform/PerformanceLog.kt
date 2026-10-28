@@ -62,17 +62,24 @@ object PerformanceLog {
      * are visibly different rather than merely equal.
      */
     @Synchronized
-    fun begin(section: PerfSection) {
+    fun begin(section: PerfSection, pressedAtNanos: Long? = null) {
         runs += 1
         lastNetwork = null
         databaseNanos.set(0)
         databaseSteps.clear()
         actions.clear()
         failureCounts.clear()
+        readRecords.set(0)
+        val now = SystemClock.elapsedRealtimeNanos()
+        // From the press when there was one -- see [LoadTrace]: the wait behind another section's load is the
+        // viewer's, and a clock that starts when the load does would leave it out. The wait is the run's first
+        // phase, so the stages still add up to the load's own time.
+        val from = pressedAtNanos?.takeIf { it in 1..now } ?: now
         _current.value = SectionReport(
             section = section,
             run = runs,
-            startedAtNanos = SystemClock.elapsedRealtimeNanos(),
+            startedAtNanos = from,
+            phases = if (from < now) listOf(RunPhase(PerfPhase.QUEUED, (now - from) / 1_000_000)) else emptyList(),
         )
     }
 
@@ -89,6 +96,38 @@ object PerformanceLog {
     fun importStarted(section: PerfSection) {
         val report = _current.value
         if (report == null || !report.running) begin(section)
+    }
+
+    /**
+     * How many records the import has read so far: handed to the database, committed or not.
+     *
+     * The importer's own running count, set rather than added to -- it keeps one -- and read by [pulse] while the
+     * import is still going. It is what a panel import *read*, and it is never what was *saved*: that is
+     * [SectionReport.records], the rows committed.
+     */
+    fun recordsRead(count: Int) {
+        readRecords.set(count)
+    }
+
+    private val readRecords = AtomicInteger()
+
+    /**
+     * The figures that change while an import runs, read straight from their counters.
+     *
+     * Not folded into a report: a report is copied when an event arrives, and these move between events. A strip
+     * that ticks reads them as they stand. Zero for a figure nothing has counted yet, which a reader tells from
+     * "none happened" by the run it belongs to.
+     */
+    fun pulse(): LivePulse {
+        val byAction = actions.values
+        return LivePulse(
+            requestsStarted = byAction.sumOf { it.started.get() },
+            requestsFailed = byAction.sumOf { it.failed.get() },
+            retries = byAction.sumOf { it.retried.get() },
+            recordsRead = readRecords.get(),
+            databaseMs = databaseNanos.get() / 1_000_000,
+            databaseSteps = stepsSoFar(),
+        )
     }
 
     /** How the writer is saving this run: `REPLACE` or `APPEND`, each named once. */
@@ -363,6 +402,8 @@ object PerformanceLog {
             databaseMs = (databaseNanos.get() / 1_000_000).takeIf { it > 0 || fullLoad },
             databaseSteps = stepsSoFar(),
             calls = window?.calls.orEmpty(),
+            // Kept on the report: the counter belongs to the run in progress, and the next run clears it.
+            recordsRead = readRecords.get().takeIf { it > 0 },
         )
         _current.value = settledReport
         settledReport.lines().forEach { Log.i(TAG, it) }
@@ -500,6 +541,13 @@ data class SectionReport(
 
     /** Rows committed to SQLite so far. Rises while the import runs. */
     val records: Int? = null,
+
+    /**
+     * Records the import read: handed to the database, committed or not. Set when the run settles, and only then --
+     * while it runs, [PerformanceLog.pulse] has the live figure. Beside [records], and never the same thing: a
+     * failed import can have read sixteen thousand and kept none.
+     */
+    val recordsRead: Int? = null,
 
     /** HTTP attempts begun, retries included. */
     val requestsStarted: Int? = null,
@@ -730,6 +778,12 @@ data class RunPhase(val phase: PerfPhase, val atMs: Long)
  * playlist has no categories to ask for, so it goes from [IMPORT] to [FIRST_COMMIT].
  */
 enum class PerfPhase(val label: String) {
+    /**
+     * The viewer pressed, and the load had not begun: it waited behind another section's. Only a run begun from a
+     * press has it -- see [PerformanceLog.begin] -- and it is the run's first span.
+     */
+    QUEUED("queue"),
+
     /** The importer took the section over from the screen. */
     IMPORT("import"),
 
@@ -754,6 +808,21 @@ enum class PerfPhase(val label: String) {
 
 /** One action's attempts in a run: begun, given up, and made again. */
 data class ActionCount(val started: Int, val failed: Int, val retried: Int)
+
+/**
+ * What changes while an import runs, as [PerformanceLog.pulse] reads it from the counters.
+ *
+ * [recordsRead] is what the importer has handed to the database; [databaseMs] is SQLite's commits so far, and
+ * [databaseSteps] its other steps as they stand. The attempts are the provider's requests, retries included.
+ */
+data class LivePulse(
+    val requestsStarted: Int,
+    val requestsFailed: Int,
+    val retries: Int,
+    val recordsRead: Int,
+    val databaseMs: Long,
+    val databaseSteps: Map<DatabaseStep, Long>,
+)
 
 /**
  * The parts of SQLite's work an import reports besides its commits.

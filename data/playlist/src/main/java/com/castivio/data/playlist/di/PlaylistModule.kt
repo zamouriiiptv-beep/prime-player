@@ -6,6 +6,9 @@ import androidx.tracing.Trace
 import com.castivio.core.common.AppDispatchers
 import com.castivio.core.common.Outcome
 import com.castivio.core.platform.CastivioTrace
+import com.castivio.core.platform.LoadAnswer
+import com.castivio.core.platform.LoadFailure
+import com.castivio.core.platform.LoadTrace
 import com.castivio.core.platform.PerfMode
 import com.castivio.core.platform.PerfSection
 import com.castivio.core.platform.PerformanceLog
@@ -227,8 +230,14 @@ object PlaylistModule {
                 .onCompletion { Trace.endSection() }
         },
         monotonicMs = SystemClock::elapsedRealtime,
-        onRunStarted = { kind -> PerformanceLog.begin(kind.perfSection) },
-        onAnswer = { _, load -> settle(load) },
+        // The run begins through the session the press made, so its clock is the viewer's: see `LoadTrace`. With the
+        // instruments off this is `PerformanceLog.begin` and nothing else.
+        onRunStarted = { kind -> LoadTrace.runStarted(kind.perfSection) },
+        onAnswer = { kind, load ->
+            settle(load)
+            // After the log has settled the run: a report that has just ended is what the session keeps.
+            LoadTrace.answered(kind.perfSection, load.asAnswer())
+        },
     )
 
     /**
@@ -245,6 +254,27 @@ object PlaylistModule {
             is SectionLoad.Failed, is SectionLoad.NoSource -> PerformanceLog.settled(PerfMode.UNKNOWN, fullLoad = false)
             is SectionLoad.Loading, is SectionLoad.Queued -> Unit
         }
+    }
+
+    /** The queue's answer as primitives, for the development strip; this module's only say in what it prints. */
+    private fun SectionLoad.asAnswer(): LoadAnswer = when (this) {
+        is SectionLoad.Loading -> LoadAnswer.Loading(items, groups, groupsDone, bytes, listed)
+        is SectionLoad.Done -> LoadAnswer.Done(items)
+        SectionLoad.Ready -> LoadAnswer.Ready
+        is SectionLoad.Failed -> LoadAnswer.Failed(
+            LoadFailure(
+                stage = diagnosis?.stage?.name ?: "-",
+                error = error.name,
+                exception = diagnosis?.exception,
+                http = diagnosis?.httpStatus,
+                received = diagnosis?.bytesReceived,
+                read = diagnosis?.itemsRead ?: 0,
+                saved = diagnosis?.itemsSaved ?: 0,
+                route = diagnosis?.route?.name,
+            ),
+        )
+
+        SectionLoad.NoSource, SectionLoad.Queued -> LoadAnswer.Skipped
     }
 
     private val MediaKind.perfSection: PerfSection

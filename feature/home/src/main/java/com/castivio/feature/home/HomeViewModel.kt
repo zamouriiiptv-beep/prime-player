@@ -2,6 +2,7 @@ package com.castivio.feature.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.castivio.core.platform.LoadTrace
 import com.castivio.core.platform.NetworkState
 import com.castivio.domain.CatalogRepository
 import com.castivio.domain.MediaKind
@@ -429,10 +430,15 @@ class HomeViewModel @Inject constructor(
      * viewer means.
      */
     fun press(section: CatalogSection): Boolean {
+        // The viewer's clock starts here, before anything is decided or done -- see `LoadTrace`.
+        val pressedAt = LoadTrace.stamp()
         val kind = section.kind
         val current = state.value
         val onDevice = current.onDevice(kind)
-        val press = pressOf(kind, onDevice, marked = current.sections[kind] != null, run = loads.runs.value[kind])
+        val run = loads.runs.value[kind]
+        val press = pressOf(kind, onDevice, marked = current.sections[kind] != null, run = run)
+        // Told before the load is asked for, so the session is there when the queue begins running it.
+        loadPressOf(kind, press, run)?.let { LoadTrace.pressed(section.perf, pressedAt, it) }
         opener.stop()
         return when (press) {
             Press.Open -> true

@@ -53,6 +53,8 @@ import com.castivio.core.design.components.PosterPrefetch
 import com.castivio.core.design.components.castivioBodyStyle
 import com.castivio.core.design.components.castivioChipStyle
 import com.castivio.core.design.theme.CastivioTheme
+import com.castivio.core.platform.LoadTrace
+import com.castivio.core.platform.PerfSection
 import com.castivio.domain.SectionLoad
 import com.castivio.domain.SeriesSummary
 
@@ -94,10 +96,15 @@ fun SeriesScreen(
 ) {
     // Told once, and idempotently: composition runs again for reasons that are not a change of section.
     LaunchedEffect(Unit) { model.show(CatalogSection.Series) }
+    // Temporary, for development: the screen is on, counted from the press on Home -- see `LoadTrace`.
+    LaunchedEffect(Unit) { LoadTrace.screenShown(PerfSection.SERIES) }
 
     val state by model.state.collectAsStateWithLifecycle()
     val typed by model.searchText.collectAsStateWithLifecycle()
     val shows = model.shows.collectAsLazyPagingItems()
+    // The first row, from the device or from the load: told once, to the session of the press that opened this.
+    val hasShows = shows.itemCount > 0
+    LaunchedEffect(hasShows) { if (hasShows) LoadTrace.contentShown(PerfSection.SERIES) }
     val gridState = rememberLazyGridState()
     // A new list starts at its first poster; the same list keeps its place.
     LaunchedEffect(state.selectedGroup, state.search, state.sort) { gridState.scrollToItem(0) }
@@ -189,6 +196,7 @@ private fun SeriesBoard(
             .border(1.dp, colors.glassBorderSoft, shape)
             .padding(m.panelPad),
     ) {
+        LoadStrip(section = PerfSection.SERIES, runningOnly = true, fontSize = m.frame.fsLabel)
         FetchNotice(fetch = state.fetch, firstLoad = state.firstLoad, m = m, onRetry = model::refresh)
 
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {

@@ -1,6 +1,7 @@
 package com.castivio.feature.home
 
 import com.castivio.core.common.AppError
+import com.castivio.core.platform.LoadPress
 import com.castivio.domain.MediaKind
 import com.castivio.domain.SectionLoad
 import com.castivio.domain.SectionRun
@@ -253,6 +254,38 @@ class SectionCardsTest {
         val failed = SectionLoad.Failed(AppError.TIMEOUT, retryable = true)
         assertEquals(Await.Drop, awaitOf(MediaKind.LIVE, mapOf(MediaKind.LIVE to first(failed))))
         assertEquals("another subscription forgot the load", Await.Drop, awaitOf(MediaKind.LIVE, emptyMap()))
+    }
+
+    // ------------------------------------------------- what a press means to the section timer
+
+    @Test
+    fun `a first load is timed from the press, and whether it opens by itself is the section's`() {
+        assertEquals(LoadPress.FIRST_OPENS, loadPressOf(MediaKind.LIVE, Press.Fetch, run = null))
+        assertEquals(LoadPress.FIRST_OPENS, loadPressOf(MediaKind.MOVIE, Press.Fetch, run = null))
+        assertEquals(LoadPress.FIRST_OPENS, loadPressOf(MediaKind.SERIES, Press.Fetch, run = null))
+        assertEquals("radio keeps the viewer on Home until it has loaded", LoadPress.FIRST_STAYS, loadPressOf(MediaKind.RADIO, Press.Fetch, run = null))
+    }
+
+    @Test
+    fun `a section on the device is timed to its rows, and a refresh behind it is not forgotten`() {
+        assertEquals(LoadPress.OPEN, loadPressOf(MediaKind.MOVIE, Press.Open, run = null))
+        assertEquals(LoadPress.OPEN_AND_REFRESH, loadPressOf(MediaKind.MOVIE, Press.OpenAndFetch, run = null))
+        assertEquals(
+            "a refresh already running was asked for by another press",
+            LoadPress.OPEN,
+            loadPressOf(MediaKind.MOVIE, Press.Open, run(SectionLoad.Done(10))),
+        )
+    }
+
+    @Test
+    fun `a press that is the same wait as an earlier one starts no session of its own`() {
+        assertNull(loadPressOf(MediaKind.SERIES, Press.Hint, run(SectionLoad.Loading(0, 0))))
+        assertNull(loadPressOf(MediaKind.LIVE, Press.Await, first(SectionLoad.Queued)))
+        assertNull(
+            "opening a first load whose first category is listed is the same wait",
+            loadPressOf(MediaKind.LIVE, Press.Open, first(SectionLoad.Loading(48, 340, listed = 1))),
+        )
+        assertNull(loadPressOf(MediaKind.MOVIE, Press.Open, run(SectionLoad.Queued)))
     }
 
     private fun run(load: SectionLoad, elapsedMs: Long? = 1_000) = SectionRun(load, forced = false, elapsedMs = elapsedMs)

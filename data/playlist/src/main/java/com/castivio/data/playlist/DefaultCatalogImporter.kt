@@ -347,7 +347,11 @@ class DefaultCatalogImporter(
                         }
                     },
                     cancelled = cancelled,
-                    onEntryRead = { read++ },
+                    onEntryRead = {
+                        read++
+                        // Told to the development strip every so often, not for every line of a playlist.
+                        if (read % RECORDS_READ_EVERY == 0) PerformanceLog.recordsRead(read)
+                    },
                     sections = sections,
                 )
             }
@@ -420,6 +424,7 @@ class DefaultCatalogImporter(
                     // The hash is only meaningful for a stream read to the end.
                     val hash = if (summary.cancelled) stored?.sync?.contentHash else result.contentHash
                     record(sourceId, summary, result.etag, result.lastModified, hash)
+                    PerformanceLog.recordsRead(read)
                     PerformanceLog.phase(PerfPhase.RECORDED)
                 }
             }
@@ -494,11 +499,16 @@ class DefaultCatalogImporter(
                         onProgress(progress)
                     },
                     cancelled = cancelled,
-                    onEntryRead = { read++ },
+                    onEntryRead = {
+                        read++
+                        // Told to the development strip every so often, not for every line of a playlist.
+                        if (read % RECORDS_READ_EVERY == 0) PerformanceLog.recordsRead(read)
+                    },
                     sections = sections,
                 )
             }
             record(sourceId, summary, stored?.sync?.etag, stored?.sync?.lastModified, stored?.sync?.contentHash)
+            PerformanceLog.recordsRead(read)
             PerformanceLog.phase(PerfPhase.RECORDED)
             log("M3U ${sections.joinToString()} read from the kept copy: ${summary.items} rows in ${clock() - startedAt} ms")
             true
@@ -651,7 +661,7 @@ class DefaultCatalogImporter(
         onProgress: (ImportProgress) -> Unit,
         cancelled: () -> Boolean,
     ): ImportProgress.Failed? {
-        val writer = WatchedWriter(writerFactory())
+        val writer = WatchedWriter(writerFactory(), tellsRead = true)
         CallMetrics.reset()
         val startedAt = clock()
         var saved = 0
@@ -695,7 +705,7 @@ class DefaultCatalogImporter(
         onProgress: (ImportProgress) -> Unit,
         cancelled: () -> Boolean,
     ): ImportProgress.Failed? {
-        val writer = WatchedWriter(writerFactory())
+        val writer = WatchedWriter(writerFactory(), tellsRead = true)
         // Phase B instrumentation, and the only reason these two lines exist: how many
         // requests one section costs is a property of the *user's* provider, so it cannot
         // be learned from this repository or from a fixture -- only from a real
@@ -969,6 +979,9 @@ private const val M3U_ENTRY = "#EXTINF:"
 /** Which way a section's streams came, as the engine reported it. */
 private const val NOTE_STREAMS = "streams"
 
+/** How many entries of a playlist pass between two tellings of the count read. */
+private const val RECORDS_READ_EVERY = 1_000
+
 /** A playlist download's name in the request counters, where a panel's is its action. */
 private const val PLAYLIST_ACTION = "playlist"
 
@@ -1021,7 +1034,14 @@ private fun Long.ms(): Long = this / 1_000_000
  * not always say which (an `IllegalStateException` can come from either), so the writer
  * is asked directly. Every call goes through to the real writer unchanged.
  */
-private class WatchedWriter(private val delegate: CatalogWriter) : CatalogWriter by delegate {
+private class WatchedWriter(
+    private val delegate: CatalogWriter,
+    /**
+     * Whether the items handed over are the count of records read, for the development strip: a panel import's are,
+     * and a playlist counts the entries that pass instead -- see `onEntryRead` -- so it must not be overwritten.
+     */
+    private val tellsRead: Boolean = false,
+) : CatalogWriter by delegate {
 
     var threw = false
         private set
@@ -1040,6 +1060,8 @@ private class WatchedWriter(private val delegate: CatalogWriter) : CatalogWriter
 
     override fun writeItems(items: List<CatalogItem>) = watched {
         written += items.size
+        // The records read so far, for the development strip: a batch at a time, never a row.
+        if (tellsRead) PerformanceLog.recordsRead(written)
         delegate.writeItems(items)
     }
 
