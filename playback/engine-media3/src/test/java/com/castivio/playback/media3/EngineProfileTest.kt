@@ -150,7 +150,12 @@ class EngineProfileTest {
         } finally {
             primary.release()
         }
-        assertEquals(OpeningMarks(), factory.create(EngineId.BACKUP, MediaKind.LIVE).openingMarks())
+        // LibVLC never sees a frame itself, so its marks say their first frame is an approximation before they say
+        // anything else. That is what the engine is, not a step it took: no figure is in them.
+        assertEquals(
+            OpeningMarks(firstFrameExact = false),
+            factory.create(EngineId.BACKUP, MediaKind.LIVE).openingMarks(),
+        )
     }
 
     /**
