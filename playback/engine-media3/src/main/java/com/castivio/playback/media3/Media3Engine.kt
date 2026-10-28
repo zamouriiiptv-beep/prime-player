@@ -381,8 +381,16 @@ class Media3Engine(
         // A track chosen on the last channel was a choice about that channel. A fresh engine
         // has none, and this one is handed the next channel as if it were fresh.
         val choices = player.trackSelectionParameters
-        if (choices.overrides.isNotEmpty()) {
-            player.trackSelectionParameters = choices.buildUpon().clearOverrides().build()
+        // **A channel plays without subtitles, entirely.** Text is a track type switched off for it: nothing selects a
+        // text track, nothing decodes one and nothing is drawn, whatever the stream declares in its table -- teletext,
+        // DVB subtitles, captions. Anything else gets text back, so an engine kept across kinds is never left without.
+        val textOff = media.kind == MediaKind.LIVE
+        val textWasOff = C.TRACK_TYPE_TEXT in choices.disabledTrackTypes
+        if (choices.overrides.isNotEmpty() || textWasOff != textOff) {
+            player.trackSelectionParameters = choices.buildUpon()
+                .clearOverrides()
+                .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, textOff)
+                .build()
         }
         // Behind the new source on the playback thread, so it arrives here after everything
         // the player said about the old one and before anything it says about this one.
@@ -612,6 +620,8 @@ class Media3Engine(
             val video = mutableListOf<Track>()
 
             for (group in tracks.groups) {
+                // A channel offers no subtitle track: the stream may declare some, and none of them is a choice.
+                if (liveRequest && group.type == C.TRACK_TYPE_TEXT) continue
                 for (i in 0 until group.length) {
                     val format = group.getTrackFormat(i)
                     val selected = group.isTrackSelected(i)
@@ -665,7 +675,8 @@ class Media3Engine(
          * lines to clear the screen would otherwise draw an empty backdrop over the film.
          */
         override fun onCues(cueGroup: CueGroup) {
-            if (!current) return
+            // Never on a channel, which has its text track switched off: a cue that arrives anyway is not drawn.
+            if (!current || liveRequest) return
             _cues.value = cueGroup.cues
                 .mapNotNull { it.text?.toString()?.trim() }
                 .filter { it.isNotEmpty() }

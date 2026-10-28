@@ -90,6 +90,10 @@ class VlcPlaybackEngine(
     /** The playback clock first moved after the video output appeared: the nearest this engine sees to a picture shown. */
     private var clockAtMs: Long = 0
 
+    /** Whether the source open now is a channel, which plays without subtitles: see [updateTracks]. */
+    @Volatile
+    private var liveOpen = false
+
     private var isReleased = false
     private var currentSurfaceView: SurfaceView? = null
 
@@ -287,6 +291,7 @@ class VlcPlaybackEngine(
         filledAtMs = 0
         tracksAtMs = 0
         clockAtMs = 0
+        liveOpen = media.kind == MediaKind.LIVE
         openedSource = safeSource(media.url)
         _diagnosis.value = null
         _startedAtMs.value = null
@@ -303,6 +308,8 @@ class VlcPlaybackEngine(
                 addOption(":live-caching=${tuning.bufferForPlaybackMs}")
                 addOption(":clock-jitter=0")
                 addOption(":clock-synchro=0")
+                // A channel plays without subtitles: no sub-picture is decoded, selected or drawn.
+                addOption(":no-spu")
             }
             media.userAgent?.let { addOption(":http-user-agent=$it") }
             media.headers.forEach { (headerName, headerValue) ->
@@ -409,6 +416,8 @@ class VlcPlaybackEngine(
                 updateTracks()
             }
             TrackType.SUBTITLE -> {
+                // A channel has none to choose from.
+                if (liveOpen) return
                 mediaPlayer.spuTrack = trackId
                 updateTracks()
             }
@@ -527,14 +536,21 @@ class VlcPlaybackEngine(
         } ?: emptyList()
 
         val currentSpu = mediaPlayer.spuTrack
-        val spuTracks = mediaPlayer.spuTracks?.map { trackDesc ->
-            Track(
-                id = trackDesc.id.toString(),
-                type = TrackType.SUBTITLE,
-                label = trackDesc.name ?: "Subtitle ${trackDesc.id}",
-                selected = trackDesc.id == currentSpu,
-            )
-        } ?: emptyList()
+        val spuTracks = if (liveOpen) {
+            // **A channel plays without subtitles.** None is offered, and one LibVLC chose for itself -- it picks a
+            // default track on its own -- is switched off the moment the streams are known.
+            if (currentSpu != NO_SPU) mediaPlayer.spuTrack = NO_SPU
+            emptyList<Track>()
+        } else {
+            mediaPlayer.spuTracks?.map { trackDesc ->
+                Track(
+                    id = trackDesc.id.toString(),
+                    type = TrackType.SUBTITLE,
+                    label = trackDesc.name ?: "Subtitle ${trackDesc.id}",
+                    selected = trackDesc.id == currentSpu,
+                )
+            } ?: emptyList()
+        }
 
         _tracks.value = TrackSet(
             audio = audioTracks,
@@ -629,6 +645,9 @@ class VlcPlaybackEngine(
 
         /** What LibVLC reports for a full input buffer: the end of buffering, not a stall. */
         const val FULL_BUFFER = 100f
+
+        /** The sub-picture track LibVLC is given to show none: its own word for "no subtitle". */
+        const val NO_SPU = -1
 
         @Volatile
         private var shared: LibVLC? = null

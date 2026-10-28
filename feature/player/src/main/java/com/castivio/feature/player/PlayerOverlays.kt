@@ -999,13 +999,16 @@ private fun sheetRows(sheet: Sheet, state: PlayerState): List<SheetRow> = when (
                 ),
             )
         }
-        add(
-            SheetRow(
-                icon = CastivioIcons.Subtitles,
-                name = stringResource(R.string.player_sheet_subtitles),
-                onPick = { it.onSheet(Sheet.Subtitles) },
-            ),
-        )
+        // No subtitles on a channel, for the reason the tools row gives.
+        if (!state.request.isLive) {
+            add(
+                SheetRow(
+                    icon = CastivioIcons.Subtitles,
+                    name = stringResource(R.string.player_sheet_subtitles),
+                    onPick = { it.onSheet(Sheet.Subtitles) },
+                ),
+            )
+        }
         add(
             SheetRow(
                 icon = CastivioIcons.AudioTrack,

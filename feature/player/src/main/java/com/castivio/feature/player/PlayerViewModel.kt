@@ -238,13 +238,15 @@ class PlayerViewModel @Inject constructor(
         // Worked out once, here, from the request and never from the URL: the title came
         // from the catalogue row the viewer pressed, which is the only thing in the player
         // that knows what this is.
-        val looking = SubtitleQuery.of(request.title, request.subtitle)
-        _state.value = PlayerState(
-            request = request,
-            engine = engineId,
-            attempt = beginWait(since = askedAtNanos),
-            subtitleStyle = style,
-            subtitleSearch = SubtitleSearch(
+        //
+        // **Not for a channel.** A channel is opened with nothing about subtitles: working a search out of its name and
+        // reading the day's download count from storage are for a film's sheet, and on a channel -- which offers no
+        // subtitles at all -- they would only stand between the press and the engine.
+        val subtitleSearch = if (request.isLive) {
+            SubtitleSearch()
+        } else {
+            val looking = SubtitleQuery.of(request.title, request.subtitle)
+            SubtitleSearch(
                 // Fixed for the life of the build: whether this APK was compiled with
                 // credentials. Asked once, here, rather than by the sheet at draw time.
                 available = hunt.available,
@@ -256,7 +258,14 @@ class PlayerViewModel @Inject constructor(
                 // day is used up while the stored count for today is zero.
                 spentToday = allowance.spentToday(),
                 dailyLimit = allowance.dailyLimit,
-            ),
+            )
+        }
+        _state.value = PlayerState(
+            request = request,
+            engine = engineId,
+            attempt = beginWait(since = askedAtNanos),
+            subtitleStyle = style,
+            subtitleSearch = subtitleSearch,
         )
         if (kept != null) reopen(kept, request) else start(request, engineId)
         diagnose(case)

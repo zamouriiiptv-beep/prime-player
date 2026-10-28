@@ -751,6 +751,35 @@
 
 **الاختبارات (شُغّلت محليًا):** `RememberingDnsTest` (8): يمرّ الجواب كما هو، الذاكرة عند الفشل فقط، مضيف لم يُترجم يفشل، الجواب الجديد يحلّ محل القديم، لكل مضيف ذاكرته، المضيف المستعمل يبقى بين مضيفات الصور، رفض السعة 0، وعميل حقيقي على `MockWebServer` يصل بعد أن يتوقف خادم الأسماء (يفشل الاختبار إن أُزيل `RememberingDns`).
 
+## 35) أداتا قياس مؤقتتان للتطوير (نسخ debug القابلة للتصحيح فقط) — لم تُجرَّبا على جهاز
+
+**الأولى: تحميل الأقسام الأربعة من لحظة الضغط في Home.**
+- `core:platform`: `DevDiagnostics` (البوّابة: `FLAG_DEBUGGABLE`، يشغّلها `ShellScreen` مرة)، و`LoadTrace` (جلسة لكل قسم: `stamp()` أول سطر في `HomeViewModel.press`، `pressed` بعد قرار الضغط، `runStarted` عند خروج التحميل من الطابور فيبدأ `PerformanceLog.begin(section, pressedAtNanos)` من الضغط ويسجّل `queue` مرحلةً أولى، `answered` من أجوبة الطابور، `screenShown` و`contentShown` من الشاشات الأربع). المراحل متتابعة وتُجمع؛ اللحظات (`screen`, `rows`, `load done`, `first category`) تُحسب من الضغط ولا تُجمع؛ سطر `work` متداخل ويُقال ذلك. COLD/WARM/REFRESH، وبقاء ظهور المحتوى المحلي منفصلًا عن اكتمال التحديث (الجلسة المضغوطة فوق صفوف موجودة لا تنتهي حتى ينتهي تحميلها).
+- `PerformanceLog`: `begin(section, pressedAtNanos = null)`، و`PerfPhase.QUEUED`، و`recordsRead`/`pulse()` (سجلات مقروءة منفصلة عن المحفوظة، وأرقام الطلبات حيّة).
+- `DefaultCatalogImporter`: `WatchedWriter(tellsRead = true)` للوحة، وعدّاد مدخلات M3U كل 1000 فقط. `PlaylistModule`: `onRunStarted`/`onAnswer` تمرّ عبر `LoadTrace`.
+- `feature:home`: `LoadStrip` (Home تحت اللوحة، وأعلى القسم أثناء جريان الجلسة فقط)، و`loadPressOf` في `SectionCards.kt`. الحجم «جارٍ القياس» حتى ينتهي أول طلب، و«غير متاح» إن لم يُعرف؛ لا عدّاد بايتات جديدًا في مسار الشبكة.
+- **تصحيح لما قيل في الخطة**: المسلسلات والأفلام أيضًا تُفتح بأول باقة (`opensWithFirstCategory`)؛ الراديو وحده يبقى المشاهد في Home حتى ينتهي تحميله.
+
+**الثانية: زمن تشغيل القناة من الضغط إلى أول إطار.**
+- `OpeningMarks` (+`readyMs`, `clockMovingMs`, `firstFrameExact`)؛ Media3 يسجّل `STATE_READY` ويبقى `onRenderedFirstFrame` هو الإطار؛ LibVLC يسجّل `Playing` كجاهزية وأول حركة للساعة بعد `Vout`، وإطاره تقريبي (`≈`) لأن LibVLC 3 لا يبلّغ بإطار مرسوم.
+- `feature:player`: `OpeningReading` (تنسيق نقي: مراحل التطبيق متتابعة، أحداث المحرك لحظات من الضغط، «غير متاح» لما لا يوفّره المحرك)، `OpeningDiagnostics` (آخر 8 تشغيلات + سطور اللوحة + `MainThreadWatch` لتوقف الخيط الرئيسي فوق 100 مللي أثناء الفتح فقط)، `OpeningPanel` (المشغّل الكبير فقط، بلا تركيز ولا لمس)، و`PlayerViewModel.diagnose/readOpening/endDiagnostic` (قراءة كل 100 مللي لمحاولة واحدة بقيمة رقمها؛ المستبدَلة تُسجَّل «replaced» لا نجاحًا). تُفعَّل من `PlayerRoute` بـ`BuildConfig.DEBUG` فلا تعمل في اختبارات الوحدة.
+- حالات المقارنة: first play / engine reused / engine rebuilt / after a failure / fallback.
+
+**الاختبارات (شُغّل محليًا ما يمكن تشغيله):** `LoadTraceTest` (الضغط يُرجَّع إلى لحظته، التحديث جلسة مستقلة، الأدوات المطفأة، شروط الاكتمال، سطر الفشل، تعدّد الأقسام)، و`loadPressOf` في `SectionCardsTest`، و`OpeningReadingTest` (8: Media3 والجاهزية مقابل الصورة، مراحل التطبيق، الانتظار، الفشل، LibVLC بـ«غير متاح» و`≈`، الخيط الرئيسي، جدول آخر 8، المستبدَل)، و`OpeningPanelTest` (4: لا شيء قبل أول تشغيل أو وهي مطفأة، الرسم مع الجدول، الفشل). حزمة JVM 1006 ناجحة، ومشغّل المشغّل 197، وواجهته (Compose سطح المكتب) 61 + 8 + 4.
+
+**الإزالة الكاملة**: حذف `DevDiagnostics.kt` و`LoadTrace.kt` و`LoadStrip.kt` و`OpeningReading.kt` و`OpeningDiagnostics.kt` و`OpeningPanel.kt`، ثم أسطر الاستدعاء المفردة (`LoadTrace.*` في `HomeViewModel` والشاشات الأربع و`PlaylistModule`، و`DevDiagnostics.enableIn` في `Shell`، و`diagnose/endDiagnostic` في `PlayerViewModel`، و`OpeningPanel`/`enable` في `PlayerRoute`) وعلامات المحرّكين الثلاث الإضافية.
+
+## 36) القنوات المباشرة بلا ترجمة إطلاقًا — لم تُجرَّب على جهاز
+
+**السبب:** شكّ المالك أن الترجمة تؤخر فتح القنوات. وفي الكود فعلًا عمل خاص بالترجمة على المسار الحرج لكل فتح: `PlayerViewModel.open` كان يحسب استعلام البحث من اسم القناة (`SubtitleQuery.of`) ويقرأ عدّاد التنزيلات اليومي من التخزين (`allowance.spentToday()`) قبل أن يُطلب من المحرك شيء.
+
+**ما عُدّل (للبث المباشر فقط؛ الأفلام والحلقات كما هي):**
+- `PlayerViewModel.open`: لا استعلام ولا قراءة تخزين للقناة (`SubtitleSearch()` الافتراضي).
+- `Media3Engine`: نوع المسار النصي معطَّل (`setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)`) قبل `prepare` فلا يُختار مسار نصي ولا يُفكّ ولا يُرسم أيًّا كان ما يعلنه البث، ويُعاد تفعيله لما ليس قناة؛ ولا تُبلَّغ مسارات الترجمة (`onTracksChanged`) ولا تُمرَّر الكلمات (`onCues`).
+- `VlcPlaybackEngine`: خيار الوسائط `:no-spu` للقناة، ولا مسارات ترجمة مُبلَّغة، ومسار اختاره LibVLC بنفسه يُطفأ (`spuTrack = -1`) عند معرفة المسارات، و`selectTrack` للترجمة لا يفعل شيئًا في القناة.
+- `PlayerControls` و`PlayerOverlays`: زر «الترجمة» وصف قائمة الإعدادات لا يظهران للقناة، كما لا تظهر السرعة.
+- الاختبارات: في `PlayerPathTest` «فتح القناة لا يحسب بحث ترجمة ولا يقرأ عدّاد التنزيلات» و«الفيلم ما زال يقرأه»، وفي `PlayerLayoutTest` «القناة بلا زر ترجمة» و«الفيلم يحتفظ به». ما لا يُختبر محليًا: `:no-spu` في LibVLC وتعطيل المسار النصي في Media3 (لا محرك على الخادم) — يُرى على جهاز.
+
 ## ملفات معدَّلة (`M`) وجديدة (`??`) — القائمة الكاملة
 
 **معدَّلة (74 ملفًا):**
@@ -870,3 +899,5 @@
 | 2026-10-28 | القسم 32 (محلي): صفحتا المسلسل والفيلم ترسمان ما قرأتاه فورًا وتؤخّران حفظه (`onReady`/`onParsed`)، وحساب المزوّد يُقرأ مرة (`AccountLookup`)، وأرقام الفشل والتقدّم على إشعاري الأفلام في النسخة التجريبية؛ `ShowViewModel` و`DefaultSeriesEpisodes` و`DefaultMovieDetails` و`XtreamImportEngine` و`ChannelsScreen` و`FetchReadout`، واختبارات. |
 | 2026-10-28 | القسم 33 (محلي): صفحة المسلسل — الطلب يسبق فتح القاعدة (`importEpisodes` كان يفتح الكاتب 3.1 ث قبل أن يسأل المزوّد)، فتظهر الحلقات بعد `look + ask + read` لا بعد انتظار القاعدة |
 | 2026-10-28 | القسم 34 (محلي): `RememberingDns` — عناوين المزوّد تُتذكَّر وتُستعمل عند فشل بحث الاسم فقط، بعد لقطة المالك `UnknownHostException<-GaiException` على شاشة المسلسلات؛ مُركَّب في العميل المشترك |
+| 2026-10-28 | القسم 35 (مُلتزَم به، لم يُجرَّب على جهاز): أداتا قياس مؤقتتان — `LoadTrace` لتحميل الأقسام من الضغط في Home مع شريط في Home وأعلى القسم، و`OpeningPanel` لزمن القناة من الضغط إلى أول إطار في المشغّل الكبير (Media3 وLibVLC بحدودهما) مع جدول آخر 8 ورصد توقف الخيط الرئيسي |
+| 2026-10-28 | القسم 36 (مُلتزَم به، لم يُجرَّب على جهاز): القنوات المباشرة بلا ترجمة — لا عمل للترجمة في `open`، ونوع النص معطَّل في Media3، و`:no-spu` في LibVLC، وإخفاء زر الترجمة للقناة |

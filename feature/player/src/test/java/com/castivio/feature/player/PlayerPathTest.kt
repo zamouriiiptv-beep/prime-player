@@ -206,6 +206,33 @@ class PlayerPathTest {
     }
 
     /**
+     * A channel is opened with nothing about subtitles.
+     *
+     * Working a search out of a channel's name and reading the day's download count from storage are for a
+     * film's sheet; on a channel, which offers no subtitles at all, they only stand between the press and the
+     * engine. A film's open still does both, as the tests of the search box show.
+     */
+    @Test
+    fun `opening a channel works out no subtitle search and reads no download count`() = playerTest {
+        val model = model()
+        model.open(liveRequest(title = "PURSUIT -- 2026 Jason Statham Full Action Movie"))
+        runCurrent()
+
+        assertEquals("no box was worked out for a channel", SubtitleSearch(), model.state.value?.subtitleSearch)
+        assertEquals("storage was not read to open a channel", 0, allowance.reads)
+    }
+
+    @Test
+    fun `opening a film still reads the day's download count`() = playerTest {
+        val model = model()
+        model.open(vodRequest())
+        runCurrent()
+
+        assertEquals(1, allowance.reads)
+        assertTrue("the box was worked out from the title", model.state.value?.subtitleSearch?.query.orEmpty().isNotBlank())
+    }
+
+    /**
      * The title is on screen while the picture is not.
      *
      * The loading state carries exactly what the opener already knew, and this asserts the
@@ -3953,7 +3980,13 @@ class PlayerPathTest {
         var recorded = 0
         var declaredSpent = 0
 
-        override fun spentToday(): Int = count
+        /** How many times the day's count was read: a channel's open must not be one of them. */
+        var reads = 0
+
+        override fun spentToday(): Int {
+            reads++
+            return count
+        }
 
         override fun recordDownload() {
             recorded++

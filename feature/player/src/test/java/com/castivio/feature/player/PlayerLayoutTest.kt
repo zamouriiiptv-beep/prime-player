@@ -403,6 +403,22 @@ class PlayerLayoutTest {
         compose.onNodeWithTag(PlayerTags.SPEED).assertIsDisplayed()
     }
 
+    /** A channel plays with its subtitles switched off in both engines, so no button offers a list of them. */
+    @Test
+    fun `a channel has no subtitles button`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingLive())
+
+        compose.onAllNodesWithTag(PlayerTags.SUBTITLES).assertCountEquals(0)
+    }
+
+    /** And a film keeps its own. */
+    @Test
+    fun `a film keeps its subtitles button`() {
+        compose.show(HANDSET, DeviceClass.Expanded, playingFilm())
+
+        compose.onNodeWithTag(PlayerTags.SUBTITLES).assertIsDisplayed()
+    }
+
     /** The same rule in the settings sheet, which listed the speed for everything. */
     @Test
     fun `a channel's settings sheet offers no speed`() {

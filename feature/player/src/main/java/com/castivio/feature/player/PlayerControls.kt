@@ -671,12 +671,16 @@ private fun ToolsRow(state: PlayerState, actions: PlayerActions) {
                 shrinkable = true,
             )
         }
-        PlayerButton(
-            icon = CastivioIcons.Subtitles,
-            label = stringResource(R.string.player_sheet_subtitles),
-            tag = PlayerTags.SUBTITLES,
-            onClick = { actions.onSheet(Sheet.Subtitles) },
-        )
+        // A film's, and not a channel's: a channel plays with its subtitles switched off in both engines, so a button
+        // that opens a list of them would offer what is not there.
+        if (!state.request.isLive) {
+            PlayerButton(
+                icon = CastivioIcons.Subtitles,
+                label = stringResource(R.string.player_sheet_subtitles),
+                tag = PlayerTags.SUBTITLES,
+                onClick = { actions.onSheet(Sheet.Subtitles) },
+            )
+        }
         PlayerButton(
             icon = CastivioIcons.AudioTrack,
             label = stringResource(R.string.player_sheet_audio),
