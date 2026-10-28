@@ -2,6 +2,7 @@ package com.castivio.data.networking
 
 import okhttp3.Cache
 import okhttp3.ConnectionPool
+import okhttp3.Dns
 import okhttp3.OkHttpClient
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -39,7 +40,13 @@ object HttpClientProvider {
          * always built.
          */
         eventListenerFactory: okhttp3.EventListener.Factory? = null,
+        /**
+         * How a host name becomes an address. A host that has resolved before is not given up on because the name
+         * server dropped one answer: see [RememberingDns]. A parameter so a test can name its own addresses.
+         */
+        dns: Dns = RememberingDns(),
     ): OkHttpClient = OkHttpClient.Builder()
+        .dns(dns)
         .connectTimeout(connectTimeoutSeconds, TimeUnit.SECONDS)
         .readTimeout(readTimeoutSeconds, TimeUnit.SECONDS)
         .writeTimeout(readTimeoutSeconds, TimeUnit.SECONDS)

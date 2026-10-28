@@ -306,7 +306,9 @@ class XtreamHttpApi(
         // status already says whether repeating is worth anything.
         is HttpStatusException -> e.statusCode == 408 || e.statusCode == 429 || e.statusCode in 500..599
         // A host that does not resolve will not resolve 500ms later, and a retry here
-        // only makes a wrong address take three times as long to report.
+        // only makes a wrong address take three times as long to report. One that has
+        // resolved before never gets here: the client's `RememberingDns` answers with the
+        // address that worked, so what reaches this is a name that never resolved at all.
         is UnknownHostException -> false
         // SocketTimeoutException is an InterruptedIOException, so this covers both.
         is InterruptedIOException -> true
