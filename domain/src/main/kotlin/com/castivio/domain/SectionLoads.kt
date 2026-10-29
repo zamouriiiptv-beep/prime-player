@@ -27,7 +27,8 @@ import kotlinx.coroutines.launch
  * ## The rules
  *
  *  1. **One load at a time**, in the order they were asked for. A section pressed while
- *     another arrives waits as [SectionLoad.Queued]. Two imports at once share one
+ *     another arrives waits as [SectionLoad.Queued]; from the moment the queue starts it, it
+ *     is [SectionLoad.Loading], whether or not its loader has answered yet. Two imports at once share one
  *     connection, one database writer and, on a stick, one slow processor -- and both
  *     finish later than if they had gone one after the other.
  *  2. **Asking again changes nothing while a section waits or arrives.** A double press,
@@ -116,6 +117,17 @@ class SectionLoads(
     private suspend fun run(ask: Ask, asked: Int) {
         val startedAt = monotonicMs()
         onRunStarted(ask.kind)
+        // Said at once, before the loader has said anything. The loader's first answer waits for
+        // the first rows to be written -- after the writer opens, the categories arrive and are
+        // filed, and the provider starts its reply -- and a card that kept saying "waiting its
+        // turn" through all of it would name a wait that is not there. Not told to [onAnswer]:
+        // this is the queue's own state, not an answer of the load.
+        synchronized(lock) {
+            if (asked == generation) {
+                val run = SectionRun(SectionLoad.Loading(0, 0), ask.force, elapsedMs = monotonicMs() - startedAt, first = ask.first)
+                _runs.update { it + (ask.kind to run) }
+            }
+        }
         load(ask.kind, ask.force)
             // A loader that throws is a failure the viewer can read and ask again about,
             // not an exception that ends every load after it. It is named, too: no importer

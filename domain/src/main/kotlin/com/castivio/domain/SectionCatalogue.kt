@@ -61,7 +61,8 @@ sealed interface SectionLoad {
 
     /**
      * Asked for, and waiting its turn behind another section's load. Only [SectionLoads]
-     * says this: [LoadSection] runs when it is called and never waits.
+     * says this: [LoadSection] runs when it is called and never waits. It ends when the queue
+     * starts the load, not when the load first answers: see [SectionLoads].
      */
     data object Queued : SectionLoad
 

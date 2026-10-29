@@ -12,6 +12,7 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -86,6 +87,53 @@ class SectionLoadsTest {
 
         assertEquals(listOf(MediaKind.LIVE), loader.kinds)
         assertEquals(SectionLoad.Queued, loads.runs.value.getValue(MediaKind.MOVIE).load)
+    }
+
+    /**
+     * The real loader says nothing until its first rows are written, so the queue must not
+     * leave the section "waiting its turn" while the load it started goes on in silence.
+     */
+    @Test
+    fun `a load the queue has started is loading before its loader has said anything`() = runTest {
+        val loader = Loader { _, _ -> flow { awaitCancellation() } }
+        val loads = loads(loader)
+
+        loads.request(MediaKind.LIVE, first = true)
+        loads.request(MediaKind.RADIO)
+        runCurrent()
+
+        val live = loads.runs.value.getValue(MediaKind.LIVE)
+        assertEquals(SectionLoad.Loading(0, 0), live.load)
+        assertTrue("it is still its first load", live.first)
+        assertEquals("its time counts from the start", 0L, live.elapsedMs)
+        assertEquals("the section behind it still waits", SectionLoad.Queued, loads.runs.value.getValue(MediaKind.RADIO).load)
+    }
+
+    @Test
+    fun `the state the queue gives a started load is not an answer of the load`() = runTest {
+        val told = mutableListOf<SectionLoad>()
+        val loader = Loader { _, _ -> flow { awaitCancellation() } }
+        val loads = SectionLoads(backgroundScope, MutableStateFlow("xtream"), loader::invoke, monotonicMs = { 0L }, onAnswer = { _, load -> told += load })
+
+        loads.request(MediaKind.LIVE)
+        runCurrent()
+
+        assertEquals(SectionLoad.Loading(0, 0), loads.runs.value.getValue(MediaKind.LIVE).load)
+        assertEquals("nothing was told as an answer", emptyList<SectionLoad>(), told)
+    }
+
+    @Test
+    fun `a refresh is loading from the moment it starts, and is still a refresh and not a first load`() = runTest {
+        val loader = Loader { _, _ -> flow { awaitCancellation() } }
+        val loads = loads(loader)
+
+        loads.request(MediaKind.MOVIE, force = true)
+        runCurrent()
+
+        val run = loads.runs.value.getValue(MediaKind.MOVIE)
+        assertEquals(SectionLoad.Loading(0, 0), run.load)
+        assertTrue(run.forced)
+        assertFalse(run.first)
     }
 
     // ------------------------------------------------------------------ failures

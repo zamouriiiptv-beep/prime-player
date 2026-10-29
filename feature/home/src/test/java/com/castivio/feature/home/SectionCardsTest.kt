@@ -28,6 +28,29 @@ class SectionCardsTest {
         assertEquals(CardLoad.Waiting(hinted = true), cardLoad(waiting, onDevice = false, justArrived = false, hinted = true))
     }
 
+    /**
+     * What the queue says the moment it starts a load, before the loader has answered: working, with no figure to
+     * give -- not "waiting its turn", which is for a section behind another -- and a press changes nothing.
+     */
+    @Test
+    fun `a load that has just started says it is loading, with no figure`() {
+        val started = run(SectionLoad.Loading(items = 0, groups = 0), elapsedMs = 0)
+
+        assertEquals(
+            CardLoad.Arriving(items = 0, percent = null, refresh = false),
+            cardLoad(started, onDevice = false, justArrived = false, hinted = false),
+        )
+        assertEquals(
+            CardLoad.Arriving(items = 0, percent = null, refresh = true),
+            cardLoad(started, onDevice = true, justArrived = false, hinted = false),
+        )
+        assertEquals(
+            "the press does what it did while the load waited",
+            Press.Await,
+            pressOf(MediaKind.LIVE, onDevice = false, marked = false, run = first(SectionLoad.Loading(items = 0, groups = 0))),
+        )
+    }
+
     /** Frame 1: one reply carries the whole section and names no total, so rows are counted. */
     @Test
     fun `a load that cannot count its categories counts its rows, with no percent`() {
