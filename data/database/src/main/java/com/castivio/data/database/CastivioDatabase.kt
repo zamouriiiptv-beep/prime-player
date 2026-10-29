@@ -59,7 +59,11 @@ import com.castivio.data.database.entity.VodDetailEntity
     //    `CastivioMigrations.ADD_VOD_DETAIL`. Nothing that was stored changed.
     // 8: two tables added, `series_detail` and `episode_plot`, what a provider says of a show and of its
     //    episodes with the episodes -- see `CastivioMigrations.ADD_SERIES_DETAIL`. Nothing that was stored changed.
-    version = 8,
+    // 9: one index removed, `idx_media_epg`, which nothing reads -- see `CastivioMigrations.DROP_EPG_INDEX`. No
+    //    table and no row changed. From this version a subscription's first load may leave
+    //    `idx_media_source_kind_sort_title` out until it ends, so every migration from here on is run through
+    //    `CastivioMigrations.guarded`, which puts it back first -- see `SortTitleIndex`.
+    version = 9,
     exportSchema = true,
 )
 abstract class CastivioDatabase : RoomDatabase() {

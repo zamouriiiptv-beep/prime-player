@@ -42,7 +42,23 @@ object CastivioMigrations {
     // Declared below rather than here, and read through a getter rather than held in a
     // property: an `object`'s properties initialise top to bottom, so a list that
     // named a migration declared under it would be a list holding null.
-    val ALL: Array<Migration> get() = arrayOf(REKEY_SOURCES, SCOPE_TO_SOURCE, KEY_SEARCH_BY_ROW, ADD_CUSTOM_ORDER, ADD_HIDDEN_ITEM, ADD_VOD_DETAIL, ADD_SERIES_DETAIL)
+    //
+    // **From 8 → 9 on, a migration is listed as `guarded(...)`.** A subscription's first load may leave
+    // `idx_media_source_kind_sort_title` out until it ends -- see `SortTitleIndex` -- and Room checks the
+    // schema a migration leaves against the entities', so a migration run over a database whose load was
+    // cut short would end in one that does not open. `guarded` puts the index back first. A migration
+    // from that version on that is not guarded fails `MigrationGuardTest`.
+    val ALL: Array<Migration>
+        get() = arrayOf(
+            REKEY_SOURCES, SCOPE_TO_SOURCE, KEY_SEARCH_BY_ROW, ADD_CUSTOM_ORDER, ADD_HIDDEN_ITEM, ADD_VOD_DETAIL,
+            ADD_SERIES_DETAIL, guarded(DROP_EPG_INDEX),
+        )
+
+    /** The first version a database may be in with the sort-title index out: see [guarded]. */
+    internal const val DEFERRAL_FROM_VERSION = 8
+
+    /** [migration], run after the sort-title index has been put back if a load left it out. */
+    internal fun guarded(migration: Migration): Migration = DeferredIndexGuard(migration)
 
     /**
      * 1 → 2: the stored sources take the ids the current rule gives them.
@@ -283,6 +299,29 @@ object CastivioMigrations {
         }
     }
 
+    /**
+     * 8 → 9: `idx_media_epg` removed from `media`.
+     *
+     * **One index, no table, no row.** It indexed `epg_channel_id`, "for EPG joins", and no query joins
+     * or filters on that column: a channel's guide is read from `programme` by the id the channel carries,
+     * `MediaDao.refsFor` only selects the column, and nothing names the index. Meanwhile an import kept
+     * it up on every row it wrote -- the lab measured 563 ms of a 55,801-row load, and 70 ms of an
+     * 18,803-row one, on a mid-range phone.
+     *
+     * ## Why this is the whole migration
+     *
+     * `IF EXISTS`, so a database that never had the index, or has already lost it, migrates the same.
+     * Room's check of the result expects the entity's five indices and finds five. A database created at
+     * this version never had the sixth, because the entity no longer declares it. Nothing in the
+     * catalogue or the user's data is read or written, which is what lets this stay a drop and not
+     * [recreateCatalogue]: a re-import to remove an index would be a cost with no reason.
+     */
+    private val DROP_EPG_INDEX = object : Migration(8, 9) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("DROP INDEX IF EXISTS `idx_media_epg`")
+        }
+    }
+
     private val ADD_VOD_DETAIL = object : Migration(6, 7) {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL(
@@ -391,4 +430,19 @@ object CastivioMigrations {
 
     /** Not rebuildable from anywhere. */
     val USER_TABLES = listOf("favorite", "playback_progress", "source", "custom_order", "hidden_item")
+}
+
+/**
+ * A migration run after the sort-title index has been put back, if a load left it out -- see
+ * [SortTitleIndex] for why Room would otherwise fail to open the result.
+ *
+ * A class and not a lambda so that `MigrationGuardTest` can ask of every migration from
+ * [CastivioMigrations.DEFERRAL_FROM_VERSION] on whether it is one: the rule is held by a test
+ * and not by anybody remembering it.
+ */
+internal class DeferredIndexGuard(private val inner: Migration) : Migration(inner.startVersion, inner.endVersion) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        SortTitleIndex.restore(db)
+        inner.migrate(db)
+    }
 }

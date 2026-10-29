@@ -41,6 +41,12 @@ import java.util.concurrent.TimeUnit
  *  - **The search index once, at the end.** Not row by row beside the rows, and not
  *    rebuilt whole either: the rows this import wrote, in two statements, after the
  *    last of them. See `indexWrittenRows`.
+ *  - **The sort-title index once, at the end -- of a subscription's first load only.**
+ *    Kept up row by row it was the costliest index of the six, and nothing that is read
+ *    while a first load runs uses it. It is taken out before the first row, built over
+ *    the finished rows, and put back by `finish`, by `abort`, and by the next load's first
+ *    step if the process died in between. Never while rows of the subscription are already
+ *    here: a refresh is read by name while it runs. See [SortTitleIndex].
  *
  *  - **Commits are not slowed by the screens.** Every batch is committed as soon as it is
  *    written; what is paced is only the *telling* -- the observers are notified about once
@@ -55,12 +61,17 @@ import java.util.concurrent.TimeUnit
  * @param monotonicMs a clock that never moves backwards, for the pacing.
  * @param tell notifies the observers that the tables changed. Raw statements bypass Room's
  *   write path, so nothing else would.
+ * @param defersSortTitleIndex whether a subscription's first load leaves the sort-title index
+ *   to be built after its rows -- see [SortTitleIndex]. On in the app. Off only for the
+ *   index-cost lab, which times this writer with each index in the place its case puts it, and
+ *   must not have this one move it. Before [clock], which stays last so a trailing lambda is its.
  */
 class RoomCatalogWriter(
     private val database: CastivioDatabase,
     private val notifyEveryMs: Long = NOTIFY_INTERVAL_MS,
     private val monotonicMs: () -> Long = { System.nanoTime() / 1_000_000 },
     private val tell: () -> Unit = { database.invalidationTracker.refreshVersionsAsync() },
+    private val defersSortTitleIndex: Boolean = true,
     private val clock: () -> Long = System::currentTimeMillis,
 ) : CatalogWriter {
 
@@ -74,6 +85,12 @@ class RoomCatalogWriter(
     private var lastRowIdBefore = 0L
     private var wroteRows = false
     private var wroteGroups = false
+
+    /** This load is its subscription's first: the sort-title index may be taken out. */
+    private var deferSortTitle = false
+
+    /** The drop has been issued and the index not yet put back: what `finish` and `abort` undo. */
+    private var sortTitleDeferred = false
     private var itemStatement: SupportSQLiteStatement? = null
     private var groupStatement: SupportSQLiteStatement? = null
     private var countStatement: SupportSQLiteStatement? = null
@@ -121,6 +138,18 @@ class RoomCatalogWriter(
         toldRows = false
         toldCounts = false
         db.applyImportPragmas()
+        deferSortTitle = false
+        sortTitleDeferred = false
+        if (defersSortTitleIndex) {
+            // First, whatever this load is: an index a load left out and never put back -- the process
+            // was killed, the power went -- is put back before another write is made over its absence.
+            // A read when there is nothing to mend. Not fatal when it cannot be: a list sorted by name
+            // is slower without it, and the next load tries again.
+            runCatching { SortTitleIndex.restore(db) }
+            // Only a subscription's first load. With rows of it already here, a refresh or a second
+            // section, a list sorted by name may be on screen while this one runs.
+            deferSortTitle = db.longOf("SELECT EXISTS (SELECT 1 FROM media WHERE source_id = ?)", sourceId) == 0L
+        }
         // Which way this import writes decides which steps it pays for -- a replacing write
         // prunes the old generation of what it replaces at the end, an appending one does
         // not -- so a reading of its steps means nothing without it.
@@ -184,11 +213,48 @@ class RoomCatalogWriter(
         val statement = itemStatement ?: error("writeItems before begin")
         if (items.isEmpty()) return
         openTransaction()
+        leaveSortTitleForAfter()
         wroteRows = true
         rowsSinceCommit = true
         timed(DatabaseStep.ROWS) {
             for (item in items) insert(source, statement, item)
         }
+    }
+
+    /**
+     * Takes the sort-title index out before the load's first row, once -- see [SortTitleIndex].
+     *
+     * Not in [begin]: a load that fails at its categories, the commonest way for one to fail, never
+     * reaches a row and never touches the schema. Inside the transaction the first rows are written in,
+     * so the drop commits with them -- and a load rolled back before that commit takes the drop with it.
+     */
+    private fun leaveSortTitleForAfter() {
+        if (!deferSortTitle || sortTitleDeferred) return
+        // Marked first: a drop that was started is a drop to undo, whether or not it finished.
+        sortTitleDeferred = true
+        database.openHelper.writableDatabase.execSQL(SortTitleIndex.DROP)
+    }
+
+    /**
+     * Builds the sort-title index over the rows that are there, when this load took it out, and
+     * checks it is as the entity declares it.
+     *
+     * Outside the transaction that counts and indexes the search: an index that could not be built must
+     * not undo the counts, which are right, and is mended by the next load's first step. Before the
+     * observers are told, so the load that is announced is a complete one. Said in the run's notes,
+     * with its time, because it is a cost the load has moved to its end and a reading of the load's
+     * steps would otherwise not find it.
+     */
+    private fun putSortTitleIndexBack(db: SupportSQLiteDatabase) {
+        if (!sortTitleDeferred) return
+        val startedAt = System.nanoTime()
+        val intact = runCatching { SortTitleIndex.restore(db) }.getOrDefault(false)
+        val tookMs = (System.nanoTime() - startedAt) / 1_000_000
+        if (intact) sortTitleDeferred = false
+        PerformanceLog.note(
+            NOTE_SORT_INDEX,
+            if (intact) "built after the rows in $tookMs ms" else "not rebuilt ($tookMs ms); the next load puts it back",
+        )
     }
 
     private fun insert(source: String, statement: SupportSQLiteStatement, item: CatalogItem) {
@@ -355,6 +421,7 @@ class RoomCatalogWriter(
             timed(DatabaseStep.SEARCH) { indexWrittenRows() }
         }
 
+        putSortTitleIndexBack(db)
         db.restoreNormalPragmas()
         announceEnd()
         release()
@@ -379,6 +446,10 @@ class RoomCatalogWriter(
                     }
                 }
             }
+            // Whether or not a row was written: a load that took the index out and failed before its
+            // first commit has had the drop rolled back, and this finds it in place; one that failed
+            // after has rows that are listed and searched, and are sorted by name like any others.
+            putSortTitleIndexBack(db)
             db.restoreNormalPragmas()
             announceEnd()
         }
@@ -438,6 +509,9 @@ class RoomCatalogWriter(
         countStatement = null
         detailStatement = null
         sourceId = null
+        // Whatever is still owed is owed to the next load's first step, not to this writer.
+        deferSortTitle = false
+        sortTitleDeferred = false
     }
 
     private fun hasRows(groupId: String): Boolean =
@@ -534,6 +608,9 @@ class RoomCatalogWriter(
     }
 
     private companion object {
+        /** The run's note on the sort-title index: whether a first load deferred it, and what building it cost. */
+        const val NOTE_SORT_INDEX = "sort index"
+
         /** One thread for every writer's timer: a timer only calls [tell]. */
         val TIMER = Executors.newSingleThreadScheduledExecutor { task ->
             Thread(task, "catalog-notify").apply { isDaemon = true }

@@ -34,14 +34,18 @@ import androidx.room.PrimaryKey
             name = "idx_media_source_kind_group_order",
             value = ["source_id", "kind", "group_id", "provider_order"],
         ),
-        // Name sort, and the alphabet jump-bar.
+        // Name sort, and the alphabet jump-bar. The one index a subscription's first load leaves to be built
+        // after its rows -- see `SortTitleIndex`, which holds this declaration's DDL and a test holds the two to
+        // each other.
         Index(name = "idx_media_source_kind_sort_title", value = ["source_id", "kind", "sort_title"]),
         // The Series screen groups by this; season lists filter on it.
         Index(name = "idx_media_series", value = ["series_id", "season_number", "episode_number"]),
         // Pruning the previous import generation.
         Index(name = "idx_media_source_generation", value = ["source_id", "generation"]),
-        // EPG joins.
-        Index(name = "idx_media_epg", value = ["epg_channel_id"]),
+        // There was a sixth, `idx_media_epg` on `epg_channel_id`, "for EPG joins". No query joins or filters on
+        // that column -- the guide is read by the channel's id from `programme` -- so it was kept up on
+        // every row written and read by nothing. Removed in version 9; see `CastivioMigrations.DROP_EPG_INDEX`.
+        // Add one back only with the query that needs it.
     ],
 )
 data class MediaEntity(

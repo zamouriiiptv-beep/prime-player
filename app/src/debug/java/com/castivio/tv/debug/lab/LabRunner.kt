@@ -26,7 +26,7 @@ internal class LabCancelled : RuntimeException("interrupted")
  * ## Isolation
  *
  * Each run makes its own database -- a file named `dblab-...`, never [CastivioDatabase.NAME] -- from the same
- * Room class as the app's, so its tables, its six indices and its search table are exactly the app's, and
+ * Room class as the app's, so its tables, its five indices and its search table are exactly the app's, and
  * deletes it when the run ends, however it ends. Nothing here opens, reads or writes the app's database, its
  * subscriptions or its settings, or uses the network. The writer is the only production code that runs, and it
  * is handed the scratch database. The one thing shared with the app is `PerformanceLog`'s step counters, which
@@ -118,7 +118,9 @@ internal object LabRunner {
         val sizes = LinkedHashMap<String, Long>()
         // The writer is told nothing about observers: the scratch database has none, and a refresh posted to
         // Room's executor would race the close at the end of the run.
-        val writer = RoomCatalogWriter(database = database, tell = {}, clock = { LabDataset.NOW })
+        // And told not to defer the sort-title index, as the app's own first load now does: the lab puts each index where
+        // its case says, before the timer starts, and a writer that moved one would be measuring something else.
+        val writer = RoomCatalogWriter(database = database, tell = {}, defersSortTitleIndex = false, clock = { LabDataset.NOW })
 
         Runtime.getRuntime().gc()
         val nativeBefore = Debug.getNativeHeapAllocatedSize()

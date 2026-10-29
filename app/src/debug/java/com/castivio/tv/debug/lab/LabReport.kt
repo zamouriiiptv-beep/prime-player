@@ -114,7 +114,7 @@ internal object LabReport {
                     median(runs) { it.insertOnlyMs },
                     median(runs) { it.insertPlusBuildMs },
                     median(runs) { it.totalMs },
-                    if (case.expectedIndices().size == LabIndex.ALL.size) "all six indices" else "without ${(LabIndex.ALL - case.expectedIndices()).joinToString()}",
+                    if (case.expectedIndices().size == LabIndex.ALL.size) "all ${LabIndex.ALL.size} indices" else "without ${(LabIndex.ALL - case.expectedIndices()).joinToString()}",
                 ),
             )
         }
@@ -250,8 +250,7 @@ internal object LabReport {
             "  are therefore at least these.\n" +
             "- The rows time includes the writer's text folding and binding (Kotlin) in every case alike. In a debuggable\n" +
             "  build that Kotlin share is inflated; judge a case by the milliseconds it saves, not by its share.\n" +
-            "- B_del ends with one index fewer than A: its difference is the price of removing idx_media_epg, not of\n" +
-            "  deferring it. B_def is the deferral. A_c20 changes the page cache, not an index.\n" +
+            "- A_c20 changes the page cache, not an index.\n" +
             "- Synthetic data: category sizes, runs, titles and the share of channels with a guide id are assumptions.\n" +
             "- A difference inside A's own spread (its cv and range) is not a difference.\n"
 
