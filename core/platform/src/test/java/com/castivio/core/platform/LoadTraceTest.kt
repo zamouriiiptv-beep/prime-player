@@ -323,6 +323,31 @@ class LoadTraceTest {
         assertTrue(absent.toString(), absent.none { it.startsWith("wire") })
     }
 
+    @Test
+    fun `the wire lines describe the provider's own calls and not what else used the client`() {
+        fun wire(metered: Int, decoded: Long, encoding: List<String>, encoded: Int) = WireFigures(
+            protocols = listOf("http/1.1"), asked = listOf("gzip"), encodings = encoding, encodedCalls = encoded,
+            declaredCalls = 0, declaredBytes = 0, metered = metered, decodedBytes = decoded,
+            sniffedGzipCalls = 0, setupMs = 10, firstByteMs = 100, transferMs = 1_000, blockedMs = 100,
+        )
+        val megabyte = 1_048_576L
+        val provider = CallTimes("get_live_streams", 1, 0, 9_000, 500, 1 * megabyte, wire(1, 20 * megabyte, listOf("gzip"), 1))
+        val logos = CallTimes("other", 10, 0, 800, 200, 5 * megabyte, wire(0, 0, emptyList(), 0))
+        val report = SectionReport(
+            section = PerfSection.CHANNELS, run = 1, startedAtNanos = 0, mode = PerfMode.COLD, fullLoadMs = 1_000,
+            calls = listOf(provider, logos),
+        )
+        val session = LoadSession(
+            id = 1, section = PerfSection.CHANNELS, origin = LoadOrigin.COLD, pressedAtNanos = 0,
+            expectsLoad = true, expectsScreen = true, run = 1, state = LoadState.DONE, endedMs = 1_100,
+        )
+
+        val text = LoadTrace.render(session, 0L, report, pulse = null).joinToString("\n") { it.text }
+
+        assertTrue(text, "answered gzip (1/1)" in text)
+        assertTrue("the ratio is the provider's: $text", "1.0 MB on the wire → 20.0 MB decoded ×20.0" in text)
+    }
+
     private companion object {
         const val FIVE_MS = 5_000_000L
     }

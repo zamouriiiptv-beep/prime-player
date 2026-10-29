@@ -351,11 +351,16 @@ object LoadTrace {
     /**
      * How the provider's answers travelled -- protocol, compression, wire against decoded, where the time went --
      * for every call of the run that was answered by the network. Nothing until a call has been, and for a run whose
-     * calls were all served from the cache. Sums over the run's actions; the figures are described in
+     * calls were all served from the cache. Sums over the provider's own calls; the figures are described in
      * [WireFigures.describe].
      */
     private fun wire(report: SectionReport?): List<String> {
-        val answered = report?.calls?.mapNotNull { call -> call.wire?.let { call to it } }.orEmpty()
+        val onTheNetwork = report?.calls?.mapNotNull { call -> call.wire?.let { call to it } }.orEmpty()
+        // The provider's own replies are the ones whose body was metered. The rest of the window is whatever else
+        // went through the same client while the section loaded -- short calls, logos above all -- and counted in,
+        // they dilute every ratio on the line: the wire's size grows and the decoded one does not. Only when no
+        // body was metered (a playlist, a portal) is the whole window what there is to say.
+        val answered = onTheNetwork.filter { it.second.metered > 0 }.ifEmpty { onTheNetwork }
         if (answered.isEmpty()) return emptyList()
         val figures = answered.map { it.second }.reduce { all, next -> all + next }
         return figures.describe(wireBytes = answered.sumOf { it.first.bytes }, calls = answered.sumOf { it.first.count })
